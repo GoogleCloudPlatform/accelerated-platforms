@@ -25,6 +25,18 @@ This project follows
 
 ## Contribution process
 
+### Coding style and formatting
+
+#### Python
+
+The repository requires that files use the [Black](https://github.com/psf/black) code formatter and style.
+
+#### Terraform
+
+We follow the guidelines and recommendations in the [Google Cloud Best practices for using Terraform](https://cloud.google.com/docs/terraform/best-practices-for-terraform) document, unless noted otherwise.
+
+The repository requires that files use built-in formatting using the `terraform fmt` command.
+
 ### Code reviews
 
 All submissions, including submissions by project members, require review. We

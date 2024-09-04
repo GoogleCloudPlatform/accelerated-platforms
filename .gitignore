@@ -1,2 +1,13 @@
 # IDEs
 *.code-workspace
+
+# Python
+__pycache__/
+.venv/
+venv/
+
+# Terraform
+.terraform
+
+# Test
+test/log/*.log

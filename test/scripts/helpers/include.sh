@@ -36,7 +36,7 @@ echo_bold "A log file is available at '${MLP_LOG_FILE}'"
 # Set additional environment variable
 export MLP_BASE_DIR=$(realpath "${SCRIPTS_DIR}/../..")
 export MLP_LOCK_DIR="${MLP_BASE_DIR}/test/scripts/locks"
-export MLP_TYPE_BASE_DIR="${MLP_BASE_DIR}/examples/platform/${MLP_TYPE}"
+export MLP_TYPE_BASE_DIR="${MLP_BASE_DIR}/platforms/gke-aiml/${MLP_TYPE}"
 
 # Set local_error to 0
 local_error=0

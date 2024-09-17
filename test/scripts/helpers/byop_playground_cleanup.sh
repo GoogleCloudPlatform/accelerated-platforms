@@ -24,10 +24,10 @@ gcloud storage buckets delete gs://${MLP_STATE_BUCKET} --project ${MLP_PROJECT_I
 echo_title "Cleaning up local repository changes"
 cd ${MLP_BASE_DIR} &&
     git restore \
-        examples/platform/playground/backend.tf \
-        examples/platform/playground/mlp.auto.tfvars
+        platforms/gke-aiml/playground/backend.tf \
+        platforms/gke-aiml/playground/mlp.auto.tfvars
 
 cd ${MLP_BASE_DIR} &&
     rm -rf \
-        examples/platform/playground/${TF_DATA_DIR} \
-        examples/platform/playground/.terraform.lock.hcl
+        platforms/gke-aiml/playground/${TF_DATA_DIR} \
+        platforms/gke-aiml/playground/.terraform.lock.hcl

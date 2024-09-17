@@ -24,7 +24,7 @@ gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv &
 rm flipkart_com-ecommerce_sample.csv"
 check_local_error_exit_on_error
 
-export MLP_USE_CASE_BASE_DIR="${MLP_BASE_DIR}/examples/use-case/data-processing/ray"
+export MLP_USE_CASE_BASE_DIR="${MLP_BASE_DIR}/use-cases/model-fine-tuning-pipeline/data-processing/ray"
 
 echo_title "Configure the cloudbuild.yaml"
 sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" ${MLP_USE_CASE_BASE_DIR}/src/cloudbuild.yaml

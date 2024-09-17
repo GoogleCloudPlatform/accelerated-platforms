@@ -6,7 +6,7 @@
 
   ```
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd aiml-platform-ref-arch
+  cd accelerated-platforms
   ```
 
 - Set environment variables

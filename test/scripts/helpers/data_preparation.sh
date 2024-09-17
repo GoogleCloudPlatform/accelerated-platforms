@@ -18,7 +18,7 @@ start_runtime "data_preparation"
 
 echo_title "Preparing data-preparation"
 
-export MLP_USE_CASE_BASE_DIR="${MLP_BASE_DIR}/examples/use-case/data-preparation/gemma-it"
+export MLP_USE_CASE_BASE_DIR="${MLP_BASE_DIR}/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it"
 
 echo_title "Configure the cloudbuild.yaml"
 git restore ${MLP_USE_CASE_BASE_DIR}/src/cloudbuild.yaml

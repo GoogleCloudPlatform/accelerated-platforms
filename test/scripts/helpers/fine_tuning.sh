@@ -18,7 +18,7 @@ start_runtime "fine_tuning"
 
 echo_title "Preparing fine-tuning"
 
-export MLP_USE_CASE_BASE_DIR="${MLP_BASE_DIR}/examples/use-case/fine-tuning/pytorch"
+export MLP_USE_CASE_BASE_DIR="${MLP_BASE_DIR}/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch"
 
 echo_title "Configure the cloudbuild.yaml"
 git restore ${MLP_USE_CASE_BASE_DIR}/src/cloudbuild.yaml

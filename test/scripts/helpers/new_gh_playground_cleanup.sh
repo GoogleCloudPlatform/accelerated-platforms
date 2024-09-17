@@ -18,16 +18,16 @@ echo_title "Cleaning up local repository changes"
 
 print_and_execute_no_check "cd ${MLP_BASE_DIR} &&
 git restore \
-examples/platform/playground/backend.tf \
-examples/platform/playground/mlp.auto.tfvars \
+platforms/gke-aiml/playground/backend.tf \
+platforms/gke-aiml/playground/mlp.auto.tfvars \
 terraform/features/initialize/backend.tf \
 terraform/features/initialize/backend.tf.bucket \
 terraform/features/initialize/initialize.auto.tfvars"
 
 print_and_execute_no_check "cd ${MLP_BASE_DIR} &&
 rm -rf \
-examples/platform/playground/.terraform \
-examples/platform/playground/.terraform.lock.hcl \
+platforms/gke-aiml/playground/.terraform \
+platforms/gke-aiml/playground/.terraform.lock.hcl \
 terraform/features/initialize/.terraform \
 terraform/features/initialize/.terraform.lock.hcl \
 terraform/features/initialize/backend.tf.local \

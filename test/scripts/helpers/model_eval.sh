@@ -18,7 +18,7 @@ start_runtime "model_eval"
 
 echo_title "Preparing model evaluation"
 
-export MLP_USE_CASE_BASE_DIR="${MLP_BASE_DIR}/examples/use-case/model-eval"
+export MLP_USE_CASE_BASE_DIR="${MLP_BASE_DIR}/use-cases/model-fine-tuning-pipeline/model-eval"
 
 echo_title "Configure the cloudbuild.yaml"
 git restore ${MLP_USE_CASE_BASE_DIR}/src/cloudbuild.yaml

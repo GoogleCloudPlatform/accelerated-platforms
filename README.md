@@ -1,5 +1,6 @@
-# Google Cloud AI/ML Platform Reference Architectures
+# Google Cloud Accelerated Platform Reference Architectures
 
-This repository is collection of AI/ML platform reference architectures and use cases for Google Cloud.
+This repository is collection of accelerated platform reference architectures and use cases for Google Cloud.
 
-- [GKE ML Platform for enabling ML Ops](/docs/gke-ml-platform.md)
+- [GKE AI/ML Platform for enabling AI/ML Ops](/docs/platforms/gke-aiml/README.md)
+  - [Model Fine Tuning Pipeline](/docs/use-cases/model-fine-tuning-pipeline/README.md)

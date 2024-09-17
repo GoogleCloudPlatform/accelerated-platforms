@@ -60,7 +60,6 @@ fi
 sed -i "s?NAMESPACE?${K8S_NAMESPACE}?g" ${clusters_namespace_path}/*
 sed -ni '/#END OF SINGLE ENV DECLARATION/q;p' ${clusters_namespace_path}/reposync.yaml
 sed -i "s?ENV?${CLUSTER_ENV}?g" ${clusters_namespace_path}/reposync.yaml
-
 sed -i "s?<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>?${chars_in_reposync_name}?g" ${clusters_namespace_path}/reposync.yaml
 
 # Create the namespace directory

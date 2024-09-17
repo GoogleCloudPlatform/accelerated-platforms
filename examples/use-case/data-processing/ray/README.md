@@ -30,7 +30,7 @@ The data processing step takes approximately 18-20 minutes.
 - Clone the repository and change directory to the guide directory
 
   ```shell
-  git clone https://github.com/GoogleCloudPlatform/aiml-platform-ref-arch && \
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd aiml-platform-ref-arch/examples/use-case/data-processing/ray
   ```
 

@@ -5,7 +5,7 @@
 - Clone the repository and change directory to the ml-platform directory
 
   ```
-  git clone https://github.com/GoogleCloudPlatform/aiml-platform-ref-arch && \
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd aiml-platform-ref-arch
   ```
 

@@ -15,7 +15,7 @@ for this activity, the first is to send prompts to the fine-tuned model, the sec
 - Clone the repository and change directory to the guide directory
 
   ```
-  git clone https://github.com/GoogleCloudPlatform/aiml-platform-ref-arch && \
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd aiml-platform-ref-arch/examples/use-case/model-eval
   ```
 

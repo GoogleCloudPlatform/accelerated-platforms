@@ -11,7 +11,7 @@
 - Clone the repository
 
   ```
-  git clone https://github.com/GoogleCloudPlatform/aiml-platform-ref-arch && \
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd aiml-platform-ref-arch
   ```
 

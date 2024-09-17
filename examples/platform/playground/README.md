@@ -41,7 +41,7 @@ The default quota given to a project should be sufficient for this guide.
 - Clone the repository and change directory to the guide directory
 
   ```
-  git clone https://github.com/GoogleCloudPlatform/aiml-platform-ref-arch && \
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd aiml-platform-ref-arch
   ```
 

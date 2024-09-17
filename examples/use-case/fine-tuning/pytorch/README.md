@@ -14,7 +14,7 @@ with an inference serving engine.
 - Clone the repository and change directory to the guide directory
 
   ```
-  git clone https://github.com/GoogleCloudPlatform/aiml-platform-ref-arch && \
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd aiml-platform-ref-arch/examples/use-case/fine-tuning/pytorch
   ```
 

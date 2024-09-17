@@ -14,7 +14,7 @@ Depending on the infrastructure you provisioned, the data preparation step takes
 - Clone the repository and change directory to the guide directory
 
   ```sh
-  git clone https://github.com/GoogleCloudPlatform/aiml-platform-ref-arch && \
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd aiml-platform-ref-arch/examples/use-case/data-preparation/gemma-it
   ```
 

@@ -20,6 +20,7 @@ spec:
     metadata:
       labels:
         app: finetune-job
+        ml-platform: fine-tuning
       annotations:
         gke-gcsfuse/volumes: "true"
         gke-gcsfuse/memory-limit: "35Gi"

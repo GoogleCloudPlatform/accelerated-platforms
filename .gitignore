@@ -1,2 +1,16 @@
 # IDEs
 *.code-workspace
+
+# Python
+__pycache__/
+.venv/
+venv/
+
+# Terraform
+*.terraform/
+*.terraform-*/
+*.terraform.lock.hcl
+
+# Test
+test/log/*.log
+test/scripts/environment_files/*

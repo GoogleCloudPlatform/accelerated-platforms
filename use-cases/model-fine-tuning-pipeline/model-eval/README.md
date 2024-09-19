@@ -81,7 +81,7 @@ for this activity, the first is to send prompts to the fine-tuned model, the sec
 - Wait for the deployment to be ready
 
   ```
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait --for=condition=ready --timeout=900s pod -l app=vllm-openai
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait --for=condition=ready --timeout=900s pod -l app=vllm-openai-${ACCELERATOR}
   ```
 
   When they deployment is ready your should see output similar to:

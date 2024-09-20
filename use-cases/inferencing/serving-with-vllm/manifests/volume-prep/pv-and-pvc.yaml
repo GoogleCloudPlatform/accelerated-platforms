@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: model-weights-disk-1024gb-zone-a
+  labels:
+    pv-usage: model-weights
+    pv-spec: ssd-1024G
+spec:
+  storageClassName: ""
+  capacity:
+    storage: 1024Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: pd.csi.storage.gke.io
+    volumeHandle: projects/gkebatchexpce3c8dcb/zones/us-east4-a/disks/models-fine-tune-disk-v1
+    fsType: ext4
+    readOnly: true
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: topology.gke.io/zone
+          operator: In
+          values:
+          - us-east4-a
+  mountOptions:
+  - read_ahead_kb=4096
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-model-weights-claim-1024gb-zone-a-ro
+  namespace:  _NAMESPACE_  # replace with your namespace
+spec:
+  storageClassName: ""
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1024Gi
+  selector:
+    matchLabels:
+      pv-usage: model-weights
+      pv-spec: ssd-1024G

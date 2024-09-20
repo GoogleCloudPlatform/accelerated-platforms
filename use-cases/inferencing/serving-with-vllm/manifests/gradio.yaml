@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gradio
+  namespace: _NAMESPACE_  # replace with your namespace
+  labels:
+    app: gradio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gradio
+  template:
+    metadata:
+      labels:
+        app: gradio
+    spec:
+      containers:
+      - name: gradio
+        image: us-docker.pkg.dev/google-samples/containers/gke/gradio-app:v1.0.3
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        env:
+        - name: CONTEXT_PATH
+          value: "/v1/chat/completions"
+        - name: HOST
+          value: "http://vllm-openai:8000"
+        - name: DISABLE_SYSTEM_MESSAGE
+          value: "true"
+        - name: LLM_ENGINE
+          value: "openai"
+        - name: MODEL_ID
+          value: "/data/models/model-gemma2-a100/experiment-a2aa2c3it1"
+        - name: USER_PROMPT
+          value: "<start_of_turn>user\nprompt<end_of_turn>\n"
+        - name: SYSTEM_PROMPT
+          value: "<start_of_turn>model\nprompt<end_of_turn>\n"
+        ports:
+        - containerPort: 7860
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gradio
+  namespace: ml-serve  # replace with your namespace
+spec:
+  selector:
+    app: gradio
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 7860
+  type: LoadBalancer

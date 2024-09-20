@@ -13,6 +13,7 @@
 # limitations under the License.
 
 locals {
+  configsync_manifests_directory               = abspath("${path.module}/manifests/configsync/${var.environment_name}")
   namespace_default_kubernetes_service_account = "default"
   ray_head_kubernetes_service_account          = "ray-head"
   ray_worker_kubernetes_service_account        = "ray-worker"
@@ -27,6 +28,7 @@ resource "null_resource" "template_manifests" {
   depends_on = [
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
   ]
 
   provisioner "local-exec" {
@@ -34,6 +36,7 @@ resource "null_resource" "template_manifests" {
     environment = {
       GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
       GIT_REPOSITORY         = local.git_repository
+      MANIFESTS_DIRECTORY    = local.configsync_manifests_directory
       PROJECT_ID             = data.google_project.environment.project_id
     }
   }
@@ -52,6 +55,7 @@ resource "null_resource" "cluster_manifests" {
   depends_on = [
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
     null_resource.template_manifests,
   ]
 
@@ -62,6 +66,7 @@ resource "null_resource" "cluster_manifests" {
       CLUSTER_NAME           = google_container_cluster.mlp.name
       GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
       GIT_REPOSITORY         = local.git_repository
+      MANIFESTS_DIRECTORY    = local.configsync_manifests_directory
       PROJECT_ID             = data.google_project.environment.project_id
     }
   }
@@ -80,6 +85,7 @@ resource "null_resource" "git_cred_secret_cms" {
   depends_on = [
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
     null_resource.connect_gateway_kubeconfig,
   ]
 
@@ -116,6 +122,7 @@ resource "null_resource" "kueue" {
     environment = {
       GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
       GIT_REPOSITORY         = local.git_repository
+      MANIFESTS_DIRECTORY    = local.configsync_manifests_directory
       PROJECT_ID             = data.google_project.environment.project_id
     }
   }
@@ -134,6 +141,7 @@ resource "null_resource" "kueue" {
 #   depends_on = [
 #     google_gke_hub_feature_membership.cluster_configmanagement,
 #     google_secret_manager_secret_version.git_config,
+#     module.configsync_repository,
 #     null_resource.kueue,
 #   ]
 
@@ -142,6 +150,7 @@ resource "null_resource" "kueue" {
 #     environment = {
 #       GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
 #       GIT_REPOSITORY = local.git_repository
+#       MANIFESTS_DIRECTORY    = local.configsync_manifests_directory
 #       PROJECT_ID = data.google_project.environment.project_id
 #     }
 #   }
@@ -160,6 +169,7 @@ resource "null_resource" "kuberay_manifests" {
   depends_on = [
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
     null_resource.kueue,
     #null_resource.nvidia_dcgm,
   ]
@@ -170,6 +180,7 @@ resource "null_resource" "kuberay_manifests" {
       GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
       GIT_REPOSITORY         = local.git_repository
       K8S_NAMESPACE          = var.namespace
+      MANIFESTS_DIRECTORY    = local.configsync_manifests_directory
       PROJECT_ID             = data.google_project.environment.project_id
     }
   }
@@ -180,12 +191,15 @@ resource "null_resource" "kuberay_manifests" {
   }
 }
 
+
+
 # NAMESPACE
 ###############################################################################
 resource "null_resource" "namespace_manifests" {
   depends_on = [
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
     null_resource.connect_gateway_kubeconfig,
     null_resource.kuberay_manifests,
   ]
@@ -195,9 +209,11 @@ resource "null_resource" "namespace_manifests" {
     environment = {
       CLUSTER_ENV            = var.environment_name
       CLUSTER_NAME           = google_container_cluster.mlp.name
+      CONFIGSYNC_IMAGE       = self.triggers.configsync_image
       GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
       GIT_REPOSITORY         = local.git_repository
       K8S_NAMESPACE          = self.triggers.namespace
+      MANIFESTS_DIRECTORY    = self.triggers.manifests_directory
       PROJECT_ID             = data.google_project.environment.project_id
     }
   }
@@ -205,11 +221,13 @@ resource "null_resource" "namespace_manifests" {
   provisioner "local-exec" {
     command = "scripts/namespace_cleanup.sh"
     environment = {
+      CONFIGSYNC_IMAGE       = self.triggers.configsync_image
       ENVIRONMENT_NAME       = self.triggers.environment_name
       GIT_CONFIG_SECRET_NAME = self.triggers.git_config_secret_name
       GIT_REPOSITORY         = self.triggers.git_repository
       KUBECONFIG             = self.triggers.kubeconfig
       K8S_NAMESPACE          = self.triggers.namespace
+      MANIFESTS_DIRECTORY    = self.triggers.manifests_directory
       PROJECT_ID             = self.triggers.project_id
       REPO_SYNC_NAME         = self.triggers.repo_sync_name
       REPO_SYNC_NAMESPACE    = self.triggers.repo_sync_namespace
@@ -220,11 +238,13 @@ resource "null_resource" "namespace_manifests" {
   }
 
   triggers = {
+    configsync_image       = local.configsync_image
     environment_name       = var.environment_name
     git_config_secret_name = local.git_config_secret_name
     git_repository         = local.git_repository
     kubeconfig             = "${local.kubeconfig_dir}/${data.google_project.environment.project_id}_${google_gke_hub_membership.cluster.membership_id}"
     project_id             = data.google_project.environment.project_id
+    manifests_directory    = local.configsync_manifests_directory
     md5_files              = md5(join("", [for f in fileset("${path.module}/templates/configsync/templates/_cluster_template/team", "**") : md5("${path.module}/templates/configsync/templates/_cluster_template/team/${f}")]))
     md5_script             = filemd5("${path.module}/scripts/namespace_manifests.sh")
     namespace              = var.namespace
@@ -240,8 +260,9 @@ resource "null_resource" "namespace_manifests" {
 ###############################################################################
 resource "null_resource" "git_cred_secret_ns" {
   depends_on = [
-    null_resource.connect_gateway_kubeconfig,
     google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
+    null_resource.connect_gateway_kubeconfig,
     null_resource.namespace_manifests,
   ]
 
@@ -249,6 +270,7 @@ resource "null_resource" "git_cred_secret_ns" {
     command = "${path.module}/scripts/git_cred_secret.sh"
     environment = {
       GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
+      GIT_REPOSITORY         = local.git_repository
       K8S_NAMESPACE          = var.namespace
       KUBECONFIG             = "${local.kubeconfig_dir}/${data.google_project.environment.project_id}_${google_gke_hub_membership.cluster.membership_id}"
       PROJECT_ID             = data.google_project.environment.project_id
@@ -269,6 +291,7 @@ resource "null_resource" "kuberay_watch_namespace_manifests" {
   depends_on = [
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
     null_resource.namespace_manifests,
   ]
 
@@ -278,6 +301,7 @@ resource "null_resource" "kuberay_watch_namespace_manifests" {
       GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
       GIT_REPOSITORY         = local.git_repository
       K8S_NAMESPACE          = var.namespace
+      MANIFESTS_DIRECTORY    = local.configsync_manifests_directory
       PROJECT_ID             = data.google_project.environment.project_id
     }
   }
@@ -295,19 +319,21 @@ resource "null_resource" "cluster_namespace_manifests" {
   depends_on = [
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
     null_resource.kuberay_watch_namespace_manifests,
   ]
 
   provisioner "local-exec" {
     command = "${path.module}/scripts/cluster_namespace_manifests.sh"
     environment = {
+      DATA_BUCKET                = local.bucket_data_name
       GIT_CONFIG_SECRET_NAME     = local.git_config_secret_name
       GIT_REPOSITORY             = local.git_repository
       K8S_NAMESPACE              = var.namespace
       K8S_SERVICE_ACCOUNT_HEAD   = local.ray_head_kubernetes_service_account
       K8S_SERVICE_ACCOUNT_WORKER = local.ray_worker_kubernetes_service_account
       K8S_SERVICE_ACCOUNT_MLFLOW = local.mlflow_kubernetes_service_account
-      DATA_BUCKET                = local.bucket_data_name
+      MANIFESTS_DIRECTORY        = local.configsync_manifests_directory
       PROJECT_ID                 = data.google_project.environment.project_id
     }
   }
@@ -315,6 +341,38 @@ resource "null_resource" "cluster_namespace_manifests" {
   triggers = {
     md5_files  = md5(join("", [for f in fileset("${path.module}/templates/configsync/templates/_namespace_template/app", "**") : md5("${path.module}/templates/configsync/templates/_namespace_template/app/${f}")]))
     md5_script = filemd5("${path.module}/scripts/cluster_namespace_manifests.sh")
+  }
+}
+
+
+
+# SYNCHRONIZE CONFIGSYNC
+###############################################################################
+resource "null_resource" "synchronize_configsync" {
+  depends_on = [
+    google_gke_hub_feature_membership.cluster_configmanagement,
+    google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
+    null_resource.cluster_namespace_manifests,
+  ]
+
+  provisioner "local-exec" {
+    command = "${path.module}/scripts/synchronize_configsync.sh"
+    environment = {
+      CONFIGSYNC_IMAGE       = local.configsync_image
+      GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
+      GIT_REPOSITORY         = local.git_repository
+      KUBECONFIG             = "${local.kubeconfig_dir}/${data.google_project.environment.project_id}_${google_gke_hub_membership.cluster.membership_id}"
+      MANIFESTS_DIRECTORY    = local.configsync_manifests_directory
+      PROJECT_ID             = data.google_project.environment.project_id
+      REPO_SYNC_NAME         = "${var.environment_name}-${var.namespace}"
+      REPO_SYNC_NAMESPACE    = var.namespace
+      ROOT_SYNC_NAME         = "root-sync"
+    }
+  }
+
+  triggers = {
+    md5_script = filemd5("${path.module}/scripts/synchronize_configsync.sh")
   }
 }
 
@@ -383,17 +441,20 @@ resource "null_resource" "gateway_manifests" {
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
     kubernetes_secret_v1.ray_head_client,
-    null_resource.cluster_namespace_manifests,
+    module.configsync_repository,
+    null_resource.synchronize_configsync,
   ]
 
   provisioner "local-exec" {
     command = "scripts/gateway_manifests.sh"
     environment = {
+      CONFIGSYNC_IMAGE       = self.triggers.configsync_image
       ENVIRONMENT_NAME       = self.triggers.environment_name
       GIT_CONFIG_SECRET_NAME = self.triggers.git_config_secret_name
       GIT_REPOSITORY         = self.triggers.git_repository
       KUBECONFIG             = self.triggers.kubeconfig
       K8S_NAMESPACE          = self.triggers.namespace
+      MANIFESTS_DIRECTORY    = self.triggers.manifests_directory
       PROJECT_ID             = self.triggers.project_id
       REPO_SYNC_NAME         = self.triggers.repo_sync_name
       REPO_SYNC_NAMESPACE    = self.triggers.repo_sync_namespace
@@ -405,10 +466,12 @@ resource "null_resource" "gateway_manifests" {
   provisioner "local-exec" {
     command = "scripts/gateway_cleanup.sh"
     environment = {
+      CONFIGSYNC_IMAGE       = self.triggers.configsync_image
       GIT_CONFIG_SECRET_NAME = self.triggers.git_config_secret_name
       GIT_REPOSITORY         = self.triggers.git_repository
       K8S_NAMESPACE          = self.triggers.namespace
       KUBECONFIG             = self.triggers.kubeconfig
+      MANIFESTS_DIRECTORY    = self.triggers.manifests_directory
       PROJECT_ID             = self.triggers.project_id
       REPO_SYNC_NAME         = self.triggers.repo_sync_name
       REPO_SYNC_NAMESPACE    = self.triggers.repo_sync_namespace
@@ -419,6 +482,7 @@ resource "null_resource" "gateway_manifests" {
   }
 
   triggers = {
+    configsync_image       = local.configsync_image
     environment_name       = var.environment_name
     gateway_name           = local.gateway_name
     git_config_secret_name = local.git_config_secret_name
@@ -427,6 +491,7 @@ resource "null_resource" "gateway_manifests" {
     github_token           = var.git_token
     github_user            = var.git_user_name
     kubeconfig             = "${local.kubeconfig_dir}/${data.google_project.environment.project_id}_${google_gke_hub_membership.cluster.membership_id}"
+    manifests_directory    = local.configsync_manifests_directory
     md5_script             = filemd5("${path.module}/scripts/gateway_manifests.sh")
     md5_files = md5(join("", [
       local_file.gateway_external_https_yaml.content_md5,
@@ -452,15 +517,18 @@ resource "null_resource" "wait_for_configsync" {
   depends_on = [
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
     null_resource.gateway_manifests,
   ]
 
   provisioner "local-exec" {
-    command = "${path.module}/scripts/wait_for_configsync.sh"
+    command = "${path.module}/scripts/synchronize_configsync.sh"
     environment = {
+      CONFIGSYNC_IMAGE       = local.configsync_image
       GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
       GIT_REPOSITORY         = local.git_repository
       KUBECONFIG             = "${local.kubeconfig_dir}/${data.google_project.environment.project_id}_${google_gke_hub_membership.cluster.membership_id}"
+      MANIFESTS_DIRECTORY    = local.configsync_manifests_directory
       PROJECT_ID             = data.google_project.environment.project_id
       REPO_SYNC_NAME         = "${var.environment_name}-${data.kubernetes_namespace_v1.team.metadata[0].name}"
       REPO_SYNC_NAMESPACE    = data.kubernetes_namespace_v1.team.metadata[0].name
@@ -469,6 +537,6 @@ resource "null_resource" "wait_for_configsync" {
   }
 
   triggers = {
-    md5_script = filemd5("${path.module}/scripts/wait_for_configsync.sh")
+    md5_script = filemd5("${path.module}/scripts/synchronize_configsync.sh")
   }
 }

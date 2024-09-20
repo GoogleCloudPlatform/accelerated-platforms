@@ -19,7 +19,7 @@ variable "cluster_name_prefix" {
 }
 
 variable "config_management_version" {
-  default     = "1.17.1"
+  default     = "1.19.0"
   description = "Version of Config Management to enable"
   type        = string
 }

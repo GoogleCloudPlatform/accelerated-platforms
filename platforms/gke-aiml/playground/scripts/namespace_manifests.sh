@@ -13,14 +13,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -u
-
 SCRIPT_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
 
-source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+if [ -z ${GIT_REPOSITORY:-} ]; then
+  export GIT_REPOSITORY_PATH="${MANIFESTS_DIRECTORY}"
+else
+  source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+fi
 
 # Set directory and path variables
 clusters_directory="manifests/clusters"
@@ -42,11 +44,23 @@ mkdir ${clusters_namespace_path}
 # Copy template files to clusters namespace directory
 cp -r ${cluster_template_path}/team/* ${clusters_namespace_path}
 
+if [ -z ${GIT_REPOSITORY:-} ]; then
+  rm ${clusters_namespace_path}/reposync-git.yaml
+  mv ${clusters_namespace_path}/reposync-oci.yaml ${clusters_namespace_path}/reposync.yaml
+
+  sed -i "s?CONFIGSYNC_IMAGE?${CONFIGSYNC_IMAGE}?g" ${clusters_namespace_path}/reposync.yaml
+else
+  rm ${clusters_namespace_path}/reposync-oci.yaml
+  mv ${clusters_namespace_path}/reposync-git.yaml ${clusters_namespace_path}/reposync.yaml
+
+  sed -i "s?GIT_REPO?https://${GIT_REPOSITORY}?g" ${clusters_namespace_path}/reposync.yaml
+fi
+
 # Configure template files in clusters namespace directory
 sed -i "s?NAMESPACE?${K8S_NAMESPACE}?g" ${clusters_namespace_path}/*
 sed -ni '/#END OF SINGLE ENV DECLARATION/q;p' ${clusters_namespace_path}/reposync.yaml
 sed -i "s?ENV?${CLUSTER_ENV}?g" ${clusters_namespace_path}/reposync.yaml
-sed -i "s?GIT_REPO?https://${GIT_REPOSITORY}?g" ${clusters_namespace_path}/reposync.yaml
+
 sed -i "s?<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>?${chars_in_reposync_name}?g" ${clusters_namespace_path}/reposync.yaml
 
 # Create the namespace directory
@@ -58,8 +72,10 @@ export resources=("${clusters_namespace_path}")
 export kustomization_file="${clusters_path}/kustomization.yaml"
 source ${SCRIPT_PATH}/helpers/add_to_kustomization.sh
 
-# Add, commit, and push changes to the repository
-cd ${GIT_REPOSITORY_PATH}
-git add .
-git commit -m "Manifests for '${K8S_NAMESPACE}' namespace"
-git push origin
+if [ ! -z ${GIT_REPOSITORY:-} ]; then
+  # Add, commit, and push changes to the repository
+  cd ${GIT_REPOSITORY_PATH}
+  git add .
+  git commit -m "Manifests for '${K8S_NAMESPACE}' namespace"
+  git push origin
+fi

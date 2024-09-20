@@ -21,13 +21,19 @@ echo_title "Deleting Terraform GCS bucket"
 gsutil -m rm -rf gs://${MLP_STATE_BUCKET}/*
 gcloud storage buckets delete gs://${MLP_STATE_BUCKET} --project ${MLP_PROJECT_ID}
 
-echo_title "Cleaning up local repository changes"
-cd ${MLP_BASE_DIR} &&
-    git restore \
-        platforms/gke-aiml/playground/backend.tf \
-        platforms/gke-aiml/playground/mlp.auto.tfvars
+echo_title "Restoring configuration files"
 
-cd ${MLP_BASE_DIR} &&
-    rm -rf \
-        platforms/gke-aiml/playground/${TF_DATA_DIR} \
-        platforms/gke-aiml/playground/.terraform.lock.hcl
+echo_title "Cleaning up local repository changes"
+rm -rf ${TF_DATA_DIR}
+
+rm -f \
+    ${MLP_TYPE_BASE_DIR}/${TF_DATA_DIR} \
+    ${MLP_TYPE_BASE_DIR}/.terraform.lock.hcl \
+    ${MLP_TYPE_BASE_DIR}/cluster_configmanagement_* \
+    ${MLP_TYPE_BASE_DIR}/configsync_repository_*
+
+git restore \
+    ${MLP_TYPE_BASE_DIR}/backend.tf \
+    ${MLP_TYPE_BASE_DIR}/cluster_configmanagement_* \
+    ${MLP_TYPE_BASE_DIR}/configsync_repository_* \
+    ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars

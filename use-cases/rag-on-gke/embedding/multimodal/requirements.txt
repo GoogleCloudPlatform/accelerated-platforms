@@ -6,3 +6,4 @@ pillow
 flask
 requests
 salesforce-lavis==1.0.2
+google.cloud.storage

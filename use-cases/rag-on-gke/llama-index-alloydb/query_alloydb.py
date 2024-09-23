@@ -162,7 +162,8 @@ class AlloyDBNaiveQueryEngine(CustomQueryEngine):
         res, *_ = results.fetchone()
         return res
 
-def test_joined_table(url):
+
+def get_flipkart_table(url):
     engine = sqlalchemy.create_engine(url)
     meta_data = sqlalchemy.MetaData()
     meta_data.reflect(bind=engine)
@@ -179,6 +180,11 @@ def test_joined_table(url):
             select_from(flipkart).
             join(emb, flipkart.c.uniq_id == emb.c.uniq_id).
             subquery())
+    return subq
+
+def test_joined_table(url):
+    engine = sqlalchemy.create_engine(url)
+    subq = get_flipkart_table(url)
     j_retr = AlloyDBNaiveRetriever(url="",
                                    table= subq,
                                    text_column="description",
@@ -195,7 +201,7 @@ def test_joined_table(url):
         print(nn)
     query = AlloyDBNaiveQueryEngine(db_engine=engine,
                                     retriever = j_retr,
-                                    llm_function = "inference_text")
+                                    llm_function = "vllm_completion")
     response = query.query("cycling shorts for women")
     print(str(response))
 

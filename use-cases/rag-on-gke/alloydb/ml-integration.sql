@@ -13,6 +13,15 @@ CALL
       model_in_transform_fn => null,
       model_out_transform_fn => null);
 
+create or replace function vllm_completion(input_text text)
+returns TEXT AS $$
+SELECT json_extract_path_text(google_ml.predict_row('gke-vllm-finetuned',
+   json_build_object('prompt', input_text,
+   'model', '/data/models/model-gemma2-a100/experiment-a2aa2c3it1',
+   'max_tokens', 1024))::json, 'choices','0','text');
+$$ LANGUAGE sql IMMUTABLE;
+
+
 -- 10.150.15.227
 call google_ml.drop_model('multimodal-blip2');
 CALL

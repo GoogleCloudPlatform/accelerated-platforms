@@ -76,3 +76,9 @@ call google_ml.create_model(
      model_type => 'text_embedding',
      model_in_transform_fn => 'google_ml.blip2_embedding_text_input',
      model_out_transform_fn => 'google_ml.blip2_embedding_text_output');
+
+create or replace function google_ml.embedding_text(input_text text)
+returns vector as $$
+SELECT google_ml.embedding('blip2-text', input_text);
+$$
+LANGUAGE sql IMMUTABLE;

@@ -53,12 +53,15 @@ class AlloyDBNaiveRetriever(BaseRetriever):
                                  [id_column])]
 
         if isinstance(embedding_function, str):
+            *packagenames, funcname = embedding_function.split(".")
             self._embedding_function = (lambda *x:
                                         sqlalchemy.Function(
-                                            embedding_function,
+                                            funcname,
                                             *x,
-                                            type_=Vector
+                                            type_=Vector,
+                                            packagenames=tuple(packagenames)
                                         ))
+
         else:
             self._embedding_function = embedding_function
         self._db_connection = self._db_engine.connect()
@@ -136,9 +139,12 @@ class AlloyDBNaiveQueryEngine(CustomQueryEngine):
                  **kwargs):
         super().__init__(**kwargs)
         if isinstance(llm_function, str):
+            *packagenames, funcname = llm_function.split(".")
             self._inference_func = (lambda *x:
                                     sqlalchemy.
-                                    Function(llm_function, *x))
+                                    Function(funcname,
+                                             *x,
+                                             packagenames=tuple(packagenames)))
         else:
             self._inference_func = self.llm_function
         self._db_connection = self.db_engine.connect()

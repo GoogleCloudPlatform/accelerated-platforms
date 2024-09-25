@@ -16,11 +16,15 @@
 set -u
 
 SCRIPT_PATH="$(
-  cd "$(dirname "$0")" >/dev/null 2>&1
-  pwd -P
+    cd "$(dirname "$0")" >/dev/null 2>&1
+    pwd -P
 )"
 
-source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+if [ -z ${GIT_REPOSITORY:-} ]; then
+    export GIT_REPOSITORY_PATH="${MANIFESTS_DIRECTORY}"
+else
+    source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+fi
 
 # Set directory and path variables
 clusters_directory="manifests/clusters"
@@ -29,26 +33,39 @@ namespace_directory="manifests/apps/${K8S_NAMESPACE}"
 namespace_path="${GIT_REPOSITORY_PATH}/${namespace_directory}"
 
 cd "${namespace_path}/.." || {
-  echo "Team namespace directory '${namespace_directory}' does not exist"
+    echo "Team namespace directory '${namespace_directory}' does not exist"
 }
 
-git rm -rf ${namespace_path}
+rm -rf ${namespace_path}
 
 cd "${clusters_path}" || {
-  echo "Clusters directory '${clusters_directory}' does not exist"
+    echo "Clusters directory '${clusters_directory}' does not exist"
 }
 
-git rm -rf ${clusters_path}/${K8S_NAMESPACE}/*
+rm -rf ${clusters_path}/${K8S_NAMESPACE}/*
+
 sed -i "/- .\/${K8S_NAMESPACE}/d" ${clusters_path}/kustomization.yaml
 sed -i "/  - ${K8S_NAMESPACE}/d" ${clusters_path}/kuberay/values.yaml
 
-# Add, commit, and push changes to the repository
-cd ${GIT_REPOSITORY_PATH}
-git add .
-git commit -m "Removed manifests for '${K8S_NAMESPACE}' namespace"
-git push origin
+if [ ! -z ${GIT_REPOSITORY:-} ]; then
+    git rm -rf ${namespace_path}
+    git rm -rf ${clusters_path}/${K8S_NAMESPACE}/*
 
-${SCRIPT_PATH}/helpers/wait_for_root_sync.sh $(git rev-parse HEAD)
+    # Add, commit, and push changes to the repository
+    cd ${GIT_REPOSITORY_PATH}
+    git add .
+    git commit -m "Removed manifests for '${K8S_NAMESPACE}' namespace"
+    git push origin
+    LAST_COMMIT=$(git rev-parse HEAD)
+else
+    ${SCRIPT_PATH}/helpers/generate_oic_image.sh
+
+    LASTEST_SHA=$(crane digest ${CONFIGSYNC_IMAGE})
+    LAST_COMMIT=${LASTEST_SHA##sha256:}
+fi
+
+#TODO: Do we need to wait for a sync?
+#${SCRIPT_PATH}/helpers/wait_for_root_sync.sh ${LAST_COMMIT}
 
 echo "Deleteing the namespace '${K8S_NAMESPACE}'..."
 kubectl --namespace ${K8S_NAMESPACE} delete all --all

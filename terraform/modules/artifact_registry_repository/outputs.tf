@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo_title "Checking GitLab required configuration"
+output "http_clone_url" {
+  value = "${google_artifact_registry_repository.repository.location}-docker.pkg.dev/${google_artifact_registry_repository.repository.project}/${google_artifact_registry_repository.repository.name}"
+}
 
-export GIT_TOKEN_FILE=${GIT_TOKEN_FILE:-${HOME}/secrets/mlp-gitlab-token}
+output "location" {
+  value = google_artifact_registry_repository.repository.location
+}
 
-if [ ! -f ${GIT_TOKEN_FILE} ]; then
-    echo "Git token missing at '${GIT_TOKEN_FILE}'!"
-    exit 3
-fi
+output "name" {
+  value = google_artifact_registry_repository.repository.name
+}
 
-source ${SCRIPTS_DIR}/helpers/git_env.sh
+output "project" {
+  value = google_artifact_registry_repository.repository.project
+}
+
+output "repo" {
+  value = google_artifact_registry_repository.repository
+}

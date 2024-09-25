@@ -30,6 +30,13 @@ resource "google_project_service" "anthosconfigmanagement_googleapis_com" {
   service                    = "anthosconfigmanagement.googleapis.com"
 }
 
+resource "google_project_service" "artifactregistry_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.environment.project_id
+  service                    = "artifactregistry.googleapis.com"
+}
+
 resource "google_project_service" "cloudresourcemanager_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false

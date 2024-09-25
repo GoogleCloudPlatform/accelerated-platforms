@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-
+#!/bin/bash
+#
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,14 +13,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+SCRIPT_PATH="$(
+    cd "$(dirname "$0")" >/dev/null 2>&1
+    pwd -P
+)"
 
-echo_title "Checking GitLab required configuration"
-
-export GIT_TOKEN_FILE=${GIT_TOKEN_FILE:-${HOME}/secrets/mlp-gitlab-token}
-
-if [ ! -f ${GIT_TOKEN_FILE} ]; then
-    echo "Git token missing at '${GIT_TOKEN_FILE}'!"
-    exit 3
+if [ -z ${GIT_REPOSITORY:-} ]; then
+    cd ${MANIFESTS_DIRECTORY}
+    crane append -f <(tar -f - -c *) -t ${CONFIGSYNC_IMAGE}
 fi
-
-source ${SCRIPTS_DIR}/helpers/git_env.sh

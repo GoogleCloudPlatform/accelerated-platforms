@@ -68,7 +68,9 @@ The data processing step takes approximately 18-20 minutes.
   ```shell
   cd src
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
-  gcloud beta builds submit --config cloudbuild.yaml \
+  gcloud beta builds submit \
+  --config cloudbuild.yaml \
+  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
   --project ${MLP_PROJECT_ID} \
   --substitutions _DESTINATION=${MLP_DATA_PROCESSING_IMAGE}
   cd ..

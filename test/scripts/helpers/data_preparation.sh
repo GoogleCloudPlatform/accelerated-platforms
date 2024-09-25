@@ -26,7 +26,9 @@ sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/servi
 
 echo_title "Building container image"
 print_and_execute "cd ${MLP_USE_CASE_BASE_DIR}/src && \
-gcloud beta builds submit --config cloudbuild.yaml \
+gcloud beta builds submit \
+--config cloudbuild.yaml \
+--gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \ 
 --project ${MLP_PROJECT_ID} \
 --substitutions _DESTINATION=${MLP_DATA_PREPARATION_IMAGE}"
 check_local_error_exit_on_error

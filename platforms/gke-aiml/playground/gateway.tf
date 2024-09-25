@@ -132,6 +132,7 @@ resource "google_project_service" "iap_googleapis_com" {
   service                    = "iap.googleapis.com"
 }
 
+# TODO: Look at adding validation that the OAuth brand exists
 resource "google_iap_client" "ray_head_client" {
   depends_on = [
     google_project_service.iap_googleapis_com

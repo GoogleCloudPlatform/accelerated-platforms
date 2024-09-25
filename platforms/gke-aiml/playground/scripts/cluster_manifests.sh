@@ -13,14 +13,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -u
-
 SCRIPT_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
 
-source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+if [ -z ${GIT_REPOSITORY:-} ]; then
+  export GIT_REPOSITORY_PATH="${MANIFESTS_DIRECTORY}"
+else
+  source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+fi
 
 # Set directory and path variables
 clusters_directory="manifests/clusters"
@@ -51,8 +53,10 @@ export resources=("${clusters_path}/${CLUSTER_NAME}-cluster.yaml ${clusters_path
 export kustomization_file="${clusters_path}/kustomization.yaml"
 source ${SCRIPT_PATH}/helpers/add_to_kustomization.sh
 
-# Add, commit, and push changes to the repository
-cd ${GIT_REPOSITORY_PATH}
-git add .
-git commit -m "Manifests for '${CLUSTER_NAME}' cluster in the ${CLUSTER_ENV} environment."
-git push origin
+if [ ! -z ${GIT_REPOSITORY:-} ]; then
+  # Add, commit, and push changes to the repository
+  cd ${GIT_REPOSITORY_PATH}
+  git add .
+  git commit -m "Manifests for '${CLUSTER_NAME}' cluster in the ${CLUSTER_ENV} environment."
+  git push origin
+fi

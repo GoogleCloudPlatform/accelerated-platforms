@@ -13,13 +13,14 @@
 # limitations under the License.
 
 locals {
-  bucket_data_name     = "${data.google_project.environment.project_id}-${var.environment_name}-data"
-  bucket_model_name    = "${data.google_project.environment.project_id}-${var.environment_name}-model"
-  data_preparation_ksa = "${var.environment_name}-${var.namespace}-data-preparation"
-  data_processing_ksa  = "${var.environment_name}-${var.namespace}-data-processing"
-  fine_tuning_ksa      = "${var.environment_name}-${var.namespace}-fine-tuning"
-  gsa_build_account_id = "${var.environment_name}-${var.namespace}-build"
-  gsa_build_email      = google_service_account.build.email
+  bucket_cloudbuild_name = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
+  bucket_data_name       = "${data.google_project.environment.project_id}-${var.environment_name}-data"
+  bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
+  data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
+  data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
+  fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"
+  gsa_build_account_id   = "${var.environment_name}-${var.namespace}-build"
+  gsa_build_email        = google_service_account.build.email
   gsa_build_roles = [
     "roles/logging.logWriter",
   ]
@@ -36,13 +37,6 @@ resource "google_project_service" "aiplatform_googleapis_com" {
   disable_on_destroy         = false
   project                    = data.google_project.environment.project_id
   service                    = "aiplatform.googleapis.com"
-}
-
-resource "google_project_service" "artifactregistry_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.environment.project_id
-  service                    = "artifactregistry.googleapis.com"
 }
 
 resource "google_project_service" "cloudbuild_googleapis_com" {
@@ -63,6 +57,14 @@ resource "google_artifact_registry_repository" "container_images" {
 
 # GCS
 ###############################################################################
+resource "google_storage_bucket" "cloudbuild" {
+  force_destroy               = true
+  location                    = var.subnet_01_region
+  name                        = local.bucket_cloudbuild_name
+  project                     = data.google_project.environment.project_id
+  uniform_bucket_level_access = true
+}
+
 resource "google_storage_bucket" "data" {
   depends_on = [
     google_container_cluster.mlp
@@ -113,7 +115,7 @@ resource "google_artifact_registry_repository_iam_member" "container_images_gsa_
 }
 
 resource "google_storage_bucket_iam_member" "cloudbuild_bucket_gsa_build_storage_object_viewer" {
-  bucket = "${data.google_project.environment.project_id}_cloudbuild"
+  bucket = google_storage_bucket.cloudbuild.name
   member = google_service_account.build.member
   role   = "roles/storage.objectViewer"
 }
@@ -122,8 +124,7 @@ resource "google_storage_bucket_iam_member" "cloudbuild_bucket_gsa_build_storage
 ###############################################################################
 resource "kubernetes_service_account_v1" "data_processing" {
   depends_on = [
-    null_resource.git_cred_secret_ns,
-    null_resource.namespace_manifests
+    null_resource.synchronize_configsync,
   ]
 
   metadata {
@@ -134,8 +135,7 @@ resource "kubernetes_service_account_v1" "data_processing" {
 
 resource "kubernetes_service_account_v1" "data_preparation" {
   depends_on = [
-    null_resource.git_cred_secret_ns,
-    null_resource.namespace_manifests
+    null_resource.synchronize_configsync,
   ]
 
   metadata {
@@ -146,8 +146,7 @@ resource "kubernetes_service_account_v1" "data_preparation" {
 
 resource "kubernetes_service_account_v1" "fine_tuning" {
   depends_on = [
-    null_resource.git_cred_secret_ns,
-    null_resource.namespace_manifests
+    null_resource.synchronize_configsync,
   ]
 
   metadata {
@@ -158,8 +157,7 @@ resource "kubernetes_service_account_v1" "fine_tuning" {
 
 resource "kubernetes_service_account_v1" "model_evaluation" {
   depends_on = [
-    null_resource.git_cred_secret_ns,
-    null_resource.namespace_manifests
+    null_resource.synchronize_configsync,
   ]
 
   metadata {
@@ -244,6 +242,7 @@ output "environment_configuration" {
   value = <<EOT
 MLP_AR_REPO_URL="${local.repo_container_images_url}"
 MLP_BUILD_GSA="${local.gsa_build_email}"
+MLP_CLOUDBUILD_BUCKET="${local.bucket_cloudbuild_name}"
 MLP_CLUSTER_KUBERNETES_HOST="${local.connect_gateway_host_url}"
 MLP_CLUSTER_LOCATION="${google_container_cluster.mlp.location}"
 MLP_CLUSTER_NAME="${local.cluster_name}"

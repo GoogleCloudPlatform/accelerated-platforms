@@ -20,3 +20,14 @@ if [ -z "${MLP_PROJECT_ID}" ]; then
     echo "MLP_PROJECT_ID is not set!"
     exit 7
 fi
+
+echo_title "Restoring configuration files"
+print_and_execute_no_check "rm -f \
+${MLP_TYPE_BASE_DIR}/cluster_configmanagement_* \
+${MLP_TYPE_BASE_DIR}/configsync_repository_*"
+
+print_and_execute_no_check "git restore \
+${MLP_TYPE_BASE_DIR}/backend.tf \
+${MLP_TYPE_BASE_DIR}/cluster_configmanagement_* \
+${MLP_TYPE_BASE_DIR}/configsync_repository_* \
+${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars"

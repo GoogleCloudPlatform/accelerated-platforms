@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-echo_title "Checking GitLab required configuration"
+terraform {
+  required_version = ">= 1.5.7"
 
-export GIT_TOKEN_FILE=${GIT_TOKEN_FILE:-${HOME}/secrets/mlp-gitlab-token}
-
-if [ ! -f ${GIT_TOKEN_FILE} ]; then
-    echo "Git token missing at '${GIT_TOKEN_FILE}'!"
-    exit 3
-fi
-
-source ${SCRIPTS_DIR}/helpers/git_env.sh
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "5.38.0"
+    }
+  }
+}

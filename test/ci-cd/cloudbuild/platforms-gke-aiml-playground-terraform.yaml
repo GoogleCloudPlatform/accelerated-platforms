@@ -1,0 +1,37 @@
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+- args:
+  - --cache=true
+  - --cache-ttl=48h
+  - --context=dir://test/ci-cd/container_images
+  - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest
+  - --dockerfile=test/ci-cd/container_images/dockerfile.runner
+  - --log-format=text
+  - --log-timestamp=false
+  - --verbosity=info
+  id: "Build runner image"
+  name: "gcr.io/kaniko-project/executor:latest"
+  waitFor: ["-"]
+
+- name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  id: "Test platforms/gke-aiml/playground Terraform"
+  entrypoint: "ash"
+  args:
+    - "-xe"
+    - "-c"
+    - |
+      export MLP_PROJECT_ID=${PROJECT_ID}
+
+      echo "PATH=$${PATH}"
+      ls -alh /usr/local/bin
+      which terraform
+
+      test/scripts/qwiklabs/playground_byop_oci_apply.sh && \
+      test/scripts/qwiklabs/playground_byop_oci_apply.sh && \
+      test/scripts/qwiklabs/playground_byop_oci_destroy.sh
+  waitFor:
+  - "Build runner image"
+substitutions:
+  _AR_REPO_LOCATION: "us-central1"

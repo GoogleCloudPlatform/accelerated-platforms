@@ -74,6 +74,8 @@ spec:
           value: "V_MODEL_PATH"
         - name: EPOCHS
           value: "1"
+        - name: TRAIN_BATCH_SIZE
+          value: "V_TRAIN_BATCH_SIZE"
         - name: HF_TOKEN
           valueFrom:
             secretKeyRef:

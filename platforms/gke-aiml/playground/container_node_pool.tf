@@ -36,6 +36,11 @@ resource "google_container_node_pool" "cpu_n4s8" {
     total_min_node_count = 1
   }
 
+  management {
+        auto_repair  = false
+        auto_upgrade = false
+      }
+
   network_config {
     enable_private_nodes = true
   }
@@ -49,7 +54,8 @@ resource "google_container_node_pool" "cpu_n4s8" {
     machine_type    = "n4-standard-8"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
 
     # Blocks
@@ -78,16 +84,18 @@ resource "google_container_node_pool" "cpu_n4s8" {
   }
 
   timeouts {
-    create = "30m"
-    update = "20m"
+    create = "1m"
+    update = "1m"
+    delete = "1m"
   }
 }
 
 
 
-# GPU
+# GPU node shapes
 # Available zones: https://cloud.google.com/compute/docs/gpus/gpu-regions-zones#view-using-table
-###############################################################################
+##############################################################################
+# TODO: don't need for DRA demo
 resource "google_container_node_pool" "gpu_a100x2_a2h2" {
   depends_on = [google_gke_hub_membership.cluster]
 
@@ -110,6 +118,11 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2" {
     total_min_node_count = 0
   }
 
+  management {
+        auto_repair  = false
+        auto_upgrade = false
+      }
+
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
@@ -130,7 +143,8 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2" {
     machine_type    = "a2-highgpu-2g"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
 
     # Blocks
@@ -173,8 +187,8 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2" {
   }
 }
 
-###############################################################################
-
+##############################################################################
+# TODO: don't need for DRA demo
 resource "google_container_node_pool" "gpu_a100x2_a2h2_dws" {
   depends_on = [google_gke_hub_membership.cluster]
 
@@ -197,6 +211,11 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_dws" {
     total_min_node_count = 0
   }
 
+  management {
+        auto_repair  = false
+        auto_upgrade = false
+      }
+
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
@@ -217,7 +236,8 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_dws" {
     machine_type    = "a2-highgpu-2g"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
 
     # Blocks
@@ -286,6 +306,11 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_dws" {
     total_min_node_count = 0
   }
 
+  management {
+        auto_repair  = false
+        auto_upgrade = false
+      }
+
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
@@ -301,12 +326,17 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_dws" {
     # Variables
     labels = {
       "resource-model" : "h100"
-      "resource-type" : "gpu"
+      "resource-type" : "gpu",
+      "gke-no-default-nvidia-gpu-device-plugin" : "true",
+      "nvidia.com/gpu" : "present",
+      "nvidia.com/dra.kubelet-plugin" : "true"
+      "nvidia.com/dra.controller" : "true"
     }
     machine_type    = "a3-highgpu-8g"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
 
     # Blocks
@@ -379,6 +409,11 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24" {
     total_min_node_count = 0
   }
 
+  management {
+        auto_repair  = false
+        auto_upgrade = false
+      }
+
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
@@ -395,11 +430,16 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24" {
     labels = {
       "resource-model" : "l4"
       "resource-type" : "gpu"
+      "gke-no-default-nvidia-gpu-device-plugin" : "true",
+      "nvidia.com/gpu" : "present",
+      "nvidia.com/dra.kubelet-plugin" : "true"
+      "nvidia.com/dra.controller" : "true"
     }
     machine_type    = "g2-standard-24"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
 
     # Blocks
@@ -464,6 +504,11 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_dws" {
     total_min_node_count = 0
   }
 
+  management {
+        auto_repair  = false
+        auto_upgrade = false
+      }
+
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
@@ -480,11 +525,16 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_dws" {
     labels = {
       "resource-model" : "l4"
       "resource-type" : "gpu"
+      "gke-no-default-nvidia-gpu-device-plugin" : "true",
+      "nvidia.com/gpu" : "present",
+      "nvidia.com/dra.kubelet-plugin" : "true"
+      "nvidia.com/dra.controller" : "true"
     }
     machine_type    = "g2-standard-24"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
 
     # Blocks
@@ -554,6 +604,11 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_spot" {
     total_min_node_count = 0
   }
 
+  management {
+        auto_repair  = false
+        auto_upgrade = false
+      }
+
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
@@ -570,11 +625,16 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_spot" {
     labels = {
       "resource-model" : "l4"
       "resource-type" : "gpu"
+      "gke-no-default-nvidia-gpu-device-plugin" : "true",
+      "nvidia.com/gpu" : "present",
+      "nvidia.com/dra.kubelet-plugin" : "true"
+      "nvidia.com/dra.controller" : "true"
     }
     machine_type    = "g2-standard-24"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
     spot = true
 

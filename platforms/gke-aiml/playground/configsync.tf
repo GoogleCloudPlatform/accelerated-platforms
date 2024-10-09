@@ -161,6 +161,31 @@ resource "null_resource" "kueue" {
 #   }
 # }
 
+# NVIDIA DRA DRIVER
+###############################################################################
+resource "null_resource" "nvidia_dra_driver" {
+  depends_on = [
+    google_gke_hub_feature_membership.cluster_configmanagement,
+    google_secret_manager_secret_version.git_config,
+    module.configsync_repository,
+  ]
+
+    provisioner "local-exec" {
+    command = "${path.module}/scripts/nvidia_dra_driver_manifests.sh"
+    environment = {
+      GIT_CONFIG_SECRET_NAME = local.git_config_secret_name
+      GIT_REPOSITORY         = local.git_repository
+      MANIFESTS_DIRECTORY    = local.configsync_manifests_directory
+      PROJECT_ID             = data.google_project.environment.project_id
+      MLP_AR_REPO_URL        = "${google_artifact_registry_repository.container_images.location}-docker.pkg.dev/${google_artifact_registry_repository.container_images.project}/${var.environment_name}/k8s-dra-driver:v0.1.0"
+    }
+  }
+
+  triggers = {
+    md5_files  = md5(join("", [for f in fileset("${path.module}/templates/configsync/templates/_cluster_template/dra/nvidia-dra-drivers", "**") : md5("${path.module}/templates/configsync/templates/_cluster_template/dra/nvidia-dra-drivers/${f}")]))
+    md5_script = filemd5("${path.module}/scripts/nvidia_dra_driver_manifests.sh")
+  }
+}
 
 
 # KUBERAY MANIFESTS

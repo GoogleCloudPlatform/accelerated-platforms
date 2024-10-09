@@ -39,7 +39,8 @@ resource "google_container_node_pool" "node-pool" {
     machine_type    = var.machine_type
     service_account = var.service_account
     oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
+      "https://www.googleapis.com/auth/cloud-platform",
+      "https://www.googleapis.com/auth/devstorage.read_only"
     ]
 
     gcfs_config {

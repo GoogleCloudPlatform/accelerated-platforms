@@ -32,6 +32,7 @@ resource "google_container_cluster" "mlp" {
   project                  = var.project_id
   remove_default_node_pool = var.remove_default_node_pool
   subnetwork               = var.subnet
+  enable_kubernetes_alpha = true
 
   addons_config {
     gcp_filestore_csi_driver_config {
@@ -54,12 +55,13 @@ resource "google_container_cluster" "mlp" {
     auto_provisioning_defaults {
       service_account = var.service_account
       oauth_scopes = [
-        "https://www.googleapis.com/auth/cloud-platform"
+        "https://www.googleapis.com/auth/cloud-platform",
+        "https://www.googleapis.com/auth/devstorage.read_only"
       ]
 
       management {
-        auto_repair  = true
-        auto_upgrade = true
+        auto_repair  = false
+        auto_upgrade = false
       }
 
       shielded_instance_config {

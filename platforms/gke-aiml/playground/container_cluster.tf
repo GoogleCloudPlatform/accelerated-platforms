@@ -75,7 +75,7 @@ resource "google_container_cluster" "mlp" {
     enabled             = true
 
     auto_provisioning_defaults {
-      disk_type = "pd-standard"
+      disk_type = "pd-balanced"
       disk_size = 100
       image_type = "UBUNTU_CONTAINERD"
       oauth_scopes = [
@@ -260,7 +260,7 @@ resource "google_container_cluster" "mlp" {
 
   private_cluster_config {
     enable_private_nodes    = true
-    enable_private_endpoint = true
+    enable_private_endpoint = false
     master_ipv4_cidr_block  = "172.16.0.32/28"
   }
 

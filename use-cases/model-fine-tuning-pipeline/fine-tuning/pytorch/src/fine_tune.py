@@ -58,7 +58,7 @@ def get_current_node_id_and_rank():
         logger.info(f"total_gpus: {total_gpus}")
         total_nodes = int(total_gpus / gpu_per_node)
         logger.info(f"total_nodes: {total_nodes}")
-        node_id = global_rank // total_nodes
+        node_id = global_rank // gpu_per_node
     else:
         logger.info("Distributed training enabled.")
         node_id = 0

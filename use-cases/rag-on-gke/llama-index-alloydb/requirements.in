@@ -1,3 +1,4 @@
 pgvector
 llama-index
 gradio
+psycopg

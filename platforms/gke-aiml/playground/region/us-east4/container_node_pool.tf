@@ -26,8 +26,9 @@ resource "google_container_node_pool" "cpu_n4s8" {
   location           = var.region
   name               = "cpu-n4s8"
   node_locations = [
-    "us-central1-a",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-b",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -95,8 +96,9 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
   location = var.region
   name     = "cpu-n4s8-spot"
   node_locations = [
-    "us-central1-a",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-b",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -166,18 +168,15 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
 # A100 x 2
 ###################################################################################################
 
-resource "google_container_node_pool" "gpu_a100x2_a2h2" {
+resource "google_container_node_pool" "gpu_a100x2_a2u2" {
   depends_on = [google_gke_hub_membership.cluster]
 
   # Variables
   cluster  = google_container_cluster.mlp.name
   location = var.region
-  name     = "gpu-a100x2-a2h2"
+  name     = "gpu-a100x2-a2u2"
   node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
-    "us-central1-f",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -204,9 +203,9 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2" {
     labels = {
       "resource-model" : "a100"
       "resource-type" : "gpu"
-      "resource-variant" : "40GB"
+      "resource-variant" : "80GB"
     }
-    machine_type    = "a2-highgpu-2g"
+    machine_type    = "a2-ultragpu-2g"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
@@ -219,7 +218,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2" {
 
     guest_accelerator {
       count = 2
-      type  = "nvidia-tesla-a100"
+      type  = "nvidia-a100-80gb"
 
       gpu_driver_installation_config {
         gpu_driver_version = var.gpu_driver_version
@@ -254,18 +253,15 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2" {
 
 ###############################################################################
 
-resource "google_container_node_pool" "gpu_a100x2_a2h2_dws" {
+resource "google_container_node_pool" "gpu_a100x2_a2u2_dws" {
   depends_on = [google_gke_hub_membership.cluster]
 
   # Variables
   cluster  = google_container_cluster.mlp.name
   location = var.region
-  name     = "gpu-a100x2-a2h2-dws"
+  name     = "gpu-a100x2-a2u2-dws"
   node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
-    "us-central1-f",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -292,9 +288,9 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_dws" {
     labels = {
       "resource-model" : "a100"
       "resource-type" : "gpu"
-      "resource-variant" : "40GB"
+      "resource-variant" : "80GB"
     }
-    machine_type    = "a2-highgpu-2g"
+    machine_type    = "a2-ultragpu-2g"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
@@ -307,7 +303,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_dws" {
 
     guest_accelerator {
       count = 2
-      type  = "nvidia-tesla-a100"
+      type  = "nvidia-a100-80gb"
 
       gpu_driver_installation_config {
         gpu_driver_version = var.gpu_driver_version
@@ -346,18 +342,15 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_dws" {
 
 ###############################################################################
 
-resource "google_container_node_pool" "gpu_a100x2_a2h2_res" {
+resource "google_container_node_pool" "gpu_a100x2_a2u2_res" {
   depends_on = [google_gke_hub_membership.cluster]
 
   # Variables
   cluster  = google_container_cluster.mlp.name
   location = var.region
-  name     = "gpu-a100x2-a2h2-res"
+  name     = "gpu-a100x2-a2u2-res"
   node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
-    "us-central1-f",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -384,9 +377,9 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_res" {
     labels = {
       "resource-model" : "a100"
       "resource-type" : "gpu"
-      "resource-variant" : "40GB"
+      "resource-variant" : "80GB"
     }
-    machine_type    = "a2-highgpu-2g"
+    machine_type    = "a2-ultragpu-2g"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
@@ -399,7 +392,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_res" {
 
     guest_accelerator {
       count = 2
-      type  = "nvidia-tesla-a100"
+      type  = "nvidia-a100-80gb"
 
       gpu_driver_installation_config {
         gpu_driver_version = var.gpu_driver_version
@@ -434,18 +427,15 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_res" {
 
 ###############################################################################
 
-resource "google_container_node_pool" "gpu_a100x2_a2h2_spot" {
+resource "google_container_node_pool" "gpu_a100x2_a2u2_spot" {
   depends_on = [google_gke_hub_membership.cluster]
 
   # Variables
   cluster  = google_container_cluster.mlp.name
   location = var.region
-  name     = "gpu-a100x2-a2h2-spot"
+  name     = "gpu-a100x2-a2u2-spot"
   node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
-    "us-central1-f",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -472,9 +462,9 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_spot" {
     labels = {
       "resource-model" : "a100"
       "resource-type" : "gpu"
-      "resource-variant" : "40GB"
+      "resource-variant" : "80GB"
     }
-    machine_type    = "a2-highgpu-2g"
+    machine_type    = "a2-ultragpu-2g"
     service_account = google_service_account.cluster.email
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
@@ -488,7 +478,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_spot" {
 
     guest_accelerator {
       count = 2
-      type  = "nvidia-tesla-a100"
+      type  = "nvidia-a100-80gb"
 
       gpu_driver_installation_config {
         gpu_driver_version = var.gpu_driver_version
@@ -534,8 +524,8 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8" {
   location = var.region
   name     = "gpu-h100x8-a3h8"
   node_locations = [
-    "us-central1-a",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -623,8 +613,8 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_dws" {
   location = var.region
   name     = "gpu-h100x8-a3h8-dws"
   node_locations = [
-    "us-central1-a",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -716,8 +706,8 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_res" {
   location = var.region
   name     = "gpu-h100x8-a3h8-res"
   node_locations = [
-    "us-central1-a",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -805,8 +795,8 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_spot" {
   location = var.region
   name     = "gpu-h100x8-a3h8-spot"
   node_locations = [
-    "us-central1-a",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -899,9 +889,8 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24" {
   location = var.region
   name     = "gpu-l4x2-g2s24"
   node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -985,9 +974,8 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_dws" {
   location = var.region
   name     = "gpu-l4x2-g2s24-dws"
   node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -1075,9 +1063,8 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_res" {
   location = var.region
   name     = "gpu-l4x2-g2s24-res"
   node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 
@@ -1161,9 +1148,8 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_spot" {
   location = var.region
   name     = "gpu-l4x2-g2s24-spot"
   node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
+    "us-east4-a",
+    "us-east4-c",
   ]
   project = data.google_project.environment.project_id
 

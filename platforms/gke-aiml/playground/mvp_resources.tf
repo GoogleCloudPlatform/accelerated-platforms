@@ -50,7 +50,7 @@ resource "google_project_service" "cloudbuild_googleapis_com" {
 ###############################################################################
 resource "google_artifact_registry_repository" "container_images" {
   format        = "DOCKER"
-  location      = var.subnet_01_region
+  location      = var.region
   project       = google_project_service.artifactregistry_googleapis_com.project
   repository_id = local.repo_container_images_id
 }
@@ -59,7 +59,7 @@ resource "google_artifact_registry_repository" "container_images" {
 ###############################################################################
 resource "google_storage_bucket" "cloudbuild" {
   force_destroy               = true
-  location                    = var.subnet_01_region
+  location                    = var.region
   name                        = local.bucket_cloudbuild_name
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
@@ -71,7 +71,7 @@ resource "google_storage_bucket" "data" {
   ]
 
   force_destroy               = true
-  location                    = var.subnet_01_region
+  location                    = var.region
   name                        = local.bucket_data_name
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
@@ -83,7 +83,7 @@ resource "google_storage_bucket" "model" {
   ]
 
   force_destroy               = true
-  location                    = var.subnet_01_region
+  location                    = var.region
   name                        = local.bucket_model_name
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true

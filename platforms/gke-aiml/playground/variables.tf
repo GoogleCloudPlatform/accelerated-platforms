@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "cluster_name_prefix" {
-  default     = "mlp"
-  description = "GKE cluster name prefix"
-  type        = string
-}
-
 variable "config_management_version" {
   default     = "1.19.0"
   description = "Version of Config Management to enable"
@@ -44,12 +38,6 @@ variable "environment_project_id" {
     condition     = var.environment_project_id != "YOUR_PROJECT_ID"
     error_message = "'environment_project_id' was not set, please set the value in the mlp.auto.tfvars file"
   }
-}
-
-variable "env" {
-  default     = ["dev"]
-  description = "List of environments"
-  type        = set(string)
 }
 
 variable "git_namespace" {
@@ -124,32 +112,16 @@ variable "network_name" {
   type        = string
 }
 
-variable "ondemand_taints" {
-  default = [{
-    key    = "ondemand"
-    value  = true
-    effect = "NO_SCHEDULE"
-  }]
-  description = "Taints to be applied to the on-demand node pool."
-  type = list(object({
-    key    = string
-    value  = any
-    effect = string
-  }))
+variable "region" {
+  default     = "us-central1"
+  description = "The Google Cloud region where you want to create the resources."
+  type        = string
 }
 
-variable "reserved_taints" {
-  default = [{
-    key    = "reserved"
-    value  = true
-    effect = "NO_SCHEDULE"
-  }]
-  description = "Taints to be applied to the reserved node pool."
-  type = list(object({
-    key    = string
-    value  = any
-    effect = string
-  }))
+variable "resource_name_prefix" {
+  default     = "mlp"
+  description = "The prefix to add to the resources."
+  type        = string
 }
 
 variable "routing_mode" {
@@ -158,70 +130,8 @@ variable "routing_mode" {
   type        = string
 }
 
-variable "secret_for_rootsync" {
-  default     = 1
-  description = "Create git-cred in config-management-system namespace."
-  type        = number
-}
-
-variable "spot_taints" {
-  default = [{
-    key    = "spot"
-    value  = true
-    effect = "NO_SCHEDULE"
-  }]
-  description = "Taints to be applied to the spot node pool."
-  type = list(object({
-    key    = string
-    value  = any
-    effect = string
-  }))
-}
-
-variable "subnet_01_description" {
-  default     = "subnet 01"
-  description = "Description of the first subnet."
-  type        = string
-}
-
-variable "subnet_01_ip" {
+variable "subnet_ip_cidr_range" {
   default     = "10.40.0.0/22"
-  description = "CIDR of the first subnet."
-  type        = string
-}
-
-variable "subnet_01_name" {
-  default     = "ml-vpc-subnet-01"
-  description = "Name of the first subnet in the VPC network."
-  type        = string
-}
-
-variable "subnet_01_region" {
-  default     = "us-central1"
-  description = "Region of the first subnet."
-  type        = string
-}
-
-variable "subnet_02_description" {
-  default     = "subnet 02"
-  description = "Description of the second subnet."
-  type        = string
-}
-
-variable "subnet_02_ip" {
-  default     = "10.12.0.0/22"
-  description = "CIDR of the second subnet."
-  type        = string
-}
-
-variable "subnet_02_name" {
-  default     = "gke-vpc-subnet-02"
-  description = "Name of the second subnet in the VPC network."
-  type        = string
-}
-
-variable "subnet_02_region" {
-  default     = "us-west2"
-  description = "Region of the second subnet."
+  description = "The IP CIDR range for the regional subnet."
   type        = string
 }

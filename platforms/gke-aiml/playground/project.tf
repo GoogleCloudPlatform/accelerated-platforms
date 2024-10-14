@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  unique_identifier_prefix = "${var.resource_name_prefix}-${var.environment_name}"
+}
+
 data "google_project" "environment" {
   project_id = var.environment_project_id
 }

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  cluster_name = "${var.cluster_name_prefix}-${var.environment_name}"
+  cluster_name = local.unique_identifier_prefix
   # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
   cluster_sa_roles = [
     "roles/monitoring.viewer",
@@ -48,7 +48,7 @@ resource "google_container_cluster" "mlp" {
   datapath_provider        = "ADVANCED_DATAPATH"
   deletion_protection      = false
   enable_shielded_nodes    = true
-  location                 = var.subnet_01_region
+  location                 = var.region
   name                     = local.cluster_name
   network                  = module.create-vpc.vpc
   project                  = data.google_project.environment.project_id
@@ -175,7 +175,7 @@ resource "google_container_cluster" "mlp" {
 
   master_authorized_networks_config {
     cidr_blocks {
-      cidr_block   = var.subnet_01_ip
+      cidr_block   = var.subnet_ip_cidr_range
       display_name = "vpc-cidr"
     }
   }

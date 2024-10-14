@@ -38,7 +38,7 @@ module "configsync_repository" {
   source = "../../../terraform/modules/artifact_registry_repository"
 
   format        = "DOCKER"
-  location      = var.subnet_01_region
+  location      = var.region
   project       = google_project_service.artifactregistry_googleapis_com.project
   reader_members = [
     "principal://iam.googleapis.com/projects/${data.google_project.environment.number}/locations/global/workloadIdentityPools/${data.google_project.environment.project_id}.svc.id.goog/subject/ns/${local.config_management_namespace}/sa/${local.config_management_kubernetes_service_account}",

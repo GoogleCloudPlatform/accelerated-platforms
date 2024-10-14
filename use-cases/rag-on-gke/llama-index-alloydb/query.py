@@ -62,9 +62,18 @@ class FTAgentRunner:
 
     def run_query(self, query):
         nodes = self.retr.retrieve(query)
-        prompt = self.generate_prompt(nodes, query)
-        response = self.llm.complete(prompt)
-        return prompt, str(response)
+        output = "# Iterative query\n"
+        output += ("\nThe 5 products are fetched from similarity"
+                   " search using cosing distance.")
+        for n in nodes:
+            prompt = self.generate_prompt([n], query)
+            response = self.llm.complete(prompt)
+            output += "\n## Node: \n\n"
+            output += f"```\n{str(n)}\n```\n"
+            output += "\n### Prompt:\n\n" + prompt
+            output += "\n### Answer from vLLM:\n\n" + str(response)
+
+        return output
 
 
 if __name__ == "__main__":
@@ -101,8 +110,7 @@ if __name__ == "__main__":
     ft_if = gr.Interface(
         fn=ft_runner.run_query,
         inputs=["text"],
-        outputs=[gr.Textbox(label="The prompt"),
-                 gr.Textbox(label="The answer")],
+        outputs=gr.Markdown(label="Products found:", height=1000),
         allow_flagging="never"
     )
     demo = gr.TabbedInterface([ft_if, gemma_if],

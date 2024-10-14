@@ -90,7 +90,7 @@ class AlloyDBNaiveRetriever(BaseRetriever):
         """Retrieve as a sql query."""
         embed_func = self._embedding_function(query_bundle.query_str)
         distance_column = (self._table_embedding_column.
-                           l2_distance(embed_func).
+                           cosine_distance(embed_func).
                            label(self.label_of_distance))
         columns = (self._table_all_columns +
                    [distance_column]

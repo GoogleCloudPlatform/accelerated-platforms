@@ -1,14 +1,21 @@
 """Naive llama_index query and retrieve class for AlloyDB"""
 
-from typing import List, Union, Callable
+from typing import List, Union, Callable, Any
 from llama_index.core import PromptTemplate
 from llama_index.core.query_engine import CustomQueryEngine
 from llama_index.core.schema import (QueryBundle,
                                      NodeWithScore,
                                      TextNode)
+from llama_index.core.llms import (
+    CustomLLM,
+    CompletionResponse,
+    CompletionResponseGen,
+    LLMMetadata,
+)
+from llama_index.core.llms.callbacks import llm_completion_callback
 from llama_index.core.retrievers import BaseRetriever
 from pgvector.sqlalchemy import Vector
-from pydantic import PrivateAttr
+
 import sqlalchemy
 from sqlalchemy.sql.selectable import Subquery, Select
 
@@ -127,7 +134,7 @@ class AlloyDBNaiveQueryEngine(CustomQueryEngine):
         "---------------------\n"
         "Given the context information and not prior knowledge, "
         "answer the query.\n"
-        "Query: {query_str}\n"
+        "Query: which is the best fit for {query_str}\n"
         "Answer: "
     )
     db_engine: sqlalchemy.Engine
@@ -168,6 +175,58 @@ class AlloyDBNaiveQueryEngine(CustomQueryEngine):
         res, *_ = results.fetchone()
         return res
 
+class AlloyDBNaieveLLM(CustomLLM):
+    """A trivial LLM class that calls AlloyDB google_ml function."""
+
+    max_tokens: int = 1024
+    db_engine: sqlalchemy.Engine
+    _inference_func: Callable
+    _db_connection: sqlalchemy.engine.base.Connection
+
+    def __init__(self,
+                 llm_function: Union[str, Callable],
+                 **kwargs):
+        super().__init__(**kwargs)
+        if isinstance(llm_function, str):
+            *packagenames, funcname = llm_function.split(".")
+            self._inference_func = (lambda *x:
+                                    sqlalchemy.
+                                    Function(funcname,
+                                             *x,
+                                             packagenames=tuple(packagenames)))
+        else:
+            self._inference_func = self.llm_function
+        self._db_connection = self.db_engine.connect()
+
+    def _synth_sql(self, query_str: str) -> Select:
+        stmt = (sqlalchemy.
+                select(self._inference_func(query_str)))
+        return stmt
+
+    @property
+    def metadata(self) -> LLMMetadata:
+        return LLMMetadata(
+            max_tokens = self.max_tokens
+        )
+
+    @llm_completion_callback()
+    def complete(self, prompt: str, **kwargs: Any) -> CompletionResponse:
+        stmt = self._synth_sql(prompt)
+        results = self._db_connection.execute(stmt)
+        res, *_ = results.fetchone()
+        return CompletionResponse(text=res)
+
+    @llm_completion_callback()
+    def stream_complete(
+        self, prompt: str, **kwargs: Any
+    ) -> CompletionResponseGen:
+        stmt = self._synth_sql(prompt)
+        results = self._db_connection.execute(stmt)
+        res, *_ = results.fetchone()
+        response = ""
+        for token in res:
+            response += token
+            yield CompletionResponse(text=response, delta=token)
 
 def get_flipkart_table(url):
     engine = sqlalchemy.create_engine(url)
@@ -195,7 +254,7 @@ def test_joined_table(url):
                                    table= subq,
                                    text_column="description",
                                    embedding_column="embedding",
-                                   embedding_function="embed_text",
+                                   embedding_function="google_ml.embedding_text",
                                    id_column="uniq_id",
                                    metadata_columns=["product_name",
                                                      "brand",
@@ -218,7 +277,7 @@ if __name__ == "__main__":
                                      table="flipkart_embeded",
                                      text_column="uniq_id",
                                      embedding_column="embedding",
-                                     embedding_function="embed_text",
+                                     embedding_function="google_ml.embedding_text",
                                      id_column="uniq_id",
                                      metadata_columns=[],
                                      )

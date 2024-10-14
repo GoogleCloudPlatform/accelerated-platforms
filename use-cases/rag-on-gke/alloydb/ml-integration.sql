@@ -22,6 +22,31 @@ SELECT json_extract_path_text(google_ml.predict_row('gke-vllm-finetuned',
 $$ LANGUAGE sql IMMUTABLE;
 
 
+
+call google_ml.drop_model('gke-vllm-gemma2');
+CALL
+    google_ml.create_model(
+      model_id => 'gke-vllm-gemma2',
+      model_request_url => 'http://10.150.0.23:8000/v1/completions',
+      model_provider => 'custom',
+      model_type => 'generic',
+      model_qualified_name => 'google/gemma-2-2b',
+      model_auth_type => null,
+      model_auth_id => null,
+      generate_headers_fn => null,
+      model_in_transform_fn => null,
+      model_out_transform_fn => null);
+
+create or replace function gemma2_completion(input_text text)
+returns TEXT AS $$
+SELECT json_extract_path_text(google_ml.predict_row('gke-vllm-gemma2',
+   json_build_object('prompt', input_text,
+   'model', 'google/gemma-2-2b',
+   'max_tokens', 1024))::json, 'choices','0','text');
+$$ LANGUAGE sql IMMUTABLE;
+
+
+
 -- 10.150.15.227
 call google_ml.drop_model('multimodal-blip2');
 CALL

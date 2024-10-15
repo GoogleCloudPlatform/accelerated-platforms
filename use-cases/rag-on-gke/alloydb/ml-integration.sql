@@ -1,9 +1,14 @@
+
+-- change the following two lines:
+\set finetune_model_ep http://10.150.0.32:8000/v1/completions
+\set pretrained_model_ep http://10.150.0.23:8000/v1/completions
+
 -- set google_ml_integration.enable_model_support = 'on';
 call google_ml.drop_model('gke-vllm-finetuned');
 CALL
     google_ml.create_model(
       model_id => 'gke-vllm-finetuned',
-      model_request_url => 'http://10.150.0.32:8000/v1/completions',
+      model_request_url => :'finetune_model_ep',
       model_provider => 'custom',
       model_type => 'generic',
       model_qualified_name => '/data/models/model-gemma2-a100/experiment-a2aa2c3it1',
@@ -27,7 +32,7 @@ call google_ml.drop_model('gke-vllm-gemma2');
 CALL
     google_ml.create_model(
       model_id => 'gke-vllm-gemma2',
-      model_request_url => 'http://10.150.0.23:8000/v1/completions',
+      model_request_url => :'pretrained_model_ep',
       model_provider => 'custom',
       model_type => 'generic',
       model_qualified_name => 'google/gemma-2-2b',

@@ -26,6 +26,11 @@ import tenacity
 import time
 import vertexai
 import vertexai.preview.generative_models as generative_models
+from typing import Any
+
+import google.auth
+import google.auth.transport.requests
+import openai
 
 from datasets import Dataset, DatasetDict
 from google.api_core.exceptions import InternalServerError, ResourceExhausted
@@ -48,20 +53,46 @@ DATASET_INPUT = os.environ.get("DATASET_INPUT_PATH")
 DATASET_INPUT_FILE = os.environ.get("DATASET_INPUT_FILE")
 DATASET_OUTPUT = os.environ.get("DATASET_OUTPUT_PATH")
 MODEL_ID = os.environ.get("PROMPT_MODEL_ID")
+OPEN_AI_API = os.environ.get("OPEN_AI_API")
 
-generation_config = {"max_output_tokens": 200, "temperature": 0.7}
+class OpenAICredentialsRefresher:
+    def __init__(self, **kwargs: Any) -> None:
+        # Set a dummy key here
+        self.client = openai.OpenAI(**kwargs, api_key="DUMMY")
+        self.creds, self.project = google.auth.default(
+            scopes=["https://www.googleapis.com/auth/cloud-platform"]
+        )
 
-safety_settings = {
-    generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-}
+    def __getattr__(self, name: str) -> Any:
+        if not self.creds.valid:
+            auth_req = google.auth.transport.requests.Request()
+            self.creds.refresh(auth_req)
+
+            if not self.creds.valid:
+                raise RuntimeError("Unable to refresh auth")
+
+            self.client.api_key = self.creds.token
+        return getattr(self.client, name)
+
+#generation_config = {"max_output_tokens": 200, "temperature": 0.7}
+
+# safety_settings = {
+#     generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+#     generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+#     generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+#     generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
+# }
 
 num_questions = 3
 
 vertexai.init(project=PROJECT_ID, location=REGION)
-model = GenerativeModel(MODEL_ID)
+#model = GenerativeModel(MODEL_ID)
+
+MAAS_ENDPOINT = f"{REGION}-aiplatform.googleapis.com"
+
+client = OpenAICredentialsRefresher(
+    base_url=f"https://{MAAS_ENDPOINT}/v1beta1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/openapi",
+)
 
 
 def filter_low_value_count_rows(df, column_name, min_count=10):
@@ -197,14 +228,42 @@ def extract_product_details(text):
 )
 def generate_content(context):
     try:
-        response = model.generate_content(
-            [
-                f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
-            ],
-            generation_config=generation_config,
-            safety_settings=safety_settings,
+        max_tokens = 200
+        #prompt=f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
+        sys_prompt="This is dialogue for online shopping experiences between an agent and a user."
+        prompt=f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
+        
+        messages = [
+            {
+                "role": "system",
+                "content": [
+                    {"text": sys_prompt, "type": "text"},
+                ]
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"text": prompt, "type": "text"},
+                ]
+            }
+        ]
+        logger.debug(messages)
+        response = client.chat.completions.create(
+            model=MODEL_ID,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=0.7
         )
-        response.text
+
+        # response = model.generate_content(
+        #     [
+        #         f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
+        #     ],
+        #     generation_config=generation_config,
+        #     safety_settings=safety_settings,
+        # )
+        logger.debug(response)
+        response.choices[0].message.content
     except InternalServerError as e:
         logger.warning(f"InternalServerError exception caught: {e}")
         raise
@@ -243,7 +302,7 @@ def generate_content(context):
         )
         raise
 
-    return response.text
+    response.choices[0].message.content
 
 
 def generate_qa(context, category):
@@ -355,7 +414,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
 
-    logger.info("Prepare context for Gemini Flash's prompt")
+    logger.info("Prepare context for model prompt")
     df = prep_context()
 
     logger.info("Generate Q & A according")

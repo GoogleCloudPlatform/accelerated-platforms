@@ -173,6 +173,10 @@ Why we did this?
 
 How it helps our design / use case?
 
+< original design architecture for ml-integration>
+
+< Anthing else?>
+
 
 ### Deploy the Ml playground and finetuned gemma2 model
 

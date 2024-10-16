@@ -25,11 +25,7 @@ import sys
 import tenacity
 import time
 import vertexai
-import vertexai.preview.generative_models as generative_models
-from typing import Any
 
-import google.auth
-import google.auth.transport.requests
 import openai
 
 from datasets import Dataset, DatasetDict
@@ -40,10 +36,9 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )
-from vertexai.preview.generative_models import GenerativeModel
 
 from custom_json_formatter import CustomJSONFormatter
-
+from openai_credentials_refresher import OpenAICredentialsRefresher
 
 PROJECT_ID = os.environ.get("PROJECT_ID")
 # The bucket which contains the preprocessed data
@@ -55,38 +50,9 @@ DATASET_OUTPUT = os.environ.get("DATASET_OUTPUT_PATH")
 MODEL_ID = os.environ.get("PROMPT_MODEL_ID")
 OPEN_AI_API = os.environ.get("OPEN_AI_API")
 
-class OpenAICredentialsRefresher:
-    def __init__(self, **kwargs: Any) -> None:
-        # Set a dummy key here
-        self.client = openai.OpenAI(**kwargs, api_key="DUMMY")
-        self.creds, self.project = google.auth.default(
-            scopes=["https://www.googleapis.com/auth/cloud-platform"]
-        )
-
-    def __getattr__(self, name: str) -> Any:
-        if not self.creds.valid:
-            auth_req = google.auth.transport.requests.Request()
-            self.creds.refresh(auth_req)
-
-            if not self.creds.valid:
-                raise RuntimeError("Unable to refresh auth")
-
-            self.client.api_key = self.creds.token
-        return getattr(self.client, name)
-
-#generation_config = {"max_output_tokens": 200, "temperature": 0.7}
-
-# safety_settings = {
-#     generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-#     generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-#     generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-#     generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-# }
-
 num_questions = 3
 
 vertexai.init(project=PROJECT_ID, location=REGION)
-#model = GenerativeModel(MODEL_ID)
 
 MAAS_ENDPOINT = f"{REGION}-aiplatform.googleapis.com"
 
@@ -229,80 +195,72 @@ def extract_product_details(text):
 def generate_content(context):
     try:
         max_tokens = 200
-        #prompt=f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
-        sys_prompt="This is dialogue for online shopping experiences between an agent and a user."
-        prompt=f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
-        
+        sys_prompt = "This is dialogue for online shopping experiences between an agent and a user."
+        prompt = f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
+
         messages = [
             {
                 "role": "system",
                 "content": [
                     {"text": sys_prompt, "type": "text"},
-                ]
+                ],
             },
             {
                 "role": "user",
                 "content": [
                     {"text": prompt, "type": "text"},
-                ]
-            }
+                ],
+            },
         ]
         logger.debug(messages)
         response = client.chat.completions.create(
-            model=MODEL_ID,
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=0.7
+            model=MODEL_ID, messages=messages, max_tokens=max_tokens, temperature=0.7
         )
 
-        # response = model.generate_content(
-        #     [
-        #         f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
-        #     ],
-        #     generation_config=generation_config,
-        #     safety_settings=safety_settings,
-        # )
         logger.debug(response)
-        response.choices[0].message.content
-    except InternalServerError as e:
-        logger.warning(f"InternalServerError exception caught: {e}")
+    except openai.BadRequestError as e:
+        # Handle error 400
+        logger.error(f"Error 400: {e}")
         raise
-    except ResourceExhausted as e:
-        logger.warning(e)
+    except openai.AuthenticationError as e:
+        # Handle error 401
+        logger.error(f"Error 401: {e}")
         raise
-    except ValueError as e:
-        logger.debug("ValueError exception caught")
-        if (
-            response.candidates[0].finish_reason
-            == generative_models.FinishReason.RECITATION
-        ):
-            logger.warning(
-                f"Recitation returned",
-                extra={"context": context, "response": str(response)},
-            )
-            return None
-        elif (
-            response.candidates[0].finish_reason
-            == generative_models.FinishReason.SAFETY
-        ):
-            logger.warning(
-                f"Blocked by safety settings",
-                extra={"context": context, "response": str(response)},
-            )
-            return None
-        else:
-            logger.error(
-                f"Unhandled ValueError", extra={"context": context}, exc_info=True
-            )
-            raise
-    except Exception as e:
+    except openai.PermissionDeniedError as e:
+        # Handle error 403
+        logger.error(f"Error 403: {e}")
+        raise
+    except openai.NotFoundError as e:
+        # Handle error 404
+        logger.error(f"Error 404: {e}")
+        raise
+    except openai.UnprocessableEntityError as e:
+        # Handle error 422
+        logger.error(f"Error 422: {e}")
+        raise
+    except openai.RateLimitError as e:
+        # Handle error 429
+        logger.error(f"Error 429: {e}")
+        logger.error("A 429 status code was received; we should back off a bit.")
+        raise
+    except openai.InternalServerError as e:
+        # Handle error >=500
+        logger.error(f"Error >=500: {e}")
+        raise
+    except openai.APIConnectionError as e:
+        # Handle API connection error
+        logger.error("The server could not be reached")
         logger.error(
-            f"Unhandled exception in generate_content: {type(e).__name__}",
-            exc_info=True,
-        )
+            e.__cause__
+        )  # an underlying Exception, likely raised within httpx.
+        raise
+    except openai.APIStatusError as e:
+        logger.error("Another non-200-range status code was received")
+        logger.error(e.status_code)
+        logger.error(e.response)
         raise
 
-    response.choices[0].message.content
+    return response.choices[0].message.content
 
 
 def generate_qa(context, category):

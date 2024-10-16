@@ -30,4 +30,5 @@ print_and_execute_no_check "git restore \
 ${MLP_TYPE_BASE_DIR}/backend.tf \
 ${MLP_TYPE_BASE_DIR}/cluster_configmanagement_* \
 ${MLP_TYPE_BASE_DIR}/configsync_repository_* \
+${MLP_TYPE_BASE_DIR}/container_node_pool.tf \
 ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars"

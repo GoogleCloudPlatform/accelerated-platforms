@@ -50,7 +50,7 @@ resource "google_project_service" "cloudbuild_googleapis_com" {
 ###############################################################################
 resource "google_artifact_registry_repository" "container_images" {
   format        = "DOCKER"
-  location      = var.subnet_01_region
+  location      = var.region
   project       = google_project_service.artifactregistry_googleapis_com.project
   repository_id = local.repo_container_images_id
 }
@@ -59,7 +59,7 @@ resource "google_artifact_registry_repository" "container_images" {
 ###############################################################################
 resource "google_storage_bucket" "cloudbuild" {
   force_destroy               = true
-  location                    = var.subnet_01_region
+  location                    = var.region
   name                        = local.bucket_cloudbuild_name
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
@@ -71,7 +71,7 @@ resource "google_storage_bucket" "data" {
   ]
 
   force_destroy               = true
-  location                    = var.subnet_01_region
+  location                    = var.region
   name                        = local.bucket_data_name
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
@@ -83,7 +83,7 @@ resource "google_storage_bucket" "model" {
   ]
 
   force_destroy               = true
-  location                    = var.subnet_01_region
+  location                    = var.region
   name                        = local.bucket_model_name
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
@@ -255,12 +255,13 @@ MLP_ENVIRONMENT_NAME="${var.environment_name}"
 MLP_FINE_TUNING_IMAGE="${local.repo_container_images_url}/fine-tuning:1.0.0"
 MLP_FINE_TUNING_KSA="${local.fine_tuning_ksa}"
 MLP_KUBERNETES_NAMESPACE="${var.namespace}"
+MLP_MLFLOW_TRACKING_NAMESPACE_ENDPOINT="https://${local.mlflow_tracking_endpoint}"
 MLP_MODEL_BUCKET="${local.bucket_model_name}"
 MLP_MODEL_EVALUATION_IMAGE="${local.repo_container_images_url}/model-evaluation:1.0.0"
 MLP_MODEL_EVALUATION_KSA="${local.model_evaluation_ksa}"
 MLP_PROJECT_ID="${data.google_project.environment.project_id}"
 MLP_PROJECT_NUMBER="${data.google_project.environment.number}"
 MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT="https://${local.ray_dashboard_endpoint}"
-MLP_MLFLOW_TRACKING_NAMESPACE_ENDPOINT="https://${local.mlflow_tracking_endpoint}"
+MLP_REGION="${var.region}"
 EOT
 }

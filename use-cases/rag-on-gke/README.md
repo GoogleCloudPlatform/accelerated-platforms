@@ -23,9 +23,10 @@ The dataset has product information such as id, name, brand, description, image 
 Here is what we need:
 
 - Create the vector store database in alloyDB to store Product Catalog Information in a table.
-- Host a multimodal embeddings models to perform to generate the embeddings(text and image)
+- Add ml-integration suite to alloyDB. This helps alloyDB to call out the multimodal embeddings model to request text and image embeddings.
+- Host a multimodal embeddings model to generate the embeddings(text and image)
 - Using an ETL pipeline generate text and image embeddings using the multimodal model and store them to the alloyDB vector store in separate table.
-- Host the fine tuned model developed using model-finetuned pipeline
+- Host the fine tuned model developed using model-finetuned pipeline.
 - Deploy the backend API to interface with embeddings and fine tuned model and process user prompts.
 - Deploy the Frontend UI built-in gradio to start the chatbot to receive end customers prompts.
 
@@ -37,7 +38,7 @@ Here is what we need:
 
 ## Preparation
 
-## Configuration
+### Configuration
 
 - Download the raw data csv file from [Kaggle](https://kaggle.com) 
 
@@ -49,15 +50,28 @@ Here is what we need:
 
   - To use the cli you must create an API token. To create the token, register on [kaggle.com](https://kaggle.com) if you already don't have an account. Go to `kaggle.com/settings > API > Create New Token`, the downloaded file should be stored in `$HOME/.kaggle/kaggle.json`. Note, you will have to create the dir `$HOME/.kaggle`. After the configuration is done, you can run the following command to download the dataset and copy it to the GCS bucket:
     ```shell
-    kaggle datasets download --unzip atharvjairath/flipkart-ecommerce-dataset && \
-    gcloud storage cp flipkart_com-ecommerce_sample.csv \
-    gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv && \
-    rm flipkart_com-ecommerce_sample.csv
+    kaggle datasets download --unzip atharvjairath/flipkart-ecommerce-dataset && 
     ```
   - Alternatively, you can [downloaded the dataset](https://www.kaggle.com/datasets/atharvjairath/flipkart-ecommerce-dataset) directly from the kaggle website and copy it to the bucket.
 
 ### Create alloyDB and import the flipKart dataset
 
+Add your Google Project ID to the terraform config to create alloyDB cluster.
+<TODO- Change it to main branch before code is merged>
+
+```shell   
+   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/llamaindex-for-rag/use-cases/rag-on-gke
+   cd accelerated-platforms/use-cases/rag-on-gke/alloyDB
+   terraform init
+   terraform plan
+   terraform apply
+```
+
+#### Import the dataset to alloyDB instance
+
+
+
+#### Add ml-integration suite to AlloyDB.
 
 
 ### Deploy the Ml playground and finetuned gemma2 model

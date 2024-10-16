@@ -1,7 +1,11 @@
+-- set these endpoints from environment variables
+\getenv finetune_model_ep FINETUNE_MODEL_EP
+\getenv pretrained_model_ep PRETRAINED_MODEL_EP
+\getenv embedding_endpoint EMBEDDING_ENDPOINT
 
--- change the following two lines:
-\set finetune_model_ep http://10.150.0.32:8000/v1/completions
-\set pretrained_model_ep http://10.150.0.23:8000/v1/completions
+-- \set finetune_model_ep http://10.150.0.32:8000/v1/completions
+-- \set pretrained_model_ep http://10.150.0.23:8000/v1/completions
+-- \set embedding_endpoint http://10.150.15.227/embeddings
 
 -- set google_ml_integration.enable_model_support = 'on';
 call google_ml.drop_model('gke-vllm-finetuned');
@@ -57,7 +61,7 @@ call google_ml.drop_model('multimodal-blip2');
 CALL
     google_ml.create_model(
       model_id => 'multimodal-blip2',
-      model_request_url => 'http://10.150.15.227/embeddings',
+      model_request_url => :'embedding_endpoint',
       model_provider => 'custom',
       model_type => 'generic',
       model_auth_type => null,
@@ -101,7 +105,7 @@ LANGUAGE plpgsql IMMUTABLE;
 call google_ml.drop_model('blip2-text');
 call google_ml.create_model(
      model_id => 'blip2-text',
-     model_request_url => 'http://10.150.15.227/embeddings',
+     model_request_url => :'embedding_endpoint',
      model_provider => 'custom',
      model_type => 'text_embedding',
      model_in_transform_fn => 'google_ml.blip2_embedding_text_input',

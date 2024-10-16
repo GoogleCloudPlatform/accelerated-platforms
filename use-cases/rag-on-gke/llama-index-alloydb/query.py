@@ -10,6 +10,18 @@ from query_alloydb import (AlloyDBNaiveRetriever,
 from llama_index.core.schema import NodeWithScore
 
 
+PROMPT_TEMPL = (
+    "Context information is below.\n"
+    "---------------\n"
+    "{context_str}\n"
+    "---------------\n"
+    "Given the context information and not "
+    "prior knowledge, answer the query:\n"
+    "Query: which is the best fit for {query_str}\n"
+    "Answer:\n"
+)
+
+
 class GemmaRunner:
     llm: AlloyDBNaieveLLM
     retr: AlloyDBNaiveRetriever
@@ -20,24 +32,15 @@ class GemmaRunner:
 
     def generate_prompt(self,
                         nodes: List[NodeWithScore],
+                        prompt_templ: str,
                         query_str: str):
-        prompt_templ = (
-        "Context information is below.\n"
-        "---------------\n"
-        "{context_str}\n"
-        "---------------\n"
-        "Given the context information and not "
-        "prior knowledge, answer the query:\n"
-        "Query: which is the best fit for {query_str}\n"
-        "Answer:\n"
-        )
         context = "\n".join(f"""{n.text}.""" for n in nodes)
         return prompt_templ.format(context_str=context,
                                    query_str=query_str)
 
-    def run_query(self, query):
+    def run_query(self, query, prompt_templ):
         nodes = self.retr.retrieve(query)
-        prompt = self.generate_prompt(nodes, query)
+        prompt = self.generate_prompt(nodes, prompt_templ, query)
         response = self.llm.complete(prompt)
         return prompt, str(response)
 
@@ -102,7 +105,11 @@ if __name__ == "__main__":
     ft_runner = FTAgentRunner(llm=ft_llm, retr=j_retr)
     gemma_if = gr.Interface(
         fn=gemma_runner.run_query,
-        inputs=["text"],
+        inputs=[gr.Textbox(label="Your question",
+                           info="Put your ask here:"),
+                gr.Textbox(label="Prompt template",
+                           info="the template for generating the prompt",
+                           value=PROMPT_TEMPL)],
         outputs=[gr.Textbox(label="The prompt"),
                  gr.Textbox(label="The answer")],
         allow_flagging="never"

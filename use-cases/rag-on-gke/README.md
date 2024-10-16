@@ -111,7 +111,7 @@ Copy the CSV file to the client host's local file system
 gcloud storage cp gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv .
 ```
 
-Run the psql client tool and then, at the psql prompt, connect to the databaseImport the CSV file
+Run the psql client tool and then, at the psql prompt, connect to the database.
 
 ```
 psql -h IP_ADDRESS -U postgres
@@ -165,8 +165,13 @@ insert into flipkart_embeded select uniq_id, google_ml.embedding_text(descriptio
 ```
 
 
-
 #### Add ml-integration suite to AlloyDB.
+
+<TODO - Design the ml-integration>
+
+Why we did this?
+
+How it helps our design / use case?
 
 
 ### Deploy the Ml playground and finetuned gemma2 model

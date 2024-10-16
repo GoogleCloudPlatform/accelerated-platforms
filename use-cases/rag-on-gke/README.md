@@ -56,7 +56,9 @@ Here is what we need:
 
 ### Create alloyDB and import the flipKart dataset
 
-Add your Google Project ID to the terraform config to create alloyDB cluster.
+#### Create alloyDB database using terraform modules
+
+ Add your Google Project ID to the terraform config to create alloyDB cluster.
 <TODO- Change it to main branch before code is merged>
 
 ```shell   
@@ -67,7 +69,10 @@ Add your Google Project ID to the terraform config to create alloyDB cluster.
    terraform apply
 ```
 
-#### Import the dataset to alloyDB instance
+### Import dataset to the alloyDB instance
+
+Database is ready to import the dataset.You can follow the [Import CSV to alloyDB ](/https://cloud.google.com/alloydb/docs/import-csv-file#gcloud)
+instructions to import dataset
 
 
 

@@ -124,7 +124,7 @@ resource "google_storage_bucket_iam_member" "cloudbuild_bucket_gsa_build_storage
 ###############################################################################
 resource "kubernetes_service_account_v1" "data_processing" {
   depends_on = [
-    null_resource.synchronize_configsync,
+    null_resource.namespace_manifests,
   ]
 
   metadata {
@@ -135,7 +135,7 @@ resource "kubernetes_service_account_v1" "data_processing" {
 
 resource "kubernetes_service_account_v1" "data_preparation" {
   depends_on = [
-    null_resource.synchronize_configsync,
+    null_resource.namespace_manifests,
   ]
 
   metadata {
@@ -146,7 +146,7 @@ resource "kubernetes_service_account_v1" "data_preparation" {
 
 resource "kubernetes_service_account_v1" "fine_tuning" {
   depends_on = [
-    null_resource.synchronize_configsync,
+    null_resource.namespace_manifests,
   ]
 
   metadata {
@@ -157,7 +157,7 @@ resource "kubernetes_service_account_v1" "fine_tuning" {
 
 resource "kubernetes_service_account_v1" "model_evaluation" {
   depends_on = [
-    null_resource.synchronize_configsync,
+    null_resource.namespace_manifests,
   ]
 
   metadata {

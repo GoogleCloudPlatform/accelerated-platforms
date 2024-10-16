@@ -88,7 +88,7 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
    terraform apply
 ```
 
-### Import Product Catalog to the alloyDB instance
+#### Import Product Catalog to the alloyDB instance
 
 Database is ready to import the dataset.You can follow the [Import CSV to alloyDB ](https://cloud.google.com/alloydb/docs/connect-psql)
 instructions.
@@ -117,6 +117,13 @@ Run the psql client tool and then, at the psql prompt, connect to the databaseIm
 psql -h IP_ADDRESS -U postgres
 \c DB_NAME
 ```
+
+Generate DDl from the CSV file
+
+```
+echo "create table flipkart ("; head -n 1 ~/tmp/flipkart.csv |sed 's/,/ text\n,/g; $s/$/ text/';echo ");"
+```
+
 Create a table to contain the CSV data; for example
 
 ```
@@ -150,7 +157,12 @@ Import from CSV file
 ;
 ```
 
+Create the embedding table to store text and image embeddings.
 
+```
+truncate table flipkart_embeded; -- clear existing data from the table
+insert into flipkart_embeded select uniq_id, google_ml.embedding_text(description) from flipkart ;
+```
 
 
 

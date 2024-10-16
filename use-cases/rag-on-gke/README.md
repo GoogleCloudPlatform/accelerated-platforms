@@ -21,34 +21,22 @@ The dataset has product information such as id, name, brand, description, image 
 
 Here is what we need:
 
-- Create the vector store database in alloyDB to store Product Catalog Information.
+- Create the vector store database in alloyDB to store Product Catalog Information in a table.
 - Host a multimodal embeddings models to perform to generate the embeddings(text and image)
-- Host the fine tuned model developed using 
+- Using an ETL pipeline generate text and image embeddings using the multimodal model and store them to the alloyDB vector store in separate table.
+- Host the fine tuned model developed using model-finetuned pipeline
 - Deploy the backend API to interface with embeddings and fine tuned model and process user prompts.
 - Deploy the Frontend UI built-in gradio to start the chatbot to receive end customers prompts.
 
 ## Prerequisites
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
-- 
+- Use the existing  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+
+- Host the fine tuned model developed using [ model-finetuned pipeline](/platforms/use-cases/model-finetuned/README.md)
 
 ## Preparation
 
-- Set up the Alloy Db database and import the flipKart dataset.
 
-  ```shell
-  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms/use-cases/model-fine-tuning-pipeline/data-processing/ray
-  ```
-
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
-
-  ```shell
-  cat ${MLP_ENVIRONMENT_FILE} && \
-  source ${MLP_ENVIRONMENT_FILE}
-  ```
-
-  > You should see the various variables populated with the information specific to your environment.
 
 ## Configuration
 

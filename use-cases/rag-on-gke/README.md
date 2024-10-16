@@ -1,4 +1,11 @@
-# Distributed Data Processing with Ray on GKE
+# Retrieval Augment Generation 
+
+We have come to a point in the solution where we can use the fine-tuned model to run as a chatbot.
+Now, we can extend that model to use for different retail use cases for the end customers.
+
+## Dataset
+<TO-DO> Explain the use case here 
+Use case helps the the retailer suggest semantically similiar items from the product catalog if the product item user requested is out of stock or unavailable.
 
 ## Dataset
 
@@ -6,28 +13,28 @@
 
 ## Architecture
 
-![data-processing](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/data-processing-ray-workflow.png)
+![RAG Architecture](/docs/use-cases/<RAG Architecture goes here>)
 
-## Data processing steps
+## Set up the environment
 
 The dataset has product information such as id, name, brand, description, image urls, product specifications.
 
-The `preprocessing.py` file does the following:
+Here is what we need:
 
-- Read the csv from Cloud Storage
-- Clean up the product description text
-- Extract image urls, validate and download the images into cloud storage
-- Cleanup & extract attributes as key-value pairs
-
-The data processing step takes approximately 18-20 minutes.
+- Create the vector store database in alloyDB to store Product Catalog Information.
+- Host a multimodal embeddings models to perform to generate the embeddings(text and image)
+- Host the fine tuned model developed using 
+- Deploy the backend API to interface with embeddings and fine tuned model and process user prompts.
+- Deploy the Frontend UI built-in gradio to start the chatbot to receive end customers prompts.
 
 ## Prerequisites
 
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+- 
 
 ## Preparation
 
-- Clone the repository and change directory to the guide directory
+- Set up the Alloy Db database and import the flipKart dataset.
 
   ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \

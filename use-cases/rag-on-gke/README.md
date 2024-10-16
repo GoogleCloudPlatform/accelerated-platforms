@@ -38,6 +38,25 @@ Here is what we need:
 
 ## Preparation
 
+### Set vars
+
+```
+PROJECT_ID=your-project-id>
+PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
+V_MODEL_BUCKET=<model-artifacts-bucket>
+MLP_DATA_BUCKET=<dataset-bucket>
+CLUSTER_NAME=<your-gke-cluster>
+NAMESPACE=ml-team
+KSA=<k8s-service-account>
+HF_TOKEN=<your-Hugging-Face-account-token>
+MODEL_ID=<your-model-id>
+REGION=<your-region>
+IMAGE_NAME=<your-image-name>
+DISK_NAME=<your-disk-name>
+ZONE=<your-disk-zone>
+ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
+```
+
 ### Configuration
 
 - Download the raw data csv file from [Kaggle](https://kaggle.com) 
@@ -50,16 +69,16 @@ Here is what we need:
 
   - To use the cli you must create an API token. To create the token, register on [kaggle.com](https://kaggle.com) if you already don't have an account. Go to `kaggle.com/settings > API > Create New Token`, the downloaded file should be stored in `$HOME/.kaggle/kaggle.json`. Note, you will have to create the dir `$HOME/.kaggle`. After the configuration is done, you can run the following command to download the dataset and copy it to the GCS bucket:
     ```shell
-    kaggle datasets download --unzip atharvjairath/flipkart-ecommerce-dataset && 
+      kaggle datasets download --unzip atharvjairath/flipkart-ecommerce-dataset && gcloud storage cp flipkart_com-ecommerce_sample.csv gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv && rm flipkart_com-ecommerce_sample.csv
     ```
   - Alternatively, you can [downloaded the dataset](https://www.kaggle.com/datasets/atharvjairath/flipkart-ecommerce-dataset) directly from the kaggle website and copy it to the bucket.
 
-### Create alloyDB and import the flipKart dataset
+### Create alloyDB and import Product Catalog
 
-#### Create alloyDB database using terraform modules
+#### Create AlloyDB cluster using terraform modules
 
  Add your Google Project ID to the terraform config to create alloyDB cluster.
-<TODO- Change it to main branch before code is merged>
+ <TODO- Change it to main branch before code is merged>
 
 ```shell   
    git clone https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/llamaindex-for-rag/use-cases/rag-on-gke
@@ -69,10 +88,69 @@ Here is what we need:
    terraform apply
 ```
 
-### Import dataset to the alloyDB instance
+### Import Product Catalog to the alloyDB instance
 
-Database is ready to import the dataset.You can follow the [Import CSV to alloyDB ](/https://cloud.google.com/alloydb/docs/import-csv-file#gcloud)
-instructions to import dataset
+Database is ready to import the dataset.You can follow the [Import CSV to alloyDB ](https://cloud.google.com/alloydb/docs/connect-psql)
+instructions.
+
+
+The default terraform configuration creates VPC network name ```simple-adb```
+
+- Create a Compute Engine VM that can connect to AlloyDB instances using private services access in this VPC.
+- A VPC network in the Google Cloud project that you are using must already be configured for private services access to AlloyDB.
+
+Get the IP address of the AlloyDB primary instance where your database is located  and ssh to machine.
+
+```
+gcloud compute ssh --project=PROJECT_ID --zone=ZONE VM_NAME
+```
+
+Copy the CSV file to the client host's local file system
+
+```
+gcloud storage cp gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv .
+```
+
+Run the psql client tool and then, at the psql prompt, connect to the databaseImport the CSV file
+
+```
+psql -h IP_ADDRESS -U postgres
+\c DB_NAME
+```
+Create a table to contain the CSV data; for example
+
+```
+create table flipkart (
+uniq_id text
+,product_name text
+,description text
+,brand text
+,image text
+,product_specifications text
+,image_uri text
+,attributes text
+,c0_name text
+,c1_name text
+,c2_name text
+,c3_name text
+,c4_name text
+,c5_name text
+,c6_name text
+,c7_name text
+);
+```
+
+Import from CSV file
+
+```
+\copy TABLE_NAME(COLUMN_LIST)
+  FROM 'CSV_FILE_NAME'
+  DELIMITER ','
+  CSV HEADER
+;
+```
+
+
 
 
 

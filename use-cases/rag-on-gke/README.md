@@ -3,7 +3,8 @@
 We have come to a point in the solution where we can use the fine-tuned model to run as a chatbot.
 Now, we can extend that model to use for different retail use cases for the end customers.
 
-## Dataset
+## Retail chat bot use case
+
 <TO-DO> Explain the use case here 
 Use case helps the the retailer suggest semantically similiar items from the product catalog if the product item user requested is out of stock or unavailable.
 
@@ -36,17 +37,16 @@ Here is what we need:
 
 ## Preparation
 
-
-
 ## Configuration
 
-- Download the raw data csv file from [Kaggle](https://kaggle.com) and store it into the bucket created in the previous step.
+- Download the raw data csv file from [Kaggle](https://kaggle.com) 
 
   - You will need kaggle cli to download the file. The kaggle cli can be installed using the following command in Cloud Shell:
     ```shell
     pip3 install --user kaggle
     ```
     For more details, you can read those [instructions](https://github.com/Kaggle/kaggle-api#installation).
+
   - To use the cli you must create an API token. To create the token, register on [kaggle.com](https://kaggle.com) if you already don't have an account. Go to `kaggle.com/settings > API > Create New Token`, the downloaded file should be stored in `$HOME/.kaggle/kaggle.json`. Note, you will have to create the dir `$HOME/.kaggle`. After the configuration is done, you can run the following command to download the dataset and copy it to the GCS bucket:
     ```shell
     kaggle datasets download --unzip atharvjairath/flipkart-ecommerce-dataset && \
@@ -56,17 +56,20 @@ Here is what we need:
     ```
   - Alternatively, you can [downloaded the dataset](https://www.kaggle.com/datasets/atharvjairath/flipkart-ecommerce-dataset) directly from the kaggle website and copy it to the bucket.
 
-## Build the container image
+### Create alloyDB and import the flipKart dataset
+
+
+
+### Deploy the Ml playground and finetuned gemma2 model
+
+
+
+### Deploy the Multimodal model on the playground cluster
 
 - Build container image using Cloud Build and push the image to Artifact Registry
 
   ```shell
-  cd src
-  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
-  gcloud beta builds submit --config cloudbuild.yaml \
-  --project ${MLP_PROJECT_ID} \
-  --substitutions _DESTINATION=${MLP_DATA_PROCESSING_IMAGE}
-  cd ..
+
   ```
 
 ## Run the job
@@ -198,7 +201,7 @@ resourceName: projects/xxxxx/metrics/No_Image_Found_Product
 
 Once the metrics are defined, the next time you run your workloads, you will be able to use them. For example, the following chart visualizes the metric defined above:
 
-![use-log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/use-log-based-metrics.png)
+![use-log-based-metrics](<TO_DO Metrics>)
 
 ### Log Analytics
 
@@ -233,4 +236,4 @@ LIMIT
 ```
 
 You should see output like the following:
-![use-log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/log-analytics-data-processing.png)
+![use-log-based-metrics](/<TO-DO-Metrics>)

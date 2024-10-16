@@ -65,13 +65,13 @@ Depending on the infrastructure you provisioned, the data preparation step takes
   | DATASET_INPUT_PATH  | The folder path of where the preprocessed flipkart data resides                                               | flipkart_preprocessed_dataset |
   | DATASET_INPUT_FILE  | The filename of the preprocessed flipkart data                                                                | flipkart.csv                  |
   | DATASET_OUTPUT_PATH | The folder path of where the generated output data set will reside. This path will be needed for fine-tuning. | dataset/output                |
-  | PROMPT_MODEL_ID     | The Vertex AI model for prompt generation                                                                     | gemini-1.5-flash-001          |
+  | PROMPT_MODEL_ID     | The Vertex AI model for prompt generation                                                                     | meta/llama-3.1-70b-instruct-maas          |
 
   ```sh
   DATASET_INPUT_PATH="flipkart_preprocessed_dataset"
   DATASET_INPUT_FILE="flipkart.csv"
   DATASET_OUTPUT_PATH="dataset/output"
-  PROMPT_MODEL_ID="gemini-1.5-flash-001"
+  PROMPT_MODEL_ID="meta/llama-3.1-70b-instruct-maas"
   ```
 
   ```sh

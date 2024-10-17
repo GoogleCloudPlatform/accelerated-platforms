@@ -50,7 +50,7 @@ gcloud container fleet memberships get-credentials ${self.triggers.membership_id
 
 data "kubernetes_namespace_v1" "team" {
   depends_on = [
-    null_resource.synchronize_configsync
+    null_resource.namespace_manifests
   ]
 
   metadata {

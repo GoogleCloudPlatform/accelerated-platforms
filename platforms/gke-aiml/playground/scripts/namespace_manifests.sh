@@ -79,3 +79,6 @@ if [ ! -z ${GIT_REPOSITORY:-} ]; then
   git commit -m "Manifests for '${K8S_NAMESPACE}' namespace"
   git push origin
 fi
+
+echo "Creating the namespace '${K8S_NAMESPACE}'..."
+kubectl create namespace ${K8S_NAMESPACE}

@@ -34,6 +34,7 @@ resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
     version = var.config_management_version
 
     config_sync {
+      enabled       = true
       source_format = "unstructured"
 
       git {

@@ -1,31 +1,31 @@
-# Retrieval Augment Generation 
+# Retrieval Augment Generation
 
 We have come to a point in the solution where we can use the fine-tuned model to run as a chatbot.
 Now, we can extend that model to use for different retail use cases for the end customers.
 
 ## Retail chat bot use case
 
-<TO-DO> Explain the use case here 
+<TO-DO> Explain the use case here
 Use case helps the the retailer suggest semantically similiar items from the product catalog if the product item user requested is out of stock or unavailable.
 
 ## Dataset
 
 [This](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products) is a pre-crawled public dataset, taken as a subset of a bigger dataset (more than 5.8 million products) that was created by extracting data from [Flipkart](https://www.flipkart.com/), a leading Indian eCommerce store.
 
+The dataset has product information such as id, name, brand, description, image urls, product specifications.
+
 ## Architecture
 
-![RAG Architecture](/docs/use-cases/<RAG Architecture goes here>)
+![RAG Architecture](arch-alloydb-rag.png)
 
 ## Set up the environment
-
-The dataset has product information such as id, name, brand, description, image urls, product specifications.
 
 Here is what we need:
 
 - Create the vector store database in alloyDB to store Product Catalog Information in a table.
 - Add ml-integration suite to alloyDB. This helps alloyDB to call out the multimodal embeddings model to request text and image embeddings.
 - Host a multimodal embeddings model to generate the embeddings(text and image)
-- Using an ETL pipeline generate text and image embeddings using the multimodal model and store them to the alloyDB vector store in separate table.
+- Using an ETL pipeline generate text embeddings using the multimodal model and store them to the alloyDB vector store in a separate table.
 - Host the fine tuned model developed using model-finetuned pipeline.
 - Deploy the backend API to interface with embeddings and fine tuned model and process user prompts.
 - Deploy the Frontend UI built-in gradio to start the chatbot to receive end customers prompts.
@@ -59,7 +59,7 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
 
 ### Configuration
 
-- Download the raw data csv file from [Kaggle](https://kaggle.com) 
+- Download the raw data csv file from [Kaggle](https://kaggle.com)
 
   - You will need kaggle cli to download the file. The kaggle cli can be installed using the following command in Cloud Shell:
     ```shell
@@ -78,11 +78,12 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
 #### Create AlloyDB cluster using terraform modules
 
  Add your Google Project ID to the terraform config to create alloyDB cluster.
- <TODO- Change it to main branch before code is merged>
 
-```shell   
-   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/llamaindex-for-rag/use-cases/rag-on-gke
+```shell
+   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms
    cd accelerated-platforms/use-cases/rag-on-gke/alloyDB
+   # TODO: remove the next line when merge to man
+   git checkout llamaindex-for-rag
    terraform init
    terraform plan
    terraform apply
@@ -90,9 +91,10 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
 
 #### Import Product Catalog to the alloyDB instance
 
+TODO: Convert this paragraph to a python code running in GKE
+
 Database is ready to import the dataset.You can follow the [Import CSV to alloyDB ](https://cloud.google.com/alloydb/docs/connect-psql)
 instructions.
-
 
 The default terraform configuration creates VPC network name ```simple-adb```
 
@@ -114,8 +116,7 @@ gcloud storage cp gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecom
 Run the psql client tool and then, at the psql prompt, connect to the database.
 
 ```
-psql -h IP_ADDRESS -U postgres
-\c DB_NAME
+psql -h IP_ADDRESS -U postgres -d DB_NAME
 ```
 
 Generate DDl from the CSV file
@@ -128,22 +129,22 @@ Create a table to contain the CSV data; for example
 
 ```
 create table flipkart (
-uniq_id text
-,product_name text
-,description text
-,brand text
-,image text
-,product_specifications text
-,image_uri text
-,attributes text
-,c0_name text
-,c1_name text
-,c2_name text
-,c3_name text
-,c4_name text
-,c5_name text
-,c6_name text
-,c7_name text
+  uniq_id text
+ ,product_name text
+ ,description text
+ ,brand text
+ ,image text
+ ,product_specifications text
+ ,image_uri text
+ ,attributes text
+ ,c0_name text
+ ,c1_name text
+ ,c2_name text
+ ,c3_name text
+ ,c4_name text
+ ,c5_name text
+ ,c6_name text
+ ,c7_name text
 );
 ```
 
@@ -165,17 +166,39 @@ insert into flipkart_embeded select uniq_id, google_ml.embedding_text(descriptio
 ```
 
 
-#### Add ml-integration suite to AlloyDB.
+#### Create ml-integration functions in AlloyDB
 
-<TODO - Design the ml-integration>
+The [Google Ml Integration](https://cloud.google.com/alloydb/docs/ai/invoke-predictions)
+makes the ML services callable from inside the database, so that ML inferencing 
+services can be integrated with the SQL queries.
 
-Why we did this?
+The benefits of doing so are:
 
-How it helps our design / use case?
+- Embedding happens in GKE
+- The whole thing can be deployed in GKE
+- Customer can use any embedding model
+- Apps can only talk to database for simplicity
 
-< original design architecture for ml-integration>
+The ml-integration provided in `ml-integration/assets` file will create the 
+following ml functions in the AlloyDB:
 
-< Anthing else?>
+- `vllm_completion` This function calls the finetuned model for inference
+- `gemma2_completion` This function calls a pretrained gemma2 2B model for 
+  inference
+- `google_ml.embedding_text` This function calls the "blip2" model for generating
+  embeddings for text
+- `google_ml.multimodal_embedding` This function calls the "blip2" model for 
+  generating multi-model embedding: text, image, and combined embedding
+
+To create the ml-integration functions, set these environment variables and then
+run `psql`:
+
+```bash
+export FINETUNE_MODEL_EP=<your-finetuned-model-endpoint>
+export PRETRAINED_MODEL_EP=<your-pretained-model-endpoint>
+export EMBEDDING_ENDPOINT=<your-embedding-service-ebdpoint>
+psql <your-connection-string> -f ml-integration/assets/ml-integration.sql
+```
 
 
 ### Deploy the Ml playground and finetuned gemma2 model

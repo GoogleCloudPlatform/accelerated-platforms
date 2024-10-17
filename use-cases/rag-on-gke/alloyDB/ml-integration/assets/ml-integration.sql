@@ -1,8 +1,14 @@
 -- set these endpoints from environment variables
+-- To use this file, you can run psql command like this
+-- # export FINETUNE_MODEL_EP=<your-finetuned-model-endpoint>
+-- # export PRETRAINED_MODEL_EP=<your-pretained-model-endpoint>
+-- # export EMBEDDING_ENDPOINT=<your-embedding-service-ebdpoint>
+-- # psql <your-connection-string> -f <this-file>
 \getenv finetune_model_ep FINETUNE_MODEL_EP
 \getenv pretrained_model_ep PRETRAINED_MODEL_EP
 \getenv embedding_endpoint EMBEDDING_ENDPOINT
 
+-- If you don't want to use environment variable, uncomment the following lines
 -- \set finetune_model_ep http://10.150.0.32:8000/v1/completions
 -- \set pretrained_model_ep http://10.150.0.23:8000/v1/completions
 -- \set embedding_endpoint http://10.150.15.227/embeddings

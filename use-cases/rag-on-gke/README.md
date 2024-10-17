@@ -116,46 +116,50 @@ gcloud storage cp gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecom
 Run the psql client tool and then, at the psql prompt, connect to the database.
 
 ```
-psql -h IP_ADDRESS -U postgres -d DB_NAME
-```
-
-Generate DDl from the CSV file
+psql -h <IP_ADDRESS> -U postgres -d postgres
 
 ```
-echo "create table flipkart ("; head -n 1 ~/tmp/flipkart.csv |sed 's/,/ text\n,/g; $s/$/ text/';echo ");"
+
+Generate DDL for the table from the CSV file
+
+```
+echo "create table flipkart ("; head -n 1 flipkart_com-ecommerce_sample.csv  |sed 's/,/ text\n,/g; $s/$/ text/';echo ");"
 ```
 
-Create a table to contain the CSV data; for example
+Alternatively you can use the following command to generate the DDL for the flipkart table.
 
 ```
 create table flipkart (
-  uniq_id text
- ,product_name text
- ,description text
- ,brand text
- ,image text
- ,product_specifications text
- ,image_uri text
- ,attributes text
- ,c0_name text
- ,c1_name text
- ,c2_name text
- ,c3_name text
- ,c4_name text
- ,c5_name text
- ,c6_name text
- ,c7_name text
+uniq_id text
+,crawl_timestamp text
+,product_url text
+,product_name text
+,product_category_tree text
+,pid text
+,retail_price text
+,discounted_price text
+,image text
+,is_FK_Advantage_product text
+,description text
+,product_rating text
+,overall_rating text
+,brand text
+,product_specifications text
 );
 ```
 
 Import from CSV file
 
+Delete any existing data in flipkart table
+
 ```
-\copy TABLE_NAME(COLUMN_LIST)
-  FROM 'CSV_FILE_NAME'
-  DELIMITER ','
-  CSV HEADER
-;
+truncate table flipkart; 
+```
+
+Import flipkart Product Catalog from CSV file
+
+```
+\copy flipkart from 'flipkart_com_sample.csv' WITH (FORMAT CSV, HEADER true, NULL 'null')
 ```
 
 Create the embedding table to store text and image embeddings.
@@ -164,7 +168,6 @@ Create the embedding table to store text and image embeddings.
 truncate table flipkart_embeded; -- clear existing data from the table
 insert into flipkart_embeded select uniq_id, google_ml.embedding_text(description) from flipkart ;
 ```
-
 
 #### Create ml-integration functions in AlloyDB
 

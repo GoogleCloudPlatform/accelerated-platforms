@@ -27,7 +27,8 @@ Here is what we need:
 - Host a [blip2 multimodal embeddings model](https://github.com/salesforce/LAVIS/blob/main/examples/blip_feature_extraction.ipynb) to generate the embeddings(text and image)
 - Using an ETL pipeline generate text embeddings using the multimodal model and store them to the alloyDB vector store in a separate table.
 - Host the fine tuned model developed using model-finetuned pipeline.
-- Deploy the backend API in [llamaIndex](https://www.llamaindex.ai/) to interface with embeddings and fine tuned model and process user prompts.
+- Host the pre-trained gemma2 model to generate prompt responses for the retail customers.
+- Deploy the backend API in [llamaIndex](https://www.llamaindex.ai/) to interface with multimodal embeddings model and fine tuned model via alloyDB vectore store to process user prompts and generate appropriate responses.
 - Deploy the Frontend UI built-in [gradio](https://gradio.app/) to start the chatbot to receive end customers prompts.
 
 ## Prerequisites

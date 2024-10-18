@@ -27,8 +27,8 @@ Here is what we need:
 - Host a multimodal embeddings model to generate the embeddings(text and image)
 - Using an ETL pipeline generate text embeddings using the multimodal model and store them to the alloyDB vector store in a separate table.
 - Host the fine tuned model developed using model-finetuned pipeline.
-- Deploy the backend API to interface with embeddings and fine tuned model and process user prompts.
-- Deploy the Frontend UI built-in gradio to start the chatbot to receive end customers prompts.
+- Deploy the backend API in [llamaIndex](https://www.llamaindex.ai/) to interface with embeddings and fine tuned model and process user prompts.
+- Deploy the Frontend UI built-in [gradio](https://gradio.app/) to start the chatbot to receive end customers prompts.
 
 ## Prerequisites
 
@@ -59,19 +59,12 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
 
 ### Configuration
 
-- Download the raw data csv file from [Kaggle](https://kaggle.com)
-
-  - You will need kaggle cli to download the file. The kaggle cli can be installed using the following command in Cloud Shell:
-    ```shell
-    pip3 install --user kaggle
+- Download the flipkart processed CSV file to your local environment to function as your Product Catalog.
     ```
-    For more details, you can read those [instructions](https://github.com/Kaggle/kaggle-api#installation).
-
-  - To use the cli you must create an API token. To create the token, register on [kaggle.com](https://kaggle.com) if you already don't have an account. Go to `kaggle.com/settings > API > Create New Token`, the downloaded file should be stored in `$HOME/.kaggle/kaggle.json`. Note, you will have to create the dir `$HOME/.kaggle`. After the configuration is done, you can run the following command to download the dataset and copy it to the GCS bucket:
-    ```shell
-      kaggle datasets download --unzip atharvjairath/flipkart-ecommerce-dataset && gcloud storage cp flipkart_com-ecommerce_sample.csv gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv && rm flipkart_com-ecommerce_sample.csv
+    <TODO: Make this location publicly accessible>
+    gcloud storage cp gs://flipkart-dataset-rag/flipkart_processed_dataset/flipkart.csv .
     ```
-  - Alternatively, you can [downloaded the dataset](https://www.kaggle.com/datasets/atharvjairath/flipkart-ecommerce-dataset) directly from the kaggle website and copy it to the bucket.
+  - Alternatively, you can use the processed dataset from your earlier [data preprocessing job](https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/llamaindex-for-rag/use-cases/model-fine-tuning-pipeline/data-processing/ray)
 
 ### Create alloyDB and import Product Catalog
 
@@ -82,7 +75,7 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
 ```shell
    git clone https://github.com/GoogleCloudPlatform/accelerated-platforms
    cd accelerated-platforms
-   # TODO: remove the next line when merge to man
+   # TODO: remove the next line when merge to main
    git checkout llamaindex-for-rag
    cd use-cases/rag-on-gke/alloyDB
    terraform init
@@ -111,7 +104,7 @@ gcloud compute ssh --project=PROJECT_ID --zone=ZONE VM_NAME
 Copy the CSV file to the client host's local file system
 
 ```
-gcloud storage cp gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv .
+gcloud storage cp gs://flipkart-dataset-rag/flipkart_processed_dataset/flipkart.csv .
 ```
 
 Run the psql client tool and then, at the psql prompt, connect to the database.
@@ -124,7 +117,7 @@ psql -h <IP_ADDRESS> -U postgres -d postgres
 Generate DDL for the table from the CSV file
 
 ```
-echo "create table flipkart ("; head -n 1 flipkart_com-ecommerce_sample.csv  |sed 's/,/ text\n,/g; $s/$/ text/';echo ");"
+echo "create table flipkart ("; head -n 1 flipkart.csv  |sed 's/,/ text\n,/g; $s/$/ text/';echo ");"
 ```
 
 Alternatively you can use the following command to generate the DDL for the flipkart table.
@@ -132,20 +125,20 @@ Alternatively you can use the following command to generate the DDL for the flip
 ```
 create table flipkart (
 uniq_id text
-,crawl_timestamp text
-,product_url text
 ,product_name text
-,product_category_tree text
-,pid text
-,retail_price text
-,discounted_price text
-,image text
-,is_FK_Advantage_product text
 ,description text
-,product_rating text
-,overall_rating text
 ,brand text
-,product_specifications text
+,image text
+,image_uri text
+,attributes text
+,c0_name text
+,c1_name text
+,c2_name text
+,c3_name text
+,c4_name text
+,c5_name text
+,c6_name text
+,c7_name text
 );
 ```
 
@@ -160,7 +153,7 @@ truncate table flipkart;
 Import flipkart Product Catalog from CSV file
 
 ```
-\copy flipkart from 'flipkart_com_sample.csv' WITH (FORMAT CSV, HEADER true, NULL 'null')
+\copy flipkart from 'flipkart.csv' WITH (FORMAT CSV, HEADER)
 ```
 
 Create the embedding table to store text and image embeddings.

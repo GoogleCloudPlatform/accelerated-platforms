@@ -1,10 +1,19 @@
-/*This script uses alloyDB google_ml_integration.enable_model_support 
-This is database flag in AlloyDB for PostgreSQL. 
-It is a crucial setting that allows you to use the google_ml_integration extension to access and utilize machine learning models directly within your AlloyDB environment.*/
+-- set these endpoints from environment variables
+-- To use this file, you can run psql command like this
+-- # export FINETUNE_MODEL_EP=<your-finetuned-model-endpoint>
+-- # export PRETRAINED_MODEL_EP=<your-pretained-model-endpoint>
+-- # export EMBEDDING_ENDPOINT=<your-embedding-service-ebdpoint>
+-- # psql <your-connection-string> -f <this-file>
+\getenv finetune_model_ep FINETUNE_MODEL_EP
+\getenv pretrained_model_ep PRETRAINED_MODEL_EP
+\getenv embedding_endpoint EMBEDDING_ENDPOINT
 
+-- If you don't want to use environment variable, uncomment the following lines
+-- \set finetune_model_ep http://10.150.0.32:8000/v1/completions
+-- \set pretrained_model_ep http://10.150.0.23:8000/v1/completions
+-- \set embedding_endpoint http://10.150.15.227/embeddings
 
 -- set google_ml_integration.enable_model_support = 'on';
-/*Create function to call the fine-tuned-model*/
 call google_ml.drop_model('gke-vllm-finetuned');
 CALL
     google_ml.create_model(
@@ -19,7 +28,6 @@ CALL
       model_in_transform_fn => null,
       model_out_transform_fn => null);
 
-/* Function to send prompts to the completion api for fine-tuned-model*/
 create or replace function vllm_completion(input_text text)
 returns TEXT AS $$
 SELECT json_extract_path_text(google_ml.predict_row('gke-vllm-finetuned',
@@ -29,7 +37,7 @@ SELECT json_extract_path_text(google_ml.predict_row('gke-vllm-finetuned',
 $$ LANGUAGE sql IMMUTABLE;
 
 
-/*Create function to call the pre-trained gemma model*/
+
 call google_ml.drop_model('gke-vllm-gemma2');
 CALL
     google_ml.create_model(
@@ -44,7 +52,6 @@ CALL
       model_in_transform_fn => null,
       model_out_transform_fn => null);
 
-/* Function to send prompts to the completion api for gemma model*/
 create or replace function gemma2_completion(input_text text)
 returns TEXT AS $$
 SELECT json_extract_path_text(google_ml.predict_row('gke-vllm-gemma2',
@@ -54,7 +61,8 @@ SELECT json_extract_path_text(google_ml.predict_row('gke-vllm-gemma2',
 $$ LANGUAGE sql IMMUTABLE;
 
 
-/*Create function to call the multimodal-blip2 multimodal model*/
+
+-- 10.150.15.227
 call google_ml.drop_model('multimodal-blip2');
 CALL
     google_ml.create_model(
@@ -68,14 +76,13 @@ CALL
       model_in_transform_fn => null,
       model_out_transform_fn => null);
 
-/* Function to generate text embeddings only from multimodal blip2 model*/
 create or replace function google_ml.multimodal_embedding(model_id varchar, input_text text, image_uri text)
 returns JSON AS $$
 SELECT google_ml.predict_row('multimodal-blip2', json_build_object('caption', input_text, 'image_uri', image_uri));
 $$ LANGUAGE sql IMMUTABLE;
 
 
-/* Function to generate text embeddings only from multimodal blip2 model*/
+
 create or replace function google_ml.blip2_embedding_text_input(model_id varchar, input_text text)
 returns json as $$
 DECLARE
@@ -101,7 +108,6 @@ END;
 $$
 LANGUAGE plpgsql IMMUTABLE;
 
-/*Create function to call the multimodal-blip2 model for text embeddings*/
 call google_ml.drop_model('blip2-text');
 call google_ml.create_model(
      model_id => 'blip2-text',
@@ -110,7 +116,6 @@ call google_ml.create_model(
      model_type => 'text_embedding',
      model_in_transform_fn => 'google_ml.blip2_embedding_text_input',
      model_out_transform_fn => 'google_ml.blip2_embedding_text_output');
-
 
 create or replace function google_ml.embedding_text(input_text text)
 returns vector as $$

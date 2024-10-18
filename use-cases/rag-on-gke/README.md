@@ -16,7 +16,7 @@ The dataset has product information such as id, name, brand, description, image 
 
 ## Architecture
 
-![RAG Architecture](arch-alloydb-rag.png)
+![RAG Architecture](arch-rag-components.png)
 
 ## Set up the environment
 
@@ -174,6 +174,8 @@ insert into flipkart_embeded select uniq_id, google_ml.embedding_text(descriptio
 The [Google Ml Integration](https://cloud.google.com/alloydb/docs/ai/invoke-predictions)
 makes the ML services callable from inside the database, so that ML inferencing 
 services can be integrated with the SQL queries.
+
+![RAG With_Database](arch-alloydb-rag.png)
 
 The benefits of doing so are:
 

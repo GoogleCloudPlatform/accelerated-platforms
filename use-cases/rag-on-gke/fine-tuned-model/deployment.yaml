@@ -80,7 +80,7 @@ spec:
           driver: gcsfuse.csi.storage.gke.io
           readOnly: true
           volumeAttributes:
-            bucketName: flipkart-fine-tuned-model # mount the gcs bucket
+            bucketName: <your-bucket-name> # mount the gcs bucket
             mountOptions: "implicit-dirs"
             gcsfuseLoggingSeverity: warning
             fileCacheCapacity: 40Gi

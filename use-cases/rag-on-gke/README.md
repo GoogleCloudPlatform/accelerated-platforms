@@ -174,6 +174,11 @@ insert into flipkart_embeded select uniq_id, google_ml.embedding_text(descriptio
 ```
 ## Deploy the ML playground and finetuned gemma2 model
 
+You can use a previously deployed version of the fine tuned model that you created using [model-finetuned pipeline](/platforms/use-cases/model-finetuned/README.md).
+
+Alternatively, you can use below steps:
+
+<TODO> Check with Aaron if the fine tuned image can be made publicly accessible.
 
 
 ## Deploy the Multimodal Model on the playground cluster

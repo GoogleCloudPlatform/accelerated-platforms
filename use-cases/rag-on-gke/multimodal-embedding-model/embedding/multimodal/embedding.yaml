@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: blip2-deployment
 spec:
-  replicas: 1 # Adjust as needed
+  replicas: 1 # Increase replica count as needed
   selector:
     matchLabels:
       app: blip2
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: blip2-container
-        image: us-docker.pkg.dev/gkebatchexpce3c8dcb/rag-artifacts/blip2:v0.2.0
+        image: us-docker.pkg.dev/<PROJECT_ID>/rag-artifacts/blip2:v0.2.0
         resources:
           limits:
           requests:
@@ -55,4 +55,4 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 5000 # Or whatever port your app listens on
-  type: LoadBalancer
+  type: ClusterIP

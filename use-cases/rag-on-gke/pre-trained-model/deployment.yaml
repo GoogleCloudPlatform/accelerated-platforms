@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pre-trained-model-deployment
+  namespace: ml-serve-pre-trained-model
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pre-trained-gemma-server
+  template:
+    metadata:
+      labels:
+        app: pre-trained-gemma-server
+        ai.gke.io/model: gemma-2-9b-it
+        ai.gke.io/inference-server: vllm
+        examples.ai.gke.io/source: user-guide
+    spec:
+      containers:
+      - name: inference-server
+        image: us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-vllm-serve:20240930_0945_RC00
+        resources:
+          requests:
+            cpu: "4"
+            memory: "30Gi"
+            ephemeral-storage: "30Gi"
+            nvidia.com/gpu: "2"
+          limits:
+            cpu: "4"
+            memory: "30Gi"
+            ephemeral-storage: "30Gi"
+            nvidia.com/gpu: "2"
+        command: ["python3", "-m", "vllm.entrypoints.api_server"]
+        args:
+        - --model=$(MODEL_ID)
+        - --tensor-parallel-size=2
+        env:
+        - name: MODEL_ID
+          value: google/gemma-2-9b-it
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: hf_api_token
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+      volumes:
+      - name: dshm
+        emptyDir:
+            medium: Memory
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
+        cloud.google.com/gke-gpu-driver-version: latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pre-trained-model-service
+  namespace: ml-serve-pre-trained-model
+spec:
+  selector:
+    app: pre-trained-gemma-server
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

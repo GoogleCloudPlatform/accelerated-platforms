@@ -79,7 +79,7 @@ resource "google_service_account" "alloydb_superuser_sa" {
 resource "google_alloydb_user" "superuser" {
   cluster = module.alloydb_central.cluster_id
   user_id = "${google_service_account.alloydb_superuser_sa.account_id}@${var.project_id}.iam"
-  user_type = "ALLOYDB_IAM_BASED"
+  user_type = "ALLOYDB_IAM_USER"
   database_roles = [
     "alloydbsuperuser"
   ]
@@ -93,7 +93,7 @@ resource "google_service_account" "alloydb_raguser_sa" {
 resource "google_alloydb_user" "ragusr" {
   cluster = module.alloydb_central.cluster_id
   user_id = "${google_service_account.alloydb_raguser_sa.account_id}@${var.project_id}.iam"
-  user_type = "ALLOYDB_IAM_BASED"
+  user_type = "ALLOYDB_IAM_USER"
 }
 
 resource "google_project_iam_binding" "databaseuser" {

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 module "alloydb_central" {
   source  = "GoogleCloudPlatform/alloy-db/google"
   version = "~> 3.0"
@@ -48,6 +49,11 @@ module "alloydb_central" {
     instance_id        = "cluster-${var.region_central}-instance1",
     require_connectors = false
     ssl_mode           = "ALLOW_UNENCRYPTED_AND_ENCRYPTED"
+    database_flags     = {
+      "alloydb.iam_authentication" = "on"
+      "google_ml_integration.enable_model_support" = "on"
+      "password.enforce_complexity" = "on"
+    }
   }
 
   read_pool_instance = [
@@ -64,3 +70,50 @@ module "alloydb_central" {
     google_kms_crypto_key_iam_member.alloydb_sa_iam,
   ]
 }
+
+resource "google_service_account" "alloydb_superuser_sa" {
+  account_id   = "alloydb-superuser"
+  display_name = "AlloyDB Super User SA"
+}
+
+resource "google_alloydb_user" "superuser" {
+  cluster = module.alloydb_central.cluster_id
+  user_id = "${google_service_account.alloydb_superuser_sa.account_id}@${var.project_id}.iam"
+  user_type = "IAM_BASED"
+  database_roles = [
+    "alloydbsuperuser"
+  ]
+}
+
+resource "google_service_account" "alloydb_raguser_sa" {
+  account_id   = "alloydb-raguser"
+  display_name = "AlloyDB User SA"
+}
+
+resource "google_alloydb_user" "ragusr" {
+  cluster = module.alloydb_central.cluster_id
+  user_id = "${google_service_account.alloydb_raguser_sa.account_id}@${var.project_id}.iam"
+  user_type = "IAM_BASED"
+}
+
+resource "google_project_iam_binding" "databaseuser" {
+  project = var.project_id
+  role    = "roles/alloydb.databaseUser"
+
+  members = [
+    "serviceAccount:${google_service_account.alloydb_superuser_sa.email}",
+    "serviceAccount:${google_service_account.alloydb_raguser_sa.email}",    
+  ]
+}
+
+resource "google_project_iam_binding" "serviceusage" {
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageConsumer"
+
+  members = [
+    "serviceAccount:${google_service_account.alloydb_superuser_sa.email}",
+    "serviceAccount:${google_service_account.alloydb_raguser_sa.email}",    
+  ]
+}
+
+

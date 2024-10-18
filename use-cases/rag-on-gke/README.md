@@ -81,9 +81,10 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
 
 ```shell
    git clone https://github.com/GoogleCloudPlatform/accelerated-platforms
-   cd accelerated-platforms/use-cases/rag-on-gke/alloyDB
+   cd accelerated-platforms
    # TODO: remove the next line when merge to man
    git checkout llamaindex-for-rag
+   cd use-cases/rag-on-gke/alloyDB
    terraform init
    terraform plan
    terraform apply

@@ -155,13 +155,21 @@ Import flipkart Product Catalog from CSV file
 ```
 \copy flipkart from 'flipkart.csv' WITH (FORMAT CSV, HEADER)
 ```
+You should see following records being copied to the flipkarttable. 
+
+```
+postgres=> \copy flipkart from 'flipkart.csv' WITH (FORMAT CSV, HEADER)
+COPY 19981
+```
 
 Create the embedding table to store text and image embeddings.
+Later on, we would use the [google_ml_integration extension](https://cloud.google.com/alloydb/docs/ai#generate_embeddings_and_text_predictions) in alloyDB to access and utilize machine learning models directly within your AlloyDB environment.
 
 ```
 truncate table flipkart_embeded; -- clear existing data from the table
 insert into flipkart_embeded select uniq_id, google_ml.embedding_text(description) from flipkart ;
 ```
+
 
 #### Create ml-integration functions in AlloyDB
 
@@ -171,34 +179,38 @@ services can be integrated with the SQL queries.
 
 ![RAG With_Database](arch-alloydb-rag.png)
 
-The benefits of doing so are:
+Why we are using this approach to generate embeddings:
 
-- Embedding happens in GKE
-- The whole thing can be deployed in GKE
-- Customer can use any embedding model
-- Apps can only talk to database for simplicity
+- It gives us an optionto deploy any custom or OSS embedding model on GKE.
+- Applications can interface with database to generate and store embeddings in a single interaction. 
+- It helps create custom functions in sql to generate, store and retrieve embeddings.
 
-The ml-integration provided in `ml-integration/assets` file will create the 
-following ml functions in the AlloyDB:
+The ml-integration.sql script provided in `ml-integration/assets` file will create the following ml functions in the AlloyDB:
 
-- `vllm_completion` This function calls the finetuned model for inference
-- `gemma2_completion` This function calls a pretrained gemma2 2B model for 
-  inference
-- `google_ml.embedding_text` This function calls the "blip2" model for generating
-  embeddings for text
+- `vllm_completion` This function allows you to call fine-tuned model for inference.
+
+- `gemma2_completion` This function allows you to call a pretrained gemma2 2B   model for inference
+
+- `google_ml.embedding_text` This function allows you to call the "blip2" model forcalls the "blip2" model for generating text embeddings only.
+
 - `google_ml.multimodal_embedding` This function calls the "blip2" model for 
   generating multi-model embedding: text, image, and combined embedding
 
 To create the ml-integration functions, set these environment variables and then
-run `psql`:
+connect to the database using `psql` and run the script.
+
+These environment variables help set the endpoint urls of the custom or OSS embedding models hosted in your enviorment.
 
 ```bash
-export FINETUNE_MODEL_EP=<your-finetuned-model-endpoint>
-export PRETRAINED_MODEL_EP=<your-pretained-model-endpoint>
-export EMBEDDING_ENDPOINT=<your-embedding-service-ebdpoint>
-psql <your-connection-string> -f ml-integration/assets/ml-integration.sql
+export FINETUNE_MODEL_EP=<FINE-TUNED-MODEL-URL>
+export PRETRAINED_MODEL_EP=<PRE-TRAINED-MODEL-URL>
+export EMBEDDING_ENDPOINT=<EMBEDDING-MODEL-URL>
+
 ```
 
+```
+psql <your-connection-string> -f ml-integration/assets/ml-integration.sql
+```
 
 ### Deploy the Ml playground and finetuned gemma2 model
 

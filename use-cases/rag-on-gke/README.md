@@ -16,7 +16,7 @@ The dataset has product information such as id, name, brand, description, image 
 
 ## Architecture
 
-![RAG Architecture](arch-rag-components.png)
+![RAG Architecture](./docs/arch-rag-components.png)
 
 ## Set up the environment
 
@@ -176,15 +176,53 @@ insert into flipkart_embeded select uniq_id, google_ml.embedding_text(descriptio
 
 You can use a previously deployed version of the fine tuned model that you created using [model-finetuned pipeline](/platforms/use-cases/model-finetuned/README.md).
 
+You can also refer to the [inferencing guide]() to better understand how to host and deploy fine-tuned models on GKE with various storage options.
+
 Alternatively, you can use below steps:
 
 <TODO> Check with Aaron if the fine tuned image can be made publicly accessible.
+
+Assumption : Fine tuned model has been uploaded to Google Storage bucket.
+
+1. Grant the Kubernetes service account privilege to download the model to the pod.
+
+```
+
+PROJECT_NUMBER=<your_gcp_project_number>
+PROJECT_ID=<your_gcp_project_id>
+NAMESPACE=ml-serve-fine-tuned-model
+KSA=fine-tuned-model-sa
+MODEL_BUCKET_NAME=<your_model_bucket_name>
+
+kubectl create ns $NAMESPACE
+kubectl create sa $KSA --namespace $NAMESPACE
+
+gcloud storage buckets add-iam-policy-binding "gs://$MODEL_BUCKET_NAME" \
+    --member "principal://iam.googleapis.com/projects/"$PROJECT_NUMBER"/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/$NAMESPACE/sa/$KSA" \
+    --role "roles/storage.objectViewer"
+```
+
+2.
+3.
 
 
 ## Deploy the Multimodal Model on the playground cluster
 
 
 ## Deploy pre-trained model gemma2 on the playground cluster
+
+```
+  export HF_TOKEN=<your-Hugging-Face-account-token>
+```
+
+
+```
+kubectl create secret generic hf-secret \
+--from-literal=hf_api_token=$HF_TOKEN \
+--dry-run=client -o yaml | kubectl apply -f -
+````
+
+
 
 
 ## Create ml-integration functions in AlloyDB
@@ -193,7 +231,7 @@ The [Google Ml Integration](https://cloud.google.com/alloydb/docs/ai/invoke-pred
 makes the ML services callable from inside the database, so that ML inferencing 
 services can be integrated with the SQL queries.
 
-![RAG With_Database](arch-alloydb-rag.png)
+![RAG With_Database](./docs/arch-alloydb-rag.png)
 
 Why we are using this approach to generate embeddings:
 

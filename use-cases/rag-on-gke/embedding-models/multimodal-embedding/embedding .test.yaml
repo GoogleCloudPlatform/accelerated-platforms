@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: blip2-container
-        image: us-docker.pkg.dev/<PROJECT_ID>/rag-artifacts/blip2:v0.2.0 # Update the image location
+        image: us-docker.pkg.dev/gkebatchenv3a4ec43f/rag-artifacts/blip2:v0.2.0 # Update the image location
         resources:
           limits:
           requests:

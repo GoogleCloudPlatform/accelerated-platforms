@@ -24,31 +24,30 @@ spec:
       labels:
         app: fine-tuned-model
     spec:
+      serviceAccountName: fine-tuned-model-sa
       containers:
       - args:
         - --model=$(MODEL_ID)
-        - --tensor-parallel-size=1
-        command:
-        - python3
-        - -m
-        - vllm.entrypoints.api_server
+        - --tensor-parallel-size=2
         env:
         - name: MODEL_ID
           value: /data/models/model-gemma2-a100/experiment-a2aa2c3it1 # Absolute path to the model
-        image: us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-vllm-serve:20240220_0936_RC01
+        - name: VLLM_ATTENTION_BACKEND
+          value: FLASHINFER
+        image: vllm/vllm-openai:v0.6.3.post1     
         imagePullPolicy: IfNotPresent
         name: inference-server
         resources:
           limits:
-            cpu: "2"
-            ephemeral-storage: 10Gi
-            memory: 7Gi
-            nvidia.com/gpu: "1"
+            cpu: "4"
+            ephemeral-storage: 30Gi
+            memory: 25Gi
+            nvidia.com/gpu: "2"
           requests:
-            cpu: "2"
-            ephemeral-storage: 10Gi
-            memory: 7Gi
-            nvidia.com/gpu: "1"
+            cpu: "4"
+            ephemeral-storage: 30Gi
+            memory: 25Gi
+            nvidia.com/gpu: "2"
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
@@ -63,15 +62,15 @@ spec:
       terminationGracePeriodSeconds: 30
       tolerations:
       - key: "nvidia.com/gpu"
-        operator: "Exists"
-        effect: "NoSchedule"
-      - key: "cloud.google.com/gke-queued"
-        value: "true"
         operator: "Equal"
+        value: "present"
+        effect: "NoSchedule"
+      - key: "on-demand"
+        operator: "Equal"
+        value: "true"
         effect: "NoSchedule"
       nodeSelector:
-        cloud.google.com/gke-accelerator: nvidia-l4 # Any L4 node pool will work
-        pool-type: l4-2-sb
+        cloud.google.com/gke-accelerator: nvidia-l4
       volumes:
       - emptyDir:
           medium: Memory

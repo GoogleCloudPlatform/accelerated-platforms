@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: inference-server
-        image: vllm/vllm-openai:v0.6.3.post1
+        image: us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-vllm-serve:20240930_0945_RC00
         resources:
           requests:
             cpu: "4"
@@ -30,14 +30,13 @@ spec:
             memory: "30Gi"
             ephemeral-storage: "30Gi"
             nvidia.com/gpu: "2"
+        command: ["python3", "-m", "vllm.entrypoints.api_server"]
         args:
         - --model=$(MODEL_ID)
         - --tensor-parallel-size=2
         env:
         - name: MODEL_ID
           value: google/gemma-2-2b
-        - name: VLLM_ATTENTION_BACKEND
-          value: FLASHINFER
         - name: HUGGING_FACE_HUB_TOKEN
           valueFrom:
             secretKeyRef:

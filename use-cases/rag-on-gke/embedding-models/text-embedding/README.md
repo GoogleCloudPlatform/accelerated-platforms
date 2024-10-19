@@ -9,55 +9,27 @@ and [source](https://github.com/UKPLab/sentence-transformers#application-example
 
 ## Prepare the environment
 
-Use Cloud Shell to manage resources hosted on Google Cloud. Cloud Shell comes preinstalled with the software you'll need for this tutorial, including kubectl and gcloud CLI.
-
-To set up your environment with Cloud Shell, follow these steps:
-
-In the Google Cloud console, launch a Cloud Shell session by clicking Cloud Shell activation icon Activate Cloud Shell in the Google Cloud console. This launches a session in the bottom pane of Google Cloud console.
-
 Set the default environment variables:
 ```
 gcloud config set project PROJECT_ID
 export PROJECT_ID=$(gcloud config get project)
-export REGION=<region>
-export CLUSTER_NAME=<cluster_name>
 ```
-Enable the required APIs to create a GK cluster:
-```
-gcloud services enable compute.googleapis.com container.googleapis.com
-```
-
 
 ## Build Sentence Transformer embedding container image
 Go go cloud shell, Clone the repo:
 ```
-git clone https://github.com/llm-on-gke/sentence_transformer_serving
-cd sentence_transformer_serving
+git clone 
+cd rag-on-gke/embedding-models/text-embedding
 ```
-update the cloudbuild.yaml and update the target container image repo and path
-then kick of cloud build:
+
+Update the location where you would like to store the container images and kick off the build: 
+
 ```
 gcloud builds submit . 
 ```
-
-## Create GKE Cluster
-Run the following to create GKE Autopilot cluster:
-```
-gcloud container clusters create-auto ${CLUSTER_NAME} \
-  --project=${PROJECT_ID} \
-  --region=${REGION} \
-  --release-channel=rapid \
-  --cluster-version=1.29
-```
-
-Validations:
-```
-gcloud container clusters get-credentials ${CLUSTER_NAME} --location=${REGION}
-```
-Make sure cluster in ready mode
-
 ## Deploy the embedding model
-Update embeddings.yaml file, with proper image path, and GPU resource allocations:
+Update embeddings.yaml file, with proper image path, and GPU resource allocations. A sample embeddings.yaml has been provided for your reference.
+
 ```
  nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-tesla-t4

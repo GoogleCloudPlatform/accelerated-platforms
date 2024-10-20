@@ -46,9 +46,6 @@ kind: Service
 metadata:
   name: multimodal-embedding-model-service
   namespace: multimodal-embedding-model
-  annotations:
-    networking.gke.io/load-balancer-type: "Internal"
-    networking.gke.io/internal-load-balancer-allow-global-access: "true"
 spec:
   selector:
     app: blip2

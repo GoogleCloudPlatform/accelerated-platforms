@@ -11,6 +11,5 @@ WORKDIR /app
 RUN pip install -r requirements.txt
 RUN pip install --force-reinstall -v "numpy==1.26.4"
 
-
 # Command to run your script
 CMD ["python", "blip2_script.py"]

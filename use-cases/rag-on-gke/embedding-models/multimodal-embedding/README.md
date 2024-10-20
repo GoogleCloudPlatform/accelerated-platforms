@@ -60,9 +60,12 @@ A sample embeddings.yaml has been provided for your reference.
 Now, deploy embeddings model:
 
 ```
+NAMESPACE=multimodal-embedding-model
+kubectl create ns $NAMESPACE
 kubectl apply -f embeddings.yaml
-
 ```
+
+## Test the embedding model
 Validations: 
 kubectl get po
 
@@ -71,4 +74,11 @@ kubectl get po
 NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)          AGE
 
 
-## curl tests against Embedding model
+## Run the curl test for embedding models 
+
+Using the sample image ```./t-shirt.jpg``` generate the image embedding
+
+```
+curl -X POST http://localhost:5000/embeddings -F "image=./t-shirt.jpg" -F "text=orange plum print man round neck t shirt buy red r online india shop apparel huge collection brand clothe" --header "Content-Type: multipart/form-data"
+```
+

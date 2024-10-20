@@ -14,8 +14,6 @@ from lavis.models import load_model_and_preprocess
 
 import torch
 
-
-
 # Load the model and processors, ensuring they're on the correct device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Explicitly create a torch.device object
 model, vis_processors, txt_processors = load_model_and_preprocess(

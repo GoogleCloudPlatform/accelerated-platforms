@@ -18,7 +18,7 @@ export PROJECT_ID=$(gcloud config get project)
 ## Build Sentence Transformer embedding container image
 Go go cloud shell, Clone the repo:
 ```
-git clone 
+git clone https://github.com/GoogleCloudPlatform/accelerated-platforms.git
 cd rag-on-gke/embedding-models/text-embedding
 ```
 

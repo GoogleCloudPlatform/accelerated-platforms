@@ -24,6 +24,7 @@ module "alloydb_central" {
   project_id       = var.project_id
 
   network_self_link           = "projects/${var.project_id}/global/networks/${var.network_name}"
+  allocated_ip_range          = google_compute_global_address.private_ip_alloc.name
   cluster_encryption_key_name = google_kms_crypto_key.key_region_central.id
 
   automated_backup_policy = {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-resource "google_compute_network" "default" {
+data "google_compute_network" "default" {
   name    = var.network_name
   project = var.project_id
 }
@@ -25,13 +25,13 @@ resource "google_compute_global_address" "private_ip_alloc" {
   name          = "adb-psa"
   address_type  = "INTERNAL"
   purpose       = "VPC_PEERING"
-  prefix_length = 12
-  network       = google_compute_network.default.id
-  address       = "172.16.0.0"
+  prefix_length = var.alloydb_ip_prefix
+  network       = data.google_compute_network.default.id
+  address       = var.alloydb_ip_range 
 }
 
 resource "google_service_networking_connection" "vpc_connection" {
-  network                 = google_compute_network.default.id
+  network                 = data.google_compute_network.default.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_alloc.name]
   deletion_policy         = "ABANDON"

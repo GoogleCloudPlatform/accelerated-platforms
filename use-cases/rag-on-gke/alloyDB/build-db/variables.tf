@@ -25,6 +25,16 @@ variable "network_name" {
   default     = "default"
 }
 
+variable "alloydb_ip_range" {
+  description = "The ip range allocated for alloydb instances"
+  type        = string
+  default     = "172.16.0.0"
+}
+variable "alloydb_ip_prefix" {
+  description = "The ip prefix allocated for alloydb instances"
+  type        = number
+  default     = 12
+}
 
 variable "region_central" {
   default     = "us-central1"

@@ -13,6 +13,7 @@ Set the default environment variables:
 ```
 gcloud config set project PROJECT_ID
 export PROJECT_ID=$(gcloud config get project)
+NAMESPACE=
 ```
 
 ## Build Sentence Transformer embedding container image

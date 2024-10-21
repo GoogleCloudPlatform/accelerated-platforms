@@ -5,9 +5,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: text-embedding-model-deployment
-spec:
-  replicas: 1
-  namespace: text-embedding-model
+  namespace: <your-namespace> # namespace
 spec:
   selector:
     matchLabels:
@@ -63,7 +61,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: embedding-serve
-  namespace: text-embedding-model
+  namespace: <your-namespace> # namespace 
 spec:
   type: LoadBalancer
   selector:

@@ -222,9 +222,6 @@ kubectl create secret generic hf-secret \
 --dry-run=client -o yaml | kubectl apply -f -
 ````
 
-
-
-
 ## Create ml-integration functions in AlloyDB
 
 The [Google Ml Integration](https://cloud.google.com/alloydb/docs/ai/invoke-predictions)
@@ -245,7 +242,7 @@ The ml-integration.sql script provided in `ml-integration/assets` file will crea
 
 - `gemma2_completion` This function allows you to call a pretrained gemma2 2B   model for inference
 
-- `google_ml.embedding_text` This function allows you to call the "blip2" model forcalls the "blip2" model for generating text embeddings only.
+- `google_ml.text_embedding` This function allows you to call the "blip2" model forcalls the "blip2" model for generating text embeddings only.
 
 - `google_ml.multimodal_embedding` This function calls the "blip2" model for 
   generating multi-model embedding: text, image, and combined embedding

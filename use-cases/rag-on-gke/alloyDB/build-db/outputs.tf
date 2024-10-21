@@ -20,7 +20,7 @@ output "project_id" {
 }
 
 output "kms_key_name" {
-  description = "he fully-qualified resource name of the KMS key"
+  description = "The fully-qualified resource name of the KMS key"
   value       = google_kms_crypto_key.key_region_central.id
 }
 

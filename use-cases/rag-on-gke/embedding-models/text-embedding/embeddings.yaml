@@ -22,11 +22,12 @@ spec:
               medium: Memory
       tolerations:
       - key: "nvidia.com/gpu"
-        operator: "Exists"
-        effect: "NoSchedule"
-      - key: "cloud.google.com/gke-queued"
-        value: "true"
         operator: "Equal"
+        value: "present"
+        effect: "NoSchedule"
+      - key: "on-demand"
+        operator: "Equal"
+        value: "true"
         effect: "NoSchedule"
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4

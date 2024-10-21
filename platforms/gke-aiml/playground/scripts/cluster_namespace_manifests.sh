@@ -13,14 +13,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -u
-
 SCRIPT_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
 
-source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+if [ -z ${GIT_REPOSITORY:-} ]; then
+  export GIT_REPOSITORY_PATH="${MANIFESTS_DIRECTORY}"
+else
+  source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+fi
 
 # Set directory and path variables
 namespace_directory="manifests/apps/${K8S_NAMESPACE}"
@@ -45,8 +47,10 @@ sed -i "s?KUBERNETES_SERVICE_ACCOUNT_RAY_WORKER?${K8S_SERVICE_ACCOUNT_WORKER}?g"
 sed -i "s?KUBERNETES_SERVICE_ACCOUNT_MLFLOW?${K8S_SERVICE_ACCOUNT_MLFLOW}?g" ${namespace_path}/*
 sed -i "s?DB_BUCKET?${DATA_BUCKET}?g" ${namespace_path}/*
 
-# Add, commit, and push changes to the repository
-cd ${GIT_REPOSITORY_PATH}
-git add .
-git commit -m "Manifests for RayCluster in '${K8S_NAMESPACE}' namespace"
-git push origin
+if [ ! -z ${GIT_REPOSITORY:-} ]; then
+  # Add, commit, and push changes to the repository
+  cd ${GIT_REPOSITORY_PATH}
+  git add .
+  git commit -m "Manifests for RayCluster in '${K8S_NAMESPACE}' namespace"
+  git push origin
+fi

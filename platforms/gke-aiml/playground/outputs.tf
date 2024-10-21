@@ -12,22 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "configsync_repository" {
-  value = local.configsync_repository.html_url
-}
-
 output "git_repository" {
   value = local.git_repository
 }
 
 output "iap_domain" {
   value = local.iap_domain
-}
-
-output "ray_dashboard_url_https" {
-  value = "https://${local.ray_dashboard_endpoint}"
-}
-
-output "mlflow_url_https" {
-  value = "https://${local.mlflow_tracking_endpoint}"
 }

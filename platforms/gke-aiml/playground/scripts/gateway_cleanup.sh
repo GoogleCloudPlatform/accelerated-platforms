@@ -16,31 +16,46 @@
 set -u
 
 SCRIPT_PATH="$(
-  cd "$(dirname "$0")" >/dev/null 2>&1
-  pwd -P
+    cd "$(dirname "$0")" >/dev/null 2>&1
+    pwd -P
 )"
 
-source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+if [ -z ${GIT_REPOSITORY:-} ]; then
+    export GIT_REPOSITORY_PATH="${MANIFESTS_DIRECTORY}"
+else
+    source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+fi
 
 # Set directory and path variables
 namespace_directory="manifests/apps/${K8S_NAMESPACE}"
 namespace_path="${GIT_REPOSITORY_PATH}/${namespace_directory}"
 
 cd "${namespace_path}" || {
-  echo "Namespace directory '${namespace_directory}' does not exist"
-  exit 100
+    echo "Namespace directory '${namespace_directory}' does not exist"
+    exit 100
 }
 
-git rm -rf ${namespace_path}/gateway
+rm -rf ${namespace_path}/gateway
+
 sed -i '/- .\/gateway/d' ${namespace_path}/kustomization.yaml
 
-# Add, commit, and push changes to the repository
-cd ${GIT_REPOSITORY_PATH}
-git add .
-git commit -m "Removed manifests for '${K8S_NAMESPACE}' gateway"
-git push origin
+if [ ! -z ${GIT_REPOSITORY:-} ]; then
+    git rm -rf ${namespace_path}/gateway
 
-${SCRIPT_PATH}/helpers/wait_for_repo_sync.sh $(git rev-parse HEAD)
+    # Add, commit, and push changes to the repository
+    cd ${GIT_REPOSITORY_PATH}
+    git add .
+    git commit -m "Removed manifests for '${K8S_NAMESPACE}' gateway"
+    git push origin
+    LAST_COMMIT=$(git rev-parse HEAD)
+else
+    ${SCRIPT_PATH}/helpers/generate_oic_image.sh
+
+    LASTEST_SHA=$(crane digest ${CONFIGSYNC_IMAGE})
+    LAST_COMMIT=${LASTEST_SHA##sha256:}
+fi
+
+${SCRIPT_PATH}/helpers/wait_for_repo_sync.sh ${LAST_COMMIT}
 
 kubectl delete --namespace ${K8S_NAMESPACE} --all gcpbackendpolicy
 kubectl delete --namespace ${K8S_NAMESPACE} --all httproute

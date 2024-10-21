@@ -19,21 +19,21 @@ module "create-vpc" {
     google_project_service.compute_googleapis_com
   ]
 
-  network_name     = format("%s-%s", var.network_name, var.environment_name)
+  network_name     = local.unique_identifier_prefix
   project_id       = data.google_project.environment.project_id
   routing_mode     = var.routing_mode
-  subnet_01_ip     = var.subnet_01_ip
-  subnet_01_name   = format("%s-%s", var.subnet_01_name, var.environment_name)
-  subnet_01_region = var.subnet_01_region
+  subnet_01_ip     = var.subnet_ip_cidr_range
+  subnet_01_name   = var.region
+  subnet_01_region = var.region
 }
 
 module "cloud-nat" {
   source = "../../../terraform/modules/cloud-nat"
 
   create_router = true
-  name          = format("%s-%s", "nat-for-acm", var.environment_name)
+  name          = local.unique_identifier_prefix
   network       = module.create-vpc.vpc
   project_id    = data.google_project.environment.project_id
-  region        = split("/", module.create-vpc.subnet-1)[3]
-  router        = format("%s-%s", "router-for-acm", var.environment_name)
+  region        = var.region
+  router        = local.unique_identifier_prefix
 }

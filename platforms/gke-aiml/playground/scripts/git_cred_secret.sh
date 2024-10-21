@@ -13,12 +13,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -u
-
 SCRIPT_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
+
+if [ -z ${GIT_REPOSITORY:-} ]; then
+  exit 0
+fi
 
 source ${SCRIPT_PATH}/helpers/git_config_env.sh
 

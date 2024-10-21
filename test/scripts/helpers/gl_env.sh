@@ -18,4 +18,9 @@ echo_title "Checking GitLab required configuration"
 
 export GIT_TOKEN_FILE=${GIT_TOKEN_FILE:-${HOME}/secrets/mlp-gitlab-token}
 
+if [ ! -f ${GIT_TOKEN_FILE} ]; then
+    echo "Git token missing at '${GIT_TOKEN_FILE}'!"
+    exit 3
+fi
+
 source ${SCRIPTS_DIR}/helpers/git_env.sh

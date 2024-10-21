@@ -14,6 +14,7 @@
 
 locals {
   configsync_repository = module.configsync_repository
+  configsync_image      = null
   git_repository        = replace(local.configsync_repository.html_url, "/https*:\\/\\//", "")
 }
 

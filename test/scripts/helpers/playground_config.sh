@@ -28,6 +28,23 @@ MLP_IAP_DOMAIN=${MLP_IAP_DOMAIN:-$(gcloud auth list --filter=status:ACTIVE --for
 echo "MLP_IAP_DOMAIN=${MLP_IAP_DOMAIN}"
 sed -i '/^iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${MLP_IAP_DOMAIN}"'"/};${x;/^$/{s//iap_domain             = "'"${MLP_IAP_DOMAIN}"'"/;H};x}' ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
 
+echo_title "Checking MLP_REGION"
+export MLP_REGION=${MLP_REGION:-us-central1}
+echo "MLP_REGION=${MLP_REGION}"
+if [ "${MLP_REGION}" != "us-central1" ]; then
+    if [ ! -d ${MLP_TYPE_BASE_DIR}/region/${MLP_REGION} ]; then
+        echo "Region '${MLP_REGION}' is not supported!"
+        exit 1
+    fi
+
+    sed -i '/^region[[:blank:]]*=/{h;s/=.*/= "'"${MLP_REGION}"'"/};${x;/^$/{s//region                 = "'"${MLP_REGION}"'"/;H};x}' ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
+
+    echo_bold "Applying node pool changes for '${MLP_REGION}'"
+    cd ${MLP_TYPE_BASE_DIR}
+    rm -f container_node_pool.tf
+    ln -s region/${MLP_REGION}/container_node_pool.tf
+fi
+
 echo_title "Checking mlflow-tracking endpoint"
 gcloud endpoints services undelete mlflow-tracking.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
 

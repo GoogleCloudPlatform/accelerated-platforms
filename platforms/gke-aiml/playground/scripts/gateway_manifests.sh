@@ -20,8 +20,11 @@ SCRIPT_PATH="$(
   pwd -P
 )"
 
-source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
-
+if [ -z ${GIT_REPOSITORY:-} ]; then
+  export GIT_REPOSITORY_PATH="${MANIFESTS_DIRECTORY}"
+else
+  source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
+fi
 # Set directory and path variables
 namespace_directory="manifests/apps/${K8S_NAMESPACE}"
 namespace_path="${GIT_REPOSITORY_PATH}/${namespace_directory}"
@@ -41,8 +44,10 @@ export resources+=$(find ${namespace_path} -maxdepth 1 -type f -name "*.yaml" ! 
 export kustomization_file=${namespace_path}/kustomization.yaml
 source ${SCRIPT_PATH}/helpers/add_to_kustomization.sh
 
-# Add, commit, and push changes to the repository
-cd ${GIT_REPOSITORY_PATH}
-git add .
-git commit -m "Manifests for ${K8S_NAMESPACE} gateway"
-git push origin
+if [ ! -z ${GIT_REPOSITORY:-} ]; then
+  # Add, commit, and push changes to the repository
+  cd ${GIT_REPOSITORY_PATH}
+  git add .
+  git commit -m "Manifests for ${K8S_NAMESPACE} gateway"
+  git push origin
+fi

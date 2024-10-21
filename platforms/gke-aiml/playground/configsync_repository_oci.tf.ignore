@@ -1,0 +1,48 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+locals {
+  configsync_repository = module.configsync_repository
+  configsync_image      = "${local.repo_config_sync_images_url}/${local.config_sync_root_sync_image_name}:${local.config_sync_root_sync_image_tag}"
+
+  git_repository        = null
+
+  config_management_namespace                  = "config-management-system"
+  config_management_kubernetes_service_account = "root-reconciler"
+
+  namespace_kubernetes_service_account_prefix            = "ns-reconciler-${var.namespace}-${var.environment_name}-${var.namespace}"
+  namespace_kubernetes_service_account_suffix            = length(var.namespace) + length(var.environment_name) + 1
+  config_management_namespace_kubernetes_service_account = "${local.namespace_kubernetes_service_account_prefix}-${local.namespace_kubernetes_service_account_suffix}"
+
+  config_sync_root_sync_image_name = "root-sync"
+  config_sync_root_sync_image_tag  = "latest"
+
+  repo_config_sync_images_id  = "${var.environment_name}-config-sync"
+  repo_config_sync_images_url = module.configsync_repository.http_clone_url
+}
+
+module "configsync_repository" {
+  depends_on = [google_container_cluster.mlp]
+  
+  source = "../../../terraform/modules/artifact_registry_repository"
+
+  format        = "DOCKER"
+  location      = var.region
+  project       = google_project_service.artifactregistry_googleapis_com.project
+  reader_members = [
+    "principal://iam.googleapis.com/projects/${data.google_project.environment.number}/locations/global/workloadIdentityPools/${data.google_project.environment.project_id}.svc.id.goog/subject/ns/${local.config_management_namespace}/sa/${local.config_management_kubernetes_service_account}",
+    "principal://iam.googleapis.com/projects/${data.google_project.environment.number}/locations/global/workloadIdentityPools/${data.google_project.environment.project_id}.svc.id.goog/subject/ns/${local.config_management_namespace}/sa/${local.config_management_namespace_kubernetes_service_account}",
+  ]
+  repository_id = local.repo_config_sync_images_id
+}

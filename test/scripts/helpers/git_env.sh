@@ -14,11 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ ! -f ${GIT_TOKEN_FILE} ]; then
-    echo "Git token missing at '${GIT_TOKEN_FILE}'!"
-    exit 3
-fi
-
 if [ -z "${MLP_GIT_NAMESPACE}" ]; then
     echo "MLP_GIT_NAMESPACE is not set!"
     exit 4
@@ -35,6 +30,6 @@ if [ -z "${MLP_GIT_USER_EMAIL}" ]; then
 fi
 
 echo_title "Applying Git configuration"
-sed -i "s/YOUR_GIT_NAMESPACE/${MLP_GIT_NAMESPACE}/g" ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
-sed -i "s/YOUR_GIT_USER_EMAIL/${MLP_GIT_USER_EMAIL}/g" ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
-sed -i "s/YOUR_GIT_USER_NAME/${MLP_GIT_USER_NAME}/g" ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
+sed -i "s|YOUR_GIT_NAMESPACE|${MLP_GIT_NAMESPACE}|g" ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
+sed -i "s|YOUR_GIT_USER_EMAIL|${MLP_GIT_USER_EMAIL}|g" ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
+sed -i "s|YOUR_GIT_USER_NAME|${MLP_GIT_USER_NAME}|g" ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars

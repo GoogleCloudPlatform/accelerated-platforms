@@ -42,7 +42,9 @@ with an inference serving engine.
   ```
   cd src
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
-  gcloud beta builds submit --config cloudbuild.yaml \
+  gcloud beta builds submit \
+  --config cloudbuild.yaml \
+  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
   --project ${MLP_PROJECT_ID} \
   --substitutions _DESTINATION=${MLP_FINE_TUNING_IMAGE}
   cd ..
@@ -80,6 +82,7 @@ with an inference serving engine.
   | MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING | If MLflow is enabled, track system level metrics, CPU/Memory/GPU                                                                  | true/false                                    |
   | MLFLOW_TRACKING_URI                  | If MLflow is enabled, the tracking server URI                                                                                     | <http://mlflow-tracking-service.ml-team:5000> |
   | MODEL_PATH                           | The output folder path for the fine-tuned model. This location will be used by the inference serving engine and model evaluation. | /model-data/model-gemma2/experiment           |
+  | TRAIN_BATCH_SIZE                     | The number of training examples processed in a single iteration of an ML model's training process | 1           |
 
   ```sh
   ACCELERATOR="l4"
@@ -90,6 +93,7 @@ with an inference serving engine.
   MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING="true"
   MLFLOW_TRACKING_URI="http://mlflow-tracking-svc:5000"
   MODEL_PATH="/model-data/model-gemma2/experiment"
+  TRAIN_BATCH_SIZE="1"
   ```
 
   ```sh
@@ -105,6 +109,7 @@ with an inference serving engine.
   -i -e "s|V_MODEL_BUCKET|${MLP_MODEL_BUCKET}|" \
   -i -e "s|V_MODEL_PATH|${MODEL_PATH}|" \
   -i -e "s|V_TRAINING_DATASET_PATH|${DATA_BUCKET_DATASET_PATH}|" \
+  -i -e "s|V_TRAIN_BATCH_SIZE|${TRAIN_BATCH_SIZE}|" \
   manifests/fine-tune-${ACCELERATOR}-dws.yaml
   ```
 

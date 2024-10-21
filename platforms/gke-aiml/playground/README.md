@@ -278,11 +278,15 @@ For simplicity, in this guide access to the IAP secured applications will be con
 
 ## Create the resources
 
-Before running Terraform, make sure that the Service Usage API is enable.
+Before running Terraform, make sure that the Service Usage API and Service Management API are enabled.
 
 - Enable Service Usage API
 
   `gcloud services enable serviceusage.googleapis.com`
+
+- Enable the Service Management API
+
+  `gcloud services enable servicemanagement.googleapis.com`
 
 - Ensure the endpoints are not in a deleted state
 

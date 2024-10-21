@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  unique_identifier_prefix = "${var.resource_name_prefix}-${var.environment_name}"
+}
+
 data "google_project" "environment" {
   project_id = var.environment_project_id
 }
@@ -28,6 +32,13 @@ resource "google_project_service" "anthosconfigmanagement_googleapis_com" {
   disable_on_destroy         = false
   project                    = data.google_project.environment.project_id
   service                    = "anthosconfigmanagement.googleapis.com"
+}
+
+resource "google_project_service" "artifactregistry_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.environment.project_id
+  service                    = "artifactregistry.googleapis.com"
 }
 
 resource "google_project_service" "cloudresourcemanager_googleapis_com" {

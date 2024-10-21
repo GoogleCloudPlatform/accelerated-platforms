@@ -31,7 +31,6 @@ spec:
         effect: "NoSchedule"
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
-        pool-type: l4-2
       containers:
       - name: embeddings
         image: us-docker.pkg.dev/{PROJECT_ID}/rag-artifacts/sentence-transformer:latest #replace with your sentence transformer image path

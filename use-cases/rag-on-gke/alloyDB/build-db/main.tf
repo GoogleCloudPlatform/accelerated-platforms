@@ -75,6 +75,7 @@ module "alloydb_central" {
 resource "google_service_account" "alloydb_superuser_sa" {
   account_id   = "alloydb-superuser"
   display_name = "AlloyDB Super User SA"
+  project = var.project_id
 }
 
 resource "google_alloydb_user" "superuser" {
@@ -90,6 +91,7 @@ resource "google_alloydb_user" "superuser" {
 resource "google_service_account" "alloydb_raguser_sa" {
   account_id   = "alloydb-raguser"
   display_name = "AlloyDB User SA"
+  project = var.project_id
 }
 
 resource "google_alloydb_user" "ragusr" {

@@ -2,14 +2,14 @@
 This is database flag in AlloyDB for PostgreSQL. 
 It is a crucial setting that allows you to use the google_ml_integration extension to access and utilize machine learning models directly within your AlloyDB environment.*/
 
+ALTER EXTENSION google_ml_integration VERSION '1.3';
 
--- set google_ml_integration.enable_model_support = 'on';
 /*Create function to call the fine-tuned-model*/
 call google_ml.drop_model('gke-vllm-finetuned');
 CALL
     google_ml.create_model(
       model_id => 'gke-vllm-finetuned',
-      model_request_url => :'finetune_model_ep',
+      model_request_url => 'finetune_model_ep',
       model_provider => 'custom',
       model_type => 'generic',
       model_qualified_name => '/data/models/model-gemma2-a100/experiment-a2aa2c3it1',
@@ -34,7 +34,7 @@ call google_ml.drop_model('gke-vllm-gemma2');
 CALL
     google_ml.create_model(
       model_id => 'gke-vllm-gemma2',
-      model_request_url => :'pretrained_model_ep',
+      model_request_url => 'pretrained_model_ep',
       model_provider => 'custom',
       model_type => 'generic',
       model_qualified_name => 'google/gemma-2-2b',
@@ -59,7 +59,7 @@ call google_ml.drop_model('multimodal-blip2');
 CALL
     google_ml.create_model(
       model_id => 'multimodal-blip2',
-      model_request_url => :'embedding_endpoint',
+      model_request_url => 'embedding_endpoint',
       model_provider => 'custom',
       model_type => 'generic',
       model_auth_type => null,

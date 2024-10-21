@@ -20,28 +20,30 @@ terraform destroy
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| network\_name | The ID of the network in which to provision resources. | `string` | `"simple-adb"` | no |
-| project\_id | The ID of the project in which to provision resources. | `string` | n/a | yes |
-| region\_central | The region for cluster in central us | `string` | `"us-central1"` | no |
-| region\_east | The region for cluster in east us | `string` | `"us-east1"` | no |
+| Name              | Description                                                        | Type     | Default         | Required |
+|-------------------|--------------------------------------------------------------------|----------|-----------------|:--------:|
+| network\_name     | The ID of the network in which to provision resources.             | `string` | `"default"`     | no       |
+| project\_id       | The ID of the project in which to provision resources.             | `string` | n/a             | yes      |
+| alloydb_ip_range  | The ip range allocated for alloydb instances                       | `string` | 172.16.0.0      | no       |
+| alloydb_ip_prefix | The ip prefix used for allocating ip address for alloydb instances | `number` | 12              | no       |
+| region\_central   | The region for cluster in central us                               | `string` | `"us-central1"` | no       |
+| region\_east      | The region for cluster in east us                                  | `string` | `"us-east1"`    | no       |
 
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| cluster\_id | ID of the Alloy DB Cluster created |
-| cluster\_name | The name of the cluster resource |
-| kms\_key\_name | he fully-qualified resource name of the KMS key |
-| primary\_instance\_id | ID of the primary instance created |
-| project\_id | Project ID of the Alloy DB Cluster created |
-| region | The region for primary cluster |
-| secondary\_cluster\_id | ID of the Secondary Alloy DB Cluster created |
-| secondary\_cluster\_name | The name of the Secondary cluster resource |
-| secondary\_kms\_key\_name | he fully-qualified resource name of the Secondary clusterKMS key |
-| secondary\_primary\_instance\_id | ID of the Secondary Cluster primary instance created |
-| secondary\_region | The region for cross region replica secondary cluster |
+| Name                             | Description                                                      |
+|----------------------------------|------------------------------------------------------------------|
+| cluster\_id                      | ID of the Alloy DB Cluster created                               |
+| cluster\_name                    | The name of the cluster resource                                 |
+| kms\_key\_name                   | he fully-qualified resource name of the KMS key                  |
+| primary\_instance\_id            | ID of the primary instance created                               |
+| project\_id                      | Project ID of the Alloy DB Cluster created                       |
+| region                           | The region for primary cluster                                   |
+| secondary\_cluster\_id           | ID of the Secondary Alloy DB Cluster created                     |
+| secondary\_cluster\_name         | The name of the Secondary cluster resource                       |
+| secondary\_kms\_key\_name        | he fully-qualified resource name of the Secondary clusterKMS key |
+| secondary\_primary\_instance\_id | ID of the Secondary Cluster primary instance created             |
+| secondary\_region                | The region for cross region replica secondary cluster            |
 
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 

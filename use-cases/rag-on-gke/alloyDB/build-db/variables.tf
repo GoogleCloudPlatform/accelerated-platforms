@@ -31,7 +31,7 @@ variable "alloydb_ip_range" {
   default     = "172.16.0.0"
 }
 variable "alloydb_ip_prefix" {
-  description = "The ip prefix allocated for alloydb instances"
+  description = "The ip prefix used for allocating ip address for alloydb instances"
   type        = number
   default     = 12
 }

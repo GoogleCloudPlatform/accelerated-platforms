@@ -84,6 +84,7 @@ resource "google_alloydb_user" "superuser" {
   database_roles = [
     "alloydbsuperuser"
   ]
+  depends_on = [module.alloydb_central]
 }
 
 resource "google_service_account" "alloydb_raguser_sa" {
@@ -95,6 +96,7 @@ resource "google_alloydb_user" "ragusr" {
   cluster = module.alloydb_central.cluster_id
   user_id = "${google_service_account.alloydb_raguser_sa.account_id}@${var.project_id}.iam"
   user_type = "ALLOYDB_IAM_USER"
+  depends_on = [module.alloydb_central]
 }
 
 resource "google_project_iam_binding" "databaseuser" {

@@ -37,6 +37,14 @@ We follow the guidelines and recommendations in the [Google Cloud Best practices
 
 The repository requires that files use built-in formatting using the `terraform fmt` command.
 
+#### Tools
+
+##### Code OSS/VSCode Extensions
+
+Black Formatter `ms-python.black-formatter`
+
+Code Spell Checker `streetsidesoftware.code-spell-checker`
+
 ### Code reviews
 
 All submissions, including submissions by project members, require review. We

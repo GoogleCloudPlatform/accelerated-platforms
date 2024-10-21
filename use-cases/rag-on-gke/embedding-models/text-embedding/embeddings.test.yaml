@@ -32,7 +32,8 @@ spec:
       #   effect: "NoSchedule"
       tolerations:
       - key: "nvidia.com/gpu"
-        operator: "Exists"
+        operator: "Equal"
+        value: "present"
         effect: "NoSchedule"
       - key: "cloud.google.com/gke-queued"
         value: "true"

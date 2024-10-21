@@ -21,17 +21,26 @@ spec:
        - name: dshm
          emptyDir:
               medium: Memory
+      # tolerations:
+      # - key: "nvidia.com/gpu"
+      #   operator: "Equal"
+      #   value: "present"
+      #   effect: "NoSchedule"
+      # - key: "on-demand"
+      #   operator: "Equal"
+      #   value: "true"
+      #   effect: "NoSchedule"
       tolerations:
       - key: "nvidia.com/gpu"
-        operator: "Equal"
-        value: "present"
+        operator: "Exists"
         effect: "NoSchedule"
-      - key: "on-demand"
-        operator: "Equal"
+      - key: "cloud.google.com/gke-queued"
         value: "true"
+        operator: "Equal"
         effect: "NoSchedule"
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
+        pool-type: l4-2-sb
       containers:
       - name: embeddings
         image: us-docker.pkg.dev/gkebatchenv3a4ec43f/rag-artifacts/sentence-transformer:latest #replace with your sentence transformer image path

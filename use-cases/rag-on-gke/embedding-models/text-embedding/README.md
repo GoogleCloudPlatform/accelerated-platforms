@@ -13,7 +13,9 @@ Set the default environment variables:
 ```
 gcloud config set project PROJECT_ID
 export PROJECT_ID=$(gcloud config get project)
-NAMESPACE=
+NAMESPACE=text-embedding-model 
+kubectl create ns $NAMESPACE
+kubectl apply -f $NAMESPACE/embeddings.yaml
 ```
 
 ## Build Sentence Transformer embedding container image

@@ -1,11 +1,14 @@
-/*This script uses alloyDB google_ml_integration.enable_model_support 
-This is database flag in AlloyDB for PostgreSQL. 
+/*This script uses alloyDB google_ml_integration.enable_model_support
+This is database flag in AlloyDB for PostgreSQL.
 It is a crucial setting that allows you to use the google_ml_integration extension to access and utilize machine learning models directly within your AlloyDB environment.*/
 
 ALTER EXTENSION google_ml_integration VERSION '1.3';
 
 /*Create function to call the fine-tuned-model*/
-call google_ml.drop_model('gke-vllm-finetuned');
+CREATE extension IF NOT EXISTS vector;
+CREATE extension IF NOT EXISTS google_ml_integration;
+
+CALL google_ml.drop_model('gke-vllm-finetuned');
 CALL
     google_ml.create_model(
       model_id => 'fine_tuned_model',
@@ -20,8 +23,8 @@ CALL
       model_out_transform_fn => null);
 
 /* Function to send prompts to the completion api for fine-tuned-model*/
-create or replace function vllm_completion(input_text text)
-returns TEXT AS $$
+CREATE OR REPLACE FUNCTION vllm_completion(input_text text)
+RETURNS TEXT AS $$
 SELECT json_extract_path_text(google_ml.predict_row('fine_tuned_model',
    json_build_object('prompt', input_text,
    'model', '/data/models/model-gemma2-a100/experiment-a2aa2c3it1',
@@ -30,7 +33,7 @@ $$ LANGUAGE sql IMMUTABLE;
 
 
 /*Create function to call the pre-trained gemma model*/
-call google_ml.drop_model('pre-trained-gemma');
+CALL google_ml.drop_model('pre-trained-gemma');
 CALL
     google_ml.create_model(
       model_id => 'pre-trained-gemma2',
@@ -45,8 +48,8 @@ CALL
       model_out_transform_fn => null);
 
 /* Function to send prompts to the completion api for gemma model*/
-create or replace function gemma2_completion(input_text text)
-returns TEXT AS $$
+CREATE OR REPLACE FUNCTION gemma2_completion(input_text text)
+RETURNS TEXT AS $$
 SELECT json_extract_path_text(google_ml.predict_row('pre-trained-gemma',
    json_build_object('prompt', input_text,
    'model', 'google/gemma-2-2b',
@@ -55,7 +58,7 @@ $$ LANGUAGE sql IMMUTABLE;
 
 
 /*Create function to call the multimodal-blip2 multimodal model*/
-call google_ml.drop_model('multimodal-model-blip2');
+CALL google_ml.drop_model('multimodal-model-blip2');
 CALL
     google_ml.create_model(
       model_id => 'multimodal-blip2',
@@ -76,8 +79,8 @@ $$ LANGUAGE sql IMMUTABLE;
 
 
 /* Function to generate text embeddings only from multimodal blip2 model*/
-create or replace function google_ml.blip2_embedding_text_input(model_id varchar, input_text text)
-returns json as $$
+CREATE OR REPLACE FUNCTION google_ml.blip2_embedding_text_input(model_id varchar, input_text text)
+RETURNS json as $$
 DECLARE
   transformed_input JSON;
 BEGIN
@@ -88,8 +91,8 @@ $$
 LANGUAGE plpgsql IMMUTABLE;
 
 
-create or replace function google_ml.blip2_embedding_text_output(model_id varchar, response_json json)
-returns REAL[] as $$
+CREATE OR REPLACE FUNCTION google_ml.blip2_embedding_text_output(model_id varchar, response_json json)
+RETURNS REAL[] as $$
 DECLARE
   transformed_output REAL[];
 BEGIN
@@ -102,8 +105,8 @@ $$
 LANGUAGE plpgsql IMMUTABLE;
 
 /*Create function to call the multimodal-blip2 model for text embeddings*/
-call google_ml.drop_model('blip2-text');
-call google_ml.create_model(
+CALL google_ml.drop_model('blip2-text');
+CALL google_ml.create_model(
      model_id => 'blip2-text',
      model_request_url => :'embedding_endpoint',
      model_provider => 'custom',
@@ -112,8 +115,8 @@ call google_ml.create_model(
      model_out_transform_fn => 'google_ml.blip2_embedding_text_output');
 
 
-create or replace function google_ml.embedding_text(input_text text)
-returns vector as $$
+CREATE OR REPLACE FUNCTION google_ml.embedding_text(input_text text)
+RETURNS vector AS $$
 SELECT google_ml.embedding('blip2-text', input_text);
 $$
 LANGUAGE sql IMMUTABLE;

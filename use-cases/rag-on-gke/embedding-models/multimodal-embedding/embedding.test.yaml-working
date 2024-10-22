@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: multimodal-embedding-model-deployment
-  namespace: multimodal-embedding-model-2
+  namespace: multimodal-embedding-model
 spec:
   replicas: 1 # Adjust replica count as needed
   selector:
@@ -45,10 +45,10 @@ apiVersion: v1
 kind: Service
 metadata:
   name: multimodal-embedding-model-service
-  namespace: multimodal-embedding-model-2
-  annotations:
-    networking.gke.io/load-balancer-type: "Internal"
-    networking.gke.io/internal-load-balancer-allow-global-access: "true"
+  namespace: multimodal-embedding-model
+  # annotations:
+  #   networking.gke.io/load-balancer-type: "Internal"
+  #   networking.gke.io/internal-load-balancer-allow-global-access: "true"
 spec:
   selector:
     app: blip2

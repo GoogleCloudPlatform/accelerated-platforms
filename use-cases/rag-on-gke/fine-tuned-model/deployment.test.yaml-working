@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: fine-tuned-model-deployment
-  namespace: ml-serve-fine-tuned-model-2
+  namespace: ml-serve-fine-tuned-model
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -71,7 +71,6 @@ spec:
         effect: "NoSchedule"
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
-        cloud.google.com/gke-nodepool: gpu-l4x2-g2s24     
       volumes:
       - emptyDir:
           medium: Memory
@@ -90,15 +89,12 @@ apiVersion: v1
 kind: Service
 metadata:
   name: fine-tuned-model-service
-  namespace: ml-serve-fine-tuned-model-2  # replace with your namespace
-  annotations:
-    networking.gke.io/load-balancer-type: "Internal"
-    networking.gke.io/internal-load-balancer-allow-global-access: "true"
+  namespace: ml-serve-fine-tuned-model  # replace with your namespace
 spec:
   selector:
     app: fine-tuned-model
+  type: ClusterIP
   ports:
   - protocol: TCP
     port: 8000
     targetPort: 8000
-  type: LoadBalancer

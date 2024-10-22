@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: pre-trained-model-deployment
-  namespace: ml-serve-pre-trained-model
+  namespace: ml-serve-pre-trained-model-2
 spec:
   replicas: 1
   selector:
@@ -66,12 +66,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: pre-trained-model-service
-  namespace: ml-serve-pre-trained-model
+  namespace: ml-serve-pre-trained-model-2
+  annotations:
+    networking.gke.io/load-balancer-type: "Internal"
+    networking.gke.io/internal-load-balancer-allow-global-access: "true"
 spec:
   selector:
     app: pre-trained-gemma-server
-  type: ClusterIP
   ports:
     - protocol: TCP
       port: 8000
       targetPort: 8000
+  type: LoadBalancer

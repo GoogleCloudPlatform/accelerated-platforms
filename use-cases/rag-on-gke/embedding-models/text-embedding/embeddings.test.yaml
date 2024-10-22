@@ -41,6 +41,7 @@ spec:
         effect: "NoSchedule"
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
+        cloud.google.com/gke-nodepool: l4-pool
         pool-type: l4-2-sb
       containers:
       - name: embeddings

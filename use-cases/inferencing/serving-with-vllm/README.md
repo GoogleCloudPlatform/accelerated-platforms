@@ -14,11 +14,11 @@ In this guide, you will serve a fine-tuned Gemma large language model (LLM) usin
 
 By the end of this guide, you should be able to perform the following steps:
 
-1. Create a Persistent Disk for the LLM model weights
-1. Deploy a vLLM container to your cluster to host your model
-1. Use vLLM to serve the fine-tuned Gemma model
-1. View Production metrics for your model serving
-1. Use custom metrics and Horizontal Pod Autoscaler (HPA) to scale your model
+- Create a Persistent Disk for the LLM model weights
+- Deploy a vLLM container to your cluster to host your model
+- Use vLLM to serve the fine-tuned Gemma model
+- View Production metrics for your model serving
+- Use custom metrics and Horizontal Pod Autoscaler (HPA) to scale your model
 
 ## Prerequisites
 
@@ -85,26 +85,26 @@ By the end of this guide, you should be able to perform the following steps:
 
 Loading model weights from a Persistent Volume is a method to load models faster. In GKE, Persistent Volumes backed by GCP Persistent Disks can be mounted read-only simultaneously by multiple nodes(ReadOnlyMany), this allows multiple pods access the model weights from a single volume.
 
-1. Create a PVC for the model weights
+  Create a PVC for the model weights
 
   ```sh
   kubectl apply -f manifests/volume-prep/pvc-disk-images.yaml
   ```
 
-1. Create a job downloading the models to the volume and review logs for successful completion.
+  Create a job downloading the models to the volume and review logs for successful completion.
 
   ```sh
   sed -i -e "s|_YOUR_BUCKET_NAME_|${V_MODEL_BUCKET}|" manifests/batch_job_download_model_on_pv_volume.yaml
   kubectl create -f manifests/batch_job_download_model_on_pv_volume.yaml
   ```
 
-1. Wait for the job to show completion.
+ Wait for the job to show completion.
 
   ```sh
   ...
   ```
 
-1. Create the PV and PVC
+ Create the PV and PVC
 
   ```sh
   PV_NAME="$(kubectl get pvc/block-pvc-model -o jsonpath='{.spec.volumeName}')"
@@ -202,13 +202,13 @@ You can configure monitoring of the metrics above using the [pod monitoring](htt
 
 Cloud Monitoring provides an [importer](https://cloud.google.com/monitoring/dashboards/import-grafana-dashboards) that you can use to import dashboard files in the Grafana JSON format into Cloud Monitoring
 
-1. Clone github repository
+ Clone github repository
 
   ```sh
   git clone https://github.com/GoogleCloudPlatform/monitoring-dashboard-samples
   ```
 
-1. Change to the directory for the dashboard importer:
+ Change to the directory for the dashboard importer:
 
   ```sh
   cd monitoring-dashboard-samples/scripts/dashboard-importer
@@ -219,7 +219,7 @@ The dashboard importer includes the following scripts:
 - import.sh, which converts dashboards and optionally uploads the converted dashboards to Cloud Monitoring.
 - upload.sh, which uploads the converted dashboards—or any Monitoring dashboards—to Cloud Monitoring. The import.sh script calls this script to do the upload.
 
-1. Import the dashboard
+ Import the dashboard
 
   ```sh
   ./import.sh ./configs/grafana.json ${PROJECT_ID}
@@ -252,7 +252,7 @@ Here is a sample ![graph](./benchmarks/locust.jpg) to review.
 
 There are different metrics available that could be used to scale your inference workloads on GKE.
 
-1. Server metrics: LLM inference servers vLLM provides workload-specific performance metrics. GKE simplifies scraping and autoscaling of workloads based on these server-level metrics. You can use these metrics to gain visibility into performance indicators like batch size, queue size, and decode latencies
+Server metrics: LLM inference servers vLLM provides workload-specific performance metrics. GKE simplifies scraping and autoscaling of workloads based on these server-level metrics. You can use these metrics to gain visibility into performance indicators like batch size, queue size, and decode latencies
 
 In case of vLLM, [production metrics class](https://docs.vllm.ai/en/latest/serving/metrics.html) exposes a number of useful metrics which GKE can use to horizontally scale inference workloads.
 
@@ -261,14 +261,14 @@ vllm:num_requests_running - Number of requests currently running on GPU.
 vllm:num_requests_waiting - Number of requests waiting to be processed
 ```
 
-1. GPU metrics:
+GPU metrics:
 
 ```none
 GPU Utilization (DCGM_FI_DEV_GPU_UTIL) - Measures the duty cycle, which is the amount of time that the GPU is active.
 GPU Memory Usage (DCGM_FI_DEV_FB_USED) - Measures how much GPU memory is being used at a given point in time. This is useful for workloads that implement dynamic allocation of GPU memory.
 ```
 
-1. CPU metrics: Since the inference workloads primarily rely on GPU resources, we don't recommend CPU and memory utilization as the only indicators of the amount of resources a job consumes. Therefore, using CPU metrics alone for autoscaling can lead to suboptimal performance and costs.
+CPU metrics: Since the inference workloads primarily rely on GPU resources, we don't recommend CPU and memory utilization as the only indicators of the amount of resources a job consumes. Therefore, using CPU metrics alone for autoscaling can lead to suboptimal performance and costs.
 
 HPA is an efficient way to ensure that your model servers scale appropriately with load. Fine-tuning the HPA settings is the primary way to align your provisioned hardware cost with traffic demands to achieve your inference server performance goals.
 
@@ -282,25 +282,25 @@ For more details, see Horizontal pod autoscaling in the Google Cloud Managed Ser
 
 Pre-requisites:
 
-1. GKE cluster running inference workload as shown in previous examples.
-2. Export the metrics from the vLLM server to Cloud Monitoring as shown in enable monitoring section.
+- GKE cluster running inference workload as shown in previous examples.
+- Export the metrics from the vLLM server to Cloud Monitoring as shown in enable monitoring section.
 
 We have couple of options to scale the inference workload on GKE using the HPA and custom metrics adapter.
 
-1. Scale pod on the same node as the existing inference workload.
-2. Scale pod on the other nodes in the same node pool as the existing inference workload.
+- Scale pod on the same node as the existing inference workload.
+- Scale pod on the other nodes in the same node pool as the existing inference workload.
 
 #### Prepare your environment to autoscale with HPA metrics
 
 Install the Custom Metrics Adapter. This adapter makes the custom metric that you exported to Cloud Monitoring visible to the HPA. For more details, see HPA in the [Google Cloud Managed Service for Prometheus documentation](https://cloud.google.com/stackdriver/docs/managed-prometheus/hpa).
 
-1. The following example command shows how to install the adapter:
+The following example command shows how to install the adapter:
 
   ```sh
   kubectl apply -f kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stackdriver/master/custom-metrics-stackdriver-adapter/deploy/production/adapter_new_resource_model.yaml
   ```
 
-1. Set up the custom metric-based HPA resource. Deploy an HPA resource that is based on your preferred custom metric.
+Set up the custom metric-based HPA resource. Deploy an HPA resource that is based on your preferred custom metric.
 
 Here is a sample ![metrics graph](./manifests/inference-scale/cloud-monitoring-metrics-inference.png) to review.
 

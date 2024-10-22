@@ -74,7 +74,7 @@ module "alloydb_central" {
 
 data "external" "alloydb-primary-instance-ip" {
   program = ["gcloud",
-    "--project=${var.project_id}"
+    "--project=${var.project_id}",
     "alloydb",
     "instances",
     "describe",

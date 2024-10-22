@@ -80,7 +80,7 @@ data "external" "alloydb-primary-instance-ip" {
     "describe",
     "--format",
     "'json(ipAddress)'",
-    split("/instances/", module.alloydb_central.primary_instance.instance_id)[1],
+    reverse(split("/instances/", module.alloydb_central.primary_instance.instance_id))[0],
     "--cluster=${module.alloydb_central.cluster_id}",
     "--region=us-central1"]
 }

@@ -191,6 +191,7 @@ def extract_product_details(text):
 def generate_content(context):
     try:
         max_tokens = 200
+        temperature = 0.7
         sys_prompt = "This is dialogue for online shopping experiences between an agent and a user."
         prompt = f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
 
@@ -210,7 +211,10 @@ def generate_content(context):
         ]
         logger.debug(messages)
         response = client.chat.completions.create(
-            model=MODEL_ID, messages=messages, max_tokens=max_tokens, temperature=0.7
+            model=MODEL_ID,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
         )
 
         logger.debug(response)

@@ -1,6 +1,6 @@
 # Data Preparation
 
-A processed Flipkart product catalog is used as input data to generate prompts in preparation for fine-tuning. The prompts are generated using Vertex AI's Gemini Flash model. The output is a data set that can be used to fine-tune the base model.
+A processed Flipkart product catalog is used as input data to generate prompts in preparation for fine-tuning. The prompts are generated using [Llama 3.1 on Vertex AI](https://console.cloud.google.com/vertex-ai/publishers/meta/model-garden/llama-3.1-405b-instruct-maas). The output is a data set that can be used to fine-tune the base model.
 
 Depending on the infrastructure you provisioned, the data preparation step takes approximately 1 hour and 40 minutes.
 
@@ -133,7 +133,7 @@ resource.labels.namespace_name="ml-team"
 jsonPayload.message = (
 "***Job Start***" OR
 "Configure signal handlers" OR
-"Prepare context for Gemini Flash's prompt" OR
+"Prepare context for model prompt" OR
 "Generate Q & A according" OR
 "Generate Prompts for Gemma IT model" OR
 "Upload prepared dataset into GCS" OR

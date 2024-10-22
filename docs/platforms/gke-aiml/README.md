@@ -62,7 +62,7 @@ For an outline of products and features used in the platform, see the [Platform 
 
 - [Model Fine Tuning Pipeline](/docs/use-cases/model-fine-tuning-pipeline/README.md)
   - [Distributed Data Processing with Ray](/use-cases/model-fine-tuning-pipeline/data-processing/ray/README.md): Run a distributed data processing job using Ray.
-  - [Dataset Preparation for Fine Tuning Gemma IT With Gemini Flash](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md): Generate prompts for fine tuning Gemma Instruction Tuned model with Vertex AI Gemini Flash
+  - [Dataset Preparation for Fine Tuning Gemma IT With Llama 3.1 on Vertex AI](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md): Generate prompts for fine tuning Gemma Instruction Tuned model with Llama 3.1 on Vertex AI
   - [Fine Tuning Gemma2 9B IT model With FSDP](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/README.md): Fine tune Gemma2 9B IT model with PyTorch FSDP
   - [Model evaluation and validation](/use-cases/model-fine-tuning-pipeline/model-eval/README.md): Evaluation and validation of the fine tuned Gemma2 9B IT model
 

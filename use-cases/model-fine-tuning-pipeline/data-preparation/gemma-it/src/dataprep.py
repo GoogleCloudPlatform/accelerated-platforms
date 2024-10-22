@@ -17,6 +17,7 @@ import json
 import logging
 import logging.config
 import numpy as np
+import openai
 import os
 import pandas as pd
 import re
@@ -25,7 +26,6 @@ import sys
 import tenacity
 import time
 
-import openai
 
 from datasets import Dataset, DatasetDict
 from google.api_core.exceptions import InternalServerError, ResourceExhausted

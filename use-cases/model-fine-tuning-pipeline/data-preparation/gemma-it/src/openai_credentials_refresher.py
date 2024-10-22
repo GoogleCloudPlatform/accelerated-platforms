@@ -14,15 +14,16 @@
 
 from typing import Any
 
-import os
-import json
-import logging
-import logging.config
 import google.auth
 import google.auth.transport.requests
+import logging
+import logging.config
 import openai
-
+import os
 import tenacity
+
+
+from tenacity import retry, stop_after_attempt, wait_random
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -36,8 +37,6 @@ if "LOG_LEVEL" in os.environ:
     )
     logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
-
-from tenacity import retry, stop_after_attempt, wait_random
 
 
 class OpenAICredentialsRefresher:

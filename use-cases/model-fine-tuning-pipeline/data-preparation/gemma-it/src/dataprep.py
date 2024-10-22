@@ -180,6 +180,7 @@ def extract_product_details(text):
     retry=(
         retry_if_exception_type(InternalServerError)
         | retry_if_exception_type(ResourceExhausted)
+        | retry_if_exception_type(openai.RateLimitError)
     ),
     stop=stop_after_attempt(10),
     wait=wait_random_exponential(exp_base=3, max=60, multiplier=1),

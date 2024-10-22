@@ -17,7 +17,6 @@ from typing import Any
 import google.auth
 import google.auth.transport.requests
 import logging
-import logging.config
 import openai
 import os
 import tenacity
@@ -25,23 +24,11 @@ import tenacity
 
 from tenacity import retry, stop_after_attempt, wait_random
 
-# Configure logging
-logging.config.fileConfig("logging.conf")
-
-logger = logging.getLogger("openaiauth")
-
-if "LOG_LEVEL" in os.environ:
-    new_log_level = os.environ["LOG_LEVEL"].upper()
-    logger.info(
-        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-    )
-    logging.getLogger().setLevel(new_log_level)
-    logger.setLevel(new_log_level)
-
 
 class OpenAICredentialsRefresher:
-    def __init__(self, **kwargs: Any) -> None:
-        logger.debug("Init openai credential refresher")
+    def __init__(self, logger: logging, **kwargs: Any) -> None:
+        self.logger = logger
+        self.logger.debug("Init openai credential refresher")
         # Set a dummy key here
         self.client = openai.OpenAI(**kwargs, api_key="DUMMY")
         self.creds, self.project = google.auth.default(
@@ -53,15 +40,17 @@ class OpenAICredentialsRefresher:
         try:
             if not self.creds.valid:
                 auth_req = google.auth.transport.requests.Request()
+                self.logger.debug(f"Refresh credentials")
                 self.creds.refresh(auth_req)
 
                 if not self.creds.valid:
-                    print(f"Credentials invalid #2: {self.creds.valid}")
+                    self.logger.info(
+                        f"Credentials invalid check #2: {self.creds.valid}"
+                    )
                     raise Exception
 
         except Exception as e:
-            print(f"Unhandled exception from getter: {type(e).__name__}")
-            logger.error(
+            self.logger.error(
                 f"Unhandled exception from getter: {type(e).__name__}",
                 exc_info=True,
             )

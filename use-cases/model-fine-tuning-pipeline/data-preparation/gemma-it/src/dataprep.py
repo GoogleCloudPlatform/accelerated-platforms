@@ -52,10 +52,6 @@ num_questions = 3
 
 MAAS_ENDPOINT = f"{REGION}-aiplatform.googleapis.com"
 
-client = OpenAICredentialsRefresher(
-    base_url=f"https://{MAAS_ENDPOINT}/v1beta1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/openapi",
-)
-
 
 def filter_low_value_count_rows(df, column_name, min_count=10):
     """
@@ -374,6 +370,12 @@ if __name__ == "__main__":
 
     logger.info("Prepare context for model prompt")
     df = prep_context()
+
+    logger.info("Prepare OpenAI context")
+    client = OpenAICredentialsRefresher(
+        base_url=f"https://{MAAS_ENDPOINT}/v1beta1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/openapi",
+        logger=logger,
+    )
 
     logger.info("Generate Q & A according")
     res_df = data_prep(df)

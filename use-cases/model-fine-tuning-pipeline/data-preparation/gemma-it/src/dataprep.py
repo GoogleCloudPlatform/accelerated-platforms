@@ -292,7 +292,7 @@ def generate_qa(context, category):
     for qa_item in qa_list:
         q_a = qa_item.split(":")
         if len(q_a) == 2:
-            ans = q_a[1].strip() + " \n " + extract_product_details(context)
+            ans = q_a[1].strip() + " \n" + extract_product_details(context)
             # Append as the list
             new_data.append([q_a[0].strip(), ans, f"Online shopping for {category}"])
 

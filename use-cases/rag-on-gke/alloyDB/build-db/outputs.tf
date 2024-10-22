@@ -36,7 +36,7 @@ output "primary_instance_id" {
 
 output "primary_instance_ip" {
   description = "IP address of the primary instance"
-  value       = data.external.alloydb-primary-instance-ip.result.ipAddress
+  value       = module.alloydb_central.primary_instance.ip_address
 }
 
 output "cluster_name" {

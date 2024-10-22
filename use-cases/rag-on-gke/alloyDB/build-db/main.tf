@@ -72,18 +72,6 @@ module "alloydb_central" {
   ]
 }
 
-data "external" "alloydb-primary-instance-ip" {
-  program = ["gcloud",
-    "--project=${var.project_id}",
-    "--format=json(ipAddress)",    
-    "alloydb",
-    "instances",
-    "describe",
-    module.alloydb_central.primary_instance.instance_id,
-    "--cluster=${reverse(split("/clusters/", module.alloydb_central.cluster_id))[0]}",
-    "--region=us-central1"]
-}
-
 resource "google_service_account" "alloydb_superuser_sa" {
   account_id   = "alloydb-superuser"
   display_name = "AlloyDB Super User SA"

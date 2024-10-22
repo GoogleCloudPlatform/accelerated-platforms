@@ -75,10 +75,10 @@ module "alloydb_central" {
 data "external" "alloydb-primary-instance-ip" {
   program = ["gcloud",
     "--project=${var.project_id}",
+    "--format=json(ipAddress)",    
     "alloydb",
     "instances",
     "describe",
-    "--format='json(ipAddress)'",
     module.alloydb_central.primary_instance.instance_id,
     "--cluster=${reverse(split("/clusters/", module.alloydb_central.cluster_id))[0]}",
     "--region=us-central1"]
@@ -95,7 +95,8 @@ resource "google_alloydb_user" "superuser" {
   user_id = "${google_service_account.alloydb_superuser_sa.account_id}@${var.project_id}.iam"
   user_type = "ALLOYDB_IAM_USER"
   database_roles = [
-    "alloydbsuperuser"
+    "alloydbsuperuser",
+    "alloydbiamuser"
   ]
   depends_on = [module.alloydb_central]
 }
@@ -110,6 +111,9 @@ resource "google_alloydb_user" "ragusr" {
   cluster = module.alloydb_central.cluster_id
   user_id = "${google_service_account.alloydb_raguser_sa.account_id}@${var.project_id}.iam"
   user_type = "ALLOYDB_IAM_USER"
+  database_roles = [
+    "alloydbiamuser"
+  ]  
   depends_on = [module.alloydb_central]
 }
 

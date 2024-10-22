@@ -27,9 +27,9 @@ Depending on the infrastructure you provisioned, the data preparation step takes
 
   > You should see the various variables populated with the information specific to your environment.
 
-### Vertex AI variables
+### Vertex AI OpenAI endpoint variables
 
-- Set `REGION` to Google Cloud region to use for the Vertex AI API calls
+- Set `REGION` to Google Cloud region to use for the Vertex AI API OpenAI endpoint calls
 
   ```
   REGION=us-central1

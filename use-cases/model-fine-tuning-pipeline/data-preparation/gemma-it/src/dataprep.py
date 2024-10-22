@@ -24,7 +24,6 @@ import signal
 import sys
 import tenacity
 import time
-import vertexai
 
 import openai
 
@@ -48,11 +47,8 @@ DATASET_INPUT = os.environ.get("DATASET_INPUT_PATH")
 DATASET_INPUT_FILE = os.environ.get("DATASET_INPUT_FILE")
 DATASET_OUTPUT = os.environ.get("DATASET_OUTPUT_PATH")
 MODEL_ID = os.environ.get("PROMPT_MODEL_ID")
-OPEN_AI_API = os.environ.get("OPEN_AI_API")
 
 num_questions = 3
-
-vertexai.init(project=PROJECT_ID, location=REGION)
 
 MAAS_ENDPOINT = f"{REGION}-aiplatform.googleapis.com"
 

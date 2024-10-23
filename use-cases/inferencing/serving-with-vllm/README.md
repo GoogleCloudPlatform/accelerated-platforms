@@ -176,6 +176,11 @@ Loading model weights from a Persistent Volume is a method to load models faster
   ```
 
 - You can also deploy a gradio chat interface to view the model chat interface. [OPTIONAL]
+  
+  ```sh
+  MODEL-ID=<your-model-id>
+  sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" manifests/gradio.yaml
+  ```
 
   ```sh
   sed -i -e "s|_NAMESPACE_|${NAMESPACE}|" manifests/gradio.yaml

@@ -75,6 +75,7 @@ resource "kubernetes_job" "test-pr" {
            sleep 1000000           
 	   psql -f", "/sql_scripts/prepare.sql"]
            EOT
+	 ]
 	 volume_mount = [
 	   {
 	     mount_path = "/sql_scripts"

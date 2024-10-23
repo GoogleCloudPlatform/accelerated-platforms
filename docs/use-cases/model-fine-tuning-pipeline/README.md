@@ -60,7 +60,7 @@ The dataset underwent a filtering process to concentrate exclusively on clothing
 
 To optimize instruction-tuned models, it is imperative that each data point consists of three distinct components: Question, Answer and Context
 
-The Gemini Flash model (through Vertex AI) was used for the generation of natural shopping-style conversational questions/Inputs and answers/Outputs. The formulation of these Input and Output was based on the product specifications detailed within the catalog.
+[Llama 3.1 on Vertex AI](https://console.cloud.google.com/vertex-ai/publishers/meta/model-garden/llama-3.1-405b-instruct-maas) was used for the generation of natural shopping-style conversational questions/Inputs and answers/Outputs. The formulation of these Input and Output was based on the product specifications detailed within the catalog.
 
 The prompts were created utilizing the previously generated questions and answers. The product category is used to set the context of the conversation.
 

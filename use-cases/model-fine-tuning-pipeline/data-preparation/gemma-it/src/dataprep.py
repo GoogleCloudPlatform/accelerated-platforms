@@ -17,6 +17,7 @@ import json
 import logging
 import logging.config
 import numpy as np
+import openai
 import os
 import pandas as pd
 import re
@@ -24,8 +25,7 @@ import signal
 import sys
 import tenacity
 import time
-import vertexai
-import vertexai.preview.generative_models as generative_models
+
 
 from datasets import Dataset, DatasetDict
 from google.api_core.exceptions import InternalServerError, ResourceExhausted
@@ -35,10 +35,9 @@ from tenacity import (
     stop_after_attempt,
     wait_random_exponential,
 )
-from vertexai.preview.generative_models import GenerativeModel
 
 from custom_json_formatter import CustomJSONFormatter
-
+from openai_credentials_refresher import OpenAICredentialsRefresher
 
 PROJECT_ID = os.environ.get("PROJECT_ID")
 # The bucket which contains the preprocessed data
@@ -49,19 +48,9 @@ DATASET_INPUT_FILE = os.environ.get("DATASET_INPUT_FILE")
 DATASET_OUTPUT = os.environ.get("DATASET_OUTPUT_PATH")
 MODEL_ID = os.environ.get("PROMPT_MODEL_ID")
 
-generation_config = {"max_output_tokens": 200, "temperature": 0.7}
-
-safety_settings = {
-    generative_models.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    generative_models.HarmCategory.HARM_CATEGORY_HARASSMENT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    generative_models.HarmCategory.HARM_CATEGORY_HATE_SPEECH: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-    generative_models.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: generative_models.HarmBlockThreshold.BLOCK_ONLY_HIGH,
-}
-
 num_questions = 3
 
-vertexai.init(project=PROJECT_ID, location=REGION)
-model = GenerativeModel(MODEL_ID)
+MAAS_ENDPOINT = f"{REGION}-aiplatform.googleapis.com"
 
 
 def filter_low_value_count_rows(df, column_name, min_count=10):
@@ -191,59 +180,84 @@ def extract_product_details(text):
     retry=(
         retry_if_exception_type(InternalServerError)
         | retry_if_exception_type(ResourceExhausted)
+        | retry_if_exception_type(openai.RateLimitError)
     ),
     stop=stop_after_attempt(10),
     wait=wait_random_exponential(exp_base=3, max=60, multiplier=1),
 )
 def generate_content(context):
     try:
-        response = model.generate_content(
-            [
-                f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
-            ],
-            generation_config=generation_config,
-            safety_settings=safety_settings,
+        max_tokens = 200
+        temperature = 0.7
+        sys_prompt = "This is dialogue for online shopping experiences between an agent and a user."
+        prompt = f"Generate {num_questions} Search Queries in conversational tone and Answers for this product:\n{context}. Return the result without any formatting in a single line as Question : Answer ;"
+
+        messages = [
+            {
+                "role": "system",
+                "content": [
+                    {"text": sys_prompt, "type": "text"},
+                ],
+            },
+            {
+                "role": "user",
+                "content": [
+                    {"text": prompt, "type": "text"},
+                ],
+            },
+        ]
+        logger.debug(messages)
+        response = client.chat.completions.create(
+            model=MODEL_ID,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
         )
-        response.text
-    except InternalServerError as e:
-        logger.warning(f"InternalServerError exception caught: {e}")
+
+        logger.debug(response)
+    except openai.BadRequestError as e:
+        # Handle error 400
+        logger.error(f"Error 400: {e}")
         raise
-    except ResourceExhausted as e:
-        logger.warning(e)
+    except openai.AuthenticationError as e:
+        # Handle error 401
+        logger.error(f"Error 401: {e}")
         raise
-    except ValueError as e:
-        logger.debug("ValueError exception caught")
-        if (
-            response.candidates[0].finish_reason
-            == generative_models.FinishReason.RECITATION
-        ):
-            logger.warning(
-                f"Recitation returned",
-                extra={"context": context, "response": str(response)},
-            )
-            return None
-        elif (
-            response.candidates[0].finish_reason
-            == generative_models.FinishReason.SAFETY
-        ):
-            logger.warning(
-                f"Blocked by safety settings",
-                extra={"context": context, "response": str(response)},
-            )
-            return None
-        else:
-            logger.error(
-                f"Unhandled ValueError", extra={"context": context}, exc_info=True
-            )
-            raise
-    except Exception as e:
+    except openai.PermissionDeniedError as e:
+        # Handle error 403
+        logger.error(f"Error 403: {e}")
+        raise
+    except openai.NotFoundError as e:
+        # Handle error 404
+        logger.error(f"Error 404: {e}")
+        raise
+    except openai.UnprocessableEntityError as e:
+        # Handle error 422
+        logger.error(f"Error 422: {e}")
+        raise
+    except openai.RateLimitError as e:
+        # Handle error 429
+        logger.error(f"Error 429: {e}")
+        logger.error("A 429 status code was received; we should back off a bit.")
+        raise
+    except openai.InternalServerError as e:
+        # Handle error >=500
+        logger.error(f"Error >=500: {e}")
+        raise
+    except openai.APIConnectionError as e:
+        # Handle API connection error
+        logger.error("The server could not be reached")
         logger.error(
-            f"Unhandled exception in generate_content: {type(e).__name__}",
-            exc_info=True,
-        )
+            e.__cause__
+        )  # an underlying Exception, likely raised within httpx.
+        raise
+    except openai.APIStatusError as e:
+        logger.error("Another non-200-range status code was received")
+        logger.error(e.status_code)
+        logger.error(e.response)
         raise
 
-    return response.text
+    return response.choices[0].message.content
 
 
 def generate_qa(context, category):
@@ -275,7 +289,7 @@ def generate_qa(context, category):
     for qa_item in qa_list:
         q_a = qa_item.split(":")
         if len(q_a) == 2:
-            ans = q_a[1].strip() + " \n " + extract_product_details(context)
+            ans = q_a[1].strip() + " \n" + extract_product_details(context)
             # Append as the list
             new_data.append([q_a[0].strip(), ans, f"Online shopping for {category}"])
 
@@ -355,8 +369,14 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
 
-    logger.info("Prepare context for Gemini Flash's prompt")
+    logger.info("Prepare context for model prompt")
     df = prep_context()
+
+    logger.info("Prepare OpenAI context")
+    client = OpenAICredentialsRefresher(
+        base_url=f"https://{MAAS_ENDPOINT}/v1beta1/projects/{PROJECT_ID}/locations/{REGION}/endpoints/openapi",
+        logger=logger,
+    )
 
     logger.info("Generate Q & A according")
     res_df = data_prep(df)

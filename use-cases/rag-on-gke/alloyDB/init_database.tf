@@ -57,5 +57,8 @@ module "createdb" {
   pghost = var.pghost
   pgdatabase = var.pgdatabase
   k8s_namespace = var.k8s_namespace
-  k8s_service_account = kubernetes_service_account.dba_service_account.metadata[0].name
+  k8s_service_account = var.dba_service_account
+  depends_on = [
+    kubernetes_service_account.dba_service_account
+  ]
 }

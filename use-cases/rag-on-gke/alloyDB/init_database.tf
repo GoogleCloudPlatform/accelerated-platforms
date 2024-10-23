@@ -14,6 +14,13 @@ provider "kubernetes" {
   )
 }
 
+module "alloydb-cluster" {
+  source "./build-db"
+  project_id = var.project_id
+  network_name = var.network_name
+  alloydb_ip_range = var.alloydb_ip_range
+  alloydb_ip_prefix = var.alloydb_ip_prefix
+}
 
 resource "google_service_account_iam_binding" "admin-account-iam" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/alloydb-superuser@${var.project_id}.iam.gserviceaccount.com"
@@ -69,8 +76,8 @@ module "createdb" {
   gke_cluster_location = var.gke_cluster_location
   sql_script = "select current_user;"
   environs = {}
-  pghost = var.pghost
-  pgdatabase = var.pgdatabase
+  pghost = module.alloydb-cluster.primary_instance_ip
+  pgdatabase = "postgres"
   k8s_namespace = var.k8s_namespace
   k8s_service_account = var.dba_service_account
   depends_on = [

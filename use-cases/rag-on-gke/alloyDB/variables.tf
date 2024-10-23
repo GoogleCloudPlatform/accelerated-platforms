@@ -1,5 +1,35 @@
+
 variable "project_id" {
-  description = "The GCP project to find the GKE cluster"
+  description = "The ID of the project in which to provision resources."
+  type        = string
+}
+
+variable "network_name" {
+  description = "The ID of the network in which to provision resources."
+  type        = string
+  default     = "default"
+}
+
+variable "alloydb_ip_range" {
+  description = "The ip range allocated for alloydb instances"
+  type        = string
+  default     = "172.16.0.0"
+}
+variable "alloydb_ip_prefix" {
+  description = "The ip prefix used for allocating ip address for alloydb instances"
+  type        = number
+  default     = 12
+}
+
+variable "region_central" {
+  default     = "us-central1"
+  description = "The region for cluster in central us"
+  type        = string
+}
+
+variable "region_east" {
+  default     = "us-east1"
+  description = "The region for cluster in east us"
   type        = string
 }
 
@@ -13,10 +43,6 @@ variable "rag_service_account" {
   type        = string
 }
 
-variable "name" {
-  description = "The name of the module, to be append to each k8s resource name"
-  type        = string
-}
 
 variable "gke_cluster_name" {
   description = "The name of GKE cluster to deploy to"

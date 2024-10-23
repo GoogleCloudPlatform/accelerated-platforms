@@ -84,6 +84,7 @@ resource "kubernetes_job" "test-pr" {
 	   {
 	     mount_path = "/pl_scripts"
 	     name = "get-token"
+	   }
 	 ]    
        }
        restart_policy = "Never"

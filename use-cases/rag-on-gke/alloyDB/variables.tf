@@ -28,11 +28,6 @@ variable "gke_cluster_location" {
   type        = string
   default     = "us-central1"
 }
-
-variable "sql_script" {
-  description = "The SQL script to be run by psql"
-  type        = string
-}
   
 variable "environs" {
   description = "The environment variables to be transferred to psql"

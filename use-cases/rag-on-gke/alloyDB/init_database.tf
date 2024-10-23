@@ -1,7 +1,7 @@
 
 
 resource "google_service_account_iam_binding" "admin-account-iam" {
-  service_account_id = "alloydb-superuser@${var.project_id}.iam.gserviceaccount.com"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/alloydb-superuser@${var.project_id}.iam.gserviceaccount.com"
   role               = "roles/iam.workloadIdentityUser"
 
   members = [
@@ -10,7 +10,7 @@ resource "google_service_account_iam_binding" "admin-account-iam" {
 }
 
 resource "google_service_account_iam_binding" "raguser-account-iam" {
-  service_account_id = "alloydb-raguser@${var.project_id}.iam.gserviceaccount.com"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/alloydb-raguser@${var.project_id}.iam.gserviceaccount.com"
   role               = "roles/iam.workloadIdentityUser"
 
   members = [

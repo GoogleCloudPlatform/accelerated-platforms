@@ -17,9 +17,8 @@ from llama_index.core import Settings
 class OurLLM(CustomLLM):
     context_window: int = 3900
     num_output: int = 256
-    model_name: str = "" # Replace with your model_name
+    model_name: str = ""  # Replace with your model_name
     llm_endpoint: str = ""  # Replace with your actual URL
-
 
     @property
     def metadata(self) -> LLMMetadata:
@@ -34,24 +33,25 @@ class OurLLM(CustomLLM):
     @llm_completion_callback()
     def complete(self, prompt: str, **kwargs: Any) -> CompletionResponse:
         response = requests.post(
-            url=self.llm_endpoint, json={
+            url=self.llm_endpoint,
+            json={
                 "model": self.model_name,
                 "max_tokens": self.num_output,
                 "temperature": 0,
                 "top_p": 1,
-                "messages" : [{"role": "user", "content": prompt}],
-                "stream": False}  # Adjust payload if needed
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": False,
+            },  # Adjust payload if needed
         )
         text = response.json()["choices"][0]["message"]["content"]
         # Adjust based on your API's response format
         return CompletionResponse(text=text)
 
     @llm_completion_callback()
-    def stream_complete(
-        self, prompt: str, **kwargs: Any
-    ) -> CompletionResponseGen:
+    def stream_complete(self, prompt: str, **kwargs: Any) -> CompletionResponseGen:
         response = requests.post(
-            self.llm_endpoint, json={"prompt": prompt, "stream": True}  # Adjust payload if needed
+            self.llm_endpoint,
+            json={"prompt": prompt, "stream": True},  # Adjust payload if needed
         )
         for chunk in response.iter_lines():
             if chunk:
@@ -74,5 +74,7 @@ index = SummaryIndex.from_documents(documents)
 
 # Query and print response
 query_engine = index.as_query_engine()
-response = query_engine.query("I'm looking for comfortable cycling shorts for women, what are some good options?")
+response = query_engine.query(
+    "I'm looking for comfortable cycling shorts for women, what are some good options?"
+)
 print(response)

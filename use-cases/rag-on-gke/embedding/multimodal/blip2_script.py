@@ -1,4 +1,3 @@
-
 import argparse
 
 import base64
@@ -15,12 +14,17 @@ from lavis.models import load_model_and_preprocess
 import torch
 
 
-
 # Load the model and processors, ensuring they're on the correct device
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Explicitly create a torch.device object
+device = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)  # Explicitly create a torch.device object
 model, vis_processors, txt_processors = load_model_and_preprocess(
-    name="blip2_feature_extractor", model_type="pretrain", is_eval=True, device=device # Pass the device object here
+    name="blip2_feature_extractor",
+    model_type="pretrain",
+    is_eval=True,
+    device=device,  # Pass the device object here
 )
+
 
 def get_text_embedding(caption):
     text_input = txt_processors["eval"](caption)
@@ -39,10 +43,16 @@ def get_image_text_embeddings(image, caption):
     features_image = model.extract_features(sample, mode="image")
     features_text = model.extract_features(sample, mode="text")
 
-    return features_multimodal.multimodal_embeds, features_image.image_embeds, features_text.text_embeds
+    return (
+        features_multimodal.multimodal_embeds,
+        features_image.image_embeds,
+        features_text.text_embeds,
+    )
+
 
 # Flask app
 app = Flask(__name__)
+
 
 def fetch_image(img_uri):
 
@@ -57,7 +67,7 @@ def fetch_image(img_uri):
         m = re.match("^data:image/.+;base64,", uri)
         if not m:
             raise ValueError("Invalid data: uri")
-        imgf = io.BytesIO(base64.b64decode(uri[m.span()[1]:]))
+        imgf = io.BytesIO(base64.b64decode(uri[m.span()[1] :]))
     else:
         raise NotImplementedError("Only supports gs:// and data: uri")
     img = Image.open(imgf).convert("RGB")
@@ -71,9 +81,7 @@ def generate_embeddings():
             json_req = request.get_json()
             if "image_uri" not in json_req:
                 text_features = get_text_embedding(json_req["caption"])
-                return jsonify(
-                    {"text_embeds":
-                     text_features.tolist()[0][0]})
+                return jsonify({"text_embeds": text_features.tolist()[0][0]})
             image = fetch_image(json_req["image_uri"])
             text = json_req.get("caption", None)
         else:
@@ -90,7 +98,9 @@ def generate_embeddings():
         return jsonify({"error": "Invalid request method"}), 405
 
     try:
-        features_multimodal, features_image, features_text = get_image_text_embeddings(image, text)
+        features_multimodal, features_image, features_text = get_image_text_embeddings(
+            image, text
+        )
 
         response = {
             "multimodal_embeds": features_multimodal.tolist()[0][0],
@@ -101,7 +111,7 @@ def generate_embeddings():
         return jsonify(response)
 
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

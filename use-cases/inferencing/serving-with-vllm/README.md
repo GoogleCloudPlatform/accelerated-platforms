@@ -123,7 +123,9 @@ Loading model weights from a Persistent Volume is a method to load models faster
   > Note: Choose the appropriate zone based on cluster location and GPU availability
 
   ```sh
+  VOLUME-HANDLE="projects/<PROJECT-ID>/zones/us-east4-a/disks/models-fine-tune-disk-v1"
   sed -i -e "s|_NAMESPACE_|${NAMESPACE}|" manifests/volume-prep/pv-and-pvc.yaml
+  sed -i -e "s|_VOLUME-HANDLE_|${VOLUME-HANDLE}|" manifests/volume-prep/pv-and-pvc.yaml
   kubectl apply -f manifests/volume-prep/pv-and-pvc.yaml
   ```
 

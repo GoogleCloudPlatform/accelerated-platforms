@@ -49,7 +49,7 @@ spec:
         - name: LLM_ENGINE
           value: "openai"
         - name: MODEL_ID
-          value: "/data/models/model-gemma2-a100/experiment-a2aa2c3it1"
+          value: _MODEL-ID_
         - name: USER_PROMPT
           value: "<start_of_turn>user\nprompt<end_of_turn>\n"
         - name: SYSTEM_PROMPT

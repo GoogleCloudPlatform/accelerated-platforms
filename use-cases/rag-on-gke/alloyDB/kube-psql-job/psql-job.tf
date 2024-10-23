@@ -47,7 +47,8 @@ resource "kubernetes_job" "test-pr" {
      spec {
        container {
 	 name = "psql"
-	 env = concat(
+	 dynamic "env" {
+	   for_each = concat(
 	   [for k, v in var.environs: {
 	     name = k,
 	     value = v
@@ -66,6 +67,11 @@ resource "kubernetes_job" "test-pr" {
 	       value = 5432   
 	     }
 	   ])
+	   env {
+	     name = env.value["name"]
+	     value = env.value["value"]
+	   }
+	 }
          image = var.postgres_image
 	 command = ["/bin/bash"]
 	 args = ["-c",

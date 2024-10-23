@@ -42,6 +42,7 @@ gcloud container fleet memberships get-credentials ${self.triggers.membership_id
   }
 
   triggers = {
+    always_run     = timestamp()
     kubeconfig_dir = local.kubeconfig_dir
     membership_id  = google_gke_hub_membership.cluster.membership_id
     project_id     = data.google_project.environment.project_id

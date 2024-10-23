@@ -14,16 +14,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Styles
-BOLD=$(tput bold)
-NORMAL=$(tput sgr0)
+if [[ -z ${NO_COLOR} ]]; then
+    # Styles
+    BOLD=$(tput bold)
+    NORMAL=$(tput sgr0)
 
-# Colors
-CYAN='\033[1;36m'
-GREEN='\e[1;32m'
-RED='\e[1;91m'
-YELLOW="\e[38;5;226m"
-RESET='\e[0m'
+    # Colors
+    CYAN='\033[1;36m'
+    GREEN='\e[1;32m'
+    RED='\e[1;91m'
+    YELLOW="\e[38;5;226m"
+    RESET='\e[0m'
+else
+    echo "Disabling colors"
+    # Styles
+    BOLD=""
+    NORMAL=""
+
+    # Colors
+    CYAN=""
+    GREEN=""
+    RED=""
+    YELLOW=""
+    RESET=""
+fi
 
 function echo_bold() {
     echo "${BOLD}${@}${NORMAL}"

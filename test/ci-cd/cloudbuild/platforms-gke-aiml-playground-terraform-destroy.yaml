@@ -1,0 +1,41 @@
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+- args:
+  - --cache=true
+  - --cache-ttl=48h
+  - --context=dir://test/ci-cd/container_images
+  - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest
+  - --dockerfile=test/ci-cd/container_images/dockerfile.runner
+  - --log-format=text
+  - --log-timestamp=false
+  - --verbosity=info
+  id: "Build runner image"
+  name: "gcr.io/kaniko-project/executor:latest"
+  waitFor: ["-"]
+
+- name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  id: "Manual platforms/gke-aiml/playground Terraform destroy"
+  entrypoint: "ash"
+  args:
+    - "-x"
+    - "-c"
+    - |
+      export NO_COLOR="1"
+      export TERM="xterm"
+      export TF_CLI_ARGS="-no-color"
+      export TF_IN_AUTOMATION="1"
+
+      export MLP_ENVIRONMENT_NAME=${_ENVIRONMENT_NAME}
+      export MLP_IAP_DOMAIN=${_IAP_DOMAIN}
+      export MLP_PROJECT_ID=${PROJECT_ID}
+
+      test/scripts/qwiklabs/playground_byop_oci_destroy.sh
+  waitFor:
+  - "Build runner image"
+
+substitutions:
+  _AR_REPO_LOCATION: "us-central1"
+  _ENVIRONMENT_NAME: "dev"
+  _IAP_DOMAIN: "accelerated-platforms.joonix.net"

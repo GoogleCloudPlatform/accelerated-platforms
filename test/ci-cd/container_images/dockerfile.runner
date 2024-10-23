@@ -1,0 +1,23 @@
+ARG GCLOUD_VERSION="496.0.0"
+
+FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:${GCLOUD_VERSION}-alpine
+
+ARG TERRAFORM_VERSION="1.9.7"
+
+RUN echo "Installing Alpine packages" && \
+apk upgrade && \
+apk --no-cache add go ncurses && \
+echo "Installing Terraform v${TERRAFORM_VERSION}" && \
+cd /usr/local/bin && \
+curl -o terraform.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
+unzip terraform.zip && \
+chmod u+x terraform && \
+rm -f LICENSE.txt terraform.zip && \
+echo "Installing gcloud components" && \
+gcloud components install beta kubectl --quiet && \
+rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && \
+rm -rf /google-cloud-sdk/.install/.backup && \
+echo "Installing crane" && \
+go install github.com/google/go-containerregistry/cmd/crane@latest
+
+ENV PATH="${PATH}:/root/go/bin"

@@ -139,6 +139,8 @@ Loading model weights from a Persistent Volume is a method to load models faster
   ```
 
   ```sh
+  MODEL-ID= <model-id>
+  sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" manifests/model_deployment.yaml
   kubectl create -f manifests/model_deployment.yaml
   kubectl logs -f -l app=vllm-openai -n ${NAMESPACE}
   ```

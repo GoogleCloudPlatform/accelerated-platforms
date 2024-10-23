@@ -47,7 +47,7 @@ spec:
         - --tensor-parallel-size=2
         env:
         - name: MODEL
-          value: /data/models/model-gemma2-a100/experiment-a2aa2c3it1
+          value: _MODEL-ID_
         - name: VLLM_ATTENTION_BACKEND
           value: FLASHINFER
         volumeMounts:

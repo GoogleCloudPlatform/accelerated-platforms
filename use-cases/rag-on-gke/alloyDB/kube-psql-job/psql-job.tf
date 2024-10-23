@@ -20,7 +20,7 @@ resource "kubernetes_config_map" "get-token" {
     namespace = var.k8s_namespace
   }
   data = {
-    "get_token.pl" = file("${path.module}/scripts/get_token_4_psql.pl")
+    "get_token.pl" = file("${path.module}/scripts/get_access_token_4_psql.pl")
   }
 }
 
@@ -77,28 +77,24 @@ resource "kubernetes_job" "test-pr" {
 	   psql -f", "/sql_scripts/prepare.sql"]
            EOT
 	 ]
-	 volume_mount = [
-	   {
-	     mount_path = "/sql_scripts"
-	     name = "db-prepare-script"
-	   },
-	   {
-	     mount_path = "/pl_scripts"
-	     name = "get-token"
-	   }
-	 ]    
+	 volume_mount {
+	   mount_path = "/sql_scripts"
+	   name = "db-prepare-script"
+	 }
+	 volume_mount {
+	   mount_path = "/pl_scripts"
+	   name = "get-token"
+	 }
        }
        restart_policy = "Never"
-       volumes = [
-	 {
-	   config_map = kubernetes_config_map.db-prepare.metadata.name
-	   name = "db-prepare-script"
-	 },
-	 {
-	   config_map = kubernetes_config_map.get-token.metadata.name
-	   name = "get-token"
-	 },
-       ]
+       volume {
+	 config_map = kubernetes_config_map.db-prepare.metadata.name
+	 name = "db-prepare-script"
+       }
+       volume {
+	 config_map = kubernetes_config_map.get-token.metadata.name
+	 name = "get-token"
+       }
      }
    }
  }

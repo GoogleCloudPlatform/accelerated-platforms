@@ -67,7 +67,7 @@ resource "kubernetes_job" "test-pr" {
 	       value = 5432   
 	     }
 	   ])
-	   env {
+	   content {
 	     name = env.value["name"]
 	     value = env.value["value"]
 	   }

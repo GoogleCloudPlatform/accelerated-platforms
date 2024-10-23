@@ -1,5 +1,5 @@
 module "createdb" {
-  source = "kube-psql-job"
+  source = "./kube-psql-job"
   project_id = var.project_id
   name = "init-test"
   gke_cluster_name = "gpu-ml"

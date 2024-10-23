@@ -101,7 +101,7 @@ Loading model weights from a Persistent Volume is a method to load models faster
  Wait for the job to show completion.
 
   ```sh
-  ...
+     kubectl get jobs
   ```
 
  Create the PV and PVC
@@ -132,8 +132,21 @@ Loading model weights from a Persistent Volume is a method to load models faster
 ## Deploy a vLLM container to your cluster
 
 - Run the batch job to deploy model using persistent disk on GKE.
+  There are few variables that need to be updated before you can run this job to download model on your persistent disk
+
+
+  Here is an example 
+    ```
+    mkdir -p /mnt/model-gemma2-a100
+    cp -r /data/models/model-gemma2-a100/experiment-a2aa2c3it1 /mnt/model-gemma2-a100  # location to copy the model artifacts from
+    ls -lR /mnt/model-gemma2-a100 # location to copy the model artifacts
+    ````
 
   ```sh
+  MODEL-ID= "<model-id>"
+  MODEL-DIR-PATH ="<LOCAl-PATH-TO-MODEL_DIR>" # location to copy the model artifacts from
+  sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" manifests/volume-prep/batch-job-model-deployment.yaml
+  sed -i -e "s|_MODEL-DIR-PATH_|${MODEL-DIR-PATH}|" manifests/volume-prep/batch-job-model-deployment.yaml
   sed -i -e "s|_NAMESPACE_|${NAMESPACE}|" manifests/volume-prep/batch-job-model-deployment.yaml
   sed -i -e "s|_ACCELERATOR_TYPE_|${ACCELERATOR_TYPE}|" manifests/volume-prep/batch-job-model-deployment.yaml
   ```

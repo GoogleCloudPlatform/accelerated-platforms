@@ -95,13 +95,13 @@ resource "kubernetes_job" "test-pr" {
        restart_policy = "Never"
        volume {
 	 config_map {
-	   name= kubernetes_config_map.db-prepare.metadata.name
+	   name= kubernetes_config_map.db-prepare.metadata[0].name
 	 }
 	 name = "db-prepare-script"
        }
        volume {
 	 config_map {
-	   name = kubernetes_config_map.get-token.metadata.name
+	   name = kubernetes_config_map.get-token.metadata[0].name
 	 }
 	 name = "get-token"
        }

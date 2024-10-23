@@ -83,6 +83,7 @@ resource "kubernetes_job" "test-pr" {
 	   psql -f", "/sql_scripts/prepare.sql"]
            EOT
 	 ]
+	 service_account_name = var.k8s_service_account
 	 volume_mount {
 	   mount_path = "/sql_scripts"
 	   name = "db-prepare-script"
@@ -91,6 +92,9 @@ resource "kubernetes_job" "test-pr" {
 	   mount_path = "/pl_scripts"
 	   name = "get-token"
 	 }
+       }
+       node_selector = {
+	 "iam.gke.io/gke-metadata-server-enabled": "true"
        }
        restart_policy = "Never"
        volume {

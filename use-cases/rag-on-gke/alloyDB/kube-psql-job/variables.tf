@@ -3,6 +3,12 @@ variable "project_id" {
   type        = string
 }
 
+variable "k8s_service_account" {
+  description = "The k8s service account to be attached to the pod"
+  type        = string
+  default     = "default"
+}
+
 variable "name" {
   description = "The name of the module, to be append to each k8s resource name"
   type        = string

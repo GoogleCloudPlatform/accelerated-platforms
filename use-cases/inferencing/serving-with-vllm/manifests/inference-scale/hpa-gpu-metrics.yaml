@@ -34,3 +34,4 @@ spec:
       targetLabel: __name__
       regex: DCGM_FI_DEV_GPU_UTIL
       replacement: dcgm_fi_dev_gpu_util
+

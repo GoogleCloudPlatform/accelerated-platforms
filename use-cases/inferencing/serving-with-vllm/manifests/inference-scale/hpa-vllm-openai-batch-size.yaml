@@ -28,6 +28,6 @@ spec:
     pods:
       metric:
         name: prometheus.googleapis.com|vllm:num_requests_running|gauge
-      target:
+      target
         type: AverageValue
         averageValue: 10

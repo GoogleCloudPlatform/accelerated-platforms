@@ -14,7 +14,7 @@
 
 from locust import FastHttpUser, task, between
 
-model_id = "/data/models/model-gemma2-a100/experiment-a2aa2c3it1"
+model_id = _MODEL-ID_
 
 message1 = (
     "I'm looking for comfortable cycling shorts for women, what are some good options?"

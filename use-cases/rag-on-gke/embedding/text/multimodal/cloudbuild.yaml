@@ -1,0 +1,7 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'us-docker.pkg.dev/$PROJECT_ID/rag-artifacts/blip2:latest', '.' ]
+images:
+- 'us-docker.pkg.dev/$PROJECT_ID/rag-artifacts/blip2:latest'
+  # Push the container image to Artifact Registry, get sha256 of the image
+  

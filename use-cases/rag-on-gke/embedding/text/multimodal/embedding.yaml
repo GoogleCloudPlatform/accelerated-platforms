@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blip2-deployment
+spec:
+  replicas: 1 # Adjust as needed
+  selector:
+    matchLabels:
+      app: blip2
+  template:
+    metadata:
+      labels:
+        app: blip2
+    spec:
+      containers:
+      - name: blip2-container
+        image: us-docker.pkg.dev/gkebatchexpce3c8dcb/rag-artifacts/blip2:latest
+        resources:
+          limits:
+          requests:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+            nvidia.com/gpu: "2"
+          limits:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+            nvidia.com/gpu: "2"
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "cloud.google.com/gke-queued"
+        value: "true"
+        operator: "Equal"
+        effect: "NoSchedule"
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
+        #        pool-type: l4-2
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: blip2-service
+spec:
+  selector:
+    app: blip2
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 5000 # Or whatever port your app listens on
+  type: LoadBalancer

@@ -27,7 +27,7 @@ spec:
     - ReadWriteOnce
   csi:
     driver: pd.csi.storage.gke.io
-    volumeHandle: projects/gkebatchexpce3c8dcb/zones/us-east4-a/disks/models-fine-tune-disk-v1
+    volumeHandle: _VOLUME_HANDLE_
     fsType: ext4
     readOnly: true
   nodeAffinity:

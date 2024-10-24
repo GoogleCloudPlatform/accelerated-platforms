@@ -93,6 +93,27 @@ EOT
   ]
 }
 
+module "create-extension" {
+  source = "./kube-psql-job"
+  project_id = var.project_id
+  name = "init-test"
+  gke_cluster_name = var.gke_cluster_name
+  gke_cluster_location = var.gke_cluster_location
+  sql_script = <<-EOT
+  CREATE EXTENSION IF NOT EXISTS vector;
+  CREATE EXTENSION IF NOT EXISTS google_ml_integration VERSION '1.3';
+EOT
+  environs = {}
+  pghost = data.external.alloydb-primary-instance-ip.result.ipAddress
+  pgdatabase = "ragdb"
+  k8s_namespace = var.k8s_namespace
+  k8s_service_account = var.dba_service_account
+  depends_on = [
+    kubernetes_service_account.dba_service_account,
+    module.createdb
+  ]
+}
+
 module "create-in-db-objects" {
   source = "./kube-psql-job"
   project_id = var.project_id
@@ -111,6 +132,6 @@ module "create-in-db-objects" {
   k8s_service_account = var.rag_service_account
   depends_on = [
     kubernetes_service_account.rag_service_account,
-    module.createdb
+    module.create-extension
   ]
 }

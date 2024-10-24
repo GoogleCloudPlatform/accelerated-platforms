@@ -368,7 +368,7 @@ Here is a sample ![graph](./benchmarks/locust.jpg) to review.
 - Add the model id to the locust.py file.
 
   ```sh
-   MODEL-ID =<add-model-id> 
+   export MODEL_ID =<add-model-id> 
    sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" benchmarks/locust.py
   ```
 

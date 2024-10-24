@@ -106,7 +106,7 @@ module "create-in-db-objects" {
     "EMBEDDING_ENDPOINT" = var.embedding_endpoint
   }
   pghost = data.external.alloydb-primary-instance-ip.result.ipAddress
-  pgdatabase = "postgres"
+  pgdatabase = "ragdb"
   k8s_namespace = var.k8s_namespace
   k8s_service_account = var.rag_service_account
   depends_on = [

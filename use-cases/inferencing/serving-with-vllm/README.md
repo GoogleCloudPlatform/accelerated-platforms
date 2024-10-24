@@ -331,7 +331,7 @@ Get credentials for the GKE cluster
 gcloud container fleet memberships get-credentials ${CLUSTER_NAME} --project ${PROJECT_ID}
 ```
 
-Set variables for the inference job in model-eval.yaml
+Set variables for the inference job in batch-inference.yaml
 
 ```
 sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \

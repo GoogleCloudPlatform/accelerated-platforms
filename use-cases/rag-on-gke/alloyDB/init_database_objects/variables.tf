@@ -57,16 +57,16 @@ variable "postgres_image" {
 }
 
 variable  "finetuned_model_endpoint" {
-  desctiption = "The endpoint to the finetuned model"
+  description = "The endpoint to the finetuned model"
   type = string
 }
 
 variabl "pretrained_model_endpoint" {
-  desctiption = "The endpoint to the pretrained model"
+  description = "The endpoint to the pretrained model"
   type = string
 }
 
 variable "embedding_endpoint" {
-  desctiption = "The endpoint to the embedding service"
+  description = "The endpoint to the embedding service"
   type = string
 }

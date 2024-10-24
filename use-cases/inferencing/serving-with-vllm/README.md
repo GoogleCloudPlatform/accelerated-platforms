@@ -321,6 +321,7 @@ gcloud services enable cloudbuild.googleapis.com --project ${PROJECT_ID}
 Build container image using Cloud Build and push the image to Artifact Registry Modify cloudbuild.yaml to specify the image url
 
 ```
+cd inferencing/serving-with-vllm/batch-inference/src
 sed -i "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" cloudbuild.yaml && \
 gcloud builds submit . --project ${PROJECT_ID}
 ```

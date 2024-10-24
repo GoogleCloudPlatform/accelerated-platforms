@@ -15,7 +15,7 @@ provider "kubernetes" {
 }
 
 module "alloydb-cluster" {
-  source "./build-db"
+  source = "./build-db"
   project_id = var.project_id
   network_name = var.network_name
   alloydb_ip_range = var.alloydb_ip_range

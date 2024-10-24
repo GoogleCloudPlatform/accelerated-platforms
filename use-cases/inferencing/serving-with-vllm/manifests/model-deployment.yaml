@@ -120,6 +120,10 @@ spec:
         value: "true"
         operator: "Equal"
         effect: "NoSchedule"
+      - key: "on-demand"
+        value: "true"
+        operator: "Equal"
+        effect: "NoSchedule"
       nodeSelector:
         cloud.google.com/gke-accelerator: _ACCELERATOR_
 ---

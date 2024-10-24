@@ -147,8 +147,7 @@ completion.
   ```sh
   kubectl get jobs -n ${MLP_KUBERNETES_NAMESPACE}
   ```
-
-  Now, the model is downloaded to the persistent volume.
+Now, the model is downloaded to the persistent volume.
 
 ## Create a persistent disk with the image of the model
 

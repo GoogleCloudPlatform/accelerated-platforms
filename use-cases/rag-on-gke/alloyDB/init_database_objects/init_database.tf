@@ -106,7 +106,7 @@ module "create-extension" {
     ON ALL TABLES IN SCHEMA google_ml
     TO "alloydb-raguser@${var.project_id}.iam";
   GRANT ALL
-    ON ALL FUNCTION IN SCHEMA google_ml
+    ON ALL FUNCTIONS IN SCHEMA google_ml
     TO "alloydb-raguser@${var.project_id}.iam";
   GRANT ALL
     ON ALL TABLES IN SCHEMA public

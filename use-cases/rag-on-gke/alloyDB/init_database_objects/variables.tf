@@ -61,7 +61,7 @@ variable  "finetuned_model_endpoint" {
   type = string
 }
 
-variabl "pretrained_model_endpoint" {
+variable "pretrained_model_endpoint" {
   description = "The endpoint to the pretrained model"
   type = string
 }

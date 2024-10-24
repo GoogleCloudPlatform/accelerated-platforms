@@ -305,11 +305,10 @@ gcloud artifacts repositories create llm-inference-repository \
     --async
 
 ```
-
-Set Docker Image URL
+Set the Batch inference job image location
 
 ```
-DOCKER_IMAGE_URL=us-docker.pkg.dev/${PROJECT_ID}/llm-inference-repository/batch-inference:v1.0.0
+BATCH_INFERENCE_IMAGE=us-docker.pkg.dev/${PROJECT_ID}/llm-inference-repository/batch-inference
 ```
 
 Enable the Cloud Build APIs
@@ -318,12 +317,16 @@ Enable the Cloud Build APIs
 gcloud services enable cloudbuild.googleapis.com --project ${PROJECT_ID}
 ```
 
-Build container image using Cloud Build and push the image to Artifact Registry Modify cloudbuild.yaml to specify the image url
+Build container image using Cloud Build and push the image to Artifact Registry Modify cloudbuild.yaml 
 
 ```
 cd inferencing/serving-with-vllm/batch-inference/src
-sed -i "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" cloudbuild.yaml && \
-gcloud builds submit . --project ${PROJECT_ID}
+gcloud builds submit . --project ${PROJECT_ID} --substitutions _DESTINATION=${BATCH_INFERENCE_IMAGE}
+```
+
+Set Docker Image URL
+```
+DOCKER_IMAGE_URL=us-docker.pkg.dev/${PROJECT_ID}/llm-inference-repository/batch-inference:latest
 ```
 
 Get credentials for the GKE cluster
@@ -335,6 +338,8 @@ gcloud container fleet memberships get-credentials ${CLUSTER_NAME} --project ${P
 Set variables for the inference job in batch-inference.yaml
 
 ```
+cd inferencing/serving-with-vllm/batch-inference/manifests
+
 sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \
     -i -e "s|KSA|${KSA}|" \
     -i -e "s|V_BUCKET|${BUCKET}|" \

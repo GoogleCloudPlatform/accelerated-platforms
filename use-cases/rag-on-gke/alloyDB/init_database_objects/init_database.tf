@@ -105,6 +105,9 @@ module "create-extension" {
   GRANT SELECT, INSERT, UPDATE, DELETE
     ON ALL TABLES IN SCHEMA google_ml
     TO "alloydb-raguser@${var.project_id}.iam";
+  GRANT ALL ON SCHEMA public
+    TO "alloydb-raguser@${var.project_id}.iam";
+
 EOT
   environs = {}
   pghost = data.external.alloydb-primary-instance-ip.result.ipAddress

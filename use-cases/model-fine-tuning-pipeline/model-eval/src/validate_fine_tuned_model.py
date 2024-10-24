@@ -3,6 +3,7 @@ import logging
 import logging.config
 import os
 import pandas as pd
+import re
 import requests
 import signal
 
@@ -120,7 +121,9 @@ class ModelEvaluation:
             if product_name:
                 # Option 1: Partial Match
                 partial_match = ground_truth[
-                    ground_truth["Answer"].str.contains(product_name, case=False)
+                    ground_truth["Answer"].str.contains(
+                        re.escape(product_name), case=False
+                    )
                 ]
                 if not partial_match.empty:
                     logger.info(f"Found partial matches for '{product_name}':")

@@ -16,6 +16,7 @@ apiVersion: monitoring.googleapis.com/v1
 kind: PodMonitoring
 metadata:
   name: nvidia-dcgm-exporter-for-hpa
+  namespace: _NAMESPACE_
   labels:
     app.kubernetes.io/name: nvidia-dcgm-exporter
     app.kubernetes.io/part-of: google-cloud-managed-prometheus

@@ -13,8 +13,9 @@
 # limitations under the License.
 
 from locust import FastHttpUser, task, between
+import sys
 
-model_id = "/data/models/model-gemma2-a100/experiment-a2aa2c3it1"
+model_id = sys.argv[1]
 
 message1 = (
     "I'm looking for comfortable cycling shorts for women, what are some good options?"

@@ -16,6 +16,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: vllm-openai-hpa
+  namespace: _NAMESPACE_
 spec:
   scaleTargetRef:
     apiVersion: apps/v1

@@ -15,6 +15,7 @@
 locals {
   bucket_cloudbuild_name = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
   bucket_data_name       = "${data.google_project.environment.project_id}-${var.environment_name}-data"
+  bucket_prediction_name = "${data.google_project.environment.project_id}-${var.environment_name}-prediction"
   bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
   data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
   data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
@@ -25,6 +26,7 @@ locals {
     "roles/logging.logWriter",
   ]
   model_evaluation_ksa       = "${var.environment_name}-${var.namespace}-model-evaluation"
+  model_serve_ksa            = "${var.environment_name}-${var.namespace}-model-serve"
   repo_container_images_id   = var.environment_name
   repo_container_images_url  = "${google_artifact_registry_repository.container_images.location}-docker.pkg.dev/${google_artifact_registry_repository.container_images.project}/${local.repo_container_images_id}"
   wi_member_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.environment.number}/locations/global/workloadIdentityPools/${data.google_project.environment.project_id}.svc.id.goog/subject/ns/${var.namespace}/sa"
@@ -88,6 +90,19 @@ resource "google_storage_bucket" "model" {
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
 }
+
+resource "google_storage_bucket" "prediction" {
+  depends_on = [
+    google_container_cluster.mlp
+  ]
+
+  force_destroy               = true
+  location                    = var.region
+  name                        = local.bucket_prediction_name
+  project                     = data.google_project.environment.project_id
+  uniform_bucket_level_access = true
+}
+
 
 # GSA
 ###############################################################################
@@ -166,6 +181,16 @@ resource "kubernetes_service_account_v1" "model_evaluation" {
   }
 }
 
+resource "kubernetes_service_account_v1" "model_serve" {
+  depends_on = [
+    null_resource.namespace_manifests,
+  ]
+
+  metadata {
+    name      = local.model_serve_ksa
+    namespace = var.namespace
+  }
+}
 # IAM
 ###############################################################################
 resource "google_storage_bucket_iam_member" "data_bucket_ray_head_storage_object_viewer" {
@@ -247,6 +272,7 @@ MLP_CLUSTER_KUBERNETES_HOST="${local.connect_gateway_host_url}"
 MLP_CLUSTER_LOCATION="${google_container_cluster.mlp.location}"
 MLP_CLUSTER_NAME="${local.cluster_name}"
 MLP_DATA_BUCKET="${local.bucket_data_name}"
+MLP_PREDICTION_BUCKET="${local.bucket_prediction_name}"
 MLP_DATA_PREPARATION_IMAGE="${local.repo_container_images_url}/data-preparation:1.0.0"
 MLP_DATA_PREPARATION_KSA="${local.data_preparation_ksa}"
 MLP_DATA_PROCESSING_IMAGE="${local.repo_container_images_url}/data-processing:1.0.0"
@@ -263,5 +289,6 @@ MLP_PROJECT_ID="${data.google_project.environment.project_id}"
 MLP_PROJECT_NUMBER="${data.google_project.environment.number}"
 MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT="https://${local.ray_dashboard_endpoint}"
 MLP_REGION="${var.region}"
+MLP_SERVE_KSA="${local.model_serve_ksa}"
 EOT
 }

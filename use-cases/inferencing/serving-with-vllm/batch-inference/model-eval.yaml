@@ -2,6 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: model-eval
+  namespace: _NAMESPACE_
 spec:
   backoffLimit: 10
   template:
@@ -9,10 +10,10 @@ spec:
       labels:
         app: model-eval-job
     spec:
-      serviceAccountName: KSA
+      serviceAccountName: _KSA_
       containers:
       - name: job
-        image: IMAGE_URL
+        image: _IMAGE_URL_
         imagePullPolicy: Always
         command: ["/bin/sh"]
         args:
@@ -22,13 +23,13 @@ spec:
           ACTION=accuracy python validate_fine_tuned_model.py
         env:
         - name: "ENDPOINT"
-          value: "V_ENDPOINT"
+          value: "_ENDPOINT_"
         - name: "MODEL_PATH"
-          value: "V_MODEL_PATH"
+          value: "_MODEL_PATH_"
         - name: "DATASET_OUTPUT_PATH"
-          value: "V_DATASET_OUTPUT_PATH"
+          value: "_DATASET_OUTPUT_PATH_"
         - name: "BUCKET"
-          value: "V_BUCKET"
+          value: "_BUCKET_"
         resources:
           requests:
             cpu: "2"

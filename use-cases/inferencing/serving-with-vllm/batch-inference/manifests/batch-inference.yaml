@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: batch-inference
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        app: batch-inference
+    spec:
+      serviceAccountName: KSA
+      containers:
+      - name: job
+        image: IMAGE_URL
+        imagePullPolicy: Always
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          ACTION=predict python run_batch_predictions.py
+        env:
+        - name: "ENDPOINT"
+          value: "V_ENDPOINT"
+        - name: "MODEL_PATH"
+          value: "V_MODEL_PATH"
+        - name: "DATASET_OUTPUT_PATH"
+          value: "V_DATASET_OUTPUT_PATH"
+        - name: "BUCKET"
+          value: "V_BUCKET"
+        - name: "PREDICTIONS_FILE"
+          value: "V_PREDICTIONS_FILE"
+        resources:
+          requests:
+            cpu: "2"
+            memory: "5Gi"
+          limits:
+            cpu: "2"
+            memory: "5Gi"
+      restartPolicy: Never

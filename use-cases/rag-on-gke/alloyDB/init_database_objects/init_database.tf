@@ -96,7 +96,7 @@ EOT
 module "create-extension" {
   source = "./kube-psql-job"
   project_id = var.project_id
-  name = "init-test"
+  name = "init-extension"
   gke_cluster_name = var.gke_cluster_name
   gke_cluster_location = var.gke_cluster_location
   sql_script = <<-EOT

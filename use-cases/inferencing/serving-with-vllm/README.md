@@ -309,7 +309,7 @@ gcloud artifacts repositories create llm-inference-repository \
 Set Docker Image URL
 
 ```
-DOCKER_IMAGE_URL=us-docker.pkg.dev/${PROJECT_ID}/llm-inference-repository/validate:v1.0.0
+DOCKER_IMAGE_URL=us-docker.pkg.dev/${PROJECT_ID}/llm-inference-repository/batch-inference:v1.0.0
 ```
 
 Enable the Cloud Build APIs
@@ -338,7 +338,7 @@ sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \
     -i -e "s|V_MODEL_PATH|${MODEL_PATH}|" \
     -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
     -i -e "s|V_ENDPOINT|${ENDPOINT}|" \
-    model-eval.yaml
+    batch-inference.yaml
 ```
 
 Create the Job in the ml-team namespace using kubectl command

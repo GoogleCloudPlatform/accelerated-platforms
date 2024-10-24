@@ -144,11 +144,11 @@ class Batch_Inference:
         if "ACTION" in os.environ and os.getenv("ACTION") == "predict":
             self.predict()
 
-if __name__ == "__main__":
-        # Configure logging
-    logging.config.fileConfig("logging.conf")
 
-    logger = logging.getLogger("model_eval")
+if __name__ == "__main__":
+    # Configure logging
+    logging.config.fileConfig("logging.conf")
+    logger = logging.getLogger("batch_inference")
 
     if "LOG_LEVEL" in os.environ:
         new_log_level = os.environ["LOG_LEVEL"].upper()

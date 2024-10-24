@@ -105,8 +105,11 @@ module "create-extension" {
   GRANT SELECT, INSERT, UPDATE, DELETE
     ON ALL TABLES IN SCHEMA google_ml
     TO "alloydb-raguser@${var.project_id}.iam";
-  GRANT ALL
+  GRANT EXECUTE
     ON ALL FUNCTIONS IN SCHEMA google_ml
+    TO "alloydb-raguser@${var.project_id}.iam";
+  GRANT ALL
+    ON SCHEMA google_ml
     TO "alloydb-raguser@${var.project_id}.iam";
   GRANT ALL
     ON ALL TABLES IN SCHEMA public

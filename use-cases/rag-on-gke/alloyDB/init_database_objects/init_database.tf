@@ -102,6 +102,9 @@ module "create-extension" {
   sql_script = <<-EOT
   CREATE EXTENSION IF NOT EXISTS vector;
   CREATE EXTENSION IF NOT EXISTS google_ml_integration VERSION '1.3';
+  GRANT SELECT, INSERT, UPDATE, DELETE
+    ON ALL TABLES IN SCHEMA google_ml
+    TO "alloydb-raguser@${var.project_id}.iam";
 EOT
   environs = {}
   pghost = data.external.alloydb-primary-instance-ip.result.ipAddress

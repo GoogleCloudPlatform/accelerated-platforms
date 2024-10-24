@@ -29,6 +29,9 @@ resource "google_service_account_iam_binding" "admin-account-iam" {
   members = [
     "serviceAccount:${var.project_id}.svc.id.goog[${var.k8s_namespace}/${var.dba_service_account}]"
   ]
+  depends_on = [
+    module.alloydb-cluster
+  ]
 }
 
 resource "google_service_account_iam_binding" "raguser-account-iam" {
@@ -37,6 +40,9 @@ resource "google_service_account_iam_binding" "raguser-account-iam" {
 
   members = [
     "serviceAccount:${var.project_id}.svc.id.goog[${var.k8s_namespace}/${var.rag_service_account}]"
+  ]
+  depends_on = [
+    module.alloydb-cluster
   ]
 }
 

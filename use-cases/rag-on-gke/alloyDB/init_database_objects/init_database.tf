@@ -110,7 +110,7 @@ module "create-in-db-objects" {
   k8s_namespace = var.k8s_namespace
   k8s_service_account = var.rag_service_account
   depends_on = [
-    kubernetes_service_account.rag_service_account
+    kubernetes_service_account.rag_service_account,
     module.createdb
   ]
 }

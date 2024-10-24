@@ -28,6 +28,8 @@ spec:
           value: "V_DATASET_OUTPUT_PATH"
         - name: "BUCKET"
           value: "V_BUCKET"
+        - name: "PREDICTIONS_FILE"
+          value: "V_PREDICTIONS_FILE"
         resources:
           requests:
             cpu: "2"

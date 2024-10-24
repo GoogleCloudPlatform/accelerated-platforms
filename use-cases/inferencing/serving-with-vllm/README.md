@@ -346,6 +346,7 @@ sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \
     -i -e "s|V_MODEL_PATH|${MODEL_PATH}|" \
     -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
     -i -e "s|V_ENDPOINT|${ENDPOINT}|" \
+    -i -e "s|V_PREDICTIONS_FILE|${PREDICTIONS_FILE}|" \
     batch-inference.yaml
 ```
 

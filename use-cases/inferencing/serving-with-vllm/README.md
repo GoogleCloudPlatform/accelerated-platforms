@@ -63,16 +63,23 @@ to your environment.
 
 *   Set other variables for preparing inference manifests
 
-
   | Variable                             | Description                                                                                                                       | Example                                       |
   | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-  | ACCELERATOR       | Type of GPU accelerator to use (l4, a100,  h100)                                                                                   | l4                                            |
-  | MODEL_ID             | The name of the fine-tuned model.                                                                      | model-gemma2-a100                      |
-  | MODEL_PATH                           | The GCS bucket path to the model                                                                                 | model-gemma2-a100/experiment-a100-llamaprep/                                  |
-  | IMAGE_NAME                   | Disk image created with model weights                                                                         | gemma-model-weights-image                         |
-  | DISK_NAME                        | Name of the persistent disk that will host the model                                                                                             | model-weights-disk                                    |
-  | ZONE | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION}                                                                  | us-central1-a                                  |
+  | ACCELERATOR                          | Type of GPU accelerator to use (l4, a100,  h100)                                                                                  | l4                                            |
+  | MODEL_ID                             | The name of the fine-tuned model.                                                                                                 | model-gemma2-a100                             |  
+  | MODEL_PATH                           | The GCS bucket path to the model                                                                                                  | model-gemma2-a100/experiment-a100-llamaprep/  |
+  | IMAGE_NAME                           | Disk image created with model weights                                                                                             | gemma-model-weights-image                     |
+  | DISK_NAME                            | Name of the persistent disk that will host the model                                                                              | model-weights-disk                            |
+  | ZONE                                 | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION}                                      | us-central1-a                                 |
 
+```sh
+ACCELERATOR=<ACCELERATOR> #l4 or a100 or h100
+MODEL_ID=<MODEL_ID>
+MODEL_PATH=<MODEL_PATH>
+IMAGE_NAME=<IMAGE_NAME>
+DISK_NAME=<DISK_NAME>
+ZONE=<ZONE> # choose the zone where you have the accelerator that you are using available.
+```
 
 *   Get Credentials for the GKE cluster
 
@@ -160,7 +167,7 @@ completion.
 
   ```sh
   gcloud compute disks create ${DISK_NAME} --size=1TiB \
-  --type=pd-ssd --zone=${ZONE} --image=model-weights-image
+  --type=pd-ssd --zone=${ZONE} --image=${IMAGE_NAME}
   ```
 
 

@@ -1,28 +1,32 @@
-import os
-import requests
 import json
-import pandas as pd
+import logging
 import logging.config
+import os
+import pandas as pd
+import re
+import sys
+import requests
+import signal
+
 from datasets import load_from_disk
 from google.cloud import storage
 
 
-logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("modeleval")
-logger.debug(logger)
+def graceful_shutdown(signal_number, stack_frame):
+    signal_name = signal.Signals(signal_number).name
+
+    logger.info(f"Received {signal_name}({signal_number}), shutting down...")
+    # TODO: Add logic to handled checkpointing if required
+    sys.exit(0)
 
 
-class ModelEvaluation:
+class Batch_Inference:
     def __init__(self):  # Constructor
-        self.api_endpoint = os.getenv(
-            "ENDPOINT", "http://10.40.0.51:8000/v1/chat/completions"
-        )
-        self.model_name = os.getenv(
-            "MODEL_PATH", "/model-data/gemma2-a100/a100-abctest"
-        )
-        self.output_file = os.getenv("PREDICTIONS_FILE", "predictions.txt")
-        self.gcs_bucket = os.getenv("BUCKET", "kh-finetune-ds")
-        self.dataset_output_path = os.getenv("DATASET_OUTPUT_PATH", "dataset/output")
+        self.api_endpoint = os.environ["ENDPOINT"]
+        self.model_name = os.environ["MODEL_PATH"]
+        self.output_file = os.environ["PREDICTIONS_FILE"]
+        self.gcs_bucket = os.environ["BUCKET"]
+        self.dataset_output_path = os.environ["DATASET_OUTPUT_PATH"]
         training_dataset = load_from_disk(
             f"gs://{self.gcs_bucket}/{self.dataset_output_path}/training"
         )
@@ -136,44 +140,27 @@ class ModelEvaluation:
                         false_positives_count += 1
         return true_positives_count, false_positives_count
 
-    # Calculate Accuracy on Validation Dataset
-    def calculate_accuracy(self):
-        ground_truth = pd.DataFrame(self.training_df["Answer"])
-        total_test_size = len(self.df)
-        logger.info(f"Test dataset size: {total_test_size}")
-
-        product_names = self.extract_product_names(self.output_file)
-
-        true_positives_count, false_positives_count = self.count_tp_fp(
-            product_names, ground_truth
-        )
-        none_predictions = self.count_no_products_prediction(product_names)
-        logger.info(f"True Positives Count: {true_positives_count}")
-        logger.info(f"False Positives Count: {false_positives_count}")
-        logger.info(
-            f"Number of predictions with no product details: {none_predictions}"
-        )
-
-        accuracy = round((true_positives_count / total_test_size) * 100, 2)
-        logger.info(f"Accuracy of Gemma2 9B IT model on test dataset is {accuracy}%")
-
-        if true_positives_count | false_positives_count:
-            precision = round(
-                (true_positives_count / (true_positives_count + false_positives_count))
-                * 100,
-                2,
-            )
-            logger.info(
-                f"Precision of Gemma2 9B IT model on test dataset is {precision}%"
-            )
-
-    def evaluate(self):
+    def batchType(self):
         if "ACTION" in os.environ and os.getenv("ACTION") == "predict":
             self.predict()
-        else:
-            self.calculate_accuracy()
-
 
 if __name__ == "__main__":
-    model_eval = ModelEvaluation()
-    model_eval.evaluate()
+        # Configure logging
+    logging.config.fileConfig("logging.conf")
+
+    logger = logging.getLogger("model_eval")
+
+    if "LOG_LEVEL" in os.environ:
+        new_log_level = os.environ["LOG_LEVEL"].upper()
+        logger.info(
+            f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+        )
+        logging.getLogger().setLevel(new_log_level)
+        logger.setLevel(new_log_level)
+
+    logger.info("Configure signal handlers")
+    signal.signal(signal.SIGINT, graceful_shutdown)
+    signal.signal(signal.SIGTERM, graceful_shutdown)
+
+    inference = Batch_Inference()
+    inference.batchType()

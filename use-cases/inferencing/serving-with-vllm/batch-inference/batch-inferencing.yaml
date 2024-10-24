@@ -1,13 +1,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: model-eval
+  name: batch-inference
 spec:
   backoffLimit: 10
   template:
     metadata:
       labels:
-        app: model-eval-job
+        app: batch-inference
     spec:
       serviceAccountName: KSA
       containers:
@@ -18,8 +18,7 @@ spec:
         args:
         - -c
         - |
-          ACTION=predict python validate_fine_tuned_model.py
-          ACTION=accuracy python validate_fine_tuned_model.py
+          ACTION=predict python run_batch_predictions.py
         env:
         - name: "ENDPOINT"
           value: "V_ENDPOINT"

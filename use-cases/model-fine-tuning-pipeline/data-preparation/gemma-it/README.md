@@ -38,10 +38,10 @@ Depending on the infrastructure you provisioned, the data preparation step takes
 
 ### Vertex AI OpenAI endpoint variables
 
-- Set `REGION` to Google Cloud region to use for the Vertex AI API OpenAI endpoint calls
+- Set `VERTEX_REGION` to Google Cloud region to use for the Vertex AI API OpenAI endpoint calls
 
   ```
-  REGION=us-central1
+  VERTEX_REGION=us-central1
   ```
 
   > The Llama 3.1 on Vertex API is in preview, it is only available in `us-central1`

@@ -65,15 +65,15 @@ to your environment.
 
   | Variable                             | Description                                                                                                                       | Example                                       |
   | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-  | ACCELERATOR                          | Type of GPU accelerator to use (l4, a100,  h100)                                                                                  | l4                                            |
-  | MODEL_ID                             | The name of the fine-tuned model.                                                                                                 | model-gemma2-a100                             |  
-  | MODEL_PATH                           | The GCS bucket path to the model                                                                                                  | model-gemma2-a100/experiment-a100-llamaprep/  |
+  | ACCELERATOR                          | Type of GPU accelerator to use (l4, a100,  h100)                                                                                  | nvidia-l4                                     |
+  | MODEL_ID                             | The name of the fine-tuned model in the GCS bucket                                                                                | model-gemma2-a100                             |  
+  | MODEL_PATH                           | The directory inside the model folder in the GCS                                                                                  | experiment-a100-llamaprep                     |
   | IMAGE_NAME                           | Disk image created with model weights                                                                                             | gemma-model-weights-image                     |
   | DISK_NAME                            | Name of the persistent disk that will host the model                                                                              | model-weights-disk                            |
   | ZONE                                 | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION}                                      | us-central1-a                                 |
 
 ```sh
-ACCELERATOR=<ACCELERATOR> #l4 or a100 or h100
+ACCELERATOR=<ACCELERATOR> #nvidia-l4 or nvidia-tesla-a100 or nvidia-h100-80gb
 MODEL_ID=<MODEL_ID>
 MODEL_PATH=<MODEL_PATH>
 IMAGE_NAME=<IMAGE_NAME>
@@ -195,7 +195,7 @@ completion.
   Note: This guide assumes that you have the accelerator available in the zone you are using.
         The manifest creates a persistent volume and persistent volume claim to 
         use the model image on persistent disk and then deploys vLLM container using that
-        persistent volume clain
+        persistent volume claim.
 
 *   Check the logs for the following pattern that indicates that the model is ready 
 to serve.

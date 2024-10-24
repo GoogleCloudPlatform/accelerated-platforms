@@ -13,8 +13,9 @@
 # limitations under the License.
 
 from locust import FastHttpUser, task, between
+import os
 
-model_id = _MODEL-ID_
+model_id = os.environ["MODEL_ID"]
 
 message1 = (
     "I'm looking for comfortable cycling shorts for women, what are some good options?"

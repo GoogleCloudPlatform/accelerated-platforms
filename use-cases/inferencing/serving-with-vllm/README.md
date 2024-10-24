@@ -111,9 +111,10 @@ inferencing:
 *   Use GCS Fuse parallel dowload.
 *   Use Hyperdisk ML.
 *   Loading the model weight as an image from a secondary boot disk.
+  
 In this example, we will load the model from PD SSD.
 
-## Downlaod the model from GCS bucket to a persistent volume
+## Downlaod the fine tuned model from GCS bucket to a persistent volume
 
 Loading model weights from a Persistent Volume is a method to load models faster.
 In GKE, Persistent Volumes backed by GCP Persistent Disks can

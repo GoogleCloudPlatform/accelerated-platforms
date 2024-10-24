@@ -64,8 +64,7 @@ resource "kubernetes_job" "test-pr" {
            source <(perl /pl_scripts/get_token.pl)
            export PGUSER
            export PGPASSWORD
-           sleep 1000000           
-	   psql -f", "/sql_scripts/prepare.sql"]
+	   psql -f /sql_scripts/prepare.sql
            EOT
 	 ]
 	 volume_mount {

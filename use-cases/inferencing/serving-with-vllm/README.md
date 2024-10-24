@@ -52,7 +52,6 @@ By the end of this guide, you should be able to perform the following steps:
   CLUSTER_NAME=<your-gke-cluster>
   NAMESPACE=ml-team
   KSA=<k8s-service-account>
-  HF_TOKEN=<your-Hugging-Face-account-token>
   MODEL_ID=<your-model-id>
   REGION=<your-region>
   IMAGE_NAME=<your-image-name>
@@ -270,6 +269,7 @@ BUCKET="<your dataset bucket name>"
 DATASET_OUTPUT_PATH=""
 ENDPOINT=<your-endpoint> # eg "http://vllm-openai:8000/v1/chat/completions"
 KSA=<k8s-service-account> # Service account with work-load identity enabled
+PREDICTIONS_FILE=<predictions.txt> # Look for sample example-prediction.text for expected results
 ```
 
 Create Service account.

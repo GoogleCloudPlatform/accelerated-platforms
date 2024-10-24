@@ -122,7 +122,7 @@ be mounted read-only simultaneously by multiple nodes(ReadOnlyMany), this allows
 multiple pods access to the model weights from a
 single volume.
 
-*   Create a Persistent volumen claim for the model weights
+*   Create a Persistent volume claim for the model weights
 
   ```sh
   kubectl apply -f manifests/volume-prep/pvc-disk-image.yaml

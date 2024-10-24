@@ -75,4 +75,3 @@ class CustomJSONFormatter(logging.Formatter):
                 del entry[key]
 
         return json.dumps(entry)
-    

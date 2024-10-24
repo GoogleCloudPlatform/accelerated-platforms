@@ -92,3 +92,25 @@ EOT
     kubernetes_service_account.dba_service_account
   ]
 }
+
+module "create-in-db-objects" {
+  source = "./kube-psql-job"
+  project_id = var.project_id
+  name = "create-in-db-objs"
+  gke_cluster_name = var.gke_cluster_name
+  gke_cluster_location = var.gke_cluster_location
+  sql_script = file("${path.module}/assets/ml-integration.sql")
+  environs = {
+    "FINETUNE_MODEL_EP" = var.finetuned_model_endpoint
+    "PRETRAINED_MODEL_EP" = var.pretrained_model_endpoint
+    "EMBEDDING_ENDPOINT" = var.embedding_endpoint
+  }
+  pghost = data.external.alloydb-primary-instance-ip.result.ipAddress
+  pgdatabase = "postgres"
+  k8s_namespace = var.k8s_namespace
+  k8s_service_account = var.rag_service_account
+  depends_on = [
+    kubernetes_service_account.rag_service_account
+    module.createdb
+  ]
+}

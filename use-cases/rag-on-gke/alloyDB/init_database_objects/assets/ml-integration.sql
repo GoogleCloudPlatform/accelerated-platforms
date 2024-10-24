@@ -1,15 +1,32 @@
-/*This script uses alloyDB google_ml_integration.enable_model_support 
-This is database flag in AlloyDB for PostgreSQL. 
+/*This script uses alloyDB google_ml_integration.enable_model_support
+This is database flag in AlloyDB for PostgreSQL.
 It is a crucial setting that allows you to use the google_ml_integration extension to access and utilize machine learning models directly within your AlloyDB environment.*/
 
-ALTER EXTENSION google_ml_integration VERSION '1.3';
+/* To use this file, you can run psql command like this
+ # export FINETUNE_MODEL_EP=<your-finetuned-model-endpoint>
+ # export PRETRAINED_MODEL_EP=<your-pretained-model-endpoint>
+ # export EMBEDDING_ENDPOINT=<your-embedding-service-ebdpoint>
+ # psql <your-connection-string> -f <this-file>
+*/
+
+\getenv finetune_model_ep FINETUNE_MODEL_EP
+\getenv pretrained_model_ep PRETRAINED_MODEL_EP
+\getenv embedding_endpoint EMBEDDING_ENDPOINT
+
+-- If you don't want to use environment variable, uncomment the following lines 
+-- \set finetune_model_ep http://10.150.0.32:8000/v1/completions
+-- \set pretrained_model_ep http://10.150.0.23:8000/v1/completions
+-- \set embedding_endpoint http://10.150.15.227/embeddings
+
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS google_ml_integration VERSION '1.3';
 
 /*Create function to call the fine-tuned-model*/
 call google_ml.drop_model('gke-vllm-finetuned');
 CALL
     google_ml.create_model(
       model_id => 'fine_tuned_model',
-      model_request_url => 'finetune_model_ep',
+      model_request_url => :'finetune_model_ep',
       model_provider => 'custom',
       model_type => 'generic',
       model_qualified_name => '/data/models/model-gemma2-a100/experiment-a2aa2c3it1',
@@ -34,7 +51,7 @@ call google_ml.drop_model('pre-trained-gemma');
 CALL
     google_ml.create_model(
       model_id => 'pre-trained-gemma2',
-      model_request_url => 'pretrained_model_ep',
+      model_request_url => :'pretrained_model_ep',
       model_provider => 'custom',
       model_type => 'generic',
       model_qualified_name => 'google/gemma-2-2b',
@@ -59,7 +76,7 @@ call google_ml.drop_model('multimodal-model-blip2');
 CALL
     google_ml.create_model(
       model_id => 'multimodal-blip2',
-      model_request_url => 'embedding_endpoint',
+      model_request_url => :'embedding_endpoint',
       model_provider => 'custom',
       model_type => 'generic',
       model_auth_type => null,

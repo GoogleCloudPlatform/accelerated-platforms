@@ -344,7 +344,7 @@ sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \
 Create the Job in the ml-team namespace using kubectl command
 
 ```
-kubectl apply -f model-eval.yaml -n ${NAMESPACE}
+kubectl apply -f batch-inference.yaml -n ${NAMESPACE}
 ```
 
 You can review predictions result in file named `predictions.txt` .Sample file has been added to the repository.

@@ -125,6 +125,7 @@ single volume.
 *   Create a Persistent volume claim for the model weights
 
   ```sh
+  sed -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|g" manifests/volume-prep/pvc-disk-image.yaml
   kubectl apply -f manifests/volume-prep/pvc-disk-image.yaml
   ```
 

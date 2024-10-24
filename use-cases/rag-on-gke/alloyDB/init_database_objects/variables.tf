@@ -4,32 +4,20 @@ variable "project_id" {
   type        = string
 }
 
-variable "network_name" {
-  description = "The ID of the network in which to provision resources."
-  type        = string
-  default     = "default"
-}
 
-variable "alloydb_ip_range" {
-  description = "The ip range allocated for alloydb instances"
-  type        = string
-  default     = "172.16.0.0"
-}
-variable "alloydb_ip_prefix" {
-  description = "The ip prefix used for allocating ip address for alloydb instances"
-  type        = number
-  default     = 12
-}
-
-variable "region_central" {
+variable "alloydb_region" {
   default     = "us-central1"
   description = "The region for cluster in central us"
   type        = string
 }
 
-variable "region_east" {
-  default     = "us-east1"
-  description = "The region for cluster in east us"
+variable "alloydb_cluster" {
+  description = "The alloydb cluster name"
+  type        = string
+}
+
+variable "alloydb_instance" {
+  description = "The primary instance name in the alloydb cluster"
   type        = string
 }
 
@@ -54,21 +42,7 @@ variable "gke_cluster_location" {
   type        = string
   default     = "us-central1"
 }
-  
-variable "environs" {
-  description = "The environment variables to be transferred to psql"
-  type        = map(string)
-}
 
-variable "pghost" {
-  description = "The database host to connect to"
-  type        = string
-}
-
-variable "pgdatabase" {
-  description = "The database to connect to"
-  type        = string
-}
 
 variable "k8s_namespace" {
   description = "The k8s namespace to deploy resourcs to"

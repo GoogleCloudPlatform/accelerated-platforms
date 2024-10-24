@@ -14,12 +14,16 @@ provider "kubernetes" {
   )
 }
 
-module "alloydb-cluster" {
-  source = "./build-db"
-  project_id = var.project_id
-  network_name = var.network_name
-  alloydb_ip_range = var.alloydb_ip_range
-  alloydb_ip_prefix = var.alloydb_ip_prefix
+data "external" "alloydb-primary-instance-ip" {
+  program = ["gcloud",
+    "--project=${var.project_id}",
+    "--format=json(ipAddress)",    
+    "alloydb",
+    "instances",
+    "describe",
+    var.alloydb_instance,
+    "--cluster=${var.alloydb_cluster}",
+    "--region=${var.alloydb_region}"]
 }
 
 resource "google_service_account_iam_binding" "admin-account-iam" {
@@ -29,9 +33,6 @@ resource "google_service_account_iam_binding" "admin-account-iam" {
   members = [
     "serviceAccount:${var.project_id}.svc.id.goog[${var.k8s_namespace}/${var.dba_service_account}]"
   ]
-  depends_on = [
-    module.alloydb-cluster
-  ]
 }
 
 resource "google_service_account_iam_binding" "raguser-account-iam" {
@@ -40,9 +41,6 @@ resource "google_service_account_iam_binding" "raguser-account-iam" {
 
   members = [
     "serviceAccount:${var.project_id}.svc.id.goog[${var.k8s_namespace}/${var.rag_service_account}]"
-  ]
-  depends_on = [
-    module.alloydb-cluster
   ]
 }
 
@@ -82,7 +80,7 @@ module "createdb" {
   gke_cluster_location = var.gke_cluster_location
   sql_script = "select current_user;"
   environs = {}
-  pghost = module.alloydb-cluster.primary_instance_ip
+  pghost = data.external.alloydb-primary-instance-ip.result.ipAddress
   pgdatabase = "postgres"
   k8s_namespace = var.k8s_namespace
   k8s_service_account = var.dba_service_account

@@ -78,7 +78,11 @@ module "createdb" {
   name = "init-test"
   gke_cluster_name = var.gke_cluster_name
   gke_cluster_location = var.gke_cluster_location
-  sql_script = "select current_user;"
+  sql_script = <<-EOT
+  GRANT "alloydb-raguser@${var.project_id}.iam" TO "alloydb-superuser@${var.project_id}";
+  CREATE DATABASE ragdb;
+  ALTER DATABASE ragdb OWNER TO "alloydb-raguser@${var.project_id}.iam";
+EOT
   environs = {}
   pghost = data.external.alloydb-primary-instance-ip.result.ipAddress
   pgdatabase = "postgres"

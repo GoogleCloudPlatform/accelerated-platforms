@@ -155,8 +155,8 @@ completion.
 *   Fetch the Persistent volume name and disk ref to create a disk image
 
   ```sh
-  PV_NAME="$(kubectl get pvc/block-pvc-model -o jsonpath='{.spec.volumeName}')"
-  DISK_REF="$(kubectl get pv "$PV_NAME" -o jsonpath='{.spec.csi.volumeHandle}')"
+  PV_NAME="$(kubectl get pvc/block-pvc-model -n ${MLP_KUBERNETES_NAMESPACE} -o jsonpath='{.spec.volumeName}')"
+  DISK_REF="$(kubectl get pv "$PV_NAME" -n ${MLP_KUBERNETES_NAMESPACE} -o jsonpath='{.spec.csi.volumeHandle}')"
   ```
 
 *   Create a disk image
@@ -175,7 +175,7 @@ completion.
 
 ## Deploy a vLLM container serving the model on the GKE cluster
 
-*   Replace the variables in the manifest.
+*   Replace the variables in the manifest and deploy the model.
 
   ```sh
   sed \
@@ -188,18 +188,14 @@ completion.
   -i -e "s|_ZONE_|${ZONE}|g" \
   -i -e "s|_DISK_|${DISK_NAME}|g" \
   manifests/model-deployment.yaml
-  ```
-
-*   Deploy the model
-  
-Note: This guide assumes that you have the accelerator available in the zone you are using.
-
-  ```sh
   kubectl  apply -f manifests/model-deployment.yaml
   ```
-The manifest creates a persistent volume and persistent volume claim to 
-use the model image on persistent disk and then deploys vLLM container using that
-persistent volume clain
+
+  
+  Note: This guide assumes that you have the accelerator available in the zone you are using.
+        The manifest creates a persistent volume and persistent volume claim to 
+        use the model image on persistent disk and then deploys vLLM container using that
+        persistent volume clain
 
 *   Check the logs for the following pattern that indicates that the model is ready 
 to serve.

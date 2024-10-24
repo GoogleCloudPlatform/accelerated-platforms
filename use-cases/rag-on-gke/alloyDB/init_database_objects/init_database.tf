@@ -79,7 +79,7 @@ module "createdb" {
   gke_cluster_name = var.gke_cluster_name
   gke_cluster_location = var.gke_cluster_location
   sql_script = <<-EOT
-  GRANT "alloydb-raguser@${var.project_id}.iam" TO "alloydb-superuser@${var.project_id}";
+  GRANT "alloydb-raguser@${var.project_id}.iam" TO "alloydb-superuser@${var.project_id}.iam";
   CREATE DATABASE ragdb;
   ALTER DATABASE ragdb OWNER TO "alloydb-raguser@${var.project_id}.iam";
 EOT

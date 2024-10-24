@@ -23,7 +23,7 @@ module "create-vpc" {
   project_id       = data.google_project.environment.project_id
   routing_mode     = var.routing_mode
   subnet_01_ip     = var.subnet_ip_cidr_range
-  subnet_01_name   = var.region
+  subnet_01_name   = "${local.unique_identifier_prefix}-${var.region}"
   subnet_01_region = var.region
 }
 

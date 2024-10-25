@@ -1,0 +1,73 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: query-gradio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: query-gradio
+  template:
+    metadata:
+      labels:
+        app: query-gradio
+    spec:
+      serviceAccountName: rag-ksa
+      containers:
+      - name: gradio
+        image: python:3.11
+        command: ["/bin/sh", "-c"]        
+        args:
+        - |
+          cd /codes
+          pip3 install -r requirements.in
+          cd /tmp
+          python3 /codes/query.py
+        env:
+        - name: PGHOST
+          valueFrom:
+            configMapKeyRef:
+              name: alloydb-config
+              key: pghost
+        - name: PGDATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: alloydb-config
+              key: pgdatabase
+        volumeMounts:
+        - name: codes
+          mountPath: /codes
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      - name: codes
+        configMap:
+          name: query-gradio
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: query-gradio
+spec:
+  selector:
+    app: query-gradio
+  type: ClusterIP
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000

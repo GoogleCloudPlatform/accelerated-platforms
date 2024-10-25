@@ -46,7 +46,7 @@ By the end of this guide, you should be able to perform the following steps:
 - Set environment variables
 
   ```sh
-  PROJECT_ID=your-project-id>
+  PROJECT_ID=<your-project-id>
   PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
   V_MODEL_BUCKET=<model-artifacts-bucket>
   CLUSTER_NAME=<your-gke-cluster>
@@ -153,7 +153,7 @@ Loading model weights from a Persistent Volume is a method to load models faster
   ```sh
   MODEL-ID= <model-id>
   sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" manifests/model_deployment.yaml
-  kubectl create -f manifests/model_deployment.yaml
+  kubectl create -f manifests/model_deployment.yaml -n ${NAMESPACE}
   kubectl logs -f -l app=vllm-openai -n ${NAMESPACE}
   ```
 
@@ -216,7 +216,7 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 You can configure monitoring of the metrics above using the [pod monitoring](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-managed#gmp-pod-monitoring)
 
   ```sh
-  kubectl apply -f manifests/pod_monitoring.yaml
+  kubectl apply -f manifests/pod_monitoring.yaml -n ${NAMESPACE}
   ```
 
 ### Create a dashboard for Cloud Monitoring to view vLLM metrics
@@ -295,97 +295,11 @@ gcloud storage buckets add-iam-policy-binding gs://${BUCKET} \
 
 #### Build the image of the source and execute batch inference job
 
-Create Artifact Registry repository for your docker image
-
-```
-gcloud artifacts repositories create llm-inference-repository \
-    --repository-format=docker \
-    --location=us \
-    --project=${PROJECT_ID} \
-    --async
-
-```
-Set the Batch inference job image location
-
-```
-BATCH_INFERENCE_IMAGE=us-docker.pkg.dev/${PROJECT_ID}/llm-inference-repository/batch-inference
-```
-
-Enable the Cloud Build APIs
-
-```
-gcloud services enable cloudbuild.googleapis.com --project ${PROJECT_ID}
-```
-
-Build container image using Cloud Build and push the image to Artifact Registry Modify cloudbuild.yaml 
-
-```
-cd inferencing/serving-with-vllm/batch-inference/src
-gcloud builds submit . --project ${PROJECT_ID} --substitutions _DESTINATION=${BATCH_INFERENCE_IMAGE}
-```
-
-Set Docker Image URL
-```
-DOCKER_IMAGE_URL=us-docker.pkg.dev/${PROJECT_ID}/llm-inference-repository/batch-inference:latest
-```
-
-Get credentials for the GKE cluster
-
-```
-gcloud container fleet memberships get-credentials ${CLUSTER_NAME} --project ${PROJECT_ID}
-```
-
-Set variables for the inference job in batch-inference.yaml
-
-```
-cd inferencing/serving-with-vllm/batch-inference/manifests
-
-sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \
-    -i -e "s|KSA|${KSA}|" \
-    -i -e "s|V_BUCKET|${BUCKET}|" \
-    -i -e "s|V_MODEL_PATH|${MODEL_PATH}|" \
-    -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
-    -i -e "s|V_ENDPOINT|${ENDPOINT}|" \
-    -i -e "s|V_PREDICTIONS_FILE|${PREDICTIONS_FILE}|" \
-    batch-inference.yaml
-```
-
-Create the Job in the ml-team namespace using kubectl command
-
-```
-kubectl apply -f batch-inference.yaml -n ${NAMESPACE}
-```
-
-You can review predictions result in file named `predictions.txt` .Sample file has been added to the repository.
-The job will take approx 45 mins to execute.
+Please follow ```use-cases/inferencing/serving-with-vllm/batch-inference/README.md``` for instructions.
 
 ### Run benchmarks for inference
 
-The model is ready to run the benchmarks for inference job. We can run few performance tests using locust.
-Locust is an open source performance/load testing tool for HTTP and other protocols.
-You can refer to the documentation to [set up](https://docs.locust.io/en/stable/installation.html) locust locally or deploy as a container on GKE.
-
-We have created a sample [locustfile](https://docs.locust.io/en/stable/writing-a-locustfile.html) to run tests against our model using sample prompts which we tried earlier in the exercise.
-Here is a sample ![graph](./benchmarks/locust.jpg) to review.
-
-- Install the locust library locally:
-
-  ```sh
-  pip3 install locust==2.29.1
-  ```
-
-- Add the model id to the locust.py file.
-
-  ```sh
-   export MODEL_ID =<add-model-id> 
-   sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" benchmarks/locust.py
-  ```
-
-- Launch the benchmark python script for locust
-
-  ```sh
-  benchmarks/locust.py
-  ```
+Please follow ```use-cases/inferencing/serving-with-vllm/benchmarks/README.md``` for instructions.
 
 ### Inference at Scale
 

@@ -19,7 +19,7 @@ spec:
         args:
         - -c
         - |
-          ACTION=predict python validate_fine_tuned_model.py
+          ACTION=predict python batch_prediction.py
         env:
         - name: "ENDPOINT"
           value: "_ENDPOINT_"
@@ -27,8 +27,10 @@ spec:
           value: "_MODEL_PATH_"
         - name: "DATASET_OUTPUT_PATH"
           value: "_DATASET_OUTPUT_PATH_"
-        - name: "BUCKET"
+        - name: "MLP_PREDICTION_BUCKET"
           value: "_BUCKET_"
+        - name: "PREDICTIONS_FILE"
+          value: "_INPUT_PREDICTION_FILE_"  
         resources:
           requests:
             cpu: "2"

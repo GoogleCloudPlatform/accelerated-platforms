@@ -208,31 +208,6 @@ to serve.
 
 ## Serve the deployed model through curl and a web chat interface
 
-- Test your deployed model through the CLI
-
-  ```sh
-  kubectl port-forward svc/vllm-openai -n ${MLP_KUBERNETES_NAMESPACE} 8000 &
-  ```
-
-  Run the curl prompt with your values
-
-  ```sh
-  USER_PROMPT="I'm looking for comfortable cycling shorts for women, what are some good options?"
-  MODEL_ID="/data/models/${MODEL_ID}/${MODEL_PATH}"
-
-  curl http://localhost:8000/v1/chat/completions \
-    -H "Content-Type: application/json" \
-    -d '{
-        "model": "'${MODEL_ID}'",
-        "messages": [
-            {"role": "user", "content": "'${USER_PROMPT}'"}],
-             "temperature": 0.70,
-             "top_p": 1.0,
-             "top_k": 1.0,
-             "max_tokens": 256
-    }'  
-  ```
-
 - You can also deploy a gradio chat interface to view the model chat interface. [OPTIONAL]
 
   ```sh
@@ -296,14 +271,6 @@ In this example of batch inference pipeline, we would first send prompts to the 
 
 #### Prepare your environment
 
-
-*   Set the endpoint of you model to env variables.
-
-```sh
-ENDPOINT="http://vllm-openai:8000/v1/chat/completions"
-```
-
-
 *   Setup Workload Identity Federation access to read/write to the bucket for the inference batch data set
 
 
@@ -320,40 +287,17 @@ ENDPOINT="http://vllm-openai:8000/v1/chat/completions"
 
 #### Build the image of the source and execute batch inference job
 
-*   Create Artifact Registry repository for your docker image
-
-```sh
-gcloud artifacts repositories create llm-inference-repository \
-    --repository-format=docker \
-    --location=us \
-    --project=${MLP_PROJECT_ID} \
-    --async
-
-```
-
-*   Set Docker Image URL
-
-```sh
-DOCKER_IMAGE_URL=us-docker.pkg.dev/${MLP_PROJECT_ID}/llm-inference-repository/validate:v1.0.0
-```
-
-*   Enable the Cloud Build APIs
-
-```sh
-gcloud services enable cloudbuild.googleapis.com --project ${MLP_PROJECT_ID}
-```
-
 *   Build container image using Cloud Build and push the image to Artifact Registry. 
 
 ```sh
-sed -i "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" cloudbuild.yaml && \
-gcloud builds submit . --project ${MLP_PROJECT_ID}
-```
-
-*   Get credentials for the GKE cluster
-
-```sh
-gcloud container fleet memberships get-credentials ${CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+cd src
+sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+gcloud beta builds submit \
+--config cloudbuild.yaml \
+--gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
+--project ${MLP_PROJECT_ID} \
+--substitutions _DESTINATION=${MLP_SERVE_IMAGE}
+cd ..
 ```
 
 *   Set variables
@@ -361,6 +305,7 @@ gcloud container fleet memberships get-credentials ${CLUSTER_NAME} --project ${M
 ```sh
 DATASET_OUTPUT_PATH=/dataset/output
 EVAL_MODEL_PATH=/data/models/${MODEL_ID}/${MODEL_PATH}
+ENDPOINT="http://vllm-openai:8000/v1/chat/completions" # The modle endpoint
 ```
 
 *   Create an output directory to store the predictions in the bucket
@@ -372,7 +317,7 @@ gcloud storage folders create --recursive gs://MLP_PREDICTION_BUCKET/DATASET_OUT
 
 *   Replace variables in inference job manifest and deploy the job
 ```sh
-sed -i -e "s|_IMAGE_URL_|${DOCKER_IMAGE_URL}|" \
+sed -i -e "s|_IMAGE_URL_|${MLP_SERVE_IMAGE}|" \
     -i -e "s|_KSA_|${MLP_SERVE_KSA}|" \
     -i -e "s|_BUCKET_|${MLP_PREDICTION_BUCKET}|" \
     -i -e "s|_MODEL_PATH_|${EVAL_MODEL_PATH}|" \

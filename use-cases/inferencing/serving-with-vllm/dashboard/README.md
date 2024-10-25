@@ -5,7 +5,7 @@ Cloud Monitoring provides an [importer](https://cloud.google.com/monitoring/dash
 *    Clone github repository
 
   ```sh
-  DASHBOARD_PATH=`pwd`
+  DASHBOARD_PATH=$(dirname `pwd`)/dashobard
   cd
   git clone https://github.com/GoogleCloudPlatform/monitoring-dashboard-samples
   ```
@@ -28,3 +28,9 @@ The dashboard importer includes the following scripts:
   ```
 
   When you use the import.sh script, you must specify the location of the Grafana dashboards to convert. The importer creates a directory that contains the converted dashboards and other information.
+
+*   Go back to the infernece director
+
+  ```sh
+  cd  ${DASHBOARD_PATH}/../
+  ```

@@ -227,16 +227,18 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 *   Deploy the a `PodMonitoring` resource that scrapes the vllm metrics and make them available in [Cloud Metrics](https://pantheon.corp.google.com/monitoring/metrics-explorer).
 
   ```sh
-    sed \
+  sed \
   -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|g" \
   manifests/pod-monitoring.yaml
   kubectl apply -f manifests/pod-monitoring.yaml
   ```
 
-*   Wait for a minute and view the metrics in Cloud metrics
+*   Wait for a minute and view the metrics in Cloud metrics. Note, that some 
+of the metrics will only be available when the model is used.
   
-    *  Go to [metrics explorer](https://pantheon.corp.google.com/monitoring/metrics-explorer)
-    *  Go to `Select  metric` > `Prometheus Target` > `vllm-inference` to view the metrics
+    *   Go to [metrics explorer](https://pantheon.corp.google.com/monitoring/metrics-explorer)
+    *   Go to `Select  metric` > `Prometheus Target` > `vllm-inference` to view the metrics
+    *   In the `Filter` box , set filter `cluster=<YOUR_CLUSTER_NAME>` to see the metrics related to your cluster.
 
 
 ### Create a dashboard for Cloud Monitoring to view vLLM metrics
@@ -247,7 +249,7 @@ You can create grafana dashboard with the vllm metrics. Follow the instructions 
 ### Run Batch inference on GKE
 
 Once a model has completed fine-tuning and is deployed on GKE , its ready to run batch Inference pipeline.
-In this example of batch inference pipeline, we would first send prompts to the hosted fine-tuned model and then validate the results based on ground truth.
+In this example of batch inference pipeline, we would send prompts to the hosted fine-tuned model that will return the predictions in a file.
 
 #### Prepare your environment
 
@@ -270,7 +272,7 @@ In this example of batch inference pipeline, we would first send prompts to the 
 *   Build container image using Cloud Build and push the image to Artifact Registry. 
 
 ```sh
-cd src
+cd batch-inference/src
 sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
 gcloud beta builds submit \
 --config cloudbuild.yaml \

@@ -1,0 +1,1 @@
+../shared_config/terraform_variables.tf

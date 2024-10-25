@@ -1,0 +1,1 @@
+../shared_config/terraform.auto.tfvars

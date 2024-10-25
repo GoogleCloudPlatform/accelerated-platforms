@@ -1,0 +1,1 @@
+../shared_config/initialize_variables.tf

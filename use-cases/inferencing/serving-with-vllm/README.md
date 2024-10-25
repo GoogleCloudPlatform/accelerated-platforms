@@ -222,9 +222,9 @@ to serve.
 
 ### Production Metrics
 
-vLLM exposes a number of metrics that can be used to monitor the health of the system. These metrics are exposed via the `/metrics` endpoint on the vLLM OpenAI compatible API server. These metrics can be scraped using Google Managed Promotheus.
+vLLM exposes a number of metrics that can be used to monitor the health of the system. These metrics are exposed via the `/metrics` endpoint on the vLLM OpenAI compatible API server. These metrics can be scraped using Google Managed Promotheus. For detials, see  [pod monitoring with Google managed prometheus](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-managed#gmp-pod-monitoring).
 
-*   Deploy the a monitoring pod that scrapes the vllm metrics and make them available in Cloud Monitoring.
+*   Deploy the a `PodMonitoring` resource that scrapes the vllm metrics and make them available in [Cloud Metrics](https://pantheon.corp.google.com/monitoring/metrics-explorer).
 
   ```sh
     sed \
@@ -233,44 +233,16 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
   kubectl apply -f manifests/pod-monitoring.yaml
   ```
 
-*   Wait for a minute andview the metrics in Cloud metrics
+*   Wait for a minute and view the metrics in Cloud metrics
+  
+    *  Go to [metrics explorer](https://pantheon.corp.google.com/monitoring/metrics-explorer)
+    *  Go to `Select  metric` > `Prometheus Target` > `vllm-inference` to view the metrics
 
-### View vLLM serving metrics for your model on GKE
-
-You can configure monitoring of the metrics above using the [pod monitoring](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-managed#gmp-pod-monitoring)
-
-  ```sh
-  kubectl apply -f manifests/pod_monitoring.yaml
-  ```
 
 ### Create a dashboard for Cloud Monitoring to view vLLM metrics
 
-Cloud Monitoring provides an [importer](https://cloud.google.com/monitoring/dashboards/import-grafana-dashboards) that you can use to import dashboard files in the Grafana JSON format into Cloud Monitoring
+You can create grafana dashboard with the vllm metrics. Follow the instructions on [dashboard readme][dashboard-readme].
 
-1. Clone github repository
-
-  ```sh
-  git clone https://github.com/GoogleCloudPlatform/monitoring-dashboard-samples
-  ```
-
-1. Change to the directory for the dashboard importer:
-
-  ```sh
-  cd monitoring-dashboard-samples/scripts/dashboard-importer
-  ```
-
-The dashboard importer includes the following scripts:
-
-- import.sh, which converts dashboards and optionally uploads the converted dashboards to Cloud Monitoring.
-- upload.sh, which uploads the converted dashboards or any Monitoring dashboards to Cloud Monitoring. The import.sh script calls this script to do the upload.
-
-1. Import the dashboard
-
-  ```sh
-  ./import.sh ./configs/grafana.json ${MLP_PROJECT_ID}
-  ```
-
-  When you use the import.sh script, you must specify the location of the Grafana dashboards to convert. The importer creates a directory that contains the converted dashboards and other information.
 
 ### Run Batch inference on GKE
 
@@ -316,10 +288,11 @@ EVAL_MODEL_PATH=/data/models/${MODEL_ID}/${MODEL_PATH}
 ENDPOINT="http://vllm-openai:8000/v1/chat/completions" # The modle endpoint
 ```
 
-*   Create an output directory to store the predictions in the bucket
+*   Create an input and output directory to store the predictions in the bucket
 
 ```sh
 gcloud storage folders create --recursive gs://MLP_PREDICTION_BUCKET/DATASET_OUTPUT_PATH
+gcloud storage folders create --recursive gs://MLP_PREDICTION_BUCKET/test
 
 ```
 
@@ -341,26 +314,7 @@ The job will take approx 45 mins to execute.
 
 ### Run benchmarks for inference
 
-The model is ready to run the benchmarks for inference job. We can run few performance tests using locust.
-Locust is an open source performance/load testing tool for HTTP and other protocols.
-You can refer to the documentation to [set up](https://docs.locust.io/en/stable/installation.html) locust locally or deploy as a container on GKE.
-
-We have created a sample [locustfile](https://docs.locust.io/en/stable/writing-a-locustfile.html) to run tests against our model using sample prompts which we tried earlier in the exercise.
-Here is a sample ![graph](./benchmarks/locust.jpg) to review.
-
-*   Open Cloudshell
-
-*   Install the locust library locally:
-
-  ```sh
-  pip3 install locust==2.29.1
-  ```
-
-*   Launch the benchmark python script for locust
-
-  ```sh
-  python benchmarks/locust.py $EVAL_MODEL_PATH
-  ```
+The model is ready to run the benchmarks for inference job. Follow [benchmark readme](./benchmarks/README.md) to run inference benchmarks on our model.
 
 ### Inference at Scale
 
@@ -518,3 +472,5 @@ Events:
   Normal   Created                 2m25s  kubelet                                Created container inference-server
   Normal   Started                 2m25s  kubelet                                Started container inference-server
 ```
+
+[dashboard-readme]: ./dashboard/README.md

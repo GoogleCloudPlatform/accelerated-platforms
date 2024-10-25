@@ -42,9 +42,9 @@ spec:
           apt-get update && apt-get install -y fuse2fs
           mkfs.ext4 -FF /dev/xvda
           fuse2fs -o fakeroot /dev/xvda /mnt
-          mkdir -p /mnt/V_MODEL-ID
-          cp -r /data/models/V_MODEL-DIR-PATH /mnt/V_MODEL-ID
-          ls -lR /mnt/V_MODEL-ID
+          mkdir -p /mnt/V_MODEL_ID
+          cp -r /data/models/V_MODEL_ID/V_MODEL_DIR_PATH /mnt/V_MODEL_ID
+          ls -lR /mnt/V_MODEL_ID
         volumeDevices:
         - name: data
           devicePath: /dev/xvda

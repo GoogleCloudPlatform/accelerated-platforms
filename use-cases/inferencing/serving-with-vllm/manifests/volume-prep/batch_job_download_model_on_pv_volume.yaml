@@ -33,6 +33,7 @@ spec:
         gke-gcsfuse/memory-request: 4Gi
     spec:
       containers:
+      serviceAccountName: V_KSA # sed replace KSA name
       - name: dldr
         image: debian:latest
         command: ["/bin/sh", "-c"]
@@ -41,9 +42,9 @@ spec:
           apt-get update && apt-get install -y fuse2fs
           mkfs.ext4 -FF /dev/xvda
           fuse2fs -o fakeroot /dev/xvda /mnt
-          mkdir -p /mnt/_MODEL-ID_
-          cp -r /data/models/_MODEL-DIR-PATH_ /mnt/_MODEL-ID_
-          ls -lR /mnt/_MODEL-ID_
+          mkdir -p /mnt/V_MODEL-ID
+          cp -r /data/models/V_MODEL-DIR-PATH /mnt/V_MODEL-ID
+          ls -lR /mnt/V_MODEL-ID
         volumeDevices:
         - name: data
           devicePath: /dev/xvda
@@ -66,7 +67,7 @@ spec:
           driver: gcsfuse.csi.storage.gke.io
           readOnly: true
           volumeAttributes:
-            bucketName: kr-finetune # sed replace with your bucket name  
+            bucketName: V_MODEL_BUCKET # sed replace with your bucket name  
             mountOptions: implicit-dirs
             gcsfuseLoggingSeverity: warning
             fileCacheCapacity: 10Gi

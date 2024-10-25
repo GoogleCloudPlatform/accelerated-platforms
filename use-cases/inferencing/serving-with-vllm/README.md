@@ -46,17 +46,16 @@ By the end of this guide, you should be able to perform the following steps:
 - Set environment variables
 
   ```sh
-  PROJECT_ID=<your-project-id>
+  MLP_PROJECT_ID=<your-project-id>
   PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
   V_MODEL_BUCKET=<model-artifacts-bucket>
-  CLUSTER_NAME=<your-gke-cluster>
-  NAMESPACE=ml-team
+  MLP_CLUSTER_NAME=<your-gke-cluster>
+  NAMESPACE=ml-serve
   KSA=<k8s-service-account>
-  MODEL_ID=<your-model-id>
+  MODEL_ID=<your-model-id> # example : model-gemma2-a100
+  MODEL_DIR_PATH ="<LOCAl-PATH-TO-MODEL_DIR>" # location to copy the model artifacts from
   REGION=<your-region>
-  IMAGE_NAME=<your-image-name>
-  DISK_NAME=<your-disk-name>
-  ZONE=<your-disk-zone>
+  ZONE=<your-model-disk-image-zone>
   ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
   ```
 
@@ -69,6 +68,7 @@ By the end of this guide, you should be able to perform the following steps:
 - Grant permission to kubernetes service account in cluster to access the storage bucket to view model weights
 
   ```sh
+  kubectl create sa $KSA -n ${NAMESPACE}
   gcloud storage buckets add-iam-policy-binding "gs://$V_MODEL_BUCKET" \
     --member "principal://iam.googleapis.com/projects/"${PROJECT_NUMBER}"/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/$NAMESPACE/sa/$KSA" \
     --role "roles/storage.objectViewer"
@@ -87,20 +87,21 @@ Loading model weights from a Persistent Volume is a method to load models faster
   Create a PVC for the model weights
 
   ```sh
-  kubectl apply -f manifests/volume-prep/pvc-disk-images.yaml
+  kubectl apply -f manifests/volume-prep/pvc-disk-image.yaml -n ${NAMESPACE}
   ```
 
   Create a job downloading the models to the volume and review logs for successful completion.
 
   ```sh
-  sed -i -e "s|_YOUR_BUCKET_NAME_|${V_MODEL_BUCKET}|" manifests/batch_job_download_model_on_pv_volume.yaml
-  kubectl create -f manifests/batch_job_download_model_on_pv_volume.yaml
+  sed -i -e "s|V_KSA}|${KSA}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml 
+  sed -i -e "s|V_MODEL_BUCKET}|${MODEL_BUCKET}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
+  kubectl create -f manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml -n ${NAMESPACE}
   ```
 
- Wait for the job to show completion.
+ Wait for the job to show completion status.
 
   ```sh
-     kubectl get jobs
+     kubectl get jobs --watch
   ```
 
  Create the PV and PVC
@@ -115,17 +116,17 @@ Loading model weights from a Persistent Volume is a method to load models faster
   ```
 
   ```sh
-  gcloud compute disks create models-fine-tune-disk-v1 --size=1TiB \
-  --type=pd-ssd --zone=${ZONE} --image=model-weights-image
+  gcloud compute disks create models-fine-tune-disk-v1 --size=1TiB --type=pd-ssd --zone=${ZONE} --image=model-weights-image
   ```
   
-  > Note: Choose the appropriate zone based on cluster location and GPU availability
+  > Note: Choose the appropriate zone based on cluster node location and GPU availability
 
   ```sh
-  VOLUME-HANDLE="projects/<PROJECT-ID>/zones/us-east4-a/disks/models-fine-tune-disk-v1"
-  sed -i -e "s|_NAMESPACE_|${NAMESPACE}|" manifests/volume-prep/pv-and-pvc.yaml
-  sed -i -e "s|_VOLUME-HANDLE_|${VOLUME-HANDLE}|" manifests/volume-prep/pv-and-pvc.yaml
-  kubectl apply -f manifests/volume-prep/pv-and-pvc.yaml
+  VOLUME_HANDLE="projects/${MLP_PROJECT_ID}/zones/${ZONE}/disks/models-fine-tune-disk-v1"
+  sed -i -e "s|V_VOLUME_HANDLE|${VOLUME_HANDLE}|" manifests/volume-prep/persistent_volume.yaml
+  sed -i -e "s|V_ZONE|${ZONE}|" manifests/volume-prep/persistent_volume.yaml
+  kubectl apply -f manifests/volume-prep/persistent_volume.yaml
+  kubectl apply -f manifests/volume-prep/persistent_volume_claim.yaml -n ${NAMESPACE}
   ```
 
 ## Deploy a vLLM container to your cluster
@@ -142,17 +143,14 @@ Loading model weights from a Persistent Volume is a method to load models faster
     ````
 
   ```sh
-  MODEL-ID= "<model-id>"
-  MODEL-DIR-PATH ="<LOCAl-PATH-TO-MODEL_DIR>" # location to copy the model artifacts from
-  sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" manifests/volume-prep/batch-job-model-deployment.yaml
-  sed -i -e "s|_MODEL-DIR-PATH_|${MODEL-DIR-PATH}|" manifests/volume-prep/batch-job-model-deployment.yaml
-  sed -i -e "s|_NAMESPACE_|${NAMESPACE}|" manifests/volume-prep/batch-job-model-deployment.yaml
-  sed -i -e "s|_ACCELERATOR_TYPE_|${ACCELERATOR_TYPE}|" manifests/volume-prep/batch-job-model-deployment.yaml
+  
+  sed -i -e "s|V_MODEL-ID|${MODEL-ID}|" manifests/volume-prep/batch-job-model-deployment.yaml
+  sed -i -e "s|V_MODEL-DIR-PATH|${MODEL-DIR-PATH}|" manifests/volume-prep/batch-job-model-deployment.yaml
+  sed -i -e "s|V_ACCELERATOR_TYPE|${ACCELERATOR_TYPE}|" manifests/volume-prep/batch-job-model-deployment.yaml
   ```
 
   ```sh
-  MODEL-ID= <model-id>
-  sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" manifests/model_deployment.yaml
+  sed -i -e "s|V_MODEL-ID|${MODEL-ID}|" manifests/model_deployment.yaml
   kubectl create -f manifests/model_deployment.yaml -n ${NAMESPACE}
   kubectl logs -f -l app=vllm-openai -n ${NAMESPACE}
   ```
@@ -178,7 +176,7 @@ Loading model weights from a Persistent Volume is a method to load models faster
   USER_PROMPT="I'm looking for comfortable cycling shorts for women, what are some good options?"
   MODEL_ID=""
 
-  curl http://localhost:8000/v1/chat/completions \
+  curl http://vllm-openai-service:8000/v1/chat/completions \
     -H "Content-Type: application/json" \
     -d '{
         "model": "${MODEL_ID}",
@@ -195,12 +193,11 @@ Loading model weights from a Persistent Volume is a method to load models faster
   
   ```sh
   MODEL-ID=<your-model-id>
-  sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" manifests/gradio.yaml
+  sed -i -e "s|V_MODEL-ID|${MODEL-ID}|" manifests/gradio.yaml
   ```
 
   ```sh
-  sed -i -e "s|_NAMESPACE_|${NAMESPACE}|" manifests/gradio.yaml
-  kubectl apply -f manifests/gradio.yaml
+  kubectl apply -f manifests/gradio.yaml -n ${NAMESPACE} 
   ```
 
 ### Production Metrics
@@ -208,7 +205,7 @@ Loading model weights from a Persistent Volume is a method to load models faster
 vLLM exposes a number of metrics that can be used to monitor the health of the system. These metrics are exposed via the `/metrics` endpoint on the vLLM OpenAI compatible API server.
 
   ```sh
-  curl http://localhost:8000/metrics
+  curl http://vllm-openai-service:8000/metrics
   ```
 
 ### View vLLM serving metrics for your model on GKE

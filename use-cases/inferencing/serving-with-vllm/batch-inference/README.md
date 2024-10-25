@@ -89,6 +89,7 @@ gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project
 Set variables for the inference job in model-eval.yaml
 
 ```
+cd ../manifests
 sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \
     -i -e "s|KSA|${KSA}|" \
     -i -e "s|V_BUCKET|${BUCKET}|" \
@@ -96,13 +97,13 @@ sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \
     -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
     -i -e "s|V_ENDPOINT|${ENDPOINT}|" \
     -i -e "s|V_PREDICTIONS_FILE|${PREDICTIONS_FILE}|" \
-    batch_inference.yaml
+     batch_inference.yaml
 ```
 
 Create the Job in the ml-serve namespace using kubectl command
 
 ```
-kubectl apply -f batch_inference.yaml -n ${NAMESPACE}
+kubectl apply -f /batch_inference.yaml -n ${NAMESPACE}
 ```
 
 You can review predictions result in file named `predictions.txt` .Sample file has been added to the repository.

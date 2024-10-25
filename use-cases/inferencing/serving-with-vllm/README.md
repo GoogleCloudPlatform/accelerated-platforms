@@ -104,8 +104,40 @@ Loading model weights from a Persistent Volume is a method to load models faster
  Wait for the job to show completion status.
 
   ```sh
-     kubectl get jobs --watch
+     kubectl get jobs -n ${NAMESPACE} --watch
   ```
+
+  ```
+     NAME                        STATUS    COMPLETIONS   DURATION   AGE
+     module-download-job-vl7cc   Running   0/1           4m1s       4m1s
+     module-download-job-vl7cc   Running   0/1           4m31s      4m31s
+     module-download-job-vl7cc   Running   0/1           4m35s      4m35s
+     module-download-job-vl7cc   Complete   1/1           4m35s      4m35s
+  ```
+
+You can also check pod logs to check the progress of disk creation.
+
+  ```
+    sh
+    kubectl logs module-download-job-vl7cc-km29x -n ${NAMESPACE} 
+  ```
+
+  ```
+    Creating filesystem with 26214400 4k blocks and 6553600 inodes
+    Filesystem UUID: 8eec47d3-920a-423c-919a-959f016d50cb
+    Superblock backups stored on blocks: 
+      32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632, 2654208, 
+      4096000, 7962624, 11239424, 20480000, 23887872
+
+    Allocating group tables: done                            
+    Writing inode tables: done                            
+    Creating journal (131072 blocks): done
+    Writing superblocks and filesystem accounting information: done
+
+    /mnt/model-gemma2-a100:
+    total 4
+    drwxr-xr-x 3 root root 4096 Oct 25 22:00 experiment-a2aa2c3it1
+    ```
 
  Create the PV and PVC
 
@@ -147,12 +179,11 @@ Loading model weights from a Persistent Volume is a method to load models faster
 
   ```sh
   
-  sed -i -e "s|V_MODEL_ID|${MODEL_ID}|" manifests/volume-prep/model_deployment.yaml
-  sed -i -e "s|V_ACCELERATOR_TYPE|${ACCELERATOR_TYPE}|" manifests/volume-prep/model_deployment.yaml
+  sed -i -e "s|V_MODEL_ID|${MODEL_ID}|" manifests/model_deployment.yaml
+  sed -i -e "s|V_ACCELERATOR_TYPE|${ACCELERATOR_TYPE}|" manifests/model_deployment.yaml
   ```
 
   ```sh
-  sed -i -e "s|V_MODEL-ID|${MODEL-ID}|" manifests/model_deployment.yaml
   kubectl create -f manifests/model_deployment.yaml -n ${NAMESPACE}
   kubectl logs -f -l app=vllm-openai -n ${NAMESPACE}
   ```

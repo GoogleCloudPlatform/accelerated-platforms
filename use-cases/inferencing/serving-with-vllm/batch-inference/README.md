@@ -76,6 +76,7 @@ gcloud services enable cloudbuild.googleapis.com --project ${MLP_PROJECT_ID}
 Build container image using Cloud Build and push the image to Artifact Registry Modify cloudbuild.yaml to specify the image url
 
 ```
+cd batch_inference/src
 gcloud builds submit . --project ${MLP_PROJECT_ID} --substitutions _DESTINATION=${BATCH_INFERENCE_IMAGE}
 ```
 

@@ -20,7 +20,6 @@ spec:
         - -c
         - |
           ACTION=predict python validate_fine_tuned_model.py
-          ACTION=accuracy python validate_fine_tuned_model.py
         env:
         - name: "ENDPOINT"
           value: "_ENDPOINT_"

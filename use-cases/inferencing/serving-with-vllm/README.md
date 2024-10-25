@@ -306,7 +306,7 @@ sed -i -e "s|_IMAGE_URL_|${MLP_SERVE_IMAGE}|" \
     -i -e "s|_ENDPOINT_|${ENDPOINT}|" \
     -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
     model-eval.yaml
-kubectl apply -f model-eval.yaml
+kubectl apply -f prediction.yaml
 ```
 
 You can review predictions result in file named `predictions.txt` under /dataset/output folder in the bucket. Sample file has been added to the repository.

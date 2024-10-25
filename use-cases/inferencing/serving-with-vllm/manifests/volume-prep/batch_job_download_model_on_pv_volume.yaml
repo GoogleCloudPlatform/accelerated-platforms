@@ -32,8 +32,8 @@ spec:
         gke-gcsfuse/memory-limit: 10Gi
         gke-gcsfuse/memory-request: 4Gi
     spec:
-      containers:
       serviceAccountName: V_KSA # sed replace KSA name
+      containers:
       - name: dldr
         image: debian:latest
         command: ["/bin/sh", "-c"]

@@ -93,10 +93,10 @@ Loading model weights from a Persistent Volume is a method to load models faster
   Create a job downloading the models to the volume and review logs for successful completion.
 
   ```sh
-  sed -i -e "s|V_KSA}|${KSA}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml 
-  sed -i -e "s|V_MODEL_BUCKET}|${MODEL_BUCKET}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
-  sed -i -e "s|V_MODEL_ID}|${MODEL_ID}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
-  sed -i -e "s|V_MODEL_DIR_PATH}|${MODEL_DIR_PATH}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
+  sed -i -e "s|V_KSA|${KSA}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml 
+  sed -i -e "s|V_MODEL_BUCKET|${MODEL_BUCKET}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
+  sed -i -e "s|V_MODEL_ID|${MODEL_ID}|g" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
+  sed -i -e "s|V_MODEL_DIR_PATH|${MODEL_DIR_PATH}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
   kubectl create -f manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml -n ${NAMESPACE}
   ```
 

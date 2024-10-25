@@ -90,7 +90,7 @@ Set variables for the inference job in model-eval.yaml
 
 ```
 cd ../manifests
-sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \
+sed -i -e "s|V_IMAGE_URL|${DOCKER_IMAGE_URL}|" \
     -i -e "s|V_KSA|${KSA}|" \
     -i -e "s|V_IMAGE_URL|${IMAGE_URL}|"\
     -i -e "s|V_BUCKET|${BUCKET}|" \

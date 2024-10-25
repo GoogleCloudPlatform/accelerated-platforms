@@ -206,9 +206,9 @@ to serve.
   INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
   ```
 
-## Serve the deployed model through curl and a web chat interface
+## Serve the deployed model through a web chat interface
 
-- You can also deploy a gradio chat interface to view the model chat interface. [OPTIONAL]
+- Deploy a gradio chat interface to view the model chat interface. [OPTIONAL]
 
   ```sh
     sed \
@@ -218,6 +218,7 @@ to serve.
   manifests/gradio.yaml
   kubectl apply -f manifests/gradio.yaml
   ```
+  TODO : Make the chat interfave avialable via IAP
 
 ### Production Metrics
 

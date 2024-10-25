@@ -1,6 +1,17 @@
 # Howto init the database
 
-## Follow the `README.md` in `build-db` to create the database cluster
+## Create the database cluster
+
+Follow the `README.md` in `build-db` to create the database cluster. 
+
+The terraform manifests in `build-db` will create a database cluster with two `IAM_USER`:
+
+- `alloydb-superuser@${var.project_id}.iam`
+  - This user has role `alloydbsuperuser`.
+  - This user is bound to the GCP service account: `alloydb-superuser@${var.project_id}.iam.gserviceaccount.com`.
+- `alloydb-raguser@${var.project_id}.iam`
+  - This user has role `alloydbiamuser`.
+  - This user is bound to the GCP service account: `alloydb-raguser@${var.project_id}.iam.gserviceaccount.com`.
 
 ## Enter `init_database_objects` to create the in-database objects
 
@@ -21,9 +32,11 @@ All of the following variables are to be provided
 - `gke_cluster_location`
   The location of the GKE cluster
 - `dba_service_account`
-  The k8s service account of alloydb superuser, for example: `dba-ksa`
+  The k8s service account of alloydb superuser, for example: `dba-ksa`,
+  this service account will then attach to the GCP service account `alloydb-superuser@${var.project_id}.iam.gserviceaccount.com`
 - `rag_service_account`
-  The k8s service account of alloydb raguser, for example: `rag-ksa`
+  The k8s service account of alloydb raguser, for example: `rag-ksa`,
+  this service account will then attach to the GCP service account `alloydb-raguser@${var.project_id}.iam.gserviceaccount.com`
 - `alloydb_cluster` 
   The cluster name of alloydb, should be `cluster-us-central1`
 - `alloydb_instance` 

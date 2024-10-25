@@ -46,7 +46,7 @@ spec:
         - --tensor-parallel-size=2
         env:
         - name: MODEL
-          value: V_MODEL-ID
+          value: V_MODEL_ID
         - name: VLLM_ATTENTION_BACKEND
           value: FLASHINFER
         volumeMounts:
@@ -73,7 +73,7 @@ spec:
         value: "true"
         effect: "NoSchedule"
       nodeSelector:
-        cloud.google.com/gke-accelerator: ACCELERATOR_TYPE
+        cloud.google.com/gke-accelerator: V_ACCELERATOR_TYPE
 ---
 apiVersion: v1
 kind: Service

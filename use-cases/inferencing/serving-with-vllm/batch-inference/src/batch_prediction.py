@@ -25,8 +25,10 @@ class ModelEvaluation:
         self.output_file = os.environ["PREDICTIONS_FILE"]
         self.gcs_bucket = os.environ["MLP_PREDICTION_BUCKET"]
         self.dataset_output_path = os.environ["DATASET_OUTPUT_PATH"]
+        self.dataset_input_path = os.environ["DATASET_INPUT_PATH"]
+        self.input_file = os.environ["INPUT_FILE"]
         test_dataset = load_from_disk(
-            f"gs://{self.gcs_bucket}/{self.dataset_output_path}/test"
+            f"gs://{self.gcs_bucket}/{self.dataset_input_path}/{self.input_file}"
         )
         # convert output to pandas dataframe
         self.df = test_dataset.to_pandas()

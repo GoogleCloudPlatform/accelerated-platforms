@@ -9,6 +9,12 @@
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
+* Switch to inference directory
+
+  ```sh
+  cd accelerated-platforms/use-cases/inferencing/serving-with-vllm/batch-inference
+  ```
+
 *   Setup Workload Identity Federation access to read/write to the bucket for the inference batch data set
 
 
@@ -41,18 +47,18 @@ cd -
 *   Set variables
 
 ```sh
-DATASET_OUTPUT_PATH=/dataset/output
+DATASET_OUTPUT_PATH=dataset/output
+DATASET_INPUT_PATH=dataset/input
+INPUT_FLE=input_predictions.txt
 EVAL_MODEL_PATH=/data/models/${MODEL_ID}/${MODEL_PATH}
 ENDPOINT="http://vllm-openai:8000/v1/chat/completions" # The modle endpoint
 PREDICTION_FILE="prediction.txt" #file containing input for predictions
 ```
 
-*   Create an input and output directory to store the predictions in the bucket
+*   Copy a sample input file for generating the predictions on GCS bucket
 
 ```sh
-gcloud storage folders create --recursive gs://MLP_PREDICTION_BUCKET/DATASET_OUTPUT_PATH
-gcloud storage folders create --recursive gs://MLP_PREDICTION_BUCKET/test
-
+gcloud storage cp ${INPUT_FLE} gs://${MLP_PREDICTION_BUCKET}/${DATASET_INPUT_PATH}
 ```
 
 *   Replace variables in inference job manifest and deploy the job
@@ -64,7 +70,9 @@ sed -i -e "s|_IMAGE_URL_|${MLP_SERVE_IMAGE}|" \
     -i -e "s|_DATASET_OUTPUT_PATH_|${DATASET_OUTPUT_PATH}|" \
     -i -e "s|_ENDPOINT_|${ENDPOINT}|" \
     -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
-    -i -e "s|_INPUT_PREDICTION_FILE_|${PREDICTION_FILE}|" \
+    -i -e "s|_PREDICTION_FILE_|${PREDICTION_FILE}|" \
+    -i -e "s|_DATASET_INPUT_PATH_|${DATASET_INPUT_PATH}|" \
+    -i -e "s|_INPUT_FILE_|${INPUT_FILE}|" \
     prediction.yaml
 kubectl apply -f prediction.yaml
 ```

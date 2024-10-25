@@ -28,9 +28,13 @@ spec:
         - name: "DATASET_OUTPUT_PATH"
           value: "_DATASET_OUTPUT_PATH_"
         - name: "MLP_PREDICTION_BUCKET"
-          value: "_BUCKET_"
+          value: "_MLP_PREDICTION_BUCKET_"
         - name: "PREDICTIONS_FILE"
-          value: "_INPUT_PREDICTION_FILE_"  
+          value: "_PREDICTION_FILE_"  
+        - name: "INPUT_FILE"
+          value: "_INPUT_FILE_"  
+        - name: "DATASET_INPUT_PATH"
+          value: "_DATASET_INPUT_PATH_"
         resources:
           requests:
             cpu: "2"

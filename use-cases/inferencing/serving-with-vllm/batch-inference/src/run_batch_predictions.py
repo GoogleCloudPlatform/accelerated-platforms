@@ -27,18 +27,9 @@ class Batch_Inference:
         self.output_file = os.environ["PREDICTIONS_FILE"]
         self.gcs_bucket = os.environ["BUCKET"]
         self.dataset_output_path = os.environ["DATASET_OUTPUT_PATH"]
-        training_dataset = load_from_disk(
-            f"gs://{self.gcs_bucket}/{self.dataset_output_path}/training"
-        )
-        validation_dataset = load_from_disk(
-            f"gs://{self.gcs_bucket}/{self.dataset_output_path}/validation"
-        )
         test_dataset = load_from_disk(
             f"gs://{self.gcs_bucket}/{self.dataset_output_path}/test"
         )
-        # convert output to pandas dataframe
-        self.training_df = training_dataset.to_pandas()
-        self.validation_df = validation_dataset.to_pandas()
         self.test_df = test_dataset.to_pandas()
         # Concatenate vertically (stack rows)
         self.df = pd.concat([self.validation_df, self.test_df], axis=0)
@@ -83,34 +74,6 @@ class Batch_Inference:
         with open(self.output_file, "r") as local_file:
             blob = bucket.blob(f"predictions/{self.output_file}-{model_iteration_tag}")
             blob.upload_from_file(local_file)
-
-    # Function to extract product name from a line
-    def extract_product_names(self, predictions_file: str) -> list[str]:
-        product_names = []
-        current_product = ""
-        # Read and process the text file
-        with open(predictions_file, "r") as file:
-            for line in file:
-                line = line.strip()
-                # Check for the delimiter
-                # if line == "Prompt:":
-                if line == "----------":
-                    if current_product:  # Ensure a product was found
-                        product_names.append(current_product)
-                    else:
-                        product_names.append(
-                            None
-                        )  # When there is no product name in the prediction
-                    current_product = ""  # Reset for the next product
-                elif line.startswith("Product Name:"):
-                    if not current_product:
-                        current_product = line.split(": ")[1]
-        return product_names
-
-    # This function counts no of predictions with no Product Names in it
-    def count_no_products_prediction(self, product_names: list[str]) -> int:
-        none_occurrences = [item for item in product_names].count(None)
-        return none_occurrences
 
     # Count True Positives and False Positives
     def count_tp_fp(

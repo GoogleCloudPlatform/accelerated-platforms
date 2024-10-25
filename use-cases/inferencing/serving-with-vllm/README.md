@@ -273,7 +273,7 @@ The dashboard importer includes the following scripts:
  Import the dashboard
 
   ```sh
-  ./import.sh ./configs/grafana.json ${PROJECT_ID}
+  ./import.sh ./configs/grafana.json ${MLP_PROJECT_ID}
   ```
 
   When you use the import.sh script, you must specify the location of the Grafana dashboards to convert. The importer creates a directory that contains the converted dashboards and other information.

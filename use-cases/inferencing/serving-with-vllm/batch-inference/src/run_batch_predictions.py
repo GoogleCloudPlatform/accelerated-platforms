@@ -75,34 +75,6 @@ class Batch_Inference:
             blob = bucket.blob(f"predictions/{self.output_file}-{model_iteration_tag}")
             blob.upload_from_file(local_file)
 
-    # Count True Positives and False Positives
-    def count_tp_fp(
-        self, product_names: list[str], ground_truth: pd.DataFrame
-    ) -> (int, int):
-        true_positives_count = 0
-        false_positives_count = 0
-        for product_name in product_names:
-            if product_name:
-                # Option 1: Partial Match
-                partial_match = ground_truth[
-                    ground_truth["Answer"].str.contains(product_name, case=False)
-                ]
-                if not partial_match.empty:
-                    logger.info(f"Found partial matches for '{product_name}':")
-                    true_positives_count += 1
-                else:
-                    # Option 2: Full Match (if partial match not found)
-                    full_match = ground_truth[ground_truth["Answer"] == product_name]
-                    if not full_match.empty:
-                        logger.info(f"Found exact match for '{product_name}':")
-                        true_positives_count += 1
-                    else:
-                        logger.info(
-                            f"No match found for '{product_name}' in DataFrame."
-                        )
-                        false_positives_count += 1
-        return true_positives_count, false_positives_count
-
     def batchType(self):
         if "ACTION" in os.environ and os.getenv("ACTION") == "predict":
             self.predict()

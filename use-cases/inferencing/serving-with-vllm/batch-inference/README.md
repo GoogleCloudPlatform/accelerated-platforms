@@ -53,12 +53,6 @@ ENDPOINT="http://vllm-openai:8000/v1/chat/completions" # The modle endpoint
 PREDICTION_FILE="prediction.txt" #file containing input for predictions
 ```
 
-*   Copy a sample input file for generating the predictions on GCS bucket
-
-```sh
-gcloud storage cp ${INPUT_FILE} gs://${MLP_PREDICTION_BUCKET}/${DATASET_INPUT_PATH}/
-```
-
 *   Replace variables in inference job manifest and deploy the job
 ```sh
 sed -i -e "s|_IMAGE_URL_|${MLP_SERVE_IMAGE}|" \

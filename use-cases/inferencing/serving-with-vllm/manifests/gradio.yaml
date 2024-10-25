@@ -16,7 +16,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gradio
-  namespace: _NAMESPACE_  # replace with your namespace
   labels:
     app: gradio
 spec:
@@ -49,7 +48,7 @@ spec:
         - name: LLM_ENGINE
           value: "openai"
         - name: MODEL_ID
-          value: _MODEL-ID_
+          value: V_MODEL_ID
         - name: USER_PROMPT
           value: "<start_of_turn>user\nprompt<end_of_turn>\n"
         - name: SYSTEM_PROMPT

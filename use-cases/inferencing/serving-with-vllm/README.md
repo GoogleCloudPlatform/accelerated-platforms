@@ -222,11 +222,18 @@ to serve.
 
 ### Production Metrics
 
-vLLM exposes a number of metrics that can be used to monitor the health of the system. These metrics are exposed via the `/metrics` endpoint on the vLLM OpenAI compatible API server.
+vLLM exposes a number of metrics that can be used to monitor the health of the system. These metrics are exposed via the `/metrics` endpoint on the vLLM OpenAI compatible API server. These metrics can be scraped using Google Managed Promotheus.
+
+*   Deploy the a monitoring pod that scrapes the vllm metrics and make them available in Cloud Monitoring.
 
   ```sh
-  curl http://localhost:8000/metrics
+    sed \
+  -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|g" \
+  manifests/pod-monitoring.yaml
+  kubectl apply -f manifests/pod-monitoring.yaml
   ```
+
+*   Wait for a minute andview the metrics in Cloud metrics
 
 ### View vLLM serving metrics for your model on GKE
 

@@ -46,7 +46,7 @@ spec:
         - --tensor-parallel-size=2
         env:
         - name: MODEL
-          value: V_MODEL_ID
+          value: /data/models/V_MODEL_ID/V_MODEl_DIR_PATH
         - name: VLLM_ATTENTION_BACKEND
           value: FLASHINFER
         volumeMounts:

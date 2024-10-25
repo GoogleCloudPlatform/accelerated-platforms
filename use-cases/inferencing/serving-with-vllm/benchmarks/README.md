@@ -17,7 +17,6 @@ Here is a sample ![graph](./benchmarks/locust.jpg) to review.
 
   ```sh
    export MODEL_ID =<add-model-id> 
-   sed -i -e "s|_MODEL-ID_|${MODEL-ID}|" benchmarks/locust.py
   ```
 
 - Launch the benchmark python script for locust

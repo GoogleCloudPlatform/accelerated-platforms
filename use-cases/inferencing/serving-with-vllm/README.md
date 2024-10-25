@@ -180,6 +180,7 @@ You can also check pod logs to check the progress of disk creation.
   ```sh
   
   sed -i -e "s|V_MODEL_ID|${MODEL_ID}|" manifests/model_deployment.yaml
+  sed -i -e "s|V_MODEL_DIR_PATH|${MODEL_DIR_PATH}|" manifests/model_deployment.yaml
   sed -i -e "s|V_ACCELERATOR_TYPE|${ACCELERATOR_TYPE}|" manifests/model_deployment.yaml
   ```
 
@@ -209,7 +210,7 @@ You can also check pod logs to check the progress of disk creation.
   USER_PROMPT="I'm looking for comfortable cycling shorts for women, what are some good options?"
   MODEL_ID=""
 
-  curl http://vllm-openai-service:8000/v1/chat/completions \
+  curl http://localhost:8000/v1/chat/completions \
     -H "Content-Type: application/json" \
     -d '{
         "model": "${MODEL_ID}",
@@ -225,8 +226,7 @@ You can also check pod logs to check the progress of disk creation.
 - You can also deploy a gradio chat interface to view the model chat interface. [OPTIONAL]
   
   ```sh
-  MODEL-ID=<your-model-id>
-  sed -i -e "s|V_MODEL-ID|${MODEL-ID}|" manifests/gradio.yaml
+  sed -i -e "s|V_MODEL_ID|${MODEL_ID}|" manifests/gradio.yaml
   ```
 
   ```sh
@@ -238,7 +238,7 @@ You can also check pod logs to check the progress of disk creation.
 vLLM exposes a number of metrics that can be used to monitor the health of the system. These metrics are exposed via the `/metrics` endpoint on the vLLM OpenAI compatible API server.
 
   ```sh
-  curl http://vllm-openai-service:8000/metrics
+  curl http://vllm-openai:8000/metrics
   ```
 
 ### View vLLM serving metrics for your model on GKE
@@ -283,47 +283,6 @@ The dashboard importer includes the following scripts:
 
 Once a model has completed fine-tuning and is deployed on GKE , its ready to run batch Inference pipeline.
 In this example batch inference pipeline, we would first send prompts to the hosted fine-tuned model and then validate the results based on ground truth.
-
-#### Prepare your environment
-
-
-Set env variables.
-
-```
-PROJECT_ID=<your-project-id>
-PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
-CLUSTER_NAME=<your-gke-cluster>
-NAMESPACE=ml-serve
-MODEL_PATH=<your-model-path>
-BUCKET="<your dataset bucket name>"
-DATASET_OUTPUT_PATH=""
-ENDPOINT=<your-endpoint> # eg "http://vllm-openai:8000/v1/chat/completions"
-KSA=<k8s-service-account> # Service account with work-load identity enabled
-PREDICTIONS_FILE=<predictions.txt> # Look for sample example-prediction.text for expected results
-```
-
-Create Service account.
-
-```
-NAMESPACE=ml-serve
-kubectl create sa ${KSA} -n ${NAMESPACE}
-```
-
-Setup Workload Identity Federation access to read/write to the bucket for the inference batch data set
-
-```
-gcloud storage buckets add-iam-policy-binding gs://${BUCKET} \
-    --member "principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/${NAMESPACE}/sa/${KSA}" \
-    --role "roles/storage.objectUser"
-```
-
-```
-gcloud storage buckets add-iam-policy-binding gs://${BUCKET} \
-    --member "principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/${NAMESPACE}/sa/${KSA}" \
-    --role "roles/storage.legacyBucketWriter"
-```
-
-#### Build the image of the source and execute batch inference job
 
 Please follow ```use-cases/inferencing/serving-with-vllm/batch-inference/README.md``` for instructions.
 
@@ -394,13 +353,13 @@ Select **ONE** of the options below `Queue-depth` or `Batch-size` to configure t
 - Queue-depth
 
   ```sh
-  kubectl apply -f manifests/inference-scale/hpa-vllm-openai-queue-size.yaml -n ${NAMESPACE}
+  kubectl apply -f manifests/inference-scale/hpa_vllm_openai_queue_size.yaml -n ${NAMESPACE}
   ```
 
 - Batch-size
 
   ```sh
-  kubectl apply -f manifests/inference-scale/hpa-vllm-openai-batch-size.yaml -n ${NAMESPACE}
+  kubectl apply -f manifests/inference-scale/hpa_vllm_openai_batch_size.yaml -n ${NAMESPACE}
   ```
 
 > Note: Below is an example of the batch size HPA scale test below:

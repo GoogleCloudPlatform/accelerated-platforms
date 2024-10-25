@@ -32,7 +32,7 @@ module "database-config" {
   name = "alloydb-config"
   configdata = {
     pghost = data.external.alloydb-primary-instance-ip.result.ipAddress
-    pgdatabase = "postgres"
+    pgdatabase = "ragdb"
   }
   k8s_namespace = var.k8s_namespace
 }

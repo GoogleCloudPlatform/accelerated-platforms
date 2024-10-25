@@ -28,7 +28,7 @@ class ModelEvaluation:
         self.dataset_input_path = os.environ["DATASET_INPUT_PATH"]
         self.input_file = os.environ["INPUT_FILE"]
         test_dataset = load_from_disk(
-            f"gs://{self.gcs_bucket}/{self.dataset_input_path}/{self.input_file}"
+            f"gs://{self.gcs_bucket}/{self.dataset_output_path}/test"
         )
         # convert output to pandas dataframe
         self.df = test_dataset.to_pandas()

@@ -31,10 +31,6 @@ spec:
           value: "_MLP_PREDICTION_BUCKET_"
         - name: "PREDICTIONS_FILE"
           value: "_PREDICTION_FILE_"  
-        - name: "INPUT_FILE"
-          value: "_INPUT_FILE_"  
-        - name: "DATASET_INPUT_PATH"
-          value: "_DATASET_INPUT_PATH_"
         resources:
           requests:
             cpu: "2"

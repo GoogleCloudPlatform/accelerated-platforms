@@ -48,8 +48,6 @@ cd -
 
 ```sh
 DATASET_OUTPUT_PATH=dataset/output
-DATASET_INPUT_PATH=dataset/input
-INPUT_FLE=input_predictions.txt
 EVAL_MODEL_PATH=/data/models/${MODEL_ID}/${MODEL_PATH}
 ENDPOINT="http://vllm-openai:8000/v1/chat/completions" # The modle endpoint
 PREDICTION_FILE="prediction.txt" #file containing input for predictions
@@ -58,7 +56,7 @@ PREDICTION_FILE="prediction.txt" #file containing input for predictions
 *   Copy a sample input file for generating the predictions on GCS bucket
 
 ```sh
-gcloud storage cp ${INPUT_FLE} gs://${MLP_PREDICTION_BUCKET}/${DATASET_INPUT_PATH}
+gcloud storage cp ${INPUT_FILE} gs://${MLP_PREDICTION_BUCKET}/${DATASET_INPUT_PATH}/
 ```
 
 *   Replace variables in inference job manifest and deploy the job
@@ -71,8 +69,6 @@ sed -i -e "s|_IMAGE_URL_|${MLP_SERVE_IMAGE}|" \
     -i -e "s|_ENDPOINT_|${ENDPOINT}|" \
     -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
     -i -e "s|_PREDICTION_FILE_|${PREDICTION_FILE}|" \
-    -i -e "s|_DATASET_INPUT_PATH_|${DATASET_INPUT_PATH}|" \
-    -i -e "s|_INPUT_FILE_|${INPUT_FILE}|" \
     prediction.yaml
 kubectl apply -f prediction.yaml
 ```

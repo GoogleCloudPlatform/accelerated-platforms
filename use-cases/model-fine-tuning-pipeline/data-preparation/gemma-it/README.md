@@ -11,6 +11,15 @@ Depending on the infrastructure you provisioned, the data preparation step takes
 
 ## Preparation
 
+- Accept Llama 3.1 on Vertex AI license agreement terms
+
+  ```sh
+  echo -e "\nhttps://console.cloud.google.com/vertex-ai/publishers/meta/model-garden/llama-3.1-405b-instruct-maas\n"
+  ```
+  
+  1. Accept the license terms for the Llama 3.1 model
+  1. On the Llama 3.1 on Vertex AI model card, click the blue `ENABLE` button
+
 - Clone the repository and change directory to the guide directory
 
   ```sh
@@ -29,11 +38,13 @@ Depending on the infrastructure you provisioned, the data preparation step takes
 
 ### Vertex AI OpenAI endpoint variables
 
-- Set `REGION` to Google Cloud region to use for the Vertex AI API OpenAI endpoint calls
+- Set `VERTEX_REGION` to Google Cloud region to use for the Vertex AI API OpenAI endpoint calls
 
   ```
-  REGION=us-central1
+  VERTEX_REGION=us-central1
   ```
+
+  > The Llama 3.1 on Vertex API is in preview, it is only available in `us-central1`
 
 ## Build the container image
 
@@ -84,7 +95,7 @@ Depending on the infrastructure you provisioned, the data preparation step takes
   -i -e "s|V_DATASET_INPUT_FILE|${DATASET_INPUT_FILE}|" \
   -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
   -i -e "s|V_PROMPT_MODEL_ID|${PROMPT_MODEL_ID}|" \
-  -i -e "s|V_REGION|${REGION}|" \
+  -i -e "s|V_REGION|${VERTEX_REGION}|" \
   manifests/job.yaml
   ```
 

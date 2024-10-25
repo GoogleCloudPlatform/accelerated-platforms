@@ -52,6 +52,15 @@ with an inference serving engine.
 
 ## Run the job
 
+- Accept Gemma model terms
+
+  To get access to the Gemma models for this example, you must first sign the license consent agreement. Follow these instructions:
+
+  - Access the [model consent page](https://www.kaggle.com/models/google/gemma) on Kaggle.com
+  - Select `Request Access`
+  - Select `Verify via Hugging Face` and continue
+  - Accept the model terms
+
 - Get credentials for the GKE cluster
 
   ```sh
@@ -65,10 +74,6 @@ with an inference serving engine.
   --from-literal=hf_api_token=${HF_TOKEN} \
   --dry-run=client -o yaml | kubectl apply -n ${MLP_KUBERNETES_NAMESPACE} -f -
   ```
-
-- Accept the license HuggingFace license for the model
-
-  - Go to https://huggingface.co/google/gemma-2-9b-it and accept the license
 
 - Configure the job
 

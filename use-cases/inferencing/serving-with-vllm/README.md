@@ -68,6 +68,7 @@ By the end of this guide, you should be able to perform the following steps:
 - Grant permission to kubernetes service account in cluster to access the storage bucket to view model weights
 
   ```sh
+  kubectl create ns ${NAMESPACE}
   kubectl create sa $KSA -n ${NAMESPACE}
   gcloud storage buckets add-iam-policy-binding "gs://$V_MODEL_BUCKET" \
     --member "principal://iam.googleapis.com/projects/"${PROJECT_NUMBER}"/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/$NAMESPACE/sa/$KSA" \

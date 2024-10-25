@@ -9,10 +9,10 @@ spec:
       labels:
         app: batch-inference
     spec:
-      serviceAccountName: KSA
+      serviceAccountName: V_KSA
       containers:
       - name: job
-        image: IMAGE_URL
+        image: V_IMAGE_URL
         imagePullPolicy: Always
         command: ["/bin/sh"]
         args:

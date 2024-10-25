@@ -64,7 +64,7 @@ BATCH_INFERENCE_IMAGE=us-docker.pkg.dev/${MLP_PROJECT_ID}/batch-inference-reposi
 Set Docker Image URL
 
 ```
-DOCKER_IMAGE_URL=us-docker.pkg.dev/${MLP_PROJECT_ID}/llm-inference-repository/batch_inference:latest
+DOCKER_IMAGE_URL=us-docker.pkg.dev/${MLP_PROJECT_ID}/batch-inference-repository/batch_inference:latest
 ```
 
 Enable the Cloud Build APIs
@@ -91,7 +91,8 @@ Set variables for the inference job in model-eval.yaml
 ```
 cd ../manifests
 sed -i -e "s|IMAGE_URL|${DOCKER_IMAGE_URL}|" \
-    -i -e "s|KSA|${KSA}|" \
+    -i -e "s|V_KSA|${KSA}|" \
+    -i -e "s|V_IMAGE_URL|${IMAGE_URL}|"\
     -i -e "s|V_BUCKET|${BUCKET}|" \
     -i -e "s|V_MODEL_PATH|${MODEL_PATH}|" \
     -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \

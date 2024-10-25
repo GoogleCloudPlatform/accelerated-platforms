@@ -31,9 +31,6 @@ class Batch_Inference:
             f"gs://{self.gcs_bucket}/{self.dataset_output_path}/test"
         )
         self.test_df = test_dataset.to_pandas()
-        # Concatenate vertically (stack rows)
-        self.df = pd.concat([self.validation_df, self.test_df], axis=0)
-        self.df.reset_index(drop=True, inplace=True)
 
     def predict(self):
         logger.info("Start prediction evaluation")

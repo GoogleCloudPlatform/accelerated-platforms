@@ -30,8 +30,9 @@ class Batch_Inference:
         test_dataset = load_from_disk(
             f"gs://{self.gcs_bucket}/{self.dataset_output_path}/test"
         )
-        self.df = test_dataset.to_pandas()
+        self.test_df = test_dataset.to_pandas()
         # Concatenate vertically (stack rows)
+        self.df = pd.concat([self.test_df], axis=0)
         self.df.reset_index(drop=True, inplace=True)
 
     def predict(self):

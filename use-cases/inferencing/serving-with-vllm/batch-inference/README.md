@@ -12,7 +12,7 @@
 * Switch to inference directory
 
   ```sh
-  cd accelerated-platforms/use-cases/inferencing/serving-with-vllm/batch-inference
+  cd ${BATCH_INFERENCE_DIR}
   ```
 
 *   Setup Workload Identity Federation access to read/write to the bucket for the inference batch data set
@@ -69,3 +69,11 @@ kubectl apply -f prediction.yaml
 
 You can review predictions result in file named `predictions.txt` under /dataset/output folder in the bucket. Sample file has been added to the repository.
 The job will take approx 45 mins to execute.
+
+*   Go back to the infernece directory
+
+  ```sh
+  cd  ${INFERENCE_DIR}
+  ```
+  
+  TODO: MLP_PREDICTION_BUCKET may not be needed. Check with kavitha to see if you cant poin tto the fine tuned model buclet

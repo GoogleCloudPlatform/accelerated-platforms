@@ -17,6 +17,7 @@ import logging
 import logging.config
 import os
 import signal
+import requests
 
 def graceful_shutdown(signal_number, stack_frame):
     signal_name = signal.Signals(signal_number).name
@@ -41,34 +42,51 @@ class MyUser(FastHttpUser):
     @task(50)
     def test1(self):
         headers = {'content-type': 'application/json'}
-        r = self.client.post(
-            "/v1/chat/completions",
-            json={
+        # r = self.client.post(
+        #     "/v1/chat/completions",
+        #     json={
+        #         "model": self.model_id,
+        #         "messages": [{"role": "user", "content": self.message1}],
+        #         "temperature": 0.5,
+        #         "top_k": 1.0,
+        #         "top_p": 1.0,
+        #         "max_tokens": 256,
+        #     },
+        #     headers=headers
+        # )
+        r = self.rest("POST","/v1/chat/completions",json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message1}],
                 "temperature": 0.5,
                 "top_k": 1.0,
                 "top_p": 1.0,
                 "max_tokens": 256,
-            },
-            headers=headers
-        )
+            },headers=headers)
+        
 
     @task(50)
     def test2(self):
         r = headers = {'content-type': 'application/json'}
-        self.client.post(
-            "/v1/chat/completions",
-            json={
+        # self.client.post(
+        #     "/v1/chat/completions",
+        #     json={
+        #         "model": self.model_id,
+        #         "messages": [{"role": "user", "content": self.message2}],
+        #         "temperature": 0.5,
+        #         "top_k": 1.0,
+        #         "top_p": 1.0,
+        #         "max_tokens": 256,
+        #     },
+        #     headers=headers
+        # )
+        r = self.rest("POST","/v1/chat/completions",json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message2}],
                 "temperature": 0.5,
                 "top_k": 1.0,
                 "top_p": 1.0,
                 "max_tokens": 256,
-            },
-            headers=headers
-        )
+            },headers=headers)        
     # def benchmarks(self):
     #     if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
     #         self.test1()
@@ -91,7 +109,6 @@ if __name__ == "__main__":
     logger.info("Configure signal handlers")
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
-
     benchmark_obj = MyUser()
     benchmark_obj.test1()
     benchmark_obj.test2()

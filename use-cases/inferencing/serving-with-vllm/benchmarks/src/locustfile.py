@@ -62,7 +62,7 @@ class MyUser(FastHttpUser):
                 "top_p": 1.0,
                 "max_tokens": 256,
             },headers=headers)
-        
+        print("FROM MESSAGE 1",r)
 
     @task(50)
     def test2(self):
@@ -86,7 +86,8 @@ class MyUser(FastHttpUser):
                 "top_k": 1.0,
                 "top_p": 1.0,
                 "max_tokens": 256,
-            },headers=headers)        
+            },headers=headers) 
+        print("FROM MESSAGE 2",r)       
     # def benchmarks(self):
     #     if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
     #         self.test1()

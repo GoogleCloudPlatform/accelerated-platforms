@@ -12,23 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: query-gradio
+  name: rag-etl-data
 spec:
-  replicas: 1
   selector:
     matchLabels:
-      app: query-gradio
+      app: rag-etl
   template:
     metadata:
       labels:
-        app: query-gradio
+        app: rag-etl
     spec:
       serviceAccountName: rag-ksa
       containers:
-      - name: gradio
+      - name: rag-etl
         image: python:3.11
         command: ["/bin/sh", "-c"]        
         args:
@@ -36,7 +35,7 @@ spec:
           cd /codes
           pip3 install -r requirements.in
           cd /tmp
-          python3 /codes/query.py
+          python3 /codes/populate_data.py
         env:
         - name: PGHOST
           valueFrom:
@@ -57,17 +56,4 @@ spec:
           medium: Memory
       - name: codes
         configMap:
-          name: query-gradio
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: query-gradio
-spec:
-  selector:
-    app: query-gradio
-  type: ClusterIP
-  ports:
-  - protocol: TCP
-    port: 8000
-    targetPort: 8000
+          name: rag-etl

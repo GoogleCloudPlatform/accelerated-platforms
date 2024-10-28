@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from locust import task , between
-from locust.contrib.fasthttp import FastHttpUser
+from locust import FastHttpUser, run_single_user, task, between
 import logging
 import logging.config
 import os
@@ -39,18 +38,30 @@ class TestUser(FastHttpUser):
 
     @task(50)
     def test1(self):
-        self.client.post(
+        # self.client.post(
+        #     self.endpoint,
+        #     json={
+        #         "model": self.model_id,
+        #         "messages": [{"role": "user", "content": self.message1}],
+        #         "temperature": 0.5,
+        #         "top_k": 1.0,
+        #         "top_p": 1.0,
+        #         "max_tokens": 256,
+        #     },
+        #     name="message1",
+        # )
+        with self.rest(
+            "POST", 
             self.endpoint,
             json={
                 "model": self.model_id,
-                "messages": [{"role": "user", "content": self.message1}],
+                "messages": [{"role": "user", "content": self.message2}],
                 "temperature": 0.5,
                 "top_k": 1.0,
                 "top_p": 1.0,
                 "max_tokens": 256,
-            },
-            name="message1",
-        )
+            }) as resp:
+            print('ran')
 
     @task(50)
     def test2(self):
@@ -69,7 +80,7 @@ class TestUser(FastHttpUser):
     def benchmarks(self):
         if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
             self.test1()
-            self.test2()
+            #self.test2()
 
 if __name__ == "__main__":
     # Configure logging

@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from locust import task ,FastHttpUser, between
+from locust import task , between
+from locust.contrib.fasthttp import FastHttpUser
 import logging
 import logging.config
 import os

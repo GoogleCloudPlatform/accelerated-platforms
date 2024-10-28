@@ -25,7 +25,8 @@ spec:
           value: "_ENDPOINT_"
         - name: "MODEL_ID"
           value: "_BENCHMARK_MODEL_PATH_" 
-        resources:
+        - name: "HOST"
+          value: "_HOST_"           
           requests:
             cpu: "2"
             memory: "5Gi"

@@ -39,6 +39,7 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
     ```sh
     BENCHMARK_MODEL_PATH=/data/models/${MODEL_ID}/${MODEL_PATH}
     ENDPOINT="http://vllm-openai:8000/v1/chat/completions" # The model endpoint
+    HOST="http://vllm-openai:8000/"
     ```
 
 *   Replace variables in inference job manifest and deploy the job
@@ -48,6 +49,7 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
         -i -e "s|_BENCHMARK_MODEL_PATH_|${BENCHMARK_MODEL_PATH}|" \
         -i -e "s|_ENDPOINT_|${ENDPOINT}|" \
         -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
+        -i -e "s|_HOST_|${HOST}|" \
         benchmark.yaml
     kubectl apply -f benchmark.yaml
     ```

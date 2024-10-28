@@ -35,11 +35,12 @@ class MyUser(FastHttpUser):
         self.message2 = "Tell me about some tops for men, looking for different styles"
 
     wait_time = between(1, 5)
+    host = os.environ["HOST"]
 
     @task(50)
     def test1(self):
         self.client.post(
-            self.endpoint,
+            "/v1/chat/completions",
             json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message1}],
@@ -50,11 +51,11 @@ class MyUser(FastHttpUser):
             },
             name="message1",
         )
-       
+
     @task(50)
     def test2(self):
         self.client.post(
-            self.endpoint,
+            "/v1/chat/completions",
             json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message2}],
@@ -87,5 +88,6 @@ if __name__ == "__main__":
     logger.info("Configure signal handlers")
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
-    run_single_user(MyUser)
-    #benchmark_obj.benchmarks()
+
+    benchmark_obj = MyUser()
+    benchmark_obj.benchmarks()

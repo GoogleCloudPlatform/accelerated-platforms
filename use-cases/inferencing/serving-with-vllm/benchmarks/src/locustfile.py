@@ -31,15 +31,20 @@ class MyUser(FastHttpUser):
     def __init__(self):  # Constructor
         self.model_id = os.environ["MODEL_ID"]
         self.endpoint = os.environ["ENDPOINT"]
+        self.host = os.environ["HOST"]
         self.message1 = ( "I'm looking for comfortable cycling shorts for women, what are some good options?")
         self.message2 = "Tell me about some tops for men, looking for different styles"
 
     wait_time = between(1, 5)
-    host = os.environ["HOST"]
+    
+    @task
+    def index(self):
+        response = self.client.get("/")
 
     @task(50)
     def test1(self):
-        self.client.post(
+        headers = {'content-type': 'application/json'}
+        r = self.client.post(
             "/v1/chat/completions",
             json={
                 "model": self.model_id,
@@ -49,11 +54,12 @@ class MyUser(FastHttpUser):
                 "top_p": 1.0,
                 "max_tokens": 256,
             },
-            name="message1",
+            headers=headers
         )
 
     @task(50)
     def test2(self):
+        r = headers = {'content-type': 'application/json'}
         self.client.post(
             "/v1/chat/completions",
             json={
@@ -64,7 +70,7 @@ class MyUser(FastHttpUser):
                 "top_p": 1.0,
                 "max_tokens": 256,
             },
-            name="message2",
+            headers=headers
         )
     def benchmarks(self):
         if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":

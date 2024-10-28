@@ -26,7 +26,8 @@ spec:
         - name: "MODEL_ID"
           value: "_BENCHMARK_MODEL_PATH_" 
         - name: "HOST"
-          value: "_HOST_"           
+          value: "_HOST_"   
+        resources:
           requests:
             cpu: "2"
             memory: "5Gi"

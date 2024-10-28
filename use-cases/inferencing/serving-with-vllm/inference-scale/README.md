@@ -4,10 +4,10 @@
 
 *   Ensure that your `MLP_ENVIRONMENT_FILE` is configured
 
-  ```sh
-  cat ${MLP_ENVIRONMENT_FILE} && \
-  source ${MLP_ENVIRONMENT_FILE}
-  ```
+    ```sh
+    cat ${MLP_ENVIRONMENT_FILE} && \
+    source ${MLP_ENVIRONMENT_FILE}
+    ```
 
 * Switch to inference directory
 
@@ -18,7 +18,7 @@
 ## Pre-requisites
 
 *   GKE cluster running inference workload as shown in previous examples.
-*   Export the metrics from the vLLM server to Cloud Monitoring as shown in [metric section](#production-metrics)
+*   Export the metrics from the vLLM server to Cloud Monitoring as shown in [metric section](./../README.md#production-metrics)
   
 
 ## Metrics to scale the inference on

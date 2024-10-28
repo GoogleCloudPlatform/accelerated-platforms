@@ -26,7 +26,7 @@ def graceful_shutdown(signal_number, stack_frame):
     sys.exit(0)
 
 
-class TestUser(FastHttpUser):
+class MyUser(FastHttpUser):
 
     def __init__(self):  # Constructor
         self.model_id = os.environ["MODEL_ID"]
@@ -38,31 +38,19 @@ class TestUser(FastHttpUser):
 
     @task(50)
     def test1(self):
-        # self.client.post(
-        #     self.endpoint,
-        #     json={
-        #         "model": self.model_id,
-        #         "messages": [{"role": "user", "content": self.message1}],
-        #         "temperature": 0.5,
-        #         "top_k": 1.0,
-        #         "top_p": 1.0,
-        #         "max_tokens": 256,
-        #     },
-        #     name="message1",
-        # )
-        with self.rest(
-            "POST", 
+        self.client.post(
             self.endpoint,
             json={
                 "model": self.model_id,
-                "messages": [{"role": "user", "content": self.message2}],
+                "messages": [{"role": "user", "content": self.message1}],
                 "temperature": 0.5,
                 "top_k": 1.0,
                 "top_p": 1.0,
                 "max_tokens": 256,
-            }) as resp:
-            print('ran')
-
+            },
+            name="message1",
+        )
+       
     @task(50)
     def test2(self):
         self.client.post(
@@ -80,7 +68,7 @@ class TestUser(FastHttpUser):
     def benchmarks(self):
         if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
             self.test1()
-            #self.test2()
+            self.test2()
 
 if __name__ == "__main__":
     # Configure logging
@@ -99,6 +87,5 @@ if __name__ == "__main__":
     logger.info("Configure signal handlers")
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
-
-    benchmark_obj = TestUser()
-    benchmark_obj.benchmarks()
+    run_single_user(MyUser)
+    #benchmark_obj.benchmarks()

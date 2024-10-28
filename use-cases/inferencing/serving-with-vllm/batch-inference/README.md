@@ -33,16 +33,16 @@
 
 *   Build container image using Cloud Build and push the image to Artifact Registry. 
 
-   ```sh
-   cd src
-   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
-   gcloud beta builds submit \
-   --config cloudbuild.yaml \
-   --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
-   --project ${MLP_PROJECT_ID} \
-   --substitutions _DESTINATION=${MLP_SERVE_IMAGE}
-   cd -
-   ```
+    ```sh
+    cd src
+    sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+    gcloud beta builds submit \
+    --config cloudbuild.yaml \
+    --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
+    --project ${MLP_PROJECT_ID} \
+    --substitutions _DESTINATION=${MLP_SERVE_IMAGE}
+    cd -
+    ```
 
 *   Set variables
 

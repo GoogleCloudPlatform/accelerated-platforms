@@ -39,6 +39,8 @@ inference workloads.
     vllm:num_requests_running - Number of requests currently running on GPU.
     vllm:num_requests_waiting - Number of requests waiting to be processed
     ```
+    Here is an example of the metric `vllm:num_requests_running` in metrics explorer
+    ![metrics graph](./cloud-monitoring-metrics-inference.png)
 
 *   GPU metrics: Metrics related to the GPU.
 
@@ -79,12 +81,6 @@ Service for Prometheus [documentation](https://cloud.google.com/kubernetes-engin
 
 ### Autoscale with HPA metrics
 
-We have couple of options to scale the inference workload on GKE using the HPA 
-and custom metrics adapter.
-
-*   Scale pod on the same node as the existing inference workload.
-*   Scale pod on the other nodes in the same node pool as the existing inference workload.  
-
 *   Install the Custom Metrics Adapter. This adapter makes the custom metric that you 
     exported to Cloud Monitoring visible to the HPA. For more details, see HPA 
     in the [Google Cloud Managed Service for Prometheus documentation](https://cloud.google.com/stackdriver/docs/managed-prometheus/hpa).
@@ -117,58 +113,39 @@ and custom metrics adapter.
     > NOTE: Adjust the appropriate target values for `vllm:num_requests_running`
       or `vllm:num_requests_waiting` in the yaml file.
 
-    Below is an example of the batch size HPA scale test below:
+    Once the HPA has been created on a given metric, GKE will autoscale the model
+    deployment pods when the metric goes over the specified threshold.
+    It will look something like the following:
 
     ```sh
     kubectl get hpa vllm-openai-hpa -n ${MLP_KUBERNETES_NAMESPACE} --watch
     NAME              REFERENCE                TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
-    vllm-openai-hpa   Deployment/vllm-openai   0/10      1         5         1          XXXX
-    vllm-openai-hpa   Deployment/vllm-openai   13/10     1         5         1          XXXX
-    vllm-openai-hpa   Deployment/vllm-openai   17/10     1         5         2          XXXX
-    vllm-openai-hpa   Deployment/vllm-openai   12/10     1         5         2          XXXX
-    vllm-openai-hpa   Deployment/vllm-openai   17/10     1         5         2          XXXX
-    vllm-openai-hpa   Deployment/vllm-openai   14/10     1         5         2          XXXX
-    vllm-openai-hpa   Deployment/vllm-openai   17/10     1         5         2          XXXX
-    vllm-openai-hpa   Deployment/vllm-openai   10/10     1         5         2          XXXX
+    vllm-openai-hpa   Deployment/vllm-openai   1/1       1         5         1          27s
+    vllm-openai-hpa   Deployment/vllm-openai   0/1       1         5         1          76s
+    vllm-openai-hpa   Deployment/vllm-openai   1/1       1         5         1          95s
     ```
 
-```sh
-kubectl get pods -n ${MLP_KUBERNETES_NAMESPACE} --watch
-NAME                           READY   STATUS      RESTARTS   AGE
-gradio-6b8698d7b4-88zm7        1/1     Running     0          10d
-model-eval-2sxg2               0/1     Completed   0          8d
-vllm-openai-767b477b77-2jm4v   1/1     Running     0          3d17h
-vllm-openai-767b477b77-82l8v   0/1     Pending     0          9s
-```
+   You can also see the new pods coming online:
 
-Pod scaled up
-```sh
-kubectl get pods -n ml-serve --watch
-NAME                           READY   STATUS      RESTARTS   AGE
-gradio-6b8698d7b4-88zm7        1/1     Running     0          10d
-model-eval-2sxg2               0/1     Completed   0          8d
-vllm-openai-767b477b77-2jm4v   1/1     Running     0          3d17h
-vllm-openai-767b477b77-82l8v   1/1     Running     0          111s
-```
+   ```sh
+   kubectl get pods -n ${MLP_KUBERNETES_NAMESPACE} --watch
+   NAME                           READY   STATUS      RESTARTS   AGE
+   vllm-openai-767b477b77-2jm4v   1/1     Running     0          3d17h
+   vllm-openai-767b477b77-82l8v   0/1     Pending     0          9s
+   ```
 
-The new pod is deployed on a node triggered by the cluster autoscaler.
-> NOTE: The existing node where inference workload was deployed in this case had
-only two GPUS. Hence a new node is required to deploy the copy pod of inference workload.
+   And evetually, the pods will be scaled up:
 
-```sh
-kubectl describe pods vllm-openai-767b477b77-82l8v -n ${MLP_KUBERNETES_NAMESPACE}
+   ```sh
+   kubectl get pods -n ml-serve --watch
+   NAME                           READY   STATUS      RESTARTS   AGE
+   vllm-openai-767b477b77-2jm4v   1/1     Running     0          3d17h
+   vllm-openai-767b477b77-82l8v   1/1     Running     0          111s
+   ```
 
-Events:
-  Type     Reason                  Age    From                                   Message
-  ----     ------                  ----   ----                                   -------
-  Warning  FailedScheduling        4m15s  gke.io/optimize-utilization-scheduler  0/3 nodes are available: 1 Insufficient ephemeral-storage, 1 Insufficient nvidia.com/gpu, 2 node(s) didn't match Pod's node affinity/selector. preemption: 0/3 nodes are available: 1 No preemption victims found for incoming pod, 2 Preemption is not helpful for scheduling.
-  Normal   TriggeredScaleUp        4m13s  cluster-autoscaler                     pod triggered scale-up: [{https://www.googleapis.com/compute/v1/projects/gkebatchexpce3c8dcb/zones/us-east4-a/instanceGroups/gke-kh-e2e-l4-2-c399c5c0-grp 1->2 (max: 20)}]
-  Normal   Scheduled               2m40s  gke.io/optimize-utilization-scheduler  Successfully assigned ml-serve/vllm-openai-767b477b77-82l8v to gke-kh-e2e-l4-2-c399c5c0-vvm9
-  Normal   SuccessfulAttachVolume  2m36s  attachdetach-controller                AttachVolume.Attach succeeded for volume "model-weights-disk-1024gb-zone-a"
-  Normal   Pulling                 2m29s  kubelet                                Pulling image "vllm/vllm-openai:v0.5.3.post1"
-  Normal   Pulled                  2m25s  kubelet                                Successfully pulled image "vllm/vllm-openai:v0.5.3.post1" in 4.546s (4.546s including waiting). Image size: 5586843591 bytes.
-  Normal   Created                 2m25s  kubelet                                Created container inference-server
-  Normal   Started                 2m25s  kubelet                                Started container inference-server
-```
+If there are GPU resources available on the same node, the new pod may start on
+it. Otherwise, a new node will be spun up by the autosclare with the required
+resources and the new pod will be started on it.
+
 
 [dashboard-readme]: ./dashboard/README.md

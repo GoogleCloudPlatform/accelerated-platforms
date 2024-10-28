@@ -4,24 +4,52 @@ We can run inference benchmark on our deployed model using locust.
 Locust is an open source performance/load testing tool for HTTP and other protocols.
 Refer to the documentation to [set up](https://docs.locust.io/en/stable/installation.html) locust locally or deploy as a container on GKE.
 
-In this example, we will set up locus locally to run tests against our model using sample prompts.
+#### Prepare your environment
 
-
-
-*   Open Cloudshell
-
-*   Install the locust library locally:
+*   Ensure that your `MLP_ENVIRONMENT_FILE` is configured
 
     ```sh
-    pip3 install locust==2.29.1
+    cat ${MLP_ENVIRONMENT_FILE} && \
+    source ${MLP_ENVIRONMENT_FILE}
     ```
 
-*   Review the file [locus.py](./src/locust.py) to see the prompt being used.
-
-*   Launch the benchmark python script for locust:
+*   Switch to inference directory
 
     ```sh
-    python benchmarks/locust.py $EVAL_MODEL_PATH
+    cd ${INFERENCE_BENCHMARK_DIR}
+    ```
+
+#### Build the image of the source and execute bencmark job
+
+*   Build container image using Cloud Build and push the image to Artifact Registry. 
+
+    ```sh
+    cd src
+    sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+    gcloud beta builds submit \
+    --config cloudbuild.yaml \
+    --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
+    --project ${MLP_PROJECT_ID} \
+    --substitutions _DESTINATION=${MLP_BENCHMARK_IMAGE}
+    cd -
+    ```
+
+*   Set variables
+
+    ```sh
+    BENCHMARK_MODEL_PATH=/data/models/${MODEL_ID}/${MODEL_PATH}
+    ENDPOINT="http://vllm-openai:8000/v1/chat/completions" # The model endpoint
+    ```
+
+*   Replace variables in inference job manifest and deploy the job
+    ```sh
+    sed -i -e "s|_IMAGE_URL_|${MLP_SERVE_IMAGE}|" \
+        -i -e "s|_KSA_|${MLP_SERVE_KSA}|" \
+        -i -e "s|_BENCHMARK_MODEL_PATH_|${BENCHMARK_MODEL_PATH}|" \
+        -i -e "s|_ENDPOINT_|${ENDPOINT}|" \
+        -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
+        benchmark.yaml
+    kubectl apply -f prediction.yaml
     ```
 
 Here is a sample ![graph](./src/locust.jpg) to review.

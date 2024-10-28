@@ -49,15 +49,15 @@
     ```sh
     DATASET_OUTPUT_PATH=dataset/output
     EVAL_MODEL_PATH=/data/models/${MODEL_ID}/${MODEL_PATH}
-    ENDPOINT="http://vllm-openai:8000/v1/chat/completions" # The modle endpoint
-    PREDICTION_FILE="prediction.txt" #file containing input for predictions
+    ENDPOINT="http://vllm-openai:8000/v1/chat/completions" # The model endpoint
+    PREDICTION_FILE="prediction.txt" #output file for predictions
     ```
 
 *   Replace variables in inference job manifest and deploy the job
     ```sh
     sed -i -e "s|_IMAGE_URL_|${MLP_SERVE_IMAGE}|" \
         -i -e "s|_KSA_|${MLP_SERVE_KSA}|" \
-        -i -e "s|_MLP_PREDICTION_BUCKET_|${MLP_PREDICTION_BUCKET}|" \
+        -i -e "s|_MLP_PREDICTION_BUCKET_|${$MLP_DATA_BUCKET}|" \
         -i -e "s|_EVAL_MODEL_PATH_|${EVAL_MODEL_PATH}|" \
         -i -e "s|_DATASET_OUTPUT_PATH_|${DATASET_OUTPUT_PATH}|" \
         -i -e "s|_ENDPOINT_|${ENDPOINT}|" \

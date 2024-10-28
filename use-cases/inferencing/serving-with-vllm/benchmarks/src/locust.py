@@ -13,17 +13,26 @@
 # limitations under the License.
 
 from locust import FastHttpUser, task, between
-import sys
+import logging
+import logging.config
+import os
+import signal
 
-model_id = sys.argv[1]
+def graceful_shutdown(signal_number, stack_frame):
+    signal_name = signal.Signals(signal_number).name
 
-message1 = (
-    "I'm looking for comfortable cycling shorts for women, what are some good options?"
-)
-message2 = "Tell me about some tops for men, looking for different styles"
+    logger.info(f"Received {signal_name}({signal_number}), shutting down...")
+    # TODO: Add logic to handled checkpointing if required
+    sys.exit(0)
 
 
 class TestUser(FastHttpUser):
+
+    def __init__(self):  # Constructor
+        self.model_id = os.environ["MODEL_ID"]
+        self.message1 = ( "I'm looking for comfortable cycling shorts for women, what are some good options?")
+        self.message2 = "Tell me about some tops for men, looking for different styles"
+
     wait_time = between(1, 5)
 
     @task(50)
@@ -31,8 +40,8 @@ class TestUser(FastHttpUser):
         self.client.post(
             "/v1/chat/completions",
             json={
-                "model": model_id,
-                "messages": [{"role": "user", "content": message1}],
+                "model": self.model_id,
+                "messages": [{"role": "user", "content": self.message1}],
                 "temperature": 0.5,
                 "top_k": 1.0,
                 "top_p": 1.0,
@@ -46,8 +55,8 @@ class TestUser(FastHttpUser):
         self.client.post(
             "/v1/chat/completions",
             json={
-                "model": model_id,
-                "messages": [{"role": "user", "content": message2}],
+                "model": self.model_id,
+                "messages": [{"role": "user", "content": self.message2}],
                 "temperature": 0.5,
                 "top_k": 1.0,
                 "top_p": 1.0,
@@ -55,3 +64,28 @@ class TestUser(FastHttpUser):
             },
             name="message2",
         )
+    def benchmarks(self):
+        if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
+            self.test1()
+            self.test2()
+
+if __name__ == "__main__":
+    # Configure logging
+    logging.config.fileConfig("logging.conf")
+
+    logger = logging.getLogger("benchmark_obj")
+
+    if "LOG_LEVEL" in os.environ:
+        new_log_level = os.environ["LOG_LEVEL"].upper()
+        logger.info(
+            f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+        )
+        logging.getLogger().setLevel(new_log_level)
+        logger.setLevel(new_log_level)
+
+    logger.info("Configure signal handlers")
+    signal.signal(signal.SIGINT, graceful_shutdown)
+    signal.signal(signal.SIGTERM, graceful_shutdown)
+
+    benchmark_obj = TestUser()
+    benchmark_obj.benchmarks()

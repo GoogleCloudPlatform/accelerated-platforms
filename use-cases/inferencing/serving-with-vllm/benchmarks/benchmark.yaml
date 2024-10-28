@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: benchmark
+  namespace: _NAMESPACE_
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        app: benchmark-job
+    spec:
+      serviceAccountName: _KSA_
+      containers:
+      - name: job
+        image: _IMAGE_URL_
+        imagePullPolicy: Always
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          ACTION=benchmak python locust.py
+        env:
+        - name: "ENDPOINT"
+          value: "_ENDPOINT_"
+        - name: "MODEL_ID"
+          value: "_BENCHMARK_MODEL_PATH_" 
+        resources:
+          requests:
+            cpu: "2"
+            memory: "5Gi"
+          limits:
+            cpu: "2"
+            memory: "5Gi"
+      restartPolicy: Never

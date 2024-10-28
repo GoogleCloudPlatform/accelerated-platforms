@@ -95,7 +95,7 @@ and custom metrics adapter.
 
 *   Deploy an metric based HPA resource that based on your preferred custom metric.
 
-    Select **ONE** of the options below `Queue-depth` or `Batch-size` to configure
+    Choose one of the options below `Queue-depth` or `Batch-size` to configure
     the HPA resource in your manifest:
 
     *   Queue-depth
@@ -103,7 +103,7 @@ and custom metrics adapter.
         ```sh
         sed -i -e "s/_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}" hpa-vllm-openai-queue-size.yaml
 
-        kubectl apply -f manifests/inference-scale/hpa-vllm-openai-queue-size.yaml
+        kubectl apply -f hpa-vllm-openai-queue-size.yaml
         ```
 
     *   Batch-size
@@ -111,7 +111,7 @@ and custom metrics adapter.
         ```sh
         sed -i -e "s/_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}" hpa-vllm-openai-batch-size.yaml
 
-        kubectl apply -f manifests/inference-scale/hpa-vllm-openai-batch-size.yaml
+        kubectl apply -f hpa-vllm-openai-batch-size.yaml
         ```
 
     > NOTE: Adjust the appropriate target values for `vllm:num_requests_running`

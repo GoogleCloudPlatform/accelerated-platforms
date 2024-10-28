@@ -24,7 +24,7 @@ spec:
         - name: "ENDPOINT"
           value: "_ENDPOINT_"
         - name: "MODEL_PATH"
-          value: "_MODEL_PATH_"
+          value: "_EVAL_MODEL_PATH_"
         - name: "DATASET_OUTPUT_PATH"
           value: "_DATASET_OUTPUT_PATH_"
         - name: "MLP_PREDICTION_BUCKET"

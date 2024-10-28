@@ -58,7 +58,7 @@ PREDICTION_FILE="prediction.txt" #file containing input for predictions
 sed -i -e "s|_IMAGE_URL_|${MLP_SERVE_IMAGE}|" \
     -i -e "s|_KSA_|${MLP_SERVE_KSA}|" \
     -i -e "s|_MLP_PREDICTION_BUCKET_|${MLP_PREDICTION_BUCKET}|" \
-    -i -e "s|_MODEL_PATH_|${EVAL_MODEL_PATH}|" \
+    -i -e "s|_EVAL_MODEL_PATH_|${EVAL_MODEL_PATH}|" \
     -i -e "s|_DATASET_OUTPUT_PATH_|${DATASET_OUTPUT_PATH}|" \
     -i -e "s|_ENDPOINT_|${ENDPOINT}|" \
     -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \

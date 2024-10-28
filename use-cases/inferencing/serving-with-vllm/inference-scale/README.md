@@ -101,7 +101,7 @@ and custom metrics adapter.
     *   Queue-depth
 
         ```sh
-        sed -i -e "s/_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}" hpa-vllm-openai-queue-size.yaml
+        sed -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" hpa-vllm-openai-queue-size.yaml
 
         kubectl apply -f hpa-vllm-openai-queue-size.yaml
         ```
@@ -109,7 +109,7 @@ and custom metrics adapter.
     *   Batch-size
 
         ```sh
-        sed -i -e "s/_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}" hpa-vllm-openai-batch-size.yaml
+        sed -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" hpa-vllm-openai-batch-size.yaml
 
         kubectl apply -f hpa-vllm-openai-batch-size.yaml
         ```

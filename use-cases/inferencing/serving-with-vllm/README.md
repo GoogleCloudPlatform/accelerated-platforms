@@ -270,6 +270,6 @@ The model is ready to run the benchmarks for inference job. Follow [benchmark re
 ### Inference at Scale
 
 You can configure Horizontal Pod Autoscaler to scale your inference deployment based
-on relevant metrics. Follow the instructions on [inference at scale reademe]
-(./inference-scale/README.md) to scale your deployed model
-.
+on relevant metrics. Follow the instructions on 
+[inference at scale reademe](./inference-scale/README.md) to scale your
+deployed model.

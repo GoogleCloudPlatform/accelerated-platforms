@@ -37,9 +37,6 @@ class MyUser(FastHttpUser):
 
     wait_time = between(1, 5)
     
-    @task
-    def index(self):
-        response = self.client.get("/")
 
     @task(50)
     def test1(self):
@@ -72,10 +69,10 @@ class MyUser(FastHttpUser):
             },
             headers=headers
         )
-    def benchmarks(self):
-        if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
-            self.test1()
-            self.test2()
+    # def benchmarks(self):
+    #     if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
+    #         self.test1()
+    #         self.test2()
 
 if __name__ == "__main__":
     # Configure logging
@@ -96,4 +93,5 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, graceful_shutdown)
 
     benchmark_obj = MyUser()
-    benchmark_obj.benchmarks()
+    benchmark_obj.test1()
+    benchmark_obj.test2()

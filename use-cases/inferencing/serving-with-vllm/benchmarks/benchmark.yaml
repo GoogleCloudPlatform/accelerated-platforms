@@ -19,7 +19,7 @@ spec:
         args:
         - -c
         - |
-          ACTION=benchmark python locustfile.py
+          python3 /locustfile.py
         env:
         - name: "ENDPOINT"
           value: "_ENDPOINT_"

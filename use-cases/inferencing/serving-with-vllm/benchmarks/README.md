@@ -43,13 +43,13 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 
 *   Replace variables in inference job manifest and deploy the job
     ```sh
-    sed -i -e "s|_IMAGE_URL_|${MLP_SERVE_IMAGE}|" \
+    sed -i -e "s|_IMAGE_URL_|${MLP_BENCHMARK_IMAGE}|" \
         -i -e "s|_KSA_|${MLP_SERVE_KSA}|" \
         -i -e "s|_BENCHMARK_MODEL_PATH_|${BENCHMARK_MODEL_PATH}|" \
         -i -e "s|_ENDPOINT_|${ENDPOINT}|" \
         -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
         benchmark.yaml
-    kubectl apply -f prediction.yaml
+    kubectl apply -f benchmark.yaml
     ```
 
 Here is a sample ![graph](./src/locust.jpg) to review.

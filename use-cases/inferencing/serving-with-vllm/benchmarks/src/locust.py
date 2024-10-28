@@ -30,6 +30,7 @@ class TestUser(FastHttpUser):
 
     def __init__(self):  # Constructor
         self.model_id = os.environ["MODEL_ID"]
+        self.endpoint = os.environ["ENDPOINT"]
         self.message1 = ( "I'm looking for comfortable cycling shorts for women, what are some good options?")
         self.message2 = "Tell me about some tops for men, looking for different styles"
 
@@ -38,7 +39,7 @@ class TestUser(FastHttpUser):
     @task(50)
     def test1(self):
         self.client.post(
-            "/v1/chat/completions",
+            self.endpoint,
             json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message1}],
@@ -53,7 +54,7 @@ class TestUser(FastHttpUser):
     @task(50)
     def test2(self):
         self.client.post(
-            "/v1/chat/completions",
+            self.endpoint,
             json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message2}],

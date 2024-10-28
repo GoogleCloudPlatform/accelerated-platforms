@@ -18,7 +18,7 @@
 ## Pre-requisites
 
 *   GKE cluster running inference workload as shown in previous examples.
-*   Export the metrics from the vLLM server to Cloud Monitoring as shown in [metric section](./../README.md#production-metrics)
+*   Export the metrics from the vLLM server to Cloud Monitoring as shown in [metric section](./../README.md#production-metrics).
   
 
 ## Metrics to scale the inference on
@@ -77,25 +77,23 @@ For more details, see Horizontal pod autoscaling in the Google Cloud Managed
 Service for Prometheus [documentation](https://cloud.google.com/kubernetes-engine/docs/horizontal-pod-autoscaling).
 
 
-### Prepare your environment to autoscale with HPA metrics
+### Autoscale with HPA metrics
 
 We have couple of options to scale the inference workload on GKE using the HPA 
 and custom metrics adapter.
 
 *   Scale pod on the same node as the existing inference workload.
-*   Scale pod on the other nodes in the same node pool as the existing inference workload.
-   
+*   Scale pod on the other nodes in the same node pool as the existing inference workload.  
 
 *   Install the Custom Metrics Adapter. This adapter makes the custom metric that you 
     exported to Cloud Monitoring visible to the HPA. For more details, see HPA 
     in the [Google Cloud Managed Service for Prometheus documentation](https://cloud.google.com/stackdriver/docs/managed-prometheus/hpa).
 
     ```sh
-     kubectl apply -f kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stackdriver/master/custom-metrics-stackdriver-adapter/deploy/production/adapter_new_resource_model.yaml
+     kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stackdriver/master/custom-metrics-stackdriver-adapter/deploy/production/adapter_new_resource_model.yaml
     ```
 
-*   Set up the custom metric-based HPA resource. Deploy an HPA resource that 
-    is based on your preferred custom metric.
+*   Deploy an metric based HPA resource that based on your preferred custom metric.
 
     Select **ONE** of the options below `Queue-depth` or `Batch-size` to configure
     the HPA resource in your manifest:

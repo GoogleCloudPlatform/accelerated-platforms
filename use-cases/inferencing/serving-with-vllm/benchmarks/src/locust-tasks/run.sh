@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2022 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,23 +15,19 @@
 # limitations under the License.
 
 
-# Start with a base image Python 3.9.12 Debian 11 (bullseye) slim 
-FROM python:3.9.12-slim-bullseye
+LOCUST="/usr/local/bin/locust"
+LOCUS_OPTS="-f /locust-tasks/tasks.py --host=$TARGET_HOST"
+LOCUST_MODE=${LOCUST_MODE:-standalone}
 
-# Add the licenses for third party software and libraries
-ADD licenses /licenses
+export ENDPOINT=${ENDPOINT}
+export MODEL_ID=${MODEL_ID}
 
-# Add the external tasks directory into /tasks
-ADD locust-tasks /locust-tasks
+if [[ "$LOCUST_MODE" = "master" ]]; then
+    LOCUS_OPTS="$LOCUS_OPTS --master"
+elif [[ "$LOCUST_MODE" = "worker" ]]; then
+    LOCUS_OPTS="$LOCUS_OPTS --worker --master-host=$LOCUST_MASTER"
+fi
 
-# Install the required dependencies via pip
-RUN pip install -r /locust-tasks/requirements.txt
+echo "$LOCUST $LOCUS_OPTS"
 
-# Expose the required Locust ports
-EXPOSE 5557 5558 8089
-
-# Set script to be executable
-RUN chmod 755 /locust-tasks/run.sh
-
-# Start Locust using LOCUS_OPTS environment variable
-ENTRYPOINT ["/locust-tasks/run.sh"] 
+$LOCUST $LOCUS_OPTS

@@ -1,5 +1,5 @@
 apiVersion: batch/v1
-kind: Job
+kind: Deployment
 metadata:
   name: benchmark
   namespace: _NAMESPACE_
@@ -35,3 +35,22 @@ spec:
             cpu: "2"
             memory: "5Gi"
       restartPolicy: Never
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: locust-web
+  namespace: _NAMESPACE_
+  annotations:
+    networking.gke.io/load-balancer-type: "Internal"
+  labels:
+    app: benchmark
+spec:
+  ports:
+    - port: 8089
+      targetPort: loc-master-web
+      protocol: TCP
+      name: loc-master-web
+  selector:
+    app: benchmark
+  type: LoadBalancer

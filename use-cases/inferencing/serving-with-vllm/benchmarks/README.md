@@ -50,8 +50,20 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
         -i -e "s|_ENDPOINT_|${ENDPOINT}|" \
         -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
         -i -e "s|_HOST_|${HOST}|" \
-        benchmark.yaml
-    kubectl apply -f benchmark.yaml
+        locust-master-controller.yaml
+
+    sed -i -e "s|_IMAGE_URL_|${MLP_BENCHMARK_IMAGE}|" \
+        -i -e "s|_KSA_|${MLP_SERVE_KSA}|" \
+        -i -e "s|_BENCHMARK_MODEL_PATH_|${BENCHMARK_MODEL_PATH}|" \
+        -i -e "s|_ENDPOINT_|${ENDPOINT}|" \
+        -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
+        -i -e "s|_HOST_|${HOST}|" \
+        locust-worker-controller.yaml
+
+    sed i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
+         locust-master-service.yaml
+
+    kubectl apply -f locust-master-controller.yaml -f locust-worker-controller.yaml -f locust-master-service.yaml
     ```
 
 Here is a sample ![graph](./src/locust.jpg) to review.

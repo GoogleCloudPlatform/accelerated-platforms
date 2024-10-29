@@ -42,18 +42,6 @@ class MyUser(FastHttpUser):
     @task(50)
     def test1(self):
         headers = {'content-type': 'application/json'}
-        # r = self.client.post(
-        #     "/v1/chat/completions",
-        #     json={
-        #         "model": self.model_id,
-        #         "messages": [{"role": "user", "content": self.message1}],
-        #         "temperature": 0.5,
-        #         "top_k": 1.0,
-        #         "top_p": 1.0,
-        #         "max_tokens": 256,
-        #     },
-        #     headers=headers
-        # )
         r = self.rest("POST","/v1/chat/completions",json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message1}],
@@ -66,19 +54,7 @@ class MyUser(FastHttpUser):
 
     @task(50)
     def test2(self):
-        r = headers = {'content-type': 'application/json'}
-        # self.client.post(
-        #     "/v1/chat/completions",
-        #     json={
-        #         "model": self.model_id,
-        #         "messages": [{"role": "user", "content": self.message2}],
-        #         "temperature": 0.5,
-        #         "top_k": 1.0,
-        #         "top_p": 1.0,
-        #         "max_tokens": 256,
-        #     },
-        #     headers=headers
-        # )
+        headers = {'content-type': 'application/json'}
         r = self.rest("POST","/v1/chat/completions",json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message2}],

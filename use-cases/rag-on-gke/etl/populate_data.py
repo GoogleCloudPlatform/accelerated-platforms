@@ -61,7 +61,8 @@ def embedding(dbconn, tablesrc, tabledest, col_id, col_text):
                  [("uniq_id", "text"), ("embedding", "vector")])
     cursor = dbconn.cursor()
     cursor.execute(f"""insert into {tabledest} select
-    {col_id}, google_ml.embedding_text({col_text}) from {tablesrc};""")
+    {col_id}, google_ml.embedding_text({col_text}) from {tablesrc}
+    where {col_text} is not null;""")
     dbconn.commit()
     return cursor.rowcount
 

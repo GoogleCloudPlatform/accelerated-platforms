@@ -111,5 +111,6 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
     benchmark_obj = MyUser()
+    benchmark_obj.benchmarks()
     #benchmark_obj.test1()
     #benchmark_obj.test2()

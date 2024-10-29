@@ -353,12 +353,16 @@ Select **ONE** of the options below `Queue-depth` or `Batch-size` to configure t
 - Queue-depth
 
   ```sh
+  AVERAGE_VALUE = 10 # Replace it with a value of choice 
+  sed -i -e "s|V_AVERAGE_VALUE|${AVERAGE_VALUE}|" manifests/inference-scale/hpa_vllm_openai_queue_size.yaml
   kubectl apply -f manifests/inference-scale/hpa_vllm_openai_queue_size.yaml -n ${NAMESPACE}
   ```
 
 - Batch-size
 
   ```sh
+  AVERAGE_VALUE = 10 # Replace it with a value of choice 
+  sed -i -e "s|V_AVERAGE_VALUE|${AVERAGE_VALUE}|" manifests/inference-scale/hpa_vllm_openai_batch_size.yaml
   kubectl apply -f manifests/inference-scale/hpa_vllm_openai_batch_size.yaml -n ${NAMESPACE}
   ```
 

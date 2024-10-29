@@ -30,4 +30,5 @@ spec:
         name: prometheus.googleapis.com|vllm:num_requests_waiting|gauge
       target:
         type: AverageValue
-        averageValue: 10
+        averageValue: V_AVERAGE_VALUE
+

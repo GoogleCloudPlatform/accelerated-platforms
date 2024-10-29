@@ -240,7 +240,6 @@ def get_flipkart_table(url):
                    flipkart.c.product_name,
                    flipkart.c.description,
                    flipkart.c.brand,
-                   flipkart.c.image_uri,
                    emb.c.embedding).
             select_from(flipkart).
             join(emb, flipkart.c.uniq_id == emb.c.uniq_id).
@@ -257,8 +256,8 @@ def test_joined_table(url):
                                    embedding_function="google_ml.embedding_text",
                                    id_column="uniq_id",
                                    metadata_columns=["product_name",
-                                                     "brand",
-                                                     "image_uri"],
+                                                     "brand"
+                                                     ],
                                    db_engine=engine
                                    )
     jnodes = j_retr.retrieve("cycling shorts")

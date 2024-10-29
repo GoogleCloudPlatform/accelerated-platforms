@@ -88,10 +88,10 @@ class MyUser(FastHttpUser):
                 "max_tokens": 256,
             },headers=headers) 
         print("FROM MESSAGE 2",r)       
-    # def benchmarks(self):
-    #     if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
-    #         self.test1()
-    #         self.test2()
+    def benchmarks(self):
+        if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
+            self.test1()
+            self.test2()
 
 if __name__ == "__main__":
     # Configure logging
@@ -111,5 +111,5 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
     benchmark_obj = MyUser()
-    benchmark_obj.test1()
-    benchmark_obj.test2()
+    #benchmark_obj.test1()
+    #benchmark_obj.test2()

@@ -60,7 +60,7 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
         -i -e "s|_HOST_|${HOST}|" \
         locust-worker-controller.yaml
 
-    sed i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
+    sed -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|" \
          locust-master-service.yaml
 
     kubectl apply -f locust-master-controller.yaml -f locust-worker-controller.yaml -f locust-master-service.yaml

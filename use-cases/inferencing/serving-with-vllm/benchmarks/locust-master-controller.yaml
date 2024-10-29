@@ -33,7 +33,7 @@ spec:
       serviceAccountName: _KSA_
       containers:
         - name: locust-master
-          image: _IMG_URL_
+          image: _IMAGE_URL_
           env:
             - name: "ENDPOINT"
               value: "_ENDPOINT_"

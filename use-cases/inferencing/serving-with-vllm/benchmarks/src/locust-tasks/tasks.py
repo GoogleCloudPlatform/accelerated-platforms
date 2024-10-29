@@ -16,8 +16,19 @@
 
 
 from datetime import datetime
-from locust import FastHttpUser, TaskSet, task
+from locust import FastHttpUser, TaskSet, task, between
+import logging
+import logging.config
+import os
+import signal
+import requests
 
+def graceful_shutdown(signal_number, stack_frame):
+    signal_name = signal.Signals(signal_number).name
+
+    logger.info(f"Received {signal_name}({signal_number}), shutting down...")
+    # TODO: Add logic to handled checkpointing if required
+    sys.exit(0)
 
 # [START locust_test_task]
 

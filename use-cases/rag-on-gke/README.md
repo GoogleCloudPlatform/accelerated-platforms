@@ -80,98 +80,103 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
    cd accelerated-platforms
    # TODO: remove the next line when merge to main
    git checkout llamaindex-for-rag
-   cd use-cases/rag-on-gke/alloyDB
+   cd use-cases/rag-on-gke/alloyDB/build-db
    terraform init
-   terraform plan
+
    terraform apply
 ```
 
+This will create the following objects:
+- An alloydb cluster `cluster-us-central1` 
+  - And a primary instance `cluster-us-central1-instance1` in the cluster
+- A gcp service account `alloydb-superuser@<project_id>.iam.gserviceaccount.com`
+  - An alloydb user `alloydb-superuser@<project_id>`
+  - This user has "alloydbsuperuser" role
+- A gcp service account `alloydb-raguser@<project_id>.iam.gserviceaccount.com`
+  - An alloydb user `alloydb-raguser@<project_id>`
+
+#### Create database objects for ML integraion
+
+In `use-cases/rag-on-gke/alloyDB/init_database_objects`, prepare a `terraform.tfvars` file containing the following information:
+
+```terraform
+project_id = "<your_project_id>"
+gke_cluster_name = "<your_gke_cluster_name>"
+gke_cluster_location = "<your_gke_cluster_location"
+dba_service_account = "dba-ksa"
+rag_service_account = "rag-ksa"
+alloydb_cluster = "cluster-us-central1"
+alloydb_instance = "cluster-us-central1-instance1"
+alloydb_region = "us-central1"
+finetuned_model_endpoint = "<your_finetuned_model_endpoint>"
+pretrained_model_endpoint = "<your_pretrained_model_endpoint>"
+embedding_endpoint = "<your_embedding_model_endpoint>"
+```
+
+For the endpoints, input the full http urls to the endpoints. For example, a model hosted using vLLM has the endpoint like this: `http://10.0.0.101:8000/v1/completions`. 
+
+Then run the following commands:
+
+```bash
+terraform init
+terraform apply
+```
+
+This will do the following initialization tasks:
+
+- Create a service account `dba-ksa` in the GKE cluster
+  - Grant the gcp service account `alloydb-superuser@<project_id>.iam.gserviceaccount.com` to the kubernetes service account `dba-ksa`
+  - The `dba-ksa` service account will have the privilege of "alloydb-superuser"n
+- Create a service account `rag-ksa` in the GKE cluster
+  - Grant the gcp service account `alloydb-raguser@<project_id>.iam.gserviceaccount.com` to the kubernetes service account `dba-ksa`
+  - The `rag-ksa` service account will have the privilege of "alloydb-raguser"
+- Create a database "ragdb" in the alloydb cluster
+  - Grant necessary privileges in "ragdb" to the "alloydb-raguser"
+- Create the google_ml integration functions/models
+  - You can find the definition in `use-cases/rag-on-gke/alloyDB/init_database_objects/assets/ml-integration.sql`
+
+
+#### Create a configmap in GKE for database connectivity information
+
+In `use-cases/rag-on-gke/alloyDB/create-database-configmap`, prepare a `terraform.tfvars` file containing the following information:
+
+```terraform
+project_id = "<your_project_id>"
+gke_cluster_name = "<your_gke_cluster_name>"
+gke_cluster_location = "<your_gke_cluster_location"
+alloydb_cluster = "cluster-us-central1"
+alloydb_instance = "cluster-us-central1-instance1"
+alloydb_region = "us-central1"
+```
+
+Then run the following commands:
+
+```bash
+terraform init
+terraform apply
+```
+
+This will create a configmap `alloydb-config` in the default namespace holding two keys:
+
+- `pghost`: the ipaddress pointing to the primary instance in the alloydb cluster
+- `pgdatabase`: the database name in the alloydb cluster
+
 #### Import Product Catalog to the alloyDB instance
 
-TODO: Convert this paragraph to a python code running in GKE
+In the `use-cases/rag-on-gke/etl`, do the following 
 
-Database is ready to import the dataset.You can follow the [Import CSV to alloyDB ](https://cloud.google.com/alloydb/docs/connect-psql)
-instructions.
-
-The default terraform configuration creates VPC network name ```simple-adb```
-
-- Create a Compute Engine VM that can connect to AlloyDB instances using private services access in this VPC.
-- A VPC network in the Google Cloud project that you are using must already be configured for private services access to AlloyDB.
-
-Get the IP address of the AlloyDB primary instance where your database is located  and ssh to machine.
-
-```
-gcloud compute ssh --project=PROJECT_ID --zone=ZONE VM_NAME
+```bash
+make
+kubectl apply -f etl-import-data.yaml
 ```
 
-Copy the CSV file to the client host's local file system
+After the job finishes, the data will load to the database and an embedding table will also be created.
 
-```
-gcloud storage cp gs://flipkart-dataset-rag/flipkart_processed_dataset/flipkart.csv .
-```
+- The datasource: "https://www.kaggle.com/api/v1/datasets/download/PromptCloudHQ/flipkart-products"
+- target table: flipkart
+- the column "description" is used to generate embedding
 
-Run the psql client tool and then, at the psql prompt, connect to the database.
 
-```
-psql -h <IP_ADDRESS> -U postgres -d postgres
-
-```
-
-Generate DDL for the table from the CSV file
-
-```
-echo "create table flipkart ("; head -n 1 flipkart.csv  |sed 's/,/ text\n,/g; $s/$/ text/';echo ");"
-```
-
-Alternatively you can use the following command to generate the DDL for the flipkart table.
-
-```
-create table flipkart (
-uniq_id text
-,product_name text
-,description text
-,brand text
-,image text
-,image_uri text
-,attributes text
-,c0_name text
-,c1_name text
-,c2_name text
-,c3_name text
-,c4_name text
-,c5_name text
-,c6_name text
-,c7_name text
-);
-```
-
-Import from CSV file
-
-Delete any existing data in flipkart table
-
-```
-truncate table flipkart; 
-```
-
-Import flipkart Product Catalog from CSV file
-
-```
-\copy flipkart from 'flipkart.csv' WITH (FORMAT CSV, HEADER)
-```
-You should see following records being copied to the flipkarttable. 
-
-```
-postgres=> \copy flipkart from 'flipkart.csv' WITH (FORMAT CSV, HEADER)
-COPY 19981
-```
-
-Create the embedding table to store text and image embeddings.
-Later on, we would use the [google_ml_integration extension](https://cloud.google.com/alloydb/docs/ai#generate_embeddings_and_text_predictions) in alloyDB to access and utilize machine learning models directly within your AlloyDB environment.
-
-```
-truncate table flipkart_embeded; -- clear existing data from the table
-insert into flipkart_embeded select uniq_id, google_ml.embedding_text(description) from flipkart ;
-```
 ## Deploy the ML playground and finetuned gemma2 model
 
 You can use a previously deployed version of the fine tuned model that you created using [model-finetuned pipeline](/platforms/use-cases/model-finetuned/README.md).
@@ -264,4 +269,13 @@ psql <your-connection-string> -f ml-integration/assets/ml-integration.sql
 
 ## Run ETL pipeline for embedding generation
 
-- 
+## Run the gradio application
+
+In `use-cases/rag-on-gke/llama-index-alloydb`, run the following commands
+
+```bash
+make
+kubectl apply -f query-gradio.yaml
+```
+
+The application will be deployed and a service will be created pointing to the application.

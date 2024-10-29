@@ -50,11 +50,11 @@ spec:
         - name: DATAFILE
           value: flipkart_com-ecommerce_sample.csv
         - name: TABLENAME
-          value: test_flipkart_tmp
+          value: flipkart
         - name: RECREATE
           value: "yes"
         - name: EMBEDDING_DESC
-          value: "emb:uniq_id:description"
+          value: "flipkart_embeded:uniq_id:description"
         volumeMounts:
         - name: codes
           mountPath: /codes

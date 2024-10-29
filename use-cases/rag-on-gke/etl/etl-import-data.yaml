@@ -17,14 +17,12 @@ kind: Job
 metadata:
   name: rag-etl-data
 spec:
-  selector:
-    matchLabels:
-      app: rag-etl
   template:
     metadata:
       labels:
         app: rag-etl
     spec:
+      restartPolicy: Never
       serviceAccountName: rag-ksa
       containers:
       - name: rag-etl
@@ -47,6 +45,16 @@ spec:
             configMapKeyRef:
               name: alloydb-config
               key: pgdatabase
+        - name: DATA_URL
+          value: "https://www.kaggle.com/api/v1/datasets/download/PromptCloudHQ/flipkart-products"
+        - name: DATAFILE
+          value: flipkart_com-ecommerce_sample.csv
+        - name: TABLENAME
+          value: test_flipkart_tmp
+        - name: RECREATE
+          value: "yes"
+        - name: EMBEDDING_DESC
+          value: "emb:uniq_id:description"
         volumeMounts:
         - name: codes
           mountPath: /codes

@@ -2,7 +2,7 @@ from io import BytesIO, BufferedIOBase
 import json
 import logging
 import os
-from urllib import request
+from urllib import request, parse
 
 import zipfile
 
@@ -87,13 +87,14 @@ def generate_db_url_from_workload_identity():
     pgpassword = t["access_token"]
     pghost = os.getenv("PGHOST")
     pgdatabase = os.getenv("PGDATABASE")
-    return f"postgresql://{pguser}:{pgpassword}@{pghost}/{pgdatabase}"
+    return f"postgresql://{parse.quote(pguser)}:{pgpassword}@{pghost}/{pgdatabase}"
 
 
 def main():
     DBURL = os.getenv("DB_URL")
     if not DBURL:
         DBURL = generate_db_url_from_workload_identity()
+    logger.debug("Connecting to database: %s", DBURL)
     conn = psycopg.connect(DBURL)
     kaggle_file_url = os.getenv("DATA_URL")
     data_filename = os.getenv("DATAFILE")

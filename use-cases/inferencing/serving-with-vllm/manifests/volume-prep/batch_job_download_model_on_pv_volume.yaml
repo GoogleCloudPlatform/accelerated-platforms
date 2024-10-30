@@ -1,0 +1,73 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  generateName: module-download-job-
+  labels:
+    app: model-downloader
+spec:
+  activeDeadlineSeconds: 7200
+  backoffLimit: 2
+  completionMode: NonIndexed
+  completions: 1
+  manualSelector: false
+  parallelism: 1
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: 'true'
+        gke-gcsfuse/memory-limit: 10Gi
+        gke-gcsfuse/memory-request: 4Gi
+    spec:
+      serviceAccountName: V_KSA # sed replace KSA name
+      containers:
+      - name: dldr
+        image: debian:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          apt-get update && apt-get install -y fuse2fs
+          mkfs.ext4 -FF /dev/xvda
+          fuse2fs -o fakeroot /dev/xvda /mnt
+          mkdir -p /mnt/V_MODEL_ID
+          cp -r /data/models/V_MODEL_ID/V_MODEL_DIR_PATH /mnt/V_MODEL_ID
+          ls -lR /mnt/V_MODEL_ID
+        volumeDevices:
+        - name: data
+          devicePath: /dev/xvda
+        volumeMounts:
+        - name: model-weights
+          mountPath: /data/models
+        securityContext:
+          privileged: true
+      restartPolicy: Never
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: block-pvc-model
+      - name: model-weights
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          readOnly: true
+          volumeAttributes:
+            bucketName: V_MODEL_BUCKET # sed replace with your bucket name  
+            mountOptions: implicit-dirs
+            gcsfuseLoggingSeverity: warning
+            fileCacheCapacity: 10Gi

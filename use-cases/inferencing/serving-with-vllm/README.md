@@ -315,6 +315,8 @@ sh
 kubectl apply -f manifests/inference-scale/hpa_gpu-metrics.yaml -n ${NAMESPACE}
 ```
 
+Here is a sample metrics graph that represent the bGPU metrics for duty cycle. ![metrics graph](./manifests/inference-scale/gpu-metrics.png) to review.
+
 CPU metrics: Since the inference workloads primarily rely on GPU resources, we don't recommend CPU and memory utilization as the only indicators of the amount of resources a job consumes. Therefore, using CPU metrics alone for autoscaling can lead to suboptimal performance and costs.
 
 HPA is an efficient way to ensure that your model servers scale appropriately with load. Fine-tuning the HPA settings is the primary way to align your provisioned hardware cost with traffic demands to achieve your inference server performance goals.
@@ -349,7 +351,7 @@ The following example command shows how to install the adapter:
 
 Set up the custom metric-based HPA resource. Deploy an HPA resource that is based on your preferred custom metric.
 
-Here is a sample ![metrics graph](./manifests/inference-scale/cloud-monitoring-metrics-inference.png) to review.
+Here is a sample metrics graph that represent the batch size. ![metrics graph](./manifests/inference-scale/cloud-monitoring-metrics-inference.png) to review.
 
 
 - Batch-size

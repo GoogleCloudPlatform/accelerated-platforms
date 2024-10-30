@@ -50,8 +50,8 @@ By the end of this guide, you should be able to perform the following steps:
   PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
   V_MODEL_BUCKET=<model-artifacts-bucket>
   MLP_CLUSTER_NAME=<your-gke-cluster>
-  NAMESPACE=ml-serve
-  KSA=<k8s-service-account>
+  SERVE_NAMESPACE=ml-serve # SERVE_NAMESPACE functions to serving the model 
+  OPS_NAMESPACE=ml-ops # OPS_NAMESPACE functions to download/upload model artifacts and dataset to and from GCS and artifact registry
   MODEL_ID=<your-model-id> # example : model-gemma2-a100
   MODEL_DIR_PATH ="<LOCAl-PATH-TO-MODEL_DIR>" # location to copy the model artifacts from
   REGION=<your-region>
@@ -68,10 +68,11 @@ By the end of this guide, you should be able to perform the following steps:
 - Grant permission to kubernetes service account in cluster to access the storage bucket to view model weights
 
   ```sh
-  kubectl create ns ${NAMESPACE}
-  kubectl create sa $KSA -n ${NAMESPACE}
+  kubectl create ns ${SERVE_NAMESPACE}
+  kubectl create ns ${OPS_NAMESPACE}
+  kubectl create sa $KSA -n ${OPS_NAMESPACE} # KSA to download model artifacts from GCS
   gcloud storage buckets add-iam-policy-binding "gs://$V_MODEL_BUCKET" \
-    --member "principal://iam.googleapis.com/projects/"${PROJECT_NUMBER}"/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/$NAMESPACE/sa/$KSA" \
+    --member "principal://iam.googleapis.com/projects/"${PROJECT_NUMBER}"/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/$OPS_NAMESPACE/sa/$KSA" \
     --role "roles/storage.objectViewer"
   ```
 
@@ -88,7 +89,7 @@ Loading model weights from a Persistent Volume is a method to load models faster
   Create a PVC for the model weights
 
   ```sh
-  kubectl apply -f manifests/volume-prep/pvc_disk_image.yaml -n ${NAMESPACE}
+  kubectl apply -f manifests/volume-prep/pvc_disk_image.yaml -n ${OPS_NAMESPACE}
   ```
 
   Create a job downloading the models to the volume and review logs for successful completion.
@@ -98,13 +99,13 @@ Loading model weights from a Persistent Volume is a method to load models faster
   sed -i -e "s|V_MODEL_BUCKET|${MODEL_BUCKET}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
   sed -i -e "s|V_MODEL_ID|${MODEL_ID}|g" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
   sed -i -e "s|V_MODEL_DIR_PATH|${MODEL_DIR_PATH}|" manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml
-  kubectl create -f manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml -n ${NAMESPACE}
+  kubectl create -f manifests/volume-prep/batch_job_download_model_on_pv_volume.yaml -n ${OPS_NAMESPACE}
   ```
 
  Wait for the job to show completion status.
 
   ```sh
-     kubectl get jobs -n ${NAMESPACE} --watch
+     kubectl get jobs -n ${OPS_NAMESPACE} --watch
   ```
 
   ```
@@ -117,9 +118,8 @@ Loading model weights from a Persistent Volume is a method to load models faster
 
 You can also check pod logs to check the progress of disk creation.
 
-  ```
-    sh
-    kubectl logs module-download-job-vl7cc-km29x -n ${NAMESPACE} 
+  ```sh
+    kubectl logs module-download-job-vl7cc-km29x -n ${OPS_NAMESPACE} 
   ```
 
   ```
@@ -142,8 +142,8 @@ You can also check pod logs to check the progress of disk creation.
  Create the PV and PVC
 
   ```sh
-  PV_NAME="$(kubectl get pvc/block-pvc-model -o jsonpath='{.spec.volumeName}')"
-  DISK_REF="$(kubectl get pv "$PV_NAME" -o jsonpath='{.spec.csi.volumeHandle}')"
+  PV_NAME="$(kubectl get pvc/block-pvc-model -n ${OPS_NAMESPACE} -o jsonpath='{.spec.volumeName}')"
+  DISK_REF="$(kubectl get pv "$PV_NAME" -n ${OPS_NAMESPACE} -o jsonpath='{.spec.csi.volumeHandle}')"
   ```
 
   ```sh
@@ -160,8 +160,8 @@ You can also check pod logs to check the progress of disk creation.
   VOLUME_HANDLE="projects/${MLP_PROJECT_ID}/zones/${ZONE}/disks/models-fine-tune-disk-v1"
   sed -i -e "s|V_VOLUME_HANDLE|${VOLUME_HANDLE}|" manifests/volume-prep/persistent_volume.yaml
   sed -i -e "s|V_ZONE|${ZONE}|" manifests/volume-prep/persistent_volume.yaml
-  kubectl apply -f manifests/volume-prep/persistent_volume.yaml
-  kubectl apply -f manifests/volume-prep/persistent_volume_claim.yaml -n ${NAMESPACE}
+  kubectl apply -f manifests/volume-prep/persistent_volume.yaml # PVs are namespace-less
+  kubectl apply -f manifests/volume-prep/persistent_volume_claim.yaml -n ${SERVE_NAMESPACE} # Deploy PVC claim where you serve the model
   ```
 
 ## Deploy a vLLM container to your cluster
@@ -171,22 +171,22 @@ You can also check pod logs to check the progress of disk creation.
 
 
   Here is an example 
-    ```
-    mkdir -p /mnt/model-gemma2-a100
-    cp -r /data/models/model-gemma2-a100/experiment-a2aa2c3it1 /mnt/model-gemma2-a100  # location to copy the model artifacts from
-    ls -lR /mnt/model-gemma2-a100 # location to copy the model artifacts
-    ````
+    
+  ```sh
+  mkdir -p /mnt/model-gemma2-a100
+  cp -r /data/models/model-gemma2-a100/experiment-a2aa2c3it1 /mnt/model-gemma2-a100  # location to copy the model artifacts from
+  ls -lR /mnt/model-gemma2-a100 # location to copy the model artifacts
+  ```
 
   ```sh
-  
   sed -i -e "s|V_MODEL_ID|${MODEL_ID}|" manifests/model_deployment.yaml
   sed -i -e "s|V_MODEL_DIR_PATH|${MODEL_DIR_PATH}|" manifests/model_deployment.yaml
   sed -i -e "s|V_ACCELERATOR_TYPE|${ACCELERATOR_TYPE}|" manifests/model_deployment.yaml
   ```
 
   ```sh
-  kubectl create -f manifests/model_deployment.yaml -n ${NAMESPACE}
-  kubectl logs -f -l app=vllm-openai -n ${NAMESPACE}
+  kubectl create -f manifests/model_deployment.yaml -n ${SERVE_NAMESPACE}
+  kubectl logs -f -l app=vllm-openai -n ${SERVE_NAMESPACE}
   ```
 
   ```sh
@@ -201,7 +201,7 @@ You can also check pod logs to check the progress of disk creation.
 - Test your deployed model through the CLI
 
   ```sh
-  kubectl port-forward svc/vllm-openai -n ${NAMESPACE} 8000
+  kubectl port-forward svc/vllm-openai -n ${SERVE_NAMESPACE} 8000
   ```
 
   Run the curl prompt with your values
@@ -209,7 +209,9 @@ You can also check pod logs to check the progress of disk creation.
   ```sh
   USER_PROMPT="I'm looking for comfortable cycling shorts for women, what are some good options?"
   MODEL_ID=""
+  ```
 
+  ```
   curl http://localhost:8000/v1/chat/completions \
     -H "Content-Type: application/json" \
     -d '{
@@ -230,7 +232,7 @@ You can also check pod logs to check the progress of disk creation.
   ```
 
   ```sh
-  kubectl apply -f manifests/gradio.yaml -n ${NAMESPACE} 
+  kubectl apply -f manifests/gradio.yaml -n ${SERVE_NAMESPACE} 
   ```
 
 ### Production Metrics
@@ -246,7 +248,7 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 You can configure monitoring of the metrics above using the [pod monitoring](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-managed#gmp-pod-monitoring)
 
   ```sh
-  kubectl apply -f manifests/pod_monitoring.yaml -n ${NAMESPACE}
+  kubectl apply -f manifests/pod_monitoring.yaml -n ${SERVE_NAMESPACE}
   ```
 
 ### Create a dashboard for Cloud Monitoring to view vLLM metrics
@@ -312,7 +314,7 @@ GPU Memory Usage (DCGM_FI_DEV_FB_USED) - Measures how much GPU memory is being u
 
 ```
 sh
-kubectl apply -f manifests/inference-scale/hpa_gpu-metrics.yaml -n ${NAMESPACE}
+kubectl apply -f manifests/inference-scale/hpa_gpu-metrics.yaml -n ${SERVE_NAMESPACE}
 ```
 
 Here is a sample metrics graph that represent the bGPU metrics for duty cycle. ![metrics graph](./manifests/inference-scale/gpu-metrics.png) to review.
@@ -359,13 +361,13 @@ Here is a sample metrics graph that represent the batch size. ![metrics graph](.
   ```sh
   AVERAGE_VALUE = 10 # Replace it with a value of choice 
   sed -i -e "s|V_AVERAGE_VALUE|${AVERAGE_VALUE}|" manifests/inference-scale/hpa_vllm_openai_batch_size.yaml
-  kubectl apply -f manifests/inference-scale/hpa_vllm_openai_batch_size.yaml -n ${NAMESPACE}
+  kubectl apply -f manifests/inference-scale/hpa_vllm_openai_batch_size.yaml -n ${SERVE_NAMESPACE}
   ```
 
 > Note: Below is an example of the batch size HPA scale test below:
 
 ```sh
-kubectl get hpa vllm-openai-hpa -n ${NAMESPACE} --watch
+kubectl get hpa vllm-openai-hpa -n ${SERVE_NAMESPACE} --watch
 NAME              REFERENCE                TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
 vllm-openai-hpa   Deployment/vllm-openai   0/10      1         5         1          6d16h
 vllm-openai-hpa   Deployment/vllm-openai   13/10     1         5         1          6d16h
@@ -378,7 +380,7 @@ vllm-openai-hpa   Deployment/vllm-openai   10/10     1         5         2      
 ```
 
 ```sh
-kubectl get pods -n ${NAMESPACE} --watch
+kubectl get pods -n ${SERVE_NAMESPACE} --watch
 NAME                           READY   STATUS      RESTARTS   AGE
 gradio-6b8698d7b4-88zm7        1/1     Running     0          10d
 model-eval-2sxg2               0/1     Completed   0          8d
@@ -388,7 +390,7 @@ vllm-openai-767b477b77-82l8v   0/1     Pending     0          9s
 
 Pod scaled up
 ```sh
-kubectl get pods -n ml-serve --watch
+kubectl get pods -n ${SERVE_NAMESPACE} --watch
 NAME                           READY   STATUS      RESTARTS   AGE
 gradio-6b8698d7b4-88zm7        1/1     Running     0          10d
 model-eval-2sxg2               0/1     Completed   0          8d
@@ -400,7 +402,7 @@ The new pod is deployed on a node triggered by the cluster autoscaler.
 > NOTE: The existing node where inference workload was deployed in this case had only two GPUS. Hence a new node is required to deploy the copy pod of inference workload.
 
 ```sh
-kubectl describe pods vllm-openai-767b477b77-82l8v -n ml-serve
+kubectl describe pods vllm-openai-767b477b77-82l8v -n ${SERVE_NAMESPACE}
 
 Events:
   Type     Reason                  Age    From                                   Message

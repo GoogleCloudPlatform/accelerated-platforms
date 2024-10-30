@@ -13,7 +13,9 @@ Set env variables.
   PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
   V_MODEL_BUCKET=<model-artifacts-bucket>
   MLP_CLUSTER_NAME=<your-gke-cluster>
-  NAMESPACE=ml-serve
+  SERVE_NAMESPACE=ml-serve
+  OPS_NAMESPACE=ml-ops
+
   KSA=<k8s-service-account>
   MODEL_PATH=<your-model-path>
   BUCKET="<your dataset bucket name>"
@@ -25,21 +27,20 @@ Set env variables.
 Create Service account and namespace, if does not exist.
 
 ```
-NAMESPACE=ml-serve
-kubectl create sa ${KSA} -n ${NAMESPACE}
+kubectl create sa ${KSA} -n ${OPS_NAMESPACE} # service account with correct permissions to storage bucket helps download the artifacts related to batch inference
 ```
 
 Setup Workload Identity Federation access to read/write to the bucket for the inference batch data set
 
 ```
 gcloud storage buckets add-iam-policy-binding gs://${BUCKET} \
-    --member "principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${MLP_PROJECT_ID}.svc.id.goog/subject/ns/${NAMESPACE}/sa/${KSA}" \
+    --member "principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${MLP_PROJECT_ID}.svc.id.goog/subject/ns/${OPS_NAMESPACE}/sa/${KSA}" \
     --role "roles/storage.objectUser"
 ```
 
 ```
 gcloud storage buckets add-iam-policy-binding gs://${BUCKET} \
-    --member "principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${MLP_PROJECT_ID}.svc.id.goog/subject/ns/${NAMESPACE}/sa/${KSA}" \
+    --member "principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${MLP_PROJECT_ID}.svc.id.goog/subject/ns/${OPS_NAMESPACE}/sa/${KSA}" \
     --role "roles/storage.legacyBucketWriter"
 ```
 
@@ -103,7 +104,7 @@ sed -i -e "s|V_IMAGE_URL|${DOCKER_IMAGE_URL}|" \
 Create the Job in the ml-serve namespace using kubectl command
 
 ```
-kubectl apply -f /batch_inference.yaml -n ${NAMESPACE}
+kubectl apply -f /batch_inference.yaml -n ${SERVE_NAMESPACE}
 ```
 
 You can review predictions result in file named `predictions.txt` .Sample file has been added to the repository.

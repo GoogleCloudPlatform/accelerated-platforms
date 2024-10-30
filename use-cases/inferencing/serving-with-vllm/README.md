@@ -310,6 +310,11 @@ GPU Utilization (DCGM_FI_DEV_GPU_UTIL) - Measures the duty cycle, which is the a
 GPU Memory Usage (DCGM_FI_DEV_FB_USED) - Measures how much GPU memory is being used at a given point in time. This is useful for workloads that implement dynamic allocation of GPU memory.
 ```
 
+```
+sh
+kubectl apply -f manifests/inference-scale/hpa_gpu-metrics.yaml -n ${NAMESPACE}
+```
+
 CPU metrics: Since the inference workloads primarily rely on GPU resources, we don't recommend CPU and memory utilization as the only indicators of the amount of resources a job consumes. Therefore, using CPU metrics alone for autoscaling can lead to suboptimal performance and costs.
 
 HPA is an efficient way to ensure that your model servers scale appropriately with load. Fine-tuning the HPA settings is the primary way to align your provisioned hardware cost with traffic demands to achieve your inference server performance goals.
@@ -339,24 +344,13 @@ Install the Custom Metrics Adapter. This adapter makes the custom metric that yo
 The following example command shows how to install the adapter:
 
   ```sh
-  kubectl apply -f kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stackdriver/master/custom-metrics-stackdriver-adapter/deploy/production/adapter_new_resource_model.yaml
+  kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stackdriver/master/custom-metrics-stackdriver-adapter/deploy/production/adapter_new_resource_model.yaml
   ```
 
 Set up the custom metric-based HPA resource. Deploy an HPA resource that is based on your preferred custom metric.
 
 Here is a sample ![metrics graph](./manifests/inference-scale/cloud-monitoring-metrics-inference.png) to review.
 
-Select **ONE** of the options below `Queue-depth` or `Batch-size` to configure the HPA resource in your manifest:
-
-> NOTE: Adjust the appropriate target values for `vllm:num_requests_running` or `vllm:num_requests_waiting` in the yaml file.
-
-- Queue-depth
-
-  ```sh
-  AVERAGE_VALUE = 10 # Replace it with a value of choice 
-  sed -i -e "s|V_AVERAGE_VALUE|${AVERAGE_VALUE}|" manifests/inference-scale/hpa_vllm_openai_queue_size.yaml
-  kubectl apply -f manifests/inference-scale/hpa_vllm_openai_queue_size.yaml -n ${NAMESPACE}
-  ```
 
 - Batch-size
 

@@ -69,6 +69,146 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
     ```
   - Alternatively, you can use the processed dataset from your earlier [data preprocessing job](https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/llamaindex-for-rag/use-cases/model-fine-tuning-pipeline/data-processing/ray)
 
+## Deploy the ML playground and finetuned gemma2 model
+
+You can use a previously deployed version of the fine tuned model that you created using [model-finetuned pipeline](/platforms/use-cases/model-finetuned/README.md).
+
+You can also refer to the [inferencing guide]() to better understand how to host and deploy fine-tuned models on GKE with various storage options.
+
+Alternatively, you can use below steps:
+
+<TODO> Check with Aaron if the fine tuned image can be made publicly accessible.
+
+Assumption : Fine tuned model has been uploaded to Google Storage bucket.
+
+1. Grant the Kubernetes service account privilege to download the model to the pod.
+
+```
+
+PROJECT_NUMBER=<your_gcp_project_number>
+PROJECT_ID=<your_gcp_project_id>
+NAMESPACE=ml-serve-fine-tuned-model
+KSA=fine-tuned-model-sa
+MODEL_BUCKET_NAME=<your_model_bucket_name>
+
+kubectl create ns $NAMESPACE
+kubectl create sa $KSA --namespace $NAMESPACE
+
+gcloud storage buckets add-iam-policy-binding "gs://$MODEL_BUCKET_NAME" \
+    --member "principal://iam.googleapis.com/projects/"$PROJECT_NUMBER"/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/$NAMESPACE/sa/$KSA" \
+    --role "roles/storage.objectViewer"
+```
+
+2. Edit the `deployment.yaml` file in the `fine-tuned-model` directory, change the following things:
+
+    - The value of `MODEL_ID` should point to a proper model path
+    - The `cloud.google.com/gke-nodepool` nodeSelector should be changed according to your GKE cluster
+    - The `bucketName` of the gcs-fuse volume, this bucket should contain the model 
+    
+3. Create the deployment
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+### Get the ip address of the service
+
+This ip address will be used in the step "Create alloyDB and import Product Catalog". 
+
+Do the following:
+
+```bash
+kubectl -n $NAMESPACE service/fine-tuned-model-service
+```
+
+Take a note for the "EXTERNAL-IP".
+
+
+## Deploy the Multimodal Embedding Model on the playground cluster
+
+The Multimodal Embedding Model provides the embedding functionality: 
+- Embed a text into a vector
+- Embed an image into a vector
+- Embed an image along with the caption text into a vector
+
+To deploy the Multimodal embedding model, goto `multimodal-embedding` under the `embedding-models` folder, and do the following steps.
+
+### Build the container image
+
+Run these commands:
+
+```bash
+export PROJECT_ID=<your_gcp_project_id>
+gcloud builds submit .
+```
+
+### Deploy the model
+
+Fisrt, we create the namespace `multimodal-embedding-model`:
+
+```bash
+kubectl creat ns multimodal-embedding-model
+```
+
+Then we edit the `embedding.yaml`, change the following:
+- The image of `blip2-container`
+  Replace "<PROJECT_ID>" to your value
+
+Apply the deployment:
+
+```bash
+kubectl apply -f embedding.yaml
+```
+
+### Get the ip address of the service
+
+This ip address will be used in the step "Create alloyDB and import Product Catalog". 
+
+Do the following:
+
+```bash
+kubectl -n multimodal-embedding-model service/multimodal-embedding-model-service
+```
+
+Take a note for the "EXTERNAL-IP".
+
+## Deploy pre-trained model gemma2 on the playground cluster
+
+### Deploy the model
+Set the following variables:
+
+```bash
+  HF_TOKEN=<your-Hugging-Face-account-token>
+  NAMESPACE=ml-serve-pre-trained-model-2
+```
+
+Then we need to create a secret storing it
+```
+kubectl create -n $NAMESPACE secret generic hf-secret \
+--from-literal=hf_api_token=$HF_TOKEN \
+--dry-run=client -o yaml | kubectl apply -f -
+
+```
+
+Apply the deployment:
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+### Get the ip address of the service
+
+This ip address will be used in the step "Create alloyDB and import Product Catalog". 
+
+Do the following:
+
+```bash
+kubectl -n $NAMESPACE service/pre-trained-model-service
+```
+
+Take a note for the "EXTERNAL-IP".
+
+
 ## Create alloyDB and import Product Catalog
 
 #### Create AlloyDB cluster using terraform modules
@@ -113,7 +253,11 @@ pretrained_model_endpoint = "<your_pretrained_model_endpoint>"
 embedding_endpoint = "<your_embedding_model_endpoint>"
 ```
 
-For the endpoints, input the full http urls to the endpoints. For example, a model hosted using vLLM has the endpoint like this: `http://10.0.0.101:8000/v1/completions`. 
+For the endpoints, input the full http urls to the endpoints. For example, a model hosted using vLLM has the endpoint like this: `http://10.0.0.101:8000/v1/completions`. You should have the ip address of the services from previous steps:
+
+- finetuned_model: In the step "Deploy the ML playground and finetuned gemma2 model"
+- pretrained_model: In the step "Deploy pre-trained model gemma2 on the playground cluster"
+- embedding_model: In the step "Deploy the Multimodal Embedding Model on the playground cluster"
 
 Then run the following commands:
 
@@ -177,57 +321,9 @@ After the job finishes, the data will load to the database and an embedding tabl
 - the column "description" is used to generate embedding
 
 
-## Deploy the ML playground and finetuned gemma2 model
-
-You can use a previously deployed version of the fine tuned model that you created using [model-finetuned pipeline](/platforms/use-cases/model-finetuned/README.md).
-
-You can also refer to the [inferencing guide]() to better understand how to host and deploy fine-tuned models on GKE with various storage options.
-
-Alternatively, you can use below steps:
-
-<TODO> Check with Aaron if the fine tuned image can be made publicly accessible.
-
-Assumption : Fine tuned model has been uploaded to Google Storage bucket.
-
-1. Grant the Kubernetes service account privilege to download the model to the pod.
-
-```
-
-PROJECT_NUMBER=<your_gcp_project_number>
-PROJECT_ID=<your_gcp_project_id>
-NAMESPACE=ml-serve-fine-tuned-model
-KSA=fine-tuned-model-sa
-MODEL_BUCKET_NAME=<your_model_bucket_name>
-
-kubectl create ns $NAMESPACE
-kubectl create sa $KSA --namespace $NAMESPACE
-
-gcloud storage buckets add-iam-policy-binding "gs://$MODEL_BUCKET_NAME" \
-    --member "principal://iam.googleapis.com/projects/"$PROJECT_NUMBER"/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/$NAMESPACE/sa/$KSA" \
-    --role "roles/storage.objectViewer"
-```
-
-2.
-3.
-
-
-## Deploy the Multimodal Model on the playground cluster
-
-
-## Deploy pre-trained model gemma2 on the playground cluster
-
-```
-  export HF_TOKEN=<your-Hugging-Face-account-token>
-```
-
-
-```
-kubectl create secret generic hf-secret \
---from-literal=hf_api_token=$HF_TOKEN \
---dry-run=client -o yaml | kubectl apply -f -
-````
-
 ## Create ml-integration functions in AlloyDB
+
+<TODO> remove this part
 
 The [Google Ml Integration](https://cloud.google.com/alloydb/docs/ai/invoke-predictions)
 makes the ML services callable from inside the database, so that ML inferencing 
@@ -267,7 +363,6 @@ export EMBEDDING_ENDPOINT=<EMBEDDING-MODEL-URL>
 psql <your-connection-string> -f ml-integration/assets/ml-integration.sql
 ```
 
-## Run ETL pipeline for embedding generation
 
 ## Run the gradio application
 

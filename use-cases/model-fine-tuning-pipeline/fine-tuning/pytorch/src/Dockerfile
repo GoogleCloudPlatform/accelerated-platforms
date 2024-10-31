@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM pytorch/pytorch:2.3.1-cuda12.1-cudnn8-devel
+FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-devel
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends git && \
@@ -21,6 +21,6 @@ RUN apt-get update && \
 COPY requirements.txt /workspace/
 
 RUN pip3 install --no-cache-dir -r requirements.txt
-RUN CUDA_HOME=/usr/local/cuda-12.1 pip3 install --no-cache-dir flash-attn --no-build-isolation
+#RUN CUDA_HOME=/usr/local/cuda-12.1 pip3 install --no-cache-dir flash-attn --no-build-isolation
 
 COPY custom_json_formatter.py fine_tune.py fsdp_config.yaml logging.conf /workspace/

@@ -28,7 +28,7 @@ variable "platform_name" {
 }
 
 variable "resource_name_prefix" {
-  default     = "mlp"
+  default     = "acp"
   description = "The prefix to add before each resource's name"
   type        = string
 }

@@ -12,14 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
+# DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT
+# DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT
+# DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT DEVELOPMENT
+FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-devel AS devel
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git && \
+    apt-get install -y \
+    git && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /workspace/
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /workspace/wheels -r /workspace/requirements.txt
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+
+
+
+
+# FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL
+# FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL
+# FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL
+FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
+
+RUN apt-get update && \
+    apt-get install -y \
+    git && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=devel /workspace/wheels /workspace/wheels
+COPY requirements.txt /workspace/
+RUN pip install --no-cache /workspace/wheels/*
 
 COPY custom_json_formatter.py fine_tune.py fsdp_config.yaml logging.conf /workspace/

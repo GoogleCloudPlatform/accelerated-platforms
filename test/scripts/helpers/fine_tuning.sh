@@ -55,6 +55,7 @@ sed \
     -i -e "s|V_MLFLOW_TRACKING_URI|${MLFLOW_TRACKING_URI}|" \
     -i -e "s|V_MODEL_BUCKET|${MLP_MODEL_BUCKET}|" \
     -i -e "s|V_MODEL_PATH|${MODEL_PATH}|" \
+    -i -e "s|V_TRAIN_BATCH_SIZE|${TRAIN_BATCH_SIZE}|" \
     -i -e "s|V_TRAINING_DATASET_PATH|${DATA_BUCKET_DATASET_PATH}|" \
     ${MLP_USE_CASE_BASE_DIR}/manifests/fine-tune-${ACCELERATOR}-dws.yaml
 

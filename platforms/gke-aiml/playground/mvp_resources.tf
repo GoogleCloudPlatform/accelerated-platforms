@@ -15,7 +15,6 @@
 locals {
   bucket_cloudbuild_name = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
   bucket_data_name       = "${data.google_project.environment.project_id}-${var.environment_name}-data"
-  bucket_prediction_name = "${data.google_project.environment.project_id}-${var.environment_name}-prediction"
   bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
   data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
   data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
@@ -90,19 +89,6 @@ resource "google_storage_bucket" "model" {
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
 }
-
-resource "google_storage_bucket" "prediction" {
-  depends_on = [
-    google_container_cluster.mlp
-  ]
-
-  force_destroy               = true
-  location                    = var.region
-  name                        = local.bucket_prediction_name
-  project                     = data.google_project.environment.project_id
-  uniform_bucket_level_access = true
-}
-
 
 # GSA
 ###############################################################################
@@ -272,7 +258,6 @@ MLP_CLUSTER_KUBERNETES_HOST="${local.connect_gateway_host_url}"
 MLP_CLUSTER_LOCATION="${google_container_cluster.mlp.location}"
 MLP_CLUSTER_NAME="${local.cluster_name}"
 MLP_DATA_BUCKET="${local.bucket_data_name}"
-MLP_PREDICTION_BUCKET="${local.bucket_prediction_name}"
 MLP_DATA_PREPARATION_IMAGE="${local.repo_container_images_url}/data-preparation:1.0.0"
 MLP_DATA_PREPARATION_KSA="${local.data_preparation_ksa}"
 MLP_DATA_PROCESSING_IMAGE="${local.repo_container_images_url}/data-processing:1.0.0"

@@ -34,15 +34,7 @@ def graceful_shutdown(signal_number, stack_frame):
 
 class MetricsTaskSet(TaskSet):
 
-    def __init__(self):  # Constructor
-        self.model_id = os.environ["MODEL_ID"]
-        self.endpoint = os.environ["ENDPOINT"]
-        #self.host = os.environ["HOST"]
-        self.message1 = ( "I'm looking for comfortable cycling shorts for women, what are some good options?")
-        self.message2 = "Tell me about some tops for men, looking for different styles"
-
     wait_time = between(1, 5)
-    
 
     @task(50)
     def test1(self):
@@ -73,6 +65,14 @@ class MetricsTaskSet(TaskSet):
 
 
 class MetricsLocust(FastHttpUser):
+
+    def __init__(self):  # Constructor
+        self.model_id = os.environ["MODEL_ID"]
+        self.endpoint = os.environ["ENDPOINT"]
+        #self.host = os.environ["HOST"]
+        self.message1 = ( "I'm looking for comfortable cycling shorts for women, what are some good options?")
+        self.message2 = "Tell me about some tops for men, looking for different styles"
+    
     tasks = {MetricsTaskSet}
 
 # [END locust_test_task]

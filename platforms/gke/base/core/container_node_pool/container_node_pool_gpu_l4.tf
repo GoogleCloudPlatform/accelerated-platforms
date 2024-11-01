@@ -1,0 +1,1 @@
+gpu/region/us-central1/container_node_pool_gpu_l4.tf

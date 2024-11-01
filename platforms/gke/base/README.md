@@ -1,0 +1,1 @@
+# Base GKE Accelerated Platform

@@ -31,6 +31,7 @@ EOT
   }
 
   triggers = {
+    always_run    = timestamp()
     manifests_dir = "${local.manifests_directory}/kueue-${var.kueue_version}"
     version       = var.kueue_version
   }

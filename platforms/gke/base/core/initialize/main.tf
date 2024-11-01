@@ -91,6 +91,7 @@ sed -i 's/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 ""/' ${self.triggers.backen
   }
 
   triggers = {
+    always_run   = timestamp()
     backend_file = each.value
     md5          = data.google_storage_bucket.terraform.name
   }

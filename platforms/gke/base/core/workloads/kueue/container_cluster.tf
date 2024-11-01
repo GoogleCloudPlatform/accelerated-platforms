@@ -29,6 +29,7 @@ EOT
   }
 
   triggers = {
+    always_run      = timestamp()
     kubeconfig_file = local.kubeconfig_file
   }
 }

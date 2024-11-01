@@ -2,7 +2,7 @@
 
 Cloud Monitoring provides an [importer](https://cloud.google.com/monitoring/dashboards/import-grafana-dashboards) that you can use to import dashboard files in the Grafana JSON format into Cloud Monitoring
 
-*    Clone github repository
+*   Clone github repository
 
     ```sh
     cd

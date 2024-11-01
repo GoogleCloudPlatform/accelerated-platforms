@@ -252,8 +252,14 @@ if __name__ == "__main__":
     # Saves memory and speeds up training considerably
     group_by_length = True
 
+    # Save strategy: steps, epoch, no
+    save_strategy = os.getenv("CHECKPOINT_SAVE_STRATEGY", "steps")
+
+    # Save total limit of checkpoints
+    save_total_limit = int(os.getenv("CHECKPOINT_SAVE_TOTAL_LIMIT", "5"))
+
     # Save checkpoint every X updates steps
-    save_steps = 0
+    save_steps = int(os.getenv("CHECKPOINT_SAVE_STEPS", "1000"))
 
     # Log every X updates steps
     logging_steps = 50
@@ -324,7 +330,9 @@ if __name__ == "__main__":
         output_dir=save_model_path,
         packing=packing,
         per_device_train_batch_size=per_device_train_batch_size,
+        save_strategy=save_strategy,
         save_steps=save_steps,
+        save_total_limit=save_total_limit,
         warmup_ratio=warmup_ratio,
         weight_decay=weight_decay,
     )
@@ -342,7 +350,9 @@ if __name__ == "__main__":
     logger.info("Creating trainer completed")
 
     logger.info("Fine tuning started")
-    trainer.train()
+    # Check for existing checkpoints
+    checkpoints_present = glob.glob(f'{save_model_path}/checkpoint-*')!=[]
+    trainer.train(resume_from_checkpoint=checkpoints_present)
     logger.info("Fine tuning completed")
 
     if "MLFLOW_ENABLE" in os.environ and os.environ["MLFLOW_ENABLE"] == "true":

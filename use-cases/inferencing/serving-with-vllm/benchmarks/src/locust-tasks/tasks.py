@@ -34,8 +34,16 @@ def graceful_shutdown(signal_number, stack_frame):
 
 class MetricsTaskSet(TaskSet):
 
-    wait_time = between(1, 5)
+    #wait_time = between(1, 5)
+    model_id = None
+    message1 = None
+    message2 = None
 
+    def on_start(self):
+        self.model_id = os.environ["MODEL_ID"]
+        self.message1 = ( "I'm looking for comfortable cycling shorts for women, what are some good options?")
+        self.message2 = "Tell me about some tops for men, looking for different styles"
+                             
     @task(50)
     def test1(self):
         headers = {'content-type': 'application/json'}
@@ -66,12 +74,12 @@ class MetricsTaskSet(TaskSet):
 
 class MetricsLocust(FastHttpUser):
 
-    def __init__(self):  # Constructor
-        self.model_id = os.environ["MODEL_ID"]
-        self.endpoint = os.environ["ENDPOINT"]
-        #self.host = os.environ["HOST"]
-        self.message1 = ( "I'm looking for comfortable cycling shorts for women, what are some good options?")
-        self.message2 = "Tell me about some tops for men, looking for different styles"
+    # def __init__(self):  # Constructor
+    #     self.model_id = os.environ["MODEL_ID"]
+    #     self.endpoint = os.environ["ENDPOINT"]
+    #     #self.host = os.environ["HOST"]
+    #     self.message1 = ( "I'm looking for comfortable cycling shorts for women, what are some good options?")
+    #     self.message2 = "Tell me about some tops for men, looking for different styles"
     
     tasks = {MetricsTaskSet}
 

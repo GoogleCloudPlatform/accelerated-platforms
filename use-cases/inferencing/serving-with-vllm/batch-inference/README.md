@@ -67,7 +67,13 @@
     kubectl apply -f prediction.yaml
     ```
 
-You can review predictions result in file named `<MODEL_NAME>-predictions.txt` under /dataset/output folder in the bucket. A sample prediction output file named `predictions.txt` has been in this directory for reference.
+*   Wait for the job to show completion.
+
+    ```sh
+    kubectl get jobs -n ${MLP_KUBERNETES_NAMESPACE}
+    ```
+
+    The job runs for abount an hour. Once it is completed, you can review predictions result in file named `<MODEL_NAME>-predictions.txt` under /dataset/output folder in the bucket. A sample prediction output file named `predictions.txt` has been in this directory for reference.
 
 
 *   Go back to the infernece directory
@@ -76,4 +82,3 @@ You can review predictions result in file named `<MODEL_NAME>-predictions.txt` u
     cd  ${INFERENCE_DIR}
     ```
   
-  TODO: MLP_PREDICTION_BUCKET may not be needed. Check with kavitha to see if you cant point to the fine tuned date bucket

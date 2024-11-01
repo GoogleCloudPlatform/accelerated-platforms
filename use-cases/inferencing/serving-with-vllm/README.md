@@ -157,51 +157,51 @@ completion.
 
 *   Wait for the job to show completion.
 
-  ```sh
-  kubectl get jobs -n ${MLP_KUBERNETES_NAMESPACE}
-  ```
+    ```sh
+    kubectl get jobs -n ${MLP_KUBERNETES_NAMESPACE}
+    ```
 Now, the model is downloaded to the persistent volume.
 
 ## Create a persistent disk with the image of the model
 
 *   Fetch the Persistent volume name and disk ref to create a disk image
 
-  ```sh
-  PV_NAME="$(kubectl get pvc/block-pvc-model -n ${MLP_KUBERNETES_NAMESPACE} -o jsonpath='{.spec.volumeName}')"
-  DISK_REF="$(kubectl get pv "$PV_NAME" -n ${MLP_KUBERNETES_NAMESPACE} -o jsonpath='{.spec.csi.volumeHandle}')"
-  ```
+    ```sh
+    PV_NAME="$(kubectl get pvc/block-pvc-model -n ${MLP_KUBERNETES_NAMESPACE} -o jsonpath='{.spec.volumeName}')"
+    DISK_REF="$(kubectl get pv "$PV_NAME" -n ${MLP_KUBERNETES_NAMESPACE} -o jsonpath='{.spec.csi.volumeHandle}')"
+    ```
 
 *   Create a disk image
 
-  ```sh
-  gcloud compute images create ${IMAGE_NAME} --source-disk="$DISK_REF"
-  ```
+    ```sh
+    gcloud compute images create ${IMAGE_NAME} --source-disk="$DISK_REF"
+    ```
 
 *   Create a peristent disk with the model image:
 
-  ```sh
-  gcloud compute disks create ${DISK_NAME} --size=1TiB \
-  --type=pd-ssd --zone=${ZONE} --image=${IMAGE_NAME}
-  ```
+    ```sh
+    gcloud compute disks create ${DISK_NAME} --size=1TiB \
+    --type=pd-ssd --zone=${ZONE} --image=${IMAGE_NAME}
+    ```
 
 
 ## Deploy a vLLM container serving the model on the GKE cluster
 
 *   Replace the variables in the manifest and deploy the model.
 
-  ```sh
-  sed \
-  -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|g" \
-  -i -e "s|_KSA_|${MLP_SERVE_KSA}|g" \
-  -i -e "s|_MODEL_ID_|${MODEL_ID}|g" \
-  -i -e "s|_MODEL_PATH_|${MODEL_PATH}|g" \
-  -i -e "s|_ACCELERATOR_|${ACCELERATOR}|g" \
-  -i -e "s|_PROJECT_ID_|${MLP_PROJECT_ID}|g" \
-  -i -e "s|_ZONE_|${ZONE}|g" \
-  -i -e "s|_DISK_|${DISK_NAME}|g" \
-  manifests/model-deployment.yaml
-  kubectl  apply -f manifests/model-deployment.yaml
-  ```
+    ```sh
+    sed \
+    -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|g" \
+    -i -e "s|_KSA_|${MLP_SERVE_KSA}|g" \
+    -i -e "s|_MODEL_ID_|${MODEL_ID}|g" \
+    -i -e "s|_MODEL_PATH_|${MODEL_PATH}|g" \
+    -i -e "s|_ACCELERATOR_|${ACCELERATOR}|g" \
+    -i -e "s|_PROJECT_ID_|${MLP_PROJECT_ID}|g" \
+    -i -e "s|_ZONE_|${ZONE}|g" \
+    -i -e "s|_DISK_|${DISK_NAME}|g" \
+    manifests/model-deployment.yaml
+    kubectl  apply -f manifests/model-deployment.yaml
+    ```
 
   
   Note: This guide assumes that you have the accelerator available in the zone you are using.
@@ -211,13 +211,13 @@ Now, the model is downloaded to the persistent volume.
 
 *   A deployment named vllm-openai will be created. Check its logs for the following pattern that indicates that the model is ready 
 to serve.
-  
-  ```sh
-  INFO:     Started server process [1]
-  INFO:     Waiting for application startup.
-  INFO:     Application startup complete.
-  INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-  ```
+    
+    ```sh
+    INFO:     Started server process [1]
+    INFO:     Waiting for application startup.
+    INFO:     Application startup complete.
+    INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+    ```
 
 ## Serve the deployed model through a web chat interface
 

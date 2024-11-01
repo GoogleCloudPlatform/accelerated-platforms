@@ -20,6 +20,10 @@ output "cluster_project_id" {
   value = var.cluster_project_id
 }
 
+output "cluster_region" {
+  value = var.cluster_region
+}
+
 output "platform_name" {
   value = var.platform_name
 }

@@ -351,7 +351,7 @@ if __name__ == "__main__":
 
     logger.info("Fine tuning started")
     # Check for existing checkpoints
-    checkpoints_present = glob.glob(f'{save_model_path}/checkpoint-*')!=[]
+    checkpoints_present = glob.glob(f"{save_model_path}/checkpoint-*") != []
     trainer.train(resume_from_checkpoint=checkpoints_present)
     logger.info("Fine tuning completed")
 

@@ -127,7 +127,7 @@ inferencing:
   
 In this example, we will load the model from PD SSD.
 
-## Downlaod the fine tuned model from GCS bucket to a persistent volume
+## Download the fine tuned model from GCS bucket to a persistent volume
 
 Loading model weights from a Persistent Volume is a method to load models faster.
 In GKE, Persistent Volumes backed by GCP Persistent Disks can
@@ -209,7 +209,7 @@ Now, the model is downloaded to the persistent volume.
         use the model image on persistent disk and then deploys vLLM container using that
         persistent volume claim.
 
-*   Check the logs for the following pattern that indicates that the model is ready 
+*   A deployment named vllm-openai will be created. Check its logs for the following pattern that indicates that the model is ready 
 to serve.
   
   ```sh
@@ -221,42 +221,54 @@ to serve.
 
 ## Serve the deployed model through a web chat interface
 
-- Deploy a gradio chat interface to view the model chat interface. [OPTIONAL]
+-   Deploy a gradio chat interface to view the model chat interface. [OPTIONAL]
 
-  ```sh
-    sed \
-  -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|g" \
-  -i -e "s|_MODEL_ID_|${MODEL_ID}|g" \
-  -i -e "s|_MODEL_PATH_|${MODEL_PATH}|g" \
-  manifests/gradio.yaml
-  kubectl apply -f manifests/gradio.yaml
-  ```
-  TODO : Make the chat interfave avialable via IAP
+    ```sh
+      sed \
+    -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|g" \
+    -i -e "s|_MODEL_ID_|${MODEL_ID}|g" \
+    -i -e "s|_MODEL_PATH_|${MODEL_PATH}|g" \
+    manifests/gradio.yaml
+    kubectl apply -f manifests/gradio.yaml
+    ```
 
+-   Access the chat interface securely
+  
+    ```sh
+    echo $MLP_GRADIO_NAMESPACE_ENDPOINT
+    ```
+    Paste the gradio endpoint optained above in a browser     to open the chat interface to your deployed model.
+
+-   Provide the following prompt in the chat text box to get the response from the model.
+
+    ```
+    I'm looking for comfortable cycling shorts for women, what are some good options?"
+    ```
+   
 ### Production Metrics
 
 vLLM exposes a number of metrics that can be used to monitor the health of the system. These metrics are exposed via the `/metrics` endpoint on the vLLM OpenAI compatible API server. These metrics can be scraped using Google Managed Promotheus. For detials, see  [pod monitoring with Google managed prometheus](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-managed#gmp-pod-monitoring).
 
 *   Deploy the a `PodMonitoring` resource that scrapes the vllm metrics and make them available in [Cloud Metrics](https://pantheon.corp.google.com/monitoring/metrics-explorer).
 
-  ```sh
-  sed \
-  -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|g" \
-  manifests/pod-monitoring.yaml
-  kubectl apply -f manifests/pod-monitoring.yaml
-  ```
+    ```sh
+    sed \
+    -i -e "s|_NAMESPACE_|${MLP_KUBERNETES_NAMESPACE}|g" \
+    manifests/pod-monitoring.yaml
+    kubectl apply -f manifests/pod-monitoring.yaml
+    ```
 
 *   Wait for a minute and view the metrics in Cloud metrics. Note, that some 
 of the metrics will only be available when the model is used.
   
     *   Go to [metrics explorer](https://pantheon.corp.google.com/monitoring/metrics-explorer)
-    *   Go to `Select  metric` > `Prometheus Target` > `vllm-inference` to view the metrics
+    *   Go to `Select  metric` > `Prometheus Target` > `Vllm` to view the metrics
     *   In the `Filter` box , set filter `cluster=<YOUR_CLUSTER_NAME>` to see the metrics related to your cluster.
 
 
 ### Create a dashboard for Cloud Monitoring to view vLLM metrics
 
-You can create grafana dashboard with the vllm metrics. Follow the instructions on [dashboard readme][dashboard-readme].
+You can create grafana dashboard with the vllm metrics. Follow the instructions on [dashboard readme](./dashboard/README.md)
 
 
 ### Run Batch inference on GKE

@@ -277,5 +277,7 @@ MLP_REGION="${var.region}"
 MLP_SERVE_KSA="${local.model_serve_ksa}"
 MLP_SERVE_IMAGE="${local.repo_container_images_url}/serve:1.0.0"
 MLP_BENCHMARK_IMAGE="${local.repo_container_images_url}/benchmark:1.0.0"
+MLP_GRADIO_NAMESPACE_ENDPOINT="https://${local.gradio_endpoint}"
+MLP_LOCUST_NAMESPACE_ENDPOINT="https://${local.locust_endpoint}"
 EOT
 }

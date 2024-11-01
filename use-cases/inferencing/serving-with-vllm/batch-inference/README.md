@@ -19,11 +19,11 @@
 
 
     ```sh
-     gcloud storage buckets add-iam-policy-binding "gs://${MLP_PREDICTION_BUCKET}" \
+     gcloud storage buckets add-iam-policy-binding "gs://${MLP_MODEL_BUCKET}" \
     --member "principal://iam.googleapis.com/projects/"${MLP_PROJECT_NUMBER}"/locations/global/workloadIdentityPools/${MLP_PROJECT_ID}.svc.id.goog/subject/ns/${MLP_KUBERNETES_NAMESPACE}/sa/${MLP_SERVE_KSA}" \
     --role "roles/storage.objectUser"
   
-     gcloud storage buckets add-iam-policy-binding "gs://${MLP_PREDICTION_BUCKET}" \
+     gcloud storage buckets add-iam-policy-binding "gs://${MLP_MODEL_BUCKET}" \
     --member "principal://iam.googleapis.com/projects/"${MLP_PROJECT_NUMBER}"/locations/global/workloadIdentityPools/${MLP_PROJECT_ID}.svc.id.goog/subject/ns/${MLP_KUBERNETES_NAMESPACE}/sa/${MLP_SERVE_KSA}" \
     --role "roles/storage.legacyBucketWriter"
 

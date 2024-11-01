@@ -36,7 +36,7 @@ spec:
 kind: Service
 apiVersion: v1
 metadata:
-  name: locust-master-web
+  name: locust-master-web-svc
   namespace: _NAMESPACE_
   labels:
     app: locust-master

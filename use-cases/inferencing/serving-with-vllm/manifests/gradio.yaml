@@ -60,7 +60,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: gradio
+  name: gradio-svc
   namespace: _NAMESPACE_  # replace with your namespace
 spec:
   selector:

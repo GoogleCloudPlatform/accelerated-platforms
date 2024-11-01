@@ -24,6 +24,12 @@ locals {
   mlflow_tracking_endpoint     = "mlflow-tracking.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
   mlflow_tracking_service_name = "mlflow-tracking-svc"
   mlflow_tracking_port         = 5000
+  gradio_service_name          = "gradio-svc"
+  gradio_endpoint              = "gradio.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
+  gradio_port                  = 8080
+  locust_service_name          = "locust-master-web-svc"
+  locust_endpoint              = "locust.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
+  locust_port                  = 8089
 }
 
 ###############################################################################
@@ -45,7 +51,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
   project = data.google_project.environment.project_id
 
   managed {
-    domains = [local.ray_dashboard_endpoint, local.mlflow_tracking_endpoint]
+    domains = [local.ray_dashboard_endpoint, local.mlflow_tracking_endpoint, local.gradio_endpoint, local.locust_endpoint ]
   }
 }
 
@@ -80,6 +86,30 @@ resource "google_endpoints_service" "mlflow_tracking_https" {
   )
   project      = data.google_project.environment.project_id
   service_name = local.mlflow_tracking_endpoint
+}
+
+resource "google_endpoints_service" "gradio_https" {
+  openapi_config = templatefile(
+    "${path.module}/templates/openapi/endpoint.tftpl.yaml",
+    {
+      endpoint   = local.gradio_endpoint,
+      ip_address = google_compute_global_address.external_gateway_https.address
+    }
+  )
+  project      = data.google_project.environment.project_id
+  service_name = local.gradio_endpoint
+}
+
+resource "google_endpoints_service" "locust_https" {
+  openapi_config = templatefile(
+    "${path.module}/templates/openapi/endpoint.tftpl.yaml",
+    {
+      endpoint   = local.locust_endpoint,
+      ip_address = google_compute_global_address.external_gateway_https.address
+    }
+  )
+  project      = data.google_project.environment.project_id
+  service_name = local.locust_endpoint
 }
 
 resource "local_file" "gateway_external_https_yaml" {
@@ -122,6 +152,33 @@ resource "local_file" "route_mlflow_tracking_https_yaml" {
   filename = "${local.gateway_manifests_directory}/route-mlflow-tracking-https.yaml"
 }
 
+resource "local_file" "route_gradio_https_yaml" {
+  content = templatefile(
+    "${path.module}/templates/gateway/http-route-service.tftpl.yaml",
+    {
+      gateway_name    = local.gateway_name,
+      http_route_name = "gradio-https",
+      hostname        = local.gradio_endpoint
+      service_name    = local.gradio_service_name
+      service_port    = local.gradio_port
+    }
+  )
+  filename = "${local.gateway_manifests_directory}/route-gradio-https.yaml"
+}
+
+resource "local_file" "route_locust_https_yaml" {
+  content = templatefile(
+    "${path.module}/templates/gateway/http-route-service.tftpl.yaml",
+    {
+      gateway_name    = local.gateway_name,
+      http_route_name = "locust-https",
+      hostname        = local.locust_endpoint
+      service_name    = local.locust_service_name
+      service_port    = local.locust_port
+    }
+  )
+  filename = "${local.gateway_manifests_directory}/route-locust-https.yaml"
+}
 ###############################################################################
 # IAP
 ###############################################################################

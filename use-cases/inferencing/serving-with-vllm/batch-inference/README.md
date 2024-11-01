@@ -67,8 +67,8 @@
     kubectl apply -f prediction.yaml
     ```
 
-You can review predictions result in file named `predictions.txt` under /dataset/output folder in the bucket. Sample file has been added to the repository.
-The job will take approx 45 mins to execute.
+You can review predictions result in file named `<MODEL_NAME>-predictions.txt` under /dataset/output folder in the bucket. A sample prediction output file named `predictions.txt` has been in this directory for reference.
+
 
 *   Go back to the infernece directory
 

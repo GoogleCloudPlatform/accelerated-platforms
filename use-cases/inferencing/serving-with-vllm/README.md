@@ -268,7 +268,7 @@ of the metrics will only be available when the model is used.
 
 ### Create a dashboard for Cloud Monitoring to view vLLM metrics
 
-You can create grafana dashboard with the vllm metrics. Follow the instructions on [dashboard readme](./dashboard/README.md)
+You can create grafana dashboard with the vllm metrics. Follow the instructions on [dashboard readme](./dashboard/README.md).
 
 
 ### Run Batch inference on GKE

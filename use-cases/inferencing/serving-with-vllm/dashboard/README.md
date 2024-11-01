@@ -4,16 +4,16 @@ Cloud Monitoring provides an [importer](https://cloud.google.com/monitoring/dash
 
 *    Clone github repository
 
-  ```sh
-  cd
-  git clone https://github.com/GoogleCloudPlatform/monitoring-dashboard-samples
-  ```
+    ```sh
+    cd
+    git clone https://github.com/GoogleCloudPlatform/monitoring-dashboard-samples
+    ```
 
 *   Change to the directory for the dashboard importer:
 
-  ```sh
-  cd monitoring-dashboard-samples/scripts/dashboard-importer
-  ```
+    ```sh
+    cd monitoring-dashboard-samples/scripts/dashboard-importer
+    ```
 
 The dashboard importer includes the following scripts:
 
@@ -22,14 +22,14 @@ The dashboard importer includes the following scripts:
 
 *   Import the dashboard
 
-  ```sh
-  ./import.sh ${INFERENCE_DASHBOARD_DIR}/configs/grafana.json ${MLP_PROJECT_ID}
-  ```
+    ```sh
+    ./import.sh ${INFERENCE_DASHBOARD_DIR}/configs/grafana.json ${MLP_PROJECT_ID}
+    ```
 
   When you use the import.sh script, you must specify the location of the Grafana dashboards to convert. The importer creates a directory that contains the converted dashboards and other information.
 
 *   Go back to the infernece directory
 
-  ```sh
-  cd  ${INFERENCE_DIR}
-  ```
+    ```sh
+    cd  ${INFERENCE_DIR}
+    ```

@@ -21,5 +21,5 @@ locals {
 }
 
 variable "kueue_version" {
-  default = "0.8.0"
+  default = "0.8.1"
 }

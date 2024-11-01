@@ -19,6 +19,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/ml-platform-cluster-shared_config-deploy-v1"
+    module_name = "cloud-solutions/acp_gke_base_shared-config_deploy-v1"
   }
 }

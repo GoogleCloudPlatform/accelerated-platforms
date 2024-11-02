@@ -233,11 +233,13 @@ to serve.
     ```
 
 -   Access the chat interface securely
+-   
+    Note : gradio service many take upto 5 minutes to load completely.
   
     ```sh
     echo $MLP_GRADIO_NAMESPACE_ENDPOINT
     ```
-    Paste the gradio endpoint optained above in a browser     to open the chat interface to your deployed model.
+    Paste the gradio endpoint optained above in a browser to open the chat interface to your deployed model.
 
 -   Provide the following prompt in the chat text box to get the response from the model.
 

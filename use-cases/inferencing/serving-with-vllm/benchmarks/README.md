@@ -66,4 +66,13 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
     kubectl apply -f locust-master-controller.yaml -f locust-worker-controller.yaml -f locust-master-service.yaml
     ```
 
+-   Access the locust dashboard and launch swarming requests.
+  
+    Note : Locust service make take upto 5 minutes to load completely.
+
+    ```sh
+    echo $MLP_LOCUST_NAMESPACE_ENDPOINT
+    ```
+    Paste the locust endpoint optained above in a browser to open the chat interface to your deployed model.
+
 Here is a sample ![graph](./src/locust.jpg) to review.

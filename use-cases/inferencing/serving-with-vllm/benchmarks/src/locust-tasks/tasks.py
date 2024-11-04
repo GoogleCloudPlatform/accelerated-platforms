@@ -27,8 +27,8 @@ def graceful_shutdown(signal_number, stack_frame):
     # TODO: Add logic to handled checkpointing if required
     sys.exit(0)
 
-class MyUser(FastHttpUser):
 
+class MyUser(FastHttpUser):
     def __init__(self):  # Constructor
         self.model_id = os.environ["MODEL_ID"]
         self.endpoint = os.environ["ENDPOINT"]

@@ -90,7 +90,9 @@ if __name__ == "__main__":
 
     if "LOG_LEVEL" in os.environ:
         new_log_level = os.environ["LOG_LEVEL"].upper()
-        logging.info("Log level set to %s", new_log_level)
+        logger.info(
+            f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+        )
         logging.getLogger().setLevel(new_log_level)
         logger.setLevel(new_log_level)
 

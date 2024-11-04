@@ -51,7 +51,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
   project = data.google_project.environment.project_id
 
   managed {
-    domains = [local.ray_dashboard_endpoint, local.mlflow_tracking_endpoint, local.gradio_endpoint, local.locust_endpoint ]
+    domains = [local.ray_dashboard_endpoint, local.mlflow_tracking_endpoint, local.gradio_endpoint, local.locust_endpoint]
   }
 }
 

@@ -19,6 +19,7 @@ import os
 import signal
 import requests
 
+
 def graceful_shutdown(signal_number, stack_frame):
     signal_name = signal.Signals(signal_number).name
 
@@ -33,43 +34,54 @@ class MyUser(FastHttpUser):
         self.model_id = os.environ["MODEL_ID"]
         self.endpoint = os.environ["ENDPOINT"]
         self.host = os.environ["HOST"]
-        self.message1 = ( "I'm looking for comfortable cycling shorts for women, what are some good options?")
+        self.message1 = "I'm looking for comfortable cycling shorts for women, what are some good options?"
         self.message2 = "Tell me about some tops for men, looking for different styles"
 
     wait_time = between(1, 5)
-    
 
     @task(50)
     def test1(self):
-        headers = {'content-type': 'application/json'}
-        r = self.rest("POST","/v1/chat/completions",json={
+        headers = {"content-type": "application/json"}
+        r = self.rest(
+            "POST",
+            "/v1/chat/completions",
+            json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message1}],
                 "temperature": 0.5,
                 "top_k": 1.0,
                 "top_p": 1.0,
                 "max_tokens": 256,
-            },headers=headers)
-        print("FROM MESSAGE 1",r)
+            },
+            headers=headers,
+        )
+        print("FROM MESSAGE 1", r)
 
     @task(50)
     def test2(self):
-        headers = {'content-type': 'application/json'}
-        r = self.rest("POST","/v1/chat/completions",json={
+        headers = {"content-type": "application/json"}
+        r = self.rest(
+            "POST",
+            "/v1/chat/completions",
+            json={
                 "model": self.model_id,
                 "messages": [{"role": "user", "content": self.message2}],
                 "temperature": 0.5,
                 "top_k": 1.0,
                 "top_p": 1.0,
                 "max_tokens": 256,
-            },headers=headers) 
-        print("FROM MESSAGE 2",r)       
+            },
+            headers=headers,
+        )
+        print("FROM MESSAGE 2", r)
+
     def benchmarks(self):
         # if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
         #     self.test1()
         #     self.test2()
         self.test1()
         self.test2()
+
 
 if __name__ == "__main__":
     # Configure logging
@@ -90,5 +102,5 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, graceful_shutdown)
     benchmark_obj = MyUser()
     benchmark_obj.benchmarks()
-    #benchmark_obj.test1()
-    #benchmark_obj.test2()
+    # benchmark_obj.test1()
+    # benchmark_obj.test2()

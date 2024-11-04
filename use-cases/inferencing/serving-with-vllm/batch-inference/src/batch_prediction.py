@@ -22,6 +22,7 @@ from google.cloud import storage
 import pandas as pd
 import requests
 
+
 def graceful_shutdown(signal_number, stack_frame):
     signal_name = signal.Signals(signal_number).name
 
@@ -83,7 +84,6 @@ class ModelEvaluation:
         with open(self.output_file, "r") as local_file:
             blob = bucket.blob(f"predictions/{self.output_file}-{model_iteration_tag}")
             blob.upload_from_file(local_file)
-
 
     def evaluate(self):
         if "ACTION" in os.environ and os.environ["ACTION"] == "predict":

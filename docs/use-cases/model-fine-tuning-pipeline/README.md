@@ -68,18 +68,21 @@ The prompts were created utilizing the previously generated questions and answer
 
 ```
 <start_of_turn>user
- Context:Online shopping for Men's Clothing
-What kind of material is the SKOOKIE Sleeveless Solid Men's Jacket made of?<end_of_turn> <start_of_turn>model
-The SKOOKIE Sleeveless Solid Men's Jacket is made of a blinded fabric.
- Product Name: SKOOKIE Sleeveless Solid Men's Jacket
+Context:Online shopping for Men's Clothing
+What is the fabric of Numero Uno Solid Men's Polo Neck T-Shirt<end_of_turn><start_of_turn>model
+The fabric of Numero Uno Solid Men's Polo Neck T-Shirt is cotton 
+Product Name: Numero Uno Solid Men's Polo Neck T-Shirt
 Product Category: Men's Clothing
 Product Details:
-- Sleeve: Sleeveless
-- Reversible: No
-- Fabric: Blinded
+- Sleeve: Half Sleeve
+- Number of Contents in Sales Package: Pack of 1
+- Fabric: Cotton
+- Type: Polo Neck
+- Fit: Slim
 - Pattern: Solid
+- Occasion: Casual
 - Ideal For: Men's
-- Style Code: SKMJ-3005-C-Blue
+- Style Code: NMFNHZ444_SIMPLY GREEN..F
 <end_of_turn>
 ```
 
@@ -94,6 +97,8 @@ For implementation steps, please check this document [Data preparation for fine 
 With our prepared dataset, we proceed to fine-tune the Gemma model using PyTorch's Low-Rank Adaptation (LoRA) within the Parameter-Efficient Fine-Tuning (PEFT) framework. This approach incorporates Transformer Reinforcement Learning's (TRL) Supervised Fine-Tuning (SFT) methodology. The SFT process is initiated by providing the _`SFTrainer`_ with both the dataset and the specific tuning parameter configurations.
 
 While single-GPU setups without quantization might be sufficient, scaling to multiple GPUs across multiple hosts necessitates sharding and distributed workload management. We employ Fully Sharded Data Parallelism ([FSDP](https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/)) for model sharding and leverage [Accelerate](https://huggingface.co/docs/accelerate/en/index) for efficient distributed training.
+
+The resulting fine-tuned model is, Built with Meta Llama 3.1, using the the data prepared by the Llama 3.1 on Vertex AI API.
 
 ### **Initial Fine-Tuning and Optimization**
 

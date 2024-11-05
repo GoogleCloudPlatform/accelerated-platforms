@@ -1,7 +1,7 @@
 # Model evaluation and validation
 
 Once a model has completed fine-tuning, the model must be validated for precision and accuracy
-against the dataset used to fine-tune the model. In this example, the model is deployed on an
+against the dataset used to fine-tune the model. The fine-tuned model in this example has been, Built with Meta Llama 3.1. In this example, the model is deployed on an
 inference serving engine to host the model for the model validation to take place. Two steps are performed
 for this activity, the first is to send prompts to the fine-tuned model, the second is to validate the results.
 
@@ -56,12 +56,12 @@ for this activity, the first is to send prompts to the fine-tuned model, the sec
   | Variable       | Description                                     | Example                                  |
   | -------------- | ----------------------------------------------- | ---------------------------------------- |
   | ACCELERATOR    | Type of GPU accelerator to use (l4, a100)       | l4                                       |
-  | VLLM_IMAGE_URL | The image url for the vllm image                | vllm/vllm-openai:v0.5.3.post1            |
+  | VLLM_IMAGE_URL | The image url for the vllm image                | vllm/vllm-openai:v0.6.3.post1            |
   | MODEL          | The output folder path for the fine-tuned model | /model-data/model-gemma2-a100/experiment |
 
   ```sh
   ACCELERATOR="l4"
-  VLLM_IMAGE_URL="vllm/vllm-openai:v0.5.3.post1"
+  VLLM_IMAGE_URL="vllm/vllm-openai:v0.6.3.post1"
   MODEL="/model-data/model-gemma2/experiment"
   ```
 

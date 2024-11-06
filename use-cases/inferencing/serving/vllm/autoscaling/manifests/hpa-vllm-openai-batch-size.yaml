@@ -12,17 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: monitoring.googleapis.com/v1
-kind: PodMonitoring
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
 metadata:
-  name: vllm-inference
-  labels:
-    app: vllm-openai  
+  name: vllm-openai-hpa
 spec:
-  selector:
-    matchLabels:
-      app: vllm-openai
-  endpoints:
-  - port: 8000
-    path: /metrics
-    interval: 15s
+  maxReplicas: 5
+  metrics:
+  - pods:
+      metric:
+        name: prometheus.googleapis.com|vllm:num_requests_running|gauge
+      target:
+        averageValue: 10
+        type: AverageValue
+    type: Pods
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: vllm-openai-V_MODEL_STORAGE-V_ACCELERATOR

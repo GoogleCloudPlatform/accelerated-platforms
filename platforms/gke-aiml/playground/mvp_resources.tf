@@ -25,7 +25,10 @@ locals {
     "roles/logging.logWriter",
   ]
   model_evaluation_ksa       = "${var.environment_name}-${var.namespace}-model-evaluation"
-  model_serve_ksa            = "${var.environment_name}-${var.namespace}-model-serve"
+  model_ops_ksa              = "${var.environment_name}-${local.model_ops_namespace}-model-ops"
+  model_ops_namespace        = var.namespace
+  model_serve_ksa            = "${var.environment_name}-${local.model_serve_namespace}-model-serve"
+  model_serve_namespace      = var.namespace
   repo_container_images_id   = var.environment_name
   repo_container_images_url  = "${google_artifact_registry_repository.container_images.location}-docker.pkg.dev/${google_artifact_registry_repository.container_images.project}/${local.repo_container_images_id}"
   wi_member_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.environment.number}/locations/global/workloadIdentityPools/${data.google_project.environment.project_id}.svc.id.goog/subject/ns/${var.namespace}/sa"
@@ -121,6 +124,20 @@ resource "google_storage_bucket_iam_member" "cloudbuild_bucket_gsa_build_storage
   role   = "roles/storage.objectViewer"
 }
 
+# KUBERNETES NAMESPACE
+###############################################################################
+# resource "kubernetes_namespace_v1" "model_ops" {
+#   metadata {
+#     name = local.model_ops_namespace
+#   }
+# }
+
+# resource "kubernetes_namespace_v1" "model_serve" {
+#   metadata {
+#     name = local.model_serve_namespace
+#   }
+# }
+
 # KSA
 ###############################################################################
 resource "kubernetes_service_account_v1" "data_processing" {
@@ -167,6 +184,18 @@ resource "kubernetes_service_account_v1" "model_evaluation" {
   }
 }
 
+resource "kubernetes_service_account_v1" "model_ops" {
+  depends_on = [
+    null_resource.namespace_manifests,
+  ]
+
+  metadata {
+    name      = local.model_ops_ksa
+    namespace = local.model_ops_namespace
+  }
+}
+
+
 resource "kubernetes_service_account_v1" "model_serve" {
   depends_on = [
     null_resource.namespace_manifests,
@@ -174,12 +203,63 @@ resource "kubernetes_service_account_v1" "model_serve" {
 
   metadata {
     name      = local.model_serve_ksa
-    namespace = var.namespace
+    namespace = local.model_serve_namespace
   }
 }
 
 # IAM
 ###############################################################################
+
+# AIPLATFORM
+###########################################################
+resource "google_project_iam_member" "data_preparation_aiplatform_user" {
+  depends_on = [
+    google_container_cluster.mlp
+  ]
+
+  project = data.google_project.environment.project_id
+  member  = "${local.wi_member_principal_prefix}/${local.data_preparation_ksa}"
+  role    = "roles/aiplatform.user"
+}
+
+# DATA BUCKET
+###########################################################
+resource "google_storage_bucket_iam_member" "data_bucket_data_preparation_storage_object_user" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.data_preparation_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+resource "google_storage_bucket_iam_member" "data_bucket_data_processing_ksa_storage_object_user" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.data_processing_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+resource "google_storage_bucket_iam_member" "data_bucket_fine_tuning_storage_object_user" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.fine_tuning_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+resource "google_storage_bucket_iam_member" "data_bucket_model_evaluation_storage_insights_collector_service" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.model_evaluation_ksa}"
+  role   = "roles/storage.insightsCollectorService"
+}
+
+resource "google_storage_bucket_iam_member" "data_bucket_model_evaluation_storage_object_user" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.model_evaluation_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_admin" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.mlflow_kubernetes_service_account}"
+  role   = "roles/storage.objectAdmin"
+}
+
 resource "google_storage_bucket_iam_member" "data_bucket_ray_head_storage_object_viewer" {
   bucket = google_storage_bucket.data.name
   member = "${local.wi_member_principal_prefix}/${local.ray_head_kubernetes_service_account}"
@@ -192,61 +272,29 @@ resource "google_storage_bucket_iam_member" "data_bucket_ray_worker_storage_obje
   role   = "roles/storage.objectAdmin"
 }
 
-resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_admin" {
-  bucket = google_storage_bucket.data.name
-  member = "${local.wi_member_principal_prefix}/${local.mlflow_kubernetes_service_account}"
-  role   = "roles/storage.objectAdmin"
-}
-
-resource "google_storage_bucket_iam_member" "data_bucket_data_processing_ksa_storage_object_user" {
-  bucket = google_storage_bucket.data.name
-  member = "${local.wi_member_principal_prefix}/${local.data_processing_ksa}"
-  role   = "roles/storage.objectUser"
-}
-
-resource "google_storage_bucket_iam_member" "data_bucket_data_preparation_storage_object_user" {
-  bucket = google_storage_bucket.data.name
-  member = "${local.wi_member_principal_prefix}/${local.data_preparation_ksa}"
-  role   = "roles/storage.objectUser"
-}
-
-resource "google_project_iam_member" "data_preparation_aiplatform_user" {
-  depends_on = [
-    google_container_cluster.mlp
-  ]
-
-  project = data.google_project.environment.project_id
-  member  = "${local.wi_member_principal_prefix}/${local.data_preparation_ksa}"
-  role    = "roles/aiplatform.user"
-}
-
-resource "google_storage_bucket_iam_member" "data_bucket_fine_tuning_storage_object_user" {
-  bucket = google_storage_bucket.data.name
-  member = "${local.wi_member_principal_prefix}/${local.fine_tuning_ksa}"
-  role   = "roles/storage.objectUser"
-}
-
+# MODEL BUCKET
+###########################################################
 resource "google_storage_bucket_iam_member" "model_bucket_fine_tuning_storage_object_user" {
   bucket = google_storage_bucket.model.name
   member = "${local.wi_member_principal_prefix}/${local.fine_tuning_ksa}"
   role   = "roles/storage.objectUser"
 }
 
-resource "google_storage_bucket_iam_member" "data_bucket_model_evaluation_storage_storage_insights_collector_service" {
-  bucket = google_storage_bucket.data.name
-  member = "${local.wi_member_principal_prefix}/${local.model_evaluation_ksa}"
-  role   = "roles/storage.insightsCollectorService"
-}
-
-resource "google_storage_bucket_iam_member" "data_bucket_model_evaluation_storage_object_user" {
-  bucket = google_storage_bucket.data.name
+resource "google_storage_bucket_iam_member" "model_bucket_model_evaluation_storage_object_user" {
+  bucket = google_storage_bucket.model.name
   member = "${local.wi_member_principal_prefix}/${local.model_evaluation_ksa}"
   role   = "roles/storage.objectUser"
 }
 
-resource "google_storage_bucket_iam_member" "model_bucket_model_evaluation_storage_object_user" {
+resource "google_storage_bucket_iam_member" "model_bucket_model_ops_storage_object_user" {
   bucket = google_storage_bucket.model.name
-  member = "${local.wi_member_principal_prefix}/${local.model_evaluation_ksa}"
+  member = "${local.wi_member_principal_prefix}/${local.model_ops_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+resource "google_storage_bucket_iam_member" "model_bucket_model_serve_storage_object_user" {
+  bucket = google_storage_bucket.model.name
+  member = "${local.wi_member_principal_prefix}/${local.model_serve_ksa}"
   role   = "roles/storage.objectUser"
 }
 
@@ -267,18 +315,21 @@ MLP_DATA_PROCESSING_KSA="${local.data_processing_ksa}"
 MLP_ENVIRONMENT_NAME="${var.environment_name}"
 MLP_FINE_TUNING_IMAGE="${local.repo_container_images_url}/fine-tuning:1.0.0"
 MLP_FINE_TUNING_KSA="${local.fine_tuning_ksa}"
-MLP_GRADIO_NAMESPACE_ENDPOINT="https://${local.gradio_endpoint}"
+MLP_GRADIO_MODEL_OPS_ENDPOINT="https://${local.gradio_endpoint}"
 MLP_KUBERNETES_NAMESPACE="${var.namespace}"
 MLP_LOCUST_NAMESPACE_ENDPOINT="https://${local.locust_endpoint}"
 MLP_MLFLOW_TRACKING_NAMESPACE_ENDPOINT="https://${local.mlflow_tracking_endpoint}"
 MLP_MODEL_BUCKET="${local.bucket_model_name}"
 MLP_MODEL_EVALUATION_IMAGE="${local.repo_container_images_url}/model-evaluation:1.0.0"
 MLP_MODEL_EVALUATION_KSA="${local.model_evaluation_ksa}"
+MLP_MODEL_OPS_KSA="${local.model_ops_ksa}"
+MLP_MODEL_OPS_NAMESPACE="${local.model_ops_namespace}"
+MLP_MODEL_SERVE_KSA="${local.model_serve_ksa}"
+MLP_MODEL_SERVE_NAMESPACE="${local.model_serve_namespace}"
 MLP_PROJECT_ID="${data.google_project.environment.project_id}"
 MLP_PROJECT_NUMBER="${data.google_project.environment.number}"
 MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT="https://${local.ray_dashboard_endpoint}"
 MLP_REGION="${var.region}"
-MLP_SERVE_KSA="${local.model_serve_ksa}"
-MLP_SERVE_IMAGE="${local.repo_container_images_url}/serve:1.0.0"
+MLP_UNIQUE_IDENTIFIER_PREFIX="${local.unique_identifier_prefix}"
 EOT
 }

@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gradio
   labels:
     app: gradio
+  name: gradio
 spec:
   replicas: 1
   selector:
@@ -29,42 +29,45 @@ spec:
         app: gradio
     spec:
       containers:
-      - name: gradio
-        image: us-docker.pkg.dev/google-samples/containers/gke/gradio-app:v1.0.3
-        resources:
-          requests:
-            cpu: "250m"
-            memory: "512Mi"
-          limits:
-            cpu: "500m"
-            memory: "512Mi"
-        env:
+      - env:
         - name: CONTEXT_PATH
-          value: "/v1/chat/completions"
+          value: /v1/chat/completions
         - name: HOST
-          value: "http://vllm-openai:8000"
+          value: http://vllm-openai-pd-V_ACCELERATOR:8000
         - name: DISABLE_SYSTEM_MESSAGE
-          value: "true"
+          value: 'true'
         - name: LLM_ENGINE
-          value: "openai"
+          value: openai
         - name: MODEL_ID
-          value: V_MODEL_ID
+          value: /local/V_MODEL_NAME/V_MODEL_VERSION
         - name: USER_PROMPT
-          value: "<start_of_turn>user\nprompt<end_of_turn>\n"
+          value: |
+            <start_of_turn>user
+            prompt<end_of_turn>
         - name: SYSTEM_PROMPT
-          value: "<start_of_turn>model\nprompt<end_of_turn>\n"
+          value: |
+            <start_of_turn>model
+            prompt<end_of_turn>
+        image: us-docker.pkg.dev/google-samples/containers/gke/gradio-app:v1.0.3
+        name: gradio
         ports:
         - containerPort: 7860
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 250m
+            memory: 512Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: gradio
+  name: gradio-svc
 spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 7860
   selector:
     app: gradio
-  ports:
-  - protocol: TCP
-    port: 8080
-    targetPort: 7860
-  type: LoadBalancer

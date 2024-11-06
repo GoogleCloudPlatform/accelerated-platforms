@@ -6,6 +6,9 @@ __pycache__/
 .venv/
 venv/
 
+# Repositories
+monitoring-dashboard-samples/
+
 # Terraform
 *.terraform/
 *.terraform-*/

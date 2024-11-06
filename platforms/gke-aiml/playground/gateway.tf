@@ -21,11 +21,11 @@ locals {
 
   # Endpoints
   gradio_service_name = "gradio-svc"
-  gradio_endpoint     = "gradio.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
+  gradio_endpoint     = "gradio.${local.model_ops_namespace}.mlp-${var.environment_name}.${local.hostname_suffix}"
   gradio_port         = 8080
 
   locust_service_name = "locust-master-web-svc"
-  locust_endpoint     = "locust.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
+  locust_endpoint     = "locust.${local.model_ops_namespace}.mlp-${var.environment_name}.${local.hostname_suffix}"
   locust_port         = 8089
 
   mlflow_tracking_endpoint     = "mlflow-tracking.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
@@ -35,7 +35,6 @@ locals {
   ray_head_service_name  = "ray-cluster-kuberay-head-svc"
   ray_dashboard_endpoint = "ray-dashboard.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
   ray_dashboard_port     = 8265
-
 }
 
 ###############################################################################

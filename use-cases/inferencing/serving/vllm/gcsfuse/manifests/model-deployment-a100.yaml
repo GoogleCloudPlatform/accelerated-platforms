@@ -1,0 +1,107 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-openai-gcs-a100
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-openai-gcs-a100
+  template:
+    metadata:
+      labels:
+        app: vllm-openai-gcs-a100
+      annotations:
+        gke-gcsfuse/volumes: "true"
+    spec:
+      containers:
+      - name: inference-server
+        args:
+        - --model=$(MODEL)
+        - --tensor-parallel-size=2
+        env:
+        - name: MODEL
+          value: /gcs/V_MODEL_NAME/V_MODEL_VERSION
+        - name: VLLM_ATTENTION_BACKEND
+          value: FLASHINFER
+        image: V_IMAGE_NAME
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 240
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+            nvidia.com/gpu: "2"
+          limits:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+            nvidia.com/gpu: "2"
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+        - name: gcs-fuse-csi-ephemeral
+          mountPath: /gcs
+          readOnly: true
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-a100
+      serviceAccountName: V_KSA
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "on-demand"
+        value: "true"
+        operator: "Equal"
+        effect: "NoSchedule" 
+      volumes:
+      - name: dshm
+        emptyDir:
+            medium: Memory
+      - name: gcs-fuse-csi-ephemeral
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: V_MODEL_BUCKET
+            mountOptions: "implicit-dirs,file-cache:enable-parallel-downloads:true,file-cache:max-parallel-downloads:-1" 
+            fileCacheCapacity: "20Gi"
+            fileCacheForRangeRead: "true"
+            metadataStatCacheCapacity: "-1"
+            metadataTypeCacheCapacity: "-1"
+            metadataCacheTTLSeconds: "-1"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-openai-gcs-a100
+spec:
+  selector:
+    app: vllm-openai-gcs-a100
+  type: ClusterIP
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000

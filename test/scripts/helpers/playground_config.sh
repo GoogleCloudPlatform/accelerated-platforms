@@ -45,6 +45,12 @@ if [ "${MLP_REGION}" != "us-central1" ]; then
     ln -s region/${MLP_REGION}/container_node_pool.tf
 fi
 
+echo_title "Checking gradio endpoint"
+gcloud endpoints services undelete gradio.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
+
+echo_title "Checking locust endpoint"
+gcloud endpoints services undelete locust.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
+
 echo_title "Checking mlflow-tracking endpoint"
 gcloud endpoints services undelete mlflow-tracking.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
 

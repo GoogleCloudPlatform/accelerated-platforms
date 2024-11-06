@@ -19,7 +19,7 @@ echo_title "Checking model-eval required configuration"
 echo_title "Applying model-eval configuration"
 
 export ACCELERATOR="l4"
-export VLLM_IMAGE_URL="vllm/vllm-openai:v0.5.3.post1"
+export VLLM_IMAGE_URL="vllm/vllm-openai:v0.6.3.post1"
 export MODEL="/model-data/model-gemma2/experiment"
 
 export DATASET_OUTPUT_PATH="dataset/output"

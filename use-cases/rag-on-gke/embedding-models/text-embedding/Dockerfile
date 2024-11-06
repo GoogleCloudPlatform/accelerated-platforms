@@ -1,11 +1,5 @@
 FROM continuumio/miniconda3:23.3.1-0
 
-# Install OpenCV3 Python bindings
-#RUN sudo apt-get update
-
-# Create a working directory
-#RUN mkdir /app
-
 # Add requirements file
 WORKDIR /app/
 ADD requirements.txt /app/

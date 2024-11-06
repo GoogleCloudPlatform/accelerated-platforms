@@ -1,8 +1,0 @@
-google-cloud-alloydb
-psycopg2-binary
-google-cloud-alloydb-connector[pg8000]
-sqlalchemy
-google-cloud-storage==2.16.0
-pandas==2.2.1
-gcsfs==2024.3.1
-fsspec==2024.3.1

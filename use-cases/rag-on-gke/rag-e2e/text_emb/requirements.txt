@@ -1,3 +1,0 @@
-# requirements.txt
-sentence-transformers
-flask

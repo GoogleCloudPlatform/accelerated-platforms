@@ -1,6 +1,0 @@
-flask
-google.cloud.storage
-pillow
-requests
-salesforce-lavis
-opencv-python

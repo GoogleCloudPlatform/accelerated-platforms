@@ -1,11 +1,8 @@
-#gcloud container node-pools create embeddings-pool --cluster $CLUSTER_NAME 
-#--accelerator type=nvidia-tesla-t4,count=1,gpu-driver-version=latest   --machine-type n1-standard-4 --ephemeral-storage-local-ssd=count=1   --enable-autoscaling --enable-image-streaming   --num-nodes=1 --min-nodes=0 --max-nodes=3 --shielded-secure-boot   --shielded-integrity-monitoring --node-version=1.29 --node-locations us-east1-c --region us-east1 --spot
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: text-embedding-model-deployment
-  namespace: <your-namespace> # namespace
+  namespace: text-embedding-model # namespace
 spec:
   selector:
     matchLabels:
@@ -21,32 +18,33 @@ spec:
        - name: dshm
          emptyDir:
               medium: Memory
-      tolerations:
-      - key: "nvidia.com/gpu"
-        operator: "Equal"
-        value: "present"
-        effect: "NoSchedule"
-      - key: "on-demand"
-        operator: "Equal"
-        value: "true"
-        effect: "NoSchedule"
       nodeSelector:
-        cloud.google.com/gke-accelerator: nvidia-l4
+        cloud.google.com/gke-accelerator: nvidia-l4      
+        cloud.google.com/gke-nodepool: gpu-l4x2-g2s24        
+      tolerations:
+       - key: "nvidia.com/gpu"
+         operator: "Equal"
+         value: "present"
+         effect: "NoSchedule"
+       - key: "on-demand"
+         operator: "Equal"
+         value: "true"
+         effect: "NoSchedule"
       containers:
       - name: embeddings
-        image: us-docker.pkg.dev/{PROJECT_ID}/rag-artifacts/sentence-transformer:latest #replace with your sentence transformer image path
+        image: us-docker.pkg.dev/gkebatchenv3a4ec43f/rag-artifacts/sentence-transformer:latest #replace with your sentence transformer image path
         resources:
             limits:
               cpu: "2"
               memory: "8Gi"
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "2"
             requests:
               cpu: "2"
               memory: "8Gi"
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "2"
         env:
             - name: model_name
-              value: Alibaba-NLP/gte-large-en-v1.5          
+              value: Alibaba-NLP/gte-large-en-v1.5            
             - name: shm-size
               value: 1g
         ports:
@@ -61,7 +59,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: embedding-serve
-  namespace: <your-namespace> # namespace 
+  namespace: text-embedding-model # namespace 
 spec:
   type: LoadBalancer
   selector:

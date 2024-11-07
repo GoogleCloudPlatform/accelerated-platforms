@@ -17,6 +17,18 @@ model, vis_processors, txt_processors = load_model_and_preprocess(
 
 
 def get_text_embedding(caption):
+    """Generates text embeddings for a given caption.
+
+    Args:
+        caption: The input caption as a string.
+
+    Returns:
+        A torch.Tensor containing the text embeddings.
+
+    Raises:
+        ValueError: If there is an error generating the text embedding.
+    """
+
     try:
         text_input = txt_processors["eval"](caption)
         sample = {"text_input": [text_input]}
@@ -27,6 +39,18 @@ def get_text_embedding(caption):
 
 
 def get_image_embedding(image):
+    """Generates multimodal embeddings for a given image and caption.
+
+    Args:
+        image: A PIL.Image object.
+        caption: The input caption as a string.
+
+    Returns:
+        A torch.Tensor containing the multimodal embeddings.
+
+    Raises:
+        ValueError: If there is an error generating the multimodal embedding.
+    """
     try:
         image = vis_processors["eval"](image).unsqueeze(0).to(device)
         sample = {"image": image}
@@ -37,6 +61,18 @@ def get_image_embedding(image):
 
 
 def get_multimodal_embedding(image, caption):
+    """Generates multimodal embeddings for a given image and caption.
+
+    Args:
+        image: A PIL.Image object.
+        caption: The input caption as a string.
+
+    Returns:
+        A torch.Tensor containing the multimodal embeddings.
+
+    Raises:
+        ValueError: If there is an error generating the multimodal embedding.
+    """
     try:
         image = vis_processors["eval"](image).unsqueeze(0).to(device)
         text_input = txt_processors["eval"](caption)
@@ -93,6 +129,24 @@ def download_image_from_gcs(gcs_uri):
 
 @app.route("/text_embeddings", methods=["POST"])
 def generate_text_embeddings():
+    """Generates text embeddings for a given caption.
+
+    This endpoint accepts a POST request with a JSON payload containing the `caption`.
+
+    Args:
+        None (from request body):
+            caption: The input caption as a string.
+
+    Returns:
+        A JSON response containing the text embeddings.
+            {
+                "text_embeds": [embedding values]
+            }
+
+    Raises:
+        400 Bad Request: If the request format is invalid or missing required data.
+        405 Method Not Allowed: If the request method is not POST.
+    """
     if request.method == "POST":
         if request.is_json:
             try:
@@ -157,6 +211,24 @@ def generate_image_embeddings():
 
 @app.route("/multimodal_embeddings", methods=["POST"])
 def generate_multimodal_embeddings():
+    """Generates multimodal embeddings for a given image and caption.
+
+    This endpoint accepts a POST request with either a JSON payload containing
+    the `image_uri` and `caption` or a file upload named `image` and a form field
+    named `text`.
+
+    Args:
+        None (from request body):
+            JSON payload:
+                image_uri: The GCS URI of the image file.
+                caption: The input caption as a string.
+            Form data:
+                image: The image file.
+                text: The input caption as a form field.
+
+    Returns:
+        A JSON response containing the multimodal embeddings
+    """
     if request.method == "POST":
         try:
             if request.is_json:

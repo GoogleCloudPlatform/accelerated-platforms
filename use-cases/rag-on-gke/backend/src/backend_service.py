@@ -1,17 +1,57 @@
-from typing import List
+from typing import List, Union, Literal
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, field_validator, Field
 import requests
 import uvicorn
 from llama_index.core.embeddings import BaseEmbedding
 
 # Define the API Endpoints
-TEXT_API_ENDPOINT = "http://34.27.238.63:8080/embed"  # Replace with your actual text embedding API endpoint
-IMAGE_API_ENDPOINT = ""  # Replace with your actual image embedding API endpoint
+TEXT_API_ENDPOINT = "http://127.0.0.1:5000/text_embeddings"  # Replace with your actual text embedding API endpoint
+IMAGE_API_ENDPOINT = "http://127.0.0.1:5000/image_embeddings"  # Replace with your actual image embedding API endpoint
+MULTIMODAL_API_ENDPOINT = "http://127.0.0.1:5000/multimodal_embeddings"  # Replace with your actual multimodal embedding API endpoint
 
+# FastAPI application
 app = FastAPI()
+
+
+# Request models
+class TextRequest(BaseModel):
+    """Request model for text embedding."""
+
+    text: str
+
+
+class ImageRequest(BaseModel):
+    """Request model for image embedding."""
+
+    image_uri: str
+
+
+class MultimodalRequest(BaseModel):
+    """Request model for image embedding."""
+
+    image_uri: str
+    text: str
+
+
+class ImageEmbeddingResponse(BaseModel):
+    """Response model for image embeddings."""
+
+    image_embeds: List[float]
+
+
+class TextEmbeddingResponse(BaseModel):
+    """Response model for image embeddings."""
+
+    text_embeds: List[float]
+
+
+class MultimodalEmbeddingResponse(BaseModel):
+    """Response model for image embeddings."""
+
+    multimodal_embeds: List[float]
 
 
 # Custom embedding class using BaseEmbedding
@@ -24,7 +64,7 @@ class CustomEmbedding(BaseEmbedding):
         """Initialize the CustomEmbedding class."""
         super().__init__()
 
-    def _get_text_embedding(self, text: str) -> float:
+    def _get_text_embedding(self, text: str) -> List[float]:  # Updated return type
         """
         Get text embedding from the external text embedding API.
 
@@ -32,31 +72,29 @@ class CustomEmbedding(BaseEmbedding):
             text: The text to embed.
 
         Returns:
-            A list of floats representing the text embedding.
+            An EmbeddingList object containing the text embedding.
 
         Raises:
             HTTPException: If the API request fails or returns an invalid response.
         """
         try:
-            # text = "What is Deep Learning?"
-
             response = requests.post(
                 TEXT_API_ENDPOINT,
-                json={"inputs": text},  # Changed "text" to "inputs"
-                headers={
-                    "Content-Type": "application/json"
-                },  # Added content-type header
+                json={"caption": text},
+                headers={"Content-Type": "application/json"},
                 timeout=1000,
             )
-
-            # response = requests.post(
-            #     TEXT_API_ENDPOINT, json={"text": text}, timeout=1000
-            # )
             response.raise_for_status()
 
             text_embeddings = response.json()
-            return text_embeddings
-            # return EmbeddingResponse.model_validate(text_embeddings).embedding
+
+            # Validate and extract the embedding list
+            embedding_list = TextEmbeddingResponse.model_validate(
+                text_embeddings
+            ).text_embeds
+
+            # Return the EmbeddingList directly
+            return embedding_list
         except requests.exceptions.RequestException as e:
             raise HTTPException(
                 status_code=500, detail=f"Error fetching text embedding: {e}"
@@ -66,29 +104,41 @@ class CustomEmbedding(BaseEmbedding):
                 status_code=500, detail=f"Invalid response from text embedding API: {e}"
             )
 
-    def _get_image_embedding(self, image: bytes) -> List[float]:
+    def _get_image_embedding(
+        self, image_uri: str
+    ) -> List[float]:  # Updated return type
         """
         Get image embedding from the external image embedding API.
 
         Args:
-            image: The image bytes to embed.
+            image_uri: The GCS URI of the image.
 
         Returns:
-            A list of floats representing the image embedding.
+            An EmbeddingList object containing the image embedding.
 
         Raises:
             HTTPException: If the API request fails or returns an invalid response.
         """
+
         try:
             response = requests.post(
                 IMAGE_API_ENDPOINT,
-                files={"image": image},
+                json={"image_uri": image_uri},
+                headers={"Content-Type": "application/json"},
                 timeout=1000,
             )
             response.raise_for_status()
 
             image_embeddings = response.json()
-            return EmbeddingResponse.model_validate(image_embeddings).embedding
+            # print(type(image_embeddings))
+
+            # Validate and extract the embedding list
+            embedding_list = ImageEmbeddingResponse.model_validate(
+                image_embeddings
+            ).image_embeds
+
+            # Return the EmbeddingList directly
+            return embedding_list
         except requests.exceptions.RequestException as e:
             raise HTTPException(
                 status_code=500, detail=f"Error fetching image embedding: {e}"
@@ -99,7 +149,51 @@ class CustomEmbedding(BaseEmbedding):
                 detail=f"Invalid response from image embedding API: {e}",
             )
 
-    def get_text_embedding(self, text: str) -> float:
+    def _get_multimodal_embedding(
+        self, image_uri: str, text: str
+    ) -> List[float]:  # Updated return type
+        """
+        Get image embedding from the external image embedding API.
+
+        Args:
+            image_uri: The GCS URI of the image.
+
+        Returns:
+            An EmbeddingList object containing the image embedding.
+
+        Raises:
+            HTTPException: If the API request fails or returns an invalid response.
+        """
+
+        try:
+            response = requests.post(
+                MULTIMODAL_API_ENDPOINT,
+                json={"image_uri": image_uri, "caption": text},
+                headers={"Content-Type": "application/json"},
+                timeout=1000,
+            )
+            response.raise_for_status()
+
+            multimodal_embeddings = response.json()
+
+            # Validate and extract the embedding list
+            embedding_list = MultimodalEmbeddingResponse.model_validate(
+                multimodal_embeddings
+            ).multimodal_embeds
+
+            # Return the EmbeddingList directly
+            return embedding_list
+        except requests.exceptions.RequestException as e:
+            raise HTTPException(
+                status_code=500, detail=f"Error fetching image embedding: {e}"
+            )
+        except (ValueError, TypeError) as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Invalid response from image embedding API: {e}",
+            )
+
+    def get_text_embedding(self, text: str) -> List[float]:
         """
         Public method to get text embedding.
 
@@ -111,19 +205,32 @@ class CustomEmbedding(BaseEmbedding):
         """
         return self._get_text_embedding(text)
 
-    def get_image_embedding(self, image_file: bytes) -> List[float]:
+    def get_image_embedding(self, image_uri: str) -> List[float]:
         """
         Public method to get image embedding.
 
         Args:
-            image_file: The image bytes to embed.
+            image_uri: The GCS URI of the image.
 
         Returns:
             A list of floats representing the image embedding.
         """
-        return self._get_image_embedding(image_file)
+        return self._get_image_embedding(image_uri)
 
-    def _get_query_embedding(self, query: str) -> List[float]:
+    def get_multimodal_embedding(self, image_uri: str, text: str) -> List[float]:
+        """
+        Public method to get text embedding.
+
+        Args:
+            text: The text to embed.
+            image_uri: The GCS URI of the image.
+
+        Returns:
+            A list of floats representing the text embedding.
+        """
+        return self._get_multimodal_embedding(image_uri, text)
+
+    def _get_query_embedding(self, query: str) -> List:
         """
         Get query embedding from the external text embedding API.
 
@@ -143,7 +250,7 @@ class CustomEmbedding(BaseEmbedding):
             response.raise_for_status()
 
             query_embeddings = response.json()
-            return EmbeddingResponse.model_validate(query_embeddings).embedding
+            return TextEmbeddingResponse.model_validate(query_embeddings).embedding
         except requests.exceptions.RequestException as e:
             raise HTTPException(
                 status_code=500, detail=f"Error fetching query embedding: {e}"
@@ -154,41 +261,17 @@ class CustomEmbedding(BaseEmbedding):
                 detail=f"Invalid response from query embedding API: {e}",
             )
 
-    async def _aget_query_embedding(self, query: str) -> List[float]:
+    async def _aget_query_embedding(self, query: str) -> List:
         """Asynchronous version of _get_query_embedding."""
         return self._get_query_embedding(query)
 
-
-# FastAPI application
-app = FastAPI()
 
 # Instantiate the embedding model
 embedding_model = CustomEmbedding()
 
 
-# Request models
-class TextRequest(BaseModel):
-    """Request model for text embedding."""
-
-    text: str
-
-
-class ImageRequest(BaseModel):
-    """Request model for image embedding."""
-
-    pass  # No specific data needed for image, as it's uploaded separately
-
-
-# Response models
-class EmbeddingResponse(RootModel[List[float]]):
-    """Response model for embeddings."""
-
-    # __root__: RootModel[List[float]]
-    # # embedding: List[float]
-
-
 # Text embedding endpoint
-@app.post("/embeddings/text", response_model=EmbeddingResponse)
+@app.post("/embeddings/text", response_model=TextEmbeddingResponse)
 async def get_text_embedding(request: TextRequest):
     """
     Endpoint for getting text embeddings.
@@ -201,30 +284,54 @@ async def get_text_embedding(request: TextRequest):
     """
     try:
         embedding = embedding_model.get_text_embedding(request.text)
-        return embedding
-        # return EmbeddingResponse(embedding=embedding)
+        # Wrap the embedding list in EmbeddingList
+        return TextEmbeddingResponse(text_embeds=embedding)
+
     except HTTPException as e:
         return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
 
 
-@app.post("/embeddings/image", response_model=EmbeddingResponse)
-async def get_image_embedding(request: ImageRequest, image: UploadFile = File(...)):
+@app.post("/embeddings/image_uri", response_model=ImageEmbeddingResponse)
+async def get_image_embedding(request: ImageRequest):
     """
     Endpoint for getting image embeddings.
 
     Args:
-        request: The ImageRequest object.
-        image: The uploaded image file.
+        request: The ImageRequest object image_uri: The GCS URI of the image.
 
     Returns:
         EmbeddingResponse containing the image embedding.
     """
     try:
-        image_data = await image.read()
-        embedding = embedding_model.get_image_embedding(image_data)
-        return EmbeddingResponse(embedding=embedding)
-    except HTTPException as e:
-        return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
+        embedding = embedding_model.get_image_embedding(request.image_uri)
+        # Return the EmbeddingResponse with the correct structure
+        return ImageEmbeddingResponse(image_embeds=embedding)
+
+    except Exception as e:  # Catch a broader range of exceptions
+        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+
+
+@app.post("/embeddings/multimodal", response_model=MultimodalEmbeddingResponse)
+async def get_multimodal_embedding(request: MultimodalRequest):
+    """
+    Endpoint for getting multimodal embeddings.
+
+    Args:
+        request: The ImageRequest object image_uri: The GCS URI of the image.
+        request: The TextRequest object containing the text.
+
+    Returns:
+        EmbeddingResponse containing the multimodal embedding.
+    """
+    try:
+        embedding = embedding_model.get_multimodal_embedding(
+            request.image_uri, request.text
+        )
+        # Return the EmbeddingResponse with the correct structure
+        return MultimodalEmbeddingResponse(multimodal_embeds=embedding)
+
+    except Exception as e:  # Catch a broader range of exceptions
+        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
 
 
 # --- Start the web server ---

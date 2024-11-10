@@ -1,9 +1,6 @@
-source $MLP_PLATFORM_ENV_FILE
-
-gcloud config set project $MLP_PROJECT_ID
-
-gcloud artifacts repositories create embedding-artifacts --repository-format=docker --location=us --description="My RAG artifacts repository"
-
-gcloud builds submit . 
-
-kubectl apply -f embedding-job.yaml
+## Steps to deploy multi modal embedding model BLIP2
+docker build -t multi_emb .
+docker tag multi_emb:latest gcr.io/gkebatchexpce3c8dcb/multi_emb:latest
+docker push gcr.io/gkebatchexpce3c8dcb/multi_emb:latest
+kubectl delete -f embedding-job.yaml -n ml-team
+kubectl apply -f embedding-job.yaml -n ml-team

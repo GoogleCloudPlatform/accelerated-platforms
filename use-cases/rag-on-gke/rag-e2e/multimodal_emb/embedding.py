@@ -21,7 +21,33 @@ model, img_processor, text_processor = load_model_and_preprocess(
 )
 
 
-def get_text_embedding(str: product_desc):
+def fetch_image(img_uri):
+    """
+    Fetches an image from Google Cloud Storage (GCS) or a data URI.
+
+    Args:
+      img_uri: The URI of the image.
+
+    Returns:
+      A PIL Image object.
+    """
+    try:
+        storage_client = storage.Client()
+        uri = img_uri
+        if uri.startswith("gs://"):
+            blob = Blob.from_string(uri, client=storage_client)
+            imgf = io.BytesIO()
+            blob.download_to_file(imgf, storage_client)
+            imgf.seek(0)
+        else:
+            raise NotImplementedError("Only supports GCS URI")
+        img = Image.open(imgf).convert("RGB")
+        return img
+    except Exception as e:
+        logging.error(f"Error fetching image from {img_uri}: {e}")
+        raise
+
+def get_text_embedding(product_desc: str):
     """
     Generates text embeddings for a given product_desc.
 
@@ -54,7 +80,7 @@ def get_image_embeddings(image):
       A tensor containing the text embeddings.
     """
     try:
-        image = img_processors["eval"](image).unsqueeze(0).to(device)
+        image = img_processor["eval"](image).unsqueeze(0).to(device)
         sample = {"image": image}
         features_image = model.extract_features(sample, mode="image")
 
@@ -66,13 +92,13 @@ def get_image_embeddings(image):
 
 def get_multimodal_embeddings(image, text):
     try:
-        image = img_processors["eval"](image).unsqueeze(0).to(device)
-        text_input = txt_processors["eval"](text)
+        image = img_processor["eval"](image).unsqueeze(0).to(device)
+        text_input = text_processor["eval"](text)
         sample = {"image": image, "text_input": [text_input]}
 
         # Extract multimodal, image, and text features
         features_multimodal = model.extract_features(sample)
-
+        logging.error(features_multimodal.multimodal_embeds)
         return features_multimodal.multimodal_embeds
     except Exception as e:
         logging.error(f"Error generating multimodal embedding: {e}")
@@ -81,34 +107,6 @@ def get_multimodal_embeddings(image, text):
 
 # Flask app
 app = Flask(__name__)
-
-
-def fetch_image(img_uri):
-    """
-    Fetches an image from Google Cloud Storage (GCS) or a data URI.
-
-    Args:
-      img_uri: The URI of the image.
-
-    Returns:
-      A PIL Image object.
-    """
-    try:
-        storage_client = storage.Client()
-        uri = img_uri
-        if uri.startswith("gs://"):
-            blob = Blob.from_string(uri, client=storage_client)
-            imgf = io.BytesIO()
-            blob.download_to_file(imgf, storage_client)
-            imgf.seek(0)
-        else:
-            raise NotImplementedError("Only supports GCS URI")
-        img = Image.open(imgf).convert("RGB")
-        return img
-    except Exception as e:
-        logging.error(f"Error fetching image from {img_uri}: {e}")
-        raise
-
 
 @app.route("/embeddings", methods=["POST"])
 def generate_embeddings():
@@ -122,34 +120,37 @@ def generate_embeddings():
         if request.method == "POST":
             if request.is_json:
                 json_req = request.get_json()
-                if "image_uri" not in json_req:
-                    text_features = get_text_embedding(json_req["product_desc"])
+                logging.error(json_req)
+                if "image_uri" in json_req and "product_desc" in json_req:
+                    logging.error("Multi modal embedding request")
+                    image = fetch_image(json_req["image_uri"])
+                    text = json_req["product_desc"]
+                    features_multimodal = (
+                        get_multimodal_embeddings(image, text)
+                    )
+                    response = {
+                        "multimodal_embeds": features_multimodal.tolist()[0][0]
+                    }
+                    return jsonify(response)
+                elif "image_uri" not in json_req and "product_desc" in json_req:
+                    logging.error("Text embedding request")
+                    image = None
+                    text = json_req["product_desc"]
+                    text_features = get_text_embedding(text)
                     return jsonify({"text_embeds": text_features.tolist()[0][0]})
-                image = fetch_image(json_req["image_uri"])
-                text = json_req.get("product_desc", None)
-            else:
-                if "image" not in request.files:
-                    return jsonify({"error": "No image provided"}), 400
+                elif "image_uri" in json_req and "product_desc" not in json_req:
+                    logging.error("Image embedding request")
+                    image = fetch_image(json_req["image_uri"])
+                    text = None
+                    image_features = get_image_embeddings(image)
+                    return jsonify({"image_embeds": image_features.tolist()[0][0]})
+                else:
+                    if "image" not in request.files:
+                        return jsonify({"error": "No image, No product description provided"}), 400
 
-                image_file = request.files["image"]
-                image = Image.open(image_file).convert("RGB")
-                text = request.form.get("text")
-
-            if text is None:
-                return jsonify({"error": "No text provided"}), 400
-
-            features_multimodal, features_image, features_text = (
-                get_image_text_embeddings(image, text)
-            )
-
-            response = {
-                "multimodal_embeds": features_multimodal.tolist()[0][0],
-                "image_embeds": features_image.tolist()[0][0],
-                "text_embeds": features_text.tolist()[0][0],
-            }
-
-            return jsonify(response)
-
+                #image_file = request.files["image"]
+                #image = Image.open(image_file).convert("RGB")
+                #text = request.form.get("text")
         else:
             return jsonify({"error": "Invalid request method"}), 405
 
@@ -159,4 +160,4 @@ def generate_embeddings():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=8000) # Match the Service port

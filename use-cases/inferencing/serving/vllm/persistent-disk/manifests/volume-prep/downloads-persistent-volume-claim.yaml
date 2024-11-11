@@ -13,30 +13,14 @@
 # limitations under the License.
 
 apiVersion: v1
-kind: PersistentVolume
+kind: PersistentVolumeClaim
 metadata:
-  name: model-weights-disk-1024gb-zone-a
-  labels:
-    pv-usage: model-weights
-    pv-spec: ssd-1024G
+  name: vllm-models
 spec:
-  storageClassName: ""
-  capacity:
-    storage: 1024Gi
   accessModes:
-    - ReadWriteOnce
-  csi:
-    driver: pd.csi.storage.gke.io
-    volumeHandle: V_VOLUME_HANDLE
-    fsType: ext4
-    readOnly: true
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: topology.gke.io/zone
-          operator: In
-          values:
-          - V_ZONE
-  mountOptions:
-  - read_ahead_kb=4096
+  - ReadWriteOnce
+  volumeMode: Block
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: standard-rwo

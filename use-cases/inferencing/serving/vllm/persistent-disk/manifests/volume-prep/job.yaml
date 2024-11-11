@@ -15,7 +15,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  generateName: module-download-job-
+  name: model-downloader
   labels:
     app: model-downloader
 spec:
@@ -31,10 +31,12 @@ spec:
         gke-gcsfuse/volumes: 'true'
         gke-gcsfuse/memory-limit: 10Gi
         gke-gcsfuse/memory-request: 4Gi
+      labels:
+        app: model-downloader
     spec:
-      serviceAccountName: V_KSA # sed replace KSA name
+      serviceAccountName: V_KSA
       containers:
-      - name: dldr
+      - name: model-downloader
         image: debian:latest
         command: ["/bin/sh", "-c"]
         args:
@@ -42,15 +44,16 @@ spec:
           apt-get update && apt-get install -y fuse2fs
           mkfs.ext4 -FF /dev/xvda
           fuse2fs -o fakeroot /dev/xvda /mnt
-          mkdir -p /mnt/V_MODEL_ID
-          cp -r /data/models/V_MODEL_ID/V_MODEL_DIR_PATH /mnt/V_MODEL_ID
-          ls -lR /mnt/V_MODEL_ID
+          mkdir -p /mnt/V_MODEL_NAME/V_MODEL_VERSION
+          cp -r /gcs/V_MODEL_NAME/V_MODEL_VERSION /mnt/V_MODEL_NAME/
+          ls -alh /mnt/V_MODEL_NAME
+          ls -alh /mnt/V_MODEL_NAME/V_MODEL_VERSION
         volumeDevices:
         - name: data
           devicePath: /dev/xvda
         volumeMounts:
-        - name: model-weights
-          mountPath: /data/models
+        - name: vllm-model-weights
+          mountPath: /gcs
         securityContext:
           privileged: true
       restartPolicy: Never
@@ -61,13 +64,13 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: block-pvc-model
-      - name: model-weights
+          claimName: vllm-models
+      - name: vllm-model-weights
         csi:
           driver: gcsfuse.csi.storage.gke.io
           readOnly: true
           volumeAttributes:
-            bucketName: V_MODEL_BUCKET # sed replace with your bucket name  
+            bucketName: V_MODEL_BUCKET
             mountOptions: implicit-dirs
             gcsfuseLoggingSeverity: warning
             fileCacheCapacity: 10Gi

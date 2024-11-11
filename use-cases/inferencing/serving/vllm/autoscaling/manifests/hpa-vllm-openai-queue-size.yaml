@@ -30,4 +30,4 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: vllm-openai-pd-l4
+    name: vllm-openai-V_MODEL_STORAGE-V_ACCELERATOR

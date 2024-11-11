@@ -53,9 +53,7 @@ By the end of this guide, you should be able to perform the following steps:
   gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
   ```
 
-## Prepare the Persistent Disk (PD)
-
-Loading model weights from a PersistentVolume is a method to load models faster. In GKE, PersistentVolumes backed by Google Cloud Persistent Disks can be mounted read-only simultaneously by multiple nodes (ReadOnlyMany), this allows multiple pods access to the model weights from a single volume.
+## Serve the model with vLLM
 
 - Configure the environment
 
@@ -72,8 +70,6 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   MODEL_VERSION=experiment
   ZONE=us-central1-a
   ```
-
-## Serve the model with vLLM
 
 - Configure the deployment
 

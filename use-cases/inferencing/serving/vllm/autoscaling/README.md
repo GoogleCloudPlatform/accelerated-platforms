@@ -48,7 +48,7 @@
 
 ## Scaling metrics
 
-There are different metrics available that cam be used to scale your inference workload on GKE:
+There are different metrics available that can be used to scale your inference workload on GKE:
 
 - Server metrics: LLM inference servers vLLM provides workload-specific
   performance metrics. GKE simplifies scraping of those metrics and autoscaling

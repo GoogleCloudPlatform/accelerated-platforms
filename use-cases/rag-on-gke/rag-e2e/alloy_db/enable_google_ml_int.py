@@ -1,6 +1,7 @@
 import psycopg2
 from google.cloud import alloydb_v1 as alloydb
 
+
 def execute_sql(host, database, user, password, cmd):
     """Creates a new database in PostgreSQL using psycopg2."""
 
@@ -32,26 +33,27 @@ def execute_sql(host, database, user, password, cmd):
             conn.close()
 
 
-def enable_google_ml_integration_ext(host, database_name, username, password):    
+def enable_google_ml_integration_ext(host, database_name, username, password):
     # Install the latest google_ml_integration>=1.1 version available to your AlloyDB cluster, run this SQL command:
     cmd1 = "CREATE EXTENSION IF NOT EXISTS google_ml_integration CASCADE;"
     execute_sql(host, database_name, username, password, cmd1)
-    
+
     # To work with vector embeddings, you must enable the pgvector extension.
     cmd2 = "CREATE EXTENSION IF NOT EXISTS vector;"
     execute_sql(host, database_name, username, password, cmd2)
-    
+
     # To list the extensions your database has enabled, run this SQL command:
     cmd3 = "select extname, extversion from pg_extension;"
     execute_sql(host, database_name, username, password, cmd3)
 
     # Add columns for test, image and multi modal embeddings
-    
-    cmd4 = "ALTER TABLE {table_name} ADD COLUMN text_embedding vector(768);"
-    cmd5 = "ALTER TABLE {table_name} ADD COLUMN image_embedding vector(768);"
-    cmd6 = "ALTER TABLE {table_name} ADD COLUMN multimodal_embedding vector(768);"
 
-'''
+    # cmd4 = "ALTER TABLE {table_name} ADD COLUMN text_embedding vector(768);"
+    # cmd5 = "ALTER TABLE {table_name} ADD COLUMN image_embedding vector(768);"
+    # cmd6 = "ALTER TABLE {table_name} ADD COLUMN multimodal_embedding vector(768);"
+
+
+"""
 # ToDo: This lib function is not working?
 # google.api_core.exceptions.InvalidArgument: 400 Malformed collection name: 'clusters/supportedDatabaseFlags'
 def list_supported_database_flags(project_id, region, cluster_id):
@@ -114,4 +116,4 @@ def enable_google_ml_integration_ext(project_id, region, cluster_id, instance_id
     cmd5 = "ALTER TABLE {table_name} ADD COLUMN image_embedding vector(768);"
     cmd6 = "ALTER TABLE {table_name} ADD COLUMN multimodal_embedding vector(768);"
 
-'''
+"""

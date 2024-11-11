@@ -15,7 +15,7 @@ def get_text_embeddings(user_query):
     try:
         response = requests.post(url, headers=headers, json=data)
         # print(response)
-        print(response.json())
+        #print(response.json())
         response.raise_for_status()  # Raise an exception for error responses
         return response.json()["text_embeds"]
     except requests.exceptions.RequestException as e:

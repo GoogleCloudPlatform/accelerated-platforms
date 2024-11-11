@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.12.4-slim
 
 WORKDIR /app
 
@@ -8,6 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY alloydb_setup.py .
 COPY create_catalog.py .
 COPY enable_google_ml_int.py .
+COPY get_emb.py .
 COPY main.py .
 
 #CMD ["python", "alloydb_setup.py"]

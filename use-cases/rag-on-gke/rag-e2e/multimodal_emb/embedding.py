@@ -47,6 +47,7 @@ def fetch_image(img_uri):
         logging.error(f"Error fetching image from {img_uri}: {e}")
         raise
 
+
 def get_text_embedding(product_desc: str):
     """
     Generates text embeddings for a given product_desc.
@@ -108,6 +109,7 @@ def get_multimodal_embeddings(image, text):
 # Flask app
 app = Flask(__name__)
 
+
 @app.route("/embeddings", methods=["POST"])
 def generate_embeddings():
     """
@@ -125,12 +127,8 @@ def generate_embeddings():
                     logging.error("Multi modal embedding request")
                     image = fetch_image(json_req["image_uri"])
                     text = json_req["product_desc"]
-                    features_multimodal = (
-                        get_multimodal_embeddings(image, text)
-                    )
-                    response = {
-                        "multimodal_embeds": features_multimodal.tolist()[0][0]
-                    }
+                    features_multimodal = get_multimodal_embeddings(image, text)
+                    response = {"multimodal_embeds": features_multimodal.tolist()[0][0]}
                     return jsonify(response)
                 elif "image_uri" not in json_req and "product_desc" in json_req:
                     logging.error("Text embedding request")
@@ -146,11 +144,16 @@ def generate_embeddings():
                     return jsonify({"image_embeds": image_features.tolist()[0][0]})
                 else:
                     if "image" not in request.files:
-                        return jsonify({"error": "No image, No product description provided"}), 400
+                        return (
+                            jsonify(
+                                {"error": "No image, No product description provided"}
+                            ),
+                            400,
+                        )
 
-                #image_file = request.files["image"]
-                #image = Image.open(image_file).convert("RGB")
-                #text = request.form.get("text")
+                # image_file = request.files["image"]
+                # image = Image.open(image_file).convert("RGB")
+                # text = request.form.get("text")
         else:
             return jsonify({"error": "Invalid request method"}), 405
 
@@ -160,4 +163,4 @@ def generate_embeddings():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000) # Match the Service port
+    app.run(host="0.0.0.0", port=8000)  # Match the Service port

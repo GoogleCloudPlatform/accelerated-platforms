@@ -11,23 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
-  name: vllm-openai-hpa
+  name: vllm-model-weights-ssd-1024gb-V_ZONE-ro
 spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: vllm-openai
-  minReplicas: 1
-  maxReplicas: 5
-  metrics:
-  - type: Pods
-    pods:
-      metric:
-        name: prometheus.googleapis.com|vllm:num_requests_running|gauge
-      target:
-        type: AverageValue
-        averageValue: V_AVERAGE_VALUE
+  storageClassName: ""
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1024Gi
+  selector:
+    matchLabels:
+      pv-usage: vllm-model-weights
+      pv-spec: ssd-1024G

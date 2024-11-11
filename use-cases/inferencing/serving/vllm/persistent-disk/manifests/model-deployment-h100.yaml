@@ -1,0 +1,101 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-openai-pd-h100
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-openai-pd-h100
+  template:
+    metadata:
+      labels:
+        app: vllm-openai-pd-h100
+    spec:
+      containers:
+      - args:
+        - '--model=$(MODEL)'
+        - '--tensor-parallel-size=2'
+        env:
+        - name: MODEL
+          value: /local/V_MODEL_NAME/V_MODEL_VERSION
+        - name: VLLM_ALLOW_LONG_MAX_MODEL_LEN
+          value: "1"
+        - name: VLLM_ATTENTION_BACKEND
+          value: FLASHINFER
+        image: V_VLLM_IMAGE_URL
+        name: inference-server
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /health
+            port: 8000
+            scheme: HTTP
+          initialDelaySeconds: 240
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: '2'
+            ephemeral-storage: 25Gi
+            memory: 25Gi
+            nvidia.com/gpu: '2'
+          requests:
+            cpu: '2'
+            ephemeral-storage: 25Gi
+            memory: 25Gi
+            nvidia.com/gpu: '2'
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+        - mountPath: /local
+          name: model-disk
+          readOnly: true
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-h100-80gb
+      serviceAccountName: V_KSA
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Equal
+        value: present
+      - effect: NoSchedule
+        key: on-demand
+        operator: Equal
+        value: 'true'
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: dshm
+      - name: model-disk
+        persistentVolumeClaim:
+          claimName: vllm-model-weights-ssd-1024gb-V_ZONE-ro
+          readOnly: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm-openai-pd-h100
+spec:
+  ports:
+  - port: 8000
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: vllm-openai-pd-h100
+  type: ClusterIP

@@ -12,25 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: monitoring.googleapis.com/v1
-kind: PodMonitoring
+apiVersion: v1
+kind: PersistentVolume
 metadata:
-  name: nvidia-dcgm-exporter-for-hpa
+  name: vllm-model-weights-ssd-1024gb-V_ZONE
   labels:
-    app.kubernetes.io/name: nvidia-dcgm-exporter
-    app.kubernetes.io/part-of: google-cloud-managed-prometheus
+    pv-usage: vllm-model-weights
+    pv-spec: ssd-1024G
 spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: nvidia-dcgm-exporter
-  endpoints:
-  - port: metrics
-    interval: 15s
-    metricRelabeling:
-    - action: keep
-      sourceLabels: [__name__]
-    - action: replace
-      sourceLabels: [__name__]
-      targetLabel: __name__
-      regex: DCGM_FI_DEV_GPU_UTIL
-      replacement: dcgm_fi_dev_gpu_util
+  storageClassName: ""
+  capacity:
+    storage: 1024Gi
+  accessModes:
+    - ReadWriteOnce
+  csi:
+    driver: pd.csi.storage.gke.io
+    volumeHandle: V_VOLUME_HANDLE
+    fsType: ext4
+    readOnly: true
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: topology.gke.io/zone
+          operator: In
+          values:
+          - V_ZONE
+  mountOptions:
+  - read_ahead_kb=4096

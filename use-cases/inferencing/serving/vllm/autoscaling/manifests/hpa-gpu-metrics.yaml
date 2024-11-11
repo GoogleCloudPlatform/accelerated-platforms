@@ -12,15 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-kind: PersistentVolumeClaim
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
 metadata:
-  name: block-pvc-model
+  labels:
+    app.kubernetes.io/name: nvidia-dcgm-exporter
+    app.kubernetes.io/part-of: google-cloud-managed-prometheus
+  name: nvidia-dcgm-exporter-for-hpa
 spec:
-  accessModes:
-  - ReadWriteOnce
-  volumeMode: Block
-  resources:
-    requests:
-      storage: 100Gi
-  storageClassName: standard-rwo
+  endpoints:
+  - interval: 15s
+    metricRelabeling:
+    - action: keep
+      sourceLabels: [__name__]
+    - action: replace
+      regex: DCGM_FI_DEV_GPU_UTIL
+      replacement: dcgm_fi_dev_gpu_util
+      sourceLabels: [__name__]
+      targetLabel: __name__
+    port: metrics
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nvidia-dcgm-exporter

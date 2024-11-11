@@ -12,18 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
 metadata:
-  name: pvc-model-weights-claim-1024gb-zone-a-ro
+  name: vllm-inference-V_MODEL_STORAGE-V_ACCELERATOR
+  labels:
+    app: vllm-inference-V_MODEL_STORAGE-V_ACCELERATOR
 spec:
-  storageClassName: ""
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1024Gi
   selector:
     matchLabels:
-      pv-usage: model-weights
-      pv-spec: ssd-1024G
+      app: vllm-openai-V_MODEL_STORAGE-V_ACCELERATOR
+  endpoints:
+  - port: 8000
+    path: /metrics
+    interval: 15s

@@ -13,6 +13,11 @@ TEXT_API_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
 IMAGE_API_ENDPOINT = os.environ["IMAGE_EMBEDDING_ENDPOINT"]
 MULTIMODAL_API_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
 
+print("Text Embedding endpoint:", TEXT_API_ENDPOINT)
+print("Image Embedding endpoint:", IMAGE_API_ENDPOINT)
+print("Multimodal Embedding endpoint:", MULTIMODAL_API_ENDPOINT)
+
+
 # FastAPI application
 app = FastAPI()
 

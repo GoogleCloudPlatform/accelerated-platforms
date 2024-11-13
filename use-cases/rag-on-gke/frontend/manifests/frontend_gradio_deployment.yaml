@@ -18,9 +18,9 @@ spec:
         ports:
         - containerPort: 7680 
         env:
-        - name: V_TEXT_EMBEDDING_ENDPOINT
+        - name: TEXT_EMBEDDING_ENDPOINT
           value: "http://python-backend-service:8000/embeddings/text"
-        - name: V_MULTIMODAL_EMBEDDING_ENDPOINT
+        - name: MULTIMODAL_EMBEDDING_ENDPOINT
           value: "http://python-backend-service:8000/embeddings/multimodal"
         resources:
           requests:

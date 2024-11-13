@@ -19,9 +19,9 @@ spec:
         - containerPort: 8000 # Replace with your backend application's port
         env:
         - name: V_TEXT_EMBEDDING_ENDPOINT
-          value: "http://0.0.0.0:8000/embeddings/text"
+          value: "http://multimodal-embedding-model-service:80/embeddings/text"
         - name: V_MULTIMODAL_EMBEDDING_ENDPOINT
-          value: "http://0.0.0.0:8000/embeddings/multimodal"
+          value: "http://multimodal-embedding-model-service:80/embeddings/multimodal"
         resources:
           requests:
             cpu: "512m" 

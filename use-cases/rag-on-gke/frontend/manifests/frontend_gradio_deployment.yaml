@@ -19,9 +19,9 @@ spec:
         - containerPort: 7680 
         env:
         - name: V_TEXT_EMBEDDING_ENDPOINT
-          value: "http://0.0.0.0:8000/embeddings/text"
+          value: "http://python-backend-service:8000/embeddings/text"
         - name: V_MULTIMODAL_EMBEDDING_ENDPOINT
-          value: "http://0.0.0.0:8000/embeddings/multimodal"
+          value: "http://python-backend-service:8000/embeddings/multimodal"
         resources:
           requests:
             cpu: "512m"

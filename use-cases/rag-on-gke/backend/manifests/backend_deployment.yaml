@@ -22,7 +22,7 @@ spec:
         - name: TEXT_EMBEDDING_ENDPOINT
           value: "http://multimodal-embedding-model-service:80/text_embeddings"
         - name: IMAGE_EMBEDDING_ENDPOINT
-          value: "http://multimodal-embedding-model-service:80/image_uri"
+          value: "http://multimodal-embedding-model-service:80/image_embeddings"
         - name: MULTIMODAL_EMBEDDING_ENDPOINT
           value: "http://multimodal-embedding-model-service:80/multimodal_embeddings"            
         resources:

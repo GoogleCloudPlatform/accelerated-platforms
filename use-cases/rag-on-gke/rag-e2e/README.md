@@ -65,10 +65,10 @@ gcloud iam service-accounts add-iam-policy-binding \
 - Follow README.md:
     - Creates AlloyDB cluster, instance, users, database, table; Populate the product catalog and generate embeddings, vector index on text_embeddings
 
-4. Deploy instruction-tuned model in GKE
+3. Deploy instruction-tuned model in GKE
 - cd instruction-tuned-model-deployment/
 - Follow README.md 
 
-3. Deploy backend application in GKE
+4. Deploy backend application in GKE
 - cd backend-application
 - Follow README.md 

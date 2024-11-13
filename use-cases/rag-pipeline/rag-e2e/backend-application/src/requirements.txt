@@ -1,0 +1,5 @@
+# requirements.txt
+requests
+google-cloud-alloydb-connector[pg8000]
+sqlalchemy
+flask

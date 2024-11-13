@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: embedding-model-deployment
+  namespace: ml-team
+spec:
+  replicas: 1 # Adjust replica count as needed
+  selector:
+    matchLabels:
+      app: blip2
+  template:
+    metadata:
+      labels:
+        app: blip2
+    spec:
+      containers:
+      - name: blip2
+        #image: us-docker.pkg.dev/gkebatchexpce3c8dcb/embedding-artifacts/blip2:v4.0 # Update the image location
+        image: gcr.io/gkebatchexpce3c8dcb/multi_emb:latest
+        resources:
+          requests:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+            nvidia.com/gpu: "2"
+          limits:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+            nvidia.com/gpu: "2"
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Equal"
+        value: "present"
+        effect: "NoSchedule"
+      - key: "on-demand"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
+      serviceAccountName: alloydb-setup-ksa
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: embedding-model-service
+spec:
+  selector:
+    app: blip2
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

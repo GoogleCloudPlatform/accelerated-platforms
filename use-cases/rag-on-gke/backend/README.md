@@ -18,7 +18,7 @@ gcloud config set project $PROJECT_ID
 ```
 #<TODO> change it to main branch before merge
 git clone https://github.com/GoogleCloudPlatform/accelerated-platforms.git
-cd rag-on-gke/frontend/src
+cd rag-on-gke/backend/src
 ```
 
 Update the location where you would like to store the container images in the ```cloud build yaml`` and kick off the build: 

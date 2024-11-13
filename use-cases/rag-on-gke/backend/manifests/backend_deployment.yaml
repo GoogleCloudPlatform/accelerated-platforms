@@ -22,9 +22,9 @@ spec:
         - name: TEXT_EMBEDDING_ENDPOINT
           value: "http://multimodal-embedding-model-service:80/text_embeddings"
         - name: IMAGE_EMBEDDING_ENDPOINT
-          value: "http://multimodal-embedding-model-service:80/embeddings/image_uri"
+          value: "http://multimodal-embedding-model-service:80/image_uri"
         - name: MULTIMODAL_EMBEDDING_ENDPOINT
-          value: "http://multimodal-embedding-model-service:80/embeddings/multimodal_embeddings"
+          value: "http://multimodal-embedding-model-service:80/multimodal_embeddings"            
         resources:
           requests:
             cpu: "512m" 

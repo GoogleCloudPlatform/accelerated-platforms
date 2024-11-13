@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Copyright 2022 Google Inc. All rights reserved.
 #
@@ -15,7 +15,7 @@
 # limitations under the License.
 
 LOCUST="/usr/local/bin/locust"
-LOCUS_OPTS="-f /locust-tasks/tasks.py --host=$TARGET_HOST"
+LOCUS_OPTS="-f tasks.py --host=$TARGET_HOST"
 LOCUST_MODE=${LOCUST_MODE:-standalone}
 
 export ENDPOINT=${ENDPOINT}

@@ -7,7 +7,7 @@ import os
 TEXT_EMBEDDING_ENDPOINT = os.getenv(
     "TEXT_EMBEDDING_ENDPOINT"
 )  # Replace with your actual text embedding API endpoint
-IMAGE_EMBEDDING_ENDPOINT = os.getenv(
+MULTIMODAL_EMBEDDING_ENDPOINT = os.getenv(
     "IMAGE_EMBEDDING_ENDPOINT"
 )  # Replace with your actual image embedding API endpoint
 

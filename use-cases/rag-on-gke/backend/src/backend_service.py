@@ -9,15 +9,9 @@ import uvicorn
 from llama_index.core.embeddings import BaseEmbedding
 
 # Define the API Endpoints
-TEXT_API_ENDPOINT = os.getenv(
-    "TEXT_API_ENDPOINT"
-)  # Replace with your actual text embedding API endpoint
-IMAGE_API_ENDPOINT = os.getenv(
-    "IMAGE_API_ENDPOINT"
-)  # Replace with your actual image embedding API endpoint
-MULTIMODAL_API_ENDPOINT = os.getenv(
-    "MULTIMODAL_API_ENDPOINT"
-)  # Replace with your actual multimodal embedding API endpoint
+TEXT_API_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
+IMAGE_API_ENDPOINT = os.environ["IMAGE_EMBEDDING_ENDPOINT"]
+MULTIMODAL_API_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
 
 # FastAPI application
 app = FastAPI()

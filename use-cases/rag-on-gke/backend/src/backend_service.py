@@ -1,4 +1,5 @@
 from typing import List, Union, Literal
+import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
@@ -8,9 +9,15 @@ import uvicorn
 from llama_index.core.embeddings import BaseEmbedding
 
 # Define the API Endpoints
-TEXT_API_ENDPOINT = "http://127.0.0.1:5000/text_embeddings"  # Replace with your actual text embedding API endpoint
-IMAGE_API_ENDPOINT = "http://127.0.0.1:5000/image_embeddings"  # Replace with your actual image embedding API endpoint
-MULTIMODAL_API_ENDPOINT = "http://127.0.0.1:5000/multimodal_embeddings"  # Replace with your actual multimodal embedding API endpoint
+TEXT_API_ENDPOINT = os.getenv(
+    "TEXT_API_ENDPOINT"
+)  # Replace with your actual text embedding API endpoint
+IMAGE_API_ENDPOINT = os.getenv(
+    "IMAGE_API_ENDPOINT"
+)  # Replace with your actual image embedding API endpoint
+MULTIMODAL_API_ENDPOINT = os.getenv(
+    "MULTIMODAL_API_ENDPOINT"
+)  # Replace with your actual multimodal embedding API endpoint
 
 # FastAPI application
 app = FastAPI()

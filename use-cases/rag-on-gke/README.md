@@ -66,12 +66,10 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
 
 ## Run ETL pipeline for embedding generation
 
-
 ## Deploy the Multimodal Model on the playground cluster
 
 
-
-## Deploy the backedn on the playground cluster
+## Deploy the backend on the playground cluster
 
 
 ## Deploy the frontend on the playground cluster
@@ -83,11 +81,13 @@ ACCELERATOR_TYPE=<accelerator_type> # nvidia-l4 | nvidia-tesla-a100
   export HF_TOKEN=<your-Hugging-Face-account-token>
 ```
 
-
 ```
 kubectl create secret generic hf-secret \
 --from-literal=hf_api_token=$HF_TOKEN \
---dry-run=client -o yaml | kubectl apply -f -
+--dry-run=client -o yaml -n $NAMESPACE| kubectl apply -f -
 ````
 
+```
+kubectl create -f pre-trained-model/manifests/deployment.yaml -n $NAMESPACE
+```
 ## Run the end-to-end flow

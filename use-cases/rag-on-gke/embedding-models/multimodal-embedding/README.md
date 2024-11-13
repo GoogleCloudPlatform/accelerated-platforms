@@ -60,8 +60,7 @@ A sample embeddings.yaml has been provided for your reference.
 Now, deploy embeddings model:
 
 ```
-NAMESPACE=multimodal-embedding-model
-kubectl create ns $NAMESPACE
+NAMESPACE=ml-team
 kubectl apply -f embeddings.yaml
 ```
 

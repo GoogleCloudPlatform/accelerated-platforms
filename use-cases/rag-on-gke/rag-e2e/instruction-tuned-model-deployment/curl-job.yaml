@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: curl
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: curl
+    spec:
+      restartPolicy: Never
+      terminationGracePeriodSeconds: 0
+      serviceAccountName: default
+      containers:
+      - name: curl
+        image: curlimages/curl
+        command:
+          - sh
+          - -c
+          - |
+            curl http://rag-it-model-deployment-l4.ml-team:8000/v1/chat/completions \
+              -s \
+              -H "Content-Type: application/json" \
+              -d '{
+                    "model": "$(MODEL_ID)",
+                    "messages": [
+                    {"role": "user", "content": "$(USER_PROMPT)"}],
+                       "temperature": 0.70,
+                       "top_p": 1.0,
+                       "top_k": 1.0,
+                       "max_tokens": 256
+                  }'
+             
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MODEL_ID
+          value: "google/gemma-2-2b-it"
+        - name: USER_PROMPT
+          value: "I am looking for comfortable cycling shorts for women, what are some good options?"

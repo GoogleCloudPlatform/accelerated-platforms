@@ -2,12 +2,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: rerank-job
+  name: rag-backend-job
 spec:
   template:
     spec:
+      serviceAccountName: rag-ksa # Service account with necessary permissions
       containers:
-      - name: rerank-job
-        image: gcr.io/gkebatchexpce3c8dcb/rerank:latest  # Replace with your image
+      - name: rag-backend-job
+        image: gcr.io/gkebatchexpce3c8dcb/rag-backend:latest  # Replace with your image
         # You might need to add resource requests/limits here
       restartPolicy: Never  # or OnFailure if you want retries

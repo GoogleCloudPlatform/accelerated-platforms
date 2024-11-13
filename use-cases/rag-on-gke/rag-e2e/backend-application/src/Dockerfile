@@ -2,10 +2,8 @@ FROM python:3.10-slim-buster
 
 WORKDIR /app
 
-COPY main.py requirements.txt get_emb.py ./
+COPY get_emb.py semantic_search.py rerank.py main.py requirements.txt ./
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 CMD ["python", "main.py"]
-
-

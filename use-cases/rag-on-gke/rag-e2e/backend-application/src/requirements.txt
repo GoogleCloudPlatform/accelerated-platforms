@@ -1,5 +1,5 @@
-google-cloud-alloydb
-psycopg2-binary
+# requirements.txt
+requests
 google-cloud-alloydb-connector[pg8000]
 sqlalchemy
-pgvector
+flask

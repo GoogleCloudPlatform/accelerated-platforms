@@ -30,8 +30,6 @@ spec:
     spec:
       containers:
       - env:
-        - name: ENDPOINT
-          value: V_ENDPOINT
         - name: MODEL_ID
           value: V_BENCHMARK_MODEL_PATH
         - name: LOCUST_MODE

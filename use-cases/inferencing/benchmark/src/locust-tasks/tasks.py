@@ -1,10 +1,12 @@
-# Copyright 2024 Google LLC
+#!/usr/bin/env python
+
+# Copyright 2022 Google Inc. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from locust import FastHttpUser, run_single_user, task, between
+from locust import FastHttpUser, task, between
 import logging
 import logging.config
 import os
@@ -29,20 +31,15 @@ def graceful_shutdown(signal_number, stack_frame):
 
 
 class MyUser(FastHttpUser):
-    def __init__(self):  # Constructor
-        self.model_id = os.environ["MODEL_ID"]
-        self.endpoint = os.environ["ENDPOINT"]
-        self.host = os.environ["HOST"]
-        self.message1 = "I'm looking for comfortable cycling shorts for women, what are some good options?"
-        self.message2 = "Tell me about some tops for men, looking for different styles"
+    wait_time = between(5, 15)
+    model_id = os.environ["MODEL_ID"]
+    message1 = "I'm looking for comfortable cycling shorts for women, what are some good options?"
+    message2 = "Tell me about some tops for men, looking for different styles"
 
-    wait_time = between(1, 5)
-
-    @task(50)
+    @task(20)
     def test1(self):
         headers = {"content-type": "application/json"}
-        r = self.rest(
-            "POST",
+        r = self.client.post(
             "/v1/chat/completions",
             json={
                 "model": self.model_id,
@@ -54,13 +51,11 @@ class MyUser(FastHttpUser):
             },
             headers=headers,
         )
-        print("FROM MESSAGE 1", r)
 
-    @task(50)
+    @task(75)
     def test2(self):
         headers = {"content-type": "application/json"}
-        r = self.rest(
-            "POST",
+        r = self.client.post(
             "/v1/chat/completions",
             json={
                 "model": self.model_id,
@@ -72,14 +67,6 @@ class MyUser(FastHttpUser):
             },
             headers=headers,
         )
-        print("FROM MESSAGE 2", r)
-
-    def benchmarks(self):
-        # if "ACTION" in os.environ and os.environ["ACTION"] == "benchmark":
-        #     self.test1()
-        #     self.test2()
-        self.test1()
-        self.test2()
 
 
 if __name__ == "__main__":
@@ -100,6 +87,3 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
     benchmark_obj = MyUser()
-    benchmark_obj.benchmarks()
-    # benchmark_obj.test1()
-    # benchmark_obj.test2()

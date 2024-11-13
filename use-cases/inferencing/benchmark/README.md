@@ -68,7 +68,6 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   ```sh
   BENCHMARK_MODEL_PATH=/local/${MODEL_ID}/${MODEL_PATH}
   HOST="http://vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}:8000"
-  ENDPOINT="${HOST}/v1/chat/completions"
   ```
 
 - Replace variables in inference job manifest and deploy the job
@@ -78,7 +77,6 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   -i -e "s|V_IMAGE_URL|${MLP_BENCHMARK_IMAGE}|" \
   -i -e "s|V_KSA|${MLP_MODEL_OPS_KSA}|" \
   -i -e "s|V_BENCHMARK_MODEL_PATH|${BENCHMARK_MODEL_PATH}|" \
-  -i -e "s|V_ENDPOINT|${ENDPOINT}|" \
   -i -e "s|V_HOST|${HOST}|" \
   manifests/locust-master-controller.yaml \
   manifests/locust-master-service.yaml \

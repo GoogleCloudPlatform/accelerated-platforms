@@ -43,7 +43,10 @@ Now, deploy frontend application:
 
 ```
 NAMESPACE=ml-team
-kubectl apply -f manifests/frontend_gradio_deployment.yaml
+sed \
+-i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
+manifests/backend_deployment.yaml
+kubectl apply -f manifests/backend_deployment.yaml -n $NAMESPACE
 ```
 
 ## Test the embedding model

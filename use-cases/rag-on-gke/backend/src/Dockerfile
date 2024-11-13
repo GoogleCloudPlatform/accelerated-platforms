@@ -5,9 +5,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /
-COPY backend_service.py /
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r /requirements.txt
+
+COPY backend_service.py /
 
 ENV PYTHONUNBUFFERED 1
 

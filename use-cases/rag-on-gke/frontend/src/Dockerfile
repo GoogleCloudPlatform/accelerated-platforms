@@ -8,6 +8,8 @@ COPY requirements.txt /
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
+COPY interface.py /
+
 ENV PYTHONUNBUFFERED 1
 
 EXPOSE 7860

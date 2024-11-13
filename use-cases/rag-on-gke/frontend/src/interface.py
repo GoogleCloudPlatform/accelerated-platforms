@@ -1,10 +1,15 @@
 import gradio as gr
 import re
 import requests
+import os
 
 
-TEXT_EMBEDDING_ENDPOINT = "http://0.0.0.0:8000/embeddings/text"
-MULTIMODAL_EMBEDDING_ENDPOINT = "http://0.0.0.0:8000/embeddings/multimodal"
+TEXT_EMBEDDING_ENDPOINT = os.getenv(
+    "TEXT_EMBEDDING_ENDPOINT"
+)  # Replace with your actual text embedding API endpoint
+IMAGE_EMBEDDING_ENDPOINT = os.getenv(
+    "IMAGE_EMBEDDING_ENDPOINT"
+)  # Replace with your actual image embedding API endpoint
 
 
 # Function to validate GCS URI

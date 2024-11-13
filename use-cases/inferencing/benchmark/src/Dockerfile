@@ -12,14 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+FROM python:3.13.0-alpine
 
-# Start with a base image Python 3.9.12 Debian 11 (bullseye) slim 
-FROM python:3.9.12-slim-bullseye
+# Install build dependencies
+RUN apk add --no-cache --virtual .build-deps \
+    gcc \
+    musl-dev \
+    linux-headers \
+    python3-dev 
 
 COPY requirements.txt /
 
 # Install the required dependencies via pip
+RUN pip3 install --upgrade pip
 RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Remove build dependencies to keep the image size small
+RUN apk del .build-deps
 
 COPY custom_json_formatter.py logging.conf run.sh tasks.py /
 
@@ -27,7 +36,7 @@ COPY custom_json_formatter.py logging.conf run.sh tasks.py /
 EXPOSE 5557 5558 8089
 
 # Set script to be executable
-RUN chmod 755 ./run.sh
+RUN chmod 755 /run.sh
 
 # Start Locust using LOCUS_OPTS environment variable
-ENTRYPOINT ["./run.sh"]
+ENTRYPOINT ["/run.sh"]

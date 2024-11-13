@@ -61,6 +61,9 @@ Now, deploy embeddings model:
 
 ```
 NAMESPACE=ml-team
+sed \
+-i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
+manifests/embeddings.yaml
 kubectl apply -f manifests/embeddings.yaml
 ```
 

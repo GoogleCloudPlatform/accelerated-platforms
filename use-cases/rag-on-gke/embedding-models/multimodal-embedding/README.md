@@ -61,7 +61,7 @@ Now, deploy embeddings model:
 
 ```
 NAMESPACE=ml-team
-kubectl apply -f embeddings.yaml
+kubectl apply -f manifests/embeddings.yaml
 ```
 
 ## Test the embedding model

@@ -4,12 +4,8 @@ import requests
 import os
 
 
-TEXT_EMBEDDING_ENDPOINT = os.getenv(
-    "TEXT_EMBEDDING_ENDPOINT"
-)  # Replace with your actual text embedding API endpoint
-MULTIMODAL_EMBEDDING_ENDPOINT = os.getenv(
-    "IMAGE_EMBEDDING_ENDPOINT"
-)  # Replace with your actual image embedding API endpoint
+TEXT_EMBEDDING_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
+MULTIMODAL_EMBEDDING_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
 
 
 # Function to validate GCS URI

@@ -162,3 +162,7 @@ As another example, if you want to know how many prompts are generated in a spec
 You can also use [Log Analytics](https://cloud.google.com/logging/docs/analyze/query-and-view) to analyze your logs. After it is enabled, you can run SQL queries to gain insight from the logs. The result can also be charted. For example, you can click the `Analyze results` link on the Logs Explorer page and open the Log Analytics page with a converted SQL query. The chart and table you view can also be added to a dashboard.
 
 ![log-analytics](/docs/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/images/log-analytics.png)
+
+## Notes
+
+The raw [pre-crawled public dataset](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products), [license](https://creativecommons.org/licenses/by-sa/4.0/).

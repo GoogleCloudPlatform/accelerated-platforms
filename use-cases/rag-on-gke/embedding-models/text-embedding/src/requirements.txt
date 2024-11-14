@@ -1,6 +1,6 @@
-sentence_transformers>=2.7.0
 Flask
 requests
+sentence_transformers>=2.7.0
 waitress
 
 

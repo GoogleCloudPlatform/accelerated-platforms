@@ -46,3 +46,4 @@ spec:
     port: 8000 # Expose the backend on the same port as the container
     targetPort: 8000
   type: ClusterIP # Expose the service internally within the cluster
+  

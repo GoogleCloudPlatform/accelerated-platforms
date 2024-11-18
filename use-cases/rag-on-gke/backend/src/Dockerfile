@@ -1,4 +1,4 @@
-FROM python:3.11.10-slim-bookworm
+FROM python:3.13.10-slim-bookworm
 
 RUN apt-get update && \
     apt-get -y --no-install-recommends install python3-dev gcc python3-pip git && \

@@ -109,4 +109,8 @@ In this example batch inference pipeline, we would first send prompts to the hos
   kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/batch-inference
   ```
 
+<<<<<<< HEAD
   The job runs for about an hour. Once it is completed, you can review predictions result in file named `<MODEL_NAME>-predictions.txt` under /dataset/output folder in the bucket. A sample prediction output file named `example_predictions` has been provided in this directory for reference.
+=======
+  The job runs for about an hour. Once it is completed, you can review predictions result in file named `<MODEL_NAME>-predictions.txt` under /dataset/output folder in the bucket. A sample prediction output file named `example_predictions` has been provided in this directory for reference.
+>>>>>>> cbb97e9 (Updated batch-inference guide (#38))

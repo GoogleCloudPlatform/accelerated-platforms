@@ -1,7 +1,8 @@
-fastapi
+fastapi==0.115.5
 llama-index==0.11.21
-pydantic
-typing
-uvicorn
+pydantic==2.9.2
+typing==3.10.0.0
+uvicorn==2.1.1
+
 
 

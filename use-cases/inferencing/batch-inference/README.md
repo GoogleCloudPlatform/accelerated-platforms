@@ -40,15 +40,6 @@ In this example batch inference pipeline, we would first send prompts to the hos
   gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
   ```
 
-- Setup Workload Identity Federation access to read/write to the bucket for the inference batch data set
-
-  ```
-  # TODO: Is this role required?
-  gcloud storage buckets add-iam-policy-binding gs://${BUCKET} \
-  --member "principal://iam.googleapis.com/projects/${MLP_MLP_PROJECT_NUMBER}/locations/global/workloadIdentityPools/${MLP_PROJECT_ID}.svc.id.goog/subject/ns/${MLP_MODEL_OPS_NAMESPACE}/sa/${MLP_MODEL_OPS_KSA}" \
-  --role "roles/storage.legacyBucketWriter"
-  ```
-
 ## Build the container image
 
 - Build the container image using Cloud Build and push the image to Artifact Registry

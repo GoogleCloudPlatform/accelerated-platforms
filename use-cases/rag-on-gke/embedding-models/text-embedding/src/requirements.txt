@@ -2,5 +2,3 @@ Flask==3.1.0
 requests==2.32.3
 sentence_transformers>=2.7.0
 waitress==3.0.2
-
-

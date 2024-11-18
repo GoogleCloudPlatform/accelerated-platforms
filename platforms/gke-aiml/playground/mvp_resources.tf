@@ -242,6 +242,12 @@ resource "google_storage_bucket_iam_member" "data_bucket_batch_inference_storage
   role   = "roles/storage.objectUser"
 }
 
+resource "google_storage_bucket_iam_member" "data_bucket_batch_inference_storage_insights_collector_service" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.batch_inference_ksa}"
+  role   = "roles/storage.insightsCollectorService"
+}
+
 resource "google_storage_bucket_iam_member" "data_bucket_data_preparation_storage_object_user" {
   bucket = google_storage_bucket.data.name
   member = "${local.wi_member_principal_prefix}/${local.data_preparation_ksa}"

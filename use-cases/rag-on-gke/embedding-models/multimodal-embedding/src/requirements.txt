@@ -1,0 +1,9 @@
+transformers
+# torch # Add for local testing of the model
+accelerate
+bitsandbytes
+pillow
+flask
+requests
+salesforce-lavis
+google.cloud.storage

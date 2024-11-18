@@ -1,0 +1,54 @@
+How to retrieve, text, image and multimodal embeddings post deployment
+
+Note: You can upload an image as a file or image as gcs uri
+
+1. Multimodal embeddings with GCS image_uri
+
+curl --request POST \
+  --url http://0.0.0.0:5000/multimodal_embeddings \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "image_uri": "gs://your-bucket-name/path/to/your/image.jpg",
+    "caption": "This is a caption for the image."
+  }'
+
+  2. Multimodal embeddings with file upload
+
+  curl --request POST \
+  --url http://0.0.0.0:5000/multimodal_embeddings \
+  --header 'Content-Type: multipart/form-data' \
+  --form 'image=@/path/to/your/image.jpg' \
+  --form 'text="This is a caption for the image."'
+
+  3. Image embeddings with file uploads
+
+  curl --request POST \
+  --url http://0.0.0.0:5000/image_embeddings \
+  --header 'Content-Type: multipart/form-data' \
+  --form 'image=@/home/your_username/Downloads/my_picture.png'
+
+
+
+  4. Image embeddings with GCS image_uri
+
+curl --request POST \
+  --url http://0.0.0.0:5000/image_embeddings \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "image_uri": "gs://your-bucket-name/path/to/your/image.jpg"
+  }'
+
+  5. Text embeddings
+
+  curl --request POST \
+  --url http://0.0.0.0:5000/text_embeddings \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "caption": "This is the text for generating embeddings."
+  }'
+
+
+
+
+
+

@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: python-frontend
+spec:
+  replicas: 1 
+  selector:
+    matchLabels:
+      app: python-frontend
+  template:
+    metadata:
+      labels:
+        app: python-frontend
+    spec:
+      containers:
+      - name: python-frontend
+        image: us-docker.pkg.dev/V_PROJECT_ID/rag-artifacts/frontend-api:v0.1.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 7680 
+        env:
+        - name: TEXT_EMBEDDING_ENDPOINT
+          value: "http://python-backend-service:8000/embeddings/text"
+        - name: MULTIMODAL_EMBEDDING_ENDPOINT
+          value: "http://python-backend-service:8000/embeddings/multimodal"
+        resources:
+          requests:
+            cpu: "512m"
+            memory: "512Mi"
+          limits:
+            cpu: "1"
+            memory: "512Mi" 
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-frontend-service
+spec:
+  selector:
+    app: python-frontend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080 
+  type: LoadBalancer

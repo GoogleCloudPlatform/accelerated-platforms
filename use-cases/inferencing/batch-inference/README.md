@@ -8,8 +8,8 @@ In this example batch inference pipeline, we would first send prompts to the hos
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 - A model is deployed using one of the vLLM guides
   - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
-  - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
   - [Serving the mode using vLLM and HyperdiskML](/use-cases/inferencing/serving/vllm/hyperdiskML/README.md)
+  - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
 
 ## Preparation
 

@@ -19,19 +19,19 @@ This guide uses `Single-Node Multi-GPU` method to serve the model that was fine-
 In order to serve a model on GKE, the model weights need to be download in the GKE container.
 There are different ways to load the model weights in the container:
 
-* Downlaod the model from Persisdent SSD disk - the model is loaded from a persistent disk.
-* Download the model from GCS bucket - the model is loaded from a GCS bucket.
-* Download the model from Hyperdisk ML  - the model is loaded from high throughput HyperdiskML.
-* Use secondary boot disk - A disk can be preloaded with the model and be used as a secondary disk on the nodepools running the pods serving the model.
+- Downlaod the model from Persisdent SSD disk - the model is loaded from a persistent disk.
+- Download the model from GCS bucket - the model is loaded from a GCS bucket.
+- Download the model from Hyperdisk ML  - the model is loaded from high throughput HyperdiskML.
+- Use secondary boot disk - A disk can be preloaded with the model and be used as a secondary disk on the nodepools running the pods serving the model.
 
 # Serving the model
 
 In this guide, you will learn how to serve a model with vllm using the following storage options:
 
-- **Persistent Disk** : Follow the [guide](./persistent-disk/README.md) to serve a model with vllm using persistent disk.
+- **Persistent Disk** : Follow the [guide](/use-cases/inferencing/serving/vllm/persistent-disk/README.md) to serve a model with vllm using persistent disk.
 
-- **GCS** : Follow the [guide](./gcsfuse/README.md) to serve a model with vllm using GCSfuse download.
+- **GCS** : Follow the [guide](/use-cases/inferencing/serving/vllm/gcsfuse/README.md) to serve a model with vllm using GCSfuse download.
 
-- **HyperdiskML** : Follow the [guide](./hyperdiskML/README.md) to serve a model with vllm using HyperdiskML.
+- **HyperdiskML** : Follow the [guide](/use-cases/inferencing/serving/vllm/hyperdiskML/README.md) to serve a model with vllm using HyperdiskML.
 
 

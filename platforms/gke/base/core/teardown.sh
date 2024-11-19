@@ -17,6 +17,10 @@ set -e
 
 start_timestamp=$(date +%s)
 
+terraservices=("workloads/kueue" "gke_enterprise/fleet_membership" "container_node_pool" "container_cluster" "networking")
+# Disable gke_enterprise/servicemesh due to b/376312292
+#terraservices=("workloads/kueue" "gke_enterprise/servicemesh" "gke_enterprise/fleet_membership" "container_node_pool" "container_cluster" "networking")
+
 source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config
 
 cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
@@ -28,42 +32,13 @@ cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
     terraform apply -input=false tfplan || exit 1
 rm tfplan
 
-cd ${ACP_PLATFORM_CORE_DIR}/workloads/kueue &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
-
-# b/376312292
-# cd ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/servicemesh &&
-#     echo "Current directory: $(pwd)" &&
-#     terraform init &&
-#     terraform destroy -auto-approve || exit 1
-# rm -rf .terraform/ .terraform.lock.hcl
-
-cd ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
-
-cd ${ACP_PLATFORM_CORE_DIR}/container_node_pool &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
-
-cd ${ACP_PLATFORM_CORE_DIR}/container_cluster &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
-
-cd ${ACP_PLATFORM_CORE_DIR}/networking &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
+for terraservice in "${terraservices[@]}"; do
+    cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
+        echo "Current directory: $(pwd)" &&
+        terraform init &&
+        terraform destroy -auto-approve || exit 1
+    rm -rf .terraform/ .terraform.lock.hcl
+done
 
 cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
     echo "Current directory: $(pwd)" &&

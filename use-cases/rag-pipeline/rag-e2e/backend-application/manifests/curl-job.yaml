@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: curl-test-backend
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: curl-test-backend
+    spec:
+      restartPolicy: Never
+      terminationGracePeriodSeconds: 0
+      serviceAccountName: rag-ksa
+      containers:
+      - name: curl-test-backend
+        image: curlimages/curl
+        command:
+          - sh
+          - -c
+          - |
+            curl http://rag-backend.ml-team:8000/rag-backend \
+              -s \
+              -H "Content-Type: application/json" \
+              -d '{
+                    "user_query": "$(USER_PROMPT)"
+                  }'
+             
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: USER_PROMPT
+          value: "I am looking for comfortable cycling shorts for women, what are some good options?"

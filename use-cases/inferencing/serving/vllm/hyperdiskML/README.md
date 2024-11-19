@@ -1,4 +1,4 @@
-# Distributed Inferencing on vLLM using Persistent disk
+# Distributed Inferencing on vLLM using HyperdiskML
 
 This guide demonstrates how to serve a model with vllm using hyperdiskML. By the end of this guide, you should be able to perform the following steps:
 

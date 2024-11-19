@@ -28,10 +28,10 @@ There are different ways to load the model weights in the container:
 
 In this guide, you will learn how to serve a model with vllm using the following storage options:
 
-Persistent Disk : Follow the [README](./persistent-disk/README.md) to serve a model with vllm using persistent disk.
+- **Persistent Disk** : Follow the [README](./persistent-disk/README.md) to serve a model with vllm using persistent disk.
 
-GCS : Follow the [README](./gcsfuse/README.md) to serve a model with vllm using GCSfuse download.
+- **GCS** : Follow the [README](./gcsfuse/README.md) to serve a model with vllm using GCSfuse download.
 
-HyperdiskML : Follow the [README](./hyperdiskML/README.md) to serve a model with vllm using HyperdiskML.
+- **HyperdiskML** : Follow the [README](./hyperdiskML/README.md) to serve a model with vllm using HyperdiskML.
 
 

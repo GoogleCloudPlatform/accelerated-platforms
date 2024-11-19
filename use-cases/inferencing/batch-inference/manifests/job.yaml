@@ -58,4 +58,3 @@ spec:
       - effect: NoSchedule
         key: on-demand
         operator: Exists
-

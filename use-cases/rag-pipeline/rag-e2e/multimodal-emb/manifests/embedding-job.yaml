@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: embedding-model-deployment
-  namespace: ml-team
 spec:
   replicas: 1 # Adjust replica count as needed
   selector:
@@ -12,6 +11,9 @@ spec:
     metadata:
       labels:
         app: blip2
+      annotations:
+        cluster-autoscaler.kubernetes.io/consume-provisioning-request: embedding-model-l4
+        cluster-autoscaler.kubernetes.io/provisioning-class-name: "queued-provisioning.gke.io"
     spec:
       containers:
       - name: blip2

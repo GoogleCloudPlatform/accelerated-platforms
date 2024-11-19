@@ -1,8 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rag-backend-deployment
-  namespace: ml-team
+  name: rag-backend
 spec:
   replicas: 1 # Adjust replica count as needed
   selector:
@@ -45,7 +44,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rag-backend-service
+  name: rag-backend
 spec:
   selector:
     app: rag

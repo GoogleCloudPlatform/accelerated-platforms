@@ -19,7 +19,7 @@ spec:
           - sh
           - -c
           - |
-            curl http://rag-backend-service.ml-team:8000/rag-backend \
+            curl http://rag-backend.ml-team:8000/rag-backend \
               -s \
               -H "Content-Type: application/json" \
               -d '{

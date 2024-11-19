@@ -161,7 +161,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   Now, the model is downloaded to the persistent volume.
 
-### Create the HyperdiskML
+### Create a HyperdiskML
 
 - Fetch the Persistent volume name and disk ref to create a disk image
 
@@ -192,7 +192,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   > Note: Ensure the appropriate zone based on cluster node location and GPU availability
 
-The hyperdiskML is created with access mode READ_ONLY_MANY which means it can be read from multiple VM.
+The hyperdiskML is created with default throughput limit of 24,576 MB/s. You can adjust the througput limit based on the underlying VM to achieve higher speed in loading the model. 
 
 ### Create the PersistentVolumeClaim (PVC) and PersistentVolume (PV) for serving
 

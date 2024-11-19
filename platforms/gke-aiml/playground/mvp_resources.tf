@@ -13,6 +13,7 @@
 # limitations under the License.
 
 locals {
+  batch_inference_ksa    = "${var.environment_name}-${var.namespace}-batch-inference"
   bucket_cloudbuild_name = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
   bucket_data_name       = "${data.google_project.environment.project_id}-${var.environment_name}-data"
   bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
@@ -140,6 +141,17 @@ resource "google_storage_bucket_iam_member" "cloudbuild_bucket_gsa_build_storage
 
 # KSA
 ###############################################################################
+resource "kubernetes_service_account_v1" "batch_inference" {
+  depends_on = [
+    null_resource.namespace_manifests,
+  ]
+
+  metadata {
+    name      = local.batch_inference_ksa
+    namespace = var.namespace
+  }
+}
+
 resource "kubernetes_service_account_v1" "data_processing" {
   depends_on = [
     null_resource.namespace_manifests,
@@ -224,6 +236,18 @@ resource "google_project_iam_member" "data_preparation_aiplatform_user" {
 
 # DATA BUCKET
 ###########################################################
+resource "google_storage_bucket_iam_member" "data_bucket_batch_inference_storage_object_user" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.batch_inference_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+resource "google_storage_bucket_iam_member" "data_bucket_batch_inference_storage_insights_collector_service" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.batch_inference_ksa}"
+  role   = "roles/storage.insightsCollectorService"
+}
+
 resource "google_storage_bucket_iam_member" "data_bucket_data_preparation_storage_object_user" {
   bucket = google_storage_bucket.data.name
   member = "${local.wi_member_principal_prefix}/${local.data_preparation_ksa}"
@@ -301,6 +325,8 @@ resource "google_storage_bucket_iam_member" "model_bucket_model_serve_storage_ob
 output "environment_configuration" {
   value = <<EOT
 MLP_AR_REPO_URL="${local.repo_container_images_url}"
+MLP_BATCH_INFERENCE_IMAGE="${local.repo_container_images_url}/batch-inference:1.0.0"
+MLP_BATCH_INFERENCE_KSA="${local.batch_inference_ksa}"
 MLP_BENCHMARK_IMAGE="${local.repo_container_images_url}/benchmark:1.0.0"
 MLP_BUILD_GSA="${local.gsa_build_email}"
 MLP_CLOUDBUILD_BUCKET="${local.bucket_cloudbuild_name}"

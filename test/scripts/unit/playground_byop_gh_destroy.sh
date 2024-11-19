@@ -23,6 +23,8 @@ SCRIPTS_DIR=$(realpath ${SCRIPT_PATH}/..)
 export MLP_TYPE="playground"
 source ${SCRIPTS_DIR}/helpers/include.sh
 
+export terraform_command="destroy"
+
 echo_title "Preparing the environment"
 source ${SCRIPTS_DIR}/helpers/byop_env.sh
 source ${SCRIPTS_DIR}/helpers/gh_env.sh

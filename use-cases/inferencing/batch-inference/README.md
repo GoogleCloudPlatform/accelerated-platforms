@@ -9,6 +9,7 @@ In this example batch inference pipeline, we would first send prompts to the hos
 - A model is deployed using one of the vLLM guides
   - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
   - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+  - [Serving the mode using vLLM and HyperdiskML](/use-cases/inferencing/serving/vllm/hyperdiskML/README.md)
 
 ## Preparation
 

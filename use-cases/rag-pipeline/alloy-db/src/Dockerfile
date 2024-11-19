@@ -13,3 +13,4 @@ COPY main.py .
 #CMD ["python", "alloydb_setup.py"]
 #CMD ["python", "create_catalog.py"]
 CMD ["python", "main.py"]
+

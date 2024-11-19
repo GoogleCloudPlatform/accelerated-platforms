@@ -192,7 +192,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   > Note: Ensure the appropriate zone based on cluster node location and GPU availability
 
-The hyperdiskML is created with default throughput limit of 24,576 MB/s. You can adjust the througput limit based on the underlying VM to achieve higher speed in loading the model. 
+   The hyperdiskML is created with default throughput limit of 24,576 MB/s. You can adjust the througput limit based on the underlying VM to achieve higher speed in loading the model. 
 
 ### Create the PersistentVolumeClaim (PVC) and PersistentVolume (PV) for serving
 

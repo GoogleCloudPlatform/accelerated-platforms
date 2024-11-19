@@ -8,6 +8,8 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 - A model is deployed using one of the vLLM guides
   - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
   - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+  - [Serving the mode using vLLM and HyperdiskML](/use-cases/inferencing/serving/vllm/hyperdiskML/README.md)
+
 
 ## Preparation
 
@@ -40,12 +42,11 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
   | --------------- | --------------------------------------------- | -------- |
   | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100) | l4       |
   | V_MODEL_STORAGE | Type of storage used for the model (gcs, pd)  | pd       |
-  | SERVE_NAMESPACE | Namespace where the model will be served      | ml-serve |
+
 
   ```sh
   ACCELERATOR=l4
   MODEL_STORAGE=pd
-  SERVE_NAMESPACE=ml-serve
   ```
 
 - Configure the resource
@@ -60,7 +61,7 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 - create the resource
 
   ```sh
-  kubectl --namespace ${SERVE_NAMESPACE} apply -f manifests/pod-monitoring.yaml
+  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} apply -f manifests/pod-monitoring.yaml
   ```
 
 ## View the metrics
@@ -71,7 +72,7 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
   - Go to the [Metrics explorer](https://console.cloud.google.com/monitoring/metrics-explorer)
   - Click the **Select a metric** dropdown near the upper left of the screen
   - Select **Prometheus Target**
-  - Select **Vll**`, you should now see a list of the available metrics.
+  - Select **Vllm**, you should now see a list of the available metrics.
   - Select **Prometheus/vllm:avg_generation_throughput_toks_per_s/gauge**
   - Click **Apply**
   - Click **Add filter** in the **Filter** text box

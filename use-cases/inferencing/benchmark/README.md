@@ -9,7 +9,7 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 - A model is deployed using one of the vLLM guides
   - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
   - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
-- Metrics are being scraped from the vLLM server ss shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
+  - [Serving the mode using vLLM and HyperdiskML](/use-cases/inferencing/serving/vllm/hyperdiskML/README.md)
 
 ## Preparation
 
@@ -54,9 +54,10 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 
   | Variable        | Description                                                                    | Example      |
   | --------------- | ------------------------------------------------------------------------------ | ------------ |
+  | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100)                                  | l4           |
   | MODEL_NAME      | The name of the model folder in the root of the GCS model bucket               | model-gemma2 |
   | MODEL_VERSION   | The name of the version folder inside the model folder of the GCS model bucket | experiment   |
-  | SERVE_NAMESPACE | Namespace where the model will be served                                       | ml-serve     |
+  | MODEL_STORAGE   | Storage type used to load the model                                            | pd           |
 
   ```sh
   ACCELERATOR=l4
@@ -66,7 +67,7 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   ```
 
   ```sh
-  BENCHMARK_MODEL_PATH=/local/${MODEL_ID}/${MODEL_PATH}
+  BENCHMARK_MODEL_PATH=/local/${MODEL_NAME}/${MODEL_VERSION}
   HOST="http://vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}:8000"
   ```
 
@@ -94,3 +95,11 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   ```
 
   > Note : Locust service make take up to 5 minutes to load completely.
+
+- Start a new load test
+  
+  ![Locust UI](./img/locust_ui.png)
+  
+  * On the locust UI, click `NEW` button
+  * Provide number of peak users and users started per second.
+  * Click `START` to start the load test

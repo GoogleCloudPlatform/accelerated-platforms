@@ -1,111 +1,112 @@
-### Run Batch inference on GKE
+# Run Batch inference on GKE
 
 Once a model has completed fine-tuning and is deployed on GKE , its ready to run batch Inference pipeline.
 In this example batch inference pipeline, we would first send prompts to the hosted fine-tuned model and then validate the results based on ground truth.
 
-#### Prepare your environment
+## Prerequisites
 
+- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+- A model is deployed using one of the vLLM guides
+  - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
+  - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+  - [Serving the mode using vLLM and HyperdiskML](/use-cases/inferencing/serving/vllm/hyperdiskML/README.md)
 
-Set env variables.
+## Preparation
 
-```
-  MLP_PROJECT_ID=<your-project-id>
-  PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
-  V_MODEL_BUCKET=<model-artifacts-bucket>
-  MLP_CLUSTER_NAME=<your-gke-cluster>
-  SERVE_NAMESPACE=ml-serve
-  OPS_NAMESPACE=ml-ops
+- Clone the repository
 
-  KSA=<k8s-service-account>
-  MODEL_PATH=<your-model-path>
-  BUCKET="<your dataset bucket name>"
-  DATASET_OUTPUT_PATH="your-predictions-data-set-path"
-  ENDPOINT=<your-endpoint> # eg "http://vllm-openai:8000/v1/chat/completions"
-  KSA=<k8s-service-account> # Service account with work-load identity enabled
-```
+  ```sh
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms
+  ```
 
-Create Service account and namespace, if does not exist.
+- Change directory to the guide directory
 
-```
-kubectl create sa ${KSA} -n ${OPS_NAMESPACE} # service account with correct permissions to storage bucket helps download the artifacts related to batch inference
-```
+  ```sh
+  cd use-cases/inferencing/batch-inference
+  ```
 
-Setup Workload Identity Federation access to read/write to the bucket for the inference batch data set
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
 
-```
-gcloud storage buckets add-iam-policy-binding gs://${BUCKET} \
-    --member "principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${MLP_PROJECT_ID}.svc.id.goog/subject/ns/${OPS_NAMESPACE}/sa/${KSA}" \
-    --role "roles/storage.objectUser"
-```
+  ```sh
+  cat ${MLP_ENVIRONMENT_FILE} && \
+  source ${MLP_ENVIRONMENT_FILE}
+  ```
 
-```
-gcloud storage buckets add-iam-policy-binding gs://${BUCKET} \
-    --member "principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${MLP_PROJECT_ID}.svc.id.goog/subject/ns/${OPS_NAMESPACE}/sa/${KSA}" \
-    --role "roles/storage.legacyBucketWriter"
-```
+  > You should see the various variables populated with the information specific to your environment.
 
-#### Build the image of the source and execute batch inference job
+- Get credentials for the GKE cluster
 
-Create Artifact Registry repository for your docker image
+  ```sh
+  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  ```
 
-```
-gcloud artifacts repositories create batch-inference-repository \
-    --repository-format=docker \
-    --location=us \
-    --project=${MLP_PROJECT_ID} \
-    --async
-```
+## Build the container image
 
-Batch Inference Image location
+- Build the container image using Cloud Build and push the image to Artifact Registry
 
-```
-BATCH_INFERENCE_IMAGE=us-docker.pkg.dev/${MLP_PROJECT_ID}/batch-inference-repository/batch_inference
-```
+  ```sh
+  cd src
+  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+  gcloud beta builds submit \
+  --config cloudbuild.yaml \
+  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
+  --project ${MLP_PROJECT_ID} \
+  --substitutions _DESTINATION=${MLP_BATCH_INFERENCE_IMAGE}
+  cd -
+  ```
 
-Set Docker Image URL
+## Run the job
 
-```
-DOCKER_IMAGE_URL=us-docker.pkg.dev/${MLP_PROJECT_ID}/batch-inference-repository/batch_inference:latest
-```
+- Configure the job
 
-Enable the Cloud Build APIs
+  | Variable               | Description                                                          | Example         |
+  | ---------------------- | -------------------------------------------------------------------- | --------------- |
+  | ACCELERATOR            | Type of GPU accelerator used for the model server (l4, a100, h100)   | l4              |
+  | DATASET_OUTPUT_PATH    | The folder path of the generated output data set in the data bucket. | dataset/output  |
+  | MODEL_NAME             | The name of the model folder on the model server                     | model-gemma2    |
+  | MODEL_SERVING_LOCATION | The name of the version folder on the model server (local, gcs)      | local           |
+  | MODEL_STORAGE          | Type of storage used for the model (gcs, pd)                         | pd              |
+  | MODEL_VERSION          | The name of the version folder on the model server                   | experiment      |
+  | PREDICTIONS_FILE       | The predictions file                                                 | predictions.txt |
 
-```
-gcloud services enable cloudbuild.googleapis.com --project ${MLP_PROJECT_ID}
-```
+  ```sh
+  ACCELERATOR="l4"
+  DATASET_OUTPUT_PATH="dataset/output"
+  MODEL_NAME="model-gemma2"
+  MODEL_SERVING_LOCATION="local"
+  MODEL_STORAGE="pd"
+  MODEL_VERSION="experiment"
+  PREDICTIONS_FILE="prediction.txt"
+  ```
 
-Build container image using Cloud Build and push the image to Artifact Registry Modify cloudbuild.yaml to specify the image url
+  ```sh
+  INFERENCE_ENDPOINT="http://vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}:8000/v1/chat/completions"
+  INFERENCE_MODEL_PATH="/${MODEL_SERVING_LOCATION}/${MODEL_NAME}/${MODEL_VERSION}"
+  ```
 
-```
-cd batch_inference/src
-gcloud builds submit . --project ${MLP_PROJECT_ID} --substitutions _DESTINATION=${BATCH_INFERENCE_IMAGE}
-```
+  ```sh
+  sed \
+  -i -e "s|V_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
+  -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
+  -i -e "s|V_IMAGE_URL|${MLP_BATCH_INFERENCE_IMAGE}|" \
+  -i -e "s|V_INFERENCE_ENDPOINT|${INFERENCE_ENDPOINT}|" \
+  -i -e "s|V_INFERENCE_MODEL_PATH|${INFERENCE_MODEL_PATH}|" \
+  -i -e "s|V_KSA|${MLP_BATCH_INFERENCE_KSA}|" \
+  -i -e "s|V_PREDICTIONS_FILE|${PREDICTIONS_FILE}|" \
+  manifests/job.yaml
+  ```
 
-Get credentials for the GKE cluster
+- Create the job
 
-```
-gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
-```
+  ```
+  kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} apply -f manifests/job.yaml
+  ```
 
-Set variables for the inference job in model-eval.yaml
+- Wait for the job to show completion.
 
-```
-cd ../manifests
-sed -i -e "s|V_IMAGE_URL|${DOCKER_IMAGE_URL}|" \
-    -i -e "s|V_KSA|${KSA}|" \
-    -i -e "s|V_BUCKET|${BUCKET}|" \
-    -i -e "s|V_MODEL_PATH|${MODEL_PATH}|" \
-    -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
-    -i -e "s|V_ENDPOINT|${ENDPOINT}|" \
-    -i -e "s|V_PREDICTIONS_FILE|${PREDICTIONS_FILE}|" \
-     batch_inference.yaml
-```
+  ```sh
+  kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/batch-inference
+  ```
 
-Create the Job in the ml-serve namespace using kubectl command
-
-```
-kubectl apply -f /batch_inference.yaml -n ${SERVE_NAMESPACE}
-```
-
-You can review predictions result in file named `predictions.txt` .Sample file has been added to the repository.
-The job will take approx 45 mins to execute.
+  The job runs for about an hour. Once it is completed, you can review predictions result in file named `<MODEL_NAME>-predictions.txt` under /dataset/output folder in the bucket. A sample prediction output file named `example_predictions` has been provided in this directory for reference.

@@ -22,7 +22,7 @@ There are different ways to load the model weights in the container:
 - Download the model from Persisdent SSD disk - the model is loaded from a persistent disk.
 - Download the model from GCS bucket - the model is loaded from a GCS bucket.
 - Download the model from Hyperdisk ML  - the model is loaded from high throughput Hyperdisk ML.
-- Use secondary boot disk - You can preloaded container image or data on a secondary boot disks of a GKE node that can help you start the inference faster. You can use Image streaming to allow your workloads to initialize without waiting for the entire image to download, which leads to significant improvements in initialization times. 
+- Use secondary boot disk - you can preloaded container image or data on a secondary boot disks of a GKE node that can help you start the inference faster. You can use Image streaming to allow your workloads to initialize without waiting for the entire image to download, which leads to significant improvements in initialization times. 
 
 # Serving the model
 

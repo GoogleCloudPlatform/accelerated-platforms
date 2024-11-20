@@ -1,17 +1,16 @@
 from alloydb_setup import *
 from create_catalog import *
-from enable_google_ml_int import *
 
 
 # TODO: Variablize
 
 # AlloyDB
-project_id = "gkebatchexpce3c8dcb"
+project_id = "your-project-id"
 region = "us-central1"
-cluster_id = "rag-db-karajendran"
+cluster_id = "your-alloydb-cluster-id"
 instance_id = "primary-instance"
 no_of_cpu = 2
-gke_vpc = "ml-vpc-karajendran"
+gke_vpc = "your-gke-vpc"
 instance_uri = f"projects/{project_id}/locations/{region}/clusters/{cluster_id}/instances/{instance_id}"
 
 # User
@@ -22,7 +21,7 @@ user_type = "ALLOYDB_BUILT_IN"
 database_roles = ["alloydbsuperuser"]
 
 # IAM User
-iam_username = "alloydb-access-sa@gkebatchexpce3c8dcb.iam.gserviceaccount.com"
+iam_username = "alloydb-access-sa@<your-project-id>.iam.gserviceaccount.com"
 iam_user_type = "ALLOYDB_IAM_USER"
 iam_database_roles = ["alloydbiamuser"]
 
@@ -31,11 +30,8 @@ database_name = "postgres"
 catalog_db = "product_catalog"
 catalog_table = "clothes"
 
-# processed_data_path = "gs://gkebatchexpce3c8dcb-karajendran-data/flipkart_preprocessed_dataset/flipkart.csv"
-
-processed_data_path = (
-    "gs://gkebatchexpce3c8dcb-karajendran-data/RAG/master_product_catalog.csv"
-)
+# Master_product_catalog.csv
+processed_data_path = "your-gcs-bucket-uri"
 
 # Vector Index
 EMBEDDING_COLUMN = "text_embeddings"

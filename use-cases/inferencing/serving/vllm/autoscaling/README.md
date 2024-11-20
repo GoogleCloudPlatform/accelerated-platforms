@@ -4,7 +4,7 @@
 
 - A model is deployed using one of the vLLM guides
   - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
-  - [Serving the mode using vLLM and HyperdiskML](/use-cases/inferencing/serving/vllm/hyperdiskML/README.md)
+  - [Serving the mode using vLLM and Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
   - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
 
 - Metrics are being scraped from the vLLM server as shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.

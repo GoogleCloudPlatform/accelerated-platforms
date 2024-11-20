@@ -10,7 +10,6 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
   - [Serving the mode using vLLM and Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
   - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
-  
 - Metrics are being scraped from the vLLM server ss shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
 
 ## Preparation
@@ -55,13 +54,12 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 - Configure the environment
 
   | Variable               | Description                                                                    | Example      |
-  | -----------------------| ------------------------------------------------------------------------------ | ------------ |
+  | ---------------------- | ------------------------------------------------------------------------------ | ------------ |
   | ACCELERATOR            | Type of GPU accelerator used (l4, a100, h100)                                  | l4           |
   | MODEL_NAME             | The name of the model folder in the root of the GCS model bucket               | model-gemma2 |
   | MODEL_SERVING_LOCATION | The name of the version folder on the model server (local, gcs)                | local        |
   | MODEL_STORAGE          | Storage type used to load the model                                            | pd           |
   | MODEL_VERSION          | The name of the version folder inside the model folder of the GCS model bucket | experiment   |
-
 
   ```sh
   ACCELERATOR=l4
@@ -102,9 +100,9 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   > Note : Locust service make take up to 5 minutes to load completely.
 
 - Start a new load test
-  
+
   ![Locust UI](./img/locust_ui.png)
-  
+
   - On the locust UI, click `NEW` button
   - Provide number of peak users and users started per second.
   - Click `START` to start the load test

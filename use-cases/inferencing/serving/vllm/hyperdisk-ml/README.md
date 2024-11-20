@@ -2,7 +2,7 @@
 
 This guide demonstrates how to serve a model with vllm using Hyperdisk ML.
 
-Hyperdisk ML is a high performance storage solution that can be used to scale out your applications. It provides high aggregate throughput to many virtual machines concurrently, making it ideal if you want to run AI/ML workloads that need access to large amounts of data. When enabled in read-only-many mode, you can use Hyperdisk ML to accelerate the loading of model weights by up to 11.9X relative to loading directly from a model registry. 
+Hyperdisk ML is a high performance storage solution that can be used to scale out your applications. It provides high aggregate throughput to many virtual machines concurrently, making it ideal if you want to run AI/ML workloads that need access to large amounts of data. When enabled in read-only-many mode, you can use Hyperdisk ML to accelerate the loading of model weights by up to 11.9X relative to loading directly from a model registry.
 
 By the end of this guide, you should be able to perform the following steps:
 
@@ -53,14 +53,14 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
 - Configure the environment
 
-  | Variable       | Description                                                                                  | Example                                |
-  | -------------- | -------------------------------------------------------------------------------------------- | -------------------------------------- |
-  | ACCELERATOR    | Type of GPU accelerator to use (l4, a100, h100)                                              | l4                                     |
-  | GCE_HYPERDISKML_NAME  | Name of the Hyperdisk ML that will host the model                                      | <unique_id>-vllm-model-weights-${ZONE} |
-  | GCE_IMAGE_NAME | Disk image created with model weights                                                        | <unique_id>-vllm-model-weights-${ZONE} |
-  | MODEL_NAME     | The name of the model folder in the root of the GCS model bucket                             | model-gemma2                           |
-  | MODEL_VERSION  | The name of the version folder inside the model folder of the GCS model bucket               | experiment                             |
-  | ZONE           | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION} | us-central1-a                          |
+  | Variable             | Description                                                                                  | Example                                |
+  | -------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------- |
+  | ACCELERATOR          | Type of GPU accelerator to use (l4, a100, h100)                                              | l4                                     |
+  | GCE_HYPERDISKML_NAME | Name of the Hyperdisk ML that will host the model                                            | <unique_id>-vllm-model-weights-${ZONE} |
+  | GCE_IMAGE_NAME       | Disk image created with model weights                                                        | <unique_id>-vllm-model-weights-${ZONE} |
+  | MODEL_NAME           | The name of the model folder in the root of the GCS model bucket                             | model-gemma2                           |
+  | MODEL_VERSION        | The name of the version folder inside the model folder of the GCS model bucket               | experiment                             |
+  | ZONE                 | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION} | us-central1-a                          |
 
   ```sh
   ACCELERATOR=l4
@@ -196,7 +196,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   > Note: Ensure the appropriate zone based on cluster node location and GPU availability
 
-   The Hyperdisk ML is created with default throughput limit of 24,576 MB/s. You can adjust the througput limit based on the underlying VM to achieve higher speed in loading the model. 
+  The Hyperdisk ML is created with default throughput limit of 24,576 MB/s. You can adjust the througput limit based on the underlying VM to achieve higher speed in loading the model.
 
 ### Create the PersistentVolumeClaim (PVC) and PersistentVolume (PV) for serving
 

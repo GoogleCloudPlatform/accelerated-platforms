@@ -3,6 +3,7 @@
 ## Pre-requisites
 
 - A model is deployed using one of the vLLM guides
+
   - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
   - [Serving the mode using vLLM and Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
   - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
@@ -35,11 +36,10 @@
 
 - Configure the environment
 
-  | Variable        | Description                                   | Example  |
-  | --------------- | --------------------------------------------- | -------- |
-  | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100) | l4       |
-  | V_MODEL_STORAGE | Type of storage used for the model (gcs, pd)  | pd       |
-
+  | Variable        | Description                                   | Example |
+  | --------------- | --------------------------------------------- | ------- |
+  | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100) | l4      |
+  | V_MODEL_STORAGE | Type of storage used for the model (gcs, pd)  | pd      |
 
   ```sh
   ACCELERATOR=l4

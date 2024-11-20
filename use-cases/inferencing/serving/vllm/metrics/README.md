@@ -10,7 +10,6 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
   - [Serving the mode using vLLM and Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
   - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
 
-
 ## Preparation
 
 - Clone the repository and change directory to the guide directory
@@ -38,11 +37,10 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 
 - Configure the environment
 
-  | Variable        | Description                                   | Example  |
-  | --------------- | --------------------------------------------- | -------- |
-  | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100) | l4       |
-  | V_MODEL_STORAGE | Type of storage used for the model (gcs, pd)  | pd       |
-
+  | Variable        | Description                                   | Example |
+  | --------------- | --------------------------------------------- | ------- |
+  | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100) | l4      |
+  | V_MODEL_STORAGE | Type of storage used for the model (gcs, pd)  | pd      |
 
   ```sh
   ACCELERATOR=l4

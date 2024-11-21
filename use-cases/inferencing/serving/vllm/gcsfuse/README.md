@@ -1,17 +1,6 @@
-# Distributed Inferencing on vLLM
+# Distributed Inferencing on vLLM using GCS
 
-There are three common strategies for inference on vLLM:
-
-- Single GPU (no distributed inference)
-- Single-Node Multi-GPU (tensor parallel inference)
-- Multi-Node Multi-GPU
-
-In this guide, you will serve a fine-tuned Gemma large language model (LLM) using graphical processing units (GPUs) on Google Kubernetes Engine (GKE) with the vLLM serving framework with the above mentioned deployment strategies. You can choose to swap the Gemma model with any other fine-tuned or instruction based model for inference on GKE.
-
-- Single GPU (no distributed inference) - If your model fits in a single GPU, you probably don't need to use distributed inference. Just use the single GPU to run the inference.
-- Single-Node Multi-GPU (tensor parallel inference) - If your model is too large to fit in a single GPU, but it can fit in a single node with multiple GPUs, you can use tensor parallelism. The tensor parallel size is the number of GPUs you want to use. For example, if you need 4 GPUs, you can set the tensor parallel size to 4.
-
-By the end of this guide, you should be able to perform the following steps:
+This guide demonstrates how to serve a model with vllm using GCS. By the end of this guide, you should be able to perform the following steps:
 
 - Deploy a vLLM container to your cluster to host your model
 - Use vLLM to serve the fine-tuned Gemma model
@@ -114,7 +103,7 @@ By the end of this guide, you should be able to perform the following steps:
 - Create the deployment
 
   ```sh
-  kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} apply -f manifests/gradio.yaml
+  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} apply -f manifests/gradio.yaml
   ```
 
 - Verify the deployment is ready

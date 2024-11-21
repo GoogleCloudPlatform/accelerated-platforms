@@ -16,7 +16,7 @@ Depending on the infrastructure you provisioned, the data preparation step takes
   ```sh
   echo -e "\nhttps://console.cloud.google.com/vertex-ai/publishers/meta/model-garden/llama-3.1-405b-instruct-maas\n"
   ```
-  
+
   1. Accept the license terms for the Llama 3.1 model
   1. On the Llama 3.1 on Vertex AI model card, click the blue `ENABLE` button
 
@@ -71,12 +71,12 @@ Depending on the infrastructure you provisioned, the data preparation step takes
 
 - Configure the job
 
-  | Variable            | Description                                                                                                   | Example                       |
-  | ------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-  | DATASET_INPUT_PATH  | The folder path of where the preprocessed flipkart data resides                                               | flipkart_preprocessed_dataset |
-  | DATASET_INPUT_FILE  | The filename of the preprocessed flipkart data                                                                | flipkart.csv                  |
-  | DATASET_OUTPUT_PATH | The folder path of where the generated output data set will reside. This path will be needed for fine-tuning. | dataset/output                |
-  | PROMPT_MODEL_ID     | The Vertex AI model for prompt generation                                                                     | meta/llama-3.1-70b-instruct-maas          |
+  | Variable            | Description                                                                                                   | Example                          |
+  | ------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+  | DATASET_INPUT_PATH  | The folder path of where the preprocessed flipkart data resides                                               | flipkart_preprocessed_dataset    |
+  | DATASET_INPUT_FILE  | The filename of the preprocessed flipkart data                                                                | flipkart.csv                     |
+  | DATASET_OUTPUT_PATH | The folder path of where the generated output data set will reside. This path will be needed for fine-tuning. | dataset/output                   |
+  | PROMPT_MODEL_ID     | The Vertex AI model for prompt generation                                                                     | meta/llama-3.1-70b-instruct-maas |
 
   ```sh
   DATASET_INPUT_PATH="flipkart_preprocessed_dataset"

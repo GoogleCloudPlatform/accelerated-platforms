@@ -14,6 +14,7 @@
 
 resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
   depends_on = [
+    google_compute_router_nat.default,
     google_container_cluster.mlp,
     #google_gke_hub_feature" "configmanagement,
     google_project_service.anthos_googleapis_com,
@@ -21,7 +22,6 @@ resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
     google_project_service.gkeconnect_googleapis_com,
     google_project_service.gkehub_googleapis_com,
     module.configsync_repository,
-    module.cloud-nat,
     null_resource.gke_hub_feature_configmanagement
   ]
 

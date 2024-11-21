@@ -1,8 +1,12 @@
-# Distributed Inferencing on vLLM using Persistent disk
+# Distributed Inferencing on vLLM using Hyperdisk ML
 
-This guide demonstrates how to serve a model with vllm using persistent disk. By the end of this guide, you should be able to perform the following steps:
+This guide demonstrates how to serve a model with vllm using Hyperdisk ML.
 
-- Create a Persistent Disk for the LLM model weights
+Hyperdisk ML is a high performance storage solution that can be used to scale out your applications. It provides high aggregate throughput to many virtual machines concurrently, making it ideal if you want to run AI/ML workloads that need access to large amounts of data. When enabled in read-only-many mode, you can use Hyperdisk ML to accelerate the loading of model weights by up to 11.9X relative to loading directly from a model registry.
+
+By the end of this guide, you should be able to perform the following steps:
+
+- Create a Hyperdisk ML for the LLM model weights
 - Deploy a vLLM container to your cluster to host your model
 - Use vLLM to serve the fine-tuned Gemma model
 - View Production metrics for your model serving
@@ -25,7 +29,7 @@ This guide demonstrates how to serve a model with vllm using persistent disk. By
 - Change directory to the guide directory
 
   ```sh
-  cd use-cases/inferencing/serving/vllm/persistent-disk
+  cd use-cases/inferencing/serving/vllm/hyperdisk-ml
   ```
 
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured
@@ -43,20 +47,20 @@ This guide demonstrates how to serve a model with vllm using persistent disk. By
   gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
   ```
 
-## Prepare the Persistent Disk (PD)
+## Prepare the Hyperdisk ML
 
-Loading model weights from a PersistentVolume is a method to load models faster. In GKE, PersistentVolumes backed by Google Cloud Persistent Disks can be mounted read-only simultaneously by multiple nodes (ReadOnlyMany), this allows multiple pods access to the model weights from a single volume.
+Loading model weights from a PersistentVolume is a method to load models faster. In GKE, PersistentVolumes backed by Google Cloud Hyperdisk ML can be mounted read-only simultaneously by multiple nodes (ReadOnlyMany), this allows multiple pods access to the model weights from a single volume.
 
 - Configure the environment
 
-  | Variable       | Description                                                                                  | Example                                |
-  | -------------- | -------------------------------------------------------------------------------------------- | -------------------------------------- |
-  | ACCELERATOR    | Type of GPU accelerator to use (l4, a100, h100)                                              | l4                                     |
-  | GCE_DISK_NAME  | Name of the persistent disk that will host the model                                         | <unique_id>-vllm-model-weights-${ZONE} |
-  | GCE_IMAGE_NAME | Disk image created with model weights                                                        | <unique_id>-vllm-model-weights-${ZONE} |
-  | MODEL_NAME     | The name of the model folder in the root of the GCS model bucket                             | model-gemma2                           |
-  | MODEL_VERSION  | The name of the version folder inside the model folder of the GCS model bucket               | experiment                             |
-  | ZONE           | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION} | us-central1-a                          |
+  | Variable             | Description                                                                                  | Example                                |
+  | -------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------- |
+  | ACCELERATOR          | Type of GPU accelerator to use (l4, a100, h100)                                              | l4                                     |
+  | GCE_HYPERDISKML_NAME | Name of the Hyperdisk ML that will host the model                                            | <unique_id>-vllm-model-weights-${ZONE} |
+  | GCE_IMAGE_NAME       | Disk image created with model weights                                                        | <unique_id>-vllm-model-weights-${ZONE} |
+  | MODEL_NAME           | The name of the model folder in the root of the GCS model bucket                             | model-gemma2                           |
+  | MODEL_VERSION        | The name of the version folder inside the model folder of the GCS model bucket               | experiment                             |
+  | ZONE                 | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION} | us-central1-a                          |
 
   ```sh
   ACCELERATOR=l4
@@ -66,7 +70,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   ```
 
   ```ssh
-  GCE_DISK_NAME=${MLP_UNIQUE_IDENTIFIER_PREFIX}-vllm-model-weights-${ZONE}
+  GCE_HYPERDISKML_NAME=${MLP_UNIQUE_IDENTIFIER_PREFIX}-vllm-model-weights-${ZONE}
   GCE_IMAGE_NAME=${MLP_UNIQUE_IDENTIFIER_PREFIX}-vllm-model-weights-${ZONE}
   ```
 
@@ -161,42 +165,45 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   Now, the model is downloaded to the persistent volume.
 
-### Create the Persistent Disk
+### Create a Hyperdisk ML
 
 - Fetch the Persistent volume name and disk ref to create a disk image
 
   ```sh
   PV_NAME="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pvc/vllm-models -o jsonpath='{.spec.volumeName}')"
-  GCE_DISK_REF="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pv/${PV_NAME} -o jsonpath='{.spec.csi.volumeHandle}')"
+  GCE_HYPERDISKML_REF="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pv/${PV_NAME} -o jsonpath='{.spec.csi.volumeHandle}')"
   echo "PV_NAME=${PV_NAME}"
-  echo "GCE_DISK_REF=${GCE_DISK_REF}"
+  echo "GCE_HYPERDISKML_REF=${GCE_HYPERDISKML_REF}"
   ```
 
 - Create a Compute Engine image
 
   ```sh
   gcloud compute images create ${GCE_IMAGE_NAME} \
-  --source-disk="${GCE_DISK_REF}"
+  --source-disk="${GCE_HYPERDISKML_REF}"
   ```
 
-- Create a Persistent Disk from the image
+- Create a Hyperdisk ML from the image
 
   ```sh
-  gcloud compute disks create ${GCE_DISK_NAME} \
+  gcloud compute disks create ${GCE_HYPERDISKML_NAME} \
   --image=${GCE_IMAGE_NAME} \
   --size=1TiB \
-  --type=pd-ssd \
-  --zone=${ZONE}
+  --type=hyperdisk-ml \
+  --zone=${ZONE} \
+  --access-mode=READ_ONLY_MANY
   ```
 
   > Note: Ensure the appropriate zone based on cluster node location and GPU availability
+
+  The Hyperdisk ML is created with default throughput limit of 24,576 MB/s. You can adjust the througput limit based on the underlying VM to achieve higher speed in loading the model.
 
 ### Create the PersistentVolumeClaim (PVC) and PersistentVolume (PV) for serving
 
 - Configure the PersistentVolume
 
   ```sh
-  VOLUME_HANDLE="projects/${MLP_PROJECT_ID}/zones/${ZONE}/disks/${GCE_DISK_NAME}"
+  VOLUME_HANDLE="projects/${MLP_PROJECT_ID}/zones/${ZONE}/disks/${GCE_HYPERDISKML_NAME}"
   echo "VOLUME_HANDLE=${VOLUME_HANDLE}"
   sed \
   -i -e "s|V_VOLUME_HANDLE|${VOLUME_HANDLE}|" \

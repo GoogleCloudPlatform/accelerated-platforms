@@ -3,9 +3,12 @@
 ## Pre-requisites
 
 - A model is deployed using one of the vLLM guides
+
   - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
+  - [Serving the mode using vLLM and Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
   - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
-- Metrics are being scraped from the vLLM server ss shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
+
+- Metrics are being scraped from the vLLM server as shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
 
 ## Preparation
 
@@ -33,17 +36,14 @@
 
 - Configure the environment
 
-  | Variable        | Description                                   | Example  |
-  | --------------- | --------------------------------------------- | -------- |
-  | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100) | l4       |
-  | V_MODEL_STORAGE | Type of storage used for the model (gcs, pd)  | pd       |
-  | SERVE_NAMESPACE | Namespace where the model will be served      | ml-serve |
-  | --------------- | --------------------------------------------- | -------- |
+  | Variable        | Description                                   | Example |
+  | --------------- | --------------------------------------------- | ------- |
+  | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100) | l4      |
+  | V_MODEL_STORAGE | Type of storage used for the model (gcs, pd)  | pd      |
 
   ```sh
   ACCELERATOR=l4
   MODEL_STORAGE=pd
-  SERVE_NAMESPACE=ml-serve
   ```
 
 ## Scaling metrics
@@ -123,13 +123,13 @@ Service for Prometheus [documentation](https://cloud.google.com/kubernetes-engin
   - Queue-depth
 
     ```sh
-    kubectl --namespace ${SERVE_NAMESPACE} apply -f manifests/hpa-vllm-openai-queue-size.yaml
+    kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} apply -f manifests/hpa-vllm-openai-queue-size.yaml
     ```
 
   - Batch-size
 
     ```sh
-    kubectl --namespace ${SERVE_NAMESPACE} apply -f manifests/hpa-vllm-openai-batch-size.yaml
+    kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} apply -f manifests/hpa-vllm-openai-batch-size.yaml
     ```
 
   > NOTE: Adjust the appropriate target values for `vllm:num_requests_running`
@@ -141,7 +141,7 @@ deployment pods when the metric goes over the specified threshold.
 - View the get the HPA status
 
   ```sh
-  kubectl --namespace ${SERVE_NAMESPACE} get/hpa vllm-openai-hpa --watch
+  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get hpa/vllm-openai-hpa --watch
   ```
 
   ```
@@ -152,7 +152,7 @@ deployment pods when the metric goes over the specified threshold.
 - As the metrics threshold is crossed, new pods would be created
 
   ```sh
-  kubectl --namespace ${SERVE_NAMESPACE} get pods --watch
+  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get pods --watch
   ```
 
   ```

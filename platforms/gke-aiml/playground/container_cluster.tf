@@ -13,7 +13,8 @@
 # limitations under the License.
 
 locals {
-  cluster_name = local.unique_identifier_prefix
+  cluster_cloud_dns_zone_name = "gke-${local.cluster_name}-${local.cluster_secondary_range_hash}-dns"
+  cluster_name                = local.unique_identifier_prefix
   # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
   cluster_sa_roles = [
     "roles/monitoring.viewer",
@@ -24,6 +25,7 @@ locals {
     "roles/artifactregistry.reader",
     "roles/serviceusage.serviceUsageConsumer"
   ]
+  cluster_secondary_range_hash = reverse(split("-", google_container_cluster.mlp.ip_allocation_policy[0].cluster_secondary_range_name))[0]
 }
 
 # Create dedicated service account for node pools
@@ -50,10 +52,10 @@ resource "google_container_cluster" "mlp" {
   enable_shielded_nodes    = true
   location                 = var.region
   name                     = local.cluster_name
-  network                  = module.create-vpc.vpc
+  network                  = google_compute_network.default.id
   project                  = data.google_project.environment.project_id
   remove_default_node_pool = false
-  subnetwork               = module.create-vpc.subnet-1
+  subnetwork               = google_compute_subnetwork.default.id
 
   addons_config {
     gcp_filestore_csi_driver_config {
@@ -152,6 +154,11 @@ resource "google_container_cluster" "mlp" {
 
   cost_management_config {
     enabled = true
+  }
+
+  dns_config {
+    cluster_dns       = "CLOUD_DNS"
+    cluster_dns_scope = "CLUSTER_SCOPE"
   }
 
   gateway_api_config {

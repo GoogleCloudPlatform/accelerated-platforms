@@ -14,7 +14,7 @@ For an outline of products and features used in the platform, see the [Platform 
 
 ### Project
 
-In this guide you can choose to bring your project (BYOP) or have Terraform create a new project for you. The requirements are difference based on the option that you choose.
+In this guide you can choose to bring your project (BYOP) or have Terraform create a new project for you. The requirements are different based on the option that you choose.
 
 #### Option 1: Bring your own project (BYOP)
 

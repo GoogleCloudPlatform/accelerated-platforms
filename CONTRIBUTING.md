@@ -25,11 +25,22 @@ This project follows
 
 ## Contribution process
 
+### Code reviews
+
+All submissions, including submissions by project members, require review. We
+use GitHub pull requests for this purpose. Consult
+[GitHub Help](https://help.github.com/articles/about-pull-requests/) for more
+information on using pull requests.
+
 ### Coding style and formatting
 
 #### Python
 
 The repository requires that files use the [Black](https://github.com/psf/black) code formatter and style.
+
+#### Markdown
+
+The repository requires that files use the [Prettier](https://github.com/prettier/prettier) code formatter and style.
 
 #### Terraform
 
@@ -37,9 +48,16 @@ We follow the guidelines and recommendations in the [Google Cloud Best practices
 
 The repository requires that files use built-in formatting using the `terraform fmt` command.
 
-### Code reviews
+#### Recommended Tools
 
-All submissions, including submissions by project members, require review. We
-use GitHub pull requests for this purpose. Consult
-[GitHub Help](https://help.github.com/articles/about-pull-requests/) for more
-information on using pull requests.
+##### Code OSS/VSCode Extensions
+
+Black Formatter `ms-python.black-formatter`
+
+Code Spell Checker `streetsidesoftware.code-spell-checker`
+
+Google Cloud Code `googlecloudtools.cloudcode`
+
+HashiCorp Terraform `hashicorp.terraform`
+
+Prettier - Code formatter `esbenp.prettier-vscode`

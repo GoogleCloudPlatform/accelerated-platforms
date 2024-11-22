@@ -19,10 +19,10 @@ metadata:
 spec:
   template:
     spec:
-      serviceAccountName: dev-rag-ml-team-db-admin # Service account with necessary permissions
+      serviceAccountName: dev-rag-ml-team-db-admin
       containers:
       - name: alloydb-setup
-        image: gcr.io/gkebatchexpce3c8dcb/alloydb-setup:latest # IMAGE_URL
+        image: gcr.io/gkebatchexpce3c8dcb/alloydb-setup:latest
         env:
         - name: PROCESSED_DATA_BUCKET
           value: "gkebatchexpce3c8dcb-dev-rag-data"

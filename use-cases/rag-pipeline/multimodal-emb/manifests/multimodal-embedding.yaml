@@ -29,6 +29,7 @@ spec:
         cluster-autoscaler.kubernetes.io/consume-provisioning-request: embedding-model-l4
         cluster-autoscaler.kubernetes.io/provisioning-class-name: "queued-provisioning.gke.io"
     spec:
+      serviceAccountName: dev-rag-ml-team-db-admin
       containers:
       - name: blip2
         #image: us-docker.pkg.dev/gkebatchexpce3c8dcb/embedding-artifacts/blip2:v4.0 # Update the image location

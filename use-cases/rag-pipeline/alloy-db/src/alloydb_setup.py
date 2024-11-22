@@ -44,9 +44,7 @@ logger = logging.getLogger("alloydb")
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
-    logger.info(
-        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-    )
+    logger.info(f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable")
     logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
 

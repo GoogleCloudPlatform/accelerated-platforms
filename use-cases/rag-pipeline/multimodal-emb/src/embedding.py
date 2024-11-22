@@ -1,17 +1,41 @@
-import argparse
-import base64
-import io
-import re
-import logging
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-from PIL import Image
+import base64
 from flask import Flask, request, jsonify
 from google.cloud import storage
 from google.cloud.storage.blob import Blob
-
+import io
 from lavis.models import load_model_and_preprocess
-
+import logging
+import logging.config
+import os
+from PIL import Image
 import torch
+
+# Configure logging
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger("multimodal")
+
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
+    logging.getLogger().setLevel(new_log_level)
+    logger.setLevel(new_log_level)
+
 
 # Load the model and processors, ensuring they're on the correct device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -23,10 +47,10 @@ model, img_processor, text_processor = load_model_and_preprocess(
 
 def fetch_image(img_uri):
     """
-    Fetches an image from Google Cloud Storage (GCS) or a data URI.
+    Fetches an image from Google Cloud Storage (GCS).
 
     Args:
-      img_uri: The URI of the image.
+      img_uri: The GCS URI of the image.
 
     Returns:
       A PIL Image object.
@@ -48,18 +72,18 @@ def fetch_image(img_uri):
         raise
 
 
-def get_text_embedding(product_desc: str):
+def get_text_embedding(text: str):
     """
-    Generates text embeddings for a given product_desc.
+    Generates text embeddings for a given text.
 
     Args:
-      product_desc: The input product description string.
+      text: The input user query or product description.
 
     Returns:
-      A tensor containing the text embeddings.
+      A tensor containing the text embeddings of dimension 768. 
     """
     try:
-        text_input = text_processor["eval"](product_desc)
+        text_input = text_processor["eval"](text)
         print(text_input)
         sample = {"text_input": [text_input]}
         features_text = model.extract_features(sample, mode="text")
@@ -72,13 +96,13 @@ def get_text_embedding(product_desc: str):
 
 def get_image_embeddings(image):
     """
-    Generates image embeddings for a given image uri
+    Generates image embeddings for a given image uri.
 
     Args:
-      image: image file path (GCS URI)
+      image: image file path (GCS URI).
 
     Returns:
-      A tensor containing the text embeddings.
+      A tensor containing the image embeddings of dimension 768. 
     """
     try:
         image = img_processor["eval"](image).unsqueeze(0).to(device)
@@ -92,6 +116,16 @@ def get_image_embeddings(image):
 
 
 def get_multimodal_embeddings(image, text):
+    """
+    Generates embeddings for given image uri and text.
+
+    Args:
+      image: image file path (GCS URI),
+      text: The input user query or product description.
+
+    Returns:
+      A tensor containing the image embeddings and text embeddings of dimension 768. 
+    """
     try:
         image = img_processor["eval"](image).unsqueeze(0).to(device)
         text_input = text_processor["eval"](text)
@@ -113,7 +147,7 @@ app = Flask(__name__)
 @app.route("/embeddings", methods=["POST"])
 def generate_embeddings():
     """
-    Generates embeddings for a given image and/or caption.
+    Generates embeddings for a given image and/or description/query.
 
     Returns:
       A JSON response containing the generated embeddings.
@@ -150,10 +184,6 @@ def generate_embeddings():
                             ),
                             400,
                         )
-
-                # image_file = request.files["image"]
-                # image = Image.open(image_file).convert("RGB")
-                # text = request.form.get("text")
         else:
             return jsonify({"error": "Invalid request method"}), 405
 

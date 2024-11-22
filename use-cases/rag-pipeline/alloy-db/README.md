@@ -16,29 +16,13 @@ docker tag catalog-onboarding:latest gcr.io/$MLP_PROJECT_ID/alloydb-setup:latest
 docker push gcr.io/$MLP_PROJECT_ID/alloydb-setup:latest
 
 
-3. TODO: Revisit this step
+3. Use KSA in the job and Apply the Job to your GKE cluster:
 
-kubectl create secret generic alloydb-secrets \
-  --from-literal=project_id=$MLP_PROJECT_ID \
-  --from-literal=password=[YOUR_PASSWORD] \
-  -n ml-team
-
-Create a Kubernetes Secret for sensitive data.
-
-Bash
-kubectl create secret generic alloydb-secrets \
-  --from-literal=project_id=$MLP_PROJECT_ID \
-  --from-literal=password=[YOUR_PASSWORD] \
-  --from-literal=catalog-admin-password=[CATALOG_ADMIN_PASSWORD] \
-  --from-literal=rag-user-password=[RAG_USER_PASSWORD]
-  -n ml-team
-
-
-# 6. Use KSA in the job and Apply the Job to your GKE cluster:
+gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
 
 Bash
 kubectl apply -f  alloydb-setup-job.yaml -n ml-team 
 
 Check logs:
 kubectl get pods -n ml-team
-kubectl logs -f catalog-onboarding-job-X -n ml-team
+kubectl logs -f alloydb-setup-xxxxx -n ml-team

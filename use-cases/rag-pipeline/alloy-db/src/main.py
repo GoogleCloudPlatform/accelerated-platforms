@@ -1,135 +1,75 @@
-from alloydb_setup import *
-from create_catalog import *
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+import alloydb_setup
+import create_catalog
+import logging
+import logging.config
+import os
 
-# TODO: Variablize
+logging.basicConfig(level=logging.INFO)
 
-# AlloyDB
-project_id = "your-project-id"
-region = "us-central1"
-cluster_id = "your-alloydb-cluster-id"
-instance_id = "primary-instance"
-no_of_cpu = 2
-gke_vpc = "your-gke-vpc"
-instance_uri = f"projects/{project_id}/locations/{region}/clusters/{cluster_id}/instances/{instance_id}"
-
-# User
-password = "retail"  # postgres user
-username = "catalog-admin"
-user_password = "retail"
-user_type = "ALLOYDB_BUILT_IN"
-database_roles = ["alloydbsuperuser"]
-
-# IAM User
-iam_username = "alloydb-access-sa@<your-project-id>.iam.gserviceaccount.com"
-iam_user_type = "ALLOYDB_IAM_USER"
-iam_database_roles = ["alloydbiamuser"]
-
-# Catalog
-database_name = "postgres"
-catalog_db = "product_catalog"
-catalog_table = "clothes"
 
 # Master_product_catalog.csv
-processed_data_path = "your-gcs-bucket-uri"
+PROCESSED_DATA_BUCKET = os.getenv("PROCESSED_DATA_BUCKET")
+MASTER_CATALOG_FILE_NAME = os.getenv("MASTER_CATALOG_FILE_NAME")
+processed_data_path = f"gs://{PROCESSED_DATA_BUCKET}/{MASTER_CATALOG_FILE_NAME}"
+
+# Catalog DB
+database_name = "postgres"
+catalog_db = os.getenv("CATALOG_DB_NAME")
+catalog_table = os.getenv("CATALOG_TABLE_NAME")
+user = os.getenv("MLP_DB_ADMIN_IAM")
 
 # Vector Index
-EMBEDDING_COLUMN = "text_embeddings"
+EMBEDDING_COLUMN = os.getenv("EMBEDDING_COLUMN")
 INDEX_NAME = "rag_text_embeddings_index"
 DISTANCE_FUNCTION = "cosine"
-NUM_LEAVES_VALUE = 300  # random guess for now
+NUM_LEAVES_VALUE = int(os.getenv("NUM_LEAVES_VALUE"))
 
 if __name__ == "__main__":
+    # Configure logging
+    logging.config.fileConfig("logging.conf")
+
+    logger = logging.getLogger("alloydb")
+
+    if "LOG_LEVEL" in os.environ:
+        new_log_level = os.environ["LOG_LEVEL"].upper()
+        logger.info(
+            f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+        )
+        logging.getLogger().setLevel(new_log_level)
+        logger.setLevel(new_log_level)
+
     try:
 
-        # Create AlloyDB cluster
-        create_alloydb_cluster(
-            project_id,
-            region,
-            cluster_id,
-            password,
-            gke_vpc,
-        )
-        # Create AlloyDB instance
-        create_alloydb_instance(
-            project_id,
-            region,
-            cluster_id,
-            instance_id,
-            no_of_cpu,
-        )
-        # Create AlloyDB Users
-        create_alloydb_user(
-            project_id,
-            region,
-            cluster_id,
-            username,
-            user_password,
-            user_type,
-            database_roles,
-        )
-
-        create_alloydb_iam_user(
-            project_id,
-            region,
-            cluster_id,
-            iam_username,
-            iam_user_type,
-            iam_database_roles,
-        )
-        # List users
-        list_users(project_id, region, cluster_id)
-
         # Create Database - This function enables the vector, scann extensions as well
-        create_database_old(
-            instance_uri,
-            database_name,
-            catalog_db,
-            username,
-            user_password,
-        )
-
-        # Get DB connection info
-        connection_info = get_connection_info(
-            project_id, region, cluster_id, instance_id
-        )
-        host = connection_info.ip_address
-        logging.info(f"AlloyDb ip address: {host}")
-        create_database(
-            host,
-            database_name,
-            catalog_db,
-            username,
-            user_password,
-        )
-
+        create_catalog.create_database(database_name, catalog_db, user, )
+        
         # ETL
-        create_and_populate_table(
-            instance_uri,
-            catalog_db,
-            username,
-            user_password,
-            catalog_table,
-            processed_data_path,
-        )
+        create_catalog.create_and_populate_table(catalog_db, user, catalog_table, processed_data_path, )
 
-        # Create Vector Index
-        engine = create_alloydb_engine(
-            instance_uri,
+        # Create Index
+        create_catalog.create_text_embeddings_index(
             catalog_db,
-            username,
-            user_password,
-        )
-        create_text_embeddings_index(
-            engine,
+            user,
             catalog_table,
             EMBEDDING_COLUMN,
             INDEX_NAME,
             DISTANCE_FUNCTION,
             NUM_LEAVES_VALUE,
         )
-
-    finally:
-        # Clean up resources (optional, uncomment if needed)
-        # delete_alloydb_cluster(project_id, region, cluster_id)
-        pass
+    except Exception as e:
+        logging.error(f"An unexpected error occurred during catalog onboarding: {e}")
+        raise

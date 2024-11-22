@@ -1,103 +1,85 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import google.auth
+import google.auth.transport.requests
+import logging
+import logging.config
+import sqlalchemy
+
+from google.cloud.alloydb.connector import Connector, IPTypes
+
 from google.cloud import alloydb_v1 as alloydb
 import google.api_core.exceptions
-import logging
+import os
 
-logging.basicConfig(level=logging.INFO)
+# AlloyDB
+instance_uri = os.getenv("MLP_DB_INSTANCE_URI")
+
 
 client = alloydb.AlloyDBAdminClient()
 
 
-def create_alloydb_cluster(project_id, region, cluster_id, password, gke_vpc):
-    """Creates an AlloyDB cluster."""
-    try:
-        cluster = alloydb.Cluster(
-            network=f"projects/{project_id}/global/networks/{gke_vpc}"
-        )
-        request = alloydb.CreateClusterRequest(
-            parent=f"projects/{project_id}/locations/{region}",
-            cluster_id=cluster_id,
-            cluster=cluster,
-        )
-        operation = client.create_cluster(request=request)
-        logging.info("Waiting for Cluster creation to complete...")
-        response = operation.result()
-        logging.info(f"Cluster created: {response.name}")
-        return response
-    except google.api_core.exceptions.GoogleAPIError as e:
-        logging.error(f"Error creating cluster: {e}")
-        raise
+credentials, project = google.auth.default()
+auth_request = google.auth.transport.requests.Request()
+credentials.refresh(auth_request)
+
+user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
+password = credentials.token
+
+# Configure logging
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger("alloydb")
+
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
+    logging.getLogger().setLevel(new_log_level)
+    logger.setLevel(new_log_level)
 
 
-def create_alloydb_instance(project_id, region, cluster_id, instance_id, no_of_cpu):
-    """Creates an AlloyDB primary instance."""
-    try:
-        instance = alloydb.Instance(
-            machine_config=alloydb.Instance.MachineConfig(cpu_count=no_of_cpu),
-            instance_type="PRIMARY",
-        )
-        request = alloydb.CreateInstanceRequest(
-            parent=f"projects/{project_id}/locations/{region}/clusters/{cluster_id}",
-            instance_id=instance_id,
-            instance=instance,
-        )
-        operation = client.create_instance(request=request)
-        logging.info("Waiting for Instance creation to complete...")
-        response = operation.result()
-        logging.info(f"Instance created: {response.name}")
-        return response
-    except google.api_core.exceptions.GoogleAPIError as e:
-        logging.error(f"Error creating instance: {e}")
-        raise
-
-
-def create_alloydb_user(
-    project_id, region, cluster_id, username, password, user_type, database_roles
-):
-    """Creates a user in the AlloyDB cluster."""
-    try:
-        user = alloydb.User(
-            user_type=user_type,
-            database_roles=database_roles,
-            password=password,
-        )
-        request = alloydb.CreateUserRequest(
-            parent=f"projects/{project_id}/locations/{region}/clusters/{cluster_id}",
-            user_id=username,
+def init_connection_pool(connector: Connector, user='postgres', db='postgres') -> sqlalchemy.engine.Engine:
+    # function used to generate database connection
+    def getconn():
+        conn = connector.connect(
+            instance_uri,
+            "pg8000",
             user=user,
+            db="postgres",
+            # use ip_type to specify PSC
+            ip_type=IPTypes.PSC,
+            # use enable_iam_auth to enable IAM authentication
+            enable_iam_auth=True,
         )
-        client.create_user(request=request)
-        logging.info(f"User created: {username}")
-    except google.api_core.exceptions.GoogleAPIError as e:
-        logging.error(f"Error creating user: {e}")
-        raise
+        return conn
 
-
-def create_alloydb_iam_user(
-    project_id, region, cluster_id, username, user_type, database_roles
-):
-    """Creates a user in the AlloyDB cluster."""
-    try:
-        user = alloydb.User(
-            user_type=user_type,
-            database_roles=database_roles,
-        )
-        request = alloydb.CreateUserRequest(
-            parent=f"projects/{project_id}/locations/{region}/clusters/{cluster_id}",
-            user_id=username,
-            user=user,
-        )
-        client.create_user(request=request)
-        logging.info(f"User created: {username}")
-    except google.api_core.exceptions.GoogleAPIError as e:
-        logging.error(f"Error creating user: {e}")
-        raise
+    # create connection pool
+    pool = sqlalchemy.create_engine(
+        "postgresql+pg8000://",
+        creator=getconn,
+    )
+    logging.info("Connection pool created successfully.")
+    return pool
 
 
 def list_users(project_id, region, cluster_id):
     """Lists users in the AlloyDB cluster."""
     try:
         request = alloydb.ListUsersRequest(
-            parent=f"projects/{project_id}/locations/{region}/clusters/{cluster_id}"
+            parent=instance_uri
         )
         page_result = client.list_users(request=request)
         for user in page_result:
@@ -110,26 +92,10 @@ def list_users(project_id, region, cluster_id):
 def get_connection_info(project_id, region, cluster_id, instance_id):
     """Gets connection information for the AlloyDB instance."""
     try:
-        instance_name = f"projects/{project_id}/locations/{region}/clusters/{cluster_id}/instances/{instance_id}"
-        request = alloydb.GetConnectionInfoRequest(parent=instance_name)
+        request = alloydb.GetConnectionInfoRequest(parent=instance_uri)
         connection_info = client.get_connection_info(request=request)
         logging.info(f"Connection info: {connection_info}")
         return connection_info
     except google.api_core.exceptions.GoogleAPIError as e:
         logging.error(f"Error getting connection info: {e}")
-        raise
-
-
-def delete_alloydb_cluster(project_id, region, cluster_id):
-    """Deletes an AlloyDB cluster."""
-    try:
-        request = alloydb.DeleteClusterRequest(
-            name=f"projects/{project_id}/locations/{region}/clusters/{cluster_id}"
-        )
-        operation = client.delete_cluster(request=request)
-        logging.info("Waiting for Cluster deletion to complete...")
-        operation.result()
-        logging.info(f"Cluster deleted: {cluster_id}")
-    except google.api_core.exceptions.GoogleAPIError as e:
-        logging.error(f"Error deleting cluster: {e}")
         raise

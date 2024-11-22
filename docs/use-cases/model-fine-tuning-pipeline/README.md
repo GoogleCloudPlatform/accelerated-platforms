@@ -70,7 +70,7 @@ The prompts were created utilizing the previously generated questions and answer
 <start_of_turn>user
 Context:Online shopping for Men's Clothing
 What is the fabric of Numero Uno Solid Men's Polo Neck T-Shirt<end_of_turn><start_of_turn>model
-The fabric of Numero Uno Solid Men's Polo Neck T-Shirt is cotton 
+The fabric of Numero Uno Solid Men's Polo Neck T-Shirt is cotton
 Product Name: Numero Uno Solid Men's Polo Neck T-Shirt
 Product Category: Men's Clothing
 Product Details:

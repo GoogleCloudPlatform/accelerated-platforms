@@ -89,7 +89,7 @@ The resulting fine-tuned model is, Built with Meta Llama 3.1, using the the data
   | MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING | If MLflow is enabled, track system level metrics, CPU/Memory/GPU                                                                  | true/false                                    |
   | MLFLOW_TRACKING_URI                  | If MLflow is enabled, the tracking server URI                                                                                     | <http://mlflow-tracking-service.ml-team:5000> |
   | MODEL_PATH                           | The output folder path for the fine-tuned model. This location will be used by the inference serving engine and model evaluation. | /model-data/model-gemma2/experiment           |
-  | TRAIN_BATCH_SIZE                     | The number of training examples processed in a single iteration of an ML model's training process | 1           |
+  | TRAIN_BATCH_SIZE                     | The number of training examples processed in a single iteration of an ML model's training process                                 | 1                                             |
 
   ```sh
   ACCELERATOR="l4"

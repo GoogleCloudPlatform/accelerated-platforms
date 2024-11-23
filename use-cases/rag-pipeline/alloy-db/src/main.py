@@ -18,9 +18,6 @@ import logging
 import logging.config
 import os
 
-logging.basicConfig(level=logging.INFO)
-
-
 # Master_product_catalog.csv
 PROCESSED_DATA_BUCKET = os.getenv("PROCESSED_DATA_BUCKET")
 MASTER_CATALOG_FILE_NAME = os.getenv("MASTER_CATALOG_FILE_NAME")
@@ -55,10 +52,19 @@ if __name__ == "__main__":
     try:
 
         # Create Database - This function enables the vector, scann extensions as well
-        create_catalog.create_database(database_name, catalog_db, user, )
-        
+        create_catalog.create_database(
+            database_name,
+            catalog_db,
+            user,
+        )
+
         # ETL
-        create_catalog.create_and_populate_table(catalog_db, user, catalog_table, processed_data_path, )
+        create_catalog.create_and_populate_table(
+            catalog_db,
+            user,
+            catalog_table,
+            processed_data_path,
+        )
 
         # Create Index
         create_catalog.create_text_embeddings_index(

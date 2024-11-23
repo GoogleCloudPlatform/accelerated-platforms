@@ -1,0 +1,72 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multimodal-embedding-a100
+spec:
+  replicas: 1 # Adjust replica count as needed
+  selector:
+    matchLabels:
+      app: blip2
+  template:
+    metadata:
+      labels:
+        app: blip2
+      annotations:
+        cluster-autoscaler.kubernetes.io/consume-provisioning-request: embedding-model-a100
+        cluster-autoscaler.kubernetes.io/provisioning-class-name: "queued-provisioning.gke.io"
+    spec:
+      serviceAccountName: dev-rag-ml-team-db-admin
+      containers:
+      - name: blip2
+        #image: us-docker.pkg.dev/gkebatchexpce3c8dcb/embedding-artifacts/blip2:v4.0 # Update the image location
+        image: gcr.io/gkebatchexpce3c8dcb/multi_emb:latest
+        resources:
+          requests:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+            nvidia.com/gpu: "1"
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Equal"
+        value: "present"
+        effect: "NoSchedule"
+      - key: "on-demand"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-tesla-a100
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: multimodal-embedding-a100
+spec:
+  selector:
+    app: blip2
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

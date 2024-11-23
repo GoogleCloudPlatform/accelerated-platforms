@@ -14,15 +14,16 @@
 
 import alloydb_setup
 import get_emb
-from google.cloud.alloydb.connector import Connector
 import logging
 import logging.config
 import os
 import pandas as pd
-from pgvector.sqlalchemy import Vector
 import sqlalchemy
 
-EMBEDDING_DIMESNION = int(os.getenv("EMBEDDING_DIMESNION"))
+from google.cloud.alloydb.connector import Connector
+from pgvector.sqlalchemy import Vector
+
+EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION"))
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -30,9 +31,12 @@ logger = logging.getLogger("alloydb")
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
-    logger.info(f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable")
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
     logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
+
 
 def create_database(database, new_database, user):
     """Creates a new database in AlloyDB and enables necessary extensions."""
@@ -41,12 +45,14 @@ def create_database(database, new_database, user):
         # initialize Connector as context manager
         with Connector() as connector:
             # initialize connection pool
-            pool = alloydb_setup.init_connection_pool(connector, user, database)
+            pool = alloydb_setup.init_connection_pool(connector, database)
             del_db = sqlalchemy.text(f"DROP DATABASE IF EXISTS {new_database};")
             create_db = sqlalchemy.text(f"CREATE DATABASE {new_database}")
 
             # interact with AlloyDB database using connection pool
-            with pool.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            with pool.connect().execution_options(
+                isolation_level="AUTOCOMMIT"
+            ) as connection:
                 with connection.begin():
                     connection.execute(del_db)
                     logging.info(f"Database '{new_database}' deleted successfully.")
@@ -54,6 +60,8 @@ def create_database(database, new_database, user):
                     logging.info(f"Database '{new_database}' created successfully.")
     except Exception as e:
         logging.error(f"An error occurred while creating the database: {e}")
+        # handle this error?
+        # (pg8000.exceptions.DatabaseError) {'S': 'ERROR', 'V': 'ERROR', 'C': '55006', 'M': 'database \"product_catalog\" is being accessed by other users', 'D': 'There are 2 other sessions using the database.', 'F': 'dbcommands.c', 'L': '1788', 'R': 'dropdb'}\n[SQL: DROP DATABASE IF EXISTS product_catalog;]\n(Background on this error at: https://sqlalche.me/e/20/4xp6) """
     finally:
         if connection:
             connection.close()
@@ -62,23 +70,32 @@ def create_database(database, new_database, user):
             connector.close()
             logging.info("Connector closed")
 
-
     try:
         # 3. Connect to the newly created database
         with Connector() as connector:
             # initialize connection pool
-            pool = alloydb_setup.init_connection_pool(connector, user, new_database)
-            create_vector_extn = sqlalchemy.text(f"CREATE EXTENSION IF NOT EXISTS vector;")
+            pool = alloydb_setup.init_connection_pool(connector, new_database)
+            create_vector_extn = sqlalchemy.text(
+                f"CREATE EXTENSION IF NOT EXISTS vector;"
+            )
             # interact with AlloyDB database using connection pool
-            with pool.connect().execution_options(isolation_level="AUTOCOMMIT") as db_conn:
+            with pool.connect().execution_options(
+                isolation_level="AUTOCOMMIT"
+            ) as db_conn:
                 with db_conn.begin():
                     logging.info(f"Connected with the newly created db {new_database}")
                     # 4. Enable extensions in the new database
                     db_conn.execute(create_vector_extn)
-                    logging.info(f"pgvector extension enabled successfully on db {new_database}.")
-                    create_scann_extn = sqlalchemy.text(f"CREATE EXTENSION IF NOT EXISTS alloydb_scann;")
+                    logging.info(
+                        f"pgvector extension enabled successfully on db {new_database}."
+                    )
+                    create_scann_extn = sqlalchemy.text(
+                        f"CREATE EXTENSION IF NOT EXISTS alloydb_scann;"
+                    )
                     db_conn.execute(create_scann_extn)
-                    logging.info(f"alloydb_scann extension enabled successfully on db {new_database}.")
+                    logging.info(
+                        f"alloydb_scann extension enabled successfully on db {new_database}."
+                    )
     except Exception as e:
         logging.error(f"An error occurred while enabling the extensions: {e}")
     finally:
@@ -90,40 +107,39 @@ def create_database(database, new_database, user):
             logging.info("Connector closed")
 
 
-def create_and_populate_table(
-    database, user, table_name, processed_data_path
-):
+def create_and_populate_table(database, user, table_name, processed_data_path):
     """Creates and populates a table in PostgreSQL using pandas and sqlalchemy."""
 
     try:
         # 1. Extract
         df = pd.read_csv(processed_data_path)
         logging.info(f"Input df shape: {df.shape}")
-        
-        #Droping products with image_uri as NaN
+
+        # Dropping products with image_uri as NaN
         df.dropna(subset=["image_uri"], inplace=True)
         logging.info(f"resulting df shape: {df.shape}")
 
         logging.info(f"Starting embedding generation...")
         # 2. Transform
         df["multimodal_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(row["Description"], row["image_uri"]), axis=1
+            lambda row: get_emb.get_embeddings(row["Description"], row["image_uri"]),
+            axis=1,
         )
-        
+
         df["text_embeddings"] = df.apply(
             lambda row: get_emb.get_embeddings(row["Description"], None), axis=1
         )
         df["image_embeddings"] = df.apply(
             lambda row: get_emb.get_embeddings(None, row["image_uri"]), axis=1
         )
-        
+
         logging.info(f"Embedding generation completed")
 
         # 3. Load
         with Connector() as connector:
-            engine = alloydb_setup.init_connection_pool(connector, user, database)
+            engine = alloydb_setup.init_connection_pool(connector, database)
             with engine.begin() as connection:
-                logging.info("Connected with the newly created db")
+                logging.info(f"Connected with the db {database}")
                 df.to_sql(
                     table_name,
                     connection,
@@ -131,12 +147,16 @@ def create_and_populate_table(
                     index=False,
                     method="multi",
                     dtype={
-                        "multimodal_embeddings": Vector(EMBEDDING_DIMESNION),
-                        "text_embeddings": Vector(EMBEDDING_DIMESNION),
-                        "image_embeddings": Vector(EMBEDDING_DIMESNION),
+                        "multimodal_embeddings": Vector(EMBEDDING_DIMENSION),
+                        "text_embeddings": Vector(EMBEDDING_DIMENSION),
+                        "image_embeddings": Vector(EMBEDDING_DIMENSION),
                     },
                 )
-                logging.info(f"Table '{table_name}' created and populated successfully.")
+                logging.info(
+                    f"Table '{table_name}' created and populated successfully on db {database}."
+                )
+                connection.commit()
+
     except FileNotFoundError:
         logging.error(f"Error: CSV file not found at {processed_data_path}")
 
@@ -155,6 +175,7 @@ def create_and_populate_table(
             connector.close()
             logging.info("Connector closed")
 
+
 # Create an Scann index on the table with embedding column and cosine distance
 def create_text_embeddings_index(
     database,
@@ -170,12 +191,13 @@ def create_text_embeddings_index(
     )
     try:
         with Connector() as connector:
-            pool = alloydb_setup.init_connection_pool(connector, user, database)            
+            pool = alloydb_setup.init_connection_pool(connector, database)
             with pool.connect() as db_conn:
-                db_conn.execute(index_cmd)    
+                db_conn.execute(index_cmd)
                 logging.info(f"Index '{INDEX_NAME}' created successfully.")
     except Exception as e:
         # TODO: handle 'postgresql error: access method "scann" does not exist'
+        # TODO: Handle "Error creating index: (pg8000.exceptions.DatabaseError) {'S': 'ERROR', 'V': 'ERROR', 'C': 'XX000', 'M': 'Cannot create ScaNN index, error: FAILED_PRECONDITION: Cannot create ScaNN index with empty table. Once the table is populated with data, create the index.
         logging.error(f"Error creating index: {e}")
         raise
     finally:
@@ -185,4 +207,3 @@ def create_text_embeddings_index(
         if connector:
             connector.close()
             logging.info("Connector closed")
-            

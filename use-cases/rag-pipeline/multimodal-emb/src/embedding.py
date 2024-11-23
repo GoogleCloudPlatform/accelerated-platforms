@@ -80,7 +80,7 @@ def get_text_embedding(text: str):
       text: The input user query or product description.
 
     Returns:
-      A tensor containing the text embeddings of dimension 768. 
+      A tensor containing the text embeddings of dimension 768.
     """
     try:
         text_input = text_processor["eval"](text)
@@ -102,7 +102,7 @@ def get_image_embeddings(image):
       image: image file path (GCS URI).
 
     Returns:
-      A tensor containing the image embeddings of dimension 768. 
+      A tensor containing the image embeddings of dimension 768.
     """
     try:
         image = img_processor["eval"](image).unsqueeze(0).to(device)
@@ -124,7 +124,7 @@ def get_multimodal_embeddings(image, text):
       text: The input user query or product description.
 
     Returns:
-      A tensor containing the image embeddings and text embeddings of dimension 768. 
+      A tensor containing the image embeddings and text embeddings of dimension 768.
     """
     try:
         image = img_processor["eval"](image).unsqueeze(0).to(device)

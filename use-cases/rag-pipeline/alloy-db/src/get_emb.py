@@ -28,23 +28,28 @@ if "LOG_LEVEL" in os.environ:
     )
     logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
-    
-service_name = os.getenv("EMBEDDING_MODEL")  # matches service name in multimodal-embedding.yaml
+
+service_name = os.getenv(
+    "EMBEDDING_MODEL"
+)  # matches service name in multimodal-embedding.yaml
 namespace = os.getenv("MLP_KUBERNETES_NAMESPACE")
 url = f"http://{service_name}.{namespace}.svc.cluster.local:8000/embeddings"
 headers = {"Content-Type": "application/json"}
+
 
 def get_text_embeddings(user_query):
 
     data = {"product_desc": user_query}
     try:
         response = requests.post(url, headers=headers, json=data)
-        #logging.info(response.json())
+        # logging.info(response.json())
         response.raise_for_status()  # Raise an exception for error responses
         return response.json()["text_embeds"]
     except requests.exceptions.RequestException as e:
 
-        logging.error(f"Error while generating text embedding for text '{user_query}': {e}")
+        logging.error(
+            f"Error while generating text embedding for text '{user_query}': {e}"
+        )
         return None
 
 
@@ -53,11 +58,13 @@ def get_image_embeddings(image_uri):
     data = {"image_uri": image_uri}
     try:
         response = requests.post(url, headers=headers, json=data)
-        #logging.info(response.json())
+        # logging.info(response.json())
         response.raise_for_status()  # Raise an exception for error responses
         return response.json()["image_embeds"]
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error while generating image embedding for image '{image_uri}': {e}")
+        logging.error(
+            f"Error while generating image embedding for image '{image_uri}': {e}"
+        )
         return None
 
 
@@ -66,11 +73,13 @@ def get_multimodal_embeddings(desc, image_uri):
     data = {"product_desc": desc, "image_uri": image_uri}
     try:
         response = requests.post(url, headers=headers, json=data)
-        #logging.info(response.json())
+        # logging.info(response.json())
         response.raise_for_status()  # Raise an exception for error responses
         return response.json()["multimodal_embeds"]
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error while generating multimodal embedding for text '{desc}' and image '{image_uri}': {e}")
+        logging.error(
+            f"Error while generating multimodal embedding for text '{desc}' and image '{image_uri}': {e}"
+        )
         return None
 
 
@@ -83,6 +92,6 @@ def get_embeddings(text=None, image_uri=None):
         return get_image_embeddings(image_uri)
     else:
         logging.error(
-            "Atlease one input needed. Provide product description and/or image_uri to generate embeddings"
+            "Provide product description and/or image_uri to generate embeddings"
         )
         return None

@@ -16,27 +16,20 @@ import google.auth
 import google.auth.transport.requests
 import logging
 import logging.config
+import google.api_core.exceptions
+import os
 import sqlalchemy
 
 from google.cloud.alloydb.connector import Connector, IPTypes
 
-from google.cloud import alloydb_v1 as alloydb
-import google.api_core.exceptions
-import os
-
 # AlloyDB
 instance_uri = os.getenv("MLP_DB_INSTANCE_URI")
-
-
-client = alloydb.AlloyDBAdminClient()
-
 
 credentials, project = google.auth.default()
 auth_request = google.auth.transport.requests.Request()
 credentials.refresh(auth_request)
 
 user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
-password = credentials.token
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -44,19 +37,24 @@ logger = logging.getLogger("alloydb")
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
-    logger.info(f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable")
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
     logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
 
 
-def init_connection_pool(connector: Connector, user='postgres', db='postgres') -> sqlalchemy.engine.Engine:
-    # function used to generate database connection
+def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Engine:
+    """
+    Initializes a SQLAlchemy engine for connecting to AlloyDB.
+    """
+
     def getconn():
         conn = connector.connect(
             instance_uri,
             "pg8000",
             user=user,
-            db="postgres",
+            db=db,
             # use ip_type to specify PSC
             ip_type=IPTypes.PSC,
             # use enable_iam_auth to enable IAM authentication
@@ -71,29 +69,3 @@ def init_connection_pool(connector: Connector, user='postgres', db='postgres') -
     )
     logging.info("Connection pool created successfully.")
     return pool
-
-
-def list_users(project_id, region, cluster_id):
-    """Lists users in the AlloyDB cluster."""
-    try:
-        request = alloydb.ListUsersRequest(
-            parent=instance_uri
-        )
-        page_result = client.list_users(request=request)
-        for user in page_result:
-            logging.info(f"User: {user}")
-    except google.api_core.exceptions.GoogleAPIError as e:
-        logging.error(f"Error listing users: {e}")
-        raise
-
-
-def get_connection_info(project_id, region, cluster_id, instance_id):
-    """Gets connection information for the AlloyDB instance."""
-    try:
-        request = alloydb.GetConnectionInfoRequest(parent=instance_uri)
-        connection_info = client.get_connection_info(request=request)
-        logging.info(f"Connection info: {connection_info}")
-        return connection_info
-    except google.api_core.exceptions.GoogleAPIError as e:
-        logging.error(f"Error getting connection info: {e}")
-        raise

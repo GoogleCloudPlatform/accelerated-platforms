@@ -1,63 +1,93 @@
-from get_emb import *
-from semantic_search import *
-from rerank import *
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from flask import Flask, request, jsonify
-
-import sqlalchemy
-from google.cloud.alloydb.connector import Connector
-
+import get_emb
+import google.auth
+import google.auth.transport.requests
+from google.cloud.alloydb.connector import Connector, IPTypes
 import logging
+import logging.config
+import os
+import rerank
+import semantic_search
+import sqlalchemy
 
-logging.basicConfig(level=logging.INFO)
+credentials, project = google.auth.default()
+auth_request = google.auth.transport.requests.Request()
+credentials.refresh(auth_request)
+
+user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
+password = credentials.token
+
+# Configure logging
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger("backend")
+
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
+    logging.getLogger().setLevel(new_log_level)
+    logger.setLevel(new_log_level)
 
 # Flask app
 app = Flask(__name__)
 
-
 # AlloyDB
-project_id = "gkebatchexpce3c8dcb"
-region = "us-central1"
-cluster_id = "rag-db-karajendran"
-instance_id = "primary-instance"
-instance_uri = f"projects/{project_id}/locations/{region}/clusters/{cluster_id}/instances/{instance_id}"
+instance_uri = os.getenv("MLP_DB_INSTANCE_URI")
 
-# User
-username = "catalog-admin"
-user_password = "retail"
-
-# Catalog
-catalog_db = "product_catalog"
-catalog_table = "clothes"
+# Catalog DB
+catalog_db = os.getenv("CATALOG_DB_NAME")
+catalog_table = os.getenv("CATALOG_TABLE_NAME")
+user = os.getenv("MLP_DB_ADMIN_IAM")
 
 # Vector Index
-embedding_column = "text_embeddings"
+embedding_column = os.getenv("EMBEDDING_COLUMN")
 
 # To Test
-row_count = 5  # No of mathcing products
+row_count = 5  # No of matching products
 
 
-def create_alloydb_engine(instance_uri, db_name, user, password):
+def create_alloydb_engine(
+    connector: Connector, db="postgres"
+) -> sqlalchemy.engine.Engine:
     """
     Initializes a SQLAlchemy engine for connecting to AlloyDB.
     """
-    connector = Connector()
 
-    def getconn() -> sqlalchemy.engine.Connection:
-        conn: sqlalchemy.engine.Connection = connector.connect(
+    def getconn():
+        conn = connector.connect(
             instance_uri,
             "pg8000",
-            user=user,  # Optional if using IAM
-            password=password,  # Optional if using IAM
-            db=db_name,
+            user=user,
+            db=db,
+            # use ip_type to specify PSC
+            ip_type=IPTypes.PSC,
+            # use enable_iam_auth to enable IAM authentication
+            enable_iam_auth=True,
         )
         return conn
 
-    engine = sqlalchemy.create_engine(
+    # create connection pool
+    pool = sqlalchemy.create_engine(
         "postgresql+pg8000://",
         creator=getconn,
     )
-    return engine
+    logging.info("Connection pool created successfully.")
+    return pool
 
 
 def prompt_generation(user_query, search_result):
@@ -97,20 +127,24 @@ def backend_e2e():
                 # TODO: only text input from UI is handled. Need to add image url or file upload
                 if "user_query" in json_req:
                     user_query = json_req["user_query"]
-                    engine = create_alloydb_engine(
-                        instance_uri, catalog_db, username, user_password
-                    )
-                    product_list = find_matching_products(
-                        engine,
-                        user_query,  # add image
-                        catalog_table,
-                        embedding_column,
-                        row_count,
-                    )
-                    logging.info(f"product list returned by db: {product_list}")
+                    with Connector() as connector:
+                        engine = create_alloydb_engine(connector, catalog_db)
+                        product_list = semantic_search.find_matching_products(
+                            engine,
+                            user_query,  # add image
+                            catalog_table,
+                            embedding_column,
+                            row_count,
+                        )
+                        logging.info(f"product list returned by db: {product_list}")
+                    if not product_list:
+                        return (
+                            jsonify({"error": "No matching products found"}),
+                            404,
+                        )
                     prompt = prompt_generation(user_query, product_list)
                     logging.info(f"Prompt used to re-rank: {prompt}")
-                    reranked_result = query_pretrained_gemma(prompt)
+                    reranked_result = rerank.query_pretrained_gemma(prompt)
                     logging.info(f"Response to front end: {reranked_result}")
                     return reranked_result
                 else:
@@ -121,7 +155,7 @@ def backend_e2e():
         else:
             return jsonify({"error": "Invalid request method"}), 405
     except Exception as e:
-        logging.error(f"An error occurred while running backend e2e application: {e}")
+        logging.error(f"An error occurred in backend application: {e}")
 
 
 if __name__ == "__main__":

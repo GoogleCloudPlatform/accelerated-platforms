@@ -12,38 +12,69 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: batch/v1
-kind: Job
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: alloydb-setup
+  name: rag-backend
 spec:
+  replicas: 1 # Adjust replica count as needed
+  selector:
+    matchLabels:
+      app: rag
   template:
+    metadata:
+      labels:
+        app: rag
     spec:
       serviceAccountName: dev-rag-ml-team-db-admin
       containers:
-      - name: alloydb-setup
-        image: gcr.io/gkebatchexpce3c8dcb/alloydb-setup:latest
+      - name: rag
+        #image: us-docker.pkg.dev/gkebatchexpce3c8dcb/embedding-artifacts/blip2:v4.0 # Update the image location
+        image: gcr.io/gkebatchexpce3c8dcb/rag-backend:latest
         env:
-        - name: PROCESSED_DATA_BUCKET
-          value: "gkebatchexpce3c8dcb-dev-rag-data"
-        - name: MASTER_CATALOG_FILE_NAME
-          value: "RAG/master_product_catalog.csv"
         - name: CATALOG_DB_NAME
           value: "product_catalog"
         - name: CATALOG_TABLE_NAME
           value: "clothes"
         - name: MLP_DB_ADMIN_IAM
           value: "wi-mlp-dev-rag-db-admin@gkebatchexpce3c8dcb.iam"
-        - name: EMBEDDING_DIMENSION
-          value: "768"
         - name: EMBEDDING_COLUMN
           value: "text_embeddings"
-        - name: NUM_LEAVES_VALUE
-          value: "300"
         - name: MLP_DB_INSTANCE_URI
           value: "projects/gkebatchexpce3c8dcb/locations/us-central1/clusters/mlp-dev-rag/instances/mlp-dev-rag-primary"
-        - name: EMBEDDING_MODEL
-          value: "multimodal-embedding-a100"
+        - name: IT_MODEL
+          value: "rag-it-model-l4"
         - name: MLP_KUBERNETES_NAMESPACE
           value: "ml-team"
-      restartPolicy: Never
+        - name: EMBEDDING_MODEL
+          value: "multimodal-embedding-a100"
+        resources:
+          requests:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+          limits:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+      nodeSelector:
+        resource-type: "cpu"
+      tolerations:
+      - key: "on-demand"
+        value: "true"
+        operator: "Equal"
+        effect: "NoSchedule"
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-backend
+spec:
+  selector:
+    app: rag
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

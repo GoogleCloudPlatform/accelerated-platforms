@@ -1,0 +1,14 @@
+# https://github.com/prettier/prettier
+name: Markdown formatter
+on: 
+- push
+- pull_request
+jobs:
+  prettier-md:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: prettier --check
+      run: |-
+        npx prettier --check '**.md'

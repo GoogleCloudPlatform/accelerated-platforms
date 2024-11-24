@@ -1,17 +1,17 @@
 # https://github.com/hashicorp/setup-terraform
-name: Terraform validation
+name: Terraform formatter
 on: 
-  - push
-  - pull_request
+- push
+- pull_request
 jobs:
   terraform-fmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.5.7" # Cloud Shell version
+    - uses: actions/checkout@v4
+    - uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "1.5.7" # Cloud Shell version
 
-      - name: terraform fmt
-        id: fmt
-        run: terraform fmt -check -recursive
+    - name: terraform fmt
+      id: fmt
+      run: terraform fmt -check -recursive

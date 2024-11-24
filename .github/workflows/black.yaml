@@ -1,15 +1,17 @@
 # https://black.readthedocs.io/en/stable/integrations/github_actions.html
-name: Python lint
+name: Python formatter
 on: 
-  - push
-  - pull_request
+- push
+- pull_request
 jobs:
-  python-lint:
+  black:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: psf/black@stable
-        with:
-          options: "--check --diff --verbose"
-          src: "./"
-          version: "~= 22.0"
+    - uses: actions/checkout@v4
+
+    - name: black --check
+      uses: psf/black@stable
+      with:
+        options: "--check --diff --verbose"
+        src: "./"
+        version: "~= 22.0"

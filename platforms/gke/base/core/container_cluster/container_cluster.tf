@@ -235,9 +235,10 @@ resource "google_container_cluster" "cluster" {
   }
 
   private_cluster_config {
-    enable_private_nodes    = true
-    enable_private_endpoint = var.cluster_enable_private_endpoint
-    master_ipv4_cidr_block  = "172.16.0.32/28"
+    enable_private_nodes        = true
+    enable_private_endpoint     = var.cluster_enable_private_endpoint
+    master_ipv4_cidr_block      = var.cluster_master_ipv4_cidr_block
+    private_endpoint_subnetwork = var.cluster_private_endpoint_subnetwork
 
     master_global_access_config {
       enabled = var.cluster_master_global_access_enabled

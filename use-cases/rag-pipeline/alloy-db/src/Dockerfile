@@ -1,16 +1,31 @@
-FROM python:3.13.0-slim
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-WORKDIR /app
+FROM python:3.13.0-slim-bookworm
 
-COPY requirements.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+WORKDIR /workspace
 
-COPY alloydb_setup.py .
-COPY create_catalog.py .
-COPY get_emb.py .
-COPY main.py .
+COPY requirements.txt /workspace/
 
-#CMD ["python", "alloydb_setup.py"]
-#CMD ["python", "create_catalog.py"]
+RUN pip install --no-cache-dir -r /workspace/requirements.txt
+
+COPY alloydb_setup.py \
+    create_catalog.py \
+    custom_json_formatter.py \
+    get_emb.py \
+    logging.conf \
+    main.py \
+    /workspace/
+
 CMD ["python", "main.py"]
-

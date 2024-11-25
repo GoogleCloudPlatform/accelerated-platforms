@@ -15,14 +15,14 @@ The resulting fine-tuned model is, Built with Meta Llama 3.1, using the the data
 
 - Clone the repository and change directory to the guide directory
 
-  ```
+  ```sh
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd accelerated-platforms/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch
   ```
 
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured
 
-  ```
+  ```sh
   cat ${MLP_ENVIRONMENT_FILE} && \
   source ${MLP_ENVIRONMENT_FILE}
   ```
@@ -31,17 +31,48 @@ The resulting fine-tuned model is, Built with Meta Llama 3.1, using the the data
 
 ### Access token variables
 
-- Set `HF_TOKEN` to your HuggingFace access token. Go to https://huggingface.co/settings/tokens , click `Create new token` , provide a token name, select `Read` in token type and click `Create token`.
+- Set `HF_TOKEN` to your HuggingFace access token. Go to <https://huggingface.co/settings/tokens> , click `Create new token` , provide a token name, select `Read` in token type and click `Create token`.
 
-  ```
+  ```sh
   HF_TOKEN=
+  ```
+
+## Data Preparation
+
+To execute this scenario without going through the [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md), we have a prepared dataset that you can use.
+
+Select a path between **Full dataset** and **Smaller dataset (subset)**. The smaller dataset is a quicker way to experience the pipeline, but it will produce a less than ideal fine-tuned model.
+
+- If you would like to use the **Smaller dataset (subset)**, set the variable below.
+
+  ```sh
+  DATASET_SUBSET=-subset
+  ```
+
+- Download the Hugging Face CLI library
+
+  ```sh
+  pip3 install -U "huggingface_hub[cli]==0.26.2"
+  ```
+
+- Download the prepared dataset from Hugging Face and copy it into the GCS bucket
+
+  ```sh
+  DATAPREP_REPO=gcp-acp/flipkart-dataprep${DATASET_SUBSET}
+
+  ${HOME}/.local/bin/huggingface-cli download --repo-type dataset ${DATAPREP_REPO} --local-dir ./temp
+
+  gcloud storage cp -R ./temp/* \
+    gs://${MLP_DATA_BUCKET}/dataset/output && \
+
+  rm -rf ./temp
   ```
 
 ## Build the container image
 
 - Build the container image using Cloud Build and push the image to Artifact Registry
 
-  ```
+  ```sh
   cd src
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
   gcloud beta builds submit \
@@ -62,6 +93,19 @@ The resulting fine-tuned model is, Built with Meta Llama 3.1, using the the data
   - Select `Request Access`
   - Select `Verify via Hugging Face` and continue
   - Accept the model terms
+
+- Verify your `HF_TOKEN` is valid and that you have agreed to the Gemma model terms.
+
+  ```sh
+  git clone https://token:${HF_TOKEN}@huggingface.co/google/gemma-2-9b-it /tmp/test
+  ```
+
+  > NOTE: If you get the following message, please check your HF token and agreement.
+
+  ```
+  remote: Access to model google/gemma-2-9b-it is restricted. You must have access to it and be authenticated to access it. Please log in.
+  fatal: Authentication failed for '<https://huggingface.co/google/gemma-2-9b-it/>'
+  ```
 
 - Get credentials for the GKE cluster
 

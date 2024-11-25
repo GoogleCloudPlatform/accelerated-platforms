@@ -28,6 +28,79 @@ for this activity, the first is to send prompts to the fine-tuned model, the sec
 
   > You should see the various variables populated with the information specific to your environment.
 
+## Data Preparation (Optional)
+
+To execute this scenario without going through the [Fine tuning example](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/README.md)
+
+Select a path between **Full dataset** and **Smaller dataset (subset)**. The smaller dataset is a quicker way to experience the pipeline, but the evaluation results would be on a smaller sample.
+
+- If you would like to use the **Smaller dataset (subset)**, set the variable below.
+
+  ```sh
+  DATASET_SUBSET=-subset
+  ```
+
+- Download the Hugging Face CLI library
+
+  ```sh
+  pip3 install -U "huggingface_hub[cli]==0.26.2"
+  ```
+
+- Download the prepared dataset from Hugging Face and copy it into the GCS bucket
+
+  ```sh
+  DATAPREP_REPO=gcp-acp/flipkart-dataprep${DATASET_SUBSET}
+
+  ${HOME}/.local/bin/huggingface-cli download --repo-type dataset ${DATAPREP_REPO} --local-dir ./temp
+
+  gcloud storage cp -R ./temp/* \
+    gs://${MLP_DATA_BUCKET}/dataset/output && \
+
+  rm -rf ./temp
+  ```
+
+- Download the fine-tuned model from Hugging Face and copy it into the GCS bucket.
+
+  > NOTE: Due to the limitations of Cloud Shell’s storage and the size of our model we need to run this job to perform the transfer to GCS on the cluster.
+
+  - Get credentials for the GKE cluster
+
+    ```sh
+    gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+    ```
+
+  - Replace the respective variables required for the job
+
+    ```sh
+    MODEL_REPO=gcp-acp/Llama-gemma-2-9b-it-ft
+
+    sed \
+      -i -e "s|V_KSA|${MLP_MODEL_EVALUATION_KSA}|" \
+      -i -e "s|V_BUCKET|${MLP_MODEL_BUCKET}|" \
+      -i -e "s|V_MODEL_REPO|${MODEL_REPO}|" \
+      manifests/transfer-to-gcs.yaml
+    ```
+
+  - Deploy the job
+
+    ```sh
+    kubectl apply --namespace ${MLP_KUBERNETES_NAMESPACE} \
+      -f manifests/transfer-to-gcs.yaml
+    ```
+
+  - Trigger the wait for job completion (the job will take ~5 minutes to complete)
+
+    ```sh
+    kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait \
+      --for=condition=complete --timeout=900s job/transfer-to-gcs
+    ```
+
+  - Example output of the job completion
+
+    ```sh
+    job.batch/transfer-to-gcs condition met
+    ```
+
 ## Build the container image
 
 - Build container image using Cloud Build and push the image to Artifact Registry
@@ -94,12 +167,12 @@ for this activity, the first is to send prompts to the fine-tuned model, the sec
 
 - Configure the job
 
-  | Variable            | Description                                                                                               | Example                                        |
-  | ------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-  | DATASET_OUTPUT_PATH | The folder path of the generated output data set.                                                         | dataset/output                                 |
-  | ENDPOINT            | This is the endpoint URL of the inference server                                                          | http://vllm-openai-l4:8000/v1/chat/completions |
-  | MODEL_PATH          | The output folder path for the fine-tuned model. This is used by model evaluation to generate the prompt. | /model-data/model-gemma2/experiment            |
-  | PREDICTIONS_FILE    | The predictions file                                                                                      | predictions.txt                                |
+  | Variable            | Description                                                                                               | Example                                          |
+  | ------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+  | DATASET_OUTPUT_PATH | The folder path of the generated output data set.                                                         | dataset/output                                   |
+  | ENDPOINT            | This is the endpoint URL of the inference server                                                          | <http://vllm-openai-l4:8000/v1/chat/completions> |
+  | MODEL_PATH          | The output folder path for the fine-tuned model. This is used by model evaluation to generate the prompt. | /model-data/model-gemma2/experiment              |
+  | PREDICTIONS_FILE    | The predictions file                                                                                      | predictions.txt                                  |
 
   ```sh
   DATASET_OUTPUT_PATH="dataset/output"

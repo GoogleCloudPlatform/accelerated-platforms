@@ -43,23 +43,53 @@ The data processing step takes approximately 18-20 minutes.
 
   > You should see the various variables populated with the information specific to your environment.
 
-## Configuration
+## Data Preparation
 
-- Download the raw data csv file from [Kaggle](https://kaggle.com) and store it into the bucket created in the previous step.
+Select a path between **Full dataset** and **Smaller dataset (subset)**. The smaller dataset is a quicker way to experience the pipeline, but it will produce a less than ideal fine-tuned model.
+
+- **Full dataset** Download the raw data CSV file from [Kaggle](https://kaggle.com) and store it into the bucket created in the previous step.
 
   - You will need kaggle cli to download the file. The kaggle cli can be installed using the following command in Cloud Shell:
+
     ```shell
     pip3 install --user kaggle
     ```
+
     For more details, you can read those [instructions](https://github.com/Kaggle/kaggle-api#installation).
+
   - To use the cli you must create an API token. To create the token, register on [kaggle.com](https://kaggle.com) if you already don't have an account. Go to `kaggle.com/settings > API > Create New Token`, the downloaded file should be stored in `$HOME/.kaggle/kaggle.json`. Note, you will have to create the dir `$HOME/.kaggle`. After the configuration is done, you can run the following command to download the dataset and copy it to the GCS bucket:
+
     ```shell
-    kaggle datasets download --unzip atharvjairath/flipkart-ecommerce-dataset && \
+    kaggle datasets download --unzip PromptCloudHQ/flipkart-products && \
+
     gcloud storage cp flipkart_com-ecommerce_sample.csv \
-    gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv && \
+      gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv && \
+
     rm flipkart_com-ecommerce_sample.csv
     ```
-  - Alternatively, you can [downloaded the dataset](https://www.kaggle.com/datasets/atharvjairath/flipkart-ecommerce-dataset) directly from the kaggle website and copy it to the bucket.
+
+  - Alternatively, you can [downloaded the dataset](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products) directly from the kaggle website and copy it to the bucket.
+
+- **Smaller dataset (subset)** Download the raw data CSV from Hugging Face.
+
+  - Download the Hugging Face CLI library
+
+    ```shell
+    pip3 install -U "huggingface_hub[cli]==0.26.2"
+    ```
+
+  - Download the preprocessed dataset CSV file from Hugging Face and copy it into the GCS bucket
+
+    ```shell
+    RAW_DATA_REPO=gcp-acp/flipkart-raw-subset
+
+    ${HOME}/.local/bin/huggingface-cli download --repo-type dataset ${RAW_DATA_REPO} --local-dir ./temp
+
+    gcloud storage cp ./temp/flipkart_com-ecommerce_sample.csv \
+      gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv && \
+
+    rm ./temp/flipkart_com-ecommerce_sample.csv
+    ```
 
 ## Build the container image
 
@@ -101,10 +131,13 @@ The data processing step takes approximately 18-20 minutes.
   ```
 
 - Monitor the execution in Ray Dashboard. You can run the following command to get the dashboard endpoint:
+
   ```shell
   echo -e "\n${MLP_KUBERNETES_NAMESPACE} Ray dashboard: ${MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT}\n"
   ```
+
   Read [the section about KubeRay](/platforms/gke-aiml/playground/README.md#software-installed-via-reposync-and-rootsync) for more info.
+
 - From the Ray Dashboard, view the following about the jobs:
 
   - Jobs -> Running Job ID

@@ -1,9 +1,41 @@
-import requests
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
+import logging.config
+import os
+import requests
 
-logging.basicConfig(level=logging.INFO)
+# Configure logging
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger("backend")
 
-gemma_it_endpoint = "rag-it-model-deployment-l4"
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
+    logging.getLogger().setLevel(new_log_level)
+    logger.setLevel(new_log_level)
+
+gemma_it_endpoint = os.getenv("IT_MODEL")  # rag-it-model-l4"
+
+namespace = os.getenv("MLP_KUBERNETES_NAMESPACE")
+
+url = f"http://{gemma_it_endpoint}.{namespace}:8000/v1/chat/completions"
+
+headers = {"Content-Type": "application/json"}
 
 
 def query_pretrained_gemma(prompt):
@@ -16,11 +48,6 @@ def query_pretrained_gemma(prompt):
     Returns:
       The generated text response from the VLLM model.
     """
-
-    url = f"http://{gemma_it_endpoint}.ml-team:8000/v1/chat/completions"
-
-    headers = {"Content-Type": "application/json"}
-
     data = {
         "model": "google/gemma-2-2b-it",
         "messages": [{"role": "user", "content": f"{prompt}"}],
@@ -31,8 +58,7 @@ def query_pretrained_gemma(prompt):
     }
 
     response = requests.post(url, headers=headers, json=data)
-    # print(response)
-    # print(response.json())
+    # logging.info(response.json())
     response.raise_for_status()  # Raise an exception for error responses
 
     # return response.json()["choices"][0]["text"]

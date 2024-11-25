@@ -12,12 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.13.0-slim
+FROM python:3.13.0-slim-bookworm
 
 WORKDIR /workspace
 
-COPY requirements.txt alloydb_setup.py create_catalog.py custom_json_formatter.py get_emb.py logging.conf main.py /workspace/
+COPY requirements.txt /workspace/
 
 RUN pip install --no-cache-dir -r /workspace/requirements.txt
+
+COPY alloydb_setup.py \
+    create_catalog.py \
+    custom_json_formatter.py \
+    get_emb.py \
+    logging.conf \
+    main.py \
+    /workspace/
 
 CMD ["python", "main.py"]

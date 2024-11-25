@@ -1,34 +1,33 @@
 # Steps
+
 Run following commands in cloud shell
 
 ## Pre Req
-source $MLP_PLATFORM_ENV_FILE
-gcloud config set project $MLP_PROJECT_ID
+
+```
+cat ${MLP_ENVIRONMENT_FILE}
+source ${MLP_ENVIRONMENT_FILE}
+gcloud config set project ${MLP_PROJECT_ID}
+```
 
 ## Setup the platform:
-Follow Readme under accelerated-platforms/platforms folder
-It will create AlloyDB instance and GKE cluster and enable PSC
+
+- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 
 ## Get Fleet credentials
+
+```
 gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+```
 
 # Deploy RAG Architecture
-1. Deploy Multi modal embedding model in GKE
-- cd multimodal-emb/
-- Follow README.md
 
-2. Build AlloyDB
-- cd alloy-db/
-- Follow README.md:
-    - Creates Database, Table; Populates the product catalog with embeddings; Create vector index on text_embeddings.
+- Deploy Multi modal embedding model in GKE, follow the [README](/use-cases/rag-pipeline/multimodal-emb/README.md)
+- Build AlloyDB, follow the [README](/use-cases/rag-pipeline/alloy-db/README.md)
+- Deploy instruction-tuned model in GKE, follow the [README](/use-cases/rag-pipeline/instruction-tuned-model-deployment/README.md)
+- Deploy backend application in GKE, follow the [README](/use-cases/rag-pipeline/backend-application/README.md)
+- Test the backend-application with the curl job
 
-3. Deploy instruction-tuned model in GKE
-- cd instruction-tuned-model-deployment/
-- Follow README.md 
-
-4. Deploy backend application in GKE
-- cd backend-application
-- Follow README.md 
-
-5. Test with curl job in backend-application
-   kubectl apply -f curl-job.yaml -n ml-team
+  ```
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/curl-job.yaml
+  ```

@@ -1,28 +1,36 @@
-source $MLP_PLATFORM_ENV_FILE
-
+```
+cat ${MLP_ENVIRONMENT_FILE}
+source ${MLP_ENVIRONMENT_FILE}
 gcloud config set project $MLP_PROJECT_ID
+```
 
-1. Build the Docker image:
+- Build the Docker image:
 
-Bash
+```
 docker build -t alloydb-setup:latest .
+```
 
+- Push the image to a container registry:
 
-2. Push the image to a container registry:
+```
+docker tag catalog-onboarding:latest gcr.io/${MLP_PROJECT_ID}/alloydb-setup:latest
+docker push gcr.io/${MLP_PROJECT_ID}/alloydb-setup:latest
+```
 
-If you're using Google Container Registry (GCR):
-Bash
-docker tag catalog-onboarding:latest gcr.io/$MLP_PROJECT_ID/alloydb-setup:latest
-docker push gcr.io/$MLP_PROJECT_ID/alloydb-setup:latest
+- Use KSA in the job and Apply the Job to your GKE cluster:
 
-
-3. Use KSA in the job and Apply the Job to your GKE cluster:
-
+```
 gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+```
 
-Bash
-kubectl apply -f  alloydb-setup-job.yaml -n ml-team 
+```
+kubectl apply -f alloydb-setup-job.yaml -n ml-team
+```
 
-Check logs:
+```
 kubectl get pods -n ml-team
+```
+
+```
 kubectl logs -f alloydb-setup-xxxxx -n ml-team
+```

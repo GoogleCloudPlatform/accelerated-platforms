@@ -12,17 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from flask import Flask, request, jsonify
-import get_emb
+
 import google.auth
 import google.auth.transport.requests
-from google.cloud.alloydb.connector import Connector, IPTypes
 import logging
 import logging.config
 import os
+import sqlalchemy
+
+import get_emb
 import rerank
 import semantic_search
-import sqlalchemy
+
+from flask import Flask, request, jsonify
+from google.cloud.alloydb.connector import Connector, IPTypes
 
 credentials, project = google.auth.default()
 auth_request = google.auth.transport.requests.Request()

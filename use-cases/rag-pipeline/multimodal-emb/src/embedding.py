@@ -13,16 +13,17 @@
 # limitations under the License.
 
 import base64
-from flask import Flask, request, jsonify
-from google.cloud import storage
-from google.cloud.storage.blob import Blob
 import io
-from lavis.models import load_model_and_preprocess
 import logging
 import logging.config
 import os
-from PIL import Image
 import torch
+
+from flask import Flask, request, jsonify
+from google.cloud import storage
+from google.cloud.storage.blob import Blob
+from lavis.models import load_model_and_preprocess
+from PIL import Image
 
 # Configure logging
 logging.config.fileConfig("logging.conf")

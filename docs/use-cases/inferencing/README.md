@@ -78,7 +78,7 @@ Each category depends on organization capabilities and desired outcome:
 
 \* This will vary based on your implementation
 
-\*\* for larger LLM’s i.e. 70B+ parameter
+\*\* for larger LLM's i.e. 70B+ parameter
 
 Enabling [GCE Fuse parallel downloads](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/cloud-storage-fuse-csi-driver#parallel-download) can also improve model weight downloading time to the container image. To maximize the performance of this capability it is recommended to also provision [Local SSDs](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/local-ssd) for your nodes.
 

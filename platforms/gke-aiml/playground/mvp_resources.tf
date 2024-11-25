@@ -186,6 +186,12 @@ resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_a
   role   = "roles/storage.objectAdmin"
 }
 
+resource "google_storage_bucket_iam_member" "data_bucket_frontend_rag_storage_object_admin" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.frontend_rag_service_account}"
+  role   = "roles/storage.objectAdmin"
+}
+
 resource "google_storage_bucket_iam_member" "data_bucket_data_processing_ksa_storage_object_user" {
   bucket = google_storage_bucket.data.name
   member = "${local.wi_member_principal_prefix}/${local.data_processing_ksa}"
@@ -261,6 +267,7 @@ MLP_FINE_TUNING_IMAGE="${local.repo_container_images_url}/fine-tuning:1.0.0"
 MLP_FINE_TUNING_KSA="${local.fine_tuning_ksa}"
 MLP_KUBERNETES_NAMESPACE="${var.namespace}"
 MLP_MLFLOW_TRACKING_NAMESPACE_ENDPOINT="https://${local.mlflow_tracking_endpoint}"
+MLP_FRONTEND_RAG_NAMESPACE_ENDPOINT="https://${local.frontend_rag_endpoint}"
 MLP_MODEL_BUCKET="${local.bucket_model_name}"
 MLP_MODEL_EVALUATION_IMAGE="${local.repo_container_images_url}/model-evaluation:1.0.0"
 MLP_MODEL_EVALUATION_KSA="${local.model_evaluation_ksa}"

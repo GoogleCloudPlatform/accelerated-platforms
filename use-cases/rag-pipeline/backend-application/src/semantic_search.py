@@ -1,10 +1,35 @@
-from get_emb import *
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import get_emb
 import json
+import logging
+import logging.config
+import os
 from sqlalchemy import text
 
-import logging
+# Configure logging
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger("backend")
 
-logging.basicConfig(level=logging.INFO)
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
+    logging.getLogger().setLevel(new_log_level)
+    logger.setLevel(new_log_level)
 
 
 # TODO: only text input from UI is handled. Need to add image uri to get embeddings
@@ -17,11 +42,12 @@ def find_matching_products(
 ):
     try:
         # Get text embedding for user query
-        user_query_emb = json.dumps(get_text_embeddings(user_query))
+        user_query_emb = json.dumps(get_emb.get_text_embeddings(user_query))
         # logging.info(user_query_emb)
 
         # TODO: Add a function call to get image embedding if image uri (gs://)
         # image_emb = json.dumps(get_image_embeddings(image_uri))
+
         # TODO: if both text & image were given call multimodal embedding
         # image_emb = json.dumps(get_multimodal_embeddings(image, text))
 

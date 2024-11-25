@@ -259,6 +259,14 @@ resource "google_container_cluster" "cluster" {
   }
 
   workload_identity_config {
-    workload_pool = "${data.google_project.default.project_id}.svc.id.goog"
+    workload_pool = "${data.google_project.cluster.project_id}.svc.id.goog"
   }
+}
+
+data "google_container_cluster" "default" {
+  depends_on = [google_container_cluster.cluster]
+
+  location = var.cluster_region
+  name     = local.cluster_name
+  project  = var.cluster_project_id
 }

@@ -22,6 +22,7 @@ gcloud config set project $MLP_PROJECT_ID
 2. Create the artifact repostiory(if it not already exists) to store the container images:
 
 ```
+cd src
 gcloud artifacts repositories create rag-artifacts --repository-format=docker --location=us --description="RAG artifacts repository"
 ```
 
@@ -29,8 +30,9 @@ gcloud artifacts repositories create rag-artifacts --repository-format=docker --
 gcloud builds submit . 
 ```
 
-4. Deploy the alloyDb set up job to ML Playground cluster.
+4. Deploy the alloyDB set up job to ML Playground cluster.
 
+<TODO>Add the KSA
 
 ```
 gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}

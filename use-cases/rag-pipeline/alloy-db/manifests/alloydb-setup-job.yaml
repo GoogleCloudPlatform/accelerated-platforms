@@ -22,10 +22,10 @@ spec:
       serviceAccountName: dev-rag-ml-team-db-admin
       containers:
       - name: alloydb-setup
-        image: gcr.io/gkebatchexpce3c8dcb/alloydb-setup:latest
+        image: us-docker.pkg.dev/gkebatchenv3a4ec43f/rag-artifacts/alloydb-setup:v0.1.0
         env:
         - name: PROCESSED_DATA_BUCKET
-          value: "gkebatchexpce3c8dcb-dev-rag-data"
+          value: "flipkart-processed-data-bucket"
         - name: MASTER_CATALOG_FILE_NAME
           value: "RAG/master_product_catalog.csv"
         - name: CATALOG_DB_NAME
@@ -33,7 +33,7 @@ spec:
         - name: CATALOG_TABLE_NAME
           value: "clothes"
         - name: MLP_DB_ADMIN_IAM
-          value: "wi-mlp-dev-rag-db-admin@gkebatchexpce3c8dcb.iam"
+          value: "wi-mlp-dev-rag-db-admin@gkebatchenv3a4ec43f.iam"
         - name: EMBEDDING_DIMENSION
           value: "768"
         - name: EMBEDDING_COLUMN
@@ -41,8 +41,8 @@ spec:
         - name: NUM_LEAVES_VALUE
           value: "300"
         - name: MLP_DB_INSTANCE_URI
-          value: "projects/gkebatchexpce3c8dcb/locations/us-central1/clusters/mlp-dev-rag/instances/mlp-dev-rag-primary"
-        - name: EMBEDDING_MODEL
+          value: "projects/gkebatchenv3a4ec43f/locations/us-central1/clusters/mlp-ishmeet-rag/instances/mlp-ishmeet-rag-primary"
+        - name: EMBEDDING_MODEL_SERVICE_NAME
           value: "multimodal-embedding-a100"
         - name: MLP_KUBERNETES_NAMESPACE
           value: "ml-team"

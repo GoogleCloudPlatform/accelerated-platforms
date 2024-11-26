@@ -1,13 +1,13 @@
-# AlloyDb set up
+# Process to set up AlloyDB
 
-This set up script helps you load the flipkart product catalog to the alloyDB database.
-Also it creates separate columns to store the embeddings( text and image) in the same database as well.
+This kubernetes job helps you load the flipkart product catalog to the alloyDB database.Also it creates separate columns to store the embeddings(text and image) in the same database as well.
 
 ## Prerequisites
 
 - Use the existing  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 
 - AlloyDB instance has been created as part of the ML playground deployment.
+- Multimodal embedding model has been deployed as per instructions 
 
 Steps : 
 
@@ -19,26 +19,22 @@ source ${MLP_ENVIRONMENT_FILE}
 gcloud config set project $MLP_PROJECT_ID
 ```
 
-2. Build the Docker image for alloyDB set up script:
+2. Create the artifact repostiory(if it not already exists) to store the container images:
 
 ```
-docker build -t alloydb-setup:latest .
+gcloud artifacts repositories create rag-artifacts --repository-format=docker --location=us --description="RAG artifacts repository"
 ```
 
-3. Push this Docker image to a Artifact registry:
-
 ```
-docker tag catalog-onboarding:latest gcr.io/${MLP_PROJECT_ID}/alloydb-setup:latest
-docker push gcr.io/${MLP_PROJECT_ID}/alloydb-setup:latest
+gcloud builds submit . 
 ```
 
-4. Use KSA in the job and Apply the Job to your GKE cluster:
+4. Deploy the alloyDb set up job to ML Playground cluster.
+
 
 ```
 gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
 ```
-
-5. Deploy the alloyDb set up job to ML Playground.
 ```
 kubectl apply -f alloydb-setup-job.yaml -n ml-team
 ```
@@ -53,3 +49,4 @@ kubectl get pods -n ml-team
 ```
 kubectl logs -f alloydb-setup-xxxxx -n ml-team
 ```
+

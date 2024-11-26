@@ -1,4 +1,4 @@
-How to retrieve, text, image and multimodal embeddings post deployment
+#Retrieve, text, image and multimodal embeddings post deployment
 
 Note: You can upload an image as a file or image as gcs uri
 

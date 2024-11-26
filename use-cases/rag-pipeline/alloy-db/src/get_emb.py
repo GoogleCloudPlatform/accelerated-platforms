@@ -26,9 +26,6 @@ MULTIMODAL_API_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger("alloydb")
 
-import os
-import logging
-
 logger = logging.getLogger(__name__)
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
@@ -149,12 +146,6 @@ def get_multimodal_embeddings(desc, image_uri):
         ) from e
 
 
-import requests
-import logging
-
-logger = logging.getLogger(__name__)
-
-
 def get_text_embeddings(text):
     """
     Fetches text embeddings from a text embedding API.
@@ -225,6 +216,6 @@ def get_embeddings(text=None, image_uri=None):
         return get_image_embeddings(image_uri)
     else:
         logging.error(
-            "Provide product description and/or image_uri to generate embeddings"
+            "Missing input. Provide a textual product description and/or image_uri to generate embeddings"
         )
         return None

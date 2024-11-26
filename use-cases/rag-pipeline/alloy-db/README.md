@@ -11,7 +11,7 @@ This kubernetes job helps you load the flipkart product catalog to the alloyDB d
 
 Steps : 
 
-1. Source your plaground environment file to export Variables required for the set up.
+1. Source your playground environment file to export Variables required for the set up.
 
 ```
 cat ${MLP_ENVIRONMENT_FILE}

@@ -33,7 +33,7 @@ spec:
           - sh
           - -c
           - |
-            curl http://rag-it-model-l4.ml-team:8000/v1/chat/completions \
+            curl http://rag-it-model.ml-team:8000/v1/chat/completions \
               -s \
               -H "Content-Type: application/json" \
               -d '{

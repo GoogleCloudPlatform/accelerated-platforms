@@ -15,20 +15,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rag-it-model-l4
+  name: rag-it-model
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: rag-it-model-l4
+      app: rag-it-model
   template:
     metadata:
       labels:
-        app: rag-it-model-l4
+        app: rag-it-model
         ml-platform: vllm-openai
       annotations:
-        cluster-autoscaler.kubernetes.io/consume-provisioning-request: rag-it-l4
-        cluster-autoscaler.kubernetes.io/provisioning-class-name: "queued-provisioning.gke.io"
     spec:
       containers:
       - name: inference-server
@@ -70,29 +68,30 @@ spec:
         volumeMounts:
         - mountPath: /dev/shm
           name: dshm
-      nodeSelector:
-        cloud.google.com/gke-accelerator: nvidia-l4
-        cloud.google.com/gke-gpu-driver-version: latest
-      tolerations:
-      - key: "nvidia.com/gpu"
-        operator: "Exists"
-        effect: "NoSchedule"
-      - key: "on-demand"
-        value: "true"
-        operator: "Equal"
-        effect: "NoSchedule" 
       volumes:
       - name: dshm
         emptyDir:
             medium: Memory
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
+        cloud.google.com/gke-gpu-driver-version: latest
+      tolerations:
+      - effect: "NoSchedule"
+        key: "nvidia/gpu"
+        operator: "Equal"
+        value: "present"
+      - effect: "NoSchedule"
+        key: "on-demand"
+        operator: "Equal"
+        value: "true"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: rag-it-model-l4
+  name: rag-it-model
 spec:
   selector:
-    app: rag-it-model-l4
+    app: rag-it-model
   type: ClusterIP
   ports:
     - protocol: TCP

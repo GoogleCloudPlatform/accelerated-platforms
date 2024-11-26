@@ -1,4 +1,4 @@
-# Steps
+# Steps to deploy instruction tuned model
 
 ```
 source ${MLP_ENVIRONMENT_FILE}
@@ -8,7 +8,7 @@ gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project
 
 ## set HF Token
 
-HF_TOKEN=<your token>
+HF_TOKEN=<your-hugging-face-api-token>
 
 ## Create secret
 
@@ -21,6 +21,5 @@ kubectl create secret generic hf-secret \
 ## Deploy model
 
 ```
-kubectl apply -f provisioning-request-l4.yaml -n ml-team
 kubectl apply -f it-model-deployment.yaml -n ml-team
 ```

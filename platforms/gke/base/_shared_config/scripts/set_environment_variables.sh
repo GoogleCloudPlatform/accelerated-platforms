@@ -25,7 +25,7 @@ echo -e "-----------------------------------------------------------------------
 
 eval $(terraform output | sed -r 's/(\".*\")|\s*/\1/g')
 
-echo "Setting environment varibles"
+echo "Setting environment variables"
 echo "-------------------------------------------------------------------------"
 export ACP_TERRAFORM_BUCKET_NAME="${terraform_bucket_name}"
 echo "ACP_TERRAFORM_BUCKET_NAME=${ACP_TERRAFORM_BUCKET_NAME}"

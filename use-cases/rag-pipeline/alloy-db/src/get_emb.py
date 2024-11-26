@@ -17,73 +17,206 @@ import logging.config
 import os
 import requests
 
+# Define the API Endpoints
+TEXT_API_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
+IMAGE_API_ENDPOINT = os.environ["IMAGE_EMBEDDING_ENDPOINT"]
+MULTIMODAL_API_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
+
 # Configure logging
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger("alloydb")
 
+import os
+import logging
+
+logger = logging.getLogger(__name__)
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
-    logger.info(
-        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-    )
-    logging.getLogger().setLevel(new_log_level)
-    logger.setLevel(new_log_level)
-
-service_name = os.getenv(
-    "EMBEDDING_MODEL"
-)  # matches service name in multimodal-embedding.yaml
-namespace = os.getenv("MLP_KUBERNETES_NAMESPACE")
-url = f"http://{service_name}.{namespace}.svc.cluster.local:8000/embeddings"
-headers = {"Content-Type": "application/json"}
-
-
-def get_text_embeddings(user_query):
-
-    data = {"product_desc": user_query}
     try:
-        response = requests.post(url, headers=headers, json=data)
-        # logging.info(response.json())
-        response.raise_for_status()  # Raise an exception for error responses
-        return response.json()["text_embeds"]
-    except requests.exceptions.RequestException as e:
+        # Convert the string to a logging level constant
+        numeric_level = getattr(logging, new_log_level)
 
-        logging.error(
-            f"Error while generating text embedding for text '{user_query}': {e}"
+        # Set the level for the root logger
+        logging.getLogger().setLevel(numeric_level)
+
+        logger.info(
+            "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
         )
-        return None
+        logger.info("Text Embedding endpoint: %s", TEXT_API_ENDPOINT)
+        logger.info("Image Embedding endpoint: %s", IMAGE_API_ENDPOINT)
+        logger.info("Multimodal Embedding endpoint: %s", MULTIMODAL_API_ENDPOINT)
+
+    except AttributeError:
+        logger.warning(
+            "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
+        )
 
 
 def get_image_embeddings(image_uri):
+    """
+    Fetches image embeddings from an image embedding API.
 
-    data = {"image_uri": image_uri}
+    Args:
+        image_uri: The URI of the image.
+
+    Returns:
+        The image embeddings as a JSON object.
+
+    Raises:
+        requests.exceptions.HTTPError: If there is an error fetching the image embeddings
+                                       or the API returns an invalid response.
+    """
     try:
-        response = requests.post(url, headers=headers, json=data)
-        # logging.info(response.json())
-        response.raise_for_status()  # Raise an exception for error responses
-        return response.json()["image_embeds"]
-    except requests.exceptions.RequestException as e:
-        logging.error(
-            f"Error while generating image embedding for image '{image_uri}': {e}"
+        response = requests.post(
+            IMAGE_API_ENDPOINT,
+            json={"image_uri": image_uri},
+            headers={"Content-Type": "application/json"},
+            timeout=100,
         )
-        return None
+
+        # This will raise an HTTPError for bad responses (4xx or 5xx)
+        response.raise_for_status()
+
+        image_embeddings = response.json()
+        return image_embeddings
+
+    except requests.exceptions.HTTPError as e:
+        # Reraise HTTPError for better error handling
+        logger.exception("Error fetching image embedding: %s", e)
+        raise
+
+    except requests.exceptions.RequestException as e:
+        # For other request errors, re-raise as an HTTPError
+        logger.exception("Invalid response from image embedding API: %s", e)
+        raise requests.exceptions.HTTPError(
+            "Error fetching image embedding", response=requests.Response()
+        ) from e
+
+    except (ValueError, TypeError) as e:
+        # Handle potential JSON decoding errors
+        logger.exception(
+            "Not able to decode received json from image embedding API: %s", e
+        )
+        raise requests.exceptions.HTTPError(
+            "Invalid response from image embedding API", response=requests.Response()
+        ) from e
 
 
 def get_multimodal_embeddings(desc, image_uri):
+    """
+    Fetches multimodal embeddings from a multimodal embedding API using text description and image URI.
 
-    data = {"product_desc": desc, "image_uri": image_uri}
+    Args:
+        desc: The text description of the product from product catalog.
+        image_uri: The URI of the image.
+
+    Returns:
+        The multimodal embeddings as a JSON object.
+
+    Raises:
+        requests.exceptions.HTTPError: If there is an error fetching the multimodal embeddings
+                                       or the API returns an invalid response.
+    """
     try:
-        response = requests.post(url, headers=headers, json=data)
-        # logging.info(response.json())
-        response.raise_for_status()  # Raise an exception for error responses
-        return response.json()["multimodal_embeds"]
-    except requests.exceptions.RequestException as e:
-        logging.error(
-            f"Error while generating multimodal embedding for text '{desc}' and image '{image_uri}': {e}"
+        response = requests.post(
+            MULTIMODAL_API_ENDPOINT,
+            json={"desc": desc, "image_uri": image_uri},
+            headers={"Content-Type": "application/json"},
+            timeout=100,
         )
-        return None
+
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+
+        return response.json()
+
+    except requests.exceptions.HTTPError as e:
+        logger.exception("Error fetching multimodal embedding: %s", e)
+        raise
+
+    except requests.exceptions.RequestException as e:
+        logger.exception("Error fetching multimodal embedding: %s", e)
+        raise requests.exceptions.HTTPError(
+            "Error fetching multimodal embedding", response=requests.Response()
+        ) from e
+
+    except (ValueError, TypeError) as e:
+        logger.exception(
+            "Not able to decode received json from multimodal embedding API: %s", e
+        )
+        raise requests.exceptions.HTTPError(
+            "Invalid response from multimodal embedding API",
+            response=requests.Response(),
+        ) from e
+
+
+import requests
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def get_text_embeddings(text):
+    """
+    Fetches text embeddings from a text embedding API.
+
+    Args:
+        text: The input text.
+
+    Returns:
+        The text embeddings as a JSON object.
+
+    Raises:
+        requests.exceptions.HTTPError: If there is an error fetching the text embeddings
+                                       or the API returns an invalid response.
+    """
+    try:
+        response = requests.post(
+            TEXT_API_ENDPOINT,
+            json={"text": text},
+            headers={"Content-Type": "application/json"},
+            timeout=100,
+        )
+
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+
+        return response.json()
+
+    except requests.exceptions.HTTPError as e:
+        logger.exception("Error fetching text embedding: %s", e)
+        raise
+
+    except requests.exceptions.RequestException as e:
+        logger.exception("Error fetching text embedding: %s", e)
+        raise requests.exceptions.HTTPError(
+            "Error fetching text embedding", response=requests.Response()
+        ) from e
+
+    except (ValueError, TypeError) as e:
+        logger.exception(
+            "Not able to decode received json from text embedding API: %s", e
+        )
+        raise requests.exceptions.HTTPError(
+            "Invalid response from text embedding API", response=requests.Response()
+        ) from e
 
 
 def get_embeddings(text=None, image_uri=None):
+    """
+    Fetches embeddings based on the provided input.
+
+    This function can generate text embeddings, image embeddings, or multimodal embeddings
+    depending on the input provided.
+
+    Args:
+        text: The input text for text embeddings. Defaults to None.
+        image_uri: The URI of the image for image embeddings. Defaults to None.
+
+    Returns:
+        The embeddings as a JSON object, or None if no valid input is provided.
+
+    Raises:
+        requests.exceptions.HTTPError: If there is an error fetching the embeddings from the API.
+    """
     if text and image_uri:
         return get_multimodal_embeddings(text, image_uri)
     elif text:

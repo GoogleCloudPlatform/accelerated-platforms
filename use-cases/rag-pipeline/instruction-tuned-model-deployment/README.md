@@ -21,5 +21,5 @@ kubectl create secret generic hf-secret \
 ## Deploy model
 
 ```
-kubectl apply -f it-model-deployment.yaml -n ml-team
+kubectl apply -f it-model-deployment.yaml -n ${MLP_KUBERNETES_NAMESPACE}
 ```

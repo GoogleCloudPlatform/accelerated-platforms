@@ -1,4 +1,4 @@
-## Frontend application deployment
+## Backend application deployment
 
 # Getting Started
 
@@ -13,7 +13,7 @@ PROJECT_ID=<your-project-id>
 gcloud config set project $PROJECT_ID
 ```
 
-## Build the frontend container image container image
+## Build the backend container image container image
 
 ```
 #<TODO> change it to main branch before merge
@@ -39,7 +39,7 @@ Update manifests/frontend_gradio_deployment.yaml file with absolute path to of t
 A sample deployment.yaml has been provided for your reference.
 
 
-Now, deploy frontend application:
+Now, deploy backend application:
 
 ```
 NAMESPACE=ml-team

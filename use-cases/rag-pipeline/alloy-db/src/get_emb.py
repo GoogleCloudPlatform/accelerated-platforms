@@ -74,7 +74,7 @@ def get_image_embeddings(image_uri):
         # This will raise an HTTPError for bad responses (4xx or 5xx)
         response.raise_for_status()
 
-        image_embeddings = response.json()
+        image_embeddings = response.json()["image_embeds"]
         return image_embeddings
 
     except requests.exceptions.HTTPError as e:
@@ -124,7 +124,7 @@ def get_multimodal_embeddings(desc, image_uri):
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
 
-        return response.json()
+        return response.json()["multimodal_embeds"]
 
     except requests.exceptions.HTTPError as e:
         logger.exception("Error fetching multimodal embedding: %s", e)
@@ -170,7 +170,7 @@ def get_text_embeddings(text):
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
 
-        return response.json()
+        return response.json()["text_embeds"]
 
     except requests.exceptions.HTTPError as e:
         logger.exception("Error fetching text embedding: %s", e)

@@ -27,7 +27,6 @@ processed_data_path = f"gs://{PROCESSED_DATA_BUCKET}/{MASTER_CATALOG_FILE_NAME}"
 database_name = "postgres"
 catalog_db = os.getenv("CATALOG_DB_NAME")
 catalog_table = os.getenv("CATALOG_TABLE_NAME")
-# user = os.getenv("MLP_DB_ADMIN_IAM")
 
 # Vector Index
 EMBEDDING_COLUMN = os.getenv("EMBEDDING_COLUMN")

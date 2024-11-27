@@ -45,7 +45,7 @@ def create_database(database, new_database, user):
         # initialize Connector as context manager
         with Connector() as connector:
             # initialize connection pool
-            pool = alloydb_setup.init_connection_pool(connector, database)
+            pool = alloydb_setup.init_connection_pool(connector, database, user)
             del_db = sqlalchemy.text(f"DROP DATABASE IF EXISTS {new_database};")
             create_db = sqlalchemy.text(f"CREATE DATABASE {new_database}")
 
@@ -69,12 +69,11 @@ def create_database(database, new_database, user):
         if connector:
             connector.close()
             logging.info("Connector closed")
-
     try:
         # 3. Connect to the newly created database
         with Connector() as connector:
             # initialize connection pool
-            pool = alloydb_setup.init_connection_pool(connector, new_database)
+            pool = alloydb_setup.init_connection_pool(connector, new_database, user)
             create_vector_extn = sqlalchemy.text(
                 f"CREATE EXTENSION IF NOT EXISTS vector;"
             )
@@ -107,7 +106,7 @@ def create_database(database, new_database, user):
             logging.info("Connector closed")
 
 
-def create_and_populate_table(database, user, table_name, processed_data_path):
+def create_and_populate_table(database, table_name, processed_data_path, user):
     """Creates and populates a table in PostgreSQL using pandas and sqlalchemy."""
 
     try:
@@ -137,7 +136,7 @@ def create_and_populate_table(database, user, table_name, processed_data_path):
 
         # 3. Load
         with Connector() as connector:
-            engine = alloydb_setup.init_connection_pool(connector, database)
+            engine = alloydb_setup.init_connection_pool(connector, database, user)
             with engine.begin() as connection:
                 logging.info(f"Connected with the db {database}")
                 df.to_sql(
@@ -191,7 +190,7 @@ def create_text_embeddings_index(
     )
     try:
         with Connector() as connector:
-            pool = alloydb_setup.init_connection_pool(connector, database)
+            pool = alloydb_setup.init_connection_pool(connector, database, user)
             with pool.connect() as db_conn:
                 db_conn.execute(index_cmd)
                 logging.info(f"Index '{INDEX_NAME}' created successfully.")

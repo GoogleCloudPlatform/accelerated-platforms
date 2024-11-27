@@ -33,7 +33,7 @@ spec:
         - name: CATALOG_TABLE_NAME
           value: "clothes"
         - name: MLP_DB_ADMIN_IAM
-          value: "wi-mlp-ishmeet-rag-db-admin@gkebatchenv3a4ec43f.iam.gserviceaccount.com"
+          value: "wi-mlp-ishmeet-rag-db-admin@gkebatchenv3a4ec43f.iam"
         - name: EMBEDDING_DIMENSION
           value: "768"
         - name: EMBEDDING_COLUMN

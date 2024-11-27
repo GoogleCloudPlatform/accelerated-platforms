@@ -27,7 +27,7 @@ processed_data_path = f"gs://{PROCESSED_DATA_BUCKET}/{MASTER_CATALOG_FILE_NAME}"
 database_name = "postgres"
 catalog_db = os.getenv("CATALOG_DB_NAME")
 catalog_table = os.getenv("CATALOG_TABLE_NAME")
-user = os.getenv("MLP_DB_ADMIN_IAM")
+# user = os.getenv("MLP_DB_ADMIN_IAM")
 
 # Vector Index
 EMBEDDING_COLUMN = os.getenv("EMBEDDING_COLUMN")
@@ -55,13 +55,11 @@ if __name__ == "__main__":
         create_catalog.create_database(
             database_name,
             catalog_db,
-            user,
         )
 
         # ETL
         create_catalog.create_and_populate_table(
             catalog_db,
-            user,
             catalog_table,
             processed_data_path,
         )
@@ -69,7 +67,6 @@ if __name__ == "__main__":
         # Create Index
         create_catalog.create_text_embeddings_index(
             catalog_db,
-            user,
             catalog_table,
             EMBEDDING_COLUMN,
             INDEX_NAME,

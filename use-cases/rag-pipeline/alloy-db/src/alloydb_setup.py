@@ -44,23 +44,22 @@ if "LOG_LEVEL" in os.environ:
     logger.setLevel(new_log_level)
 
 
-def init_connection_pool(
-    connector: Connector, db: str, user: str
-) -> sqlalchemy.engine.Engine:
+def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Engine:
     """
     Initializes a SQLAlchemy engine for connecting to AlloyDB.
     """
+    connector = Connector()
+    logging.info(
+        "Connector details %s user, %s instance_uri, %s db.",
+        connector.user,
+        connector.instance_uri,
+        connector.db,
+    )
 
     def getconn():
-        logging.info(
-            "Alloydb User: %s, AlloyDB Database: %s",
-            user,
-            db,
-        )
         conn = connector.connect(
             instance_uri,
             "pg8000",
-            user=user,
             db=db,
             # use ip_type to specify PSC
             ip_type=IPTypes.PSC,

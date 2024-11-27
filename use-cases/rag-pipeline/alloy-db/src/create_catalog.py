@@ -38,14 +38,14 @@ if "LOG_LEVEL" in os.environ:
     logger.setLevel(new_log_level)
 
 
-def create_database(database, new_database, user):
+def create_database(database, new_database):
     """Creates a new database in AlloyDB and enables necessary extensions."""
     try:
         # 1. Connect to the default database (e.g., 'postgres')
         # initialize Connector as context manager
         with Connector() as connector:
             # initialize connection pool
-            pool = alloydb_setup.init_connection_pool(connector, database, user)
+            pool = alloydb_setup.init_connection_pool(connector, database)
             del_db = sqlalchemy.text(f"DROP DATABASE IF EXISTS {new_database};")
             create_db = sqlalchemy.text(f"CREATE DATABASE {new_database}")
 
@@ -73,7 +73,7 @@ def create_database(database, new_database, user):
         # 3. Connect to the newly created database
         with Connector() as connector:
             # initialize connection pool
-            pool = alloydb_setup.init_connection_pool(connector, new_database, user)
+            pool = alloydb_setup.init_connection_pool(connector, new_database)
             create_vector_extn = sqlalchemy.text(
                 f"CREATE EXTENSION IF NOT EXISTS vector;"
             )
@@ -106,7 +106,7 @@ def create_database(database, new_database, user):
             logging.info("Connector closed")
 
 
-def create_and_populate_table(database, table_name, processed_data_path, user):
+def create_and_populate_table(database, table_name, processed_data_path):
     """Creates and populates a table in PostgreSQL using pandas and sqlalchemy."""
 
     try:
@@ -136,7 +136,7 @@ def create_and_populate_table(database, table_name, processed_data_path, user):
 
         # 3. Load
         with Connector() as connector:
-            engine = alloydb_setup.init_connection_pool(connector, database, user)
+            engine = alloydb_setup.init_connection_pool(connector, database)
             with engine.begin() as connection:
                 logging.info(f"Connected with the db {database}")
                 df.to_sql(
@@ -178,7 +178,6 @@ def create_and_populate_table(database, table_name, processed_data_path, user):
 # Create an Scann index on the table with embedding column and cosine distance
 def create_text_embeddings_index(
     database,
-    user,
     TABLE_NAME,
     EMBEDDING_COLUMN,
     INDEX_NAME,
@@ -190,7 +189,7 @@ def create_text_embeddings_index(
     )
     try:
         with Connector() as connector:
-            pool = alloydb_setup.init_connection_pool(connector, database, user)
+            pool = alloydb_setup.init_connection_pool(connector, database)
             with pool.connect() as db_conn:
                 db_conn.execute(index_cmd)
                 logging.info(f"Index '{INDEX_NAME}' created successfully.")

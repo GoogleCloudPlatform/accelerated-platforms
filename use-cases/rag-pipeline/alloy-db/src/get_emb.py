@@ -16,6 +16,7 @@ import logging
 import logging.config
 import os
 import requests
+import json
 
 # Define the API Endpoints
 TEXT_API_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
@@ -70,6 +71,10 @@ def get_image_embeddings(image_uri):
             headers={"Content-Type": "application/json"},
             timeout=100,
         )
+        print("Request URL:", response.request.url)
+        print("Request Headers:", response.request.headers)
+        print("Request Body:", response.request.body)
+        print("Response Body:", response.json())
 
         # This will raise an HTTPError for bad responses (4xx or 5xx)
         response.raise_for_status()
@@ -99,13 +104,13 @@ def get_image_embeddings(image_uri):
         ) from e
 
 
-def get_multimodal_embeddings(desc, image_uri):
+def get_multimodal_embeddings(image_uri, desc):
     """
     Fetches multimodal embeddings from a multimodal embedding API using text description and image URI.
 
     Args:
-        desc: The text description of the product from product catalog.
         image_uri: The URI of the image.
+        desc: The text description of the product from product catalog.
 
     Returns:
         The multimodal embeddings as a JSON object.
@@ -117,13 +122,13 @@ def get_multimodal_embeddings(desc, image_uri):
     try:
         response = requests.post(
             MULTIMODAL_API_ENDPOINT,
-            json={"caption": desc, "image_uri": image_uri},
+            json={"image_uri": image_uri, "caption": desc},
             headers={"Content-Type": "application/json"},
             timeout=100,
         )
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-
+        print(response.json()["multimodal_embeds"])
         return response.json()["multimodal_embeds"]
 
     except requests.exceptions.HTTPError as e:
@@ -191,7 +196,7 @@ def get_text_embeddings(text):
         ) from e
 
 
-def get_embeddings(text=None, image_uri=None):
+def get_embeddings(image_uri=None, text=None):
     """
     Fetches embeddings based on the provided input.
 
@@ -208,12 +213,13 @@ def get_embeddings(text=None, image_uri=None):
     Raises:
         requests.exceptions.HTTPError: If there is an error fetching the embeddings from the API.
     """
-    if text and image_uri:
-        return get_multimodal_embeddings(text, image_uri)
+    if image_uri and text:
+        print("Text and image sent for multimodal embeddings", text, image_uri)
+        return get_multimodal_embeddings(image_uri, text)
     elif text:
         return get_text_embeddings(text)
     elif image_uri:
-        print(" Image URI which is being sent:", image_uri)
+        print("image sent for Image embeddings", image_uri)
         return get_image_embeddings(image_uri)
     else:
         logging.error(

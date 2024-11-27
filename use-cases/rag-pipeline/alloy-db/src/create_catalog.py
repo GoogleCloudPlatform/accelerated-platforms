@@ -120,19 +120,23 @@ def create_and_populate_table(database, table_name, processed_data_path):
 
         logging.info(f"Starting embedding generation...")
         # 2. Transform
-        df["multimodal_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(row["Description"], row["image_uri"]),
-            axis=1,
-        )
+        # df["multimodal_embeddings"] = df.apply(
+        #     lambda row: get_emb.get_embeddings(row["image_uri"], row["Description"]),
+        #     axis=1,
+        # )
+        # logging.info(f"Multimodal embedding generation completed")
 
-        df["text_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(row["Description"], None), axis=1
-        )
+        # df["text_embeddings"] = df.apply(
+        #     lambda row: get_emb.get_embeddings(None, row["Description"]), axis=1
+        # )
+        # logging.info(f"Text embedding generation completed")
+
         df["image_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(None, row["image_uri"]), axis=1
+            lambda row: get_emb.get_embeddings(row["image_uri"], None), axis=1
         )
+        logging.info(f"Image embedding generation completed")
 
-        logging.info(f"Embedding generation completed")
+        logging.info(f"Embedding generation task is complete")
 
         # 3. Load
         with Connector() as connector:

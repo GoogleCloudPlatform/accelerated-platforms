@@ -4,6 +4,13 @@ This kubernetes job helps you load the flipkart product catalog to the alloyDB d
 
 ## Prerequisites
 
+<TODO> Write few lines about alloydb set up various users for IAM, workload identity , different users in ML_ENV_FILE to use .
+
+wi-mlp-ishmeet-rag-db-admin@gkebatchenv3a4ec43f.iam granted Storage Object user permission to the bucket where the processed data exists
+
+<TODO> decide where we would host these buckets for catalog and processed data . 
+Should they be public datasets for RAG pipeline?
+
 - Use the existing  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 
 - AlloyDB instance has been created as part of the ML playground deployment.

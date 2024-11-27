@@ -12,6 +12,7 @@ spec:
       labels:
         app: blip2
     spec:
+      serviceAccountName: ishmeet-rag-ml-team-db-admin
       containers:
       - name: blip2-container
         image: us-docker.pkg.dev/V_PROJECT_ID/rag-artifacts/blip2:v0.2.0 # Update the image location

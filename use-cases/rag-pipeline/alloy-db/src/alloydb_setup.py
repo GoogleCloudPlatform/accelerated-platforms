@@ -50,10 +50,8 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
     """
     connector = Connector()
     logging.info(
-        "Connector details %s user, %s instance_uri, %s db.",
+        "Connector details %s user.",
         connector.user,
-        connector.instance_uri,
-        connector.db,
     )
 
     def getconn():

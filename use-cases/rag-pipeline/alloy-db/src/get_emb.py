@@ -117,7 +117,7 @@ def get_multimodal_embeddings(desc, image_uri):
     try:
         response = requests.post(
             MULTIMODAL_API_ENDPOINT,
-            json={"desc": desc, "image_uri": image_uri},
+            json={"caption": desc, "image_uri": image_uri},
             headers={"Content-Type": "application/json"},
             timeout=100,
         )
@@ -163,7 +163,7 @@ def get_text_embeddings(text):
     try:
         response = requests.post(
             TEXT_API_ENDPOINT,
-            json={"text": text},
+            json={"caption": text},
             headers={"Content-Type": "application/json"},
             timeout=100,
         )

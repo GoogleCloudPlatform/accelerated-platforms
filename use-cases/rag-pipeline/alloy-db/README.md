@@ -8,6 +8,8 @@ This kubernetes job helps you load the flipkart product catalog to the alloyDB d
 
 wi-mlp-ishmeet-rag-db-admin@gkebatchenv3a4ec43f.iam granted Storage Object user permission to the bucket where the processed data exists
 
+wi-mlp-ishmeet-rag-db-admin@gkebatchenv3a4ec43f.iam granted Storage Object user permission to the bucket where the image files exist ["image_uri": "gs://gkebatchexpce3c8dcb-dev-rag-data/flipkart_images/c2d766ca982eca8304150849735ffef9_0.jpg"]
+
 <TODO> decide where we would host these buckets for catalog and processed data . 
 Should they be public datasets for RAG pipeline?
 

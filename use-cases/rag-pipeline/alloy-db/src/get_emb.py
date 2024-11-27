@@ -71,10 +71,6 @@ def get_image_embeddings(image_uri):
             headers={"Content-Type": "application/json"},
             timeout=100,
         )
-        print("Request URL:", response.request.url)
-        print("Request Headers:", response.request.headers)
-        print("Request Body:", response.request.body)
-        print("Response Body:", response.json())
 
         # This will raise an HTTPError for bad responses (4xx or 5xx)
         response.raise_for_status()
@@ -128,7 +124,6 @@ def get_multimodal_embeddings(image_uri, desc):
         )
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-        print(response.json()["multimodal_embeds"])
         return response.json()["multimodal_embeds"]
 
     except requests.exceptions.HTTPError as e:
@@ -214,12 +209,10 @@ def get_embeddings(image_uri=None, text=None):
         requests.exceptions.HTTPError: If there is an error fetching the embeddings from the API.
     """
     if image_uri and text:
-        print("Text and image sent for multimodal embeddings", text, image_uri)
         return get_multimodal_embeddings(image_uri, text)
     elif text:
         return get_text_embeddings(text)
     elif image_uri:
-        print("image sent for Image embeddings", image_uri)
         return get_image_embeddings(image_uri)
     else:
         logging.error(

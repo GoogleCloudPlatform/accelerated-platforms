@@ -23,6 +23,7 @@ spec:
       containers:
       - name: alloydb-setup
         image: us-docker.pkg.dev/gkebatchenv3a4ec43f/rag-artifacts/alloydb-setup:v0.1.0
+        imagePullPolicy: Always
         env:
         - name: PROCESSED_DATA_BUCKET
           value: "flipkart-processed-data-bucket"

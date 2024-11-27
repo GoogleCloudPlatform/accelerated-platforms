@@ -213,6 +213,7 @@ def get_embeddings(text=None, image_uri=None):
     elif text:
         return get_text_embeddings(text)
     elif image_uri:
+        print(" Image URI which is being sent:", image_uri)
         return get_image_embeddings(image_uri)
     else:
         logging.error(

@@ -119,11 +119,11 @@ def create_and_populate_table(database, table_name, processed_data_path):
         logging.info(f"resulting df shape: {df.shape}")
 
         logging.info(f"Starting embedding generation...")
-        # # 2. Transform
-        # df["multimodal_embeddings"] = df.apply(
-        #     lambda row: get_emb.get_embeddings(row["Description"], row["image_uri"]),
-        #     axis=1,
-        # )
+        # 2. Transform
+        df["multimodal_embeddings"] = df.apply(
+            lambda row: get_emb.get_embeddings(row["Description"], row["image_uri"]),
+            axis=1,
+        )
 
         df["text_embeddings"] = df.apply(
             lambda row: get_emb.get_embeddings(row["Description"], None), axis=1

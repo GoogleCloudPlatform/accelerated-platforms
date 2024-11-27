@@ -25,9 +25,11 @@ resource "google_gke_hub_feature" "configmanagement" {
 
       config_sync {
         enabled       = true
+        prevent_drift = var.configmanagement_prevent_drift
         source_format = "unstructured"
 
         git {
+          policy_dir  = var.configmanagement_policy_dir
           secret_type = "token"
           sync_branch = var.configmanagement_sync_branch
           sync_repo   = var.configmanagement_sync_repo
@@ -50,9 +52,11 @@ resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
 
     config_sync {
       enabled       = true
+      prevent_drift = var.configmanagement_prevent_drift
       source_format = "unstructured"
 
       git {
+        policy_dir  = var.configmanagement_policy_dir
         secret_type = "token"
         sync_branch = var.configmanagement_sync_branch
         sync_repo   = var.configmanagement_sync_repo

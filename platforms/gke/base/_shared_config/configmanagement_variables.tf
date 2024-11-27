@@ -33,7 +33,7 @@ variable "configmanagement_git_credentials" {
     token       = null
     username    = null
   }
-  description = "Git configuration for Config Sync"
+  description = "Git credentials for Config Sync"
   sensitive   = true
   type = object({
     secret_name = string
@@ -43,14 +43,26 @@ variable "configmanagement_git_credentials" {
   # TODO: Add validations
 }
 
+variable "configmanagement_policy_dir" {
+  default     = ""
+  description = "The path within the sync repository that represents the top level to sync"
+  type        = string
+}
+
+variable "configmanagement_prevent_drift" {
+  default     = true
+  description = "Enable the Config Sync admission webhook to prevent drift"
+  type        = bool
+}
+
 variable "configmanagement_sync_branch" {
   default     = "main"
-  description = "Git repository for Config Sync"
+  description = "Branch in the sync repository to use for Config Sync"
   type        = string
 }
 
 variable "configmanagement_sync_repo" {
   default     = null
-  description = "Git repository for Config Sync"
+  description = "Repository to use for Config Sync"
   type        = string
 }

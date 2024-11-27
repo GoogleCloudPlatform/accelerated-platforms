@@ -25,9 +25,11 @@ resource "google_gke_hub_feature" "configmanagement" {
 
       config_sync {
         enabled       = true
+        prevent_drift = var.configmanagement_prevent_drift
         source_format = "unstructured"
 
         oci {
+          policy_dir  = var.configmanagement_policy_dir
           secret_type = "k8sserviceaccount"
           sync_repo   = local.oci_sync_repo
         }
@@ -45,11 +47,15 @@ resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
   project    = data.google_project.cluster.project_id
 
   configmanagement {
+    management = "MANAGEMENT_AUTOMATIC"
+
     config_sync {
       enabled       = true
+      prevent_drift = var.configmanagement_prevent_drift
       source_format = "unstructured"
 
       oci {
+        policy_dir  = var.configmanagement_policy_dir
         secret_type = "k8sserviceaccount"
         sync_repo   = local.oci_sync_repo
       }

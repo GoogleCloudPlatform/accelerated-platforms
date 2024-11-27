@@ -26,11 +26,14 @@ resource "google_gke_hub_feature_membership" "cluster_policycontroller" {
   feature    = google_gke_hub_feature.policycontroller.name
   location   = google_gke_hub_feature.policycontroller.location
   membership = data.google_container_cluster.cluster.name
-  project    = data.google_project.default.project_id
+  project    = google_gke_hub_feature.policycontroller.project
 
   policycontroller {
     policy_controller_hub_config {
-      install_spec = "INSTALL_SPEC_ENABLED"
+      install_spec              = "INSTALL_SPEC_ENABLED"
+      log_denies_enabled        = true
+      mutation_enabled          = true
+      referential_rules_enabled = true
     }
   }
 }

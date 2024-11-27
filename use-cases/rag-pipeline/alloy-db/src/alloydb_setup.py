@@ -25,11 +25,12 @@ from google.cloud.alloydb.connector import Connector, IPTypes
 # AlloyDB
 instance_uri = os.getenv("MLP_DB_INSTANCE_URI")
 
-# credentials, project = google.auth.default()
-# auth_request = google.auth.transport.requests.Request()
-# credentials.refresh(auth_request)
+credentials, project = google.auth.default()
+auth_request = google.auth.transport.requests.Request()
+credentials.refresh(auth_request)
 
-# user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
+user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
+print.info(f"User: {user}")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -48,16 +49,12 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
     """
     Initializes a SQLAlchemy engine for connecting to AlloyDB.
     """
-    connector = Connector()
-    logging.info(
-        "Connector details %s user.",
-        connector.user,
-    )
 
     def getconn():
         conn = connector.connect(
             instance_uri,
             "pg8000",
+            user=user,
             db=db,
             # use ip_type to specify PSC
             ip_type=IPTypes.PSC,

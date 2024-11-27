@@ -44,11 +44,11 @@ spec:
         - name: MLP_DB_INSTANCE_URI
           value: "projects/gkebatchenv3a4ec43f/locations/us-central1/clusters/mlp-ishmeet-rag/instances/mlp-ishmeet-rag-primary"
         - name: TEXT_EMBEDDING_ENDPOINT
-          value: "http://multimodal-embedding-model-service:80/text_embeddings"
+          value: "http://multimodal-embedding-model:80/text_embeddings"
         - name: IMAGE_EMBEDDING_ENDPOINT
-          value: "http://multimodal-embedding-model-service:80/image_embeddings"
+          value: "http://multimodal-embedding-model:80/image_embeddings"
         - name: MULTIMODAL_EMBEDDING_ENDPOINT
-          value: "http://multimodal-embedding-model-service:80/multimodal_embeddings" 
+          value: "http://multimodal-embedding-model:80/multimodal_embeddings" 
         - name: MLP_KUBERNETES_NAMESPACE
           value: "ml-team"
       restartPolicy: Never

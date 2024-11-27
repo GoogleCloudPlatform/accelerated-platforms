@@ -25,16 +25,18 @@ from google.cloud.alloydb.connector import Connector, IPTypes
 # AlloyDB
 instance_uri = os.getenv("MLP_DB_INSTANCE_URI")
 
+# Use the application default credentials
 credentials, project = google.auth.default()
+
 auth_request = google.auth.transport.requests.Request()
 credentials.refresh(auth_request)
-
 user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
-print.info(f"User: {user}")
 
 # Configure logging
+
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger("alloydb")
+
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
@@ -49,13 +51,15 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
     """
     Initializes a SQLAlchemy engine for connecting to AlloyDB.
     """
+    logging.info("database user in use %s", user)
 
     def getconn():
+        logger.info("Creating connection.Database: %s", db)
         conn = connector.connect(
             instance_uri,
             "pg8000",
-            user=user,
             db=db,
+            user=user,
             # use ip_type to specify PSC
             ip_type=IPTypes.PSC,
             # use enable_iam_auth to enable IAM authentication
@@ -68,5 +72,6 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
         "postgresql+pg8000://",
         creator=getconn,
     )
-    logging.info("Connection pool created successfully.")
+    pool.dialect.description_encoding = None
+    logging.info("Connection pool created successfully.%s", pool)
     return pool

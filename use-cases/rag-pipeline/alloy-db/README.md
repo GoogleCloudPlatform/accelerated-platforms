@@ -39,21 +39,7 @@ gcloud artifacts repositories create rag-artifacts --repository-format=docker --
 gcloud builds submit . 
 ```
 
-4. Create the KSA required to connect to google cloud storage buckets.
-
-```
-kubectl create serviceaccount dev-rag-ml-team-db-admin \
-    --namespace ml-team
-```
-
-```
-gcloud projects add-iam-policy-binding projects/V_PROJECT_ID \
-    --role=roles/container.clusterViewer \
-    --member=principal://iam.googleapis.com/projects/V_PROJECT_NUMBER/locations/global/workloadIdentityPools/V_PROJECT_ID.svc.id.goog/subject/ns/$NAMESPACE/sa/dev-rag-ml-team-db-admin \
-    --condition=None
-```
-
-5. Create wi-mlp-dev-rag-db-admin IAM service account and grant following IAM roles to it.
+4. Create wi-mlp-dev-rag-db-admin IAM service account and grant following IAM roles to it.
 
 Cloud AlloyDB Client
 Cloud AlloyDB Database User

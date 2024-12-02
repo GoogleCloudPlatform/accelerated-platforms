@@ -19,8 +19,6 @@ import logging
 import logging.config
 import os
 import sqlalchemy
-
-import get_emb
 import rerank
 import semantic_search
 

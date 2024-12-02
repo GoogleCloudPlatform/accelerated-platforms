@@ -26,6 +26,7 @@ from google.cloud.alloydb.connector import Connector, IPTypes
 instance_uri = os.getenv("MLP_DB_INSTANCE_URI")
 
 # Use the application default credentials
+# Kubernetes Service account impersonating as GCP account
 credentials, project = google.auth.default()
 
 auth_request = google.auth.transport.requests.Request()
@@ -60,9 +61,9 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
             "pg8000",
             db=db,
             user=user,
-            # use ip_type to specify PSC
+            # Use ip_type to specify PSC
             ip_type=IPTypes.PSC,
-            # use enable_iam_auth to enable IAM authentication
+            # Use enable_iam_auth to enable IAM authentication for GCP Service Account with KSA
             enable_iam_auth=True,
         )
         return conn

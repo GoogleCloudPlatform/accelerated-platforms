@@ -13,11 +13,13 @@
 # limitations under the License.
 
 import get_emb
+import alloydb_connect
 import json
 import logging
 import logging.config
 import os
 from sqlalchemy import text
+from google.cloud.alloydb.connector import Connector
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -35,14 +37,16 @@ if "LOG_LEVEL" in os.environ:
 # TODO: only text input from UI is handled. Need to add image uri to get embeddings
 def find_matching_products(
     engine,
-    user_query,
     catalog_table,
     embedding_column,
     row_count,
+    user_query=None,
+    image_uri=None,
 ):
     try:
         # Get text embedding for user query
-        user_query_emb = json.dumps(get_emb.get_text_embeddings(user_query))
+        text_emb = json.dumps(get_emb.get_embeddings(text=user_query))
+        print(text_emb)
         # logging.info(user_query_emb)
 
         # TODO: Add a function call to get image embedding if image uri (gs://)
@@ -60,7 +64,7 @@ def find_matching_products(
             # Perform a cosine similarity search
             result = conn.execute(
                 text(search_query),
-                {"emb": user_query_emb},
+                {"emb": text_emb},
             )
 
             # logging.info(result)
@@ -79,6 +83,16 @@ def find_matching_products(
 
     except Exception as e:
         logging.error(f"An error occurred while finding matching products: {e}")
-    finally:
-        if conn:
-            conn.close()
+
+    # finally:
+    #     if conn:
+    #         conn.close()
+
+
+# with Connector() as connector:
+#     engine = alloydb_connect.create_alloydb_engine(connector, "product_catalog")
+#     product_list = find_matching_products(
+#         engine, "women shorts", "clothes", "text_embeddings", row_count=5
+#     )
+# print(product_list)
+# connector.close()

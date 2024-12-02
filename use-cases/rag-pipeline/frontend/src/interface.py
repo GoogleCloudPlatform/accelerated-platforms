@@ -101,19 +101,19 @@ def process_text_image(text, image_uri):
 
 # Create the Gradio interface
 with gr.Blocks() as demo:
-    gr.Markdown("## Retail Chatbot with Embeddings")
+    gr.Markdown("## Retail Shopping Assistant")
 
-    with gr.Tab("Text Prompt"):
+    with gr.Tab("Ask you retail question: ?"):
         text_input = gr.Textbox(lines=5, label="Enter your prompt")
-        text_output = gr.Textbox(label="Embeddings")
-        text_button = gr.Button("Generate Embeddings")
+        text_output = gr.Textbox(label="Response")
+        text_button = gr.Button("Generate Response")
         text_button.click(fn=process_text, inputs=text_input, outputs=text_output)
 
     with gr.Tab("Text Prompt + Image"):
-        text_input_2 = gr.Textbox(lines=5, label="Enter your prompt")
-        image_uri_input = gr.Textbox(label="Enter GCS image URI")
-        image_uri_output = gr.Textbox(label="Embeddings")
-        image_uri_button = gr.Button("Generate Embeddings")
+        text_input_2 = gr.Textbox(lines=5, label="Ask you retail question: ?")
+        image_uri_input = gr.Textbox(label="Enter GCS image URI for the product")
+        image_uri_output = gr.Textbox(label="Response")
+        image_uri_button = gr.Button("Generate Response")
         image_uri_button.click(
             fn=process_text_image,
             inputs=[text_input_2, image_uri_input],

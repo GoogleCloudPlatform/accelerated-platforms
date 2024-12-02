@@ -3,6 +3,6 @@ google.auth==2.36.0
 google-cloud-alloydb-connector[pg8000]==1.5.0
 llama-index==0.11.21
 pydantic==2.9.2
-uvicorn==0.32.0
 requests==2.32.3
 sqlalchemy==2.0.36
+uvicorn==0.32.0

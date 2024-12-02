@@ -18,7 +18,7 @@ import os
 import requests
 import json
 
-# Define the API Endpoints
+# Define the API Endpoints for deployment
 # TEXT_API_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
 # IMAGE_API_ENDPOINT = os.environ["IMAGE_EMBEDDING_ENDPOINT"]
 # MULTIMODAL_API_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
@@ -224,10 +224,3 @@ def get_embeddings(image_uri=None, text=None):
             "Missing input. Provide a textual product description and/or image_uri to generate embeddings"
         )
         return None
-
-
-# embeddings = get_embeddings(
-#     "gs://gkebatchexpce3c8dcb-dev-rag-data/flipkart_images/0001d5429cf08061039da491b1aad68d_0.jpg",
-#     "This is caption",
-# )
-# print(embeddings)

@@ -98,12 +98,3 @@ def find_matching_products(
     finally:
         if conn:
             conn.close()
-
-
-# with Connector() as connector:
-#     engine = alloydb_connect.create_alloydb_engine(connector, "product_catalog")
-#     product_list = find_matching_products(
-#         engine, "women shorts", "clothes", "text_embeddings", row_count=5
-#     )
-# print(product_list)
-# connector.close()

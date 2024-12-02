@@ -12,9 +12,8 @@ from google.cloud.alloydb.connector import Connector
 import prompt_helper
 import rerank
 
-
 # Configure logging
-logging.config.fileConfig("logging.conf")
+logging.config.fileConfig("logging.conf")  # Make sure you have logging.conf configured
 logger = logging.getLogger("backend")
 
 if "LOG_LEVEL" in os.environ:
@@ -67,6 +66,8 @@ async def generate_product_recommendations(
     Generates product recommendations based on a text, image, or image+text prompt.
     """
     try:
+        reranked_result = None  # Initialize reranked_result
+
         if prompt.text and prompt.image:
             logging.info(f"Received text: {prompt.text} and image: {prompt.image}")
             product_list = semantic_search.find_matching_products(
@@ -77,6 +78,17 @@ async def generate_product_recommendations(
                 user_query=prompt.text,
                 image_uri=prompt.image,
             )
+            logging.info(f"product list returned by db: {product_list}")
+            if not product_list:
+                return JSONResponse(
+                    content={"error": "No matching products found"}, status_code=404
+                )
+            prompt_list = prompt_helper.prompt_generation(
+                user_query=prompt.text, search_result=product_list
+            )
+            logging.info(f"Prompt used to re-rank: {prompt_list}")
+            reranked_result = rerank.query_pretrained_gemma(prompt_list)
+            logging.info(f"Response to front end: {reranked_result}")
 
         elif prompt.text:
             logging.info(f"Received text: {prompt.text}")
@@ -98,9 +110,6 @@ async def generate_product_recommendations(
             logging.info(f"Prompt used to re-rank: {prompt_list}")
             reranked_result = rerank.query_pretrained_gemma(prompt_list)
             logging.info(f"Response to front end: {reranked_result}")
-            print(reranked_result)
-            return JSONResponse(content=reranked_result, status_code=200)
-            # return reranked_result
 
         elif prompt.image:
             logging.info(f"Received image: {prompt.image}")
@@ -111,25 +120,29 @@ async def generate_product_recommendations(
                 row_count=row_count,
                 image_uri=prompt.image,
             )
+            logging.info(f"product list returned by db: {product_list}")
+            if not product_list:
+                return JSONResponse(
+                    content={"error": "No matching products found"}, status_code=404
+                )
+            prompt_list = prompt_helper.prompt_generation(
+                user_query=prompt.text, search_result=product_list
+            )
+            logging.info(f"Prompt used to re-rank: {prompt_list}")
+            reranked_result = rerank.query_pretrained_gemma(prompt_list)
+            logging.info(f"Response to front end: {reranked_result}")
 
         else:
             raise ValueError("Please provide at least a text or an image prompt.")
 
-        logging.info(f"Product list returned by DB: {product_list}")
-
-        if not product_list:
+        # Check if reranked_result is still None (no valid prompt was processed)
+        if reranked_result is None:
             return JSONResponse(
-                content={"error": "No matching products found"},
+                content={"error": "No valid products found after re-ranking"},
                 status_code=404,
             )
 
-        # Format the recommendations (TODO: replace with better formatting)
-        formatted_recommendations = ", ".join(
-            [str(product) for product in product_list]
-        )  # Example formatting
-        response = f"These are product recommendations for the given prompt: {formatted_recommendations}"
-
-        return {"response": response}
+        return JSONResponse(content=reranked_result, status_code=200)
 
     except Exception as e:
         logging.error(f"An error occurred: {e}")

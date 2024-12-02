@@ -13,9 +13,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -e
+set -o errexit
 
 start_timestamp=$(date +%s)
+
+terraservices=("networking" "container_cluster" "container_node_pool" "gke_enterprise/fleet_membership" "workloads/kueue")
+# Disable gke_enterprise/servicemesh due to b/376312292
+#terraservices=("networking" "container_cluster" "container_node_pool" "gke_enterprise/fleet_membership" "gke_enterprise/servicemesh" "workloads/kueue")
 
 source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config
 
@@ -41,48 +45,14 @@ if [ ${STATE_MIGRATED} == "false" ]; then
     rm -rf state
 fi
 
-cd ${ACP_PLATFORM_CORE_DIR}/networking &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-rm tfplan
-
-cd ${ACP_PLATFORM_CORE_DIR}/container_cluster &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-rm tfplan
-
-cd ${ACP_PLATFORM_CORE_DIR}/container_node_pool &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-rm tfplan
-
-cd ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-rm tfplan
-
-# b/376312292
-# cd ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/servicemesh &&
-#     echo "Current directory: $(pwd)" &&
-#     terraform init &&
-#     terraform plan -input=false -out=tfplan &&
-#     terraform apply -input=false tfplan || exit 1
-# rm tfplan
-
-cd ${ACP_PLATFORM_CORE_DIR}/workloads/kueue &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1 &&
+for terraservice in "${terraservices[@]}"; do
+    cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
+        echo "Current directory: $(pwd)" &&
+        terraform init &&
+        terraform plan -input=false -out=tfplan &&
+        terraform apply -input=false tfplan || exit 1
     rm tfplan
+done
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))

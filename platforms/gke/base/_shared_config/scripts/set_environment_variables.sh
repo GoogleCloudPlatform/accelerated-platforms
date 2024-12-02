@@ -18,6 +18,7 @@ SHARED_CONFIG_PATH=${1}
 echo "Loading shared configuration(${SHARED_CONFIG_PATH})"
 echo "-------------------------------------------------------------------------"
 cd ${SHARED_CONFIG_PATH} || exit 1
+terraform init
 terraform apply -auto-approve -input=false >/dev/null
 terraform output
 echo -e "-------------------------------------------------------------------------\n"

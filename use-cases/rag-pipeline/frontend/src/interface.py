@@ -17,9 +17,8 @@ import re
 import requests
 import os
 
-
-TEXT_EMBEDDING_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
-MULTIMODAL_EMBEDDING_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
+# BACKEND_SERVICE_URL = os.environ["BACKEND_SERVICE_URL"]
+BACKEND_SERVICE_URL = "http://0.0.0.0:8000/generate_product_recommendations"
 
 
 # Function to validate GCS URI
@@ -39,85 +38,77 @@ def validate_gcs_uri(uri):
     return bool(re.match(pattern, uri))
 
 
-# Function to process text input
-def process_text(text):
+# Function to validate text input
+def validate_text(text):
     """
-    Processes the text input (prompt) to generate embeddings.
+    Validates if the provided text is not empty.
 
     Args:
-      text: The input prompt.
+      text: The text string to validate.
 
     Returns:
-      Embeddings as a list of floats.
+      True if the text is valid, False otherwise.
     """
-    # Replace this with your actual embedding generation logic
-    # This is a placeholder example
-    # embeddings = [0.1, 0.2, 0.3, 0.4, 0.5]
-    embeddings = []
-
-    response = requests.post(
-        TEXT_EMBEDDING_ENDPOINT,
-        json={"text": text},
-        headers={"Content-Type": "application/json"},
-        timeout=1000,
-    )
-    response.raise_for_status()
-    embeddings = response.json()["text_embeds"]
-
-    return embeddings
+    return bool(text.strip())
 
 
-# Function to process text and image URI input
-def process_text_image(text, image_uri):
+# Function to process the input and send to backend
+def process_input(text, image_uri=None):
     """
-    Processes the text prompt and image URI to generate embeddings.
+    Processes the input (text, image_uri or both) and sends a POST request to the backend.
 
     Args:
-      text: The input prompt.
-      image_uri: The GCS URI of the image.
+      text: The input text.
+      image_uri: The GCS URI of the image (optional).
 
     Returns:
-      Embeddings as a list of floats.
+      The response from the backend.
     """
-    if not validate_gcs_uri(image_uri):  # Validate the URI
-        return "Invalid GCS URI provided."  # Return an error message
+    if not validate_text(text):
+        return "Invalid text input provided."
 
-    # Replace this with your actual embedding generation logic
-    # This is a placeholder example
-    # embeddings = [0.6, 0.7, 0.8, 0.9, 1.0]
-    embeddings = []
+    data = {"text": text}
+    if image_uri:
+        if not validate_gcs_uri(image_uri):
+            return "Invalid GCS URI provided."
+        data["image_uri"] = image_uri
 
-    response = requests.post(
-        MULTIMODAL_EMBEDDING_ENDPOINT,
-        json={"text": text, "image_uri": image_uri},
-        headers={"Content-Type": "application/json"},
-        timeout=1000,
-    )
-    response.raise_for_status()
-    embeddings = response.json()["multimodal_embeds"]
-
-    return embeddings
+    response = requests.post(BACKEND_SERVICE_URL, json=data)
+    response.raise_for_status()  # Raise an exception for bad status codes
+    return response.json()
 
 
 # Create the Gradio interface
 with gr.Blocks() as demo:
     gr.Markdown("## Retail Shopping Assistant")
 
-    with gr.Tab("Ask you retail question: ?"):
+    with gr.Tab("Text"):
         text_input = gr.Textbox(lines=5, label="Enter your prompt")
         text_output = gr.Textbox(label="Response")
         text_button = gr.Button("Generate Response")
-        text_button.click(fn=process_text, inputs=text_input, outputs=text_output)
+        text_button.click(
+            fn=lambda text: process_input(text), inputs=text_input, outputs=text_output
+        )
 
-    with gr.Tab("Text Prompt + Image"):
-        text_input_2 = gr.Textbox(lines=5, label="Ask you retail question: ?")
+    with gr.Tab("Text + Image"):
+        text_input_2 = gr.Textbox(lines=5, label="Enter your prompt")
         image_uri_input = gr.Textbox(label="Enter GCS image URI for the product")
-        image_uri_output = gr.Textbox(label="Response")
-        image_uri_button = gr.Button("Generate Response")
-        image_uri_button.click(
-            fn=process_text_image,
+        text_image_output = gr.Textbox(label="Response")
+        text_image_button = gr.Button("Generate Response")
+        text_image_button.click(
+            fn=process_input,
             inputs=[text_input_2, image_uri_input],
-            outputs=image_uri_output,
+            outputs=text_image_output,
+        )
+
+    with gr.Tab("Image"):
+        image_uri_input_2 = gr.Textbox(label="Enter GCS image URI for the product")
+        image_output = gr.Textbox(label="Response")
+        image_button = gr.Button("Generate Response")
+        image_button.click(
+            fn=lambda image_uri: process_input(text="", image_uri=image_uri),
+            inputs=image_uri_input_2,
+            outputs=image_output,
         )
 
 # Launch the demo

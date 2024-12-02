@@ -65,15 +65,14 @@ def query_pretrained_gemma(prompt):
         return response.json()["choices"][0]["message"]["content"]
 
     except requests.exceptions.RequestException as e:
-        # logger.error(f"Error communicating with instruction model endpoint: {e}")
-        # Handle the exception appropriately, e.g., return an error message
+        logger.error(f"Error communicating with instruction model endpoint: {e}")
         print(e)
         return "Error: Could not generate a response."
     except KeyError as e:
-        # logger.error(f"Unexpected response format from instruction model endpoint: {e}")
+        logger.error(f"Unexpected response format from instruction model endpoint: {e}")
         return "Error: Invalid response format."
     except Exception as e:
-        # logger.exception(f"An unexpected error occurred: {e}")
+        logger.exception(f"An unexpected error occurred: {e}")
         return "Error: An unexpected error occurred."
 
 

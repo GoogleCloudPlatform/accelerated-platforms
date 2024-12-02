@@ -44,16 +44,27 @@ def find_matching_products(
     image_uri=None,
 ):
     try:
-        # Get text embedding for user query
-        text_emb = json.dumps(get_emb.get_embeddings(text=user_query))
-        print(text_emb)
-        # logging.info(user_query_emb)
+        embeddings = json.dumps(
+            get_emb.get_embeddings(text=user_query, image_uri=image_uri)
+        )
+        print(embeddings)
+        logging.info(embeddings)
 
-        # TODO: Add a function call to get image embedding if image uri (gs://)
-        # image_emb = json.dumps(get_image_embeddings(image_uri))
+        # TODO - do we need separate calls to embeddings methods ?
+        # # Get text embedding for user query
+        # text_emb = json.dumps(get_emb.get_embeddings(text=user_query))
+        # print(text_emb)
+        # logging.info(text_emb)
 
-        # TODO: if both text & image were given call multimodal embedding
-        # image_emb = json.dumps(get_multimodal_embeddings(image, text))
+        # # Get image embedding if image uri (gs://)
+        # image_emb = json.dumps(get_emb.get_embeddings(image_uri=image_uri))
+        # print(image_emb)
+        # logging.info(image_emb)
+
+        # # Get text & image were given call multimodal embedding
+        # multimodal_emb = json.dumps(get_emb.get_embeddings(text=user_query,image_uri=image_uri))
+        # print(multimodal_emb)
+        # logging.info(multimodal_emb)
 
         # Parameterized query
         search_query = f"""SELECT "Name", "Description", "c1_name" as Category, "Specifications", (1-({embedding_column} <-> :emb)) AS cosine_similarity FROM {catalog_table} ORDER BY cosine_similarity DESC LIMIT {row_count};"""
@@ -64,7 +75,7 @@ def find_matching_products(
             # Perform a cosine similarity search
             result = conn.execute(
                 text(search_query),
-                {"emb": text_emb},
+                {"emb": embeddings},
             )
 
             # logging.info(result)
@@ -84,9 +95,9 @@ def find_matching_products(
     except Exception as e:
         logging.error(f"An error occurred while finding matching products: {e}")
 
-    # finally:
-    #     if conn:
-    #         conn.close()
+    finally:
+        if conn:
+            conn.close()
 
 
 # with Connector() as connector:

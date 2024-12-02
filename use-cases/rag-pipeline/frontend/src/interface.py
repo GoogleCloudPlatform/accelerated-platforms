@@ -53,25 +53,31 @@ def validate_text(text):
 
 
 # Function to process the input and send to backend
-def process_input(text, image_uri=None):
+def process_input(text=None, image_uri=None):
     """
     Processes the input (text, image_uri or both) and sends a POST request to the backend.
 
     Args:
-      text: The input text.
+      text: The input text(optional).
       image_uri: The GCS URI of the image (optional).
 
     Returns:
       The response from the backend.
     """
-    if not validate_text(text):
+    if text and not validate_text(text):
         return "Invalid text input provided."
 
-    data = {"text": text}
+    if image_uri and not validate_gcs_uri(image_uri):
+        return "Invalid GCS URI provided."
+
+    data = {}
+    if text:
+        data["text"] = text
     if image_uri:
-        if not validate_gcs_uri(image_uri):
-            return "Invalid GCS URI provided."
         data["image_uri"] = image_uri
+
+    if not data:  # Check if data is empty
+        return "Please provide either text or image URI."
 
     response = requests.post(BACKEND_SERVICE_URL, json=data)
     response.raise_for_status()  # Raise an exception for bad status codes
@@ -87,7 +93,9 @@ with gr.Blocks() as demo:
         text_output = gr.Textbox(label="Response")
         text_button = gr.Button("Generate Response")
         text_button.click(
-            fn=lambda text: process_input(text), inputs=text_input, outputs=text_output
+            fn=lambda text: process_input(text=text),
+            inputs=text_input,
+            outputs=text_output,
         )
 
     with gr.Tab("Text + Image"):
@@ -106,7 +114,7 @@ with gr.Blocks() as demo:
         image_output = gr.Textbox(label="Response")
         image_button = gr.Button("Generate Response")
         image_button.click(
-            fn=lambda image_uri: process_input(text="", image_uri=image_uri),
+            fn=process_input,
             inputs=image_uri_input_2,
             outputs=image_output,
         )

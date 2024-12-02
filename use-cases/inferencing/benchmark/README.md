@@ -53,24 +53,22 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 
 - Configure the environment
 
-  | Variable               | Description                                                                    | Example      |
-  | ---------------------- | ------------------------------------------------------------------------------ | ------------ |
-  | ACCELERATOR            | Type of GPU accelerator used (l4, a100, h100)                                  | l4           |
-  | MODEL_NAME             | The name of the model folder in the root of the GCS model bucket               | model-gemma2 |
-  | MODEL_SERVING_LOCATION | The name of the version folder on the model server (local, gcs)                | local        |
-  | MODEL_STORAGE          | Storage type used to load the model                                            | pd           |
-  | MODEL_VERSION          | The name of the version folder inside the model folder of the GCS model bucket | experiment   |
+  | Variable      | Description                                                                    | Example      |
+  | ------------- | ------------------------------------------------------------------------------ | ------------ |
+  | ACCELERATOR   | Type of GPU accelerator used (l4, a100, h100)                                  | l4           |
+  | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | model-gemma2 |
+  | MODEL_STORAGE | Type of storage used for the model (gcs, hdml, pd)                             | pd           |
+  | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | experiment   |
 
   ```sh
-  ACCELERATOR=l4
-  MODEL_NAME=model-gemma2
-  MODEL_SERVING_LOCATION="local"
-  MODEL_STORAGE=pd
-  MODEL_VERSION=experiment
+  ACCELERATOR="l4"
+  MODEL_NAME="model-gemma2"
+  MODEL_STORAGE="pd"
+  MODEL_VERSION="experiment"
   ```
 
   ```sh
-  BENCHMARK_MODEL_PATH=/${MODEL_SERVING_LOCATION}/${MODEL_NAME}/${MODEL_VERSION}
+  BENCHMARK_MODEL_PATH="/${MODEL_STORAGE}/${MODEL_NAME}/${MODEL_VERSION}"
   HOST="http://vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}:8000"
   ```
 

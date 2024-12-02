@@ -36,14 +36,14 @@
 
 - Configure the environment
 
-  | Variable        | Description                                   | Example |
-  | --------------- | --------------------------------------------- | ------- |
-  | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100) | l4      |
-  | V_MODEL_STORAGE | Type of storage used for the model (gcs, pd)  | pd      |
+  | Variable      | Description                                        | Example |
+  | ------------- | -------------------------------------------------- | ------- |
+  | ACCELERATOR   | Type of GPU accelerator used (l4, a100, h100)      | l4      |
+  | MODEL_STORAGE | Type of storage used for the model (gcs, hdml, pd) | pd      |
 
   ```sh
-  ACCELERATOR=l4
-  MODEL_STORAGE=pd
+  ACCELERATOR="l4"
+  MODEL_STORAGE="pd"
   ```
 
 ## Scaling metrics

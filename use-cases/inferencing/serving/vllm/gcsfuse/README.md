@@ -46,18 +46,16 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
 - Configure the environment
 
-  | Variable      | Description                                                                                  | Example       |
-  | ------------- | -------------------------------------------------------------------------------------------- | ------------- |
-  | ACCELERATOR   | Type of GPU accelerator to use (l4, a100, h100)                                              | l4            |
-  | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket                             | model-gemma2  |
-  | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket               | experiment    |
-  | ZONE          | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION} | us-central1-a |
+  | Variable      | Description                                                                    | Example      |
+  | ------------- | ------------------------------------------------------------------------------ | ------------ |
+  | ACCELERATOR   | Type of GPU accelerator to use (l4, a100, h100)                                | l4           |
+  | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | model-gemma2 |
+  | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | experiment   |
 
   ```sh
-  ACCELERATOR=l4
-  MODEL_NAME=model-gemma2
-  MODEL_VERSION=experiment
-  ZONE=us-central1-a
+  ACCELERATOR="l4"
+  MODEL_NAME="model-gemma2"
+  MODEL_VERSION="experiment"
   ```
 
 - Configure the deployment

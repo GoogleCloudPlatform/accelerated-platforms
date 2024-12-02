@@ -60,21 +60,19 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
 - Configure the job
 
-  | Variable               | Description                                                          | Example         |
-  | ---------------------- | -------------------------------------------------------------------- | --------------- |
-  | ACCELERATOR            | Type of GPU accelerator used for the model server (l4, a100, h100)   | l4              |
-  | DATASET_OUTPUT_PATH    | The folder path of the generated output data set in the data bucket. | dataset/output  |
-  | MODEL_NAME             | The name of the model folder on the model server                     | model-gemma2    |
-  | MODEL_SERVING_LOCATION | The name of the version folder on the model server (local, gcs)      | local           |
-  | MODEL_STORAGE          | Type of storage used for the model (gcs, pd)                         | pd              |
-  | MODEL_VERSION          | The name of the version folder on the model server                   | experiment      |
-  | PREDICTIONS_FILE       | The predictions file                                                 | predictions.txt |
+  | Variable            | Description                                                          | Example         |
+  | ------------------- | -------------------------------------------------------------------- | --------------- |
+  | ACCELERATOR         | Type of GPU accelerator used for the model server (l4, a100, h100)   | l4              |
+  | DATASET_OUTPUT_PATH | The folder path of the generated output data set in the data bucket. | dataset/output  |
+  | MODEL_NAME          | The name of the model folder on the model server                     | model-gemma2    |
+  | MODEL_STORAGE       | Type of storage used for the model (gcs, hdml, pd)                   | pd              |
+  | MODEL_VERSION       | The name of the version folder on the model server                   | experiment      |
+  | PREDICTIONS_FILE    | The predictions file                                                 | predictions.txt |
 
   ```sh
   ACCELERATOR="l4"
   DATASET_OUTPUT_PATH="dataset/output"
   MODEL_NAME="model-gemma2"
-  MODEL_SERVING_LOCATION="local"
   MODEL_STORAGE="pd"
   MODEL_VERSION="experiment"
   PREDICTIONS_FILE="prediction.txt"
@@ -82,7 +80,7 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
   ```sh
   INFERENCE_ENDPOINT="http://vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}:8000/v1/chat/completions"
-  INFERENCE_MODEL_PATH="/${MODEL_SERVING_LOCATION}/${MODEL_NAME}/${MODEL_VERSION}"
+  INFERENCE_MODEL_PATH="/${MODEL_STORAGE}/${MODEL_NAME}/${MODEL_VERSION}"
   ```
 
   ```sh

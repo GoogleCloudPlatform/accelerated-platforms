@@ -17,7 +17,7 @@ resource "google_gke_hub_feature" "configmanagement" {
 
   location = "global"
   name     = "configmanagement"
-  project  = google_project_service.mesh_googleapis_com.project
+  project  = google_project_service.anthosconfigmanagement_googleapis_com.project
 
   fleet_default_member_config {
     configmanagement {
@@ -25,10 +25,15 @@ resource "google_gke_hub_feature" "configmanagement" {
 
       config_sync {
         enabled       = true
+        prevent_drift = var.configmanagement_prevent_drift
         source_format = "unstructured"
 
-        # git {
-        # }
+        git {
+          policy_dir  = var.configmanagement_policy_dir
+          secret_type = "token"
+          sync_branch = var.configmanagement_sync_branch
+          sync_repo   = var.configmanagement_sync_repo
+        }
       }
     }
   }
@@ -40,10 +45,22 @@ resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
   feature    = google_gke_hub_feature.configmanagement.name
   location   = google_gke_hub_feature.configmanagement.location
   membership = data.google_container_cluster.cluster.name
-  project    = data.google_project.environment.project_id
+  project    = data.google_project.cluster.project_id
 
   configmanagement {
+    management = "MANAGEMENT_AUTOMATIC"
+
     config_sync {
+      enabled       = true
+      prevent_drift = var.configmanagement_prevent_drift
+      source_format = "unstructured"
+
+      git {
+        policy_dir  = var.configmanagement_policy_dir
+        secret_type = "token"
+        sync_branch = var.configmanagement_sync_branch
+        sync_repo   = var.configmanagement_sync_repo
+      }
     }
   }
 }

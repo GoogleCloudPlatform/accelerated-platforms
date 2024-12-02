@@ -20,6 +20,7 @@ locals {
     abspath("${path.module}/../gke_enterprise/configmanagement/git/backend.tf"),
     abspath("${path.module}/../gke_enterprise/configmanagement/oci/backend.tf"),
     abspath("${path.module}/../gke_enterprise/fleet_membership/backend.tf"),
+    abspath("${path.module}/../gke_enterprise/policycontroller/backend.tf"),
     abspath("${path.module}/../gke_enterprise/servicemesh/backend.tf"),
     abspath("${path.module}/../networking/backend.tf"),
     abspath("${path.module}/../workloads/kueue/backend.tf"),

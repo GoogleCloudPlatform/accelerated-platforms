@@ -3,11 +3,9 @@
 ## Pre-requisites
 
 - A model is deployed using one of the vLLM guides
-
-  - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
-  - [Serving the mode using vLLM and Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
-  - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
-
+  - [Distributed Inferencing on vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
+  - [Distributed Inferencing on vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
+  - [Distributed Inferencing on vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
 - Metrics are being scraped from the vLLM server as shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
 
 ## Preparation
@@ -36,14 +34,17 @@
 
 - Configure the environment
 
-  | Variable        | Description                                   | Example |
-  | --------------- | --------------------------------------------- | ------- |
-  | ACCELERATOR     | Type of GPU accelerator used (l4, a100, h100) | l4      |
-  | V_MODEL_STORAGE | Type of storage used for the model (gcs, pd)  | pd      |
+  > Set the environment variables based on the accelerator and model storage type used to serve the model.
+  > The default values below are set for NVIDIA L4 GPUs and persistent disk.
+
+  | Variable      | Description                                        | Example |
+  | ------------- | -------------------------------------------------- | ------- |
+  | ACCELERATOR   | Type of GPU accelerator used (a100, h100, l4)      | l4      |
+  | MODEL_STORAGE | Type of storage used for the model (gcs, hdml, pd) | pd      |
 
   ```sh
-  ACCELERATOR=l4
-  MODEL_STORAGE=pd
+  ACCELERATOR="l4"
+  MODEL_STORAGE="pd"
   ```
 
 ## Scaling metrics
@@ -172,3 +173,8 @@ deployment pods when the metric goes over the specified threshold.
 If there are GPU resources available on the same node, the new pod may start on
 it. Otherwise, a new node will be created by the autoscaler with the required
 resources and the new pod will be scheduled on it.
+
+## What's next
+
+- [Benchmarking with Locust](/use-cases/inferencing/benchmark/README.md)
+- [Batch inference on GKE](/use-cases/inferencing/batch-inference/README.md)

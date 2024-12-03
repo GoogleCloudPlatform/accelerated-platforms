@@ -52,6 +52,10 @@ spec:
         name: gradio
         ports:
         - containerPort: 7860
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 7860
         resources:
           limits:
             cpu: 500m

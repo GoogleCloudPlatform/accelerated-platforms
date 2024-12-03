@@ -48,7 +48,7 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
   | Variable      | Description                                                                    | Example      |
   | ------------- | ------------------------------------------------------------------------------ | ------------ |
-  | ACCELERATOR   | Type of GPU accelerator to use (l4, a100, h100)                                | l4           |
+  | ACCELERATOR   | Type of GPU accelerator to use (a100, h100, l4)                                | l4           |
   | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | model-gemma2 |
   | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | experiment   |
 

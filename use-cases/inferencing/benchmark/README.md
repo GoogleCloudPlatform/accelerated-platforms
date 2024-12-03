@@ -7,9 +7,9 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 ## Pre-requisites
 
 - A model is deployed using one of the vLLM guides
-  - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
-  - [Serving the mode using vLLM and Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
-  - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+  - [Distributed Inferencing on vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
+  - [Distributed Inferencing on vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
+  - [Distributed Inferencing on vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
 - Metrics are being scraped from the vLLM server ss shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
 
 ## Preparation
@@ -53,9 +53,12 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 
 - Configure the environment
 
+  > Set the environment variables based on the accelerator and model storage type used to serve the model.
+  > The default values below are set for NVIDIA L4 GPUs and persistent disk.
+
   | Variable      | Description                                                                    | Example      |
   | ------------- | ------------------------------------------------------------------------------ | ------------ |
-  | ACCELERATOR   | Type of GPU accelerator used (l4, a100, h100)                                  | l4           |
+  | ACCELERATOR   | Type of GPU accelerator used (a100, h100, l4)                                  | l4           |
   | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | model-gemma2 |
   | MODEL_STORAGE | Type of storage used for the model (gcs, hdml, pd)                             | pd           |
   | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | experiment   |
@@ -104,3 +107,7 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   - On the locust UI, click `NEW` button
   - Provide number of peak users and users started per second.
   - Click `START` to start the load test
+
+## What's next
+
+- [Batch inference on GKE](/use-cases/inferencing/batch-inference/README.md)

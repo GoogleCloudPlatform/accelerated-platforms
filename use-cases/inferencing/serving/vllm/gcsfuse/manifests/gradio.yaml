@@ -71,4 +71,3 @@ spec:
     targetPort: 7860
   selector:
     app: gradio
-  type: LoadBalancer

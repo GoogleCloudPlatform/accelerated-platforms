@@ -23,11 +23,11 @@ import sqlalchemy
 from google.cloud.alloydb.connector import Connector
 from pgvector.sqlalchemy import Vector
 
-EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION"))
+EMBEDDING_DIMENSION = os.environ["EMBEDDING_DIMENSION"]
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("alloydb")
+logger = logging.getLogger("create-catalog-db")
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()

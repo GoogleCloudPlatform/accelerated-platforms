@@ -12,13 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import get_emb
+import generate_embeddings
 import json
 import logging
 import logging.config
 import os
 import pandas as pd
-import tabulate
 from sqlalchemy import text
 from google.cloud.alloydb.connector import Connector
 
@@ -45,7 +44,7 @@ def find_matching_products(
 ):
     try:
         embeddings = json.dumps(
-            get_emb.get_embeddings(text=user_query, image_uri=image_uri)
+            generate_embeddings.get_embeddings(text=user_query, image_uri=image_uri)
         )
         logging.info(
             "Generated embeddings for %s text and %s image_uri %s embeddings",

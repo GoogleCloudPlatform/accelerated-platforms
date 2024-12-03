@@ -30,8 +30,7 @@ if "LOG_LEVEL" in os.environ:
     logger.setLevel(new_log_level)
 
 # Construct the URL
-# URL = os.environ["GEMMA_IT_ENDPOINT"]
-URL = "http://35.222.209.169:8000/v1/chat/completions"
+URL = os.environ["GEMMA_IT_ENDPOINT"]
 
 
 def query_instruction_tuned_gemma(prompt):

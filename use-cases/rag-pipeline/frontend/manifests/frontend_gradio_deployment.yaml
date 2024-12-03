@@ -19,10 +19,8 @@ spec:
         ports:
         - containerPort: 7680 
         env:
-        - name: TEXT_EMBEDDING_ENDPOINT
-          value: "http://python-backend-service:8000/embeddings/text"
-        - name: MULTIMODAL_EMBEDDING_ENDPOINT
-          value: "http://python-backend-service:8000/embeddings/multimodal"
+        - name: BACKEND_SERVICE_ENDPOINT
+          value: "http://"
         resources:
           requests:
             cpu: "512m"

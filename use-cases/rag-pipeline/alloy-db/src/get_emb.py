@@ -25,7 +25,7 @@ MULTIMODAL_API_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("alloydb")
+logger = logging.getLogger("generate embeddings")
 
 logger = logging.getLogger(__name__)
 if "LOG_LEVEL" in os.environ:

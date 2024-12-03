@@ -19,17 +19,17 @@ import logging.config
 import os
 
 # Master_product_catalog.csv
-PROCESSED_DATA_BUCKET = os.getenv("PROCESSED_DATA_BUCKET")
-MASTER_CATALOG_FILE_NAME = os.getenv("MASTER_CATALOG_FILE_NAME")
+PROCESSED_DATA_BUCKET = os.environ["PROCESSED_DATA_BUCKET"]
+MASTER_CATALOG_FILE_NAME = os.environ["MASTER_CATALOG_FILE_NAME"]
 processed_data_path = f"gs://{PROCESSED_DATA_BUCKET}/{MASTER_CATALOG_FILE_NAME}"
 
 # Catalog DB
 database_name = "postgres"
-catalog_db = os.getenv("CATALOG_DB_NAME")
-catalog_table = os.getenv("CATALOG_TABLE_NAME")
+catalog_db = os.environ["CATALOG_DB_NAME"]
+catalog_table = os.environ["CATALOG_TABLE_NAME"]
 
 # Vector Index
-EMBEDDING_COLUMN = os.getenv("EMBEDDING_COLUMN")
+EMBEDDING_COLUMN = os.environ["EMBEDDING_COLUMN"]
 INDEX_NAME = "rag_text_embeddings_index"
 DISTANCE_FUNCTION = "cosine"
 NUM_LEAVES_VALUE = int(os.getenv("NUM_LEAVES_VALUE"))
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
 
-    logger = logging.getLogger("alloydb")
+    logger = logging.getLogger("alloydb-catalog-onboarding")
 
     if "LOG_LEVEL" in os.environ:
         new_log_level = os.environ["LOG_LEVEL"].upper()

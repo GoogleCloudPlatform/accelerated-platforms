@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Optional
+from typing import Optional
 import os
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import JSONResponse
@@ -52,8 +52,6 @@ app = FastAPI()
 
 
 # Pydantic models for request body
-
-
 class Prompt(BaseModel):
     text: Optional[str] = None  # Directly use str for text
     image_uri: Optional[str] = None  # Directly use str for image_uri

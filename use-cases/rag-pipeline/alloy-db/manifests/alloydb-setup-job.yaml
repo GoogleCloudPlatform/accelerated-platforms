@@ -19,10 +19,10 @@ metadata:
 spec:
   template:
     spec:
-      serviceAccountName: ishmeet-rag-ml-team-db-admin
+      serviceAccountName: V_MLP_DB_ADMIN_KSA
       containers:
       - name: alloydb-setup
-        image: us-docker.pkg.dev/gkebatchenv3a4ec43f/rag-artifacts/alloydb-setup:v0.1.0
+        image: us-docker.pkg.dev/V_PROJECT_ID/rag-artifacts/alloydb-setup:v0.1.0
         imagePullPolicy: Always
         env:
         - name: PROCESSED_DATA_BUCKET
@@ -34,7 +34,7 @@ spec:
         - name: CATALOG_TABLE_NAME
           value: "clothes"
         - name: MLP_DB_ADMIN_IAM
-          value: "wi-mlp-ishmeet-rag-db-admin@gkebatchenv3a4ec43f.iam"
+          value: V_MLP_DB_ADMIN_IAM
         - name: EMBEDDING_DIMENSION
           value: "768"
         - name: EMBEDDING_COLUMN
@@ -42,7 +42,7 @@ spec:
         - name: NUM_LEAVES_VALUE
           value: "300"
         - name: MLP_DB_INSTANCE_URI
-          value: "projects/gkebatchenv3a4ec43f/locations/us-central1/clusters/mlp-ishmeet-rag/instances/mlp-ishmeet-rag-primary"
+          value: V_MLP_DB_INSTANCE_URI
         - name: TEXT_EMBEDDING_ENDPOINT
           value: "http://multimodal-embedding-model:80/text_embeddings"
         - name: IMAGE_EMBEDDING_ENDPOINT
@@ -50,5 +50,5 @@ spec:
         - name: MULTIMODAL_EMBEDDING_ENDPOINT
           value: "http://multimodal-embedding-model:80/multimodal_embeddings" 
         - name: MLP_KUBERNETES_NAMESPACE
-          value: "ml-team"
+          value: V_MLP_KUBERNETES_NAMESPACE
       restartPolicy: Never

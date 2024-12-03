@@ -16,9 +16,23 @@ import gradio as gr
 import re
 import requests
 import os
+import logging
+import logging.config
+
+# Configure logging
+logging.config.fileConfig("logging.conf")  # Make sure you have logging.conf configured
+logger = logging.getLogger("frontend")
+
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
+    logging.getLogger().setLevel(new_log_level)
+    logger.setLevel(new_log_level)
 
 # BACKEND_SERVICE_URL = os.environ["BACKEND_SERVICE_URL"]
-BACKEND_SERVICE_URL = "http://0.0.0.0:8000/generate_product_recommendations"
+BACKEND_SERVICE_URL = os.environ["BACKEND_SERVICE_URL"]
 
 
 # Function to validate GCS URI
@@ -83,6 +97,7 @@ def process_input(text=None, image_uri=None):
     response = requests.post(BACKEND_SERVICE_URL, json=data, timeout=100)
 
     response.raise_for_status()  # Raise an exception for bad status codes
+    logging.info(f"Response from backend service: {response.text}")
     return response.json()
 
 
@@ -122,4 +137,5 @@ with gr.Blocks() as demo:
 
 # Launch the demo
 if __name__ == "__main__":
+    logging.info("Starting Frontend service for RAG application...")
     demo.launch(share=True, server_name="0.0.0.0")

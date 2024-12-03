@@ -55,7 +55,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   | Variable             | Description                                                                                  | Example                                |
   | -------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------- |
-  | ACCELERATOR          | Type of GPU accelerator to use (l4, a100, h100)                                              | l4                                     |
+  | ACCELERATOR          | Type of GPU accelerator to use (a100, h100, l4)                                              | l4                                     |
   | GCE_HYPERDISKML_NAME | Name of the Hyperdisk ML that will host the model                                            | <unique_id>-vllm-model-weights-${ZONE} |
   | GCE_IMAGE_NAME       | Disk image created with model weights                                                        | <unique_id>-vllm-model-weights-${ZONE} |
   | MODEL_NAME           | The name of the model folder in the root of the GCS model bucket                             | model-gemma2                           |

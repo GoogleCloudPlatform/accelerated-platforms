@@ -39,7 +39,7 @@ spec:
         - name: LLM_ENGINE
           value: openai
         - name: MODEL_ID
-          value: /local/V_MODEL_NAME/V_MODEL_VERSION
+          value: /hdml/V_MODEL_NAME/V_MODEL_VERSION
         - name: USER_PROMPT
           value: |
             <start_of_turn>user

@@ -39,7 +39,7 @@ spec:
         - name: LLM_ENGINE
           value: openai
         - name: MODEL_ID
-          value: /local/V_MODEL_NAME/V_MODEL_VERSION
+          value: /pd/V_MODEL_NAME/V_MODEL_VERSION
         - name: USER_PROMPT
           value: |
             <start_of_turn>user
@@ -52,6 +52,10 @@ spec:
         name: gradio
         ports:
         - containerPort: 7860
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 7860
         resources:
           limits:
             cpu: 500m

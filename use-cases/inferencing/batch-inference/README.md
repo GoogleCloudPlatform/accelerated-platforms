@@ -7,9 +7,9 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 - A model is deployed using one of the vLLM guides
-  - [Serving the mode using vLLM and GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
-  - [Serving the mode using vLLM and Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
-  - [Serving the mode using vLLM and Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+  - [Distributed Inferencing on vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
+  - [Distributed Inferencing on vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
+  - [Distributed Inferencing on vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
 
 ## Preparation
 
@@ -60,21 +60,22 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
 - Configure the job
 
-  | Variable               | Description                                                          | Example         |
-  | ---------------------- | -------------------------------------------------------------------- | --------------- |
-  | ACCELERATOR            | Type of GPU accelerator used for the model server (l4, a100, h100)   | l4              |
-  | DATASET_OUTPUT_PATH    | The folder path of the generated output data set in the data bucket. | dataset/output  |
-  | MODEL_NAME             | The name of the model folder on the model server                     | model-gemma2    |
-  | MODEL_SERVING_LOCATION | The name of the version folder on the model server (local, gcs)      | local           |
-  | MODEL_STORAGE          | Type of storage used for the model (gcs, pd)                         | pd              |
-  | MODEL_VERSION          | The name of the version folder on the model server                   | experiment      |
-  | PREDICTIONS_FILE       | The predictions file                                                 | predictions.txt |
+  > Set the environment variables based on the accelerator and model storage type used to serve the model.
+  > The default values below are set for NVIDIA L4 GPUs and persistent disk.
+
+  | Variable            | Description                                                          | Example         |
+  | ------------------- | -------------------------------------------------------------------- | --------------- |
+  | ACCELERATOR         | Type of GPU accelerator used for the model server (a100, h100, l4)   | l4              |
+  | DATASET_OUTPUT_PATH | The folder path of the generated output data set in the data bucket. | dataset/output  |
+  | MODEL_NAME          | The name of the model folder on the model server                     | model-gemma2    |
+  | MODEL_STORAGE       | Type of storage used for the model (gcs, hdml, pd)                   | pd              |
+  | MODEL_VERSION       | The name of the version folder on the model server                   | experiment      |
+  | PREDICTIONS_FILE    | The predictions file                                                 | predictions.txt |
 
   ```sh
   ACCELERATOR="l4"
   DATASET_OUTPUT_PATH="dataset/output"
   MODEL_NAME="model-gemma2"
-  MODEL_SERVING_LOCATION="local"
   MODEL_STORAGE="pd"
   MODEL_VERSION="experiment"
   PREDICTIONS_FILE="prediction.txt"
@@ -82,7 +83,7 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
   ```sh
   INFERENCE_ENDPOINT="http://vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}:8000/v1/chat/completions"
-  INFERENCE_MODEL_PATH="/${MODEL_SERVING_LOCATION}/${MODEL_NAME}/${MODEL_VERSION}"
+  INFERENCE_MODEL_PATH="/${MODEL_STORAGE}/${MODEL_NAME}/${MODEL_VERSION}"
   ```
 
   ```sh
@@ -103,10 +104,20 @@ In this example batch inference pipeline, we would first send prompts to the hos
   kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} apply -f manifests/job.yaml
   ```
 
-- Wait for the job to show completion.
+  > The job runs for about an hour.
 
-  ```sh
+- Check the status of the job
+
+  ```
   kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/batch-inference
   ```
 
-  The job runs for about an hour. Once it is completed, you can review predictions result in file named `<MODEL_NAME>-predictions.txt` under /dataset/output folder in the bucket. A sample prediction output file named `example_predictions` has been provided in this directory for reference.
+- Watch the job till it is complete.
+
+  ```sh
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/batch-inference | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
+  ```
+
+Once the job is complete, the predictions result will be stored in the `MLP_DATA_BUCKET` in the `predictions` folder.
+A sample prediction output file [`example_predictions.txt`](/use-cases/inferencing/batch-inference/example_predictions.txt) has been provided for reference.

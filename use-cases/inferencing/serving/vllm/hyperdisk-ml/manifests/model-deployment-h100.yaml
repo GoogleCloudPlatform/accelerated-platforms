@@ -32,7 +32,7 @@ spec:
         - '--tensor-parallel-size=2'
         env:
         - name: MODEL
-          value: /local/V_MODEL_NAME/V_MODEL_VERSION
+          value: /hdml/V_MODEL_NAME/V_MODEL_VERSION
         - name: VLLM_ALLOW_LONG_MAX_MODEL_LEN
           value: "1"
         - name: VLLM_ATTENTION_BACKEND
@@ -63,7 +63,7 @@ spec:
         volumeMounts:
         - mountPath: /dev/shm
           name: dshm
-        - mountPath: /local
+        - mountPath: /hdml
           name: model-disk
           readOnly: true
       nodeSelector:

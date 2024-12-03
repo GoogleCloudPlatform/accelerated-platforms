@@ -49,4 +49,9 @@ spec:
         - containerPort: 5558
           name: loc-master-p2
           protocol: TCP
+        readinessProbe:
+          periodSeconds: 30
+          httpGet:
+            path: /
+            port: 8089
       serviceAccountName: V_KSA

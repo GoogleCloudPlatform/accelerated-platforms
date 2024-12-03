@@ -13,17 +13,18 @@
 # limitations under the License.
 
 import get_emb
-import alloydb_connect
 import json
 import logging
 import logging.config
 import os
+import pandas as pd
+import tabulate
 from sqlalchemy import text
 from google.cloud.alloydb.connector import Connector
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("backend")
+logger = logging.getLogger("semantic-search")
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
@@ -34,7 +35,6 @@ if "LOG_LEVEL" in os.environ:
     logger.setLevel(new_log_level)
 
 
-# TODO: only text input from UI is handled. Need to add image uri to get embeddings
 def find_matching_products(
     engine,
     catalog_table,
@@ -47,28 +47,19 @@ def find_matching_products(
         embeddings = json.dumps(
             get_emb.get_embeddings(text=user_query, image_uri=image_uri)
         )
-        print(embeddings)
-        logging.info(embeddings)
-
-        # TODO - do we need separate calls to embeddings methods ?
-        # # Get text embedding for user query
-        # text_emb = json.dumps(get_emb.get_embeddings(text=user_query))
-        # print(text_emb)
-        # logging.info(text_emb)
-
-        # # Get image embedding if image uri (gs://)
-        # image_emb = json.dumps(get_emb.get_embeddings(image_uri=image_uri))
-        # print(image_emb)
-        # logging.info(image_emb)
-
-        # # Get text & image were given call multimodal embedding
-        # multimodal_emb = json.dumps(get_emb.get_embeddings(text=user_query,image_uri=image_uri))
-        # print(multimodal_emb)
-        # logging.info(multimodal_emb)
+        logging.info(
+            "Generated embeddings for %s text and %s image_uri %s embeddings",
+            user_query,
+            image_uri,
+            embeddings,
+        )
 
         # Parameterized query
-        search_query = f"""SELECT "Name", "Description", "c1_name" as Category, "Specifications", (1-({embedding_column} <-> :emb)) AS cosine_similarity FROM {catalog_table} ORDER BY cosine_similarity DESC LIMIT {row_count};"""
-        logging.info(search_query)
+        search_query = f"""SELECT "Name", "Description", "c1_name" as Category, "Specifications", "Id" as Product_Id, "Brand" , "image_uri" , (1-({embedding_column} <-> :emb)) AS cosine_similarity FROM {catalog_table} ORDER BY cosine_similarity DESC LIMIT {row_count};"""
+        logging.info(
+            "Semantic Search Query to get product recommendations sorted by Cosine distance: %s ",
+            search_query,
+        )
 
         # Execute the query with the embedding as a parameter
         with engine.connect() as conn:
@@ -77,19 +68,38 @@ def find_matching_products(
                 text(search_query),
                 {"emb": embeddings},
             )
+            print("DB RESULT RECEIVED : %s ", result)
 
-            # logging.info(result)
-            response = [row._asdict() for row in result]
-            logging.info(response)
-            # String format the retrieved information
-            retrieved_information = "\n".join(
-                [
-                    f"{index+1}. "
-                    + "\n".join([f"{key}: {value}" for key, value in element.items()])
-                    for index, element in enumerate(response)
-                ]
-            )
-        logging.info(retrieved_information)
+            df = pd.DataFrame(result.fetchall())
+            df.columns = result.keys()  # Set column names
+
+        logging.info("Semantic Search results received from DB %s: ")
+
+        # Print all columns with keys and values
+        for index, row in df.iterrows():
+            print(f"Row {index + 1}:")
+            for key, value in row.items():
+                print(f"  {key}: {value}")
+            print("-" * 20)  # Add a separator between rows
+
+        # Drop specified columns to remove cosine bias and re-ranking results later in path
+        columns_to_drop = [
+            "Description",
+            "cosine_similarity",
+            "Brand",
+            "product_id",
+            "image_uri",
+        ]  # List the columns to drop
+        df = df.drop(columns=columns_to_drop)
+
+        logging.info("Semantic Search results received from DB: %s", df)
+        # Convert the DataFrame to a string and dropped row Index
+        retrieved_information = df.to_string(index=False)
+
+        logging.info(
+            "Formated response for the Semantic Search Query from DB: "
+            + retrieved_information
+        )
         return retrieved_information
 
     except Exception as e:

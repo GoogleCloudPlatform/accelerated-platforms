@@ -19,7 +19,7 @@ import logging.config
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("backend")
+logger = logging.getLogger("prompt_helper")
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
@@ -30,7 +30,7 @@ if "LOG_LEVEL" in os.environ:
     logger.setLevel(new_log_level)
 
 
-def prompt_generation(user_query, search_result):
+def prompt_generation(search_result, user_query=None):
     # Option 1: Emphasize User Intent
     prompt1 = f"""An online shopper is searching for products.  
     Given their query and a list of initial product recommendations, identify ONLY the TOP 3 products that best match the shopper's intent. 
@@ -50,6 +50,16 @@ def prompt_generation(user_query, search_result):
     # Option 3:  Be More Directive
     prompt3 = f"""Rerank the following product recommendations to best satisfy an online shopper's search query. 
     Return only the top 3 most relevant products. 
+    Search Query: {user_query}. 
+    Product List: 
+    {search_result}"""
+
+    # Option 4:  Provide Context and Constraints - works better! + Product id as well
+    prompt4 = f"""You are an AI assistant helping an online shopper find the most relevant products.  
+    The shopper has submitted a search query, and a preliminary search has returned a list of potential matches. 
+    Your task is to refine these results by selecting only the 3 best products from the list without duplicates. 
+    Return complete product details in a readable format as it is in search result.
+    Result should be numbered.Dont add any additional information to the result.
     Search Query: {user_query}. 
     Product List: 
     {search_result}"""

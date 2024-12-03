@@ -46,23 +46,17 @@ embedding_column = {
     "image": "image_embeddings",
     "multimodal": "multimodal_embeddings",
 }
-row_count = 5  # No of matching products
+row_count = 5  # No of matching products in production
 
 app = FastAPI()
 
 
 # Pydantic models for request body
-class TextPrompt(BaseModel):
-    text: str
-
-
-class ImageUriPrompt(BaseModel):
-    image_uri: str
 
 
 class Prompt(BaseModel):
     text: Optional[str] = None  # Directly use str for text
-    image: Optional[str] = None  # Directly use str for image_uri
+    image_uri: Optional[str] = None  # Directly use str for image_uri
 
 
 # Dependency to get AlloyDB engine
@@ -82,26 +76,26 @@ async def generate_product_recommendations(
     try:
         reranked_result = None  # Initialize reranked_result
 
-        if prompt.text and prompt.image:
-            logging.info(f"Received text: {prompt.text} and image: {prompt.image}")
+        if prompt.text and prompt.image_uri:
+            logging.info(f"Received text: {prompt.text} and image: {prompt.image_uri}")
             product_list = semantic_search.find_matching_products(
                 engine=engine,
                 catalog_table=catalog_table,
                 embedding_column=embedding_column["multimodal"],
                 row_count=row_count,
                 user_query=prompt.text,
-                image_uri=prompt.image,
+                image_uri=prompt.image_uri,
             )
-            logging.info(f"product list returned by db: {product_list}")
+            logging.info(f"product list received by backend service: {product_list}")
             if not product_list:
                 return JSONResponse(
                     content={"error": "No matching products found"}, status_code=404
                 )
             prompt_list = prompt_helper.prompt_generation(
-                user_query=prompt.text, search_result=product_list
+                search_result=product_list, user_query=prompt.text
             )
             logging.info(f"Prompt used to re-rank: {prompt_list}")
-            reranked_result = rerank.query_pretrained_gemma(prompt_list)
+            reranked_result = rerank.query_instruction_tuned_gemma(prompt_list)
             logging.info(f"Response to front end: {reranked_result}")
 
         elif prompt.text:
@@ -113,37 +107,39 @@ async def generate_product_recommendations(
                 row_count=row_count,
                 user_query=prompt.text,
             )
-            logging.info(f"product list returned by db: {product_list}")
+            logging.info(f"product list received by backend service: {product_list}")
             if not product_list:
                 return JSONResponse(
                     content={"error": "No matching products found"}, status_code=404
                 )
             prompt_list = prompt_helper.prompt_generation(
-                user_query=prompt.text, search_result=product_list
+                search_result=product_list, user_query=prompt.text
             )
             logging.info(f"Prompt used to re-rank: {prompt_list}")
-            reranked_result = rerank.query_pretrained_gemma(prompt_list)
+            reranked_result = rerank.query_instruction_tuned_gemma(prompt_list)
             logging.info(f"Response to front end: {reranked_result}")
 
-        elif prompt.image:
-            logging.info(f"Received image: {prompt.image}")
+        elif prompt.image_uri:
+            logging.info(f"Received image: {prompt.image_uri}")
             product_list = semantic_search.find_matching_products(
                 engine=engine,
                 catalog_table=catalog_table,
                 embedding_column=embedding_column["image"],
                 row_count=row_count,
-                image_uri=prompt.image,
+                image_uri=prompt.image_uri,
             )
-            logging.info(f"product list returned by db: {product_list}")
+            logging.info(f"product list received by backend service: {product_list}")
             if not product_list:
                 return JSONResponse(
                     content={"error": "No matching products found"}, status_code=404
                 )
+
+            # Image only search results will have no user_query
             prompt_list = prompt_helper.prompt_generation(
-                user_query=prompt.text, search_result=product_list
+                search_result=product_list, user_query=None
             )
             logging.info(f"Prompt used to re-rank: {prompt_list}")
-            reranked_result = rerank.query_pretrained_gemma(prompt_list)
+            reranked_result = rerank.query_instruction_tuned_gemma(prompt_list)
             logging.info(f"Response to front end: {reranked_result}")
 
         else:

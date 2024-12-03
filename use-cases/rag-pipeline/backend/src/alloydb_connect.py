@@ -41,7 +41,7 @@ alloydb_user = "wi-mlp-ishmeet-rag-db-admin@gkebatchenv3a4ec43f.iam"
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("backend")
+logger = logging.getLogger("alloydb_connect")
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()

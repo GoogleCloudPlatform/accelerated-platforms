@@ -79,7 +79,9 @@ def process_input(text=None, image_uri=None):
     if not data:  # Check if data is empty
         return "Please provide either text or image URI."
 
-    response = requests.post(BACKEND_SERVICE_URL, json=data)
+    print(data)
+    response = requests.post(BACKEND_SERVICE_URL, json=data, timeout=100)
+
     response.raise_for_status()  # Raise an exception for bad status codes
     return response.json()
 
@@ -108,14 +110,13 @@ with gr.Blocks() as demo:
             inputs=[text_input_2, image_uri_input],
             outputs=text_image_output,
         )
-
     with gr.Tab("Image"):
         image_uri_input_2 = gr.Textbox(label="Enter GCS image URI for the product")
         image_output = gr.Textbox(label="Response")
         image_button = gr.Button("Generate Response")
         image_button.click(
-            fn=process_input,
-            inputs=image_uri_input_2,
+            fn=lambda image_uri: process_input(image_uri=image_uri),
+            inputs=[image_uri_input_2],
             outputs=image_output,
         )
 

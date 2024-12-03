@@ -30,7 +30,7 @@ MULTIMODAL_API_ENDPOINT = "http://34.56.171.99:80/multimodal_embeddings"
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("alloydb")
+logger = logging.getLogger("get_embeddings")
 
 logger = logging.getLogger(__name__)
 if "LOG_LEVEL" in os.environ:
@@ -214,10 +214,13 @@ def get_embeddings(image_uri=None, text=None):
         requests.exceptions.HTTPError: If there is an error fetching the embeddings from the API.
     """
     if image_uri and text:
+        logging.info("Generating MULTIMODAL embeddings...")
         return get_multimodal_embeddings(image_uri, text)
     elif text:
+        logging.info("Generating TEXT embeddings...")
         return get_text_embeddings(text)
     elif image_uri:
+        logging.info("Generating IMAGE embeddings...")
         return get_image_embeddings(image_uri)
     else:
         logging.error(

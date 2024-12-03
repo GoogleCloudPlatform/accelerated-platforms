@@ -19,7 +19,7 @@ import requests
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("backend")
+logger = logging.getLogger("instruction-tuned-re-ranking")
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
@@ -34,7 +34,7 @@ if "LOG_LEVEL" in os.environ:
 URL = "http://35.222.209.169:8000/v1/chat/completions"
 
 
-def query_pretrained_gemma(prompt):
+def query_instruction_tuned_gemma(prompt):
     """
     Sends a request to the instruction tuned model endpoint for text completion.
 
@@ -59,7 +59,7 @@ def query_pretrained_gemma(prompt):
             headers={"Content-Type": "application/json"},
             timeout=100,
         )
-        print(response.text)
+        print("Printing response from the instruction tuned model:", response.text)
         response.raise_for_status()  # Raise an exception for HTTP errors
 
         return response.json()["choices"][0]["message"]["content"]
@@ -74,8 +74,3 @@ def query_pretrained_gemma(prompt):
     except Exception as e:
         logger.exception(f"An unexpected error occurred: {e}")
         return "Error: An unexpected error occurred."
-
-
-# prompt = "what is usa capital?"
-# result = query_pretrained_gemma(prompt)
-# print(result)

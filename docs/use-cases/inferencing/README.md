@@ -83,11 +83,13 @@ Each category depends on organization capabilities and desired outcome:
 Enabling [GCE Fuse parallel downloads](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/cloud-storage-fuse-csi-driver#parallel-download) can also improve model weight downloading time to the container image. To maximize the performance of this capability it is recommended to also provision [Local SSDs](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/local-ssd) for your nodes.
 
 ## LLM Inference
+
 With your LLM efficiently deployed and optimized for startup and model loading, the next crucial step is performing inference. This involves using your model to generate predictions or responses based on input data.
 
 ### Types of inferencing
 
 Inference can be executed in two distinct modes:
+
 - Batch Inference
 - Real-time inference
 
@@ -124,7 +126,7 @@ Batch inference and real-time inference are two distinct approaches to generatin
 
 ## Production Monitoring and Scaling
 
-The deployment of a machine learning model marks the beginning of a new phase: monitoring and maintenance. 
+The deployment of a machine learning model marks the beginning of a new phase: monitoring and maintenance.
 
 Production monitoring serves as a diagnostic tool, enabling us to track performance metrics, identify potential issues, and ensure the model remains accurate and reliable in a live environment.
 

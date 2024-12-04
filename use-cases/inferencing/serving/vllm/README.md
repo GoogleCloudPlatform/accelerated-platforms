@@ -1,35 +1,39 @@
-# Distributed Inferencing on vLLM
+# Distributed Inference and Serving with vLLM
 
-In this guide, you will serve a fine-tuned Gemma large language model (LLM) using graphical processing units (GPUs) on Google Kubernetes Engine (GKE) with the vLLM serving framework. You can choose to swap the Gemma model with any other fine-tuned or instruction based model for inference on GKE.
+In these guides, you will serve a fine-tuned Gemma large language model (LLM) using graphical processing units (GPUs) on Google Kubernetes Engine (GKE) with the vLLM serving framework.
+You can choose to swap the Gemma model with any other model for inference and serving on GKE.
 
-There are three common strategies for inference on vLLM:
+When to use distributed inference and the common practice and strategies available:
 
-- Single GPU (no distributed inference) - If your model fits in a single GPU, you probably don't need to use distributed inference. Just use the single GPU to run the inference.
-- Single-Node Multi-GPU (tensor parallel inference) - If your model is too large to fit in a single GPU, but it can fit in a single node with multiple GPUs, you can use tensor parallelism. The tensor parallel size is the number of GPUs you want to use. For example, if you need 4 GPUs, you can set the tensor parallel size to 4.
+- **Single GPU** (non distributed inference): If the model fits in a single GPU, you probably don't need to use distributed inference. Just use the single GPU to run the inference.
+- **Single-Node, Multi-GPU** (tensor parallel inference): If the model is too large to fit in a single GPU, but it can fit in a single node with multiple GPUs, you can use tensor parallelism.
+- **Multi-Node, Multi-GPU** (tensor parallel plus pipeline parallel inference): If your model is too large to fit in a single node, you can use tensor parallel together with pipeline parallelism.
+  It involves distributing the model across multiple GPUs and multiple machines (nodes), allowing for parallel processing and faster inference times.
 
-- Multi-Node Multi-GPU - It is a technique used to run very large language models (LLMs) that are too big to fit on a single GPU, or even a single machine with multiple GPUs. It involves distributing the model across multiple GPUs and multiple machines (nodes), allowing for parallel processing and faster inference times.
-
-This guide uses `Single-Node Multi-GPU` method to serve the model that was fine-tuned in the previous guides.
+These guides use `Single-Node, Multi-GPU` method to serve the model.
 
 ## Choosing storage to load model weights
 
-In order to serve a model on GKE, the model weights need to be download in the GKE container.
-There are different ways to load the model weights in the container:
+In order to serve a model on GKE, the model weights need to be available. There are different ways to load the model weights in the container:
 
-- Download the model from Persisdent SSD disk - the model is loaded from a persistent disk.
-- Download the model from GCS bucket - the model is loaded from a GCS bucket.
-- Download the model from Hyperdisk ML - the model is loaded from high throughput Hyperdisk ML.
-- Use secondary boot disk - you can preloaded container image or data on a secondary boot disks of a GKE node that can help you start the inference faster. You can use Image streaming to allow your workloads to initialize without waiting for the entire image to download, which leads to significant improvements in initialization times.
+- GCS bucket: The model is loaded from a GCS bucket.
+- Hyperdisk ML: The model is loaded from a high throughput Hyperdisk ML volume.
+- Persistent Disk: The model is loaded from a persistent disk volume.
+
+These methods can also make use of Image streaming to allow your workloads to startup without waiting for the entire image to download, which can lead to decreased workload startup latency.
+One step further would be to use a Secondary Boot Disk to preloaded container images and model data on the GKE node, further decreasing workload startup latency and model loading times.
 
 ## Serving the model
 
-In this guide, you will learn how to serve a model with vllm using the following storage options:
+These guides walk through how to serve a model with vLLM using the specific storage option:
 
-- **Persistent Disk** : Follow the [guide](/use-cases/inferencing/serving/vllm/persistent-disk/README.md) to serve a model with vllm using persistent disk.
-- **GCS** : Follow the [guide](/use-cases/inferencing/serving/vllm/gcsfuse/README.md) to serve a model with vllm using GCSfuse download.
-- **Hyperdisk ML** : Follow the [guide](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md) to serve a model with vllm using Hyperdisk ML.
+- [**Google Cloud Storage (GCS)**](/use-cases/inferencing/serving/vllm/gcsfuse/README.md): Serve a model with vLLM using GCSfuse.
+- [**Hyperdisk ML**](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md): Serve a model with vLLM using Hyperdisk ML.
+- [**Persistent Disk**](/use-cases/inferencing/serving/vllm/persistent-disk/README.md): Serve a model with vLLM using persistent disk.
 
 ## Operationalize the model
+
+Once the model is being served, these guides walk through how to further operationalize the model:
 
 - [**vLLM Metrics**](/use-cases/inferencing/serving/vllm/metrics/README.md): vLLM exposes a number of metrics that can be used to monitor the health of the system.
 - [**vLLM autoscaling with horizontal pod autoscaling (HPA)**](/use-cases/inferencing/serving/vllm/autoscaling/README.md): You can configure Horizontal Pod Autoscaler to scale your inference deployment based on relevant metrics.
@@ -37,4 +41,6 @@ In this guide, you will learn how to serve a model with vllm using the following
 
 ## Utilizing the model
 
-- [**Batch inference on GKE**](<(/use-cases/inferencing/batch-inference/README.md)>): Now that the model is deployed on GKE, you can run batch inference jobs against the model to generate predictions.
+This guides walk through how to utilize the model:
+
+- [**Batch inference on GKE**](/use-cases/inferencing/batch-inference/README.md): Now that the model is deployed on GKE, you can run batch inference jobs against the model to generate predictions.

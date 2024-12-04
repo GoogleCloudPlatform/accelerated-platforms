@@ -23,7 +23,7 @@ Here is what we need:
 - Host a [blip2 multimodal embeddings model](https://github.com/salesforce/LAVIS/blob/main/examples/blip_feature_extraction.ipynb) to generate the embeddings(text, image and multimodal)
 - Using an ETL pipeline generate embeddings[text, image and multimodal] using the multimodal model and store them to the alloyDB vector store in a separate table.
 - Host the instruction tuned [gemma-2b-it model](https://huggingface.co/google/gemma-2b-it) to generate prompt responses for the retail customers.
-- Deploy the backend FAST API in  to interface with multimodal embeddings model , instruction tuned model and alloyDB vectore store to process user prompts and generate production recommendations based on user queries.
+- Deploy the backend FAST API to interface with multimodal embeddings model, instruction tuned model and alloyDB vectore store to process user prompts and generate product recommendations based on user queries.
 - Deploy the Frontend UI built-in [gradio](https://gradio.app/) to start the chatbot to receive end customers prompts which interacts with backend service to fulfill customer queries regarding the product catalog.
 
 ## Prerequisites

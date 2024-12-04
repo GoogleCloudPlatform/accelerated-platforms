@@ -6,7 +6,7 @@ This guide assumes you possess a fine-tuned large language model (LLM) ready for
 
 - A deployed [ML Platform Playground on GKE](/platforms/gke-aiml/playground/README.md).
 - A fine-tuned or pre-trained LLM for serving.
-- A test dataset to run inference..
+- A test dataset to run inference.
 
 ## Serving LLMs
 

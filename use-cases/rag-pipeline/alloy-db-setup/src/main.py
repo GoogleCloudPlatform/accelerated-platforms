@@ -64,6 +64,7 @@ if __name__ == "__main__":
         )
 
         # Create Index
+        # <TODO> Validate if image and multimodal scan index is required
         create_catalog.create_text_embeddings_index(
             catalog_db,
             catalog_table,

@@ -36,7 +36,7 @@ user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
 # Configure logging
 
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("alloydb")
+logger = logging.getLogger("alloydb-setup")
 
 
 if "LOG_LEVEL" in os.environ:

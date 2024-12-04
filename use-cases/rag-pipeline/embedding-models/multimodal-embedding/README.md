@@ -8,11 +8,12 @@ To know more about the embedding model see original [blog](https://blog.salesfor
 
 You have an existing [ML Playground cluster](https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/main/platforms/gke-aiml/playground) in a Google Cloud Project.
 
-## Set the default environment variables:
+## Source your playground environment file to export variables required for the set up.
 
 ```
-PROJECT_ID=<your-project-id>
-gcloud config set project $PROJECT_ID
+cat ${MLP_ENVIRONMENT_FILE}
+source ${MLP_ENVIRONMENT_FILE}
+gcloud config set project $MLP_PROJECT_ID
 ```
 
 ## Build the multimodal embedding model container image
@@ -20,7 +21,7 @@ gcloud config set project $PROJECT_ID
 ```
 #<TODO> change it to main branch before merge
 git clone https://github.com/GoogleCloudPlatform/accelerated-platforms.git
-cd rag-on-gke/embedding-models/multimodal
+cd rag-pipeline/embedding-models/multimodal
 ```
 
 Update the location where you would like to store the container images in the ```cloud build yaml`` and kick off the build: 
@@ -60,16 +61,15 @@ A sample embeddings.yaml has been provided for your reference.
 Now, deploy embeddings model:
 
 ```
-NAMESPACE=ml-team
 sed \
 -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
 manifests/embedding.yaml
-kubectl apply -f manifests/embedding.yaml -n $NAMESPACE
+kubectl apply -f manifests/embedding.yaml -n {MLP_KUBERNETES_NAMESPACE}
 ```
 
 ## Test the embedding model
 Validations: 
-kubectl get po
+kubectl get po -n {MLP_KUBERNETES_NAMESPACE}
 
 
 └─⪧ kubectl get svc
@@ -78,5 +78,5 @@ NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)         
 
 ## Run the curl test for embedding models 
 
-Using the sample image ```./t-shirt.jpg``` generate the image embedding
+Using the sample image ```./t-shirt.jpg``` to generate the image embedding
 You can use the sample curl requests from ```curl_requests.txt```

@@ -23,3 +23,7 @@ kubectl create secret generic hf-secret \
 ```
 kubectl apply -f it-model-deployment.yaml -n ${MLP_KUBERNETES_NAMESPACE}
 ```
+
+## Deploy the curl job to test the model deployment
+
+kubectl apply -f curl-job.yaml -n ${MLP_KUBERNETES_NAMESPACE}

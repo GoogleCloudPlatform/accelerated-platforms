@@ -9,8 +9,9 @@ You have an existing [ML Playground cluster](https://github.com/GoogleCloudPlatf
 ## Set the default environment variables:
 
 ```
-PROJECT_ID=<your-project-id>
-gcloud config set project $PROJECT_ID
+cat ${MLP_ENVIRONMENT_FILE}
+source ${MLP_ENVIRONMENT_FILE}
+gcloud config set project $MLP_PROJECT_ID
 ```
 
 ## Build the frontend container image container image
@@ -18,7 +19,7 @@ gcloud config set project $PROJECT_ID
 ```
 #<TODO> change it to main branch before merge
 git clone https://github.com/GoogleCloudPlatform/accelerated-platforms.git
-cd rag-on-gke/frontend/src
+cd rag-pipeline/frontend/src
 ```
 
 Update the location where you would like to store the container images in the ```cloud build yaml`` and kick off the build: 
@@ -33,7 +34,7 @@ gcloud artifacts repositories create rag-artifacts --repository-format=docker --
 gcloud builds submit . 
 ```
 
-## Deploy the embedding model
+## Deploy the frontend RAG application
 
 Update manifests/frontend_gradio_deployment.yaml file with absolute path to of the embedding model image (container registry) and GPU resource allocations as needed. 
 A sample deployment.yaml has been provided for your reference.
@@ -42,22 +43,24 @@ A sample deployment.yaml has been provided for your reference.
 Now, deploy frontend application:
 
 ```
-NAMESPACE=ml-team
 sed \
 -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
 manifests/frontend_gradio_deployment.yaml
-kubectl apply -f manifests/frontend_gradio_deployment.yaml-n $NAMESPACE
+kubectl apply -f manifests/frontend_gradio_deployment.yaml-n {MLP_KUBERNETES_NAMESPACE}
 ```
 
-## Test the embedding model
+## Test pod deployment for frontend RAG application
 Validations: 
-kubectl get po -n $NAMESPACE
+kubectl get po -n {MLP_KUBERNETES_NAMESPACE}
 
 
 └─⪧ kubectl get svc
 NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)          AGE
 
 
-## Run the curl test for embedding models once backed in deployed
-Using the sample image ```./t-shirt.jpg``` generate the image embedding
-You can use the sample curl requests from ```curl_requests.txt```
+## Retrieve the fronend URL endpoint 
+
+```
+cat {MLP_FRONTEND_RAG_NAMESPACE_ENDPOINT}
+```
+Open the Front end application in browser

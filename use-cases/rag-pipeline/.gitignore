@@ -76,3 +76,6 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# gradio files and folders
+.gradio

@@ -34,7 +34,7 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
   > You should see the various variables populated with the information specific to your environment.
 
-- Get credentials for the GKE cluster..
+- Get credentials for the GKE cluster.
 
   ```sh
   gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}

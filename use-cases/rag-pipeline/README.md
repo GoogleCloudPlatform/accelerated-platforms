@@ -46,6 +46,11 @@ gcloud config set project ${MLP_PROJECT_ID}
 gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
 ```
 
+
+##<TODO> Remove this before merge to main
+
+If you are deeloping on in-rag branch you need to terraform apply ML-platform again to create Networking objects for frontend so gteway can reach the frontend pods.
+
 # Deploy RAG Application Components
 
 ## Deploy the Multimodal Model on the playground cluster

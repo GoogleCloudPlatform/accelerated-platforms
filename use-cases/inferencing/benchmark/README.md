@@ -7,27 +7,27 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 ## Pre-requisites
 
 - A model is deployed using one of the vLLM guides
-  - [Distributed Inferencing on vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
-  - [Distributed Inferencing on vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
-  - [Distributed Inferencing on vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+  - [Distributed Inference and Serving with vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
+  - [Distributed Inference and Serving with vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
+  - [Distributed Inference and Serving with vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
 - Metrics are being scraped from the vLLM server ss shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
 
 ## Preparation
 
-- Clone the repository
+- Clone the repository.
 
   ```sh
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd accelerated-platforms
   ```
 
-- Change directory to the guide directory
+- Change directory to the guide directory.
 
   ```sh
   cd use-cases/inferencing/benchmark
   ```
 
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
 
   ```sh
   cat ${MLP_ENVIRONMENT_FILE} && \
@@ -36,12 +36,19 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 
   > You should see the various variables populated with the information specific to your environment.
 
-#### Build the image of the source and execute bencmark job
+- Get credentials for the GKE cluster
+
+  ```sh
+  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  ```
+
+## Build the container image
 
 - Build container image using Cloud Build and push the image to Artifact Registry.
 
   ```sh
   cd src
+  git restore cloudbuild.yaml
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
   gcloud beta builds submit \
   --config cloudbuild.yaml \
@@ -51,7 +58,9 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   cd -
   ```
 
-- Configure the environment
+## Deploy Locust
+
+- Configure the environment.
 
   > Set the environment variables based on the accelerator and model storage type used to serve the model.
   > The default values below are set for NVIDIA L4 GPUs and persistent disk.
@@ -75,9 +84,10 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   HOST="http://vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}:8000"
   ```
 
-- Replace variables in inference job manifest and deploy the job
+- Configure the deployment.
 
   ```sh
+  git restore manifests/locust-master-controller.yaml manifests/locust-master-service.yaml manifests/locust-worker-controller.yaml
   sed \
   -i -e "s|V_IMAGE_URL|${MLP_BENCHMARK_IMAGE}|" \
   -i -e "s|V_KSA|${MLP_MODEL_OPS_KSA}|" \
@@ -88,25 +98,48 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   manifests/locust-worker-controller.yaml
   ```
 
+- Deploy the workload.
+
   ```
   kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} apply -f manifests
   ```
 
-- Access the locust dashboard and launch swarming requests.
-
-  ```shell
-  echo -e "\n${MLP_MODEL_OPS_NAMESPACE} Locust dashboard: ${MLP_LOCUST_NAMESPACE_ENDPOINT}\n"
+  ```
+  deployment.apps/locust-master created
+  service/locust-master created
+  service/locust-master-web-svc created
+  deployment.apps/locust-worker created
   ```
 
-  > Note : Locust service make take up to 5 minutes to load completely.
+- Watch the deployment until it is ready and available.
 
-- Start a new load test
+  ```sh
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get deployment/locust-master | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  ```
+
+  ```
+  NAME            READY   UP-TO-DATE   AVAILABLE   AGE
+  locust-master   1/1     1            1           ##X
+  ```
+
+- Open Locust in the browser.
+
+  > It can take several minutes for Locust to be available via the gateway.
+
+  ```shell
+  echo -e "\n${MLP_MODEL_OPS_NAMESPACE} Locust: ${MLP_LOCUST_NAMESPACE_ENDPOINT}\n"
+  ```
+
+- Start a new load test.
 
   ![Locust UI](./img/locust_ui.png)
 
-  - On the locust UI, click `NEW` button
-  - Provide number of peak users and users started per second.
-  - Click `START` to start the load test
+  - If the **Start new load test** screen is not open, click the **NEW** button near the upper right of the page.
+  - Enter a value for **Number of users (peak concurrency)**.
+  - Enter a value for **Ramp up (users started/second)**.
+  - The **Host** value should be populated with the correct URL.
+  - Click **START** to start the load test
 
 ## What's next
 

@@ -15,9 +15,9 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: model-downloader
+  name: model-downloader-hdml
   labels:
-    app: model-downloader
+    app: model-downloader-hdml
 spec:
   activeDeadlineSeconds: 7200
   backoffLimit: 2
@@ -32,7 +32,7 @@ spec:
         gke-gcsfuse/memory-limit: 10Gi
         gke-gcsfuse/memory-request: 4Gi
       labels:
-        app: model-downloader
+        app: model-downloader-hdml
     spec:
       serviceAccountName: V_KSA
       containers:
@@ -65,7 +65,7 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: vllm-models
+          claimName: vllm-models-hdml
       - name: vllm-model-weights
         csi:
           driver: gcsfuse.csi.storage.gke.io

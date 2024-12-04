@@ -7,9 +7,10 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 - A model is deployed using one of the vLLM guides
-  - [Distributed Inferencing on vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
-  - [Distributed Inferencing on vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
-  - [Distributed Inferencing on vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+  - [Distributed Inference and Serving with vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
+  - [Distributed Inference and Serving with vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
+  - [Distributed Inference and Serving with vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+- A bucket containing the processed and prepared data from the [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
 
 ## Preparation
 
@@ -47,6 +48,7 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
   ```sh
   cd src
+  git restore cloudbuild.yaml
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
   gcloud beta builds submit \
   --config cloudbuild.yaml \
@@ -58,7 +60,7 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
 ## Run the job
 
-- Configure the job
+- Configure the environment.
 
   > Set the environment variables based on the accelerator and model storage type used to serve the model.
   > The default values below are set for NVIDIA L4 GPUs and persistent disk.
@@ -86,7 +88,10 @@ In this example batch inference pipeline, we would first send prompts to the hos
   INFERENCE_MODEL_PATH="/${MODEL_STORAGE}/${MODEL_NAME}/${MODEL_VERSION}"
   ```
 
+- Configure the job.
+
   ```sh
+  git restore manifests/job.yaml
   sed \
   -i -e "s|V_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
   -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
@@ -104,7 +109,11 @@ In this example batch inference pipeline, we would first send prompts to the hos
   kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} apply -f manifests/job.yaml
   ```
 
-  > The job runs for about an hour.
+  ```
+  job.batch/batch-inference created
+  ```
+
+  Depending on the dataset, it takes approximately 10 - 60 minutes for the job to complete.
 
 - Check the status of the job
 
@@ -112,11 +121,21 @@ In this example batch inference pipeline, we would first send prompts to the hos
   kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/batch-inference
   ```
 
+  ```
+  NAME              STATUS    COMPLETIONS   DURATION   AGE
+  batch-inference   Running   0/1           ###        ###
+  ```
+
 - Watch the job till it is complete.
 
   ```sh
   watch --color --interval 5 --no-title \
   "kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/batch-inference | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
+  ```
+
+  ```
+  NAME              STATUS     COMPLETIONS   DURATION   AGE
+  batch-inference   Complete   1/1           #####      #####
   ```
 
 Once the job is complete, the predictions result will be stored in the `MLP_DATA_BUCKET` in the `predictions` folder.

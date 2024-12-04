@@ -18,9 +18,9 @@ import logging.config
 import os
 import pandas as pd
 import re
-import sys
 import requests
 import signal
+import sys
 
 from datasets import load_from_disk
 from google.cloud import storage
@@ -50,7 +50,7 @@ class Batch_Inference:
         self.df.reset_index(drop=True, inplace=True)
 
     def predict(self):
-        logger.info("Start prediction evaluation")
+        logger.info("Start predictions")
         # Send the Request
         headers = {"Content-Type": "application/json"}
         for i in range(len(self.df)):
@@ -75,12 +75,22 @@ class Batch_Inference:
                 # Assuming the response structure matches OpenAI's format
                 ai_response = response_data["choices"][0]["message"]["content"]
 
+                logger.info(
+                    f"HTTP {response.status_code} received",
+                    extra={
+                        "ai_response": ai_response,
+                        "user_message": user_message,
+                    },
+                )
+
                 with open(self.output_file, "a") as f:
                     f.write(ai_response + "\n")  # Append with newline
                     f.write("----------\n")
             else:
                 logger.error(f"Error: {response.status_code} - {response.text}")
+        logger.info("Finish predictions")
 
+        logger.info("Start write predictions to GCS")
         # save file to gcs after completion
         model_iteration_tag = self.model_name.rsplit("-", 1)[1]
         client = storage.Client()
@@ -88,6 +98,7 @@ class Batch_Inference:
         with open(self.output_file, "r") as local_file:
             blob = bucket.blob(f"predictions/{self.output_file}-{model_iteration_tag}")
             blob.upload_from_file(local_file)
+        logger.info("Finish write predictions to GCS")
 
     def batchType(self):
         if "ACTION" in os.environ and os.getenv("ACTION") == "predict":

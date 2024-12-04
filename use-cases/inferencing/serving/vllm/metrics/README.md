@@ -4,11 +4,10 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 
 ## Prerequisites
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 - A model is deployed using one of the vLLM guides
-  - [Distributed Inferencing on vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
-  - [Distributed Inferencing on vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
-  - [Distributed Inferencing on vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+  - [Distributed Inference and Serving with vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
+  - [Distributed Inference and Serving with vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
+  - [Distributed Inference and Serving with vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
 
 ## Preparation
 

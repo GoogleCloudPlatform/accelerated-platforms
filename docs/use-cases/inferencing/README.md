@@ -62,6 +62,7 @@ Each category depends on organization capabilities and desired outcome:
 |                                | Persistent Volume | an extra workflow is needed                                                                  |
 |                                | NFS Volume        | just copy new model weights to NFS                                                           |
 | Performance                    |                   |                                                                                              |
+| :----------------------------- | :---------------- | :------------------------------------------------------------------------------------------- |
 | Warm-up                        | GCSFuse           | Warm-up needed                                                                               |
 |                                | Persistent Volume | No warm-up                                                                                   |
 |                                | NFS Volume        | No warm-up                                                                                   |
@@ -69,6 +70,7 @@ Each category depends on organization capabilities and desired outcome:
 |                                | Persistent Volume | Depending on volume type and size                                                            |
 |                                | NFS Volume        | Depending on FileStore volume                                                                |
 | Price                          |                   |                                                                                              |
+| :----------------------------- | :---------------- | :------------------------------------------------------------------------------------------- |
 | Over provisioning requirements | GCSFuse           | Node disk over-provisioning needed. May require additional compute memory for larger models. |
 |                                | Persistent Volume | Over-provisioning is shared by up to 100 nodes                                               |
 |                                | NFS Volume        | Over-provisioning can be shared by other applications                                        |
@@ -82,14 +84,18 @@ Each category depends on organization capabilities and desired outcome:
 
 Enabling [GCE Fuse parallel downloads](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/cloud-storage-fuse-csi-driver#parallel-download) can also improve model weight downloading time to the container image. To maximize the performance of this capability it is recommended to also provision [Local SSDs](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/local-ssd) for your nodes.
 
-## Types of inferencing
+## LLM Inference
+With your LLM efficiently deployed and optimized for startup and model loading, the next crucial step is performing inference. This involves using your model to generate predictions or responses based on input data.
 
+### Types of inferencing
+
+Inference can be executed in two distinct modes:
 - Batch Inference
 - Real-time inference
 
 Batch inference and real-time inference are two distinct approaches to generating predictions from machine learning models. They differ primarily in how data is processed and how quickly predictions are delivered.
 
-### Batch Inference
+#### Batch Inference
 
 - **Data Processing:** Processes data in batches or groups. Predictions are generated for multiple input samples at once.
 - **Latency:** Higher latency (time taken to generate predictions) as it involves processing a batch of data.
@@ -104,7 +110,7 @@ Batch inference and real-time inference are two distinct approaches to generatin
   - Model evaluation prediction step [example](/use-cases/model-fine-tuning-pipeline/model-eval/README.md)
   - Inferencing [example](/use-cases/inferencing/batch-inference)
 
-### Real-time Inference
+#### Real-time Inference
 
 - **Data Processing:** Processes data individually as it arrives. Predictions are generated for each input sample immediately
 - **Latency:** Low latency is critical, as predictions need to be generated quickly for real-time applications
@@ -119,6 +125,10 @@ Batch inference and real-time inference are two distinct approaches to generatin
 - For an Implementation example, please check this document [Distributed Inferencing on vLLM](/use-cases/inferencing/serving/vllm)
 
 ## Production Monitoring and Scaling
+
+The deployment of a machine learning model marks the beginning of a new phase: monitoring and maintenance. 
+
+Production monitoring serves as a diagnostic tool, enabling us to track performance metrics, identify potential issues, and ensure the model remains accurate and reliable in a live environment.
 
 - **Production Metrics:** Prometheus exposed metrics help provide crucial metrics to help provide inference engine details for observation and decision making.
   - Prometheus exposed metrics can automatically be captured once configured utilizing [Google Cloud Managed Service for Prometheus.](https://cloud.google.com/stackdriver/docs/managed-prometheus)

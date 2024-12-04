@@ -69,3 +69,31 @@ kubectl get pods -n {MLP_KUBERNETES_NAMESPACE}
 ```
 kubectl logs -f alloydb-setup-xxxxx -n {MLP_KUBERNETES_NAMESPACE}
 ```
+
+
+#### Updates to file 
+
+```sh
+  INFERENCE_ENDPOINT="http://vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}:8000/v1/chat/completions"
+  INFERENCE_MODEL_PATH="/${MODEL_STORAGE}/${MODEL_NAME}/${MODEL_VERSION}"
+  ```
+
+  ```sh
+  sed \
+  -i -e "s|V_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
+  -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
+  -i -e "s|V_IMAGE_URL|${MLP_BATCH_INFERENCE_IMAGE}|" \
+  -i -e "s|V_INFERENCE_ENDPOINT|${INFERENCE_ENDPOINT}|" \
+  -i -e "s|V_INFERENCE_MODEL_PATH|${INFERENCE_MODEL_PATH}|" \
+  -i -e "s|V_KSA|${MLP_BATCH_INFERENCE_KSA}|" \
+  -i -e "s|V_PREDICTIONS_FILE|${PREDICTIONS_FILE}|" \
+  manifests/job.yaml
+  ```
+
+- Create the job
+
+  ```
+  kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} apply -f manifests/job.yaml
+  ```
+
+  > The job runs for about an hour.

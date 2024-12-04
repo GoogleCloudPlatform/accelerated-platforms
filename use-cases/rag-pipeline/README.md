@@ -34,18 +34,33 @@ Here is what we need:
 
 #### Set variable for the ML playground environment
 
-```
-cat ${MLP_ENVIRONMENT_FILE}
-source ${MLP_ENVIRONMENT_FILE}
-gcloud config set project ${MLP_PROJECT_ID}
-```
+- Clone the repository
 
-#### Get Fleet credentials
+  ```sh
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms
+  ```
 
-```
-gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
-```
+- Change directory to the guide directory
 
+  ```sh
+  cd use-cases/rag-pipeline
+  ```
+
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+
+  ```sh
+  cat ${MLP_ENVIRONMENT_FILE} && \
+  source ${MLP_ENVIRONMENT_FILE}
+  ```
+
+  > You should see the various variables populated with the information specific to your environment.
+
+- Get credentials for the GKE cluster
+
+  ```sh
+  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  ```
 
 ##<TODO> Remove this before merge to main
 

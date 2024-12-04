@@ -33,6 +33,7 @@ gcloud artifacts repositories create rag-artifacts --repository-format=docker --
 ```
 
 ```
+cd src
 gcloud builds submit . 
 ```
 
@@ -60,12 +61,13 @@ A sample embeddings.yaml has been provided for your reference.
 
 Now, deploy embeddings model:
 
-```
-sed \
--i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
-manifests/embedding.yaml
-kubectl apply -f manifests/embedding.yaml -n {MLP_KUBERNETES_NAMESPACE}
-```
+
+  ```sh
+  sed \
+  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
+  -i -e "s|V_MLP_DB_USER_KSA|${MLP_DB_USER_KSA}|" \
+  manifests/embedding.yaml
+  ```
 
 ## Test the embedding model
 Validations: 

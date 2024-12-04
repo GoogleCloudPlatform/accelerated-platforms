@@ -84,7 +84,7 @@ spec:
         name: dshm
       - name: model-disk
         persistentVolumeClaim:
-          claimName: vllm-model-weights-ssd-1024gb-V_ZONE-ro
+          claimName: vllm-model-weights-pd-1024gb-V_ZONE-ro
           readOnly: true
 ---
 apiVersion: v1

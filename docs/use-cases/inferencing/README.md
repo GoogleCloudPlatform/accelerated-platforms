@@ -61,16 +61,14 @@ Each category depends on organization capabilities and desired outcome:
 | Model Update                   | GCSFuse           | just copy new model weights to GCS bucket                                                    |
 |                                | Persistent Volume | an extra workflow is needed                                                                  |
 |                                | NFS Volume        | just copy new model weights to NFS                                                           |
-| Performance                    |                   |                                                                                              |
-| :----------------------------- | :---------------- | :------------------------------------------------------------------------------------------- |
+| **Performance**                |                   |                                                                                              |
 | Warm-up                        | GCSFuse           | Warm-up needed                                                                               |
 |                                | Persistent Volume | No warm-up                                                                                   |
 |                                | NFS Volume        | No warm-up                                                                                   |
 | Max read throughput            | GCSFuse           | Depending on node disk type and size                                                         |
 |                                | Persistent Volume | Depending on volume type and size                                                            |
 |                                | NFS Volume        | Depending on FileStore volume                                                                |
-| Price                          |                   |                                                                                              |
-| :----------------------------- | :---------------- | :------------------------------------------------------------------------------------------- |
+| **Price**                      |                   |                                                                                              |
 | Over provisioning requirements | GCSFuse           | Node disk over-provisioning needed. May require additional compute memory for larger models. |
 |                                | Persistent Volume | Over-provisioning is shared by up to 100 nodes                                               |
 |                                | NFS Volume        | Over-provisioning can be shared by other applications                                        |

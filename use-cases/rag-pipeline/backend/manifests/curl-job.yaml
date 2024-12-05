@@ -37,7 +37,7 @@ spec:
               -s \
               -H "Content-Type: application/json" \
               -d '{
-                    "text": "$(USER_PROMPT)"
+                    "text": "Women pink shorts"
                   }'
              
         imagePullPolicy: IfNotPresent

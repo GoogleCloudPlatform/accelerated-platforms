@@ -32,8 +32,8 @@ spec:
         image: us-docker.pkg.dev/V_PROJECT_ID/rag-artifacts/backend-api:v0.1.0 # Replace with your backend image
         imagePullPolicy: Always
         env:
-        - name: CATALOG_DB_NAME
-          value: V_CATALOG_DB_NAME
+        - name: CATALOG_DB
+          value: V_CATALOG_DB
         - name: CATALOG_TABLE_NAME
           value: V_CATALOG_TABLE_NAME
         - name: MLP_DB_ADMIN_IAM

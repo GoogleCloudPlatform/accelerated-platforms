@@ -15,6 +15,6 @@
 terraform {
   backend "gcs" {
     prefix = "terraform"
-    bucket = "gkebatchenv3a4ec43f-ishmeet-rag-terraform"
+    bucket = "YOUR-STATE-BUCKET"
   }
 }

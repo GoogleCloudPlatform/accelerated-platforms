@@ -26,7 +26,7 @@ processed_data_path = f"gs://{PROCESSED_DATA_BUCKET}/{MASTER_CATALOG_FILE_NAME}"
 # Catalog DB
 database_name = "postgres"
 catalog_db = os.environ.get("CATALOG_DB")
-catalog_table = os.environ("CATALOG_TABLE_NAME")
+catalog_table = os.environ.get("CATALOG_TABLE_NAME")
 
 # Vector Index
 EMBEDDING_COLUMN = os.environ.get("EMBEDDING_COLUMN_TEXT")

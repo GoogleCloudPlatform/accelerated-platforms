@@ -55,7 +55,7 @@ gcloud builds submit .
     export IMAGE_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/image_embeddings"
     export MULTIMODAL_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/multimodal_embeddings" 
     export EMBEDDING_COLUMN_TEXT="text_embeddings"
-    export EMBEDDING_COLUMN_MULTIMODAL-"multimodal_embeddings"
+    export EMBEDDING_COLUMN_MULTIMODAL="multimodal_embeddings"
     export EMBEDDING_COLUMN_IMAGE="image_embeddings"
     NUM_LEAVES_VALUE="\"300\""
     export EMBEDDING_DIMENSION="\"786\""

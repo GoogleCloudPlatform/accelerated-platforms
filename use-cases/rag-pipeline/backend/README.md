@@ -53,7 +53,7 @@ gcloud builds submit .
 Update `manifests/backend_deployment.yaml` file with variables values as shown below:
 
 ```sh
-    export CATALOG_DB_NAME="product_catalog"
+    export CATALOG_DB="product_catalog"
     export CATALOG_TABLE_NAME="clothes"
     export TEXT_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
     export IMAGE_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/image_embeddings"
@@ -69,7 +69,7 @@ Update `manifests/backend_deployment.yaml` file with variables values as shown b
   sed \
   -i -e "s|V_MLP_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
   -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
-  -i -e "s|V_CATALOG_DB_NAME|${CATALOG_DB_NAME}|" \
+  -i -e "s|V_CATALOG_DB|${CATALOG_DB}|" \
   -i -e "s|V_CATALOG_TABLE_NAME|${CATALOG_TABLE_NAME}|" \
   -i -e "s|V_MLP_DB_ADMIN_IAM|${MLP_DB_ADMIN_IAM}|" \
   -i -e "s|V_MLP_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \

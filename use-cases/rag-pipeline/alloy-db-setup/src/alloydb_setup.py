@@ -23,7 +23,7 @@ import sqlalchemy
 from google.cloud.alloydb.connector import Connector, IPTypes
 
 # AlloyDB
-instance_uri = os.getenv("MLP_DB_INSTANCE_URI")
+instance_uri = os.environ.get("MLP_DB_INSTANCE_URI")
 
 # Use the application default credentials
 # Kubernetes Service account impersonating as GCP account

@@ -46,9 +46,42 @@ gcloud builds submit .
 3. Update the manifest file with the values for deployment.
 
 ```
-
-
+```sh
+    export CATALOG_DB="product_catalog"
+    export CATALOG_TABLE_NAME="clothes"
+    export PROCESSED_DATA_BUCKET="flipkart-processed-data-bucket"
+    export MASTER_CATALOG_FILE_NAME="RAG/master_product_catalog.csv"
+    export TEXT_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
+    export IMAGE_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/image_embeddings"
+    export MULTIMODAL_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/multimodal_embeddings" 
+    export EMBEDDING_COLUMN_TEXT="text_embeddings"
+    export EMBEDDING_COLUMN_MULTIMODAL-"multimodal_embeddings"
+    export EMBEDDING_COLUMN_IMAGE="image_embeddings"
+    NUM_LEAVES_VALUE="\"300\""
+    export EMBEDDING_DIMENSION="\"786\""
 ```
+
+```sh
+  sed \
+  -i -e "s|V_MLP_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
+  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
+  -i -e "s|V_PROCESSED_DATA_BUCKET|${PROCESSED_DATA_BUCKET}|" \
+  -i -e "s|V_MASTER_CATALOG_FILE_NAME|${MASTER_CATALOG_FILE_NAME}|" \
+  -i -e "s|V_CATALOG_DB|${CATALOG_DB}|" \
+  -i -e "s|V_CATALOG_TABLE_NAME|${CATALOG_TABLE_NAME}|" \
+  -i -e "s|V_MLP_DB_ADMIN_IAM|${MLP_DB_ADMIN_IAM}|" \
+  -i -e "s|V_EMBEDDING_DIMENSION|${EMBEDDING_DIMENSION}|" \
+  -i -e "s|V_EMBEDDING_COLUMN_TEXT|${EMBEDDING_COLUMN_TEXT}|" \
+  -i -e "s|V_EMBEDDING_COLUMN_IMAGE|${EMBEDDING_COLUMN_IMAGE}|" \
+  -i -e "s|V_EMBEDDING_COLUMN_MULTIMODAL|${EMBEDDING_COLUMN_MULTIMODAL}|" \
+  -i -e "s|V_NUM_LEAVES_VALUE|${NUM_LEAVES_VALUE}|" \
+  -i -e "s|V_MLP_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
+  -i -e "s|V_TEXT_EMBEDDING_ENDPOINT|${TEXT_EMBEDDING_ENDPOINT}|" \
+  -i -e "s|V_IMAGE_EMBEDDING_ENDPOINT|${IMAGE_EMBEDDING_ENDPOINT}|" \
+  -i -e "s|V_MULTIMODAL_EMBEDDING_ENDPOINT|${MULTIMODAL_EMBEDDING_ENDPOINT}|" \
+  -i -e "s|V_MLP_KUBERNETES_NAMESPACE|${MLP_KUBERNETES_NAMESPACE}|" \
+  manifests/alloydb-setup-job.yaml
+  ```
 
 4. Deploy the alloyDB set up job to ML Playground cluster.
 
@@ -58,6 +91,9 @@ gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project
 ```
 kubectl apply -f alloydb-setup-job.yaml -n {MLP_KUBERNETES_NAMESPACE}
 ```
+
+  > The job runs for about two hours
+
 
 5. Check the job completion status :
 ```
@@ -70,30 +106,4 @@ kubectl get pods -n {MLP_KUBERNETES_NAMESPACE}
 kubectl logs -f alloydb-setup-xxxxx -n {MLP_KUBERNETES_NAMESPACE}
 ```
 
-
-#### Updates to file 
-
-```sh
-  INFERENCE_ENDPOINT="http://vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}:8000/v1/chat/completions"
-  INFERENCE_MODEL_PATH="/${MODEL_STORAGE}/${MODEL_NAME}/${MODEL_VERSION}"
-  ```
-
-  ```sh
-  sed \
-  -i -e "s|V_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
-  -i -e "s|V_DATASET_OUTPUT_PATH|${DATASET_OUTPUT_PATH}|" \
-  -i -e "s|V_IMAGE_URL|${MLP_BATCH_INFERENCE_IMAGE}|" \
-  -i -e "s|V_INFERENCE_ENDPOINT|${INFERENCE_ENDPOINT}|" \
-  -i -e "s|V_INFERENCE_MODEL_PATH|${INFERENCE_MODEL_PATH}|" \
-  -i -e "s|V_KSA|${MLP_BATCH_INFERENCE_KSA}|" \
-  -i -e "s|V_PREDICTIONS_FILE|${PREDICTIONS_FILE}|" \
-  manifests/job.yaml
-  ```
-
-- Create the job
-
-  ```
-  kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} apply -f manifests/job.yaml
-  ```
-
-  > The job runs for about an hour.
+.

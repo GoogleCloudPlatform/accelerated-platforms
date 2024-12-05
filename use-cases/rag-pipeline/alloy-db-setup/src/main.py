@@ -12,27 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import alloydb_setup
+
 import create_catalog
 import logging
 import logging.config
 import os
 
 # Master_product_catalog.csv
-PROCESSED_DATA_BUCKET = os.environ["PROCESSED_DATA_BUCKET"]
-MASTER_CATALOG_FILE_NAME = os.environ["MASTER_CATALOG_FILE_NAME"]
+PROCESSED_DATA_BUCKET = os.environ.get("PROCESSED_DATA_BUCKET")
+MASTER_CATALOG_FILE_NAME = os.environ.get("MASTER_CATALOG_FILE_NAME")
 processed_data_path = f"gs://{PROCESSED_DATA_BUCKET}/{MASTER_CATALOG_FILE_NAME}"
 
 # Catalog DB
 database_name = "postgres"
-catalog_db = os.environ["CATALOG_DB_NAME"]
-catalog_table = os.environ["CATALOG_TABLE_NAME"]
+catalog_db = os.environ.get("CATALOG_DB")
+catalog_table = os.environ("CATALOG_TABLE_NAME")
 
 # Vector Index
-EMBEDDING_COLUMN = os.environ["EMBEDDING_COLUMN"]
-INDEX_NAME = "rag_text_embeddings_index"
+EMBEDDING_COLUMN = os.environ.get("EMBEDDING_COLUMN_TEXT")
+INDEX_NAME_TEXT = "rag_text_embeddings_index"
 DISTANCE_FUNCTION = "cosine"
-NUM_LEAVES_VALUE = int(os.getenv("NUM_LEAVES_VALUE"))
+NUM_LEAVES_VALUE = os.environ.get("NUM_LEAVES_VALUE")
 
 if __name__ == "__main__":
     # Configure logging
@@ -69,7 +69,7 @@ if __name__ == "__main__":
             catalog_db,
             catalog_table,
             EMBEDDING_COLUMN,
-            INDEX_NAME,
+            INDEX_NAME_TEXT,
             DISTANCE_FUNCTION,
             NUM_LEAVES_VALUE,
         )

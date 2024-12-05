@@ -23,7 +23,7 @@ import sqlalchemy
 from google.cloud.alloydb.connector import Connector
 from pgvector.sqlalchemy import Vector
 
-EMBEDDING_DIMENSION = os.environ["EMBEDDING_DIMENSION"]
+EMBEDDING_DIMENSION = os.environ.get("EMBEDDING_DIMENSION")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -187,19 +187,19 @@ def create_text_embeddings_index(
     database,
     TABLE_NAME,
     EMBEDDING_COLUMN,
-    INDEX_NAME,
+    INDEX_NAME_TEXT,
     DISTANCE_FUNCTION,
     NUM_LEAVES_VALUE,
 ):
     index_cmd = sqlalchemy.text(
-        f"CREATE INDEX {INDEX_NAME} ON {TABLE_NAME} USING scann ({EMBEDDING_COLUMN} {DISTANCE_FUNCTION}) WITH (num_leaves={NUM_LEAVES_VALUE});"
+        f"CREATE INDEX {INDEX_NAME_TEXT} ON {TABLE_NAME} USING scann ({EMBEDDING_COLUMN} {DISTANCE_FUNCTION}) WITH (num_leaves={NUM_LEAVES_VALUE});"
     )
     try:
         with Connector() as connector:
             pool = alloydb_setup.init_connection_pool(connector, database)
             with pool.connect() as db_conn:
                 db_conn.execute(index_cmd)
-                logging.info(f"Index '{INDEX_NAME}' created successfully.")
+                logging.info(f"Index '{INDEX_NAME_TEXT}' created successfully.")
     except Exception as e:
         # TODO: handle 'postgresql error: access method "scann" does not exist'
         # TODO: Handle "Error creating index: (pg8000.exceptions.DatabaseError) {'S': 'ERROR', 'V': 'ERROR', 'C': 'XX000', 'M': 'Cannot create ScaNN index, error: FAILED_PRECONDITION: Cannot create ScaNN index with empty table. Once the table is populated with data, create the index.

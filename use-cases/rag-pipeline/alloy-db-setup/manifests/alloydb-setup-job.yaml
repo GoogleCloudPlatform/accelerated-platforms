@@ -26,29 +26,33 @@ spec:
         imagePullPolicy: Always
         env:
         - name: PROCESSED_DATA_BUCKET
-          value: "flipkart-processed-data-bucket"
+          value: V_PROCESSED_DATA_BUCKET
         - name: MASTER_CATALOG_FILE_NAME
-          value: "RAG/master_product_catalog.csv"
-        - name: CATALOG_DB_NAME
-          value: "product_catalog"
+          value: V_MASTER_CATALOG_FILE_NAME
+        - name: CATALOG_DB
+          value: V_CATALOG_DB
         - name: CATALOG_TABLE_NAME
-          value: "clothes"
+          value: V_CATALOG_TABLE_NAME
         - name: MLP_DB_ADMIN_IAM
           value: V_MLP_DB_ADMIN_IAM
         - name: EMBEDDING_DIMENSION
-          value: "768"
-        - name: EMBEDDING_COLUMN
-          value: "text_embeddings"
+          value: V_EMBEDDING_DIMENSION
+        - name: EMBEDDING_COLUMN_TEXT
+          value: V_EMBEDDING_COLUMN_TEXT
+        - name: EMBEDDING_COLUMN_IMAGE
+          value: V_EMBEDDING_COLUMN_IMAGE
+        - name: EMBEDDING_COLUMN_MULTIMODAL
+          value: V_EMBEDDING_COLUMN_MULTIMODAL
         - name: NUM_LEAVES_VALUE
-          value: "300"
+          value: V_NUM_LEAVES_VALUE
         - name: MLP_DB_INSTANCE_URI
           value: V_MLP_DB_INSTANCE_URI
         - name: TEXT_EMBEDDING_ENDPOINT
-          value: "http://multimodal-embedding-model:80/text_embeddings"
+          value: V_TEXT_EMBEDDING_ENDPOINT
         - name: IMAGE_EMBEDDING_ENDPOINT
-          value: "http://multimodal-embedding-model:80/image_embeddings"
+          value: V_IMAGE_EMBEDDING_ENDPOINT
         - name: MULTIMODAL_EMBEDDING_ENDPOINT
-          value: "http://multimodal-embedding-model:80/multimodal_embeddings" 
+          value: V_MULTIMODAL_EMBEDDING_ENDPOINT 
         - name: MLP_KUBERNETES_NAMESPACE
           value: V_MLP_KUBERNETES_NAMESPACE
       restartPolicy: Never

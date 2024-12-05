@@ -56,6 +56,8 @@ spec:
           value: V_EMBEDDING_COLUMN_IMAGE
         - name: EMBEDDING_COLUMN_MULTIMODAL
           value: V_EMBEDDING_COLUMN_MULTIMODAL
+        - name: ROW_COUNT
+          value: V_ROW_COUNT
         resources:
           requests:
             cpu: "2"

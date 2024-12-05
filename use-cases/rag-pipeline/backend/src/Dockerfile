@@ -6,7 +6,8 @@ COPY requirements.txt /workspace/
 
 RUN pip install --no-cache-dir -r /workspace/requirements.txt
 
-COPY backend_service.py \ 
+COPY alloydb_connect.py \ 
+    backend_service.py \ 
     custom_json_formatter.py \
     generate_embeddings.py \
     logging.conf \

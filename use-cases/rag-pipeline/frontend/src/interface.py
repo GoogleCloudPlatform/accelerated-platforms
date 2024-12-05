@@ -31,7 +31,7 @@ if "LOG_LEVEL" in os.environ:
     logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
 
-# BACKEND_SERVICE_URL = os.environ["BACKEND_SERVICE_URL"]
+# RAG BACKEND_SERVICE_URL
 BACKEND_SERVICE_URL = os.environ["BACKEND_SERVICE_URL"]
 
 

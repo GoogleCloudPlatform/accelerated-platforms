@@ -7,7 +7,7 @@
 You have an existing [ML Playground cluster](https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/main/platforms/gke-aiml/playground) in a Google Cloud Project.
 
 ## Set the default environment variables:
-- Change directory to the guide directory
+- Change directory to the backend source code directory
 
   ```sh
   cd use-cases/rag-pipeline/backend

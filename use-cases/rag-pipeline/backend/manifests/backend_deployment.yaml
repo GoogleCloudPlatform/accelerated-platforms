@@ -34,7 +34,7 @@ spec:
         - name: CATALOG_DB_NAME
           value: V_CATALOG_DB_NAME
         - name: CATALOG_TABLE_NAME
-          value: CATALOG_TABLE_NAME
+          value: V_CATALOG_TABLE_NAME
         - name: MLP_DB_ADMIN_IAM
           value: V_MLP_DB_ADMIN_IAM
         - name: MLP_DB_INSTANCE_URI

@@ -62,7 +62,7 @@ Update `manifests/backend_deployment.yaml` file with variables values as shown b
     export EMBEDDING_COLUMN_TEXT="text_embeddings"
     export EMBEDDING_COLUMN_IMAGE="image_embeddings"
     export EMBEDDING_COLUMN_MULTIMODAL="multimodal_embeddings"
-    export ROW_COUNT=5
+    export ROW_COUNT="\"5\""
 ```
 
 ```sh

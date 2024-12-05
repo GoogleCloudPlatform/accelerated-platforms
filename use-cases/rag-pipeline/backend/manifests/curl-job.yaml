@@ -32,15 +32,13 @@ spec:
           - sh
           - -c
           - |
-            curl http://rag-backend.ml-team:8000/generate_product_recommendations \
-              -X POST \
-              -s \
-              -H "Content-Type: application/json" \
-              -d '{
-                    "text": "Women pink shorts"
-                  }'
-             
+              curl --request POST \
+              --url http://rag-backend.ml-team:8000/generate_product_recommendations/ \
+              --header 'Content-Type: application/json' \
+              --data '{
+                "text": "$(USER_PROMPT)"
+              }'
         imagePullPolicy: IfNotPresent
         env:
         - name: USER_PROMPT
-          value: "I am looking for comfortable cycling shorts for women, what are some good options?"
+          value: "Mens V-neck sweater"

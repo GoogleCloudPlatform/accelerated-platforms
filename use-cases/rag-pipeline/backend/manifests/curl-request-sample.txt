@@ -1,0 +1,28 @@
+## Text embedding
+
+  curl --request POST \
+  --url http://rag-backend.ml-team:8000/generate_product_recommendations/ \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "text": "Mens V-neck sweater"
+  }'
+
+
+## Multimodal
+
+  curl --request POST \
+  --url http://rag-backend.ml-team:8000/generate_product_recommendations/ \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "text": "Mens V-neck sweater",
+    "image_uri": "gs://gkebatchexpce3c8dcb-dev-rag-data/flipkart_images/00322e32b4705cfc74d73032c39a44ab_0.jpg"
+  }'
+
+## Image embedding
+
+  curl --request POST \
+  --url http://rag-backend.ml-team:8000/generate_product_recommendations/ \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "image_uri": "gs://gkebatchexpce3c8dcb-dev-rag-data/flipkart_images/00322e32b4705cfc74d73032c39a44ab_0.jpg"
+  }'

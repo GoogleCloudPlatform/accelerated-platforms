@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: python-frontend
+  name: rag-frontend
 spec:
   replicas: 1 
   selector:
@@ -20,7 +20,7 @@ spec:
         - containerPort: 7680 
         env:
         - name: BACKEND_SERVICE_ENDPOINT
-          value: "http://rag-backend.ml-team:8000/generate_product_recommendations"
+          value: V_BACKEND_SERVICE_ENDPOINT
         resources:
           requests:
             cpu: "512m"
@@ -33,12 +33,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: python-frontend-service
+  name: frontend-rag-svc
 spec:
   selector:
-    app: python-frontend
+    app: rag-frontend
   ports:
   - protocol: TCP
     port: 80
     targetPort: 8080 
-  type: LoadBalancer
+  type: ClusterIP

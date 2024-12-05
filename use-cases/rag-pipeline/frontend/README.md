@@ -19,7 +19,7 @@ gcloud config set project $MLP_PROJECT_ID
 ```
 #<TODO> change it to main branch before merge
 git clone https://github.com/GoogleCloudPlatform/accelerated-platforms.git
-cd rag-pipeline/frontend/src
+cd rag-pipeline/frontend
 ```
 
 Update the location where you would like to store the container images in the ```cloud build yaml`` and kick off the build: 
@@ -31,22 +31,29 @@ gcloud artifacts repositories create rag-artifacts --repository-format=docker --
 ```
 
 ```
+cd src
 gcloud builds submit . 
 ```
 
 ## Deploy the frontend RAG application
 
-Update manifests/frontend_gradio_deployment.yaml file with absolute path to of the embedding model image (container registry) and GPU resource allocations as needed. 
-A sample deployment.yaml has been provided for your reference.
-
+Update manifests/frontend_gradio_deployment.yaml file with absolute path to of the frontend image (container registry) and GPU resource allocations as needed. 
 
 Now, deploy frontend application:
 
+```sh
+    export BACKEND_SERVICE_ENDPOINT="http://rag-backend.ml-team:8000/generate_product_recommendations/"
 ```
-sed \
--i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
-manifests/frontend_gradio_deployment.yaml
-kubectl apply -f manifests/frontend_gradio_deployment.yaml-n {MLP_KUBERNETES_NAMESPACE}
+
+```sh
+  sed \
+  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
+  -i -e "s|V_BACKEND_SERVICE_ENDPOINT|${BACKEND_SERVICE_ENDPOINT}|" \
+  manifests/frontend_gradio_deployment.yaml
+  ```
+
+```sh
+kubectl apply -f manifests/frontend_gradio_deployment.yaml -n {MLP_KUBERNETES_NAMESPACE}
 ```
 
 ## Test pod deployment for frontend RAG application
@@ -54,13 +61,13 @@ Validations:
 kubectl get po -n {MLP_KUBERNETES_NAMESPACE}
 
 
-└─⪧ kubectl get svc
+└─⪧ kubectl get svc -n {MLP_KUBERNETES_NAMESPACE}
 NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)          AGE
 
 
 ## Retrieve the fronend URL endpoint 
 
+```sh
+echo {MLP_FRONTEND_RAG_NAMESPACE_ENDPOINT}
 ```
-cat {MLP_FRONTEND_RAG_NAMESPACE_ENDPOINT}
-```
-Open the Front end application in browser
+Open the Front end application in browser using URL value retrieved above.

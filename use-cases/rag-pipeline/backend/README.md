@@ -48,7 +48,7 @@ cd src
 gcloud builds submit . 
 ```
 
-## Deploy the embedding model
+## Deploy the backend service 
 
 Update `manifests/backend_deployment.yaml` file with variables values as shown below:
 

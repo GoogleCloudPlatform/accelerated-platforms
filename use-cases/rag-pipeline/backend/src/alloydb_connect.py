@@ -33,8 +33,8 @@ password = credentials.token
 
 # AlloyDB connection parameters
 
-instance_uri = os.environ("MLP_DB_INSTANCE_URI")
-alloydb_user = os.environ("MLP_DB_ADMIN_IAM")
+instance_uri = os.environ.get("MLP_DB_INSTANCE_URI")
+alloydb_user = os.environ.get("MLP_DB_ADMIN_IAM")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")

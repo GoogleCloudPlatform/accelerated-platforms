@@ -1,17 +1,19 @@
 FROM python:3.13.0-slim-bookworm
 
-RUN apt-get update && \
-    apt-get -y --no-install-recommends install python3-dev gcc python3-pip git && \
-    rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
 
-COPY requirements.txt /
+COPY requirements.txt /workspace/
 
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /workspace/requirements.txt
 
-COPY interface.py /
+COPY custom_json_formatter.py \ 
+    logging.conf \ 
+    interface.py \
+    /workspace/
 
 ENV PYTHONUNBUFFERED 1
 
 EXPOSE 7860
 
-CMD python3 /interface.py
+CMD ["python3", "interface.py"]
+

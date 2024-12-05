@@ -1,6 +1,11 @@
 # Scalable and Distributed LLM Inference on GKE with vLLM
 
-This guide assumes you possess a fine-tuned large language model (LLM) ready for production deployment. We'll focus on serving your model within the ML Platform on Google Kubernetes Engine (GKE), utilizing the vLLM framework and exploring various scaling strategies.
+This guide assumes you possess a fine-tuned large language model (LLM) ready for production deployment. We'll focus on serving your model within the ML Platform on Google Kubernetes Engine (GKE)
+
+- Utilizing the vLLM inference engine framework
+- Inference types (batch and real-time)
+- Metrics observability
+- Exploring various scaling strategies.
 
 **Prerequisites**
 
@@ -18,18 +23,18 @@ vLLM provides three core GPU strategies for model inference:
 
 The examples primarily focus on the first two strategies, as they exploit the distributed computing capabilities of the ML Platform on GKE. The strategies may differ depending on business requirements and available resources within an organization.
 
-The fine-tuned Gemma 2 9B IT model in the fine-tuning end-to-end example is too large to fit in a single GPU, but it can fit on a single node with multiple GPUs with [tensor parallelism](https://huggingface.co/docs/text-generation-inference/en/conceptual/tensor_parallelism). The tensor parallel size is the number of GPUs you want to use. For example, if you have 4 GPUs in a single node, you can set the tensor parallel size to 4\.
+The fine-tuned Gemma 2 9B IT model in the fine-tuning end-to-end example is too large to fit in a single GPU, but it can fit on a single node with multiple GPUs with [tensor parallelism](https://huggingface.co/docs/text-generation-inference/en/conceptual/tensor_parallelism). The tensor parallel size is the number of GPUs you want to use. For example, if you have 4 GPUs in a single node, you can set the tensor parallel size to 4.
 
 The model weight size, expected response latency and scale requirements impact the choice of accelerators to be used by the inference engine. The following examples showcase recommendations for loading model weights (i.e. Gemma 2 9B IT) and how to automatically scale the inference engine based on demand.
 
-### Application start-up and Model loading Optimizations
+### Application start-up and model loading optimizations
 
 To spin up a pod running an LLM related application, the start-up time consists of several portions:
 
 - Container initialization (image pull)
 - Application startup time
 
-The container initialization time is primarily the container image pull time, while for a typical python LLM application using vLLM, the application startup time is mostly the time spent loading LLM model weights.
+The container initialization time is primarily the container image pull time. The initialization of the vLLM application libraries are minimal compared to a majority of the time spent loading LLM model weights.
 
 #### Accelerate the container image pull
 
@@ -82,10 +87,11 @@ Each category depends on organization capabilities and desired outcome:
 
 Enabling [GCE Fuse parallel downloads](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/cloud-storage-fuse-csi-driver#parallel-download) can also improve model weight downloading time to the container image. To maximize the performance of this capability it is recommended to also provision [Local SSDs](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/local-ssd) for your nodes.
 
-## Types of inferencing
+The combination of container image pulling and model weight loading options are intended to be flexible based on the use case and requirements. In this guide, we provide different options to help you observe the differences in each method.
 
-- Batch Inference
-- Real-time inference
+The mode of inferencing also will be a factor when determining the appropriate startup and model loading choices.
+
+## Types of inferencing
 
 Batch inference and real-time inference are two distinct approaches to generating predictions from machine learning models. They differ primarily in how data is processed and how quickly predictions are delivered.
 
@@ -101,8 +107,8 @@ Batch inference and real-time inference are two distinct approaches to generatin
   - Data enrichment
   - Training data set creation
 - Two implementation examples of this are available:
-  - Model evaluation prediction step [example](/use-cases/model-fine-tuning-pipeline/model-eval/README.md)
-  - Inferencing [example](/use-cases/inferencing/batch-inference)
+  - Model evaluation prediction - in the end to end fine-tuning use case, we use this to evaluate the data accuracy and precision of our fine-tuned model. [example](/use-cases/model-fine-tuning-pipeline/model-eval/README.md)
+  - General inferencing - as part of the inferencing use case we explore a batch inference pipeline. [example](/use-cases/inferencing/batch-inference)
 
 ### Real-time Inference
 
@@ -116,19 +122,24 @@ Batch inference and real-time inference are two distinct approaches to generatin
     - Fraud detection systems
     - Self-driving cars
     - Real-time language translation or speech recognition
-- For an Implementation example, please check this document [Distributed Inferencing on vLLM](/use-cases/inferencing/serving/vllm)
+- For an Implementation example of the inference use case. [example](/use-cases/inferencing/serving/vllm)
+
+Depending on the mode of inferencing, observablity and metrics used for scaling may differ. The scenario goals and thresholds help determine the metrics required help the application and platform react to scaling up or down.
 
 ## Production Monitoring and Scaling
 
 - **Production Metrics:** Prometheus exposed metrics help provide crucial metrics to help provide inference engine details for observation and decision making.
+
   - Prometheus exposed metrics can automatically be captured once configured utilizing [Google Cloud Managed Service for Prometheus.](https://cloud.google.com/stackdriver/docs/managed-prometheus)
   - Utilize the `/metrics` endpoint exposed by vLLM to gain insights into crucial system health indicators, including request latency, throughput, and GPU memory consumption.
+
 - **Custom Metrics and HPA:**  
   Define custom metrics relevant to your specific use case and configure the Horizontal Pod Autoscaler ([HPA](https://cloud.google.com/kubernetes-engine/docs/concepts/horizontalpodautoscaler)) to dynamically scale the number of model replicas in response to real-time demand, optimizing resource utilization.  
   There are different metrics available that can be used to scale your inference workload on GKE:
 
-- **Server (inference engine) metrics**: vLLM provides workload-specific performance metrics. GKE simplifies scraping of those metrics and autoscaling the workloads based on these server-level metrics. You can use these metrics to gain visibility into performance indicators like batch size, queue size, and decode latencies.  
-  In the case of vLLM, [production metrics class](https://docs.vllm.ai/en/latest/serving/metrics.html) exposes a number of useful metrics which GKE can use to horizontally scale inference workloads.
+- **Server (inference engine) metrics**: vLLM provides workload-specific performance metrics. GKE simplifies scraping of those metrics and autoscaling the workloads based on these server-level metrics. You can use these metrics to gain visibility into performance indicators like batch size, queue size, and decode latencies.
+
+  In the case of vLLM, [production metrics class](https://docs.vllm.ai/en/latest/serving/metrics.html) exposes a number of useful metrics which GKE can use to horizontally scale inference workloads. Depending on your use case, just the queue of the number of requests waiting as a single metric may not be sufficient for sustained load. For instance when the system scales up additional workers to handle the queued up requests, the requests are handled with the new workers. Once all the queued requests are handled, the number of requests waiting will end up being zero, which may be a signal for the system to scale down and reduce the amount of workers. This causes an up and down behavior which may not be desired.
 
   - vllm:num_requests_running \- Number of requests currently running on GPU.
   - vllm:num_requests_waiting \- Number of requests waiting to be processed

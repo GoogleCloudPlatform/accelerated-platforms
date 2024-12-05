@@ -1,6 +1,6 @@
 # Run Batch inference on GKE
 
-Once a model has completed fine-tuning and is deployed on GKE , its ready to run batch Inference pipeline.
+Once a model has completed fine-tuning and is deployed on GKE, it's ready to run a batch inference pipeline.
 In this example batch inference pipeline, we would first send prompts to the hosted fine-tuned model and then validate the results based on ground truth.
 
 ## Prerequisites

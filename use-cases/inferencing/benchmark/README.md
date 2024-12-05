@@ -120,16 +120,20 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 
   ```
   NAME            READY   UP-TO-DATE   AVAILABLE   AGE
-  locust-master   1/1     1            1           ##X
+  locust-master   1/1     1            1           XXXXX
+  ```
+
+- Run the following command to output the URL for Locust.
+
+  ```sh
+  echo -e "\n${MLP_MODEL_OPS_NAMESPACE} Locust: ${MLP_LOCUST_NAMESPACE_ENDPOINT}\n"
   ```
 
 - Open Locust in the browser.
 
-  > It can take several minutes for Locust to be available via the gateway.
+  > It can take several minutes for Gradio to be available via the gateway.
 
-  ```shell
-  echo -e "\n${MLP_MODEL_OPS_NAMESPACE} Locust: ${MLP_LOCUST_NAMESPACE_ENDPOINT}\n"
-  ```
+  If you are seeing `fault filter abort`, wait a moment and retry.
 
 - Start a new load test.
 

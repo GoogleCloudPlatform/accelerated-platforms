@@ -65,9 +65,9 @@ kubectl get po -n {MLP_KUBERNETES_NAMESPACE}
 NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)          AGE
 
 
-## Retrieve the fronend URL endpoint 
+## Retrieve the frontend URL endpoint 
 
 ```sh
-echo {MLP_FRONTEND_RAG_NAMESPACE_ENDPOINT}
+echo ${MLP_FRONTEND_RAG_NAMESPACE_ENDPOINT}
 ```
 Open the Front end application in browser using URL value retrieved above.

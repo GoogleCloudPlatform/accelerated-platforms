@@ -199,7 +199,9 @@ def create_embeddings_index(
             pool = alloydb_connect.init_connection_pool(connector, database)
             with pool.connect() as db_conn:
                 db_conn.execute(index_cmd)
-                logging.info(f"Index '{INDEX_NAME_TEXT}' created successfully.")
+                logging.info(
+                    f"Embedding Column '{EMBEDDING_COLUMN}' : SCaNN Index '{INDEX_NAME}' created successfully."
+                )
     except Exception as e:
         # TODO: handle 'postgresql error: access method "scann" does not exist'
         # TODO: Handle "Error creating index: (pg8000.exceptions.DatabaseError) {'S': 'ERROR', 'V': 'ERROR', 'C': 'XX000', 'M': 'Cannot create ScaNN index, error: FAILED_PRECONDITION: Cannot create ScaNN index with empty table. Once the table is populated with data, create the index.

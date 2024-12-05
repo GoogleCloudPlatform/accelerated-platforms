@@ -30,7 +30,7 @@ if "LOG_LEVEL" in os.environ:
     logger.setLevel(new_log_level)
 
 # Construct the URL
-URL = os.environ["GEMMA_IT_ENDPOINT"]
+URL = os.environ.get("GEMMA_IT_ENDPOINT")
 
 
 def query_instruction_tuned_gemma(prompt):

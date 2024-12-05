@@ -19,9 +19,9 @@ import requests
 import json
 
 # Define the API Endpoints for deployment
-TEXT_API_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
-IMAGE_API_ENDPOINT = os.environ["IMAGE_EMBEDDING_ENDPOINT"]
-MULTIMODAL_API_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
+TEXT_API_ENDPOINT = os.environ.get("TEXT_EMBEDDING_ENDPOINT")
+IMAGE_API_ENDPOINT = os.environ.get("IMAGE_EMBEDDING_ENDPOINT")
+MULTIMODAL_API_ENDPOINT = os.environ.get("MULTIMODAL_EMBEDDING_ENDPOINT")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")

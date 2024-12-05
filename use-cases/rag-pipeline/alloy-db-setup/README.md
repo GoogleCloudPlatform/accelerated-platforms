@@ -58,7 +58,7 @@ gcloud builds submit .
     export EMBEDDING_COLUMN_MULTIMODAL="multimodal_embeddings"
     export EMBEDDING_COLUMN_IMAGE="image_embeddings"
     NUM_LEAVES_VALUE="\"300\""
-    export EMBEDDING_DIMENSION="\"786\""
+    export EMBEDDING_DIMENSION="\"768\""
 ```
 
 ```sh

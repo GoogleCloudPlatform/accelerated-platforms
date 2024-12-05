@@ -69,12 +69,16 @@ Now, deploy embeddings model:
   manifests/embedding.yaml
   ```
 
-## Test the embedding model
+  ```sh
+  kubectl apply -f manifests/embedding.yaml -n ${MLP_KUBERNETES_NAMESPACE}
+ ```
+
+## Validate the embedding model deployment
 Validations: 
 kubectl get po -n {MLP_KUBERNETES_NAMESPACE}
 
 
-└─⪧ kubectl get svc
+└─⪧ kubectl get svc -n {MLP_KUBERNETES_NAMESPACE}
 NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)          AGE
 
 

@@ -39,14 +39,14 @@ if "LOG_LEVEL" in os.environ:
     logger.setLevel(new_log_level)
 
 # Database and table configuration (replace with your actual values)
-catalog_db = "product_catalog"
-catalog_table = "clothes"
+catalog_db = os.environ["CATALOG_DB"]
+catalog_table = os.environ["CATALOG_TABLE_NAME"]
 embedding_column = {
-    "text": "text_embeddings",
-    "image": "image_embeddings",
-    "multimodal": "multimodal_embeddings",
+    "text": os.environ["EMBEDDING_COLUMN_TEXT"],
+    "image": os.environ.get["EMBEDDING_COLUMN_IMAGE"],
+    "multimodal": os.environ.get["EMBEDDING_COLUMN_MULTIMODAL"],
 }
-row_count = 5  # No of matching products in production
+row_count = os.environ["ROW_COUNT"]  # No of matching products in production
 
 app = FastAPI()
 

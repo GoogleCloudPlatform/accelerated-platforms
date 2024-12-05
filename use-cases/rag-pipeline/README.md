@@ -64,26 +64,25 @@ Here is what we need:
 
 ##<TODO> Remove this before merge to main
 
-If you are deeloping on in-rag branch you need to terraform apply ML-platform again to create Networking objects for frontend so gteway can reach the frontend pods.
+If you are developing on int-rag branch you need to terraform apply ML-platform again to create Networking objects for frontend so gateway can reach the frontend service.
 
 # Deploy RAG Application Components
 
+Steps:
+
 ## Deploy the Multimodal Model on the playground cluster
-Deploy backend application in GKE, follow the [README](/use-cases/rag-pipeline/embedding-models/multimodal-embedding/README.md)
+Deploy multimodal model on ML playground, follow the [README](/use-cases/rag-pipeline/embedding-models/multimodal-embedding/README.md)
 
 ## Deploy instruction tuned model on the playground cluster
-Deploy backend application in GKE, follow the [README](/use-cases/rag-pipeline/instruction-tuned-model/README.md)
+Deploy instruction tuned model on ML playground, follow the [README](/use-cases/rag-pipeline/instruction-tuned-model/README.md)
 
-## Create database `product_catalog` to import Product Catalog
-Deploy backend application in GKE, follow the [README](/use-cases/rag-pipeline/backend-application/README.md)
-
-## Run alloyDB set up job on the ML playground cluster
-Deploy backend application in GKE, follow the [README](/use-cases/rag-pipeline/alloy-db-setup/README.md)
+## Create database `product_catalog` in alloyDB to import Product Catalog
+Deploy database setup kubernetes job on the ML playground cluster, follow the [README](/use-cases/rag-pipeline/backend-application/README.md)
 
 ## Deploy the backend on the playground cluster
 
-Deploy backend application in GKE, follow the [README](/use-cases/rag-pipeline/backend/README.md)
+Deploy backend application on the ML playground cluster, follow the [README](/use-cases/rag-pipeline/backend/README.md)
 
 ## Deploy the frontend on the playground cluster
 
-Deploy backend application in GKE, follow the [README](/use-cases/rag-pipeline/frontend/README.md)
+Deploy frontend application on the MLP playground cluster, follow the [README](/use-cases/rag-pipeline/frontend/README.md)

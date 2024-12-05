@@ -30,6 +30,7 @@ if "LOG_LEVEL" in os.environ:
     logger.setLevel(new_log_level)
 
 
+# user_query can be None if only image is passed as an argument
 def prompt_generation(search_result, user_query=None):
     # Option 1: Emphasize User Intent
     prompt1 = f"""An online shopper is searching for products.  

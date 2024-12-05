@@ -19,14 +19,9 @@ import requests
 import json
 
 # Define the API Endpoints for deployment
-# TEXT_API_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
-# IMAGE_API_ENDPOINT = os.environ["IMAGE_EMBEDDING_ENDPOINT"]
-# MULTIMODAL_API_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
-
-# Enable for local testing
-TEXT_API_ENDPOINT = "http://34.56.171.99:80/text_embeddings"
-IMAGE_API_ENDPOINT = "http://34.56.171.99:80/image_embeddings"
-MULTIMODAL_API_ENDPOINT = "http://34.56.171.99:80/multimodal_embeddings"
+TEXT_API_ENDPOINT = os.environ["TEXT_EMBEDDING_ENDPOINT"]
+IMAGE_API_ENDPOINT = os.environ["IMAGE_EMBEDDING_ENDPOINT"]
+MULTIMODAL_API_ENDPOINT = os.environ["MULTIMODAL_EMBEDDING_ENDPOINT"]
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -178,7 +173,7 @@ def get_text_embeddings(text):
         return response.json()["text_embeds"]
 
     except requests.exceptions.HTTPError as e:
-        # logger.exception("Error fetching text embedding: %s", e)
+        logger.exception("Error fetching text embedding: %s", e)
         raise
 
     except requests.exceptions.RequestException as e:

@@ -149,7 +149,7 @@ Service for Prometheus [documentation](https://cloud.google.com/kubernetes-engin
     ```
 
     ```
-    horizontalpodautoscaler.autoscaling/vllm-openai-hpa created
+    horizontalpodautoscaler.autoscaling/vllm-openai-XXX-XXX created
     ```
 
   - Batch-size
@@ -159,7 +159,7 @@ Service for Prometheus [documentation](https://cloud.google.com/kubernetes-engin
     ```
 
     ```
-    horizontalpodautoscaler.autoscaling/vllm-openai-hpa created
+    horizontalpodautoscaler.autoscaling/vllm-openai-XXX-XXX created
     ```
 
   Once the HPA has been created on a given metric, GKE will autoscale the model
@@ -168,33 +168,33 @@ Service for Prometheus [documentation](https://cloud.google.com/kubernetes-engin
 - Get the current state of the HPA
 
   ```sh
-  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get hpa/vllm-openai-hpa
+  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get hpa/vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}
   ```
 
   ```
-  NAME              REFERENCE                        TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
-  vllm-openai-hpa   Deployment/vllm-openai-XXX-XXX   0/10      1         5         1          ##m##s
+  NAME                  REFERENCE                        TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+  vllm-openai-XXX-XXX   Deployment/vllm-openai-XXX-XXX   0/10      1         5         1          XXXXX
   ```
 
 - When the metrics threshold is crossed, new pods will be created.
   You can use the [Benchmarking with Locust](/use-cases/inferencing/benchmark/README.md) guide to generate load on the model.
 
   ```sh
-  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get pods --watch
+  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get pods -l app=vllm-openai-${MODEL_STORAGE}-${ACCELERATOR} --watch
   ```
 
   ```
   NAME                                   READY   STATUS      RESTARTS   AGE
-  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          ##h##m
-  vllm-openai-XXX-XXX-##########-#####   0/1     Pending     0          ##s
+  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          XXXXX
+  vllm-openai-XXX-XXX-##########-#####   0/1     Pending     0          XXXXX
   ```
 
   And eventually, the pods will be scaled up:
 
   ```
   NAME                                   READY   STATUS      RESTARTS   AGE
-  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          ##h##m
-  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          ##m
+  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          XXXXX
+  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          XXXXX
   ```
 
   If there are GPU resources available available in the cluster, the new pod will start.

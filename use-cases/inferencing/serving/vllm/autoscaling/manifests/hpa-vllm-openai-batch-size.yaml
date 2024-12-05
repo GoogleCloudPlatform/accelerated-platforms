@@ -15,7 +15,7 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: vllm-openai-hpa
+  name: vllm-openai-V_MODEL_STORAGE-V_ACCELERATOR
 spec:
   maxReplicas: 5
   metrics:

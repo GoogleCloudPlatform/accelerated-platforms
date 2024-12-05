@@ -32,7 +32,7 @@ if "LOG_LEVEL" in os.environ:
     logger.setLevel(new_log_level)
 
 # RAG BACKEND_SERVICE_URL
-BACKEND_SERVICE_URL = os.environ.get("BACKEND_SERVICE_URL")
+BACKEND_SERVICE_URL = os.environ.get("BACKEND_SERVICE_ENDPOINT")
 
 
 # Function to validate GCS URI

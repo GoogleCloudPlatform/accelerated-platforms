@@ -53,22 +53,22 @@ gcloud builds submit .
 Update `manifests/backend_deployment.yaml` file with variables values as shown below:
 
 ```sh
-    export CATALOG_DB_NAME =  "product_catalog"
-    export CATALOG_TABLE_NAME = "clothes"
-    export TEXT_EMBEDDING_ENDPOINT = "http://multimodal-embedding-model:80/text_embeddings"
-    export IMAGE_EMBEDDING_ENDPOINT = "http://multimodal-embedding-model:80/image_embeddings"
-    export MULTIMODAL_EMBEDDING_ENDPOINT = "http://multimodal-embedding-model:80/multimodal_embeddings" 
-    export GEMMA_IT_ENDPOINT = ""
-    export EMBEDDING_COLUMN_TEXT = "text_embeddings"
-    export EMBEDDING_COLUMN_IMAGE = "image_embeddings"
-    export EMBEDDING_COLUMN_MULTIMODAL = "multimodal_embeddings"
-    export ROW_COUNT = 5
+    export CATALOG_DB_NAME="product_catalog"
+    export CATALOG_TABLE_NAME="clothes"
+    export TEXT_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
+    export IMAGE_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/image_embeddings"
+    export MULTIMODAL_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/multimodal_embeddings" 
+    export GEMMA_IT_ENDPOINT="http://rag-it-model.ml-team:8000/v1/chat/completions"
+    export EMBEDDING_COLUMN_TEXT="text_embeddings"
+    export EMBEDDING_COLUMN_IMAGE="image_embeddings"
+    export EMBEDDING_COLUMN_MULTIMODAL="multimodal_embeddings"
+    export ROW_COUNT=5
 ```
 
 ```sh
   sed \
   -i -e "s|V_MLP_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
-  -i -e "s|V_PROJECT_ID|${V_PROJECT_ID}|" \
+  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
   -i -e "s|V_CATALOG_DB_NAME|${CATALOG_DB_NAME}|" \
   -i -e "s|V_CATALOG_TABLE_NAME|${CATALOG_TABLE_NAME}|" \
   -i -e "s|V_MLP_DB_ADMIN_IAM|${MLP_DB_ADMIN_IAM}|" \
@@ -98,7 +98,10 @@ kubectl get po -n ${MLP_KUBERNETES_NAMESPACE}
 ```
 
 
-└─⪧ kubectl get svc
+└─⪧ kubectl get svc -n ${MLP_KUBERNETES_NAMESPACE}
 NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)          AGE
 
 
+```sh
+kubectl apply -f manifests/curl-job.yaml -n ${MLP_KUBERNETES_NAMESPACE}
+```

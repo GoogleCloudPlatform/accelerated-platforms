@@ -34,7 +34,7 @@ password = credentials.token
 # AlloyDB connection parameters
 
 instance_uri = os.environ.get("MLP_DB_INSTANCE_URI")
-alloydb_user = os.environ.get("MLP_DB_ADMIN_IAM")
+# alloydb_user = os.environ.get("MLP_DB_ADMIN_IAM")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -58,7 +58,7 @@ def create_alloydb_engine(connector: Connector, catalog_db) -> sqlalchemy.engine
         conn: pg8000.dbapi.Connection = connector.connect(
             instance_uri,
             "pg8000",
-            user=alloydb_user,
+            user=user,
             db=catalog_db,
             ip_type=IPTypes.PSC,
             enable_iam_auth=True,

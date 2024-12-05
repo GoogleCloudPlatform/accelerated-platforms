@@ -95,7 +95,7 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
   ```
   NAME                 READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-openai-gcs-l4   1/1     1            1           XXX
+  vllm-openai-gcs-l4   1/1     1            1           XXXXX
   ```
 
 ## Serve the model through a web chat interface
@@ -133,10 +133,10 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
   ```
   NAME     READY   UP-TO-DATE   AVAILABLE   AGE
-  gradio   1/1     1            1           XXs
+  gradio   1/1     1            1           XXXXX
   ```
 
-- Run the following command to output the URL for the the chat interface.
+- Run the following command to output the URL for the chat interface.
 
   ```sh
   echo -e "\nGradio chat interface: ${MLP_GRADIO_MODEL_OPS_ENDPOINT}\n"

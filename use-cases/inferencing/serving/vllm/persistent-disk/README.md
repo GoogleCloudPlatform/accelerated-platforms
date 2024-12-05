@@ -104,7 +104,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   ```
 
   ```
-  job.batch/model-downloader created
+  job.batch/model-downloader-pd created
   ```
 
   It takes approximately 10 minutes for the job to complete.
@@ -112,14 +112,14 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 - Once the job has started, you can check the logs for the progress of the download.
 
   ```sh
-  kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} logs job/model-downloader
+  kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} logs job/model-downloader-pd
   ```
 
   If you get the following error, wait a moment and retry as the pod is still initializing:
 
   ```
   Defaulted container "model-downloader" out of: model-downloader, gke-gcsfuse-sidecar (init)
-  Error from server (BadRequest): container "model-downloader" in pod "model-downloader-XXXXX" is waiting to start: PodInitializing
+  Error from server (BadRequest): container "model-downloader" in pod "model-downloader-pd-XXXXX" is waiting to start: PodInitializing
   ```
 
   If the download is still in progress you should see something similar to:
@@ -170,12 +170,12 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   ```sh
   watch --color --interval 5 --no-title \
-  "kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/model-downloader | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
+  "kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/model-downloader-pd | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
   ```
 
   ```
-  NAME               STATUS    COMPLETIONS   DURATION   AGE
-  model-downloader   Complete  1/1           ##m        ##m
+  NAME                  STATUS    COMPLETIONS   DURATION   AGE
+  model-downloader-pd   Complete  1/1           XXXXX      XXXXX
   ```
 
   Now, the model is downloaded to the persistent volume.
@@ -185,7 +185,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 - Fetch the Persistent volume name and disk ref to create a disk image.
 
   ```sh
-  PV_NAME="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pvc/vllm-models -o jsonpath='{.spec.volumeName}')"
+  PV_NAME="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pvc/vllm-models-pd -o jsonpath='{.spec.volumeName}')"
   GCE_DISK_REF="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pv/${PV_NAME} -o jsonpath='{.spec.csi.volumeHandle}')"
   echo "PV_NAME=${PV_NAME}"
   echo "GCE_DISK_REF=${GCE_DISK_REF}"
@@ -325,7 +325,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   ```
   NAME                READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-openai-pd-l4   1/1     1            1           Xm
+  vllm-openai-pd-l4   1/1     1            1           XXXXX
   ```
 
 ## Serve the model through a web chat interface
@@ -363,16 +363,20 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   ```
   NAME     READY   UP-TO-DATE   AVAILABLE   AGE
-  gradio   1/1     1            1           XXs
+  gradio   1/1     1            1           XXXXX
   ```
 
-- Run the following command to output the URL for the the chat interface.
+- Run the following command to output the URL for the chat interface.
 
   ```sh
   echo -e "\nGradio chat interface: ${MLP_GRADIO_MODEL_OPS_ENDPOINT}\n"
   ```
 
 - Open the chat interface in your browser.
+
+  > It can take several minutes for Gradio to be available via the gateway.
+
+  If you are seeing `fault filter abort`, wait a moment and retry.
 
 - Enter the following prompt in the **Type a message...** text box and click **Submit**.
 

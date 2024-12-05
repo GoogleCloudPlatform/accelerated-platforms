@@ -184,7 +184,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 - Fetch the Persistent volume name and disk ref to create a disk image.
 
   ```sh
-  PV_NAME="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pvc/vllm-models -o jsonpath='{.spec.volumeName}')"
+  PV_NAME="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pvc/vllm-models-hdml -o jsonpath='{.spec.volumeName}')"
   GCE_HYPERDISKML_REF="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pv/${PV_NAME} -o jsonpath='{.spec.csi.volumeHandle}')"
   echo "PV_NAME=${PV_NAME}"
   echo "GCE_HYPERDISKML_REF=${GCE_HYPERDISKML_REF}"
@@ -233,9 +233,9 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   NAME                                              ZONE           SIZE_GB  TYPE          STATUS
   XXXXXXXXXX-vllm-model-weights-hdml-us-central1-a  us-central1-a  1024     hyperdisk-ml  READY
+  ```
 
   The Hyperdisk ML is created with default throughput limit of 24,576 MB/s. You can adjust the throughput limit based on the underlying VM to achieve higher speed in loading the model.
-  ```
 
 ### Create the PersistentVolumeClaim (PVC) and PersistentVolume (PV) for serving
 
@@ -327,12 +327,12 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   ```
   NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-openai-hdml-l4   1/1     1            1           XXX
+  vllm-openai-hdml-l4   1/1     1            1           XXXXX
   ```
 
 ## Serve the model through a web chat interface
 
-- Configure the deployment
+- Configure the deployment.
 
   ```sh
   git restore manifests/gradio.yaml
@@ -343,7 +343,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   manifests/gradio.yaml
   ```
 
-- Create the deployment
+- Create the deployment.
 
   ```sh
   kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} apply -f manifests/gradio.yaml
@@ -365,16 +365,20 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   ```
   NAME     READY   UP-TO-DATE   AVAILABLE   AGE
-  gradio   1/1     1            1           XXs
+  gradio   1/1     1            1           XXXXX
   ```
 
-- Run the following command to output the URL for the the chat interface.
+- Run the following command to output the URL for the chat interface.
 
   ```sh
   echo -e "\nGradio chat interface: ${MLP_GRADIO_MODEL_OPS_ENDPOINT}\n"
   ```
 
 - Open the chat interface in your browser.
+
+  > It can take several minutes for Gradio to be available via the gateway.
+
+  If you are seeing `fault filter abort`, wait a moment and retry.
 
 - Enter the following prompt in the **Type a message...** text box and click **Submit**.
 

@@ -20,7 +20,8 @@ COPY requirements.txt /workspace/
 
 RUN pip install --no-cache-dir -r /workspace/requirements.txt
 
-COPY alloydb_setup.py \
+COPY alloydb_connect.py \
+    alloy-db-setup-job.py\
     create_catalog.py \
     custom_json_formatter.py \
     get_emb.py \
@@ -28,4 +29,4 @@ COPY alloydb_setup.py \
     main.py \
     /workspace/
 
-CMD ["python", "main.py"]
+CMD ["python", "alloy-db-setup-job.py"]

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import alloydb_setup
+import alloydb_connect
 import get_emb
 import logging
 import logging.config
@@ -23,7 +23,7 @@ import sqlalchemy
 from google.cloud.alloydb.connector import Connector
 from pgvector.sqlalchemy import Vector
 
-EMBEDDING_DIMENSION = os.environ.get("EMBEDDING_DIMENSION")
+EMBEDDING_DIMENSION = int(os.environ.get("EMBEDDING_DIMENSION"))
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -45,7 +45,7 @@ def create_database(database, new_database):
         # initialize Connector as context manager
         with Connector() as connector:
             # initialize connection pool
-            pool = alloydb_setup.init_connection_pool(connector, database)
+            pool = alloydb_connect.init_connection_pool(connector, database)
             del_db = sqlalchemy.text(f"DROP DATABASE IF EXISTS {new_database};")
             create_db = sqlalchemy.text(f"CREATE DATABASE {new_database}")
 
@@ -73,7 +73,7 @@ def create_database(database, new_database):
         # 3. Connect to the newly created database
         with Connector() as connector:
             # initialize connection pool
-            pool = alloydb_setup.init_connection_pool(connector, new_database)
+            pool = alloydb_connect.init_connection_pool(connector, new_database)
             create_vector_extn = sqlalchemy.text(
                 f"CREATE EXTENSION IF NOT EXISTS vector;"
             )
@@ -143,7 +143,7 @@ def create_and_populate_table(database, table_name, processed_data_path):
 
         # 3. Load
         with Connector() as connector:
-            engine = alloydb_setup.init_connection_pool(connector, database)
+            engine = alloydb_connect.init_connection_pool(connector, database)
             with engine.begin() as connection:
                 logging.info(f"Connected with the db {database}")
                 df.to_sql(
@@ -183,20 +183,20 @@ def create_and_populate_table(database, table_name, processed_data_path):
 
 
 # Create an Scann index on the table with embedding column and cosine distance
-def create_text_embeddings_index(
+def create_embeddings_index(
     database,
     TABLE_NAME,
     EMBEDDING_COLUMN,
-    INDEX_NAME_TEXT,
+    INDEX_NAME,
     DISTANCE_FUNCTION,
     NUM_LEAVES_VALUE,
 ):
     index_cmd = sqlalchemy.text(
-        f"CREATE INDEX {INDEX_NAME_TEXT} ON {TABLE_NAME} USING scann ({EMBEDDING_COLUMN} {DISTANCE_FUNCTION}) WITH (num_leaves={NUM_LEAVES_VALUE});"
+        f"CREATE INDEX {INDEX_NAME} ON {TABLE_NAME} USING scann ({EMBEDDING_COLUMN} {DISTANCE_FUNCTION}) WITH (num_leaves={NUM_LEAVES_VALUE});"
     )
     try:
         with Connector() as connector:
-            pool = alloydb_setup.init_connection_pool(connector, database)
+            pool = alloydb_connect.init_connection_pool(connector, database)
             with pool.connect() as db_conn:
                 db_conn.execute(index_cmd)
                 logging.info(f"Index '{INDEX_NAME_TEXT}' created successfully.")

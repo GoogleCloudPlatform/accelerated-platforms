@@ -29,10 +29,22 @@ catalog_db = os.environ.get("CATALOG_DB")
 catalog_table = os.environ.get("CATALOG_TABLE_NAME")
 
 # Vector Index
-EMBEDDING_COLUMN = os.environ.get("EMBEDDING_COLUMN_TEXT")
-INDEX_NAME_TEXT = "rag_text_embeddings_index"
+# EMBEDDING_COLUMN = os.environ.get("EMBEDDING_COLUMN")
+# INDEX_NAME_TEXT = "rag_text_embeddings_index"
 DISTANCE_FUNCTION = "cosine"
 NUM_LEAVES_VALUE = os.environ.get("NUM_LEAVES_VALUE")
+
+embedding_columns = {
+    "text": "text_embeddings",
+    "image": "image_embeddings",
+    "multimodal": "multimodal_embeddings",
+}
+
+index_names = {
+    "text": "rag_text_embeddings_index",
+    "image": "rag_image_embeddings_index",
+    "multimodal": "rag_multimodal_embeddings_index",
+}
 
 if __name__ == "__main__":
     # Configure logging
@@ -62,17 +74,19 @@ if __name__ == "__main__":
             catalog_table,
             processed_data_path,
         )
-
-        # Create Index
+        # Create Indexes for all embedding columns(text, image and multimodal)
         # <TODO> Validate if image and multimodal scan index is required
-        create_catalog.create_text_embeddings_index(
-            catalog_db,
-            catalog_table,
-            EMBEDDING_COLUMN,
-            INDEX_NAME_TEXT,
-            DISTANCE_FUNCTION,
-            NUM_LEAVES_VALUE,
-        )
+        for modality, embedding_column in embedding_columns.items():
+            index_name = index_names[modality]
+
+            create_catalog.create_embeddings_index(
+                catalog_db,
+                catalog_table,
+                embedding_column,
+                index_name,
+                DISTANCE_FUNCTION,
+                NUM_LEAVES_VALUE,
+            )
     except Exception as e:
         logging.error(f"An unexpected error occurred during catalog onboarding: {e}")
         raise

@@ -32,7 +32,7 @@ catalog_table = os.environ.get("CATALOG_TABLE_NAME")
 # EMBEDDING_COLUMN = os.environ.get("EMBEDDING_COLUMN")
 # INDEX_NAME_TEXT = "rag_text_embeddings_index"
 DISTANCE_FUNCTION = "cosine"
-NUM_LEAVES_VALUE = os.environ.get("NUM_LEAVES_VALUE")
+NUM_LEAVES_VALUE = int(os.environ.get("NUM_LEAVES_VALUE"))
 
 embedding_columns = {
     "text": "text_embeddings",

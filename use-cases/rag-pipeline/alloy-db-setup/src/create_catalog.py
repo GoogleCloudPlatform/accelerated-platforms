@@ -23,7 +23,7 @@ import sqlalchemy
 from google.cloud.alloydb.connector import Connector
 from pgvector.sqlalchemy import Vector
 
-EMBEDDING_DIMENSION = int(os.environ.get("EMBEDDING_DIMENSION"))
+EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION"))
 
 # Configure logging
 logging.config.fileConfig("logging.conf")

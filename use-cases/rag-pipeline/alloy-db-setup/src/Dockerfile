@@ -26,7 +26,8 @@ COPY alloydb_connect.py \
     custom_json_formatter.py \
     get_emb.py \
     logging.conf \
-    main.py \
     /workspace/
+
+ENV PYTHONUNBUFFERED 1
 
 CMD ["python", "alloy-db-setup-job.py"]

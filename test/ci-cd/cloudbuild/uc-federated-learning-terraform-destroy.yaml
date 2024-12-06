@@ -1,3 +1,17 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 options:
   logging: CLOUD_LOGGING_ONLY
 
@@ -16,7 +30,7 @@ steps:
   waitFor: ["-"]
 
 - name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-  id: "Test platforms/gke/base/core Terraform"
+  id: "Manual platforms/gke/base/use-cases/federated-learning Terraform destroy"
   entrypoint: "ash"
   args:
     - "-x"
@@ -30,24 +44,18 @@ steps:
       export ACP_REPO_DIR="/workspace"
       export ACP_PLATFORM_BASE_DIR="/workspace/platforms/gke/base"
       export ACP_PLATFORM_CORE_DIR="/workspace/platforms/gke/base/core"
+      export FEDERATED_LEARNING_USE_CASE_DIR="${ACP_PLATFORM_CORE_DIR}/use-cases/federated-learning"
 
       export TF_VAR_cluster_project_id="${PROJECT_ID}"
-      export TF_VAR_platform_name="commit-${SHORT_SHA}"
+      export TF_VAR_platform_name="${_PLATFORM_NAME}"
       export TF_VAR_terraform_project_id="${PROJECT_ID}"
 
-      platforms/gke/base/core/deploy.sh
-      platforms/gke/base/core/deploy.sh
-
-      APPLY_RETURN_CODE=$?
-      echo "APPLY_RETURN_CODE=$${APPLY_RETURN_CODE}"
-
-      platforms/gke/base/core/teardown.sh || exit 1
-      if [[ $${APPLY_RETURN_CODE} -ne 0 ]]; then
-        exit $${APPLY_RETURN_CODE}
-      fi
+      platforms/gke/base/use-cases/federated-learning/teardown.sh
+      platforms/gke/base/core/teardown.sh
   waitFor:
   - "Build runner image"
 
 substitutions:
   _AR_REPO_LOCATION: "us-central1"
+  _PLATFORM_NAME: "dev"
   _IAP_DOMAIN: "accelerated-platforms.joonix.net"

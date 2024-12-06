@@ -24,7 +24,7 @@ vLLM provides three core GPU strategies for model inference:
 
 The examples primarily focus on the first two strategies, showcasing the distributed computing capabilities of the ML Platform on GKE. The strategies may differ depending on business requirements and available resources within an organization.
 
-The fine-tuned gemma 2 9B model can fit in a single GPU such as the A100 40GB, but for accelerators that have less memory like the L4 24GB, it can fit on a single node with multiple GPUs with [tensor parallelism](https://huggingface.co/docs/text-generation-inference/en/conceptual/tensor_parallelism). The tensor parallel size is the number of GPUs you want to use. For example, if you have 4 GPUs in a single node, you can set the tensor parallel size to 4.
+The fine-tuned Gemma 2 9B IT model in the fine-tuning end-to-end [example](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch) can fit in a single GPU such as the A100 40GB, but for accelerators that have less memory like the L4 24GB, it can fit on a single node with multiple GPUs with [tensor parallelism](https://huggingface.co/docs/text-generation-inference/en/conceptual/tensor_parallelism). The tensor parallel size is the number of GPUs you want to use. For example, if you have 4 GPUs in a single node, you can set the tensor parallel size to 4.
 
 The model weight size, expected response latency and scale requirements impact the choice of accelerators to be used by the inference engine. The following examples showcase recommendations for loading model weights (i.e. Gemma 2 9B IT) and how to automatically scale the inference engine based on demand.
 

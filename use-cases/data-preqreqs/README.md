@@ -63,6 +63,8 @@ Select a path between **Full dataset** and **Smaller dataset (subset)**. The sma
     rm ./temp/flipkart_com-ecommerce_sample.csv
     ```
 
+> **NOTE:** Return to the respective use case instructions you are following, do not continue within this document.
+
 ## Processed data
 
 These steps walk you through downloading the prepared data from Hugging Face and uploads the data into the data GCS bucket for use within the guide.
@@ -103,6 +105,8 @@ Select a path between **Full dataset** and **Smaller dataset (subset)**. The sma
   rm ./temp/flipkart.csv
   ```
 
+> **NOTE:** Return to the respective use case instructions you are following, do not continue within this document.
+
 ## Prepared data
 
 These steps walk you through downloading the prepared data from Hugging Face and uploads the data into the data GCS bucket for use within the guide.
@@ -142,6 +146,8 @@ Select a path between **Full dataset** and **Smaller dataset (subset)**. The sma
 
   rm -rf ./temp
   ```
+
+> **NOTE:** Return to the respective use case instructions you are following, do not continue within this document.
 
 ## Fine-tuned model
 
@@ -197,3 +203,5 @@ These steps walk you through downloading the fine-tuned model from Hugging Face 
     ```sh
     job.batch/transfer-to-gcs condition met
     ```
+
+> **NOTE:** Return to the respective use case instructions you are following, do not continue within this document.

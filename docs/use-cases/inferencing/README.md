@@ -175,7 +175,7 @@ There are different metrics available that can be used to scale your inference w
 
 #### Important HPA Considerations:
 
-Fine-tuning the HPA settings is the primary way to align your provisioned hardware cost with traffic demands to achieve your inference server performance goals.
+Optimizing the HPA settings is the primary way to align your provisioned hardware cost with traffic demands to achieve your inference server performance goals.
 
 We recommend setting these HPA configuration options:
 

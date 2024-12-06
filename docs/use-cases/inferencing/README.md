@@ -102,7 +102,8 @@ vLLM supports two inference modes:
 
 - Batch Inference
 - Real-time Inference
-  They differ primarily in how data is processed and how quickly predictions are delivered.
+
+They differ primarily in how data is processed and how quickly predictions are delivered.
 
 #### Batch Inference
 

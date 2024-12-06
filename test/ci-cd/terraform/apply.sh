@@ -14,18 +14,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+set -o nounset
+set -o pipefail
+
 MY_PATH="$(
     cd "$(dirname "$0")" >/dev/null 2>&1
     pwd -P
 )"
 
-terraservices=("cloudbuild")
-
-cd "${MY_PATH}/initialize" &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-rm tfplan
+terraservices=("initialize" "cloudbuild")
 
 for terraservice in "${terraservices[@]}"; do
     cd "${MY_PATH}/${terraservice}" &&

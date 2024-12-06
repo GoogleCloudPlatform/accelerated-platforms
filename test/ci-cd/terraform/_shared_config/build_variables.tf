@@ -18,11 +18,11 @@ locals {
 }
 
 variable "build_location" {
-  description = "value"
+  description = "The Google Cloud location to use when creating resources for the 'build' project."
   type        = string
 }
 
 variable "build_project_id" {
-  description = "value"
+  description = "The Google Cloud project ID for the 'build' project."
   type        = string
 }

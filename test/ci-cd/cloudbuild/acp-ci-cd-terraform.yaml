@@ -12,7 +12,7 @@ steps:
   - --log-timestamp=false
   - --verbosity=info
   id: "Build runner image"
-  name: "gcr.io/kaniko-project/executor:latest"
+  name: "gcr.io/kaniko-project/executor:v1.23.2"
   waitFor: ["-"]
 
 - name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
@@ -22,13 +22,17 @@ steps:
     - "-x"
     - "-c"
     - |
+      set -o errexit
+      set -o nounset
+      set -o pipefail
+
       export NO_COLOR="1"
       export TERM="xterm"
       export TF_CLI_ARGS="-no-color"
       export TF_IN_AUTOMATION="1"
 
       cd test/ci-cd/terraform && \
-      .apply.sh
+      ./apply.sh
   waitFor:
   - "Build runner image"
 

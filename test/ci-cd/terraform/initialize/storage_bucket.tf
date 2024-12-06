@@ -17,6 +17,7 @@ resource "google_storage_bucket" "terraform" {
   location                    = var.build_location
   name                        = local.build_terraform_bucket_name
   project                     = data.google_project.build.project_id
+  public_access_prevention    = "enforced"
   uniform_bucket_level_access = true
 
   versioning {

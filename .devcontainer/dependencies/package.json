@@ -1,0 +1,6 @@
+{
+  "name": "accelerated-platforms-devcontainer",
+  "dependencies": {
+    "prettier": "^3.4.2"
+  }
+}

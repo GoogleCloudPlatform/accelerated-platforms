@@ -1,6 +1,8 @@
-# Distributed Inferencing on vLLM using Persistent disk
+# Distributed Inference and Serving with vLLM using Persistent disk
 
-This guide demonstrates how to serve a model with vllm using persistent disk. By the end of this guide, you should be able to perform the following steps:
+This guide demonstrates how to serve a model with vllm using persistent disk.
+
+By the end of this guide, you should be able to perform the following steps:
 
 - Create a Persistent Disk for the LLM model weights
 - Deploy a vLLM container to your cluster to host your model
@@ -50,14 +52,14 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   > Set the environment variables based on the accelerator to use to server the model.
   > The default values below are set for NVIDIA L4 GPUs.
 
-  | Variable       | Description                                                                                  | Example                                |
-  | -------------- | -------------------------------------------------------------------------------------------- | -------------------------------------- |
-  | ACCELERATOR    | Type of GPU accelerator to use (a100, h100, l4)                                              | l4                                     |
-  | GCE_DISK_NAME  | Name of the persistent disk that will host the model                                         | <unique_id>-vllm-model-weights-${ZONE} |
-  | GCE_IMAGE_NAME | Disk image created with model weights                                                        | <unique_id>-vllm-model-weights-${ZONE} |
-  | MODEL_NAME     | The name of the model folder in the root of the GCS model bucket                             | model-gemma2                           |
-  | MODEL_VERSION  | The name of the version folder inside the model folder of the GCS model bucket               | experiment                             |
-  | ZONE           | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION} | us-central1-a                          |
+  | Variable       | Description                                                                                  | Example                                   |
+  | -------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------- |
+  | ACCELERATOR    | Type of GPU accelerator to use (a100, h100, l4)                                              | l4                                        |
+  | GCE_DISK_NAME  | Name of the persistent disk that will host the model                                         | <unique_id>-vllm-model-weights-pd-${ZONE} |
+  | GCE_IMAGE_NAME | Disk image created with model weights                                                        | <unique_id>-vllm-model-weights-pd-${ZONE} |
+  | MODEL_NAME     | The name of the model folder in the root of the GCS model bucket                             | model-gemma2                              |
+  | MODEL_VERSION  | The name of the version folder inside the model folder of the GCS model bucket               | experiment                                |
+  | ZONE           | GCP zone where you have accelerators available. The zone must be in the region ${MLP_REGION} | us-central1-a                             |
 
   ```sh
   ACCELERATOR=l4
@@ -67,8 +69,8 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   ```
 
   ```ssh
-  GCE_DISK_NAME=${MLP_UNIQUE_IDENTIFIER_PREFIX}-vllm-model-weights-${ZONE}
-  GCE_IMAGE_NAME=${MLP_UNIQUE_IDENTIFIER_PREFIX}-vllm-model-weights-${ZONE}
+  GCE_DISK_NAME=${MLP_UNIQUE_IDENTIFIER_PREFIX}-vllm-model-weights-pd-${ZONE}
+  GCE_IMAGE_NAME=${MLP_UNIQUE_IDENTIFIER_PREFIX}-vllm-model-weights-pd-${ZONE}
   ```
 
 ### Download the model from GCS to a PersistentVolume (PV)
@@ -77,6 +79,10 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   ```sh
   kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} apply -f manifests/volume-prep/downloads-persistent-volume-claim.yaml
+  ```
+
+  ```
+  persistentvolumeclaim/vllm-models created
   ```
 
 - Configure the job to download the model from the GCS bucket to the PersistentVolume (PV).
@@ -97,10 +103,23 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} create -f manifests/volume-prep/job.yaml
   ```
 
+  ```
+  job.batch/model-downloader-pd created
+  ```
+
+  It takes approximately 10 minutes for the job to complete.
+
 - Once the job has started, you can check the logs for the progress of the download.
 
   ```sh
-  kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} logs job/model-downloader
+  kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} logs job/model-downloader-pd
+  ```
+
+  If you get the following error, wait a moment and retry as the pod is still initializing:
+
+  ```
+  Defaulted container "model-downloader" out of: model-downloader, gke-gcsfuse-sidecar (init)
+  Error from server (BadRequest): container "model-downloader" in pod "model-downloader-pd-XXXXX" is waiting to start: PodInitializing
   ```
 
   If the download is still in progress you should see something similar to:
@@ -151,12 +170,12 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   ```sh
   watch --color --interval 5 --no-title \
-  "kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/model-downloader | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
+  "kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get job/model-downloader-pd | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
   ```
 
   ```
-  NAME               STATUS    COMPLETIONS   DURATION   AGE
-  model-downloader   Complete  1/1           ##m        ##m
+  NAME                  STATUS    COMPLETIONS   DURATION   AGE
+  model-downloader-pd   Complete  1/1           XXXXX      XXXXX
   ```
 
   Now, the model is downloaded to the persistent volume.
@@ -166,10 +185,15 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 - Fetch the Persistent volume name and disk ref to create a disk image.
 
   ```sh
-  PV_NAME="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pvc/vllm-models -o jsonpath='{.spec.volumeName}')"
+  PV_NAME="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pvc/vllm-models-pd -o jsonpath='{.spec.volumeName}')"
   GCE_DISK_REF="$(kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get pv/${PV_NAME} -o jsonpath='{.spec.csi.volumeHandle}')"
   echo "PV_NAME=${PV_NAME}"
   echo "GCE_DISK_REF=${GCE_DISK_REF}"
+  ```
+
+  ```
+  PV_NAME=pvc-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+  GCE_DISK_REF=projects/XXXXXXXXXX/zones/us-central1-X/disks/pvc-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
   ```
 
 - Create a Compute Engine image.
@@ -183,9 +207,9 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   It takes approximately 3 minutes to create the Compute Engine image.
 
   ```
-  Created [https://www.googleapis.com/compute/v1/projects/XXXXXXXXXXXXXXXXXXXX/global/images/XXXXXXXXXXXXXXXXXXXX-vllm-model-weights-us-central1-a].
-  NAME                                                   PROJECT              FAMILY  DEPRECATED  STATUS
-  XXXXXXXXXXXXXXXXXXXX-vllm-model-weights-us-central1-a  XXXXXXXXXXXXXXXXXXXX                     READY
+  Created [https://www.googleapis.com/compute/v1/projects/XXXXXXXXXX/global/images/XXXXXXXXXX-vllm-model-weights-pd-us-central1-a].
+  NAME                                            PROJECT              FAMILY  DEPRECATED  STATUS
+  XXXXXXXXXX-vllm-model-weights-pd-us-central1-a  XXXXXXXXXX                               READY
   ```
 
 - Create a Persistent Disk from the image.
@@ -207,8 +231,8 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   WARNING: Some requests generated warnings:
   - Disk size: '1024 GB' is larger than image size: '100 GB'. You might need to resize the root repartition manually if the operating system does not support automatic resizing. See https://cloud.google.com/compute/docs/disks/add-persistent-disk#resize_pd for details.
 
-  NAME                                                   ZONE           SIZE_GB  TYPE    STATUS
-  XXXXXXXXXXXXXXXXXXXX-vllm-model-weights-us-central1-a  us-central1-a  1024     pd-ssd  READY
+  NAME                                            ZONE           SIZE_GB  TYPE    STATUS
+  XXXXXXXXXX-vllm-model-weights-pd-us-central1-a  us-central1-a  1024     pd-ssd  READY
   ```
 
 ### Create the PersistentVolumeClaim (PVC) and PersistentVolume (PV) for serving
@@ -237,7 +261,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   ```
 
   ```
-  persistentvolume/vllm-model-weights-ssd-1024gb-us-central1-a created
+  persistentvolume/vllm-model-weights-pd-1024gb-us-central1-a created
   ```
 
 - Configure the PersistentVolumeClaim.
@@ -256,7 +280,7 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   ```
 
   ```
-  persistentvolumeclaim/vllm-model-weights-ssd-1024gb-us-central1-a-ro created
+  persistentvolumeclaim/vllm-model-weights-pd-1024gb-us-central1-a-ro created
   ```
 
 ## Serve the model with vLLM
@@ -299,6 +323,11 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   It can take 5+ minutes for the deployment to be ready and available.
 
+  ```
+  NAME                READY   UP-TO-DATE   AVAILABLE   AGE
+  vllm-openai-pd-l4   1/1     1            1           XXXXX
+  ```
+
 ## Serve the model through a web chat interface
 
 - Configure the deployment.
@@ -330,13 +359,24 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   "kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get deployment/gradio | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
   ```
 
-- Run the following command to output the URL for the the chat interface.
+  It can take 1 minute for the deployment to be ready and available.
+
+  ```
+  NAME     READY   UP-TO-DATE   AVAILABLE   AGE
+  gradio   1/1     1            1           XXXXX
+  ```
+
+- Run the following command to output the URL for the chat interface.
 
   ```sh
   echo -e "\nGradio chat interface: ${MLP_GRADIO_MODEL_OPS_ENDPOINT}\n"
   ```
 
 - Open the chat interface in your browser.
+
+  > It can take several minutes for Gradio to be available via the gateway.
+
+  If you are seeing `fault filter abort`, wait a moment and retry.
 
 - Enter the following prompt in the **Type a message...** text box and click **Submit**.
 

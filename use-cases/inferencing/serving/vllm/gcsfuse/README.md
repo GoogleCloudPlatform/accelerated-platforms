@@ -1,11 +1,9 @@
-# Distributed Inferencing on vLLM using GCS
+# Distributed Inference and Serving with vLLM using GCS
 
 This guide demonstrates how to serve a model with vllm using GCS. By the end of this guide, you should be able to perform the following steps:
 
 - Deploy a vLLM container to your cluster to host your model
 - Use vLLM to serve the fine-tuned Gemma model
-- View Production metrics for your model serving
-- Use custom metrics and Horizontal Pod Autoscaler (HPA) to scale your model
 
 ## Prerequisites
 
@@ -14,20 +12,20 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
 ## Preparation
 
-- Clone the repository
+- Clone the repository.
 
   ```sh
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd accelerated-platforms
   ```
 
-- Change directory to the guide directory
+- Change directory to the guide directory.
 
   ```sh
   cd use-cases/inferencing/serving/vllm/gcsfuse
   ```
 
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
 
   ```sh
   cat ${MLP_ENVIRONMENT_FILE} && \
@@ -36,7 +34,7 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
   > You should see the various variables populated with the information specific to your environment.
 
-- Get credentials for the GKE cluster
+- Get credentials for the GKE cluster.
 
   ```sh
   gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
@@ -44,7 +42,7 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
 ## Serve the model with vLLM
 
-- Configure the environment
+- Configure the environment.
 
   | Variable      | Description                                                                    | Example      |
   | ------------- | ------------------------------------------------------------------------------ | ------------ |
@@ -58,13 +56,14 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
   MODEL_VERSION="experiment"
   ```
 
-- Configure the deployment
+- Configure the deployment.
 
   ```
   VLLM_IMAGE_NAME="vllm/vllm-openai:v0.6.3.post1"
   ```
 
   ```sh
+  git restore manifests/model-deployment-${ACCELERATOR}.yaml
   sed \
   -i -e "s|V_MODEL_BUCKET|${MLP_MODEL_BUCKET}|" \
   -i -e "s|V_MODEL_NAME|${MODEL_NAME}|" \
@@ -74,16 +73,29 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
   manifests/model-deployment-${ACCELERATOR}.yaml
   ```
 
-- Create the deployment
+- Create the deployment.
 
   ```
   kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} apply -f manifests/model-deployment-${ACCELERATOR}.yaml
   ```
 
-- Wait for the deployment to be ready
+  ```
+  deployment.apps/vllm-openai-gcs-l4 created
+  service/vllm-openai-gcs-l4 created
+  ```
+
+- Watch the deployment until it is ready and available.
 
   ```sh
-  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} wait --for=condition=ready --timeout=900s pod --selector app=vllm-openai-gcs-${ACCELERATOR}
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get deployment/vllm-openai-gcs-${ACCELERATOR} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  ```
+
+  It can take 5+ minutes for the deployment to be ready and available.
+
+  ```
+  NAME                 READY   UP-TO-DATE   AVAILABLE   AGE
+  vllm-openai-gcs-l4   1/1     1            1           XXXXX
   ```
 
 ## Serve the model through a web chat interface
@@ -91,6 +103,7 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 - Configure the deployment
 
   ```sh
+  git restore manifests/gradio.yaml
   sed \
   -i -e "s|V_ACCELERATOR|${ACCELERATOR}|g" \
   -i -e "s|V_MODEL_NAME|${MODEL_NAME}|g" \
@@ -104,32 +117,59 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
   kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} apply -f manifests/gradio.yaml
   ```
 
-- Verify the deployment is ready
+  ```
+  deployment.apps/gradio created
+  service/gradio-svc created
+  ```
 
-- Access the chat interface
+- Watch the deployment until it is ready and available.
+
+  ```
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get deployment/gradio | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  ```
+
+  It can take 1 minute for the deployment to be ready and available.
+
+  ```
+  NAME     READY   UP-TO-DATE   AVAILABLE   AGE
+  gradio   1/1     1            1           XXXXX
+  ```
+
+- Run the following command to output the URL for the chat interface.
 
   ```sh
   echo -e "\nGradio chat interface: ${MLP_GRADIO_MODEL_OPS_ENDPOINT}\n"
   ```
 
-- Enter the following prompt in the chat text box to get the response from the model.
+- Open the chat interface in your browser.
+
+- Enter the following prompt in the **Type a message...** text box and click **Submit**.
 
   ```
   I'm looking for comfortable cycling shorts for women, what are some good options?
   ```
 
-## Metrics
+  You should see a response similar to:
 
-vLLM exposes a number of metrics that can be used to monitor the health of the system. For more information about accessing these metrics see [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md).
+  ```
+  Gritstones Solid Women's Cycling Shorts are a great option, they're comfortable, have a great price point, and are available in various colors
+  Product Name: Gritstones Solid Women's Cycling Shorts
+  Product Category: Sports
+  Product Details:
+  • Number of Contents in Sales Package: Pack of 3
+  • Fabric: Cotton, Lycra
+  • Type: Cycling Shorts
+  • Pattern: Solid
+  • Ideal For: Women's
+  • Style Code: GSTPBLK119_Multicolor
+  ```
 
-## Autoscaling with horizontal pod autoscaling (HPA)
+## What's next
 
-You can configure Horizontal Pod Autoscaling to scale your inference deployment based on relevant metrics. Follow the instructions in the [vLLM autoscaling with horizontal pod autoscaling (HPA)](/use-cases/inferencing/serving/vllm/autoscaling/README.md) guide to scale your deployed model.
+Now that the model is deployed, there are several steps you can take to operationalize and utilize the model.
 
-## Run a benchmark for inference
-
-The model is ready to run the benchmark for inference job, follow [Benchmarking with Locust](/use-cases/inferencing/benchmark/README.md) to run inference benchmarking on the
-
-## Run Batch inference on GKE
-
-Once a model has completed fine-tuning and is deployed on GKE , you can run batch inference on it. Follow the instructions in [batch-inference readme](/use-cases/inferencing/batch-inference/README.md) to run batch inference.
+- [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md)
+- [vLLM autoscaling with horizontal pod autoscaling (HPA)](/use-cases/inferencing/serving/vllm/autoscaling/README.md)
+- [Benchmarking with Locust](/use-cases/inferencing/benchmark/README.md)
+- [Batch inference on GKE](/use-cases/inferencing/batch-inference/README.md)

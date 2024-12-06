@@ -3,9 +3,9 @@
 ## Pre-requisites
 
 - A model is deployed using one of the vLLM guides
-  - [Distributed Inferencing on vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
-  - [Distributed Inferencing on vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
-  - [Distributed Inferencing on vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
+  - [Distributed Inference and Serving with vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
+  - [Distributed Inference and Serving with vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
+  - [Distributed Inference and Serving with vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
 - Metrics are being scraped from the vLLM server as shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
 
 ## Preparation
@@ -107,13 +107,31 @@ Service for Prometheus [documentation](https://cloud.google.com/kubernetes-engin
    kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stackdriver/master/custom-metrics-stackdriver-adapter/deploy/production/adapter_new_resource_model.yaml
   ```
 
+  ```
+  namespace/custom-metrics created
+  serviceaccount/custom-metrics-stackdriver-adapter created
+  clusterrolebinding.rbac.authorization.k8s.io/custom-metrics:system:auth-delegator created
+  rolebinding.rbac.authorization.k8s.io/custom-metrics-auth-reader created
+  clusterrole.rbac.authorization.k8s.io/custom-metrics-resource-reader created
+  clusterrolebinding.rbac.authorization.k8s.io/custom-metrics-resource-reader created
+  deployment.apps/custom-metrics-stackdriver-adapter created
+  service/custom-metrics-stackdriver-adapter created
+  apiservice.apiregistration.k8s.io/v1beta1.custom.metrics.k8s.io created
+  apiservice.apiregistration.k8s.io/v1beta2.custom.metrics.k8s.io created
+  apiservice.apiregistration.k8s.io/v1beta1.external.metrics.k8s.io created
+  clusterrole.rbac.authorization.k8s.io/external-metrics-reader configured
+  clusterrolebinding.rbac.authorization.k8s.io/external-metrics-reader created
+  ```
+
 - Configure the resources
 
   ```sh
+  git restore manifests/hpa-vllm-openai-batch-size.yaml manifests/hpa-vllm-openai-queue-size.yaml
   sed \
   -i -e "s|V_ACCELERATOR|${ACCELERATOR}|" \
   -i -e "s|V_MODEL_STORAGE|${MODEL_STORAGE}|" \
-  manifests/hpa-vllm-openai-batch-size.yaml manifests/hpa-vllm-openai-queue-size.yaml
+  manifests/hpa-vllm-openai-batch-size.yaml \
+  manifests/hpa-vllm-openai-queue-size.yaml
   ```
 
 - Deploy an metric based HPA resource that based on your preferred custom metric.
@@ -121,10 +139,17 @@ Service for Prometheus [documentation](https://cloud.google.com/kubernetes-engin
   Choose one of the options below `Queue-depth` or `Batch-size` to configure
   the HPA resource in your manifest:
 
+  > Adjust the appropriate target values for `vllm:num_requests_running`
+  > or `vllm:num_requests_waiting` in the yaml file.
+
   - Queue-depth
 
     ```sh
     kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} apply -f manifests/hpa-vllm-openai-queue-size.yaml
+    ```
+
+    ```
+    horizontalpodautoscaler.autoscaling/vllm-openai-XXX-XXX created
     ```
 
   - Batch-size
@@ -133,46 +158,47 @@ Service for Prometheus [documentation](https://cloud.google.com/kubernetes-engin
     kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} apply -f manifests/hpa-vllm-openai-batch-size.yaml
     ```
 
-  > NOTE: Adjust the appropriate target values for `vllm:num_requests_running`
-  > or `vllm:num_requests_waiting` in the yaml file.
+    ```
+    horizontalpodautoscaler.autoscaling/vllm-openai-XXX-XXX created
+    ```
 
-Once the HPA has been created on a given metric, GKE will autoscale the model
-deployment pods when the metric goes over the specified threshold.
+  Once the HPA has been created on a given metric, GKE will autoscale the model
+  deployment pods when the metric goes over the specified threshold.
 
-- View the get the HPA status
-
-  ```sh
-  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get hpa/vllm-openai-hpa --watch
-  ```
-
-  ```
-  NAME              REFERENCE                        TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
-  vllm-openai-hpa   Deployment/vllm-openai-XXX-XXX   0/10      1         5         1          ##m##s
-  ```
-
-- As the metrics threshold is crossed, new pods would be created
+- Get the current state of the HPA
 
   ```sh
-  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get pods --watch
+  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get hpa/vllm-openai-${MODEL_STORAGE}-${ACCELERATOR}
+  ```
+
+  ```
+  NAME                  REFERENCE                        TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+  vllm-openai-XXX-XXX   Deployment/vllm-openai-XXX-XXX   0/10      1         5         1          XXXXX
+  ```
+
+- When the metrics threshold is crossed, new pods will be created.
+  You can use the [Benchmarking with Locust](/use-cases/inferencing/benchmark/README.md) guide to generate load on the model.
+
+  ```sh
+  kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} get pods -l app=vllm-openai-${MODEL_STORAGE}-${ACCELERATOR} --watch
   ```
 
   ```
   NAME                                   READY   STATUS      RESTARTS   AGE
-  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          ##h##m
-  vllm-openai-XXX-XXX-##########-#####   0/1     Pending     0          ##s
+  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          XXXXX
+  vllm-openai-XXX-XXX-##########-#####   0/1     Pending     0          XXXXX
   ```
 
   And eventually, the pods will be scaled up:
 
   ```
   NAME                                   READY   STATUS      RESTARTS   AGE
-  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          ##h##m
-  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          ##m
+  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          XXXXX
+  vllm-openai-XXX-XXX-##########-#####   1/1     Running     0          XXXXX
   ```
 
-If there are GPU resources available on the same node, the new pod may start on
-it. Otherwise, a new node will be created by the autoscaler with the required
-resources and the new pod will be scheduled on it.
+  If there are GPU resources available available in the cluster, the new pod will start.
+  Otherwise a new node, with the required GPU resources, will be created by the Cluster autoscaler and the pod will be scheduled.
 
 ## What's next
 

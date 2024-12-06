@@ -48,10 +48,14 @@ spec:
           value: |
             <start_of_turn>model
             prompt<end_of_turn>
-        image: us-docker.pkg.dev/google-samples/containers/gke/gradio-app:v1.0.3
+        image: us-docker.pkg.dev/google-samples/containers/gke/gradio-app:v1.0.4
         name: gradio
         ports:
         - containerPort: 7860
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 7860
         resources:
           limits:
             cpu: 500m

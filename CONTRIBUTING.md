@@ -36,28 +36,61 @@ information on using pull requests.
 
 #### Python
 
-The repository requires that files use the [Black](https://github.com/psf/black) code formatter and style.
+The repository requires that files use the [Black](https://github.com/psf/black)
+code formatter and style.
 
 #### Markdown
 
-The repository requires that files use the [Prettier](https://github.com/prettier/prettier) code formatter and style.
+The repository requires that files use the
+[Prettier](https://github.com/prettier/prettier) code formatter and style. For
+more information about Prettier's configuration for this project, see
+[the Prettier configuration file](/.prettierrc)
 
 #### Terraform
 
-We follow the guidelines and recommendations in the [Google Cloud Best practices for using Terraform](https://cloud.google.com/docs/terraform/best-practices-for-terraform) document, unless noted otherwise.
+We follow the guidelines and recommendations in the
+[Google Cloud Best practices for using Terraform](https://cloud.google.com/docs/terraform/best-practices-for-terraform)
+document, unless noted otherwise.
 
-The repository requires that files use built-in formatting using the `terraform fmt` command.
+The repository requires that files use built-in formatting using the
+`terraform fmt` command.
 
-#### Recommended Tools
+## Development environment
 
-##### Code OSS/VSCode Extensions
+To set up a development environment, we designed a
+[Visual Studio Code Dev Container](https://code.visualstudio.com/docs/devcontainers/containers)
+that includes all the necessary tooling and Visual Studio Code (VS Code)
+extensions that you need to work on this project. We use this dev container to
+build the project from both VS Code and the command-line.
 
-Black Formatter `ms-python.black-formatter`
+### Dev container configuration
 
-Code Spell Checker `streetsidesoftware.code-spell-checker`
+To inspect the development environment container image configuration and build
+descriptors, refer to the contents of the `.devcontainer` directory:
 
-Google Cloud Code `googlecloudtools.cloudcode`
+- [.devcontainer/devcontainer.json](/.devcontainer/devcontainer.json):
+  development container creation and access directives
+  ([reference](https://code.visualstudio.com/docs/remote/devcontainerjson-reference)).
+- [.devcontainer/Dockerfile](/.devcontainer/Dockerfile): dev container image
+  build descriptor
+  ([reference](https://docs.docker.com/engine/reference/builder/)).
 
-HashiCorp Terraform `hashicorp.terraform`
+For more information about creating containerized development environments,
+refer to
+[Create a development container](https://code.visualstudio.com/docs/remote/create-dev-container).
 
-Prettier - Code formatter `esbenp.prettier-vscode`
+### Develop inside a container running on a remote host
+
+If you don't have a container runtime engine on your local host, but you have
+one available on a remote host, you can connect to the remote host and use that
+container runtime. For more information, refer to
+[Develop on a remote Docker host](https://code.visualstudio.com/remote/advancedcontainers/develop-remote-host).
+
+### Requirements
+
+To setup a development environment you need:
+
+- A POSIX-compliant shell
+- An OCI-compatible container runtime. Tested with Docker for Linux 20.10.21
+- Visual Studio Code, if you need to modify any part of this set of software
+  components. Other editors and IDEs might work fine.

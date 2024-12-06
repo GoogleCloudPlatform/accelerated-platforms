@@ -3,7 +3,7 @@
 <TODO> Explain the RAG use case with architecture and flow
 
 <TODO> Explain the use case here before submitting to main
-Use case helps the the retailer suggest semantically similiar items from the product catalog if the product item user requested is out of stock or unavailable.
+Use case helps the the retailer suggest semantically similar items from the product catalog if the product item user requested is out of stock or unavailable.
 
 ## Dataset
 
@@ -28,7 +28,7 @@ Here is what we need:
 
 ## Prerequisites
 
-- Use the existing  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+- Use the existing [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 
 ## Preparation
 
@@ -71,12 +71,15 @@ If you are developing on int-rag branch you need to terraform apply ML-platform 
 Steps:
 
 ## Deploy the Multimodal Model on the playground cluster
+
 Deploy multimodal model on ML playground, follow the [README](/use-cases/rag-pipeline/embedding-models/multimodal-embedding/README.md)
 
 ## Deploy instruction tuned model on the playground cluster
+
 Deploy instruction tuned model on ML playground, follow the [README](/use-cases/rag-pipeline/instruction-tuned-model/README.md)
 
 ## Create database `product_catalog` in alloyDB to import Product Catalog
+
 Deploy database setup kubernetes job on the ML playground cluster, follow the [README](/use-cases/rag-pipeline/backend-application/README.md)
 
 ## Deploy the backend on the playground cluster

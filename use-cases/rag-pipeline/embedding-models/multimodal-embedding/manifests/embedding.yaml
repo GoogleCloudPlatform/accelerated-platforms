@@ -1,9 +1,23 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: multimodal-embedding-model
 spec:
-  replicas: 1 # Adjust replica count as needed
+  replicas: 1
   selector:
     matchLabels:
       app: blip2
@@ -12,22 +26,27 @@ spec:
       labels:
         app: blip2
     spec:
-      serviceAccountName: V_MLP_DB_USER_KSA # KSA with read access to GCS storage
+      serviceAccountName: V_KSA
       containers:
-      - name: blip2-container
-        image: us-docker.pkg.dev/V_PROJECT_ID/rag-artifacts/blip2:v0.2.0 # Update the image location
+      - env:
+        - name: "PORT"
+          value: "5000"
+        image: V_IMAGE
+        imagePullPolicy: Always
+        name: blip2
         resources:
           limits:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+            nvidia.com/gpu: "2"
           requests:
             cpu: "2"
             memory: "25Gi"
             ephemeral-storage: "25Gi"
             nvidia.com/gpu: "2"
-          limits:
-            cpu: "2"
-            memory: "25Gi"
-            ephemeral-storage: "25Gi"
-            nvidia.com/gpu: "2"
+      nodeSelector:
+        cloud.google.com/gke-accelerator: nvidia-l4
       tolerations:
       - key: "nvidia.com/gpu"
         operator: "Equal"
@@ -37,22 +56,16 @@ spec:
         operator: "Equal"
         value: "true"
         effect: "NoSchedule"
-      nodeSelector:
-        cloud.google.com/gke-accelerator: nvidia-l4
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
   name: multimodal-embedding-model
-  annotations:
-    networking.gke.io/load-balancer-type: "Internal"
-    networking.gke.io/internal-load-balancer-allow-global-access: "true"
 spec:
   selector:
     app: blip2
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 5000 #  port where your app listens on
+      targetPort: 5000
   type: ClusterIP

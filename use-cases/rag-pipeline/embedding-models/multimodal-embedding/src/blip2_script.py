@@ -13,15 +13,14 @@
 # limitations under the License.
 
 import io
+import os
+import torch
 
-from PIL import Image
 from flask import Flask, request, jsonify
 from google.cloud import storage
 from google.cloud.storage.blob import Blob
-
 from lavis.models import load_model_and_preprocess
-
-import torch
+from PIL import Image
 
 # Load the model and processors, ensuring they're on the correct device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -287,4 +286,4 @@ def generate_multimodal_embeddings():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=os.getenv("PORT", "5000"))

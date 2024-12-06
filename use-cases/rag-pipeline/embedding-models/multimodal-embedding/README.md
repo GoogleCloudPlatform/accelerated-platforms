@@ -1,88 +1,88 @@
-## Multimodal blip2 model
+# Multimodal blip2 model
 
 To know more about the embedding model see original [blog](https://blog.salesforceairesearch.com/blip-2/) and [source](https://github.com/salesforce/LAVIS/tree/main/examples)
 
-# Getting Started
+## Prerequisites
 
-## Prepare the environment
+- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 
-You have an existing [ML Playground cluster](https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/main/platforms/gke-aiml/playground) in a Google Cloud Project.
+## Preparation
 
-## Source your playground environment file to export variables required for the set up.
+- Clone the repository
 
-```
-cat ${MLP_ENVIRONMENT_FILE}
-source ${MLP_ENVIRONMENT_FILE}
-gcloud config set project $MLP_PROJECT_ID
-```
+  ```sh
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms
+  ```
 
-## Build the multimodal embedding model container image
+- Change directory to the guide directory
 
-```
-#<TODO> change it to main branch before merge
-git clone https://github.com/GoogleCloudPlatform/accelerated-platforms.git
-cd rag-pipeline/embedding-models/multimodal
-```
+  ```sh
+  cd use-cases/rag-pipeline/embedding-models/multimodal-embedding
+  ```
 
-Update the location where you would like to store the container images in the ```cloud build yaml`` and kick off the build: 
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
 
-Create the artifact repostiory to store the container images:
+  ```sh
+  cat ${MLP_ENVIRONMENT_FILE} && \
+  source ${MLP_ENVIRONMENT_FILE}
+  ```
 
-```
-gcloud artifacts repositories create rag-artifacts --repository-format=docker --location=us --description="RAG artifacts repository"
-```
+  > You should see the various variables populated with the information specific to your environment.
 
-```
-cd src
-gcloud builds submit . 
-```
+- Get credentials for the GKE cluster
+
+  ```sh
+  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  ```
+
+## Build the container image
+
+- Build the container image using Cloud Build and push the image to Artifact Registry
+
+  ```sh
+  cd src
+  git restore cloudbuild.yaml
+  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+  gcloud beta builds submit \
+  --config cloudbuild.yaml \
+  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
+  --project ${MLP_PROJECT_ID} \
+  --substitutions _DESTINATION=${MLP_MULTIMODAL_EMBEDDING_IMAGE}
+  cd -
+  ```
 
 ## Deploy the embedding model
 
-Update embeddings.yaml file with absolute path to of the embedding model image (container registry) and GPU resource allocations as needed. 
-A sample embeddings.yaml has been provided for your reference.
+- Configure the deployment
 
-```
- nodeSelector:
-        cloud.google.com/gke-accelerator: nvidia-tesla-t4
- ...
- ...       
- image: us-<region>-docker.pkg.dev/{PROJECT_ID}/gke-llm/sentence-transformer:latest #replace with your sentence transformer image path
-        resources:
-            limits:
-              cpu: "2"
-              memory: "8Gi"
-              nvidia.com/gpu: "2"
-            requests:
-              cpu: "2"
-              memory: "8Gi"
-              nvidia.com/gpu: "2"
+```sh
+git restore manifests/embedding.yaml
+sed \
+-i -e "s|V_IMAGE|${MLP_MULTIMODAL_EMBEDDING_IMAGE}|" \
+-i -e "s|V_KSA|${MLP_DB_USER_KSA}|" \
+manifests/embedding.yaml
 ```
 
-Now, deploy embeddings model:
+- Create the deployment
 
-
-  ```sh
-  sed \
-  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
-  -i -e "s|V_MLP_DB_USER_KSA|${MLP_DB_USER_KSA}|" \
-  manifests/embedding.yaml
-  ```
-
-  ```sh
-  kubectl apply -f manifests/embedding.yaml -n ${MLP_KUBERNETES_NAMESPACE}
- ```
+```sh
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/embedding.yaml
+```
 
 ## Validate the embedding model deployment
-Validations: 
-kubectl get po -n {MLP_KUBERNETES_NAMESPACE}
 
+```sh
+kubectl --namespace {MLP_KUBERNETES_NAMESPACE} get pods
+```
 
-└─⪧ kubectl get svc -n {MLP_KUBERNETES_NAMESPACE}
-NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)          AGE
+```sh
+kubectl --namespace {MLP_KUBERNETES_NAMESPACE} get services
+```
 
+## Run the curl test for embedding models
 
-## Run the curl test for embedding models 
+**This would need to be run in the cluster of have port forwarding setup**
 
-Using the sample image ```./t-shirt.jpg``` to generate the image embedding
-You can use the sample curl requests from ```curl_requests.txt```
+Using the sample image `./t-shirt.jpg` to generate the image embedding
+You can use the sample curl requests from `curl_requests.txt`

@@ -16,3 +16,6 @@ venv/
 # Test
 test/log/*.log
 test/scripts/environment_files/*
+
+# Node
+node_modules

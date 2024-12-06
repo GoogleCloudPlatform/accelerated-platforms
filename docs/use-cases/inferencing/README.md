@@ -8,7 +8,7 @@ This guide helps you deploy a fine-tuned large language model (LLM) for producti
 - Production monitoring: Using Prometheus and custom metrics for observability.
 - Scaling strategies: Dynamically scaling your deployment with Horizontal Pod Autoscaler (HPA).
 
-**Prerequisites**
+## Prerequisites
 
 - A deployed [ML Platform Playground on GKE](/platforms/gke-aiml/playground/README.md).
 - A fine-tuned or pre-trained LLM.
@@ -183,8 +183,8 @@ We recommend setting these HPA configuration options:
 - Scaling policies: Use this HPA configuration option to fine-tune the scale-up and scale-down behavior. You can set the "Pods" policy limit to specify the absolute number of replicas changed per time unit, and the "Percent" policy limit to specify the percentage change.
 - Also, depending on the [inference engine](https://cloud.google.com/kubernetes-engine/docs/best-practices/machine-learning/inference/autoscaling), you can also determine appropriate metrics to help Kubernetes facilitate the scaling based on demand.
 
-An example of collecting metrics and importing a dashboard are available [here](/use-cases/inferencing/serving/vllm/metrics).
+An example of collecting metrics and importing a dashboard is available in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
 
-Once the metrics are available, they can be leveraged for autoscaling with this [example](/use-cases/inferencing/serving/vllm/autoscaling).
+Once the metrics are available, they can be leveraged for autoscaling using the [vLLM autoscaling with horizontal pod autoscaling (HPA)](/use-cases/inferencing/serving/vllm/autoscaling/README.md) guide.
 
-For the implementation examples, please [check out this document](/use-cases/inferencing/serving/vllm)
+For example implementations, see the [Distributed Inference and Serving with vLLM](/use-cases/inferencing/serving/vllm/README.md) guides.

@@ -30,9 +30,8 @@ steps:
       export TERM="xterm"
       export TF_CLI_ARGS="-no-color"
       export TF_IN_AUTOMATION="1"
-
-      cd test/ci-cd/terraform && \
-      ./apply.sh
+      
+      test/ci-cd/terraform/apply.sh
   waitFor:
   - "Build runner image"
 

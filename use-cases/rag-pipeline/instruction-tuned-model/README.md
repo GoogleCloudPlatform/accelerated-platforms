@@ -1,29 +1,65 @@
 # Steps to deploy instruction tuned model
 
-```
-source ${MLP_ENVIRONMENT_FILE}
-gcloud config set project ${MLP_PROJECT_ID}
-gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
-```
+## Prerequisites
 
-## set HF Token
+- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 
-HF_TOKEN=<your-hugging-face-api-token>
+## Preparation
 
-## Create secret
+- Clone the repository
 
-```
-kubectl create secret generic hf-secret \
---from-literal=hf_api_token=${HF_TOKEN} \
---dry-run=client -o yaml | kubectl apply -n ${MLP_KUBERNETES_NAMESPACE} -f -
-```
+  ```sh
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms
+  ```
+
+- Change directory to the guide directory
+
+  ```sh
+  cd use-cases/rag-pipeline/instruction-tuned-model
+  ```
+
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+
+  ```sh
+  cat ${MLP_ENVIRONMENT_FILE} && \
+  source ${MLP_ENVIRONMENT_FILE}
+  ```
+
+  > You should see the various variables populated with the information specific to your environment.
+
+- Get credentials for the GKE cluster
+
+  ```sh
+  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  ```
+
+### HuggingFace access token
+
+- Set `HF_TOKEN` to your HuggingFace access token. Go to https://huggingface.co/settings/tokens , click `Create new token` , provide a token name, select `Read` in token type and click `Create token`.
+
+  ```
+  HF_TOKEN=
+  ```
+
+- Create a Kubernetes secret with your HuggingFace token.
+
+  ```sh
+  kubectl create secret generic hf-secret \
+  --from-literal=hf_api_token=${HF_TOKEN} \
+  --dry-run=client -o yaml | kubectl apply --namespace ${MLP_KUBERNETES_NAMESPACE} -f -
+  ```
 
 ## Deploy model
 
-```
-kubectl apply -f manifests/it-model-deployment.yaml -n ${MLP_KUBERNETES_NAMESPACE}
-```
+- Create the deployment.
 
-## Deploy the curl job to test the model deployment
+  ```
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/it-model-deployment.yaml
+  ```
 
-kubectl apply -f manifests/curl-job.yaml -n ${MLP_KUBERNETES_NAMESPACE}
+- Verify the deployment with the curl job.
+
+  ```
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/curl-job.yaml
+  ```

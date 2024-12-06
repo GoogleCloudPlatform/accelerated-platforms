@@ -43,7 +43,7 @@ spec:
             secretKeyRef:
               name: hf-secret
               key: hf_api_token
-        image: vllm/vllm-openai:v0.5.3.post1
+        image: vllm/vllm-openai:v0.6.3.post1
         readinessProbe:
           failureThreshold: 3
           httpGet:

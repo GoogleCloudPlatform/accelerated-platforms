@@ -219,3 +219,55 @@ resource "google_cloudbuild_trigger" "uc_mftp_model_eval_build" {
     }
   }
 }
+
+resource "google_cloudbuild_trigger" "uc_federated_learning_terraform" {
+  filename = "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/README.md",
+    "platforms/gke/base/use-cases/federated-learning/README.md"
+  ]
+  included_files = [
+    # Include the whole core platform because we want to ensure that
+    # changes to the base platform don't break this use case
+    "platforms/gke/base/core/**",
+    "platforms/gke/base/use-cases/federated-learning/**",
+    "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml",
+  ]
+  location        = var.build_location
+  name            = "uc-federated-learning-terraform"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-federated-learning$|^fl-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
+resource "google_cloudbuild_trigger" "uc_federated_learning_terraform_destroy" {
+  location        = var.build_location
+  name            = "uc-federated-learning-terraform-destroy"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+  substitutions = {
+    "_PLATFORM_NAME" = "dev"
+  }
+
+  git_file_source {
+    path       = "test/ci-cd/cloudbuild/uc-federated-learning-terraform-destroy.yaml"
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+    repo_type  = "GITHUB"
+    revision   = "refs/heads/main"
+  }
+
+  source_to_build {
+    ref        = "refs/heads/main"
+    repo_type  = "GITHUB"
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+  }
+}

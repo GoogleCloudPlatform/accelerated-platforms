@@ -392,6 +392,32 @@ resource "kubernetes_secret_v1" "ray_head_client" {
   }
 }
 
+resource "local_file" "policy_iap_gradio_yaml" {
+  content = templatefile(
+    "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
+    {
+      oauth_client_id          = google_iap_client.ray_head_client.client_id
+      oauth_client_secret_name = kubernetes_secret_v1.ray_head_client.metadata[0].name
+      policy_name              = "gradio"
+      service_name             = local.gradio_service_name
+    }
+  )
+  filename = "${local.gateway_manifests_directory}/policy-iap-gradio.yaml"
+}
+
+resource "local_file" "policy_iap_locust_yaml" {
+  content = templatefile(
+    "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
+    {
+      oauth_client_id          = google_iap_client.ray_head_client.client_id
+      oauth_client_secret_name = kubernetes_secret_v1.ray_head_client.metadata[0].name
+      policy_name              = "locust"
+      service_name             = local.locust_service_name
+    }
+  )
+  filename = "${local.gateway_manifests_directory}/policy-iap-locust.yaml"
+}
+
 resource "local_file" "policy_iap_ray_head_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
@@ -425,10 +451,14 @@ resource "local_file" "gateway_kustomization_yaml" {
       namespace = data.kubernetes_namespace_v1.team.metadata[0].name
       resources = [
         basename(local_file.gateway_external_https_yaml.filename),
-        basename(local_file.policy_iap_ray_head_yaml.filename),
-        basename(local_file.route_ray_dashboard_https_yaml.filename),
+        basename(local_file.policy_iap_gradio_yaml.filename),
+        basename(local_file.policy_iap_locust_yaml.filename),
         basename(local_file.policy_iap_mlflow_tracking_yaml.filename),
+        basename(local_file.policy_iap_ray_head_yaml.filename),
+        basename(local_file.route_gradio_https_yaml.filename),
+        basename(local_file.route_locust_https_yaml.filename),
         basename(local_file.route_mlflow_tracking_https_yaml.filename),
+        basename(local_file.route_ray_dashboard_https_yaml.filename),
       ]
     }
   )
@@ -496,11 +526,17 @@ resource "null_resource" "gateway_manifests" {
     md5_script             = filemd5("${path.module}/scripts/gateway_manifests.sh")
     md5_files = md5(join("", [
       local_file.gateway_external_https_yaml.content_md5,
-      local_file.policy_iap_ray_head_yaml.content_md5,
+      local_file.gateway_kustomization_yaml.content_md5,
+      local_file.policy_iap_gradio_yaml.content_md5,
+      local_file.policy_iap_locust_yaml.content_md5,
       local_file.policy_iap_mlflow_tracking_yaml.content_md5,
-      local_file.route_ray_dashboard_https_yaml.content_md5,
+      local_file.policy_iap_ray_head_yaml.content_md5,
+      local_file.route_gradio_https_yaml.content_md5,
+      local_file.route_locust_https_yaml.content_md5,
       local_file.route_mlflow_tracking_https_yaml.content_md5,
-      local_file.gateway_kustomization_yaml.content_md5
+      local_file.route_ray_dashboard_https_yaml.content_md5,
+
+
     ]))
     namespace           = data.kubernetes_namespace_v1.team.metadata[0].name
     project_id          = data.google_project.environment.project_id

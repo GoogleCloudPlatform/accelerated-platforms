@@ -1,0 +1,77 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: model-downloader-hdml
+  labels:
+    app: model-downloader-hdml
+spec:
+  activeDeadlineSeconds: 7200
+  backoffLimit: 2
+  completionMode: NonIndexed
+  completions: 1
+  manualSelector: false
+  parallelism: 1
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: 'true'
+        gke-gcsfuse/memory-limit: 10Gi
+        gke-gcsfuse/memory-request: 4Gi
+      labels:
+        app: model-downloader-hdml
+    spec:
+      serviceAccountName: V_KSA
+      containers:
+      - name: model-downloader
+        image: debian:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          apt-get update && apt-get install -y fuse2fs
+          mkfs.ext4 -FF /dev/xvda
+          mkdir -p /mnt/local
+          fuse2fs -o fakeroot /dev/xvda /mnt/local
+          mkdir -p /mnt/local/V_MODEL_NAME/V_MODEL_VERSION
+          cp -r /gcs/V_MODEL_NAME/V_MODEL_VERSION /mnt/local/V_MODEL_NAME/
+          ls -alh /mnt/local/V_MODEL_NAME
+          ls -alh /mnt/local/V_MODEL_NAME/V_MODEL_VERSION
+        volumeDevices:
+        - name: data
+          devicePath: /dev/xvda
+        volumeMounts:
+        - name: vllm-model-weights
+          mountPath: /gcs
+        securityContext:
+          privileged: true
+      restartPolicy: Never
+      tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: vllm-models-hdml
+      - name: vllm-model-weights
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          readOnly: true
+          volumeAttributes:
+            bucketName: V_MODEL_BUCKET
+            mountOptions: implicit-dirs
+            gcsfuseLoggingSeverity: warning
+            fileCacheCapacity: 10Gi

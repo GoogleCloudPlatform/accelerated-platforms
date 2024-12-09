@@ -46,9 +46,6 @@ if [ "${MLP_REGION}" != "us-central1" ]; then
 fi
 
 if [ "${terraform_command}" == "apply" ]; then
-    echo_title "Checking mlflow-tracking endpoint"
-    gcloud endpoints services undelete mlflow-tracking.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
-
     echo_title "Checking gradio endpoint"
     gcloud endpoints services undelete gradio.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
 

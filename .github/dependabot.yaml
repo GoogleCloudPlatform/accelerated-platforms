@@ -1,0 +1,51 @@
+---
+version: 2
+updates:
+  - package-ecosystem: "devcontainers"
+    commit-message:
+      prefix: "deps"
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 100
+  - directory: "/"
+    commit-message:
+      prefix: "deps"
+    package-ecosystem: "github-actions"
+    schedule:
+      interval: "daily"
+    groups:
+      ci-cd-tooling:
+        applies-to: version-updates
+        patterns:
+          - actions/*
+          - docker/*
+          - github/*
+          - hashicorp/*
+          - psf/black
+  - directories:
+      - /.devcontainer
+    commit-message:
+      prefix: "deps"
+    package-ecosystem: "docker"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 100
+    groups:
+      ci-cd-tooling:
+        applies-to: version-updates
+        patterns:
+          - python
+  - package-ecosystem: "npm"
+    commit-message:
+      prefix: "deps"
+    directories:
+      - /.devcontainer/dependencies
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 100
+    groups:
+      ci-cd-tooling:
+        applies-to: version-updates
+        patterns:
+          - "prettier*"

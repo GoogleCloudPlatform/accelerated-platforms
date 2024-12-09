@@ -25,7 +25,7 @@ data "google_compute_network" "vpc" {
   depends_on = [google_compute_network.vpc]
 
   name    = local.network_name
-  project = data.google_project.default.project_id
+  project = google_project_service.compute_googleapis_com.project
 }
 
 resource "google_compute_subnetwork" "region" {
@@ -43,28 +43,49 @@ data "google_compute_subnetwork" "region" {
   depends_on = [google_compute_subnetwork.region]
 
   name    = local.subnetwork_name
-  project = data.google_project.default.project_id
+  project = google_project_service.compute_googleapis_com.project
   region  = var.cluster_region
 }
 
-
 resource "google_compute_router" "router" {
-  name    = "router"
+  count = var.router_name != null ? 0 : 1
+
+  name    = local.router_name
   network = data.google_compute_network.vpc.name
-  project = data.google_project.default.project_id
+  project = google_project_service.compute_googleapis_com.project
+  region  = var.cluster_region
+}
+
+data "google_compute_router" "router" {
+  depends_on = [google_compute_router.router]
+
+  name    = local.router_name
+  network = data.google_compute_network.vpc.name
+  project = google_project_service.compute_googleapis_com.project
   region  = var.cluster_region
 }
 
 resource "google_compute_router_nat" "nat_gateway" {
-  name                               = "nat-gateway"
+  count = var.nat_gateway_name != null ? 0 : 1
+
+  name                               = local.nat_gateway_name
   nat_ip_allocate_option             = "AUTO_ONLY"
-  project                            = data.google_project.default.project_id
+  project                            = google_project_service.compute_googleapis_com.project
   region                             = var.cluster_region
-  router                             = google_compute_router.router.name
+  router                             = data.google_compute_router.router.name
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 
   log_config {
     enable = true
     filter = "ERRORS_ONLY"
   }
+}
+
+data "google_compute_router_nat" "nat_gateway" {
+  depends_on = [google_compute_router_nat.nat_gateway]
+
+  name    = local.nat_gateway_name
+  project = google_project_service.compute_googleapis_com.project
+  region  = var.cluster_region
+  router  = data.google_compute_router.router.name
 }

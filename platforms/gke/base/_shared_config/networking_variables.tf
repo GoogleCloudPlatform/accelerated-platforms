@@ -18,8 +18,10 @@
 #
 
 locals {
-  network_name    = var.network_name != null ? var.network_name : local.unique_identifier_prefix
-  subnetwork_name = var.subnetwork_name != null ? var.subnetwork_name : local.unique_identifier_prefix
+  nat_gateway_name = var.nat_gateway_name != null ? var.nat_gateway_name : local.unique_identifier_prefix
+  network_name     = var.network_name != null ? var.network_name : local.unique_identifier_prefix
+  router_name      = var.router_name != null ? var.router_name : local.unique_identifier_prefix
+  subnetwork_name  = var.subnetwork_name != null ? var.subnetwork_name : local.unique_identifier_prefix
 }
 
 variable "dynamic_routing_mode" {
@@ -28,9 +30,21 @@ variable "dynamic_routing_mode" {
   type        = string
 }
 
+variable "nat_gateway_name" {
+  default     = null
+  description = "Name of the Cloud NAT Gateway"
+  type        = string
+}
+
 variable "network_name" {
   default     = null
   description = "Name of the VPC network"
+  type        = string
+}
+
+variable "router_name" {
+  default     = null
+  description = "Name of the Cloud Router"
   type        = string
 }
 

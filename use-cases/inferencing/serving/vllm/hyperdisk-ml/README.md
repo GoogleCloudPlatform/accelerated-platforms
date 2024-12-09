@@ -15,6 +15,8 @@ By the end of this guide, you should be able to perform the following steps:
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 - A bucket containing the fine-tuned model from the [Fine-tuning example](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/README.md)
 
+> NOTE: If you did not execute the fine-tuning example, follow [these instructions](/use-cases/prerequisites/fine-tuned-model.md) to load the model into the bucket.
+
 ## Preparation
 
 - Clone the repository.

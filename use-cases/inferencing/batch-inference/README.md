@@ -10,7 +10,9 @@ In this example batch inference pipeline, we would first send prompts to the hos
   - [Distributed Inference and Serving with vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
   - [Distributed Inference and Serving with vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
   - [Distributed Inference and Serving with vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
-- A bucket containing the processed and prepared data from the [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
+- A bucket containing the prepared data from the [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
+
+> NOTE: If you did not execute the data preparation example, follow [these instructions](/use-cases/prerequisites/prepared-data.md) to load the dataset into the bucket.
 
 ## Preparation
 

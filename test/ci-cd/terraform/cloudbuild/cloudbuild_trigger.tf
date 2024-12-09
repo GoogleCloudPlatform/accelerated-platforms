@@ -242,7 +242,7 @@ resource "google_cloudbuild_trigger" "uc_federated_learning_terraform" {
     repository = google_cloudbuildv2_repository.accelerated_platforms.id
 
     pull_request {
-      branch          = "^main$|^int-federated-learning$|^fl-"
+      branch          = "^main$|^int-federated-learning$"
       comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
       invert_regex    = false
     }

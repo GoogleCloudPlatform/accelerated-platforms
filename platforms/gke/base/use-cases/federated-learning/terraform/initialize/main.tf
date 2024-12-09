@@ -27,6 +27,7 @@ locals {
     # Keeping this as a reference if we change idea in the future
     # abspath("${path.module}"),
     abspath("${path.module}/../container_image_repository"),
+    abspath("${path.module}/../private_google_access"),
   ]
 }
 

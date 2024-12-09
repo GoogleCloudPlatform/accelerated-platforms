@@ -17,24 +17,23 @@ resource "google_gke_hub_feature" "policycontroller" {
 
   location = "global"
   name     = "policycontroller"
-  project  = data.google_project.default.project_id
+  project  = google_project_service.anthospolicycontroller_googleapis_com.project
 }
 
-resource "google_gke_hub_feature_membership" "cluster_spolicycontroller" {
+resource "google_gke_hub_feature_membership" "cluster_policycontroller" {
   provider = google-beta
 
   feature    = google_gke_hub_feature.policycontroller.name
   location   = google_gke_hub_feature.policycontroller.location
   membership = data.google_container_cluster.cluster.name
-  project    = data.google_project.default.project_id
+  project    = google_gke_hub_feature.policycontroller.project
 
   policycontroller {
-    #enabled                    = true
-    #referential_rules_enabled  = true
-    #template_library_installed = true
-
     policy_controller_hub_config {
-      install_spec = "INSTALL_SPEC_ENABLED"
+      install_spec              = "INSTALL_SPEC_ENABLED"
+      log_denies_enabled        = true
+      mutation_enabled          = true
+      referential_rules_enabled = true
     }
   }
 }

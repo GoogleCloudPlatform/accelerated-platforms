@@ -27,7 +27,7 @@ locals {
 
 # Create dedicated service account for the cluster nodes
 resource "google_service_account" "cluster" {
-  project      = data.google_project.default.project_id
+  project      = data.google_project.cluster.project_id
   account_id   = "vm-${local.cluster_name}"
   display_name = "${local.cluster_name} Service Account"
   description  = "Terraform-managed service account for cluster ${local.cluster_name}"
@@ -36,7 +36,7 @@ resource "google_service_account" "cluster" {
 # Bind minimum role list to the service account
 resource "google_project_iam_member" "cluster_sa" {
   for_each = toset(local.cluster_sa_roles)
-  project  = data.google_project.default.project_id
+  project  = data.google_project.cluster.project_id
   member   = google_service_account.cluster.member
   role     = each.value
 }

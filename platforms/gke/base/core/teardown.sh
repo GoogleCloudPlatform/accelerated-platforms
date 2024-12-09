@@ -13,9 +13,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -e
+set -o errexit
 
 start_timestamp=$(date +%s)
+
+terraservices=("workloads/kueue" "gke_enterprise/fleet_membership" "container_node_pool" "container_cluster" "networking")
+# Disable gke_enterprise/servicemesh due to b/376312292
+#terraservices=("workloads/kueue" "gke_enterprise/servicemesh" "gke_enterprise/fleet_membership" "container_node_pool" "container_cluster" "networking")
 
 source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config
 
@@ -28,42 +32,13 @@ cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
     terraform apply -input=false tfplan || exit 1
 rm tfplan
 
-cd ${ACP_PLATFORM_CORE_DIR}/workloads/kueue &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
-
-# b/376312292
-# cd ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/servicemesh &&
-#     echo "Current directory: $(pwd)" &&
-#     terraform init &&
-#     terraform destroy -auto-approve || exit 1
-# rm -rf .terraform/ .terraform.lock.hcl
-
-cd ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
-
-cd ${ACP_PLATFORM_CORE_DIR}/container_node_pool &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
-
-cd ${ACP_PLATFORM_CORE_DIR}/container_cluster &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
-
-cd ${ACP_PLATFORM_CORE_DIR}/networking &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl
+for terraservice in "${terraservices[@]}"; do
+    cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
+        echo "Current directory: $(pwd)" &&
+        terraform init &&
+        terraform destroy -auto-approve || exit 1
+    rm -rf .terraform/
+done
 
 cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
     echo "Current directory: $(pwd)" &&
@@ -71,31 +46,22 @@ cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
     terraform init -force-copy -lock=false -migrate-state || exit 1
 gcloud storage rm -r gs://${ACP_TERRAFORM_BUCKET_NAME}/* &&
     terraform destroy -auto-approve || exit 1
-rm -rf .terraform/ .terraform.lock.hcl state/
+rm -rf .terraform/ state/
 
 rm -rf \
+    ${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/ \
     ${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.tfstate* \
     ${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/ \
-    ${ACP_PLATFORM_CORE_DIR}/initialize/.terraform.lock.hcl \
-    ${ACP_PLATFORM_CORE_DIR}/initialize/state/default.tfstatee \
-    ${ACP_PLATFORM_CORE_DIR}/initialize/state/default.tfstate.backup \
+    ${ACP_PLATFORM_CORE_DIR}/initialize/state/default.tfstate* \
     ${ACP_PLATFORM_CORE_DIR}/networking/.terraform/ \
-    ${ACP_PLATFORM_CORE_DIR}/networking/.terraform.lock.hcl \
     ${ACP_PLATFORM_CORE_DIR}/container_cluster/.terraform/ \
-    ${ACP_PLATFORM_CORE_DIR}/container_cluster/.terraform.lock.hcl \
     ${ACP_PLATFORM_CORE_DIR}/container_node_pool/.terraform/ \
-    ${ACP_PLATFORM_CORE_DIR}/container_node_pool/.terraform.lock.hcl \
     ${ACP_PLATFORM_CORE_DIR}/container_node_pool/container_node_pool_*.tf \
     ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/git/.terraform/ \
-    ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/git/.terraform.lock.hcl \
     ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/oci/.terraform/ \
-    ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/oci/.terraform.lock.hcl \
     ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership/.terraform/ \
-    ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership/.terraform.lock.hcl \
     ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/servicemesh/.terraform/ \
-    ${ACP_PLATFORM_CORE_DIR}/gke_enterprise/servicemesh/.terraform.lock.hcl \
     ${ACP_PLATFORM_CORE_DIR}/workloads/kueue.terraform/ \
-    ${ACP_PLATFORM_CORE_DIR}/workloads/kueue.terraform.lock.hcl \
     ${ACP_PLATFORM_CORE_DIR}/workloads/kubeconfig \
     ${ACP_PLATFORM_CORE_DIR}/workloads/manifests
 

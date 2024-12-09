@@ -12,29 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-terraform {
-  required_version = ">= 1.5.7"
-
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "6.12.0"
-    }
-    google-beta = {
-      source  = "hashicorp/google-beta"
-      version = "6.12.0"
-    }
-    local = {
-      source  = "hashicorp/local"
-      version = "2.5.2"
-    }
-    null = {
-      source  = "hashicorp/null"
-      version = "3.2.3"
-    }
-  }
-
-  provider_meta "google" {
-    module_name = "cloud-solutions/acp_gke_base_core_initialize_deploy-v1"
-  }
+data "google_container_cluster" "cluster" {
+  location = var.cluster_region
+  name     = local.cluster_name
+  project  = data.google_project.cluster.project_id
 }

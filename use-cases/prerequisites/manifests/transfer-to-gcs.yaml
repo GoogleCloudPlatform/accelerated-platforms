@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: transfer-to-gcs
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: transfer-to-gcs
+    spec:
+      nodeSelector:
+        iam.gke.io/gke-metadata-server-enabled: "true"
+      restartPolicy: Never
+      terminationGracePeriodSeconds: 0
+      serviceAccountName: V_KSA
+      containers:
+      - name: transfer-to-gcs
+        image: google/cloud-sdk:502.0.0-slim
+        command:
+        - sh
+        - -c
+        - |
+          gcloud config set storage/parallel_composite_upload_enabled False
+          pip3 install -U "huggingface_hub[cli]==0.26.2" --break-system-packages
+          huggingface-cli download --repo-type model $(MODEL_REPO) --local-dir ./temp
+          gcloud storage cp -R ./temp/* \
+            gs://$(MLP_MODEL_BUCKET)/model-gemma2/experiment
+        env:
+        - name: MODEL_REPO
+          value: "V_MODEL_REPO"
+        - name: MLP_MODEL_BUCKET
+          value: "V_BUCKET"

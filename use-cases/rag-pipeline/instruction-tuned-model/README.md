@@ -47,7 +47,7 @@
   ```sh
   kubectl create secret generic hf-secret \
   --from-literal=hf_api_token=${HF_TOKEN} \
-  --dry-run=client -o yaml | kubectl apply --namespace ${MLP_KUBERNETES_NAMESPACE} -f -
+  --dry-run=client -o yaml | kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply  -f -
   ```
 
 ## Deploy model
@@ -58,8 +58,24 @@
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/it-model-deployment.yaml
   ```
 
+- Wait for the deployment to be ready.
+
+  ```
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait --for=condition=ready --timeout=900s pod -l app=rag-it-model
+  ```
+
+  When they deployment is ready you should see output similar to:
+
+  ```output
+  pod/rag-it-model-XXXXXXXXX-XXXXX condition met
+  ```
+
 - Verify the deployment with the curl job.
 
   ```
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/curl-job.yaml
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/curl.yaml
+  ```
+
+  ```
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/it-curl
   ```

@@ -15,13 +15,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: curl
+  name: multimodal-curl
 spec:
   backoffLimit: 0
   template:
     metadata:
       labels:
-        app: curl
+        app: multimodal-curl
     spec:
       restartPolicy: Never
       terminationGracePeriodSeconds: 0
@@ -33,22 +33,16 @@ spec:
           - sh
           - -c
           - |
-            curl http://rag-it-model.ml-team:8000/v1/chat/completions \
-              -s \
-              -H "Content-Type: application/json" \
-              -d '{
-                    "model": "$(MODEL_ID)",
-                    "messages": [
-                    {"role": "user", "content": "$(USER_PROMPT)"}],
-                       "temperature": 0.70,
-                       "top_p": 1.0,
-                       "top_k": 1.0,
-                       "max_tokens": 256
-                  }'
-             
+            curl http://multimodal-embedding-model.ml-team/multimodal_embeddings \
+            --data \
+            '{ 
+              "image_uri": "$(IMAGE_URI)", 
+              "caption": "This is a caption for the image." 
+            }' \
+            --fail-with-body \
+            --header "Content-Type: application/json" \
+            --silent
         imagePullPolicy: IfNotPresent
         env:
-        - name: MODEL_ID
-          value: "google/gemma-2-2b-it"
-        - name: USER_PROMPT
-          value: "I am looking for comfortable cycling shorts for women, what are some good options?"
+        - name: IMAGE_URI
+          value: V_IMAGE_URI

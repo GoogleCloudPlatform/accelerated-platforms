@@ -19,10 +19,10 @@ metadata:
 spec:
   template:
     spec:
-      serviceAccountName: V_MLP_DB_ADMIN_KSA
+      serviceAccountName: V_KSA
       containers:
       - name: alloydb-setup
-        image: us-docker.pkg.dev/V_PROJECT_ID/rag-artifacts/alloydb-setup:v0.1.0
+        image: V_IMAGE
         imagePullPolicy: Always
         env:
         - name: PROCESSED_DATA_BUCKET

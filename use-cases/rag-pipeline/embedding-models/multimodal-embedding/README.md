@@ -56,33 +56,54 @@ To know more about the embedding model see original [blog](https://blog.salesfor
 
 - Configure the deployment
 
-```sh
-git restore manifests/embedding.yaml
-sed \
--i -e "s|V_IMAGE|${MLP_MULTIMODAL_EMBEDDING_IMAGE}|" \
--i -e "s|V_KSA|${MLP_DB_USER_KSA}|" \
-manifests/embedding.yaml
-```
+  ```sh
+  git restore manifests/embedding.yaml
+  sed \
+  -i -e "s|V_IMAGE|${MLP_MULTIMODAL_EMBEDDING_IMAGE}|" \
+  -i -e "s|V_KSA|${MLP_DB_USER_KSA}|" \
+  manifests/embedding.yaml
+  ```
 
 - Create the deployment
 
-```sh
-kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/embedding.yaml
-```
+  ```sh
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/embedding.yaml
+  ```
 
 ## Validate the embedding model deployment
 
 ```sh
-kubectl --namespace {MLP_KUBERNETES_NAMESPACE} get pods
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get pods
 ```
 
 ```sh
-kubectl --namespace {MLP_KUBERNETES_NAMESPACE} get services
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get services
 ```
 
-## Run the curl test for embedding models
+## Verify the embedding model
 
-**This would need to be run in the cluster of have port forwarding setup**
+- Configure the curl job.
 
-Using the sample image `./t-shirt.jpg` to generate the image embedding
-You can use the sample curl requests from `curl_requests.txt`
+  ```
+  export IMAGE_URI="$(gcloud storage ls gs://${MLP_DATA_BUCKET}/flipkart_images | head -1)"
+  echo ${IMAGE_URI}
+  ```
+
+  ```
+  git restore manifests/curl.yaml
+  sed \
+  -i -e "s|V_IMAGE_URI|${IMAGE_URI}|" \
+  manifests/curl.yaml
+  ```
+
+- Create the curl job.
+
+  ```sh
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/curl.yaml
+  ```
+
+- Get the logs for the curl job.
+
+  ```
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/multimodal-curl
+  ```

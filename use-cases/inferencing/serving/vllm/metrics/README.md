@@ -102,7 +102,7 @@ gcloud monitoring dashboards create --config-from-file=../metrics/dashboard/clou
 
 If you want to use the Cloud Monitoring console to import the dashboard, copy the contents of [cloud-monitoring-vllm.json](../metrics/dashboard/cloud-monitoring-vllm.json) and paste them into the dashboard JSON editor. Then, save your changes. You can read the doc [here](https://cloud.google.com/monitoring/charts/dashboards#copy-dashboard) for more details.
 
-The sample Cloud Monitoring dashboard created are organized with multiple sections to display metrics such throughtput, lateny, cache utlization, and errors:
+The sample Cloud Monitoring dashboard created are organized with multiple sections to display metrics such as throughput, latency, cache utilization and errors:
 
 ![vllm-dashboard-part1](../metrics/dashboard/CM-vllm-dashboard1.png)
 

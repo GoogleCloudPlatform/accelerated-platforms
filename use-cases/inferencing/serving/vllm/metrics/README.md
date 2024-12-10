@@ -152,7 +152,7 @@ This dashboard uses several key vLLM metrics, pulled from Prometheus, to provide
 
 This dashboard provides a comprehensive view of the vLLM server's performance by combining these metrics. By monitoring these panels, you can identify potential bottlenecks, optimize resource allocation, and ensure the efficient and reliable operation of your LLM serving system.
 
-### Import a vLLM Grafana dashboard
+### [Optional] Import a vLLM Grafana dashboard
 
 Alternatively, you can import a Grafana vLLM dashboard into Cloud Monitoring. Here's an example:
 

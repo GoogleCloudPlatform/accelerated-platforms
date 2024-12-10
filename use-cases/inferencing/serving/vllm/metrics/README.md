@@ -20,7 +20,7 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 
 - Change directory to the guide directory.
 
-  ```
+  ```sh
   cd use-cases/inferencing/serving/vllm/metrics
   METRICS_DIR=$(pwd)
   ```
@@ -92,7 +92,70 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 
 ## Create a dashboard
 
-Cloud Monitoring provides an [importer](https://cloud.google.com/monitoring/dashboards/import-grafana-dashboards) that you can use to import dashboard files in the Grafana JSON format into Cloud Monitoring.
+### Create a Cloud Monitoring custom dashboard
+
+After you've verified that the vLLM metrics are available in Cloud Monitoringn using the metrics explorer, you can create a custom vLLM dashboard by running the following command:
+
+   ```sh
+   gcloud monitoring dashboards create --config-from-file=../metrics/dashboard/cloud-monitoring-vllm.json
+   ```
+
+If you want to use the Cloud Monitoring console to import the dashboard, copy the contents of [cloud-monitoring-vllm.json](../metrics/dashboard/cloud-monitoring-vllm.json) and paste them into the dashboard JSON editor. Then, save your changes. You can read the doc [here](https://cloud.google.com/monitoring/charts/dashboards#copy-dashboard) for more details.
+
+The sample Cloud Monitoring dashboard created are organized with multiple sections to display metrics such throughtput, lateny, cache utlization, and errors.
+
+![vllm-dashboard-part1](../metrics/dashboard/CM-vllm-dashboard1.png)
+
+![vllm-dashboard-part2](../metrics/dashboard/CM-vllm-dashboard2.png)
+
+![vllm-dashboard-part3](../metrics/dashboard/CM-vllm-dashboard3.png)
+
+![vllm-dashboard-part4](../metrics/dashboard/CM-vllm-dashboard4.png)
+
+This dashboard is designed to monitor the performance of a vLLM inference server. It uses several key vLLM metrics, pulled from Prometheus, to provide insights into various aspects of the server's operation:
+
+1. E2E Request Latency
+
+    `vllm:e2e_request_latency_seconds_bucket`: This is a histogram metric that tracks the end-to-end latency of requests in seconds. The dashboard uses histogram_quantile to calculate and display the P99, P95, P90, and P50 latency values. It also shows the average latency. This panel gives you a good overview of the overall responsiveness of your vLLM server.
+
+2. Token Throughput
+
+    `vllm:prompt_tokens_total`: This counter metric tracks the total number of prompt tokens processed by the server. The dashboard uses rate to show the rate of prompt tokens processed per second.
+
+    `vllm:generation_tokens_total`: Similar to the above, this counter metric tracks the total number of generated tokens. The dashboard shows the rate of generation tokens per second. This panel helps you understand the throughput of your server in terms of token processing.
+
+3. Time Per Output Token Latency
+
+    `vllm:time_per_output_token_seconds_bucket`: This histogram metric tracks the latency per output token in seconds. Like the "E2E Request Latency" panel, this one also uses histogram_quantile to show different percentiles (P99, P95, P90, P50) and the mean latency per generated token. This provides insights into the efficiency of token generation.
+
+4. Scheduler State
+
+    `vllm:num_requests_running`: A gauge metric indicating the number of requests currently being processed by the GPUs.
+
+    `vllm:num_requests_swapped`: A gauge metric showing the number of requests that have been swapped to CPU.
+
+    `vllm:num_requests_waiting`: A gauge metric indicating the number of requests waiting in the queue to be processed. This panel helps you understand the current load on the server and how requests are being scheduled.
+
+5. Time To First Token Latency
+
+    `vllm:time_to_first_token_seconds_bucket`: This histogram metric tracks the time it takes to generate the first token in a request. The dashboard displays various percentiles (P99, P95, P90, P50) and the average time to first token. This is a critical metric as it reflects the initial response time experienced by users.
+
+6. Cache Utilization
+
+    `vllm:gpu_cache_usage_perc`: A gauge metric showing the percentage of GPU cache blocks used.
+
+    `vllm:cpu_cache_usage_perc`: A gauge metric showing the percentage of CPU cache blocks used. This panel helps you monitor cache utilization, which is crucial for performance optimization.
+
+7. Request Prompt Length & 8. Request Generation Length
+
+    `vllm:request_prompt_tokens_bucket` and `vllm:request_generation_tokens_bucket`: These are histogram metrics that track the distribution of prompt lengths and generation lengths respectively. The heatmaps visualize these distributions, showing how many requests fall into different length buckets.
+
+This dashboard provides a comprehensive view of the vLLM server's performance by combining these metrics. By monitoring these panels, you can identify potential bottlenecks, optimize resource allocation, and ensure the efficient and reliable operation of your LLM serving system.
+
+### Import a vLLM Grafana dashboard
+Alternatively, you can import a Grafana vLLM dashboard into Cloud Monitoring. Here's an example:
+
+Cloud Monitoring provides [an importer tool](https://cloud.google.com/monitoring/dashboards/import-grafana-dashboards) that allows you to import dashboard files in the Grafana JSON format.
 
 - Clone the repository.
 
@@ -114,14 +177,14 @@ Cloud Monitoring provides an [importer](https://cloud.google.com/monitoring/dash
 - Import the dashboard. When prompted, answer `y`
 
   ```sh
-  ./import.sh ${METRICS_DIR}/grafana/vllm.json ${MLP_PROJECT_ID}
+  ./import.sh ${METRICS_DIR}/dashboard/grafana-vllm.json ${MLP_PROJECT_ID}
   ```
 
   ```
   Converting: vLLM
   ✓ vLLM converted successfully
 
-  Conversion of /XXXXXXXXXX/XXXXXXXXXX/XXXXXXXXXX/accelerated-platforms/use-cases/inferencing/serving/vllm/metrics/grafana/vllm.json complete. Conversion Report located at: reports/YYYY-MM-DD/HH:MM:SS/report.json
+  Conversion of /XXXXXXXXXX/XXXXXXXXXX/XXXXXXXXXX/accelerated-platforms/use-cases/inferencing/serving/vllm/metrics/dashboard/grafana-vllm.json complete. Conversion Report located at: reports/YYYY-MM-DD/HH:MM:SS/report.json
 
 
   To upload these dashboard(s) manually, you can run:

@@ -234,3 +234,16 @@ resource "google_service_account_iam_member" "alloydb_user_workload_identity_use
   role               = "roles/iam.workloadIdentityUser"
   member             = "${local.wi_member_principal_prefix}/${local.alloydb_user_ksa}"
 }
+
+# TODO: This should be removed when functionality is run as the alloydb_user, not the alloydb_superuser
+resource "google_storage_bucket_iam_member" "data_bucket_alloydb_superuser_storage_object_viewer" {
+  bucket = google_storage_bucket.data.name
+  member = google_service_account.alloydb_superuser.member
+  role   = "roles/storage.objectViewer"
+}
+
+resource "google_storage_bucket_iam_member" "data_bucket_alloydb_user_storage_object_viewer" {
+  bucket = google_storage_bucket.data.name
+  member = google_service_account.alloydb_user.member
+  role   = "roles/storage.objectViewer"
+}

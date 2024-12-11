@@ -57,30 +57,38 @@ To know more about the embedding model see original [blog](https://blog.salesfor
 - Configure the deployment
 
   ```sh
-  git restore manifests/embedding.yaml
+  git restore manifests/deployment.yaml
   sed \
   -i -e "s|V_IMAGE|${MLP_MULTIMODAL_EMBEDDING_IMAGE}|" \
   -i -e "s|V_KSA|${MLP_DB_USER_KSA}|" \
-  manifests/embedding.yaml
+  manifests/deployment.yaml
   ```
 
 - Create the deployment
 
   ```sh
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/embedding.yaml
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
   ```
 
 ## Validate the embedding model deployment
 
 ```sh
-kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get pods
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get pods -l app=multimodal-embedding-model
 ```
 
 ```sh
-kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get services
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get service/multimodal-embedding-model
 ```
 
 ## Verify the embedding model
+
+**This assumes that the `flipkart_images` are already present in the `MLP_DATA_BUCKET`. If they are not, run the following command**
+
+- Temporary steps to populate required data
+
+  ```
+  gcloud storage rsync gs://temporary-rag-data/flipkart_images gs://${MLP_DATA_BUCKET}/flipkart_images/
+  ```
 
 - Configure the curl job.
 

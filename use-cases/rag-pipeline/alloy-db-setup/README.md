@@ -127,6 +127,13 @@ MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object permission
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/alloydb-setup
   ```
 
+- Watch the job until it is complete.
+
+  ```
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/alloydb-setup | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
+  ```
+
 - Check logs for any errors.
 
   ```

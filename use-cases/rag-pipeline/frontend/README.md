@@ -82,15 +82,19 @@ kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get pods -l app=rag-frontend
 - Verify the service.
 
 ```sh
-kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get service/frontend-rag-svc
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get service/rag-frontend
 ```
 
 ## Test the frontend application
 
-- Retrieve the frontend application URL
+- Run the following command to output the URL for the frontend application.
 
   ```sh
   echo -e "\n${MLP_KUBERNETES_NAMESPACE} RAG frontend URL: ${MLP_RAG_FRONTEND_NAMESPACE_ENDPOINT}\n"
   ```
 
-- Open the Front end application in browser using URL value retrieved above.
+- Open the frontend application in your browser.
+
+  > It can take several minutes for the frontend application to be available via the gateway.
+
+  If you are seeing `fault filter abort`, wait a moment and retry.

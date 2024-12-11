@@ -68,7 +68,7 @@
   ```
 
   ```sh
-  git restore manifests/backend_deployment.yaml
+  git restore manifests/deployment.yaml
   sed \
   -i -e "s|V_CATALOG_DB|${CATALOG_DB}|" \
   -i -e "s|V_CATALOG_TABLE_NAME|${CATALOG_TABLE_NAME}|" \
@@ -86,13 +86,13 @@
   -i -e "s|V_MLP_KUBERNETES_NAMESPACE|${MLP_KUBERNETES_NAMESPACE}|" \
   -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
   -i -e "s|V_ROW_COUNT|${ROW_COUNT}|" \
-  manifests/backend_deployment.yaml
+  manifests/deployment.yaml
   ```
 
 - Create the deployment.
 
   ```sh
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/backend_deployment.yaml
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
   ```
 
 ## Test the backend application

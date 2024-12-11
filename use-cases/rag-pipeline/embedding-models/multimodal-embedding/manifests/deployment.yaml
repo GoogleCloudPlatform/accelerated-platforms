@@ -20,11 +20,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: blip2
+      app: multimodal-embedding-model
   template:
     metadata:
       labels:
-        app: blip2
+        app: multimodal-embedding-model
     spec:
       serviceAccountName: V_KSA
       containers:
@@ -33,7 +33,7 @@ spec:
           value: "5000"
         image: V_IMAGE
         imagePullPolicy: Always
-        name: blip2
+        name: multimodal-embedding-model
         resources:
           limits:
             cpu: "2"
@@ -63,7 +63,7 @@ metadata:
   name: multimodal-embedding-model
 spec:
   selector:
-    app: blip2
+    app: multimodal-embedding-model
   ports:
     - protocol: TCP
       port: 80

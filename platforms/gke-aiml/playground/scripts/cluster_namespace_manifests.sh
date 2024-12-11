@@ -45,6 +45,7 @@ sed -i "s?NAMESPACE?${K8S_NAMESPACE}?g" ${namespace_path}/*
 sed -i "s?KUBERNETES_SERVICE_ACCOUNT_RAY_HEAD?${K8S_SERVICE_ACCOUNT_HEAD}?g" ${namespace_path}/*
 sed -i "s?KUBERNETES_SERVICE_ACCOUNT_RAY_WORKER?${K8S_SERVICE_ACCOUNT_WORKER}?g" ${namespace_path}/*
 sed -i "s?KUBERNETES_SERVICE_ACCOUNT_MLFLOW?${K8S_SERVICE_ACCOUNT_MLFLOW}?g" ${namespace_path}/*
+sed -i "s?KUBERNETES_SERVICE_ACCOUNT_RAG_FRONTEND?${K8S_SERVICE_ACCOUNT_RAG_FRONTEND}?g" ${namespace_path}/*
 sed -i "s?DB_BUCKET?${DATA_BUCKET}?g" ${namespace_path}/*
 
 if [ ! -z ${GIT_REPOSITORY:-} ]; then

@@ -1,0 +1,58 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: alloydb-setup
+spec:
+  template:
+    spec:
+      serviceAccountName: V_KSA
+      containers:
+      - name: alloydb-setup
+        image: V_IMAGE
+        imagePullPolicy: Always
+        env:
+        - name: PROCESSED_DATA_BUCKET
+          value: V_PROCESSED_DATA_BUCKET
+        - name: MASTER_CATALOG_FILE_NAME
+          value: V_MASTER_CATALOG_FILE_NAME
+        - name: CATALOG_DB
+          value: V_CATALOG_DB
+        - name: CATALOG_TABLE_NAME
+          value: V_CATALOG_TABLE_NAME
+        - name: MLP_DB_ADMIN_IAM
+          value: V_MLP_DB_ADMIN_IAM
+        - name: EMBEDDING_DIMENSION
+          value: V_EMBEDDING_DIMENSION
+        - name: EMBEDDING_COLUMN_TEXT
+          value: V_EMBEDDING_COLUMN_TEXT
+        - name: EMBEDDING_COLUMN_IMAGE
+          value: V_EMBEDDING_COLUMN_IMAGE
+        - name: EMBEDDING_COLUMN_MULTIMODAL
+          value: V_EMBEDDING_COLUMN_MULTIMODAL
+        - name: NUM_LEAVES_VALUE
+          value: V_NUM_LEAVES_VALUE
+        - name: MLP_DB_INSTANCE_URI
+          value: V_MLP_DB_INSTANCE_URI
+        - name: TEXT_EMBEDDING_ENDPOINT
+          value: V_EMBEDDING_ENDPOINT_TEXT
+        - name: IMAGE_EMBEDDING_ENDPOINT
+          value: V_EMBEDDING_ENDPOINT_IMAGE
+        - name: MULTIMODAL_EMBEDDING_ENDPOINT
+          value: V_EMBEDDING_ENDPOINT_MULTIMODAL
+        - name: MLP_KUBERNETES_NAMESPACE
+          value: V_MLP_KUBERNETES_NAMESPACE
+      restartPolicy: Never

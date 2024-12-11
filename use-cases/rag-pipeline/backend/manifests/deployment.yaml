@@ -1,0 +1,89 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rag-backend
+  template:
+    metadata:
+      labels:
+        app: rag-backend
+    spec:
+      serviceAccountName: V_MLP_DB_ADMIN_KSA
+      containers:
+      - name: rag
+        image: V_IMAGE
+        imagePullPolicy: Always
+        env:
+        - name: CATALOG_DB
+          value: V_CATALOG_DB
+        - name: CATALOG_TABLE_NAME
+          value: V_CATALOG_TABLE_NAME
+        - name: MLP_DB_ADMIN_IAM
+          value: V_MLP_DB_ADMIN_IAM
+        - name: MLP_DB_INSTANCE_URI
+          value: V_MLP_DB_INSTANCE_URI
+        - name: GEMMA_IT_ENDPOINT
+          value: V_GEMMA_IT_ENDPOINT
+        - name: MLP_KUBERNETES_NAMESPACE
+          value: V_MLP_KUBERNETES_NAMESPACE
+        - name: TEXT_EMBEDDING_ENDPOINT
+          value: V_EMBEDDING_ENDPOINT_TEXT
+        - name: IMAGE_EMBEDDING_ENDPOINT
+          value: V_EMBEDDING_ENDPOINT_IMAGE
+        - name: MULTIMODAL_EMBEDDING_ENDPOINT
+          value: V_EMBEDDING_ENDPOINT_MULTIMODAL
+        - name: EMBEDDING_COLUMN_TEXT
+          value: V_EMBEDDING_COLUMN_TEXT
+        - name: EMBEDDING_COLUMN_IMAGE
+          value: V_EMBEDDING_COLUMN_IMAGE
+        - name: EMBEDDING_COLUMN_MULTIMODAL
+          value: V_EMBEDDING_COLUMN_MULTIMODAL
+        - name: ROW_COUNT
+          value: V_ROW_COUNT
+        resources:
+          requests:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+          limits:
+            cpu: "2"
+            memory: "25Gi"
+            ephemeral-storage: "25Gi"
+      nodeSelector:
+        resource-type: "cpu"
+      tolerations:
+      - key: "on-demand"
+        value: "true"
+        operator: "Equal"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-backend
+spec:
+  selector:
+    app: rag-backend
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

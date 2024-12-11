@@ -1,5 +1,0 @@
-# requirements.txt
-flask==3.1.0
-google-cloud-alloydb-connector[pg8000]==1.5.0
-requests==2.32.3
-sqlalchemy==2.0.36

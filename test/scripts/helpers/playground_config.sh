@@ -50,7 +50,7 @@ if [ "${terraform_command}" == "apply" ]; then
     gcloud endpoints services undelete mlflow-tracking.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
 
     echo_title "Checking rag-frontend endpoint"
-    gcloud endpoints services undelete frontend-rag.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
+    gcloud endpoints services undelete rag-frontend.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
 
     echo_title "Checking ray-dashboard endpoint"
     gcloud endpoints services undelete ray-dashboard.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null

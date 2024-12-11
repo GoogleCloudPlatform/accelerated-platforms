@@ -18,7 +18,7 @@ locals {
   ray_head_kubernetes_service_account          = "ray-head"
   ray_worker_kubernetes_service_account        = "ray-worker"
   mlflow_kubernetes_service_account            = "mlflow"
-  frontend_rag_service_account                 = "frontend-rag"
+  rag_frontend_service_account                 = "rag-frontend"
 }
 
 
@@ -335,7 +335,7 @@ resource "null_resource" "cluster_namespace_manifests" {
       K8S_SERVICE_ACCOUNT_HEAD         = local.ray_head_kubernetes_service_account
       K8S_SERVICE_ACCOUNT_WORKER       = local.ray_worker_kubernetes_service_account
       K8S_SERVICE_ACCOUNT_MLFLOW       = local.mlflow_kubernetes_service_account
-      K8S_SERVICE_ACCOUNT_FRONTEND_RAG = local.frontend_rag_service_account
+      K8S_SERVICE_ACCOUNT_RAG_FRONTEND = local.rag_frontend_service_account
       MANIFESTS_DIRECTORY              = local.configsync_manifests_directory
       PROJECT_ID                       = data.google_project.environment.project_id
     }
@@ -420,17 +420,17 @@ resource "local_file" "policy_iap_mlflow_tracking_yaml" {
   filename = "${local.gateway_manifests_directory}/policy-iap-mlflow.yaml"
 }
 
-resource "local_file" "policy_iap_frontend_rag_yaml" {
+resource "local_file" "policy_iap_rag_frontend_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
     {
       oauth_client_id          = google_iap_client.ray_head_client.client_id
       oauth_client_secret_name = kubernetes_secret_v1.ray_head_client.metadata[0].name
-      policy_name              = "frontend-rag"
-      service_name             = local.frontend_rag_service_name
+      policy_name              = "rag-frontend"
+      service_name             = local.rag_frontend_service_name
     }
   )
-  filename = "${local.gateway_manifests_directory}/policy-iap-frontend_rag.yaml"
+  filename = "${local.gateway_manifests_directory}/policy-iap-rag-frontend.yaml"
 }
 
 resource "local_file" "gateway_kustomization_yaml" {
@@ -443,9 +443,9 @@ resource "local_file" "gateway_kustomization_yaml" {
         basename(local_file.policy_iap_ray_head_yaml.filename),
         basename(local_file.route_ray_dashboard_https_yaml.filename),
         basename(local_file.policy_iap_mlflow_tracking_yaml.filename),
-        basename(local_file.policy_iap_frontend_rag_yaml.filename),
+        basename(local_file.policy_iap_rag_frontend_yaml.filename),
         basename(local_file.route_mlflow_tracking_https_yaml.filename),
-        basename(local_file.route_frontend_rag_https_yaml.filename),
+        basename(local_file.route_rag_frontend_https_yaml.filename),
       ]
     }
   )
@@ -516,8 +516,8 @@ resource "null_resource" "gateway_manifests" {
       local_file.policy_iap_ray_head_yaml.content_md5,
       local_file.policy_iap_mlflow_tracking_yaml.content_md5,
       local_file.route_ray_dashboard_https_yaml.content_md5,
-      local_file.policy_iap_frontend_rag_yaml.content_md5,
-      local_file.route_frontend_rag_https_yaml.content_md5,
+      local_file.policy_iap_rag_frontend_yaml.content_md5,
+      local_file.route_rag_frontend_https_yaml.content_md5,
       local_file.policy_iap_mlflow_tracking_yaml.content_md5,
       local_file.route_mlflow_tracking_https_yaml.content_md5,
       local_file.gateway_kustomization_yaml.content_md5

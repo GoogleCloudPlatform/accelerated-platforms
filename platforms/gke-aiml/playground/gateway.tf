@@ -32,6 +32,10 @@ locals {
   mlflow_tracking_service_name = "mlflow-tracking-svc"
   mlflow_tracking_port         = 5000
 
+  rag_frontend_endpoint        = "rag-frontend.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
+  rag_frontend_port            = 8080
+  rag_frontend_service_name    = "rag-frontend"
+
   ray_head_service_name  = "ray-cluster-kuberay-head-svc"
   ray_dashboard_endpoint = "ray-dashboard.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
   ray_dashboard_port     = 8265
@@ -60,6 +64,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
       local.gradio_endpoint,
       local.locust_endpoint,
       local.mlflow_tracking_endpoint,
+      local.rag_frontend_endpoint
       local.ray_dashboard_endpoint,
     ]
   }
@@ -124,6 +129,18 @@ resource "google_endpoints_service" "mlflow_tracking_https" {
   service_name = local.mlflow_tracking_endpoint
 }
 
+resource "google_endpoints_service" "rag_frontend_https" {
+  openapi_config = templatefile(
+    "${path.module}/templates/openapi/endpoint.tftpl.yaml",
+    {
+      endpoint   = local.rag_frontend_endpoint,
+      ip_address = google_compute_global_address.external_gateway_https.address
+    }
+  )
+  project      = data.google_project.environment.project_id
+  service_name = local.rag_frontend_endpoint
+}
+
 resource "google_endpoints_service" "ray_dashboard_https" {
   openapi_config = templatefile(
     "${path.module}/templates/openapi/endpoint.tftpl.yaml",
@@ -178,6 +195,19 @@ resource "local_file" "route_mlflow_tracking_https_yaml" {
     }
   )
   filename = "${local.gateway_manifests_directory}/route-mlflow-tracking-https.yaml"
+}
+
+resource "local_file" "route_rag_frontend_https_yaml" {  
+  content = templatefile(
+    "${path.module}/templates/gateway/http-route-service.tftpl.yaml",
+    {
+      http_route_name = "rag-frontend-https",
+      hostname        = local.rag_frontend_endpoint
+      service_name    = local.rag_frontend_service_name
+      service_port    = local.rag_frontend_port
+    }
+  )
+  filename = "${local.gateway_manifests_directory}/route-rag-frontend-https_yaml"
 }
 
 resource "local_file" "route_ray_dashboard_https_yaml" {

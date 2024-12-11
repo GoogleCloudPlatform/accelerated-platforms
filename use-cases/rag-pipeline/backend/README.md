@@ -1,13 +1,19 @@
-## Backend application deployment
+# Backend application deployment
 
-# Getting Started
+## Prerequisites
 
-## Prepare the environment
+- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 
-You have an existing [ML Playground cluster](https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/main/platforms/gke-aiml/playground) in a Google Cloud Project.
+## Preparation
 
-## Set the default environment variables:
-- Change directory to the backend source code directory
+- Clone the repository
+
+  ```sh
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms
+  ```
+
+- Change directory to the guide directory
 
   ```sh
   cd use-cases/rag-pipeline/backend
@@ -28,80 +34,83 @@ You have an existing [ML Playground cluster](https://github.com/GoogleCloudPlatf
   gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
   ```
 
-## Build the backend container image container image
+## Build the container image
 
-```sh
-git clone https://github.com/GoogleCloudPlatform/accelerated-platforms.git
-cd rag-on-gke/backend/src
-```
+- Build the container image using Cloud Build and push the image to Artifact Registry
 
-Update the location where you would like to store the container images in the ```cloud build yaml`` and kick off the build: 
+  ```sh
+  cd src
+  git restore cloudbuild.yaml
+  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+  gcloud beta builds submit \
+  --config cloudbuild.yaml \
+  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
+  --project ${MLP_PROJECT_ID} \
+  --substitutions _DESTINATION=${MLP_RAG_BACKEND_IMAGE}
+  cd -
+  ```
 
-Create the artifact repostiory(if it not already exists) to store the container images:
+## Deploy the backend application
 
-```sh
-gcloud artifacts repositories create rag-artifacts --repository-format=docker --location=us --description="RAG artifacts repository"
-```
+- Configure the deployment.
 
-```sh
-cd src
-gcloud builds submit . 
-```
+  ```sh
+  export CATALOG_DB="product_catalog"
+  export CATALOG_TABLE_NAME="clothes"
+  export TEXT_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
+  export IMAGE_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/image_embeddings"
+  export MULTIMODAL_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/multimodal_embeddings"
+  export GEMMA_IT_ENDPOINT="http://rag-it-model.ml-team:8000/v1/chat/completions"
+  export EMBEDDING_COLUMN_TEXT="text_embeddings"
+  export EMBEDDING_COLUMN_IMAGE="image_embeddings"
+  export EMBEDDING_COLUMN_MULTIMODAL="multimodal_embeddings"
+  export ROW_COUNT="\"5\""
+  ```
 
-## Deploy the backend service 
-
-Update `manifests/backend_deployment.yaml` file with variables values as shown below:
-
-```sh
-    export CATALOG_DB="product_catalog"
-    export CATALOG_TABLE_NAME="clothes"
-    export TEXT_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
-    export IMAGE_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/image_embeddings"
-    export MULTIMODAL_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/multimodal_embeddings" 
-    export GEMMA_IT_ENDPOINT="http://rag-it-model.ml-team:8000/v1/chat/completions"
-    export EMBEDDING_COLUMN_TEXT="text_embeddings"
-    export EMBEDDING_COLUMN_IMAGE="image_embeddings"
-    export EMBEDDING_COLUMN_MULTIMODAL="multimodal_embeddings"
-    export ROW_COUNT="\"5\""
-```
-
-```sh
+  ```sh
+  git restore manifests/backend_deployment.yaml
   sed \
-  -i -e "s|V_MLP_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
-  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
   -i -e "s|V_CATALOG_DB|${CATALOG_DB}|" \
   -i -e "s|V_CATALOG_TABLE_NAME|${CATALOG_TABLE_NAME}|" \
-  -i -e "s|V_MLP_DB_ADMIN_IAM|${MLP_DB_ADMIN_IAM}|" \
-  -i -e "s|V_MLP_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
-  -i -e "s|V_GEMMA_IT_ENDPOINT|${GEMMA_IT_ENDPOINT}|" \
-  -i -e "s|V_MLP_KUBERNETES_NAMESPACE|${MLP_KUBERNETES_NAMESPACE}|" \
-  -i -e "s|V_TEXT_EMBEDDING_ENDPOINT|${TEXT_EMBEDDING_ENDPOINT}|" \
-  -i -e "s|V_IMAGE_EMBEDDING_ENDPOINT|${IMAGE_EMBEDDING_ENDPOINT}|" \
-  -i -e "s|V_MULTIMODAL_EMBEDDING_ENDPOINT|${MULTIMODAL_EMBEDDING_ENDPOINT}|" \
-  -i -e "s|V_EMBEDDING_COLUMN_TEXT|${EMBEDDING_COLUMN_TEXT}|" \
   -i -e "s|V_EMBEDDING_COLUMN_IMAGE|${EMBEDDING_COLUMN_IMAGE}|" \
   -i -e "s|V_EMBEDDING_COLUMN_MULTIMODAL|${EMBEDDING_COLUMN_MULTIMODAL}|" \
+  -i -e "s|V_EMBEDDING_COLUMN_TEXT|${EMBEDDING_COLUMN_TEXT}|" \
+  -i -e "s|V_EMBEDDING_ENDPOINT_IMAGE|${IMAGE_EMBEDDING_ENDPOINT}|" \
+  -i -e "s|V_EMBEDDING_ENDPOINT_MULTIMODAL|${MULTIMODAL_EMBEDDING_ENDPOINT}|" \
+  -i -e "s|V_EMBEDDING_ENDPOINT_TEXT|${TEXT_EMBEDDING_ENDPOINT}|" \
+  -i -e "s|V_GEMMA_IT_ENDPOINT|${GEMMA_IT_ENDPOINT}|" \
+  -i -e "s|V_IMAGE|${MLP_RAG_BACKEND_IMAGE}|" \
+  -i -e "s|V_MLP_DB_ADMIN_IAM|${MLP_DB_ADMIN_IAM}|" \
+  -i -e "s|V_MLP_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
+  -i -e "s|V_MLP_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
+  -i -e "s|V_MLP_KUBERNETES_NAMESPACE|${MLP_KUBERNETES_NAMESPACE}|" \
+  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
   -i -e "s|V_ROW_COUNT|${ROW_COUNT}|" \
   manifests/backend_deployment.yaml
   ```
 
+- Create the deployment.
+
+  ```sh
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/backend_deployment.yaml
+  ```
+
+## Test the backend application
+
+Validations:
 
 ```sh
-kubectl apply -f manifests/backend_deployment.yaml -n ${MLP_KUBERNETES_NAMESPACE}
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get pods -l app=rag-backend
 ```
 
-## Test the embedding model
-Validations: 
-
 ```sh
-kubectl get po -n ${MLP_KUBERNETES_NAMESPACE}
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get service/rag-backend
 ```
 
-
-└─⪧ kubectl get svc -n ${MLP_KUBERNETES_NAMESPACE}
-NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)          AGE
-
+```sh
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/curl.yaml
+```
 
 ```sh
-kubectl apply -f manifests/curl-job.yaml -n ${MLP_KUBERNETES_NAMESPACE}
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/rag-backend-curl
 ```

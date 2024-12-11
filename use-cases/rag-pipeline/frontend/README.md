@@ -1,73 +1,96 @@
-## Frontend application deployment
+# Frontend application deployment
 
-# Getting Started
+## Prerequisites
 
-## Prepare the environment
+- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 
-You have an existing [ML Playground cluster](https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/main/platforms/gke-aiml/playground) in a Google Cloud Project.
+## Preparation
 
-## Set the default environment variables:
+- Clone the repository
 
-```
-cat ${MLP_ENVIRONMENT_FILE}
-source ${MLP_ENVIRONMENT_FILE}
-gcloud config set project $MLP_PROJECT_ID
-```
-
-## Build the frontend container image container image
-
-```
-#<TODO> change it to main branch before merge
-git clone https://github.com/GoogleCloudPlatform/accelerated-platforms.git
-cd rag-pipeline/frontend
-```
-
-Update the location where you would like to store the container images in the ```cloud build yaml`` and kick off the build: 
-
-Create the artifact repostiory(if it not already exists) to store the container images:
-
-```
-gcloud artifacts repositories create rag-artifacts --repository-format=docker --location=us --description="RAG artifacts repository"
-```
-
-```
-cd src
-gcloud builds submit . 
-```
-
-## Deploy the frontend RAG application
-
-Update manifests/frontend_gradio_deployment.yaml file with absolute path to of the frontend image (container registry) and GPU resource allocations as needed. 
-
-Now, deploy frontend application:
-
-```sh
-    export BACKEND_SERVICE_ENDPOINT="http://rag-backend.ml-team:8000/generate_product_recommendations/"
-```
-
-```sh
-  sed \
-  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
-  -i -e "s|V_BACKEND_SERVICE_ENDPOINT|${BACKEND_SERVICE_ENDPOINT}|" \
-  manifests/frontend_gradio_deployment.yaml
+  ```sh
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms
   ```
 
+- Change directory to the guide directory
+
+  ```sh
+  cd use-cases/rag-pipeline/frontend
+  ```
+
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+
+  ```sh
+  cat ${MLP_ENVIRONMENT_FILE} && \
+  source ${MLP_ENVIRONMENT_FILE}
+  ```
+
+  > You should see the various variables populated with the information specific to your environment.
+
+- Get credentials for the GKE cluster
+
+  ```sh
+  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  ```
+
+## Build the container image
+
+- Build the container image using Cloud Build and push the image to Artifact Registry
+
+  ```sh
+  cd src
+  git restore cloudbuild.yaml
+  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+  gcloud beta builds submit \
+  --config cloudbuild.yaml \
+  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
+  --project ${MLP_PROJECT_ID} \
+  --substitutions _DESTINATION=${MLP_RAG_FRONTEND_IMAGE}
+  cd -
+  ```
+
+## Deploy the frontend application
+
+- Configure the deployment.
+
+  ```sh
+  export BACKEND_SERVICE_ENDPOINT="http://rag-backend.ml-team:8000/generate_product_recommendations/"
+  ```
+
+  ```sh
+  git restore manifests/deployment.yaml
+  sed \
+  -i -e "s|V_IMAGE|${MLP_RAG_FRONTEND_IMAGE}|" \
+  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
+  -i -e "s|V_BACKEND_SERVICE_ENDPOINT|${BACKEND_SERVICE_ENDPOINT}|" \
+  manifests/deployment.yaml
+  ```
+
+- Create the deployment.
+
+  ```sh
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
+  ```
+
+- Verify the deployment.
+
 ```sh
-kubectl apply -f manifests/frontend_gradio_deployment.yaml -n {MLP_KUBERNETES_NAMESPACE}
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get pods -l app=rag-frontend
 ```
 
-## Test pod deployment for frontend RAG application
-Validations: 
-kubectl get po -n {MLP_KUBERNETES_NAMESPACE}
-
-
-└─⪧ kubectl get svc -n {MLP_KUBERNETES_NAMESPACE}
-NAME              TYPE           CLUSTER-IP      EXTERNAL-IP    PORT(S)          AGE
-
-
-## Retrieve the frontend URL endpoint 
+- Verify the service.
 
 ```sh
-echo ${MLP_FRONTEND_RAG_NAMESPACE_ENDPOINT}
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get service/frontend-rag-svc
 ```
-Open the Front end application in browser using URL value retrieved above.
+
+## Test the frontend application
+
+- Retrieve the frontend application URL
+
+  ```sh
+  echo -e "\n${MLP_KUBERNETES_NAMESPACE} RAG frontend URL: ${MLP_RAG_FRONTEND_NAMESPACE_ENDPOINT}\n"
+  ```
+
+- Open the Front end application in browser using URL value retrieved above.

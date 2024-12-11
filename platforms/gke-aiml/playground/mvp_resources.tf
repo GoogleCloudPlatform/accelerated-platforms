@@ -275,6 +275,8 @@ MLP_MODEL_EVALUATION_KSA="${local.model_evaluation_ksa}"
 MLP_MULTIMODAL_EMBEDDING_IMAGE="${local.repo_container_images_url}/multimodal-embedding:1.0.0"
 MLP_PROJECT_ID="${data.google_project.environment.project_id}"
 MLP_PROJECT_NUMBER="${data.google_project.environment.number}"
+MLP_RAG_BACKEND_IMAGE="${local.repo_container_images_url}/rag-backend:1.0.0"
+MLP_RAG_FRONTEND_IMAGE="${local.repo_container_images_url}/rag-frontend:1.0.0"
 MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT="https://${local.ray_dashboard_endpoint}"
 MLP_REGION="${var.region}"
 EOT

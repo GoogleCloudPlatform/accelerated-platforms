@@ -48,11 +48,11 @@ spec:
         - name: MLP_DB_INSTANCE_URI
           value: V_MLP_DB_INSTANCE_URI
         - name: TEXT_EMBEDDING_ENDPOINT
-          value: V_TEXT_EMBEDDING_ENDPOINT
+          value: V_EMBEDDING_ENDPOINT_TEXT
         - name: IMAGE_EMBEDDING_ENDPOINT
-          value: V_IMAGE_EMBEDDING_ENDPOINT
+          value: V_EMBEDDING_ENDPOINT_IMAGE
         - name: MULTIMODAL_EMBEDDING_ENDPOINT
-          value: V_MULTIMODAL_EMBEDDING_ENDPOINT 
+          value: V_EMBEDDING_ENDPOINT_MULTIMODAL
         - name: MLP_KUBERNETES_NAMESPACE
           value: V_MLP_KUBERNETES_NAMESPACE
       restartPolicy: Never

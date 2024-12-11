@@ -1,6 +1,12 @@
+images:
+  - ${_DESTINATION}
+options:
+  logging: CLOUD_LOGGING_ONLY
+serviceAccount: 
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'us-docker.pkg.dev/$PROJECT_ID/rag-artifacts/backend-api:v0.1.0', '.' ]
-images:
-- 'us-docker.pkg.dev/$PROJECT_ID/rag-artifacts/backend-api:v0.1.0'
-  # Push the container image to Artifact Registry, get sha256 of the image
+  args:
+  - build
+  - -t
+  - ${_DESTINATION}
+  - .

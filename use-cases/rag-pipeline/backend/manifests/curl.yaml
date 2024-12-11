@@ -15,18 +15,18 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: curl-test-backend
+  name: rag-backend-curl
 spec:
   backoffLimit: 0
   template:
     metadata:
       labels:
-        app: curl-test-backend
+        app: rag-backend-curl
     spec:
       restartPolicy: Never
       terminationGracePeriodSeconds: 0
       containers:
-      - name: curl-test-backend
+      - name: curl
         image: curlimages/curl
         command:
           - sh

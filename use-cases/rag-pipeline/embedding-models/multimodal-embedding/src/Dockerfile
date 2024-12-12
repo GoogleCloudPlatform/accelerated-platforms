@@ -29,7 +29,10 @@ COPY requirements.txt /app/
 # Install necessary libraries
 RUN pip install -r requirements.txt
 
-COPY blip2_script.py /app/
+COPY custom_json_formatter.py \ 
+    logging.conf \ 
+    blip2_script.py \
+    /app/
 
 ENV PORT=8000
 

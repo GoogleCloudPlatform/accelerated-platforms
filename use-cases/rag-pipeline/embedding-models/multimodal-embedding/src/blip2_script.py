@@ -15,12 +15,33 @@
 import io
 import os
 import torch
+import logging
 
 from flask import Flask, request, jsonify
 from google.cloud import storage
 from google.cloud.storage.blob import Blob
 from lavis.models import load_model_and_preprocess
 from PIL import Image
+
+# Configure logging
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    try:
+        # Convert the string to a logging level constant
+        numeric_level = getattr(logging, new_log_level)
+
+        # Set the level for the root logger
+        logging.setLevel(numeric_level)
+
+        logger.info(
+            "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
+        )
+    except AttributeError:
+        logger.warning(
+            "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
+        )
 
 # Load the model and processors, ensuring they're on the correct device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

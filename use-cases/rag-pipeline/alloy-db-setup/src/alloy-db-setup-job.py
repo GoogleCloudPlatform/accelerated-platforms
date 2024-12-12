@@ -18,6 +18,27 @@ import logging
 import logging.config
 import os
 
+# Configure logging
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    try:
+        # Convert the string to a logging level constant
+        numeric_level = getattr(logging, new_log_level)
+
+        # Set the level for the root logger
+        logging.setLevel(numeric_level)
+
+        logger.info(
+            "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
+        )
+    except AttributeError:
+        logger.warning(
+            "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
+        )
+
+
 # Master_product_catalog.csv
 PROCESSED_DATA_BUCKET = os.environ.get("PROCESSED_DATA_BUCKET")
 MASTER_CATALOG_FILE_NAME = os.environ.get("MASTER_CATALOG_FILE_NAME")
@@ -47,18 +68,6 @@ index_names = {
 }
 
 if __name__ == "__main__":
-    # Configure logging
-    logging.config.fileConfig("logging.conf")
-
-    logger = logging.getLogger("alloydb-catalog-onboarding")
-
-    if "LOG_LEVEL" in os.environ:
-        new_log_level = os.environ["LOG_LEVEL"].upper()
-        logger.info(
-            f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-        )
-        logging.getLogger().setLevel(new_log_level)
-        logger.setLevel(new_log_level)
 
     try:
 

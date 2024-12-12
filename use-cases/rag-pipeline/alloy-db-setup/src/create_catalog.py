@@ -23,20 +23,30 @@ import sqlalchemy
 from google.cloud.alloydb.connector import Connector
 from pgvector.sqlalchemy import Vector
 
-EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION"))
-
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("create-catalog-db")
+logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
-    logger.info(
-        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-    )
-    logging.getLogger().setLevel(new_log_level)
-    logger.setLevel(new_log_level)
+    try:
+        # Convert the string to a logging level constant
+        numeric_level = getattr(logging, new_log_level)
 
+        # Set the level for the root logger
+        logging.setLevel(numeric_level)
+
+        logger.info(
+            "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
+        )
+
+    except AttributeError:
+        logger.warning(
+            "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
+        )
+
+
+EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION"))
 
 def create_database(database, new_database):
     """Creates a new database in AlloyDB and enables necessary extensions."""

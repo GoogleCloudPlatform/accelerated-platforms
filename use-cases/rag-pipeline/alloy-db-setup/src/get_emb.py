@@ -25,9 +25,8 @@ MULTIMODAL_API_ENDPOINT = os.environ.get("MULTIMODAL_EMBEDDING_ENDPOINT")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("generate embeddings")
-
 logger = logging.getLogger(__name__)
+
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     try:
@@ -35,7 +34,7 @@ if "LOG_LEVEL" in os.environ:
         numeric_level = getattr(logging, new_log_level)
 
         # Set the level for the root logger
-        logging.getLogger().setLevel(numeric_level)
+        logging.setLevel(numeric_level)
 
         logger.info(
             "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level

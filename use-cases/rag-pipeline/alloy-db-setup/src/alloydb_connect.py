@@ -22,6 +22,28 @@ import sqlalchemy
 
 from google.cloud.alloydb.connector import Connector, IPTypes
 
+# Configure logging
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
+
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    try:
+        # Convert the string to a logging level constant
+        numeric_level = getattr(logging, new_log_level)
+
+        # Set the level for the root logger
+        logging.setLevel(numeric_level)
+
+        logger.info(
+            "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
+        )
+    except AttributeError:
+        logger.warning(
+            "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
+        )
+
+
 # AlloyDB
 instance_uri = os.environ.get("MLP_DB_INSTANCE_URI")
 
@@ -32,20 +54,6 @@ credentials, project = google.auth.default()
 auth_request = google.auth.transport.requests.Request()
 credentials.refresh(auth_request)
 user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
-
-# Configure logging
-
-logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("alloydb-setup")
-
-
-if "LOG_LEVEL" in os.environ:
-    new_log_level = os.environ["LOG_LEVEL"].upper()
-    logger.info(
-        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-    )
-    logging.getLogger().setLevel(new_log_level)
-    logger.setLevel(new_log_level)
 
 
 def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Engine:

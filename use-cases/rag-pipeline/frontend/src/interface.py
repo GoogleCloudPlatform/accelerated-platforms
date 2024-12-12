@@ -20,16 +20,24 @@ import logging
 import logging.config
 
 # Configure logging
-logging.config.fileConfig("logging.conf")  # Make sure you have logging.conf configured
-logger = logging.getLogger("frontend")
-
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
-    logger.info(
-        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-    )
-    logging.getLogger().setLevel(new_log_level)
-    logger.setLevel(new_log_level)
+    try:
+        # Convert the string to a logging level constant
+        numeric_level = getattr(logging, new_log_level)
+
+        # Set the level for the root logger
+        logging.setLevel(numeric_level)
+
+        logger.info(
+            "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
+        )
+    except AttributeError:
+        logger.warning(
+            "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
+        )
 
 # RAG BACKEND_SERVICE_URL
 BACKEND_SERVICE_URL = os.environ.get("BACKEND_SERVICE_ENDPOINT")
@@ -138,4 +146,4 @@ with gr.Blocks() as demo:
 # Launch the demo
 if __name__ == "__main__":
     logging.info("Starting Frontend service for RAG application...")
-    demo.launch(share=True, server_name="0.0.0.0")
+    demo.launch(share=False, server_name="0.0.0.0")

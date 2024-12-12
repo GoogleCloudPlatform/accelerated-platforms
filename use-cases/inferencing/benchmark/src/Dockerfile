@@ -30,7 +30,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # Remove build dependencies to keep the image size small
 RUN apk del .build-deps
 
-COPY custom_json_formatter.py logging.conf run.sh tasks.py /
+COPY logging.conf run.sh tasks.py /
 
 # Expose the required Locust ports
 EXPOSE 5557 5558 8089

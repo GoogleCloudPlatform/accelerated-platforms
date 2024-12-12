@@ -72,7 +72,6 @@ class MyUser(FastHttpUser):
 if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
-
     logger = logging.getLogger("benchmark_obj")
 
     if "LOG_LEVEL" in os.environ:

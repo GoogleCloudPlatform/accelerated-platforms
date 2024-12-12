@@ -36,7 +36,6 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from custom_json_formatter import CustomJSONFormatter
 from openai_credentials_refresher import OpenAICredentialsRefresher
 
 PROJECT_ID = os.environ.get("PROJECT_ID")
@@ -350,7 +349,6 @@ def graceful_shutdown(signal_number, stack_frame):
 if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
-
     logger = logging.getLogger("processing")
 
     if "LOG_LEVEL" in os.environ:

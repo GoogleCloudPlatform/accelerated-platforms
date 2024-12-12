@@ -46,4 +46,4 @@ COPY --from=devel /workspace/wheels /workspace/wheels
 COPY requirements.txt /workspace/
 RUN pip install --no-cache /workspace/wheels/*
 
-COPY custom_json_formatter.py fine_tune.py fsdp_config.yaml logging.conf /workspace/
+COPY fine_tune.py fsdp_config.yaml logging.conf /workspace/

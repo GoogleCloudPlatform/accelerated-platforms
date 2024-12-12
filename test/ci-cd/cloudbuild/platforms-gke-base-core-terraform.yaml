@@ -16,7 +16,7 @@ steps:
   waitFor: ["-"]
 
 - name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-  id: "Test platforms/gke-aiml/playground Terraform"
+  id: "Test platforms/gke/base/core Terraform"
   entrypoint: "ash"
   args:
     - "-x"

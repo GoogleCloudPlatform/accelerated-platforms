@@ -13,18 +13,6 @@
 # limitations under the License.
 
 locals {
-  backend_files = [
-    abspath("${path.module}/backend.tf.bucket"),
-    abspath("${path.module}/../container_cluster/backend.tf"),
-    abspath("${path.module}/../container_node_pool/backend.tf"),
-    abspath("${path.module}/../gke_enterprise/configmanagement/git/backend.tf"),
-    abspath("${path.module}/../gke_enterprise/configmanagement/oci/backend.tf"),
-    abspath("${path.module}/../gke_enterprise/fleet_membership/backend.tf"),
-    abspath("${path.module}/../gke_enterprise/policycontroller/backend.tf"),
-    abspath("${path.module}/../gke_enterprise/servicemesh/backend.tf"),
-    abspath("${path.module}/../networking/backend.tf"),
-    abspath("${path.module}/../workloads/kueue/backend.tf"),
-  ]
   container_node_pool_folder = abspath("${path.module}/../container_node_pool")
 }
 
@@ -66,34 +54,5 @@ EOT
 
   triggers = {
     always_run = timestamp()
-  }
-}
-
-resource "null_resource" "write_storage_bucket" {
-  for_each = toset(local.backend_files)
-
-  provisioner "local-exec" {
-    command     = <<EOT
-echo "Writing 'bucket' changes to '${self.triggers.backend_file}'" && \
-sed -i 's/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 ${jsonencode(data.google_storage_bucket.terraform.name)}/' ${self.triggers.backend_file}
-    EOT
-    interpreter = ["bash", "-c"]
-    working_dir = path.module
-  }
-
-  provisioner "local-exec" {
-    when        = destroy
-    command     = <<EOT
-echo "Reverting 'bucket' changes in '${self.triggers.backend_file}'" && \
-sed -i 's/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 ""/' ${self.triggers.backend_file}
-    EOT
-    interpreter = ["bash", "-c"]
-    working_dir = path.module
-  }
-
-  triggers = {
-    always_run   = timestamp()
-    backend_file = each.value
-    md5          = data.google_storage_bucket.terraform.name
   }
 }

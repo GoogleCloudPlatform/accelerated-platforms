@@ -1,4 +1,3 @@
-
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +14,7 @@
 
 terraform {
   backend "gcs" {
-    bucket = ""
-    prefix = "terraform/container_node_pool"
+    bucket = "${bucket}"
+    prefix = "${prefix}"
   }
 }

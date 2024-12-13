@@ -32,9 +32,9 @@ locals {
   mlflow_tracking_service_name = "mlflow-tracking-svc"
   mlflow_tracking_port         = 5000
 
-  rag_frontend_endpoint        = "rag-frontend.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
-  rag_frontend_port            = 8080
-  rag_frontend_service_name    = "rag-frontend"
+  rag_frontend_endpoint     = "rag-frontend.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
+  rag_frontend_port         = 8080
+  rag_frontend_service_name = "rag-frontend"
 
   ray_head_service_name  = "ray-cluster-kuberay-head-svc"
   ray_dashboard_endpoint = "ray-dashboard.${data.kubernetes_namespace_v1.team.metadata[0].name}.mlp-${var.environment_name}.${local.hostname_suffix}"
@@ -64,7 +64,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
       local.gradio_endpoint,
       local.locust_endpoint,
       local.mlflow_tracking_endpoint,
-      local.rag_frontend_endpoint
+      local.rag_frontend_endpoint,
       local.ray_dashboard_endpoint,
     ]
   }
@@ -197,10 +197,11 @@ resource "local_file" "route_mlflow_tracking_https_yaml" {
   filename = "${local.gateway_manifests_directory}/route-mlflow-tracking-https.yaml"
 }
 
-resource "local_file" "route_rag_frontend_https_yaml" {  
+resource "local_file" "route_rag_frontend_https_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/http-route-service.tftpl.yaml",
     {
+      gateway_name    = local.gateway_name,
       http_route_name = "rag-frontend-https",
       hostname        = local.rag_frontend_endpoint
       service_name    = local.rag_frontend_service_name

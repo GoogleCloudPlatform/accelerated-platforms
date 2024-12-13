@@ -30,7 +30,7 @@ cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
     terraform apply -input=false tfplan || exit 1
 rm tfplan
 
-for terraservice in "${terraservices[@]}"; do
+for terraservice in $(echo "${terraservices[@]}" | tac -s " "); do
     cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
         echo "Current directory: $(pwd)" &&
         terraform init &&

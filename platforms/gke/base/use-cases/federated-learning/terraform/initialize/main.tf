@@ -28,6 +28,7 @@ locals {
     # abspath("${path.module}"),
     abspath("${path.module}/../container_image_repository"),
     abspath("${path.module}/../private_google_access"),
+    abspath("${path.module}/../firewall"),
   ]
 }
 

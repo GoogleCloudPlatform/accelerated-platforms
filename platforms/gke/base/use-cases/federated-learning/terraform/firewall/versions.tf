@@ -12,7 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "config_management_fqdns" {
-  description = "Fully-qualified domain name where Config Management repositories are hosted. Example: github.com"
-  type        = list(string)
+terraform {
+  required_version = ">= 1.5.7"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.12.0"
+    }
+  }
+
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_fl_firewall_deploy-v1"
+  }
 }

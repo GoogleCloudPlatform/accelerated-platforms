@@ -34,4 +34,5 @@ federated_learning_terraservices=(
   "initialize"
   "container_image_repository"
   "private_google_access"
+  "firewall"
 )

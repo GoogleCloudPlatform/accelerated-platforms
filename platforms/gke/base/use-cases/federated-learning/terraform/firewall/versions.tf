@@ -12,11 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_service_account" "federated_learning_service_account" {
-  for_each = toset(local.service_account_names)
+terraform {
+  required_version = ">= 1.5.7"
 
-  account_id   = each.value
-  description  = "Terraform-managed service account for the federated learning use case in cluster ${local.cluster_name}"
-  display_name = "${local.cluster_name}-${each.value} service account"
-  project      = google_project_service.iam_googleapis_com.project
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.12.0"
+    }
+  }
+
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_fl_firewall_deploy-v1"
+  }
 }

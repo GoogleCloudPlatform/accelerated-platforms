@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_service_account" "federated_learning_service_account" {
-  for_each = toset(local.service_account_names)
+data "google_project" "default" {
+  project_id = var.cluster_project_id
+}
 
-  account_id   = each.value
-  description  = "Terraform-managed service account for the federated learning use case in cluster ${local.cluster_name}"
-  display_name = "${local.cluster_name}-${each.value} service account"
-  project      = google_project_service.iam_googleapis_com.project
+resource "google_project_service" "compute_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.default.project_id
+  service                    = "compute.googleapis.com"
 }

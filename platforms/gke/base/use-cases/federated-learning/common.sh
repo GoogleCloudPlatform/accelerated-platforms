@@ -42,8 +42,21 @@ federated_learning_core_platform_terraservices=(
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 federated_learning_terraservices=(
+  "firewall"
   "container_image_repository"
   "private_google_access"
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+core_platform_init_terraservices=(
+  "initialize"
+  "networking"
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+core_platform_terraservices=(
+  "container_cluster"
+  "gke_enterprise/fleet_membership"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts

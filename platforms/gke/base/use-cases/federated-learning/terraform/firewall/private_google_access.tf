@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_service_account" "federated_learning_service_account" {
-  for_each = toset(local.service_account_names)
-
-  account_id   = each.value
-  description  = "Terraform-managed service account for the federated learning use case in cluster ${local.cluster_name}"
-  display_name = "${local.cluster_name}-${each.value} service account"
-  project      = google_project_service.iam_googleapis_com.project
+data "google_netblock_ip_ranges" "private_google_access_netblock_ip_range" {
+  range_type = "private-googleapis"
 }

@@ -26,11 +26,35 @@ locals {
     }
   }
 
+  node_pool_service_account_names = [
+    for tenant in local.tenants : tenant.tenant_nodepool_sa_name
+  ]
+
+  node_pool_service_account_emails = [
+    for tenant in local.tenants : "${tenant.tenant_nodepool_sa_name}@${var.cluster_project_id}.iam.gserviceaccount.com"
+  ]
+
+  node_pool_service_account_iam_emails = [
+    for tenant in local.tenants : "serviceAccount:${tenant.tenant_nodepool_sa_name}@${var.cluster_project_id}.iam.gserviceaccount.com"
+  ]
+
+  apps_service_account_names = [
+    for tenant in local.tenants : tenant.tenant_apps_sa_name
+  ]
+
+  apps_service_account_emails = [
+    for tenant in local.tenants : "${tenant.tenant_apps_sa_name}@${var.cluster_project_id}.iam.gserviceaccount.com"
+  ]
+
+  apps_service_account_iam_emails = [
+    for tenant in local.tenants : "serviceAccount:${tenant.tenant_apps_sa_name}@${var.cluster_project_id}.iam.gserviceaccount.com"
+  ]
+
   # Put all service account names in a list so we can create them with a single
   # google_service_account resource
   service_account_names = concat(
-    [for tenant in local.tenants : tenant.tenant_nodepool_sa_name],
-    [for tenant in local.tenants : tenant.tenant_apps_sa_name],
+    local.node_pool_service_account_names,
+    local.apps_service_account_names,
   )
 
   tenant_apps_kubernetes_service_account_name = "fl-ksa"

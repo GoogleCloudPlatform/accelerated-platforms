@@ -26,8 +26,8 @@ start_timestamp_federated_learning=$(date +%s)
 echo "Initializing the core platform"
 # Don't provision any core platform terraservice becuase we just need
 # to initialize the terraform environment and remote backend
-# shellcheck disable=SC1091
-CORE_TERRASERVICES_APPLY="initialize" \
+# shellcheck disable=SC1091,SC2154
+CORE_TERRASERVICES_APPLY="${core_platform_init_terraservices[*]}" \
   "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
 echo "Preparing core platform configuration files"
@@ -50,8 +50,8 @@ fi
 edit_terraform_configuration_variable_value_in_file "cluster_database_encryption_key_name_placeholder" "${cluster_database_encryption_key_id}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 
 echo "Provisioning the core platform"
-# shellcheck disable=SC1091,SC2034 # Variable is used in other scripts
-CORE_TERRASERVICES_APPLY="networking container_cluster gke_enterprise/fleet_membership" \
+# shellcheck disable=SC1091,SC2034,SC2154 # Variable is used in other scripts
+CORE_TERRASERVICES_APPLY="${core_platform_terraservices[*]}" \
   "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
 echo "Provisioning the use case resources"

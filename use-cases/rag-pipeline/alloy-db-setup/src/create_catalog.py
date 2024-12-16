@@ -45,7 +45,6 @@ if "LOG_LEVEL" in os.environ:
             "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
         )
 
-logging.info("Create Database job started")
 
 EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION"))
 
@@ -119,8 +118,7 @@ def create_database(database, new_database):
 
 def create_and_populate_table(database, table_name, processed_data_path):
     """Creates and populates a table in PostgreSQL using pandas and sqlalchemy."""
-    
-    logging.info("Importing Product Catalog to database job started")
+
     try:
         # 1. Extract
         df = pd.read_csv(processed_data_path)
@@ -206,7 +204,6 @@ def create_embeddings_index(
     index_cmd = sqlalchemy.text(
         f"CREATE INDEX {INDEX_NAME} ON {TABLE_NAME} USING scann ({EMBEDDING_COLUMN} {DISTANCE_FUNCTION}) WITH (num_leaves={NUM_LEAVES_VALUE});"
     )
-    logging.info("Creating Scann Index for embeddings columns ...")
     try:
         with Connector() as connector:
             pool = alloydb_connect.init_connection_pool(connector, database)

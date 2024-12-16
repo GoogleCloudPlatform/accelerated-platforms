@@ -21,7 +21,6 @@ import os
 # Configure logging
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger(__name__)
-
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     try:
@@ -39,8 +38,6 @@ if "LOG_LEVEL" in os.environ:
             "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
         )
 
-logger.info("Logging initialized for alloyDB set up job")
-logger.info("AlloyDb set up job started")
 
 # Master_product_catalog.csv
 PROCESSED_DATA_BUCKET = os.environ.get("PROCESSED_DATA_BUCKET")
@@ -102,4 +99,3 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error(f"An unexpected error occurred during catalog onboarding: {e}")
         raise
-logger.info("AlloyDb set up job has been completed successfully")

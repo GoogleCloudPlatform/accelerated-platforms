@@ -17,7 +17,7 @@ resource "google_gke_hub_feature" "configmanagement" {
 
   location = "global"
   name     = "configmanagement"
-  project  = data.google_project.cluster.project_id
+  project  = google_project_service.anthosconfigmanagement_googleapis_com.project
 
   fleet_default_member_config {
     configmanagement {
@@ -44,7 +44,7 @@ resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
   feature    = google_gke_hub_feature.configmanagement.name
   location   = google_gke_hub_feature.configmanagement.location
   membership = data.google_container_cluster.cluster.name
-  project    = data.google_project.cluster.project_id
+  project    = google_project_service.anthosconfigmanagement_googleapis_com.project
 
   configmanagement {
     management = "MANAGEMENT_AUTOMATIC"

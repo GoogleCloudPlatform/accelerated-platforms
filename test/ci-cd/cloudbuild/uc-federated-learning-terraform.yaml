@@ -46,9 +46,13 @@ steps:
         export ACP_PLATFORM_BASE_DIR="/workspace/platforms/gke/base"
         export ACP_PLATFORM_CORE_DIR="/workspace/platforms/gke/base/core"
 
-        export TF_VAR_cluster_project_id="${PROJECT_ID}"
+        export TF_VAR_cluster_project_id="${PROJECT_ID}-${SHORT_SHA}"
         export TF_VAR_platform_name="${SHORT_SHA}-fl"
-        export TF_VAR_terraform_project_id="${PROJECT_ID}"
+        export TF_VAR_terraform_project_id="${PROJECT_ID}-${SHORT_SHA}"
+
+        # Create a dedicated project
+        export NEW_PROJECT_ID="$${TF_VAR_cluster_project_id}"
+        test/ci-cd/scripts/create_project.sh
 
         # Deploy the base platform and the use case
         platforms/gke/base/use-cases/federated-learning/deploy.sh
@@ -56,7 +60,12 @@ steps:
         APPLY_RETURN_CODE=$?
         echo "APPLY_RETURN_CODE=$${APPLY_RETURN_CODE}"
 
-        platforms/gke/base/use-cases/federated-learning/teardown.sh || exit 1
+        platforms/gke/base/use-cases/federated-learning/teardown.sh
+
+        # Delete the dedicated project
+        export DELETE_PROJECT_ID="$${NEW_PROJECT_ID}"
+        test/ci-cd/scripts/delete_project.sh
+
         if [[ $${APPLY_RETURN_CODE} -ne 0 ]]; then
           exit $${APPLY_RETURN_CODE}
         fi

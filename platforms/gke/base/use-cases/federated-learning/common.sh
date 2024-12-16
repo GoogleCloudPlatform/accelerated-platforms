@@ -18,13 +18,18 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# shellcheck disable=SC1091
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
-
-FEDERATED_LEARNING_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning"
+ACP_PLATFORM_SHARED_CONFIG_DIR="${ACP_PLATFORM_BASE_DIR}/_shared_config"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
+ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE="${ACP_PLATFORM_SHARED_CONFIG_DIR}/cluster.auto.tfvars"
+
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_SHARED_CONFIG_DIR}/scripts/set_environment_variables.sh" "${ACP_PLATFORM_SHARED_CONFIG_DIR}"
+
+FEDERATED_LEARNING_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning"
 FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR="${FEDERATED_LEARNING_USE_CASE_DIR}/terraform"
+# shellcheck disable=SC2034 # Variable is used in other scripts
+FEDERATED_LEARNING_SHARED_CONFIG_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/_shared_config"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 FEDERATED_LEARNING_USE_CASE_INITIALIZE_SERVICE_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/initialize"
@@ -44,4 +49,11 @@ TERRAFORM_INIT_COMMAND=(
 TERRAFORM_INIT_BACKEND_CONFIG_COMMAND=(
   "${TERRAFORM_INIT_COMMAND[@]}"
   -backend-config="backend.config"
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+TERRAFORM_CLUSTER_CONFIGURATION=(
+  "cluster_binary_authorization_evaluation_mode = \"PROJECT_SINGLETON_POLICY_ENFORCE\""
+  "# Set cluster_confidential_nodes_enabled to true to enable confidential nodes"
+  "cluster_confidential_nodes_enabled = false"
 )

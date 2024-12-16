@@ -73,8 +73,8 @@ print_and_execute "kubectl wait --namespace=ml-team --for=condition=provisioned 
 check_local_error_exit_on_error
 
 echo_title "Waiting for job to complete"
-print_and_execute "kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE} --for=condition=complete --timeout=14400s job/finetune-gemma-${ACCELERATOR} &
-kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE} --for=condition=failed --timeout=14400s job/finetune-gemma-${ACCELERATOR} && exit 1 &
+print_and_execute "kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE} --for=condition=complete --timeout=54000s job/finetune-gemma-${ACCELERATOR} &
+kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE} --for=condition=failed --timeout=54000s job/finetune-gemma-${ACCELERATOR} && exit 1 &
 wait -n && \
 pkill -f 'kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE}'"
 check_local_error_exit_on_error

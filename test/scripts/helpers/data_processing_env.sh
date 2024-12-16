@@ -15,7 +15,7 @@
 # limitations under the License.
 
 echo_title "Checking data-processing required configuration"
-source ${SCRIPTS_DIR}/helpers/kaggle.sh "datasets files atharvjairath/flipkart-ecommerce-dataset"
+source ${SCRIPTS_DIR}/helpers/kaggle.sh "datasets files PromptCloudHQ/flipkart-products"
 check_local_error_exit_on_error
 
 echo_title "Applying data-processing configuration"

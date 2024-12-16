@@ -58,7 +58,10 @@ class CustomJSONFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         entry = record.__dict__.copy()
         entry["message"] = record.getMessage()
-        entry["name"] = record.name
+        entry["timestamp"] = self.formatTime(record, self.datefmt)
+        
+        # Add a new key for the logger name
+        entry["logger_name"] = record.name
 
         # Removed ignored keys
         for key in self._ignore_keys:

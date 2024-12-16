@@ -28,7 +28,7 @@ echo_title "Building container image"
 print_and_execute "cd ${MLP_USE_CASE_BASE_DIR}/src && \
 gcloud beta builds submit \
 --config cloudbuild.yaml \
---gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \ 
+--gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
 --project ${MLP_PROJECT_ID} \
 --substitutions _DESTINATION=${MLP_DATA_PREPARATION_IMAGE}"
 check_local_error_exit_on_error
@@ -51,7 +51,7 @@ sed \
     -i -e "s|V_REGION|${REGION}|" \
     ${MLP_USE_CASE_BASE_DIR}/manifests/job.yaml
 
-echo_title "Deleting exsting job"
+echo_title "Deleting existing job"
 print_and_execute_no_check "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} delete -f ${MLP_USE_CASE_BASE_DIR}/manifests/job.yaml"
 
 echo_title "Creating job"

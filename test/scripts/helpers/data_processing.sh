@@ -51,7 +51,7 @@ sed \
     -i -e "s|V_KSA|${MLP_DATA_PROCESSING_KSA}|" \
     ${MLP_USE_CASE_BASE_DIR}/manifests/job.yaml
 
-echo_title "Deleting exsting job"
+echo_title "Deleting existing job"
 print_and_execute_no_check "kubectl --namespace=${MLP_KUBERNETES_NAMESPACE} delete -f ${MLP_USE_CASE_BASE_DIR}/manifests/job.yaml"
 
 echo_title "Creating job"

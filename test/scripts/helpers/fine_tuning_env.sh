@@ -25,11 +25,12 @@ fi
 
 echo_title "Applying fine-tuning configuration"
 
-random_suffix=$(echo $RANDOM | md5sum | head -c 8)
+#random_suffix=$(echo $RANDOM | md5sum | head -c 8)
+#export EXPERIMENT="finetune-${random_suffix}"
 
 export ACCELERATOR="l4"
 export DATA_BUCKET_DATASET_PATH="dataset/output/training"
-export EXPERIMENT="finetune-${random_suffix}"
+export EXPERIMENT="experiment"
 export HF_BASE_MODEL_NAME="google/gemma-2-9b-it"
 export MLFLOW_ENABLE="true"
 export MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING="true"

@@ -36,7 +36,6 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from custom_json_formatter import CustomJSONFormatter
 from openai_credentials_refresher import OpenAICredentialsRefresher
 
 PROJECT_ID = os.environ.get("PROJECT_ID")
@@ -304,13 +303,22 @@ def generate_prompt(row):
 
 
 def data_prep(finetune_ds):
+    total_entries = len(finetune_ds)
+    logger.info(f"Generating content for {total_entries} entries")
+
     result = pd.DataFrame()
+    current_entry = 1
     for context, category in zip(finetune_ds["context"], finetune_ds["c1_name"]):
+        logger.info(
+            f"Processing entry {current_entry} of {total_entries}",
+            extra={"context": context},
+        )
         if context != np.nan:
             temp_df = generate_qa(context, category)
             if temp_df is not None:
                 result = pd.concat([result, temp_df], ignore_index=True)
-                logger.info(f"Content generated", extra={"context": context})
+                logger.info(f"Content generated for entry {current_entry}")
+        current_entry += 1
     # Now `result` contains all generated questions and answers
     return result
 
@@ -350,7 +358,6 @@ def graceful_shutdown(signal_number, stack_frame):
 if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
-
     logger = logging.getLogger("processing")
 
     if "LOG_LEVEL" in os.environ:

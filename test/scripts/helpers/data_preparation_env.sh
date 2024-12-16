@@ -23,4 +23,4 @@ export REGION=${MLP_CLUSTER_LOCATION}
 export DATASET_INPUT_PATH="flipkart_preprocessed_dataset"
 export DATASET_INPUT_FILE="flipkart.csv"
 export DATASET_OUTPUT_PATH="dataset/output"
-export PROMPT_MODEL_ID="gemini-1.5-flash-001"
+export PROMPT_MODEL_ID="meta/llama-3.1-70b-instruct-maas"

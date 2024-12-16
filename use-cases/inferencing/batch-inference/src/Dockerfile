@@ -22,7 +22,7 @@ COPY requirements.txt /
 
 RUN pip3 install --no-cache-dir -r requirements.txt
 
-COPY custom_json_formatter.py logging.conf run_batch_predictions.py /
+COPY logging.conf run_batch_predictions.py /
 
 ENV PYTHONUNBUFFERED 1
 

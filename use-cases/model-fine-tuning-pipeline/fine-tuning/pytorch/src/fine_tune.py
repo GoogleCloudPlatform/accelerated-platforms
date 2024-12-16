@@ -71,7 +71,6 @@ def get_current_node_id_and_rank():
 if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
-
     logger = logging.getLogger("finetune")
 
     if "LOG_LEVEL" in os.environ:

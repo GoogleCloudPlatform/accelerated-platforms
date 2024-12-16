@@ -59,7 +59,7 @@ sed \
     -i -e "s|V_TRAINING_DATASET_PATH|${DATA_BUCKET_DATASET_PATH}|" \
     ${MLP_USE_CASE_BASE_DIR}/manifests/fine-tune-${ACCELERATOR}-dws.yaml
 
-echo_title "Deleting exsting job"
+echo_title "Deleting existing job"
 print_and_execute_no_check "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} delete -f ${MLP_USE_CASE_BASE_DIR}/manifests/fine-tune-${ACCELERATOR}-dws.yaml"
 print_and_execute_no_check "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} delete -f ${MLP_USE_CASE_BASE_DIR}/manifests/provisioning-request-${ACCELERATOR}.yaml"
 
@@ -73,8 +73,8 @@ print_and_execute "kubectl wait --namespace=ml-team --for=condition=provisioned 
 check_local_error_exit_on_error
 
 echo_title "Waiting for job to complete"
-print_and_execute "kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE} --for=condition=complete --timeout=14400s job/finetune-gemma-${ACCELERATOR} &
-kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE} --for=condition=failed --timeout=14400s job/finetune-gemma-${ACCELERATOR} && exit 1 &
+print_and_execute "kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE} --for=condition=complete --timeout=54000s job/finetune-gemma-${ACCELERATOR} &
+kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE} --for=condition=failed --timeout=54000s job/finetune-gemma-${ACCELERATOR} && exit 1 &
 wait -n && \
 pkill -f 'kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE}'"
 check_local_error_exit_on_error

@@ -46,12 +46,14 @@ sed \
     -i -e "s|V_MODEL_PATH|${MODEL}|" \
     ${MLP_USE_CASE_BASE_DIR}/manifests/deployment-${ACCELERATOR}.yaml
 
-echo_title "Deleting exsting inference server deployment"
-print_and_execute_no_check "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} delete -f ${MLP_USE_CASE_BASE_DIR}/manifests/deployment-${ACCELERATOR}.yaml"
+echo_title "Deleting existing inference server deployment"
+print_and_execute_no_check "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} delete -f ${MLP_USE_CASE_BASE_DIR}/manifests/deployment-${ACCELERATOR}.yaml --wait"
 
 echo_title "Creating the inference server deployment"
 print_and_execute "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f ${MLP_USE_CASE_BASE_DIR}/manifests/deployment-${ACCELERATOR}.yaml"
 check_local_error_exit_on_error
+
+sleep 1
 
 echo_title "Wait for the inference server deployment to be ready"
 print_and_execute "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait --for=condition=ready --timeout=900s pod -l app=vllm-openai-${ACCELERATOR}"
@@ -69,18 +71,22 @@ sed \
     -i -e "s|V_PREDICTIONS_FILE|${PREDICTIONS_FILE}|" \
     ${MLP_USE_CASE_BASE_DIR}/manifests/job.yaml
 
-echo_title "Deleting exsting model evaluation job"
-print_and_execute_no_check "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} delete -f ${MLP_USE_CASE_BASE_DIR}/manifests/job.yaml"
+echo_title "Deleting existing model evaluation job"
+print_and_execute_no_check "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} delete -f ${MLP_USE_CASE_BASE_DIR}/manifests/job.yaml --wait"
 
 echo_title "Creating model evaluation job"
 print_and_execute "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f ${MLP_USE_CASE_BASE_DIR}/manifests/job.yaml"
 check_local_error_exit_on_error
 
 echo_title "Waiting for job to complete"
-print_and_execute "kubectl wait --namespace ${MLP_KUBERNETES_NAMESPACE} --for condition=complete --timeout 14400s job/model-eval &
-kubectl wait --namespace ${MLP_KUBERNETES_NAMESPACE} --for condition=failed --timeout 14400s job/model-eval && exit 1 &
+print_and_execute "kubectl wait --namespace ${MLP_KUBERNETES_NAMESPACE} --for condition=complete --timeout 18000s job/model-eval &
+kubectl wait --namespace ${MLP_KUBERNETES_NAMESPACE} --for condition=failed --timeout 18000s job/model-eval && exit 1 &
 wait -n && \
 pkill -f 'kubectl wait --namespace ${MLP_KUBERNETES_NAMESPACE}'"
+
+echo_title "Deleting inference server deployment"
+print_and_execute_no_check "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} delete -f ${MLP_USE_CASE_BASE_DIR}/manifests/deployment-${ACCELERATOR}.yaml"
+
 check_local_error_exit_on_error
 
 total_runtime "model_eval"

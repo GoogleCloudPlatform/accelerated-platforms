@@ -19,16 +19,16 @@ locals {
     bucket = data.google_storage_bucket.terraform.name
   })
 
-  use_case_terraservices = [
-    # Don't configure the remote backend for the initialize terraservice
-    # because we use a local backend for that in order to solve a
-    # chicken-and-egg issue where the initialize terraservice depends on
-    # the configuration files that the initialize terraservice creates.
-    # Keeping this as a reference if we change idea in the future
-    # abspath("${path.module}"),
-    abspath("${path.module}/../container_image_repository"),
-    abspath("${path.module}/../private_google_access"),
-  ]
+  terraservices_path = "${path.module}/.."
+
+  # Search for backend.tf files, assuming that a directory that contains a
+  # backend.tf file is a terraservice to provision.
+  # This search excludes the initialize terraservice
+  # because we use a local backend for that in order to solve a
+  # chicken-and-egg issue where the initialize terraservice depends on
+  # the configuration files that the initialize terraservice creates.
+  backend_files          = flatten([for _, v in flatten(fileset("${local.terraservices_path}/", "**/backend.tf")) : v])
+  use_case_terraservices = toset([for _, v in local.backend_files : abspath("${local.terraservices_path}/${trimprefix(trimsuffix(dirname(v), "/backend.tf"), "../")}")])
 }
 
 data "google_project" "default" {

@@ -14,14 +14,18 @@
 # limitations under the License.
 
 locals {
-  backend_directories = toset([for _, v in local.versions_files : trimprefix(trimsuffix(dirname(v), "/versions.tf"), "../")])
-  backend_template    = "${path.module}/templates/terraform/backend.tf.tftpl"
-  terraservice_path   = "${path.module}/.."
-  versions_files      = flatten([for _, v in flatten(fileset("${local.terraservice_path}/", "**/versions.tf")) : v])
+  base_directory   = "${path.module}/../../"
+  backend_template = "${path.module}/templates/terraform/backend.tf.tftpl"
+
+  core_backend_directories = toset([for _, version_file in local.core_versions_files : trimprefix(trimsuffix(version_file, "/versions.tf"), "../")])
+  core_versions_files      = flatten([for _, file in flatten(fileset(local.base_directory, "core/**/versions.tf")) : file])
+
+  use_case_backend_directories = var.initialize_use_case != null ? toset([for _, version_file in local.use_case_versions_files : trimprefix(trimsuffix(dirname(version_file), "/versions.tf"), "../")]) : []
+  use_case_versions_files      = var.initialize_use_case != null ? flatten([for _, file in flatten(fileset("${local.base_directory}/use-cases", "${var.initialize_use_case}/**/versions.tf")) : file]) : []
 }
 
-resource "local_file" "backend_tf" {
-  for_each = local.backend_directories
+resource "local_file" "core_backend_tf" {
+  for_each = local.core_backend_directories
   content = templatefile(
     local.backend_template,
     {
@@ -30,5 +34,18 @@ resource "local_file" "backend_tf" {
     }
   )
   file_permission = "0644"
-  filename        = "${local.terraservice_path}/${each.key}/backend.tf"
+  filename        = "${local.base_directory}/${each.key}/backend.tf"
+}
+
+resource "local_file" "use_case_backend_tf" {
+  for_each = local.use_case_backend_directories
+  content = templatefile(
+    local.backend_template,
+    {
+      bucket = local.terraform_bucket_name,
+      prefix = "terraform/${each.key}",
+    }
+  )
+  file_permission = "0644"
+  filename        = "${local.base_directory}/use-cases/${each.key}/backend.tf"
 }

@@ -17,19 +17,20 @@ set -o errexit
 
 start_timestamp=$(date +%s)
 
-terraservices=("networking" "container_cluster" "container_node_pool" "gke_enterprise/fleet_membership" "workloads/kueue")
 # Disable gke_enterprise/servicemesh due to b/376312292
-#terraservices=("networking" "container_cluster" "container_node_pool" "gke_enterprise/fleet_membership" "gke_enterprise/servicemesh" "workloads/kueue")
+declare -a terraservices=${CORE_TERRASERVICES_APPLY:-("networking" "container_cluster" "container_node_pool" "gke_enterprise/fleet_membership" "workloads/kueue")}
 
 source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config
 
 cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
     echo "Current directory: $(pwd)" &&
+    sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket &&
     export STATE_MIGRATED="false" &&
-    if gcloud storage ls gs://${ACP_TERRAFORM_BUCKET_NAME}/terraform/initialize/default.tfstate &>/dev/null; then
-        sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${ACP_TERRAFORM_BUCKET_NAME}\"/" ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket &&
-            cp backend.tf.bucket backend.tf &&
-            export STATE_MIGRATED="true"
+    if gcloud storage ls gs://${terraform_bucket_name}/terraform/initialize/default.tfstate &>/dev/null; then
+        if [ ! -f ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf ]; then
+            cp backend.tf.bucket backend.tf
+        fi
+        export STATE_MIGRATED="true"
     fi
 
 cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
@@ -40,9 +41,8 @@ rm tfplan
 
 if [ ${STATE_MIGRATED} == "false" ]; then
     echo "Migrating the state backend"
-    cp backend.tf.bucket backend.tf &&
-        terraform init -force-copy -migrate-state || exit 1
-    rm -rf state
+    terraform init -force-copy -migrate-state || exit 1
+    rm -rf terraform.tfstate*
 fi
 
 for terraservice in "${terraservices[@]}"; do

@@ -33,4 +33,5 @@ FEDERATED_LEARNING_USE_CASE_INITIALIZE_SERVICE_DIR="${FEDERATED_LEARNING_USE_CAS
 federated_learning_terraservices=(
   "initialize"
   "container_image_repository"
+  "private_google_access"
 )

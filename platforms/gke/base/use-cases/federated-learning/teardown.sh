@@ -33,10 +33,16 @@ for terraservice in "${federated_learning_terraservices[@]}"; do
   cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" &&
     echo "Current directory: $(pwd)" &&
     terraform init -backend-config="backend.config" &&
-    terraform destroy -auto-approve || exit 1
+    terraform destroy -auto-approve
 
+  _destroy_result=$?
   rm -rf \
     "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}/.terraform"
+
+  if [[ ${_destroy_result} -ne 0 ]]; then
+    echo "Terraform destroy failed with code ${_destroy_result}"
+    exit ${_destroy_result}
+  fi
 done
 
 end_timestamp_federated_learning=$(date +%s)

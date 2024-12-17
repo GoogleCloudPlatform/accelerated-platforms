@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "config_management_fqdns" {
-  description = "Fully-qualified domain name where Config Management repositories are hosted. Example: github.com"
-  type        = list(string)
+data "google_container_cluster" "cluster" {
+  location = var.cluster_region
+  name     = local.cluster_name
+  project  = data.google_project.default.project_id
 }

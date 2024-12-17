@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "config_management_fqdns" {
-  description = "Fully-qualified domain name where Config Management repositories are hosted. Example: github.com"
-  type        = list(string)
+terraform {
+  backend "gcs" {
+    bucket = ""
+    prefix = "terraform/federated-learning/firewall"
+  }
 }

@@ -2,7 +2,7 @@ images:
   - ${_DESTINATION}
 options:
   logging: CLOUD_LOGGING_ONLY
-serviceAccount: 
+serviceAccount: projects/gkebatchenv3a4ec43f/serviceAccounts/ishm-rag-ml-team-build@gkebatchenv3a4ec43f.iam.gserviceaccount.com
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   args:

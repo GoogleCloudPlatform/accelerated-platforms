@@ -13,22 +13,6 @@
 # limitations under the License.
 
 import os
-import logging
-import logging.config
-
-
-# Configure logging
-logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("prompt_helper")
-
-if "LOG_LEVEL" in os.environ:
-    new_log_level = os.environ["LOG_LEVEL"].upper()
-    logger.info(
-        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-    )
-    logging.getLogger().setLevel(new_log_level)
-    logger.setLevel(new_log_level)
-
 
 # user_query can be None if only image is passed as an argument
 def prompt_generation(search_result, user_query=None):

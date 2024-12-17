@@ -19,7 +19,7 @@ import requests
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("instruction-tuned-re-ranking")
+logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()

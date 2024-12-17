@@ -16,3 +16,9 @@
 # Configuration dependencies
 # - shared_config/platform_variables.tf
 #
+
+variable "initialize_use_case" {
+  default     = null
+  description = "Initialize the backend.tf file for this use case"
+  type        = string
+}

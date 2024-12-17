@@ -20,7 +20,7 @@ import logging
 import logging.config
 
 # Configure logging
-logging.config.fileConfig("logging.conf")  # Make sure you have logging.conf configured
+logging.config.fileConfig("logging.conf") 
 logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:

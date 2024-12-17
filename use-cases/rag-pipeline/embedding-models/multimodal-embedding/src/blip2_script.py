@@ -186,6 +186,7 @@ def generate_text_embeddings():
                 text_features = get_text_embedding(json_req["caption"])
             except Exception as e:
                 return jsonify({"error": str(e)}), 400
+            logger.info("Text embeddings generated successfully.")
             return jsonify(
                 {
                     "text_embeds": text_features.tolist()[0][0],
@@ -227,6 +228,7 @@ def generate_image_embeddings():
             image_features = get_image_embedding(image)
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+        logger.info("Image embeddings generated successfully.")
         return jsonify(
             {
                 "image_embeds": image_features.tolist()[0][0],
@@ -290,6 +292,7 @@ def generate_multimodal_embeddings():
             multimodal_features = get_multimodal_embedding(image, caption)
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+        logger.info("Multimodal embeddings generated successfully.")
         return jsonify(
             {
                 "multimodal_embeds": multimodal_features.tolist()[0][0],

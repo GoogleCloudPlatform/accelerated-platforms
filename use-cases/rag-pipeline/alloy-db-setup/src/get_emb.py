@@ -26,7 +26,6 @@ MULTIMODAL_API_ENDPOINT = os.environ.get("MULTIMODAL_EMBEDDING_ENDPOINT")
 # Configure logging
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger(__name__)
-# logger.propagate = False
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
@@ -40,6 +39,10 @@ if "LOG_LEVEL" in os.environ:
         logger.info(
             "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
         )
+        logger.info("Available embedding endpoints...")
+        logger.info("Text Embedding endpoint: %s", TEXT_API_ENDPOINT)
+        logger.info("Image Embedding endpoint: %s", IMAGE_API_ENDPOINT)
+        logger.info("Multimodal Embedding endpoint: %s", MULTIMODAL_API_ENDPOINT)
     except AttributeError:
         logger.warning(
             "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
@@ -204,10 +207,6 @@ def get_embeddings(image_uri=None, text=None):
     Raises:
         requests.exceptions.HTTPError: If there is an error fetching the embeddings from the API.
     """
-    logger.info("Available embedding endpoints...")
-    logger.info("Text Embedding endpoint: %s", TEXT_API_ENDPOINT)
-    logger.info("Image Embedding endpoint: %s", IMAGE_API_ENDPOINT)
-    logger.info("Multimodal Embedding endpoint: %s", MULTIMODAL_API_ENDPOINT)
     if image_uri and text:
         return get_multimodal_embeddings(image_uri, text)
     elif text:

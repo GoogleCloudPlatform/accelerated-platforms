@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+import logging.config
 import io
 import os
 import torch
@@ -22,12 +24,24 @@ from google.cloud.storage.blob import Blob
 from lavis.models import load_model_and_preprocess
 from PIL import Image
 
+# Configure logging
+
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
+
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
+    logger.setLevel(new_log_level)
+
+
 # Load the model and processors, ensuring they're on the correct device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model, vis_processors, txt_processors = load_model_and_preprocess(
     name="blip2_feature_extractor", model_type="pretrain", is_eval=True, device=device
 )
-
 
 def get_text_embedding(caption):
     """Generates text embeddings for a given caption.

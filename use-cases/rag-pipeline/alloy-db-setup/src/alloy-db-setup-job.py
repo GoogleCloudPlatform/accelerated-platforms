@@ -47,7 +47,6 @@ if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
     logger = logging.getLogger(__name__)
-    # logger.propagate = False
 
     if "LOG_LEVEL" in os.environ:
         new_log_level = os.environ["LOG_LEVEL"].upper()

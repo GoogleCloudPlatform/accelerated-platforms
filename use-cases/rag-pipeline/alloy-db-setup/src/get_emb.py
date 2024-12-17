@@ -25,9 +25,9 @@ MULTIMODAL_API_ENDPOINT = os.environ.get("MULTIMODAL_EMBEDDING_ENDPOINT")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("generate embeddings")
-
 logger = logging.getLogger(__name__)
+# logger.propagate = False
+
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     try:
@@ -215,7 +215,7 @@ def get_embeddings(image_uri=None, text=None):
     elif image_uri:
         return get_image_embeddings(image_uri)
     else:
-        logging.error(
+        logger.error(
             "Missing input. Provide a textual product description and/or image_uri to generate embeddings"
         )
         return None

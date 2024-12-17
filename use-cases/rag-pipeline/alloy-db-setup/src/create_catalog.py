@@ -27,14 +27,14 @@ EMBEDDING_DIMENSION = int(os.getenv("EMBEDDING_DIMENSION"))
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("create-catalog-db")
+logger = logging.getLogger(__name__)
+# logger.propagate = False
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     logger.info(
         f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
     )
-    logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
 
 
@@ -55,9 +55,9 @@ def create_database(database, new_database):
             ) as connection:
                 with connection.begin():
                     connection.execute(del_db)
-                    logging.info(f"Database '{new_database}' deleted successfully.")
+                    logger.info(f"Database '{new_database}' deleted successfully.")
                     connection.execute(create_db)
-                    logging.info(f"Database '{new_database}' created successfully.")
+                    logger.info(f"Database '{new_database}' created successfully.")
     except Exception as e:
         logging.error(f"An error occurred while creating the database: {e}")
         # handle this error?
@@ -65,10 +65,10 @@ def create_database(database, new_database):
     finally:
         if connection:
             connection.close()
-            logging.info(f"DB: {database} Connection closed")
+            logger.info(f"DB: {database} Connection closed")
         if connector:
             connector.close()
-            logging.info("Connector closed")
+            logger.info("Connector closed")
     try:
         # 3. Connect to the newly created database
         with Connector() as connector:
@@ -82,17 +82,17 @@ def create_database(database, new_database):
                 isolation_level="AUTOCOMMIT"
             ) as db_conn:
                 with db_conn.begin():
-                    logging.info(f"Connected with the newly created db {new_database}")
+                    logger.info(f"Connected with the newly created db {new_database}")
                     # 4. Enable extensions in the new database
                     db_conn.execute(create_vector_extn)
-                    logging.info(
+                    logger.info(
                         f"pgvector extension enabled successfully on db {new_database}."
                     )
                     create_scann_extn = sqlalchemy.text(
                         f"CREATE EXTENSION IF NOT EXISTS alloydb_scann;"
                     )
                     db_conn.execute(create_scann_extn)
-                    logging.info(
+                    logger.info(
                         f"alloydb_scann extension enabled successfully on db {new_database}."
                     )
     except Exception as e:
@@ -100,10 +100,10 @@ def create_database(database, new_database):
     finally:
         if db_conn:
             db_conn.close()
-            logging.info(f"DB: {new_database} Connection closed")
+            logger.info(f"DB: {new_database} Connection closed")
         if connector:
             connector.close()
-            logging.info("Connector closed")
+            logger.info("Connector closed")
 
 
 def create_and_populate_table(database, table_name, processed_data_path):
@@ -112,40 +112,40 @@ def create_and_populate_table(database, table_name, processed_data_path):
     try:
         # 1. Extract
         df = pd.read_csv(processed_data_path)
-        logging.info(f"Input df shape: {df.shape}")
+        logger.info(f"Input df shape: {df.shape}")
 
         # Dropping products with image_uri as NaN
         df.dropna(subset=["image_uri"], inplace=True)
-        logging.info(f"resulting df shape: {df.shape}")
+        logger.info(f"resulting df shape: {df.shape}")
 
-        logging.info(f"Starting embedding generation...")
+        logger.info(f"Starting embedding generation...")
         # 2. Transform
-        logging.info(f"Starting multimodal embedding generation...")
+        logger.info(f"Starting multimodal embedding generation...")
         df["multimodal_embeddings"] = df.apply(
             lambda row: get_emb.get_embeddings(row["image_uri"], row["Description"]),
             axis=1,
         )
-        logging.info(f"Multimodal embedding generation completed")
+        logger.info(f"Multimodal embedding generation completed")
 
-        logging.info(f"Starting text embedding generation...")
+        logger.info(f"Starting text embedding generation...")
         df["text_embeddings"] = df.apply(
             lambda row: get_emb.get_embeddings(None, row["Description"]), axis=1
         )
-        logging.info(f"Text embedding generation completed")
+        logger.info(f"Text embedding generation completed")
 
-        logging.info(f"Starting image embedding generation...")
+        logger.info(f"Starting image embedding generation...")
         df["image_embeddings"] = df.apply(
             lambda row: get_emb.get_embeddings(row["image_uri"], None), axis=1
         )
-        logging.info(f"Image embedding generation completed")
+        logger.info(f"Image embedding generation completed")
 
-        logging.info(f"Embedding generation task is now complete")
+        logger.info(f"Embedding generation task is now complete")
 
         # 3. Load
         with Connector() as connector:
             engine = alloydb_connect.init_connection_pool(connector, database)
             with engine.begin() as connection:
-                logging.info(f"Connected with the db {database}")
+                logger.info(f"Connected with the db {database}")
                 df.to_sql(
                     table_name,
                     connection,
@@ -158,7 +158,7 @@ def create_and_populate_table(database, table_name, processed_data_path):
                         "image_embeddings": Vector(EMBEDDING_DIMENSION),
                     },
                 )
-                logging.info(
+                logger.info(
                     f"Table '{table_name}' created and populated successfully on db {database}."
                 )
                 connection.commit()
@@ -176,10 +176,10 @@ def create_and_populate_table(database, table_name, processed_data_path):
     finally:
         if connection:
             connection.close()
-            logging.info(f"DB: {database} Connection closed")
+            logger.info(f"DB: {database} Connection closed")
         if connector:
             connector.close()
-            logging.info("Connector closed")
+            logger.info("Connector closed")
 
 
 # Create an Scann index on the table with embedding column and cosine distance
@@ -199,7 +199,7 @@ def create_embeddings_index(
             pool = alloydb_connect.init_connection_pool(connector, database)
             with pool.connect() as db_conn:
                 db_conn.execute(index_cmd)
-                logging.info(
+                logger.info(
                     f"Embedding Column '{EMBEDDING_COLUMN}' : SCaNN Index '{INDEX_NAME}' created successfully."
                 )
     except Exception as e:
@@ -210,7 +210,7 @@ def create_embeddings_index(
     finally:
         if db_conn:
             db_conn.close()
-            logging.info(f"DB: {database} Connection closed")
+            logger.info(f"DB: {database} Connection closed")
         if connector:
             connector.close()
-            logging.info("Connector closed")
+            logger.info("Connector closed")

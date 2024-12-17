@@ -36,15 +36,14 @@ user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
 # Configure logging
 
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("alloydb-setup")
-
+logger = logging.getLogger(__name__)
+# logger.propagate = False
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     logger.info(
         f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
     )
-    logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
 
 
@@ -52,10 +51,10 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
     """
     Initializes a SQLAlchemy engine for connecting to AlloyDB.
     """
-    logging.info("database user in use %s", user)
+    logger.info("database user in use %s", user)
 
     def getconn():
-        logger.info("Creating connection.Database: %s", db)
+        logger.info("Creating connection to the AlloyDB Database: %s", db)
         conn = connector.connect(
             instance_uri,
             "pg8000",
@@ -74,5 +73,5 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
         creator=getconn,
     )
     pool.dialect.description_encoding = None
-    logging.info("Connection pool created successfully.%s", pool)
+    logger.info("Connection pool created successfully.%s", pool)
     return pool

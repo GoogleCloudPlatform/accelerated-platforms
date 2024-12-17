@@ -23,7 +23,6 @@ RUN pip install --no-cache-dir -r /workspace/requirements.txt
 COPY alloydb_connect.py \
     alloy-db-setup-job.py\
     create_catalog.py \
-    custom_json_formatter.py \
     get_emb.py \
     logging.conf \
     /workspace/

@@ -15,6 +15,6 @@
 terraform {
   backend "gcs" {
     bucket = ""
-    prefix = "terraform/initialize"
+    prefix = "terraform/core/initialize"
   }
 }

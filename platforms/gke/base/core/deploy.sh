@@ -24,9 +24,9 @@ source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables
 
 cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
     echo "Current directory: $(pwd)" &&
-    sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${ACP_TERRAFORM_BUCKET_NAME}\"/" ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket &&
+    sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket &&
     export STATE_MIGRATED="false" &&
-    if gcloud storage ls gs://${ACP_TERRAFORM_BUCKET_NAME}/terraform/initialize/default.tfstate &>/dev/null; then
+    if gcloud storage ls gs://${terraform_bucket_name}/terraform/initialize/default.tfstate &>/dev/null; then
         if [ ! -f ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf ]; then
             cp backend.tf.bucket backend.tf
         fi

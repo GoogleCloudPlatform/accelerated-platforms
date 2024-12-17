@@ -68,6 +68,7 @@ index_names = {
 }
 
 if __name__ == "__main__":
+    logger.info("Starting AlloyDB set up job to import Catalog data into AlloyDB and generate embeddings")
 
     try:
 
@@ -75,6 +76,7 @@ if __name__ == "__main__":
         create_catalog.create_database(
             database_name,
             catalog_db,
+            logger=logger,
         )
 
         # ETL
@@ -82,6 +84,7 @@ if __name__ == "__main__":
             catalog_db,
             catalog_table,
             processed_data_path,
+            logger=logger,
         )
         # Create Indexes for all embedding columns(text, image and multimodal)
         # <TODO> Validate if image and multimodal scan index is required
@@ -95,8 +98,10 @@ if __name__ == "__main__":
                 index_name,
                 DISTANCE_FUNCTION,
                 NUM_LEAVES_VALUE,
+                logger=logger,
             )
     except Exception as e:
-        logging.error(f"An unexpected error occurred during catalog onboarding: {e}")
+        logger.error(f"An unexpected error occurred during catalog onboarding: {e}")
         raise
-logger.info("AlloyDb set up job has been completed successfully")
+    finally:
+        logger.info("AlloyDb set up job has been completed successfully")

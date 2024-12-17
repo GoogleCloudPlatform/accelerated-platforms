@@ -23,30 +23,11 @@ TEXT_API_ENDPOINT = os.environ.get("TEXT_EMBEDDING_ENDPOINT")
 IMAGE_API_ENDPOINT = os.environ.get("IMAGE_EMBEDDING_ENDPOINT")
 MULTIMODAL_API_ENDPOINT = os.environ.get("MULTIMODAL_EMBEDDING_ENDPOINT")
 
-# Configure logging
-logging.config.fileConfig("logging.conf")
-logger = logging.getLogger(__name__)
 
-if "LOG_LEVEL" in os.environ:
-    new_log_level = os.environ["LOG_LEVEL"].upper()
-    try:
-        # Convert the string to a logging level constant
-        numeric_level = getattr(logging, new_log_level)
+logging.info("Text Embedding endpoint: %s", TEXT_API_ENDPOINT)
+logging.info("Image Embedding endpoint: %s", IMAGE_API_ENDPOINT)
+logging.info("Multimodal Embedding endpoint: %s", MULTIMODAL_API_ENDPOINT)
 
-        # Set the level for the root logger
-        logging.setLevel(numeric_level)
-
-        logger.info(
-            "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
-        )
-        logger.info("Text Embedding endpoint: %s", TEXT_API_ENDPOINT)
-        logger.info("Image Embedding endpoint: %s", IMAGE_API_ENDPOINT)
-        logger.info("Multimodal Embedding endpoint: %s", MULTIMODAL_API_ENDPOINT)
-
-    except AttributeError:
-        logger.warning(
-            "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
-        )
 
 
 def get_image_embeddings(image_uri):
@@ -79,19 +60,19 @@ def get_image_embeddings(image_uri):
 
     except requests.exceptions.HTTPError as e:
         # Reraise HTTPError for better error handling
-        logger.exception("Error fetching image embedding: %s", e)
+        logging.exception("Error fetching image embedding: %s", e)
         raise
 
     except requests.exceptions.RequestException as e:
         # For other request errors, re-raise as an HTTPError
-        logger.exception("Invalid response from image embedding API: %s", e)
+        logging.exception("Invalid response from image embedding API: %s", e)
         raise requests.exceptions.HTTPError(
             "Error fetching image embedding", response=requests.Response()
         ) from e
 
     except (ValueError, TypeError) as e:
         # Handle potential JSON decoding errors
-        logger.exception(
+        logging.exception(
             "Not able to decode received json from image embedding API: %s", e
         )
         raise requests.exceptions.HTTPError(
@@ -126,17 +107,17 @@ def get_multimodal_embeddings(image_uri, desc):
         return response.json()["multimodal_embeds"]
 
     except requests.exceptions.HTTPError as e:
-        logger.exception("Error fetching multimodal embedding: %s", e)
+        logging.exception("Error fetching multimodal embedding: %s", e)
         raise
 
     except requests.exceptions.RequestException as e:
-        logger.exception("Error fetching multimodal embedding: %s", e)
+        logging.exception("Error fetching multimodal embedding: %s", e)
         raise requests.exceptions.HTTPError(
             "Error fetching multimodal embedding", response=requests.Response()
         ) from e
 
     except (ValueError, TypeError) as e:
-        logger.exception(
+        logging.exception(
             "Not able to decode received json from multimodal embedding API: %s", e
         )
         raise requests.exceptions.HTTPError(
@@ -168,21 +149,20 @@ def get_text_embeddings(text):
         )
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-
         return response.json()["text_embeds"]
 
     except requests.exceptions.HTTPError as e:
-        logger.exception("Error fetching text embedding: %s", e)
+        logging.exception("Error fetching text embedding: %s", e)
         raise
 
     except requests.exceptions.RequestException as e:
-        logger.exception("Error fetching text embedding: %s", e)
+        logging.exception("Error fetching text embedding: %s", e)
         raise requests.exceptions.HTTPError(
             "Error fetching text embedding", response=requests.Response()
         ) from e
 
     except (ValueError, TypeError) as e:
-        logger.exception(
+        logging.exception(
             "Not able to decode received json from text embedding API: %s", e
         )
         raise requests.exceptions.HTTPError(

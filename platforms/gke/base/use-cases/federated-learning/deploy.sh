@@ -47,7 +47,12 @@ for terraservice in "${federated_learning_terraservices[@]}"; do
     "${TERRASERVICE_TERRAFORM_INIT_COMMAND[@]}" &&
     terraform plan -input=false -out=tfplan &&
     terraform apply -input=false tfplan
+  _apply_result=$?
   rm tfplan
+  if [[ ${_apply_result} -ne 0 ]]; then
+    echo "Terraform apply failed with code ${_apply_result}"
+    exit $_apply_result
+  fi
 done
 
 end_timestamp_federated_learning=$(date +%s)

@@ -36,6 +36,8 @@ if "LOG_LEVEL" in os.environ:
     )
     logger.setLevel(new_log_level)
 
+logger.info("Initializing multimodal model blip2 ...")
+
 
 # Load the model and processors, ensuring they're on the correct device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -303,4 +305,5 @@ def generate_multimodal_embeddings():
 
 
 if __name__ == "__main__":
+    logger.info("Multimodal model blip2 is ready to serve embedding generation requests...")
     app.run(host="0.0.0.0", port=os.getenv("PORT", "5000"))

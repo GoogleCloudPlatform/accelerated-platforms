@@ -47,9 +47,6 @@ if "LOG_LEVEL" in os.environ:
             "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
         )
 
-# Create a lock for thread safety
-lock = Lock()
-
 def get_image_embeddings(image_uri):
     """
     Fetches image embeddings from an image embedding API.
@@ -65,13 +62,12 @@ def get_image_embeddings(image_uri):
                                         or the API returns an invalid response.
     """
     try:
-        with lock:
-            response = requests.post(
-                IMAGE_API_ENDPOINT,
-                json={"image_uri": image_uri},
-                headers={"Content-Type": "application/json"},
-                timeout=100,
-            )
+        response = requests.post(
+            IMAGE_API_ENDPOINT,
+            json={"image_uri": image_uri},
+            headers={"Content-Type": "application/json"},
+            timeout=100,
+        )
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         image_embeddings = response.json()["image_embeds"]
@@ -112,13 +108,12 @@ def get_multimodal_embeddings(image_uri, desc):
                                         or the API returns an invalid response.
     """
     try:
-        with lock:
-            response = requests.post(
-                MULTIMODAL_API_ENDPOINT,
-                json={"image_uri": image_uri, "caption": desc},
-                headers={"Content-Type": "application/json"},
-                timeout=100,
-            )
+        response = requests.post(
+            MULTIMODAL_API_ENDPOINT,
+            json={"image_uri": image_uri, "caption": desc},
+            headers={"Content-Type": "application/json"},
+            timeout=100,
+        )
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         return response.json()["multimodal_embeds"]
@@ -158,13 +153,12 @@ def get_text_embeddings(text):
                                         or the API returns an invalid response.
     """
     try:
-        with lock:
-            response = requests.post(
-                TEXT_API_ENDPOINT,
-                json={"caption": text},
-                headers={"Content-Type": "application/json"},
-                timeout=100,
-            )
+        response = requests.post(
+            TEXT_API_ENDPOINT,
+            json={"caption": text},
+            headers={"Content-Type": "application/json"},
+            timeout=100,
+        )
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         return response.json()["text_embeds"]

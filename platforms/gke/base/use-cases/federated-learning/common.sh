@@ -35,3 +35,13 @@ federated_learning_terraservices=(
   "container_image_repository"
   "private_google_access"
 )
+
+TERRAFORM_INIT_COMMAND=(
+  terraform init
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+TERRAFORM_INIT_BACKEND_CONFIG_COMMAND=(
+  "${TERRAFORM_INIT_COMMAND[@]}"
+  -backend-config="backend.config"
+)

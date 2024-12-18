@@ -23,20 +23,21 @@ source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 start_timestamp_federated_learning=$(date +%s)
 
-TERRAFORM_INIT_COMMAND=(
-  terraform init
-)
+echo "Provisioning the core platform"
+"${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
 # shellcheck disable=SC2154 # variable defined in common.sh
 for terraservice in "${federated_learning_terraservices[@]}"; do
   echo "Provisioning ${terraservice}"
+
   TERRASERVICE_TERRAFORM_INIT_COMMAND=(
-    "${TERRAFORM_INIT_COMMAND[@]}"
+    "${TERRAFORM_INIT_BACKEND_CONFIG_COMMAND[@]}"
   )
-  if [ "${terraservice:-}" != "initialize" ]; then
-    echo "Add the option to load remote backend configuration to the terraform init command"
-    TERRASERVICE_TERRAFORM_INIT_COMMAND+=(
-      -backend-config="backend.config"
+
+  # The initialize terraservice uses a local backend, so we don't add the remote backend configuration
+  if [ "${terraservice:-}" == "initialize" ]; then
+    TERRASERVICE_TERRAFORM_INIT_COMMAND=(
+      "${TERRAFORM_INIT_COMMAND[@]}"
     )
   fi
 

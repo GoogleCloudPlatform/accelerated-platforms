@@ -18,21 +18,34 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-start_timestamp_federated_learning=$(date +%s)
-
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
+start_timestamp_federated_learning=$(date +%s)
+
+# Iterate over the terraservices array so we destroy them in reverse order, keeping the
+# initialize terraservice last.
 # shellcheck disable=SC2154 # variable defined in common.sh
-for terraservice in "${federated_learning_terraservices[@]}"; do
-  if [ "${terraservice:-}" == "initialize" ]; then
-    echo "Skip destroying ${terraservice} to avoid removing backend configuration files"
-    continue
-  fi
+for ((i = ${#federated_learning_terraservices[@]} - 1; i >= 0; i--)); do
+  terraservice=${federated_learning_terraservices[i]}
   echo "Destroying ${terraservice}"
+
+  TERRASERVICE_TERRAFORM_INIT_COMMAND=(
+    "${TERRAFORM_INIT_BACKEND_CONFIG_COMMAND[@]}"
+  )
+
+  # The initialize terraservice uses a local backend, so we don't add the remote backend configuration
+  if [ "${terraservice:-}" == "initialize" ]; then
+    TERRASERVICE_TERRAFORM_INIT_COMMAND=(
+      "${TERRAFORM_INIT_COMMAND[@]}"
+    )
+  fi
+
+  echo "Terraform init command: ${TERRASERVICE_TERRAFORM_INIT_COMMAND[*]}"
+
   cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" &&
     echo "Current directory: $(pwd)" &&
-    terraform init -backend-config="backend.config" &&
+    "${TERRASERVICE_TERRAFORM_INIT_COMMAND[@]}" &&
     terraform destroy -auto-approve
 
   _destroy_result=$?
@@ -44,6 +57,9 @@ for terraservice in "${federated_learning_terraservices[@]}"; do
     exit ${_destroy_result}
   fi
 done
+
+echo "Destroying the core platform"
+"${ACP_PLATFORM_CORE_DIR}/teardown.sh"
 
 end_timestamp_federated_learning=$(date +%s)
 total_runtime_value_federated_learning=$((end_timestamp_federated_learning - start_timestamp_federated_learning))

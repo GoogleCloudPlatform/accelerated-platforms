@@ -8,7 +8,6 @@ RUN pip install --no-cache-dir -r /workspace/requirements.txt
 
 COPY alloydb_connect.py \ 
     backend_service.py \ 
-    custom_json_formatter.py \
     generate_embeddings.py \
     logging.conf \
     prompt_helper.py  \

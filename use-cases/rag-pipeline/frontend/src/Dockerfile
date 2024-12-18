@@ -6,8 +6,7 @@ COPY requirements.txt /workspace/
 
 RUN pip install --no-cache-dir -r /workspace/requirements.txt
 
-COPY custom_json_formatter.py \ 
-    logging.conf \ 
+COPY logging.conf \ 
     interface.py \
     /workspace/
 

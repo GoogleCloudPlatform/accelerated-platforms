@@ -29,7 +29,8 @@ COPY requirements.txt /app/
 # Install necessary libraries
 RUN pip install -r requirements.txt
 
-COPY blip2_script.py /app/
+COPY blip2_script.py \ 
+    logging.conf /app/
 
 ENV PORT=8000
 

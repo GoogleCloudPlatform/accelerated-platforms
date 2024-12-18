@@ -38,14 +38,13 @@ instance_uri = os.environ.get("MLP_DB_INSTANCE_URI")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("alloydb_connection")
+logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     logger.info(
         f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
     )
-    logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
 
 

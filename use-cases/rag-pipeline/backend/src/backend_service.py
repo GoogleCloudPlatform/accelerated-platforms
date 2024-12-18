@@ -28,14 +28,13 @@ import rerank
 
 # Configure logging
 logging.config.fileConfig("logging.conf")  # Make sure you have logging.conf configured
-logger = logging.getLogger("backend")
+logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     logger.info(
         f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
     )
-    logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
 
 # Database and table configuration (replace with your actual values)
@@ -75,7 +74,7 @@ async def generate_product_recommendations(
         reranked_result = None  # Initialize reranked_result
 
         if prompt.text and prompt.image_uri:
-            logging.info(f"Received text: {prompt.text} and image: {prompt.image_uri}")
+            logger.info(f"Received text: {prompt.text} and image: {prompt.image_uri}")
             product_list = semantic_search.find_matching_products(
                 engine=engine,
                 catalog_table=catalog_table,
@@ -84,7 +83,7 @@ async def generate_product_recommendations(
                 user_query=prompt.text,
                 image_uri=prompt.image_uri,
             )
-            logging.info(f"product list received by backend service: {product_list}")
+            logger.info(f"product list received by backend service: {product_list}")
             if not product_list:
                 return JSONResponse(
                     content={"error": "No matching products found"}, status_code=404
@@ -92,12 +91,12 @@ async def generate_product_recommendations(
             prompt_list = prompt_helper.prompt_generation(
                 search_result=product_list, user_query=prompt.text
             )
-            logging.info(f"Prompt used to re-rank: {prompt_list}")
+            logger.info(f"Prompt used to re-rank: {prompt_list}")
             reranked_result = rerank.query_instruction_tuned_gemma(prompt_list)
-            logging.info(f"Response to front end: {reranked_result}")
+            logger.info(f"Response to front end: {reranked_result}")
 
         elif prompt.text:
-            logging.info(f"Received text: {prompt.text}")
+            logger.info(f"Received text: {prompt.text}")
             product_list = semantic_search.find_matching_products(
                 engine=engine,
                 catalog_table=catalog_table,
@@ -105,7 +104,7 @@ async def generate_product_recommendations(
                 row_count=row_count,
                 user_query=prompt.text,
             )
-            logging.info(f"product list received by backend service: {product_list}")
+            logger.info(f"product list received by backend service: {product_list}")
             if not product_list:
                 return JSONResponse(
                     content={"error": "No matching products found"}, status_code=404
@@ -113,12 +112,12 @@ async def generate_product_recommendations(
             prompt_list = prompt_helper.prompt_generation(
                 search_result=product_list, user_query=prompt.text
             )
-            logging.info(f"Prompt used to re-rank: {prompt_list}")
+            logger.info(f"Prompt used to re-rank: {prompt_list}")
             reranked_result = rerank.query_instruction_tuned_gemma(prompt_list)
-            logging.info(f"Response to front end: {reranked_result}")
+            logger.info(f"Response to front end: {reranked_result}")
 
         elif prompt.image_uri:
-            logging.info(f"Received image: {prompt.image_uri}")
+            logger.info(f"Received image: {prompt.image_uri}")
             product_list = semantic_search.find_matching_products(
                 engine=engine,
                 catalog_table=catalog_table,
@@ -126,7 +125,7 @@ async def generate_product_recommendations(
                 row_count=row_count,
                 image_uri=prompt.image_uri,
             )
-            logging.info(f"product list received by backend service: {product_list}")
+            logger.info(f"product list received by backend service: {product_list}")
             if not product_list:
                 return JSONResponse(
                     content={"error": "No matching products found"}, status_code=404
@@ -136,9 +135,9 @@ async def generate_product_recommendations(
             prompt_list = prompt_helper.prompt_generation(
                 search_result=product_list, user_query=None
             )
-            logging.info(f"Prompt used to re-rank: {prompt_list}")
+            logger.info(f"Prompt used to re-rank: {prompt_list}")
             reranked_result = rerank.query_instruction_tuned_gemma(prompt_list)
-            logging.info(f"Response to front end: {reranked_result}")
+            logger.info(f"Response to front end: {reranked_result}")
 
         else:
             raise ValueError("Please provide at least a text or an image prompt.")
@@ -153,7 +152,7 @@ async def generate_product_recommendations(
         return JSONResponse(content=reranked_result, status_code=200)
 
     except Exception as e:
-        logging.error(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

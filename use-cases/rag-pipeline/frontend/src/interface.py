@@ -20,15 +20,14 @@ import logging
 import logging.config
 
 # Configure logging
-logging.config.fileConfig("logging.conf")  # Make sure you have logging.conf configured
-logger = logging.getLogger("frontend")
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     logger.info(
         f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
     )
-    logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
 
 # RAG BACKEND_SERVICE_URL
@@ -93,11 +92,10 @@ def process_input(text=None, image_uri=None):
     if not data:  # Check if data is empty
         return "Please provide either text or image URI."
 
-    print(data)
     response = requests.post(BACKEND_SERVICE_URL, json=data, timeout=100)
 
     response.raise_for_status()  # Raise an exception for bad status codes
-    logging.info(f"Response from backend service: {response.text}")
+    logger.info("Received reesponse from backend service:%s", response.text)
     return response.json()
 
 
@@ -138,4 +136,4 @@ with gr.Blocks() as demo:
 # Launch the demo
 if __name__ == "__main__":
     logging.info("Starting Frontend service for RAG application...")
-    demo.launch(share=True, server_name="0.0.0.0")
+    demo.launch(share=False, server_name="0.0.0.0")

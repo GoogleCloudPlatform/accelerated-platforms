@@ -17,7 +17,21 @@ set -o errexit
 
 start_timestamp=$(date +%s)
 
-declare -a terraservices=${CORE_TERRASERVICES_DESTROY:-("workloads/kueue" "gke_enterprise/fleet_membership" "container_node_pool" "container_cluster" "networking")}
+declare -a terraservices
+if [[ -v CORE_TERRASERVICES_DESTROY ]]; then
+    terraservices=("${CORE_TERRASERVICES_DESTROY[@]}")
+else
+    terraservices=(
+        "workloads/kueue"
+        # Disable gke_enterprise/servicemesh due to b/376312292
+        # "gke_enterprise/servicemesh"
+        "gke_enterprise/fleet_membership"
+        "container_node_pool"
+        "container_cluster"
+        "networking"
+    )
+fi
+echo "Core platform terraservices to destroy: ${terraservices[*]}"
 
 source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config
 

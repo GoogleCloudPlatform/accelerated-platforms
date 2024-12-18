@@ -62,7 +62,8 @@ echo "Destroying the core platform"
 "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
 
 for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
-  sed -i "/${configuration_variable}/d" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+  configuration_variable_name="$(echo "${configuration_variable}" | awk ' { print $1 }'))"
+  sed -i "/${configuration_variable_name}/d" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 done
 terraform fmt "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 

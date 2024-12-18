@@ -34,9 +34,15 @@ FEDERATED_LEARNING_SHARED_CONFIG_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DI
 # shellcheck disable=SC2034 # Variable is used in other scripts
 FEDERATED_LEARNING_USE_CASE_INITIALIZE_SERVICE_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/initialize"
 
+# Terraservices that are necessary for the core platform
+federated_learning_core_platform_terraservices=(
+  "initialize"
+  "key_management_service"
+)
+
 # shellcheck disable=SC2034 # Variable is used in other scripts
 federated_learning_terraservices=(
-  "initialize"
+  "${federated_learning_core_platform_terraservices[@]}"
   "container_image_repository"
   "private_google_access"
 )
@@ -51,9 +57,54 @@ TERRAFORM_INIT_BACKEND_CONFIG_COMMAND=(
   -backend-config="backend.config"
 )
 
+# The values of some variables depends on Terraform outputs
 # shellcheck disable=SC2034 # Variable is used in other scripts
 TERRAFORM_CLUSTER_CONFIGURATION=(
   "cluster_binary_authorization_evaluation_mode = \"PROJECT_SINGLETON_POLICY_ENFORCE\""
-  "# Set cluster_confidential_nodes_enabled to true to enable confidential nodes"
   "cluster_confidential_nodes_enabled = false"
+  "cluster_database_encryption_state = \"ENCRYPTED\""
+  "cluster_database_encryption_key_name = \"cluster_database_encryption_key_name_placeholder\""
 )
+
+provision_terraservice() {
+  local terraservice
+  terraservice="${1}"
+
+  local -a TERRASERVICE_TERRAFORM_INIT_COMMAND
+
+  echo "Provisioning ${terraservice}"
+  TERRASERVICE_TERRAFORM_INIT_COMMAND=(
+    "${TERRAFORM_INIT_BACKEND_CONFIG_COMMAND[@]}"
+  )
+
+  if [ "${terraservice:-}" == "initialize" ]; then
+    TERRASERVICE_TERRAFORM_INIT_COMMAND=(
+      "${TERRAFORM_INIT_COMMAND[@]}"
+    )
+  fi
+
+  echo "Terraform init command for ${terraservice}: ${TERRASERVICE_TERRAFORM_INIT_COMMAND[*]}"
+
+  cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" &&
+    echo "Current directory: $(pwd)" &&
+    "${TERRASERVICE_TERRAFORM_INIT_COMMAND[@]}" &&
+    terraform plan -input=false -out=tfplan &&
+    terraform apply -input=false tfplan
+  local _apply_result=$?
+  rm tfplan
+  if [[ ${_apply_result} -ne 0 ]]; then
+    echo "Terraform apply for ${terraservice} failed with code ${_apply_result}"
+    exit $_apply_result
+  fi
+}
+
+get_terraform_output() {
+  terraservice="${1}"
+  output_name="${2}"
+  local output
+  if ! output="$(cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" && terraform output -raw "${output_name}")"; then
+    echo "Error while getting ${output_name} output"
+    return 1
+  fi
+  echo "${output}"
+}

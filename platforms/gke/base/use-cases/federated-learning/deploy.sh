@@ -24,43 +24,33 @@ source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 start_timestamp_federated_learning=$(date +%s)
 
 echo "Preparing core platform configuration files"
-
 for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
-  grep -q "${configuration_variable}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}" || echo "${configuration_variable}" >>"${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+  configuration_variable_name="$(echo "${configuration_variable}" | awk '{ print $1 }')"
+  echo "Checking if ${configuration_variable_name} is in ${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+  grep -q "${configuration_variable_name}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}" || echo "${configuration_variable}" >>"${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 done
 terraform fmt "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+
+echo "Provision services that the core platform depends on"
+# shellcheck disable=SC2154 # variable defined in common.sh
+for terraservice in "${federated_learning_core_platform_terraservices[@]}"; do
+  provision_terraservice "${terraservice}"
+done
+
+if ! cluster_database_encryption_key_id="$(get_terraform_output "key_management_service" "cluster_database_encryption_key_id")"; then
+  echo "Error while getting cluster_database_encryption_key_id output"
+  exit 1
+fi
+# Use | as a separator in the sed command because substitution values might contain slashes
+sed -i "s|cluster_database_encryption_key_name_placeholder|${cluster_database_encryption_key_id}|g" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 
 echo "Provisioning the core platform"
 "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
+echo "Provisioning the use case resources"
 # shellcheck disable=SC2154 # variable defined in common.sh
 for terraservice in "${federated_learning_terraservices[@]}"; do
-  echo "Provisioning ${terraservice}"
-
-  TERRASERVICE_TERRAFORM_INIT_COMMAND=(
-    "${TERRAFORM_INIT_BACKEND_CONFIG_COMMAND[@]}"
-  )
-
-  # The initialize terraservice uses a local backend, so we don't add the remote backend configuration
-  if [ "${terraservice:-}" == "initialize" ]; then
-    TERRASERVICE_TERRAFORM_INIT_COMMAND=(
-      "${TERRAFORM_INIT_COMMAND[@]}"
-    )
-  fi
-
-  echo "Terraform init command: ${TERRASERVICE_TERRAFORM_INIT_COMMAND[*]}"
-
-  cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" &&
-    echo "Current directory: $(pwd)" &&
-    "${TERRASERVICE_TERRAFORM_INIT_COMMAND[@]}" &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan
-  _apply_result=$?
-  rm tfplan
-  if [[ ${_apply_result} -ne 0 ]]; then
-    echo "Terraform apply failed with code ${_apply_result}"
-    exit $_apply_result
-  fi
+  provision_terraservice "${terraservice}"
 done
 
 end_timestamp_federated_learning=$(date +%s)

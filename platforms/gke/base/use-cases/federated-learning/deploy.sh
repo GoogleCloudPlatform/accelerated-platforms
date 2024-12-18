@@ -23,6 +23,13 @@ source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 start_timestamp_federated_learning=$(date +%s)
 
+echo "Preparing core platform configuration files"
+
+for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
+  grep -q "${configuration_variable}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}" || echo "${configuration_variable}" >>"${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+done
+terraform fmt "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+
 echo "Provisioning the core platform"
 "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 

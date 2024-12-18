@@ -61,6 +61,11 @@ done
 echo "Destroying the core platform"
 "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
 
+for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
+  sed -i "/${configuration_variable}/d" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+done
+terraform fmt "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+
 end_timestamp_federated_learning=$(date +%s)
 total_runtime_value_federated_learning=$((end_timestamp_federated_learning - start_timestamp_federated_learning))
 echo "Total runtime (Federated learning use case provisioning and configuration): $(date -d@${total_runtime_value_federated_learning} -u +%H:%M:%S)"

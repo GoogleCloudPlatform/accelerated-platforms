@@ -106,7 +106,7 @@ def create_database(database, new_database):
             logger.info("Connector closed")
 
 
-async def create_and_populate_table(database, table_name, processed_data_path):
+async def create_and_populate_table(database, table_name, processed_data_path, max_workers_value):
     """Creates and populates a table in PostgreSQL using pandas and sqlalchemy."""
 
     try:
@@ -120,7 +120,7 @@ async def create_and_populate_table(database, table_name, processed_data_path):
 
         # 2. Transform 
         logger.info(f"Starting embedding generation...")
-        with ThreadPoolExecutor() as executor:
+        with ThreadPoolExecutor(max_workers=max_workers_value) as executor:
             loop = asyncio.get_event_loop()
 
             # Create all embeddings tasks concurrently
@@ -138,13 +138,18 @@ async def create_and_populate_table(database, table_name, processed_data_path):
             ]
 
             # Gather results concurrently
-            df["multimodal_embeddings"], df["text_embeddings"], df["image_embeddings"] = await asyncio.gather(
-                asyncio.gather(*multimodal_tasks),
-                asyncio.gather(*text_tasks),
-                asyncio.gather(*image_tasks),
-            )
 
-        logger.info(f"Embedding generation task is now complete")
+            multimodal_results, text_results, image_results = await asyncio.gather(
+            asyncio.gather(*multimodal_tasks),  
+            asyncio.gather(*text_tasks),
+            asyncio.gather(*image_tasks),
+            )
+            
+            df["multimodal_embeddings"] = multimodal_results
+            df["text_embeddings"] = text_results
+            df["image_embeddings"] = image_results
+
+            logger.info(f"Embedding generation task is now complete")
 
         # 3. Load (this part remains synchronous for now)
         #TODO: Check if alloyDb allows async operations

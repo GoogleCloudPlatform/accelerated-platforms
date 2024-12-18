@@ -33,6 +33,8 @@ catalog_table = os.environ.get("CATALOG_TABLE_NAME")
 
 DISTANCE_FUNCTION = "cosine"
 NUM_LEAVES_VALUE = int(os.environ.get("NUM_LEAVES_VALUE"))
+# max_workers_value = int(os.environ.get("MAX_WORKERS_VALUE"))
+max_workers_value = 32
 
 embedding_columns = {
     "text": "text_embeddings",
@@ -74,6 +76,7 @@ if __name__ == "__main__":
             catalog_db,
             catalog_table,
             processed_data_path,
+            max_workers_value,
         )
         )#closing ayncio.run here
         logger.info("ETL job has been completed successfully ...")

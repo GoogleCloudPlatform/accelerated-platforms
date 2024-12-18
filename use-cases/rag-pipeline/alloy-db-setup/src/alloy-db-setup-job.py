@@ -54,9 +54,9 @@ if __name__ == "__main__":
             f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
         )
         logger.setLevel(new_log_level)
-    
+
     try:
-        
+
         logger.info("Create DB product_catalog in progress ...")
         # Create Database - This function enables the vector, scann extensions as well
         create_catalog.create_database(
@@ -72,7 +72,7 @@ if __name__ == "__main__":
             processed_data_path,
         )
         # Create Indexes for all embedding columns(text, image and multimodal)
-        
+
         logger.info("Create SCaNN indexes in progress ...")
         for modality, embedding_column in embedding_columns.items():
             index_name = index_names[modality]

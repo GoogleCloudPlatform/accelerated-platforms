@@ -20,7 +20,7 @@ import logging
 import logging.config
 
 # Configure logging
-logging.config.fileConfig("logging.conf") 
+logging.config.fileConfig("logging.conf")
 logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:
@@ -91,7 +91,7 @@ def process_input(text=None, image_uri=None):
 
     if not data:  # Check if data is empty
         return "Please provide either text or image URI."
-    
+
     response = requests.post(BACKEND_SERVICE_URL, json=data, timeout=100)
 
     response.raise_for_status()  # Raise an exception for bad status codes

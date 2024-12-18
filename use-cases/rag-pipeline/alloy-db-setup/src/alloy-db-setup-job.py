@@ -17,6 +17,9 @@ import create_catalog
 import logging
 import logging.config
 import os
+import asyncio
+
+# Environment variables
 
 # Master_product_catalog.csv
 PROCESSED_DATA_BUCKET = os.environ.get("PROCESSED_DATA_BUCKET")
@@ -63,14 +66,18 @@ if __name__ == "__main__":
             database_name,
             catalog_db,
         )
+        logger.info("DB product_catalog in has been created successfully ...")
 
-        # ETL
+        # ETL Run
         logger.info("ETL job to create table and generate embeddings in progress ...")
-        create_catalog.create_and_populate_table(
+        asyncio.run(create_catalog.create_and_populate_table(
             catalog_db,
             catalog_table,
             processed_data_path,
         )
+        )#closing ayncio.run here
+        logger.info("ETL job has been completed successfully ...")
+
         # Create Indexes for all embedding columns(text, image and multimodal)
 
         logger.info("Create SCaNN indexes in progress ...")
@@ -85,6 +92,7 @@ if __name__ == "__main__":
                 DISTANCE_FUNCTION,
                 NUM_LEAVES_VALUE,
             )
+        logger.info("SCaNN indexes have been created successfully ...")
     except Exception as e:
         logger.error(f"An unexpected error occurred during catalog onboarding: {e}")
         raise

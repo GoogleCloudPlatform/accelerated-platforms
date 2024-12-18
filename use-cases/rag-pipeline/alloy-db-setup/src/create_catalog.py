@@ -122,23 +122,27 @@ async def create_and_populate_table(database, table_name, processed_data_path):
         logger.info(f"Starting embedding generation...")
         with ThreadPoolExecutor() as executor:
             loop = asyncio.get_event_loop()
-            tasks = [
-                loop.run_in_executor(executor, get_emb.get_embeddings, row["image_uri"], row["Description"]) 
-                for _, row in df.iterrows()
-            ]
-            df["multimodal_embeddings"] = await asyncio.gather(*tasks)
 
-            tasks = [
-                loop.run_in_executor(executor, get_emb.get_embeddings, None, row["Description"]) 
+            # Create all embeddings tasks concurrently
+            multimodal_tasks = [
+                loop.run_in_executor(executor, get_emb.get_embeddings, row["image_uri"], row["Description"])
                 for _, row in df.iterrows()
             ]
-            df["text_embeddings"] = await asyncio.gather(*tasks)
+            text_tasks = [
+                loop.run_in_executor(executor, get_emb.get_embeddings, None, row["Description"])
+                for _, row in df.iterrows()
+            ]
+            image_tasks = [
+                loop.run_in_executor(executor, get_emb.get_embeddings, row["image_uri"], None)
+                for _, row in df.iterrows()
+            ]
 
-            tasks = [
-                loop.run_in_executor(executor, get_emb.get_embeddings, row["image_uri"], None) 
-                for _, row in df.iterrows()
-            ]
-            df["image_embeddings"] = await asyncio.gather(*tasks)
+            # Gather results concurrently
+            df["multimodal_embeddings"], df["text_embeddings"], df["image_embeddings"] = await asyncio.gather(
+                asyncio.gather(*multimodal_tasks),
+                asyncio.gather(*text_tasks),
+                asyncio.gather(*image_tasks),
+            )
 
         logger.info(f"Embedding generation task is now complete")
 

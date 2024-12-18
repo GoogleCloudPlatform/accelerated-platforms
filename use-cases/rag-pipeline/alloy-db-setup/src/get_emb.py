@@ -17,6 +17,7 @@ import logging.config
 import os
 import requests
 import json
+from threading import Lock
 
 # Define the API Endpoints
 TEXT_API_ENDPOINT = os.environ.get("TEXT_EMBEDDING_ENDPOINT")
@@ -32,10 +33,8 @@ if "LOG_LEVEL" in os.environ:
     try:
         # Convert the string to a logging level constant
         numeric_level = getattr(logging, new_log_level)
-
         # Set the level for the root logger
-        logging.getLogger().setLevel(numeric_level)
-
+        logger.setLevel(new_log_level)
         logger.info(
             "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
         )
@@ -48,6 +47,8 @@ if "LOG_LEVEL" in os.environ:
             "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
         )
 
+# Create a lock for thread safety
+lock = Lock()
 
 def get_image_embeddings(image_uri):
     """
@@ -61,36 +62,32 @@ def get_image_embeddings(image_uri):
 
     Raises:
         requests.exceptions.HTTPError: If there is an error fetching the image embeddings
-                                       or the API returns an invalid response.
+                                        or the API returns an invalid response.
     """
     try:
-        response = requests.post(
-            IMAGE_API_ENDPOINT,
-            json={"image_uri": image_uri},
-            headers={"Content-Type": "application/json"},
-            timeout=100,
-        )
+        with lock:
+            response = requests.post(
+                IMAGE_API_ENDPOINT,
+                json={"image_uri": image_uri},
+                headers={"Content-Type": "application/json"},
+                timeout=100,
+            )
 
-        # This will raise an HTTPError for bad responses (4xx or 5xx)
-        response.raise_for_status()
-
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         image_embeddings = response.json()["image_embeds"]
         return image_embeddings
 
     except requests.exceptions.HTTPError as e:
-        # Reraise HTTPError for better error handling
         logger.exception("Error fetching image embedding: %s", e)
         raise
 
     except requests.exceptions.RequestException as e:
-        # For other request errors, re-raise as an HTTPError
         logger.exception("Invalid response from image embedding API: %s", e)
         raise requests.exceptions.HTTPError(
             "Error fetching image embedding", response=requests.Response()
         ) from e
 
     except (ValueError, TypeError) as e:
-        # Handle potential JSON decoding errors
         logger.exception(
             "Not able to decode received json from image embedding API: %s", e
         )
@@ -112,15 +109,16 @@ def get_multimodal_embeddings(image_uri, desc):
 
     Raises:
         requests.exceptions.HTTPError: If there is an error fetching the multimodal embeddings
-                                       or the API returns an invalid response.
+                                        or the API returns an invalid response.
     """
     try:
-        response = requests.post(
-            MULTIMODAL_API_ENDPOINT,
-            json={"image_uri": image_uri, "caption": desc},
-            headers={"Content-Type": "application/json"},
-            timeout=100,
-        )
+        with lock:
+            response = requests.post(
+                MULTIMODAL_API_ENDPOINT,
+                json={"image_uri": image_uri, "caption": desc},
+                headers={"Content-Type": "application/json"},
+                timeout=100,
+            )
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
         return response.json()["multimodal_embeds"]
@@ -157,18 +155,18 @@ def get_text_embeddings(text):
 
     Raises:
         requests.exceptions.HTTPError: If there is an error fetching the text embeddings
-                                       or the API returns an invalid response.
+                                        or the API returns an invalid response.
     """
     try:
-        response = requests.post(
-            TEXT_API_ENDPOINT,
-            json={"caption": text},
-            headers={"Content-Type": "application/json"},
-            timeout=100,
-        )
+        with lock:
+            response = requests.post(
+                TEXT_API_ENDPOINT,
+                json={"caption": text},
+                headers={"Content-Type": "application/json"},
+                timeout=100,
+            )
 
         response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-
         return response.json()["text_embeds"]
 
     except requests.exceptions.HTTPError as e:
@@ -218,3 +216,4 @@ def get_embeddings(image_uri=None, text=None):
             "Missing input. Provide a textual product description and/or image_uri to generate embeddings"
         )
         return None
+    

@@ -19,6 +19,8 @@ import logging.config
 import os
 import pandas as pd
 import sqlalchemy
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from google.cloud.alloydb.connector import Connector
 from pgvector.sqlalchemy import Vector
@@ -35,7 +37,6 @@ if "LOG_LEVEL" in os.environ:
         f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
     )
     logger.setLevel(new_log_level)
-
 
 def create_database(database, new_database):
     """Creates a new database in AlloyDB and enables necessary extensions."""
@@ -105,42 +106,44 @@ def create_database(database, new_database):
             logger.info("Connector closed")
 
 
-def create_and_populate_table(database, table_name, processed_data_path):
+async def create_and_populate_table(database, table_name, processed_data_path):
     """Creates and populates a table in PostgreSQL using pandas and sqlalchemy."""
 
     try:
-        # 1. Extract
+        # 1. Extract the data
         df = pd.read_csv(processed_data_path)
         logger.info(f"Input df shape: {df.shape}")
 
-        # Dropping products with image_uri as NaN
+        # Drop the products with image_uri as NaN
         df.dropna(subset=["image_uri"], inplace=True)
         logger.info(f"resulting df shape: {df.shape}")
 
+        # 2. Transform 
         logger.info(f"Starting embedding generation...")
-        # 2. Transform
-        logger.info(f"Starting multimodal embedding generation...")
-        df["multimodal_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(row["image_uri"], row["Description"]),
-            axis=1,
-        )
-        logger.info(f"Multimodal embedding generation completed")
+        with ThreadPoolExecutor() as executor:
+            loop = asyncio.get_event_loop()
+            tasks = [
+                loop.run_in_executor(executor, get_emb.get_embeddings, row["image_uri"], row["Description"]) 
+                for _, row in df.iterrows()
+            ]
+            df["multimodal_embeddings"] = await asyncio.gather(*tasks)
 
-        logger.info(f"Starting text embedding generation...")
-        df["text_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(None, row["Description"]), axis=1
-        )
-        logger.info(f"Text embedding generation completed")
+            tasks = [
+                loop.run_in_executor(executor, get_emb.get_embeddings, None, row["Description"]) 
+                for _, row in df.iterrows()
+            ]
+            df["text_embeddings"] = await asyncio.gather(*tasks)
 
-        logger.info(f"Starting image embedding generation...")
-        df["image_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(row["image_uri"], None), axis=1
-        )
-        logger.info(f"Image embedding generation completed")
+            tasks = [
+                loop.run_in_executor(executor, get_emb.get_embeddings, row["image_uri"], None) 
+                for _, row in df.iterrows()
+            ]
+            df["image_embeddings"] = await asyncio.gather(*tasks)
 
         logger.info(f"Embedding generation task is now complete")
 
-        # 3. Load
+        # 3. Load (this part remains synchronous for now)
+        #TODO: Check if alloyDb allows async operations
         with Connector() as connector:
             engine = alloydb_connect.init_connection_pool(connector, database)
             with engine.begin() as connection:
@@ -172,13 +175,6 @@ def create_and_populate_table(database, table_name, processed_data_path):
         logging.error(
             f"An unexpected error occurred while creating and populating the table: {e}"
         )
-    finally:
-        if connection:
-            connection.close()
-            logger.info(f"DB: {database} Connection closed")
-        if connector:
-            connector.close()
-            logger.info("Connector closed")
 
 
 # Create an Scann index on the table with embedding column and cosine distance

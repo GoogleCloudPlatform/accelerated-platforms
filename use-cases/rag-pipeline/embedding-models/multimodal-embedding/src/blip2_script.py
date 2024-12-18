@@ -45,6 +45,7 @@ model, vis_processors, txt_processors = load_model_and_preprocess(
     name="blip2_feature_extractor", model_type="pretrain", is_eval=True, device=device
 )
 
+
 def get_text_embedding(caption):
     """Generates text embeddings for a given caption.
 
@@ -305,5 +306,7 @@ def generate_multimodal_embeddings():
 
 
 if __name__ == "__main__":
-    logger.info("Multimodal model blip2 is ready to serve embedding generation requests...")
+    logger.info(
+        "Multimodal model blip2 is ready to serve embedding generation requests..."
+    )
     app.run(host="0.0.0.0", port=os.getenv("PORT", "5000"))

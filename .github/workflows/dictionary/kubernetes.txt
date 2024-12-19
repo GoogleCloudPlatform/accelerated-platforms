@@ -1,4 +1,5 @@
 admissionregistration
+automount
 apiextensions
 apiregistration
 apiservice

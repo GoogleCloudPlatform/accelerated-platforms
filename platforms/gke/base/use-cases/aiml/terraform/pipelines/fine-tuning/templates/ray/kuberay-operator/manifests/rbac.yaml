@@ -12,16 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-#
-
-locals {
-  manifests_directory = "${path.module}/../manifests"
-}
-
-variable "kueue_version" {
-  default     = "0.10.0"
-  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
-  type        = string
-}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kuberay-operator-role
+rules:
+- apiGroups:
+  - '*'
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: kuberay-operator-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: kuberay-operator-role
+subjects:
+- kind: ServiceAccount
+  name: kuberay-operator
+  namespace: default

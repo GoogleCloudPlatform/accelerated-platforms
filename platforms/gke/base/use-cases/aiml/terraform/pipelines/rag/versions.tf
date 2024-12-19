@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-#
+terraform {
+  required_version = ">= 1.5.7"
 
-locals {
-  manifests_directory = "${path.module}/../manifests"
-}
+  required_providers {
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.2"
+    }
+  }
 
-variable "kueue_version" {
-  default     = "0.10.0"
-  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
-  type        = string
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_gke_base_uc_aiml_pipeline_rag_deploy-v1"
+  }
 }

@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,14 +14,21 @@
 
 #
 # Configuration dependencies
-#
+# - shared_config/cluster_variables.tf
+# - shared_config/platform_variables.tf
 
 locals {
-  manifests_directory = "${path.module}/../manifests"
+  iap_project_id = var.iap_project_id != null ? var.iap_project_id : var.cluster_project_id
 }
 
-variable "kueue_version" {
-  default     = "0.10.0"
-  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
+variable "iap_domain" {
+  default     = null
+  description = "Allowed domain for IAP. An internal user type audience is to limited to authorization requests for members of the organization. For more information see https://support.google.com/cloud/answer/15549945"
+  type        = string
+}
+
+variable "iap_project_id" {
+  default     = null
+  description = "Project ID of IAP brand."
   type        = string
 }

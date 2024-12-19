@@ -12,6 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  kubeconfig_directory = "${path.module}/../../../_shared_config/kubeconfig"
+  kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
+}
+
+data "local_file" "kubeconfig" {
+  filename = local.kubeconfig_file
+}
+
 resource "null_resource" "kueue_manifests" {
   provisioner "local-exec" {
     command     = <<EOT
@@ -31,7 +40,6 @@ EOT
   }
 
   triggers = {
-    always_run    = timestamp()
     manifests_dir = "${local.manifests_directory}/kueue-${var.kueue_version}"
     version       = var.kueue_version
   }
@@ -39,7 +47,6 @@ EOT
 
 resource "null_resource" "kueue_manifests_apply" {
   depends_on = [
-    null_resource.cluster_credentials,
     null_resource.kueue_manifests,
   ]
 
@@ -63,7 +70,7 @@ resource "null_resource" "kueue_manifests_apply" {
   }
 
   triggers = {
-    kubeconfig_file = local.kubeconfig_file
+    kubeconfig_file = data.local_file.kubeconfig.filename
     manifests_dir   = "${local.manifests_directory}/kueue-${var.kueue_version}"
     version         = var.kueue_version
   }
@@ -72,4 +79,10 @@ resource "null_resource" "kueue_manifests_apply" {
 resource "google_monitoring_dashboard" "kueue_monitoring_dashboard" {
   dashboard_json = file("${path.module}/dashboards/kueue-monitoring-dashboard.json")
   project        = data.google_project.default.project_id
+
+  lifecycle {
+    ignore_changes = [
+      dashboard_json
+    ]
+  }
 }

@@ -2,6 +2,9 @@
 .vscode/
 *.code-workspace
 
+# GKE
+gke_gcloud_auth_plugin_cache
+
 # Python
 __pycache__/
 .venv/

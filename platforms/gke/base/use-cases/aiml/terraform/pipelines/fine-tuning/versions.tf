@@ -12,24 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "null_resource" "cluster_credentials" {
-  provisioner "local-exec" {
-    command     = <<EOT
-KUBECONFIG=${self.triggers.kubeconfig_file} ${local.cluster_credentials_command} 
-EOT
-    interpreter = ["bash", "-c"]
-    working_dir = path.module
+terraform {
+  required_version = ">= 1.5.7"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.24.0"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = "2.17.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "2.36.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.2"
+    }
+    null = {
+      source  = "hashicorp/null"
+      version = "3.2.3"
+    }
   }
 
-  provisioner "local-exec" {
-    command     = "rm -rf ${self.triggers.kubeconfig_file}"
-    interpreter = ["bash", "-c"]
-    when        = destroy
-    working_dir = path.module
-  }
-
-  triggers = {
-    always_run      = timestamp()
-    kubeconfig_file = local.kubeconfig_file
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_gke_base_uc_aiml_pipeline_fine-tuning_deploy-v1"
   }
 }

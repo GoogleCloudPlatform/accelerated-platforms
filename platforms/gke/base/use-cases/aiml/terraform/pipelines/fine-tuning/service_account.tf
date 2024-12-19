@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-#
-
 locals {
-  manifests_directory = "${path.module}/../manifests"
+  gsa_build_account_id = "${local.cluster_name}-${var.fine_tuning_namespace}-build"
 }
 
-variable "kueue_version" {
-  default     = "0.10.0"
-  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
-  type        = string
+resource "google_service_account" "fine_tuning_build" {
+  project      = data.google_project.fine_tuning.project_id
+  account_id   = local.gsa_build_account_id
+  display_name = "${local.gsa_build_account_id} Service Account"
+  description  = "Terraform-managed service account for ${local.gsa_build_account_id}"
 }

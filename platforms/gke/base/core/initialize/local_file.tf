@@ -20,8 +20,8 @@ locals {
   core_backend_directories = toset([for _, version_file in local.core_versions_files : trimprefix(trimsuffix(version_file, "/versions.tf"), "../")])
   core_versions_files      = flatten([for _, file in flatten(fileset(local.base_directory, "core/**/versions.tf")) : file])
 
-  use_case_backend_directories = var.initialize_use_case != null ? toset([for _, version_file in local.use_case_versions_files : trimprefix(trimsuffix(dirname(version_file), "/versions.tf"), "../")]) : []
-  use_case_versions_files      = var.initialize_use_case != null ? flatten([for _, file in flatten(fileset("${local.base_directory}/use-cases", "${var.initialize_use_case}/**/versions.tf")) : file]) : []
+  use_case_backend_directories = var.initialize_backend_use_case_name != null ? toset([for _, version_file in local.use_case_versions_files : trimprefix(trimsuffix(dirname(version_file), "/versions.tf"), "../")]) : []
+  use_case_versions_files      = var.initialize_backend_use_case_name != null ? flatten([for _, file in flatten(fileset("${local.base_directory}/use-cases", "${var.initialize_backend_use_case_name}/**/versions.tf")) : file]) : []
 }
 
 resource "local_file" "core_backend_tf" {

@@ -17,8 +17,8 @@
 # - shared_config/platform_variables.tf
 #
 
-variable "initialize_use_case" {
+variable "initialize_backend_use_case_name" {
   default     = null
-  description = "Initialize the backend.tf file for this use case"
+  description = "Create a templated backend.tf file in each folder that contains a versions.tf file for the specified use case. This value should be a folder or path within the 'base/use-cases' directory."
   type        = string
 }

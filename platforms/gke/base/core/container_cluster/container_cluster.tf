@@ -128,6 +128,10 @@ resource "google_container_cluster" "cluster" {
     enabled = var.cluster_confidential_nodes_enabled
   }
 
+  cost_management_config {
+    enabled = true
+  }
+
   dynamic "database_encryption" {
     for_each = var.cluster_database_encryption_state == "ENCRYPTED" ? ["database_encryption"] : []
     content {

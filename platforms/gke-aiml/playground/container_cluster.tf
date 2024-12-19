@@ -153,7 +153,7 @@ resource "google_container_cluster" "mlp" {
   cost_management_config {
     enabled = true
   }
-  
+
   gateway_api_config {
     channel = "CHANNEL_STANDARD"
   }

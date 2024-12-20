@@ -18,16 +18,18 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+ACP_PLATFORM_SHARED_CONFIG_DIR="${ACP_PLATFORM_BASE_DIR}/_shared_config"
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE="${ACP_PLATFORM_SHARED_CONFIG_DIR}/cluster.auto.tfvars"
+
 # shellcheck disable=SC1091
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
+source "${ACP_PLATFORM_SHARED_CONFIG_DIR}/scripts/set_environment_variables.sh" "${ACP_PLATFORM_SHARED_CONFIG_DIR}"
 
 FEDERATED_LEARNING_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning"
-
-# shellcheck disable=SC2034 # Variable is used in other scripts
 FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR="${FEDERATED_LEARNING_USE_CASE_DIR}/terraform"
-
 # shellcheck disable=SC2034 # Variable is used in other scripts
-FEDERATED_LEARNING_USE_CASE_INITIALIZE_SERVICE_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/initialize"
+FEDERATED_LEARNING_SHARED_CONFIG_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/_shared_config"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 federated_learning_terraservices=(
@@ -35,3 +37,62 @@ federated_learning_terraservices=(
   "container_image_repository"
   "private_google_access"
 )
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+TERRAFORM_CLUSTER_CONFIGURATION=(
+)
+
+apply_or_destroy_terraservice() {
+  local terraservice
+  terraservice="${1}"
+
+  local operation_mode
+  operation_mode="${2:-"not set"}"
+
+  cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" &&
+    terraform init
+
+  echo "Current working directory: $(pwd)"
+
+  if [[ "${operation_mode}" == "apply" ]]; then
+    echo "Provisioning ${terraservice}"
+    terraform plan -input=false -out=tfplan &&
+      terraform apply -input=false tfplan
+    _terraform_result=$?
+  elif [[ "${operation_mode}" == "destroy" ]]; then
+    echo "Destroying ${terraservice}"
+    terraform destroy -auto-approve
+    _terraform_result=$?
+  else
+    echo "Error: operation mode not supported: ${operation_mode}"
+    _terraform_result=1
+  fi
+
+  rm -rf \
+    "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}/.terraform" \
+    "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}/tfplan"
+
+  if [[ ${_terraform_result} -ne 0 ]]; then
+    echo "Terraform ${operation_mode} command failed with code ${_terraform_result} for ${terraservice}"
+    exit ${_terraform_result}
+  fi
+}
+
+provision_terraservice() {
+  apply_or_destroy_terraservice "${1}" "apply"
+}
+
+destroy_terraservice() {
+  apply_or_destroy_terraservice "${1}" "destroy"
+}
+
+get_terraform_output() {
+  terraservice="${1}"
+  output_name="${2}"
+  local output
+  if ! output="$(cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" && terraform output -raw "${output_name}")"; then
+    echo "Error while getting ${output_name} output"
+    return 1
+  fi
+  echo "${output}"
+}

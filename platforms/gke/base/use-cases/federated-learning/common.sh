@@ -32,23 +32,10 @@ FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR="${FEDERATED_LEARNING_USE_CASE_DIR}/te
 FEDERATED_LEARNING_SHARED_CONFIG_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/_shared_config"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
-FEDERATED_LEARNING_USE_CASE_INITIALIZE_SERVICE_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/initialize"
-
-# shellcheck disable=SC2034 # Variable is used in other scripts
 federated_learning_terraservices=(
   "initialize"
   "container_image_repository"
   "private_google_access"
-)
-
-TERRAFORM_INIT_COMMAND=(
-  terraform init
-)
-
-# shellcheck disable=SC2034 # Variable is used in other scripts
-TERRAFORM_INIT_BACKEND_CONFIG_COMMAND=(
-  "${TERRAFORM_INIT_COMMAND[@]}"
-  -backend-config="backend.config"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
@@ -62,19 +49,8 @@ apply_or_destroy_terraservice() {
   local operation_mode
   operation_mode="${2:-"not set"}"
 
-  local -a TERRASERVICE_TERRAFORM_INIT_COMMAND
-  TERRASERVICE_TERRAFORM_INIT_COMMAND=(
-    "${TERRAFORM_INIT_BACKEND_CONFIG_COMMAND[@]}"
-  )
-  if [ "${terraservice:-}" == "initialize" ]; then
-    TERRASERVICE_TERRAFORM_INIT_COMMAND=(
-      "${TERRAFORM_INIT_COMMAND[@]}"
-    )
-  fi
-  echo "Terraform init command for ${terraservice}: ${TERRASERVICE_TERRAFORM_INIT_COMMAND[*]}"
-
   cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" &&
-    "${TERRASERVICE_TERRAFORM_INIT_COMMAND[@]}"
+    terraform init
 
   echo "Current working directory: $(pwd)"
 

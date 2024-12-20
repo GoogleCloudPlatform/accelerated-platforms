@@ -18,32 +18,27 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-start_timestamp_federated_learning=$(date +%s)
-
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
+start_timestamp_federated_learning=$(date +%s)
+
+# Iterate over the terraservices array so we destroy them in reverse order, keeping the
+# initialize terraservice last.
 # shellcheck disable=SC2154 # variable defined in common.sh
-for terraservice in "${federated_learning_terraservices[@]}"; do
-  if [ "${terraservice:-}" == "initialize" ]; then
-    echo "Skip destroying ${terraservice} to avoid removing backend configuration files"
-    continue
-  fi
-  echo "Destroying ${terraservice}"
-  cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" &&
-    echo "Current directory: $(pwd)" &&
-    terraform init -backend-config="backend.config" &&
-    terraform destroy -auto-approve
-
-  _destroy_result=$?
-  rm -rf \
-    "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}/.terraform"
-
-  if [[ ${_destroy_result} -ne 0 ]]; then
-    echo "Terraform destroy failed with code ${_destroy_result}"
-    exit ${_destroy_result}
-  fi
+for ((i = ${#federated_learning_terraservices[@]} - 1; i >= 0; i--)); do
+  terraservice=${federated_learning_terraservices[i]}
+  destroy_terraservice "${terraservice}"
 done
+
+echo "Destroying the core platform"
+"${ACP_PLATFORM_CORE_DIR}/teardown.sh"
+
+for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
+  configuration_variable_name="$(echo "${configuration_variable}" | awk ' { print $1 }'))"
+  sed -i "/${configuration_variable_name}/d" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+done
+terraform fmt "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 
 end_timestamp_federated_learning=$(date +%s)
 total_runtime_value_federated_learning=$((end_timestamp_federated_learning - start_timestamp_federated_learning))

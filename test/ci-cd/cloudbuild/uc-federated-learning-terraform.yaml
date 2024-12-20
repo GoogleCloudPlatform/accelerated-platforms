@@ -52,14 +52,12 @@ steps:
         export TF_VAR_terraform_project_id="${PROJECT_ID}"
 
         # Deploy the base platform and the use case
-        platforms/gke/base/core/deploy.sh &&
         platforms/gke/base/use-cases/federated-learning/deploy.sh
 
         APPLY_RETURN_CODE=$?
         echo "APPLY_RETURN_CODE=$${APPLY_RETURN_CODE}"
 
         platforms/gke/base/use-cases/federated-learning/teardown.sh || exit 1
-        platforms/gke/base/core/teardown.sh || exit 1
         if [[ $${APPLY_RETURN_CODE} -ne 0 ]]; then
           exit $${APPLY_RETURN_CODE}
         fi

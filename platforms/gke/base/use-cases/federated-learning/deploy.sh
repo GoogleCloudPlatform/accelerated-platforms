@@ -23,36 +23,21 @@ source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 start_timestamp_federated_learning=$(date +%s)
 
-TERRAFORM_INIT_COMMAND=(
-  terraform init
-)
+echo "Preparing core platform configuration files"
+for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
+  configuration_variable_name="$(echo "${configuration_variable}" | awk '{ print $1 }')"
+  echo "Checking if ${configuration_variable_name} is in ${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+  grep -q "${configuration_variable_name}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}" || echo "${configuration_variable}" >>"${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+done
+terraform fmt "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 
+echo "Provisioning the core platform"
+"${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+
+echo "Provisioning the use case resources"
 # shellcheck disable=SC2154 # variable defined in common.sh
 for terraservice in "${federated_learning_terraservices[@]}"; do
-  echo "Provisioning ${terraservice}"
-  TERRASERVICE_TERRAFORM_INIT_COMMAND=(
-    "${TERRAFORM_INIT_COMMAND[@]}"
-  )
-  if [ "${terraservice:-}" != "initialize" ]; then
-    echo "Add the option to load remote backend configuration to the terraform init command"
-    TERRASERVICE_TERRAFORM_INIT_COMMAND+=(
-      -backend-config="backend.config"
-    )
-  fi
-
-  echo "Terraform init command: ${TERRASERVICE_TERRAFORM_INIT_COMMAND[*]}"
-
-  cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" &&
-    echo "Current directory: $(pwd)" &&
-    "${TERRASERVICE_TERRAFORM_INIT_COMMAND[@]}" &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan
-  _apply_result=$?
-  rm tfplan
-  if [[ ${_apply_result} -ne 0 ]]; then
-    echo "Terraform apply failed with code ${_apply_result}"
-    exit $_apply_result
-  fi
+  provision_terraservice "${terraservice}"
 done
 
 end_timestamp_federated_learning=$(date +%s)

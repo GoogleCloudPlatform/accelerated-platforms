@@ -14,57 +14,66 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 set -o errexit
+set -o nounset
+set -o pipefail
+
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_CORE_DIR}/functions.sh"
 
 start_timestamp=$(date +%s)
 
 declare -a terraservices
-if [[ -v CORE_TERRASERVICES_APPLY ]]; then
-    terraservices=("${CORE_TERRASERVICES_APPLY[@]}")
+if [[ -v CORE_TERRASERVICES_APPLY ]] &&
+  [[ -n "${CORE_TERRASERVICES_APPLY:-""}" ]]; then
+  echo "Found customized core platform terraservices set to apply: ${CORE_TERRASERVICES_APPLY}"
+  ParseSpaceSeparatedBashArray "${CORE_TERRASERVICES_APPLY}" "terraservices"
 else
-    terraservices=(
-        "networking"
-        "container_cluster"
-        "container_node_pool"
-        "gke_enterprise/fleet_membership"
-        # Disable gke_enterprise/servicemesh due to b/376312292
-        # "gke_enterprise/servicemesh"
-        "workloads/kueue"
-    )
+  terraservices=(
+    "networking"
+    "container_cluster"
+    "container_node_pool"
+    "gke_enterprise/fleet_membership"
+    # Disable gke_enterprise/servicemesh due to b/376312292
+    # "gke_enterprise/servicemesh"
+    "workloads/kueue"
+  )
 fi
 echo "Core platform terraservices to provision: ${terraservices[*]}"
 
-source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
 
-cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
-    echo "Current directory: $(pwd)" &&
-    sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket &&
-    export STATE_MIGRATED="false" &&
-    if gcloud storage ls gs://${terraform_bucket_name}/terraform/initialize/default.tfstate &>/dev/null; then
-        if [ ! -f ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf ]; then
-            cp backend.tf.bucket backend.tf
-        fi
-        export STATE_MIGRATED="true"
+# shellcheck disable=SC2154 # Variable is defined as a terraform output and sourced in other scripts
+cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
+  echo "Current directory: $(pwd)" &&
+  sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
+  export STATE_MIGRATED="false" &&
+  if gcloud storage ls "gs://${terraform_bucket_name}/terraform/initialize/default.tfstate" &>/dev/null; then
+    if [ ! -f "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf" ]; then
+      cp backend.tf.bucket backend.tf
     fi
+    export STATE_MIGRATED="true"
+  fi
 
-cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
+cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
+  terraform init &&
+  terraform plan -input=false -out=tfplan &&
+  terraform apply -input=false tfplan || exit 1
 rm tfplan
 
-if [ ${STATE_MIGRATED} == "false" ]; then
-    echo "Migrating the state backend"
-    terraform init -force-copy -migrate-state || exit 1
-    rm -rf terraform.tfstate*
+if [ "${STATE_MIGRATED}" == "false" ]; then
+  echo "Migrating the state backend"
+  terraform init -force-copy -migrate-state || exit 1
+  rm -rf terraform.tfstate*
 fi
 
 for terraservice in "${terraservices[@]}"; do
-    cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
-        echo "Current directory: $(pwd)" &&
-        terraform init &&
-        terraform plan -input=false -out=tfplan &&
-        terraform apply -input=false tfplan || exit 1
-    rm tfplan
+  cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
+    echo "Current directory: $(pwd)" &&
+    terraform init &&
+    terraform plan -input=false -out=tfplan &&
+    terraform apply -input=false tfplan || exit 1
+  rm tfplan
 done
 
 end_timestamp=$(date +%s)

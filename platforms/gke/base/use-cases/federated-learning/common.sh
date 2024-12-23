@@ -33,13 +33,14 @@ FEDERATED_LEARNING_SHARED_CONFIG_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DI
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 federated_learning_terraservices=(
-  "initialize"
   "container_image_repository"
   "private_google_access"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 TERRAFORM_CLUSTER_CONFIGURATION=(
+  "cluster_binary_authorization_evaluation_mode = \"PROJECT_SINGLETON_POLICY_ENFORCE\""
+  "cluster_confidential_nodes_enabled = false"
 )
 
 apply_or_destroy_terraservice() {

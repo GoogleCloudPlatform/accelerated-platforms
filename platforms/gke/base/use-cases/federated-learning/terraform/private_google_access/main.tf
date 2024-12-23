@@ -37,7 +37,7 @@ data "google_compute_network" "main_vpc_network" {
 
 resource "google_dns_managed_zone" "private_google_access" {
   project     = google_project_service.dns_googleapis_com.project
-  name        = "private-google-apis"
+  name        = "${local.unique_identifier_prefix}-private-google-apis"
   dns_name    = "googleapis.com."
   description = "Private DNS zone for Google APIs"
   visibility  = "private"
@@ -51,7 +51,7 @@ resource "google_dns_managed_zone" "private_google_access" {
 
 resource "google_dns_managed_zone" "private_google_access_container_registry" {
   project     = google_project_service.dns_googleapis_com.project
-  name        = "private-google-access-container-registry"
+  name        = "${local.unique_identifier_prefix}-private-google-access-container-registry"
   dns_name    = "gcr.io."
   description = "Private DNS zone for Container Registry"
   visibility  = "private"
@@ -65,7 +65,7 @@ resource "google_dns_managed_zone" "private_google_access_container_registry" {
 
 resource "google_dns_managed_zone" "private_google_access_artifact_registry" {
   project     = google_project_service.dns_googleapis_com.project
-  name        = "private-google-access-artifact-registry"
+  name        = "${local.unique_identifier_prefix}-private-google-access-artifact-registry"
   dns_name    = "pkg.dev."
   description = "Private DNS zone for Artifact Registry"
   visibility  = "private"

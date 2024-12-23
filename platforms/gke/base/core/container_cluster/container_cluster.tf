@@ -128,6 +128,12 @@ resource "google_container_cluster" "cluster" {
     enabled = var.cluster_confidential_nodes_enabled
   }
 
+  control_plane_endpoints_config {
+    dns_endpoint_config {
+      allow_external_traffic = true
+    }
+  }
+
   cost_management_config {
     enabled = true
   }

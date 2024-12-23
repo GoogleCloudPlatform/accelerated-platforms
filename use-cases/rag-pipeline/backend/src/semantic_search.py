@@ -23,14 +23,13 @@ from google.cloud.alloydb.connector import Connector
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
-logger = logging.getLogger("semantic-search")
+logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     logger.info(
         f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
     )
-    logging.getLogger().setLevel(new_log_level)
     logger.setLevel(new_log_level)
 
 
@@ -46,7 +45,7 @@ def find_matching_products(
         embeddings = json.dumps(
             generate_embeddings.get_embeddings(text=user_query, image_uri=image_uri)
         )
-        logging.info(
+        logger.info(
             "Generated embeddings for %s text and %s image_uri %s embeddings",
             user_query,
             image_uri,
@@ -55,7 +54,7 @@ def find_matching_products(
 
         # Parameterized query
         search_query = f"""SELECT "Name", "Description", "c1_name" as Category, "Specifications", "Id" as Product_Id, "Brand" , "image_uri" , (1-({embedding_column} <-> :emb)) AS cosine_similarity FROM {catalog_table} ORDER BY cosine_similarity DESC LIMIT {row_count};"""
-        logging.info(
+        logger.info(
             "Semantic Search Query to get product recommendations sorted by Cosine distance: %s ",
             search_query,
         )
@@ -67,12 +66,11 @@ def find_matching_products(
                 text(search_query),
                 {"emb": embeddings},
             )
-            print("DB RESULT RECEIVED : %s ", result)
 
             df = pd.DataFrame(result.fetchall())
             df.columns = result.keys()  # Set column names
 
-        logging.info("Semantic Search results received from DB %s: ")
+        logger.info("Semantic Search results received from DB %s: ")
 
         # Print all columns with keys and values
         for index, row in df.iterrows():
@@ -91,18 +89,18 @@ def find_matching_products(
         ]  # List the columns to drop
         df = df.drop(columns=columns_to_drop)
 
-        logging.info("Semantic Search results received from DB: %s", df)
+        logger.info("Semantic Search results received from DB: %s", df)
         # Convert the DataFrame to a string and dropped row Index
         retrieved_information = df.to_string(index=False)
 
-        logging.info(
+        logger.info(
             "Formated response for the Semantic Search Query from DB: "
             + retrieved_information
         )
         return retrieved_information
 
     except Exception as e:
-        logging.error(f"An error occurred while finding matching products: {e}")
+        logger.error(f"An error occurred while finding matching products: {e}")
 
     finally:
         if conn:

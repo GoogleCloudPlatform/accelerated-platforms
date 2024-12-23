@@ -35,7 +35,7 @@ if "LOG_LEVEL" in os.environ:
         numeric_level = getattr(logging, new_log_level)
 
         # Set the level for the root logger
-        logging.getLogger().setLevel(numeric_level)
+        logger.setLevel(numeric_level)
 
         logger.info(
             "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
@@ -209,16 +209,16 @@ def get_embeddings(image_uri=None, text=None):
         requests.exceptions.HTTPError: If there is an error fetching the embeddings from the API.
     """
     if image_uri and text:
-        logging.info("Generating MULTIMODAL embeddings...")
+        logger.info("Generating MULTIMODAL embeddings...")
         return get_multimodal_embeddings(image_uri, text)
     elif text:
-        logging.info("Generating TEXT embeddings...")
+        logger.info("Generating TEXT embeddings...")
         return get_text_embeddings(text)
     elif image_uri:
-        logging.info("Generating IMAGE embeddings...")
+        logger.info("Generating IMAGE embeddings...")
         return get_image_embeddings(image_uri)
     else:
-        logging.error(
+        logger.error(
             "Missing input. Provide a textual product description and/or image_uri to generate embeddings"
         )
         return None

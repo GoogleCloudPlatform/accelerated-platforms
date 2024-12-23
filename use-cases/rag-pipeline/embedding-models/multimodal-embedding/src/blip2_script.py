@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+import logging.config
 import io
 import os
 import torch
@@ -21,6 +23,21 @@ from google.cloud import storage
 from google.cloud.storage.blob import Blob
 from lavis.models import load_model_and_preprocess
 from PIL import Image
+
+# Configure logging
+
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
+
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
+    logger.setLevel(new_log_level)
+
+logger.info("Initializing multimodal model blip2 ...")
+
 
 # Load the model and processors, ensuring they're on the correct device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -172,6 +189,7 @@ def generate_text_embeddings():
                 text_features = get_text_embedding(json_req["caption"])
             except Exception as e:
                 return jsonify({"error": str(e)}), 400
+            logger.info("Text embeddings generated successfully.")
             return jsonify(
                 {
                     "text_embeds": text_features.tolist()[0][0],
@@ -213,6 +231,7 @@ def generate_image_embeddings():
             image_features = get_image_embedding(image)
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+        logger.info("Image embeddings generated successfully.")
         return jsonify(
             {
                 "image_embeds": image_features.tolist()[0][0],
@@ -276,6 +295,7 @@ def generate_multimodal_embeddings():
             multimodal_features = get_multimodal_embedding(image, caption)
         except Exception as e:
             return jsonify({"error": str(e)}), 400
+        logger.info("Multimodal embeddings generated successfully.")
         return jsonify(
             {
                 "multimodal_embeds": multimodal_features.tolist()[0][0],
@@ -286,4 +306,7 @@ def generate_multimodal_embeddings():
 
 
 if __name__ == "__main__":
+    logger.info(
+        "Multimodal model blip2 is ready to serve embedding generation requests..."
+    )
     app.run(host="0.0.0.0", port=os.getenv("PORT", "5000"))

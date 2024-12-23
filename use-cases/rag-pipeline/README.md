@@ -80,7 +80,7 @@ Deploy instruction tuned model on ML playground, follow the [README](/use-cases/
 
 ## Create database `product_catalog` in alloyDB to import Product Catalog
 
-Deploy database setup kubernetes job on the ML playground cluster, follow the [README](use-cases/rag-pipeline/alloy-db-setup/README.md)
+Deploy database setup kubernetes job on the ML playground cluster, follow the [README](/use-cases/rag-pipeline/alloy-db-setup/README.md)
 
 ## Deploy the backend on the playground cluster
 

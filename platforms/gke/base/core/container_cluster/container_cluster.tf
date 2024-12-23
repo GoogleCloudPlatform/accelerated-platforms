@@ -140,6 +140,11 @@ resource "google_container_cluster" "cluster" {
     }
   }
 
+  dns_config {
+    cluster_dns       = "CLOUD_DNS"
+    cluster_dns_scope = "CLUSTER_SCOPE"
+  }
+
   gateway_api_config {
     channel = var.cluster_gateway_api_config_channel
   }

@@ -44,6 +44,13 @@ resource "google_project_service" "containerfilesystem_googleapis_com" {
   service                    = "containerfilesystem.googleapis.com"
 }
 
+resource "google_project_service" "dns_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.cluster.project_id
+  service                    = "dns.googleapis.com"
+}
+
 resource "google_project_service" "iam_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false

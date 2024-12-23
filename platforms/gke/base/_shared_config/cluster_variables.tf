@@ -162,6 +162,12 @@ variable "cluster_region" {
   }
 }
 
+variable "cluster_system_node_pool_machine_type" {
+  default     = "n4-standard-8"
+  description = "Machine type to use for the system node pool."
+  type        = string
+}
+
 variable "cluster_use_connect_gateway" {
   default     = true
   description = "UsevConnect gateway to connect to the cluster, require GKE Enterprise."

@@ -22,7 +22,7 @@ resource "google_container_cluster" "cluster" {
   name                     = local.cluster_name
   network                  = local.network_name
   project                  = google_project_service.container_googleapis_com.project
-  remove_default_node_pool = false
+  remove_default_node_pool = true
   subnetwork               = local.subnetwork_name
 
   addons_config {
@@ -205,33 +205,13 @@ resource "google_container_cluster" "cluster" {
 
   node_pool {
     initial_node_count = 1
-    name               = "system"
-
-    autoscaling {
-      location_policy      = "BALANCED"
-      total_max_node_count = 32
-      total_min_node_count = 1
-    }
-
-    network_config {
-      enable_private_nodes = true
-    }
-
+    name               = "default-pool"
     node_config {
-      machine_type    = "e2-standard-4"
+      machine_type    = var.cluster_system_node_pool_machine_type
       service_account = google_service_account.cluster.email
       oauth_scopes = [
         "https://www.googleapis.com/auth/cloud-platform"
       ]
-
-      gcfs_config {
-        enabled = true
-      }
-
-      shielded_instance_config {
-        enable_integrity_monitoring = true
-        enable_secure_boot          = true
-      }
     }
   }
 
@@ -272,10 +252,57 @@ resource "google_container_cluster" "cluster" {
   }
 }
 
-data "google_container_cluster" "default" {
-  depends_on = [google_container_cluster.cluster]
+resource "google_container_node_pool" "system" {
+  # Variables
+  cluster            = google_container_cluster.cluster.name
+  initial_node_count = 1
+  location           = var.cluster_region
+  name               = "system"
+  project            = google_container_cluster.cluster.project
 
-  location = var.cluster_region
-  name     = local.cluster_name
-  project  = var.cluster_project_id
+  # Blocks
+  autoscaling {
+    location_policy      = "BALANCED"
+    total_max_node_count = 1000
+    total_min_node_count = 1
+  }
+
+  network_config {
+    enable_private_nodes = true
+  }
+
+  node_config {
+    # Variables
+    labels = {
+      "resource-type" : "system"
+    }
+    machine_type    = var.cluster_system_node_pool_machine_type
+    service_account = google_service_account.cluster.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+
+    # Blocks
+    gcfs_config {
+      enabled = true
+    }
+
+    shielded_instance_config {
+      enable_integrity_monitoring = true
+      enable_secure_boot          = true
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      initial_node_count,
+      node_config[0].labels,
+      node_config[0].taint,
+    ]
+  }
+
+  timeouts {
+    create = "30m"
+    update = "20m"
+  }
 }

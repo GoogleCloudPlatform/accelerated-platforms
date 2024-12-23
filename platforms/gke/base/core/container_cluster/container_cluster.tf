@@ -41,82 +41,42 @@ resource "google_container_cluster" "cluster" {
 
   cluster_autoscaling {
     autoscaling_profile = "OPTIMIZE_UTILIZATION"
-    enabled             = true
+    enabled             = var.cluster_node_auto_provisioning_enabled
 
-    auto_provisioning_defaults {
-      disk_type = "pd-balanced"
-      oauth_scopes = [
-        "https://www.googleapis.com/auth/cloud-platform"
-      ]
-      service_account = google_service_account.cluster.email
+    dynamic "auto_provisioning_defaults" {
+      for_each = var.cluster_node_auto_provisioning_enabled ? ["auto_provisioning_defaults"] : []
+      content {
+        disk_type = "pd-balanced"
+        oauth_scopes = [
+          "https://www.googleapis.com/auth/cloud-platform"
+        ]
+        service_account = google_service_account.cluster.email
 
-      management {
-        auto_repair  = true
-        auto_upgrade = true
+        management {
+          auto_repair  = true
+          auto_upgrade = true
+        }
+
+        shielded_instance_config {
+          enable_integrity_monitoring = true
+          enable_secure_boot          = true
+        }
+
+        upgrade_settings {
+          max_surge       = 0
+          max_unavailable = 1
+          strategy        = "SURGE"
+        }
       }
+    }
 
-      shielded_instance_config {
-        enable_integrity_monitoring = true
-        enable_secure_boot          = true
+    dynamic "resource_limits" {
+      for_each = local.cluster_node_auto_provisioning_resource_limits
+      content {
+        maximum       = resource_limits.value.maximum
+        minimum       = resource_limits.value.minimum
+        resource_type = resource_limits.value.resource_type
       }
-
-      upgrade_settings {
-        max_surge       = 0
-        max_unavailable = 1
-        strategy        = "SURGE"
-      }
-    }
-
-    resource_limits {
-      resource_type = "cpu"
-      minimum       = 4
-      maximum       = 1024
-    }
-
-    resource_limits {
-      resource_type = "memory"
-      minimum       = 16
-      maximum       = 4096
-    }
-
-    resource_limits {
-      resource_type = "nvidia-a100-80gb"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-l4"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-t4"
-      maximum       = 256
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-a100"
-      maximum       = 64
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-k80"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-p4"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-p100"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-v100"
-      maximum       = 32
     }
   }
 

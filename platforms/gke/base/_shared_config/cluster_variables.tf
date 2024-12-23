@@ -25,6 +25,8 @@ locals {
   cluster_credentials_command         = var.cluster_use_connect_gateway ? local.cluster_credentials_command_gkee : local.cluster_credentials_command_gke
   cluster_name                        = local.unique_identifier_prefix
 
+  cluster_node_auto_provisioning_resource_limits = var.cluster_node_auto_provisioning_enabled ? var.cluster_node_auto_provisioning_resource_limits : []
+
   kubeconfig_directory = abspath("${path.module}/../kubeconfig")
   kubeconfig_file      = abspath("${local.kubeconfig_directory}/${var.cluster_project_id}-${local.unique_identifier_prefix}")
 }
@@ -128,6 +130,39 @@ variable "cluster_master_ipv4_cidr_block" {
   default     = "172.16.0.32/28"
   description = "The IP range in CIDR notation to use for the hosted master network."
   type        = string
+}
+
+variable "cluster_node_auto_provisioning_enabled" {
+  default     = true
+  description = "Enable node auto-provisioning on the cluster."
+  type        = bool
+}
+
+variable "cluster_node_auto_provisioning_resource_limits" {
+  default = [
+    { resource_type = "cpu" },
+    { resource_type = "memory" },
+    { resource_type = "nvidia-a100-80gb" },
+    { resource_type = "nvidia-h100-80gb" },
+    { resource_type = "nvidia-h100-mega-80gb" },
+    { resource_type = "nvidia-l4" },
+    { resource_type = "nvidia-tesla-a100" },
+    { resource_type = "nvidia-tesla-k80" },
+    { resource_type = "nvidia-tesla-p4" },
+    { resource_type = "nvidia-tesla-p100" },
+    { resource_type = "nvidia-tesla-t4" },
+    { resource_type = "nvidia-tesla-v100" },
+    { resource_type = "tpu-v4-podslice" },
+    { resource_type = "tpu-v5-lite-podslice" },
+    { resource_type = "tpu-v5p-slice" },
+    { resource_type = "tpu-v6e-slice" },
+  ]
+  description = "Resource limits to set if using node auto-provisioning."
+  type = list(object({
+    maximum       = optional(number, 9223372036854775807)
+    minimum       = optional(number, 0)
+    resource_type = string
+  }))
 }
 
 variable "cluster_private_endpoint_subnetwork" {

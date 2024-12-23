@@ -28,9 +28,6 @@ database_name = "postgres"
 catalog_db = os.environ.get("CATALOG_DB")
 catalog_table = os.environ.get("CATALOG_TABLE_NAME")
 
-# Vector Index
-# EMBEDDING_COLUMN = os.environ.get("EMBEDDING_COLUMN")
-# INDEX_NAME_TEXT = "rag_text_embeddings_index"
 DISTANCE_FUNCTION = "cosine"
 NUM_LEAVES_VALUE = int(os.environ.get("NUM_LEAVES_VALUE"))
 
@@ -49,19 +46,18 @@ index_names = {
 if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
-
-    logger = logging.getLogger("alloydb-catalog-onboarding")
+    logger = logging.getLogger("alloy-db-setup-job")
 
     if "LOG_LEVEL" in os.environ:
         new_log_level = os.environ["LOG_LEVEL"].upper()
         logger.info(
             f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
         )
-        logging.getLogger().setLevel(new_log_level)
         logger.setLevel(new_log_level)
 
     try:
 
+        logger.info("Create DB product_catalog in progress ...")
         # Create Database - This function enables the vector, scann extensions as well
         create_catalog.create_database(
             database_name,
@@ -69,13 +65,15 @@ if __name__ == "__main__":
         )
 
         # ETL
+        logger.info("ETL job to create table and generate embeddings in progress ...")
         create_catalog.create_and_populate_table(
             catalog_db,
             catalog_table,
             processed_data_path,
         )
         # Create Indexes for all embedding columns(text, image and multimodal)
-        # <TODO> Validate if image and multimodal scan index is required
+
+        logger.info("Create SCaNN indexes in progress ...")
         for modality, embedding_column in embedding_columns.items():
             index_name = index_names[modality]
 
@@ -88,5 +86,7 @@ if __name__ == "__main__":
                 NUM_LEAVES_VALUE,
             )
     except Exception as e:
-        logging.error(f"An unexpected error occurred during catalog onboarding: {e}")
+        logger.error(f"An unexpected error occurred during catalog onboarding: {e}")
         raise
+    finally:
+        logger.info("Catalog onboarding job has been completed successfully.")

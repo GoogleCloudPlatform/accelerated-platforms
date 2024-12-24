@@ -35,10 +35,11 @@ echo "Destroying the core platform"
 "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
 
 for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
-  configuration_variable_name="$(echo "${configuration_variable}" | awk ' { print $1 }'))"
-  sed -i "/${configuration_variable_name}/d" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+  remove_terraform_configuration_variable_from_file "${configuration_variable}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 done
-terraform fmt "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+for configuration_variable in "${TERRAFORM_CORE_INITIALIZE_CONFIGURATION[@]}"; do
+  remove_terraform_configuration_variable_from_file "${configuration_variable}" "${ACP_PLATFORM_SHARED_CONFIG_INITIALIZE_AUTO_VARS_FILE}"
+done
 
 end_timestamp_federated_learning=$(date +%s)
 total_runtime_value_federated_learning=$((end_timestamp_federated_learning - start_timestamp_federated_learning))

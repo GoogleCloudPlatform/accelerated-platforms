@@ -12,7 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-locals {
-  gke_robot_service_account           = "service-${data.google_project.default.number}@container-engine-robot.iam.gserviceaccount.com"
-  gke_robot_service_account_iam_email = "serviceAccount:${local.gke_robot_service_account}"
+terraform {
+  required_version = ">= 1.5.7"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.12.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.2"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "3.6.3"
+    }
+  }
+
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_fl_kms_deploy-v1"
+  }
 }

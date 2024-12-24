@@ -17,8 +17,21 @@ set -o errexit
 
 start_timestamp=$(date +%s)
 
-# Disable gke_enterprise/servicemesh due to b/376312292
-declare -a terraservices=${CORE_TERRASERVICES_APPLY:-("networking" "container_cluster" "container_node_pool" "gke_enterprise/fleet_membership" "workloads/kueue")}
+declare -a terraservices
+if [[ -v CORE_TERRASERVICES_APPLY ]]; then
+    terraservices=("${CORE_TERRASERVICES_APPLY[@]}")
+else
+    terraservices=(
+        "networking"
+        "container_cluster"
+        "container_node_pool"
+        "gke_enterprise/fleet_membership"
+        # Disable gke_enterprise/servicemesh due to b/376312292
+        # "gke_enterprise/servicemesh"
+        "workloads/kueue"
+    )
+fi
+echo "Core platform terraservices to provision: ${terraservices[*]}"
 
 source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config
 

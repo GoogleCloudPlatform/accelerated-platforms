@@ -23,16 +23,38 @@ source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 start_timestamp_federated_learning=$(date +%s)
 
+echo "Initializing the core platform"
+# Don't provision any core platform terraservice becuase we just need
+# to initialize the terraform environment and remote backend
+declare -a CORE_TERRASERVICES_APPLY
+CORE_TERRASERVICES_APPLY=("initialize")
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+
 echo "Preparing core platform configuration files"
 for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
-  configuration_variable_name="$(echo "${configuration_variable}" | awk '{ print $1 }')"
-  echo "Checking if ${configuration_variable_name} is in ${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
-  grep -q "${configuration_variable_name}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}" || echo "${configuration_variable}" >>"${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+  write_terraform_configuration_variable_to_file "${configuration_variable}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 done
-terraform fmt "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+for configuration_variable in "${TERRAFORM_CORE_INITIALIZE_CONFIGURATION[@]}"; do
+  write_terraform_configuration_variable_to_file "${configuration_variable}" "${ACP_PLATFORM_SHARED_CONFIG_INITIALIZE_AUTO_VARS_FILE}"
+done
+
+echo "Provision services that the core platform depends on"
+# shellcheck disable=SC2154 # variable defined in common.sh
+for terraservice in "${federated_learning_core_platform_terraservices[@]}"; do
+  provision_terraservice "${terraservice}"
+done
+
+if ! cluster_database_encryption_key_id="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/key_management_service" "cluster_database_encryption_key_id")"; then
+  exit 1
+fi
+edit_terraform_configuration_variable_value_in_file "cluster_database_encryption_key_name_placeholder" "${cluster_database_encryption_key_id}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
 
 echo "Provisioning the core platform"
-"${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+# shellcheck disable=SC2034 # Variable is used in other scripts
+CORE_TERRASERVICES_APPLY=("networking" "container_cluster" "gke_enterprise/fleet_membership")
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
 echo "Provisioning the use case resources"
 # shellcheck disable=SC2154 # variable defined in common.sh

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-locals {
-  gke_robot_service_account           = "service-${data.google_project.default.number}@container-engine-robot.iam.gserviceaccount.com"
-  gke_robot_service_account_iam_email = "serviceAccount:${local.gke_robot_service_account}"
+output "cluster_database_encryption_key_id" {
+  description = "Id of the cluster database encryption key"
+  value       = google_kms_crypto_key.cluster_secrects_key.id
 }

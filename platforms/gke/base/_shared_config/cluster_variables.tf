@@ -27,6 +27,17 @@ locals {
 
   kubeconfig_directory = abspath("${path.module}/../kubeconfig")
   kubeconfig_file      = abspath("${local.kubeconfig_directory}/${var.cluster_project_id}-${local.unique_identifier_prefix}")
+
+  # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
+  cluster_sa_roles = [
+    "roles/monitoring.viewer",
+    "roles/monitoring.metricWriter",
+    "roles/logging.logWriter",
+    "roles/stackdriver.resourceMetadata.writer",
+    "roles/autoscaling.metricsWriter",
+    "roles/artifactregistry.reader",
+    "roles/serviceusage.serviceUsageConsumer"
+  ]
 }
 
 variable "cluster_binary_authorization_evaluation_mode" {

@@ -12,19 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-locals {
-  # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
-  cluster_sa_roles = [
-    "roles/monitoring.viewer",
-    "roles/monitoring.metricWriter",
-    "roles/logging.logWriter",
-    "roles/stackdriver.resourceMetadata.writer",
-    "roles/autoscaling.metricsWriter",
-    "roles/artifactregistry.reader",
-    "roles/serviceusage.serviceUsageConsumer"
-  ]
-}
-
 # Create dedicated service account for the cluster nodes
 resource "google_service_account" "cluster" {
   project      = data.google_project.cluster.project_id

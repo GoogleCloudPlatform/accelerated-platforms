@@ -45,6 +45,7 @@ federated_learning_terraservices=(
   "firewall"
   "container_image_repository"
   "private_google_access"
+  "workload_identity"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts

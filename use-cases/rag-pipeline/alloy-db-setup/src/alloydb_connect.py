@@ -50,6 +50,7 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
     """
     Initializes a SQLAlchemy engine for connecting to AlloyDB.
     """
+    
     logger.info("database user in use %s", user)
 
     def getconn():

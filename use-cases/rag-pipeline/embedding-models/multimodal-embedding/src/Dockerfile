@@ -29,10 +29,10 @@ COPY requirements.txt /app/
 # Install necessary libraries
 RUN pip install -r requirements.txt
 
-COPY blip2_script.py \ 
+COPY blip2_server.py \ 
     logging.conf /app/
 
 ENV PORT=8000
 
 # Command to run your script
-CMD gunicorn --bind=0.0.0.0:${PORT} --workers=4 'blip2_script:app'
+CMD ["python", "blip2_server.py"]

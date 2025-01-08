@@ -50,7 +50,7 @@ resource "google_container_cluster" "cluster" {
         oauth_scopes = [
           "https://www.googleapis.com/auth/cloud-platform"
         ]
-        service_account = google_service_account.cluster.email
+        service_account = data.google_service_account.cluster.email
 
         management {
           auto_repair  = true
@@ -174,7 +174,7 @@ resource "google_container_cluster" "cluster" {
     name               = "default-pool"
     node_config {
       machine_type    = var.cluster_system_node_pool_machine_type
-      service_account = google_service_account.cluster.email
+      service_account = data.google_service_account.cluster.email
       oauth_scopes = [
         "https://www.googleapis.com/auth/cloud-platform"
       ]
@@ -243,7 +243,7 @@ resource "google_container_node_pool" "system" {
       "resource-type" : "system"
     }
     machine_type    = var.cluster_system_node_pool_machine_type
-    service_account = google_service_account.cluster.email
+    service_account = data.google_service_account.cluster.email
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"
     ]
@@ -256,6 +256,12 @@ resource "google_container_node_pool" "system" {
     shielded_instance_config {
       enable_integrity_monitoring = true
       enable_secure_boot          = true
+    }
+
+    taint {
+      effect = "NO_SCHEDULE"
+      key    = "components.gke.io/gke-managed-components"
+      value  = "true"
     }
   }
 

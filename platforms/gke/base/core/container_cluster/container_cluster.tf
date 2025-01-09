@@ -22,7 +22,7 @@ resource "google_container_cluster" "cluster" {
   name                     = local.cluster_name
   network                  = local.network_name
   project                  = google_project_service.container_googleapis_com.project
-  remove_default_node_pool = false
+  remove_default_node_pool = true
   subnetwork               = local.subnetwork_name
 
   addons_config {
@@ -41,82 +41,42 @@ resource "google_container_cluster" "cluster" {
 
   cluster_autoscaling {
     autoscaling_profile = "OPTIMIZE_UTILIZATION"
-    enabled             = true
+    enabled             = var.cluster_node_auto_provisioning_enabled
 
-    auto_provisioning_defaults {
-      disk_type = "pd-balanced"
-      oauth_scopes = [
-        "https://www.googleapis.com/auth/cloud-platform"
-      ]
-      service_account = google_service_account.cluster.email
+    dynamic "auto_provisioning_defaults" {
+      for_each = var.cluster_node_auto_provisioning_enabled ? ["auto_provisioning_defaults"] : []
+      content {
+        disk_type = "pd-balanced"
+        oauth_scopes = [
+          "https://www.googleapis.com/auth/cloud-platform"
+        ]
+        service_account = data.google_service_account.cluster.email
 
-      management {
-        auto_repair  = true
-        auto_upgrade = true
+        management {
+          auto_repair  = true
+          auto_upgrade = true
+        }
+
+        shielded_instance_config {
+          enable_integrity_monitoring = true
+          enable_secure_boot          = true
+        }
+
+        upgrade_settings {
+          max_surge       = 0
+          max_unavailable = 1
+          strategy        = "SURGE"
+        }
       }
+    }
 
-      shielded_instance_config {
-        enable_integrity_monitoring = true
-        enable_secure_boot          = true
+    dynamic "resource_limits" {
+      for_each = local.cluster_node_auto_provisioning_resource_limits
+      content {
+        maximum       = resource_limits.value.maximum
+        minimum       = resource_limits.value.minimum
+        resource_type = resource_limits.value.resource_type
       }
-
-      upgrade_settings {
-        max_surge       = 0
-        max_unavailable = 1
-        strategy        = "SURGE"
-      }
-    }
-
-    resource_limits {
-      resource_type = "cpu"
-      minimum       = 4
-      maximum       = 1024
-    }
-
-    resource_limits {
-      resource_type = "memory"
-      minimum       = 16
-      maximum       = 4096
-    }
-
-    resource_limits {
-      resource_type = "nvidia-a100-80gb"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-l4"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-t4"
-      maximum       = 256
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-a100"
-      maximum       = 64
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-k80"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-p4"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-p100"
-      maximum       = 32
-    }
-
-    resource_limits {
-      resource_type = "nvidia-tesla-v100"
-      maximum       = 32
     }
   }
 
@@ -126,6 +86,12 @@ resource "google_container_cluster" "cluster" {
 
   confidential_nodes {
     enabled = var.cluster_confidential_nodes_enabled
+  }
+
+  control_plane_endpoints_config {
+    dns_endpoint_config {
+      allow_external_traffic = true
+    }
   }
 
   cost_management_config {
@@ -138,6 +104,11 @@ resource "google_container_cluster" "cluster" {
       state    = var.cluster_database_encryption_state
       key_name = var.cluster_database_encryption_key_name
     }
+  }
+
+  dns_config {
+    cluster_dns       = "CLOUD_DNS"
+    cluster_dns_scope = "CLUSTER_SCOPE"
   }
 
   gateway_api_config {
@@ -200,33 +171,13 @@ resource "google_container_cluster" "cluster" {
 
   node_pool {
     initial_node_count = 1
-    name               = "system"
-
-    autoscaling {
-      location_policy      = "BALANCED"
-      total_max_node_count = 32
-      total_min_node_count = 1
-    }
-
-    network_config {
-      enable_private_nodes = true
-    }
-
+    name               = "default-pool"
     node_config {
-      machine_type    = "e2-standard-4"
-      service_account = google_service_account.cluster.email
+      machine_type    = var.cluster_system_node_pool_machine_type
+      service_account = data.google_service_account.cluster.email
       oauth_scopes = [
         "https://www.googleapis.com/auth/cloud-platform"
       ]
-
-      gcfs_config {
-        enabled = true
-      }
-
-      shielded_instance_config {
-        enable_integrity_monitoring = true
-        enable_secure_boot          = true
-      }
     }
   }
 
@@ -267,10 +218,63 @@ resource "google_container_cluster" "cluster" {
   }
 }
 
-data "google_container_cluster" "default" {
-  depends_on = [google_container_cluster.cluster]
+resource "google_container_node_pool" "system" {
+  # Variables
+  cluster            = google_container_cluster.cluster.name
+  initial_node_count = 1
+  location           = var.cluster_region
+  name               = "system"
+  project            = google_container_cluster.cluster.project
 
-  location = var.cluster_region
-  name     = local.cluster_name
-  project  = var.cluster_project_id
+  # Blocks
+  autoscaling {
+    location_policy      = "BALANCED"
+    total_max_node_count = 1000
+    total_min_node_count = 1
+  }
+
+  network_config {
+    enable_private_nodes = true
+  }
+
+  node_config {
+    # Variables
+    labels = {
+      "resource-type" : "system"
+    }
+    machine_type    = var.cluster_system_node_pool_machine_type
+    service_account = data.google_service_account.cluster.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+
+    # Blocks
+    gcfs_config {
+      enabled = true
+    }
+
+    shielded_instance_config {
+      enable_integrity_monitoring = true
+      enable_secure_boot          = true
+    }
+
+    taint {
+      effect = "NO_SCHEDULE"
+      key    = "components.gke.io/gke-managed-components"
+      value  = "true"
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      initial_node_count,
+      node_config[0].labels,
+      node_config[0].taint,
+    ]
+  }
+
+  timeouts {
+    create = "30m"
+    update = "20m"
+  }
 }

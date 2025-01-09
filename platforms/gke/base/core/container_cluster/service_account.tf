@@ -15,28 +15,38 @@
 locals {
   # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
   cluster_sa_roles = [
-    "roles/monitoring.viewer",
-    "roles/monitoring.metricWriter",
-    "roles/logging.logWriter",
-    "roles/stackdriver.resourceMetadata.writer",
-    "roles/autoscaling.metricsWriter",
     "roles/artifactregistry.reader",
-    "roles/serviceusage.serviceUsageConsumer"
+    "roles/autoscaling.metricsWriter",
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+    "roles/monitoring.viewer",
+    "roles/serviceusage.serviceUsageConsumer",
+    "roles/stackdriver.resourceMetadata.writer",
   ]
 }
 
 # Create dedicated service account for the cluster nodes
 resource "google_service_account" "cluster" {
-  project      = data.google_project.cluster.project_id
-  account_id   = "vm-${local.cluster_name}"
-  display_name = "${local.cluster_name} Service Account"
+  for_each = toset(var.cluster_node_pool_default_service_account_id == null ? ["created"] : [])
+
+  account_id   = local.cluster_node_pool_service_account_id
   description  = "Terraform-managed service account for cluster ${local.cluster_name}"
+  display_name = "${local.cluster_name} default Service Account"
+  project      = data.google_project.cluster.project_id
 }
 
 # Bind minimum role list to the service account
 resource "google_project_iam_member" "cluster_sa" {
-  for_each = toset(local.cluster_sa_roles)
-  project  = data.google_project.cluster.project_id
-  member   = google_service_account.cluster.member
-  role     = each.value
+  for_each = toset(var.cluster_node_pool_default_service_account_id == null ? local.cluster_sa_roles : [])
+
+  member  = google_service_account.cluster["created"].member
+  project = data.google_project.cluster.project_id
+  role    = each.value
+}
+
+data "google_service_account" "cluster" {
+  depends_on = [google_service_account.cluster]
+
+  account_id = local.cluster_node_pool_service_account_id
+  project    = local.cluster_node_pool_service_account_project_id
 }

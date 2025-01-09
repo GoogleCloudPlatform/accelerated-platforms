@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,15 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-SHARED_CONFIG_PATHS=("${@}")
-
-for SHARED_CONFIG_PATH in "${SHARED_CONFIG_PATHS[@]}"; do
-  echo "Loading shared configuration(${SHARED_CONFIG_PATH})"
-  echo "-------------------------------------------------------------------------"
-  cd "${SHARED_CONFIG_PATH}" || exit 1
-  terraform init >/dev/null
-  terraform apply -auto-approve -input=false >/dev/null
-  terraform output
-  echo -e "-------------------------------------------------------------------------\n"
-  eval "$(terraform output | sed -r 's/(\".*\")|\s*/\1/g')"
-done

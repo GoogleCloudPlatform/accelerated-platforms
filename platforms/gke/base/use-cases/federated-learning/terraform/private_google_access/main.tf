@@ -36,10 +36,10 @@ data "google_compute_network" "main_vpc_network" {
 }
 
 resource "google_dns_managed_zone" "private_google_access" {
-  project     = google_project_service.dns_googleapis_com.project
-  name        = "${local.unique_identifier_prefix}-private-google-apis"
-  dns_name    = "googleapis.com."
   description = "Private DNS zone for Google APIs"
+  dns_name    = "googleapis.com."
+  name        = "${local.unique_identifier_prefix}-private-google-apis"
+  project     = google_project_service.dns_googleapis_com.project
   visibility  = "private"
 
   private_visibility_config {
@@ -50,10 +50,10 @@ resource "google_dns_managed_zone" "private_google_access" {
 }
 
 resource "google_dns_managed_zone" "private_google_access_container_registry" {
-  project     = google_project_service.dns_googleapis_com.project
-  name        = "${local.unique_identifier_prefix}-private-google-access-container-registry"
-  dns_name    = "gcr.io."
   description = "Private DNS zone for Container Registry"
+  dns_name    = "gcr.io."
+  name        = "${local.unique_identifier_prefix}-private-google-access-container-registry"
+  project     = google_project_service.dns_googleapis_com.project
   visibility  = "private"
 
   private_visibility_config {
@@ -64,10 +64,10 @@ resource "google_dns_managed_zone" "private_google_access_container_registry" {
 }
 
 resource "google_dns_managed_zone" "private_google_access_artifact_registry" {
-  project     = google_project_service.dns_googleapis_com.project
-  name        = "${local.unique_identifier_prefix}-private-google-access-artifact-registry"
-  dns_name    = "pkg.dev."
   description = "Private DNS zone for Artifact Registry"
+  dns_name    = "pkg.dev."
+  name        = "${local.unique_identifier_prefix}-private-google-access-artifact-registry"
+  project     = google_project_service.dns_googleapis_com.project
   visibility  = "private"
 
   private_visibility_config {
@@ -79,10 +79,11 @@ resource "google_dns_managed_zone" "private_google_access_artifact_registry" {
 
 resource "google_dns_record_set" "private_google_access_cname" {
   managed_zone = google_dns_managed_zone.private_google_access.name
-  project      = google_project_service.dns_googleapis_com.project
   name         = "*.${google_dns_managed_zone.private_google_access.dns_name}"
-  type         = "CNAME"
+  project      = google_project_service.dns_googleapis_com.project
   ttl          = 300
+  type         = "CNAME"
+
   rrdatas = [
     google_dns_record_set.private_google_access_a.name,
   ]
@@ -90,19 +91,21 @@ resource "google_dns_record_set" "private_google_access_cname" {
 
 resource "google_dns_record_set" "private_google_access_a" {
   managed_zone = google_dns_managed_zone.private_google_access.name
-  project      = google_project_service.dns_googleapis_com.project
   name         = "private.${google_dns_managed_zone.private_google_access.dns_name}"
-  type         = "A"
+  project      = google_project_service.dns_googleapis_com.project
   ttl          = 300
-  rrdatas      = local.private_google_access_ips
+  type         = "A"
+
+  rrdatas = local.private_google_access_ips
 }
 
 resource "google_dns_record_set" "private_google_access_container_registry_cname" {
   managed_zone = google_dns_managed_zone.private_google_access_container_registry.name
-  project      = google_project_service.dns_googleapis_com.project
   name         = "*.${google_dns_managed_zone.private_google_access_container_registry.dns_name}"
-  type         = "CNAME"
+  project      = google_project_service.dns_googleapis_com.project
   ttl          = 300
+  type         = "CNAME"
+
   rrdatas = [
     google_dns_record_set.private_google_access_container_registry_a.name,
   ]
@@ -110,19 +113,21 @@ resource "google_dns_record_set" "private_google_access_container_registry_cname
 
 resource "google_dns_record_set" "private_google_access_container_registry_a" {
   managed_zone = google_dns_managed_zone.private_google_access_container_registry.name
-  project      = google_project_service.dns_googleapis_com.project
   name         = google_dns_managed_zone.private_google_access_container_registry.dns_name
-  type         = "A"
+  project      = google_project_service.dns_googleapis_com.project
   ttl          = 300
-  rrdatas      = local.private_google_access_ips
+  type         = "A"
+
+  rrdatas = local.private_google_access_ips
 }
 
 resource "google_dns_record_set" "private_google_access_artifact_registry_cname" {
   managed_zone = google_dns_managed_zone.private_google_access_artifact_registry.name
-  project      = google_project_service.dns_googleapis_com.project
   name         = "*.${google_dns_managed_zone.private_google_access_artifact_registry.dns_name}"
-  type         = "CNAME"
+  project      = google_project_service.dns_googleapis_com.project
   ttl          = 300
+  type         = "CNAME"
+
   rrdatas = [
     google_dns_record_set.private_google_access_artifact_registry_a.name,
   ]
@@ -130,9 +135,10 @@ resource "google_dns_record_set" "private_google_access_artifact_registry_cname"
 
 resource "google_dns_record_set" "private_google_access_artifact_registry_a" {
   managed_zone = google_dns_managed_zone.private_google_access_artifact_registry.name
-  project      = google_project_service.dns_googleapis_com.project
   name         = google_dns_managed_zone.private_google_access_artifact_registry.dns_name
-  type         = "A"
+  project      = google_project_service.dns_googleapis_com.project
   ttl          = 300
-  rrdatas      = local.private_google_access_ips
+  type         = "A"
+
+  rrdatas = local.private_google_access_ips
 }

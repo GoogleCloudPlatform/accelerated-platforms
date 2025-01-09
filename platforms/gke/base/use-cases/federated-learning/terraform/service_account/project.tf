@@ -12,19 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_artifact_registry_repository" "container_image_repository" {
-  description   = "Federated Learning container image repository"
-  format        = "DOCKER"
-  location      = var.cluster_region
-  project       = google_project_service.artifactregistry_googleapis_com.project
-  repository_id = "${local.unique_identifier_prefix}-fl-repository"
+data "google_project" "default" {
+  project_id = var.cluster_project_id
+}
 
-  cleanup_policies {
-    action = "DELETE"
-    id     = "Delete untagged images"
-
-    condition {
-      tag_state = "UNTAGGED"
-    }
-  }
+resource "google_project_service" "iam_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.default.project_id
+  service                    = "iam.googleapis.com"
 }

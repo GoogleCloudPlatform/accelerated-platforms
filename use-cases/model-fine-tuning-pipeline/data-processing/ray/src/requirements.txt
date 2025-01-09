@@ -3,7 +3,7 @@ gcsfs==2024.3.1
 google-cloud-storage==2.16.0
 jsonpickle==3.0.3
 pandas==2.2.1
-ray==2.7.1
+ray==2.8.1
 ray[client]==2.7.1
 spacy==3.7.4
 thejsonlogger==0.0.3

@@ -12,19 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_artifact_registry_repository" "container_image_repository" {
-  description   = "Federated Learning container image repository"
-  format        = "DOCKER"
-  location      = var.cluster_region
-  project       = google_project_service.artifactregistry_googleapis_com.project
-  repository_id = "${local.unique_identifier_prefix}-fl-repository"
+resource "google_service_account" "federated_learning_service_account" {
+  for_each = toset(local.service_account_names)
 
-  cleanup_policies {
-    action = "DELETE"
-    id     = "Delete untagged images"
-
-    condition {
-      tag_state = "UNTAGGED"
-    }
-  }
+  account_id   = lower(each.value)
+  description  = "Terraform-managed service account for the federated learning use case in cluster ${local.cluster_name}"
+  display_name = "${local.cluster_name}-${each.value} service account"
+  project      = google_project_service.iam_googleapis_com.project
 }

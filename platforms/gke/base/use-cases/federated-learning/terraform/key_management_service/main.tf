@@ -18,17 +18,17 @@ resource "random_id" "keyring_suffix" {
 }
 
 resource "google_kms_key_ring" "key_ring" {
+  location = var.cluster_region
   name     = "${local.unique_identifier_prefix}-keyring-${random_id.keyring_suffix.hex}"
   project  = google_project_service.cloudkms_googleapis_com.project
-  location = var.cluster_region
 }
 
 resource "google_kms_crypto_key" "cluster_secrects_key" {
-  name                          = "${local.unique_identifier_prefix}-clusterSecretsKey"
-  key_ring                      = google_kms_key_ring.key_ring.id
-  rotation_period               = "7776000s"
-  purpose                       = "ENCRYPT_DECRYPT"
   import_only                   = false
+  key_ring                      = google_kms_key_ring.key_ring.id
+  name                          = "${local.unique_identifier_prefix}-clusterSecretsKey"
+  purpose                       = "ENCRYPT_DECRYPT"
+  rotation_period               = "7776000s"
   skip_initial_version_creation = false
 
   lifecycle {
@@ -45,13 +45,13 @@ resource "google_kms_crypto_key" "cluster_secrects_key" {
 }
 
 resource "google_kms_crypto_key_iam_binding" "cluster_secrets_decrypters" {
-  role          = "roles/cloudkms.cryptoKeyDecrypter"
   crypto_key_id = google_kms_crypto_key.cluster_secrects_key.id
   members       = [local.gke_robot_service_account_iam_email]
+  role          = "roles/cloudkms.cryptoKeyDecrypter"
 }
 
 resource "google_kms_crypto_key_iam_binding" "cluster_secrets_encrypters" {
-  role          = "roles/cloudkms.cryptoKeyEncrypter"
   crypto_key_id = google_kms_crypto_key.cluster_secrects_key.id
   members       = [local.gke_robot_service_account_iam_email]
+  role          = "roles/cloudkms.cryptoKeyEncrypter"
 }

@@ -48,7 +48,7 @@ steps:
         export ACP_PLATFORM_CORE_DIR="/workspace/platforms/gke/base/core"
 
         export TF_VAR_cluster_project_id="${PROJECT_ID}"
-        export TF_VAR_platform_name="commit-${SHORT_SHA}-fl"
+        export TF_VAR_platform_name="${SHORT_SHA}-fl"
         export TF_VAR_terraform_project_id="${PROJECT_ID}"
 
         # Deploy the base platform and the use case

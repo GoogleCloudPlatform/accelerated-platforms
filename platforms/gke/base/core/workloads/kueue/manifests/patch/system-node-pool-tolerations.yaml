@@ -1,0 +1,12 @@
+# kubectl patch deployment/kueue-controller-manager --namespace kueue-system --patch-file patch-system-node-pool-tolerations.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: not-applicable
+spec:
+  template:
+    spec:
+      tolerations:
+      - effect: "NoSchedule"
+        key: "components.gke.io/gke-managed-components"
+        value: "true"

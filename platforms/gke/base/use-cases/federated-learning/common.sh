@@ -37,6 +37,7 @@ FEDERATED_LEARNING_SHARED_CONFIG_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DI
 # Terraservices that are necessary for the core platform
 federated_learning_core_platform_terraservices=(
   "key_management_service"
+  "service_account"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts

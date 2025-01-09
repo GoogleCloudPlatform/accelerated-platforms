@@ -13,11 +13,11 @@
 # limitations under the License.
 
 resource "google_artifact_registry_repository" "container_image_repository" {
-  location      = var.cluster_region
-  repository_id = "${local.unique_identifier_prefix}-fl-repository"
   description   = "Federated Learning container image repository"
   format        = "DOCKER"
+  location      = var.cluster_region
   project       = google_project_service.artifactregistry_googleapis_com.project
+  repository_id = "${local.unique_identifier_prefix}-fl-repository"
 
   cleanup_policies {
     action = "DELETE"

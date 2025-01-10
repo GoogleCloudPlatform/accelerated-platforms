@@ -9,7 +9,9 @@ The resulting fine-tuned model is, Built with Meta Llama 3.1, using the the data
 ## Prerequisites
 
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
-- A bucket containing the processed and prepared data from the [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
+- A bucket containing the prepared data from the [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
+
+> NOTE: If you did not execute the data preparation example, follow [these instructions](/use-cases/prerequisites/prepared-data.md) to load the dataset into the bucket.
 
 ## Preparation
 
@@ -35,37 +37,6 @@ The resulting fine-tuned model is, Built with Meta Llama 3.1, using the the data
 
   ```sh
   HF_TOKEN=
-  ```
-
-## Data Preparation
-
-To execute this scenario without going through the [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md), we have a prepared dataset that you can use.
-
-Select a path between **Full dataset** and **Smaller dataset (subset)**. The smaller dataset is a quicker way to experience the pipeline, but it will produce a less than ideal fine-tuned model.
-
-- If you would like to use the **Smaller dataset (subset)**, set the variable below.
-
-  ```sh
-  DATASET_SUBSET=-subset
-  ```
-
-- Download the Hugging Face CLI library
-
-  ```sh
-  pip3 install -U "huggingface_hub[cli]==0.26.2"
-  ```
-
-- Download the prepared dataset from Hugging Face and copy it into the GCS bucket
-
-  ```sh
-  DATAPREP_REPO=gcp-acp/flipkart-dataprep${DATASET_SUBSET}
-
-  ${HOME}/.local/bin/huggingface-cli download --repo-type dataset ${DATAPREP_REPO} --local-dir ./temp
-
-  gcloud storage cp -R ./temp/* \
-    gs://${MLP_DATA_BUCKET}/dataset/output && \
-
-  rm -rf ./temp
   ```
 
 ## Build the container image

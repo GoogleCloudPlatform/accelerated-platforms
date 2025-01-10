@@ -46,6 +46,8 @@ federated_learning_terraservices=(
   "container_image_repository"
   "private_google_access"
   "workload_identity"
+  "container_node_pool"
+  "config_management"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
@@ -58,6 +60,8 @@ core_platform_init_terraservices=(
 core_platform_terraservices=(
   "container_cluster"
   "gke_enterprise/fleet_membership"
+  "gke_enterprise/configmanagement/oci"
+  "gke_enterprise/policycontroller"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts

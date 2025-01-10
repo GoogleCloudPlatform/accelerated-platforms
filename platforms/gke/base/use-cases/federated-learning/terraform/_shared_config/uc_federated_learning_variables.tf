@@ -55,6 +55,10 @@ locals {
       tenant_apps_sa_iam_email                           = "serviceAccount:${values.tenant_apps_sa_email}"
       tenant_apps_kubernetes_service_account_name        = values.tenant_apps_kubernetes_service_account_name
       tenant_apps_workload_identity_service_account_name = values.tenant_apps_workload_identity_service_account_name
+
+      kubernetes_templates_configuration_values = {
+        namespace_name = values.tenant_name
+      }
     }
   }
 
@@ -98,4 +102,10 @@ variable "federated_learning_tenant_names" {
   default     = ["fl-1"]
   description = "List of named tenants to be created in the cluster. Each tenant gets a dedicated node pool and Kubernetes namespace, isolated from other tenants."
   type        = list(string)
+}
+
+variable "federated_learning_node_pool_machine_type" {
+  default     = "n4-standard-8"
+  description = "Machine type of the node pool"
+  type        = string
 }

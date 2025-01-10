@@ -55,6 +55,10 @@ locals {
       tenant_apps_sa_iam_email                           = "serviceAccount:${values.tenant_apps_sa_email}"
       tenant_apps_kubernetes_service_account_name        = values.tenant_apps_kubernetes_service_account_name
       tenant_apps_workload_identity_service_account_name = values.tenant_apps_workload_identity_service_account_name
+
+      kubernetes_templates_configuration_values = {
+        namespace_name = values.tenant_name
+      }
     }
   }
 

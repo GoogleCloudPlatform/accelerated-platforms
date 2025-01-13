@@ -14,7 +14,7 @@
 
 image:
   repository: rayproject/ray
-  tag: 2.7.1-py310-gpu
+  tag: 2.40.0-py312-gpu
   pullPolicy: IfNotPresent
 
 nameOverride: "kuberay"
@@ -24,7 +24,7 @@ imagePullSecrets: []
 
 head:
   groupName: headgroup
-  rayVersion: 2.7.1
+  rayVersion: 2.40.0
   enableInTreeAutoscaling: true
   autoscalerOptions:
     resources:
@@ -48,7 +48,7 @@ head:
     num-cpus: '0' # Prevent tasks from begins scheduled on the head
   image:
     repository: rayproject/ray
-    tag: 2.7.1-py310
+    tag: 2.40.0-py312
     pullPolicy: IfNotPresent
   containerEnv:
   - name: RAY_memory_monitor_refresh_ms

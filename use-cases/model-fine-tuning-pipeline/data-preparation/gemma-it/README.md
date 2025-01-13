@@ -9,6 +9,8 @@ Depending on the infrastructure you provisioned, the data preparation step takes
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 - A bucket containing the processed data from the [Data Processing example](/use-cases/model-fine-tuning-pipeline/data-processing/ray/README.md)
 
+> NOTE: If you did not execute the data processing example, follow [these instructions](/use-cases/prerequisites/processed-data.md) to load the processed data into the bucket.
+
 ## Preparation
 
 - Accept Llama 3.1 on Vertex AI license agreement terms
@@ -45,37 +47,6 @@ Depending on the infrastructure you provisioned, the data preparation step takes
   ```
 
   > The Llama 3.1 on Vertex API is in preview, it is only available in `us-central1`
-
-## Data Preparation (Optional)
-
-To execute this scenario without going through the [Data Processing example](/use-cases/model-fine-tuning-pipeline/data-processing/ray/README.md), we have a processed dataset that you can use.
-
-Select a path between **Full dataset** and **Smaller dataset (subset)**. The smaller dataset is a quicker way to experience the pipeline, but it will produce a less than ideal fine-tuned model.
-
-- If you would like to use the **Smaller dataset (subset)**, set the variable below.
-
-  ```shell
-  DATASET_SUBSET=-subset
-  ```
-
-- Download the Hugging Face CLI library
-
-  ```shell
-  pip3 install -U "huggingface_hub[cli]==0.26.2"
-  ```
-
-- Download the processed dataset CSV file from Hugging Face and copy it into the GCS bucket
-
-  ```shell
-  PROCESSED_DATA_REPO=gcp-acp/flipkart-preprocessed${DATASET_SUBSET}
-
-  ${HOME}/.local/bin/huggingface-cli download --repo-type dataset ${PROCESSED_DATA_REPO} --local-dir ./temp
-
-  gcloud storage cp ./temp/flipkart.csv \
-    gs://${MLP_DATA_BUCKET}/flipkart_preprocessed_dataset/flipkart.csv && \
-
-  rm ./temp/flipkart.csv
-  ```
 
 ## Build the container image
 

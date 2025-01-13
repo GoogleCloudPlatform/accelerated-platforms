@@ -43,7 +43,7 @@ Select a path between **Full dataset** and **Smaller dataset (subset)**. The sma
   - Download the Hugging Face CLI library
 
     ```sh
-    pip3 install -U "huggingface_hub[cli]==0.26.2"
+    pip3 install -U "huggingface_hub[cli]==0.27.1"
     ```
 
   - Download the preprocessed dataset CSV file from Hugging Face and copy it into the GCS bucket

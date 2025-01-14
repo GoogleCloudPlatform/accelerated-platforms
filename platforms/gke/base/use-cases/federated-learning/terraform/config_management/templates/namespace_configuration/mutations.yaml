@@ -1,0 +1,62 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# PolicyController mutations.
+# https://cloud.google.com/anthos-config-management/docs/how-to/mutation#writing_mutators
+---
+# Adds a node affinity to all pods in a specific namespace
+apiVersion: mutations.gatekeeper.sh/v1
+kind: Assign
+metadata:
+  name: mutator-add-nodeaffinity-${namespace_name}
+spec:
+  applyTo:
+    - groups: [""]
+      kinds: ["Pod"]
+      versions: ["v1"]
+  match:
+    namespaces:
+      - "${namespace_name}"
+  location: "spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms"
+  parameters:
+    assign:
+      value:
+        - matchExpressions:
+            - key: "tenant"
+              operator: In
+              values:
+                - "${namespace_name}"
+---
+# Adds a toleration to all pods in a specific namespace so they can be deployed
+# on nodes that belong to this tenant.
+apiVersion: mutations.gatekeeper.sh/v1
+kind: Assign
+metadata:
+  name: mutator-add-toleration-${namespace_name}
+spec:
+  applyTo:
+    - groups: [""]
+      kinds: ["Pod"]
+      versions: ["v1"]
+  match:
+    namespaces:
+      - "${namespace_name}"
+  location: "spec.tolerations"
+  parameters:
+    assign:
+      value:
+        - key: "tenant"
+          operator: "Equal"
+          value: "${namespace_name}"
+          effect: "NoExecute"

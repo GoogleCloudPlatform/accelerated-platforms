@@ -34,7 +34,6 @@ steps:
     entrypoint: "ash"
     args:
       - "-x"
-      - "-e"
       - "-u"
       - "-c"
       - |

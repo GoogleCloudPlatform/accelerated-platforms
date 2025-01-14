@@ -23,8 +23,8 @@ source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 start_timestamp_federated_learning=$(date +%s)
 
-# Iterate over the terraservices array so we destroy them in reverse order, keeping the
-# initialize terraservice last.
+echo "Destroy the use case terraservices"
+# Iterate over the terraservices array so we destroy them in reverse order
 # shellcheck disable=SC2154 # variable defined in common.sh
 for ((i = ${#federated_learning_terraservices[@]} - 1; i >= 0; i--)); do
   terraservice=${federated_learning_terraservices[i]}
@@ -32,7 +32,33 @@ for ((i = ${#federated_learning_terraservices[@]} - 1; i >= 0; i--)); do
 done
 
 echo "Destroying the core platform"
-"${ACP_PLATFORM_CORE_DIR}/teardown.sh"
+CORE_TERRASERVICES_DESTROY=""
+# shellcheck disable=SC2154 # variable defined in common.sh
+for ((i = ${#core_platform_terraservices[@]} - 1; i >= 0; i--)); do
+  CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY} ${core_platform_terraservices[i]}"
+done
+# Trim leading space
+CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY#"${CORE_TERRASERVICES_DESTROY%%[![:space:]]*}"}"
+CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY}" \
+  "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
+
+echo "Destroying the services that the core platform depends on"
+# shellcheck disable=SC2154 # variable defined in common.sh
+for ((i = ${#federated_learning_core_platform_terraservices[@]} - 1; i >= 0; i--)); do
+  terraservice=${federated_learning_core_platform_terraservices[i]}
+  destroy_terraservice "${terraservice}"
+done
+
+echo "Destroying the initialization core platform services"
+CORE_TERRASERVICES_DESTROY=""
+# shellcheck disable=SC2154 # variable defined in common.sh
+for ((i = ${#core_platform_init_terraservices[@]} - 1; i >= 0; i--)); do
+  CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY} ${core_platform_init_terraservices[i]}"
+done
+# Trim leading space
+CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY#"${CORE_TERRASERVICES_DESTROY%%[![:space:]]*}"}"
+CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY}" \
+  "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
 
 for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
   remove_terraform_configuration_variable_from_file "${configuration_variable}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"

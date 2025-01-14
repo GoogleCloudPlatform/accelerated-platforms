@@ -42,8 +42,26 @@ federated_learning_core_platform_terraservices=(
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 federated_learning_terraservices=(
+  "firewall"
   "container_image_repository"
   "private_google_access"
+  "workload_identity"
+  "container_node_pool"
+  "config_management"
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+core_platform_init_terraservices=(
+  "initialize"
+  "networking"
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+core_platform_terraservices=(
+  "container_cluster"
+  "gke_enterprise/fleet_membership"
+  "gke_enterprise/configmanagement/oci"
+  "gke_enterprise/policycontroller"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
@@ -68,7 +86,7 @@ apply_or_destroy_terraservice() {
 
   echo "Initializing ${terraservice} Terraform environment"
   cd "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/${terraservice}" &&
-    terraform init
+    terraform init -input=false
 
   echo "Current working directory: $(pwd)"
 
@@ -79,7 +97,9 @@ apply_or_destroy_terraservice() {
     _terraform_result=$?
   elif [[ "${operation_mode}" == "destroy" ]]; then
     echo "Destroying ${terraservice}"
-    terraform destroy -auto-approve
+    terraform destroy \
+      -auto-approve \
+      -input=false
     _terraform_result=$?
   else
     echo "Error: operation mode not supported: ${operation_mode}"

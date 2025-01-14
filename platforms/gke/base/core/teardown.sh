@@ -36,6 +36,7 @@ else
     "container_node_pool"
     "container_cluster"
     "networking"
+    "initialize"
   )
 fi
 echo "Core platform terraservices to destroy: ${terraservices[*]}"
@@ -54,42 +55,48 @@ cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
 rm tfplan
 
 for terraservice in "${terraservices[@]}"; do
-  cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-  rm -rf .terraform/
+  if [[ "${terraservice}" != "initialize" ]]; then
+    cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
+      echo "Current directory: $(pwd)" &&
+      terraform init &&
+      terraform destroy -auto-approve || exit 1
+    rm -rf .terraform/
+  # Destroy the backend only if we're destroying the initialize service,
+  # otherwise we wouldn't be able to support a tiered core platform provisioning
+  # and teardown
+  else
+    cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
+      echo "Current directory: $(pwd)" &&
+      rm -rf backend.tf &&
+      terraform init -force-copy -lock=false -migrate-state || exit 1
+
+    # Quote the globbing expression because we don't want to expand it with the
+    # shell
+    gcloud storage rm -r "gs://${terraform_bucket_name}/*" &&
+      terraform destroy -auto-approve || exit 1
+
+    rm -rf \
+      "${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/" \
+      "${ACP_PLATFORM_BASE_DIR}/_shared_config"/terraform.tfstate* \
+      "${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/" \
+      "${ACP_PLATFORM_CORE_DIR}/initialize"/terraform.tfstate* \
+      "${ACP_PLATFORM_CORE_DIR}/networking/.terraform/" \
+      "${ACP_PLATFORM_CORE_DIR}/container_cluster/.terraform/" \
+      "${ACP_PLATFORM_CORE_DIR}/container_node_pool/.terraform/" \
+      "${ACP_PLATFORM_CORE_DIR}/container_node_pool"/container_node_pool_*.tf \
+      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/git/.terraform/" \
+      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/oci/.terraform/" \
+      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership/.terraform/" \
+      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/servicemesh/.terraform/" \
+      "${ACP_PLATFORM_CORE_DIR}/workloads/kueue.terraform/" \
+      "${ACP_PLATFORM_CORE_DIR}/workloads/kubeconfig" \
+      "${ACP_PLATFORM_CORE_DIR}/workloads/manifests"
+
+    git restore \
+      "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" \
+      "${ACP_PLATFORM_CORE_DIR}/container_node_pool"/container_node_pool_*.tf
+  fi
 done
-
-cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
-  echo "Current directory: $(pwd)" &&
-  rm -rf backend.tf &&
-  terraform init -force-copy -lock=false -migrate-state || exit 1
-# Quote the globbing expression because we don't want to expand it with the
-# shell
-gcloud storage rm -r "gs://${terraform_bucket_name}/*" &&
-  terraform destroy -auto-approve || exit 1
-
-rm -rf \
-  "${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/" \
-  "${ACP_PLATFORM_BASE_DIR}/_shared_config"/terraform.tfstate* \
-  "${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/" \
-  "${ACP_PLATFORM_CORE_DIR}/initialize"/terraform.tfstate* \
-  "${ACP_PLATFORM_CORE_DIR}/networking/.terraform/" \
-  "${ACP_PLATFORM_CORE_DIR}/container_cluster/.terraform/" \
-  "${ACP_PLATFORM_CORE_DIR}/container_node_pool/.terraform/" \
-  "${ACP_PLATFORM_CORE_DIR}/container_node_pool"/container_node_pool_*.tf \
-  "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/git/.terraform/" \
-  "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/oci/.terraform/" \
-  "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership/.terraform/" \
-  "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/servicemesh/.terraform/" \
-  "${ACP_PLATFORM_CORE_DIR}/workloads/kueue.terraform/" \
-  "${ACP_PLATFORM_CORE_DIR}/workloads/kubeconfig" \
-  "${ACP_PLATFORM_CORE_DIR}/workloads/manifests"
-
-git restore \
-  "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" \
-  "${ACP_PLATFORM_CORE_DIR}/container_node_pool"/container_node_pool_*.tf
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))

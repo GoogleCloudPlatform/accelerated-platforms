@@ -1,0 +1,212 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Adds selected constraints from the PolicyController library
+# https://cloud.google.com/anthos-config-management/docs/reference/constraint-template-library
+
+---
+# Prevent Services of type NodePort
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sBlockNodePort
+metadata:
+  name: block-node-port
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Service"]
+---
+# Prevent the creation of known resources that expose workloads to external IPs.
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sNoExternalServices
+metadata:
+  name: no-external-services
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Service"]
+      - apiGroups: ["networking.k8s.io"]
+        kinds: ["Ingress"]
+      - apiGroups: ["networking.istio.io"]
+        kinds: ["Gateway"]
+    excludedNamespaces: ["istio-egress", "istio-ingress", "istio-system"]
+---
+# In tenant namespaces, only allow images to be pulled from
+# a named set of repositories
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sAllowedRepos
+metadata:
+  name: known-repos-only
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaceSelector:
+      matchExpressions:
+        - key: federated-learning-tenant
+          operator: Exists
+  parameters:
+    repos:
+      - "gcr.io/"
+      - "eu.gcr.io/"
+      - "us-docker.pkg.dev/"
+      - "europe-docker.pkg.dev/"
+---
+# Service mesh DestinationRules must enable TLS
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: DestinationRuleTLSEnabled
+metadata:
+  name: istio-destination-rule-tls-required
+spec:
+  match:
+    kinds:
+      - apiGroups: ["networking.istio.io"]
+        kinds: ["DestinationRule"]
+---
+# prevent privileged containers
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPSPPrivilegedContainer
+metadata:
+  name: psp-privileged-container
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces:
+      ["istio-egress", "istio-ingress", "istio-system", "kube-system"]
+---
+# prevent hostPath volumes
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPSPHostFilesystem
+metadata:
+  name: psp-host-filesystem
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces:
+      ["istio-egress", "istio-ingress", "istio-system", "kube-system"]
+  parameters:
+    allowedHostPaths: []
+---
+# prevent privilege escalation
+# Applied in tenant namespaces only
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPSPAllowPrivilegeEscalationContainer
+metadata:
+  name: psp-allow-privilege-escalation-container
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaceSelector:
+      matchExpressions:
+        - key: federated-learning-tenant
+          operator: Exists
+---
+# Require read only filesystem
+# Applied in tenant namespaces only
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sPSPReadOnlyRootFilesystem
+metadata:
+  name: psp-readonlyrootfilesystem
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    namespaceSelector:
+      matchExpressions:
+        - key: federated-learning-tenant
+          operator: Exists
+---
+# Enforce the istio ingressgateway label usage only on ingressgateway pods.
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: AsmIngressgatewayLabel
+metadata:
+  name: asm-ingressgateway-label-sample
+spec:
+  match:
+    kinds:
+      - apiGroups:
+          - ""
+        kinds:
+          - Pod
+---
+# Enforce all PeerAuthentications cannot overwrite strict mtls
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: AsmPeerAuthnStrictMtls
+metadata:
+  name: asm-peer-authn-strict-mtls-constraint
+spec:
+  match:
+    kinds:
+      - apiGroups:
+          - security.istio.io
+        kinds:
+          - PeerAuthentication
+  parameters:
+    strictnessLevel: High
+---
+# Enforce the istio proxy sidecar always been injected to workload pods
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: AsmSidecarInjection
+metadata:
+  name: asm-sidecar-injection-sample
+spec:
+  match:
+    kinds:
+      - apiGroups:
+          - ""
+        kinds:
+          - Pod
+  parameters:
+    strictnessLevel: High
+---
+# Requires that STRICT Istio mutual TLS is always specified when using
+# PeerAuthentication. This constraint also ensures that the deprecated Policy
+# and MeshPolicy resources enforce STRICT mutual TLS.
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: PolicyStrictOnly
+metadata:
+  name: peerauthentication-strict-constraint
+spec:
+  match:
+    kinds:
+      - apiGroups:
+          - security.istio.io
+        kinds:
+          - PeerAuthentication
+---
+# Enforce the AuthorizationPolicy safe patterns.
+# Reference:
+# https://istio.io/latest/docs/ops/best-practices/security/#safer-authorization-policy-patterns
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: AsmAuthzPolicySafePattern
+metadata:
+  name: asm-authz-policy-safe-pattern-sample
+spec:
+  match:
+    kinds:
+      - apiGroups:
+          - security.istio.io
+        kinds:
+          - AuthorizationPolicy
+  parameters:
+    strictnessLevel: High

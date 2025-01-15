@@ -175,9 +175,15 @@ resource "google_container_cluster" "cluster" {
     node_config {
       machine_type    = var.cluster_system_node_pool_machine_type
       service_account = data.google_service_account.cluster.email
+
       oauth_scopes = [
         "https://www.googleapis.com/auth/cloud-platform"
       ]
+
+      shielded_instance_config {
+        enable_integrity_monitoring = true
+        enable_secure_boot          = true
+      }
     }
   }
 

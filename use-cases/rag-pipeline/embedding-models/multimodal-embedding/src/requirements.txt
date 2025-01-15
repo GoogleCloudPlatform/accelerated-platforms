@@ -6,3 +6,4 @@ opencv-python==4.10.0.84
 pillow==11.0.0
 requests==2.32.3
 salesforce-lavis==1.0.2
+uvicorn==0.34.0

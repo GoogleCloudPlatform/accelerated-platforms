@@ -170,8 +170,9 @@ resource "google_container_cluster" "cluster" {
   }
 
   node_pool {
-    initial_node_count = 1
+    initial_node_count = 0
     name               = "default-pool"
+
     node_config {
       machine_type    = var.cluster_system_node_pool_machine_type
       service_account = data.google_service_account.cluster.email

@@ -1,0 +1,10 @@
+patches:
+- target:
+    group: apps
+    kind: Deployment
+    version: v1
+  path: patch/gke-managed-components-toleration.yaml
+
+resources:
+- manifests.yaml
+- kueue-monitoring-gmp.yaml

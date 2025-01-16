@@ -237,7 +237,7 @@ resource "google_container_node_pool" "system" {
   autoscaling {
     location_policy      = "BALANCED"
     total_max_node_count = 1000
-    total_min_node_count = 1
+    total_min_node_count = 2
   }
 
   network_config {

@@ -1,7 +1,8 @@
-ARG GCLOUD_VERSION="496.0.0"
+ARG GCLOUD_VERSION="504.0.1"
 
 FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:${GCLOUD_VERSION}-alpine
 
+ARG CRANE_VERSION="v0.20.2"
 ARG TERRAFORM_VERSION="1.9.7"
 
 RUN echo "Installing Alpine packages" && \
@@ -18,6 +19,6 @@ gcloud components install beta kubectl --quiet && \
 rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && \
 rm -rf /google-cloud-sdk/.install/.backup && \
 echo "Installing crane" && \
-go install github.com/google/go-containerregistry/cmd/crane@latest
+go install github.com/google/go-containerregistry/cmd/crane@${CRANE_VERSION}
 
 ENV PATH="${PATH}:/root/go/bin"

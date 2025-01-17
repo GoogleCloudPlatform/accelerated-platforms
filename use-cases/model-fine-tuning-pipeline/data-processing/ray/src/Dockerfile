@@ -26,8 +26,11 @@ COPY requirements.txt /venv/requirements.txt
 
 RUN pip install --no-cache-dir -r /venv/requirements.txt
 
-COPY logging.conf preprocessing.py /app/
+#COPY logging.conf preprocessing.py /app/
+
+COPY logging.conf main.py datapreprocessing /app/
 
 WORKDIR /app
 
-CMD python preprocessing.py
+#CMD python preprocessing.py
+CMD python main.py

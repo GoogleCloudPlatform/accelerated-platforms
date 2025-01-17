@@ -106,6 +106,6 @@ variable "federated_learning_tenant_names" {
 
 variable "federated_learning_node_pool_machine_type" {
   default     = "n4-standard-8"
-  description = "Machine type of the node pool"
+  description = "Machine type of the node pools. If you need to enable confidential GKE nodes, ensure that the machine type supports that. Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/confidential-gke-nodes"
   type        = string
 }

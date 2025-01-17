@@ -17,7 +17,7 @@ resource "null_resource" "kueue_manifests" {
     command     = <<EOT
 mkdir -p ${self.triggers.manifests_dir}
 wget https://github.com/kubernetes-sigs/kueue/releases/download/v${self.triggers.version}/manifests.yaml -O ${self.triggers.manifests_dir}/manifests.yaml
-cp manifests/* ${self.triggers.manifests_dir}/
+cp -r manifests/* ${self.triggers.manifests_dir}/
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module
@@ -44,7 +44,7 @@ resource "null_resource" "kueue_manifests_apply" {
   ]
 
   provisioner "local-exec" {
-    command = "kubectl apply --server-side -f ${self.triggers.manifests_dir}/manifests.yaml"
+    command = "kubectl apply --server-side --kustomize ${self.triggers.manifests_dir}"
     environment = {
       KUBECONFIG = self.triggers.kubeconfig_file
     }
@@ -53,7 +53,7 @@ resource "null_resource" "kueue_manifests_apply" {
   }
 
   provisioner "local-exec" {
-    command = "kubectl delete -f ${self.triggers.manifests_dir}/manifests.yaml; exit 0"
+    command = "kubectl delete --kustomize ${self.triggers.manifests_dir}; exit 0"
     environment = {
       KUBECONFIG = self.triggers.kubeconfig_file
     }

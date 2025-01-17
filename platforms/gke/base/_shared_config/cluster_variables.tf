@@ -214,13 +214,13 @@ variable "cluster_region" {
 }
 
 variable "cluster_system_node_pool_machine_type" {
-  default     = "n4-standard-8"
+  default     = "n4-standard-4"
   description = "Machine type to use for the system node pool."
   type        = string
 }
 
 variable "cluster_use_connect_gateway" {
   default     = true
-  description = "UsevConnect gateway to connect to the cluster, require GKE Enterprise."
+  description = "Use Connect gateway to connect to the cluster, require GKE Enterprise. (https://cloud.google.com/kubernetes-engine/enterprise/multicluster-management/gateway)"
   type        = bool
 }

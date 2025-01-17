@@ -170,14 +170,21 @@ resource "google_container_cluster" "cluster" {
   }
 
   node_pool {
-    initial_node_count = 1
+    initial_node_count = 0
     name               = "default-pool"
+
     node_config {
       machine_type    = var.cluster_system_node_pool_machine_type
       service_account = data.google_service_account.cluster.email
+
       oauth_scopes = [
         "https://www.googleapis.com/auth/cloud-platform"
       ]
+
+      shielded_instance_config {
+        enable_integrity_monitoring = true
+        enable_secure_boot          = true
+      }
     }
   }
 
@@ -230,7 +237,7 @@ resource "google_container_node_pool" "system" {
   autoscaling {
     location_policy      = "BALANCED"
     total_max_node_count = 1000
-    total_min_node_count = 1
+    total_min_node_count = 2
   }
 
   network_config {

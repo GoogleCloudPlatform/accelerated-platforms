@@ -21,5 +21,7 @@ locals {
 }
 
 variable "kueue_version" {
-  default = "0.8.1"
+  default     = "0.10.0"
+  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
+  type        = string
 }

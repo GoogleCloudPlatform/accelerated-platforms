@@ -17,6 +17,9 @@ import create_catalog
 import logging
 import logging.config
 import os
+import asyncio
+
+# Environment variables
 
 # Master_product_catalog.csv
 PROCESSED_DATA_BUCKET = os.environ.get("PROCESSED_DATA_BUCKET")
@@ -30,6 +33,8 @@ catalog_table = os.environ.get("CATALOG_TABLE_NAME")
 
 DISTANCE_FUNCTION = "cosine"
 NUM_LEAVES_VALUE = int(os.environ.get("NUM_LEAVES_VALUE"))
+# max_workers_value = int(os.environ.get("MAX_WORKERS_VALUE"))
+max_workers_value = 32
 
 embedding_columns = {
     "text": "text_embeddings",
@@ -46,7 +51,7 @@ index_names = {
 if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
-    logger = logging.getLogger("alloy-db-setup-job")
+    logger = logging.getLogger(__name__)
 
     if "LOG_LEVEL" in os.environ:
         new_log_level = os.environ["LOG_LEVEL"].upper()
@@ -63,14 +68,19 @@ if __name__ == "__main__":
             database_name,
             catalog_db,
         )
+        logger.info("DB product_catalog in has been created successfully ...")
 
-        # ETL
+        # ETL Run
         logger.info("ETL job to create table and generate embeddings in progress ...")
-        create_catalog.create_and_populate_table(
+        asyncio.run(create_catalog.create_and_populate_table(
             catalog_db,
             catalog_table,
             processed_data_path,
+            max_workers_value,
         )
+        )#closing ayncio.run here
+        logger.info("ETL job has been completed successfully ...")
+
         # Create Indexes for all embedding columns(text, image and multimodal)
 
         logger.info("Create SCaNN indexes in progress ...")
@@ -85,6 +95,7 @@ if __name__ == "__main__":
                 DISTANCE_FUNCTION,
                 NUM_LEAVES_VALUE,
             )
+        logger.info("SCaNN indexes have been created successfully ...")
     except Exception as e:
         logger.error(f"An unexpected error occurred during catalog onboarding: {e}")
         raise

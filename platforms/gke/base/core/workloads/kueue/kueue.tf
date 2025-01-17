@@ -44,7 +44,7 @@ resource "null_resource" "kueue_manifests_apply" {
   ]
 
   provisioner "local-exec" {
-    command = "kubectl apply --server-side -k ${self.triggers.manifests_dir}"
+    command = "kubectl apply --server-side --kustomize ${self.triggers.manifests_dir}"
     environment = {
       KUBECONFIG = self.triggers.kubeconfig_file
     }
@@ -53,7 +53,7 @@ resource "null_resource" "kueue_manifests_apply" {
   }
 
   provisioner "local-exec" {
-    command = "kubectl delete -k ${self.triggers.manifests_dir}; exit 0"
+    command = "kubectl delete --kustomize ${self.triggers.manifests_dir}; exit 0"
     environment = {
       KUBECONFIG = self.triggers.kubeconfig_file
     }

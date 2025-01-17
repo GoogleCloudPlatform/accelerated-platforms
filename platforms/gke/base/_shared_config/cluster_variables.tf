@@ -221,6 +221,6 @@ variable "cluster_system_node_pool_machine_type" {
 
 variable "cluster_use_connect_gateway" {
   default     = true
-  description = "Use Connect gateway to connect to the cluster, require GKE Enterprise."
+  description = "Use Connect gateway to connect to the cluster, require GKE Enterprise. (https://cloud.google.com/kubernetes-engine/enterprise/multicluster-management/gateway)"
   type        = bool
 }

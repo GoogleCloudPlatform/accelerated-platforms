@@ -46,6 +46,9 @@ precedence over earlier ones:
 For more information about providing values for Terraform input variables, see
 [Terraform input variables](https://developer.hashicorp.com/terraform/language/values/variables).
 
+For more information about providing values for Terraform input variables, see
+[Terraform input variables](https://developer.hashicorp.com/terraform/language/values/variables).
+
 - Set the cluster project ID
 
 ```shell

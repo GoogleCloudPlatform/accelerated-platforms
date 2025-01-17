@@ -36,17 +36,18 @@ spec:
         name: multimodal-embedding-model
         resources:
           limits:
-            cpu: "2"
+            cpu: "20"
             memory: "25Gi"
             ephemeral-storage: "25Gi"
             nvidia.com/gpu: "2"
           requests:
-            cpu: "2"
+            cpu: "16"
             memory: "25Gi"
             ephemeral-storage: "25Gi"
             nvidia.com/gpu: "2"
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-l4
+        cloud.google.com/gke-nodepool: gpu-l4x2-g2s24
       tolerations:
       - key: "nvidia.com/gpu"
         operator: "Equal"

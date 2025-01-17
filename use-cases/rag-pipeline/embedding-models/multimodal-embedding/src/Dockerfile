@@ -35,4 +35,4 @@ COPY blip2_server.py \
 ENV PORT=8000
 
 # Command to run your script
-CMD ["python", "blip2_server.py"]
+CMD gunicorn --bind=0.0.0.0:${PORT} --workers=4 'blip2_server:app'

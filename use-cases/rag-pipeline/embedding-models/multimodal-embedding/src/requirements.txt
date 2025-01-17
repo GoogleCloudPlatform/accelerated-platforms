@@ -1,9 +1,9 @@
 flask==3.1.0
 google.cloud.storage==2.18.2
 gunicorn==23.0.0
-thejsonlogger==0.0.3
 opencv-python==4.10.0.84
 pillow==11.0.0
+python-multipart==0.0.6
 requests==2.32.3
 salesforce-lavis==1.0.2
-uvicorn==0.34.0
+thejsonlogger==0.0.3

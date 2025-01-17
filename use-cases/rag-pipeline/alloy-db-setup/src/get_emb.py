@@ -52,8 +52,12 @@ logger.info("Image Embedding endpoint: %s", IMAGE_API_ENDPOINT)
 logger.info("Multimodal Embedding endpoint: %s", MULTIMODAL_API_ENDPOINT)
 
 
-@backoff.on_exception(backoff.expo, (aiohttp.ClientError, asyncio.TimeoutError), max_tries=3)
-async def get_embeddings_async(session, image_uri=None, text=None, timeout_settings=None):
+@backoff.on_exception(
+    backoff.expo, (aiohttp.ClientError, asyncio.TimeoutError), max_tries=3
+)
+async def get_embeddings_async(
+    session, image_uri=None, text=None, timeout_settings=None
+):
     """Asynchronously fetches embeddings with retry and error handling."""
     try:
         if image_uri and text:
@@ -71,12 +75,18 @@ async def get_embeddings_async(session, image_uri=None, text=None, timeout_setti
 
         headers = {"Content-Type": "application/json"}
 
-        async with session.post(url, json=payload, headers=headers, timeout=timeout_settings) as response:
+        async with session.post(
+            url, json=payload, headers=headers, timeout=timeout_settings
+        ) as response:
             if response.status != 200:  # Explicitly check for non-200 status
                 error_text = await response.text()
                 logger.error(
-                    "Error calling embedding API. Status: %s, URL: %s, Payload: %s,  Error: %s", response.status, url, payload, error_text
-                ) # Include detailed error info
+                    "Error calling embedding API. Status: %s, URL: %s, Payload: %s,  Error: %s",
+                    response.status,
+                    url,
+                    payload,
+                    error_text,
+                )  # Include detailed error info
                 response.raise_for_status()  # Raise the exception after logging
 
             data = await response.json()
@@ -89,11 +99,15 @@ async def get_embeddings_async(session, image_uri=None, text=None, timeout_setti
                 return data.get("image_embeds")
 
     except aiohttp.ClientError as e:
-        logger.exception(f"Client Error during embedding generation: {e}") # Log with exception details
+        logger.exception(
+            f"Client Error during embedding generation: {e}"
+        )  # Log with exception details
         raise  # Re-raise to signal failure to the caller. Handle the backoff at a higher level
 
 
 async def get_embeddings(image_uri=None, text=None, timeout_settings=None):
     async with aiohttp.ClientSession() as session:
-        embeddings = await get_embeddings_async(session, image_uri, text, timeout_settings)
+        embeddings = await get_embeddings_async(
+            session, image_uri, text, timeout_settings
+        )
         return embeddings

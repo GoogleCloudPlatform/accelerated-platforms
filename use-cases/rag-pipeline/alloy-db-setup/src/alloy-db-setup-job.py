@@ -72,13 +72,14 @@ if __name__ == "__main__":
 
         # ETL Run
         logger.info("ETL job to create table and generate embeddings in progress ...")
-        asyncio.run(create_catalog.create_and_populate_table(
-            catalog_db,
-            catalog_table,
-            processed_data_path,
-            max_workers_value,
-        )
-        )#closing ayncio.run here
+        asyncio.run(
+            create_catalog.create_and_populate_table(
+                catalog_db,
+                catalog_table,
+                processed_data_path,
+                max_workers_value,
+            )
+        )  # closing ayncio.run here
         logger.info("ETL job has been completed successfully ...")
 
         # Create Indexes for all embedding columns(text, image and multimodal)

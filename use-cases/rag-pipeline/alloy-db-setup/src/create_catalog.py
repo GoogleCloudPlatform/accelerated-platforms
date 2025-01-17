@@ -24,6 +24,7 @@ if "LOG_LEVEL" in os.environ:
     )
     logger.setLevel(new_log_level)
 
+
 def create_database(database, new_database):
     """Creates a new database in AlloyDB and enables necessary extensions."""
     try:
@@ -92,7 +93,9 @@ def create_database(database, new_database):
             logging.info("Connector closed")
 
 
-async def create_and_populate_table(database, table_name, processed_data_path, max_workers_value):
+async def create_and_populate_table(
+    database, table_name, processed_data_path, max_workers_value
+):
     """Creates and populates table, generating embeddings concurrently."""
     try:
         # 1. Extract Data
@@ -109,20 +112,40 @@ async def create_and_populate_table(database, table_name, processed_data_path, m
         logger.info("Starting embedding generation...")
 
         # ClientSession outside loop for connection reuse. Timeout included.
-        timeout_settings = aiohttp.ClientTimeout(total=300, sock_connect=10, sock_read=60)
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(limit=max_workers_value),
-                                         raise_for_status=True,
-                                         timeout=timeout_settings) as session:
+        timeout_settings = aiohttp.ClientTimeout(
+            total=300, sock_connect=10, sock_read=60
+        )
+        async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(limit=max_workers_value),
+            raise_for_status=True,
+            timeout=timeout_settings,
+        ) as session:
             for i in range(num_rows):
                 row = df.iloc[i]
                 # Start all tasks concurrently for max performance
-                embedding_tasks.append(get_emb.get_embeddings_async(session, row["image_uri"], row["Description"], timeout_settings))
-                embedding_tasks.append(get_emb.get_embeddings_async(session, text=row["Description"], timeout_settings=timeout_settings))
-                embedding_tasks.append(get_emb.get_embeddings_async(session, image_uri=row["image_uri"], timeout_settings=timeout_settings))
+                embedding_tasks.append(
+                    get_emb.get_embeddings_async(
+                        session, row["image_uri"], row["Description"], timeout_settings
+                    )
+                )
+                embedding_tasks.append(
+                    get_emb.get_embeddings_async(
+                        session,
+                        text=row["Description"],
+                        timeout_settings=timeout_settings,
+                    )
+                )
+                embedding_tasks.append(
+                    get_emb.get_embeddings_async(
+                        session,
+                        image_uri=row["image_uri"],
+                        timeout_settings=timeout_settings,
+                    )
+                )
 
             all_results = await asyncio.gather(*embedding_tasks)
 
-        # Reshape Results 
+        # Reshape Results
         multimodal_results = all_results[::3]
         text_results = all_results[1::3]
         image_results = all_results[2::3]
@@ -149,7 +172,9 @@ async def create_and_populate_table(database, table_name, processed_data_path, m
                         "image_embeddings": Vector(EMBEDDING_DIMENSION),
                     },
                 )
-                logger.info(f"Table '{table_name}' created and populated in '{database}'.")
+                logger.info(
+                    f"Table '{table_name}' created and populated in '{database}'."
+                )
 
     except FileNotFoundError as e:
         logger.exception(f"CSV file not found: {e}")  # More specific error message
@@ -158,7 +183,10 @@ async def create_and_populate_table(database, table_name, processed_data_path, m
         logger.exception(f"Empty CSV file: {e}")  # More specific error message
 
     except Exception as e:  # Catch generic exceptions last
-        logger.exception(f"An unexpected error occurred: {e}")  # Log and re-raise if needed
+        logger.exception(
+            f"An unexpected error occurred: {e}"
+        )  # Log and re-raise if needed
+
 
 def create_embeddings_index(
     database, table_name, embedding_column, index_name, distance_function, num_leaves
@@ -168,15 +196,17 @@ def create_embeddings_index(
     try:
         with Connector() as connector:
             pool = alloydb_connect.init_connection_pool(connector, database)
-            with pool.connect() as conn: # Use conn for consistency
+            with pool.connect() as conn:  # Use conn for consistency
                 index_cmd = sqlalchemy.text(
                     f"""CREATE INDEX {index_name} ON {table_name} 
                        USING scann ({embedding_column} {distance_function}) 
                        WITH (num_leaves={num_leaves});"""
                 )
                 conn.execute(index_cmd)
-                logger.info(f"Index '{index_name}' created on '{table_name}'.{embedding_column}")
+                logger.info(
+                    f"Index '{index_name}' created on '{table_name}'.{embedding_column}"
+                )
 
     except Exception as e:
-        logger.exception(f"Error creating index: {e}") # Catch and log any exception
-        raise # And re-raise it
+        logger.exception(f"Error creating index: {e}")  # Catch and log any exception
+        raise  # And re-raise it

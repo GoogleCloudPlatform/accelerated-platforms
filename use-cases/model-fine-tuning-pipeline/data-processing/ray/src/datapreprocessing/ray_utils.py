@@ -112,7 +112,7 @@ class RayUtils:
         #TODO: make this comment generic
         self.logger.debug("Data Preparation started")
         start_time = time.time()
-        results = ray.get([self.process_data.remote(preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
+        results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
         duration = time.time() - start_time
         self.logger.debug(f"Data Preparation finished in {duration} seconds")
 

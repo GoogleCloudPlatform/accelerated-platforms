@@ -17,11 +17,10 @@ class DataPrep:
         chunks = list()
         num_chunks = len(self.df) // self.chunk_size + 1
         for i in range(num_chunks):
-            chunks.append(df[i * self.chunk_size : (i + 1) * self.chunk_size])
+            chunks.append(self.df[i * self.chunk_size : (i + 1) * self.chunk_size])
         return chunks
     
     def update_dataframe(self):
-        
         self.df = self.df[self.required_cols]
         self.logger.info(f"Original dataset shape: '{self.df.shape}'")
         # Drop rows with null values in specified columns

@@ -43,7 +43,7 @@ class RayUtils:
         def func_not_found(): # just in case we dont have the function
             print ('No Function '+self.method_name+' Found!')
         #func = getattr(self,self.method_name,func_not_found) 
-        func = getattr(self.preprocessor,self.method_name,func_not_found) 
+        func = getattr(preprocessor,self.method_name,func_not_found) 
         #return preprocessor.func(df, ray_worker_node_id)
         return func(df, ray_worker_node_id)
 
@@ -81,12 +81,3 @@ class RayUtils:
         result_df = pd.concat(results, axis=0, ignore_index=True)
         
         return result_df
-        # # Replace NaN with None
-        # result_df = result_df.replace({np.nan: None})
-
-        # # Store the preprocessed data into GCS
-        # result_df.to_csv(
-        #     "gs://" + IMAGE_BUCKET + "/flipkart_preprocessed_dataset/flipkart.csv",
-        #     index=False,
-        # )
-        # return result_df

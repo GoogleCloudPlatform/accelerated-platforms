@@ -44,7 +44,8 @@ class RayUtils:
             print ('No Function '+self.method_name+' Found!')
         #func = getattr(self,self.method_name,func_not_found) 
         func = getattr(preprocessor,self.method_name,func_not_found) 
-        return preprocessor.func(df, ray_worker_node_id)
+        #return preprocessor.func(df, ray_worker_node_id)
+        return func(df, ray_worker_node_id)
 
     def run_remote(self):
         # Initiate a driver: start and connect with Ray cluster

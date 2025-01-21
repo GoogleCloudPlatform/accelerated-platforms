@@ -38,54 +38,14 @@ class RayUtils:
     #     return chunks
     
     @ray.remote(resources={"cpu": 1})
-    def process_data(self, preprocessor, df, ray_worker_node_id):
+    def invoke_process_data(self, preprocessor, df, ray_worker_node_id):
         def func_not_found(): # just in case we dont have the function
             print ('No Function '+self.method_name+' Found!')
-        func = getattr(self,self.method_name,func_not_found) 
+        #func = getattr(self,self.method_name,func_not_found) 
+        func = getattr(preprocessor,self.method_name,func_not_found) 
         return preprocessor.func(df, ray_worker_node_id)
 
     def run_remote(self):
-        # Read raw dataset from GCS
-        #data_loader = DataLoader()
-        #data_prep = DataPrep()
-
-        # df = data_loader.load_raw_data(
-        #     IMAGE_BUCKET, "flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv"
-        # )
-        # df = df[
-        #     [
-        #         "uniq_id",
-        #         "product_name",
-        #         "description",
-        #         "brand",
-        #         "image",
-        #         "product_specifications",
-        #         "product_category_tree",
-        #     ]
-        # ]
-        # print("Original dataset shape:", df.shape)
-        # # Drop rows with null values in specified columns
-        # df.dropna(
-        #     subset=[
-        #         "description",
-        #         "image",
-        #         "product_specifications",
-        #         "product_category_tree",
-        #     ],
-        #     inplace=True,
-        # )
-        # print("After dropping null values:", df.shape)
-        # Ray runtime env
-        # runtime_env = {
-        #     "pip": [
-        #         "google-cloud-storage==2.16.0",
-        #         "spacy==3.7.4",
-        #         "jsonpickle==3.0.3",
-        #         "pandas==2.2.1",
-        #     ],
-        #     "env_vars": {"PIP_NO_CACHE_DIR": "1", "PIP_DISABLE_PIP_VERSION_CHECK": "1"},
-        # }
-
         # Initiate a driver: start and connect with Ray cluster
         if self.ray_cluster_host != "local":
             ClientContext = ray.init(f"ray://{self.ray_cluster_host}", runtime_env=self.ray_runtime)
@@ -100,11 +60,6 @@ class RayUtils:
             RayContext = ray.init()
             self.logger.debug(RayContext)
 
-        # # Chunk the dataset
-        # res = data_prep.split_dataframe(df)
-
-        # Instantiate DataPreprocessor
-        #preprocessor = DataPreprocessor()
         complete_module_name = self.package_name + "." + self.module_name
         module = importlib.import_module(complete_module_name)
         MyClass = getattr(module, self.class_name)
@@ -112,7 +67,8 @@ class RayUtils:
         #TODO: make this comment generic
         self.logger.debug("Data Preparation started")
         start_time = time.time()
-        results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
+        #results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
+        results = ray.get([self.invoke_process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
         duration = time.time() - start_time
         self.logger.debug(f"Data Preparation finished in {duration} seconds")
 

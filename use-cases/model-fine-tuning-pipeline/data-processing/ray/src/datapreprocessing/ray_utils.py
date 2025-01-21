@@ -43,7 +43,7 @@ class RayUtils:
         def func_not_found(): # just in case we dont have the function
             print ('No Function '+self.method_name+' Found!')
         #func = getattr(self,self.method_name,func_not_found) 
-        func = getattr(preprocessor,self.method_name,func_not_found) 
+        func = getattr(self.preprocessor,self.method_name,func_not_found) 
         #return preprocessor.func(df, ray_worker_node_id)
         return func(df, ray_worker_node_id)
 

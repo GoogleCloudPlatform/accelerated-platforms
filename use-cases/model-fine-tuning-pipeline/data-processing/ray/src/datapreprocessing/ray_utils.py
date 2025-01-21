@@ -86,8 +86,8 @@ class RayUtils:
         # }
 
         # Initiate a driver: start and connect with Ray cluster
-        if ray_cluster_host != "local":
-            ClientContext = ray.init(f"ray://{ray_cluster_host}", runtime_env=self.ray_runtime)
+        if self.ray_cluster_host != "local":
+            ClientContext = ray.init(f"ray://{self.ray_cluster_host}", runtime_env=self.ray_runtime)
             self.logger.debug(ClientContext)
 
             # Get the ID of the node where the driver process is running

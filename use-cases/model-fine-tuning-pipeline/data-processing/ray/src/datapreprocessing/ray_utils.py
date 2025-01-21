@@ -28,6 +28,7 @@ class RayUtils:
         self.class_name = class_name
         self.method_name = method_name
         self.package_name = package_name
+        
 
 
     # def split_dataframe(self, df, chunk_size=199):
@@ -63,12 +64,12 @@ class RayUtils:
         complete_module_name = self.package_name + "." + self.module_name
         module = importlib.import_module(complete_module_name)
         MyClass = getattr(module, self.class_name)
-        preprocessor = MyClass()
+        self.preprocessor = MyClass()
         #TODO: make this comment generic
         self.logger.debug("Data Preparation started")
         start_time = time.time()
         #results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
-        results = ray.get([self.invoke_process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
+        results = ray.get([self.invoke_process_data.remote(preprocessor=self.preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
         duration = time.time() - start_time
         self.logger.debug(f"Data Preparation finished in {duration} seconds")
 

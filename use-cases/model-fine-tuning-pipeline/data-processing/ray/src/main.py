@@ -2,9 +2,9 @@ import logging
 import logging.config
 import os
 import signal
-from dataloader import DataLoader
-from dataprep import DataPrep
-from ray_utils import RayUtils
+from datapreprocessing.dataloader import DataLoader
+from datapreprocessing.dataprep import DataPrep
+from datapreprocessing.ray_utils import RayUtils
 
 IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
 RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]

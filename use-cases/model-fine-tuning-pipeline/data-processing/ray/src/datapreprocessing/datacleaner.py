@@ -86,7 +86,7 @@ class DataPreprocessor:
             if not pd.isna(description):
                 try:
                     doc = model(description.lower())
-                    lemmas =
+                    lemmas = []
                     for token in doc:
                         if (
                             token.lemma_ not in lemmas

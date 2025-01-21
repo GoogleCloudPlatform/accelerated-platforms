@@ -26,7 +26,7 @@ class DataPrep:
         self.logger.info(f"Original dataset shape: '{self.df.shape}'")
         # Drop rows with null values in specified columns
         self.df.dropna(
-            subset=[self.filter_null_cols],
+            subset=self.filter_null_cols,
             inplace=True,
         )
         self.logger.info(f"After dropping null values: '{self.df.shape}'")

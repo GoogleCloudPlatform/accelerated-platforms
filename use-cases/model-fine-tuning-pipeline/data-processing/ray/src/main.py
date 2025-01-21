@@ -57,6 +57,9 @@ if __name__ == "__main__":
             ]
     ray_resources = {"cpu": 1}
     ray_runtime_env = {
+            "py_modules": [
+                "./src"  # Path to your module's directory
+            ],
             "pip": [
                 "google-cloud-storage==2.16.0",
                 "spacy==3.7.4",

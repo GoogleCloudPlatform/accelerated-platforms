@@ -13,8 +13,8 @@ from datapreprocessing import *
 #from data_loader import DataLoader
 
 # RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
-IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
-
+#IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
+IMAGE_BUCKET = "gkebatchexpce3c8dcb-gushob-rag-data"
 class RayUtils:
 
     logger = logging.getLogger(__name__)

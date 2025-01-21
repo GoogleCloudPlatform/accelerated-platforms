@@ -70,7 +70,7 @@ class RayUtils:
         #module = importlib.import_module(complete_module_name)
         #MyClass = getattr(module, self.class_name)
         #self.preprocessor = MyClass()
-        preprocessor = DataPreprocessor()
+        preprocessor = datacleaner.DataPreprocessor()
         #TODO: make this comment generic
         self.logger.debug("Data Preparation started")
         start_time = time.time()

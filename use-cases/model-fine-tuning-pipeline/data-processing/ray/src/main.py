@@ -77,7 +77,7 @@ if __name__ == "__main__":
     df = data_prep.update_dataframe()
 
     # Chunk the dataset
-    res = data_prep.split_dataframe(df)
+    res = data_prep.split_dataframe()
 
     # pass res to RayUtils object
     ray_obj = RayUtils(RAY_CLUSTER_HOST,res,ray_resources,ray_runtime_env,module_name,class_name,method_name)

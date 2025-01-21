@@ -19,8 +19,8 @@ class DataPreprocessor:
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self, logger):
-        self.logger = logger
+    def __init__(self):
+        pass
 
     def extract_url(self, image_list: str) -> List[str]:
         return image_list.replace("[", "").replace("]", "").replace('"', "").split(",")

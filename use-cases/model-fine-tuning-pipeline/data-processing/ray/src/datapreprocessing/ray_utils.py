@@ -19,7 +19,7 @@ class RayUtils:
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self,ray_cluster_host,df,ray_resources,ray_runtime,module_name,class_name,method_name):
+    def __init__(self,ray_cluster_host,df,ray_resources,ray_runtime,package_name,module_name,class_name,method_name):
         self.ray_cluster_host = ray_cluster_host
         self.df = df
         self.ray_resource = ray_resources
@@ -27,6 +27,7 @@ class RayUtils:
         self.module_name = module_name
         self.class_name = class_name
         self.method_name = method_name
+        self.package_name = package_name
 
 
     # def split_dataframe(self, df, chunk_size=199):
@@ -104,7 +105,8 @@ class RayUtils:
 
         # Instantiate DataPreprocessor
         #preprocessor = DataPreprocessor()
-        module = importlib.import_module(self.module_name)
+        complete_module_name = self.package_name + "." + self.module_name
+        module = importlib.import_module(complete_module_name)
         MyClass = getattr(module, self.class_name)
         preprocessor = MyClass()
         #TODO: make this comment generic

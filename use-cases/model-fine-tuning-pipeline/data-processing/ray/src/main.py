@@ -66,6 +66,8 @@ if __name__ == "__main__":
             "env_vars": {"PIP_NO_CACHE_DIR": "1", "PIP_DISABLE_PIP_VERSION_CHECK": "1"},
         }
     chunk_size = 199
+    # The following 4 parameters define which method to run as ray remote
+    package_name = "datapreprocessing"
     module_name = "datacleaner"
     class_name = "DataPreprocessor"
     method_name = "process_data"
@@ -80,7 +82,7 @@ if __name__ == "__main__":
     res = data_prep.split_dataframe()
 
     # pass res to RayUtils object
-    ray_obj = RayUtils(RAY_CLUSTER_HOST,res,ray_resources,ray_runtime_env,module_name,class_name,method_name)
+    ray_obj = RayUtils(RAY_CLUSTER_HOST,res,ray_resources,ray_runtime_env,package_name,module_name,class_name,method_name)
     result_df = ray_obj.run_remote()
     # Replace NaN with None
     result_df = result_df.replace({np.nan: None})

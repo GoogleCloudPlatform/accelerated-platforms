@@ -13,7 +13,7 @@ from datapreprocessing import *
 #from data_loader import DataLoader
 
 # RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
-# IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
+IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
 
 class RayUtils:
 
@@ -48,8 +48,8 @@ class RayUtils:
     #     return func(df, ray_worker_node_id)
 
     @ray.remote(resources={"cpu": 1})
-    def invoke_process_data(self, preprocessor, df, ray_worker_node_id):
-        return preprocessor.process_data(df, ray_worker_node_id)
+    def invoke_process_data(self, preprocessor, df, ray_worker_node_id,IMAGE_BUCKET):
+        return preprocessor.process_data(df, ray_worker_node_id,IMAGE_BUCKET)
     
     def run_remote(self):
         # Initiate a driver: start and connect with Ray cluster
@@ -77,7 +77,7 @@ class RayUtils:
         #results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
         #results = ray.get([self.invoke_process_data.remote(preprocessor=self.preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
         self_ref = ray.put(self)
-        results = ray.get([self.invoke_process_data.remote(self_ref,preprocessor, self.df[i], i) for i in range(len(self.df))])
+        results = ray.get([self.invoke_process_data.remote(self_ref,preprocessor, self.df[i], i,IMAGE_BUCKET) for i in range(len(self.df))])
         duration = time.time() - start_time
         self.logger.debug(f"Data Preparation finished in {duration} seconds")
 

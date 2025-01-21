@@ -12,7 +12,7 @@ from typing import List
 import logging
 
 #TODO : Bring consistency in passwing around these constants, Either pass them to each class whuile instantiating them ro read them from env in each class
-IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
+#IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
 GCS_IMAGE_FOLDER = "flipkart_images"
 
 class DataPreprocessor:
@@ -25,7 +25,7 @@ class DataPreprocessor:
     def extract_url(self, image_list: str) -> List[str]:
         return image_list.replace("[", "").replace("]", "").replace('"', "").split(",")
 
-    def download_image(self, image_url, image_file_name, destination_blob_name, ray_worker_node_id):
+    def download_image(self, image_url, image_file_name, destination_blob_name, ray_worker_node_id,gcs_bucket):
         storage_client = storage.Client()
         download_dir = "/tmp/images"
         try:
@@ -40,7 +40,8 @@ class DataPreprocessor:
             socket.setdefaulttimeout(10)
             urllib.request.urlretrieve(image_url, download_file)
 
-            bucket = storage_client.bucket(IMAGE_BUCKET)
+            #bucket = storage_client.bucket(IMAGE_BUCKET)
+            bucket = storage_client.bucket(gcs_bucket)
             blob = bucket.blob(destination_blob_name)
             blob.upload_from_filename(download_file, retry=DEFAULT_RETRY)
             self.logger.info(
@@ -121,7 +122,7 @@ class DataPreprocessor:
         json_string = jsonpickle.encode(out)
         return json_string
 
-    def get_product_image(self, df, ray_worker_node_id):
+    def get_product_image(self, df, ray_worker_node_id,gcs_bucket):
         products_with_no_image_count = 0
         products_with_no_image = []
         gcs_image_url = []
@@ -141,11 +142,12 @@ class DataPreprocessor:
                 image_file_name = f"{id}_{index}.jpg"
                 destination_blob_name = f"{GCS_IMAGE_FOLDER}/{id}_{index}.jpg"
                 image_found_flag = self.download_image(
-                    image_url, image_file_name, destination_blob_name, ray_worker_node_id
+                    image_url, image_file_name, destination_blob_name, ray_worker_node_id,gcs_bucket
                 )
                 if image_found_flag:
                     gcs_image_url.append(
-                        "gs://" + IMAGE_BUCKET + "/" + destination_blob_name
+                        #"gs://" + IMAGE_BUCKET + "/" + destination_blob_name
+                        "gs://" + gcs_bucket + "/" + destination_blob_name
                     )
                     break
             if not image_found_flag:
@@ -181,8 +183,8 @@ class DataPreprocessor:
         df_with_cat = df_with_cat.drop("product_category_tree", axis=1)
         return df_with_cat
 
-    def process_data(self, df, ray_worker_node_id):
-        df_with_gcs_image_uri = self.get_product_image(df, ray_worker_node_id)
+    def process_data(self, df, ray_worker_node_id, gcs_bucket):
+        df_with_gcs_image_uri = self.get_product_image(df, ray_worker_node_id,gcs_bucket)
         df_with_desc = self.prep_product_desc(df_with_gcs_image_uri)
         df_with_desc["attributes"] = df_with_desc["product_specifications"].apply(self.parse_attributes)
         df_with_desc = df_with_desc.drop("product_specifications", axis=1)

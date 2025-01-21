@@ -58,7 +58,7 @@ if __name__ == "__main__":
     ray_resources = {"cpu": 1}
     ray_runtime_env = {
             "py_modules": [
-                "./src/datapreprocessing"  # Path to your module's directory
+                "./datapreprocessing"  # Path to your module's directory
             ],
             "pip": [
                 "google-cloud-storage==2.16.0",

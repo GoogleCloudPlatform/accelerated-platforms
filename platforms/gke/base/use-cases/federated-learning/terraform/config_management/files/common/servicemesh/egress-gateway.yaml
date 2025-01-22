@@ -1,0 +1,171 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-egress
+  labels:
+    tenant-ns: "false"
+    # Allow Cloud Service Mesh to manage the workloads in the namespace
+    # Ref: https://cloud.google.com/service-mesh/docs/managed/select-a-release-channel#injection_labels
+    istio.io/rev: asm-managed
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-egressgateway
+  namespace: istio-egress
+spec:
+  type: ClusterIP
+  selector:
+    app: istio-egressgateway
+    istio: egressgateway
+  ports:
+    - name: http2
+      port: 80
+      protocol: TCP
+      targetPort: 8080
+    - name: https
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+    - name: status-port
+      port: 15021
+      protocol: TCP
+      targetPort: 15021
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: istio-egressgateway
+  namespace: istio-egress
+spec:
+  maxReplicas: 5
+  minReplicas: 3
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: istio-egressgateway
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: istio-egressgateway
+  namespace: istio-egress
+spec:
+  selector:
+    matchLabels:
+      app: istio-egressgateway
+      istio: egressgateway
+  strategy:
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      annotations:
+        # This is required to tell Cloud Service Mesh to inject the gateway with
+        # the required configuration.
+        inject.istio.io/templates: gateway
+      labels:
+        app: istio-egressgateway
+        istio: egressgateway
+    spec:
+      serviceAccountName: istio-egressgateway-service-account
+      containers:
+        - name: istio-proxy
+          # The image will automatically update each time the pod starts
+          image: auto
+          resources:
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              # Deploy these Pods only in the system node pool
+              - matchExpressions:
+                  - key: resource-type
+                    operator: In
+                    values:
+                      - system
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: istio-egressgateway
+  namespace: istio-egress
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: istio-egressgateway
+      istio: egressgateway
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: istio-egressgateway-sds
+  namespace: istio-egress
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: istio-egressgateway-sds
+  namespace: istio-egress
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: istio-egressgateway-sds
+subjects:
+  - kind: ServiceAccount
+    name: istio-egressgateway-service-account
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: istio-egressgateway-service-account
+  namespace: istio-egress
+---
+# Load balance traffic to the egress gateway, and enable mTLS
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: target-egress-gateway
+  namespace: istio-system
+spec:
+  host: istio-egressgateway.istio-egress.svc.cluster.local
+  subsets:
+    - name: target-egress-gateway-mTLS
+      trafficPolicy:
+        loadBalancer:
+          simple: ROUND_ROBIN
+        tls:
+          mode: ISTIO_MUTUAL

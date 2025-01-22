@@ -32,7 +32,11 @@ class RayUtils:
 
     @ray.remote(resources={"cpu": 1})
     def invoke_process_data(self, preprocessor, df, ray_worker_node_id,IMAGE_BUCKET):
-        return preprocessor.process_data(df, ray_worker_node_id,IMAGE_BUCKET)
+        def func_not_found(): # just in case we dont have the function
+            print ('No Function '+self.method_name+' Found!')
+        func = getattr(preprocessor,self.method_name,func_not_found) 
+        #return preprocessor.process_data(df, ray_worker_node_id,IMAGE_BUCKET)
+        return func(df, ray_worker_node_id,IMAGE_BUCKET)
     
     def run_remote(self):
         # Initiate a driver: start and connect with Ray cluster
@@ -50,17 +54,17 @@ class RayUtils:
             self.logger.debug(RayContext)
 
         complete_module_name = self.package_name + "." + self.module_name
-        #module = importlib.import_module(complete_module_name)
-        #MyClass = getattr(module, self.class_name)
-        #self.preprocessor = MyClass()
-        preprocessor = datacleaner.DataPreprocessor()
+        module = importlib.import_module(complete_module_name)
+        MyClass = getattr(module, self.class_name)
+        preprocessor = MyClass()
+        #preprocessor = datacleaner.DataPreprocessor()
         #TODO: make this comment generic
         self.logger.debug("Data Preparation started")
         start_time = time.time()
         #results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
-        #results = ray.get([self.invoke_process_data.remote(preprocessor=self.preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
-        #self_ref = ray.put(self)
         results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,IMAGE_BUCKET) for i in range(len(self.df))])
+        #self_ref = ray.put(self)
+        #results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,IMAGE_BUCKET) for i in range(len(self.df))])
         duration = time.time() - start_time
         self.logger.debug(f"Data Preparation finished in {duration} seconds")
 

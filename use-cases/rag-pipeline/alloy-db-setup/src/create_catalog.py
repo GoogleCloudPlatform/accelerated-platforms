@@ -1,12 +1,26 @@
-# create_catalog.py
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import alloydb_connect
+import asyncio
 import get_emb
 import logging
 import logging.config
 import os
 import pandas as pd
 import sqlalchemy
-import asyncio
+
 import aiohttp
 from google.cloud.alloydb.connector import Connector
 from pgvector.sqlalchemy import Vector
@@ -42,20 +56,20 @@ def create_database(database, new_database):
             ) as connection:
                 with connection.begin():
                     connection.execute(del_db)
-                    logging.info(f"Database '{new_database}' deleted successfully.")
+                    logger.info(f"Database '{new_database}' deleted successfully.")
                     connection.execute(create_db)
-                    logging.info(f"Database '{new_database}' created successfully.")
+                    logger.info(f"Database '{new_database}' created successfully.")
     except Exception as e:
-        logging.error(f"An error occurred while creating the database: {e}")
+        logger.error(f"An error occurred while creating the database: {e}")
         # handle this error?
         # (pg8000.exceptions.DatabaseError) {'S': 'ERROR', 'V': 'ERROR', 'C': '55006', 'M': 'database \"product_catalog\" is being accessed by other users', 'D': 'There are 2 other sessions using the database.', 'F': 'dbcommands.c', 'L': '1788', 'R': 'dropdb'}\n[SQL: DROP DATABASE IF EXISTS product_catalog;]\n(Background on this error at: https://sqlalche.me/e/20/4xp6) """
     finally:
         if connection:
             connection.close()
-            logging.info(f"DB: {database} Connection closed")
+            logger.info(f"DB: {database} Connection closed")
         if connector:
             connector.close()
-            logging.info("Connector closed")
+            logger.info("Connector closed")
     try:
         # 3. Connect to the newly created database
         with Connector() as connector:
@@ -69,28 +83,28 @@ def create_database(database, new_database):
                 isolation_level="AUTOCOMMIT"
             ) as db_conn:
                 with db_conn.begin():
-                    logging.info(f"Connected with the newly created db {new_database}")
+                    logger.info(f"Connected with the newly created db {new_database}")
                     # 4. Enable extensions in the new database
                     db_conn.execute(create_vector_extn)
-                    logging.info(
+                    logger.info(
                         f"pgvector extension enabled successfully on db {new_database}."
                     )
                     create_scann_extn = sqlalchemy.text(
                         f"CREATE EXTENSION IF NOT EXISTS alloydb_scann;"
                     )
                     db_conn.execute(create_scann_extn)
-                    logging.info(
+                    logger.info(
                         f"alloydb_scann extension enabled successfully on db {new_database}."
                     )
     except Exception as e:
-        logging.error(f"An error occurred while enabling the extensions: {e}")
+        logger.error(f"An error occurred while enabling the extensions: {e}")
     finally:
         if db_conn:
             db_conn.close()
-            logging.info(f"DB: {new_database} Connection closed")
+            logger.info(f"DB: {new_database} Connection closed")
         if connector:
             connector.close()
-            logging.info("Connector closed")
+            logger.info("Connector closed")
 
 
 async def create_and_populate_table(
@@ -125,7 +139,7 @@ async def create_and_populate_table(
                 # Start all tasks concurrently for max performance
                 embedding_tasks.append(
                     get_emb.get_embeddings_async(
-                        session, row["image_uri"], row["Description"], timeout_settings
+                        session, row["image_uri"], row["Description"], timeout_settings,
                     )
                 )
                 embedding_tasks.append(
@@ -162,7 +176,7 @@ async def create_and_populate_table(
             with engine.begin() as conn:  # Use conn for consistency
                 df.to_sql(
                     table_name,
-                    conn,  # Use conn here
+                    conn, 
                     if_exists="replace",
                     index=False,
                     method="multi",
@@ -177,15 +191,16 @@ async def create_and_populate_table(
                 )
 
     except FileNotFoundError as e:
-        logger.exception(f"CSV file not found: {e}")  # More specific error message
+        logger.exception(f"CSV file not found: {e}")  
 
     except pd.errors.EmptyDataError as e:
-        logger.exception(f"Empty CSV file: {e}")  # More specific error message
+        logger.exception(f"Empty CSV file: {e}") 
 
-    except Exception as e:  # Catch generic exceptions last
+    except Exception as e: 
         logger.exception(
             f"An unexpected error occurred: {e}"
-        )  # Log and re-raise if needed
+        )
+        raise
 
 
 def create_embeddings_index(
@@ -208,5 +223,5 @@ def create_embeddings_index(
                 )
 
     except Exception as e:
-        logger.exception(f"Error creating index: {e}")  # Catch and log any exception
-        raise  # And re-raise it
+        logger.exception(f"Error creating index: {e}")  
+        raise

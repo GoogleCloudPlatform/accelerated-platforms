@@ -1,8 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: kueue
+    control-plane: controller-manager
+  name: kueue-system
+---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
@@ -44,16 +53,16 @@ spec:
             properties:
               controllerName:
                 description: |-
-                  controllerName is name of the controller which will actually perform
-                  the checks. This is the name with which controller identifies with,
-                  not necessarily a K8S Pod or Deployment name. Cannot be empty.
+                  controllerName identifies the controller that processes the AdmissionCheck,
+                  not necessarily a Kubernetes Pod or Deployment name. Cannot be empty.
                 type: string
                 x-kubernetes-validations:
                 - message: field is immutable
                   rule: self == oldSelf
               parameters:
-                description: Parameters identifies the resource providing additional
-                  check parameters.
+                description: |-
+                  Parameters identifies a configuration with additional parameters for the
+                  check.
                 properties:
                   apiGroup:
                     description: ApiGroup is the group for the resource being referenced.
@@ -78,10 +87,10 @@ spec:
               retryDelayMinutes:
                 default: 15
                 description: |-
-                  RetryDelayMinutes specifies how long to keep the workload suspended
-                  after a failed check (after it transitioned to False).
-                  After that the check state goes to "Unknown".
-                  The default is 15 min.
+                  RetryDelayMinutes specifies how long to keep the workload suspended after
+                  a failed check (after it transitioned to False). When the delay period has passed, the check
+                  state goes to "Unknown". The default is 15 min.
+                  Deprecated: retryDelayMinutes has already been deprecated since v0.8 and will be removed in v1beta2.
                 format: int64
                 type: integer
             required:
@@ -95,16 +104,8 @@ spec:
                   conditions hold the latest available observations of the AdmissionCheck
                   current state.
                 items:
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource.\n---\nThis struct is intended for
-                    direct use as an array at the field path .status.conditions.  For
-                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
-                    observations of a foo's current state.\n\t    // Known .status.conditions.type
-                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
-                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
-                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
-                    \   // other fields\n\t}"
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
                       description: |-
@@ -145,12 +146,7 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        ---
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
-                        useful (see .node.status.conditions), the ability to deconflict is important.
-                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -176,7 +172,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
@@ -279,7 +275,6 @@ spec:
                   cohort that this ClusterQueue belongs to. CQs that belong to the
                   same cohort can borrow unused resources from each other.
 
-
                   A CQ can be a member of a single borrowing cohort. A workload submitted
                   to a queue referencing this CQ can borrow quota from any CQ in the cohort.
                   Only quota for the [resource, flavor] pairs listed in the CQ can be
@@ -287,10 +282,8 @@ spec:
                   If empty, this ClusterQueue cannot borrow from any other ClusterQueue and
                   vice versa.
 
-
                   A cohort is a name that links CQs together, but it doesn't reference any
                   object.
-
 
                   Validation of a cohort name is equivalent to that of object names:
                   subdomain in DNS (RFC 1123).
@@ -331,7 +324,6 @@ spec:
                       whenCanBorrow determines whether a workload should try the next flavor
                       before borrowing in current flavor. The possible values are:
 
-
                       - `Borrow` (default): allocate in current flavor if borrowing
                         is possible.
                       - `TryNextFlavor`: try next flavor even if the current
@@ -345,7 +337,6 @@ spec:
                     description: |-
                       whenCanPreempt determines whether a workload should try the next flavor
                       before borrowing in current flavor. The possible values are:
-
 
                       - `Preempt`: allocate in current flavor if it's possible to preempt some workloads.
                       - `TryNextFlavor` (default): try next flavor even if there are enough
@@ -412,9 +403,7 @@ spec:
                   preemption describes policies to preempt Workloads from this ClusterQueue
                   or the ClusterQueue's cohort.
 
-
                   Preemption can happen in two scenarios:
-
 
                   - When a Workload fits within the nominal quota of the ClusterQueue, but
                     the quota is currently borrowed by other ClusterQueues in the cohort.
@@ -422,7 +411,6 @@ spec:
                     reclaim its nominal quota.
                   - When a Workload doesn't fit within the nominal quota of the ClusterQueue
                     and there are admitted Workloads in the ClusterQueue with lower priority.
-
 
                   The preemption algorithm tries to find a minimal set of Workloads to
                   preempt to accomomdate the pending Workload, preempting Workloads with
@@ -465,14 +453,17 @@ spec:
                       Workloads from other ClusterQueues in the cohort that are using more than
                       their nominal quota. The possible values are:
 
-
                       - `Never` (default): do not preempt Workloads in the cohort.
-                      - `LowerPriority`: if the pending Workload fits within the nominal
-                        quota of its ClusterQueue, only preempt Workloads in the cohort that have
-                        lower priority than the pending Workload.
-                      - `Any`: if the pending Workload fits within the nominal quota of its
-                        ClusterQueue, preempt any Workload in the cohort, irrespective of
-                        priority.
+                      - `LowerPriority`: **Classic Preemption** if the pending Workload
+                        fits within the nominal quota of its ClusterQueue, only preempt
+                        Workloads in the cohort that have lower priority than the pending
+                        Workload. **Fair Sharing** only preempt Workloads in the cohort that
+                        have lower priority than the pending Workload and that satisfy the
+                        fair sharing preemptionStategies.
+                      - `Any`: **Classic Preemption** if the pending Workload fits within
+                         the nominal quota of its ClusterQueue, preempt any Workload in the
+                         cohort, irrespective of priority. **Fair Sharing** preempt Workloads
+                         in the cohort that satisfy the fair sharing preemptionStrategies.
                     enum:
                     - Never
                     - LowerPriority
@@ -484,7 +475,6 @@ spec:
                       withinClusterQueue determines whether a pending Workload that doesn't fit
                       within the nominal quota for its ClusterQueue, can preempt active Workloads in
                       the ClusterQueue. The possible values are:
-
 
                       - `Never` (default): do not preempt Workloads in the ClusterQueue.
                       - `LowerPriority`: only preempt Workloads in the ClusterQueue that have
@@ -508,7 +498,6 @@ spec:
                   QueueingStrategy indicates the queueing strategy of the workloads
                   across the queues in this ClusterQueue.
                   Current Supported Strategies:
-
 
                   - StrictFIFO: workloads are ordered strictly by creation time.
                   Older workloads that can't be admitted will block admitting newer
@@ -596,8 +585,7 @@ spec:
                                     all the nominalQuota can be borrowed by other clusterQueues in the cohort.
                                     If not null, it must be non-negative.
                                     lendingLimit must be null if spec.cohort is empty.
-                                    This field is in alpha stage. To be able to use this field,
-                                    enable the feature gate LendingLimit, which is disabled by default.
+                                    This field is in beta stage and is enabled by default.
                                   pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                                   x-kubernetes-int-or-string: true
                                 name:
@@ -616,7 +604,6 @@ spec:
                                     and pods not managed by kueue). In an autoscaled cluster, nominalQuota
                                     should account for resources that can be provided by a component such as
                                     Kubernetes cluster-autoscaler.
-
 
                                     If the ClusterQueue belongs to a cohort, the sum of the quotas for each
                                     (flavor, resource) combination defines the maximum quantity that can be
@@ -660,9 +647,7 @@ spec:
                   stopPolicy - if set to a value different from None, the ClusterQueue is considered Inactive, no new reservation being
                   made.
 
-
                   Depending on its value, its associated workloads will:
-
 
                   - None - Workloads are admitted
                   - HoldAndDrain - Admitted workloads are evicted and Reserving workloads will cancel the reservation.
@@ -691,16 +676,8 @@ spec:
                   conditions hold the latest available observations of the ClusterQueue
                   current state.
                 items:
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource.\n---\nThis struct is intended for
-                    direct use as an array at the field path .status.conditions.  For
-                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
-                    observations of a foo's current state.\n\t    // Known .status.conditions.type
-                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
-                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
-                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
-                    \   // other fields\n\t}"
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
                       description: |-
@@ -741,12 +718,7 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        ---
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
-                        useful (see .node.status.conditions), the ability to deconflict is important.
-                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -775,6 +747,8 @@ spec:
                       the maximum possible share value.
                     format: int64
                     type: integer
+                required:
+                - weightedShare
                 type: object
               flavorsReservation:
                 description: |-
@@ -894,6 +868,9 @@ spec:
                 description: |-
                   PendingWorkloadsStatus contains the information exposed about the current
                   status of the pending workloads in the cluster queue.
+                  Deprecated: This field will be removed on v1beta2, use VisibilityOnDemand
+                  (https://kueue.sigs.k8s.io/docs/tasks/manage/monitor_pending_workloads/pending_workloads_on_demand/)
+                  instead.
                 properties:
                   clusterQueuePendingWorkload:
                     description: Head contains the list of top pending workloads.
@@ -940,8 +917,218 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    controller-gen.kubebuilder.io/version: v0.16.5
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: kueue
+    control-plane: controller-manager
+  name: cohorts.kueue.x-k8s.io
+spec:
+  group: kueue.x-k8s.io
+  names:
+    kind: Cohort
+    listKind: CohortList
+    plural: cohorts
+    singular: cohort
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Cohort is the Schema for the cohorts API. Using Hierarchical
+          Cohorts (any Cohort which has a parent) with Fair Sharing
+          results in undefined behavior in 0.9
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CohortSpec defines the desired state of Cohort
+            properties:
+              parent:
+                description: |-
+                  Parent references the name of the Cohort's parent, if
+                  any. It satisfies one of three cases:
+                  1) Unset. This Cohort is the root of its Cohort tree.
+                  2) References a non-existent Cohort. We use default Cohort (no borrowing/lending limits).
+                  3) References an existent Cohort.
+
+                  If a cycle is created, we disable all members of the
+                  Cohort, including ClusterQueues, until the cycle is
+                  removed.  We prevent further admission while the cycle
+                  exists.
+                maxLength: 253
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+              resourceGroups:
+                description: |-
+                  ResourceGroups describes groupings of Resources and
+                  Flavors.  Each ResourceGroup defines a list of Resources
+                  and a list of Flavors which provide quotas for these
+                  Resources. Each Resource and each Flavor may only form part
+                  of one ResourceGroup.  There may be up to 16 ResourceGroups
+                  within a Cohort.
+
+                  BorrowingLimit limits how much members of this Cohort
+                  subtree can borrow from the parent subtree.
+
+                  LendingLimit limits how much members of this Cohort subtree
+                  can lend to the parent subtree.
+
+                  Borrowing and Lending limits must only be set when the
+                  Cohort has a parent.  Otherwise, the Cohort create/update
+                  will be rejected by the webhook.
+                items:
+                  properties:
+                    coveredResources:
+                      description: |-
+                        coveredResources is the list of resources covered by the flavors in this
+                        group.
+                        Examples: cpu, memory, vendor.com/gpu.
+                        The list cannot be empty and it can contain up to 16 resources.
+                      items:
+                        description: ResourceName is the name identifying various
+                          resources in a ResourceList.
+                        type: string
+                      maxItems: 16
+                      minItems: 1
+                      type: array
+                    flavors:
+                      description: |-
+                        flavors is the list of flavors that provide the resources of this group.
+                        Typically, different flavors represent different hardware models
+                        (e.g., gpu models, cpu architectures) or pricing models (on-demand vs spot
+                        cpus).
+                        Each flavor MUST list all the resources listed for this group in the same
+                        order as the .resources field.
+                        The list cannot be empty and it can contain up to 16 flavors.
+                      items:
+                        properties:
+                          name:
+                            description: |-
+                              name of this flavor. The name should match the .metadata.name of a
+                              ResourceFlavor. If a matching ResourceFlavor does not exist, the
+                              ClusterQueue will have an Active condition set to False.
+                            maxLength: 253
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                          resources:
+                            description: |-
+                              resources is the list of quotas for this flavor per resource.
+                              There could be up to 16 resources.
+                            items:
+                              properties:
+                                borrowingLimit:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: |-
+                                    borrowingLimit is the maximum amount of quota for the [flavor, resource]
+                                    combination that this ClusterQueue is allowed to borrow from the unused
+                                    quota of other ClusterQueues in the same cohort.
+                                    In total, at a given time, Workloads in a ClusterQueue can consume a
+                                    quantity of quota equal to nominalQuota+borrowingLimit, assuming the other
+                                    ClusterQueues in the cohort have enough unused quota.
+                                    If null, it means that there is no borrowing limit.
+                                    If not null, it must be non-negative.
+                                    borrowingLimit must be null if spec.cohort is empty.
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                lendingLimit:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: |-
+                                    lendingLimit is the maximum amount of unused quota for the [flavor, resource]
+                                    combination that this ClusterQueue can lend to other ClusterQueues in the same cohort.
+                                    In total, at a given time, ClusterQueue reserves for its exclusive use
+                                    a quantity of quota equals to nominalQuota - lendingLimit.
+                                    If null, it means that there is no lending limit, meaning that
+                                    all the nominalQuota can be borrowed by other clusterQueues in the cohort.
+                                    If not null, it must be non-negative.
+                                    lendingLimit must be null if spec.cohort is empty.
+                                    This field is in beta stage and is enabled by default.
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                name:
+                                  description: name of this resource.
+                                  type: string
+                                nominalQuota:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: |-
+                                    nominalQuota is the quantity of this resource that is available for
+                                    Workloads admitted by this ClusterQueue at a point in time.
+                                    The nominalQuota must be non-negative.
+                                    nominalQuota should represent the resources in the cluster available for
+                                    running jobs (after discounting resources consumed by system components
+                                    and pods not managed by kueue). In an autoscaled cluster, nominalQuota
+                                    should account for resources that can be provided by a component such as
+                                    Kubernetes cluster-autoscaler.
+
+                                    If the ClusterQueue belongs to a cohort, the sum of the quotas for each
+                                    (flavor, resource) combination defines the maximum quantity that can be
+                                    allocated by a ClusterQueue in the cohort.
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                              required:
+                              - name
+                              - nominalQuota
+                              type: object
+                            maxItems: 16
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                        required:
+                        - name
+                        - resources
+                        type: object
+                      maxItems: 16
+                      minItems: 1
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - name
+                      x-kubernetes-list-type: map
+                  required:
+                  - coveredResources
+                  - flavors
+                  type: object
+                  x-kubernetes-validations:
+                  - message: flavors must have the same number of resources as the
+                      coveredResources
+                    rule: self.flavors.all(x, size(x.resources) == size(self.coveredResources))
+                maxItems: 16
+                type: array
+                x-kubernetes-list-type: atomic
+            type: object
+        type: object
+    served: true
+    storage: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
     cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
@@ -1007,6 +1194,22 @@ spec:
                 x-kubernetes-validations:
                 - message: field is immutable
                   rule: self == oldSelf
+              stopPolicy:
+                default: None
+                description: |-
+                  stopPolicy - if set to a value different from None, the LocalQueue is considered Inactive,
+                  no new reservation being made.
+
+                  Depending on its value, its associated workloads will:
+
+                  - None - Workloads are admitted
+                  - HoldAndDrain - Admitted workloads are evicted and Reserving workloads will cancel the reservation.
+                  - Hold - Admitted workloads will run to completion and Reserving workloads will cancel the reservation.
+                enum:
+                - None
+                - Hold
+                - HoldAndDrain
+                type: string
             type: object
           status:
             description: LocalQueueStatus defines the observed state of LocalQueue
@@ -1022,16 +1225,8 @@ spec:
                   Conditions hold the latest available observations of the LocalQueue
                   current state.
                 items:
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource.\n---\nThis struct is intended for
-                    direct use as an array at the field path .status.conditions.  For
-                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
-                    observations of a foo's current state.\n\t    // Known .status.conditions.type
-                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
-                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
-                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
-                    \   // other fields\n\t}"
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
                       description: |-
@@ -1072,12 +1267,7 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        ---
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
-                        useful (see .node.status.conditions), the ability to deconflict is important.
-                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -1129,6 +1319,78 @@ spec:
                   required:
                   - name
                   - resources
+                  type: object
+                maxItems: 16
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              flavors:
+                description: flavors lists all currently available ResourceFlavors
+                  in specified ClusterQueue.
+                items:
+                  properties:
+                    name:
+                      description: name of the flavor.
+                      maxLength: 253
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    nodeLabels:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        nodeLabels are labels that associate the ResourceFlavor with Nodes that
+                        have the same labels.
+                      maxProperties: 8
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    nodeTaints:
+                      description: |-
+                        nodeTaints are taints that the nodes associated with this ResourceFlavor
+                        have.
+                      items:
+                        description: |-
+                          The node this Taint is attached to has the "effect" on
+                          any pod that does not tolerate the Taint.
+                        properties:
+                          effect:
+                            description: |-
+                              Required. The effect of the taint on pods
+                              that do not tolerate the taint.
+                              Valid effects are NoSchedule, PreferNoSchedule and NoExecute.
+                            type: string
+                          key:
+                            description: Required. The taint key to be applied to
+                              a node.
+                            type: string
+                          timeAdded:
+                            description: |-
+                              TimeAdded represents the time at which the taint was added.
+                              It is only written for NoExecute taints.
+                            format: date-time
+                            type: string
+                          value:
+                            description: The taint value corresponding to the taint
+                              key.
+                            type: string
+                        required:
+                        - effect
+                        - key
+                        type: object
+                      maxItems: 8
+                      type: array
+                      x-kubernetes-list-type: atomic
+                    resources:
+                      description: resources used in the flavor.
+                      items:
+                        description: ResourceName is the name identifying various
+                          resources in a ResourceList.
+                        type: string
+                      maxItems: 16
+                      type: array
+                      x-kubernetes-list-type: set
+                  required:
+                  - name
                   type: object
                 maxItems: 16
                 type: array
@@ -1200,7 +1462,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
@@ -1215,7 +1477,7 @@ spec:
     singular: multikueuecluster
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - name: v1beta1
     schema:
       openAPIV3Schema:
         description: MultiKueueCluster is the Schema for the multikueue API
@@ -1246,7 +1508,6 @@ spec:
                     description: |-
                       Location of the KubeConfig.
 
-
                       If LocationType is Secret then Location is the name of the secret inside the namespace in
                       which the kueue controller manager is running. The config should be stored in the "kubeconfig" key.
                     type: string
@@ -1268,16 +1529,8 @@ spec:
             properties:
               conditions:
                 items:
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource.\n---\nThis struct is intended for
-                    direct use as an array at the field path .status.conditions.  For
-                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
-                    observations of a foo's current state.\n\t    // Known .status.conditions.type
-                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
-                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
-                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
-                    \   // other fields\n\t}"
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
                       description: |-
@@ -1318,12 +1571,7 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        ---
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
-                        useful (see .node.status.conditions), the ability to deconflict is important.
-                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -1349,7 +1597,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
@@ -1364,7 +1612,7 @@ spec:
     singular: multikueueconfig
   scope: Cluster
   versions:
-  - name: v1alpha1
+  - name: v1beta1
     schema:
       openAPIV3Schema:
         description: MultiKueueConfig is the Schema for the multikueue API
@@ -1409,7 +1657,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
@@ -1455,13 +1703,10 @@ spec:
                 description: |-
                   managedResources contains the list of resources managed by the autoscaling.
 
-
                   If empty, all resources are considered managed.
-
 
                   If not empty, the ProvisioningRequest will contain only the podsets that are
                   requesting at least one of them.
-
 
                   If none of the workloads podsets is requesting at least a managed resource,
                   the workload is considered ready.
@@ -1488,6 +1733,56 @@ spec:
                 maxLength: 253
                 pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                 type: string
+              retryStrategy:
+                default:
+                  backoffBaseSeconds: 60
+                  backoffLimitCount: 3
+                  backoffMaxSeconds: 1800
+                description: |-
+                  retryStrategy defines strategy for retrying ProvisioningRequest.
+                  If null, then the default configuration is applied with the following parameter values:
+                  backoffLimitCount:  3
+                  backoffBaseSeconds: 60 - 1 min
+                  backoffMaxSeconds:  1800 - 30 mins
+
+                  To switch off retry mechanism
+                  set retryStrategy.backoffLimitCount to 0.
+                properties:
+                  backoffBaseSeconds:
+                    default: 60
+                    description: |-
+                      BackoffBaseSeconds defines the base for the exponential backoff for
+                      re-queuing an evicted workload.
+
+                      Defaults to 60.
+                    format: int32
+                    type: integer
+                  backoffLimitCount:
+                    default: 3
+                    description: |-
+                      BackoffLimitCount defines the maximum number of re-queuing retries.
+                      Once the number is reached, the workload is deactivated (`.spec.activate`=`false`).
+
+                      Every backoff duration is about "b*2^(n-1)+Rand" where:
+                      - "b" represents the base set by "BackoffBaseSeconds" parameter,
+                      - "n" represents the "workloadStatus.requeueState.count",
+                      - "Rand" represents the random jitter.
+                      During this time, the workload is taken as an inadmissible and
+                      other workloads will have a chance to be admitted.
+                      By default, the consecutive requeue delays are around: (60s, 120s, 240s, ...).
+
+                      Defaults to 3.
+                    format: int32
+                    type: integer
+                  backoffMaxSeconds:
+                    default: 1800
+                    description: |-
+                      BackoffMaxSeconds defines the maximum backoff time to re-queue an evicted workload.
+
+                      Defaults to 1800.
+                    format: int32
+                    type: integer
+                type: object
             required:
             - provisioningClassName
             type: object
@@ -1499,7 +1794,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
@@ -1514,6 +1809,7 @@ spec:
     shortNames:
     - flavor
     - flavors
+    - rf
     singular: resourceflavor
   scope: Cluster
   versions:
@@ -1555,7 +1851,6 @@ spec:
                   nodeLabels should be injected into the pods of the Workload by the
                   controller that integrates with the Workload object.
 
-
                   nodeLabels can be up to 8 elements.
                 maxProperties: 8
                 type: object
@@ -1567,10 +1862,8 @@ spec:
                   Workloads' podsets must have tolerations for these nodeTaints in order to
                   get assigned this ResourceFlavor during admission.
 
-
                   An example of a nodeTaint is
                   cloud.provider.com/preemptible="true":NoSchedule
-
 
                   nodeTaints can be up to 8 elements.
                 items:
@@ -1613,10 +1906,8 @@ spec:
                   tolerations are extra tolerations that will be added to the pods admitted in
                   the quota associated with this resource flavor.
 
-
                   An example of a toleration is
                   cloud.provider.com/preemptible="true":NoSchedule
-
 
                   tolerations can be up to 8 elements.
                 items:
@@ -1675,6 +1966,104 @@ spec:
                     ''NoExecute'''
                   rule: self.all(x, !has(x.effect) || x.effect in ['NoSchedule', 'PreferNoSchedule',
                     'NoExecute'])
+              topologyName:
+                description: |-
+                  topologyName indicates topology for the TAS ResourceFlavor.
+                  When specified, it enables scraping of the topology information from the
+                  nodes matching to the Resource Flavor node labels.
+                maxLength: 253
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+            type: object
+            x-kubernetes-validations:
+            - message: at least one nodeLabel is required when topology is set
+              rule: '!has(self.topologyName) || self.nodeLabels.size() >= 1'
+            - message: resourceFlavorSpec are immutable when topologyName is set
+              rule: '!has(oldSelf.topologyName) || self == oldSelf'
+        type: object
+    served: true
+    storage: true
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.5
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: kueue
+    control-plane: controller-manager
+  name: topologies.kueue.x-k8s.io
+spec:
+  group: kueue.x-k8s.io
+  names:
+    kind: Topology
+    listKind: TopologyList
+    plural: topologies
+    singular: topology
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Topology is the Schema for the topology API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TopologySpec defines the desired state of Topology
+            properties:
+              levels:
+                description: levels define the levels of topology.
+                items:
+                  description: TopologyLevel defines the desired state of TopologyLevel
+                  properties:
+                    nodeLabel:
+                      description: |-
+                        nodeLabel indicates the name of the node label for a specific topology
+                        level.
+
+                        Examples:
+                        - cloud.provider.com/topology-block
+                        - cloud.provider.com/topology-rack
+                      maxLength: 316
+                      minLength: 1
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - nodeLabel
+                  type: object
+                maxItems: 8
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: atomic
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+                - message: must be unique
+                  rule: size(self.filter(i, size(self.filter(j, j == i)) > 1)) ==
+                    0
+                - message: the kubernetes.io/hostname label can only be used at the
+                    lowest level of topology
+                  rule: size(self.filter(i, i.nodeLabel == 'kubernetes.io/hostname'))
+                    == 0 || self[size(self) - 1].nodeLabel == 'kubernetes.io/hostname'
+            required:
+            - levels
             type: object
         type: object
     served: true
@@ -1684,7 +2073,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
@@ -1751,7 +2140,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.16.5
   labels:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
@@ -1780,6 +2169,10 @@ spec:
     - description: Admission status
       jsonPath: .status.conditions[?(@.type=='Admitted')].status
       name: Admitted
+      type: string
+    - description: Workload finished
+      jsonPath: .status.conditions[?(@.type=='Finished')].status
+      name: Finished
       type: string
     - description: Time this workload was created
       jsonPath: .metadata.creationTimestamp
@@ -1817,13 +2210,20 @@ spec:
                   Changing active from true to false will evict any running workloads.
                   Possible values are:
 
-
                     - false: indicates that a workload should never be admitted and evicts running workloads
                     - true: indicates that a workload can be evaluated for admission into it's respective queue.
 
-
                   Defaults to true
                 type: boolean
+              maximumExecutionTimeSeconds:
+                description: |-
+                  maximumExecutionTimeSeconds if provided, determines the maximum time, in seconds,
+                  the workload can be admitted before it's automatically deactivated.
+
+                  If unspecified, no execution time limit is enforced on the Workload.
+                format: int32
+                minimum: 1
+                type: integer
               podSets:
                 description: |-
                   podSets is a list of sets of homogeneous pods, each described by a Pod spec
@@ -1843,13 +2243,10 @@ spec:
                         minCount is the minimum number of pods for the spec acceptable
                         if the workload supports partial admission.
 
-
                         If not provided, partial admission for the current PodSet is not
                         enabled.
 
-
                         Only one podSet within the workload can use this.
-
 
                         This is an alpha field and requires enabling PartialAdmission feature gate.
                       format: int32
@@ -1865,14 +2262,11 @@ spec:
                       description: |-
                         template is the Pod template.
 
-
                         The only allowed fields in template.metadata are labels and annotations.
-
 
                         If requests are omitted for a container or initContainer,
                         they default to the limits if they are explicitly specified for the
                         container or initContainer.
-
 
                         During admission, the rules in nodeSelector and
                         nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution that match
@@ -2204,7 +2598,7 @@ spec:
                                                   pod labels will be ignored. The default value is empty.
                                                   The same key is forbidden to exist in both matchLabelKeys and labelSelector.
                                                   Also, matchLabelKeys cannot be set when labelSelector isn't set.
-                                                  This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.
+                                                  This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
                                                 items:
                                                   type: string
                                                 type: array
@@ -2219,7 +2613,7 @@ spec:
                                                   pod labels will be ignored. The default value is empty.
                                                   The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
                                                   Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
-                                                  This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.
+                                                  This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
                                                 items:
                                                   type: string
                                                 type: array
@@ -2389,7 +2783,7 @@ spec:
                                               pod labels will be ignored. The default value is empty.
                                               The same key is forbidden to exist in both matchLabelKeys and labelSelector.
                                               Also, matchLabelKeys cannot be set when labelSelector isn't set.
-                                              This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.
+                                              This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
                                             items:
                                               type: string
                                             type: array
@@ -2404,7 +2798,7 @@ spec:
                                               pod labels will be ignored. The default value is empty.
                                               The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
                                               Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
-                                              This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.
+                                              This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
                                             items:
                                               type: string
                                             type: array
@@ -2573,7 +2967,7 @@ spec:
                                                   pod labels will be ignored. The default value is empty.
                                                   The same key is forbidden to exist in both matchLabelKeys and labelSelector.
                                                   Also, matchLabelKeys cannot be set when labelSelector isn't set.
-                                                  This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.
+                                                  This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
                                                 items:
                                                   type: string
                                                 type: array
@@ -2588,7 +2982,7 @@ spec:
                                                   pod labels will be ignored. The default value is empty.
                                                   The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
                                                   Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
-                                                  This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.
+                                                  This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
                                                 items:
                                                   type: string
                                                 type: array
@@ -2758,7 +3152,7 @@ spec:
                                               pod labels will be ignored. The default value is empty.
                                               The same key is forbidden to exist in both matchLabelKeys and labelSelector.
                                               Also, matchLabelKeys cannot be set when labelSelector isn't set.
-                                              This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.
+                                              This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
                                             items:
                                               type: string
                                             type: array
@@ -2773,7 +3167,7 @@ spec:
                                               pod labels will be ignored. The default value is empty.
                                               The same key is forbidden to exist in both mismatchLabelKeys and labelSelector.
                                               Also, mismatchLabelKeys cannot be set when labelSelector isn't set.
-                                              This is an alpha field and requires enabling MatchLabelKeysInPodAffinity feature gate.
+                                              This is a beta field and requires enabling MatchLabelKeysInPodAffinity feature gate (enabled by default).
                                             items:
                                               type: string
                                             type: array
@@ -2941,9 +3335,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: Specify whether the
@@ -3014,9 +3406,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: Specify whether the
@@ -3056,9 +3446,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the ConfigMap
@@ -3081,9 +3469,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the Secret
@@ -3387,10 +3773,10 @@ spec:
                                             format: int32
                                             type: integer
                                           service:
+                                            default: ""
                                             description: |-
                                               Service is the name of the service to place in the gRPC HealthCheckRequest
                                               (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-
 
                                               If this is not specified, the default behavior is defined by gRPC.
                                             type: string
@@ -3604,10 +3990,10 @@ spec:
                                             format: int32
                                             type: integer
                                           service:
+                                            default: ""
                                             description: |-
                                               Service is the name of the service to place in the gRPC HealthCheckRequest
                                               (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-
 
                                               If this is not specified, the default behavior is defined by gRPC.
                                             type: string
@@ -3758,10 +4144,8 @@ spec:
                                           Claims lists the names of resources, defined in spec.resourceClaims,
                                           that are used by this container.
 
-
                                           This is an alpha field and requires enabling the
                                           DynamicResourceAllocation feature gate.
-
 
                                           This field is immutable. It can only be set for containers.
                                         items:
@@ -3773,6 +4157,12 @@ spec:
                                                 Name must match the name of one entry in pod.spec.resourceClaims of
                                                 the Pod where this field is used. It makes that resource available
                                                 inside a container.
+                                              type: string
+                                            request:
+                                              description: |-
+                                                Request is the name chosen for a request in the referenced claim.
+                                                If empty, everything from the claim is made available, otherwise
+                                                only the result of this request.
                                               type: string
                                           required:
                                           - name
@@ -3897,7 +4287,7 @@ spec:
                                       procMount:
                                         description: |-
                                           procMount denotes the type of proc mount to use for the containers.
-                                          The default is DefaultProcMount which uses the container runtime defaults for
+                                          The default value is Default which uses the container runtime defaults for
                                           readonly paths and masked paths.
                                           This requires the ProcMountType feature flag to be enabled.
                                           Note that this field cannot be set when spec.os.name is windows.
@@ -3978,7 +4368,6 @@ spec:
                                             description: |-
                                               type indicates which kind of seccomp profile will be applied.
                                               Valid options are:
-
 
                                               Localhost - a profile defined in a file on the node should be used.
                                               RuntimeDefault - the container runtime default profile should be used.
@@ -4063,10 +4452,10 @@ spec:
                                             format: int32
                                             type: integer
                                           service:
+                                            default: ""
                                             description: |-
                                               Service is the name of the service to place in the gRPC HealthCheckRequest
                                               (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-
 
                                               If this is not specified, the default behavior is defined by gRPC.
                                             type: string
@@ -4285,9 +4674,7 @@ spec:
                                             RecursiveReadOnly specifies whether read-only mounts should be handled
                                             recursively.
 
-
                                             If ReadOnly is false, this field has no meaning and must be unspecified.
-
 
                                             If ReadOnly is true, and this field is set to Disabled, the mount is not made
                                             recursively read-only.  If this field is set to IfPossible, the mount is made
@@ -4296,10 +4683,8 @@ spec:
                                             supported by the container runtime, otherwise the pod will not be started and
                                             an error will be generated to indicate the reason.
 
-
                                             If this field is set to IfPossible or Enabled, MountPropagation must be set to
                                             None (or be unspecified, which defaults to None).
-
 
                                             If this field is not specified, it is treated as an equivalent of Disabled.
                                           type: string
@@ -4409,7 +4794,6 @@ spec:
                                   removed or restarted. The kubelet may evict a Pod if an ephemeral container causes the
                                   Pod to exceed its resource allocation.
 
-
                                   To add an ephemeral container, use the ephemeralcontainers subresource of an existing
                                   Pod. Ephemeral containers may not be removed or restarted.
                                 properties:
@@ -4483,9 +4867,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: Specify whether the
@@ -4556,9 +4938,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: Specify whether the
@@ -4598,9 +4978,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the ConfigMap
@@ -4623,9 +5001,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the Secret
@@ -4923,10 +5299,10 @@ spec:
                                             format: int32
                                             type: integer
                                           service:
+                                            default: ""
                                             description: |-
                                               Service is the name of the service to place in the gRPC HealthCheckRequest
                                               (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-
 
                                               If this is not specified, the default behavior is defined by gRPC.
                                             type: string
@@ -5130,10 +5506,10 @@ spec:
                                             format: int32
                                             type: integer
                                           service:
+                                            default: ""
                                             description: |-
                                               Service is the name of the service to place in the gRPC HealthCheckRequest
                                               (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-
 
                                               If this is not specified, the default behavior is defined by gRPC.
                                             type: string
@@ -5283,10 +5659,8 @@ spec:
                                           Claims lists the names of resources, defined in spec.resourceClaims,
                                           that are used by this container.
 
-
                                           This is an alpha field and requires enabling the
                                           DynamicResourceAllocation feature gate.
-
 
                                           This field is immutable. It can only be set for containers.
                                         items:
@@ -5298,6 +5672,12 @@ spec:
                                                 Name must match the name of one entry in pod.spec.resourceClaims of
                                                 the Pod where this field is used. It makes that resource available
                                                 inside a container.
+                                              type: string
+                                            request:
+                                              description: |-
+                                                Request is the name chosen for a request in the referenced claim.
+                                                If empty, everything from the claim is made available, otherwise
+                                                only the result of this request.
                                               type: string
                                           required:
                                           - name
@@ -5410,7 +5790,7 @@ spec:
                                       procMount:
                                         description: |-
                                           procMount denotes the type of proc mount to use for the containers.
-                                          The default is DefaultProcMount which uses the container runtime defaults for
+                                          The default value is Default which uses the container runtime defaults for
                                           readonly paths and masked paths.
                                           This requires the ProcMountType feature flag to be enabled.
                                           Note that this field cannot be set when spec.os.name is windows.
@@ -5492,7 +5872,6 @@ spec:
                                               type indicates which kind of seccomp profile will be applied.
                                               Valid options are:
 
-
                                               Localhost - a profile defined in a file on the node should be used.
                                               RuntimeDefault - the container runtime default profile should be used.
                                               Unconfined - no profile should be applied.
@@ -5570,10 +5949,10 @@ spec:
                                             format: int32
                                             type: integer
                                           service:
+                                            default: ""
                                             description: |-
                                               Service is the name of the service to place in the gRPC HealthCheckRequest
                                               (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-
 
                                               If this is not specified, the default behavior is defined by gRPC.
                                             type: string
@@ -5713,7 +6092,6 @@ spec:
                                       The ephemeral container will be run in the namespaces (IPC, PID, etc) of this container.
                                       If not set then the ephemeral container uses the namespaces configured in the Pod spec.
 
-
                                       The container runtime must implement support for this feature. If the runtime does not
                                       support namespace targeting then the result of setting this field is undefined.
                                     type: string
@@ -5802,9 +6180,7 @@ spec:
                                             RecursiveReadOnly specifies whether read-only mounts should be handled
                                             recursively.
 
-
                                             If ReadOnly is false, this field has no meaning and must be unspecified.
-
 
                                             If ReadOnly is true, and this field is set to Disabled, the mount is not made
                                             recursively read-only.  If this field is set to IfPossible, the mount is made
@@ -5813,10 +6189,8 @@ spec:
                                             supported by the container runtime, otherwise the pod will not be started and
                                             an error will be generated to indicate the reason.
 
-
                                             If this field is set to IfPossible or Enabled, MountPropagation must be set to
                                             None (or be unspecified, which defaults to None).
-
 
                                             If this field is not specified, it is treated as an equivalent of Disabled.
                                           type: string
@@ -5929,9 +6303,7 @@ spec:
                                       This field is effectively required, but due to backwards compatibility is
                                       allowed to be empty. Instances of this type with an empty value here are
                                       almost certainly wrong.
-                                      TODO: Add other useful fields. apiVersion, kind, uid?
                                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                      TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                     type: string
                                 type: object
                                 x-kubernetes-map-type: atomic
@@ -6028,9 +6400,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: Specify whether the
@@ -6101,9 +6471,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: Specify whether the
@@ -6143,9 +6511,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the ConfigMap
@@ -6168,9 +6534,7 @@ spec:
                                                 This field is effectively required, but due to backwards compatibility is
                                                 allowed to be empty. Instances of this type with an empty value here are
                                                 almost certainly wrong.
-                                                TODO: Add other useful fields. apiVersion, kind, uid?
                                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                               type: string
                                             optional:
                                               description: Specify whether the Secret
@@ -6474,10 +6838,10 @@ spec:
                                             format: int32
                                             type: integer
                                           service:
+                                            default: ""
                                             description: |-
                                               Service is the name of the service to place in the gRPC HealthCheckRequest
                                               (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-
 
                                               If this is not specified, the default behavior is defined by gRPC.
                                             type: string
@@ -6691,10 +7055,10 @@ spec:
                                             format: int32
                                             type: integer
                                           service:
+                                            default: ""
                                             description: |-
                                               Service is the name of the service to place in the gRPC HealthCheckRequest
                                               (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-
 
                                               If this is not specified, the default behavior is defined by gRPC.
                                             type: string
@@ -6845,10 +7209,8 @@ spec:
                                           Claims lists the names of resources, defined in spec.resourceClaims,
                                           that are used by this container.
 
-
                                           This is an alpha field and requires enabling the
                                           DynamicResourceAllocation feature gate.
-
 
                                           This field is immutable. It can only be set for containers.
                                         items:
@@ -6860,6 +7222,12 @@ spec:
                                                 Name must match the name of one entry in pod.spec.resourceClaims of
                                                 the Pod where this field is used. It makes that resource available
                                                 inside a container.
+                                              type: string
+                                            request:
+                                              description: |-
+                                                Request is the name chosen for a request in the referenced claim.
+                                                If empty, everything from the claim is made available, otherwise
+                                                only the result of this request.
                                               type: string
                                           required:
                                           - name
@@ -6984,7 +7352,7 @@ spec:
                                       procMount:
                                         description: |-
                                           procMount denotes the type of proc mount to use for the containers.
-                                          The default is DefaultProcMount which uses the container runtime defaults for
+                                          The default value is Default which uses the container runtime defaults for
                                           readonly paths and masked paths.
                                           This requires the ProcMountType feature flag to be enabled.
                                           Note that this field cannot be set when spec.os.name is windows.
@@ -7065,7 +7433,6 @@ spec:
                                             description: |-
                                               type indicates which kind of seccomp profile will be applied.
                                               Valid options are:
-
 
                                               Localhost - a profile defined in a file on the node should be used.
                                               RuntimeDefault - the container runtime default profile should be used.
@@ -7150,10 +7517,10 @@ spec:
                                             format: int32
                                             type: integer
                                           service:
+                                            default: ""
                                             description: |-
                                               Service is the name of the service to place in the gRPC HealthCheckRequest
                                               (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
-
 
                                               If this is not specified, the default behavior is defined by gRPC.
                                             type: string
@@ -7372,9 +7739,7 @@ spec:
                                             RecursiveReadOnly specifies whether read-only mounts should be handled
                                             recursively.
 
-
                                             If ReadOnly is false, this field has no meaning and must be unspecified.
-
 
                                             If ReadOnly is true, and this field is set to Disabled, the mount is not made
                                             recursively read-only.  If this field is set to IfPossible, the mount is made
@@ -7383,10 +7748,8 @@ spec:
                                             supported by the container runtime, otherwise the pod will not be started and
                                             an error will be generated to indicate the reason.
 
-
                                             If this field is set to IfPossible or Enabled, MountPropagation must be set to
                                             None (or be unspecified, which defaults to None).
-
 
                                             If this field is not specified, it is treated as an equivalent of Disabled.
                                           type: string
@@ -7426,9 +7789,11 @@ spec:
                               x-kubernetes-list-type: map
                             nodeName:
                               description: |-
-                                NodeName is a request to schedule this pod onto a specific node. If it is non-empty,
-                                the scheduler simply schedules this pod onto that node, assuming that it fits resource
-                                requirements.
+                                NodeName indicates in which node this pod is scheduled.
+                                If empty, this pod is a candidate for scheduling by the scheduler defined in schedulerName.
+                                Once this field is set, the kubelet for this node becomes responsible for the lifecycle of this pod.
+                                This field should not be used to express a desire for the pod to be scheduled on a specific node.
+                                https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodename
                               type: string
                             nodeSelector:
                               additionalProperties:
@@ -7444,10 +7809,8 @@ spec:
                                 Specifies the OS of the containers in the pod.
                                 Some pod and container fields are restricted if this is set.
 
-
                                 If the OS field is set to linux, the following fields must be unset:
                                 -securityContext.windowsOptions
-
 
                                 If the OS field is set to windows, following fields must be unset:
                                 - spec.hostPID
@@ -7463,6 +7826,7 @@ spec:
                                 - spec.securityContext.runAsUser
                                 - spec.securityContext.runAsGroup
                                 - spec.securityContext.supplementalGroups
+                                - spec.securityContext.supplementalGroupsPolicy
                                 - spec.containers[*].securityContext.appArmorProfile
                                 - spec.containers[*].securityContext.seLinuxOptions
                                 - spec.containers[*].securityContext.seccompProfile
@@ -7550,15 +7914,16 @@ spec:
                                 will be made available to those containers which consume them
                                 by name.
 
-
                                 This is an alpha field and requires enabling the
                                 DynamicResourceAllocation feature gate.
-
 
                                 This field is immutable.
                               items:
                                 description: |-
-                                  PodResourceClaim references exactly one ResourceClaim through a ClaimSource.
+                                  PodResourceClaim references exactly one ResourceClaim, either directly
+                                  or by naming a ResourceClaimTemplate which is then turned into a ResourceClaim
+                                  for the pod.
+
                                   It adds a name to it that uniquely identifies the ResourceClaim inside the Pod.
                                   Containers that need access to the ResourceClaim reference it with this name.
                                 properties:
@@ -7567,33 +7932,32 @@ spec:
                                       Name uniquely identifies this resource claim inside the pod.
                                       This must be a DNS_LABEL.
                                     type: string
-                                  source:
-                                    description: Source describes where to find the
+                                  resourceClaimName:
+                                    description: |-
+                                      ResourceClaimName is the name of a ResourceClaim object in the same
+                                      namespace as this pod.
+
+                                      Exactly one of ResourceClaimName and ResourceClaimTemplateName must
+                                      be set.
+                                    type: string
+                                  resourceClaimTemplateName:
+                                    description: |-
+                                      ResourceClaimTemplateName is the name of a ResourceClaimTemplate
+                                      object in the same namespace as this pod.
+
+                                      The template will be used to create a new ResourceClaim, which will
+                                      be bound to this pod. When this pod is deleted, the ResourceClaim
+                                      will also be deleted. The pod name and resource name, along with a
+                                      generated component, will be used to form a unique name for the
+                                      ResourceClaim, which will be recorded in pod.status.resourceClaimStatuses.
+
+                                      This field is immutable and no changes will be made to the
+                                      corresponding ResourceClaim by the control plane after creating the
                                       ResourceClaim.
-                                    properties:
-                                      resourceClaimName:
-                                        description: |-
-                                          ResourceClaimName is the name of a ResourceClaim object in the same
-                                          namespace as this pod.
-                                        type: string
-                                      resourceClaimTemplateName:
-                                        description: |-
-                                          ResourceClaimTemplateName is the name of a ResourceClaimTemplate
-                                          object in the same namespace as this pod.
 
-
-                                          The template will be used to create a new ResourceClaim, which will
-                                          be bound to this pod. When this pod is deleted, the ResourceClaim
-                                          will also be deleted. The pod name and resource name, along with a
-                                          generated component, will be used to form a unique name for the
-                                          ResourceClaim, which will be recorded in pod.status.resourceClaimStatuses.
-
-
-                                          This field is immutable and no changes will be made to the
-                                          corresponding ResourceClaim by the control plane after creating the
-                                          ResourceClaim.
-                                        type: string
-                                    type: object
+                                      Exactly one of ResourceClaimName and ResourceClaimTemplateName must
+                                      be set.
+                                    type: string
                                 required:
                                 - name
                                 type: object
@@ -7626,7 +7990,6 @@ spec:
                                 SchedulingGates is an opaque list of values that if specified will block scheduling the pod.
                                 If schedulingGates is not empty, the pod will stay in the SchedulingGated state and the
                                 scheduler will not attempt to schedule the pod.
-
 
                                 SchedulingGates can only be set at pod creation time, and be removed only afterwards.
                               items:
@@ -7679,11 +8042,9 @@ spec:
                                     Some volume types allow the Kubelet to change the ownership of that volume
                                     to be owned by the pod:
 
-
                                     1. The owning GID will be the FSGroup
                                     2. The setgid bit is set (new files created in the volume will be owned by FSGroup)
                                     3. The permission bits are OR'd with rw-rw----
-
 
                                     If unset, the Kubelet will not modify the ownership and permissions of any volume.
                                     Note that this field cannot be set when spec.os.name is windows.
@@ -7771,7 +8132,6 @@ spec:
                                         type indicates which kind of seccomp profile will be applied.
                                         Valid options are:
 
-
                                         Localhost - a profile defined in a file on the node should be used.
                                         RuntimeDefault - the container runtime default profile should be used.
                                         Unconfined - no profile should be applied.
@@ -7781,18 +8141,28 @@ spec:
                                   type: object
                                 supplementalGroups:
                                   description: |-
-                                    A list of groups applied to the first process run in each container, in addition
-                                    to the container's primary GID, the fsGroup (if specified), and group memberships
-                                    defined in the container image for the uid of the container process. If unspecified,
-                                    no additional groups are added to any container. Note that group memberships
-                                    defined in the container image for the uid of the container process are still effective,
-                                    even if they are not included in this list.
+                                    A list of groups applied to the first process run in each container, in
+                                    addition to the container's primary GID and fsGroup (if specified).  If
+                                    the SupplementalGroupsPolicy feature is enabled, the
+                                    supplementalGroupsPolicy field determines whether these are in addition
+                                    to or instead of any group memberships defined in the container image.
+                                    If unspecified, no additional groups are added, though group memberships
+                                    defined in the container image may still be used, depending on the
+                                    supplementalGroupsPolicy field.
                                     Note that this field cannot be set when spec.os.name is windows.
                                   items:
                                     format: int64
                                     type: integer
                                   type: array
                                   x-kubernetes-list-type: atomic
+                                supplementalGroupsPolicy:
+                                  description: |-
+                                    Defines how supplemental groups of the first container processes are calculated.
+                                    Valid values are "Merge" and "Strict". If not specified, "Merge" is used.
+                                    (Alpha) Using the field requires the SupplementalGroupsPolicy feature gate to be enabled
+                                    and the container runtime must implement support for this feature.
+                                    Note that this field cannot be set when spec.os.name is windows.
+                                  type: string
                                 sysctls:
                                   description: |-
                                     Sysctls hold a list of namespaced sysctls used for the pod. Pods with unsupported
@@ -8000,7 +8370,6 @@ spec:
                                       Keys that don't exist in the incoming pod labels will
                                       be ignored. A null or empty list means only match against labelSelector.
 
-
                                       This is a beta field and requires the MatchLabelKeysInPodTopologySpread feature gate to be enabled (enabled by default).
                                     items:
                                       type: string
@@ -8040,7 +8409,6 @@ spec:
                                       Valid values are integers greater than 0.
                                       When value is not nil, WhenUnsatisfiable must be DoNotSchedule.
 
-
                                       For example, in a 3-zone cluster, MaxSkew is set to 2, MinDomains is set to 5 and pods with the same
                                       labelSelector spread as 2/2/2:
                                       | zone1 | zone2 | zone3 |
@@ -8058,7 +8426,6 @@ spec:
                                       - Honor: only nodes matching nodeAffinity/nodeSelector are included in the calculations.
                                       - Ignore: nodeAffinity/nodeSelector are ignored. All nodes are included in the calculations.
 
-
                                       If this value is nil, the behavior is equivalent to the Honor policy.
                                       This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.
                                     type: string
@@ -8069,7 +8436,6 @@ spec:
                                       - Honor: nodes without taints, along with tainted nodes for which the incoming pod
                                       has a toleration, are included.
                                       - Ignore: node taints are ignored. All nodes are included.
-
 
                                       If this value is nil, the behavior is equivalent to the Ignore policy.
                                       This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.
@@ -8139,7 +8505,6 @@ spec:
                                           Tip: Ensure that the filesystem type is supported by the host operating system.
                                           Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
                                           More info: https://kubernetes.io/docs/concepts/storage/volumes#awselasticblockstore
-                                          TODO: how do we prevent errors in the filesystem from compromising the machine
                                         type: string
                                       partition:
                                         description: |-
@@ -8180,6 +8545,7 @@ spec:
                                           in the blob storage
                                         type: string
                                       fsType:
+                                        default: ext4
                                         description: |-
                                           fsType is Filesystem type to mount.
                                           Must be a filesystem type supported by the host operating system.
@@ -8193,6 +8559,7 @@ spec:
                                           availability set). defaults to shared'
                                         type: string
                                       readOnly:
+                                        default: false
                                         description: |-
                                           readOnly Defaults to false (read/write). ReadOnly here will force
                                           the ReadOnly setting in VolumeMounts.
@@ -8264,9 +8631,7 @@ spec:
                                               This field is effectively required, but due to backwards compatibility is
                                               allowed to be empty. Instances of this type with an empty value here are
                                               almost certainly wrong.
-                                              TODO: Add other useful fields. apiVersion, kind, uid?
                                               More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                              TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                             type: string
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -8308,9 +8673,7 @@ spec:
                                               This field is effectively required, but due to backwards compatibility is
                                               allowed to be empty. Instances of this type with an empty value here are
                                               almost certainly wrong.
-                                              TODO: Add other useful fields. apiVersion, kind, uid?
                                               More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                              TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                             type: string
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -8383,9 +8746,7 @@ spec:
                                           This field is effectively required, but due to backwards compatibility is
                                           allowed to be empty. Instances of this type with an empty value here are
                                           almost certainly wrong.
-                                          TODO: Add other useful fields. apiVersion, kind, uid?
                                           More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                          TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                         type: string
                                       optional:
                                         description: optional specify whether the
@@ -8424,9 +8785,7 @@ spec:
                                               This field is effectively required, but due to backwards compatibility is
                                               allowed to be empty. Instances of this type with an empty value here are
                                               almost certainly wrong.
-                                              TODO: Add other useful fields. apiVersion, kind, uid?
                                               More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                              TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                             type: string
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -8570,7 +8929,6 @@ spec:
                                       The volume's lifecycle is tied to the pod that defines it - it will be created before the pod starts,
                                       and deleted when the pod is removed.
 
-
                                       Use this if:
                                       a) the volume is only needed while the pod runs,
                                       b) features of normal volumes like restoring from snapshot or capacity
@@ -8581,16 +8939,13 @@ spec:
                                          information on the connection between this volume type
                                          and PersistentVolumeClaim).
 
-
                                       Use PersistentVolumeClaim or one of the vendor-specific
                                       APIs for volumes that persist for longer than the lifecycle
                                       of an individual pod.
 
-
                                       Use CSI for light-weight local ephemeral volumes if the CSI driver is meant to
                                       be used that way - see the documentation of the driver for
                                       more information.
-
 
                                       A pod can use both types of ephemeral volumes and
                                       persistent volumes at the same time.
@@ -8605,7 +8960,6 @@ spec:
                                           entry. Pod validation will reject the pod if the concatenated name
                                           is not valid for a PVC (for example, too long).
 
-
                                           An existing PVC with that name that is not owned by the pod
                                           will *not* be used for the pod to avoid using an unrelated
                                           volume by mistake. Starting the pod is then blocked until
@@ -8615,10 +8969,8 @@ spec:
                                           this should not be necessary, but it may be useful when
                                           manually reconstructing a broken cluster.
 
-
                                           This field is read-only and no changes will be made by Kubernetes
                                           to the PVC after it has been created.
-
 
                                           Required, must not be nil.
                                         properties:
@@ -8841,7 +9193,7 @@ spec:
                                                   set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
                                                   exists.
                                                   More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
-                                                  (Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.
+                                                  (Beta) Using this field requires the VolumeAttributesClass feature gate to be enabled (off by default).
                                                 type: string
                                               volumeMode:
                                                 description: |-
@@ -8868,7 +9220,6 @@ spec:
                                           fsType is the filesystem type to mount.
                                           Must be a filesystem type supported by the host operating system.
                                           Ex. "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
-                                          TODO: how do we prevent errors in the filesystem from compromising the machine
                                         type: string
                                       lun:
                                         description: 'lun is Optional: FC target lun
@@ -8937,9 +9288,7 @@ spec:
                                               This field is effectively required, but due to backwards compatibility is
                                               allowed to be empty. Instances of this type with an empty value here are
                                               almost certainly wrong.
-                                              TODO: Add other useful fields. apiVersion, kind, uid?
                                               More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                              TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                             type: string
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -8974,7 +9323,6 @@ spec:
                                           Tip: Ensure that the filesystem type is supported by the host operating system.
                                           Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
                                           More info: https://kubernetes.io/docs/concepts/storage/volumes#gcepersistentdisk
-                                          TODO: how do we prevent errors in the filesystem from compromising the machine
                                         type: string
                                       partition:
                                         description: |-
@@ -9055,9 +9403,6 @@ spec:
                                       used for system agents or other privileged things that are allowed
                                       to see the host machine. Most containers will NOT need this.
                                       More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
-                                      ---
-                                      TODO(jonesdl) We need to restrict who can use host directory mounts and who can/can not
-                                      mount host directories as read/write.
                                     properties:
                                       path:
                                         description: |-
@@ -9073,6 +9418,41 @@ spec:
                                         type: string
                                     required:
                                     - path
+                                    type: object
+                                  image:
+                                    description: |-
+                                      image represents an OCI object (a container image or artifact) pulled and mounted on the kubelet's host machine.
+                                      The volume is resolved at pod startup depending on which PullPolicy value is provided:
+
+                                      - Always: the kubelet always attempts to pull the reference. Container creation will fail If the pull fails.
+                                      - Never: the kubelet never pulls the reference and only uses a local image or artifact. Container creation will fail if the reference isn't present.
+                                      - IfNotPresent: the kubelet pulls if the reference isn't already present on disk. Container creation will fail if the reference isn't present and the pull fails.
+
+                                      The volume gets re-resolved if the pod gets deleted and recreated, which means that new remote content will become available on pod recreation.
+                                      A failure to resolve or pull the image during pod startup will block containers from starting and may add significant latency. Failures will be retried using normal volume backoff and will be reported on the pod reason and message.
+                                      The types of objects that may be mounted by this volume are defined by the container runtime implementation on a host machine and at minimum must include all valid types supported by the container image field.
+                                      The OCI object gets mounted in a single directory (spec.containers[*].volumeMounts.mountPath) by merging the manifest layers in the same way as for container images.
+                                      The volume will be mounted read-only (ro) and non-executable files (noexec).
+                                      Sub path mounts for containers are not supported (spec.containers[*].volumeMounts.subpath).
+                                      The field spec.securityContext.fsGroupChangePolicy has no effect on this volume type.
+                                    properties:
+                                      pullPolicy:
+                                        description: |-
+                                          Policy for pulling OCI objects. Possible values are:
+                                          Always: the kubelet always attempts to pull the reference. Container creation will fail If the pull fails.
+                                          Never: the kubelet never pulls the reference and only uses a local image or artifact. Container creation will fail if the reference isn't present.
+                                          IfNotPresent: the kubelet pulls if the reference isn't already present on disk. Container creation will fail if the reference isn't present and the pull fails.
+                                          Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+                                        type: string
+                                      reference:
+                                        description: |-
+                                          Required: Image or artifact reference to be used.
+                                          Behaves in the same way as pod.spec.containers[*].image.
+                                          Pull secrets will be assembled in the same way as for the container image by looking up node credentials, SA image pull secrets, and pod spec image pull secrets.
+                                          More info: https://kubernetes.io/docs/concepts/containers/images
+                                          This field is optional to allow higher level config management to default or override
+                                          container images in workload controllers like Deployments and StatefulSets.
+                                        type: string
                                     type: object
                                   iscsi:
                                     description: |-
@@ -9094,7 +9474,6 @@ spec:
                                           Tip: Ensure that the filesystem type is supported by the host operating system.
                                           Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
                                           More info: https://kubernetes.io/docs/concepts/storage/volumes#iscsi
-                                          TODO: how do we prevent errors in the filesystem from compromising the machine
                                         type: string
                                       initiatorName:
                                         description: |-
@@ -9107,6 +9486,7 @@ spec:
                                           Name.
                                         type: string
                                       iscsiInterface:
+                                        default: default
                                         description: |-
                                           iscsiInterface is the interface Name that uses an iSCSI transport.
                                           Defaults to 'default' (tcp).
@@ -9140,9 +9520,7 @@ spec:
                                               This field is effectively required, but due to backwards compatibility is
                                               allowed to be empty. Instances of this type with an empty value here are
                                               almost certainly wrong.
-                                              TODO: Add other useful fields. apiVersion, kind, uid?
                                               More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                              TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                             type: string
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -9262,24 +9640,23 @@ spec:
                                         format: int32
                                         type: integer
                                       sources:
-                                        description: sources is the list of volume
-                                          projections
+                                        description: |-
+                                          sources is the list of volume projections. Each entry in this list
+                                          handles one source.
                                         items:
-                                          description: Projection that may be projected
-                                            along with other supported volume types
+                                          description: |-
+                                            Projection that may be projected along with other supported volume types.
+                                            Exactly one of these fields must be set.
                                           properties:
                                             clusterTrustBundle:
                                               description: |-
                                                 ClusterTrustBundle allows a pod to access the `.spec.trustBundle` field
                                                 of ClusterTrustBundle objects in an auto-updating file.
 
-
                                                 Alpha, gated by the ClusterTrustBundleProjection feature gate.
-
 
                                                 ClusterTrustBundle objects can either be selected by name, or by the
                                                 combination of signer name and a label selector.
-
 
                                                 Kubelet performs aggressive normalization of the PEM contents written
                                                 into the pod filesystem.  Esoteric PEM features such as inter-block
@@ -9417,9 +9794,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: optional specify whether
@@ -9568,9 +9943,7 @@ spec:
                                                     This field is effectively required, but due to backwards compatibility is
                                                     allowed to be empty. Instances of this type with an empty value here are
                                                     almost certainly wrong.
-                                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                                   type: string
                                                 optional:
                                                   description: optional field specify
@@ -9662,7 +10035,6 @@ spec:
                                           Tip: Ensure that the filesystem type is supported by the host operating system.
                                           Examples: "ext4", "xfs", "ntfs". Implicitly inferred to be "ext4" if unspecified.
                                           More info: https://kubernetes.io/docs/concepts/storage/volumes#rbd
-                                          TODO: how do we prevent errors in the filesystem from compromising the machine
                                         type: string
                                       image:
                                         description: |-
@@ -9670,6 +10042,7 @@ spec:
                                           More info: https://examples.k8s.io/volumes/rbd/README.md#how-to-use-it
                                         type: string
                                       keyring:
+                                        default: /etc/ceph/keyring
                                         description: |-
                                           keyring is the path to key ring for RBDUser.
                                           Default is /etc/ceph/keyring.
@@ -9684,6 +10057,7 @@ spec:
                                         type: array
                                         x-kubernetes-list-type: atomic
                                       pool:
+                                        default: rbd
                                         description: |-
                                           pool is the rados pool name.
                                           Default is rbd.
@@ -9709,13 +10083,12 @@ spec:
                                               This field is effectively required, but due to backwards compatibility is
                                               allowed to be empty. Instances of this type with an empty value here are
                                               almost certainly wrong.
-                                              TODO: Add other useful fields. apiVersion, kind, uid?
                                               More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                              TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                             type: string
                                         type: object
                                         x-kubernetes-map-type: atomic
                                       user:
+                                        default: admin
                                         description: |-
                                           user is the rados user name.
                                           Default is admin.
@@ -9730,6 +10103,7 @@ spec:
                                       volume attached and mounted on Kubernetes nodes.
                                     properties:
                                       fsType:
+                                        default: xfs
                                         description: |-
                                           fsType is the filesystem type to mount.
                                           Must be a filesystem type supported by the host operating system.
@@ -9762,9 +10136,7 @@ spec:
                                               This field is effectively required, but due to backwards compatibility is
                                               allowed to be empty. Instances of this type with an empty value here are
                                               almost certainly wrong.
-                                              TODO: Add other useful fields. apiVersion, kind, uid?
                                               More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                              TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                             type: string
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -9774,6 +10146,7 @@ spec:
                                           false
                                         type: boolean
                                       storageMode:
+                                        default: ThinProvisioned
                                         description: |-
                                           storageMode indicates whether the storage for a volume should be ThickProvisioned or ThinProvisioned.
                                           Default is ThinProvisioned.
@@ -9888,9 +10261,7 @@ spec:
                                               This field is effectively required, but due to backwards compatibility is
                                               allowed to be empty. Instances of this type with an empty value here are
                                               almost certainly wrong.
-                                              TODO: Add other useful fields. apiVersion, kind, uid?
                                               More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                              TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                             type: string
                                         type: object
                                         x-kubernetes-map-type: atomic
@@ -9946,6 +10317,42 @@ spec:
                           required:
                           - containers
                           type: object
+                      type: object
+                    topologyRequest:
+                      description: topologyRequest defines the topology request for
+                        the PodSet.
+                      properties:
+                        podIndexLabel:
+                          description: |-
+                            PodIndexLabel indicates the name of the label indexing the pods.
+                            For example, in the context of
+                            - kubernetes job this is: kubernetes.io/job-completion-index
+                            - JobSet: kubernetes.io/job-completion-index (inherited from Job)
+                            - Kubeflow: training.kubeflow.org/replica-index
+                          type: string
+                        preferred:
+                          description: |-
+                            preferred indicates the topology level preferred by the PodSet, as
+                            indicated by the `kueue.x-k8s.io/podset-preferred-topology` PodSet
+                            annotation.
+                          type: string
+                        required:
+                          description: |-
+                            required indicates the topology level required by the PodSet, as
+                            indicated by the `kueue.x-k8s.io/podset-required-topology` PodSet
+                            annotation.
+                          type: string
+                        subGroupCount:
+                          description: |-
+                            SubGroupIndexLabel indicates the count of replicated Jobs (groups) within a PodSet.
+                            For example, in the context of JobSet this value is read from jobset.sigs.k8s.io/replicatedjob-replicas.
+                          format: int32
+                          type: integer
+                        subGroupIndexLabel:
+                          description: |-
+                            SubGroupIndexLabel indicates the name of the label indexing the instances of replicated Jobs (groups)
+                            within a PodSet. For example, in the context of JobSet this is jobset.sigs.k8s.io/job-index.
+                          type: string
                       type: object
                   required:
                   - count
@@ -10007,6 +10414,12 @@ spec:
           status:
             description: WorkloadStatus defines the observed state of Workload
             properties:
+              accumulatedPastExexcutionTimeSeconds:
+                description: |-
+                  accumulatedPastExexcutionTimeSeconds holds the total time, in seconds, the workload spent
+                  in Admitted state, in the previous `Admit` - `Evict` cycles.
+                format: int32
+                type: integer
               admission:
                 description: |-
                   admission holds the parameters of the admission of the workload by a
@@ -10060,10 +10473,100 @@ spec:
                           description: |-
                             resourceUsage keeps track of the total resources all the pods in the podset need to run.
 
-
                             Beside what is provided in podSet's specs, this calculation takes into account
                             the LimitRange defaults and RuntimeClass overheads at the moment of admission.
                             This field will not change in case of quota reclaim.
+                          type: object
+                        topologyAssignment:
+                          description: |-
+                            topologyAssignment indicates the topology assignment divided into
+                            topology domains corresponding to the lowest level of the topology.
+                            The assignment specifies the number of Pods to be scheduled per topology
+                            domain and specifies the node selectors for each topology domain, in the
+                            following way: the node selector keys are specified by the levels field
+                            (same for all domains), and the corresponding node selector value is
+                            specified by the domains.values subfield. If the TopologySpec.Levels field contains
+                            "kubernetes.io/hostname" label, topologyAssignment will contain data only for
+                            this label, and omit higher levels in the topology
+
+                            Example:
+
+                            topologyAssignment:
+                              levels:
+                              - cloud.provider.com/topology-block
+                              - cloud.provider.com/topology-rack
+                              domains:
+                              - values: [block-1, rack-1]
+                                count: 4
+                              - values: [block-1, rack-2]
+                                count: 2
+
+                            Here:
+                            - 4 Pods are to be scheduled on nodes matching the node selector:
+                              cloud.provider.com/topology-block: block-1
+                              cloud.provider.com/topology-rack: rack-1
+                            - 2 Pods are to be scheduled on nodes matching the node selector:
+                              cloud.provider.com/topology-block: block-1
+                              cloud.provider.com/topology-rack: rack-2
+
+                            Example:
+                            Below there is an equivalent of the above example assuming, Topology
+                            object defines kubernetes.io/hostname as the lowest level in topology.
+                            Hence we omit higher level of topologies, since the hostname label
+                            is sufficient to explicitly identify a proper node.
+
+                            topologyAssignment:
+                              levels:
+                              - kubernetes.io/hostname
+                              domains:
+                              - values: [hostname-1]
+                                count: 4
+                              - values: [hostname-2]
+                                count: 2
+                          properties:
+                            domains:
+                              description: |-
+                                domains is a list of topology assignments split by topology domains at
+                                the lowest level of the topology.
+                              items:
+                                properties:
+                                  count:
+                                    description: |-
+                                      count indicates the number of Pods to be scheduled in the topology
+                                      domain indicated by the values field.
+                                    format: int32
+                                    minimum: 1
+                                    type: integer
+                                  values:
+                                    description: |-
+                                      values is an ordered list of node selector values describing a topology
+                                      domain. The values correspond to the consecutive topology levels, from
+                                      the highest to the lowest.
+                                    items:
+                                      type: string
+                                    maxItems: 8
+                                    minItems: 1
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                required:
+                                - count
+                                - values
+                                type: object
+                              type: array
+                            levels:
+                              description: |-
+                                levels is an ordered list of keys denoting the levels of the assigned
+                                topology (i.e. node label keys), from the highest to the lowest level of
+                                the topology.
+                              items:
+                                type: string
+                              maxItems: 8
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                          - domains
+                          - levels
                           type: object
                       required:
                       - name
@@ -10212,25 +10715,15 @@ spec:
                   conditions hold the latest available observations of the Workload
                   current state.
 
-
                   The type of the condition could be:
-
 
                   - Admitted: the Workload was admitted through a ClusterQueue.
                   - Finished: the associated workload finished running (failed or succeeded).
                   - PodsReady: at least `.spec.podSets[*].count` Pods are ready or have
                   succeeded.
                 items:
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource.\n---\nThis struct is intended for
-                    direct use as an array at the field path .status.conditions.  For
-                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
-                    observations of a foo's current state.\n\t    // Known .status.conditions.type
-                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
-                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
-                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
-                    \   // other fields\n\t}"
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
                       description: |-
@@ -10271,12 +10764,7 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        ---
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
-                        useful (see .node.status.conditions), the ability to deconflict is important.
-                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -10336,6 +10824,43 @@ spec:
                     format: date-time
                     type: string
                 type: object
+              resourceRequests:
+                description: |-
+                  resourceRequests provides a detailed view of the resources that were
+                  requested by a non-admitted workload when it was considered for admission.
+                  If admission is non-null, resourceRequests will be empty because
+                  admission.resourceUsage contains the detailed information.
+                items:
+                  properties:
+                    name:
+                      default: main
+                      description: name is the name of the podSet. It should match
+                        one of the names in .spec.podSets.
+                      maxLength: 63
+                      pattern: ^(?i)[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                    resources:
+                      additionalProperties:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description: |-
+                        resources is the total resources all the pods in the podset need to run.
+
+                        Beside what is provided in podSet's specs, this value also takes into account
+                        the LimitRange defaults and RuntimeClass overheads at the moment of consideration
+                        and the application of resource.excludeResourcePrefixes and resource.transformations.
+                      type: object
+                  required:
+                  - name
+                  type: object
+                maxItems: 8
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
             type: object
         type: object
         x-kubernetes-validations:
@@ -10360,6 +10885,12 @@ spec:
             == ''QuotaReserved'' && c.status == ''True'')) && has(oldSelf.spec.queueName)
             && has(self.spec.queueName) ? oldSelf.spec.queueName == self.spec.queueName
             : true'
+        - message: maximumExecutionTimeSeconds is immutable while admitted
+          rule: ((has(oldSelf.status) && has(oldSelf.status.conditions) && oldSelf.status.conditions.exists(c,
+            c.type == 'Admitted' && c.status == 'True')) && (has(self.status) && has(self.status.conditions)
+            && self.status.conditions.exists(c, c.type == 'Admitted' && c.status ==
+            'True')))?((has(oldSelf.spec.maximumExecutionTimeSeconds)?oldSelf.spec.maximumExecutionTimeSeconds:0)
+            ==  (has(self.spec.maximumExecutionTimeSeconds)?self.spec.maximumExecutionTimeSeconds:0)):true
     served: true
     storage: true
     subresources:
@@ -10686,14 +11217,8 @@ rules:
   - ""
   resources:
   - limitranges
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - namespaces
+  - nodes
   verbs:
   - get
   - list
@@ -10747,19 +11272,20 @@ rules:
   - admissionregistration.k8s.io
   resources:
   - mutatingwebhookconfigurations
+  - validatingwebhookconfigurations
   verbs:
   - get
   - list
   - update
   - watch
 - apiGroups:
-  - admissionregistration.k8s.io
+  - apps
   resources:
-  - validatingwebhookconfigurations
+  - replicasets
+  - statefulsets
   verbs:
   - get
   - list
-  - update
   - watch
 - apiGroups:
   - autoscaling.x-k8s.io
@@ -10793,21 +11319,16 @@ rules:
   - batch
   resources:
   - jobs/finalizers
+  - jobs/status
   verbs:
   - get
   - patch
   - update
 - apiGroups:
-  - batch
-  resources:
-  - jobs/status
-  verbs:
-  - get
-  - update
-- apiGroups:
   - flowcontrol.apiserver.k8s.io
   resources:
   - flowschemas
+  - prioritylevelconfigurations
   verbs:
   - list
   - watch
@@ -10817,13 +11338,6 @@ rules:
   - flowschemas/status
   verbs:
   - patch
-- apiGroups:
-  - flowcontrol.apiserver.k8s.io
-  resources:
-  - prioritylevelconfigurations
-  verbs:
-  - list
-  - watch
 - apiGroups:
   - jobset.x-k8s.io
   resources:
@@ -10847,130 +11361,16 @@ rules:
   - jobsets/status
   verbs:
   - get
+  - patch
   - update
 - apiGroups:
   - kubeflow.org
   resources:
   - mpijobs
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - mpijobs/finalizers
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - mpijobs/status
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
   - mxjobs
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - mxjobs/finalizers
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - mxjobs/status
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
   - paddlejobs
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - paddlejobs/finalizers
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - paddlejobs/status
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
   - pytorchjobs
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - pytorchjobs/finalizers
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - pytorchjobs/status
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
   - tfjobs
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - tfjobs/finalizers
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - tfjobs/status
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - kubeflow.org
-  resources:
   - xgboostjobs
   verbs:
   - get
@@ -10981,6 +11381,12 @@ rules:
 - apiGroups:
   - kubeflow.org
   resources:
+  - mpijobs/finalizers
+  - mxjobs/finalizers
+  - mxjobs/status
+  - paddlejobs/finalizers
+  - pytorchjobs/finalizers
+  - tfjobs/finalizers
   - xgboostjobs/finalizers
   verbs:
   - get
@@ -10988,14 +11394,23 @@ rules:
 - apiGroups:
   - kubeflow.org
   resources:
+  - mpijobs/status
+  - paddlejobs/status
+  - pytorchjobs/status
+  - tfjobs/status
   - xgboostjobs/status
   verbs:
   - get
+  - patch
   - update
 - apiGroups:
   - kueue.x-k8s.io
   resources:
   - admissionchecks
+  - clusterqueues
+  - cohorts
+  - localqueues
+  - workloads
   verbs:
   - create
   - delete
@@ -11008,64 +11423,21 @@ rules:
   - kueue.x-k8s.io
   resources:
   - admissionchecks/finalizers
+  - clusterqueues/finalizers
+  - localqueues/finalizers
+  - resourceflavors/finalizers
+  - topologies/finalizers
+  - workloads/finalizers
   verbs:
   - update
 - apiGroups:
   - kueue.x-k8s.io
   resources:
   - admissionchecks/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
-  - clusterqueues
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
-  - clusterqueues/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
   - clusterqueues/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
-  - localqueues
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
-  - localqueues/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
   - localqueues/status
+  - multikueueclusters/status
+  - workloads/status
   verbs:
   - get
   - patch
@@ -11074,30 +11446,9 @@ rules:
   - kueue.x-k8s.io
   resources:
   - multikueueclusters
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
-  - multikueueclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
   - multikueueconfigs
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
   - provisioningrequestconfigs
+  - workloadpriorityclasses
   verbs:
   - get
   - list
@@ -11115,43 +11466,12 @@ rules:
 - apiGroups:
   - kueue.x-k8s.io
   resources:
-  - resourceflavors/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
-  - workloadpriorityclasses
+  - topologies
   verbs:
   - get
   - list
-  - watch
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
-  - workloads
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
   - update
   - watch
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
-  - workloads/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - kueue.x-k8s.io
-  resources:
-  - workloads/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - node.k8s.io
   resources:
@@ -11164,29 +11484,6 @@ rules:
   - ray.io
   resources:
   - rayclusters
-  verbs:
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ray.io
-  resources:
-  - rayclusters/finalizers
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - ray.io
-  resources:
-  - rayclusters/status
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - ray.io
-  resources:
   - rayjobs
   verbs:
   - get
@@ -11197,13 +11494,9 @@ rules:
 - apiGroups:
   - ray.io
   resources:
+  - rayclusters/finalizers
+  - rayclusters/status
   - rayjobs/finalizers
-  verbs:
-  - get
-  - update
-- apiGroups:
-  - ray.io
-  resources:
   - rayjobs/status
   verbs:
   - get
@@ -11525,6 +11818,61 @@ metadata:
     control-plane: controller-manager
     rbac.kueue.x-k8s.io/batch-admin: "true"
     rbac.kueue.x-k8s.io/batch-user: "true"
+  name: kueue-raycluster-editor-role
+rules:
+- apiGroups:
+  - ray.io
+  resources:
+  - rayclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ray.io
+  resources:
+  - rayclusters/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: kueue
+    control-plane: controller-manager
+    rbac.kueue.x-k8s.io/batch-admin: "true"
+  name: kueue-raycluster-viewer-role
+rules:
+- apiGroups:
+  - ray.io
+  resources:
+  - rayclusters
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ray.io
+  resources:
+  - rayclusters/status
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: kueue
+    control-plane: controller-manager
+    rbac.kueue.x-k8s.io/batch-admin: "true"
+    rbac.kueue.x-k8s.io/batch-user: "true"
   name: kueue-rayjob-editor-role
 rules:
 - apiGroups:
@@ -11788,6 +12136,24 @@ metadata:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
     control-plane: controller-manager
+  name: kueue-visibility-server-auth-reader
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: extension-apiserver-authentication-reader
+subjects:
+- kind: ServiceAccount
+  name: kueue-controller-manager
+  namespace: kueue-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: kueue
+    control-plane: controller-manager
   name: kueue-leader-election-rolebinding
   namespace: kueue-system
 roleRef:
@@ -11854,6 +12220,7 @@ data:
         Pod: 5
         Workload.kueue.x-k8s.io: 5
         LocalQueue.kueue.x-k8s.io: 1
+        Cohort.kueue.x-k8s.io: 1
         ClusterQueue.kueue.x-k8s.io: 1
         ResourceFlavor.kueue.x-k8s.io: 1
     clientConnection:
@@ -11870,6 +12237,9 @@ data:
     #    backoffBaseSeconds: 60
     #    backoffMaxSeconds: 3600
     #manageJobsWithoutQueueName: true
+    #managedJobsNamespaceSelector:
+    #  matchLabels:
+    #    kueue-managed: "true"
     #internalCertManagement:
     #  enable: false
     #  webhookServiceName: ""
@@ -11887,6 +12257,8 @@ data:
       - "kubeflow.org/tfjob"
       - "kubeflow.org/xgboostjob"
     #  - "pod"
+    #  - "deployment" # requires enabling pod integration
+    #  - "statefulset" # requires enabling pod integration
     #  externalFrameworks:
     #  - "Foo.v1.example.com"
     #  podOptions:
@@ -11900,6 +12272,12 @@ data:
     #  preemptionStrategies: [LessThanOrEqualToFinalShare, LessThanInitialShare]
     #resources:
     #  excludeResourcePrefixes: []
+    #  transformations:
+    #  - input: nvidia.com/mig-4g.5gb
+    #    strategy: Replace | Retain
+    #    outputs:
+    #      example.com/accelerator-memory: 5Gi
+    #      example.com/accelerator-gpc: 4
 kind: ConfigMap
 metadata:
   labels:
@@ -11944,6 +12322,24 @@ metadata:
     app.kubernetes.io/component: controller
     app.kubernetes.io/name: kueue
     control-plane: controller-manager
+  name: kueue-visibility-server
+  namespace: kueue-system
+spec:
+  ports:
+  - name: https
+    port: 443
+    protocol: TCP
+    targetPort: 8082
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: kueue
+    control-plane: controller-manager
   name: kueue-webhook-service
   namespace: kueue-system
 spec:
@@ -11973,16 +12369,17 @@ spec:
       annotations:
         kubectl.kubernetes.io/default-container: manager
       labels:
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/name: kueue
         control-plane: controller-manager
     spec:
       containers:
       - args:
         - --config=/controller_manager_config.yaml
         - --zap-log-level=2
-        - --feature-gates=ProvisioningACC=true
         command:
         - /manager
-        image: registry.k8s.io/kueue/kueue:v0.7.0
+        image: registry.k8s.io/kueue/kueue:v0.10.1
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
@@ -12025,7 +12422,7 @@ spec:
         - --upstream=http://127.0.0.1:8080/
         - --logtostderr=true
         - --v=10
-        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.8.0
+        image: registry.k8s.io/kubebuilder/kube-rbac-proxy:v0.16.0
         name: kube-rbac-proxy
         ports:
         - containerPort: 8443
@@ -12043,6 +12440,24 @@ spec:
       - configMap:
           name: kueue-manager-config
         name: manager-config
+---
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  labels:
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/name: kueue
+    control-plane: controller-manager
+  name: v1beta1.visibility.kueue.x-k8s.io
+spec:
+  group: visibility.kueue.x-k8s.io
+  groupPriorityMinimum: 100
+  insecureSkipTLSVerify: true
+  service:
+    name: kueue-visibility-server
+    namespace: kueue-system
+  version: v1beta1
+  versionPriority: 100
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
@@ -12078,6 +12493,33 @@ webhooks:
     - CREATE
     resources:
     - pods
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: kueue-webhook-service
+      namespace: kueue-system
+      path: /mutate-apps-v1-deployment
+  failurePolicy: Fail
+  name: mdeployment.kb.io
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: NotIn
+      values:
+      - kube-system
+      - kueue-system
+  rules:
+  - apiGroups:
+    - apps
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - deployments
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -12275,6 +12717,26 @@ webhooks:
     service:
       name: kueue-webhook-service
       namespace: kueue-system
+      path: /mutate-apps-v1-statefulset
+  failurePolicy: Fail
+  name: mstatefulset.kb.io
+  rules:
+  - apiGroups:
+    - apps
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - statefulsets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: kueue-webhook-service
+      namespace: kueue-system
       path: /mutate-kueue-x-k8s-io-v1beta1-clusterqueue
   failurePolicy: Fail
   name: mclusterqueue.kb.io
@@ -12362,6 +12824,33 @@ webhooks:
     - UPDATE
     resources:
     - pods
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: kueue-webhook-service
+      namespace: kueue-system
+      path: /validate-apps-v1-deployment
+  failurePolicy: Fail
+  name: vdeployment.kb.io
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: NotIn
+      values:
+      - kube-system
+      - kueue-system
+  rules:
+  - apiGroups:
+    - apps
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - deployments
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -12569,6 +13058,26 @@ webhooks:
     service:
       name: kueue-webhook-service
       namespace: kueue-system
+      path: /validate-apps-v1-statefulset
+  failurePolicy: Fail
+  name: vstatefulset.kb.io
+  rules:
+  - apiGroups:
+    - apps
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - statefulsets
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: kueue-webhook-service
+      namespace: kueue-system
       path: /validate-kueue-x-k8s-io-v1beta1-clusterqueue
   failurePolicy: Fail
   name: vclusterqueue.kb.io
@@ -12582,6 +13091,26 @@ webhooks:
     - UPDATE
     resources:
     - clusterqueues
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: kueue-webhook-service
+      namespace: kueue-system
+      path: /validate-kueue-x-k8s-io-v1alpha1-cohort
+  failurePolicy: Fail
+  name: vcohort.kb.io
+  rules:
+  - apiGroups:
+    - kueue.x-k8s.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - cohorts
   sideEffects: None
 - admissionReviewVersions:
   - v1

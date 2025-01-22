@@ -1,0 +1,91 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kueue-metrics-reader
+  namespace: kueue-system
+automountServiceAccountToken: true
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kueue-metrics-reader-token
+  namespace: kueue-system
+  annotations:
+    kubernetes.io/service-account.name: kueue-metrics-reader
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: kueue-secret-reader
+  namespace: kueue-system
+rules:
+- resources:
+  - secrets
+  apiGroups: [""]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["kueue-metrics-reader-token"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kueue-metrics-reader
+subjects:
+- kind: ServiceAccount
+  name: kueue-metrics-reader
+  namespace: kueue-system
+roleRef:
+  kind: ClusterRole
+  name: kueue-metrics-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: kueue
+  namespace: kueue-system
+spec:
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  endpoints:
+  - port: https
+    interval: 30s
+    path: /metrics
+    scheme: https
+    tls:
+      insecureSkipVerify: true
+    authorization:
+      type: Bearer 
+      credentials:
+        secret: 
+          name: kueue-metrics-reader-token
+          key: token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gmp-system:collector:kueue-secret-reader
+  namespace: kueue-system
+roleRef:
+  name: kueue-secret-reader
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- name: collector
+  namespace: gmp-system
+  kind: ServiceAccount

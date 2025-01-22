@@ -14,9 +14,15 @@
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: kueue-system
+patches:
+- target:
+    group: apps
+    kind: Deployment
+    version: v1
+  path: patch/gke-managed-components-toleration.yaml
 resources:
-- kueue.yaml
+- manifests.yaml
+- kueue-monitoring-gmp.yaml
 
 # There is no publicly available Kueue Helm chart repository and kustomize does not support private or OCI-based (Artifact Registry) Helm repository
 # https://github.com/kubernetes-sigs/kueue/issues/2311
@@ -26,6 +32,6 @@ resources:
 #   name: kueue
 #   namespace: kueue-system
 #   releaseName: kueue
-#   repo: <repo>
-#   valuesFile: kueue_values.yaml
-#   version: 0.1.0
+#   repo: oci://us-central1-docker.pkg.dev/k8s-staging-images/charts/kueue
+#   valuesFile: values.yaml
+#   version: v0.10.1

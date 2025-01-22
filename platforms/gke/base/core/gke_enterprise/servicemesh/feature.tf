@@ -33,4 +33,8 @@ resource "google_gke_hub_feature_membership" "cluster_servicemesh" {
   location   = google_gke_hub_feature.servicemesh.location
   membership = data.google_container_cluster.cluster.name
   project    = google_project_service.mesh_googleapis_com.project
+
+  mesh {
+    management = "MANAGEMENT_AUTOMATIC"
+  }
 }

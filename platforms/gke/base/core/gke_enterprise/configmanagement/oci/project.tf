@@ -15,3 +15,17 @@
 data "google_project" "cluster" {
   project_id = var.cluster_project_id
 }
+
+resource "google_project_service" "anthosconfigmanagement_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.cluster.project_id
+  service                    = "anthosconfigmanagement.googleapis.com"
+}
+
+resource "google_project_service" "artifactregistry_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.cluster.project_id
+  service                    = "artifactregistry.googleapis.com"
+}

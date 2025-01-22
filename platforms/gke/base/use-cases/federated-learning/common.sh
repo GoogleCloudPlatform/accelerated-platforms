@@ -62,6 +62,7 @@ core_platform_terraservices=(
   "gke_enterprise/fleet_membership"
   "gke_enterprise/configmanagement/oci"
   "gke_enterprise/policycontroller"
+  "gke_enterprise/servicemesh"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts

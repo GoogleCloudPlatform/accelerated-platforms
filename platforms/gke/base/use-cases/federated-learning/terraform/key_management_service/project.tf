@@ -22,3 +22,11 @@ resource "google_project_service" "cloudkms_googleapis_com" {
   project                    = data.google_project.default.project_id
   service                    = "cloudkms.googleapis.com"
 }
+
+# Enabling the container.googleapis.com API creates the needed service accounts
+resource "google_project_service" "container_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.default.project_id
+  service                    = "container.googleapis.com"
+}

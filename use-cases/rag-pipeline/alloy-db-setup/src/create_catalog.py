@@ -139,7 +139,10 @@ async def create_and_populate_table(
                 # Start all tasks concurrently for max performance
                 embedding_tasks.append(
                     get_emb.get_embeddings_async(
-                        session, row["image_uri"], row["Description"], timeout_settings,
+                        session,
+                        row["image_uri"],
+                        row["Description"],
+                        timeout_settings,
                     )
                 )
                 embedding_tasks.append(
@@ -176,7 +179,7 @@ async def create_and_populate_table(
             with engine.begin() as conn:  # Use conn for consistency
                 df.to_sql(
                     table_name,
-                    conn, 
+                    conn,
                     if_exists="replace",
                     index=False,
                     method="multi",
@@ -191,15 +194,13 @@ async def create_and_populate_table(
                 )
 
     except FileNotFoundError as e:
-        logger.exception(f"CSV file not found: {e}")  
+        logger.exception(f"CSV file not found: {e}")
 
     except pd.errors.EmptyDataError as e:
-        logger.exception(f"Empty CSV file: {e}") 
+        logger.exception(f"Empty CSV file: {e}")
 
-    except Exception as e: 
-        logger.exception(
-            f"An unexpected error occurred: {e}"
-        )
+    except Exception as e:
+        logger.exception(f"An unexpected error occurred: {e}")
         raise
 
 
@@ -223,5 +224,5 @@ def create_embeddings_index(
                 )
 
     except Exception as e:
-        logger.exception(f"Error creating index: {e}")  
+        logger.exception(f"Error creating index: {e}")
         raise

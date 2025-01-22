@@ -63,7 +63,7 @@ class RayUtils:
         self.logger.debug("Data Preparation started")
         start_time = time.time()
         #results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
-        results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,gcs_bucket) for i in range(len(self.df))])
+        results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,self.gcs_bucket) for i in range(len(self.df))])
         #self_ref = ray.put(self)
         #results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,IMAGE_BUCKET) for i in range(len(self.df))])
         duration = time.time() - start_time

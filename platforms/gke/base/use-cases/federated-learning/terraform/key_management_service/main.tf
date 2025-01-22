@@ -48,10 +48,20 @@ resource "google_kms_crypto_key_iam_binding" "cluster_secrets_decrypters" {
   crypto_key_id = google_kms_crypto_key.cluster_secrects_key.id
   members       = [local.gke_robot_service_account_iam_email]
   role          = "roles/cloudkms.cryptoKeyDecrypter"
+
+  depends_on = [
+    # Wait for the GKE robot account to be created
+    google_project_service.container_googleapis_com,
+  ]
 }
 
 resource "google_kms_crypto_key_iam_binding" "cluster_secrets_encrypters" {
   crypto_key_id = google_kms_crypto_key.cluster_secrects_key.id
   members       = [local.gke_robot_service_account_iam_email]
   role          = "roles/cloudkms.cryptoKeyEncrypter"
+
+  depends_on = [
+    # Wait for the GKE robot account to be created
+    google_project_service.container_googleapis_com,
+  ]
 }

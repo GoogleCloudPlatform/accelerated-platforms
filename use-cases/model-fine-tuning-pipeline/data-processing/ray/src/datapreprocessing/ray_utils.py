@@ -14,29 +14,30 @@ from datapreprocessing import *
 
 # RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
 #IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
-IMAGE_BUCKET = "gkebatchexpce3c8dcb-gushob-rag-data"
+#IMAGE_BUCKET = "gkebatchexpce3c8dcb-gushob-rag-data"
 class RayUtils:
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self,ray_cluster_host,df,ray_resources,ray_runtime,package_name,module_name,class_name,method_name):
+    def __init__(self,ray_cluster_host,ray_resources,ray_runtime,package_name,module_name,class_name,method_name,df,gcs_bucket):
         self.ray_cluster_host = ray_cluster_host
-        self.df = df
         self.ray_resource = ray_resources
         self.ray_runtime = ray_runtime
         self.module_name = module_name
         self.class_name = class_name
         self.method_name = method_name
         self.package_name = package_name
+        self.df = df
+        self.gcs_bucket = gcs_bucket
 
 
     @ray.remote(resources={"cpu": 1})
-    def invoke_process_data(self, preprocessor, df, ray_worker_node_id,IMAGE_BUCKET):
+    def invoke_process_data(self, preprocessor, df, ray_worker_node_id,gcs_bucket):
         def func_not_found(): # just in case we dont have the function
             print ('No Function '+self.method_name+' Found!')
         func = getattr(preprocessor,self.method_name,func_not_found) 
         #return preprocessor.process_data(df, ray_worker_node_id,IMAGE_BUCKET)
-        return func(df, ray_worker_node_id,IMAGE_BUCKET)
+        return func(df, ray_worker_node_id,gcs_bucket)
     
     def run_remote(self):
         # Initiate a driver: start and connect with Ray cluster
@@ -62,7 +63,7 @@ class RayUtils:
         self.logger.debug("Data Preparation started")
         start_time = time.time()
         #results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
-        results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,IMAGE_BUCKET) for i in range(len(self.df))])
+        results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,gcs_bucket) for i in range(len(self.df))])
         #self_ref = ray.put(self)
         #results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,IMAGE_BUCKET) for i in range(len(self.df))])
         duration = time.time() - start_time

@@ -86,7 +86,7 @@ if __name__ == "__main__":
     res = data_prep.split_dataframe()
 
     # pass res to RayUtils object
-    ray_obj = RayUtils(RAY_CLUSTER_HOST,res,ray_resources,ray_runtime_env,package_name,module_name,class_name,method_name)
+    ray_obj = RayUtils(RAY_CLUSTER_HOST,ray_resources,ray_runtime_env,package_name,module_name,class_name,method_name,res,IMAGE_BUCKET)
     result_df = ray_obj.run_remote()
     # Replace NaN with None
     result_df = result_df.replace({np.nan: None})

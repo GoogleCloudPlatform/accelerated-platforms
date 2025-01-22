@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import alloydb_connect
+import asyncio
 import get_emb
 import logging
 import logging.config
@@ -20,6 +21,7 @@ import os
 import pandas as pd
 import sqlalchemy
 
+import aiohttp
 from google.cloud.alloydb.connector import Connector
 from pgvector.sqlalchemy import Vector
 
@@ -58,7 +60,7 @@ def create_database(database, new_database):
                     connection.execute(create_db)
                     logger.info(f"Database '{new_database}' created successfully.")
     except Exception as e:
-        logging.error(f"An error occurred while creating the database: {e}")
+        logger.error(f"An error occurred while creating the database: {e}")
         # handle this error?
         # (pg8000.exceptions.DatabaseError) {'S': 'ERROR', 'V': 'ERROR', 'C': '55006', 'M': 'database \"product_catalog\" is being accessed by other users', 'D': 'There are 2 other sessions using the database.', 'F': 'dbcommands.c', 'L': '1788', 'R': 'dropdb'}\n[SQL: DROP DATABASE IF EXISTS product_catalog;]\n(Background on this error at: https://sqlalche.me/e/20/4xp6) """
     finally:
@@ -95,7 +97,7 @@ def create_database(database, new_database):
                         f"alloydb_scann extension enabled successfully on db {new_database}."
                     )
     except Exception as e:
-        logging.error(f"An error occurred while enabling the extensions: {e}")
+        logger.error(f"An error occurred while enabling the extensions: {e}")
     finally:
         if db_conn:
             db_conn.close()
@@ -105,49 +107,79 @@ def create_database(database, new_database):
             logger.info("Connector closed")
 
 
-def create_and_populate_table(database, table_name, processed_data_path):
-    """Creates and populates a table in PostgreSQL using pandas and sqlalchemy."""
-
+async def create_and_populate_table(
+    database, table_name, processed_data_path, max_workers_value
+):
+    """Creates and populates table, generating embeddings concurrently."""
     try:
-        # 1. Extract
+        # 1. Extract Data
         df = pd.read_csv(processed_data_path)
         logger.info(f"Input df shape: {df.shape}")
 
-        # Dropping products with image_uri as NaN
+        # Drop the products with image_uri as NaN
         df.dropna(subset=["image_uri"], inplace=True)
         logger.info(f"resulting df shape: {df.shape}")
 
-        logger.info(f"Starting embedding generation...")
-        # 2. Transform
-        logger.info(f"Starting multimodal embedding generation...")
-        df["multimodal_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(row["image_uri"], row["Description"]),
-            axis=1,
+        # 2. Transform: Embedding Generation (aiohttp)
+        num_rows = len(df)
+        embedding_tasks = []
+        logger.info("Starting embedding generation...")
+
+        # ClientSession outside loop for connection reuse. Timeout included.
+        timeout_settings = aiohttp.ClientTimeout(
+            total=300, sock_connect=10, sock_read=60
         )
-        logger.info(f"Multimodal embedding generation completed")
+        async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(limit=max_workers_value),
+            raise_for_status=True,
+            timeout=timeout_settings,
+        ) as session:
+            for i in range(num_rows):
+                row = df.iloc[i]
+                # Start all tasks concurrently for max performance
+                embedding_tasks.append(
+                    get_emb.get_embeddings_async(
+                        session,
+                        row["image_uri"],
+                        row["Description"],
+                        timeout_settings,
+                    )
+                )
+                embedding_tasks.append(
+                    get_emb.get_embeddings_async(
+                        session,
+                        text=row["Description"],
+                        timeout_settings=timeout_settings,
+                    )
+                )
+                embedding_tasks.append(
+                    get_emb.get_embeddings_async(
+                        session,
+                        image_uri=row["image_uri"],
+                        timeout_settings=timeout_settings,
+                    )
+                )
 
-        logger.info(f"Starting text embedding generation...")
-        df["text_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(None, row["Description"]), axis=1
-        )
-        logger.info(f"Text embedding generation completed")
+            all_results = await asyncio.gather(*embedding_tasks)
 
-        logger.info(f"Starting image embedding generation...")
-        df["image_embeddings"] = df.apply(
-            lambda row: get_emb.get_embeddings(row["image_uri"], None), axis=1
-        )
-        logger.info(f"Image embedding generation completed")
+        # Reshape Results
+        multimodal_results = all_results[::3]
+        text_results = all_results[1::3]
+        image_results = all_results[2::3]
 
-        logger.info(f"Embedding generation task is now complete")
+        df["multimodal_embeddings"] = multimodal_results
+        df["text_embeddings"] = text_results
+        df["image_embeddings"] = image_results
 
-        # 3. Load
+        logger.info("Embedding generation complete...")
+
+        # 3. Load (Synchronous Database Loading)
         with Connector() as connector:
             engine = alloydb_connect.init_connection_pool(connector, database)
-            with engine.begin() as connection:
-                logger.info(f"Connected with the db {database}")
+            with engine.begin() as conn:  # Use conn for consistency
                 df.to_sql(
                     table_name,
-                    connection,
+                    conn,
                     if_exists="replace",
                     index=False,
                     method="multi",
@@ -158,58 +190,39 @@ def create_and_populate_table(database, table_name, processed_data_path):
                     },
                 )
                 logger.info(
-                    f"Table '{table_name}' created and populated successfully on db {database}."
+                    f"Table '{table_name}' created and populated in '{database}'."
                 )
-                connection.commit()
 
-    except FileNotFoundError:
-        logging.error(f"Error: CSV file not found at {processed_data_path}")
+    except FileNotFoundError as e:
+        logger.exception(f"CSV file not found: {e}")
 
-    except pd.errors.EmptyDataError:
-        logging.error("Error: Input CSV file is empty.")
+    except pd.errors.EmptyDataError as e:
+        logger.exception(f"Empty CSV file: {e}")
 
     except Exception as e:
-        logging.error(
-            f"An unexpected error occurred while creating and populating the table: {e}"
-        )
-    finally:
-        if connection:
-            connection.close()
-            logger.info(f"DB: {database} Connection closed")
-        if connector:
-            connector.close()
-            logger.info("Connector closed")
+        logger.exception(f"An unexpected error occurred: {e}")
+        raise
 
 
-# Create an Scann index on the table with embedding column and cosine distance
 def create_embeddings_index(
-    database,
-    TABLE_NAME,
-    EMBEDDING_COLUMN,
-    INDEX_NAME,
-    DISTANCE_FUNCTION,
-    NUM_LEAVES_VALUE,
+    database, table_name, embedding_column, index_name, distance_function, num_leaves
 ):
-    index_cmd = sqlalchemy.text(
-        f"CREATE INDEX {INDEX_NAME} ON {TABLE_NAME} USING scann ({EMBEDDING_COLUMN} {DISTANCE_FUNCTION}) WITH (num_leaves={NUM_LEAVES_VALUE});"
-    )
+    """Creates a ScaNN index on the specified embedding column."""
+
     try:
         with Connector() as connector:
             pool = alloydb_connect.init_connection_pool(connector, database)
-            with pool.connect() as db_conn:
-                db_conn.execute(index_cmd)
-                logger.info(
-                    f"Embedding Column '{EMBEDDING_COLUMN}' : SCaNN Index '{INDEX_NAME}' created successfully."
+            with pool.connect() as conn:  # Use conn for consistency
+                index_cmd = sqlalchemy.text(
+                    f"""CREATE INDEX {index_name} ON {table_name} 
+                       USING scann ({embedding_column} {distance_function}) 
+                       WITH (num_leaves={num_leaves});"""
                 )
+                conn.execute(index_cmd)
+                logger.info(
+                    f"Index '{index_name}' created on '{table_name}'.{embedding_column}"
+                )
+
     except Exception as e:
-        # TODO: handle 'postgresql error: access method "scann" does not exist'
-        # TODO: Handle "Error creating index: (pg8000.exceptions.DatabaseError) {'S': 'ERROR', 'V': 'ERROR', 'C': 'XX000', 'M': 'Cannot create ScaNN index, error: FAILED_PRECONDITION: Cannot create ScaNN index with empty table. Once the table is populated with data, create the index.
-        logging.error(f"Error creating index: {e}")
+        logger.exception(f"Error creating index: {e}")
         raise
-    finally:
-        if db_conn:
-            db_conn.close()
-            logger.info(f"DB: {database} Connection closed")
-        if connector:
-            connector.close()
-            logger.info("Connector closed")

@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import asyncio
 import create_catalog
 import logging
 import logging.config
 import os
-import asyncio
 
 # Environment variables
 
@@ -51,7 +50,7 @@ index_names = {
 if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("alloy-db-setup-job")
 
     if "LOG_LEVEL" in os.environ:
         new_log_level = os.environ["LOG_LEVEL"].upper()

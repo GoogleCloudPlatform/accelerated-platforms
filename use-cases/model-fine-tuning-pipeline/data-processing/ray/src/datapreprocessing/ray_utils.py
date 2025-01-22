@@ -13,8 +13,8 @@ from datapreprocessing import *
 #from data_loader import DataLoader
 
 # RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
-#IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
-IMAGE_BUCKET = "gkebatchexpce3c8dcb-gushob-rag-data"
+IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
+#IMAGE_BUCKET = "gkebatchexpce3c8dcb-gushob-rag-data"
 class RayUtils:
 
     logger = logging.getLogger(__name__)
@@ -28,24 +28,7 @@ class RayUtils:
         self.class_name = class_name
         self.method_name = method_name
         self.package_name = package_name
-        
 
-
-    # def split_dataframe(self, df, chunk_size=199):
-    #     chunks = list()
-    #     num_chunks = len(self.df) // self.chunk_size + 1
-    #     for i in range(num_chunks):
-    #         chunks.append(df[i * self.chunk_size : (i + 1) * self.chunk_size])
-    #     return chunks
-    
-    # @ray.remote(resources={"cpu": 1})
-    # def invoke_process_data(self, preprocessor, df, ray_worker_node_id):
-    #     def func_not_found(): # just in case we dont have the function
-    #         print ('No Function '+self.method_name+' Found!')
-    #     #func = getattr(self,self.method_name,func_not_found) 
-    #     func = getattr(preprocessor,self.method_name,func_not_found) 
-    #     #return preprocessor.func(df, ray_worker_node_id)
-    #     return func(df, ray_worker_node_id)
 
     @ray.remote(resources={"cpu": 1})
     def invoke_process_data(self, preprocessor, df, ray_worker_node_id,IMAGE_BUCKET):

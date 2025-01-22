@@ -2,6 +2,7 @@ import logging
 import logging.config
 import os
 import signal
+import numpy as np
 from datapreprocessing.dataloader import DataLoader
 from datapreprocessing.dataprep import DataPrep
 from datapreprocessing.ray_utils import RayUtils

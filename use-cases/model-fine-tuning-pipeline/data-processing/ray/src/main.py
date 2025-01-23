@@ -31,9 +31,6 @@ if __name__ == "__main__":
         logging.getLogger().setLevel(new_log_level)
         logger.setLevel(new_log_level)
 
-    # Instantiate RayUtils
-    #ray_utils = RayUtils()
-
     logger.info("Configure signal handlers")
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
@@ -94,5 +91,12 @@ if __name__ == "__main__":
     # Store the preprocessed data into GCS
     result_df.to_csv(
         "gs://" + IMAGE_BUCKET + "/flipkart_preprocessed_dataset/flipkart.csv",
+        index=False,
+    )
+    rag_preporcessing = DataPrepForRag()
+    rag_df = rag_preporcessing.process_rag_input(result_df)
+    # Store the rag preprocessed data into GCS
+    rag_df.to_csv(
+        "gs://" + IMAGE_BUCKET + "/RAG/master_product_catalog.csv",
         index=False,
     )

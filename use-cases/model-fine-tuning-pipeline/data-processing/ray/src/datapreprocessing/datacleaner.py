@@ -190,3 +190,66 @@ class DataPreprocessor:
         df_with_desc = df_with_desc.drop("product_specifications", axis=1)
         result_df = self.prep_cat(df_with_desc)
         return result_df
+    
+
+class DataPrepForRag:
+
+    logger = logging.getLogger(__name__)
+
+    def __init__(self):
+        pass
+
+    def filter_low_value_count_rows(df, column_name, min_count=10):
+        """
+        Removes rows from a DataFrame where the value count in the specified column is less than the given minimum count.
+
+        Args:
+            df: The Pandas DataFrame to filter.
+            column_name: The name of the column to check value counts for.
+            min_count: The minimum value count required for a row to be kept (default: 10).
+
+        Returns:
+            A new DataFrame with rows removed where value counts are below the threshold.
+        """
+
+        # Calculate value counts for the specified column
+        value_counts = df[column_name].value_counts()
+
+        # Filter values that meet the minimum count criteria
+        filtered_values = value_counts[value_counts >= min_count].index
+
+        # Create a new DataFrame keeping only rows with those values
+        filtered_df = df[df[column_name].isin(filtered_values)]
+
+        return filtered_df
+
+
+    def process_rag_input(self, df):
+        #renaming column name
+        df.rename(columns={'uniq_id':'Id','product_name':'Name', 'description':'Description', 'brand':'Brand','attributes':'Specifications'}, inplace=True)
+        #filtering clothings for men, women and kids
+        filtered_df = df[df['c0_name'] == 'Clothing']
+        values_to_filter = ["Women's Clothing", "Men's Clothing","Kids' Clothing"]
+        clothing_filtered_df = filtered_df[filtered_df['c1_name'].isin(values_to_filter)]
+        # Filter to keep rows where 'c2_name' has count >=10
+        c2_filtered_df = filter_low_value_count_rows(clothing_filtered_df, 'c2_name', min_count=10)
+        # Filter to keep rows where 'c3_name' has count >=10
+        c3_filtered_df = filter_low_value_count_rows(clothing_filtered_df, 'c3_name', min_count=10)
+        # prep RA df with subset of the columns
+        rag_df = c3_filtered_df[[
+                'Id',
+                'Name',
+                'Description',
+                'Brand',
+                'image',
+                'image_uri',
+                'c1_name',
+                'Specifications']]
+        #Drop dupelicates
+        rag_df.drop_duplicates(inplace=True)
+        # Replace NaN with None
+        rag_df["image_uri"] = df["image_uri"].fillna(value='')
+        rag_df["image"] = df["image"].fillna(value='')
+        rag_df["Description"] = df["Description"].fillna(value='None')
+        return rag_df
+   

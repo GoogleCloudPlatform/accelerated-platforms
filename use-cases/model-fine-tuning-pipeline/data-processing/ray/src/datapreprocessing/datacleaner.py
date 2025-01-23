@@ -199,7 +199,7 @@ class DataPrepForRag:
     def __init__(self):
         pass
 
-    def filter_low_value_count_rows(df, column_name, min_count=10):
+    def filter_low_value_count_rows(self, df, column_name, min_count=10):
         """
         Removes rows from a DataFrame where the value count in the specified column is less than the given minimum count.
 
@@ -232,9 +232,9 @@ class DataPrepForRag:
         values_to_filter = ["Women's Clothing", "Men's Clothing","Kids' Clothing"]
         clothing_filtered_df = filtered_df[filtered_df['c1_name'].isin(values_to_filter)]
         # Filter to keep rows where 'c2_name' has count >=10
-        c2_filtered_df = filter_low_value_count_rows(clothing_filtered_df, 'c2_name', min_count=10)
+        c2_filtered_df = self.filter_low_value_count_rows(clothing_filtered_df, 'c2_name', 10)
         # Filter to keep rows where 'c3_name' has count >=10
-        c3_filtered_df = filter_low_value_count_rows(clothing_filtered_df, 'c3_name', min_count=10)
+        c3_filtered_df = self.filter_low_value_count_rows(clothing_filtered_df, 'c3_name', 10)
         # prep RA df with subset of the columns
         rag_df = c3_filtered_df[[
                 'Id',

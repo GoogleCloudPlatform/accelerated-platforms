@@ -6,6 +6,7 @@ import numpy as np
 from datapreprocessing.dataloader import DataLoader
 from datapreprocessing.dataprep import DataPrep
 from datapreprocessing.ray_utils import RayUtils
+from datapreprocessing.datacleaner import DataPrepForRag
 
 IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
 RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]

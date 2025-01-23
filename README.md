@@ -6,6 +6,7 @@ This repository is collection of accelerated platform reference architectures an
   - [Model Fine Tuning Pipeline](/docs/use-cases/model-fine-tuning-pipeline/README.md)
   - [Scalable and Distributed LLM Inference on GKE with vLLM](/docs/use-cases/inferencing/README.md)
   - [Federated learning](/docs/use-cases/federated-learning/README.md)
+  - [Alphafold](/docs/use-cases/alphafold/README.md)
 
 ## Contributing
 

@@ -2,9 +2,9 @@ name: Python Unit Tests
 
 on:
   push:
-    branches: [ ** ]
+    branches: [ gushob-preprocessing-script-changes ]
   pull_request:
-    branches: [ ** ]
+    branches: [ gushob-preprocessing-script-changes ]
 
 jobs:
   unit-tests:

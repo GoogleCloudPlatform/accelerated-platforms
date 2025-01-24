@@ -13,13 +13,14 @@
 # limitations under the License.
 
 import asyncio
-import aiohttp
+import json
 import logging
 import logging.config
 import os
-import requests
-import json
+
+import aiohttp
 import backoff
+import requests
 
 # Define the API Endpoints
 TEXT_API_ENDPOINT = os.environ.get("TEXT_EMBEDDING_ENDPOINT")

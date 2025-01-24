@@ -13,10 +13,11 @@
 # limitations under the License.
 
 import asyncio
-import create_catalog
 import logging
 import logging.config
 import os
+
+import create_catalog
 
 # Environment variables
 

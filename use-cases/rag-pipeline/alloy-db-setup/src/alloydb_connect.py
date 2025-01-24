@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import google.auth
-import google.auth.transport.requests
 import logging
 import logging.config
-import google.api_core.exceptions
 import os
-import sqlalchemy
 
+import google.api_core.exceptions
+import google.auth
+import google.auth.transport.requests
+import sqlalchemy
 from google.cloud.alloydb.connector import Connector, IPTypes
 
 # AlloyDB

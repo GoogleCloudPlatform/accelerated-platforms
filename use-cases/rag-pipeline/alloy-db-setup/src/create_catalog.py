@@ -12,16 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import alloydb_connect
 import asyncio
-import get_emb
 import logging
 import logging.config
 import os
-import pandas as pd
-import sqlalchemy
 
 import aiohttp
+import alloydb_connect
+import get_emb
+import pandas as pd
+import sqlalchemy
 from google.cloud.alloydb.connector import Connector
 from pgvector.sqlalchemy import Vector
 

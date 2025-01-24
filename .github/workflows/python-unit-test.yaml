@@ -2,9 +2,9 @@ name: Python Unit Tests
 
 on:
   push:
-    branches: [ * ]
+    branches: [ ** ]
   pull_request:
-    branches: [ * ]
+    branches: [ ** ]
 
 jobs:
   unit-tests:

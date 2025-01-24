@@ -21,12 +21,13 @@ COPY requirements.txt /workspace/
 RUN pip install --no-cache-dir -r /workspace/requirements.txt
 
 COPY alloydb_connect.py \
-    create_catalog.py \
+    database.py \
     db_setup.py \
     get_emb.py \
     logging.conf \
+    table.py \
     /workspace/
 
 ENV PYTHONUNBUFFERED 1
 
-CMD ["python", "db_setup.py"]
+ENTRYPOINT ["python", "db_setup.py"]

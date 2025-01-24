@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import asyncio
 import logging
 import logging.config
 import os
 
-import create_catalog
+import database
+import table
 
 # Environment variables
 
@@ -27,9 +29,15 @@ MASTER_CATALOG_FILE_NAME = os.environ.get("MASTER_CATALOG_FILE_NAME")
 processed_data_path = f"gs://{PROCESSED_DATA_BUCKET}/{MASTER_CATALOG_FILE_NAME}"
 
 # Catalog DB
-database_name = "postgres"
-catalog_db = os.environ.get("CATALOG_DB")
-catalog_table = os.environ.get("CATALOG_TABLE_NAME")
+catalog_db_name = os.environ.get("CATALOG_DB")
+catalog_table_name = os.environ.get("CATALOG_TABLE_NAME")
+
+db_read_users = [
+    user.strip() for user in os.environ.get("DB_READ_USERS", default="").split(",")
+]
+db_write_users = [
+    user.strip() for user in os.environ.get("DB_WRITE_USERS", default="").split(",")
+]
 
 DISTANCE_FUNCTION = "cosine"
 NUM_LEAVES_VALUE = int(os.environ.get("NUM_LEAVES_VALUE"))
@@ -48,57 +56,93 @@ index_names = {
     "multimodal": "rag_multimodal_embeddings_index",
 }
 
-if __name__ == "__main__":
-    # Configure logging
-    logging.config.fileConfig("logging.conf")
-    logger = logging.getLogger("alloy-db-setup-job")
 
-    if "LOG_LEVEL" in os.environ:
-        new_log_level = os.environ["LOG_LEVEL"].upper()
-        logger.info(
-            f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-        )
-        logger.setLevel(new_log_level)
+# Configure logging
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
 
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
+    )
+    logger.setLevel(new_log_level)
+
+
+def initialize_database():
+    """Initialize the database"""
     try:
-
-        logger.info("Create DB product_catalog in progress ...")
-        # Create Database - This function enables the vector, scann extensions as well
-        create_catalog.create_database(
-            database_name,
-            catalog_db,
+        logger.info("Creating the database...")
+        database.create(
+            new_database_name=catalog_db_name,
         )
-        logger.info("DB product_catalog in has been created successfully ...")
+        logger.info("Database created successfully")
 
+        logger.info("Enabling extensions...")
+        database.enable_extensions(
+            database_name=catalog_db_name,
+        )
+        logger.info("Extensions enabled successfully")
+
+        logger.info("Granting permissions...")
+        database.grant_permissions(
+            database_name=catalog_db_name,
+            read_users=db_read_users,
+            write_users=db_write_users,
+        )
+        logger.info("Permissions granted successfully")
+    except Exception:
+        logger.exception(
+            "An unhandled exception occurred during database initialization"
+        )
+        raise
+
+
+def populate_table():
+    """Populate the table"""
+    try:
         # ETL Run
-        logger.info("ETL job to create table and generate embeddings in progress ...")
+        logger.info("Generate embeddings...")
         asyncio.run(
-            create_catalog.create_and_populate_table(
-                catalog_db,
-                catalog_table,
-                processed_data_path,
-                max_workers_value,
+            table.create_and_populate(
+                database=catalog_db_name,
+                max_workers_value=max_workers_value,
+                processed_data_path=processed_data_path,
+                table_name=catalog_table_name,
             )
-        )  # closing ayncio.run here
-        logger.info("ETL job has been completed successfully ...")
+        )
+        logger.info("Embeddings generated successfully")
 
         # Create Indexes for all embedding columns(text, image and multimodal)
-
-        logger.info("Create SCaNN indexes in progress ...")
+        logger.info("Create SCaNN indexes...")
         for modality, embedding_column in embedding_columns.items():
             index_name = index_names[modality]
 
-            create_catalog.create_embeddings_index(
-                catalog_db,
-                catalog_table,
-                embedding_column,
-                index_name,
-                DISTANCE_FUNCTION,
-                NUM_LEAVES_VALUE,
+            table.create_embeddings_index(
+                database=catalog_db_name,
+                distance_function=DISTANCE_FUNCTION,
+                embedding_column=embedding_column,
+                index_name=index_name,
+                num_leaves=NUM_LEAVES_VALUE,
+                table_name=catalog_table_name,
             )
-        logger.info("SCaNN indexes have been created successfully ...")
-    except Exception as e:
-        logger.error(f"An unexpected error occurred during catalog onboarding: {e}")
+        logger.info("SCaNN indexes have been created successfully")
+    except Exception:
+        logger.exception("An unhandled exception occurred while populating the table")
         raise
-    finally:
-        logger.info("Catalog onboarding job has been completed successfully.")
+
+
+if __name__ == "__main__":
+    logger = logging.getLogger("db_setup")
+
+    parser = argparse.ArgumentParser(description="Optional app description")
+    parser.add_argument("--initialize-database", action="store_true")
+    parser.add_argument("--populate-table", action="store_true")
+
+    args = parser.parse_args()
+
+    if args.initialize_database:
+        initialize_database()
+
+    if args.populate_table:
+        populate_table()

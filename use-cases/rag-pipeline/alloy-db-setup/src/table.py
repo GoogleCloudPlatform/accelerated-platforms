@@ -34,91 +34,26 @@ logger = logging.getLogger(__name__)
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     logger.info(
-        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+        "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
     )
     logger.setLevel(new_log_level)
 
 
-def create_database(database, new_database):
-    """Creates a new database in AlloyDB and enables necessary extensions."""
-    try:
-        # 1. Connect to the default database (e.g., 'postgres')
-        # initialize Connector as context manager
-        with Connector() as connector:
-            # initialize connection pool
-            pool = alloydb_connect.init_connection_pool(connector, database)
-            del_db = sqlalchemy.text(f"DROP DATABASE IF EXISTS {new_database};")
-            create_db = sqlalchemy.text(f"CREATE DATABASE {new_database}")
-
-            # interact with AlloyDB database using connection pool
-            with pool.connect().execution_options(
-                isolation_level="AUTOCOMMIT"
-            ) as connection:
-                with connection.begin():
-                    connection.execute(del_db)
-                    logger.info(f"Database '{new_database}' deleted successfully.")
-                    connection.execute(create_db)
-                    logger.info(f"Database '{new_database}' created successfully.")
-    except Exception as e:
-        logger.error(f"An error occurred while creating the database: {e}")
-        # handle this error?
-        # (pg8000.exceptions.DatabaseError) {'S': 'ERROR', 'V': 'ERROR', 'C': '55006', 'M': 'database \"product_catalog\" is being accessed by other users', 'D': 'There are 2 other sessions using the database.', 'F': 'dbcommands.c', 'L': '1788', 'R': 'dropdb'}\n[SQL: DROP DATABASE IF EXISTS product_catalog;]\n(Background on this error at: https://sqlalche.me/e/20/4xp6) """
-    finally:
-        if connection:
-            connection.close()
-            logger.info(f"DB: {database} Connection closed")
-        if connector:
-            connector.close()
-            logger.info("Connector closed")
-    try:
-        # 3. Connect to the newly created database
-        with Connector() as connector:
-            # initialize connection pool
-            pool = alloydb_connect.init_connection_pool(connector, new_database)
-            create_vector_extn = sqlalchemy.text(
-                f"CREATE EXTENSION IF NOT EXISTS vector;"
-            )
-            # interact with AlloyDB database using connection pool
-            with pool.connect().execution_options(
-                isolation_level="AUTOCOMMIT"
-            ) as db_conn:
-                with db_conn.begin():
-                    logger.info(f"Connected with the newly created db {new_database}")
-                    # 4. Enable extensions in the new database
-                    db_conn.execute(create_vector_extn)
-                    logger.info(
-                        f"pgvector extension enabled successfully on db {new_database}."
-                    )
-                    create_scann_extn = sqlalchemy.text(
-                        f"CREATE EXTENSION IF NOT EXISTS alloydb_scann;"
-                    )
-                    db_conn.execute(create_scann_extn)
-                    logger.info(
-                        f"alloydb_scann extension enabled successfully on db {new_database}."
-                    )
-    except Exception as e:
-        logger.error(f"An error occurred while enabling the extensions: {e}")
-    finally:
-        if db_conn:
-            db_conn.close()
-            logger.info(f"DB: {new_database} Connection closed")
-        if connector:
-            connector.close()
-            logger.info("Connector closed")
-
-
-async def create_and_populate_table(
-    database, table_name, processed_data_path, max_workers_value
+async def create_and_populate(
+    database: str,
+    table_name: str,
+    processed_data_path: str,
+    max_workers_value: int,
 ):
     """Creates and populates table, generating embeddings concurrently."""
     try:
         # 1. Extract Data
         df = pd.read_csv(processed_data_path)
-        logger.info(f"Input df shape: {df.shape}")
+        logger.info("Input df shape: %s", df.shape)
 
         # Drop the products with image_uri as NaN
         df.dropna(subset=["image_uri"], inplace=True)
-        logger.info(f"resulting df shape: {df.shape}")
+        logger.info("Resulting df shape: %s", df.shape)
 
         # 2. Transform: Embedding Generation (aiohttp)
         num_rows = len(df)
@@ -171,7 +106,7 @@ async def create_and_populate_table(
         df["text_embeddings"] = text_results
         df["image_embeddings"] = image_results
 
-        logger.info("Embedding generation complete...")
+        logger.info("Embedding generation completed")
 
         # 3. Load (Synchronous Database Loading)
         with Connector() as connector:
@@ -190,25 +125,28 @@ async def create_and_populate_table(
                     },
                 )
                 logger.info(
-                    f"Table '{table_name}' created and populated in '{database}'."
+                    "Table '%s' created and populated in '%s'.",
+                    table_name,
+                    database,
                 )
-
-    except FileNotFoundError as e:
-        logger.exception(f"CSV file not found: {e}")
-
-    except pd.errors.EmptyDataError as e:
-        logger.exception(f"Empty CSV file: {e}")
-
-    except Exception as e:
-        logger.exception(f"An unexpected error occurred: {e}")
+    except FileNotFoundError:
+        logger.exception("CSV file not found")
+    except pd.errors.EmptyDataError:
+        logger.exception("Empty CSV file")
+    except Exception:
+        logger.exception("An unhandled exception occurred")
         raise
 
 
 def create_embeddings_index(
-    database, table_name, embedding_column, index_name, distance_function, num_leaves
+    database: str,
+    table_name: str,
+    embedding_column: str,
+    index_name: str,
+    distance_function: str,
+    num_leaves: int,
 ):
     """Creates a ScaNN index on the specified embedding column."""
-
     try:
         with Connector() as connector:
             pool = alloydb_connect.init_connection_pool(connector, database)
@@ -220,9 +158,12 @@ def create_embeddings_index(
                 )
                 conn.execute(index_cmd)
                 logger.info(
-                    f"Index '{index_name}' created on '{table_name}'.{embedding_column}"
+                    "Index '%s' created on '%s', '%s'",
+                    index_name,
+                    table_name,
+                    embedding_column,
                 )
 
-    except Exception as e:
-        logger.exception(f"Error creating index: {e}")
+    except Exception:
+        logger.exception("An unhandled exception occurred during index creation")
         raise

@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,44 +15,49 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: alloydb-setup
+  name: populate-table
 spec:
+  backoffLimit: 0
   template:
     spec:
-      serviceAccountName: V_KSA
+      serviceAccountName: V_DB_USER_KSA
       containers:
-      - name: alloydb-setup
-        image: V_IMAGE
-        imagePullPolicy: Always
+      - args:
+        - --populate-table
         env:
-        - name: PROCESSED_DATA_BUCKET
-          value: V_PROCESSED_DATA_BUCKET
-        - name: MASTER_CATALOG_FILE_NAME
-          value: V_MASTER_CATALOG_FILE_NAME
         - name: CATALOG_DB
           value: V_CATALOG_DB
         - name: CATALOG_TABLE_NAME
           value: V_CATALOG_TABLE_NAME
-        - name: MLP_DB_ADMIN_IAM
-          value: V_MLP_DB_ADMIN_IAM
-        - name: EMBEDDING_DIMENSION
-          value: V_EMBEDDING_DIMENSION
-        - name: EMBEDDING_COLUMN_TEXT
-          value: V_EMBEDDING_COLUMN_TEXT
+        - name: DB_READ_USERS
+          value: V_DB_READ_USERS
+        - name: DB_WRITE_USERS
+          value: V_DB_WRITE_USERS
         - name: EMBEDDING_COLUMN_IMAGE
           value: V_EMBEDDING_COLUMN_IMAGE
         - name: EMBEDDING_COLUMN_MULTIMODAL
           value: V_EMBEDDING_COLUMN_MULTIMODAL
-        - name: NUM_LEAVES_VALUE
-          value: V_NUM_LEAVES_VALUE
+        - name: EMBEDDING_COLUMN_TEXT
+          value: V_EMBEDDING_COLUMN_TEXT
+        - name: EMBEDDING_DIMENSION
+          value: V_EMBEDDING_DIMENSION
+        - name: EMBEDDING_ENDPOINT_IMAGE
+          value: V_EMBEDDING_ENDPOINT_IMAGE
+        - name: EMBEDDING_ENDPOINT_MULTIMODAL
+          value: V_EMBEDDING_ENDPOINT_MULTIMODAL
+        - name: EMBEDDING_ENDPOINT_TEXT
+          value: V_EMBEDDING_ENDPOINT_TEXT
+        - name: MASTER_CATALOG_FILE_NAME
+          value: V_MASTER_CATALOG_FILE_NAME
         - name: MLP_DB_INSTANCE_URI
           value: V_MLP_DB_INSTANCE_URI
-        - name: TEXT_EMBEDDING_ENDPOINT
-          value: V_EMBEDDING_ENDPOINT_TEXT
-        - name: IMAGE_EMBEDDING_ENDPOINT
-          value: V_EMBEDDING_ENDPOINT_IMAGE
-        - name: MULTIMODAL_EMBEDDING_ENDPOINT
-          value: V_EMBEDDING_ENDPOINT_MULTIMODAL
         - name: MLP_KUBERNETES_NAMESPACE
           value: V_MLP_KUBERNETES_NAMESPACE
+        - name: NUM_LEAVES_VALUE
+          value: V_NUM_LEAVES_VALUE
+        - name: PROCESSED_DATA_BUCKET
+          value: V_PROCESSED_DATA_BUCKET
+        image: V_IMAGE
+        imagePullPolicy: Always
+        name: db-setup
       restartPolicy: Never

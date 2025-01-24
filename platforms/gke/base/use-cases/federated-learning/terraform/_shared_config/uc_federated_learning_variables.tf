@@ -57,7 +57,13 @@ locals {
       tenant_apps_workload_identity_service_account_name = values.tenant_apps_workload_identity_service_account_name
 
       kubernetes_templates_configuration_values = {
-        namespace_name = values.tenant_name
+        namespace_name                              = values.tenant_name
+        tenant_apps_kubernetes_service_account_name = values.tenant_apps_kubernetes_service_account_name
+
+        # These variables are about the NVIDIA FLARE EXAMPLE
+        federated_learning_nvidia_flare_tff_example_bucket_name                  = var.federated_learning_nvidia_flare_tff_example_bucket_name
+        federated_learning_nvidia_flare_tff_example_container_image_tag          = var.federated_learning_nvidia_flare_tff_example_container_image_tag
+        federated_learning_nvidia_flare_tff_example_localized_container_image_id = var.federated_learning_nvidia_flare_tff_example_localized_container_image_id
       }
     }
   }
@@ -98,6 +104,25 @@ locals {
   tenant_apps_kubernetes_service_account_name = "fl-ksa"
 }
 
+variable "federated_learning_cloud_storage_buckets" {
+  default     = {}
+  description = "Map describing the Cloud Storage buckets to create. Keys are bucket names."
+  type = map(object({
+    force_destroy      = bool
+    versioning_enabled = bool
+  }))
+}
+
+variable "federated_learning_cloud_storage_buckets_iam_bindings" {
+  default     = []
+  description = "Map of objects to configure Cloud IAM bindings for Cloud Storage buckets described by the federated_learning_cloud_storage_buckets variable. Keys are bucket names. Use the same names that you use in the federated_learning_cloud_storage_buckets variable"
+  type = list(object({
+    bucket_name = string
+    member      = string
+    role        = string
+  }))
+}
+
 variable "federated_learning_tenant_names" {
   default     = ["fl-1"]
   description = "List of named tenants to be created in the cluster. Each tenant gets a dedicated node pool and Kubernetes namespace, isolated from other tenants."
@@ -107,5 +132,29 @@ variable "federated_learning_tenant_names" {
 variable "federated_learning_node_pool_machine_type" {
   default     = "n4-standard-8"
   description = "Machine type of the node pools. If you need to enable confidential GKE nodes, ensure that the machine type supports that. Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/confidential-gke-nodes"
+  type        = string
+}
+
+variable "federated_learning_nvidia_flare_tff_example_deploy" {
+  default     = false
+  description = "Set this variable to true to deploy the Federated Learning NVIDIA FLARE TensorFlow example"
+  type        = bool
+}
+
+variable "federated_learning_nvidia_flare_tff_example_bucket_name" {
+  default     = "nvf-ws"
+  description = "Cloud Storage bucket name to store the NVIDIA FLARE example workspace"
+  type        = string
+}
+
+variable "federated_learning_nvidia_flare_tff_example_container_image_tag" {
+  default     = "federated_learning_nvidia_flare_tff_example_container_image_tag_placeholder"
+  description = "Container image tag of the NVIDIA FLARE container image to deploy"
+  type        = string
+}
+
+variable "federated_learning_nvidia_flare_tff_example_localized_container_image_id" {
+  default     = "federated_learning_nvidia_flare_tff_localized_container_image_id_placeholder"
+  description = "Container image id (localized with the repository) of the NVIDIA FLARE container image to deploy"
   type        = string
 }

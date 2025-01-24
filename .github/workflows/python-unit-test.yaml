@@ -21,4 +21,4 @@ jobs:
           pip install -r requirements.txt
       - name: Run unit tests
         run: |
-          bash run_python_tests.sh
+          bash run_python_unittests.sh

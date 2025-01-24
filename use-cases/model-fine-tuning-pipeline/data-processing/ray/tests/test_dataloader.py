@@ -1,7 +1,7 @@
 import unittest
 import pandas as pd
 from unittest.mock import patch, Mock
-from ..src.datapreprocessing.dataloader import DataLoader
+from src.datapreprocessing.dataloader import DataLoader
 
 class TestDataLoader(unittest.TestCase):
 

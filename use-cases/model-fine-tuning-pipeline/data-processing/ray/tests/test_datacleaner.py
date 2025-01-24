@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from ..src.datapreprocessing.datacleaner import DataPreprocessor
+from src.datapreprocessing.datacleaner import DataPreprocessor
 
 class TestDataCleaner(unittest.TestCase):
 

@@ -1,7 +1,7 @@
 import unittest
 import pandas as pd
 from unittest.mock import patch, Mock
-from ..src.datapreprocessing.ray_utils import RayUtils
+from src.datapreprocessing.ray_utils import RayUtils
 
 class TestRayUtils(unittest.TestCase):
 

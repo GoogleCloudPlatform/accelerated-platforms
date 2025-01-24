@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
 
+
 class DataLoader:
 
     logger = logging.getLogger(__name__)

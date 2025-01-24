@@ -9,17 +9,29 @@ import logging
 import importlib
 import pandas as pd
 from datapreprocessing import *
-#from data_cleaner import DataPreprocessor
-#from data_loader import DataLoader
+
+# from data_cleaner import DataPreprocessor
+# from data_loader import DataLoader
 
 # RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
-#IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
-#IMAGE_BUCKET = "gkebatchexpce3c8dcb-gushob-rag-data"
+# IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
+# IMAGE_BUCKET = "gkebatchexpce3c8dcb-gushob-rag-data"
 class RayUtils:
 
     logger = logging.getLogger(__name__)
 
-    def __init__(self,ray_cluster_host,ray_resources,ray_runtime,package_name,module_name,class_name,method_name,df,gcs_bucket):
+    def __init__(
+        self,
+        ray_cluster_host,
+        ray_resources,
+        ray_runtime,
+        package_name,
+        module_name,
+        class_name,
+        method_name,
+        df,
+        gcs_bucket,
+    ):
         self.ray_cluster_host = ray_cluster_host
         self.ray_resource = ray_resources
         self.ray_runtime = ray_runtime
@@ -30,19 +42,21 @@ class RayUtils:
         self.df = df
         self.gcs_bucket = gcs_bucket
 
-
     @ray.remote(resources={"cpu": 1})
-    def invoke_process_data(self, preprocessor, df, ray_worker_node_id,gcs_bucket):
-        def func_not_found(): # just in case we dont have the function
-            print ('No Function '+self.method_name+' Found!')
-        func = getattr(preprocessor,self.method_name,func_not_found) 
-        #return preprocessor.process_data(df, ray_worker_node_id,IMAGE_BUCKET)
-        return func(df, ray_worker_node_id,gcs_bucket)
-    
+    def invoke_process_data(self, preprocessor, df, ray_worker_node_id, gcs_bucket):
+        def func_not_found():  # just in case we dont have the function
+            print("No Function " + self.method_name + " Found!")
+
+        func = getattr(preprocessor, self.method_name, func_not_found)
+        # return preprocessor.process_data(df, ray_worker_node_id,IMAGE_BUCKET)
+        return func(df, ray_worker_node_id, gcs_bucket)
+
     def run_remote(self):
         # Initiate a driver: start and connect with Ray cluster
         if self.ray_cluster_host != "local":
-            ClientContext = ray.init(f"ray://{self.ray_cluster_host}", runtime_env=self.ray_runtime)
+            ClientContext = ray.init(
+                f"ray://{self.ray_cluster_host}", runtime_env=self.ray_runtime
+            )
             self.logger.debug(ClientContext)
 
             # Get the ID of the node where the driver process is running
@@ -58,14 +72,21 @@ class RayUtils:
         module = importlib.import_module(complete_module_name)
         MyClass = getattr(module, self.class_name)
         preprocessor = MyClass()
-        #preprocessor = datacleaner.DataPreprocessor()
-        #TODO: make this comment generic
+        # preprocessor = datacleaner.DataPreprocessor()
+        # TODO: make this comment generic
         self.logger.debug("Data Preparation started")
         start_time = time.time()
-        #results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
-        results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,self.gcs_bucket) for i in range(len(self.df))])
-        #self_ref = ray.put(self)
-        #results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,IMAGE_BUCKET) for i in range(len(self.df))])
+        # results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
+        results = ray.get(
+            [
+                self.invoke_process_data.remote(
+                    self, preprocessor, self.df[i], i, self.gcs_bucket
+                )
+                for i in range(len(self.df))
+            ]
+        )
+        # self_ref = ray.put(self)
+        # results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,IMAGE_BUCKET) for i in range(len(self.df))])
         duration = time.time() - start_time
         self.logger.debug(f"Data Preparation finished in {duration} seconds")
 
@@ -74,5 +95,5 @@ class RayUtils:
 
         # concat all the resulting data frames
         result_df = pd.concat(results, axis=0, ignore_index=True)
-        
+
         return result_df

@@ -12,6 +12,7 @@ IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
 RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
 GCS_IMAGE_FOLDER = "flipkart_images"
 
+
 def graceful_shutdown(signal_number, stack_frame):
     signal_name = signal.Signals(signal_number).name
 
@@ -19,11 +20,12 @@ def graceful_shutdown(signal_number, stack_frame):
     # TODO: Add logic to handled checkpointing if required
     sys.exit(0)
 
+
 if __name__ == "__main__":
     # Configure logging
     logging.config.fileConfig("logging.conf")
     logger = logging.getLogger(__name__)
-    
+
     if "LOG_LEVEL" in os.environ:
         new_log_level = os.environ["LOG_LEVEL"].upper()
         logger.info(
@@ -36,37 +38,35 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
 
-    #ray_utils.run_remote()
+    # ray_utils.run_remote()
 
     ##new changes
     required_cols = [
-                "uniq_id",
-                "product_name",
-                "description",
-                "brand",
-                "image",
-                "product_specifications",
-                "product_category_tree",
-            ]
+        "uniq_id",
+        "product_name",
+        "description",
+        "brand",
+        "image",
+        "product_specifications",
+        "product_category_tree",
+    ]
     filter_null_cols = [
-                "description",
-                "image",
-                "product_specifications",
-                "product_category_tree",
-            ]
+        "description",
+        "image",
+        "product_specifications",
+        "product_category_tree",
+    ]
     ray_resources = {"cpu": 1}
     ray_runtime_env = {
-            "py_modules": [
-                "./datapreprocessing"  # Path to your module's directory
-            ],
-            "pip": [
-                "google-cloud-storage==2.16.0",
-                "spacy==3.7.4",
-                "jsonpickle==3.0.3",
-                "pandas==2.2.1",
-            ],
-            "env_vars": {"PIP_NO_CACHE_DIR": "1", "PIP_DISABLE_PIP_VERSION_CHECK": "1"},
-        }
+        "py_modules": ["./datapreprocessing"],  # Path to your module's directory
+        "pip": [
+            "google-cloud-storage==2.16.0",
+            "spacy==3.7.4",
+            "jsonpickle==3.0.3",
+            "pandas==2.2.1",
+        ],
+        "env_vars": {"PIP_NO_CACHE_DIR": "1", "PIP_DISABLE_PIP_VERSION_CHECK": "1"},
+    }
     chunk_size = 199
     # The following 4 parameters define which method to run as ray remote
     package_name = "datapreprocessing"
@@ -74,17 +74,29 @@ if __name__ == "__main__":
     class_name = "DataPreprocessor"
     method_name = "process_data"
 
-    data_loader = DataLoader(IMAGE_BUCKET, "flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv")
+    data_loader = DataLoader(
+        IMAGE_BUCKET, "flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv"
+    )
     df = data_loader.load_raw_data()
-    
-    data_prep = DataPrep(df,required_cols,filter_null_cols,chunk_size)
+
+    data_prep = DataPrep(df, required_cols, filter_null_cols, chunk_size)
     df = data_prep.update_dataframe()
 
     # Chunk the dataset
     res = data_prep.split_dataframe()
 
     # pass res to RayUtils object
-    ray_obj = RayUtils(RAY_CLUSTER_HOST,ray_resources,ray_runtime_env,package_name,module_name,class_name,method_name,res,IMAGE_BUCKET)
+    ray_obj = RayUtils(
+        RAY_CLUSTER_HOST,
+        ray_resources,
+        ray_runtime_env,
+        package_name,
+        module_name,
+        class_name,
+        method_name,
+        res,
+        IMAGE_BUCKET,
+    )
     result_df = ray_obj.run_remote()
     # Replace NaN with None
     result_df = result_df.replace({np.nan: None})

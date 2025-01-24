@@ -1,6 +1,6 @@
 import unittest
 import pandas as pd
-from datapreprocessing.dataprep import DataPrep
+from ..src.datapreprocessing.dataprep import DataPrep
 
 class TestDataPrep(unittest.TestCase):
 

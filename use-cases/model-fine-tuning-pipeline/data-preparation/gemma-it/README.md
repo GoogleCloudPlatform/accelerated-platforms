@@ -1,15 +1,25 @@
 # Data Preparation
 
-A processed Flipkart product catalog is used as input data to generate prompts in preparation for fine-tuning. The prompts are generated using [Llama 3.1 on Vertex AI](https://console.cloud.google.com/vertex-ai/publishers/meta/model-garden/llama-3.1-405b-instruct-maas). The output is a data set that can be used to fine-tune the base model.
+A processed Flipkart product catalog is used as input data to generate prompts
+in preparation for fine-tuning. The prompts are generated using
+[Llama 3.1 on Vertex AI](https://console.cloud.google.com/vertex-ai/publishers/meta/model-garden/llama-3.1-405b-instruct-maas).
+The output is a data set that can be used to fine-tune the base model.
 
-Depending on the infrastructure you provisioned, the data preparation step takes approximately 1 hour and 40 minutes.
+Depending on the infrastructure you provisioned, the data preparation step takes
+approximately 1 hour and 40 minutes.
 
 ## Prerequisites
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
-- A bucket containing the processed data from the [Data Processing example](/use-cases/model-fine-tuning-pipeline/data-processing/ray/README.md)
+- This guide was developed to be run on the
+  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
+  are using a different environment the scripts and manifest will need to be
+  modified for that environment.
+- A bucket containing the processed data from the
+  [Data Processing example](/use-cases/model-fine-tuning-pipeline/data-processing/ray/README.md)
 
-> NOTE: If you did not execute the data processing example, follow [these instructions](/use-cases/prerequisites/processed-data.md) to load the processed data into the bucket.
+> NOTE: If you did not execute the data processing example, follow
+> [these instructions](/use-cases/prerequisites/processed-data.md) to load the
+> processed data into the bucket.
 
 ## Preparation
 
@@ -36,21 +46,25 @@ Depending on the infrastructure you provisioned, the data preparation step takes
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
 ### Vertex AI OpenAI endpoint variables
 
-- Set `VERTEX_REGION` to Google Cloud region to use for the Vertex AI API OpenAI endpoint calls
+- Set `VERTEX_REGION` to Google Cloud region to use for the Vertex AI API OpenAI
+  endpoint calls
 
   ```
   VERTEX_REGION=us-central1
   ```
 
-  > The Llama 3.1 on Vertex API is in preview, it is only available in `us-central1`
+  > The Llama 3.1 on Vertex API is in preview, it is only available in
+  > `us-central1`
 
 ## Build the container image
 
-- Build the container image using Cloud Build and push the image to Artifact Registry
+- Build the container image using Cloud Build and push the image to Artifact
+  Registry
 
   ```
   cd src
@@ -107,7 +121,8 @@ Depending on the infrastructure you provisioned, the data preparation step takes
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job.yaml
   ```
 
-- Once the Job is completed, the prepared datasets are stored in Google Cloud Storage.
+- Once the Job is completed, the prepared datasets are stored in Google Cloud
+  Storage.
 
   ```sh
   gcloud storage ls gs://${MLP_DATA_BUCKET}/${DATASET_OUTPUT_PATH}
@@ -115,29 +130,49 @@ Depending on the infrastructure you provisioned, the data preparation step takes
 
 ## Observability
 
-By default, both GKE and the workloads you run expose metrics and logs in Google Cloud's Observability suite. You can view this information from the Cloud Observability console or the GKE Observability page.
+By default, both GKE and the workloads you run expose metrics and logs in Google
+Cloud's Observability suite. You can view this information from the Cloud
+Observability console or the GKE Observability page.
 
-For more information about infrastructure and application metrics, see [View observability metrics](https://cloud.google.com/kubernetes-engine/docs/how-to/view-observability-metrics).
+For more information about infrastructure and application metrics, see
+[View observability metrics](https://cloud.google.com/kubernetes-engine/docs/how-to/view-observability-metrics).
 
-You may want to perform the following tasks specifically for the data preparation use case described in this example.
+You may want to perform the following tasks specifically for the data
+preparation use case described in this example.
 
 ### Monitor the job
 
-In the Google Cloud console, go to the [Kubernetes Engine](https://console.cloud.google.com/kubernetes) page. Under the `Resource Management` menu on the left side, click `Workloads`. From there, you can filter the workloads by cluster name and namespaces. The `Observability` tab provides system level metric views such as `Overview`, `CPU`, and `Memory`. If you click the job name like `data-prep`, you can see the job details like the following page:
+In the Google Cloud console, go to the
+[Kubernetes Engine](https://console.cloud.google.com/kubernetes) page. Under the
+`Resource Management` menu on the left side, click `Workloads`. From there, you
+can filter the workloads by cluster name and namespaces. The `Observability` tab
+provides system level metric views such as `Overview`, `CPU`, and `Memory`. If
+you click the job name like `data-prep`, you can see the job details like the
+following page:
 
 ![monitor-job](/docs/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/images/monitor-job.png)
 
-At the bottom of the page, you can see the status of the managed pods by the job. If your job is having trouble running, the `EVENTS` and `LOGS` tabs will provide more insight. You can also adjust the time windows or open the `Container logs` and `Audit logs` for additional information.
+At the bottom of the page, you can see the status of the managed pods by the
+job. If your job is having trouble running, the `EVENTS` and `LOGS` tabs will
+provide more insight. You can also adjust the time windows or open the
+`Container logs` and `Audit logs` for additional information.
 
 ### View the logs
 
-To gain insight into your workload quickly, you can filter and tweak the log queries to view only the relevant logs. You can do so in the `Logs Explorer`. One fast way to open the Logs Explorer and have the query pre-populated is to click the `View in Logs Explorer` button on the right side of the `LOGS` tab once you are on the `Job details` page.
+To gain insight into your workload quickly, you can filter and tweak the log
+queries to view only the relevant logs. You can do so in the `Logs Explorer`.
+One fast way to open the Logs Explorer and have the query pre-populated is to
+click the `View in Logs Explorer` button on the right side of the `LOGS` tab
+once you are on the `Job details` page.
 
 When the link is opened, you should see something like the following:
 
 ![log-explorer-query](/docs/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/images/log-explorer-query.png)
 
-The Logs Explorer provides many nice features besides tweaking your log query in the `Query` field. For example, if you want to know which steps the job has completed, you can run the following query based on [the source code](src/dataprep.py#L318):
+The Logs Explorer provides many nice features besides tweaking your log query in
+the `Query` field. For example, if you want to know which steps the job has
+completed, you can run the following query based on
+[the source code](src/dataprep.py#L318):
 
 ```shell
 resource.type="k8s_container"
@@ -153,18 +188,33 @@ jsonPayload.message = (
 "***Job End***")
 ```
 
-As another example, if you want to know how many prompts are generated in a specific time window, you can do something like the following:
+As another example, if you want to know how many prompts are generated in a
+specific time window, you can do something like the following:
 
-- Look for the log entries from the code associated with the prompt generation. In this example, the `Content generated` log entry is produced each time a prompt is generated.
-- You can click the `Similar entries`, which automatically updates the log query for you and lists all `Content generated` entries.
-- Adjust the timeline in the middle of the page and zoom in/out. You will see how many log entries are ingested during a specific time window, such as 30 seconds. That number should be the same as the number of prompts generated by the code.
+- Look for the log entries from the code associated with the prompt generation.
+  In this example, the `Content generated` log entry is produced each time a
+  prompt is generated.
+- You can click the `Similar entries`, which automatically updates the log query
+  for you and lists all `Content generated` entries.
+- Adjust the timeline in the middle of the page and zoom in/out. You will see
+  how many log entries are ingested during a specific time window, such as 30
+  seconds. That number should be the same as the number of prompts generated by
+  the code.
 
 ### Log Analytics
 
-You can also use [Log Analytics](https://cloud.google.com/logging/docs/analyze/query-and-view) to analyze your logs. After it is enabled, you can run SQL queries to gain insight from the logs. The result can also be charted. For example, you can click the `Analyze results` link on the Logs Explorer page and open the Log Analytics page with a converted SQL query. The chart and table you view can also be added to a dashboard.
+You can also use
+[Log Analytics](https://cloud.google.com/logging/docs/analyze/query-and-view) to
+analyze your logs. After it is enabled, you can run SQL queries to gain insight
+from the logs. The result can also be charted. For example, you can click the
+`Analyze results` link on the Logs Explorer page and open the Log Analytics page
+with a converted SQL query. The chart and table you view can also be added to a
+dashboard.
 
 ![log-analytics](/docs/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/images/log-analytics.png)
 
 ## Notes
 
-The raw [pre-crawled public dataset](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products), [license](https://creativecommons.org/licenses/by-sa/4.0/).
+The raw
+[pre-crawled public dataset](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products),
+[license](https://creativecommons.org/licenses/by-sa/4.0/).

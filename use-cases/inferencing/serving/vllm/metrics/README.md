@@ -1,6 +1,12 @@
 # vLLM Metrics
 
-vLLM exposes a number of metrics that can be used to monitor the health of the system. These metrics are exposed via the `/metrics` endpoint on the vLLM OpenAI compatible API server. These metrics can be scraped using Google Managed Prometheus (GMP) and made available in [Cloud Metrics](https://console.cloud.google.com/monitoring/metrics-explorer). For more details, see [pod monitoring with Google managed prometheus](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-managed#gmp-pod-monitoring).
+vLLM exposes a number of metrics that can be used to monitor the health of the
+system. These metrics are exposed via the `/metrics` endpoint on the vLLM OpenAI
+compatible API server. These metrics can be scraped using Google Managed
+Prometheus (GMP) and made available in
+[Cloud Metrics](https://console.cloud.google.com/monitoring/metrics-explorer).
+For more details, see
+[pod monitoring with Google managed prometheus](https://cloud.google.com/stackdriver/docs/managed-prometheus/setup-managed#gmp-pod-monitoring).
 
 ## Prerequisites
 
@@ -36,8 +42,9 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 
 - Configure the environment.
 
-  > Set the environment variables based on the accelerator and model storage type used to serve the model.
-  > The default values below are set for NVIDIA L4 GPUs and persistent disk.
+  > Set the environment variables based on the accelerator and model storage
+  > type used to serve the model. The default values below are set for NVIDIA L4
+  > GPUs and persistent disk.
 
   | Variable      | Description                                        | Example |
   | ------------- | -------------------------------------------------- | ------- |
@@ -71,15 +78,18 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 
 ## View the metrics
 
-- Make several requests to your model to populate metrics, you can use the previously deployed chat interface.
+- Make several requests to your model to populate metrics, you can use the
+  previously deployed chat interface.
 
   ```sh
   echo -e "\nGradio chat interface: ${MLP_GRADIO_MODEL_OPS_ENDPOINT}\n"
   ```
 
-- Wait for the metrics to populate, then they can be viewed in the Metrics explorer.
+- Wait for the metrics to populate, then they can be viewed in the Metrics
+  explorer.
 
-  - Go to the [Metrics explorer](https://console.cloud.google.com/monitoring/metrics-explorer)
+  - Go to the
+    [Metrics explorer](https://console.cloud.google.com/monitoring/metrics-explorer)
   - Click the **Select a metric** dropdown near the upper left of the screen
   - Select **Prometheus Target**
   - Select **Vllm**, you should now see a list of the available metrics.
@@ -94,15 +104,25 @@ vLLM exposes a number of metrics that can be used to monitor the health of the s
 
 ### Create a Cloud Monitoring custom dashboard
 
-After you've verified that the vLLM metrics are available in Cloud Monitoringn using the metrics explorer, you can create a custom vLLM dashboard by running the following command:
+After you've verified that the vLLM metrics are available in Cloud Monitoringn
+using the metrics explorer, you can create a custom vLLM dashboard by running
+the following command:
 
 ```sh
 gcloud monitoring dashboards create --config-from-file=../metrics/dashboard/cloud-monitoring-vllm.json
 ```
 
-If you want to use the Cloud Monitoring console to import the dashboard, copy the contents of [cloud-monitoring-vllm.json](../metrics/dashboard/cloud-monitoring-vllm.json) and paste them into the dashboard JSON editor. Then, save your changes. You can read the doc [here](https://cloud.google.com/monitoring/charts/dashboards#copy-dashboard) for more details.
+If you want to use the Cloud Monitoring console to import the dashboard, copy
+the contents of
+[cloud-monitoring-vllm.json](../metrics/dashboard/cloud-monitoring-vllm.json)
+and paste them into the dashboard JSON editor. Then, save your changes. You can
+read the doc
+[here](https://cloud.google.com/monitoring/charts/dashboards#copy-dashboard) for
+more details.
 
-The sample Cloud Monitoring dashboard created are organized with multiple sections to display metrics such as throughput, latency, cache utilization and errors:
+The sample Cloud Monitoring dashboard created are organized with multiple
+sections to display metrics such as throughput, latency, cache utilization and
+errors:
 
 ![vllm-dashboard-part1](../metrics/dashboard/CM-vllm-dashboard1.png)
 
@@ -112,53 +132,90 @@ The sample Cloud Monitoring dashboard created are organized with multiple sectio
 
 ![vllm-dashboard-part4](../metrics/dashboard/CM-vllm-dashboard4.png)
 
-This dashboard uses several key vLLM metrics, pulled from Prometheus, to provide insights into various aspects of the server's operation:
+This dashboard uses several key vLLM metrics, pulled from Prometheus, to provide
+insights into various aspects of the server's operation:
 
 1. E2E Request Latency
 
-   `vllm:e2e_request_latency_seconds_bucket`: This is a histogram metric that tracks the end-to-end latency of requests in seconds. The dashboard uses histogram_quantile to calculate and display the P99, P95, P90, and P50 latency values. It also shows the average latency. This panel gives you a good overview of the overall responsiveness of your vLLM server.
+   `vllm:e2e_request_latency_seconds_bucket`: This is a histogram metric that
+   tracks the end-to-end latency of requests in seconds. The dashboard uses
+   histogram_quantile to calculate and display the P99, P95, P90, and P50
+   latency values. It also shows the average latency. This panel gives you a
+   good overview of the overall responsiveness of your vLLM server.
 
 2. Token Throughput
 
-   `vllm:prompt_tokens_total`: This counter metric tracks the total number of prompt tokens processed by the server. The dashboard uses rate to show the rate of prompt tokens processed per second.
+   `vllm:prompt_tokens_total`: This counter metric tracks the total number of
+   prompt tokens processed by the server. The dashboard uses rate to show the
+   rate of prompt tokens processed per second.
 
-   `vllm:generation_tokens_total`: Similar to the above, this counter metric tracks the total number of generated tokens. The dashboard shows the rate of generation tokens per second. This panel helps you understand the throughput of your server in terms of token processing.
+   `vllm:generation_tokens_total`: Similar to the above, this counter metric
+   tracks the total number of generated tokens. The dashboard shows the rate of
+   generation tokens per second. This panel helps you understand the throughput
+   of your server in terms of token processing.
 
 3. Time Per Output Token Latency
 
-   `vllm:time_per_output_token_seconds_bucket`: This histogram metric tracks the latency per output token in seconds. Like the "E2E Request Latency" panel, this one also uses histogram_quantile to show different percentiles (P99, P95, P90, P50) and the mean latency per generated token. This provides insights into the efficiency of token generation.
+   `vllm:time_per_output_token_seconds_bucket`: This histogram metric tracks the
+   latency per output token in seconds. Like the "E2E Request Latency" panel,
+   this one also uses histogram_quantile to show different percentiles (P99,
+   P95, P90, P50) and the mean latency per generated token. This provides
+   insights into the efficiency of token generation.
 
 4. Scheduler State
 
-   `vllm:num_requests_running`: A gauge metric indicating the number of requests currently being processed by the GPUs.
+   `vllm:num_requests_running`: A gauge metric indicating the number of requests
+   currently being processed by the GPUs.
 
-   `vllm:num_requests_swapped`: A gauge metric showing the number of requests that have been swapped to CPU.
+   `vllm:num_requests_swapped`: A gauge metric showing the number of requests
+   that have been swapped to CPU.
 
-   `vllm:num_requests_waiting`: A gauge metric indicating the number of requests waiting in the queue to be processed. This panel helps you understand the current load on the server and how requests are being scheduled.
+   `vllm:num_requests_waiting`: A gauge metric indicating the number of requests
+   waiting in the queue to be processed. This panel helps you understand the
+   current load on the server and how requests are being scheduled.
 
 5. Time To First Token Latency
 
-   `vllm:time_to_first_token_seconds_bucket`: This histogram metric tracks the time it takes to generate the first token in a request. The dashboard displays various percentiles (P99, P95, P90, P50) and the average time to first token. This is a critical metric as it reflects the initial response time experienced by users.
+   `vllm:time_to_first_token_seconds_bucket`: This histogram metric tracks the
+   time it takes to generate the first token in a request. The dashboard
+   displays various percentiles (P99, P95, P90, P50) and the average time to
+   first token. This is a critical metric as it reflects the initial response
+   time experienced by users.
 
 6. Cache Utilization
 
-   `vllm:gpu_cache_usage_perc`: A gauge metric showing the percentage of GPU cache blocks used.
+   `vllm:gpu_cache_usage_perc`: A gauge metric showing the percentage of GPU
+   cache blocks used.
 
-   `vllm:cpu_cache_usage_perc`: A gauge metric showing the percentage of CPU cache blocks used. This panel helps you monitor cache utilization, which is crucial for performance optimization.
+   `vllm:cpu_cache_usage_perc`: A gauge metric showing the percentage of CPU
+   cache blocks used. This panel helps you monitor cache utilization, which is
+   crucial for performance optimization.
 
 7. Request Prompt Length & 8. Request Generation Length
 
-   `vllm:request_prompt_tokens_bucket` and `vllm:request_generation_tokens_bucket`: These are histogram metrics that track the distribution of prompt lengths and generation lengths respectively. The heatmaps visualize these distributions, showing how many requests fall into different length buckets.
+   `vllm:request_prompt_tokens_bucket` and
+   `vllm:request_generation_tokens_bucket`: These are histogram metrics that
+   track the distribution of prompt lengths and generation lengths respectively.
+   The heatmaps visualize these distributions, showing how many requests fall
+   into different length buckets.
 
-This dashboard provides a comprehensive view of the vLLM server's performance by combining these metrics. By monitoring these panels, you can identify potential bottlenecks, optimize resource allocation, and ensure the efficient and reliable operation of your LLM serving system.
+This dashboard provides a comprehensive view of the vLLM server's performance by
+combining these metrics. By monitoring these panels, you can identify potential
+bottlenecks, optimize resource allocation, and ensure the efficient and reliable
+operation of your LLM serving system.
 
-> NOTE: [Check here](/docs/use-cases/inferencing/README.md#effective-scaling-metrics) for additional details on metrics that can be utilized for scaling.
+> NOTE:
+> [Check here](/docs/use-cases/inferencing/README.md#effective-scaling-metrics)
+> for additional details on metrics that can be utilized for scaling.
 
 ### [Optional] Import a vLLM Grafana dashboard
 
-Alternatively, you can import a Grafana vLLM dashboard into Cloud Monitoring. Here's an example:
+Alternatively, you can import a Grafana vLLM dashboard into Cloud Monitoring.
+Here's an example:
 
-Cloud Monitoring provides [an importer tool](https://cloud.google.com/monitoring/dashboards/import-grafana-dashboards) that allows you to import dashboard files in the Grafana JSON format.
+Cloud Monitoring provides
+[an importer tool](https://cloud.google.com/monitoring/dashboards/import-grafana-dashboards)
+that allows you to import dashboard files in the Grafana JSON format.
 
 - Clone the repository.
 
@@ -174,8 +231,11 @@ Cloud Monitoring provides [an importer tool](https://cloud.google.com/monitoring
 
 - The dashboard importer includes the following scripts:
 
-  - `import.sh`, which converts dashboards and optionally uploads the converted dashboards to Cloud Monitoring.
-  - `upload.sh`, which uploads the converted dashboards or any Monitoring dashboards to Cloud Monitoring. The `import.sh` script calls this script to do the upload.
+  - `import.sh`, which converts dashboards and optionally uploads the converted
+    dashboards to Cloud Monitoring.
+  - `upload.sh`, which uploads the converted dashboards or any Monitoring
+    dashboards to Cloud Monitoring. The `import.sh` script calls this script to
+    do the upload.
 
 - Import the dashboard. When prompted, answer `y`
 
@@ -217,7 +277,9 @@ Cloud Monitoring provides [an importer tool](https://cloud.google.com/monitoring
   https://github.com/GoogleCloudPlatform/monitoring-dashboard-samples/tree/master/scripts/dashboard-importer/README.md#troubleshooting
   ```
 
-- A link to the dashboard will be output by the script, or navigate to the [Monitoring Dashboards](https://console.cloud.google.com/monitoring/dashboards) page in the console and look for the **vLLM** Custom dashboard.
+- A link to the dashboard will be output by the script, or navigate to the
+  [Monitoring Dashboards](https://console.cloud.google.com/monitoring/dashboards)
+  page in the console and look for the **vLLM** Custom dashboard.
 
 ## What's next
 

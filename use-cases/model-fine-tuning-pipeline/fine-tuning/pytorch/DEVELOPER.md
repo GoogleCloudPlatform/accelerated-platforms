@@ -1,6 +1,7 @@
 # Fine Tuning PyTorch Developer Guide
 
-- Install [`pyenv`](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation)
+- Install
+  [`pyenv`](https://github.com/pyenv/pyenv?tab=readme-ov-file#installation)
 
 - Install the `python` version
 

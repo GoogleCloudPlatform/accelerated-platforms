@@ -1,20 +1,29 @@
 # Playground AI/ML Platform on GKE reference architecture
 
-This quick-start deployment guide can be used to set up an environment to familiarize yourself with the architecture and get an understanding of the concepts.
+This quick-start deployment guide can be used to set up an environment to
+familiarize yourself with the architecture and get an understanding of the
+concepts.
 
-**NOTE: This environment is not intended to be a long lived environment. It is intended for temporary demonstration and learning purposes.**
+**NOTE: This environment is not intended to be a long lived environment. It is
+intended for temporary demonstration and learning purposes.**
 
 ## Architecture
 
-For more information about the architecture, see the [Playground AI/ML Platform on GKE: Architecture](/docs/platforms/gke-aiml/playground/architecture.md) document.
+For more information about the architecture, see the
+[Playground AI/ML Platform on GKE: Architecture](/docs/platforms/gke-aiml/playground/architecture.md)
+document.
 
-For an outline of products and features used in the platform, see the [Platform Products and Features](/docs/platforms/gke-aiml/products-and-features.md) document.
+For an outline of products and features used in the platform, see the
+[Platform Products and Features](/docs/platforms/gke-aiml/products-and-features.md)
+document.
 
 ## Requirements
 
 ### Project
 
-In this guide you can choose to bring your project (BYOP) or have Terraform create a new project for you. The requirements are difference based on the option that you choose.
+In this guide you can choose to bring your project (BYOP) or have Terraform
+create a new project for you. The requirements are difference based on the
+option that you choose.
 
 #### Option 1: Bring your own project (BYOP)
 
@@ -27,7 +36,8 @@ In this guide you can choose to bring your project (BYOP) or have Terraform crea
 - Billing account ID
 - Organization or folder ID
 - `roles/billing.user` IAM permissions on the billing account specified
-- `roles/resourcemanager.projectCreator` IAM permissions on the organization or folder specified
+- `roles/resourcemanager.projectCreator` IAM permissions on the organization or
+  folder specified
 - GitHub Personal Access Token, steps to create the token are provided below
 
 ### Quota
@@ -36,7 +46,8 @@ The default quota given to a project should be sufficient for this guide.
 
 ## Pull the source code
 
-**NOTE: This tutorial is designed to be run from Cloud Shell in the Google Cloud Console.**
+**NOTE: This tutorial is designed to be run from Cloud Shell in the Google Cloud
+Console.**
 
 - Clone the repository and change directory to the guide directory
 
@@ -62,7 +73,10 @@ The default quota given to a project should be sufficient for this guide.
 
 - Create a [Personal Access Token][personal-access-token] in [GitHub][github]:
 
-  Note: It is recommended to use a [machine user account][machine-user-account] for this but you can use a personal user account just to try this reference architecture. Ensure that your organization allows access via the access token type you select.
+  Note: It is recommended to use a [machine user account][machine-user-account]
+  for this but you can use a personal user account just to try this reference
+  architecture. Ensure that your organization allows access via the access token
+  type you select.
 
   **Fine-grained personal access token**
 
@@ -82,7 +96,8 @@ The default quota given to a project should be sufficient for this guide.
 
   - Go to https://github.com/settings/tokens and login using your credentials
   - Click "Generate new token" >> "Generate new token (classic)".
-  - You will be directed to a screen to created the new token. Provide the note and expiration.
+  - You will be directed to a screen to created the new token. Provide the note
+    and expiration.
   - Choose the following two access:
     - [x] repo - Full control of private repositories
     - [x] delete_repo - Delete repositories
@@ -107,7 +122,8 @@ The default quota given to a project should be sufficient for this guide.
 
   Replace the following values:
 
-  - `<GIT_NAMESPACE>` is the GitHub organization or user namespace to use for the repositories
+  - `<GIT_NAMESPACE>` is the GitHub organization or user namespace to use for
+    the repositories
   - `<GIT_USER_EMAIL>` is the email address to use for commit
   - `<GIT_USER_NAME>` is the GitHub account to use for authentication
 
@@ -127,7 +143,8 @@ The default quota given to a project should be sufficient for this guide.
 
 ## Project Configuration
 
-You only need to complete the section for the option that you have selected (either option 1 or 2).
+You only need to complete the section for the option that you have selected
+(either option 1 or 2).
 
 ### Option 1: Bring your own project (BYOP)
 
@@ -167,7 +184,8 @@ You only need to complete the section for the option that you have selected (eit
   sed -i "s/YOUR_PROJECT_ID/${MLP_PROJECT_ID}/g" ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
   ```
 
-You can now the [Configure Identity-Aware Proxy (IAP)](#configure-identity-aware-proxy-iap).
+You can now the
+[Configure Identity-Aware Proxy (IAP)](#configure-identity-aware-proxy-iap).
 
 ### Option 2: Terraform managed project
 
@@ -189,9 +207,11 @@ You can now the [Configure Identity-Aware Proxy (IAP)](#configure-identity-aware
   ```
 
   - `environment_name`: the name of the environment
-  - `iap_support_email`: the email to use as the support contact for the IAP brand
+  - `iap_support_email`: the email to use as the support contact for the IAP
+    brand
   - `project.billing_account_id`: the billing account ID
-  - `project.name`: the prefix for the display name of the project, the full name will be `<project.name>-<environment_name>`
+  - `project.name`: the prefix for the display name of the project, the full
+    name will be `<project.name>-<environment_name>`
 
   Enter either `project.folder_id` **OR** `project.org_id`
 
@@ -226,21 +246,35 @@ You can now the [Create the resources](#create-the-resources).
 
 ## Configure Identity-Aware Proxy (IAP)
 
-Identity-Aware Proxy (IAP) lets you establish a central authorization layer for applications accessed by HTTPS, so you can use an application-level access control model instead of relying on network-level firewalls.
+Identity-Aware Proxy (IAP) lets you establish a central authorization layer for
+applications accessed by HTTPS, so you can use an application-level access
+control model instead of relying on network-level firewalls.
 
-IAP policies scale across your organization. You can define access policies centrally and apply them to all of your applications and resources. When you assign a dedicated team to create and enforce policies, you protect your project from incorrect policy definition or implementation in any application.
+IAP policies scale across your organization. You can define access policies
+centrally and apply them to all of your applications and resources. When you
+assign a dedicated team to create and enforce policies, you protect your project
+from incorrect policy definition or implementation in any application.
 
-For more information on IAP, see the [Identity-Aware Proxy documentation](https://cloud.google.com/iap/docs/concepts-overview#gke)
+For more information on IAP, see the
+[Identity-Aware Proxy documentation](https://cloud.google.com/iap/docs/concepts-overview#gke)
 
 ### Configure OAuth consent screen for IAP
 
-For this guide we will configure a generic OAuth consent screen setup for internal use. Internal use means that only users within your organization can be granted IAM permissions to access the IAP secured applications and resource.
+For this guide we will configure a generic OAuth consent screen setup for
+internal use. Internal use means that only users within your organization can be
+granted IAM permissions to access the IAP secured applications and resource.
 
-See the [Configuring the OAuth consent screen documentation](https://developers.google.com/workspace/guides/configure-oauth-consent) for additional information
+See the
+[Configuring the OAuth consent screen documentation](https://developers.google.com/workspace/guides/configure-oauth-consent)
+for additional information
 
-**NOTE: These steps only need to be completed once for a project. If you are using the Terraform managed project option, this has already been completed for you.**
+**NOTE: These steps only need to be completed once for a project. If you are
+using the Terraform managed project option, this has already been completed for
+you.**
 
-- Go to [APIs & Services](https://console.cloud.google.com/apis/dashboard?) > [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent) configuration page.
+- Go to [APIs & Services](https://console.cloud.google.com/apis/dashboard?) >
+  [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent)
+  configuration page.
 - Select **Internal** for the **User Type**
 - Click **CREATE**
 - Enter **IAP Secured Application** for the the **App name**
@@ -255,7 +289,9 @@ See the [Configuring the OAuth consent screen documentation](https://developers.
 
 ### Default IAP access
 
-For simplicity, in this guide access to the IAP secured applications will be configure to allow all users in the organization. Access can be configured per IAP application or resources.
+For simplicity, in this guide access to the IAP secured applications will be
+configure to allow all users in the organization. Access can be configured per
+IAP application or resources.
 
 - Set the IAP allow domain
 
@@ -264,7 +300,9 @@ For simplicity, in this guide access to the IAP secured applications will be con
   echo "MLP_IAP_DOMAIN=${MLP_IAP_DOMAIN}"
   ```
 
-  **If the domain of the active `gcloud` user is different from the organization that the `MLP_PROJECT_ID` project is in, you will need to manually set `MLP_IAP_DOMAIN` environment variable**
+  **If the domain of the active `gcloud` user is different from the organization
+  that the `MLP_PROJECT_ID` project is in, you will need to manually set
+  `MLP_IAP_DOMAIN` environment variable**
 
   ```
   MLP_IAP_DOMAIN=<MLP_PROJECT_ID organization domain>
@@ -278,7 +316,8 @@ For simplicity, in this guide access to the IAP secured applications will be con
 
 ## Create the resources
 
-Before running Terraform, make sure that the Service Usage API and Service Management API are enabled.
+Before running Terraform, make sure that the Service Usage API and Service
+Management API are enabled.
 
 - Enable Service Usage API
 
@@ -309,7 +348,8 @@ Before running Terraform, make sure that the Service Usage API and Service Manag
   rm tfplan
   ```
 
-  See [Create resources errors](#create-resources-errors) in the Troubleshooting section if the apply does not complete successfully.
+  See [Create resources errors](#create-resources-errors) in the Troubleshooting
+  section if the apply does not complete successfully.
 
 - Create your environment configuration file
 
@@ -324,17 +364,27 @@ Before running Terraform, make sure that the Service Usage API and Service Manag
 
 ### GKE clusters and ConfigSync
 
-- Go to Google Cloud Console, click on the navigation menu and click on [Kubernetes Engine](https://console.cloud.google.com/kubernetes) > [Clusters](https://console.cloud.google.com/kubernetes/list). You should see one cluster.
+- Go to Google Cloud Console, click on the navigation menu and click on
+  [Kubernetes Engine](https://console.cloud.google.com/kubernetes) >
+  [Clusters](https://console.cloud.google.com/kubernetes/list). You should see
+  one cluster.
 
-- Go to Google Cloud Console, click on the navigation menu and click on [Kubernetes Engine](https://console.cloud.google.com/kubernetes) > [Config](https://console.cloud.google.com/kubernetes/config_management/dashboard).
-  If you haven't enabled GKE Enterprise in the project earlier, Click `LEARN AND ENABLE` button and then `ENABLE GKE ENTERPRISE`. You should see a RootSync and RepoSync object.
+- Go to Google Cloud Console, click on the navigation menu and click on
+  [Kubernetes Engine](https://console.cloud.google.com/kubernetes) >
+  [Config](https://console.cloud.google.com/kubernetes/config_management/dashboard).
+  If you haven't enabled GKE Enterprise in the project earlier, Click
+  `LEARN AND ENABLE` button and then `ENABLE GKE ENTERPRISE`. You should see a
+  RootSync and RepoSync object.
   ![configsync](/docs/platforms/gke-aiml/playground/images/configsync.png)
 
 ### Software installed via RepoSync and RootSync
 
-For the playground configuration, [Ray](https://docs.ray.io/en/latest/cluster/kubernetes/index.html) and [MLflow](https://mlflow.org/) are installed by default.
+For the playground configuration,
+[Ray](https://docs.ray.io/en/latest/cluster/kubernetes/index.html) and
+[MLflow](https://mlflow.org/) are installed by default.
 
-You can check the installation by executing the following commands in Cloud Shell:
+You can check the installation by executing the following commands in Cloud
+Shell:
 
 - Get cluster credentials:
 
@@ -436,9 +486,15 @@ You can check the installation by executing the following commands in Cloud Shel
   echo -e "\n${MLP_KUBERNETES_NAMESPACE} MLFlow Tracking URL: ${MLP_MLFLOW_TRACKING_NAMESPACE_ENDPOINT}\n"
   ```
 
-  > If you get `ERR_CONNECTION_CLOSED` or `ERR_CONNECTION_RESET` when trying to go to the links, the [Gateway](https://console.cloud.google.com/kubernetes/gateways) is still being provisioned. Retry in a couple of minutes.
+  > If you get `ERR_CONNECTION_CLOSED` or `ERR_CONNECTION_RESET` when trying to
+  > go to the links, the
+  > [Gateway](https://console.cloud.google.com/kubernetes/gateways) is still
+  > being provisioned. Retry in a couple of minutes.
 
-  > If you get `ERR_SSL_VERSION_OR_CIPHER_MISMATCH` when trying to go to the links, the [SSL certificate](https://console.cloud.google.com/security/ccm/list/lbCertificates) is still being provisioned. Retry in a couple of minutes.
+  > If you get `ERR_SSL_VERSION_OR_CIPHER_MISMATCH` when trying to go to the
+  > links, the
+  > [SSL certificate](https://console.cloud.google.com/security/ccm/list/lbCertificates)
+  > is still being provisioned. Retry in a couple of minutes.
 
 ## Cleanup
 
@@ -453,7 +509,8 @@ You can check the installation by executing the following commands in Cloud Shel
   rm -rf .terraform .terraform.lock.hcl
   ```
 
-  See [Cleanup resources errors](#cleanup-resources-errors) in the Troubleshooting section if the destroy does not complete successfully.
+  See [Cleanup resources errors](#cleanup-resources-errors) in the
+  Troubleshooting section if the destroy does not complete successfully.
 
 ### Project
 
@@ -547,7 +604,9 @@ You only need to complete the section for the option that you have selected.
 │
 ```
 
-The OAuth Consent screen was not configured, see the [Configure OAuth consent screen for IAP](#configure-oauth-consent-screen-for-iap) section.
+The OAuth Consent screen was not configured, see the
+[Configure OAuth consent screen for IAP](#configure-oauth-consent-screen-for-iap)
+section.
 
 ---
 
@@ -561,7 +620,8 @@ will be purged after 30 days. To reuse this service, please undelete the service
 │
 ```
 
-The endpoint is in a deleted state and needs to be undeleted, run the following command and then rerun the Terraform apply.
+The endpoint is in a deleted state and needs to be undeleted, run the following
+command and then rerun the Terraform apply.
 
 ```
 MLP_ENVIRONMENT_NAME=$(grep environment_name ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars | awk -F"=" '{print $2}' | xargs)
@@ -583,7 +643,10 @@ is already being used by 'projects/<project_id>/zones/us-central1-a/networkEndpo
 │
 ```
 
-There were orphaned [network endpoint groups (NEGs)](https://console.cloud.google.com/compute/networkendpointgroups/list) in the project. Delete the network endpoint groups and retry the Terraform destroy.
+There were orphaned
+[network endpoint groups (NEGs)](https://console.cloud.google.com/compute/networkendpointgroups/list)
+in the project. Delete the network endpoint groups and retry the Terraform
+destroy.
 
 ```
 gcloud compute network-endpoint-groups list --project ${MLP_PROJECT_ID}
@@ -599,7 +662,9 @@ is already being used by 'projects/<project-id>/global/firewalls/gkegw1-XXXX-l7-
 │
 ```
 
-There were orphaned [VPC firewall rules](https://console.cloud.google.com/net-security/firewall-manager/firewall-policies/list) in the project. Delete the VPC firewall rules and retry the Terraform destroy.
+There were orphaned
+[VPC firewall rules](https://console.cloud.google.com/net-security/firewall-manager/firewall-policies/list)
+in the project. Delete the VPC firewall rules and retry the Terraform destroy.
 
 ```
 gcloud compute firewall-rules list --project ${MLP_PROJECT_ID}
@@ -608,14 +673,20 @@ gcloud compute firewall-rules list --project ${MLP_PROJECT_ID}
 ---
 
 [gitops]: https://about.gitlab.com/topics/gitops/
-[repo-sync]: https://cloud.google.com/anthos-config-management/docs/reference/rootsync-reposync-fields
-[root-sync]: https://cloud.google.com/anthos-config-management/docs/reference/rootsync-reposync-fields
-[config-sync]: https://cloud.google.com/anthos-config-management/docs/config-sync-overview
+[repo-sync]:
+  https://cloud.google.com/anthos-config-management/docs/reference/rootsync-reposync-fields
+[root-sync]:
+  https://cloud.google.com/anthos-config-management/docs/reference/rootsync-reposync-fields
+[config-sync]:
+  https://cloud.google.com/anthos-config-management/docs/config-sync-overview
 [cloud-deploy]: https://cloud.google.com/deploy?hl=en
 [terraform]: https://www.terraform.io/
 [gke]: https://cloud.google.com/kubernetes-engine?hl=en
 [git]: https://git-scm.com/
 [github]: https://github.com/
-[gcp-project]: https://cloud.google.com/resource-manager/docs/creating-managing-projects
-[personal-access-token]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
-[machine-user-account]: https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts
+[gcp-project]:
+  https://cloud.google.com/resource-manager/docs/creating-managing-projects
+[personal-access-token]:
+  https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+[machine-user-account]:
+  https://docs.github.com/en/get-started/learning-about-github/types-of-github-accounts

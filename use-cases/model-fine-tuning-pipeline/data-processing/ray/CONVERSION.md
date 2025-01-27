@@ -13,7 +13,8 @@
    runtime_env = {"pip": ["google-cloud-storage==2.16.0", "spacy==3.7.4", "jsonpickle==3.0.3"]}
    ```
 
-1. Initialize the Ray with the Ray cluster created & pass the runtime environment along
+1. Initialize the Ray with the Ray cluster created & pass the runtime
+   environment along
 
    ```
    ray.init("ray://"+RAY_CLUSTER_HOST, runtime_env=runtime_env)``

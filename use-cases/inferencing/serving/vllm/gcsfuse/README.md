@@ -1,16 +1,23 @@
 # Distributed Inference and Serving with vLLM using GCS
 
-This guide demonstrates how to serve a model with vllm using GCS. By the end of this guide, you should be able to perform the following steps:
+This guide demonstrates how to serve a model with vllm using GCS. By the end of
+this guide, you should be able to perform the following steps:
 
 - Deploy a vLLM container to your cluster to host your model
 - Use vLLM to serve the fine-tuned Gemma model
 
 ## Prerequisites
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
-- A bucket containing the fine-tuned model from the [Fine-tuning example](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/README.md)
+- This guide was developed to be run on the
+  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
+  are using a different environment the scripts and manifest will need to be
+  modified for that environment.
+- A bucket containing the fine-tuned model from the
+  [Fine-tuning example](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/README.md)
 
-> NOTE: If you did not execute the fine-tuning example, follow [these instructions](/use-cases/prerequisites/fine-tuned-model.md) to load the model into the bucket.
+> NOTE: If you did not execute the fine-tuning example, follow
+> [these instructions](/use-cases/prerequisites/fine-tuned-model.md) to load the
+> model into the bucket.
 
 ## Preparation
 
@@ -34,7 +41,8 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
 - Get credentials for the GKE cluster.
 
@@ -146,7 +154,8 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
 - Open the chat interface in your browser.
 
-- Enter the following prompt in the **Type a message...** text box and click **Submit**.
+- Enter the following prompt in the **Type a message...** text box and click
+  **Submit**.
 
   ```
   I'm looking for comfortable cycling shorts for women, what are some good options?
@@ -169,7 +178,8 @@ This guide demonstrates how to serve a model with vllm using GCS. By the end of 
 
 ## What's next
 
-Now that the model is deployed, there are several steps you can take to operationalize and utilize the model.
+Now that the model is deployed, there are several steps you can take to
+operationalize and utilize the model.
 
 - [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md)
 - [vLLM autoscaling with horizontal pod autoscaling (HPA)](/use-cases/inferencing/serving/vllm/autoscaling/README.md)

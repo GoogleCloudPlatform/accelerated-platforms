@@ -1,8 +1,10 @@
 # Benchmarking with Locust
 
-We can run inference benchmark on our deployed model using locust.
-Locust is an open source performance/load testing tool for HTTP and other protocols.
-Refer to the documentation to [set up](https://docs.locust.io/en/stable/installation.html) locust locally or deploy as a container on GKE.
+We can run inference benchmark on our deployed model using locust. Locust is an
+open source performance/load testing tool for HTTP and other protocols. Refer to
+the documentation to
+[set up](https://docs.locust.io/en/stable/installation.html) locust locally or
+deploy as a container on GKE.
 
 ## Pre-requisites
 
@@ -10,7 +12,8 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   - [Distributed Inference and Serving with vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
   - [Distributed Inference and Serving with vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
   - [Distributed Inference and Serving with vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
-- Metrics are being scraped from the vLLM server ss shown in the [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
+- Metrics are being scraped from the vLLM server ss shown in the
+  [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md) guide.
 
 ## Preparation
 
@@ -34,7 +37,8 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
 - Get credentials for the GKE cluster
 
@@ -44,7 +48,8 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 
 ## Build the container image
 
-- Build container image using Cloud Build and push the image to Artifact Registry.
+- Build container image using Cloud Build and push the image to Artifact
+  Registry.
 
   ```sh
   cd src
@@ -62,8 +67,9 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 
 - Configure the environment.
 
-  > Set the environment variables based on the accelerator and model storage type used to serve the model.
-  > The default values below are set for NVIDIA L4 GPUs and persistent disk.
+  > Set the environment variables based on the accelerator and model storage
+  > type used to serve the model. The default values below are set for NVIDIA L4
+  > GPUs and persistent disk.
 
   | Variable      | Description                                                                    | Example      |
   | ------------- | ------------------------------------------------------------------------------ | ------------ |
@@ -139,7 +145,8 @@ Refer to the documentation to [set up](https://docs.locust.io/en/stable/installa
 
   ![Locust UI](./img/locust_ui.png)
 
-  - If the **Start new load test** screen is not open, click the **NEW** button near the upper right of the page.
+  - If the **Start new load test** screen is not open, click the **NEW** button
+    near the upper right of the page.
   - Enter a value for **Number of users (peak concurrency)**.
   - Enter a value for **Ramp up (users started/second)**.
   - The **Host** value should be populated with the correct URL.

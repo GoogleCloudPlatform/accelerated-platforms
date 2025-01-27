@@ -65,7 +65,9 @@
 
 ### Playground BYOP GitHub Dataprocessing
 
-This test script will stand up the `playground` platform using GitHub for the Config Sync repository in an existing project, run the `dataprocessing` job, teardown the platform, and cleanup the environment.
+This test script will stand up the `playground` platform using GitHub for the
+Config Sync repository in an existing project, run the `dataprocessing` job,
+teardown the platform, and cleanup the environment.
 
 - Set the GitHub organization or user namespace
 
@@ -91,7 +93,9 @@ This test script will stand up the `playground` platform using GitHub for the Co
   export MLP_PROJECT_ID=
   ```
 
-- Override IAP domain, if required. Defaults to the domain of the active `gcloud` user account(`gcloud auth list --filter=status:ACTIVE --format="value(account)" | awk -F@ '{print $2}'`)
+- Override IAP domain, if required. Defaults to the domain of the active
+  `gcloud` user
+  account(`gcloud auth list --filter=status:ACTIVE --format="value(account)" | awk -F@ '{print $2}'`)
 
   ```
   export MLP_IAP_DOMAIN=
@@ -111,7 +115,9 @@ This test script will stand up the `playground` platform using GitHub for the Co
 
 ### Playground New Project GitHub Dataprocessing
 
-This test script will initialize a new project, stand up the `playground` platform using GitHub for the Config Sync repository in , run the `dataprocessing` job, and delete the project.
+This test script will initialize a new project, stand up the `playground`
+platform using GitHub for the Config Sync repository in , run the
+`dataprocessing` job, and delete the project.
 
 - Set the GitHub organization or user namespace
 
@@ -149,7 +155,9 @@ This test script will initialize a new project, stand up the `playground` platfo
   export MLP_ORG_ID=
   ```
 
-- Override IAP domain, if required. Defaults to the domain of the active `gcloud` user account(`gcloud auth list --filter=status:ACTIVE --format="value(account)" | awk -F@ '{print $2}'`)
+- Override IAP domain, if required. Defaults to the domain of the active
+  `gcloud` user
+  account(`gcloud auth list --filter=status:ACTIVE --format="value(account)" | awk -F@ '{print $2}'`)
 
   ```
   export MLP_IAP_DOMAIN=

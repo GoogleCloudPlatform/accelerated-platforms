@@ -1,24 +1,26 @@
 Copyright 2024 Google LLC
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at
 
      http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
 
 # Terraform Google Cloud NAT Module
 
-This module handles opinionated Google Cloud Platform Cloud NAT creation and configuration.
+This module handles opinionated Google Cloud Platform Cloud NAT creation and
+configuration.
 
 ## Compatibility
 
-This module is meant for use with Terraform 0.13+ and tested using Terraform 1.0+. If you find incompatibilities using Terraform >=0.13, please open an issue.
+This module is meant for use with Terraform 0.13+ and tested using Terraform
+1.0+. If you find incompatibilities using Terraform >=0.13, please open an
+issue.
 
 ## Usage
 
@@ -81,17 +83,23 @@ Then perform the following commands on the root folder:
 
 ## Requirements
 
-Before this module can be used on a project, you must ensure that the following pre-requisites are fulfilled:
+Before this module can be used on a project, you must ensure that the following
+pre-requisites are fulfilled:
 
-1. Terraform and kubectl are [installed](#software-dependencies) on the machine where Terraform is executed.
-2. The Service Account you execute the module with has the right [permissions](#iam-roles).
-3. The APIs are [active](#enable-apis) on the project you will launch the cluster in.
-4. If you are using a Shared VPC, the APIs must also be activated on the Shared VPC host project and your service account needs the proper permissions there.
+1. Terraform and kubectl are [installed](#software-dependencies) on the machine
+   where Terraform is executed.
+2. The Service Account you execute the module with has the right
+   [permissions](#iam-roles).
+3. The APIs are [active](#enable-apis) on the project you will launch the
+   cluster in.
+4. If you are using a Shared VPC, the APIs must also be activated on the Shared
+   VPC host project and your service account needs the proper permissions there.
 
 ### Terraform plugins
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 0.13.0
-- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google) plugin v4.27.0
+- [terraform-provider-google](https://github.com/terraform-providers/terraform-provider-google)
+  plugin v4.27.0
 
 ### Configure a Service Account
 
@@ -102,10 +110,12 @@ following project roles:
 
 ### Enable APIs
 
-In order to operate with the Service Account you must activate the following APIs on the project where the Service Account was created:
+In order to operate with the Service Account you must activate the following
+APIs on the project where the Service Account was created:
 
 - Compute Engine API - compute.googleapis.com
 
 ## Contributing
 
-Refer to the [contribution guidelines](./CONTRIBUTING.md) for information on contributing to this module.
+Refer to the [contribution guidelines](./CONTRIBUTING.md) for information on
+contributing to this module.

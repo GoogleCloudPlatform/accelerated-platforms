@@ -1,8 +1,13 @@
 # Terraform Module: Config Controller
 
-[Config Controller](https://cloud.google.com/kubernetes-engine/enterprise/config-controller/docs/overview) creates and manages Google Cloud resources with a declarative, Kubernetes model. Config Controller is a hosted version of Config Connector that simplifies installation and maintenance. Config Controller also includes Policy Controller and Config Sync.
+[Config Controller](https://cloud.google.com/kubernetes-engine/enterprise/config-controller/docs/overview)
+creates and manages Google Cloud resources with a declarative, Kubernetes model.
+Config Controller is a hosted version of Config Connector that simplifies
+installation and maintenance. Config Controller also includes Policy Controller
+and Config Sync.
 
-Config Controller is available with a Google Kubernetes Engine (GKE) Enterprise edition license.
+Config Controller is available with a Google Kubernetes Engine (GKE) Enterprise
+edition license.
 
 ## Example usage
 

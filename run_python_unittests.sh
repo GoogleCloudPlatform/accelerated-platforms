@@ -7,7 +7,7 @@ source_dirs=("use-cases/model-fine-tuning-pipeline/data-processing/ray")
 
 for source_dir in "${source_dirs[@]}"; do
     export PYTHONPATH=$PYTHONPATH:${source_dir}
-    python -m unittest ${source_dir}/tests
+    python -m unittest tests
 done
 
 # for test_dir in "${test_dirs[@]}"; do

@@ -1,6 +1,7 @@
 [run]
 source = 
     use-cases/model-fine-tuning-pipeline/data-processing/ray
+    use-cases/model-fine-tuning-pipeline/data-processing/ray/src
 omit = 
     */site-packages/*
     */dist-packages/*

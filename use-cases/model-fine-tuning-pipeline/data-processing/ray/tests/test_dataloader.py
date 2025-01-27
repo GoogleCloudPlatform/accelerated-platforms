@@ -7,6 +7,7 @@ from unittest.mock import patch
 import csv
 from src.datapreprocessing.dataloader import DataLoader
 
+
 class TestDataLoader(unittest.TestCase):
     @patch("src.datapreprocessing.dataloader.pd.read_csv")
     def test_load_raw_data(self, read_csv_mock):

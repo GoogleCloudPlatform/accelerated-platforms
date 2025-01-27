@@ -11,6 +11,7 @@ class DataLoader:
         file_path (str): The path to the file within the GCS bucket.
         logger (logging.Logger): A logger instance for logging messages.
     """
+
     logger = logging.getLogger(__name__)
 
     def __init__(self, bucket_name, file_path):

@@ -33,7 +33,8 @@ class DataPreprocessor:
         reformat(text: str) -> str: Reformats a string by removing brackets and quotes.
         prep_cat(df: pd.DataFrame) -> pd.DataFrame: Prepares product category information by splitting and cleaning the category tree.
         process_data(df, ray_worker_node_id, gcs_bucket): Performs the complete data preprocessing pipeline.
-    """    
+    """
+
     logger = logging.getLogger(__name__)
 
     def __init__(self):
@@ -319,12 +320,15 @@ class DataPrepForRag:
         filter_low_value_count_rows(df, column_name, min_count=10): Filters rows based on minimum value counts in a column.
         process_rag_input(df): Processes the input DataFrame for RAG, including renaming columns, filtering, and selecting relevant columns.
     """
+
     logger = logging.getLogger(__name__)
 
     def __init__(self):
         pass
 
-    def filter_low_value_count_rows(self, df, column_name, min_count=10) -> pd.DataFrame:
+    def filter_low_value_count_rows(
+        self, df, column_name, min_count=10
+    ) -> pd.DataFrame:
         """
         Removes rows from a DataFrame where the value count in the specified column is less than the given minimum count.
 

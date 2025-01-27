@@ -36,6 +36,7 @@ class RayUtils:
         run_remote(): Initiate a ray connection and runs the data processing tasks remotely using Ray.
         invoke_process_data(self, preprocessor, df, ray_worker_node_id, gcs_bucket): Invokes the data processing method as a task on Ray workers.
     """
+
     logger = logging.getLogger(__name__)
 
     def __init__(
@@ -74,6 +75,7 @@ class RayUtils:
         Returns:
             pd.DataFrame: The processed Pandas DataFrame in this example. It returns the data returned by the function invoked as ray task.
         """
+
         def func_not_found():  # just in case we dont have the function
             print("No Function " + self.method_name + " Found!")
 

@@ -4,7 +4,8 @@ from src.datapreprocessing.dataprep import DataPrep
 import sys
 import os
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
+
 
 class TestDataPrep(unittest.TestCase):
     def setUp(self):

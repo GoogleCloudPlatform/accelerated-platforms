@@ -4,6 +4,7 @@ from unittest.mock import patch, Mock
 from src.datapreprocessing.ray_utils import RayUtils
 import src.datapreporcessing
 
+
 class TestRayUtils(unittest.TestCase):
     @patch("ray.get")
     @patch("importlib.import_module")

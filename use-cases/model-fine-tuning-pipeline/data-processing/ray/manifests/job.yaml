@@ -22,10 +22,10 @@ spec:
         resources:
           requests:
             cpu: 100m
-            memory: 256Mi
+            memory: 1.5Gi
           limits:
             cpu: 250m
-            memory: 512Mi
+            memory: 2Gi
       nodeSelector:
         resource-type: cpu
       restartPolicy: Never

@@ -1,0 +1,6 @@
+[run]
+source = 
+    accelerated-platforms/use-cases/model-fine-tuning-pipeline/data-processing/ray
+omit = 
+    */site-packages/*
+    */dist-packages/*

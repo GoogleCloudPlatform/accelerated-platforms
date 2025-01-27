@@ -63,6 +63,15 @@ that includes all the necessary tooling and Visual Studio Code (VS Code)
 extensions that you need to work on this project. We use this dev container to
 build the project from both VS Code and the command-line.
 
+### Requirements
+
+To setup a development environment you need:
+
+- A POSIX-compliant shell
+- An OCI-compatible container runtime. Tested with Docker for Linux 20.10.21
+- Visual Studio Code, if you need to modify any part of this set of software
+  components. Other editors and IDEs might work fine.
+
 ### Dev container configuration
 
 To inspect the development environment container image configuration and build
@@ -85,12 +94,3 @@ If you don't have a container runtime engine on your local host, but you have
 one available on a remote host, you can connect to the remote host and use that
 container runtime. For more information, refer to
 [Develop on a remote Docker host](https://code.visualstudio.com/remote/advancedcontainers/develop-remote-host).
-
-### Requirements
-
-To setup a development environment you need:
-
-- A POSIX-compliant shell
-- An OCI-compatible container runtime. Tested with Docker for Linux 20.10.21
-- Visual Studio Code, if you need to modify any part of this set of software
-  components. Other editors and IDEs might work fine.

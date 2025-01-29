@@ -24,7 +24,7 @@ jobs:
       - name: Generate and print coverage report
         run: |
           cat .coveragerc
-          coverage report --fail-under=0
+          #coverage report --fail-under=0
   
 
       #cat coverage.xml

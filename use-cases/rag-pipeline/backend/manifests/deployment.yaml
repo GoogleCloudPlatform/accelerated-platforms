@@ -26,7 +26,7 @@ spec:
       labels:
         app: rag-backend
     spec:
-      serviceAccountName: V_MLP_DB_ADMIN_KSA
+      serviceAccountName: V_MLP_DB_USER_KSA
       containers:
       - name: rag
         image: V_IMAGE

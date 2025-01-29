@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import google.auth
-import google.auth.iam
-import google.auth.transport.requests
 import logging
 import logging.config
 import os
+
+import google.auth
+import google.auth.iam
+import google.auth.transport.requests
 import pg8000
 import sqlalchemy
 from google.cloud.alloydb.connector import Connector, IPTypes
@@ -32,9 +33,7 @@ user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
 password = credentials.token
 
 # AlloyDB connection parameters
-
 instance_uri = os.environ.get("MLP_DB_INSTANCE_URI")
-# alloydb_user = os.environ.get("MLP_DB_ADMIN_IAM")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")

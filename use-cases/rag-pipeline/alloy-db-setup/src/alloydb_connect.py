@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import google.auth
-import google.auth.transport.requests
 import logging
 import logging.config
-import google.api_core.exceptions
 import os
-import sqlalchemy
 
+import google.api_core.exceptions
+import google.auth
+import google.auth.transport.requests
+import sqlalchemy
 from google.cloud.alloydb.connector import Connector, IPTypes
 
 # AlloyDB
@@ -34,43 +34,42 @@ credentials.refresh(auth_request)
 user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
 
 # Configure logging
-
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
     logger.info(
-        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+        "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
     )
     logger.setLevel(new_log_level)
 
 
-def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Engine:
+def init_connection_pool(
+    connector: Connector,
+    db: str,
+) -> sqlalchemy.engine.Engine:
     """
     Initializes a SQLAlchemy engine for connecting to AlloyDB.
     """
-    logger.info("database user in use %s", user)
 
     def getconn():
-        logger.info("Creating connection to the AlloyDB Database: %s", db)
+        logger.info("Creating connection to database '%s' as user '%s'", db, user)
         conn = connector.connect(
-            instance_uri,
-            "pg8000",
             db=db,
-            user=user,
-            # Use ip_type to specify PSC
-            ip_type=IPTypes.PSC,
-            # Use enable_iam_auth to enable IAM authentication for GCP Service Account with KSA
+            driver="pg8000",
             enable_iam_auth=True,
+            instance_uri=instance_uri,
+            ip_type=IPTypes.PSC,
+            user=user,
         )
         return conn
 
     # create connection pool
     pool = sqlalchemy.create_engine(
-        "postgresql+pg8000://",
         creator=getconn,
+        url="postgresql+pg8000://",
     )
     pool.dialect.description_encoding = None
-    logger.info("Connection pool created successfully.%s", pool)
+    logger.info("Connection pool '%s' created successfully.", pool)
     return pool

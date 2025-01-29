@@ -5,7 +5,7 @@ import sys
 from pandas.testing import assert_frame_equal
 from unittest.mock import patch
 import csv
-from ..src.datapreprocessing.dataloader import DataLoader
+from src.datapreprocessing.dataloader import DataLoader
 
 
 class TestDataLoader(unittest.TestCase):

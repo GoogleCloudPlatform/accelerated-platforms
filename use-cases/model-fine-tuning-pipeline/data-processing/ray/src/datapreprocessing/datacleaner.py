@@ -11,10 +11,6 @@ from google.cloud.storage.retry import DEFAULT_RETRY
 from typing import List
 import logging
 
-# TODO : Bring consistency in passwing around these constants, Either pass them to each class whuile instantiating them ro read them from env in each class
-# IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
-GCS_IMAGE_FOLDER = "flipkart_images"
-
 
 class DataPreprocessor:
     """
@@ -29,7 +25,7 @@ class DataPreprocessor:
         download_image(image_url, image_file_name, destination_blob_name, ray_worker_node_id, gcs_bucket): Downloads an image and uploads it to GCS.
         prep_product_desc(df): Prepares the product description by performing NLP preprocessing.
         parse_attributes(specification: str): Parses product specifications into a JSON string.
-        get_product_image(df, ray_worker_node_id, gcs_bucket): Downloads product images and adds their GCS URIs to the DataFrame.
+        get_product_image(df, ray_worker_node_id, gcs_bucket,gcs_folder): Downloads product images and adds their GCS URIs to the DataFrame.
         reformat(text: str) -> str: Reformats a string by removing brackets and quotes.
         prep_cat(df: pd.DataFrame) -> pd.DataFrame: Prepares product category information by splitting and cleaning the category tree.
         process_data(df, ray_worker_node_id, gcs_bucket): Performs the complete data preprocessing pipeline.
@@ -86,15 +82,12 @@ class DataPreprocessor:
 
             socket.setdefaulttimeout(10)
             urllib.request.urlretrieve(image_url, download_file)
-
-            # bucket = storage_client.bucket(IMAGE_BUCKET)
             bucket = storage_client.bucket(gcs_bucket)
             blob = bucket.blob(destination_blob_name)
             blob.upload_from_filename(download_file, retry=DEFAULT_RETRY)
             self.logger.info(
                 f"ray_worker_node_id:{ray_worker_node_id} File {image_file_name} uploaded to {destination_blob_name}"
             )
-
             os.remove(download_file)
             return True
         except TimeoutError as err:
@@ -187,7 +180,9 @@ class DataPreprocessor:
         json_string = jsonpickle.encode(out)
         return json_string
 
-    def get_product_image(self, df, ray_worker_node_id, gcs_bucket) -> pd.DataFrame:
+    def get_product_image(
+        self, df, ray_worker_node_id, gcs_bucket, gcs_folder
+    ) -> pd.DataFrame:
         """
         Downloads product images for each product in the DataFrame and adds the GCS URI to a new 'image_uri' column.
 
@@ -195,6 +190,7 @@ class DataPreprocessor:
             df (pd.DataFrame): The input DataFrame containing product information and image URLs.
             ray_worker_node_id (int): The ID of the Ray worker node (for logging).
             gcs_bucket (str): The name of the GCS bucket.
+            gcs_folder (str): The folder in the GCS bucket where the images will be stored.
 
         Returns:
             pd.DataFrame: The DataFrame with the added 'image_uri' column.
@@ -216,7 +212,7 @@ class DataPreprocessor:
             for index in range(len(image_urls)):
                 image_url = image_urls[index].strip()
                 image_file_name = f"{id}_{index}.jpg"
-                destination_blob_name = f"{GCS_IMAGE_FOLDER}/{id}_{index}.jpg"
+                destination_blob_name = f"{gcs_folder}/{id}_{index}.jpg"
                 image_found_flag = self.download_image(
                     image_url,
                     image_file_name,
@@ -284,7 +280,9 @@ class DataPreprocessor:
         df_with_cat = df_with_cat.drop("product_category_tree", axis=1)
         return df_with_cat
 
-    def process_data(self, df, ray_worker_node_id, gcs_bucket) -> pd.DataFrame:
+    def process_data(
+        self, df, ray_worker_node_id, gcs_bucket, gcs_folder
+    ) -> pd.DataFrame:
         """
         Performs the complete data preprocessing pipeline, including image downloading, description preprocessing,
         attribute parsing, and category preparation.
@@ -293,12 +291,13 @@ class DataPreprocessor:
             df (pd.DataFrame): The input DataFrame.
             ray_worker_node_id (int): The ID of the Ray worker node (for logging).
             gcs_bucket (str): The name of the GCS bucket.
+            gcs_folder (str): The folder in the GCS bucket where the images will be stored.
 
         Returns:
             pd.DataFrame: The preprocessed DataFrame.
         """
         df_with_gcs_image_uri = self.get_product_image(
-            df, ray_worker_node_id, gcs_bucket
+            df, ray_worker_node_id, gcs_bucket, gcs_folder
         )
         df_with_desc = self.prep_product_desc(df_with_gcs_image_uri)
         df_with_desc["attributes"] = df_with_desc["product_specifications"].apply(

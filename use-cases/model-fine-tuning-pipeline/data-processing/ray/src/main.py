@@ -10,6 +10,7 @@ from datapreprocessing.datacleaner import DataPrepForRag
 
 IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
 RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
+# Check if this can be passed anm env
 GCS_IMAGE_FOLDER = "flipkart_images"
 
 
@@ -38,9 +39,6 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
 
-    # ray_utils.run_remote()
-
-    ##new changes
     required_cols = [
         "uniq_id",
         "product_name",
@@ -85,7 +83,7 @@ if __name__ == "__main__":
     # Chunk the dataset
     res = data_prep.split_dataframe()
 
-    # pass res to RayUtils object
+    # create a RayUtils object with the info required to run a task
     ray_obj = RayUtils(
         RAY_CLUSTER_HOST,
         ray_resources,
@@ -96,6 +94,7 @@ if __name__ == "__main__":
         method_name,
         res,
         IMAGE_BUCKET,
+        GCS_IMAGE_FOLDER,
     )
     result_df = ray_obj.run_remote()
     # Replace NaN with None

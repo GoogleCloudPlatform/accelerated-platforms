@@ -10,12 +10,7 @@ import importlib
 import pandas as pd
 from datapreprocessing import *
 
-# from data_cleaner import DataPreprocessor
-# from data_loader import DataLoader
 
-# RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
-# IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
-# IMAGE_BUCKET = "gkebatchexpce3c8dcb-gushob-rag-data"
 class RayUtils:
     """
     A utility class for distributing data processing tasks using Ray.
@@ -50,6 +45,7 @@ class RayUtils:
         method_name,
         df,
         gcs_bucket,
+        gcs_folder,
     ):
         self.ray_cluster_host = ray_cluster_host
         self.ray_resource = ray_resources
@@ -60,9 +56,12 @@ class RayUtils:
         self.package_name = package_name
         self.df = df
         self.gcs_bucket = gcs_bucket
+        self.gcs_folder = gcs_folder
 
     @ray.remote(resources={"cpu": 1})
-    def invoke_process_data(self, preprocessor, df, ray_worker_node_id, gcs_bucket):
+    def invoke_process_data(
+        self, preprocessor, df, ray_worker_node_id, gcs_bucket, gcs_folder
+    ):
         """
         Invokes the specified data processing method on a Ray worker.
 
@@ -71,6 +70,7 @@ class RayUtils:
             df (pd.DataFrame): The Pandas DataFrame to be processed.
             ray_worker_node_id (int): The ID of the Ray worker node.
             gcs_bucket (str): The name of the GCS bucket.
+            gcs_folder (str): The folder in the GCS bucket where the images will be stored.
 
         Returns:
             pd.DataFrame: The processed Pandas DataFrame in this example. It returns the data returned by the function invoked as ray task.
@@ -81,7 +81,7 @@ class RayUtils:
 
         func = getattr(preprocessor, self.method_name, func_not_found)
         # return preprocessor.process_data(df, ray_worker_node_id,IMAGE_BUCKET)
-        return func(df, ray_worker_node_id, gcs_bucket)
+        return func(df, ray_worker_node_id, gcs_bucket, gcs_folder)
 
     def run_remote(self):
         """
@@ -112,21 +112,17 @@ class RayUtils:
         module = importlib.import_module(complete_module_name)
         MyClass = getattr(module, self.class_name)
         preprocessor = MyClass()
-        # preprocessor = datacleaner.DataPreprocessor()
-        # TODO: make this comment generic
+        # Probably make this comment generic since any function can be passed to rayutil for running as a task
         self.logger.debug("Data Preparation started")
         start_time = time.time()
-        # results = ray.get([self.process_data.remote(preprocessor=preprocessor, df=self.df[i], ray_worker_node_id=i) for i in range(len(self.df))])
         results = ray.get(
             [
                 self.invoke_process_data.remote(
-                    self, preprocessor, self.df[i], i, self.gcs_bucket
+                    self, preprocessor, self.df[i], i, self.gcs_bucket, self.gcs_folder
                 )
                 for i in range(len(self.df))
             ]
         )
-        # self_ref = ray.put(self)
-        # results = ray.get([self.invoke_process_data.remote(self,preprocessor, self.df[i], i,IMAGE_BUCKET) for i in range(len(self.df))])
         duration = time.time() - start_time
         self.logger.debug(f"Data Preparation finished in {duration} seconds")
 

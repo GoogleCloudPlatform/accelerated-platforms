@@ -70,7 +70,9 @@ class TestDataCleaner(unittest.TestCase):
 
         mock_download_image.side_effect = download_image_side_effect
 
-        cleaned_df = self.cleaner.get_product_image(self.df.copy(), 1, "test")
+        cleaned_df = self.cleaner.get_product_image(
+            self.df.copy(), 1, "test_bucket", "test_path"
+        )
         # Assertions
         self.assertEqual(
             len(cleaned_df["image_uri"]), 3
@@ -114,7 +116,9 @@ class TestDataCleaner(unittest.TestCase):
         mock_get_product_image.return_value = self.df.copy()
         mock_prep_product_desc.return_value = self.df.copy()
         mock_prep_cat.return_value = self.df.copy()
-        cleaned_df = self.cleaner.process_data(self.df.copy(), 1, "test_bucket","test_path")
+        cleaned_df = self.cleaner.process_data(
+            self.df.copy(), 1, "test_bucket", "test_path"
+        )
         self.assertEqual(len(cleaned_df), 3)
 
 

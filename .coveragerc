@@ -3,4 +3,4 @@ source = use-cases/model-fine-tuning-pipeline/data-processing/ray
 omit = */site-packages/*, */dist-packages/*
 
 [report]
-fail_under = 80 ; Fail if coverage is below 80%
+fail_under = 80

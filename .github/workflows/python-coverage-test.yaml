@@ -25,7 +25,7 @@ jobs:
         run: |
           output=$(coverage report --fail-under=0)
           echo $output
-          exit_code=?
+          exit_code=$?
           echo "Exit code: $exit_code"
 
       #cat coverage.xml

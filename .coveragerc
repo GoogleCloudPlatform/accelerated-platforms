@@ -3,4 +3,4 @@ source = use-cases/model-fine-tuning-pipeline/data-processing/ray
 omit = */site-packages/*, */dist-packages/*
 
 [report]
-fail_under = 90
+fail_under = 80

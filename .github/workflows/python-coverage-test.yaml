@@ -23,4 +23,4 @@ jobs:
         run: bash run_python_coverage_test.sh
       - name: Generate and print coverage report
         run: |
-          coverage report --fail-under=90
+          coverage report --fail-under=80

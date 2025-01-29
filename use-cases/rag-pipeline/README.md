@@ -98,7 +98,9 @@ Let's break down the flow step-by-step:
 
 **Additional Components:**
 
-The Product Catalog Onboarding Job handles the initial loading and ongoing updates of product information in AlloyDB, including building and maintaining the Scann Index to reflect catalog changes
+  The Product Catalog Onboarding Job handles the initial loading and ongoing updates of product information in AlloyDB, including building and maintaining the Scann Index to reflect catalog changes
+
+  
 
 ### Setting up the RAG Pipeline deployment
 

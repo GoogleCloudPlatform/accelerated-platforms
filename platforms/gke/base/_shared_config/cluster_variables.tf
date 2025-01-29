@@ -33,6 +33,17 @@ locals {
 
   kubeconfig_directory = abspath("${path.module}/../kubeconfig")
   kubeconfig_file      = abspath("${local.kubeconfig_directory}/${var.cluster_project_id}-${local.unique_identifier_prefix}")
+
+  # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
+  cluster_sa_roles = [
+    "roles/artifactregistry.reader",
+    "roles/autoscaling.metricsWriter",
+    "roles/logging.logWriter",
+    "roles/monitoring.metricWriter",
+    "roles/monitoring.viewer",
+    "roles/serviceusage.serviceUsageConsumer",
+    "roles/stackdriver.resourceMetadata.writer",
+  ]
 }
 
 variable "cluster_binary_authorization_evaluation_mode" {
@@ -54,7 +65,7 @@ variable "cluster_binary_authorization_evaluation_mode" {
 
 variable "cluster_confidential_nodes_enabled" {
   default     = false
-  description = "Enable Confidential GKE Nodes for this node pool, to enforce encryption of data in-use"
+  description = "Enable Confidential GKE Nodes for this node pool, to enforce encryption of data in-use. When setting this to true, ensure that the machine types you configured for your node pools support Confidential GKE Nodes. Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/confidential-gke-nodes"
   type        = bool
 }
 

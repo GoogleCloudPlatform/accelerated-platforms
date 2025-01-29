@@ -30,6 +30,7 @@ resource "google_gke_hub_feature_membership" "cluster_policycontroller" {
 
   policycontroller {
     policy_controller_hub_config {
+      audit_interval_seconds    = 60
       install_spec              = "INSTALL_SPEC_ENABLED"
       log_denies_enabled        = true
       mutation_enabled          = true

@@ -22,7 +22,7 @@ resource "google_artifact_registry_repository" "repository" {
 
   format        = "DOCKER"
   location      = var.cluster_region
-  project       = data.google_project.cluster.project_id
+  project       = google_project_service.artifactregistry_googleapis_com.project
   repository_id = local.oci_repo_id
 
   lifecycle {

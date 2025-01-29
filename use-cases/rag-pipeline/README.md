@@ -67,18 +67,18 @@ Let's break down the flow step-by-step:
 
 4. **Get Embeddings (Continued):**
 
-  The Backend Application receives the embedding vector from the Embedding Model Endpoint.
+   The Backend Application receives the embedding vector from the Embedding Model Endpoint.
 
 5. **Scann Index:**
 
-  The backend application uses the received embedding vector to query a Scann Indexes built on embedding columns (text, image, or multimodal) within the AlloyDB clothes table. These embedding columns are populated by the Product Catalog Onboarding Job, representing product information as embedding vectors
+   The backend application uses the received embedding vector to query a Scann Indexes built on embedding columns (text, image, or multimodal) within the AlloyDB clothes table. These embedding columns are populated by the Product Catalog Onboarding Job, representing product information as embedding vectors
 
-Scann is a high-performance approximate nearest neighbor search library. It efficiently finds products with embedding vectors similar to the query's embedding vector.
+   Scann is a high-performance approximate nearest neighbor search library. It efficiently finds products with embedding vectors similar to the query's embedding vector.
 
 6. **Fetch Similar Products:**
 
-  The backend system fetches the most similar products from the "AlloyDB" database, which stores the complete information in the "Product Catalog".
-  The system retrieves similar products from AlloyDB, including details like Name, Description, Category, Specifications, Product_ID, Brand, and image_uri. The retrieval is ordered by cosine similarity to the query embedding.
+   The backend system fetches the most similar products from the "AlloyDB" database, which stores the complete information in the "Product Catalog".
+   The system retrieves similar products from AlloyDB, including details like Name, Description, Category, Specifications, Product_ID, Brand, and image_uri. The retrieval is ordered by cosine similarity to the query embedding.
 
 7. **Instruction Tuned Model Endpoint:**
 

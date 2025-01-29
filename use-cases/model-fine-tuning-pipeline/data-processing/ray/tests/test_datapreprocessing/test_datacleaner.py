@@ -78,10 +78,10 @@ class TestDataCleaner(unittest.TestCase):
             len(cleaned_df["image_uri"]), 3
         )  # Check all rows have an image_uri (even if None)
         self.assertEqual(
-            cleaned_df["image_uri"][0], f"gs://test/flipkart_images/1_0.jpg"
+            cleaned_df["image_uri"][0], f"gs://test_bucket/test_path/1_0.jpg"
         )
         self.assertEqual(
-            cleaned_df["image_uri"][1], f"gs://test/flipkart_images/2_0.jpg"
+            cleaned_df["image_uri"][1], f"gs://test_bucket/test_path/2_0.jpg"
         )
         self.assertIsNone(cleaned_df["image_uri"][2])  # Check None when no image URL
 

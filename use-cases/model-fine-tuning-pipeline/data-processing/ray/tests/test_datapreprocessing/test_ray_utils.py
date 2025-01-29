@@ -34,7 +34,8 @@ class TestRayUtils(unittest.TestCase):
             class_name="DataPreprocessor",
             method_name="process_data",
             df=[pd.DataFrame({"test": [1]}), pd.DataFrame({"test": [2, 3]})],
-            gcs_bucket="test",
+            gcs_bucket="test_bucket",
+            gcs_folder="test_path"
         )
         with patch.object(ray_utils.invoke_process_data, "remote") as mock_remote:
             mock_remote.return_value = mock_df  # Return a mock DataFrame

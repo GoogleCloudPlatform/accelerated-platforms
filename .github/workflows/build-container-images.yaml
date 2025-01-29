@@ -1,0 +1,86 @@
+---
+name: Build and push container images
+
+env:
+  CONTAINER_IMAGE_REGISTRY: ghcr.io
+
+permissions:
+  contents: read
+
+on:
+  push:
+    paths:
+      - ".github/workflows/build-container-images.yaml"
+      - ".devcontainer/**"
+  pull_request:
+    paths:
+      - ".github/workflows/build-container-images.yaml"
+      - ".devcontainer/**"
+
+jobs:
+  build-container-images:
+    concurrency:
+      # Ref: https://docs.github.com/en/actions/learn-github-actions/contexts#github-context
+      # github.head_ref: head_ref or source branch of the pull request
+      # github.ref: ref of the branch that triggered the workflow
+      group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}-${{ github.event_name }}-${{ matrix.container-images.name }}
+      cancel-in-progress: true
+    env:
+      CONTAINER_IMAGE_ID: "${{ github.repository }}-${{ matrix.container-images.name }}"
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Validate Docker build configuration
+        shell: bash
+        run: |
+          DOCKER_BUILD_COMMAND=(docker buildx build --check)
+
+          if [[ -n "${{ matrix.container-images.build-contexts }}" ]]; then
+            # TODO: add more parsing logic if there's more than one build context
+            # xargs trims the string
+            DOCKER_BUILD_COMMAND+=(--build-context="$(xargs echo "${{ matrix.container-images.build-contexts }}")")
+          fi
+
+          DOCKER_BUILD_COMMAND+=("${{ matrix.container-images.context-directory }}")
+          echo "Running: ${DOCKER_BUILD_COMMAND[*]}"
+          "${DOCKER_BUILD_COMMAND[@]}"
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5.6.1
+        with:
+          images: |
+            ${{ env.CONTAINER_IMAGE_REGISTRY }}/${{ env.CONTAINER_IMAGE_ID }}
+          labels: |
+            org.opencontainers.image.title=accelerated-platforms-${{ matrix.container-images.name }}
+            org.opencontainers.image.description=${{ matrix.container-images.name }} container image
+          tags: |
+            type=edge,enable={{is_default_branch}}
+            type=ref,event=branch,enable={{is_default_branch}}
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}.{{patch}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+      - name: Build the ${{ matrix.container-images.name }} container image
+        uses: docker/build-push-action@v6
+        with:
+          build-contexts: ${{ matrix.container-images.build-contexts }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          context: ${{ matrix.container-images.context-directory }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+    strategy:
+      matrix:
+        container-images:
+          - name: devcontainer
+            context-directory: .devcontainer

@@ -44,4 +44,5 @@ This folder contains the IaC for the CI/CD environment of this repository.
   git push
   ```
 
-Subsequent change will be applied by the trigger when the changes are pushed to the `main` branch.
+Subsequent change will be applied by the trigger when the changes are pushed to
+the `main` branch.

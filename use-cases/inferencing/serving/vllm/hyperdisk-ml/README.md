@@ -2,7 +2,12 @@
 
 This guide demonstrates how to serve a model with vllm using Hyperdisk ML.
 
-Hyperdisk ML is a high performance storage solution that can be used to scale out your applications. It provides high aggregate throughput to many virtual machines concurrently, making it ideal if you want to run AI/ML workloads that need access to large amounts of data. When enabled in read-only-many mode, you can use Hyperdisk ML to accelerate the loading of model weights by up to 11.9X relative to loading directly from a model registry.
+Hyperdisk ML is a high performance storage solution that can be used to scale
+out your applications. It provides high aggregate throughput to many virtual
+machines concurrently, making it ideal if you want to run AI/ML workloads that
+need access to large amounts of data. When enabled in read-only-many mode, you
+can use Hyperdisk ML to accelerate the loading of model weights by up to 11.9X
+relative to loading directly from a model registry.
 
 By the end of this guide, you should be able to perform the following steps:
 
@@ -12,10 +17,16 @@ By the end of this guide, you should be able to perform the following steps:
 
 ## Prerequisites
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
-- A bucket containing the fine-tuned model from the [Fine-tuning example](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/README.md)
+- This guide was developed to be run on the
+  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
+  are using a different environment the scripts and manifest will need to be
+  modified for that environment.
+- A bucket containing the fine-tuned model from the
+  [Fine-tuning example](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/README.md)
 
-> NOTE: If you did not execute the fine-tuning example, follow [these instructions](/use-cases/prerequisites/fine-tuned-model.md) to load the model into the bucket.
+> NOTE: If you did not execute the fine-tuning example, follow
+> [these instructions](/use-cases/prerequisites/fine-tuned-model.md) to load the
+> model into the bucket.
 
 ## Preparation
 
@@ -39,7 +50,8 @@ By the end of this guide, you should be able to perform the following steps:
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
 - Get credentials for the GKE cluster.
 
@@ -49,7 +61,10 @@ By the end of this guide, you should be able to perform the following steps:
 
 ## Prepare the Hyperdisk ML
 
-Loading model weights from a PersistentVolume is a method to load models faster. In GKE, PersistentVolumes backed by Google Cloud Hyperdisk ML can be mounted read-only simultaneously by multiple nodes (ReadOnlyMany), this allows multiple pods access to the model weights from a single volume.
+Loading model weights from a PersistentVolume is a method to load models faster.
+In GKE, PersistentVolumes backed by Google Cloud Hyperdisk ML can be mounted
+read-only simultaneously by multiple nodes (ReadOnlyMany), this allows multiple
+pods access to the model weights from a single volume.
 
 - Configure the environment.
 
@@ -86,7 +101,8 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   persistentvolumeclaim/vllm-models-hdml created
   ```
 
-- Configure the job to download the model from the GCS bucket to the PersistentVolume (PV).
+- Configure the job to download the model from the GCS bucket to the
+  PersistentVolume (PV).
 
   ```sh
   git restore manifests/volume-prep/job.yaml
@@ -110,13 +126,15 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   It takes approximately 10 minutes for the job to complete.
 
-- Once the job has started, you can check the logs for the progress of the download.
+- Once the job has started, you can check the logs for the progress of the
+  download.
 
   ```sh
   kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} logs job/model-downloader-hdml
   ```
 
-  If you get the following error, wait a moment and retry as the pod is still initializing:
+  If you get the following error, wait a moment and retry as the pod is still
+  initializing:
 
   ```
   Defaulted container "model-downloader" out of: model-downloader, gke-gcsfuse-sidecar (init)
@@ -215,7 +233,8 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
 - Create a Hyperdisk ML from the image.
 
-  > Ensure the appropriate zone based on cluster node location and GPU availability.
+  > Ensure the appropriate zone based on cluster node location and GPU
+  > availability.
 
   ```sh
   gcloud compute disks create ${GCE_HYPERDISKML_NAME} \
@@ -237,7 +256,9 @@ Loading model weights from a PersistentVolume is a method to load models faster.
   XXXXXXXXXX-vllm-model-weights-hdml-us-central1-a  us-central1-a  1024     hyperdisk-ml  READY
   ```
 
-  The Hyperdisk ML is created with default throughput limit of 24,576 MB/s. You can adjust the throughput limit based on the underlying VM to achieve higher speed in loading the model.
+  The Hyperdisk ML is created with default throughput limit of 24,576 MB/s. You
+  can adjust the throughput limit based on the underlying VM to achieve higher
+  speed in loading the model.
 
 ### Create the PersistentVolumeClaim (PVC) and PersistentVolume (PV) for serving
 
@@ -258,7 +279,8 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
 - Create the PersistentVolume
 
-  > PersistentVolumes are cluster-wide resources, meaning they do not belong to any specific namespace.
+  > PersistentVolumes are cluster-wide resources, meaning they do not belong to
+  > any specific namespace.
 
   ```
   kubectl apply -f manifests/volume-prep/persistent-volume.yaml
@@ -382,7 +404,8 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
   If you are seeing `fault filter abort`, wait a moment and retry.
 
-- Enter the following prompt in the **Type a message...** text box and click **Submit**.
+- Enter the following prompt in the **Type a message...** text box and click
+  **Submit**.
 
   ```
   I'm looking for comfortable cycling shorts for women, what are some good options?
@@ -405,7 +428,8 @@ Loading model weights from a PersistentVolume is a method to load models faster.
 
 ## What's next
 
-Now that the model is deployed, there are several steps you can take to operationalize and utilize the model.
+Now that the model is deployed, there are several steps you can take to
+operationalize and utilize the model.
 
 - [vLLM Metrics](/use-cases/inferencing/serving/vllm/metrics/README.md)
 - [vLLM autoscaling with horizontal pod autoscaling (HPA)](/use-cases/inferencing/serving/vllm/autoscaling/README.md)

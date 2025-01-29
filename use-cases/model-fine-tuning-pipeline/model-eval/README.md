@@ -1,20 +1,32 @@
 # Model evaluation and validation
 
-Once a model has completed fine-tuning, the model must be validated for precision and accuracy
-against the dataset used to fine-tune the model. The fine-tuned model in this example has been, Built with Meta Llama 3.1. In this example, the model is deployed on an
-inference serving engine to host the model for the model validation to take place. Two steps are performed
-for this activity, the first is to send prompts to the fine-tuned model, the second is to validate the results.
+Once a model has completed fine-tuning, the model must be validated for
+precision and accuracy against the dataset used to fine-tune the model. The
+fine-tuned model in this example has been, Built with Meta Llama 3.1. In this
+example, the model is deployed on an inference serving engine to host the model
+for the model validation to take place. Two steps are performed for this
+activity, the first is to send prompts to the fine-tuned model, the second is to
+validate the results.
 
 ## Prerequisites
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
-- A bucket containing the prepared data from the [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
+- This guide was developed to be run on the
+  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
+  are using a different environment the scripts and manifest will need to be
+  modified for that environment.
+- A bucket containing the prepared data from the
+  [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
 
-> NOTE: If you did not execute the data preparation example, follow [these instructions](/use-cases/prerequisites/prepared-data.md) to load the dataset into the bucket.
+> NOTE: If you did not execute the data preparation example, follow
+> [these instructions](/use-cases/prerequisites/prepared-data.md) to load the
+> dataset into the bucket.
 
-- A bucket containing the model weights from the [Fine tuning example](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/README.md)
+- A bucket containing the model weights from the
+  [Fine tuning example](/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/README.md)
 
-> NOTE: If you did not execute the fine-tuning example, follow [these instructions](/use-cases/prerequisites/fine-tuned-model.md) to load the model into the bucket.
+> NOTE: If you did not execute the fine-tuning example, follow
+> [these instructions](/use-cases/prerequisites/fine-tuned-model.md) to load the
+> model into the bucket.
 
 ## Preparation
 
@@ -32,11 +44,13 @@ for this activity, the first is to send prompts to the fine-tuned model, the sec
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
 ## Build the container image
 
-- Build container image using Cloud Build and push the image to Artifact Registry
+- Build container image using Cloud Build and push the image to Artifact
+  Registry
 
   ```
   cd src

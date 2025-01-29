@@ -1,18 +1,26 @@
 # Run Batch inference on GKE
 
-Once a model has completed fine-tuning and is deployed on GKE, it's ready to run a batch inference pipeline.
-In this example batch inference pipeline, we would first send prompts to the hosted fine-tuned model and then validate the results based on ground truth.
+Once a model has completed fine-tuning and is deployed on GKE, it's ready to run
+a batch inference pipeline. In this example batch inference pipeline, we would
+first send prompts to the hosted fine-tuned model and then validate the results
+based on ground truth.
 
 ## Prerequisites
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+- This guide was developed to be run on the
+  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
+  are using a different environment the scripts and manifest will need to be
+  modified for that environment.
 - A model is deployed using one of the vLLM guides
   - [Distributed Inference and Serving with vLLM using GCSFuse](/use-cases/inferencing/serving/vllm/gcsfuse/README.md)
   - [Distributed Inference and Serving with vLLM using Hyperdisk ML](/use-cases/inferencing/serving/vllm/hyperdisk-ml/README.md)
   - [Distributed Inference and Serving with vLLM using Persistent Disk](/use-cases/inferencing/serving/vllm/persistent-disk/README.md)
-- A bucket containing the prepared data from the [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
+- A bucket containing the prepared data from the
+  [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
 
-> NOTE: If you did not execute the data preparation example, follow [these instructions](/use-cases/prerequisites/prepared-data.md) to load the dataset into the bucket.
+> NOTE: If you did not execute the data preparation example, follow
+> [these instructions](/use-cases/prerequisites/prepared-data.md) to load the
+> dataset into the bucket.
 
 ## Preparation
 
@@ -36,7 +44,8 @@ In this example batch inference pipeline, we would first send prompts to the hos
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
 - Get credentials for the GKE cluster
 
@@ -46,7 +55,8 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
 ## Build the container image
 
-- Build the container image using Cloud Build and push the image to Artifact Registry
+- Build the container image using Cloud Build and push the image to Artifact
+  Registry
 
   ```sh
   cd src
@@ -64,8 +74,9 @@ In this example batch inference pipeline, we would first send prompts to the hos
 
 - Configure the environment.
 
-  > Set the environment variables based on the accelerator and model storage type used to serve the model.
-  > The default values below are set for NVIDIA L4 GPUs and persistent disk.
+  > Set the environment variables based on the accelerator and model storage
+  > type used to serve the model. The default values below are set for NVIDIA L4
+  > GPUs and persistent disk.
 
   | Variable            | Description                                                          | Example         |
   | ------------------- | -------------------------------------------------------------------- | --------------- |
@@ -115,7 +126,8 @@ In this example batch inference pipeline, we would first send prompts to the hos
   job.batch/batch-inference created
   ```
 
-  Depending on the dataset, it takes approximately 10 - 60 minutes for the job to complete.
+  Depending on the dataset, it takes approximately 10 - 60 minutes for the job
+  to complete.
 
 - Check the status of the job
 
@@ -140,5 +152,7 @@ In this example batch inference pipeline, we would first send prompts to the hos
   batch-inference   Complete   1/1           #####      #####
   ```
 
-Once the job is complete, the predictions result will be stored in the `MLP_DATA_BUCKET` in the `predictions` folder.
-A sample prediction output file [`example_predictions.txt`](/use-cases/inferencing/batch-inference/example_predictions.txt) has been provided for reference.
+Once the job is complete, the predictions result will be stored in the
+`MLP_DATA_BUCKET` in the `predictions` folder. A sample prediction output file
+[`example_predictions.txt`](/use-cases/inferencing/batch-inference/example_predictions.txt)
+has been provided for reference.

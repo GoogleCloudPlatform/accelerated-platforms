@@ -30,11 +30,13 @@
 
 ## Configure
 
-Terraform loads variables in the following order, with later sources taking precedence over earlier ones:
+Terraform loads variables in the following order, with later sources taking
+precedence over earlier ones:
 
 - Environment variables (`TF_VAR_<variable_name>`)
 - Any `*.auto.tfvars` or files, processed in lexical order of their filenames.
-- Any `-var` and `-var-file` options on the command line, in the order they are provided.
+- Any `-var` and `-var-file` options on the command line, in the order they are
+  provided.
 
 - Set the cluster project ID
 

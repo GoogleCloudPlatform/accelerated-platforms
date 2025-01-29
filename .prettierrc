@@ -1,4 +1,14 @@
 {
+  "$schema": "https://json.schemastore.org/prettierrc",
+  "embeddedLanguageFormatting": "off",
+  "overrides": [
+    {
+      "files": ["**/*.md"],
+      "options": {
+        "proseWrap": "always"
+      }
+    }
+  ],
   "tabWidth": 2,
   "useTabs": false
 }

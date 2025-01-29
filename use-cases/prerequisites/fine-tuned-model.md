@@ -1,8 +1,13 @@
 # Fine-tuned model
 
-These steps walk you through downloading the fine-tuned model from Hugging Face and uploads the data into the model GCS bucket for use within the guide for the respective [use case](/use-cases).
+These steps walk you through downloading the fine-tuned model from Hugging Face
+and uploads the data into the model GCS bucket for use within the guide for the
+respective [use case](/use-cases).
 
-These prereqs were developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+These prereqs were developed to be run on the
+[playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
+are using a different environment the scripts and manifest will need to be
+modified for that environment.
 
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured
 
@@ -11,11 +16,14 @@ These prereqs were developed to be run on the [playground AI/ML platform](/platf
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
-- Download the fine-tuned model from Hugging Face and copy it into the GCS bucket.
+- Download the fine-tuned model from Hugging Face and copy it into the GCS
+  bucket.
 
-  > NOTE: Due to the limitations of Cloud Shell’s storage and the size of our model we need to run this job to perform the transfer to GCS on the cluster.
+  > NOTE: Due to the limitations of Cloud Shell’s storage and the size of our
+  > model we need to run this job to perform the transfer to GCS on the cluster.
 
   - Get credentials for the GKE cluster
 
@@ -42,7 +50,8 @@ These prereqs were developed to be run on the [playground AI/ML platform](/platf
       -f manifests/transfer-to-gcs.yaml
     ```
 
-  - Trigger the wait for job completion (the job will take ~5 minutes to complete)
+  - Trigger the wait for job completion (the job will take ~5 minutes to
+    complete)
 
     ```sh
     kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait \

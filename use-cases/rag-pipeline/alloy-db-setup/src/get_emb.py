@@ -13,18 +13,17 @@
 # limitations under the License.
 
 import asyncio
-import aiohttp
 import logging
 import logging.config
 import os
-import requests
-import json
+
+import aiohttp
 import backoff
 
 # Define the API Endpoints
-TEXT_API_ENDPOINT = os.environ.get("TEXT_EMBEDDING_ENDPOINT")
-IMAGE_API_ENDPOINT = os.environ.get("IMAGE_EMBEDDING_ENDPOINT")
-MULTIMODAL_API_ENDPOINT = os.environ.get("MULTIMODAL_EMBEDDING_ENDPOINT")
+TEXT_API_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT_TEXT")
+IMAGE_API_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT_IMAGE")
+MULTIMODAL_API_ENDPOINT = os.environ.get("EMBEDDING_ENDPOINT_MULTIMODAL")
 
 # Configure logging
 logging.config.fileConfig("logging.conf")
@@ -32,18 +31,11 @@ logger = logging.getLogger(__name__)
 
 if "LOG_LEVEL" in os.environ:
     new_log_level = os.environ["LOG_LEVEL"].upper()
-    try:
-        # Convert the string to a logging level constant
-        numeric_level = getattr(logging, new_log_level)
-        # Set the level for the root logger
-        logger.setLevel(new_log_level)  # Set the level after getting the logger
-        logger.info(
-            "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
-        )
-    except AttributeError:
-        logger.warning(
-            "Invalid LOG_LEVEL value: '%s'. Using default log level.", new_log_level
-        )
+    logger.info(
+        "Log level set to '%s' via LOG_LEVEL environment variable", new_log_level
+    )
+    logger.setLevel(new_log_level)
+
 
 # Log endpoint URLs *after* the log level is potentially set by the environment
 logger.info("Available embedding endpoints...")
@@ -53,10 +45,15 @@ logger.info("Multimodal Embedding endpoint: %s", MULTIMODAL_API_ENDPOINT)
 
 
 @backoff.on_exception(
-    backoff.expo, (aiohttp.ClientError, asyncio.TimeoutError), max_tries=3
+    exception=(aiohttp.ClientError, asyncio.TimeoutError),
+    max_tries=3,
+    wait_gen=backoff.expo,
 )
 async def get_embeddings_async(
-    session, image_uri=None, text=None, timeout_settings=None
+    session: aiohttp.ClientSession,
+    image_uri: str | None = None,
+    text: str | None = None,
+    timeout_settings: aiohttp.ClientTimeout | None = None,
 ):
     """Asynchronously fetches embeddings with retry and error handling."""
     try:
@@ -76,9 +73,12 @@ async def get_embeddings_async(
         headers = {"Content-Type": "application/json"}
 
         async with session.post(
-            url, json=payload, headers=headers, timeout=timeout_settings
+            url,
+            json=payload,
+            headers=headers,
+            timeout=timeout_settings,
         ) as response:
-            if response.status != 200:  # Explicitly check for non-200 status
+            if response.status != 200:
                 error_text = await response.text()
                 logger.error(
                     "Error calling embedding API. Status: %s, URL: %s, Payload: %s,  Error: %s",
@@ -86,8 +86,8 @@ async def get_embeddings_async(
                     url,
                     payload,
                     error_text,
-                )  # Include detailed error info
-                response.raise_for_status()  # Raise the exception after logging
+                )
+                response.raise_for_status()
 
             data = await response.json()
 
@@ -98,16 +98,22 @@ async def get_embeddings_async(
             elif image_uri:
                 return data.get("image_embeds")
 
-    except aiohttp.ClientError as e:
-        logger.exception(
-            f"Client Error during embedding generation: {e}"
-        )  # Log with exception details
-        raise  # Re-raise to signal failure to the caller. Handle the backoff at a higher level
+    except aiohttp.ClientError:
+        logger.exception("ClientError during embedding generation")
+        raise
 
 
-async def get_embeddings(image_uri=None, text=None, timeout_settings=None):
+async def get_embeddings(
+    image_uri: str | None = None,
+    text: str | None = None,
+    timeout_settings: aiohttp.ClientTimeout | None = None,
+):
+    """Asynchronously fetch embeddings"""
     async with aiohttp.ClientSession() as session:
         embeddings = await get_embeddings_async(
-            session, image_uri, text, timeout_settings
+            image_uri=image_uri,
+            session=session,
+            text=text,
+            timeout_settings=timeout_settings,
         )
         return embeddings

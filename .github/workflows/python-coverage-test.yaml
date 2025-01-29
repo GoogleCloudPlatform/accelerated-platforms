@@ -24,11 +24,4 @@ jobs:
       - name: Generate and print coverage report
         run: |
           cat .coveragerc
-          #coverage report --fail-under=0
-  
-
-      #cat coverage.xml
-      # - name: Upload coverage report
-      #   uses: codecov/codecov-action@v3
-      #   with:
-      #     files: ./coverage.xml
+          coverage report --fail-under=0

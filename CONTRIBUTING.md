@@ -57,12 +57,6 @@ The repository requires that files use built-in formatting using the
 
 ## Development environment
 
-To set up a development environment, we designed a
-[Visual Studio Code Dev Container](https://code.visualstudio.com/docs/devcontainers/containers)
-that includes all the necessary tooling and Visual Studio Code (VS Code)
-extensions that you need to work on this project. We use this dev container to
-build the project from both VS Code and the command-line.
-
 ### Requirements
 
 To setup a development environment you need:
@@ -74,6 +68,12 @@ To setup a development environment you need:
 > A Visual Studio Code Dev Container is included in the repository.
 
 ### Dev container configuration
+
+To set up a development environment, we designed a
+[Visual Studio Code Dev Container](https://code.visualstudio.com/docs/devcontainers/containers)
+that includes all the necessary tooling and Visual Studio Code (VS Code)
+extensions that you need to work on this project. We use this dev container to
+build the project from both VS Code and the command-line.
 
 To inspect the development environment container image configuration and build
 descriptors, refer to the contents of the `.devcontainer` directory:

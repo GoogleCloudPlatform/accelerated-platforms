@@ -23,10 +23,8 @@ jobs:
         run: bash run_python_coverage_test.sh
       - name: Generate and print coverage report
         run: |
-          output=$(coverage report --fail-under=90)
-          echo $output
-          exit_code=$?
-          echo "Exit code: $exit_code"
+          coverage report --fail-under=90
+  
 
       #cat coverage.xml
       # - name: Upload coverage report

@@ -2,7 +2,7 @@
 
 This solution implements a Retrieval Augmented Generation (RAG) pipeline to enhance product recommendations in an e-commerce setting, specifically addressing the challenge of out-of-stock or unavailable items. When a customer searches for a product that's not currently available, the RAG pipeline uses advanced semantic search capabilities to identify and suggest similar items from the catalog. This approach not only improves the customer experience by providing relevant alternatives but also helps reduce lost sales and potentially increases average order value.
 
-**Here's how it works:**
+## Here's how it works:
 
 Understanding Customer Intent: The system analyzes the customer's search query (e.g., "blue cotton t-shirt") to understand the key attributes and features they are looking for.
 
@@ -39,7 +39,7 @@ Image recognition: Identifying images that are similar to each other.
 
 The dataset has product information such as id, name, brand, description, image urls, product specifications.
 
-# Data Preprocessing pipeline for RAG
+## Data Preprocessing pipeline for RAG
 
 <TODO> Data processing pipeline steps for RAG.
 
@@ -121,8 +121,6 @@ This section outlines the steps to set up the Retrieval Augmented Generation (RA
 ## Prerequisites
 
 - Use the existing [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
-
-## Preparation
 
 #### Set variable for the ML playground environment
 

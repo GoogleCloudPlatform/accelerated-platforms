@@ -4,5 +4,6 @@ source =
 omit = 
     */site-packages/*
     */dist-packages/*
+
 [report]
-fail_under = 90
+fail_under = 90  # Fail if coverage is below 90%

@@ -53,50 +53,48 @@ Let's break down the flow step-by-step:
 
 1. **User Query:**
 
-An online shopper initiates the process by entering a query through the Gradio Chat Interface. This query represents their need or request (e.g., "comfortable running shoes for women").
+    An online shopper initiates the process by entering a query through the Gradio Chat Interface. This query represents their need or request (e.g., "comfortable running shoes for women").
 
 2. **Get Embeddings:**
 
-The user's query is sent to the "Backend Application".
-Within the Backend Application, the query is processed by an "Embedding Model Endpoint".
+    The user's query is sent to the "Backend Application".
+    Within the Backend Application, the query is processed by an "Embedding Model Endpoint".
 
 3. **Embedding Model Endpoint:**
 
-This component hosts a blip2 multimodal embedding model that specializes in converting text(or images) into numerical vectors called "embeddings". These embeddings capture the semantic meaning of the query.
-The Embedding Model Endpoint receives the query, performs the conversion, and returns the embedding vector.
+   This component hosts a blip2 multimodal embedding model that specializes in converting text(or images) into numerical vectors called "embeddings". These embeddings capture the semantic meaning of the query.
+   The Embedding Model Endpoint receives the query, performs the conversion, and returns the embedding vector.
 
 4. **Get Embeddings (Continued):**
 
-The Backend Application receives the embedding vector from the Embedding Model Endpoint.
+  The Backend Application receives the embedding vector from the Embedding Model Endpoint.
 
 5. **Scann Index:**
 
-The backend application uses the received embedding vector to query a Scann Indexes built on embedding columns (text, image, or multimodal) within the AlloyDB clothes table. These embedding columns are populated by the Product Catalog Onboarding Job, representing product information as embedding vectors
+  The backend application uses the received embedding vector to query a Scann Indexes built on embedding columns (text, image, or multimodal) within the AlloyDB clothes table. These embedding columns are populated by the Product Catalog Onboarding Job, representing product information as embedding vectors
 
 Scann is a high-performance approximate nearest neighbor search library. It efficiently finds products with embedding vectors similar to the query's embedding vector.
 
 6. **Fetch Similar Products:**
 
-The backend system fetches the most similar products from the "AlloyDB" database, which stores the complete information in the "Product Catalog".
-The system retrieves similar products from AlloyDB, including details like Name, Description, Category, Specifications, Product_ID, Brand, and image_uri. The retrieval is ordered by cosine similarity to the query embedding.
+  The backend system fetches the most similar products from the "AlloyDB" database, which stores the complete information in the "Product Catalog".
+  The system retrieves similar products from AlloyDB, including details like Name, Description, Category, Specifications, Product_ID, Brand, and image_uri. The retrieval is ordered by cosine similarity to the query embedding.
 
 7. **Instruction Tuned Model Endpoint:**
 
-These retrieved similar product information is then sent to an "Instruction Tuned Model Endpoint". This endpoint hosts a specific version of Gemini instruction tuned model(gemma-2b-it)[https://huggingface.co/google/gemma-2b-it] that's been trained with a focus on understanding and responding to instructions effectively. Instruction tuned model is provided with a specific instructions as a prompt to re-rank the search results.
+   These retrieved similar product information is then sent to an "Instruction Tuned Model Endpoint". This endpoint hosts a specific version of Gemini instruction tuned model(gemma-2b-it)[https://huggingface.co/google/gemma-2b-it] that's been trained with a focus on understanding and responding to instructions effectively. Instruction tuned model is provided with a specific instructions as a prompt to re-rank the search results.
 
 8. **Re-Rank Search Results with LLM:**
 
-The LLM re-ranks the search results based on relevance and prompt based instructions. This step ensures the most relevant products are presented to the user.
+   The LLM re-ranks the search results based on relevance and prompt based instructions. This step ensures the most relevant products are presented to the user.
 
 9. **Suggest Products:**
 
-The Backend Application receives the re-ranked product list from the Instruction Tuned Model Endpoint.
-
-This list is sent as Product Recommendations to the Gradio Chat Interface.
+   The Backend Application receives the re-ranked product list from the Instruction Tuned Model Endpoint.This list is sent as Product Recommendations to the Gradio Chat Interface.
 
 10. **Product Suggestions:**
 
-The Gradio Chat Interface displays the product suggestions to the online shopper.
+    The Gradio Chat Interface displays the product suggestions to the online shopper.
 
 **Additional Components:**
 
@@ -112,9 +110,10 @@ This section outlines the steps to set up the Retrieval Augmented Generation (RA
 
 3. **Generate and Store Embeddings:** Use an ETL pipeline to generate embeddings (text, image, and multimodal) using the deployed Blip2 model. Store these embeddings in separate columns within the `clothes` table in AlloyDB.
 
-4. **Deploy the Instruction-Tuned Model:** Deploy the [gemma-2b-it model](https://huggingface.co/google/gemma-2b-it). This model generates natural language responses and product recommendations based on user queries and retrieved product information.
+4. **Deploy the Instruction-Tuned Model:** Deploy the [gemma-2b-it model](https://huggingface.co/google/gemma-2b-it). This model generates natural language responses and product recommendations based on user queries and retrieved product     information.
 
-5. **Deploy the Backend API:** Deploy the FastAPI backend. This API serves as the interface between the user interface, embedding model, instruction-tuned model, and the AlloyDB vector store. It processes user prompts and generates product recommendations.
+5. **Deploy the Backend API:** Deploy the FastAPI backend. This API serves as the interface between the user interface, embedding model, instruction-tuned model, and the AlloyDB vector store. It processes user prompts and generates product 
+   recommendations.
 
 6. **Deploy the Frontend UI:** Deploy the [gradio](https://gradio.app/) based frontend UI. This UI provides a chatbot interface for end-users to interact with the RAG pipeline and receive product recommendations.
 

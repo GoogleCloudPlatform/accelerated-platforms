@@ -55,9 +55,12 @@ MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object permission
   --config cloudbuild.yaml \
   --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
   --project ${MLP_PROJECT_ID} \
+  --region ${MLP_REGION} \
   --substitutions _DESTINATION=${MLP_DB_SETUP_IMAGE}
   cd -
   ```
+
+  It takes approximately 2 minutes for the build to complete.
 
 ## Run the job
 
@@ -78,64 +81,88 @@ MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object permission
   ```sh
   export CATALOG_DB="product_catalog"
   export CATALOG_TABLE_NAME="clothes"
+  export DB_READ_USERS="${MLP_DB_USER_IAM}"
+  export DB_WRITE_USERS="${MLP_DB_USER_IAM}"
   export EMBEDDING_COLUMN_IMAGE="image_embeddings"
   export EMBEDDING_COLUMN_MULTIMODAL="multimodal_embeddings"
   export EMBEDDING_COLUMN_TEXT="text_embeddings"
   export EMBEDDING_DIMENSION="\"768\""
-  export IMAGE_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/image_embeddings"
+  export EMBEDDING_ENDPOINT_IMAGE="http://multimodal-embedding-model.ml-team:80/image_embeddings"
+  export EMBEDDING_ENDPOINT_MULTIMODAL="http://multimodal-embedding-model.ml-team:80/multimodal_embeddings"
+  export EMBEDDING_ENDPOINT_TEXT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
   export MASTER_CATALOG_FILE_NAME="master_product_catalog.csv"
-  export MULTIMODAL_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/multimodal_embeddings"
   export NUM_LEAVES_VALUE="\"300\""
-  export TEXT_EMBEDDING_ENDPOINT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
   ```
 
   ```sh
-  git restore manifests/alloydb-setup-job.yaml
+  git restore manifests/job-initialize-database.yaml manifests/job-populate-table.yaml
   sed \
   -i -e "s|V_CATALOG_DB|${CATALOG_DB}|" \
   -i -e "s|V_CATALOG_TABLE_NAME|${CATALOG_TABLE_NAME}|" \
+  -i -e "s|V_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
+  -i -e "s|V_DB_READ_USERS|${DB_READ_USERS}|" \
+  -i -e "s|V_DB_USER_KSA|${MLP_DB_USER_KSA}|" \
+  -i -e "s|V_DB_WRITE_USERS|${DB_WRITE_USERS}|" \
   -i -e "s|V_IMAGE|${MLP_DB_SETUP_IMAGE}|" \
-  -i -e "s|V_KSA|${MLP_DB_ADMIN_KSA}|" \
   -i -e "s|V_EMBEDDING_DIMENSION|${EMBEDDING_DIMENSION}|" \
-  -i -e "s|V_EMBEDDING_ENDPOINT_IMAGE|${IMAGE_EMBEDDING_ENDPOINT}|" \
-  -i -e "s|V_EMBEDDING_ENDPOINT_MULTIMODAL|${MULTIMODAL_EMBEDDING_ENDPOINT}|" \
-  -i -e "s|V_EMBEDDING_ENDPOINT_TEXT|${TEXT_EMBEDDING_ENDPOINT}|" \
+  -i -e "s|V_EMBEDDING_ENDPOINT_IMAGE|${EMBEDDING_ENDPOINT_IMAGE}|" \
+  -i -e "s|V_EMBEDDING_ENDPOINT_MULTIMODAL|${EMBEDDING_ENDPOINT_MULTIMODAL}|" \
+  -i -e "s|V_EMBEDDING_ENDPOINT_TEXT|${EMBEDDING_ENDPOINT_TEXT}|" \
   -i -e "s|V_EMBEDDING_COLUMN_TEXT|${EMBEDDING_COLUMN_TEXT}|" \
   -i -e "s|V_EMBEDDING_COLUMN_IMAGE|${EMBEDDING_COLUMN_IMAGE}|" \
   -i -e "s|V_EMBEDDING_COLUMN_MULTIMODAL|${EMBEDDING_COLUMN_MULTIMODAL}|" \
   -i -e "s|V_MASTER_CATALOG_FILE_NAME|${MASTER_CATALOG_FILE_NAME}|" \
-  -i -e "s|V_MLP_DB_ADMIN_IAM|${MLP_DB_ADMIN_IAM}|" \
   -i -e "s|V_MLP_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
   -i -e "s|V_MLP_KUBERNETES_NAMESPACE|${MLP_KUBERNETES_NAMESPACE}|" \
   -i -e "s|V_NUM_LEAVES_VALUE|${NUM_LEAVES_VALUE}|" \
   -i -e "s|V_PROCESSED_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
   -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
-  manifests/alloydb-setup-job.yaml
+  manifests/job-initialize-database.yaml \
+  manifests/job-populate-table.yaml
   ```
 
-- Create the job.
+- Create the initialize database job.
 
   ```
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/alloydb-setup-job.yaml
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job-initialize-database.yaml
   ```
 
-  > The job runs for about two hours
-
-- Check the status of the job.
-
-  ```
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/alloydb-setup
-  ```
+  It takes approximately 1 minute for the job to complete.
 
 - Watch the job until it is complete.
 
   ```
   watch --color --interval 5 --no-title \
-  "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/alloydb-setup | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
+  "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/initialize-database | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/initialize-database --tail 10"
   ```
 
 - Check logs for any errors.
 
   ```
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/alloydb-setup
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/initialize-database
+  ```
+
+- Create the populate table job.
+
+  ```
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job-populate-table.yaml
+  ```
+
+  It takes approximately 12 minutes for the job to complete.
+
+- Watch the job until it is complete.
+
+  ```
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/populate-table | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/populate-table --tail 10"
+  ```
+
+- Check logs for any errors.
+
+  ```
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/populate-table
   ```

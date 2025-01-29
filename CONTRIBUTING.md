@@ -69,8 +69,9 @@ To setup a development environment you need:
 
 - A POSIX-compliant shell
 - An OCI-compatible container runtime. Tested with Docker for Linux 20.10.21
-- Visual Studio Code, if you need to modify any part of this set of software
-  components. Other editors and IDEs might work fine.
+- An IDE or text editor
+
+> A Visual Studio Code Dev Container is included in the repository.
 
 ### Dev container configuration
 

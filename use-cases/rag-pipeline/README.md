@@ -53,12 +53,12 @@ Let's break down the flow step-by-step:
 
 1. **User Query:**
 
-    An online shopper initiates the process by entering a query through the Gradio Chat Interface. This query represents their need or request (e.g., "comfortable running shoes for women").
+   An online shopper initiates the process by entering a query through the Gradio Chat Interface. This query represents their need or request (e.g., "comfortable running shoes for women").
 
 2. **Get Embeddings:**
 
-    The user's query is sent to the "Backend Application".
-    Within the Backend Application, the query is processed by an "Embedding Model Endpoint".
+   The user's query is sent to the "Backend Application".
+   Within the Backend Application, the query is processed by an "Embedding Model Endpoint".
 
 3. **Embedding Model Endpoint:**
 
@@ -98,9 +98,7 @@ Let's break down the flow step-by-step:
 
 **Additional Components:**
 
-  The Product Catalog Onboarding Job handles the initial loading and ongoing updates of product information in AlloyDB, including building and maintaining the Scann Index to reflect catalog changes
-
-  
+The Product Catalog Onboarding Job handles the initial loading and ongoing updates of product information in AlloyDB, including building and maintaining the Scann Index to reflect catalog changes
 
 ### Setting up the RAG Pipeline deployment
 
@@ -112,9 +110,9 @@ This section outlines the steps to set up the Retrieval Augmented Generation (RA
 
 3. **Generate and Store Embeddings:** Use an ETL pipeline to generate embeddings (text, image, and multimodal) using the deployed Blip2 model. Store these embeddings in separate columns within the `clothes` table in AlloyDB.
 
-4. **Deploy the Instruction-Tuned Model:** Deploy the [gemma-2b-it model](https://huggingface.co/google/gemma-2b-it). This model generates natural language responses and product recommendations based on user queries and retrieved product     information.
+4. **Deploy the Instruction-Tuned Model:** Deploy the [gemma-2b-it model](https://huggingface.co/google/gemma-2b-it). This model generates natural language responses and product recommendations based on user queries and retrieved product information.
 
-5. **Deploy the Backend API:** Deploy the FastAPI backend. This API serves as the interface between the user interface, embedding model, instruction-tuned model, and the AlloyDB vector store. It processes user prompts and generates product 
+5. **Deploy the Backend API:** Deploy the FastAPI backend. This API serves as the interface between the user interface, embedding model, instruction-tuned model, and the AlloyDB vector store. It processes user prompts and generates product
    recommendations.
 
 6. **Deploy the Frontend UI:** Deploy the [gradio](https://gradio.app/) based frontend UI. This UI provides a chatbot interface for end-users to interact with the RAG pipeline and receive product recommendations.

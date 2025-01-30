@@ -27,7 +27,8 @@ COPY requirements.txt /venv/requirements.txt
 RUN pip install --no-cache-dir -r /venv/requirements.txt
 
 COPY logging.conf main.py /app/
-COPY datapreprocessing /app/datapreprocessing
+# TODO: avoid relative path by using a environment variable that points to the base of the repo
+COPY ../../../../../modules/python/src/datapreprocessing/ /app/datapreprocessing
 
 WORKDIR /app
 

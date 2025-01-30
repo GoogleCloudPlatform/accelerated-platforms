@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import os
+import sys
 import signal
 import numpy as np
 from datapreprocessing.dataloader import DataLoader
@@ -58,7 +59,7 @@ if __name__ == "__main__":
     ]
     ray_resources = {"cpu": 1}
     ray_runtime_env = {
-        "py_modules": ["./"],  # Path to your module's directory
+        "py_modules": ["./datapreprocessing"],  # Path to your module's directory
         "pip": [
             "google-cloud-storage==2.16.0",
             "spacy==3.7.4",

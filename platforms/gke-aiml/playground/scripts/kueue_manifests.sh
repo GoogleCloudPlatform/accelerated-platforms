@@ -36,7 +36,6 @@ cd "${clusters_path}" || {
 }
 
 cp -pr ${cluster_template_path}/kueue-system ${clusters_path}/
-cp -pr ${cluster_template_path}/namespace-kueue-system.yaml ${clusters_path}/
 
 # Added entries to the kustomization file
 resources=$(find ${clusters_path} -maxdepth 1 -mindepth 1 -type d | sort)

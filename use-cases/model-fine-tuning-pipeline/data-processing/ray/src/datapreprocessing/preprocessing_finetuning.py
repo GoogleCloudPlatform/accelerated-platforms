@@ -74,9 +74,7 @@ if __name__ == "__main__":
     class_name = "DataPreprocessor"
     method_name = "process_data"
 
-    data_loader = DataLoader(
-        IMAGE_BUCKET, input_processing_file
-    )
+    data_loader = DataLoader(IMAGE_BUCKET, input_processing_file)
     df = data_loader.load_raw_data()
 
     data_prep = DataPrep(df, required_cols, filter_null_cols, chunk_size)

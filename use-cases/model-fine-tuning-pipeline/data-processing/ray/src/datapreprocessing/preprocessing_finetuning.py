@@ -3,10 +3,10 @@ import logging.config
 import os
 import signal
 import numpy as np
-from dataloader import DataLoader
-from dataprep import DataPrep
-from ray_utils import RayUtils
-from datacleaner import DataPrepForRag
+from datapreprocessing.dataloader import DataLoader
+from datapreprocessing.dataprep import DataPrep
+from datapreprocessing.ray_utils import RayUtils
+from datapreprocessing.datacleaner import DataPrepForRag
 
 IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
 RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]

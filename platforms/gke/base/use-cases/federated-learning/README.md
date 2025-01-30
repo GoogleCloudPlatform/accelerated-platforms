@@ -226,6 +226,11 @@ To deploy the reference architecture, you do the following:
 After deploying the reference architecture, the GKE cluster is ready to host
 your federated learning workloads.
 
+To help you familiarize with the reference architecture, you can deploy one of
+the provided examples:
+
+- [Train an image classifier using NVIDIA FLARE](/platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/README.md).
+
 ## Destroy the reference architecture
 
 To destroy an instance of the reference architecture, you do the following:
@@ -333,7 +338,7 @@ Pods in the
 
 If this happens:
 
-1. Wait for the cluster to complete the initialiazation
+1. Wait for the cluster to complete the initialization
 1. Delete the Deployment that is impacted by this issue. Config Sync will deploy
    it again with the correct container image identifiers.
 

@@ -12,6 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  policy_controller_kubernetes_namespace       = "gatekeeper-system"
+  policy_controller_kubernetes_service_account = "gatekeeper-admin"
+  gatekeeper_wi_member                         = "${local.wi_principal_prefix}/ns/${local.policy_controller_kubernetes_namespace}/sa/${local.policy_controller_kubernetes_service_account}"
+  wi_principal_prefix                          = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
+
+  gatekeeper_iam_roles = [
+    "roles/monitoring.metricWriter"
+  ]
+}
+
 resource "google_gke_hub_feature" "policycontroller" {
   provider = google-beta
 
@@ -37,4 +48,12 @@ resource "google_gke_hub_feature_membership" "cluster_policycontroller" {
       referential_rules_enabled = true
     }
   }
+}
+
+resource "google_project_iam_member" "gatekeeper" {
+  for_each = toset(local.gatekeeper_iam_roles)
+
+  member  = local.gatekeeper_wi_member
+  project = google_project_service.anthospolicycontroller_googleapis_com.project
+  role    = each.value
 }

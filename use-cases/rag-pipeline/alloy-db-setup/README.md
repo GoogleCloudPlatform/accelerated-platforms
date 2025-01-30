@@ -32,7 +32,9 @@ MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object permission
 
   ```sh
   cat ${MLP_ENVIRONMENT_FILE} && \
-  source ${MLP_ENVIRONMENT_FILE}
+  set -o allexport && \
+  source ${MLP_ENVIRONMENT_FILE} && \
+  set +o allexport
   ```
 
   > You should see the various variables populated with the information specific to your environment.
@@ -79,46 +81,27 @@ MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object permission
 - Configure the job
 
   ```sh
-  export CATALOG_DB="product_catalog"
+  set -o nounset
+  export CATALOG_DB_NAME="product_catalog"
   export CATALOG_TABLE_NAME="clothes"
   export DB_READ_USERS="${MLP_DB_USER_IAM}"
   export DB_WRITE_USERS="${MLP_DB_USER_IAM}"
   export EMBEDDING_COLUMN_IMAGE="image_embeddings"
   export EMBEDDING_COLUMN_MULTIMODAL="multimodal_embeddings"
   export EMBEDDING_COLUMN_TEXT="text_embeddings"
-  export EMBEDDING_DIMENSION="\"768\""
+  export EMBEDDING_DIMENSION="768"
   export EMBEDDING_ENDPOINT_IMAGE="http://multimodal-embedding-model.ml-team:80/image_embeddings"
   export EMBEDDING_ENDPOINT_MULTIMODAL="http://multimodal-embedding-model.ml-team:80/multimodal_embeddings"
   export EMBEDDING_ENDPOINT_TEXT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
   export MASTER_CATALOG_FILE_NAME="master_product_catalog.csv"
-  export NUM_LEAVES_VALUE="\"300\""
+  export NUM_LEAVES_VALUE="300"
+  set +o nounset
   ```
 
   ```sh
   git restore manifests/job-initialize-database.yaml manifests/job-populate-table.yaml
-  sed \
-  -i -e "s|V_CATALOG_DB|${CATALOG_DB}|" \
-  -i -e "s|V_CATALOG_TABLE_NAME|${CATALOG_TABLE_NAME}|" \
-  -i -e "s|V_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
-  -i -e "s|V_DB_READ_USERS|${DB_READ_USERS}|" \
-  -i -e "s|V_DB_USER_KSA|${MLP_DB_USER_KSA}|" \
-  -i -e "s|V_DB_WRITE_USERS|${DB_WRITE_USERS}|" \
-  -i -e "s|V_IMAGE|${MLP_DB_SETUP_IMAGE}|" \
-  -i -e "s|V_EMBEDDING_DIMENSION|${EMBEDDING_DIMENSION}|" \
-  -i -e "s|V_EMBEDDING_ENDPOINT_IMAGE|${EMBEDDING_ENDPOINT_IMAGE}|" \
-  -i -e "s|V_EMBEDDING_ENDPOINT_MULTIMODAL|${EMBEDDING_ENDPOINT_MULTIMODAL}|" \
-  -i -e "s|V_EMBEDDING_ENDPOINT_TEXT|${EMBEDDING_ENDPOINT_TEXT}|" \
-  -i -e "s|V_EMBEDDING_COLUMN_TEXT|${EMBEDDING_COLUMN_TEXT}|" \
-  -i -e "s|V_EMBEDDING_COLUMN_IMAGE|${EMBEDDING_COLUMN_IMAGE}|" \
-  -i -e "s|V_EMBEDDING_COLUMN_MULTIMODAL|${EMBEDDING_COLUMN_MULTIMODAL}|" \
-  -i -e "s|V_MASTER_CATALOG_FILE_NAME|${MASTER_CATALOG_FILE_NAME}|" \
-  -i -e "s|V_MLP_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
-  -i -e "s|V_MLP_KUBERNETES_NAMESPACE|${MLP_KUBERNETES_NAMESPACE}|" \
-  -i -e "s|V_NUM_LEAVES_VALUE|${NUM_LEAVES_VALUE}|" \
-  -i -e "s|V_PROCESSED_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
-  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
-  manifests/job-initialize-database.yaml \
-  manifests/job-populate-table.yaml
+  envsubst < manifests/job-initialize-database.yaml | sponge manifests/job-initialize-database.yaml
+  envsubst < manifests/job-populate-table.yaml | sponge manifests/job-populate-table.yaml
   ```
 
 - Create the initialize database job.

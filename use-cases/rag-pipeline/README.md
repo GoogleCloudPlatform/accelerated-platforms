@@ -37,7 +37,6 @@ Image recognition: Identifying images that are similar to each other.
 
 [This](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products) is a pre-crawled public dataset, taken as a subset of a bigger dataset (more than 5.8 million products) that was created by extracting data from [Flipkart](https://www.flipkart.com/), a leading Indian eCommerce store.
 
-
 ## Data Preprocessing for RAG
 
 Perform data preprocessing required for RAG, follow the [README](/use-cases/rag-pipeline/data-preprocessing/README.md)

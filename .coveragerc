@@ -1,5 +1,5 @@
 [run]
-source = use-cases/model-fine-tuning-pipeline/data-processing/ray
+source = modules/python
 omit = */site-packages/*, */dist-packages/*
 
 [report]

@@ -20,7 +20,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt coverage
       - name: Run tests with coverage
-        run: bash run_python_coverage_test.sh && ls -lart
+        run: pwd && bash run_python_coverage_test.sh && ls -lart
       - name: Generate and print coverage report
         run: |
-          python -m coverage report --fail-under=80
+          pwd && python -m coverage report --fail-under=80

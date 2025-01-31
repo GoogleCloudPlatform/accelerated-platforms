@@ -22,7 +22,6 @@ The data preprocessing step takes approximately 18-20 minutes.
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 - The raw data that will be processed in this example, follow [these instructions](/use-cases/prerequisites/raw-data.md) to load the data into the bucket.
 
-
 ### Preparation
 
 - Clone the repository and change directory to the guide directory
@@ -223,4 +222,3 @@ LIMIT
 
 You should see output like the following:
 ![use-log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/log-analytics-data-processing.png)
-

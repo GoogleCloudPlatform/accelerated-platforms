@@ -18,7 +18,7 @@
 - Change directory to the `src` directory
 
   ```
-  cd use-cases/model-fine-tuning-pipeline/data-processing/ray/src
+  cd use-cases/rag-pipeline/data-preprocessing/src
   ```
 
 - Copy python modules to the current directory
@@ -69,8 +69,8 @@
   export PROCESSING_BUCKET=
   ```
 
-- Run the `datapreprocessing.preprocessing_finetuning` module
+- Run the `datapreprocessing.preprocessing_rag` module
 
   ```
-  python -m datapreprocessing.preprocessing_finetuning
+  python -m datapreprocessing.preprocessing_rag
   ```

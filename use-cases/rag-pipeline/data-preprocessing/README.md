@@ -1,39 +1,35 @@
-# Distributed Data Processing with Ray on GKE
+## Data Preprocessing for RAG
 
-## Dataset
+### Dataset
 
-[This](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products) is a pre-crawled public dataset, [license](https://creativecommons.org/licenses/by-sa/4.0/), taken as a subset of a bigger dataset (more than 5.8 million products) that was created by extracting data from [Flipkart](https://www.flipkart.com/), a leading Indian eCommerce store.
-
-## Architecture
-
-![data-processing](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/data-processing-ray-workflow.png)
-
-## Data processing steps
+[This](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products) is a pre-crawled public dataset, taken as a subset of a bigger dataset (more than 5.8 million products) that was created by extracting data from [Flipkart](https://www.flipkart.com/), a leading Indian eCommerce store.
 
 The dataset has product information such as id, name, brand, description, image urls, product specifications.
 
-The python module `datapreprocessing.preprocessing_finetuning` does the following:
+In the following section, you will run a GKE job to perform data preprocessing for RAG. The GKE job will run a python module named `datapreprocessing.preprocessing_rag` that does the following:
 
-- Read the csv from Cloud Storage
+- Read the dataset as a csv file from Cloud Storage
 - Clean up the product description text
 - Extract image urls, validate and download the images into Google Cloud Storage
 - Cleanup & extract attributes as key-value pairs
+- Filters data based on categories and value counts, selecting relevant columns, and removing duplicates
 - Uploads the processed data as a csv file to Google Cloud Storage
 
-The data processing step takes approximately 18-20 minutes.
+The data preprocessing step takes approximately 18-20 minutes.
 
-## Prerequisites
+### Prerequisites
 
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 - The raw data that will be processed in this example, follow [these instructions](/use-cases/prerequisites/raw-data.md) to load the data into the bucket.
 
-## Preparation
+
+### Preparation
 
 - Clone the repository and change directory to the guide directory
 
   ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms/use-cases/model-fine-tuning-pipeline/data-processing/ray
+  cd accelerated-platforms/use-cases/model-fine-tuning-pipeline/rag-pipeline/ray
   ```
 
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured
@@ -45,7 +41,7 @@ The data processing step takes approximately 18-20 minutes.
 
   > You should see the various variables populated with the information specific to your environment.
 
-## Build the container image
+### Build the container image
 
 - Build container image using Cloud Build and push the image to Artifact Registry
 
@@ -62,7 +58,7 @@ The data processing step takes approximately 18-20 minutes.
   rm -rf src/datapreprocessing
   ```
 
-## Run the job
+### Run the job
 
 - Get credentials for the GKE cluster
 
@@ -105,13 +101,10 @@ The data processing step takes approximately 18-20 minutes.
 - You can check the job status from the GKE console or [query the logs](#log-query-sample) in the [Logs Explorer](https://console.cloud.google.com/logs). Once the Job is completed, both the prepared dataset as a CSV and the images are stored in Google Cloud Storage.
 
   ```shell
-  gcloud storage ls gs://${MLP_DATA_BUCKET}/flipkart_preprocessed_dataset/flipkart.csv
-  gcloud storage ls gs://${MLP_DATA_BUCKET}/flipkart_images
+  gcloud storage ls gs://${MLP_DATA_BUCKET}/RAG/master_product_catalog.csv
   ```
 
 > For additional information about developing using this codebase see the [Developer Guide](DEVELOPER.md)
-
-> For additional information about converting you code from a notebook to run as a Job on GKE see the [Conversion Guide](CONVERSION.md)
 
 ## Observability
 
@@ -230,3 +223,4 @@ LIMIT
 
 You should see output like the following:
 ![use-log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/log-analytics-data-processing.png)
+

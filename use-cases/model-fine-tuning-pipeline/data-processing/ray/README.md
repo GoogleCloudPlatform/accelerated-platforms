@@ -12,12 +12,13 @@
 
 The dataset has product information such as id, name, brand, description, image urls, product specifications.
 
-The `preprocessing.py` file does the following:
+The python module `datapreprocessing.preprocessing_finetuning` does the following:
 
 - Read the csv from Cloud Storage
 - Clean up the product description text
-- Extract image urls, validate and download the images into cloud storage
+- Extract image urls, validate and download the images into Google Cloud Storage
 - Cleanup & extract attributes as key-value pairs
+- Uploads the processed data as a csv file to Google Cloud Storage
 
 The data processing step takes approximately 18-20 minutes.
 
@@ -49,6 +50,8 @@ The data processing step takes approximately 18-20 minutes.
 - Build container image using Cloud Build and push the image to Artifact Registry
 
   ```shell
+  cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing/ src/
+  cp -r .${MLP_BASE_DIR}/modules/python/tests .
   cd src
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
   gcloud beta builds submit \
@@ -57,6 +60,7 @@ The data processing step takes approximately 18-20 minutes.
   --project ${MLP_PROJECT_ID} \
   --substitutions _DESTINATION=${MLP_DATA_PROCESSING_IMAGE}
   cd ..
+  rm -rf src/datapreprocessing tests
   ```
 
 ## Run the job

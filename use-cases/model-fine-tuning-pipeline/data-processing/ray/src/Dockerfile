@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.12.8-slim-bullseye as build-stage
+FROM python:3.10.14-slim-bullseye as build-stage
 
 ENV PATH=/venv/bin:${PATH}
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -26,8 +26,9 @@ COPY requirements.txt /venv/requirements.txt
 
 RUN pip install --no-cache-dir -r /venv/requirements.txt
 
-COPY logging.conf preprocessing.py /app/
+COPY logging.conf /app/
+COPY datapreprocessing/ /app/datapreprocessing
 
 WORKDIR /app
 
-CMD python preprocessing.py
+CMD ["python", "-m", "datapreprocessing.preprocessing_finetuning"]

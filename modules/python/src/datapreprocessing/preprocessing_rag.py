@@ -106,3 +106,10 @@ if __name__ == "__main__":
         "gs://" + IMAGE_BUCKET + output_processing_file,
         index=False,
     )
+    rag_preporcessing = DataPrepForRag()
+    rag_df = rag_preporcessing.process_rag_input(result_df)
+    # Store the rag preprocessed data into GCS
+    rag_df.to_csv(
+        "gs://" + IMAGE_BUCKET + rag_output_file,
+        index=False,
+    )

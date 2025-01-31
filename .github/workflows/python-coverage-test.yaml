@@ -2,9 +2,9 @@ name: Python Coverage Test
 
 on:
   push:
-    branches: [ gushob-preprocessing-script-changes ]
+    branches: [ * ]
   pull_request:
-    branches: [ gushob-preprocessing-script-changes ]
+    branches: [ * ]
 
 jobs:
   coverage:

@@ -40,110 +40,7 @@ Image recognition: Identifying images that are similar to each other.
 
 ## Data Preprocessing for RAG
 
-The dataset has product information such as id, name, brand, description, image urls, product specifications.
-
-The python module `datapreprocessing.preprocessing_rag` does the following:
-
-- Read the csv from Cloud Storage
-- Clean up the product description text
-- Extract image urls, validate and download the images into Google Cloud Storage
-- Cleanup & extract attributes as key-value pairs
-- Filters data based on categories and value counts, selecting relevant columns, and removing duplicates
-- Uploads the processed data as a csv file to Google Cloud Storage
-
-The data processing step takes approximately 18-20 minutes.
-
-## Prerequisites
-
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
-- The raw data that will be processed in this example, follow [these instructions](/use-cases/prerequisites/raw-data.md) to load the data into the bucket.
-
-## Preparation
-
-- Clone the repository and change directory to the guide directory
-
-  ```shell
-  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms/use-cases/model-fine-tuning-pipeline/data-processing/ray
-  ```
-
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
-
-  ```shell
-  cat ${MLP_ENVIRONMENT_FILE} && \
-  source ${MLP_ENVIRONMENT_FILE}
-  ```
-
-  > You should see the various variables populated with the information specific to your environment.
-
-## Build the container image
-
-- Build container image using Cloud Build and push the image to Artifact Registry
-
-  ```shell
-  cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing/ src/
-  cp -r .${MLP_BASE_DIR}/modules/python/tests .
-  cd src
-  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
-  gcloud beta builds submit \
-  --config cloudbuild.yaml \
-  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
-  --project ${MLP_PROJECT_ID} \
-  --substitutions _DESTINATION=${MLP_DATA_PROCESSING_IMAGE}
-  cd ..
-  rm -rf src/datapreprocessing tests
-  ```
-
-## Run the job
-
-- Get credentials for the GKE cluster
-
-  ```shell
-  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
-  ```
-
-- Configure the job
-
-  ```shell
-  sed \
-  -i -e "s|V_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
-  -i -e "s|V_IMAGE_URL|${MLP_DATA_PROCESSING_IMAGE}|" \
-  -i -e "s|V_KSA|${MLP_DATA_PROCESSING_KSA}|" \
-  manifests/job.yaml
-  ```
-
-- Create the job
-
-  ```shell
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job.yaml
-  ```
-
-- Monitor the execution in Ray Dashboard. You can run the following command to get the dashboard endpoint:
-
-  ```shell
-  echo -e "\n${MLP_KUBERNETES_NAMESPACE} Ray dashboard: ${MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT}\n"
-  ```
-
-  Read [the section about KubeRay](/platforms/gke-aiml/playground/README.md#software-installed-via-reposync-and-rootsync) for more info.
-
-- From the Ray Dashboard, view the following about the jobs:
-
-  - Jobs -> Running Job ID
-    - See the Tasks/actors overview for Running jobs
-    - See the Task Table for a detailed view of task and assigned node(s)
-  - Cluster -> Node List
-    - See the Ray actors running on the worker process
-
-- You can check the job status from the GKE console or [query the logs](#log-query-sample) in the [Logs Explorer](https://console.cloud.google.com/logs). Once the Job is completed, both the prepared dataset as a CSV and the images are stored in Google Cloud Storage.
-
-  ```shell
-  gcloud storage ls gs://${MLP_DATA_BUCKET}/flipkart_preprocessed_dataset/flipkart.csv
-  gcloud storage ls gs://${MLP_DATA_BUCKET}/flipkart_images
-  ```
-
-> For additional information about developing using this codebase see the [Developer Guide](DEVELOPER.md)
-
-> For additional information about converting you code from a notebook to run as a Job on GKE see the [Conversion Guide](CONVERSION.md)
+Perform data preprocessing required for RAG, follow the [README](/use-cases/rag-pipeline/data-preprocessing/README.md)
 
 ## Architecture
 
@@ -222,6 +119,7 @@ This section outlines the steps to set up the Retrieval Augmented Generation (RA
 ## Prerequisites
 
 - Use the existing [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+- Run [data preprocessing for RAG](#data-preprocessing-for-rag)
 
 #### Set variable for the ML playground environment
 

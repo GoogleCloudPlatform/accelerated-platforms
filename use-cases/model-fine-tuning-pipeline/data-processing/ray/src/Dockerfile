@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.10.14-slim-bullseye as build-stage
+FROM python:3.12.4-slim as build-stage
 
 ENV PATH=/venv/bin:${PATH}
 ENV PYTHONDONTWRITEBYTECODE=1

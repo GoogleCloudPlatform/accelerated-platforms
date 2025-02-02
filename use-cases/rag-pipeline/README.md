@@ -33,7 +33,6 @@ Image recognition: Identifying images that are similar to each other.
 
 **_Ranking and Presentation:_** The recommendations are ranked based on relevance and presented to the customer in a clear and appealing way, encouraging them to continue shopping.
 
-
 ## Data Preprocessing for RAG
 
 Perform data preprocessing required for RAG, follow the [README](/use-cases/rag-pipeline/data-preprocessing/README.md)

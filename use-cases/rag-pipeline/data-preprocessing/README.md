@@ -28,7 +28,7 @@ The data preprocessing step takes approximately 18-20 minutes.
 
   ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms/use-cases/model-fine-tuning-pipeline/rag-pipeline/ray
+  cd accelerated-platforms/use-cases/rag-pipeline/data-preprocessing
   ```
 
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured

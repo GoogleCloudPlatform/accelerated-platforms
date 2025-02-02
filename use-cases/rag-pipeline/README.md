@@ -33,9 +33,6 @@ Image recognition: Identifying images that are similar to each other.
 
 **_Ranking and Presentation:_** The recommendations are ranked based on relevance and presented to the customer in a clear and appealing way, encouraging them to continue shopping.
 
-## Dataset
-
-[This](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products) is a pre-crawled public dataset, taken as a subset of a bigger dataset (more than 5.8 million products) that was created by extracting data from [Flipkart](https://www.flipkart.com/), a leading Indian eCommerce store.
 
 ## Data Preprocessing for RAG
 

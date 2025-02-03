@@ -222,7 +222,6 @@ class DataPreprocessor:
                 )
                 if image_found_flag:
                     gcs_image_url.append(
-                        # "gs://" + IMAGE_BUCKET + "/" + destination_blob_name
                         "gs://"
                         + gcs_bucket
                         + "/"

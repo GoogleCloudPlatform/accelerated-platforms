@@ -52,7 +52,7 @@ The data preprocessing step takes approximately 18-20 minutes.
   --config cloudbuild.yaml \
   --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
   --project ${MLP_PROJECT_ID} \
-  --substitutions _DESTINATION=${MLP_DATA_PROCESSING_IMAGE}
+  --substitutions _DESTINATION=${MLP_RAG_DATA_PROCESSING_IMAGE}
   cd ..
   rm -rf src/datapreprocessing
   ```
@@ -120,7 +120,7 @@ In the Google Cloud console, go to the [Logs Explorer](https://console.cloud.goo
 - Find when the data processing job started and finished. You may need to adjust the time window in the UI or use [timestamp](https://cloud.google.com/logging/docs/view/logging-query-language) in the query:
 
   ```
-  labels."k8s-pod/app"="data-processing"
+  labels."k8s-pod/app"="data-processing-rag"
   resource.type="k8s_container"
   jsonPayload.message: "Started" OR jsonPayload.message: "Finished"
   severity=INFO
@@ -129,7 +129,7 @@ In the Google Cloud console, go to the [Logs Explorer](https://console.cloud.goo
 - Find all error logs for the job:
 
   ```
-  labels."k8s-pod/app"="data-processing"
+  labels."k8s-pod/app"="data-processing-rag"
   resource.type="k8s_container"
   severity=ERROR
   ```
@@ -137,7 +137,7 @@ In the Google Cloud console, go to the [Logs Explorer](https://console.cloud.goo
 - Search for specific errors from the `textPayload` using a regex expression:
 
   ```
-  labels."k8s-pod/app"="data-processing"
+  labels."k8s-pod/app"="data-processing-rag"
   resource.type="k8s_container"
   textPayload =~ "ray_worker_node_id.+Image.+not found$"
   severity=ERROR
@@ -154,7 +154,7 @@ To gain insight into your workload status, you can also utilize [log-based metri
 For this example, the following query is used, utilizing a more specific regular expression to search the error logs. With the log entries found, you can create log-based metrics.
 
 ```
-labels."k8s-pod/app"="data-processing"
+labels."k8s-pod/app"="data-processing-rag"
 resource.type="k8s_container"
 textPayload =~ "ray_worker_node_id.+Image.+not found$"
 severity=ERROR
@@ -164,7 +164,7 @@ The following is a definition for a metric such as `No_Image_found_Product`. Not
 
 ```yaml
 filter: |-
-  labels."k8s-pod/app"="data-processing"
+  labels."k8s-pod/app"="data-processing-rag"
   resource.type="k8s_container"
   textPayload =~ "ray_worker_node_id.+Image.+not found$"
   severity=ERROR
@@ -208,7 +208,7 @@ SELECT
 FROM
   logs
 WHERE
-  SAFE.STRING(logs.labels["k8s-pod/app"]) = "data-processing"
+  SAFE.STRING(logs.labels["k8s-pod/app"]) = "data-processing-rag"
   AND logs.resource.type= "k8s_container"
   AND logs.text_payload IS NOT NULL
   AND REGEXP_CONTAINS(logs.text_payload, "ray_worker_node_id.+Image.+not found$")

@@ -176,6 +176,7 @@ spec:
           - ""
         kinds:
           - Pod
+    excludedNamespaces: ["kube-system"]
   parameters:
     strictnessLevel: High
 ---

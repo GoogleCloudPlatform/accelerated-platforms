@@ -31,4 +31,4 @@ COPY datapreprocessing/ /app/datapreprocessing
 
 WORKDIR /app
 
-CMD ["python", "-m", "datapreprocessing.preprocessing_finetuning"]
+CMD ["python", "-m", "datapreprocessing.preprocessing_rag"]

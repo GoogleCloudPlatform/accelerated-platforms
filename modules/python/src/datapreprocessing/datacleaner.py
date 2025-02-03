@@ -222,10 +222,7 @@ class DataPreprocessor:
                 )
                 if image_found_flag:
                     gcs_image_url.append(
-                        "gs://"
-                        + gcs_bucket
-                        + "/"
-                        + destination_blob_name
+                        "gs://" + gcs_bucket + "/" + destination_blob_name
                     )
                     break
             if not image_found_flag:

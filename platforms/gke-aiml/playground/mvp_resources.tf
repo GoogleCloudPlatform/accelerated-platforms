@@ -13,16 +13,16 @@
 # limitations under the License.
 
 locals {
-  batch_inference_ksa    = "${var.environment_name}-${var.namespace}-batch-inference"
-  bucket_cloudbuild_name = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
-  bucket_data_name       = "${data.google_project.environment.project_id}-${var.environment_name}-data"
-  bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
-  data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
-  data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
-  rag_data_processing_ksa    = "${var.environment_name}-${var.namespace}-rag-data-processing"
-  fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"
-  gsa_build_account_id   = "${var.environment_name}-${var.namespace}-build"
-  gsa_build_email        = google_service_account.build.email
+  batch_inference_ksa     = "${var.environment_name}-${var.namespace}-batch-inference"
+  bucket_cloudbuild_name  = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
+  bucket_data_name        = "${data.google_project.environment.project_id}-${var.environment_name}-data"
+  bucket_model_name       = "${data.google_project.environment.project_id}-${var.environment_name}-model"
+  data_preparation_ksa    = "${var.environment_name}-${var.namespace}-data-preparation"
+  data_processing_ksa     = "${var.environment_name}-${var.namespace}-data-processing"
+  rag_data_processing_ksa = "${var.environment_name}-${var.namespace}-rag-data-processing"
+  fine_tuning_ksa         = "${var.environment_name}-${var.namespace}-fine-tuning"
+  gsa_build_account_id    = "${var.environment_name}-${var.namespace}-build"
+  gsa_build_email         = google_service_account.build.email
   gsa_build_roles = [
     "roles/logging.logWriter",
   ]

@@ -34,10 +34,33 @@ steps:
     entrypoint: "ash"
     args:
       - "-x"
+      - "-e"
+      - "-u"
       - "-c"
       - |
-        echo "Not yet implemented"
-        exit 0
+        export NO_COLOR="1"
+        export TERM="xterm"
+        export TF_CLI_ARGS="-no-color"
+        export TF_IN_AUTOMATION="1"
+
+        export ACP_REPO_DIR="/workspace"
+        export ACP_PLATFORM_BASE_DIR="/workspace/platforms/gke/base"
+        export ACP_PLATFORM_CORE_DIR="/workspace/platforms/gke/base/core"
+
+        export TF_VAR_cluster_project_id="${PROJECT_ID}"
+        export TF_VAR_platform_name="${_PLATFORM_NAME}"
+        export TF_VAR_terraform_project_id="${PROJECT_ID}"
+
+        # Deploy the base platform and the use case
+        platforms/gke/base/use-cases/federated-learning/deploy.sh
+
+        APPLY_RETURN_CODE=$?
+        echo "APPLY_RETURN_CODE=$${APPLY_RETURN_CODE}"
+
+        platforms/gke/base/use-cases/federated-learning/teardown.sh || exit 1
+        if [[ $${APPLY_RETURN_CODE} -ne 0 ]]; then
+          exit $${APPLY_RETURN_CODE}
+        fi
     waitFor:
       - "Build runner image"
 

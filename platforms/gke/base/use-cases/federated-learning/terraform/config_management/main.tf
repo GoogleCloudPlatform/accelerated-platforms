@@ -26,15 +26,26 @@ locals {
   config_management_oci_descriptors_destination_directory_path = local.config_management_destination_directory_path
   namespace_configuration_destination_directory_path           = "${local.config_management_destination_directory_path}/namespace_configuration"
 
+  federated_learning_nvidia_flare_tff_example_templates_directory_path                           = "${local.config_management_templates_directory_path}/nvidia-flare-tff-example"
+  federated_learning_nvidia_flare_tff_example_namespace_configuration_destination_directory_path = "${local.namespace_configuration_destination_directory_path}/nvidia_flare_tff_example"
+
+  federated_learning_nvidia_flare_tff_example_template_files = flatten([for _, file in flatten(fileset(local.federated_learning_nvidia_flare_tff_example_templates_directory_path, "**")) : "${local.federated_learning_nvidia_flare_tff_example_templates_directory_path}/${file}"])
+
   config_management_common_files          = flatten([for _, file in flatten(fileset(local.config_management_common_files_path, "**")) : file])
   config_management_oci_descriptors_files = flatten([for _, file in flatten(fileset(local.config_management_oci_descriptors_path, "**")) : file])
-  namespace_configuration_template_files  = flatten([for _, file in flatten(fileset(local.namespace_configuration_template_directory_path, "**")) : file])
+
+  namespace_configuration_template_files = flatten(
+    concat(
+      [for _, file in flatten(fileset(local.namespace_configuration_template_directory_path, "**")) : "${local.namespace_configuration_template_directory_path}/${file}"],
+      var.federated_learning_nvidia_flare_tff_example_deploy ? local.federated_learning_nvidia_flare_tff_example_template_files : [],
+    )
+  )
 
   namespaces_configuration = flatten([
     for tenant in local.tenants : [
       for template_file in local.namespace_configuration_template_files : {
         destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/${template_file}"
-        template_source_file_path = "${local.namespace_configuration_template_directory_path}/${template_file}"
+        template_source_file_path = "${template_file}"
         template_variables        = tenant.kubernetes_templates_configuration_values
       }
     ]
@@ -86,9 +97,9 @@ resource "terraform_data" "config_management_oci_archive_push" {
   triggers_replace = [
     # Trigger whenever the contents of source directories or template configuration values change.
     # Don't depend on destination directory content because it might change between plan and apply.
+    sha512(join("", [for f in fileset(local.config_management_templates_directory_path, "**") : filesha512("${local.config_management_templates_directory_path}/${f}")])),
     sha512(join("", [for f in fileset(local.config_management_common_files_path, "**") : filesha512("${local.config_management_common_files_path}/${f}")])),
     sha512(join("", [for f in fileset(local.config_management_oci_descriptors_path, "**") : filesha512("${local.config_management_oci_descriptors_path}/${f}")])),
-    sha512(join("", [for f in fileset(local.namespace_configuration_template_directory_path, "**") : filesha512("${local.namespace_configuration_template_directory_path}/${f}")])),
     # Trigger whenever the namespace configuration changes
     local.namespaces_configuration,
     # Trigger whenever the contents of the container image push script changes

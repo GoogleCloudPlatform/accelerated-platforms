@@ -32,7 +32,7 @@ for configuration_variable in "${TERRAFORM_CORE_INITIALIZE_CONFIGURATION[@]}"; d
 done
 
 echo "Initializing the core platform"
-# Don't provision any core platform terraservice becuase we just need
+# Don't provision any core platform terraservice because we just need
 # to initialize the terraform environment and remote backend
 # shellcheck disable=SC1091,SC2154
 CORE_TERRASERVICES_APPLY="${core_platform_init_terraservices[*]}" \
@@ -44,7 +44,7 @@ for terraservice in "${federated_learning_core_platform_terraservices[@]}"; do
   provision_terraservice "${terraservice}"
 done
 
-if ! cluster_database_encryption_key_id="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/key_management_service" "cluster_database_encryption_key_id")"; then
+if ! cluster_database_encryption_key_id="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/key_management_service" "cluster_database_encryption_key_id" "raw")"; then
   exit 1
 fi
 edit_terraform_configuration_variable_value_in_file "cluster_database_encryption_key_name_placeholder" "${cluster_database_encryption_key_id}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"

@@ -76,6 +76,7 @@ if __name__ == "__main__":
     class_name = "DataPreprocessor"
     method_name = "process_data"
 
+    logger.info("Started")
     data_loader = DataLoader(IMAGE_BUCKET, input_processing_file)
     df = data_loader.load_raw_data()
 
@@ -107,3 +108,4 @@ if __name__ == "__main__":
         "gs://" + IMAGE_BUCKET + output_processing_file,
         index=False,
     )
+    logger.info("Finished")

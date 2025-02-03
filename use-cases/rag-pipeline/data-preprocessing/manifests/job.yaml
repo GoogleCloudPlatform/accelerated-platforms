@@ -1,14 +1,14 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: data-processing
+  name: data-processing-rag
 spec:
   backoffLimit: 0
   template:
     metadata:
       labels:
-        app: data-processing
-        ml-platform: data-processing
+        app: data-processing-rag
+        ml-platform: data-processing-rag
     spec:
       containers:
       - name: job

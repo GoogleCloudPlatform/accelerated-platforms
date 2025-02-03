@@ -1,4 +1,3 @@
-# TODO : Use ray actors instead of task
 import ray
 import signal
 import sys
@@ -80,7 +79,6 @@ class RayUtils:
             print("No Function " + self.method_name + " Found!")
 
         func = getattr(preprocessor, self.method_name, func_not_found)
-        # return preprocessor.process_data(df, ray_worker_node_id,IMAGE_BUCKET)
         return func(df, ray_worker_node_id, gcs_bucket, gcs_folder)
 
     def run_remote(self):

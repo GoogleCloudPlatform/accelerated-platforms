@@ -11,7 +11,7 @@ from datapreprocessing.datacleaner import DataPrepForRag
 
 IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
 RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
-# Check if this can be passed anm env
+# Check if this can be passed an env to the container like IMAGE_BUCKET
 GCS_IMAGE_FOLDER = "flipkart_images"
 
 
@@ -102,11 +102,6 @@ if __name__ == "__main__":
     # Replace NaN with None
     result_df = result_df.replace({np.nan: None})
 
-    # Store the preprocessed data into GCS
-    result_df.to_csv(
-        "gs://" + IMAGE_BUCKET + output_processing_file,
-        index=False,
-    )
     rag_preporcessing = DataPrepForRag()
     rag_df = rag_preporcessing.process_rag_input(result_df)
     # Store the rag preprocessed data into GCS

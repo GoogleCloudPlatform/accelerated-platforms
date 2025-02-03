@@ -7,4 +7,3 @@ ray==2.40.0
 ray[client]==2.40.0
 spacy==3.7.6
 thejsonlogger==0.0.3
-pydantic==2.7.4

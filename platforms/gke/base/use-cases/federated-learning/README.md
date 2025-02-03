@@ -224,7 +224,9 @@ To deploy the reference architecture, you do the following:
    ```
 
 After deploying the reference architecture, the GKE cluster is ready to host
-your federated learning workloads.
+your federated learning workloads. For example, you can:
+
+- [Deploy NVIDIA FLARE in the GKE cluster](/platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/README.md).
 
 ## Destroy the reference architecture
 
@@ -298,6 +300,12 @@ Terraform. To enable Confidential GKE Nodes, you do the following:
 
    1. Set `federated_learning_node_pool_machine_type` to a machine type that
       supports Confidential GKE Nodes.
+
+### Allow desired network traffic
+
+1. Configure Kubernetes network policies to allow traffic. You can see how
+   current Kubernetes network policies are affecting traffic in your cluster
+   [using Cloud Logging](https://cloud.google.com/kubernetes-engine/docs/how-to/network-policy-logging#accessing_logs).
 
 ## Troubleshooting
 

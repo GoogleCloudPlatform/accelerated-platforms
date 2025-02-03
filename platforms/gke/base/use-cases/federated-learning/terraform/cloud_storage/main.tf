@@ -11,11 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${namespace_name}
-  labels:
-    istio-injection: "enabled"
-    tenant-ns: "true"
+
+resource "google_storage_bucket" "federated_learning_cloud_storage_buckets" {
+  for_each = var.federated_learning_cloud_storage_buckets
+
+  force_destroy               = each.value.force_destroy
+  location                    = var.cluster_region
+  name                        = join("-", [local.unique_identifier_prefix, each.key])
+  project                     = data.google_project.default.project_id
+  uniform_bucket_level_access = true
+
+  versioning {
+    enabled = each.value.versioning_enabled
+  }
+}

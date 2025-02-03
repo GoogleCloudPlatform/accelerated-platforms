@@ -27,6 +27,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/acp_fl_policy_controller_deploy-v1"
+    module_name = "cloud-solutions/acp_fl_config_management_deploy-v1"
   }
 }

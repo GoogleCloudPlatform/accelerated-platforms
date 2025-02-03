@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: v1
-kind: Namespace
+kind: NetworkLogging
+apiVersion: networking.gke.io/v1alpha1
 metadata:
-  name: ${namespace_name}
-  labels:
-    istio-injection: "enabled"
-    tenant-ns: "true"
+  name: default
+spec:
+  cluster:
+    allow:
+      log: false
+      delegate: false
+    deny:
+      log: true
+      delegate: false

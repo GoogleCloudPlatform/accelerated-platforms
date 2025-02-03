@@ -1,18 +1,45 @@
+# Copyright 2025 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import logging
 import logging.config
 import os
-import sys
 import signal
+import sys
+
 import numpy as np
+from datapreprocessing.datacleaner import DataPrepForRag
 from datapreprocessing.dataloader import DataLoader
 from datapreprocessing.dataprep import DataPrep
 from datapreprocessing.ray_utils import RayUtils
-from datapreprocessing.datacleaner import DataPrepForRag
 
 IMAGE_BUCKET = os.environ["PROCESSING_BUCKET"]
 RAY_CLUSTER_HOST = os.environ["RAY_CLUSTER_HOST"]
 # Check if this can be passed an env to the container like IMAGE_BUCKET
 GCS_IMAGE_FOLDER = "flipkart_images"
+
+# Configure logging at the module level
+logging.config.fileConfig("logging.conf")
+logger = logging.getLogger(__name__)
+
+if "LOG_LEVEL" in os.environ:
+    new_log_level = os.environ["LOG_LEVEL"].upper()
+    logger.info(
+        f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+    )
+    logging.getLogger().setLevel(new_log_level)
+    logger.setLevel(new_log_level)
 
 
 def graceful_shutdown(signal_number, stack_frame):
@@ -23,19 +50,22 @@ def graceful_shutdown(signal_number, stack_frame):
     sys.exit(0)
 
 
-if __name__ == "__main__":
-    # Configure logging
-    logging.config.fileConfig("logging.conf")
-    logger = logging.getLogger(__name__)
+def preprocess_finetuning():
+    """Preprocesses a raw dataset for fine-tuning a model.
 
-    if "LOG_LEVEL" in os.environ:
-        new_log_level = os.environ["LOG_LEVEL"].upper()
-        logger.info(
-            f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
-        )
-        logging.getLogger().setLevel(new_log_level)
-        logger.setLevel(new_log_level)
+    This function performs several steps to prepare data for fine-tuning, including:
 
+    1. **Data Loading:** Loads raw data from a CSV file stored in Google Cloud Storage (GCS).
+    2. **Data Cleaning:** Cleans and filters the data, selecting required columns and handling null values.
+    3. **Data Chunking:** Splits the data into smaller chunks for parallel processing using Ray.
+    4. **Download Images:** Uses Ray to distribute the data preprocessing task to download images.
+    5. **Data Storage:** Stores the preprocessed data as a CSV file back to GCS.
+
+    The function utilizes several global variables (e.g., `IMAGE_BUCKET`, `RAY_CLUSTER_HOST`, `GCS_IMAGE_FOLDER`) and relies on custom classes like `DataLoader`, `DataPrep`, and `RayUtils` for specific tasks.  It also configures signal handlers for graceful shutdown and sets up a Ray runtime environment with required Python modules and pip packages.
+
+    Returns:
+        None. The function saves the preprocessed data to a GCS location.
+    """
     logger.info("Configure signal handlers")
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
@@ -76,6 +106,7 @@ if __name__ == "__main__":
     class_name = "DataPreprocessor"
     method_name = "process_data"
 
+    logger.info("Started")
     data_loader = DataLoader(IMAGE_BUCKET, input_processing_file)
     df = data_loader.load_raw_data()
 
@@ -107,3 +138,20 @@ if __name__ == "__main__":
         "gs://" + IMAGE_BUCKET + output_processing_file,
         index=False,
     )
+    logger.info("Finished")
+
+
+if __name__ == "__main__":
+    # Configure logging at the __main__ level
+    logging.config.fileConfig("logging.conf")
+    logger = logging.getLogger("preprocessing_finetuning")
+
+    if "LOG_LEVEL" in os.environ:
+        new_log_level = os.environ["LOG_LEVEL"].upper()
+        logger.info(
+            f"Log level set to '{new_log_level}' via LOG_LEVEL environment variable"
+        )
+        logging.getLogger().setLevel(new_log_level)
+        logger.setLevel(new_log_level)
+
+    preprocess_finetuning()

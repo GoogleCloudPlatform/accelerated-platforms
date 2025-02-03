@@ -1,15 +1,30 @@
+# Copyright 2025 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import logging
 import os
 import re
 import socket
 import urllib.error
 import urllib.request
+from typing import List
+
 import jsonpickle
-import spacy
 import pandas as pd
+import spacy
 from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
-from typing import List
-import logging
 
 
 class DataPreprocessor:
@@ -50,11 +65,11 @@ class DataPreprocessor:
 
     def download_image(
         self,
-        image_url,
-        image_file_name,
-        destination_blob_name,
-        ray_worker_node_id,
-        gcs_bucket,
+        image_url: str,
+        image_file_name: str,
+        destination_blob_name: str,
+        ray_worker_node_id: int,
+        gcs_bucket: str,
     ) -> bool:
         """
         Downloads an image from a URL and uploads it to Google Cloud Storage.
@@ -119,7 +134,7 @@ class DataPreprocessor:
 
         return False
 
-    def prep_product_desc(self, df) -> pd.DataFrame:
+    def prep_product_desc(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Prepares the product description by performing NLP preprocessing using spaCy.
 
@@ -132,7 +147,7 @@ class DataPreprocessor:
         spacy.cli.download("en_core_web_sm")
         model = spacy.load("en_core_web_sm")
 
-        def parse_nlp_description(description) -> str:
+        def parse_nlp_description(description: str) -> str:
             if not pd.isna(description):
                 try:
                     doc = model(description.lower())
@@ -181,7 +196,11 @@ class DataPreprocessor:
         return json_string
 
     def get_product_image(
-        self, df, ray_worker_node_id, gcs_bucket, gcs_folder
+        self,
+        df: pd.DataFrame,
+        ray_worker_node_id: int,
+        gcs_bucket: str,
+        gcs_folder: str,
     ) -> pd.DataFrame:
         """
         Downloads product images for each product in the DataFrame and adds the GCS URI to a new 'image_uri' column.
@@ -277,7 +296,11 @@ class DataPreprocessor:
         return df_with_cat
 
     def process_data(
-        self, df, ray_worker_node_id, gcs_bucket, gcs_folder
+        self,
+        df: pd.DataFrame,
+        ray_worker_node_id: int,
+        gcs_bucket: str,
+        gcs_folder: str,
     ) -> pd.DataFrame:
         """
         Performs the complete data preprocessing pipeline, including image downloading, description preprocessing,
@@ -322,7 +345,7 @@ class DataPrepForRag:
         pass
 
     def filter_low_value_count_rows(
-        self, df, column_name, min_count=10
+        self, df: pd.DataFrame, column_name: str, min_count: int = 10
     ) -> pd.DataFrame:
         """
         Removes rows from a DataFrame where the value count in the specified column is less than the given minimum count.
@@ -347,7 +370,7 @@ class DataPrepForRag:
 
         return filtered_df
 
-    def process_rag_input(self, df) -> pd.DataFrame:
+    def process_rag_input(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Processes the input DataFrame to prepare it for use with a RAG system.  This includes renaming columns,
         filtering data based on categories and value counts, selecting relevant columns, and removing duplicates.

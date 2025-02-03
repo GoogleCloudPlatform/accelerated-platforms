@@ -35,7 +35,8 @@ Image recognition: Identifying images that are similar to each other.
 
 ## Data Preprocessing for RAG
 
-Perform data preprocessing required for RAG, follow the [README](/use-cases/rag-pipeline/data-preprocessing/README.md)
+We need a input dataset to feed to our RAG pipeline. We take a raw dataset and filter and clean it up to prepare it for our RAG pipeline.
+Perform the data preprocessing steps as described in [README](/use-cases/rag-pipeline/data-preprocessing/README.md) to prepare input dataset.
 
 ## Architecture
 

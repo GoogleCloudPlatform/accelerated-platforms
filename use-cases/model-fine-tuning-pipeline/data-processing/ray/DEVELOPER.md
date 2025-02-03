@@ -5,7 +5,7 @@
 - Install the `python` version
 
   ```
-  pyenv install 3.12.4
+  pyenv install 3.12.8
   ```
 
 - Clone the repository
@@ -30,7 +30,7 @@
 - Set the local `python` version
 
   ```
-  pyenv local 3.12.4
+  pyenv local 3.12.8
   ```
 
 - Create a virtual environment
@@ -69,8 +69,8 @@
   export PROCESSING_BUCKET=
   ```
 
-- Run the `datapreprocessing.preprocessing_finetuning` module
+- Run the `preprocessing_finetuning.py` script
 
   ```
-  python -m datapreprocessing.preprocessing_finetuning
+  python preprocessing_finetuning.py
   ```

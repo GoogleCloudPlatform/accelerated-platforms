@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.12.4-slim as build-stage
+FROM python:3.12.8-slim-bookworm as build-stage
 
 ENV PATH=/venv/bin:${PATH}
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -26,9 +26,10 @@ COPY requirements.txt /venv/requirements.txt
 
 RUN pip install --no-cache-dir -r /venv/requirements.txt
 
-COPY logging.conf /app/
-COPY datapreprocessing/ /app/datapreprocessing
+COPY logging.conf preprocessing_finetuning.py /app/
+
+COPY datapreprocessing /app/datapreprocessing
 
 WORKDIR /app
 
-CMD ["python", "-m", "datapreprocessing.preprocessing_finetuning"]
+CMD ["python", "preprocessing_finetuning.py"]

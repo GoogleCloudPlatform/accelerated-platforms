@@ -1,12 +1,12 @@
-## Data Preprocessing for RAG
+# Data Preprocessing for RAG
 
-### Dataset
+## Dataset
 
 [This](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products) is a pre-crawled public dataset, taken as a subset of a bigger dataset (more than 5.8 million products) that was created by extracting data from [Flipkart](https://www.flipkart.com/), a leading Indian eCommerce store.
 
 The dataset has product information such as id, name, brand, description, image urls, product specifications.
 
-In the following section, you will run a GKE job to perform data preprocessing for RAG. The GKE job will run a python module named `datapreprocessing.preprocessing_rag` that does the following:
+In the following section, you will run a GKE job to perform data preprocessing for RAG. The GKE job will run a python script named `preprocessing_rag.py` that does the following:
 
 - Read the dataset as a csv file from Cloud Storage
 - Clean up the product description text
@@ -17,18 +17,24 @@ In the following section, you will run a GKE job to perform data preprocessing f
 
 The data preprocessing step takes approximately 18-20 minutes.
 
-### Prerequisites
+## Prerequisites
 
 - This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
 - The raw data that will be processed in this example, follow [these instructions](/use-cases/prerequisites/raw-data.md) to load the data into the bucket.
 
-### Preparation
+## Preparation
 
-- Clone the repository and change directory to the guide directory
+- Clone the repository
 
   ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms/use-cases/rag-pipeline/data-preprocessing
+  cd accelerated-platforms
+  ```
+
+- Change directory to the guide directory
+
+  ```shell
+  cd use-cases/rag-pipeline/data-preprocessing
   ```
 
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured
@@ -40,24 +46,24 @@ The data preprocessing step takes approximately 18-20 minutes.
 
   > You should see the various variables populated with the information specific to your environment.
 
-### Build the container image
+## Build the container image
 
 - Build container image using Cloud Build and push the image to Artifact Registry
 
   ```shell
-  cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing src/
   cd src
+  cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing .
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
   gcloud beta builds submit \
   --config cloudbuild.yaml \
   --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
   --project ${MLP_PROJECT_ID} \
   --substitutions _DESTINATION=${MLP_RAG_DATA_PROCESSING_IMAGE}
+  rm -rf datapreprocessing
   cd ..
-  rm -rf src/datapreprocessing
   ```
 
-### Run the job
+## Run the job
 
 - Get credentials for the GKE cluster
 

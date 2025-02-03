@@ -12,7 +12,7 @@
 
 The dataset has product information such as id, name, brand, description, image urls, product specifications.
 
-The python module `datapreprocessing.preprocessing_finetuning` does the following:
+In the following section, you will run a GKE job to perform data preprocessing. The GKE job will run a python script named `preprocessing_finetuning.py` that does the following:
 
 - Read the csv from Cloud Storage
 - Clean up the product description text
@@ -50,16 +50,16 @@ The data processing step takes approximately 18-20 minutes.
 - Build container image using Cloud Build and push the image to Artifact Registry
 
   ```shell
-  cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing src/
   cd src
+  cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing .
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
   gcloud beta builds submit \
   --config cloudbuild.yaml \
   --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
   --project ${MLP_PROJECT_ID} \
   --substitutions _DESTINATION=${MLP_DATA_PROCESSING_IMAGE}
+  rm -rf datapreprocessing
   cd ..
-  rm -rf src/datapreprocessing
   ```
 
 ## Run the job

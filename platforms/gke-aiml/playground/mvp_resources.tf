@@ -13,16 +13,15 @@
 # limitations under the License.
 
 locals {
-  batch_inference_ksa     = "${var.environment_name}-${var.namespace}-batch-inference"
-  bucket_cloudbuild_name  = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
-  bucket_data_name        = "${data.google_project.environment.project_id}-${var.environment_name}-data"
-  bucket_model_name       = "${data.google_project.environment.project_id}-${var.environment_name}-model"
-  data_preparation_ksa    = "${var.environment_name}-${var.namespace}-data-preparation"
-  data_processing_ksa     = "${var.environment_name}-${var.namespace}-data-processing"
-  rag_data_processing_ksa = "${var.environment_name}-${var.namespace}-rag-data-processing"
-  fine_tuning_ksa         = "${var.environment_name}-${var.namespace}-fine-tuning"
-  gsa_build_account_id    = "${var.environment_name}-${var.namespace}-build"
-  gsa_build_email         = google_service_account.build.email
+  batch_inference_ksa    = "${var.environment_name}-${var.namespace}-batch-inference"
+  bucket_cloudbuild_name = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
+  bucket_data_name       = "${data.google_project.environment.project_id}-${var.environment_name}-data"
+  bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
+  data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
+  data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
+  fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"
+  gsa_build_account_id   = "${var.environment_name}-${var.namespace}-build"
+  gsa_build_email        = google_service_account.build.email
   gsa_build_roles = [
     "roles/logging.logWriter",
   ]
@@ -31,6 +30,7 @@ locals {
   model_ops_namespace        = var.namespace
   model_serve_ksa            = "${var.environment_name}-${local.model_serve_namespace}-model-serve"
   model_serve_namespace      = var.namespace
+  rag_data_processing_ksa    = "${var.environment_name}-${var.namespace}-rag-data-processing"
   repo_container_images_id   = var.environment_name
   repo_container_images_url  = "${google_artifact_registry_repository.container_images.location}-docker.pkg.dev/${google_artifact_registry_repository.container_images.project}/${local.repo_container_images_id}"
   wi_member_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.environment.number}/locations/global/workloadIdentityPools/${data.google_project.environment.project_id}.svc.id.goog/subject/ns/${var.namespace}/sa"
@@ -385,9 +385,9 @@ MLP_MODEL_SERVE_NAMESPACE="${local.model_serve_namespace}"
 MLP_MULTIMODAL_EMBEDDING_IMAGE="${local.repo_container_images_url}/multimodal-embedding:1.0.0"
 MLP_PROJECT_ID="${data.google_project.environment.project_id}"
 MLP_PROJECT_NUMBER="${data.google_project.environment.number}"
+MLP_RAG_BACKEND_IMAGE="${local.repo_container_images_url}/rag-backend:1.0.0"
 MLP_RAG_DATA_PROCESSING_IMAGE="${local.repo_container_images_url}/rag-data-processing:1.0.0"
 MLP_RAG_DATA_PROCESSING_KSA="${local.rag_data_processing_ksa}"
-MLP_RAG_BACKEND_IMAGE="${local.repo_container_images_url}/rag-backend:1.0.0"
 MLP_RAG_FRONTEND_IMAGE="${local.repo_container_images_url}/rag-frontend:1.0.0"
 MLP_RAG_FRONTEND_NAMESPACE_ENDPOINT="https://${local.rag_frontend_endpoint}"
 MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT="https://${local.ray_dashboard_endpoint}"

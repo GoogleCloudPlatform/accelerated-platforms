@@ -1,12 +1,28 @@
-import ray
+# Copyright 2025 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import importlib
+import logging
+import os
 import signal
 import sys
 import time
-import os
+from typing import Any, Dict
+
 import numpy as np
-import logging
-import importlib
 import pandas as pd
+import ray
 from datapreprocessing import *
 
 
@@ -35,16 +51,16 @@ class RayUtils:
 
     def __init__(
         self,
-        ray_cluster_host,
-        ray_resources,
-        ray_runtime,
-        package_name,
-        module_name,
-        class_name,
-        method_name,
-        df,
-        gcs_bucket,
-        gcs_folder,
+        ray_cluster_host: str,
+        ray_resources: Dict[str, Any],
+        ray_runtime: Dict[str, Any],
+        package_name: str,
+        module_name: str,
+        class_name: str,
+        method_name: str,
+        df: pd.DataFrame,
+        gcs_bucket: str,
+        gcs_folder: str,
     ):
         self.ray_cluster_host = ray_cluster_host
         self.ray_resource = ray_resources
@@ -59,7 +75,12 @@ class RayUtils:
 
     @ray.remote(resources={"cpu": 1})
     def invoke_process_data(
-        self, preprocessor, df, ray_worker_node_id, gcs_bucket, gcs_folder
+        self,
+        preprocessor,
+        df: pd.DataFrame,
+        ray_worker_node_id: int,
+        gcs_bucket: str,
+        gcs_folder: str,
     ):
         """
         Invokes the specified data processing method on a Ray worker.

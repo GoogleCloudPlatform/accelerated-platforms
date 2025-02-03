@@ -70,8 +70,8 @@ The data preprocessing step takes approximately 18-20 minutes.
   ```shell
   sed \
   -i -e "s|V_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
-  -i -e "s|V_IMAGE_URL|${MLP_DATA_PROCESSING_IMAGE}|" \
-  -i -e "s|V_KSA|${MLP_DATA_PROCESSING_KSA}|" \
+  -i -e "s|V_IMAGE_URL|${MLP_RAG_DATA_PROCESSING_IMAGE}|" \
+  -i -e "s|V_KSA|${MLP_RAG_DATA_PROCESSING_KSA}|" \
   manifests/job.yaml
   ```
 

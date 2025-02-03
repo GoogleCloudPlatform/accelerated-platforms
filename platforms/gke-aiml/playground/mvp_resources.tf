@@ -19,6 +19,7 @@ locals {
   bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
   data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
   data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
+  rag_data_processing_ksa    = "${var.environment_name}-${var.namespace}-rag-data-processing"
   fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"
   gsa_build_account_id   = "${var.environment_name}-${var.namespace}-build"
   gsa_build_email        = google_service_account.build.email
@@ -219,6 +220,17 @@ resource "kubernetes_service_account_v1" "model_serve" {
   }
 }
 
+resource "kubernetes_service_account_v1" "rag_data_processing" {
+  depends_on = [
+    null_resource.namespace_manifests,
+  ]
+
+  metadata {
+    name      = local.rag_data_processing_ksa
+    namespace = var.namespace
+  }
+}
+
 # IAM
 ###############################################################################
 
@@ -257,6 +269,12 @@ resource "google_storage_bucket_iam_member" "data_bucket_data_preparation_storag
 resource "google_storage_bucket_iam_member" "data_bucket_data_processing_ksa_storage_object_user" {
   bucket = google_storage_bucket.data.name
   member = "${local.wi_member_principal_prefix}/${local.data_processing_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+resource "google_storage_bucket_iam_member" "data_bucket_rag_data_processing_ksa_storage_object_user" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.rag_data_processing_ksa}"
   role   = "roles/storage.objectUser"
 }
 
@@ -367,6 +385,8 @@ MLP_MODEL_SERVE_NAMESPACE="${local.model_serve_namespace}"
 MLP_MULTIMODAL_EMBEDDING_IMAGE="${local.repo_container_images_url}/multimodal-embedding:1.0.0"
 MLP_PROJECT_ID="${data.google_project.environment.project_id}"
 MLP_PROJECT_NUMBER="${data.google_project.environment.number}"
+MLP_RAG_DATA_PROCESSING_IMAGE="${local.repo_container_images_url}/rag-data-processing:1.0.0"
+MLP_RAG_DATA_PROCESSING_KSA="${local.rag_data_processing_ksa}"
 MLP_RAG_BACKEND_IMAGE="${local.repo_container_images_url}/rag-backend:1.0.0"
 MLP_RAG_FRONTEND_IMAGE="${local.repo_container_images_url}/rag-frontend:1.0.0"
 MLP_RAG_FRONTEND_NAMESPACE_ENDPOINT="https://${local.rag_frontend_endpoint}"

@@ -148,7 +148,7 @@ This section outlines the steps to set up the Retrieval Augmented Generation (RA
 
 # Deploy RAG Application Components
 
-This section outlines the steps to deploy the Retrieval Augmented Generation (RAG) pipeline to the playground cluster.The components should be deployed in the following order:
+This section outlines the steps to deploy the Retrieval Augmented Generation (RAG) pipeline to the playground cluster. The components should be deployed in the following order:
 
 ## Deploy the Multimodal Model on the playground cluster
 

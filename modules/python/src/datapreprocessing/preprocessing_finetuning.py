@@ -61,10 +61,11 @@ if __name__ == "__main__":
     ray_runtime_env = {
         "py_modules": ["./datapreprocessing"],  # Path to your module's directory
         "pip": [
-            "google-cloud-storage==2.16.0",
-            "spacy==3.7.4",
-            "jsonpickle==3.0.3",
-            "pandas==2.2.1",
+            "google-cloud-storage==2.19.0",
+            "spacy==3.7.6",
+            "jsonpickle==4.0.1",
+            "pandas==2.2.3",
+            "pydantic==2.10.5",
         ],
         "env_vars": {"PIP_NO_CACHE_DIR": "1", "PIP_DISABLE_PIP_VERSION_CHECK": "1"},
     }

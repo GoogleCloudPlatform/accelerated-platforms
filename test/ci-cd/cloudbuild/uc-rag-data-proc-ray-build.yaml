@@ -14,7 +14,7 @@ steps:
 - args:
   - --cache=true
   - --cache-ttl=48h
-  - --context=dir://use-cases/${_RAG_DATA_PREPROCESSING_SRC}
+  - --context=dir://${_RAG_DATA_PREPROCESSING_SRC}
   - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/uc-rag-data-proc-ray-build:${SHORT_SHA}
   - --dockerfile=${_RAG_DATA_PREPROCESSING_SRC}/Dockerfile
   - --log-format=text

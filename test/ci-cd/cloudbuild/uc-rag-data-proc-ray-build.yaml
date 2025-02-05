@@ -7,20 +7,20 @@ steps:
   args:
   - '-c'
   - |
-    cp -r ${_PYTHON_MODULE_PATH} ${_DATA_PREPROCESSING_SRC}
+    cp -r ${_PYTHON_MODULE_PATH} ${_RAG_DATA_PREPROCESSING_SRC}
   id: "Copy python modules"
   waitFor: ["-"]
 
 - args:
   - --cache=true
   - --cache-ttl=48h
-  - --context=dir://${_DATA_PREPROCESSING_SRC}
-  - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/uc-mftp-data-proc-ray-build:${SHORT_SHA}
-  - --dockerfile=${_DATA_PREPROCESSING_SRC}/Dockerfile
+  - --context=dir://use-cases/${_RAG_DATA_PREPROCESSING_SRC}
+  - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/uc-rag-data-proc-ray-build:${SHORT_SHA}
+  - --dockerfile=${_RAG_DATA_PREPROCESSING_SRC}/Dockerfile
   - --log-format=text
   - --log-timestamp=false
   - --verbosity=info
-  id: "Build use-cases/model-fine-tuning-pipeline/data-processing/ray/src image"
+  id: "Build use-cases/rag-pipeline/data-processing/src image"
   name: "gcr.io/kaniko-project/executor:latest"
   waitFor: ["Copy python modules"]
 
@@ -29,10 +29,10 @@ steps:
   args:
   - '-c'
   - |
-    rm -rf ${_DATA_PREPROCESSING_SRC}/datapreprocessing
+    rm -rf ${_RAG_DATA_PREPROCESSING_SRC}/datapreprocessing
   id: "Remove python modules from cloudbuild container(Not required)"
-  waitFor: ["Build use-cases/model-fine-tuning-pipeline/data-processing/ray/src image"]
+  waitFor: ["Build use-cases/rag-pipeline/data-processing/src image"]
 substitutions:
   _AR_REPO_LOCATION: "us-central1"
   _PYTHON_MODULE_PATH: "modules/python/src/datapreprocessing"
-  _DATA_PREPROCESSING_SRC: "use-cases/model-fine-tuning-pipeline/data-processing/ray/src/"
+  _RAG_DATA_PREPROCESSING_SRC: "use-cases/rag-pipeline/data-processing/src/"

@@ -2,6 +2,15 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
+- name: 'ubuntu'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    cp -r ${_PYTHON_MODULE_PATH} ${_DATA_PREPROICESSING_SRC}
+  id: "Copy python modules"
+  waitFor: ["-"]
+
 - args:
   - --cache=true
   - --cache-ttl=48h
@@ -13,7 +22,17 @@ steps:
   - --verbosity=info
   id: "Build use-cases/model-fine-tuning-pipeline/data-processing/ray/src image"
   name: "gcr.io/kaniko-project/executor:latest"
-  waitFor: ["-"]
+  waitFor: ["Copy python modules"]
 
+- name: 'ubuntu'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    rm -rf ${_DATA_PREPROICESSING_SRC}/datapreprocessing
+  id: "Remove python modules"
+  waitFor: ["Build use-cases/model-fine-tuning-pipeline/data-processing/ray/src image"]
 substitutions:
   _AR_REPO_LOCATION: "us-central1"
+  _PYTHON_MODULE_PATH: "modules/python/src/datapreprocessing"
+  _DATA_PREPROICESSING_SRC: "use-cases/model-fine-tuning-pipeline/data-processing/ray/src/"

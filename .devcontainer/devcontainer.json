@@ -13,6 +13,7 @@
         "editor.wordWrap": "off",
         "files.insertFinalNewline": true,
         "files.trimFinalNewlines": true,
+        "isort.args": ["--profile", "black"],
         "prettier.resolveGlobalModules": true,
         "redhat.telemetry.enabled": false,
         "telemetry.telemetryLevel": "off",
@@ -39,7 +40,11 @@
           "editor.wordWrap": "off"
         },
         "[python]": {
-          "editor.defaultFormatter": "ms-python.black-formatter"
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          },
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true
         },
         "[scss]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode"

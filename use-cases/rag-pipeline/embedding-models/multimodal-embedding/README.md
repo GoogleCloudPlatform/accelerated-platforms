@@ -1,10 +1,15 @@
 # Multimodal blip2 model
 
-To know more about the embedding model see original [blog](https://blog.salesforceairesearch.com/blip-2/) and [source](https://github.com/salesforce/LAVIS/tree/main/examples)
+To know more about the embedding model see original
+[blog](https://blog.salesforceairesearch.com/blip-2/) and
+[source](https://github.com/salesforce/LAVIS/tree/main/examples)
 
 ## Prerequisites
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+- This guide was developed to be run on the
+  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
+  are using a different environment the scripts and manifest will need to be
+  modified for that environment.
 
 ## Preparation
 
@@ -28,7 +33,8 @@ To know more about the embedding model see original [blog](https://blog.salesfor
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
 - Get credentials for the GKE cluster
 
@@ -38,7 +44,8 @@ To know more about the embedding model see original [blog](https://blog.salesfor
 
 ## Build the container image
 
-- Build the container image using Cloud Build and push the image to Artifact Registry
+- Build the container image using Cloud Build and push the image to Artifact
+  Registry
 
   ```sh
   cd src
@@ -82,7 +89,8 @@ kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get service/multimodal-embedding
 
 ## Verify the embedding model
 
-**This assumes that the `flipkart_images` are already present in the `MLP_DATA_BUCKET`. If they are not, run the following command**
+**This assumes that the `flipkart_images` are already present in the
+`MLP_DATA_BUCKET`. If they are not, run the following command**
 
 - Temporary steps to populate required data
 

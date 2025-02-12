@@ -1,17 +1,28 @@
 # Process to set up AlloyDB
 
-This kubernetes job helps you load the flipkart product catalog to the alloyDB database named `product_catalog`.Also it creates separate columns to store the embeddings(text, image and multimodal) in a table named `clothes` in the `product_catalog` database.
+This kubernetes job helps you load the flipkart product catalog to the alloyDB
+database named `product_catalog`.Also it creates separate columns to store the
+embeddings(text, image and multimodal) in a table named `clothes` in the
+`product_catalog` database.
 
 ## Prerequisites
 
-<TODO> Write few lines about alloydb set up various users for IAM, workload identity , different users in ML_ENV_FILE to use .
+<TODO> Write few lines about alloydb set up various users for IAM, workload
+identity , different users in ML_ENV_FILE to use .
 
-<TODO> Decide what how end users should get access to these buckets of the image_uris and the associated datasets to load the product catalog?
+<TODO> Decide what how end users should get access to these buckets of the
+image_uris and the associated datasets to load the product catalog?
 
-MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object permissions to retrieve, process and generate embeddings for image_uri stores in Cloud Storage buckets.
+MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object
+permissions to retrieve, process and generate embeddings for image_uri stores in
+Cloud Storage buckets.
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
-- Multimodal embedding model has been deployed as per instructions in the embedding models folder (../embedding-models/README.md)
+- This guide was developed to be run on the
+  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
+  are using a different environment the scripts and manifest will need to be
+  modified for that environment.
+- Multimodal embedding model has been deployed as per instructions in the
+  embedding models folder (../embedding-models/README.md)
 
 ## Preparation
 
@@ -37,7 +48,8 @@ MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object permission
   set +o allexport
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
 - Get credentials for the GKE cluster
 
@@ -47,7 +59,8 @@ MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object permission
 
 ## Build the container image
 
-- Build the container image using Cloud Build and push the image to Artifact Registry
+- Build the container image using Cloud Build and push the image to Artifact
+  Registry
 
   ```sh
   cd src
@@ -66,7 +79,8 @@ MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object permission
 
 ## Run the job
 
-**Steps to produce the `MASTER_CATALOG_FILE_NAME` need to be included somewhere**
+**Steps to produce the `MASTER_CATALOG_FILE_NAME` need to be included
+somewhere**
 
 - Temporary steps to populate required data
 

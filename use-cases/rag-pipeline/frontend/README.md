@@ -2,7 +2,10 @@
 
 ## Prerequisites
 
-- This guide was developed to be run on the [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+- This guide was developed to be run on the
+  [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
+  are using a different environment the scripts and manifest will need to be
+  modified for that environment.
 
 ## Preparation
 
@@ -26,7 +29,8 @@
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
-  > You should see the various variables populated with the information specific to your environment.
+  > You should see the various variables populated with the information specific
+  > to your environment.
 
 - Get credentials for the GKE cluster
 
@@ -36,7 +40,8 @@
 
 ## Build the container image
 
-- Build the container image using Cloud Build and push the image to Artifact Registry
+- Build the container image using Cloud Build and push the image to Artifact
+  Registry
 
   ```sh
   cd src
@@ -95,6 +100,7 @@ kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get service/rag-frontend
 
 - Open the frontend application in your browser.
 
-  > It can take several minutes for the frontend application to be available via the gateway.
+  > It can take several minutes for the frontend application to be available via
+  > the gateway.
 
   If you are seeing `fault filter abort`, wait a moment and retry.

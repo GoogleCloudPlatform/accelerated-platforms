@@ -18,7 +18,9 @@ store.
 The dataset has product information such as id, name, brand, description, image
 urls, product specifications.
 
-In the following section, you will run a GKE job to perform data preprocessing. The GKE job will run a python script named `preprocessing_finetuning.py` that does the following:
+In the following section, you will run a GKE job to perform data preprocessing.
+The GKE job will run a python script named `preprocessing_finetuning.py` that
+does the following:
 
 - Read the csv from Cloud Storage
 - Clean up the product description text

@@ -21,13 +21,13 @@ document.
 
 ### Project
 
-<<<<<<< HEAD
-In this guide you can choose to bring your project (BYOP) or have Terraform
-create a new project for you. The requirements are difference based on the
-option that you choose.
-=======
-In this guide you can choose to bring your project (BYOP) or have Terraform create a new project for you. The requirements are different based on the option that you choose.
->>>>>>> 04b228a (Added AlloyDB with PSC  to the playground (#36))
+<<<<<<< HEAD In this guide you can choose to bring your project (BYOP) or have
+Terraform create a new project for you. The requirements are difference based on
+the option that you choose. ======= In this guide you can choose to bring your
+project (BYOP) or have Terraform create a new project for you. The requirements
+are different based on the option that you choose.
+
+> > > > > > > 04b228a (Added AlloyDB with PSC to the playground (#36))
 
 #### Option 1: Bring your own project (BYOP)
 

@@ -47,3 +47,5 @@ steps:
 substitutions:
   _AR_REPO_LOCATION: "us-central1"
   _IAP_DOMAIN: "accelerated-platforms.joonix.net"
+
+timeout: 90m

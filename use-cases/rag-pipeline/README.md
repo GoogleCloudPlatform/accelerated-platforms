@@ -33,15 +33,10 @@ Image recognition: Identifying images that are similar to each other.
 
 **_Ranking and Presentation:_** The recommendations are ranked based on relevance and presented to the customer in a clear and appealing way, encouraging them to continue shopping.
 
-## Dataset
+## Data Preprocessing for RAG
 
-[This](https://www.kaggle.com/datasets/PromptCloudHQ/flipkart-products) is a pre-crawled public dataset, taken as a subset of a bigger dataset (more than 5.8 million products) that was created by extracting data from [Flipkart](https://www.flipkart.com/), a leading Indian eCommerce store.
-
-The dataset has product information such as id, name, brand, description, image urls, product specifications.
-
-## Data Preprocessing pipeline for RAG
-
-<TODO> Data processing pipeline steps for RAG.
+We need a input dataset to feed to our RAG pipeline. We take a raw dataset and filter and clean it up to prepare it for our RAG pipeline.
+Perform the data preprocessing steps as described in [README](/use-cases/rag-pipeline/data-preprocessing/README.md) to prepare input dataset.
 
 ## Architecture
 
@@ -120,6 +115,7 @@ This section outlines the steps to set up the Retrieval Augmented Generation (RA
 ## Prerequisites
 
 - Use the existing [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you are using a different environment the scripts and manifest will need to be modified for that environment.
+- Run [data preprocessing for RAG](#data-preprocessing-for-rag)
 
 #### Set variable for the ML playground environment
 
@@ -153,7 +149,7 @@ This section outlines the steps to set up the Retrieval Augmented Generation (RA
 
 # Deploy RAG Application Components
 
-This section outlines the steps to deploy the Retrieval Augmented Generation (RAG) pipeline to the playground cluster.The components should be deployed in the following order:
+This section outlines the steps to deploy the Retrieval Augmented Generation (RAG) pipeline to the playground cluster. The components should be deployed in the following order:
 
 ## Deploy the Multimodal Model on the playground cluster
 

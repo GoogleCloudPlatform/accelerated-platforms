@@ -271,3 +271,25 @@ resource "google_cloudbuild_trigger" "uc_federated_learning_terraform_destroy" {
     repository = google_cloudbuildv2_repository.accelerated_platforms.id
   }
 }
+
+resource "google_cloudbuild_trigger" "uc_rag_data_proc_ray_build" {
+  filename = "test/ci-cd/cloudbuild/uc-rag-data-proc-ray-build.yaml"
+  included_files = [
+    "test/ci-cd/cloudbuild/uc-rag-data-proc-ray-build.yaml",
+    "use-cases/rag-pipeline/data-preprocessing/src/**",
+  ]
+  location        = var.build_location
+  name            = "uc-rag-data-proc-ray-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}

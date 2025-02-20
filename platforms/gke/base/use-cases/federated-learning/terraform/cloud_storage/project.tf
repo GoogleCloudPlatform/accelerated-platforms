@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${namespace_name}
-  labels:
-    istio-injection: "enabled"
-    tenant-ns: "true"
+
+data "google_project" "cluster" {
+  project_id = var.cluster_project_id
+}
+
+data "google_project" "default" {
+  project_id = var.cluster_project_id
+}

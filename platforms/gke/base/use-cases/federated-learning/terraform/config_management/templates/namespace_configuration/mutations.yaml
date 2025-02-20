@@ -33,7 +33,7 @@ spec:
     assign:
       value:
         - matchExpressions:
-            - key: "tenant"
+            - key: "federated-learning-tenant"
               operator: In
               values:
                 - "${namespace_name}"
@@ -56,7 +56,7 @@ spec:
   parameters:
     assign:
       value:
-        - key: "tenant"
+        - key: "federated-learning-tenant"
           operator: "Equal"
           value: "${namespace_name}"
           effect: "NoExecute"

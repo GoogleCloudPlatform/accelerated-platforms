@@ -46,9 +46,14 @@ steps:
         export ACP_PLATFORM_BASE_DIR="/workspace/platforms/gke/base"
         export ACP_PLATFORM_CORE_DIR="/workspace/platforms/gke/base/core"
 
-        export TF_VAR_cluster_project_id="${PROJECT_ID}-${SHORT_SHA}"
+        # Use the truncated BUILD_ID as project suffix.
+        # Truncate it at 7 characters as a short Git SHA
+        PROJECT_SUFFIX="${BUILD_ID}"
+        PROJECT_SUFFIX="$${PROJECT_SUFFIX:0:7}"
+
+        export TF_VAR_cluster_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
         export TF_VAR_platform_name="${SHORT_SHA}-fl"
-        export TF_VAR_terraform_project_id="${PROJECT_ID}-${SHORT_SHA}"
+        export TF_VAR_terraform_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
 
         # Create a dedicated project
         export NEW_PROJECT_ID="$${TF_VAR_cluster_project_id}"

@@ -11,11 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${namespace_name}
-  labels:
-    istio-injection: "enabled"
-    tenant-ns: "true"
+
+output "federated_learning_google_storage_bucket_names" {
+  description = "List of Cloud Storage bucket names"
+  value = [
+    for bucket in google_storage_bucket.federated_learning_cloud_storage_buckets : bucket.name
+  ]
+}

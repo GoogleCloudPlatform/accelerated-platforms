@@ -11,11 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${namespace_name}
-  labels:
-    istio-injection: "enabled"
-    tenant-ns: "true"
+
+locals {
+  # Use this list to deploy examples when the relevant variable is set to true
+  examples_templates_to_render = flatten(
+    concat(
+      var.federated_learning_nvidia_flare_tff_example_deploy ? local.federated_learning_nvidia_flare_tff_example_templates_to_render : [],
+    )
+  )
+}

@@ -11,11 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${namespace_name}
-  labels:
-    istio-injection: "enabled"
-    tenant-ns: "true"
+
+terraform {
+  required_version = ">= 1.5.7"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.12.0"
+    }
+  }
+
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_fl_storage_deploy-v1"
+  }
+}

@@ -23,7 +23,7 @@ resource "google_kms_key_ring" "key_ring" {
   project  = google_project_service.cloudkms_googleapis_com.project
 }
 
-resource "google_kms_crypto_key" "cluster_secrects_key" {
+resource "google_kms_crypto_key" "cluster_secrets_key" {
   import_only                   = false
   key_ring                      = google_kms_key_ring.key_ring.id
   name                          = "${local.unique_identifier_prefix}-clusterSecretsKey"
@@ -45,7 +45,7 @@ resource "google_kms_crypto_key" "cluster_secrects_key" {
 }
 
 resource "google_kms_crypto_key_iam_binding" "cluster_secrets_decrypters" {
-  crypto_key_id = google_kms_crypto_key.cluster_secrects_key.id
+  crypto_key_id = google_kms_crypto_key.cluster_secrets_key.id
   members       = [local.gke_robot_service_account_iam_email]
   role          = "roles/cloudkms.cryptoKeyDecrypter"
 
@@ -56,7 +56,7 @@ resource "google_kms_crypto_key_iam_binding" "cluster_secrets_decrypters" {
 }
 
 resource "google_kms_crypto_key_iam_binding" "cluster_secrets_encrypters" {
-  crypto_key_id = google_kms_crypto_key.cluster_secrects_key.id
+  crypto_key_id = google_kms_crypto_key.cluster_secrets_key.id
   members       = [local.gke_robot_service_account_iam_email]
   role          = "roles/cloudkms.cryptoKeyEncrypter"
 

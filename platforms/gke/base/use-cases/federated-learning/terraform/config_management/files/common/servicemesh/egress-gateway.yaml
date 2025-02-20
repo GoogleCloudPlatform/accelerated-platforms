@@ -17,10 +17,8 @@ kind: Namespace
 metadata:
   name: istio-egress
   labels:
+    istio-injection: "enabled"
     tenant-ns: "false"
-    # Allow Cloud Service Mesh to manage the workloads in the namespace
-    # Ref: https://cloud.google.com/service-mesh/docs/managed/select-a-release-channel#injection_labels
-    istio.io/rev: asm-managed
 ---
 apiVersion: v1
 kind: Service
@@ -112,6 +110,11 @@ spec:
                     operator: In
                     values:
                       - system
+      tolerations:
+        - effect: NoSchedule
+          key: "components.gke.io/gke-managed-components"
+          operator: "Equal"
+          value: "true"
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

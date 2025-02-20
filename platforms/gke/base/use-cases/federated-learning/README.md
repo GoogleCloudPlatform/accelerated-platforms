@@ -6,7 +6,7 @@ This document shows how to deploy the
 To deploy this reference architecture, you need:
 
 - A [Google Cloud project](https://cloud.google.com/docs/overview#projects) with
-  billing enabled. We recommend to deploy this reference architecture an a new,
+  billing enabled. We recommend deploying this reference architecture to a new,
   dedicated Google Cloud project.
 - An account with either the [Project Owner role](#option-1-project-owner-role)
   (full access) or [Granular Access roles](#option-2-granular-access).
@@ -144,7 +144,7 @@ and configure the following infrastructure components:
 - [Cloud Service Mesh](https://cloud.google.com/service-mesh/docs/overview) to
   control and help secure network traffic.
 
-Confg Sync applies the following Policy controller and Cloud Service Mesh
+Config Sync applies the following Policy controller and Cloud Service Mesh
 controls to each Kubernetes namespace:
 
 - By default, deny all ingress and egress traffic to and from pods. This rule
@@ -161,70 +161,97 @@ controls to each Kubernetes namespace:
 
 To deploy the reference architecture, you do the following:
 
-1. Open [Cloud Shell](https://cloud.google.com/shell).
+1.  Open [Cloud Shell](https://cloud.google.com/shell).
 
-1. Clone this repository and change the working directory:
+1.  Clone this repository and change the working directory:
 
-   ```shell
-   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-   cd accelerated-platforms
-   ```
+    ```shell
+    git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+    cd accelerated-platforms
+    ```
 
-1. Initialize the required environment variables:
+1.  Initialize the required environment variables:
 
-   ```shell
-   ACP_REPO_DIR="$(pwd)"
-   ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
-   ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
-   ```
+    ```shell
+    ACP_REPO_DIR="$(pwd)"
+    export ACP_REPO_DIR
+    export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+    export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
+    ```
 
-1. Optionally, you can make the required environment variables configuration
-   persistent by updating your
-   [Bash startup files](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html).
-   For example, you can update your `.bashrc` file:
+1.  Optionally, you can make the required environment variables configuration
+    persistent by updating your
+    [Bash startup files](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html).
+    For example, you can update your `.bashrc` file:
 
-   ```shell
-   {
-     echo "ACP_REPO_DIR=${ACP_REPO_DIR}"
-     echo "ACP_PLATFORM_BASE_DIR=${ACP_PLATFORM_BASE_DIR}"
-     echo "ACP_PLATFORM_CORE_DIR=${ACP_PLATFORM_CORE_DIR}"
-   } >>"${HOME}/.bashrc"
-   ```
+    ```shell
+    {
+      echo "export \"ACP_REPO_DIR=${ACP_REPO_DIR}\""
+      echo "export \"ACP_PLATFORM_BASE_DIR=${ACP_PLATFORM_BASE_DIR}\""
+      echo "export \"ACP_PLATFORM_CORE_DIR=${ACP_PLATFORM_CORE_DIR}\""
+    } >>"${HOME}/.bashrc"
+    ```
 
-1. Configure the ID of the Google Cloud project where you want to initialize the
-   provisioning and configuration environment. This project will also contain
-   the remote Terraform backend. Add the following content to
-   `${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.auto.tfvars`:
+1.  Configure the ID of the Google Cloud project where you want to initialize
+    the provisioning and configuration environment. This project will also
+    contain the remote Terraform backend. Add the following content to
+    `${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.auto.tfvars`:
 
-   ```hcl
-   terraform_project_id = "<CONFIG_PROJECT_ID>"
-   ```
+    ```hcl
+    terraform_project_id = "<CONFIG_PROJECT_ID>"
+    ```
 
-   Where:
+    Where:
 
-   - `<CONFIG_PROJECT_ID>` is the Google Cloud project ID.
+    - `<CONFIG_PROJECT_ID>` is the Google Cloud project ID.
 
-1. Configure the ID of the Google Cloud project where you want to deploy the
-   reference architecture by adding the following content to
-   `${ACP_PLATFORM_BASE_DIR}/_shared_config/cluster.auto.tfvars`:
+1.  Configure the ID of the Google Cloud project where you want to deploy the
+    reference architecture by adding the following content to
+    `${ACP_PLATFORM_BASE_DIR}/_shared_config/cluster.auto.tfvars`:
 
-   ```hcl
-   cluster_project_id = "<PROJECT_ID>"
-   ```
+    ```hcl
+    cluster_project_id = "<PROJECT_ID>"
+    ```
 
-   Where:
+    Where:
 
-   - `<PROJECT_ID>` is the Google Cloud project ID. Can be different from
-     `<CONFIG_PROJECT_ID>`.
+    - `<PROJECT_ID>` is the Google Cloud project ID. Can be different from
+      `<CONFIG_PROJECT_ID>`.
 
-1. Run the script to provision the reference architecture:
+1.  Optionally configure a unique identifier to append to the name of all the
+    resources in the reference architecture to identify a particular instance of
+    the reference architecture, and to allow for multiple instances of the
+    reference architecture to be deployed in the same Google Cloud project. To
+    optionally configure the unique prefix, add the following content to
+    `${ACP_PLATFORM_BASE_DIR}/_shared_config/platform.auto.tfvars`:
 
-   ```sh
-   "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/deploy.sh"
-   ```
+    ```hcl
+    resource_name_prefix = "<RESOURCE_NAME_PREFIX>"
+    platform_name        = "<PLATFORM_NAME>"
+    ```
+
+    Where:
+
+    - `<RESOURCE_NAME_PREFIX>` and `<PLATFORM_NAME>` are strings that compose
+      the unique identifier to append to the name of all the resources in the
+      reference architecture.
+
+    When you set `resource_name_prefix` and `platform_name`, we recommend that
+    you avoid long strings because the might make resource naming validation to
+    fail because the resource name might be too long.
+
+1.  Run the script to provision the reference architecture:
+
+    ```sh
+    "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/deploy.sh"
+    ```
+
+It takes about 20 minutes to provision the reference architecture.
 
 After deploying the reference architecture, the GKE cluster is ready to host
-your federated learning workloads.
+your federated learning workloads. For example, you can:
+
+- [Deploy NVIDIA FLARE in the GKE cluster](/platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/README.md).
 
 ## Destroy the reference architecture
 
@@ -299,6 +326,12 @@ Terraform. To enable Confidential GKE Nodes, you do the following:
    1. Set `federated_learning_node_pool_machine_type` to a machine type that
       supports Confidential GKE Nodes.
 
+### Allow desired network traffic
+
+1. Configure Kubernetes network policies to allow traffic. You can see how
+   current Kubernetes network policies are affecting traffic in your cluster
+   [using Cloud Logging](https://cloud.google.com/kubernetes-engine/docs/how-to/network-policy-logging#accessing_logs).
+
 ## Troubleshooting
 
 This section describes common issues and troubleshooting steps.
@@ -333,7 +366,7 @@ Pods in the
 
 If this happens:
 
-1. Wait for the cluster to complete the initialiazation
+1. Wait for the cluster to complete the initialization
 1. Delete the Deployment that is impacted by this issue. Config Sync will deploy
    it again with the correct container image identifiers.
 
@@ -371,7 +404,11 @@ following errors:
   - [Import the `gke_hub_feature` resources](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/gke_hub_feature#import)
     in the Terraform state, so that Terraform is aware of them. In this case,
     Terraform will also apply any configuration changes that the reference
-    architecture requires.
+    architecture requires. Before you import `gke_hub_feature` resources in the
+    Terraform state, we recommend that you assess the impact on other GKE
+    clusters in the same project that depend on those resources. For example,
+    when you destroy this reference architecture, these resources will be
+    destroyed too, potentially impacting other GKE clusters in the same project.
 
 ## Understanding the security controls that you need
 

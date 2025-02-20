@@ -57,7 +57,8 @@ locals {
       tenant_apps_workload_identity_service_account_name = values.tenant_apps_workload_identity_service_account_name
 
       kubernetes_templates_configuration_values = {
-        namespace_name = values.tenant_name
+        namespace_name                              = values.tenant_name
+        tenant_apps_kubernetes_service_account_name = values.tenant_apps_kubernetes_service_account_name
       }
     }
   }
@@ -96,6 +97,25 @@ locals {
   )
 
   tenant_apps_kubernetes_service_account_name = "fl-ksa"
+}
+
+variable "federated_learning_cloud_storage_buckets" {
+  default     = {}
+  description = "Map describing the Cloud Storage buckets to create. Keys are bucket names."
+  type = map(object({
+    force_destroy      = bool
+    versioning_enabled = bool
+  }))
+}
+
+variable "federated_learning_cloud_storage_buckets_iam_bindings" {
+  default     = []
+  description = "Map of objects to configure Cloud IAM bindings for Cloud Storage buckets described by the federated_learning_cloud_storage_buckets variable. Keys are bucket names. Use the same names that you use in the federated_learning_cloud_storage_buckets variable"
+  type = list(object({
+    bucket_name = string
+    member      = string
+    role        = string
+  }))
 }
 
 variable "federated_learning_tenant_names" {

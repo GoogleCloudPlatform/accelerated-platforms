@@ -48,7 +48,6 @@ metadata:
 spec:
   hosts:
     - private.googleapis.com
-    - storage.googleapis.com
   ports:
     - number: 80
       name: http

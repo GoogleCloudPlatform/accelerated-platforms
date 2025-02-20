@@ -1,0 +1,4 @@
+# Ignore generated files
+# Remove the next statement in case you prefer to store rendered templates
+# in your Git repository
+config_management

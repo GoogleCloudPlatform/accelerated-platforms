@@ -28,33 +28,38 @@ locals {
 
   config_management_common_files          = flatten([for _, file in flatten(fileset(local.config_management_common_files_path, "**")) : file])
   config_management_oci_descriptors_files = flatten([for _, file in flatten(fileset(local.config_management_oci_descriptors_path, "**")) : file])
-  namespace_configuration_template_files  = flatten([for _, file in flatten(fileset(local.namespace_configuration_template_directory_path, "**")) : file])
+
+  namespace_configuration_template_files = flatten([for _, file in flatten(fileset(local.namespace_configuration_template_directory_path, "**")) : "${local.namespace_configuration_template_directory_path}/${file}"])
 
   namespaces_configuration = flatten([
-    for tenant in local.tenants : [
+    for tenant in local.tenants : concat([
       for template_file in local.namespace_configuration_template_files : {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/${template_file}"
-        template_source_file_path = "${local.namespace_configuration_template_directory_path}/${template_file}"
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/${basename(template_file)}"
+        template_source_file_path = "${template_file}"
         template_variables        = tenant.kubernetes_templates_configuration_values
       }
-    ]
+      ],
+      # Add templates to render to namespace configuration in case the user
+      # enabled any examples to deploy
+      local.examples_templates_to_render,
+    )
   ])
 }
 
 resource "local_file" "common_configuration" {
   for_each = toset(local.config_management_common_files)
 
+  content         = file("${local.config_management_common_files_path}/${each.value}")
   file_permission = "0644"
   filename        = "${local.config_management_common_files_destination_directory_path}/${each.value}"
-  source          = "${local.config_management_common_files_path}/${each.value}"
 }
 
 resource "local_file" "oci_descriptors_configuration" {
   for_each = toset(local.config_management_oci_descriptors_files)
 
+  content         = file("${local.config_management_oci_descriptors_path}/${each.value}")
   file_permission = "0644"
   filename        = "${local.config_management_oci_descriptors_destination_directory_path}/${each.value}"
-  source          = "${local.config_management_oci_descriptors_path}/${each.value}"
 }
 
 resource "local_file" "namespace_configuration" {
@@ -86,9 +91,9 @@ resource "terraform_data" "config_management_oci_archive_push" {
   triggers_replace = [
     # Trigger whenever the contents of source directories or template configuration values change.
     # Don't depend on destination directory content because it might change between plan and apply.
+    sha512(join("", [for f in fileset(local.config_management_templates_directory_path, "**") : filesha512("${local.config_management_templates_directory_path}/${f}")])),
     sha512(join("", [for f in fileset(local.config_management_common_files_path, "**") : filesha512("${local.config_management_common_files_path}/${f}")])),
     sha512(join("", [for f in fileset(local.config_management_oci_descriptors_path, "**") : filesha512("${local.config_management_oci_descriptors_path}/${f}")])),
-    sha512(join("", [for f in fileset(local.namespace_configuration_template_directory_path, "**") : filesha512("${local.namespace_configuration_template_directory_path}/${f}")])),
     # Trigger whenever the namespace configuration changes
     local.namespaces_configuration,
     # Trigger whenever the contents of the container image push script changes

@@ -58,6 +58,8 @@ spec:
         - ipBlock: # For GKE dataplane v2
             cidr: 169.254.169.254/32
       ports:
+        - protocol: UDP
+          port: 53
         - protocol: TCP
           port: 80
     - to:

@@ -14,5 +14,5 @@
 
 output "cluster_database_encryption_key_id" {
   description = "Id of the cluster database encryption key"
-  value       = google_kms_crypto_key.cluster_secrects_key.id
+  value       = google_kms_crypto_key.cluster_secrets_key.id
 }

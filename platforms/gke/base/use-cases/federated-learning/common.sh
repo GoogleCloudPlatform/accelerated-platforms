@@ -32,6 +32,8 @@ FEDERATED_LEARNING_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/federated-le
 FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR="${FEDERATED_LEARNING_USE_CASE_DIR}/terraform"
 # shellcheck disable=SC2034 # Variable is used in other scripts
 FEDERATED_LEARNING_SHARED_CONFIG_DIR="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/_shared_config"
+# shellcheck disable=SC2034 # Variable is used in other scripts
+FEDERATED_LEARNING_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARNING_SHARED_CONFIG_DIR}/uc_federated_learning.auto.tfvars"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 # Terraservices that are necessary for the core platform
@@ -48,6 +50,7 @@ federated_learning_terraservices=(
   "workload_identity"
   "container_node_pool"
   "config_management"
+  "cloud_storage"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
@@ -128,6 +131,7 @@ destroy_terraservice() {
 get_terraform_output() {
   terraservice="${1}"
   output_name="${2}"
+  output_type="${3}"
 
   if [[ ! -d "${terraservice}" ]]; then
     echo "${terraservice} directory doesn't exist or is not readable"
@@ -140,10 +144,18 @@ get_terraform_output() {
     return 1
   fi
 
+  local -a output_command=(terraform -chdir="${terraservice}" output)
+  if [[ "${output_type}" == "json" ]]; then
+    output_command+=(-json)
+  elif [[ "${output_type}" == "raw" ]]; then
+    output_command+=(-raw)
+  fi
+  output_command+=("${output_name}")
+
   if ! output="$(
-    terraform -chdir="${terraservice}" output -raw "${output_name}"
+    "${output_command[@]}"
   )"; then
-    echo "Error while getting ${output_name} output: ${output}"
+    echo "Error while getting ${output_name} output: ${output}. Output command: ${output_command[*]}"
     return 1
   fi
   echo "${output}"
@@ -165,7 +177,8 @@ remove_terraform_configuration_variable_from_file() {
   local destination_file_path="${2}"
   local configuration_variable_name
 
-  configuration_variable_name="$(echo "${configuration_variable}" | awk ' { print $1 }'))"
+  configuration_variable_name="$(echo "${configuration_variable}" | awk ' { print $1 }')"
+  echo "Removing ${configuration_variable_name} from ${destination_file_path}"
   sed -i "/${configuration_variable_name}/d" "${destination_file_path}"
   terraform fmt "${destination_file_path}"
 }

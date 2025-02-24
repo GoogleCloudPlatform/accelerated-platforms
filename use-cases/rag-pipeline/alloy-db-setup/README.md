@@ -1,4 +1,4 @@
-# Process to set up AlloyDB
+# RAG: Database setup and initialization
 
 This kubernetes job helps you load the flipkart product catalog to the alloyDB
 database named `product_catalog`.Also it creates separate columns to store the
@@ -7,41 +7,31 @@ embeddings(text, image and multimodal) in a table named `clothes` in the
 
 ## Prerequisites
 
-<TODO> Write few lines about alloydb set up various users for IAM, workload
-identity , different users in ML_ENV_FILE to use .
-
-<TODO> Decide what how end users should get access to these buckets of the
-image_uris and the associated datasets to load the product catalog?
-
-MLP accounts MLP_DB_ADMIN_IAM and MLP_DB_USER_IAM need Storage object
-permissions to retrieve, process and generate embeddings for image_uri stores in
-Cloud Storage buckets.
-
 - This guide was developed to be run on the
   [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
   are using a different environment the scripts and manifest will need to be
   modified for that environment.
-- Multimodal embedding model has been deployed as per instructions in the
-  embedding models folder (../embedding-models/README.md)
+- [RAG: Multimodal embedding model](/use-cases/rag-pipeline/embedding-models/multimodal-embedding/README.md)
+  has been deployed as per the instructions.
 
 ## Preparation
 
-- Clone the repository
+- Clone the repository.
 
-  ```sh
+  ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd accelerated-platforms
   ```
 
-- Change directory to the guide directory
+- Change directory to the guide directory.
 
-  ```sh
+  ```shell
   cd use-cases/rag-pipeline/alloy-db-setup
   ```
 
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
 
-  ```sh
+  ```shell
   cat ${MLP_ENVIRONMENT_FILE} && \
   set -o allexport && \
   source ${MLP_ENVIRONMENT_FILE} && \
@@ -51,10 +41,13 @@ Cloud Storage buckets.
   > You should see the various variables populated with the information specific
   > to your environment.
 
-- Get credentials for the GKE cluster
+- Get credentials for the GKE cluster.
 
-  ```sh
-  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  ```shell
+  gcloud container clusters get-credentials ${MLP_CLUSTER_NAME} \
+  --dns-endpoint \
+  --project=${MLP_PROJECT_ID} \
+  --region=${MLP_REGION}
   ```
 
 ## Build the container image
@@ -62,7 +55,7 @@ Cloud Storage buckets.
 - Build the container image using Cloud Build and push the image to Artifact
   Registry
 
-  ```sh
+  ```shell
   cd src
   git restore cloudbuild.yaml
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
@@ -79,22 +72,9 @@ Cloud Storage buckets.
 
 ## Run the job
 
-**Steps to produce the `MASTER_CATALOG_FILE_NAME` need to be included
-somewhere**
-
-- Temporary steps to populate required data
-
-  ```
-  gcloud storage cp gs://temporary-rag-data/master_product_catalog.csv . && \
-  sed -i s"/<MLP_DATA_BUCKET>/${MLP_DATA_BUCKET}/g" master_product_catalog.csv && \
-  gcloud storage cp master_product_catalog.csv gs://${MLP_DATA_BUCKET}/ && \
-  rm -f master_product_catalog.csv && \
-  gcloud storage rsync gs://temporary-rag-data/flipkart_images gs://${MLP_DATA_BUCKET}/flipkart_images/
-  ```
-
 - Configure the job
 
-  ```sh
+  ```shell
   set -o nounset
   export CATALOG_DB_NAME="product_catalog"
   export CATALOG_TABLE_NAME="clothes"
@@ -107,12 +87,15 @@ somewhere**
   export EMBEDDING_ENDPOINT_IMAGE="http://multimodal-embedding-model.ml-team:80/image_embeddings"
   export EMBEDDING_ENDPOINT_MULTIMODAL="http://multimodal-embedding-model.ml-team:80/multimodal_embeddings"
   export EMBEDDING_ENDPOINT_TEXT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
-  export MASTER_CATALOG_FILE_NAME="master_product_catalog.csv"
+  export MASTER_CATALOG_FILE_NAME="RAG/master_product_catalog.csv"
   export NUM_LEAVES_VALUE="300"
   set +o nounset
   ```
 
-  ```sh
+  > Ensure there are no `bash: <ENVIRONMENT_VARIABLE> unbound variable` error
+  > messages.
+
+  ```shell
   git restore manifests/job-initialize-database.yaml manifests/job-populate-table.yaml
   envsubst < manifests/job-initialize-database.yaml | sponge manifests/job-initialize-database.yaml
   envsubst < manifests/job-populate-table.yaml | sponge manifests/job-populate-table.yaml
@@ -120,7 +103,7 @@ somewhere**
 
 - Create the initialize database job.
 
-  ```
+  ```shell
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job-initialize-database.yaml
   ```
 
@@ -128,22 +111,27 @@ somewhere**
 
 - Watch the job until it is complete.
 
-  ```
+  ```shell
   watch --color --interval 5 --no-title \
   "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/initialize-database | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/initialize-database --tail 10"
   ```
 
+  ```
+  NAME                  STATUS     COMPLETIONS   DURATION   AGE
+  initialize-database   Complete   1/1           XXXXX      XXXXX
+  ```
+
 - Check logs for any errors.
 
-  ```
+  ```shell
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/initialize-database
   ```
 
 - Create the populate table job.
 
-  ```
+  ```shell
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job-populate-table.yaml
   ```
 
@@ -151,15 +139,20 @@ somewhere**
 
 - Watch the job until it is complete.
 
-  ```
+  ```shell
   watch --color --interval 5 --no-title \
   "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/populate-table | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/populate-table --tail 10"
   ```
 
+  ```
+  NAME             STATUS     COMPLETIONS   DURATION   AGE
+  populate-table   Complete   1/1           XXXXX      XXXXX
+  ```
+
 - Check logs for any errors.
 
-  ```
+  ```shell
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/populate-table
   ```

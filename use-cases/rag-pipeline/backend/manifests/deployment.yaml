@@ -26,38 +26,36 @@ spec:
       labels:
         app: rag-backend
     spec:
-      serviceAccountName: V_MLP_DB_USER_KSA
+      serviceAccountName: ${KUBERNETES_SERVICE_ACCOUNT}
       containers:
       - name: rag
-        image: V_IMAGE
+        image: ${CONTAINER_IMAGE_URL}
         imagePullPolicy: Always
         env:
         - name: CATALOG_DB
-          value: V_CATALOG_DB
+          value: "${CATALOG_DB}"
         - name: CATALOG_TABLE_NAME
-          value: V_CATALOG_TABLE_NAME
-        - name: MLP_DB_ADMIN_IAM
-          value: V_MLP_DB_ADMIN_IAM
+          value: "${CATALOG_TABLE_NAME}"
         - name: MLP_DB_INSTANCE_URI
-          value: V_MLP_DB_INSTANCE_URI
+          value: "${DB_INSTANCE_URI}"
         - name: GEMMA_IT_ENDPOINT
-          value: V_GEMMA_IT_ENDPOINT
+          value: "${GEMMA_IT_ENDPOINT}"
         - name: MLP_KUBERNETES_NAMESPACE
-          value: V_MLP_KUBERNETES_NAMESPACE
+          value: "${MLP_KUBERNETES_NAMESPACE}"
         - name: TEXT_EMBEDDING_ENDPOINT
-          value: V_EMBEDDING_ENDPOINT_TEXT
+          value: "${EMBEDDING_ENDPOINT_TEXT}"
         - name: IMAGE_EMBEDDING_ENDPOINT
-          value: V_EMBEDDING_ENDPOINT_IMAGE
+          value: "${EMBEDDING_ENDPOINT_IMAGE}"
         - name: MULTIMODAL_EMBEDDING_ENDPOINT
-          value: V_EMBEDDING_ENDPOINT_MULTIMODAL
+          value: "${EMBEDDING_ENDPOINT_MULTIMODAL}"
         - name: EMBEDDING_COLUMN_TEXT
-          value: V_EMBEDDING_COLUMN_TEXT
+          value: "${EMBEDDING_COLUMN_TEXT}"
         - name: EMBEDDING_COLUMN_IMAGE
-          value: V_EMBEDDING_COLUMN_IMAGE
+          value: "${EMBEDDING_COLUMN_IMAGE}"
         - name: EMBEDDING_COLUMN_MULTIMODAL
-          value: V_EMBEDDING_COLUMN_MULTIMODAL
+          value: "${EMBEDDING_COLUMN_MULTIMODAL}"
         - name: ROW_COUNT
-          value: V_ROW_COUNT
+          value: "${ROW_COUNT}"
         resources:
           requests:
             cpu: "2"

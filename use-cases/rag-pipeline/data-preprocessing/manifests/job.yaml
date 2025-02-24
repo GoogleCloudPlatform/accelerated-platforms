@@ -26,13 +26,13 @@ spec:
     spec:
       containers:
       - name: job
-        image: V_IMAGE_URL
+        image: ${CONTAINER_IMAGE_URL}
         imagePullPolicy: Always
         env:
         - name: "PROCESSING_BUCKET"
-          value: V_DATA_BUCKET
+          value: "${DATA_BUCKET}"
         - name: "RAY_CLUSTER_HOST"
-          value: ray-cluster-kuberay-head-svc.ml-team:10001
+          value: "${RAY_CLUSTER_HOST}"
         resources:
           requests:
             cpu: 100m
@@ -43,7 +43,7 @@ spec:
       nodeSelector:
         resource-type: cpu
       restartPolicy: Never
-      serviceAccountName: V_KSA
+      serviceAccountName: ${KUBERNETES_SERVICE_ACCOUNT}
       tolerations:
       - effect: NoSchedule
         key: on-demand

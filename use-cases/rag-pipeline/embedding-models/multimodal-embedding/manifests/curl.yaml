@@ -45,4 +45,4 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
         - name: IMAGE_URI
-          value: V_IMAGE_URI
+          value: "${IMAGE_URI}"

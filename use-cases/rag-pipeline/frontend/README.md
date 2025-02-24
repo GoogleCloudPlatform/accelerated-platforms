@@ -1,4 +1,4 @@
-# Frontend application deployment
+# RAG: Frontend deployment
 
 ## Prerequisites
 
@@ -9,41 +9,46 @@
 
 ## Preparation
 
-- Clone the repository
+- Clone the repository.
 
-  ```sh
+  ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd accelerated-platforms
   ```
 
-- Change directory to the guide directory
+- Change directory to the guide directory.
 
-  ```sh
+  ```shell
   cd use-cases/rag-pipeline/frontend
   ```
 
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
 
-  ```sh
+  ```shell
   cat ${MLP_ENVIRONMENT_FILE} && \
-  source ${MLP_ENVIRONMENT_FILE}
+  set -o allexport && \
+  source ${MLP_ENVIRONMENT_FILE} && \
+  set +o allexport
   ```
 
   > You should see the various variables populated with the information specific
   > to your environment.
 
-- Get credentials for the GKE cluster
+- Get credentials for the GKE cluster.
 
-  ```sh
-  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  ```shell
+  gcloud container clusters get-credentials ${MLP_CLUSTER_NAME} \
+  --dns-endpoint \
+  --project=${MLP_PROJECT_ID} \
+  --region=${MLP_REGION}
   ```
 
 ## Build the container image
 
 - Build the container image using Cloud Build and push the image to Artifact
-  Registry
+  Registry.
 
-  ```sh
+  ```shell
   cd src
   git restore cloudbuild.yaml
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
@@ -59,42 +64,46 @@
 
 - Configure the deployment.
 
-  ```sh
+  ```shell
+  set -o nounset
   export BACKEND_SERVICE_ENDPOINT="http://rag-backend.ml-team:8000/generate_product_recommendations/"
+  export CONTAINER_IMAGE_URL="${MLP_RAG_FRONTEND_IMAGE}"
+  set -o nounset
   ```
 
-  ```sh
+  > Ensure there are no `bash: <ENVIRONMENT_VARIABLE> unbound variable` error
+  > messages.
+
+  ```shell
   git restore manifests/deployment.yaml
-  sed \
-  -i -e "s|V_IMAGE|${MLP_RAG_FRONTEND_IMAGE}|" \
-  -i -e "s|V_PROJECT_ID|${MLP_PROJECT_ID}|" \
-  -i -e "s|V_BACKEND_SERVICE_ENDPOINT|${BACKEND_SERVICE_ENDPOINT}|" \
-  manifests/deployment.yaml
+  envsubst < manifests/deployment.yaml | sponge manifests/deployment.yaml
   ```
 
 - Create the deployment.
 
-  ```sh
+  ```shell
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
   ```
 
-- Verify the deployment.
+- Watch the deployment until it is ready and available.
 
-```sh
-kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get pods -l app=rag-frontend
-```
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace ${MLP_MODEL_OPS_NAMESPACE} get deployment/rag-frontend | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs deployment/rag-frontend --tail 10"
+  ```
 
-- Verify the service.
-
-```sh
-kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get service/rag-frontend
-```
+  ```
+  NAME           READY   UP-TO-DATE   AVAILABLE   AGE
+  rag-frontend   1/1     1            1           XXXXX
+  ```
 
 ## Test the frontend application
 
 - Run the following command to output the URL for the frontend application.
 
-  ```sh
+  ```shell
   echo -e "\n${MLP_KUBERNETES_NAMESPACE} RAG frontend URL: ${MLP_RAG_FRONTEND_NAMESPACE_ENDPOINT}\n"
   ```
 

@@ -1,4 +1,4 @@
-# Data Preprocessing for RAG
+# RAG: Data preprocessing
 
 ## Dataset
 
@@ -36,66 +36,81 @@ The data preprocessing step takes approximately 18-20 minutes.
 
 ## Preparation
 
-- Clone the repository
+- Clone the repository.
 
   ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
   cd accelerated-platforms
   ```
 
-- Change directory to the guide directory
+- Change directory to the guide directory.
 
   ```shell
   cd use-cases/rag-pipeline/data-preprocessing
   ```
 
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
 
   ```shell
   cat ${MLP_ENVIRONMENT_FILE} && \
-  source ${MLP_ENVIRONMENT_FILE}
+  set -o allexport && \
+  source ${MLP_ENVIRONMENT_FILE} && \
+  set +o allexport
   ```
 
   > You should see the various variables populated with the information specific
   > to your environment.
 
+- Get credentials for the GKE cluster.
+
+  ```shell
+  gcloud container clusters get-credentials ${MLP_CLUSTER_NAME} \
+  --dns-endpoint \
+  --project=${MLP_PROJECT_ID} \
+  --region=${MLP_REGION}
+  ```
+
 ## Build the container image
 
 - Build container image using Cloud Build and push the image to Artifact
-  Registry
+  Registry.
 
   ```shell
   cd src
+  rm -rf datapreprocessing
   cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing .
+  git restore cloudbuild.yaml
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
   gcloud beta builds submit \
   --config cloudbuild.yaml \
   --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
   --project ${MLP_PROJECT_ID} \
   --substitutions _DESTINATION=${MLP_RAG_DATA_PROCESSING_IMAGE}
-  rm -rf datapreprocessing
   cd ..
   ```
 
 ## Run the job
 
-- Get credentials for the GKE cluster
+- Configure the job.
 
   ```shell
-  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  set -o nounset
+  export CONTAINER_IMAGE_URL="${MLP_RAG_DATA_PROCESSING_IMAGE}"
+  export DATA_BUCKET="${MLP_DATA_BUCKET}"
+  export KUBERNETES_SERVICE_ACCOUNT="${MLP_RAG_DATA_PROCESSING_KSA}"
+  export RAY_CLUSTER_HOST="ray-cluster-kuberay-head-svc.ml-team:10001"
+  set +o nounset
   ```
 
-- Configure the job
+  > Ensure there are no `bash: <ENVIRONMENT_VARIABLE> unbound variable` error
+  > messages.
 
   ```shell
-  sed \
-  -i -e "s|V_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
-  -i -e "s|V_IMAGE_URL|${MLP_RAG_DATA_PROCESSING_IMAGE}|" \
-  -i -e "s|V_KSA|${MLP_RAG_DATA_PROCESSING_KSA}|" \
-  manifests/job.yaml
+  git restore manifests/job.yaml
+  envsubst < manifests/job.yaml | sponge manifests/job.yaml
   ```
 
-- Create the job
+- Create the job.
 
   ```shell
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job.yaml

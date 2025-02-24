@@ -152,6 +152,12 @@ resource "google_container_cluster" "mlp" {
     }
   }
 
+  control_plane_endpoints_config {
+    dns_endpoint_config {
+      allow_external_traffic = true
+    }
+  }
+
   cost_management_config {
     enabled = true
   }

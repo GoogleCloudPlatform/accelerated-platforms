@@ -19,7 +19,7 @@ resource "google_service_account" "cluster" {
   account_id   = local.cluster_node_pool_service_account_id
   description  = "Terraform-managed service account for cluster ${local.cluster_name}"
   display_name = "${local.cluster_name} default Service Account"
-  project      = data.google_project.cluster.project_id
+  project      = google_project_service.iam_googleapis_com.project
 }
 
 # Bind minimum role list to the service account
@@ -27,7 +27,7 @@ resource "google_project_iam_member" "cluster_sa" {
   for_each = toset(var.cluster_node_pool_default_service_account_id == null ? local.cluster_sa_roles : [])
 
   member  = google_service_account.cluster["created"].member
-  project = data.google_project.cluster.project_id
+  project = google_project_service.iam_googleapis_com.project
   role    = each.value
 }
 

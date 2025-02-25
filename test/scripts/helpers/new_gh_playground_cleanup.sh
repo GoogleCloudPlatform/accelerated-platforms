@@ -27,8 +27,6 @@ terraform/features/initialize/initialize.auto.tfvars"
 print_and_execute_no_check "cd ${MLP_BASE_DIR} &&
 rm -rf \
 platforms/gke-aiml/playground/.terraform \
-platforms/gke-aiml/playground/.terraform.lock.hcl \
 terraform/features/initialize/.terraform \
-terraform/features/initialize/.terraform.lock.hcl \
 terraform/features/initialize/backend.tf.local \
 terraform/features/initialize/stateck.hcl"

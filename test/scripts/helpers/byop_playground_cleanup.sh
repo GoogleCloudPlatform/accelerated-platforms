@@ -28,7 +28,6 @@ rm -rf ${TF_DATA_DIR}
 
 rm -f \
     ${MLP_TYPE_BASE_DIR}/${TF_DATA_DIR} \
-    ${MLP_TYPE_BASE_DIR}/.terraform.lock.hcl \
     ${MLP_TYPE_BASE_DIR}/cluster_configmanagement_* \
     ${MLP_TYPE_BASE_DIR}/configsync_repository_*
 

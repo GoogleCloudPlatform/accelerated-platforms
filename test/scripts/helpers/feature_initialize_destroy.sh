@@ -25,7 +25,7 @@ terraform init -force-copy -lock=false -migrate-state && \
 gsutil -m rm -rf gs://${TERRAFORM_BUCKET_NAME}/* && \
 terraform init && \
 terraform destroy -auto-approve  && \
-rm -rf .terraform .terraform.lock.hcl"
+rm -rf .terraform"
 
 total_runtime "features_initialize_destroy"
 

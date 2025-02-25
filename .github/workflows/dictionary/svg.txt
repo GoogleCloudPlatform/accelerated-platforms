@@ -1,0 +1,4 @@
+dasharray
+rgba
+tspan
+xlink

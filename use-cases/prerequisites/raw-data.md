@@ -4,7 +4,7 @@ These steps walk you through downloading the raw data from Kaggle or Hugging
 Face and uploads the data into the data GCS bucket for use within the guide for
 the respective [use case](/use-cases).
 
-These preqreqs were developed to be run on the
+These prereqs were developed to be run on the
 [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
 are using a different environment the scripts and manifest will need to be
 modified for that environment.

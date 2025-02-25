@@ -18,7 +18,7 @@ start_runtime "data_processing"
 
 echo_title "Downloading the dataset and uploading to GCS"
 
-print_and_execute "kaggle datasets download --force --unzip atharvjairath/flipkart-ecommerce-dataset && \
+print_and_execute "kaggle datasets download --force --unzip PromptCloudHQ/flipkart-products && \
 gcloud storage cp flipkart_com-ecommerce_sample.csv \
 gs://${MLP_DATA_BUCKET}/flipkart_raw_dataset/flipkart_com-ecommerce_sample.csv && \
 rm flipkart_com-ecommerce_sample.csv"

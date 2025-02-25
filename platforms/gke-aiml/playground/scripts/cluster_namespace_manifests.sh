@@ -31,7 +31,7 @@ namespace_template_directory="templates/_namespace_template"
 namespace_template_path="${GIT_REPOSITORY_PATH}/${namespace_template_directory}"
 
 if [ ! -d "${namespace_path}" ]; then
-  echo "${K8S_NAMESPACE} folder doesnt exist in the configsync repo"
+  echo "${K8S_NAMESPACE} folder doesn't exist in the configsync repo"
   exit 100
 fi
 

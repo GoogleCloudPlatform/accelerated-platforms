@@ -1,4 +1,4 @@
-# Prequisites for use cases
+# Prerequisites for use cases
 
 This document walks you through downloading various prerequisite files for the
 respective [use cases](/use-cases) within this repository. Use cases that

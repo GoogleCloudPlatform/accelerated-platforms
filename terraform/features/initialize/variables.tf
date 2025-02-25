@@ -47,7 +47,7 @@ variable "project" {
   # Validate format of variables
   validation {
     condition     = var.project.billing_account_id == "" || can(regex("^[[:xdigit:]]{6}-[[:xdigit:]]{6}-[[:xdigit:]]{6}$", var.project.billing_account_id))
-    error_message = "Google Cloud billing account ID can only contain hexidecimal characters[0-9A-Fa-f] and must be in the format XXXXXX-XXXXXX-XXXXXX."
+    error_message = "Google Cloud billing account ID can only contain hexadecimal characters[0-9A-Fa-f] and must be in the format XXXXXX-XXXXXX-XXXXXX."
   }
 
   validation {

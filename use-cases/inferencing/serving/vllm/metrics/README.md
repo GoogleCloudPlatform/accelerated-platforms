@@ -104,7 +104,7 @@ For more details, see
 
 ### Create a Cloud Monitoring custom dashboard
 
-After you've verified that the vLLM metrics are available in Cloud Monitoringn
+After you've verified that the vLLM metrics are available in Cloud Monitoring
 using the metrics explorer, you can create a custom vLLM dashboard by running
 the following command:
 

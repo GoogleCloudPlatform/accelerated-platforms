@@ -188,7 +188,7 @@ parameters, code versions, metrics, and output files when running your machine
 learning code and for later visualizing the results.
 
 When you use the
-[playgroud configuration](/platforms/gke-aiml/playground/README.md), MLflow
+[playground configuration](/platforms/gke-aiml/playground/README.md), MLflow
 Tracking has been installed for you.
 
 You can run the following command to get the URL:

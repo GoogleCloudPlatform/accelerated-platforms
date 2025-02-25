@@ -29,4 +29,4 @@ rm -rf \
 platforms/gke-aiml/playground/.terraform \
 terraform/features/initialize/.terraform \
 terraform/features/initialize/backend.tf.local \
-terraform/features/initialize/stateck.hcl"
+terraform/features/initialize/.terraform.lock.hcl"

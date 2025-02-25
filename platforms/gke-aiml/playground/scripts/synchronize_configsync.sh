@@ -21,8 +21,8 @@ SCRIPT_PATH="$(
 if [ -z ${GIT_REPOSITORY:-} ]; then
     ${SCRIPT_PATH}/helpers/generate_oic_image.sh
 
-    LASTEST_SHA=$(crane digest ${CONFIGSYNC_IMAGE})
-    LAST_COMMIT=${LASTEST_SHA##sha256:}
+    LATEST_SHA=$(crane digest ${CONFIGSYNC_IMAGE})
+    LAST_COMMIT=${LATEST_SHA##sha256:}
 else
     source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
 

@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-locals {
-  wi_member           = "${local.wi_principal_prefix}/ns/${local.config_management_kubernetes_namespace}/sa/${local.config_management_kubernetes_service_account}"
-  wi_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
-}
-
 resource "google_artifact_registry_repository" "repository" {
   for_each = toset(var.configmanagement_sync_repo == null ? ["new"] : [])
 
@@ -30,14 +25,4 @@ resource "google_artifact_registry_repository" "repository" {
       labels
     ]
   }
-}
-
-resource "google_artifact_registry_repository_iam_member" "artifactregistry_reader" {
-  for_each = toset(var.configmanagement_sync_repo == null ? ["new"] : [])
-
-  location   = google_artifact_registry_repository.repository["new"].location
-  member     = local.wi_member
-  project    = google_artifact_registry_repository.repository["new"].project
-  repository = google_artifact_registry_repository.repository["new"].repository_id
-  role       = "roles/artifactregistry.reader"
 }

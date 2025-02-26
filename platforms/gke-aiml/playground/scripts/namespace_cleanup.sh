@@ -60,14 +60,14 @@ if [ ! -z ${GIT_REPOSITORY:-} ]; then
 else
     ${SCRIPT_PATH}/helpers/generate_oic_image.sh
 
-    LASTEST_SHA=$(crane digest ${CONFIGSYNC_IMAGE})
-    LAST_COMMIT=${LASTEST_SHA##sha256:}
+    LATEST_SHA=$(crane digest ${CONFIGSYNC_IMAGE})
+    LAST_COMMIT=${LATEST_SHA##sha256:}
 fi
 
 #TODO: Do we need to wait for a sync?
 #${SCRIPT_PATH}/helpers/wait_for_root_sync.sh ${LAST_COMMIT}
 
-echo "Deleteing the namespace '${K8S_NAMESPACE}'..."
+echo "Deleting the namespace '${K8S_NAMESPACE}'..."
 kubectl --namespace ${K8S_NAMESPACE} delete all --all
 kubectl delete namespace ${K8S_NAMESPACE}
 echo "Namespace '${K8S_NAMESPACE}', deleted"

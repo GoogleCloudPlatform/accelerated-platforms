@@ -2,7 +2,7 @@
 
 Jupyter notebook is widely used by data scientists and machine learning experts
 in their day to day work to interactively and iteratively develop. However, the
-`ipynb` format is typically not used as a deployable or packagable artifact.
+`ipynb` format is typically not used as a deployable or packageable artifact.
 There are two scenarios that notebooks are converted to deployable/package
 artifacts:
 

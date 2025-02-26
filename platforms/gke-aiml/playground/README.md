@@ -424,7 +424,7 @@ Shell:
 
   ```
   NAME                                READY   STATUS    RESTARTS   AGE
-  kuberay-operator-56b8d98766-2nvht   1/1     Running   0          6m26s
+  kuberay-operator-XXXXXXXXXX-XXXXX   1/1     Running   0          6m26s
   ```
 
 - Check the namespace created:
@@ -470,7 +470,7 @@ Shell:
   ```
   NAME                                           READY   STATUS    RESTARTS   AGE
   ray-cluster-kuberay-head-sp6dg                 2/2     Running   0          3m21s
-  ray-cluster-kuberay-worker-workergroup-rzpjw   2/2     Running   0          3m21s
+  ray-cluster-kuberay-worker-workergroup-XXXXX   2/2     Running   0          3m21s
   mlflow-tracking-6f9bb844f9-4749n               2/2     Running   0          3m13s
   ```
 

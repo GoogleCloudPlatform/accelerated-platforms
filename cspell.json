@@ -1,0 +1,83 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "dictionaryDefinitions": [
+    {
+      "name": "accelerated-platforms",
+      "path": ".github/workflows/dictionary/accelerated-platforms.txt",
+    },
+    {
+      "name": "flipkart",
+      "path": ".github/workflows/dictionary/flipkart.txt",
+    },
+    {
+      "name": "google-cloud",
+      "path": ".github/workflows/dictionary/google-cloud.txt",
+    },
+    {
+      "name": "huggingface",
+      "path": ".github/workflows/dictionary/huggingface.txt",
+    },
+    {
+      "name": "kubeflow",
+      "path": ".github/workflows/dictionary/kubeflow.txt",
+    },
+    {
+      "name": "kubernetes",
+      "path": ".github/workflows/dictionary/kubernetes.txt",
+    },
+    {
+      "name": "kueue",
+      "path": ".github/workflows/dictionary/kueue.txt",
+    },
+    {
+      "name": "nvidia",
+      "path": ".github/workflows/dictionary/nvidia.txt",
+    },
+    {
+      "name": "python",
+      "path": ".github/workflows/dictionary/python.txt",
+    },
+    {
+      "name": "ray",
+      "path": ".github/workflows/dictionary/ray.txt",
+    },
+    {
+      "name": "shell",
+      "path": ".github/workflows/dictionary/shell.txt",
+    },
+    {
+      "name": "svg",
+      "path": ".github/workflows/dictionary/svg.txt",
+    },
+    {
+      "name": "terraform",
+      "path": ".github/workflows/dictionary/terraform.txt",
+    },
+    {
+      "name": "vllm",
+      "path": ".github/workflows/dictionary/vllm.txt",
+    },
+  ],
+  "dictionaries": [
+    "accelerated-platforms",
+    "flipkart",
+    "google-cloud",
+    "huggingface",
+    "kubeflow",
+    "kubernetes",
+    "kueue",
+    "nvidia",
+    "python",
+    "ray",
+    "shell",
+    "svg",
+    "terraform",
+    "vllm",
+  ],
+  "ignorePaths": [
+    "node_modules",
+    "use-cases/inferencing/batch-inference/example_predictions.txt",
+    "use-cases/model-fine-tuning-pipeline/model-eval/examples/",
+  ],
+}

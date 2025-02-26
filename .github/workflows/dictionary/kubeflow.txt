@@ -1,0 +1,13 @@
+kubeflow
+mpijob
+mpijobs
+mxjob
+mxjobs
+paddlejob
+paddlejobs
+pytorchjob
+pytorchjobs
+tfjob
+tfjobs
+xgboostjob
+xgboostjobs

@@ -51,8 +51,8 @@ if [ ! -z ${GIT_REPOSITORY:-} ]; then
 else
     ${SCRIPT_PATH}/helpers/generate_oic_image.sh
 
-    LASTEST_SHA=$(crane digest ${CONFIGSYNC_IMAGE})
-    LAST_COMMIT=${LASTEST_SHA##sha256:}
+    LATEST_SHA=$(crane digest ${CONFIGSYNC_IMAGE})
+    LAST_COMMIT=${LATEST_SHA##sha256:}
 fi
 
 ${SCRIPT_PATH}/helpers/wait_for_repo_sync.sh ${LAST_COMMIT}

@@ -51,7 +51,7 @@ fi
 # terraform destroy
 ###############################################################################
 if lock_is_set "terraform_destroy"; then
-    echo_bold "Terraform destory previously completed successfully"
+    echo_bold "Terraform destroy previously completed successfully"
 else
     export TF_VAR_git_token=$(tr --delete '\n' <${HOME}/secrets/mlp-github-token)
     source ${SCRIPTS_DIR}/helpers/terraform_destroy.sh

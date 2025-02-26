@@ -1,0 +1,5 @@
+errexit
+nounset
+pipefail
+pkill
+zxvf

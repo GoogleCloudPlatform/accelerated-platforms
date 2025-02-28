@@ -28,13 +28,13 @@ spec:
     spec:
       containers:
       - name: rag-frontend
-        image: V_IMAGE
+        image: ${CONTAINER_IMAGE_URL}
         imagePullPolicy: Always
         ports:
         - containerPort: 7860
         env:
         - name: BACKEND_SERVICE_ENDPOINT
-          value: V_BACKEND_SERVICE_ENDPOINT
+          value: "${BACKEND_SERVICE_ENDPOINT}"
         resources:
           requests:
             cpu: "512m"

@@ -26,12 +26,12 @@ spec:
       labels:
         app: multimodal-embedding-model
     spec:
-      serviceAccountName: V_KSA
+      serviceAccountName: ${KUBERNETES_SERVICE_ACCOUNT}
       containers:
       - env:
         - name: "PORT"
           value: "5000"
-        image: V_IMAGE
+        image: ${CONTAINER_IMAGE_URL}
         imagePullPolicy: Always
         name: multimodal-embedding-model
         resources:

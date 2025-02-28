@@ -9,7 +9,7 @@ the catalog. This approach not only improves the customer experience by
 providing relevant alternatives but also helps reduce lost sales and potentially
 increases average order value.
 
-## Here's how it works:
+## How it works
 
 Understanding Customer Intent: The system analyzes the customer's search query
 (e.g., "blue cotton t-shirt") to understand the key attributes and features they
@@ -24,7 +24,7 @@ even if they don't share the exact same words.
 system generates a list of relevant product recommendations. These might
 include:
 
-**Cosine Simlarity:** Cosine similarity measures how similar two items are by
+**Cosine Similarity:** Cosine similarity measures how similar two items are by
 looking at the angle between their vector representations.
 
 Cosine: Cosine is a mathematical function that tells you how much two vectors
@@ -55,14 +55,6 @@ sweaters.
 relevance and presented to the customer in a clear and appealing way,
 encouraging them to continue shopping.
 
-## Data Preprocessing for RAG
-
-We need a input dataset to feed to our RAG pipeline. We take a raw dataset and
-filter and clean it up to prepare it for our RAG pipeline. Perform the data
-preprocessing steps as described in
-[README](/use-cases/rag-pipeline/data-preprocessing/README.md) to prepare input
-dataset.
-
 ## Architecture
 
 ![RAG Architecture](./docs/arch-rag-architecture-flow.png)
@@ -83,8 +75,8 @@ Let's break down the flow step-by-step:
 
 2. **Get Embeddings:**
 
-   The user's query is sent to the "Backend Application". Within the Backend
-   Application, the query is processed by an "Embedding Model Endpoint".
+   The user's query is sent to the "backend application". Within the backend
+   application, the query is processed by an "embedding model endpoint".
 
 3. **Embedding Model Endpoint:**
 
@@ -96,8 +88,8 @@ Let's break down the flow step-by-step:
 
 4. **Get Embeddings (Continued):**
 
-   The Backend Application receives the embedding vector from the Embedding
-   Model Endpoint.
+   The backend application receives the embedding vector from the embedding
+   model endpoint.
 
 5. **Scann Index:**
 
@@ -121,12 +113,12 @@ Let's break down the flow step-by-step:
 7. **Instruction Tuned Model Endpoint:**
 
    These retrieved similar product information is then sent to an "Instruction
-   Tuned Model Endpoint". This endpoint hosts a specific version of Gemini
+   Tuned Model Endpoint". This endpoint hosts a specific version of the Gemma 2B
    instruction tuned
    model(gemma-2b-it)[https://huggingface.co/google/gemma-2b-it] that's been
    trained with a focus on understanding and responding to instructions
-   effectively. Instruction tuned model is provided with a specific instructions
-   as a prompt to re-rank the search results.
+   effectively. The instruction tuned model is provided with a specific
+   instructions as a prompt to re-rank the search results.
 
 8. **Re-Rank Search Results with LLM:**
 
@@ -136,7 +128,7 @@ Let's break down the flow step-by-step:
 
 9. **Suggest Products:**
 
-   The Backend Application receives the re-ranked product list from the
+   The backend application receives the re-ranked product list from the
    Instruction Tuned Model Endpoint.This list is sent as Product Recommendations
    to the Gradio Chat Interface.
 
@@ -156,99 +148,74 @@ the Scann Index to reflect catalog changes
 This section outlines the steps to set up the Retrieval Augmented Generation
 (RAG) pipeline for product recommendations.
 
-1. **Create the Vector Store:** Create the `product_catalog` database in
-   [AlloyDB](https://cloud.google.com/alloydb/docs/introduction). This database
-   will house the `clothes` table, which stores product catalog information.
-
-2. **Deploy the Embedding Model:** Deploy the
+1. **Deploy the Embedding Model:** Deploy the
    [Blip2 multimodal](https://github.com/salesforce/LAVIS/blob/main/examples/blip_feature_extraction.ipynb)embedding
    model. This model generates text, image, and multimodal embeddings for each
    product.
 
-3. **Generate and Store Embeddings:** Use an ETL pipeline to generate embeddings
+1. **Create the Vector Store:** Create the `product_catalog` database in
+   [AlloyDB](https://cloud.google.com/alloydb/docs/introduction). This database
+   will house the `clothes` table, which stores product catalog information.
+
+1. **Generate and Store Embeddings:** Use an ETL pipeline to generate embeddings
    (text, image, and multimodal) using the deployed Blip2 model. Store these
    embeddings in separate columns within the `clothes` table in AlloyDB.
 
-4. **Deploy the Instruction-Tuned Model:** Deploy the
+1. **Deploy the Instruction-Tuned Model:** Deploy the
    [gemma-2b-it model](https://huggingface.co/google/gemma-2b-it). This model
    generates natural language responses and product recommendations based on
    user queries and retrieved product information.
 
-5. **Deploy the Backend API:** Deploy the FastAPI backend. This API serves as
+1. **Deploy the Backend API:** Deploy the FastAPI backend. This API serves as
    the interface between the user interface, embedding model, instruction-tuned
    model, and the AlloyDB vector store. It processes user prompts and generates
    product recommendations.
 
-6. **Deploy the Frontend UI:** Deploy the [gradio](https://gradio.app/) based
+1. **Deploy the Frontend UI:** Deploy the [gradio](https://gradio.app/) based
    frontend UI. This UI provides a chatbot interface for end-users to interact
    with the RAG pipeline and receive product recommendations.
 
-## Prerequisites
+## Deploy RAG Components
+
+This section outlines the steps to deploy the Retrieval Augmented Generation
+(RAG) pipeline to the playground cluster.
+
+### Prerequisites
 
 - Use the existing
   [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
   are using a different environment the scripts and manifest will need to be
   modified for that environment.
-- Run [data preprocessing for RAG](#data-preprocessing-for-rag)
 
-#### Set variable for the ML playground environment
+### Data Preprocessing for RAG
 
-- Clone the repository
+We need a input dataset to feed to our RAG pipeline. We take a raw dataset and
+filter and clean it up to prepare it for our RAG pipeline. Perform the data
+preprocessing steps as described in
+[README](/use-cases/rag-pipeline/data-preprocessing/README.md) to prepare input
+dataset.
 
-  ```sh
-  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms
-  ```
-
-- Change directory to the guide directory
-
-  ```sh
-  cd use-cases/rag-pipeline
-  ```
-
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
-
-  ```sh
-  cat ${MLP_ENVIRONMENT_FILE} && \
-  source ${MLP_ENVIRONMENT_FILE}
-  ```
-
-  > You should see the various variables populated with the information specific
-  > to your environment.
-
-- Get credentials for the GKE cluster
-
-  ```sh
-  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
-  ```
-
-# Deploy RAG Application Components
-
-This section outlines the steps to deploy the Retrieval Augmented Generation
-(RAG) pipeline to the playground cluster. The components should be deployed in
-the following order:
-
-## Deploy the Multimodal Model on the playground cluster
+### Deploy the Multimodal Model on the playground cluster
 
 Deploy multimodal model on ML playground, follow the
 [README](/use-cases/rag-pipeline/embedding-models/multimodal-embedding/README.md)
 
-## Deploy instruction tuned model on the playground cluster
+### Deploy instruction tuned model on the playground cluster
 
 Deploy instruction tuned model on ML playground, follow the
 [README](/use-cases/rag-pipeline/instruction-tuned-model/README.md)
 
-## Create database `product_catalog` in alloyDB to import Product Catalog
+### Create database `product_catalog` in alloyDB to import Product Catalog
 
 Deploy database setup kubernetes job on the ML playground cluster, follow the
 [README](/use-cases/rag-pipeline/alloy-db-setup/README.md)
 
-## Deploy the backend on the playground cluster
+### Deploy the backend on the playground cluster
 
 Deploy backend application on the ML playground cluster, follow the
 [README](/use-cases/rag-pipeline/backend/README.md)
 
-## Deploy the frontend on the playground cluster
+### Deploy the frontend on the playground cluster
 
 Deploy frontend application on the MLP playground cluster, follow the
 [README](/use-cases/rag-pipeline/frontend/README.md)

@@ -35,3 +35,24 @@ variable "federated_learning_nvidia_flare_tff_example_localized_container_image_
   description = "Container image id (localized with the repository) of the NVIDIA FLARE container image to deploy"
   type        = string
 }
+
+variable "federated_learning_nvidia_flare_tff_example_tenant_name" {
+  default     = ""
+  description = "Name of the tenant where to deploy NVIDIA FLARE workloads"
+  type        = string
+}
+
+variable "federated_learning_nvidia_flare_tff_example_workloads_to_deploy" {
+  default = [
+    "client1",
+    "client2",
+    "server1"
+  ]
+  description = "List of the NVIDIA FLARE workloads to deploy in the cluster."
+  type        = list(string)
+
+  validation {
+    condition     = contains(var.federated_learning_nvidia_flare_tff_example_workloads_to_deploy, "client1") || contains(var.federated_learning_nvidia_flare_tff_example_workloads_to_deploy, "client2") || contains(var.federated_learning_nvidia_flare_tff_example_workloads_to_deploy, "server1")
+    error_message = "Valid values are: client1, client2, server1"
+  }
+}

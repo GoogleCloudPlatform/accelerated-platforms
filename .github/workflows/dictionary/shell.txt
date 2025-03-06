@@ -1,5 +1,6 @@
 chdir
 errexit
+getopt
 nounset
 pipefail
 pkill

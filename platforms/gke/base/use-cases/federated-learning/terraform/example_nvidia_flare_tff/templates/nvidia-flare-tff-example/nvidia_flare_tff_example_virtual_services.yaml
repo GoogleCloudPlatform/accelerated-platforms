@@ -1,0 +1,103 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+%{ if startswith(nvidia_flare_tff_example_workload_name, "server") }
+---
+# Direct traffic from the sidecars to the egress gateway and from the egress gateway to the external service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: distributed-tff-example-worker-1-through-egress-gateway
+  namespace: ${namespace_name}
+spec:
+  hosts:
+    - client1.${nvidia_flare_tff_example_site_domain}
+  gateways:
+    - istio-egress/egress-gateway
+    - mesh
+  tcp:
+    - match:
+        - gateways:
+            - mesh
+          port: 8002
+      route:
+        - destination:
+            host: istio-egressgateway.istio-egress.svc.cluster.local
+            port:
+              number: 8443
+          weight: 100
+    - match:
+        - gateways:
+            - istio-egress/egress-gateway
+          port: 8443
+      route:
+        - destination:
+            host: client1.${nvidia_flare_tff_example_site_domain}
+            port:
+              number: 443
+          weight: 100
+---
+# Direct traffic from the sidecars to the egress gateway and from the egress gateway to the external service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: distributed-tff-example-worker-2-through-egress-gateway
+  namespace: ${namespace_name}
+spec:
+  hosts:
+    - client2.${nvidia_flare_tff_example_site_domain}
+  gateways:
+    - istio-egress/egress-gateway
+    - mesh
+  tcp:
+    - match:
+        - gateways:
+            - mesh
+          port: 8002
+      route:
+        - destination:
+            host: istio-egressgateway.istio-egress.svc.cluster.local
+            port:
+              number: 8443
+          weight: 100
+    - match:
+        - gateways:
+            - istio-egress/egress-gateway
+          port: 8443
+      route:
+        - destination:
+            host: client2.${nvidia_flare_tff_example_site_domain}
+            port:
+              number: 443
+          weight: 100
+%{ endif }
+%{ if startswith(nvidia_flare_tff_example_workload_name, "client") }
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: client-ingress-gateway
+  namespace: ${namespace_name}
+spec:
+  hosts:
+    - "${nvidia_flare_tff_example_workload_name}.${nvidia_flare_tff_example_site_domain}"
+  gateways:
+    - istio-ingress/ingress-gateway
+  tcp:
+    - route:
+        - destination:
+            host: ${nvidia_flare_tff_example_workload_name}.${namespace_name}.svc.cluster.local
+            port:
+              number: 8002
+%{ endif }

@@ -14,7 +14,7 @@
 
 resource "google_compute_network_firewall_policy" "federated_learning_fw_policy" {
   description = "Federated learning firewall policy"
-  name        = "${local.cluster_name}-federated-learning-firewall-policy"
+  name        = local.federated_learning_firewall_policy_name
   project     = data.google_project.default.project_id
 }
 

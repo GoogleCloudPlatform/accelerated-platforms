@@ -1,0 +1,6 @@
+# Ignore all files in this directory because we use it to store the generated
+# NVFLARE workspace files
+*
+
+# Except for .gitignore
+!.gitignore

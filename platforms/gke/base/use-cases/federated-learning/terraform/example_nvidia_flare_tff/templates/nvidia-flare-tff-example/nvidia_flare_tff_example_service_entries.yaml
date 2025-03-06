@@ -1,0 +1,71 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+%{ if startswith(nvidia_flare_tff_example_workload_name, "client") }
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: nvidia-flare-tff-example-server
+  namespace: istio-system
+  labels:
+    service.istio.io/canonical-name: server1.${nvidia_flare_tff_example_site_domain}
+spec:
+  hosts:
+    - server1.${nvidia_flare_tff_example_site_domain}
+  ports:
+    - number: 8002
+      name: flport
+      protocol: TCP
+    - number: 8003
+      name: adminport
+      protocol: TCP
+  resolution: DNS
+  location: MESH_EXTERNAL
+%{ endif }
+%{ if startswith(nvidia_flare_tff_example_workload_name, "server") }
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: nvidia-flare-tff-example-client1
+  namespace: istio-system
+  labels:
+    service.istio.io/canonical-name: client1.${nvidia_flare_tff_example_site_domain}
+spec:
+  hosts:
+    - client1.${nvidia_flare_tff_example_site_domain}
+  ports:
+    - number: 8002
+      name: flport
+      protocol: TCP
+  resolution: DNS
+  location: MESH_EXTERNAL
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: nvidia-flare-tff-example-client2
+  namespace: istio-system
+  labels:
+    service.istio.io/canonical-name: client2.${nvidia_flare_tff_example_site_domain}
+spec:
+  hosts:
+    - client2.${nvidia_flare_tff_example_site_domain}
+  ports:
+    - number: 8002
+      name: flport
+      protocol: TCP
+  resolution: DNS
+  location: MESH_EXTERNAL
+%{ endif }

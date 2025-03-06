@@ -97,6 +97,8 @@ locals {
   )
 
   tenant_apps_kubernetes_service_account_name = "fl-ksa"
+
+  federated_learning_firewall_policy_name = "${local.cluster_name}-federated-learning-firewall-policy"
 }
 
 variable "federated_learning_cloud_storage_buckets" {

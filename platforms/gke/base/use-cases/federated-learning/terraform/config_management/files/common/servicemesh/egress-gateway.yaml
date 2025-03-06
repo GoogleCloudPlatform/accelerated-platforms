@@ -172,3 +172,40 @@ spec:
           simple: ROUND_ROBIN
         tls:
           mode: ISTIO_MUTUAL
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: egress-gateway
+  namespace: istio-egress
+spec:
+  selector:
+    istio: egressgateway
+  servers:
+    - port:
+        number: 8080
+        name: http2
+        protocol: HTTP2
+      hosts:
+        - "*"
+    - port:
+        number: 8443
+        name: https
+        protocol: TCP
+      hosts:
+        - "*"
+    - port:
+        number: 15021
+        name: status-port
+        protocol: TCP
+      hosts:
+        - "*"
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-all-egress-from-egressgateway
+  namespace: istio-egress
+spec:
+  rules:
+    - {}

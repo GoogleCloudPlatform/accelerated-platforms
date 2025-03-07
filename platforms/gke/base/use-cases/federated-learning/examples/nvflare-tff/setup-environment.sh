@@ -40,6 +40,8 @@ NVFLARE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
   "federated_learning_nvidia_flare_tff_example_container_image_tag = \"federated_learning_nvidia_flare_tff_example_container_image_tag_placeholder\""
   "federated_learning_nvidia_flare_tff_example_deploy = true"
   "federated_learning_nvidia_flare_tff_example_localized_container_image_id = \"federated_learning_nvidia_flare_tff_localized_container_image_id_placeholder\""
+  "federated_learning_nvidia_flare_tff_example_tenant_name = \"${NVFLARE_EXAMPLE_TENANT_NAME}\""
+  "federated_learning_nvidia_flare_tff_example_workloads_to_deploy = federated_learning_nvidia_flare_tff_example_workloads_to_deploy_placeholder"
 )
 
 load_fl_terraform_outputs() {

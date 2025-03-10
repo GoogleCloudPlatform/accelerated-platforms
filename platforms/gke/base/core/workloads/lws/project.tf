@@ -12,22 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-#
-
-locals {
-  manifests_directory = abspath("${path.module}/../manifests")
-}
-
-variable "kueue_version" {
-  default     = "0.10.0"
-  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
-  type        = string
-}
-
-variable "lws_version" {
-  default     = "0.5.1"
-  description = "Version of LeaderWorkerSet(LWS) (https://github.com/kubernetes-sigs/lws/) to install."
-  type        = string
+data "google_project" "default" {
+  project_id = var.cluster_project_id
 }

@@ -31,3 +31,9 @@ variable "kueue_version" {
   description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
   type        = string
 }
+
+variable "lws_version" {
+  default     = "0.5.1"
+  description = "Version of LeaderWorkerSet(LWS) (https://github.com/kubernetes-sigs/lws/) to install."
+  type        = string
+}

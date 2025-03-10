@@ -12,22 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-#
-
-locals {
-  manifests_directory = abspath("${path.module}/../manifests")
-}
-
-variable "jobset_version" {
-  default     = "0.8.0"
-  description = "Version of JobSet (https://github.com/kubernetes-sigs/jobset/) to install."
-  type        = string
-}
-
-variable "kueue_version" {
-  default     = "0.10.0"
-  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
-  type        = string
+data "google_project" "default" {
+  project_id = var.cluster_project_id
 }

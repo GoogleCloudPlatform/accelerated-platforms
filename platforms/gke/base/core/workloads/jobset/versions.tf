@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-#
+terraform {
+  required_version = ">= 1.5.7"
 
-locals {
-  manifests_directory = abspath("${path.module}/../manifests")
-}
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.12.0"
+    }
+    google-beta = {
+      source  = "hashicorp/google-beta"
+      version = "6.12.0"
+    }
+  }
 
-variable "jobset_version" {
-  default     = "0.8.0"
-  description = "Version of JobSet (https://github.com/kubernetes-sigs/jobset/) to install."
-  type        = string
-}
-
-variable "kueue_version" {
-  default     = "0.10.0"
-  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
-  type        = string
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_gke_base_core_workloads_lws_deploy-v1"
+  }
 }

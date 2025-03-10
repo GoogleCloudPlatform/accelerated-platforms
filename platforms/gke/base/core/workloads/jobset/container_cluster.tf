@@ -12,22 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-#
+resource "null_resource" "cluster_credentials" {
+  provisioner "local-exec" {
+    command     = <<EOT
+KUBECONFIG=${self.triggers.kubeconfig_file} ${local.cluster_credentials_command} 
+EOT
+    interpreter = ["bash", "-c"]
+    working_dir = path.module
+  }
 
-locals {
-  manifests_directory = abspath("${path.module}/../manifests")
-}
+  provisioner "local-exec" {
+    command     = "rm -rf ${self.triggers.kubeconfig_file}"
+    interpreter = ["bash", "-c"]
+    when        = destroy
+    working_dir = path.module
+  }
 
-variable "jobset_version" {
-  default     = "0.8.0"
-  description = "Version of JobSet (https://github.com/kubernetes-sigs/jobset/) to install."
-  type        = string
-}
-
-variable "kueue_version" {
-  default     = "0.10.0"
-  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
-  type        = string
+  triggers = {
+    always_run      = timestamp()
+    kubeconfig_file = local.kubeconfig_file
+  }
 }

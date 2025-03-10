@@ -43,7 +43,7 @@ narrowed it down to clothing products, \~4500 products, that included both a
 description and an image.
 
 For further information about data preparation and cleaning, please check here:
-[RAG: Data preprocessing](https://github.com/GoogleCloudPlatform/accelerated-platforms/blob/int-rag/use-cases/rag-pipeline/data-preprocessing/README.md)
+[RAG: Data preprocessing](/use-cases/rag-pipeline/data-preprocessing/README.md)
 
 ## Product Catalog Onboarding
 
@@ -107,14 +107,13 @@ overfitting.
 
 The instructions to deploy BLIP2 on GKE for this RAG architecture can be found
 here:
-[RAG: Multimodal embedding model](https://github.com/GoogleCloudPlatform/accelerated-platforms/blob/int-rag/use-cases/rag-pipeline/embedding-models/multimodal-embedding/README.md)
+[RAG: Multimodal embedding model](/use-cases/rag-pipeline/embedding-models/multimodal-embedding/README.md)
 
 ### Database and the extensions
 
-We are using
-[AlloyDB](https://cloud.google.com/alloydb/docs?_gl=1*1reks4c*_up*MQ..&gclid=CjwKCAiA5pq-BhBuEiwAvkzVZX-P4LPefA7NZt0f1FzUSLyHIW40qvQyH-facZ4C21D5N6UXFTbxTBoCZqIQAvD_BwE&gclsrc=aw.ds),
-a fully-managed, PostgreSQL-compatible database as the central database to host
-the product catalog.
+We are using [AlloyDB](https://cloud.google.com/alloydb/docs), a fully-managed,
+PostgreSQL-compatible database as the central database to host the product
+catalog.
 
 AlloyDB supports two key extensions for vector search and indexing:
 
@@ -138,7 +137,7 @@ impractical due to the sheer magnitude of data. Therefore, asynchronous
 onboarding methodologies are essential.
 
 The implementation of the product catalog onboarding can be found here:
-[RAG: Database setup and initialization](https://github.com/GoogleCloudPlatform/accelerated-platforms/blob/int-rag/use-cases/rag-pipeline/alloy-db-setup/README.md)
+[RAG: Database setup and initialization](/use-cases/rag-pipeline/alloy-db-setup/README.md)
 
 ## Backend Services
 
@@ -172,23 +171,21 @@ model, which then re-ranks potential recommendations. The instruction tuned
 model outperformed the
 [Gemma 2 2B pre-trained](https://huggingface.co/google/gemma-2-2b) model when
 provided with
-[instructions](https://github.com/GoogleCloudPlatform/accelerated-platforms/blob/int-rag/use-cases/rag-pipeline/backend/src/prompt_helper.py#L42)
-to re-rank the products. The team attempted to leverage the fine-tuned Gemma 2
-9B IT from
-[another use case](https://github.com/GoogleCloudPlatform/accelerated-platforms/tree/main/docs/use-cases/model-fine-tuning-pipeline)
-with the same product catalog, but the model did not produce the desired
-results. This was primarily because the model was fine-tuned for a different
-purpose.
+[instructions](/use-cases/rag-pipeline/backend/src/prompt_helper.py#L42) to
+re-rank the products. The team attempted to leverage the fine-tuned Gemma 2 9B
+IT from [another use case](/docs/use-cases/model-fine-tuning-pipeline) with the
+same product catalog, but the model did not produce the desired results. This
+was primarily because the model was fine-tuned for a different purpose.
 
 The instructions to deploy the Gemma 2 2B IT model on GKE is available here:
-[RAG: Instruction tuned model](https://github.com/GoogleCloudPlatform/accelerated-platforms/blob/int-rag/use-cases/rag-pipeline/instruction-tuned-model/README.md)
+[RAG: Instruction tuned model](/use-cases/rag-pipeline/instruction-tuned-model/README.md)
 
 In this RAG architecture the Retrieval and Re-Ranking approach is implemented as
 a backend service using [FastAPI](https://github.com/fastapi), to interface with
 multimodal embeddings model, instruction tuned model and AlloyDB vector store to
 generate product recommendations based on user queries. The implementation
 details can be found at:
-[RAG: Backend Deployment](https://github.com/GoogleCloudPlatform/accelerated-platforms/blob/int-rag/use-cases/rag-pipeline/backend/README.md)
+[RAG: Backend Deployment](/use-cases/rag-pipeline/backend/README.md)
 
 ## Frontend
 
@@ -199,7 +196,7 @@ framework was chosen to showcase the three methods (text, image, text+image) to
 interact with the implementation.
 
 The implementation details are available here:
-[RAG: Frontend deployment](https://github.com/GoogleCloudPlatform/accelerated-platforms/blob/int-rag/use-cases/rag-pipeline/frontend/README.md)
+[RAG: Frontend deployment](/use-cases/rag-pipeline/frontend/README.md)
 
 ## Search Query and Response from RAG application
 

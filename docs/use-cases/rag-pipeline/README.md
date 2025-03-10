@@ -33,7 +33,6 @@ to the frontend.
 
 ![RAG Architecture](images/arch-rag-architecture-flow.png)
 
-
 ## Product Catalog Preparation
 
 For this example, we used a

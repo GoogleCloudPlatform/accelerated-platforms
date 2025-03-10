@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,22 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-#
+terraform {
+  required_version = ">= 1.5.7"
 
-locals {
-  manifests_directory_root = "${path.module}/../../../kubernetes/manifests"
-}
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.12.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.2"
+    }
+  }
 
-variable "jobset_version" {
-  default     = "0.8.0"
-  description = "Version of JobSet (https://github.com/kubernetes-sigs/jobset/) to install."
-  type        = string
-}
-
-variable "kueue_version" {
-  default     = "0.10.2"
-  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
-  type        = string
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_gke_base_core_workloads_jobset_deploy-v1"
+  }
 }

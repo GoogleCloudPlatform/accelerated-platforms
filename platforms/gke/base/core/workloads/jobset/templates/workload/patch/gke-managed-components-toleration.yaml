@@ -1,0 +1,12 @@
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: not-applicable
+spec:
+  template:
+    spec:
+      tolerations:
+      - effect: NoSchedule
+        key: "components.gke.io/gke-managed-components"
+        operator: "Equal"
+        value: "true"

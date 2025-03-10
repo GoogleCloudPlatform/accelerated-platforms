@@ -7,10 +7,7 @@ enhance product recommendations in an e-commerce setting.
 
 ![RAG Architecture](./docs/arch-rag-architecture-flow.png)
 
-### Setting up the RAG Pipeline deployment
-
-This section outlines the steps to set up the Retrieval Augmented Generation
-(RAG) pipeline for product recommendations.
+## Setting up the RAG Pipeline deployment
 
 ### Prerequisites
 
@@ -27,10 +24,10 @@ preprocessing steps as described in
 [README](/use-cases/rag-pipeline/data-preprocessing/README.md) to prepare input
 dataset.
 
-## Deploy RAG Components
+### Deploy RAG Components
 
-This section outlines the steps to deploy the Retrieval Augmented Generation
-(RAG) pipeline to the playground cluster.
+This section outlines the steps to deploy the RAG pipeline to the playground
+cluster.
 
 ### 1. Deploy the Multimodal embedding Model on the playground cluster
 

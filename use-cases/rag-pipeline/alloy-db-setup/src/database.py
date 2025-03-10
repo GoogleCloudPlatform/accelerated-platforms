@@ -98,8 +98,8 @@ def enable_extensions(
                         )
                         logger.info(
                             "Extension '%s' enabled successfully on '%s' database",
-                            database_name,
                             extension,
+                            database_name,
                         )
     except Exception:
         logger.exception(

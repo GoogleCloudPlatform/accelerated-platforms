@@ -31,7 +31,8 @@ database. A backed service is made available to aggregate data from an
 instruction-tuned model and the vector embeddings to return an enriched response
 to the frontend.
 
-![RAG Architecture][images/arch-rag-architecture-flow.png]
+![RAG Architecture](images/arch-rag-architecture-flow.png)
+
 
 ## Product Catalog Preparation
 
@@ -208,15 +209,15 @@ application.
 
 ### Text only search
 
-![TEXT ONLY SEARCH][images/TextOnly.png]
+![TEXT ONLY SEARCH](images/TextOnly.png)
 
 ### Image only search
 
-![IMAGE ONLY SEARCH][images/ImageOnly.png]
+![IMAGE ONLY SEARCH](images/ImageOnly.png)
 
 ### Text \+ Image search
 
-![TEXT AND IMAGE SEARCH][images/TextAndImage.png]
+![TEXT AND IMAGE SEARCH](images/TextAndImage.png)
 
 ### Analysis of Results
 

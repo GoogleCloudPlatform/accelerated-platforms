@@ -5,7 +5,7 @@ enhance product recommendations in an e-commerce setting.
 
 ## Architecture
 
-![RAG Architecture](./docs/arch-rag-architecture-flow.png)
+![RAG Architecture](/docs/use-cases/rag-pipeline/images/arch-rag-architecture-flow.png)
 
 ## Setting up the RAG Pipeline deployment
 

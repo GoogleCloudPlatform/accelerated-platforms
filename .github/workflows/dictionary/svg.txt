@@ -1,4 +1,12 @@
 dasharray
+evenodd
+googleplex
+KHTML
+linecap
+linejoin
+miterlimit
+mxfile
+nowrap
 rgba
 tspan
 xlink

@@ -78,6 +78,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
     ignore_changes = [
       initial_node_count,
       node_config[0].labels,
+      node_config[0].resource_labels,
       node_config[0].taint,
     ]
   }
@@ -147,6 +148,7 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
     ignore_changes = [
       initial_node_count,
       node_config[0].labels,
+      node_config[0].resource_labels,
       node_config[0].taint,
     ]
   }

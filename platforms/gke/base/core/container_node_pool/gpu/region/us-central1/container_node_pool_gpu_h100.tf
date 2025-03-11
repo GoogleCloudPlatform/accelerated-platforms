@@ -42,6 +42,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8" {
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
+      node_config[0].resource_labels,
       node_config[0].taint,
     ]
   }
@@ -129,6 +130,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_dws" {
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
+      node_config[0].resource_labels,
       node_config[0].taint,
     ]
   }
@@ -220,6 +222,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_res" {
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
+      node_config[0].resource_labels,
       node_config[0].taint,
     ]
   }
@@ -307,6 +310,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_spot" {
   lifecycle {
     ignore_changes = [
       node_config[0].labels,
+      node_config[0].resource_labels,
       node_config[0].taint,
     ]
   }

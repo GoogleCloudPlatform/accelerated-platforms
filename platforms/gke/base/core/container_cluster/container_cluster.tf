@@ -276,6 +276,7 @@ resource "google_container_node_pool" "system" {
     ignore_changes = [
       initial_node_count,
       node_config[0].labels,
+      node_config[0].resource_labels,
       node_config[0].taint,
     ]
   }

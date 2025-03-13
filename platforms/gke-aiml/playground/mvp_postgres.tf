@@ -19,47 +19,46 @@ locals {
   postgresdb_user_ksa                = "${var.environment_name}-${var.namespace}-db-user"
 }
 
-# POSTGRESDB
+# postgresdb
 ###############################################################################
+
 resource "google_project_service" "sqladmin_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
   project                    = data.google_project.environment.project_id
-  service                    = "sqladmin_googleapis_com"
+  service                    = "sqladmin.googleapis.com"
 }
 
 resource "google_sql_database_instance" "mlflow_instance_prod" {
-  name             = "mlflow-instance-prod"
-  region           = var.region 
+  name             = "${local.unique_identifier_prefix}-instance-prod"
+  region           = var.region
+  project = data.google_project.environment.project_id
+  deletion_protection = false
   database_version = "POSTGRES_17"
   settings {
     tier          = "db-perf-optimized-N-8"
-    storage_auto_increase = true
-    storage_size  = 50 * 1024 * 1024 * 1024 # Convert GB to bytes
-    storage_type  = "SSD"
+    disk_autoresize = true
+    disk_size     = 250
     ip_configuration {
-      ipv4_enabled = false
-      private_network = google_compute_network.default.name 
-      private_ip_address = google_compute_global_address.private_ip_address.address # Use the reserved IP
+      psc_config {
+        psc_enabled = true
+        allowed_consumer_projects = [data.google_project.environment.number]
+      }
+      ipv4_enabled = false 
     }
   }
-  depends_on = [
-    google_service_networking_connection.private_vpc_connection,
-    google_project_service.sqladmin_googleapis_com
-  ]
-}
 
-resource "google_sql_database" "mlflow_database" {
-  name     = "mlflow"
-  instance = google_sql_database_instance.mlflow_instance_prod.name
-  depends_on = [google_project_service.sqladmin_googleapis_com]
+  depends_on = [
+    google_project_service.sqladmin_googleapis_com,
+  ]
 }
 
 # PSC CONSUMER
 ##############################################################################
-resource "google_compute_address" "postgres_psc_consumer_address" {
+resource "google_compute_address" "postgresdb_psc_consumer_address" {
   address_type = "INTERNAL"
-  name         = "${local.unique_identifier_prefix}-postgresdb-psc"
+  name         = "${local.unique_identifier_prefix}-psc-consumer-address"
+  purpose      = "Private Service Connect for Mlflow"
   project      = data.google_project.environment.project_id
   region       = var.region
   subnetwork   = google_compute_subnetwork.default.name
@@ -69,31 +68,31 @@ resource "google_compute_forwarding_rule" "postgresdb_psc_fwd_rule_consumer" {
   allow_psc_global_access = true
   ip_address              = google_compute_address.postgresdb_psc_consumer_address.id
   load_balancing_scheme   = "" # need to override EXTERNAL default when target is a service attachment
-  name                    = "${local.unique_identifier_prefix}-postgresdb-psc-fwd-rule-consumer-endpoint"
+  name                    = "${local.unique_identifier_prefix}-psc-fwd-rule-consumer-endpoint"
   network                 = google_compute_network.default.name
   project                 = data.google_project.environment.project_id
   region                  = var.region
-  target                  = google_postgresdb_instance.primary.psc_instance_config[0].service_attachment_link
+  target                  = google_sql_database_instance.mlflow_instance_prod.psc_service_attachment_link
 }
 
 resource "google_dns_response_policy" "network" {
   project              = data.google_project.environment.project_id
-  response_policy_name = "${local.unique_identifier_prefix}-rp"
+  response_policy_name = "${local.unique_identifier_prefix}-psc-dns-rp"
 
   networks {
     network_url = google_compute_network.default.id
   }
 }
 
-resource "google_dns_response_policy_rule" "postgresdb_primary_psc_dns_name" {
-  dns_name        = google_postgresdb_instance.primary.psc_instance_config[0].psc_dns_name
+resource "google_dns_response_policy_rule" "postgresdb_psc_dns_name" {
+  dns_name        = google_sql_database_instance.mlflow_instance_prod.dns_name
   project         = data.google_project.environment.project_id
   response_policy = google_dns_response_policy.network.response_policy_name
-  rule_name       = "${google_postgresdb_instance.primary.instance_id}-psc-dns-name"
+  rule_name       = "${google_sql_database_instance.mlflow_instance_prod.name}-psc-dns-name"
 
   local_data {
     local_datas {
-      name    = google_postgresdb_instance.primary.psc_instance_config[0].psc_dns_name
+      name    = google_sql_database_instance.mlflow_instance_prod.dns_name
       rrdatas = [google_compute_address.postgresdb_psc_consumer_address.address]
       ttl     = 300
       type    = "A"
@@ -105,13 +104,13 @@ resource "google_dns_response_policy_rule" "postgresdb_primary_psc_dns_name" {
 ###############################################################################
 resource "google_service_account" "postgresdb_superuser" {
   account_id   = "wi-${local.unique_identifier_prefix}-db-admin"
-  display_name = "${local.unique_identifier_prefix} AlloyDB Superuser"
+  display_name = "${local.unique_identifier_prefix}-postgresdb Superuser"
   project      = data.google_project.environment.project_id
 }
 
 resource "google_service_account" "postgresdb_user" {
   account_id   = "wi-${local.unique_identifier_prefix}-db-user"
-  display_name = "${local.unique_identifier_prefix} AlloyDB User"
+  display_name = "${local.unique_identifier_prefix} postgresdb User"
   project      = data.google_project.environment.project_id
 }
 
@@ -145,25 +144,24 @@ resource "kubernetes_service_account_v1" "postgresdb_user" {
   }
 }
 
-# POSGRESDB USER
+# postgresdb USERS
 ###############################################################################
-resource "google_postgresdb_user" "superuser" {
-  cluster = google_postgresdb_instance.primary.cluster
-  database_roles = [
-    "postgresdbiamuser",
-    "postgresdbsuperuser",
-  ]
-  user_id   = local.postgresdb_database_admin_iam_user
-  user_type = "POSTGRESDB_IAM_USER"
-}
+resource "google_sql_user" "postgresdb_database_admin" {
+  # Note: for Postgres only, GCP requires omitting the ".gserviceaccount.com" suffix
+  # from the service account email due to length limits on database usernames.
+  project = data.google_project.environment.project_id
+  name     = trimsuffix("${google_service_account.postgresdb_superuser.email}", ".gserviceaccount.com")
+  instance = google_sql_database_instance.mlflow_instance_prod.name
+  type     = "CLOUD_IAM_SERVICE_ACCOUNT"
+} 
 
-resource "google_postgresdb_user" "user" {
-  cluster = google_postgresdb_instance.primary.cluster
-  database_roles = [
-    "postgresdbiamuser",
-  ]
-  user_id   = local.postgresdb_user_iam_user
-  user_type = "POSTGRESDB_IAM_USER"
+resource "google_sql_user" "postgresdb_user" {
+  # Note: for Postgres only, GCP requires omitting the ".gserviceaccount.com" suffix
+  # from the service account email due to length limits on database usernames.
+  project = data.google_project.environment.project_id
+  name     = trimsuffix("${google_service_account.postgresdb_user.email}", ".gserviceaccount.com")
+  instance = google_sql_database_instance.mlflow_instance_prod.name
+  type     = "CLOUD_IAM_SERVICE_ACCOUNT"
 }
 
 # IAM
@@ -171,13 +169,13 @@ resource "google_postgresdb_user" "user" {
 resource "google_project_iam_member" "postgresdb_superuser_postgresdb_client" {
   project = data.google_project.environment.project_id
   member  = google_service_account.postgresdb_superuser.member
-  role    = "roles/postgresdb.client"
+  role    = "roles/cloudsql.client"
 }
 
 resource "google_project_iam_member" "postgresdb_superuser_postgresdb_database_user" {
   project = data.google_project.environment.project_id
   member  = google_service_account.postgresdb_superuser.member
-  role    = "roles/postgresdb.databaseUser"
+  role    = "roles/cloudsql.instanceUser"
 }
 
 resource "google_project_iam_member" "postgresdb_superuser_service_usage_consumer" {
@@ -189,13 +187,13 @@ resource "google_project_iam_member" "postgresdb_superuser_service_usage_consume
 resource "google_project_iam_member" "postgresdb_user_postgresdb_client" {
   project = data.google_project.environment.project_id
   member  = google_service_account.postgresdb_user.member
-  role    = "roles/postgresdb.client"
+  role    = "roles/cloudsql.client"
 }
 
 resource "google_project_iam_member" "postgresdb_user_postgresdb_database_user" {
   project = data.google_project.environment.project_id
   member  = google_service_account.postgresdb_user.member
-  role    = "roles/postgresdb.databaseUser"
+  role    = "roles/cloudsql.instanceUser"
 }
 
 resource "google_project_iam_member" "postgresdb_user_service_usage_consumer" {
@@ -216,7 +214,6 @@ resource "google_service_account_iam_member" "postgresdb_user_workload_identity_
   member             = "${local.wi_member_principal_prefix}/${local.postgresdb_user_ksa}"
 }
 
-# TODO: This should be removed when functionality is run as the postgresdb_user, not the postgresdb_superuser
 resource "google_storage_bucket_iam_member" "data_bucket_postgresdb_superuser_storage_object_viewer" {
   bucket = google_storage_bucket.data.name
   member = google_service_account.postgresdb_superuser.member

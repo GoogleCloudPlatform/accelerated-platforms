@@ -50,10 +50,10 @@ resource "google_container_cluster" "mlp" {
   enable_shielded_nodes    = true
   location                 = var.region
   name                     = local.cluster_name
-  network                  = module.create-vpc.vpc
+  network                  = google_compute_network.default.id
   project                  = data.google_project.environment.project_id
   remove_default_node_pool = false
-  subnetwork               = module.create-vpc.subnet-1
+  subnetwork               = google_compute_subnetwork.default.id
 
   addons_config {
     gcp_filestore_csi_driver_config {

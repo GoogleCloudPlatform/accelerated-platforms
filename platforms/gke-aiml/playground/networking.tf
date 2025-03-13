@@ -12,28 +12,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module "create-vpc" {
-  source = "../../../terraform/modules/network"
-
-  depends_on = [
-    google_project_service.compute_googleapis_com
-  ]
-
-  network_name     = local.unique_identifier_prefix
-  project_id       = data.google_project.environment.project_id
-  routing_mode     = var.routing_mode
-  subnet_01_ip     = var.subnet_ip_cidr_range
-  subnet_01_name   = "${local.unique_identifier_prefix}-${var.region}"
-  subnet_01_region = var.region
+resource "google_compute_network" "default" {
+  auto_create_subnetworks = false
+  name                    = local.unique_identifier_prefix
+  project                 = data.google_project.environment.project_id
+  routing_mode            = var.routing_mode
 }
 
-module "cloud-nat" {
-  source = "../../../terraform/modules/cloud-nat"
-
-  create_router = true
-  name          = local.unique_identifier_prefix
-  network       = module.create-vpc.vpc
-  project_id    = data.google_project.environment.project_id
-  region        = var.region
-  router        = local.unique_identifier_prefix
+resource "google_compute_subnetwork" "default" {
+  ip_cidr_range            = var.subnet_ip_cidr_range
+  name                     = "${local.unique_identifier_prefix}-${var.region}"
+  network                  = google_compute_network.default.id
+  private_ip_google_access = true
+  project                  = data.google_project.environment.project_id
+  region                   = var.region
 }
+
+resource "google_compute_router" "default" {
+  name    = local.unique_identifier_prefix
+  network = google_compute_network.default.id
+  project = data.google_project.environment.project_id
+  region  = var.region
+
+  bgp {
+    asn = "64514"
+  }
+}
+
+resource "google_compute_router_nat" "default" {
+  name                               = local.unique_identifier_prefix
+  nat_ip_allocate_option             = "AUTO_ONLY"
+  project                            = data.google_project.environment.project_id
+  region                             = var.region
+  router                             = google_compute_router.default.name
+  source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
+
+  log_config {
+    enable = true
+    filter = "ERRORS_ONLY"
+  }
+}
+

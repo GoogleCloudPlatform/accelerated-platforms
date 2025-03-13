@@ -231,11 +231,11 @@ filter: |-
   severity=ERROR
 labelExtractors:
   gke_node: EXTRACT(labels."compute.googleapis.com/resource_name")
-  ray_woker_node_id: REGEXP_EXTRACT(textPayload, "ray_worker_node_id:(.+) Image")
+  ray_worker_node_id: REGEXP_EXTRACT(textPayload, "ray_worker_node_id:(.+) Image")
 metricDescriptor:
   labels:
     - key: gke_node
-    - key: ray_woker_node_id
+    - key: ray_worker_node_id
   metricKind: DELTA
   name: projects/xxxxx/metricDescriptors/logging.googleapis.com/user/No_Image_Found_Product
   type: logging.googleapis.com/user/No_Image_Found_Product

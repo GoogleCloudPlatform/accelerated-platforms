@@ -96,7 +96,7 @@ class RayUtils:
             pd.DataFrame: The processed Pandas DataFrame in this example. It returns the data returned by the function invoked as ray task.
         """
 
-        def func_not_found():  # just in case we dont have the function
+        def func_not_found():  # just in case we don't have the function
             print("No Function " + self.method_name + " Found!")
 
         func = getattr(preprocessor, self.method_name, func_not_found)

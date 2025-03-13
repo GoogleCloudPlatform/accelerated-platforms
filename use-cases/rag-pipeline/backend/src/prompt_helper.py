@@ -42,7 +42,7 @@ def prompt_generation(search_result, user_query=None):
     prompt2 = f"""You are an AI assistant helping an online shopper find the most relevant products.  
     The shopper has submitted a search query, and a preliminary search has returned a list of potential matches. 
     Your task is to refine these results by selecting only the 3 best products from the list without duplicates. 
-    Return only the product details in the format as it is in search result. Dont add any additional information
+    Return only the product details in the format as it is in search result. Don't add any additional information
     Search Query: {user_query}. 
     Product List: 
     {search_result}"""
@@ -59,7 +59,7 @@ def prompt_generation(search_result, user_query=None):
     The shopper has submitted a search query, and a preliminary search has returned a list of potential matches. 
     Your task is to refine these results by selecting only the 3 best products from the list without duplicates. 
     Return complete product details in a readable format as it is in search result.
-    Result should be numbered.Dont add any additional information to the result.
+    Result should be numbered.Don't add any additional information to the result.
     Search Query: {user_query}. 
     Product List: 
     {search_result}"""

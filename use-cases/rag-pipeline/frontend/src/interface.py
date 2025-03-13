@@ -95,7 +95,7 @@ def process_input(text=None, image_uri=None):
     response = requests.post(BACKEND_SERVICE_URL, json=data, timeout=100)
 
     response.raise_for_status()  # Raise an exception for bad status codes
-    logger.info("Received reesponse from backend service:%s", response.text)
+    logger.info("Received response from backend service:%s", response.text)
     return response.json()
 
 

@@ -419,7 +419,7 @@ class DataPrepForRag:
                 "Specifications",
             ]
         ]
-        # Drop dupelicates
+        # Drop duplicates
         rag_df.drop_duplicates(inplace=True)
         # Replace NaN with None
         rag_df["image_uri"] = df["image_uri"].fillna(value="")

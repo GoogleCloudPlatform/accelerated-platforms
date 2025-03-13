@@ -94,7 +94,7 @@ def find_matching_products(
         retrieved_information = df.to_string(index=False)
 
         logger.info(
-            "Formated response for the Semantic Search Query from DB: "
+            "Formatted response for the Semantic Search Query from DB: "
             + retrieved_information
         )
         return retrieved_information

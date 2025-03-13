@@ -1,8 +1,8 @@
 # Retrieval Augment Generation
 
 This solution implements a Retrieval Augmented Generation (RAG) pipeline to
-enhance product recommendations in an e-commerce setting. For the complete
-usecase details, please check this document
+enhance product recommendations in an e-commerce setting. For the complete use
+case details, please check this document
 [RAG on GKE Narrative](/docs/use-cases/rag-pipeline/README.md)
 
 ## Architecture

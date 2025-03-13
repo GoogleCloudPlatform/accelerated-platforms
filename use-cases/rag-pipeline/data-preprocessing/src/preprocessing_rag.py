@@ -133,8 +133,8 @@ def preprocess_rag():
     # Replace NaN with None
     result_df = result_df.replace({np.nan: None})
 
-    rag_preporcessing = DataPrepForRag()
-    rag_df = rag_preporcessing.process_rag_input(result_df)
+    rag_preprocessing = DataPrepForRag()
+    rag_df = rag_preprocessing.process_rag_input(result_df)
     # Store the rag preprocessed data into GCS
     rag_df.to_csv(
         "gs://" + IMAGE_BUCKET + rag_output_file,

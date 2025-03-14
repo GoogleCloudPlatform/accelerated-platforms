@@ -44,6 +44,18 @@ spec:
   selector:
     run: nvflare-${nvidia_flare_tff_example_workload_name}
 %{ endif }
+%{ if startswith(nvidia_flare_tff_example_workload_name, "client") }
+# server1 -> server1.${nvidia_flare_tff_example_site_domain} DNS name mapping
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: server1
+  namespace: ${namespace_name}
+spec:
+  type: ExternalName
+  externalName: server1.${nvidia_flare_tff_example_site_domain}
+%{ endif }
 ---
 apiVersion: apps/v1
 kind: Deployment

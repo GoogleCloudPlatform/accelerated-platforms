@@ -27,6 +27,10 @@ NVFLARE_EXAMPLE_TENANT_NAME="fl-1"
 
 NVFLARE_EXAMPLE_WORKSPACE_BUCKET_BASE_NAME="nvf-ws"
 
+NVFLARE_WORKSPACE_PATH="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/example_nvidia_flare_tff/nvflare-workspace"
+# shellcheck disable=SC2034 # Variable is used in other scripts
+NVFLARE_GENERATED_WORKSPACE_PATH="${NVFLARE_WORKSPACE_PATH}/workspace"
+
 # shellcheck disable=SC2034 # Variable is used in other scripts
 NVFLARE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES=(
   "federated_learning_tenant_names = [\"${NVFLARE_EXAMPLE_TENANT_NAME}\"]"
@@ -38,8 +42,17 @@ NVFLARE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
   "federated_learning_cloud_storage_buckets_iam_bindings = [ {bucket_name = \"${NVFLARE_EXAMPLE_WORKSPACE_BUCKET_BASE_NAME}\", member = \"federated_learning_nvidia_flare_tff_apps_service_account_placeholder\", role = \"roles/storage.objectUser\"} ]"
   "federated_learning_nvidia_flare_tff_example_bucket_name = \"federated_learning_nvidia_flare_tff_example_bucket_name_placeholder\""
   "federated_learning_nvidia_flare_tff_example_container_image_tag = \"federated_learning_nvidia_flare_tff_example_container_image_tag_placeholder\""
-  "federated_learning_nvidia_flare_tff_example_deploy = true"
   "federated_learning_nvidia_flare_tff_example_localized_container_image_id = \"federated_learning_nvidia_flare_tff_localized_container_image_id_placeholder\""
+  "federated_learning_nvidia_flare_tff_example_tenant_name = \"${NVFLARE_EXAMPLE_TENANT_NAME}\""
+  "federated_learning_nvidia_flare_tff_example_workload_to_deploy = \"federated_learning_nvidia_flare_tff_example_workload_to_deploy_placeholder\""
+  "federated_learning_nvidia_flare_tff_example_client1_a_rrdatas = [federated_learning_nvidia_flare_tff_example_client1_a_rrdatas_placeholder]"
+  "federated_learning_nvidia_flare_tff_example_client2_a_rrdatas = [federated_learning_nvidia_flare_tff_example_client2_a_rrdatas_placeholder]"
+  "federated_learning_nvidia_flare_tff_example_server1_a_rrdatas = [federated_learning_nvidia_flare_tff_example_server1_a_rrdatas_placeholder]"
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+nvflare_example_terraservices=(
+  "example_nvidia_flare_tff"
 )
 
 load_fl_terraform_outputs() {

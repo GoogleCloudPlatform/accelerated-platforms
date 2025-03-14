@@ -39,9 +39,25 @@ This example builds on top of the infrastructure that the
 provides, and follows the best practices that the reference architecture
 establishes.
 
-Before deploying the NVIDIA FLARE example described in this document, you need
-to deploy the Federated learning reference architecture first. Then, you can
-deploy the NVIDIA FLARE example.
+Before deploying the NVIDIA FLARE example described in this document, you deploy
+one instance of the Federated learning reference architecture for each NVIDIA
+FLARE workload. The reference architecture supports deploying multiple instances
+of the reference architecture in the same project. To prepare the infrastructure
+for the NVIDIA FLARE example, you do the following:
+
+1. Deploy an instance of the reference architecture for the `server1` NVIDIA
+   FLARE example workload.
+1. Deploy an instance of the reference architecture for the `client1` NVIDIA
+   FLARE example workload.
+1. Deploy an instance of the reference architecture for the `client2` NVIDIA
+   FLARE example workload.
+
+For more information about how to deploy an instance of the reference
+architecture, see
+[Federated Learning reference architecture](/platforms/gke/base/use-cases/federated-learning/README.md)
+
+After you deploy the reference architecture instances, continue following this
+document.
 
 ### Provision and configure Google Cloud infrastructure
 
@@ -50,124 +66,106 @@ ones that the Federated learning reference architecture provisions.
 
 1. Open [Cloud Shell](https://cloud.google.com/shell).
 
-1. Run the script to configure the reference architecture and provision Google
-   Cloud resources that this example needs:
+1. Deploy `server1`:
+
+   1. Change the working directory to the directory where you cloned the
+      repository for the `server1` instance of the reference architecture.
+
+   1. Run the script to configure the reference architecture and provision
+      Google Cloud resources that this example needs:
 
    ```sh
-   "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/deploy.sh"
+   "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/deploy.sh" \
+      --workload "server1"
    ```
 
-### Build the example container image
+   1. Take note of the NVIDIA FLARE Cloud Storage bucket name from the output of
+      the last command. The output is similar to the following:
 
-In this section, you run a script that builds a container image with TensorFlow
-and NVIDIA FLARE installed locally on your host. To build the container image
-you need about 8GB of persistent storage space and can take up to 20 minutes.
-For a production deployment, consider using Cloud Build.
+   ```text
+   NVFLARE workspace bucket name: bucket-name-xxxx
+   ```
 
-To run the script, do the following:
+   1. Take note of the NVIDIA FLARE server IP address from the output of the
+      last command. The output is similar to the following:
+
+   ```text
+   NVFLARE server1 ingress gateway IP address: 1.2.3.4
+   ```
+
+1. Deploy `client1`:
+
+   1. Change the working directory to the directory where you cloned the
+      repository for the `client1` instance of the reference architecture.
+
+   1. Run the script to configure the reference architecture and provision
+      Google Cloud resources that this example needs:
+
+      ```sh
+      "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/deploy.sh" \
+          --server-ip "<SERVER_IP_ADDRESS>" \
+          --workspace-bucket-name "<NVFLARE_WORKSPACE_BUCKET_NAME>" \
+          --workload "client1"
+      ```
+
+      Where:
+
+      - `<SERVER_IP_ADDRESS>` is the NVIDIA FLARE server IP address that you get
+        from the output of the `server` deployment script.
+      - `<NVFLARE_WORKSPACE_BUCKET_NAME>` is the NVIDIA FLARE Cloud Storage
+        bucket name that you get from the output of the `server` deployment
+        script.
+
+   1. Take note of the NVIDIA FLARE client1 IP address from the output of the
+      last command. The output is similar to the following:
+
+      ```text
+      NVFLARE client1 ingress gateway IP address: 1.2.3.4
+      ```
+
+1. Deploy `client2`:
+
+   1. Change the working directory to the directory where you cloned the
+      repository for the `client2` instance of the reference architecture.
+
+   1. Run the script to configure the reference architecture and provision
+      Google Cloud resources that this example needs:
+
+      ```sh
+      "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/deploy.sh" \
+          --server-ip "<SERVER_IP_ADDRESS>" \
+          --workspace-bucket-name "<NVFLARE_WORKSPACE_BUCKET_NAME>" \
+          --workload "client2"
+      ```
+
+      Where:
+
+      - `<SERVER_IP_ADDRESS>` is the NVIDIA FLARE server IP address that you get
+        from the output of the `server` deployment script.
+      - `<NVFLARE_WORKSPACE_BUCKET_NAME>` is the NVIDIA FLARE Cloud Storage
+        bucket name that you get from the output of the `server` deployment
+        script.
+
+   1. Take note of the NVIDIA FLARE client2 IP address from the output of the
+      last command. The output is similar to the following:
+
+      ```text
+      NVFLARE client2 ingress gateway IP address: 1.2.3.4
+      ```
+
+### Check the status of the server and registered clients
+
+In this section, you check the status of the NVIDIA FLARE server and clients:
 
 1. Open [Cloud Shell](https://cloud.google.com/shell).
 
-1. Run the script to build the container image:
-
-   ```sh
-   "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/build-container-image.sh"
-   ```
-
-### Create NVIDIA FLARE deployment descriptors
-
-In this section, you create descriptors to deploy NVIDIA FLARE in the reference
-architecture:
-
-1. Open [Cloud Shell](https://cloud.google.com/shell).
-
-1. Create a directory to store the NVIDIA FLARE workspace:
-
-   ```bash
-   mkdir "${HOME}/nvflare-workspace"
-   ```
-
-1. Grant the NVIDIA FLARE user ownership on the NVIDIA FLARE workspace:
-
-   ```bash
-   sudo chown -R 10000:10000 "${HOME}/nvflare-workspace"
-   ```
-
-1. Load NVIDIA FLARE example environment configuration:
-
-   ```bash
-   source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/setup-environment.sh" && load_fl_terraform_outputs
-   ```
-
-1. Run an NVIDIA FLARE container based on the container image you built in the
-   preceding section:
-
-   ```bash
-   docker run --rm -v "${HOME}/nvflare-workspace:/opt/NVFlare/workspace" -it "${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID_WITH_TAG}" bash
-   ```
-
-1. Run the NVIDIA FLARE provisioning tool to create a NVIDIA FLARE project
-   configuration file (`project.yml`) that you can customize to your needs:
-
-   ```bash
-   nvflare provision
-   ```
-
-   When prompted, choose the non highly-available deployment option because
-   highly-available NVIDIA FLARE deployments are not yet supported on
-   Kubernetes.
-
-1. Run the provisioning tool again to generate deployment descriptors:
-
-   ```bash
-   nvflare provision
-   ```
-
-   The provisioning tool generates deployment descriptors:
-
-   - `server1` is the server that will aggregate all the results from the
-     computation
-   - `site-1` and `site-2` are the clients that will be connected to the server
-   - `admin@nvidia.com` is the administration client to start and list jobs
-
-1. Exit the NVIDIA FLARE container:
-
-   ```bash
-   exit
-   ```
-
-1. Copy the workspace folder to Cloud Storage:
-
-   ```bash
-   gcloud storage cp --recursive "${HOME}/nvflare-workspace/workspace" "gs://${NVFLARE_EXAMPLE_WORKSPACE_BUCKET_NAME}"
-   ```
-
-### Push the example container image
-
-In this section, you run a script that pushes the container images to the
-Artifact Registry repository that the Federated learning reference architecture
-provides.
-
-To run the script, do the following:
-
-1. Open [Cloud Shell](https://cloud.google.com/shell).
-
-1. Run the script to build the container image:
-
-   ```sh
-   "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/push-container-image.sh"
-   ```
-
-### Submit the training job
-
-In this section, you submit and run a training job:
-
-1. Open [Cloud Shell](https://cloud.google.com/shell).
+1. Change the working directory to the directory where you cloned the repository
+   for the `server1` instance of the reference architecture.
 
 1. Set up the shell environment:
 
    ```bash
-   source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/setup-environment.sh"
+   source "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/setup-environment.sh"
    ```
 
 1. Configure `kubectl` to access the cluster:
@@ -209,7 +207,7 @@ In this section, you submit and run a training job:
    /bin/bash ./fl_admin.sh
    ```
 
-   When prompted, the username is `admin@nvidia.com`
+   When prompted, input the username: `admin@nvidia.com`
 
    The output is similar to the following:
 
@@ -250,11 +248,9 @@ In this section, you submit and run a training job:
    If you don't see any registered client in the output, wait for a one minute
    and try again.
 
-1. Exit from NVIDIA FLARE:
+1. Exit from NVIDIA FLARE by pressing the `CTRL+D` key combination.
 
-   ```bash
-   exit
-   ```
+   When prompted, input the username: `admin@nvidia.com`
 
 1. Close the container shell:
 
@@ -268,8 +264,19 @@ To destroy an instance of this example, you do the following:
 
 1. Open [Cloud Shell](https://cloud.google.com/shell).
 
-1. Run the script to destroy an instance of this example:
+1. Open [Cloud Shell](https://cloud.google.com/shell).
+
+1. Destroy `client1`:
+
+   1. Change the working directory to the directory where you cloned the
+      repository for the `client1` instance of the reference architecture.
+
+   1. Run the script to destroy an instance of this example:
 
    ```sh
-   "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/teardown.sh"
+   "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/teardown.sh"
    ```
+
+1. Repeat the steps described to destroy `client1` to deploy `client2`.
+
+1. Repeat the steps described to destroy `client1` to deploy `server1`.

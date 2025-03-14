@@ -18,6 +18,19 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Ignoring SC2034 because this variable is used in other scripts
+# shellcheck disable=SC2034
+EXIT_OK=0
+# shellcheck disable=SC2034
+EXIT_GENERIC_ERR=1
+# shellcheck disable=SC2034
+ERR_ARGUMENT_EVAL_ERROR=2
+# shellcheck disable=SC2034
+ERR_MISSING_DEPENDENCY=3
+
+# shellcheck disable=SC2034
+HELP_DESCRIPTION="show this help message and exit"
+
 ACP_PLATFORM_SHARED_CONFIG_DIR="${ACP_PLATFORM_BASE_DIR}/_shared_config"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
@@ -27,6 +40,8 @@ ACP_PLATFORM_SHARED_CONFIG_INITIALIZE_AUTO_VARS_FILE="${ACP_PLATFORM_SHARED_CONF
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_SHARED_CONFIG_DIR}/scripts/set_environment_variables.sh" "${ACP_PLATFORM_SHARED_CONFIG_DIR}"
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_CORE_DIR}/functions.sh"
 
 FEDERATED_LEARNING_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning"
 FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR="${FEDERATED_LEARNING_USE_CASE_DIR}/terraform"
@@ -80,6 +95,83 @@ TERRAFORM_CLUSTER_CONFIGURATION=(
   "cluster_database_encryption_state = \"ENCRYPTED\""
   "cluster_database_encryption_key_name = \"cluster_database_encryption_key_name_placeholder\""
 )
+
+check_exec_dependency() {
+  local EXECUTABLE_NAME="${1}"
+
+  if ! command -v "${EXECUTABLE_NAME}" >/dev/null 2>&1; then
+    echo "[ERROR]: ${EXECUTABLE_NAME} command is not available, but it's needed. Make it available in PATH and try again. Terminating..."
+    exit "${ERR_MISSING_DEPENDENCY}"
+  else
+    echo "[OK]: ${EXECUTABLE_NAME} is available in PATH, pointing to: $(command -v "${EXECUTABLE_NAME}")"
+  fi
+}
+
+echo "Checking if the necessary dependencies are available..."
+check_exec_dependency "getopt"
+check_exec_dependency "grep"
+check_exec_dependency "terraform"
+
+is_linux() {
+  local OS_RELEASE_INFORMATION_FILE_PATH="/etc/os-release"
+  if [ -e "${OS_RELEASE_INFORMATION_FILE_PATH}" ]; then
+    return 0
+  elif check_exec_dependency "uname"; then
+    local os_name
+    os_name="$(uname -s)"
+    if [ "${os_name#*"Linux"}" != "$os_name" ]; then
+      return "${EXIT_OK}"
+    else
+      return "${EXIT_GENERIC_ERR}"
+    fi
+  else
+    echo "Unable to determine if the OS is Linux."
+    return ${EXIT_GENERIC_ERR}
+  fi
+}
+
+is_macos() {
+  local os_name
+  os_name="$(uname -s)"
+  if [ "${os_name#*"Darwin"}" != "$os_name" ]; then
+    return "${EXIT_OK}"
+  else
+    return "${EXIT_GENERIC_ERR}"
+  fi
+}
+
+check_argument() {
+  local ARGUMENT_VALUE="${1}"
+  local ARGUMENT_DESCRIPTION="${2}"
+
+  if [ -z "${ARGUMENT_VALUE}" ]; then
+    echo "[ERROR]: ${ARGUMENT_DESCRIPTION} is not defined. Run this command with the -h option to get help. Terminating..."
+    exit "${ERR_ARGUMENT_EVAL_ERROR}"
+  else
+    echo "[OK]: ${ARGUMENT_DESCRIPTION} value is defined: ${ARGUMENT_VALUE}"
+  fi
+}
+
+check_optional_argument() {
+  local ARGUMENT_VALUE="${1}"
+  shift
+  local ARGUMENT_DESCRIPTION="${1}"
+  shift
+  local VALUE_NOT_DEFINED_MESSAGE="$*"
+
+  if [ -z "${ARGUMENT_VALUE}" ]; then
+    echo "[OK]: optional ${ARGUMENT_DESCRIPTION} is not defined."
+    RET_CODE=1
+    if [ -n "${VALUE_NOT_DEFINED_MESSAGE}" ]; then
+      echo "${VALUE_NOT_DEFINED_MESSAGE}"
+    fi
+  else
+    echo "[OK]: optional ${ARGUMENT_DESCRIPTION} value is defined: ${ARGUMENT_VALUE}"
+    RET_CODE=0
+  fi
+
+  return "${RET_CODE}"
+}
 
 apply_or_destroy_terraservice() {
   local terraservice

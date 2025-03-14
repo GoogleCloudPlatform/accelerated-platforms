@@ -24,10 +24,6 @@ spec:
         - source:
             namespaces:
               - ${namespace_name}
-    - to:
-        - source:
-            namespaces:
-              - "istio-egress"
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy

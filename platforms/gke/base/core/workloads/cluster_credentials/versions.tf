@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,24 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "null_resource" "cluster_credentials" {
-  provisioner "local-exec" {
-    command     = <<EOT
-KUBECONFIG=${self.triggers.kubeconfig_file} ${local.cluster_credentials_command} 
-EOT
-    interpreter = ["bash", "-c"]
-    working_dir = path.module
+terraform {
+  required_version = ">= 1.5.7"
+
+  required_providers {
+    null = {
+      source  = "hashicorp/null"
+      version = "3.2.3"
+    }
   }
 
-  provisioner "local-exec" {
-    command     = "rm -rf ${self.triggers.kubeconfig_file}"
-    interpreter = ["bash", "-c"]
-    when        = destroy
-    working_dir = path.module
-  }
-
-  triggers = {
-    always_run      = timestamp()
-    kubeconfig_file = local.kubeconfig_file
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_gke_base_core_workloads_cluster-credentials_deploy-v1"
   }
 }

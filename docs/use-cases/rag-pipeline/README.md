@@ -1,3 +1,5 @@
+# Retrieval Augmented Generation (RAG) pipeline
+
 ## Introduction
 
 This workflow outlines the technical architecture and processes behind a Virtual

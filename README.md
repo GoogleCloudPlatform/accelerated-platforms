@@ -40,6 +40,7 @@ concepts covered in the use cases.
 
 - [Model Fine Tuning Pipeline](/docs/use-cases/model-fine-tuning-pipeline/README.md)
 - [Scalable and Distributed LLM Inference on GKE with vLLM](/docs/use-cases/inferencing/README.md)
+- [Retrieval Augmented Generation (RAG) pipeline](/docs/use-cases/rag-pipeline/README.md)
 
 ## Contributing
 

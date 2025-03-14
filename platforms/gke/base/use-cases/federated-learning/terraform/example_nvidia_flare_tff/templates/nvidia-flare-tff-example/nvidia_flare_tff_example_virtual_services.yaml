@@ -25,7 +25,6 @@ spec:
     - istio-ingress/ingress-gateway
   tcp:
     - match:
-    - match:
         - gateways:
             - istio-ingress/ingress-gateway
           port: 8002

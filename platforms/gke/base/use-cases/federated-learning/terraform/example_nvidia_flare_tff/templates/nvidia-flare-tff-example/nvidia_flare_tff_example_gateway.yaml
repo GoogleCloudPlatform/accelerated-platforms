@@ -66,10 +66,14 @@ spec:
         number: 8002
         name: flport
         protocol: TCP
+      hosts:
+        - "*"
     - port:
         number: 8003
         name: adminport
         protocol: TCP
+      hosts:
+        - "*"
 ---
 # Allow traffic to NVFLARE ports
 apiVersion: security.istio.io/v1beta1

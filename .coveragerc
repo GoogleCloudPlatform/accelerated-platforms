@@ -1,0 +1,4 @@
+[run]
+source = modules/python
+omit = */site-packages/*, */dist-packages/*
+

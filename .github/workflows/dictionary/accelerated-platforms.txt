@@ -8,7 +8,10 @@ checkpointing
 cicd
 colab
 creds
+curlimages
+datacleaner
 dataprep
+datapreprocessing
 dataprocessing
 decrypter
 decrypters
@@ -30,10 +33,13 @@ joonix
 jupytext
 kaggle
 kustomization
+lavis
+logprobs
 mftp
 mlflow
 mlops
 mlruns
+multimodal
 operationalize
 overfitting
 packageable
@@ -41,7 +47,9 @@ peft
 prereqs
 psutil
 qwiklabs
+rayutil
 safetensors
+scann
 schedulable
 tunables
 usecs

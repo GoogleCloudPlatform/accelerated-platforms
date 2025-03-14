@@ -1,4 +1,7 @@
 aiplatform
+alloydb
+alloydbiamuser
+alloydbsuperuser
 anthos
 anthosconfigmanagement
 anthospolicycontroller
@@ -24,6 +27,7 @@ cpus
 daemonset
 datapath
 dataplane
+datas
 datasource
 drwxr
 fakeroot
@@ -58,11 +62,13 @@ negs
 nodepool
 nodepools
 ondemand
+pgaudit
 podslice
 policycontroller
 reposync
 resourcemanager
 rootsync
+rrdatas
 secretmanager
 serviceaccount
 servicemanagement

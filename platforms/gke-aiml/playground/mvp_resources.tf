@@ -30,6 +30,7 @@ locals {
   model_ops_namespace        = var.namespace
   model_serve_ksa            = "${var.environment_name}-${local.model_serve_namespace}-model-serve"
   model_serve_namespace      = var.namespace
+  rag_data_processing_ksa    = "${var.environment_name}-${var.namespace}-rag-data-processing"
   repo_container_images_id   = var.environment_name
   repo_container_images_url  = "${google_artifact_registry_repository.container_images.location}-docker.pkg.dev/${google_artifact_registry_repository.container_images.project}/${local.repo_container_images_id}"
   wi_member_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.environment.number}/locations/global/workloadIdentityPools/${data.google_project.environment.project_id}.svc.id.goog/subject/ns/${var.namespace}/sa"
@@ -219,6 +220,17 @@ resource "kubernetes_service_account_v1" "model_serve" {
   }
 }
 
+resource "kubernetes_service_account_v1" "rag_data_processing" {
+  depends_on = [
+    null_resource.namespace_manifests,
+  ]
+
+  metadata {
+    name      = local.rag_data_processing_ksa
+    namespace = var.namespace
+  }
+}
+
 # IAM
 ###############################################################################
 
@@ -260,6 +272,12 @@ resource "google_storage_bucket_iam_member" "data_bucket_data_processing_ksa_sto
   role   = "roles/storage.objectUser"
 }
 
+resource "google_storage_bucket_iam_member" "data_bucket_rag_data_processing_ksa_storage_object_user" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.rag_data_processing_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
 resource "google_storage_bucket_iam_member" "data_bucket_fine_tuning_storage_object_user" {
   bucket = google_storage_bucket.data.name
   member = "${local.wi_member_principal_prefix}/${local.fine_tuning_ksa}"
@@ -281,6 +299,12 @@ resource "google_storage_bucket_iam_member" "data_bucket_model_evaluation_storag
 resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_admin" {
   bucket = google_storage_bucket.data.name
   member = "${local.wi_member_principal_prefix}/${local.mlflow_kubernetes_service_account}"
+  role   = "roles/storage.objectAdmin"
+}
+
+resource "google_storage_bucket_iam_member" "data_bucket_rag_frontend_storage_object_admin" {
+  bucket = google_storage_bucket.data.name
+  member = "${local.wi_member_principal_prefix}/${local.rag_frontend_service_account}"
   role   = "roles/storage.objectAdmin"
 }
 
@@ -338,6 +362,12 @@ MLP_DATA_PREPARATION_IMAGE="${local.repo_container_images_url}/data-preparation:
 MLP_DATA_PREPARATION_KSA="${local.data_preparation_ksa}"
 MLP_DATA_PROCESSING_IMAGE="${local.repo_container_images_url}/data-processing:1.0.0"
 MLP_DATA_PROCESSING_KSA="${local.data_processing_ksa}"
+MLP_DB_ADMIN_IAM="${local.alloydb_database_admin_iam_user}"
+MLP_DB_ADMIN_KSA="${local.alloydb_database_admin_ksa}"
+MLP_DB_INSTANCE_URI="${google_alloydb_instance.primary.name}"
+MLP_DB_SETUP_IMAGE="${local.repo_container_images_url}/db-setup:1.0.0"
+MLP_DB_USER_IAM="${local.alloydb_user_iam_user}"
+MLP_DB_USER_KSA="${local.alloydb_user_ksa}"
 MLP_ENVIRONMENT_NAME="${var.environment_name}"
 MLP_FINE_TUNING_IMAGE="${local.repo_container_images_url}/fine-tuning:1.0.0"
 MLP_FINE_TUNING_KSA="${local.fine_tuning_ksa}"
@@ -352,8 +382,14 @@ MLP_MODEL_OPS_KSA="${local.model_ops_ksa}"
 MLP_MODEL_OPS_NAMESPACE="${local.model_ops_namespace}"
 MLP_MODEL_SERVE_KSA="${local.model_serve_ksa}"
 MLP_MODEL_SERVE_NAMESPACE="${local.model_serve_namespace}"
+MLP_MULTIMODAL_EMBEDDING_IMAGE="${local.repo_container_images_url}/multimodal-embedding:1.0.0"
 MLP_PROJECT_ID="${data.google_project.environment.project_id}"
 MLP_PROJECT_NUMBER="${data.google_project.environment.number}"
+MLP_RAG_BACKEND_IMAGE="${local.repo_container_images_url}/rag-backend:1.0.0"
+MLP_RAG_DATA_PROCESSING_IMAGE="${local.repo_container_images_url}/rag-data-processing:1.0.0"
+MLP_RAG_DATA_PROCESSING_KSA="${local.rag_data_processing_ksa}"
+MLP_RAG_FRONTEND_IMAGE="${local.repo_container_images_url}/rag-frontend:1.0.0"
+MLP_RAG_FRONTEND_NAMESPACE_ENDPOINT="https://${local.rag_frontend_endpoint}"
 MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT="https://${local.ray_dashboard_endpoint}"
 MLP_REGION="${var.region}"
 MLP_UNIQUE_IDENTIFIER_PREFIX="${local.unique_identifier_prefix}"

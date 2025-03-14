@@ -1,5 +1,9 @@
+allexport
 chdir
+envsubst
 errexit
+libgl
+libglib
 nounset
 pipefail
 pkill

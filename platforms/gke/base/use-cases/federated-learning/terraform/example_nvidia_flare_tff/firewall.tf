@@ -52,7 +52,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   description     = "Allow ingress traffic to the ingress gateway for the NVIDIA FLARE example"
   direction       = "INGRESS"
   enable_logging  = true
-  firewall_policy = google_compute_network_firewall_policy.federated_learning_fw_policy.name
+  firewall_policy = local.federated_learning_firewall_policy_name
   priority        = 1007
   project         = data.google_project.default.project_id
   rule_name       = "${local.cluster_name}-ingress-ingress-gateway-nvflare"

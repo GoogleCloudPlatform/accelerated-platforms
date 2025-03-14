@@ -23,6 +23,7 @@ metadata:
 spec:
   hosts:
     - client1
+    - client1.${nvidia_flare_tff_example_site_domain}
   gateways:
     - istio-egress/egress-gateway
     - mesh
@@ -57,6 +58,7 @@ metadata:
 spec:
   hosts:
     - client2
+    - client2.${nvidia_flare_tff_example_site_domain}
   gateways:
     - istio-egress/egress-gateway
     - mesh
@@ -93,6 +95,7 @@ metadata:
 spec:
   hosts:
     - server1
+    - server1.${nvidia_flare_tff_example_site_domain}
   gateways:
     - istio-egress/egress-gateway
     - mesh

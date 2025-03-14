@@ -50,6 +50,8 @@ kind: Service
 metadata:
   name: client1
   namespace: ${namespace_name}
+  labels:
+    service.istio.io/canonical-name: client1.${nvidia_flare_tff_example_site_domain}
 spec:
   type: ExternalName
   externalName: client1.${nvidia_flare_tff_example_site_domain}
@@ -60,6 +62,8 @@ kind: Service
 metadata:
   name: client2
   namespace: ${namespace_name}
+  labels:
+    service.istio.io/canonical-name: client2.${nvidia_flare_tff_example_site_domain}
 spec:
   type: ExternalName
   externalName: client2.${nvidia_flare_tff_example_site_domain}
@@ -75,6 +79,8 @@ metadata:
 spec:
   type: ExternalName
   externalName: server1.${nvidia_flare_tff_example_site_domain}
+  labels:
+    service.istio.io/canonical-name: server1.${nvidia_flare_tff_example_site_domain}
 %{ endif }
 ---
 apiVersion: apps/v1

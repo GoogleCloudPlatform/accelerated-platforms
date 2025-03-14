@@ -177,6 +177,8 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   target_service_accounts = local.node_pool_service_account_emails
 
   match {
+    src_ip_ranges = ["0.0.0.0/0"]
+
     layer4_configs {
       ip_protocol = "tcp"
       ports       = ["80", "443"]

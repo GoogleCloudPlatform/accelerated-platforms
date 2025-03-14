@@ -42,7 +42,29 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
 
     layer4_configs {
       ip_protocol = "tcp"
-      ports       = [443]
+      ports       = ["8002", "8003"]
+    }
+  }
+}
+
+resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_rule_allow_ingress_to_ingress_gateway_nvflare" {
+  action          = "allow"
+  description     = "Allow ingress traffic to the ingress gateway for the NVIDIA FLARE example"
+  direction       = "INGRESS"
+  enable_logging  = true
+  firewall_policy = google_compute_network_firewall_policy.federated_learning_fw_policy.name
+  priority        = 1007
+  project         = data.google_project.default.project_id
+  rule_name       = "${local.cluster_name}-ingress-ingress-gateway-nvflare"
+
+  target_service_accounts = local.node_pool_service_account_emails
+
+  match {
+    src_ip_ranges = ["0.0.0.0/0"]
+
+    layer4_configs {
+      ip_protocol = "tcp"
+      ports       = ["8002", "8003"]
     }
   }
 }

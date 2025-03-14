@@ -14,69 +14,91 @@
 
 %{ if startswith(nvidia_flare_tff_example_workload_name, "server") }
 ---
-# Direct traffic from the sidecars to the egress gateway and from the egress gateway to the external service
+# Direct traffic from the ingress gateway to the server
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: client1-through-egress-gateway
+  name: ingress-gateway-to-server1
   namespace: ${namespace_name}
 spec:
   gateways:
-    - istio-egress/egress-gateway
-    - mesh
+    - istio-ingress/ingress-gateway
   tcp:
     - match:
+    - match:
         - gateways:
-            - mesh
+            - istio-ingress/ingress-gateway
           port: 8002
       route:
         - destination:
-            host: istio-egressgateway.istio-egress.svc.cluster.local
+            host: server1.${nvidia_flare_tff_example_site_domain}
             port:
-              number: 8443
+              number: 8002
           weight: 100
-    - match:
-        - gateways:
-            - istio-egress/egress-gateway
-          port: 8443
-      route:
-        - destination:
-            host: client1.${nvidia_flare_tff_example_site_domain}
-            port:
-              number: 443
-          weight: 100
----
-# Direct traffic from the sidecars to the egress gateway and from the egress gateway to the external service
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  name: client2-through-egress-gateway
-  namespace: ${namespace_name}
-spec:
-  gateways:
-    - istio-egress/egress-gateway
-    - mesh
-  tcp:
-    - match:
-        - gateways:
-            - mesh
-          port: 8002
-      route:
-        - destination:
-            host: istio-egressgateway.istio-egress.svc.cluster.local
-            port:
-              number: 8443
-          weight: 100
-    - match:
-        - gateways:
-            - istio-egress/egress-gateway
-          port: 8443
-      route:
-        - destination:
-            host: client2.${nvidia_flare_tff_example_site_domain}
-            port:
-              number: 443
-          weight: 100
+# ---
+# # Direct traffic from the sidecars to the egress gateway and from the egress gateway to the external service
+# apiVersion: networking.istio.io/v1beta1
+# kind: VirtualService
+# metadata:
+#   name: client1-through-egress-gateway
+#   namespace: ${namespace_name}
+# spec:
+#   gateways:
+#     - istio-egress/egress-gateway
+#     - mesh
+#   tcp:
+#     - match:
+#         - gateways:
+#             - mesh
+#           port: 8002
+#       route:
+#         - destination:
+#             host: istio-egressgateway.istio-egress.svc.cluster.local
+#             port:
+#               number: 8002
+#           weight: 100
+#     - match:
+#         - gateways:
+#             - istio-egress/egress-gateway
+#           port: 8002
+#       route:
+#         - destination:
+#             host: client1.${nvidia_flare_tff_example_site_domain}
+#             port:
+#               number: 8002
+#           weight: 100
+# ---
+# # Direct traffic from the sidecars to the egress gateway and from the egress gateway to the external service
+# apiVersion: networking.istio.io/v1beta1
+# kind: VirtualService
+# metadata:
+#   name: client2-through-egress-gateway
+#   namespace: ${namespace_name}
+# spec:
+#   gateways:
+#     - istio-egress/egress-gateway
+#     - mesh
+#   tcp:
+#     - match:
+#         - gateways:
+#             - mesh
+#           port: 8002
+#       route:
+#         - destination:
+#             host: istio-egressgateway.istio-egress.svc.cluster.local
+#             port:
+#               number: 8002
+#           weight: 100
+#     - match:
+#         - gateways:
+#             - istio-egress/egress-gateway
+#           port: 8002
+#       route:
+#         - destination:
+#             host: client2.${nvidia_flare_tff_example_site_domain}
+#             port:
+#               number: 8002
+#           weight: 100
 %{ endif }
 %{ if startswith(nvidia_flare_tff_example_workload_name, "client") }
 # Direct traffic from the sidecars to the egress gateway and from the egress gateway to the external service
@@ -99,16 +121,16 @@ spec:
         - destination:
             host: istio-egressgateway.istio-egress.svc.cluster.local
             port:
-              number: 8443
+              number: 8002
           weight: 100
     - match:
         - gateways:
             - istio-egress/egress-gateway
-          port: 8443
+          port: 8002
       route:
         - destination:
             host: server1.${nvidia_flare_tff_example_site_domain}
             port:
-              number: 443
+              number: 8002
           weight: 100
 %{ endif }

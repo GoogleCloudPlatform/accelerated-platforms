@@ -17,7 +17,7 @@
 #
 
 locals {
-  manifests_directory_root = "${path.module}/../../../kubernetes-manifests"
+  manifests_directory_root = "${path.module}/../../../kubernetes/manifests"
 }
 
 variable "kueue_version" {

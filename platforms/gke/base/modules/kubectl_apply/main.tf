@@ -28,27 +28,33 @@ data "local_file" "kubeconfig" {
   filename = var.kubeconfig_file
 }
 
-resource "null_resource" "manifest" {
+resource "terraform_data" "manifest" {
+  input = {
+    kubeconfig_file        = data.local_file.kubeconfig.filename
+    kubectl_apply_command  = local.kubectl_apply_command
+    kubectl_delete_command = local.kubectl_delete_command
+  }
+
   provisioner "local-exec" {
-    command = self.triggers.kubectl_apply_command
+    command = self.input.kubectl_apply_command
     environment = {
-      KUBECONFIG = self.triggers.kubeconfig_file
+      KUBECONFIG = self.input.kubeconfig_file
     }
     interpreter = ["bash", "-c"]
     working_dir = path.root
   }
 
   provisioner "local-exec" {
-    command = self.triggers.kubectl_delete_command
+    command = self.input.kubectl_delete_command
     environment = {
-      KUBECONFIG = self.triggers.kubeconfig_file
+      KUBECONFIG = self.input.kubeconfig_file
     }
     interpreter = ["bash", "-c"]
     when        = destroy
     working_dir = path.root
   }
 
-  triggers = {
+  triggers_replace = {
     kubeconfig_file        = data.local_file.kubeconfig.filename
     kubectl_apply_command  = local.kubectl_apply_command
     kubectl_delete_command = local.kubectl_delete_command

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  kubeconfig_directory = "${path.module}/../../../_shared_config/kubeconfig"
+  kubeconfig_directory = "${path.module}/../../../kubernetes/kubeconfig"
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
 
   manifests_directory         = "${local.manifests_directory_root}/namespace/kueue-system"
@@ -25,24 +25,28 @@ data "local_file" "kubeconfig" {
   filename = local.kubeconfig_file
 }
 
-resource "null_resource" "namespace" {
+resource "terraform_data" "namespace" {
+  input = {
+    manifests_dir = local.namespace_directory
+  }
+
   provisioner "local-exec" {
     command     = <<EOT
-mkdir -p ${self.triggers.manifests_dir} && \
-cp -r templates/namespace-kueue-system.yaml ${self.triggers.manifests_dir}/
+mkdir -p ${self.input.manifests_dir} && \
+cp -r templates/namespace-kueue-system.yaml ${self.input.manifests_dir}/
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module
   }
 
-  triggers = {
+  triggers_replace = {
     manifests_dir = local.namespace_directory
   }
 }
 
 module "kubectl_apply_namespace" {
   depends_on = [
-    null_resource.namespace,
+    terraform_data.namespace,
   ]
 
   source = "../../../modules/kubectl_apply"
@@ -52,20 +56,26 @@ module "kubectl_apply_namespace" {
   manifest_includes_namespace = true
 }
 
-resource "null_resource" "manifests" {
+resource "terraform_data" "manifests" {
+  input = {
+    manifests_dir         = local.manifests_directory
+    version_manifests_dir = local.version_manifests_directory
+    version               = var.kueue_version
+  }
+
   provisioner "local-exec" {
     command     = <<EOT
-mkdir -p ${self.triggers.version_manifests_dir} && \
-mkdir -p ${self.triggers.manifests_dir} && \
-wget https://github.com/kubernetes-sigs/kueue/releases/download/v${self.triggers.version}/manifests.yaml -O ${self.triggers.version_manifests_dir}/manifests.yaml && \
-cp -r templates/workload/* ${self.triggers.version_manifests_dir}/ && \
-cp -r ${self.triggers.version_manifests_dir}/* ${self.triggers.manifests_dir}/
+mkdir -p ${self.input.version_manifests_dir} && \
+mkdir -p ${self.input.manifests_dir} && \
+wget https://github.com/kubernetes-sigs/kueue/releases/download/v${self.input.version}/manifests.yaml -O ${self.input.version_manifests_dir}/manifests.yaml && \
+cp -r templates/workload/* ${self.input.version_manifests_dir}/ && \
+cp -r ${self.input.version_manifests_dir}/* ${self.input.manifests_dir}/
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module
   }
 
-  triggers = {
+  triggers_replace = {
     manifests_dir         = local.manifests_directory
     version_manifests_dir = local.version_manifests_directory
     version               = var.kueue_version
@@ -74,7 +84,7 @@ EOT
 
 module "kubectl_apply_manifests" {
   depends_on = [
-    null_resource.manifests,
+    terraform_data.manifests,
     module.kubectl_apply_namespace,
   ]
 

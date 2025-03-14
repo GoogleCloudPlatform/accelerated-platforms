@@ -109,17 +109,17 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: site
-                  name: nvflare-configmap-${nvidia_flare_tff_example_site_name}
+                  name: nvflare-configmap-${nvidia_flare_tff_example_workload_name}
             - name: NVFLARE_CONFIG_FILE_NAME
               valueFrom:
                 configMapKeyRef:
                   key: nvflare-config-file-name
-                  name: nvflare-configmap-${nvidia_flare_tff_example_site_name}
+                  name: nvflare-configmap-${nvidia_flare_tff_example_workload_name}
             - name: NVFLARE_PYTHON_MODULE_NAME
               valueFrom:
                 configMapKeyRef:
                   key: nvflare-python_module_name
-                  name: nvflare-configmap-${nvidia_flare_tff_example_site_name}
+                  name: nvflare-configmap-${nvidia_flare_tff_example_workload_name}
           resources:
             requests:
               cpu: "1"

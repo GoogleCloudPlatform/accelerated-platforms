@@ -39,6 +39,13 @@ start_timestamp_federated_learning=$(date +%s)
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/setup-environment.sh"
 
+echo "Destroying the services that the NVIDIA FLARE TFF example depends on"
+# shellcheck disable=SC2154 # variable defined in setup-environment.sh
+for ((i = ${#nvflare_example_terraservices[@]} - 1; i >= 0; i--)); do
+  terraservice=${nvflare_example_terraservices[i]}
+  destroy_terraservice "${terraservice}"
+done
+
 echo "Removing configuration values from ${FEDERATED_LEARNING_CONFIG_AUTO_VARS_FILE}"
 for configuration_variable in "${NVFLARE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES[@]}"; do
   remove_terraform_configuration_variable_from_file "${configuration_variable}" "${FEDERATED_LEARNING_CONFIG_AUTO_VARS_FILE}"
@@ -49,13 +56,6 @@ done
 
 echo "Deleting the generated NVFLARE workspace"
 rm -rf "${NVFLARE_GENERATED_WORKSPACE_PATH}"
-
-echo "Destroying the services that the NVIDIA FLARE TFF example depends on"
-# shellcheck disable=SC2154 # variable defined in setup-environment.sh
-for ((i = ${#nvflare_example_terraservices[@]} - 1; i >= 0; i--)); do
-  terraservice=${nvflare_example_terraservices[i]}
-  destroy_terraservice "${terraservice}"
-done
 
 echo "Running the Federated learning use case deploy script"
 "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/deploy.sh"

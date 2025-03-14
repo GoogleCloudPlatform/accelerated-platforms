@@ -18,11 +18,11 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: distributed-tff-example-worker-1-through-egress-gateway
+  name: client1-through-egress-gateway
   namespace: ${namespace_name}
 spec:
   hosts:
-    - client1.${nvidia_flare_tff_example_site_domain}
+    - client1
   gateways:
     - istio-egress/egress-gateway
     - mesh
@@ -52,11 +52,11 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: distributed-tff-example-worker-2-through-egress-gateway
+  name: client2-through-egress-gateway
   namespace: ${namespace_name}
 spec:
   hosts:
-    - client2.${nvidia_flare_tff_example_site_domain}
+    - client2
   gateways:
     - istio-egress/egress-gateway
     - mesh
@@ -83,21 +83,38 @@ spec:
           weight: 100
 %{ endif }
 %{ if startswith(nvidia_flare_tff_example_workload_name, "client") }
+# Direct traffic from the sidecars to the egress gateway and from the egress gateway to the external service
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: client-ingress-gateway
+  name: server1-through-egress-gateway
   namespace: ${namespace_name}
 spec:
   hosts:
-    - "${nvidia_flare_tff_example_workload_name}.${nvidia_flare_tff_example_site_domain}"
+    - server1
   gateways:
-    - istio-ingress/ingress-gateway
+    - istio-egress/egress-gateway
+    - mesh
   tcp:
-    - route:
+    - match:
+        - gateways:
+            - mesh
+          port: 8002
+      route:
         - destination:
-            host: ${nvidia_flare_tff_example_workload_name}.${namespace_name}.svc.cluster.local
+            host: istio-egressgateway.istio-egress.svc.cluster.local
             port:
-              number: 8002
+              number: 8443
+          weight: 100
+    - match:
+        - gateways:
+            - istio-egress/egress-gateway
+          port: 8443
+      route:
+        - destination:
+            host: server1.${nvidia_flare_tff_example_site_domain}
+            port:
+              number: 443
+          weight: 100
 %{ endif }

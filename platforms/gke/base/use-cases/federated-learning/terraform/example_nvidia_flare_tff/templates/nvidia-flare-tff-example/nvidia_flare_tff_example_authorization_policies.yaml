@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-%{ if startswith(nvidia_flare_tff_example_workload_name, "server") }
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
@@ -25,13 +24,15 @@ spec:
         - source:
             namespaces:
               - ${namespace_name}
-%{ endif }
-%{ if startswith(nvidia_flare_tff_example_workload_name, "client") }
+    - to:
+        - source:
+            namespaces:
+              - "istio-egress"
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-from-ingress-gateway-to-flport-port
+  name: allow-from-ingress-gateway-to-${namespace_name}-flport-port
   namespace: ${namespace_name}
 spec:
   action: ALLOW
@@ -43,7 +44,3 @@ spec:
     - to:
         - operation:
             ports: ["8002"]
-  selector:
-    matchLabels:
-      app: tff-worker
-%{ endif }

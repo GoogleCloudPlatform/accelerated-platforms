@@ -5,10 +5,12 @@ apiservice
 clusterregistry
 clusterrole
 clusterrolebinding
+egressgateway
 flowcontrol
 flowschemas
 gmsa
 horizontalpodautoscaler
+ingressgateway
 jobset
 jobsets
 k8s
@@ -20,6 +22,7 @@ minpods
 mutatingwebhookconfigurations
 noexec
 notin
+peerauthentication
 persistentvolume
 persistentvolumeclaim
 podmonitoring
@@ -40,5 +43,7 @@ runtimeclasses
 seccomp
 statefulsets
 subjectaccessreviews
+TLSV
 tokenreviews
+tolerations
 validatingwebhookconfigurations

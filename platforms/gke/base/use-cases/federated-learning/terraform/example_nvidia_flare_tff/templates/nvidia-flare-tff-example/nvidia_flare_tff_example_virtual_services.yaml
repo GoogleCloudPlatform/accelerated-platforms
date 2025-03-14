@@ -23,6 +23,8 @@ metadata:
 spec:
   gateways:
     - istio-ingress/ingress-gateway
+  hosts:
+    - "*"
   tcp:
     - match:
         - gateways:

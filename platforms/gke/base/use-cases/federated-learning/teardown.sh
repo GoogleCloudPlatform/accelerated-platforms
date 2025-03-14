@@ -25,7 +25,7 @@ SCRIPT_DIRECTORY_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null &
 echo "This script (${SCRIPT_BASENAME}) has been invoked with: $0 $*"
 echo "This script directory path is: ${SCRIPT_DIRECTORY_PATH}"
 
-ACP_REPO_DIR="$(readlink -f "${SCRIPT_DIRECTORY_PATH}/../../../../../../")"
+ACP_REPO_DIR="$(readlink -f "${SCRIPT_DIRECTORY_PATH}/../../../../../")"
 export ACP_REPO_DIR
 export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"

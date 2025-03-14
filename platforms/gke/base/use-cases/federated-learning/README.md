@@ -310,6 +310,30 @@ Terraform. To enable Confidential GKE Nodes, you do the following:
    current Kubernetes network policies are affecting traffic in your cluster
    [using Cloud Logging](https://cloud.google.com/kubernetes-engine/docs/how-to/network-policy-logging#accessing_logs).
 
+1. If your workloads need to access hosts that are external to the service mesh,
+   configure a
+   [ServiceEntry](https://istio.io/latest/docs/reference/config/networking/service-entry/)
+   for each external host.
+
+1. If your workloads need to send traffic outside the cluster, configure:
+
+   - [AuthorizationPolicies](https://istio.io/latest/docs/reference/config/security/authorization-policy)
+     to allow traffic from the workload namespace to the `istio-egress`
+     namespace.
+   - [VirtualServices](https://istio.io/latest/docs/reference/config/networking/virtual-service)
+     to direct traffic from the workload to the egress gateway, and from the
+     egress gateway to the destination.
+
+1. If your workloads need to receive traffic from outside the cluster,
+   configure:
+
+   - [AuthorizationPolicies](https://istio.io/latest/docs/reference/config/security/authorization-policy)
+     to allow traffic from the `istio-egress` namespace to the workload
+     namespace.
+   - [VirtualServices](https://istio.io/latest/docs/reference/config/networking/virtual-service)
+     to direct traffic from the external service to the ingress gateway, and
+     from the ingress gateway to the workload.
+
 ## Troubleshooting
 
 This section describes common issues and troubleshooting steps.

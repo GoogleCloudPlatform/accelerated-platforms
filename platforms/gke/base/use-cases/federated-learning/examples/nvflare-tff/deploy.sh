@@ -216,21 +216,21 @@ fi
 
 "${FEDERATED_LEARNING_USE_CASE_DIR}/examples/nvflare-tff/push-container-image.sh"
 
+# shellcheck disable=SC2154 # variable defined in setup-environment.sh
+gcloud container clusters get-credentials "${cluster_name}" \
+  --region "${cluster_region}" \
+  --project "${cluster_project_id}" \
+  --dns-endpoint
+
+while [[ -z "${INGRESS_GATEWAY_IP_ADDRESS:-}" ]]; do
+  echo "Waiting for the ingress gateway to have an external IP address..."
+  INGRESS_GATEWAY_IP_ADDRESS=$(kubectl get svc istio-ingressgateway -n istio-ingress --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}")
+  [[ -z "${INGRESS_GATEWAY_IP_ADDRESS:-}" ]] && sleep 10
+done
+echo "NVFLARE ${WORKLOAD_NAME} ingress gateway IP address: ${INGRESS_GATEWAY_IP_ADDRESS}"
+
 if [[ "${WORKLOAD_NAME}" == "server1" ]]; then
-  # shellcheck disable=SC2154 # variable defined in setup-environment.sh
-  gcloud container clusters get-credentials "${cluster_name}" \
-    --region "${cluster_region}" \
-    --project "${cluster_project_id}" \
-    --dns-endpoint
-
-  while [[ -z "${SERVER_IP_ADDRESS:-}" ]]; do
-    echo "Waiting for the ingress gateway to have an external IP address..."
-    SERVER_IP_ADDRESS=$(kubectl get svc istio-ingressgateway -n istio-ingress --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}")
-    [[ -z "${SERVER_IP_ADDRESS:-}" ]] && sleep 10
-  done
-
   echo "NVFLARE workspace bucket name: ${NVFLARE_EXAMPLE_WORKSPACE_BUCKET_NAME}"
-  echo "NVFLARE server IP address: ${SERVER_IP_ADDRESS}"
 fi
 
 end_timestamp_federated_learning=$(date +%s)

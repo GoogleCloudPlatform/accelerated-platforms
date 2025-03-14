@@ -90,7 +90,7 @@ ones that the Federated learning reference architecture provisions.
       last command. The output is similar to the following:
 
    ```text
-   NVFLARE server IP address: 1.2.3.4
+   NVFLARE server1 ingress gateway IP address: 1.2.3.4
    ```
 
 1. Deploy `client1`:
@@ -116,7 +116,42 @@ ones that the Federated learning reference architecture provisions.
         bucket name that you get from the output of the `server` deployment
         script.
 
-1. Repeat the steps described to deploy `client1` to deploy `client2`.
+   1. Take note of the NVIDIA FLARE client1 IP address from the output of the
+      last command. The output is similar to the following:
+
+      ```text
+      NVFLARE client1 ingress gateway IP address: 1.2.3.4
+      ```
+
+1. Deploy `client2`:
+
+   1. Change the working directory to the directory where you cloned the
+      repository for the `client2` instance of the reference architecture.
+
+   1. Run the script to configure the reference architecture and provision
+      Google Cloud resources that this example needs:
+
+      ```sh
+      "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/deploy.sh" \
+          --server-ip "<SERVER_IP_ADDRESS>" \
+          --workspace-bucket-name "<NVFLARE_WORKSPACE_BUCKET_NAME>" \
+          --workload "client2"
+      ```
+
+      Where:
+
+      - `<SERVER_IP_ADDRESS>` is the NVIDIA FLARE server IP address that you get
+        from the output of the `server` deployment script.
+      - `<NVFLARE_WORKSPACE_BUCKET_NAME>` is the NVIDIA FLARE Cloud Storage
+        bucket name that you get from the output of the `server` deployment
+        script.
+
+   1. Take note of the NVIDIA FLARE client2 IP address from the output of the
+      last command. The output is similar to the following:
+
+      ```text
+      NVFLARE client2 ingress gateway IP address: 1.2.3.4
+      ```
 
 ### Check the status of the server and registered clients
 

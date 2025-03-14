@@ -43,8 +43,8 @@ spec:
       name: adminport
   selector:
     run: nvflare-${nvidia_flare_tff_example_workload_name}
-# client1 -> client1.${nvidia_flare_tff_example_site_domain} DNS name mapping
 ---
+# client1 -> client1.${nvidia_flare_tff_example_site_domain} DNS name mapping
 apiVersion: v1
 kind: Service
 metadata:
@@ -53,8 +53,8 @@ metadata:
 spec:
   type: ExternalName
   externalName: client1.${nvidia_flare_tff_example_site_domain}
-# client2 -> client2.${nvidia_flare_tff_example_site_domain} DNS name mapping
 ---
+# client2 -> client2.${nvidia_flare_tff_example_site_domain} DNS name mapping
 apiVersion: v1
 kind: Service
 metadata:
@@ -65,8 +65,8 @@ spec:
   externalName: client2.${nvidia_flare_tff_example_site_domain}
 %{ endif }
 %{ if startswith(nvidia_flare_tff_example_workload_name, "client") }
-# server1 -> server1.${nvidia_flare_tff_example_site_domain} DNS name mapping
 ---
+# server1 -> server1.${nvidia_flare_tff_example_site_domain} DNS name mapping
 apiVersion: v1
 kind: Service
 metadata:

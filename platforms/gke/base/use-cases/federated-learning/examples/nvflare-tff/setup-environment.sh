@@ -27,6 +27,10 @@ NVFLARE_EXAMPLE_TENANT_NAME="fl-1"
 
 NVFLARE_EXAMPLE_WORKSPACE_BUCKET_BASE_NAME="nvf-ws"
 
+NVFLARE_WORKSPACE_PATH="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/example_nvidia_flare_tff/nvflare-workspace"
+# shellcheck disable=SC2034 # Variable is used in other scripts
+NVFLARE_GENERATED_WORKSPACE_PATH="${NVFLARE_WORKSPACE_PATH}/workspace"
+
 # shellcheck disable=SC2034 # Variable is used in other scripts
 NVFLARE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES=(
   "federated_learning_tenant_names = [\"${NVFLARE_EXAMPLE_TENANT_NAME}\"]"

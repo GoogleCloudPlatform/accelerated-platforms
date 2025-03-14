@@ -208,14 +208,13 @@ provision_terraservice "config_management"
 echo "Building the NVIDIA FLARE container image"
 "${FEDERATED_LEARNING_USE_CASE_DIR}/examples/nvflare-tff/build-container-image.sh"
 
-NVFLARE_WORKSPACE_PATH="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/example_nvidia_flare_tff/nvflare-workspace"
 if [[ "${WORKLOAD_NAME}" == "server1" ]]; then
-  if [[ ! -d "${NVFLARE_WORKSPACE_PATH}/workspace" ]]; then
+  if [[ ! -d "${NVFLARE_GENERATED_WORKSPACE_PATH}" ]]; then
     echo "Generating NVFLARE workspace files in ${NVFLARE_WORKSPACE_PATH}"
     sudo chown -R 10000:10000 "${NVFLARE_WORKSPACE_PATH}"
     docker run --rm -v "${NVFLARE_WORKSPACE_PATH}:/opt/NVFlare/workspace" -it "${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID_WITH_TAG}" nvflare provision
     sudo chown -R "$(id -u)":"$(id -g)" "${NVFLARE_WORKSPACE_PATH}"
-    gcloud storage cp --recursive "${NVFLARE_WORKSPACE_PATH}/workspace" "gs://${NVFLARE_EXAMPLE_WORKSPACE_BUCKET_NAME}"
+    gcloud storage cp --recursive "${NVFLARE_GENERATED_WORKSPACE_PATH}" "gs://${NVFLARE_EXAMPLE_WORKSPACE_BUCKET_NAME}"
   else
     echo "Skip generating the NVFLARE workspace because it was already generated"
   fi

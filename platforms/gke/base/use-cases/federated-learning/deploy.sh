@@ -18,6 +18,13 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+# Doesn't follow symlinks, but it's likely expected for most users
+SCRIPT_BASENAME="$(basename "${0}")"
+SCRIPT_DIRECTORY_PATH="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
+echo "This script (${SCRIPT_BASENAME}) has been invoked with: $0 $*"
+echo "This script directory path is: ${SCRIPT_DIRECTORY_PATH}"
+
 ACP_REPO_DIR="$(readlink -f "${SCRIPT_DIRECTORY_PATH}/../../../../../../")"
 export ACP_REPO_DIR
 export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"

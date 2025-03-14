@@ -163,3 +163,23 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
     }
   }
 }
+
+resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_rule_allow_ingress_to_ingress_gateway" {
+  action          = "allow"
+  description     = "Allow ingress traffic to the ingress gateway"
+  direction       = "INGRESS"
+  enable_logging  = true
+  firewall_policy = google_compute_network_firewall_policy.federated_learning_fw_policy.name
+  priority        = 1006
+  project         = data.google_project.default.project_id
+  rule_name       = "${local.cluster_name}-ingress-ingress-gateway"
+
+  target_service_accounts = local.node_pool_service_account_emails
+
+  match {
+    layer4_configs {
+      ip_protocol = "tcp"
+      ports       = ["80", "443"]
+    }
+  }
+}

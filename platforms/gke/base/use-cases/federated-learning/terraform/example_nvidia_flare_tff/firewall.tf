@@ -26,7 +26,7 @@ locals {
   )
 }
 
-resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_rule_allow_egress_to_k8s_api" {
+resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_rule_allow_egress_to_nvflare" {
   action                  = "allow"
   description             = "Allow egress to NVIDIA FLARE"
   direction               = "EGRESS"

@@ -17,11 +17,11 @@
 #
 
 locals {
-  manifests_directory = abspath("${path.module}/../manifests")
+  manifests_directory_root = "${path.module}/../../../kubernetes/manifests"
 }
 
 variable "kueue_version" {
-  default     = "0.10.0"
+  default     = "0.10.2"
   description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
   type        = string
 }

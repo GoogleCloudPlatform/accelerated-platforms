@@ -54,6 +54,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "on-demand"
       "resource-model" : "l4"
       "resource-type" : "gpu"
     }
@@ -138,6 +139,8 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_dws" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "on-demand"
+      "queued-provisioning" : "true"
       "resource-model" : "l4"
       "resource-type" : "gpu"
     }
@@ -226,6 +229,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_res" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "reservation"
       "resource-model" : "l4"
       "resource-type" : "gpu"
     }
@@ -311,6 +315,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_spot" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "spot"
       "resource-model" : "l4"
       "resource-type" : "gpu"
     }

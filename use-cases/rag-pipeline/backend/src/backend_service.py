@@ -25,6 +25,82 @@ import logging.config
 from google.cloud.alloydb.connector import Connector
 import prompt_helper
 import rerank
+import os
+import traceback
+
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+from opentelemetry.sdk.resources import get_aggregated_resources, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+
+def configure_cloud_trace(app):
+    """Configures OpenTelemetry tracing with Cloud Trace exporter."""
+
+    try:
+        # Create a BatchSpanProcessor and add the exporter to it
+        span_processor = BatchSpanProcessor(OTLPSpanExporter())
+
+        # Detect environment. Set project ID if running on GCP
+        gcp_project_id = os.environ.get("GOOGLE_CLOUD_PROJECT")
+        resource = get_aggregated_resources(
+            [
+                Resource.create(
+                    {
+                        "service.name": "rag-service",
+                        "service.version": "1.0",
+                        "cloud.provider": "gcp",
+                        "cloud.project.id": gcp_project_id,
+                    }
+                )
+            ]
+        )
+
+        # Create a TracerProvider and add the span processor
+        provider = TracerProvider(resource=resource)
+        provider.add_span_processor(span_processor)
+
+        # Set the TracerProvider as the global provider
+        trace.set_tracer_provider(provider)
+
+        # Instrument FastAPI app for automatic tracing
+        FastAPIInstrumentor.instrument_app(app, tracer_provider=provider)
+
+        # Get the tracer
+        tracer = trace.get_tracer(__name__)
+
+        # Configure custom logging to include trace_id and span_id
+        LoggingInstrumentor().instrument(set_logging_format=True)
+
+        logging.info("Cloud Trace configured successfully.")
+        return tracer  # Return the tracer
+
+    except Exception as e:
+        logging.error(f"Error configuring Cloud Trace: {e}")
+        traceback.print_exc()
+        return None  # Or handle the error appropriately
+
+
+# Assuming this is your FastAPI application
+app = FastAPI()
+# Get a tracer instance
+tracer = configure_cloud_trace(app)
+
+@app.get("/")
+async def root():
+    if tracer:
+        with tracer.start_as_current_span("root_span") as root_span:
+            root_span.set_attribute(
+                "custom_attribute", "some-value"
+            )  # add some custom span attributes
+            logging.info(
+                "This log message will include trace and span IDs."
+            )  # This will automatically be instrumented with the trace_id and span_id
+
+    return {"message": "Cloud Trace Manual Span Example"}
 
 # Configure logging
 logging.config.fileConfig("logging.conf")  # Make sure you have logging.conf configured
@@ -46,9 +122,6 @@ embedding_column = {
     "multimodal": os.environ.get("EMBEDDING_COLUMN_MULTIMODAL"),
 }
 row_count = os.environ.get("ROW_COUNT")  # No of matching products in production
-
-app = FastAPI()
-
 
 # Pydantic models for request body
 class Prompt(BaseModel):

@@ -78,6 +78,7 @@
   export EMBEDDING_ENDPOINT_TEXT="http://multimodal-embedding-model.ml-team:80/text_embeddings"
   export GEMMA_IT_ENDPOINT="http://rag-it-model.ml-team:8000/v1/chat/completions"
   export KUBERNETES_SERVICE_ACCOUNT="${MLP_DB_USER_KSA}"
+  export OTEL_KUBERNETES_SERVICE_ACCOUNT="${MLP_RAG_CLOUD_TRACE_KSA}"
   export ROW_COUNT="5"
   set +o nounset
   ```
@@ -129,3 +130,15 @@
   ```
   "- London Fog Solid V-neck Casual Men's Sweater \n- Alpine Enterprises Solid V-neck Men's Sweater \n- Club York Solid V-neck Casual Men's Sweater \n"
   ```
+
+## Tracing
+
+For the RAG use case, tracing is enabled using [Google Cloud Trace](https://cloud.google.com/trace/docs) and [OpenTelemetry](https://opentelemetry.io/). The provided sample code imports the necessary libraries and is instrumented. Additionally, an OpenTelemetry collector (otel-collector) is installed and configured within the same namespace as the RAG application.
+
+With this setup, after sending a request, you can view the traces in the Cloud Trace explorer, similar to the following:
+
+![trace-explorer](/docs/use-cases/rag-pipeline/images/trace_explorer.png)
+
+If you click on the span `POST /generate_product_recommendations/`, you can view the detailed information like the following:
+
+![trace-example](/docs/use-cases/rag-pipeline/images/trace_example.png)

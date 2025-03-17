@@ -56,6 +56,12 @@ spec:
           value: "${EMBEDDING_COLUMN_MULTIMODAL}"
         - name: ROW_COUNT
           value: "${ROW_COUNT}"
+        - name: OTEL_SERVICE_NAME
+          value: "opentelemetry-collector"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://$(OTEL_SERVICE_NAME):4317"
+        - name: OTEL_TRACES_EXPORTER
+          value: "otlp"
         resources:
           requests:
             cpu: "2"
@@ -85,3 +91,103 @@ spec:
     - protocol: TCP
       port: 8000
       targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: otel-collector
+spec:
+ replicas: 1
+ selector:
+   matchLabels:
+     app: otel-collector
+ template:
+   metadata:
+     labels:
+       app: otel-collector
+   spec:
+     serviceAccountName: ${OTEL_KUBERNETES_SERVICE_ACCOUNT}
+     containers:
+     - name: otel-collector
+       imagePullPolicy: Always
+       image: otel/opentelemetry-collector-contrib:0.108.0
+       args:
+       - --config
+       - /etc/otel/config.yaml
+       env:
+        - name: MY_POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+       volumeMounts:
+       - mountPath: /etc/otel/
+         name: otel-config
+     volumes:
+     - name: otel-config
+       configMap:
+         name: otel-config
+         items:
+         - key: collector.yaml
+           path: config.yaml
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: opentelemetry-collector
+ labels:
+   app: opentelemetry-collector
+spec:
+ type: ClusterIP
+ selector:
+   app: otel-collector
+ internalTrafficPolicy: Cluster
+ ports:
+   - name: otel-grpc
+     protocol: TCP
+     port: 4317
+     targetPort: 4317
+   - name: otlp-http
+     port: 4318
+     targetPort: 4318
+     protocol: TCP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-config
+data:
+  collector.yaml: |
+    receivers:
+     # Enable endpoints for receiving data
+     # supplied in OTLP format.
+     otlp:
+       protocols:
+         http:
+           endpoint: ${env:MY_POD_IP}:4318
+         grpc:
+           endpoint: ${env:MY_POD_IP}:4317
+
+    exporters:
+     # Export traces using the standard googelcloud exporter
+     googlecloud:
+       user_agent: Google-Cloud-OTLP
+    processors:
+     # Batch telemetry together to more efficiently send to GCP
+     batch:
+       send_batch_max_size: 500
+       send_batch_size: 500
+       timeout: 1s
+     # If running on GCP (e.g. on GKE), detect resource attributes from the environment.
+     resourcedetection:
+       detectors: ["env", "gcp"]
+    service:
+     pipelines:
+       traces:
+         receivers: ["otlp"]
+         processors: ["batch", "resourcedetection"]
+         exporters: ["googlecloud"]
+       metrics:
+         receivers: ["otlp"]
+         processors: ["batch", "resourcedetection"]
+         exporters: ["googlecloud"]

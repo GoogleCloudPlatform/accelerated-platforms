@@ -42,14 +42,20 @@ The data processing step takes approximately 18-20 minutes.
 
 ## Preparation
 
-- Clone the repository and change directory to the guide directory
+- Clone the repository.
 
   ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms/use-cases/model-fine-tuning-pipeline/data-processing/ray
+  cd accelerated-platforms
   ```
 
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+- Change directory to the guide directory.
+
+  ```shell
+  cd use-cases/model-fine-tuning-pipeline/data-processing/ray
+  ```
+
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
 
   ```shell
   cat ${MLP_ENVIRONMENT_FILE} && \
@@ -59,35 +65,42 @@ The data processing step takes approximately 18-20 minutes.
   > You should see the various variables populated with the information specific
   > to your environment.
 
+- Get credentials for the GKE cluster
+
+  ```shell
+  gcloud container clusters get-credentials ${MLP_CLUSTER_NAME} \
+  --dns-endpoint \
+  --location=${MLP_REGION} \
+  --project=${MLP_PROJECT_ID}
+  ```
+
 ## Build the container image
 
 - Build container image using Cloud Build and push the image to Artifact
   Registry
 
   ```shell
-  cd src
-  cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing .
-  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+  cd src && \
+  cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing . && \
+  git restore cloudbuild.yaml && \
+  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml && \
   gcloud beta builds submit \
-  --config cloudbuild.yaml \
-  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
-  --project ${MLP_PROJECT_ID} \
-  --substitutions _DESTINATION=${MLP_DATA_PROCESSING_IMAGE}
+  --config=cloudbuild.yaml \
+  --gcs-source-staging-dir=gs://${MLP_CLOUDBUILD_BUCKET}/source \
+  --project=${MLP_PROJECT_ID} \
+  --substitutions=_DESTINATION=${MLP_DATA_PROCESSING_IMAGE}
   rm -rf datapreprocessing
   cd ..
   ```
 
+  It takes approximately 3 minutes for the build to complete.
+
 ## Run the job
-
-- Get credentials for the GKE cluster
-
-  ```shell
-  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
-  ```
 
 - Configure the job
 
   ```shell
+  git restore manifests/job.yaml && \
   sed \
   -i -e "s|V_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
   -i -e "s|V_IMAGE_URL|${MLP_DATA_PROCESSING_IMAGE}|" \
@@ -98,7 +111,7 @@ The data processing step takes approximately 18-20 minutes.
 - Create the job
 
   ```shell
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job.yaml
+  kubectl --namespace=${MLP_KUBERNETES_NAMESPACE} apply --filename=manifests/job.yaml
   ```
 
 - Monitor the execution in Ray Dashboard. You can run the following command to

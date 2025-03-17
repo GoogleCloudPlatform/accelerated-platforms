@@ -56,6 +56,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "on-demand"
       "resource-model" : "a100"
       "resource-type" : "gpu"
       "resource-variant" : "40GB"
@@ -143,6 +144,8 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_dws" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "on-demand"
+      "queued-provisioning" : "true"
       "resource-model" : "a100"
       "resource-type" : "gpu"
       "resource-variant" : "40GB"
@@ -234,6 +237,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_res" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "reservation"
       "resource-model" : "a100"
       "resource-type" : "gpu"
       "resource-variant" : "40GB"
@@ -321,6 +325,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_spot" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "spot"
       "resource-model" : "a100"
       "resource-type" : "gpu"
       "resource-variant" : "40GB"

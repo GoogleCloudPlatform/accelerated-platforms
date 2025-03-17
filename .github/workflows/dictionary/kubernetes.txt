@@ -2,9 +2,11 @@ admissionregistration
 apiextensions
 apiregistration
 apiservice
+automount
 clusterregistry
 clusterrole
 clusterrolebinding
+crds
 egressgateway
 flowcontrol
 flowschemas

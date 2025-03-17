@@ -26,6 +26,12 @@ variable "jobset_version" {
   type        = string
 }
 
+variable "kuberay_version" {
+  default     = "1.3.1"
+  description = "Version of KubeRay (https://github.com/ray-project/kuberay) to install."
+  type        = string
+}
+
 variable "kueue_version" {
   default     = "0.10.2"
   description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."

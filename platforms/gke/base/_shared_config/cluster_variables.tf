@@ -43,6 +43,12 @@ locals {
   kubeconfig_file_name = "${var.cluster_project_id}-${local.cluster_name}"
 }
 
+variable "cluster_addons_ray_operator_enabled" {
+  default     = false
+  description = "Enable Ray Operator Addon. Ref: https://cloud.google.com/kubernetes-engine/docs/add-on/ray-on-gke/concepts/overview"
+  type        = bool
+}
+
 variable "cluster_binary_authorization_evaluation_mode" {
   default     = "DISABLED"
   description = "Mode of operation for Binary Authorization policy evaluation. Valid values are DISABLED and PROJECT_SINGLETON_POLICY_ENFORCE."

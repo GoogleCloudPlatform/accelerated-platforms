@@ -37,6 +37,23 @@ resource "google_container_cluster" "cluster" {
     gce_persistent_disk_csi_driver_config {
       enabled = true
     }
+
+    parallelstore_csi_driver_config {
+      enabled = true
+    }
+
+    dynamic "ray_operator_config" {
+      for_each = var.cluster_addons_ray_operator_enabled ? ["ray_operator_config"] : []
+      content {
+        enabled = true
+        ray_cluster_logging_config {
+          enabled = true
+        }
+        ray_cluster_monitoring_config {
+          enabled = true
+        }
+      }
+    }
   }
 
   cluster_autoscaling {
@@ -247,6 +264,7 @@ resource "google_container_node_pool" "system" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "on-demand"
       "resource-type" : "system"
     }
     machine_type    = var.cluster_system_node_pool_machine_type

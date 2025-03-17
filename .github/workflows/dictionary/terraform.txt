@@ -1,5 +1,6 @@
 abspath
 cidrhost
+direxists
 endfor
 filemd
 fileset

@@ -89,6 +89,7 @@ app = FastAPI()
 # Get a tracer instance
 tracer = configure_cloud_trace(app)
 
+
 @app.get("/")
 async def root():
     if tracer:
@@ -101,6 +102,7 @@ async def root():
             )  # This will automatically be instrumented with the trace_id and span_id
 
     return {"message": "Cloud Trace Manual Span Example"}
+
 
 # Configure logging
 logging.config.fileConfig("logging.conf")  # Make sure you have logging.conf configured
@@ -122,6 +124,7 @@ embedding_column = {
     "multimodal": os.environ.get("EMBEDDING_COLUMN_MULTIMODAL"),
 }
 row_count = os.environ.get("ROW_COUNT")  # No of matching products in production
+
 
 # Pydantic models for request body
 class Prompt(BaseModel):

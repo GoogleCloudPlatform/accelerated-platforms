@@ -133,12 +133,19 @@
 
 ## Tracing
 
-For the RAG use case, tracing is enabled using [Google Cloud Trace](https://cloud.google.com/trace/docs) and [OpenTelemetry](https://opentelemetry.io/). The provided sample code imports the necessary libraries and is instrumented. Additionally, an OpenTelemetry collector (otel-collector) is installed and configured within the same namespace as the RAG application.
+For the RAG use case, tracing is enabled using
+[Google Cloud Trace](https://cloud.google.com/trace/docs) and
+[OpenTelemetry](https://opentelemetry.io/). The provided sample code imports the
+necessary libraries and is instrumented. Additionally, an OpenTelemetry
+collector (otel-collector) is installed and configured within the same namespace
+as the RAG application.
 
-With this setup, after sending a request, you can view the traces in the Cloud Trace explorer, similar to the following:
+With this setup, after sending a request, you can view the traces in the Cloud
+Trace explorer, similar to the following:
 
 ![trace-explorer](/docs/use-cases/rag-pipeline/images/trace_explorer.png)
 
-If you click on the span `POST /generate_product_recommendations/`, you can view the detailed information like the following:
+If you click on the span `POST /generate_product_recommendations/`, you can view
+the detailed information like the following:
 
 ![trace-example](/docs/use-cases/rag-pipeline/images/trace_example.png)

@@ -261,7 +261,7 @@ resource "google_project_iam_member" "data_preparation_aiplatform_user" {
 # CLOUD TRACE
 ###########################################################
 resource "google_project_iam_member" "rag_cloud_trace_ksa_user" {
-    depends_on = [
+  depends_on = [
     google_container_cluster.mlp
   ]
 

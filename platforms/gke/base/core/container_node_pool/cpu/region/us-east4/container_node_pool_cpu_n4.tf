@@ -48,6 +48,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "on-demand"
       "resource-model" : "n4"
       "resource-type" : "cpu"
     }
@@ -117,6 +118,7 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "spot"
       "resource-model" : "n4"
       "resource-type" : "cpu"
     }

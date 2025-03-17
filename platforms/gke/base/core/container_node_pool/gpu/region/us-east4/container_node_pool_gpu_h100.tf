@@ -56,6 +56,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "on-demand"
       "resource-model" : "h100"
       "resource-type" : "gpu"
     }
@@ -146,6 +147,8 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_dws" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "on-demand"
+      "queued-provisioning" : "true"
       "resource-model" : "h100"
       "resource-type" : "gpu"
     }
@@ -240,6 +243,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_res" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "reservation"
       "resource-model" : "h100"
       "resource-type" : "gpu"
     }
@@ -330,6 +334,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_spot" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "spot"
       "resource-model" : "h100"
       "resource-type" : "gpu"
     }

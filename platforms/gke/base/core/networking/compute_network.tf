@@ -13,6 +13,10 @@
 # limitations under the License.
 
 resource "google_compute_network" "vpc" {
+  depends_on = [
+    terraform_data.cleanup_network_endpoint_groups
+  ]
+
   count = var.network_name != null ? 0 : 1
 
   auto_create_subnetworks = false

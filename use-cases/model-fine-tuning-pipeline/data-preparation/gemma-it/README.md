@@ -16,38 +16,52 @@ approximately 1 hour and 40 minutes.
   modified for that environment.
 - A bucket containing the processed data from the
   [Data Processing example](/use-cases/model-fine-tuning-pipeline/data-processing/ray/README.md)
-
-> NOTE: If you did not execute the data processing example, follow
-> [these instructions](/use-cases/prerequisites/processed-data.md) to load the
-> processed data into the bucket.
+  > NOTE: If you did not execute the data processing example, follow
+  > [these instructions](/use-cases/prerequisites/processed-data.md) to load the
+  > processed data into the bucket.
 
 ## Preparation
 
 - Accept Llama 3.1 on Vertex AI license agreement terms
 
-  ```sh
+  ```shell
   echo -e "\nhttps://console.cloud.google.com/vertex-ai/publishers/meta/model-garden/llama-3.1-405b-instruct-maas\n"
   ```
 
   1. Accept the license terms for the Llama 3.1 model
   1. On the Llama 3.1 on Vertex AI model card, click the blue `ENABLE` button
 
-- Clone the repository and change directory to the guide directory
+- Clone the repository.
 
-  ```sh
+  ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it
+  cd accelerated-platforms
   ```
 
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+- Change directory to the guide directory.
 
+  ```shell
+  cd use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it
   ```
+
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
+
+  ```shell
   cat ${MLP_ENVIRONMENT_FILE} && \
   source ${MLP_ENVIRONMENT_FILE}
   ```
 
   > You should see the various variables populated with the information specific
   > to your environment.
+
+- Get credentials for the GKE cluster
+
+  ```shell
+  gcloud container clusters get-credentials ${MLP_CLUSTER_NAME} \
+  --dns-endpoint \
+  --location=${MLP_REGION} \
+  --project=${MLP_PROJECT_ID}
+  ```
 
 ### Vertex AI OpenAI endpoint variables
 
@@ -66,24 +80,21 @@ approximately 1 hour and 40 minutes.
 - Build the container image using Cloud Build and push the image to Artifact
   Registry
 
-  ```
-  cd src
-  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+  ```shell
+  cd src && \
+  git restore cloudbuild.yaml && \
+  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml && \
   gcloud beta builds submit \
-  --config cloudbuild.yaml \
-  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
-  --project ${MLP_PROJECT_ID} \
-  --substitutions _DESTINATION=${MLP_DATA_PREPARATION_IMAGE}
+  --config=cloudbuild.yaml \
+  --gcs-source-staging-dir=gs://${MLP_CLOUDBUILD_BUCKET}/source \
+  --project=${MLP_PROJECT_ID} \
+  --substitutions=_DESTINATION=${MLP_DATA_PREPARATION_IMAGE}
   cd ..
   ```
 
+  It takes approximately 3 minutes for the build to complete.
+
 ## Run the job
-
-- Get credentials for the GKE cluster
-
-  ```sh
-  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
-  ```
 
 - Configure the job
 
@@ -94,14 +105,15 @@ approximately 1 hour and 40 minutes.
   | DATASET_OUTPUT_PATH | The folder path of where the generated output data set will reside. This path will be needed for fine-tuning. | dataset/output                   |
   | PROMPT_MODEL_ID     | The Vertex AI model for prompt generation                                                                     | meta/llama-3.1-70b-instruct-maas |
 
-  ```sh
+  ```shell
   DATASET_INPUT_PATH="flipkart_preprocessed_dataset"
   DATASET_INPUT_FILE="flipkart.csv"
   DATASET_OUTPUT_PATH="dataset/output"
   PROMPT_MODEL_ID="meta/llama-3.1-70b-instruct-maas"
   ```
 
-  ```sh
+  ```shell
+  git restore manifests/job.yaml && \
   sed \
   -i -e "s|V_IMAGE_URL|${MLP_DATA_PREPARATION_IMAGE}|" \
   -i -e "s|V_KSA|${MLP_DATA_PREPARATION_KSA}|" \
@@ -117,14 +129,14 @@ approximately 1 hour and 40 minutes.
 
 - Create the job
 
-  ```sh
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job.yaml
+  ```shell
+  kubectl --namespace=${MLP_KUBERNETES_NAMESPACE} apply --filename=manifests/job.yaml
   ```
 
 - Once the Job is completed, the prepared datasets are stored in Google Cloud
   Storage.
 
-  ```sh
+  ```shell
   gcloud storage ls gs://${MLP_DATA_BUCKET}/${DATASET_OUTPUT_PATH}
   ```
 

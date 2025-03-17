@@ -16,23 +16,28 @@ prepared by the Llama 3.1 on Vertex AI API.
   modified for that environment.
 - A bucket containing the prepared data from the
   [Data Preparation example](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/README.md)
-
-> NOTE: If you did not execute the data preparation example, follow
-> [these instructions](/use-cases/prerequisites/prepared-data.md) to load the
-> dataset into the bucket.
+  > NOTE: If you did not execute the data preparation example, follow
+  > [these instructions](/use-cases/prerequisites/prepared-data.md) to load the
+  > dataset into the bucket.
 
 ## Preparation
 
-- Clone the repository and change directory to the guide directory
+- Clone the repository.
 
-  ```sh
+  ```shell
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms/use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch
+  cd accelerated-platforms
   ```
 
-- Ensure that your `MLP_ENVIRONMENT_FILE` is configured
+- Change directory to the guide directory.
 
-  ```sh
+  ```shell
+  cd use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch
+  ```
+
+- Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
+
+  ```shell
   cat ${MLP_ENVIRONMENT_FILE} && \
   source ${MLP_ENVIRONMENT_FILE}
   ```
@@ -40,13 +45,22 @@ prepared by the Llama 3.1 on Vertex AI API.
   > You should see the various variables populated with the information specific
   > to your environment.
 
+- Get credentials for the GKE cluster.
+
+  ```shell
+  gcloud container clusters get-credentials ${MLP_CLUSTER_NAME} \
+  --dns-endpoint \
+  --location=${MLP_REGION} \
+  --project=${MLP_PROJECT_ID}
+  ```
+
 ### Access token variables
 
 - Set `HF_TOKEN` to your HuggingFace access token. Go to
   <https://huggingface.co/settings/tokens> , click `Create new token` , provide
   a token name, select `Read` in token type and click `Create token`.
 
-  ```sh
+  ```shell
   HF_TOKEN=
   ```
 
@@ -55,16 +69,19 @@ prepared by the Llama 3.1 on Vertex AI API.
 - Build the container image using Cloud Build and push the image to Artifact
   Registry
 
-  ```sh
-  cd src
-  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+  ```shell
+  cd src && \
+  git restore cloudbuild.yaml && \
+  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml && \
   gcloud beta builds submit \
-  --config cloudbuild.yaml \
-  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
-  --project ${MLP_PROJECT_ID} \
-  --substitutions _DESTINATION=${MLP_FINE_TUNING_IMAGE}
+  --config=cloudbuild.yaml \
+  --gcs-source-staging-dir=gs://${MLP_CLOUDBUILD_BUCKET}/source \
+  --project=${MLP_PROJECT_ID} \
+  --substitutions=_DESTINATION=${MLP_FINE_TUNING_IMAGE}
   cd ..
   ```
+
+  It takes approximately 23 minutes for the build to complete.
 
 ## Run the job
 
@@ -82,7 +99,7 @@ prepared by the Llama 3.1 on Vertex AI API.
 - Verify your `HF_TOKEN` is valid and that you have agreed to the Gemma model
   terms.
 
-  ```sh
+  ```shell
   git clone https://token:${HF_TOKEN}@huggingface.co/google/gemma-2-9b-it /tmp/test
   ```
 
@@ -94,18 +111,12 @@ prepared by the Llama 3.1 on Vertex AI API.
   fatal: Authentication failed for '<https://huggingface.co/google/gemma-2-9b-it/>'
   ```
 
-- Get credentials for the GKE cluster
-
-  ```sh
-  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
-  ```
-
 - Create a Kubernetes secret with your HuggingFace token
 
-  ```sh
+  ```shell
   kubectl create secret generic hf-secret \
   --from-literal=hf_api_token=${HF_TOKEN} \
-  --dry-run=client -o yaml | kubectl apply -n ${MLP_KUBERNETES_NAMESPACE} -f -
+  --dry-run=client -o yaml | kubectl apply --namespace=${MLP_KUBERNETES_NAMESPACE} --filename=-
   ```
 
 - Configure the job
@@ -122,7 +133,7 @@ prepared by the Llama 3.1 on Vertex AI API.
   | MODEL_PATH                           | The output folder path for the fine-tuned model. This location will be used by the inference serving engine and model evaluation. | /model-data/model-gemma2/experiment           |
   | TRAIN_BATCH_SIZE                     | The number of training examples processed in a single iteration of an ML model's training process                                 | 1                                             |
 
-  ```sh
+  ```shell
   ACCELERATOR="l4"
   DATA_BUCKET_DATASET_PATH="dataset/output/training"
   EXPERIMENT="finetune-experiment"
@@ -134,7 +145,8 @@ prepared by the Llama 3.1 on Vertex AI API.
   TRAIN_BATCH_SIZE="1"
   ```
 
-  ```sh
+  ```shell
+  git restore manifests/fine-tune-${ACCELERATOR}-dws.yaml && \
   sed \
   -i -e "s|V_DATA_BUCKET|${MLP_DATA_BUCKET}|" \
   -i -e "s|V_EXPERIMENT|${EXPERIMENT}|" \
@@ -153,9 +165,9 @@ prepared by the Llama 3.1 on Vertex AI API.
 
 - Create the provisioning request and job
 
-  ```sh
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/provisioning-request-${ACCELERATOR}.yaml
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/fine-tune-${ACCELERATOR}-dws.yaml
+  ```shell
+  kubectl --namespace=${MLP_KUBERNETES_NAMESPACE} apply --filename=manifests/provisioning-request-${ACCELERATOR}.yaml
+  kubectl --namespace=${MLP_KUBERNETES_NAMESPACE} apply --filename=manifests/fine-tune-${ACCELERATOR}-dws.yaml
   ```
 
 - Verify the completion of the job
@@ -164,7 +176,7 @@ prepared by the Llama 3.1 on Vertex AI API.
   [Logs Explorer](https://console.cloud.google.com/logs) page to run the
   following query to see the completion of the job.
 
-  ```sh
+  ```
   labels."k8s-pod/app"="finetune-job"
   textPayload: "finetune - INFO - ### Completed ###"
   ```
@@ -172,7 +184,7 @@ prepared by the Llama 3.1 on Vertex AI API.
 - After the fine-tuning job is successful, the model bucket should have a
   checkpoint folder created.
 
-  ```sh
+  ```shell
   gcloud storage ls gs://${MLP_MODEL_BUCKET}/${MODEL_PATH}
   ```
 
@@ -193,7 +205,7 @@ Tracking has been installed for you.
 
 You can run the following command to get the URL:
 
-```sh
+```shell
 echo -e "\n${MLP_KUBERNETES_NAMESPACE} MLFlow Tracking URL: ${MLP_MLFLOW_TRACKING_NAMESPACE_ENDPOINT}\n"
 ```
 

@@ -247,6 +247,7 @@ resource "google_container_node_pool" "system" {
   node_config {
     # Variables
     labels = {
+      "node-provisioning-model" : "on-demand"
       "resource-type" : "system"
     }
     machine_type    = var.cluster_system_node_pool_machine_type

@@ -169,7 +169,7 @@ data:
            endpoint: ${env:MY_POD_IP}:4317
 
     exporters:
-     # Export traces using the standard googelcloud exporter
+     # Export traces using the standard googlecloud exporter
      googlecloud:
        user_agent: Google-Cloud-OTLP
     processors:

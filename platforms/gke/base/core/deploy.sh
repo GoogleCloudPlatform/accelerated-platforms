@@ -35,6 +35,7 @@ else
     "gke_enterprise/fleet_membership"
     # Disable gke_enterprise/servicemesh due to b/376312292
     # "gke_enterprise/servicemesh"
+    "workloads/cluster_credentials"
     "workloads/kueue"
   )
 fi

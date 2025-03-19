@@ -1,13 +1,7 @@
 # Use GCS to store model and GCSFuse to download
 
 In this guide, we will store Llama-3.3-70B-Instruct model in GCS bucket and use GCSFuse to downlaod the model to start inference using vllm.
-You will start with running the model inference with no fine tuning. Then you will progressibely 
-The guide shows the steps to start with storage no tuning at all and then start adding the tuning configurations one by one to demonstrate the speed up in inference startup.
-
-1. Use GCSFuse to download the model with no tuning configrations.
-2. Use GCSFuse to download the model with tuning configurations.
-3. Use GCSFuse to download the model with tuning configurations and prefetch of the model weights.
-
+You will start with running the model inference with no fine tuning in GCSFuse configuration. Then you will add the fine tuning to the speed up the inference startup.
 
 ## Prerequisites
 
@@ -55,12 +49,12 @@ The guide shows the steps to start with storage no tuning at all and then start 
 
   | Variable      | Description                                                                    | Example      |
   | ------------- | ------------------------------------------------------------------------------ | ------------ |
-  | ACCELERATOR   | Type of GPU accelerator to use (a100, h100, l4)                                | l4           |
+  | ACCELERATOR   | Type of GPU accelerator to use (a100, h100, l4)                                | a100           |
   | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | meta-llama |
   | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | Llama-3.3-70B-Instruct |
 
   ```sh
-  ACCELERATOR="l4"
+  ACCELERATOR="a100"
   MODEL_NAME="meta-llama"
   MODEL_VERSION="Llama-3.3-70B-Instruct"
   ```
@@ -68,7 +62,7 @@ The guide shows the steps to start with storage no tuning at all and then start 
 - Configure the deployment.
 
   ```
-  VLLM_IMAGE_NAME="vllm/vllm-openai:v0.6.3.post1"
+  VLLM_IMAGE_NAME="vllm/vllm-openai:v0.6.6.post1"
   ```
 
   ```sh

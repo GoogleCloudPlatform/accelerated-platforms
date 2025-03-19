@@ -15,25 +15,38 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: vllm-openai-gcs-llama33-70b-a100
+  name: vllm-openai-gcs-tuned-llama33-70b-a100
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: vllm-openai-gcs-llama33-70b-a100
+      app: vllm-openai-gcs-tuned-llama33-70b-a100
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: vllm-openai-gcs-llama33-70b-a100
+        app: vllm-openai-gcs-tuned-llama33-70b-a100
       annotations:
         gke-gcsfuse/volumes: "true"
         gke-gcsfuse/cpu-limit: "0"
         gke-gcsfuse/memory-limit: "0"
         gke-gcsfuse/ephemeral-storage-limit: "0"
     spec:
-      containers:   
+      containers:
+      - name: fetch-safetensors
+        image: busybox
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "########### $(date) - Starting parrallel-fetch-safetensors"
+            find /gcs/V_MODEL_NAME/V_MODEL_VERSION/*safetensors -type f | xargs -I {} -P 15 sh -c 'echo "########### $(date) - Fetching: {}"; dd if={} of=/dev/null'
+            echo "########### $(date) - Finished parrallel-fetch-safetensors"
+            sleep infinity
+        volumeMounts:
+        - name: gcsfuse
+          mountPath: /gcs
+          readOnly: true      
       - name: inference-server
         args:
         - --model=$(MODEL)
@@ -91,16 +104,26 @@ spec:
           driver: gcsfuse.csi.storage.gke.io
           volumeAttributes:
             bucketName: V_MODEL_BUCKET
-
+            mountOptions: "metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1,only-dir:Llama-3.3-70B-Instruct"
+            skipCSIBucketAccessCheck: "true"
+      - name: gke-gcsfuse-cache
+        emptyDir:
+          medium: Memory
+      - name: gke-gcsfuse-tmp
+        emptyDir:
+          medium: Memory
+      - name: gke-gcsfuse-buffer
+        emptyDir:
+          medium: Memory
       
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: vllm-openai-gcs-llama33-70b-a100
+  name: vllm-openai-gcs-tuned-llama33-70b-a100
 spec:
   selector:
-    app: vllm-openai-gcs-llama33-70b-a100
+    app: vllm-openai-gcs-tuned-llama33-70b-a100
   type: ClusterIP
   ports:
   - protocol: TCP

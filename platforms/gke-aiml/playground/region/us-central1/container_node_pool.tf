@@ -521,6 +521,364 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_spot" {
   }
 }
 
+###################################################################################################
+# A100 x 8
+###################################################################################################
+
+resource "google_container_node_pool" "gpu_a100x8_a2h8" {
+  depends_on = [google_gke_hub_membership.cluster]
+
+  # Variables
+  cluster  = google_container_cluster.mlp.name
+  location = var.region
+  name     = "gpu-a100x8-a2h8"
+  node_locations = [
+    "us-central1-a",
+    "us-central1-b",
+    "us-central1-c",
+    "us-central1-f",
+  ]
+  project = data.google_project.environment.project_id
+
+  # Blocks
+  autoscaling {
+    location_policy      = "ANY"
+    total_max_node_count = 1000
+    total_min_node_count = 0
+  }
+
+  lifecycle {
+    ignore_changes = [
+      node_config[0].labels,
+      node_config[0].taint,
+    ]
+  }
+
+  network_config {
+    enable_private_nodes = true
+  }
+
+  node_config {
+    # Variables
+    labels = {
+      "resource-model" : "a100"
+      "resource-type" : "gpu"
+      "resource-variant" : "320GB"
+    }
+    machine_type    = "a2-highgpu-8g"
+    service_account = google_service_account.cluster.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+
+    # Blocks
+    gcfs_config {
+      enabled = true
+    }
+
+    guest_accelerator {
+      count = 8
+      type  = "nvidia-tesla-a100"
+
+      gpu_driver_installation_config {
+        gpu_driver_version = var.gpu_driver_version
+      }
+    }
+
+    gvnic {
+      enabled = true
+    }
+
+    reservation_affinity {
+      consume_reservation_type = "NO_RESERVATION"
+    }
+
+    shielded_instance_config {
+      enable_integrity_monitoring = true
+      enable_secure_boot          = true
+    }
+
+    taint {
+      effect = "NO_SCHEDULE"
+      key    = "on-demand"
+      value  = true
+    }
+  }
+
+  timeouts {
+    create = "30m"
+    update = "20m"
+  }
+}
+
+###############################################################################
+
+resource "google_container_node_pool" "gpu_a100x8_a2h8_dws" {
+  depends_on = [google_gke_hub_membership.cluster]
+
+  # Variables
+  cluster  = google_container_cluster.mlp.name
+  location = var.region
+  name     = "gpu-a100x8-a2h8-dws"
+  node_locations = [
+    "us-central1-a",
+    "us-central1-b",
+    "us-central1-c",
+    "us-central1-f",
+  ]
+  project = data.google_project.environment.project_id
+
+  # Blocks
+  autoscaling {
+    location_policy      = "ANY"
+    total_max_node_count = 1000
+    total_min_node_count = 0
+  }
+
+  lifecycle {
+    ignore_changes = [
+      node_config[0].labels,
+      node_config[0].taint,
+    ]
+  }
+
+  network_config {
+    enable_private_nodes = true
+  }
+
+  node_config {
+    # Variables
+    labels = {
+      "resource-model" : "a100"
+      "resource-type" : "gpu"
+      "resource-variant" : "320GB"
+    }
+    machine_type    = "a2-highgpu-8g"
+    service_account = google_service_account.cluster.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+
+    # Blocks
+    gcfs_config {
+      enabled = true
+    }
+
+    guest_accelerator {
+      count = 8
+      type  = "nvidia-tesla-a100"
+
+      gpu_driver_installation_config {
+        gpu_driver_version = var.gpu_driver_version
+      }
+    }
+
+    gvnic {
+      enabled = true
+    }
+
+    reservation_affinity {
+      consume_reservation_type = "NO_RESERVATION"
+    }
+
+    shielded_instance_config {
+      enable_integrity_monitoring = true
+      enable_secure_boot          = true
+    }
+
+    taint {
+      effect = "NO_SCHEDULE"
+      key    = "on-demand"
+      value  = true
+    }
+  }
+
+  queued_provisioning {
+    enabled = true
+  }
+
+  timeouts {
+    create = "30m"
+    update = "20m"
+  }
+}
+
+###############################################################################
+
+resource "google_container_node_pool" "gpu_a100x8_a2h8_res" {
+  depends_on = [google_gke_hub_membership.cluster]
+
+  # Variables
+  cluster  = google_container_cluster.mlp.name
+  location = var.region
+  name     = "gpu-a100x8-a2h8-res"
+  node_locations = [
+    "us-central1-a",
+    "us-central1-b",
+    "us-central1-c",
+    "us-central1-f",
+  ]
+  project = data.google_project.environment.project_id
+
+  # Blocks
+  autoscaling {
+    location_policy      = "ANY"
+    total_max_node_count = 1000
+    total_min_node_count = 0
+  }
+
+  lifecycle {
+    ignore_changes = [
+      node_config[0].labels,
+      node_config[0].taint,
+    ]
+  }
+
+  network_config {
+    enable_private_nodes = true
+  }
+
+  node_config {
+    # Variables
+    labels = {
+      "resource-model" : "a100"
+      "resource-type" : "gpu"
+      "resource-variant" : "320GB"
+    }
+    machine_type    = "a2-highgpu-8g"
+    service_account = google_service_account.cluster.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+
+    # Blocks
+    gcfs_config {
+      enabled = true
+    }
+
+    guest_accelerator {
+      count = 8
+      type  = "nvidia-tesla-a100"
+
+      gpu_driver_installation_config {
+        gpu_driver_version = var.gpu_driver_version
+      }
+    }
+
+    gvnic {
+      enabled = true
+    }
+
+    reservation_affinity {
+      consume_reservation_type = "ANY_RESERVATION"
+    }
+
+    shielded_instance_config {
+      enable_integrity_monitoring = true
+      enable_secure_boot          = true
+    }
+
+    taint {
+      effect = "NO_SCHEDULE"
+      key    = "reservation"
+      value  = true
+    }
+  }
+
+  timeouts {
+    create = "30m"
+    update = "20m"
+  }
+}
+
+###############################################################################
+
+resource "google_container_node_pool" "gpu_a100x8_a2h8_spot" {
+  depends_on = [google_gke_hub_membership.cluster]
+
+  # Variables
+  cluster  = google_container_cluster.mlp.name
+  location = var.region
+  name     = "gpu-a100x8-a2h8-spot"
+  node_locations = [
+    "us-central1-a",
+    "us-central1-b",
+    "us-central1-c",
+    "us-central1-f",
+  ]
+  project = data.google_project.environment.project_id
+
+  # Blocks
+  autoscaling {
+    location_policy      = "ANY"
+    total_max_node_count = 1000
+    total_min_node_count = 0
+  }
+
+  lifecycle {
+    ignore_changes = [
+      node_config[0].labels,
+      node_config[0].taint,
+    ]
+  }
+
+  network_config {
+    enable_private_nodes = true
+  }
+
+  node_config {
+    # Variables
+    labels = {
+      "resource-model" : "a100"
+      "resource-type" : "gpu"
+      "resource-variant" : "320GB"
+    }
+    machine_type    = "a2-highgpu-8g"
+    service_account = google_service_account.cluster.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+    spot = true
+
+    # Blocks
+    gcfs_config {
+      enabled = true
+    }
+
+    guest_accelerator {
+      count = 8
+      type  = "nvidia-tesla-a100"
+
+      gpu_driver_installation_config {
+        gpu_driver_version = var.gpu_driver_version
+      }
+    }
+
+    gvnic {
+      enabled = true
+    }
+
+    reservation_affinity {
+      consume_reservation_type = "NO_RESERVATION"
+    }
+
+    shielded_instance_config {
+      enable_integrity_monitoring = true
+      enable_secure_boot          = true
+    }
+
+    taint {
+      effect = "NO_SCHEDULE"
+      key    = "spot"
+      value  = true
+    }
+  }
+
+  timeouts {
+    create = "30m"
+    update = "20m"
+  }
+}
 
 ###################################################################################################
 # H100 x 8

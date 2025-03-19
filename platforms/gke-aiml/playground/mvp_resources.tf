@@ -13,15 +13,17 @@
 # limitations under the License.
 
 locals {
-  batch_inference_ksa    = "${var.environment_name}-${var.namespace}-batch-inference"
-  bucket_cloudbuild_name = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
-  bucket_data_name       = "${data.google_project.environment.project_id}-${var.environment_name}-data"
-  bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
-  data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
-  data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
-  fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"
-  gsa_build_account_id   = "${var.environment_name}-${var.namespace}-build"
-  gsa_build_email        = google_service_account.build.email
+  batch_inference_ksa                = "${var.environment_name}-${var.namespace}-batch-inference"
+  bucket_benchmark_flat_name         = "${data.google_project.environment.project_id}-${var.environment_name}-storage-bm-f"
+  bucket_benchmark_hierarchical_name = "${data.google_project.environment.project_id}-${var.environment_name}-storage-bm-h"
+  bucket_cloudbuild_name             = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
+  bucket_data_name                   = "${data.google_project.environment.project_id}-${var.environment_name}-data"
+  bucket_model_name                  = "${data.google_project.environment.project_id}-${var.environment_name}-model"
+  data_preparation_ksa               = "${var.environment_name}-${var.namespace}-data-preparation"
+  data_processing_ksa                = "${var.environment_name}-${var.namespace}-data-processing"
+  fine_tuning_ksa                    = "${var.environment_name}-${var.namespace}-fine-tuning"
+  gsa_build_account_id               = "${var.environment_name}-${var.namespace}-build"
+  gsa_build_email                    = google_service_account.build.email
   gsa_build_roles = [
     "roles/logging.logWriter",
   ]
@@ -33,6 +35,7 @@ locals {
   rag_data_processing_ksa    = "${var.environment_name}-${var.namespace}-rag-data-processing"
   repo_container_images_id   = var.environment_name
   repo_container_images_url  = "${google_artifact_registry_repository.container_images.location}-docker.pkg.dev/${google_artifact_registry_repository.container_images.project}/${local.repo_container_images_id}"
+  storage_benchmarking_ksa   = "${var.environment_name}-${var.namespace}-storage-benchmarking"
   wi_member_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.environment.number}/locations/global/workloadIdentityPools/${data.google_project.environment.project_id}.svc.id.goog/subject/ns/${var.namespace}/sa"
 }
 
@@ -63,6 +66,32 @@ resource "google_artifact_registry_repository" "container_images" {
 
 # GCS
 ###############################################################################
+resource "google_storage_bucket" "benchmark_flat" {
+  depends_on = [
+    google_container_cluster.mlp
+  ]
+
+  force_destroy               = true
+  location                    = var.region
+  name                        = local.bucket_benchmark_flat_name
+  project                     = data.google_project.environment.project_id
+  uniform_bucket_level_access = true
+}
+
+resource "google_storage_bucket" "benchmark_hierarchical" {
+  depends_on = [
+    google_container_cluster.mlp
+  ]
+  hierarchical_namespace {
+    enabled = true
+  }
+  force_destroy               = true
+  location                    = var.region
+  name                        = local.bucket_benchmark_hierarchical_name
+  project                     = data.google_project.environment.project_id
+  uniform_bucket_level_access = true
+}
+
 resource "google_storage_bucket" "cloudbuild" {
   force_destroy               = true
   location                    = var.region
@@ -94,6 +123,7 @@ resource "google_storage_bucket" "model" {
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
 }
+
 
 # GSA
 ###############################################################################
@@ -231,6 +261,18 @@ resource "kubernetes_service_account_v1" "rag_data_processing" {
   }
 }
 
+resource "kubernetes_service_account_v1" "storage_benchmarking" {
+  depends_on = [
+    null_resource.namespace_manifests,
+  ]
+
+  metadata {
+    name      = local.storage_benchmarking_ksa
+    namespace = var.namespace
+  }
+}
+
+
 # IAM
 ###############################################################################
 
@@ -320,6 +362,7 @@ resource "google_storage_bucket_iam_member" "data_bucket_ray_worker_storage_obje
   role   = "roles/storage.objectAdmin"
 }
 
+
 # MODEL BUCKET
 ###########################################################
 resource "google_storage_bucket_iam_member" "model_bucket_fine_tuning_storage_object_user" {
@@ -343,6 +386,20 @@ resource "google_storage_bucket_iam_member" "model_bucket_model_ops_storage_obje
 resource "google_storage_bucket_iam_member" "model_bucket_model_serve_storage_object_user" {
   bucket = google_storage_bucket.model.name
   member = "${local.wi_member_principal_prefix}/${local.model_serve_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+# BUCKET FOR STORAGE BENCHMARKING
+###########################################################
+resource "google_storage_bucket_iam_member" "storage_benchmarking_flat_object_user" {
+  bucket = google_storage_bucket.benchmark_flat.name
+  member = "${local.wi_member_principal_prefix}/${local.storage_benchmarking_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+resource "google_storage_bucket_iam_member" "storage_benchmarking_hierarchical_object_user" {
+  bucket = google_storage_bucket.benchmark_hierarchical.name
+  member = "${local.wi_member_principal_prefix}/${local.storage_benchmarking_ksa}"
   role   = "roles/storage.objectUser"
 }
 
@@ -392,6 +449,9 @@ MLP_RAG_FRONTEND_IMAGE="${local.repo_container_images_url}/rag-frontend:1.0.0"
 MLP_RAG_FRONTEND_NAMESPACE_ENDPOINT="https://${local.rag_frontend_endpoint}"
 MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT="https://${local.ray_dashboard_endpoint}"
 MLP_REGION="${var.region}"
+MLP_STORAGE_BENCHMARK_FLAT_BUCKET="${local.bucket_benchmark_flat_name}"
+MLP_STORAGE_BENCHMARK_HIERARCHICAL_BUCKET="${local.bucket_benchmark_hierarchical_name}"
+MLP_STORAGE_BENCHMARKING_KSA="${local.storage_benchmarking_ksa}"
 MLP_UNIQUE_IDENTIFIER_PREFIX="${local.unique_identifier_prefix}"
 EOT
 }

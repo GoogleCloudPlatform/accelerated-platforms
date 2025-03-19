@@ -1,0 +1,61 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: transfer-llama-to-flat-gcs
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: transfer-llama-to-flat-gcs
+      annotations: 
+        cluster-autoscaler.kubernetes.io/consume-provisioning-request: a100-flat-transfer-job
+        cluster-autoscaler.kubernetes.io/provisioning-class-name: "queued-provisioning.gke.io"  
+    spec:
+      nodeSelector:
+        iam.gke.io/gke-metadata-server-enabled: "true"
+      restartPolicy: Never
+      terminationGracePeriodSeconds: 0
+      serviceAccountName: V_KSA
+      containers:
+      - name: transfer-llama-to-flat-gcs
+        image: google/cloud-sdk:502.0.0-slim
+        command:
+        - sh
+        - -c
+        - |
+          gcloud config set storage/parallel_composite_upload_enabled False
+          pip3 install -U "huggingface_hub[cli]==0.26.2" --break-system-packages
+          huggingface-cli download --repo-type model $(MODEL_REPO) --local-dir /local/temp --token ${HF_TOKEN}
+          gcloud storage cp -R /local/temp/* \
+            gs://$(MLP_MODEL_BUCKET)/$(MODEL_REPO)
+        env:
+        - name: MODEL_REPO
+          value: "V_MODEL_REPO"
+        - name: MLP_MODEL_BUCKET
+          value: "V_BUCKET"
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: HF_TOKEN  
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+        - mountPath: /local
+          name: local
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "on-demand"
+        value: "true"
+        operator: "Equal"
+        effect: "NoSchedule" 
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+      - name: local
+        emptyDir:
+          medium: Memory

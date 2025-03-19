@@ -336,7 +336,7 @@ Management API are enabled.
   gcloud endpoints services undelete locust.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
   gcloud endpoints services undelete mlflow-tracking.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
   gcloud endpoints services undelete rag-frontend.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
-  gcloud endpoints services undelete ray-dashboard.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null1
+  gcloud endpoints services undelete ray-dashboard.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
   ```
 
 - Create the resources

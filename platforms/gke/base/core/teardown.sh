@@ -75,24 +75,19 @@ for terraservice in "${terraservices[@]}"; do
     gcloud storage rm -r "gs://${terraform_bucket_name}/*" &&
       terraform destroy -auto-approve || exit 1
 
+    rm -rf .terraform/
+    rm -rf terraform.tfstate*
+
     rm -rf \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/" \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config"/terraform.tfstate* \
-      "${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/initialize"/terraform.tfstate* \
-      "${ACP_PLATFORM_CORE_DIR}/networking/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/container_cluster/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/container_node_pool/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/git/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/oci/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/servicemesh/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/workloads/kueue.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/workloads/kubeconfig" \
-      "${ACP_PLATFORM_CORE_DIR}/workloads/manifests"
+      "${ACP_PLATFORM_CORE_DIR}/kubernetes/kubeconfig" \
+      "${ACP_PLATFORM_CORE_DIR}/kubernetes/manifests"
 
     git restore \
-      "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
+      "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" \
+      "${ACP_PLATFORM_BASE_DIR}/kubernetes/kubeconfig/.gitkeep" \
+      "${ACP_PLATFORM_BASE_DIR}/kubernetes/manifests/.gitkeep"
   fi
 done
 

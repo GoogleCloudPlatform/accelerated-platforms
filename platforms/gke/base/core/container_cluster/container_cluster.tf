@@ -167,6 +167,7 @@ resource "google_container_cluster" "cluster" {
       "DCGM",
       "DEPLOYMENT",
       "HPA",
+      "JOBSET",
       "KUBELET",
       "POD",
       "SCHEDULER",

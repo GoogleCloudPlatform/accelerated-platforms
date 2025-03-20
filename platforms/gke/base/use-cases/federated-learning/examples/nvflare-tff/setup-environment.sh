@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -o errexit
+# Don't set errexit because we might source this script from an interactive
+# shell, and we don't want to exit the shell on errors
+# set -o errexit
 set -o nounset
 set -o pipefail
 
@@ -27,6 +29,13 @@ NVFLARE_EXAMPLE_TENANT_NAME="fl-1"
 
 NVFLARE_EXAMPLE_WORKSPACE_BUCKET_BASE_NAME="nvf-ws"
 
+NVFLARE_WORKSPACE_PATH="${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/example_nvidia_flare_tff/nvflare-workspace"
+# shellcheck disable=SC2034 # Variable is used in other scripts
+NVFLARE_GENERATED_WORKSPACE_PATH="${NVFLARE_WORKSPACE_PATH}/workspace"
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+FEDERATED_LEARNING_NVFLARE_EXAMPLE_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARNING_SHARED_CONFIG_DIR}/uc_federated_learning_nvflare_example.auto.tfvars"
+
 # shellcheck disable=SC2034 # Variable is used in other scripts
 NVFLARE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES=(
   "federated_learning_tenant_names = [\"${NVFLARE_EXAMPLE_TENANT_NAME}\"]"
@@ -34,12 +43,23 @@ NVFLARE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES=(
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
-NVFLARE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
+NVFLARE_EXAMPLE_TERRAFORM_FEDERATED_LEARNING_USE_CASE_CONFIGURATION_VARIABLES=(
   "federated_learning_cloud_storage_buckets_iam_bindings = [ {bucket_name = \"${NVFLARE_EXAMPLE_WORKSPACE_BUCKET_BASE_NAME}\", member = \"federated_learning_nvidia_flare_tff_apps_service_account_placeholder\", role = \"roles/storage.objectUser\"} ]"
+  "federated_learning_external_services_allowed_namespaces = [\"${NVFLARE_EXAMPLE_TENANT_NAME}\"]"
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+NVFLARE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
   "federated_learning_nvidia_flare_tff_example_bucket_name = \"federated_learning_nvidia_flare_tff_example_bucket_name_placeholder\""
   "federated_learning_nvidia_flare_tff_example_container_image_tag = \"federated_learning_nvidia_flare_tff_example_container_image_tag_placeholder\""
-  "federated_learning_nvidia_flare_tff_example_deploy = true"
   "federated_learning_nvidia_flare_tff_example_localized_container_image_id = \"federated_learning_nvidia_flare_tff_localized_container_image_id_placeholder\""
+  "federated_learning_nvidia_flare_tff_example_tenant_name = \"${NVFLARE_EXAMPLE_TENANT_NAME}\""
+  "federated_learning_nvidia_flare_tff_example_workload_to_deploy = \"federated_learning_nvidia_flare_tff_example_workload_to_deploy_placeholder\""
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
+nvflare_example_terraservices=(
+  "example_nvidia_flare_tff"
 )
 
 load_fl_terraform_outputs() {

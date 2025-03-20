@@ -68,7 +68,7 @@ directories and files:
 The following diagram describes the architecture that you can create with this
 reference architecture:
 
-![alt_text](/platforms/gke/base/use-cases/federated-learning/assets/architecture.svg "Architecture overview")
+![alt_text](/platforms/gke/base/use-cases/federated-learning/assets/architecture.png "Architecture overview")
 
 As shown in the preceding diagram, the reference architecture helps you create
 and configure the following infrastructure components:
@@ -170,32 +170,10 @@ To deploy the reference architecture, you do the following:
     cd accelerated-platforms
     ```
 
-1.  Initialize the required environment variables:
-
-    ```shell
-    ACP_REPO_DIR="$(pwd)"
-    export ACP_REPO_DIR
-    export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
-    export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
-    ```
-
-1.  Optionally, you can make the required environment variables configuration
-    persistent by updating your
-    [Bash startup files](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html).
-    For example, you can update your `.bashrc` file:
-
-    ```shell
-    {
-      echo "export \"ACP_REPO_DIR=${ACP_REPO_DIR}\""
-      echo "export \"ACP_PLATFORM_BASE_DIR=${ACP_PLATFORM_BASE_DIR}\""
-      echo "export \"ACP_PLATFORM_CORE_DIR=${ACP_PLATFORM_CORE_DIR}\""
-    } >>"${HOME}/.bashrc"
-    ```
-
 1.  Configure the ID of the Google Cloud project where you want to initialize
     the provisioning and configuration environment. This project will also
     contain the remote Terraform backend. Add the following content to
-    `${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.auto.tfvars`:
+    `platforms/gke/base/_shared_config/terraform.auto.tfvars`:
 
     ```hcl
     terraform_project_id = "<CONFIG_PROJECT_ID>"
@@ -207,7 +185,7 @@ To deploy the reference architecture, you do the following:
 
 1.  Configure the ID of the Google Cloud project where you want to deploy the
     reference architecture by adding the following content to
-    `${ACP_PLATFORM_BASE_DIR}/_shared_config/cluster.auto.tfvars`:
+    `platforms/gke/base/_shared_config/cluster.auto.tfvars`:
 
     ```hcl
     cluster_project_id = "<PROJECT_ID>"
@@ -223,7 +201,7 @@ To deploy the reference architecture, you do the following:
     the reference architecture, and to allow for multiple instances of the
     reference architecture to be deployed in the same Google Cloud project. To
     optionally configure the unique prefix, add the following content to
-    `${ACP_PLATFORM_BASE_DIR}/_shared_config/platform.auto.tfvars`:
+    `platforms/gke/base/_shared_config/platform.auto.tfvars`:
 
     ```hcl
     resource_name_prefix = "<RESOURCE_NAME_PREFIX>"
@@ -243,7 +221,7 @@ To deploy the reference architecture, you do the following:
 1.  Run the script to provision the reference architecture:
 
     ```sh
-    "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/deploy.sh"
+    "platforms/gke/base/use-cases/federated-learning/deploy.sh"
     ```
 
 It takes about 20 minutes to provision the reference architecture.
@@ -252,6 +230,7 @@ After deploying the reference architecture, the GKE cluster is ready to host
 your federated learning workloads. For example, you can:
 
 - [Deploy NVIDIA FLARE in the GKE cluster](/platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/README.md).
+- [Explore the Federated Learning on Google Cloud repository for more examples and and extensions to this reference architecture](https://github.com/GoogleCloudPlatform/federated-learning).
 
 ## Destroy the reference architecture
 
@@ -262,7 +241,7 @@ To destroy an instance of the reference architecture, you do the following:
 1. Run the script to destroy the reference architecture:
 
    ```sh
-   "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/teardown.sh"
+   "platforms/gke/base/use-cases/federated-learning/teardown.sh"
    ```
 
 ## Configure the Federated learning reference architecture
@@ -270,8 +249,8 @@ To destroy an instance of the reference architecture, you do the following:
 You can configure the reference architecture by modifying files in the following
 directories:
 
-- `${ACP_PLATFORM_BASE_DIR}/_shared_config`
-- `${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/terraform/_shared_config`
+- `platforms/gke/base/_shared_config`
+- `platforms/gke/base/use-cases/federated-learning/terraform/_shared_config`
 
 ### Configure isolated runtime environments
 
@@ -289,7 +268,7 @@ For more information about the design of these tenants, see
 By default, this reference architecture configures one tenant. To configure
 additional tenants, or change their names, set the value of the
 `federated_learning_tenant_names` Terraform variable in
-`${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`
+`platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`
 according to how many tenants you need. For example, to create two isolated
 tenants named `fl-1` and `fl-2`, you set the `federated_learning_tenant_names`
 variable as follows:
@@ -303,7 +282,7 @@ federated_learning_tenant_names = [
 
 For more information about the `federated_learning_tenant_names`, see its
 definition in
-`${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning_variables.tf`
+`platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning_variables.tf`
 
 ### Enable Confidential GKE Nodes
 
@@ -311,7 +290,7 @@ The reference architecture can optionally configure Confidential GKE Nodes using
 Terraform. To enable Confidential GKE Nodes, you do the following:
 
 1. Initialize the following Terraform variables in
-   `${ACP_PLATFORM_BASE_DIR}/_shared_config/cluster.auto.tfvars`:
+   `platforms/gke/base/_shared_config/cluster.auto.tfvars`:
 
    1. Set `cluster_confidential_nodes_enabled` to `true`
 
@@ -321,7 +300,7 @@ Terraform. To enable Confidential GKE Nodes, you do the following:
       [Encrypt workload data in-use with Confidential GKE Nodes](https://cloud.google.com/kubernetes-engine/docs/how-to/confidential-gke-nodes#availability).
 
 1. Initialize the following Terraform variables in
-   `${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`:
+   `platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`:
 
    1. Set `federated_learning_node_pool_machine_type` to a machine type that
       supports Confidential GKE Nodes.
@@ -331,6 +310,34 @@ Terraform. To enable Confidential GKE Nodes, you do the following:
 1. Configure Kubernetes network policies to allow traffic. You can see how
    current Kubernetes network policies are affecting traffic in your cluster
    [using Cloud Logging](https://cloud.google.com/kubernetes-engine/docs/how-to/network-policy-logging#accessing_logs).
+
+1. If your workloads need to access hosts that are external to the service mesh,
+   configure a
+   [ServiceEntry](https://istio.io/latest/docs/reference/config/networking/service-entry/)
+   for each external host.
+
+1. If your workloads need to send traffic outside the cluster, configure:
+
+   - [AuthorizationPolicies](https://istio.io/latest/docs/reference/config/security/authorization-policy)
+     to allow traffic from the workload namespace to the `istio-egress`
+     namespace.
+   - [VirtualServices](https://istio.io/latest/docs/reference/config/networking/virtual-service)
+     to direct traffic from the workload to the egress gateway, and from the
+     egress gateway to the destination.
+   - [NetworkPolicies](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
+     to allow egress traffic from their workspace.
+
+1. If your workloads need to receive traffic from outside the cluster,
+   configure:
+
+   - [AuthorizationPolicies](https://istio.io/latest/docs/reference/config/security/authorization-policy)
+     to allow traffic from the `istio-ingress` namespace to the workload
+     namespace.
+   - [VirtualServices](https://istio.io/latest/docs/reference/config/networking/virtual-service)
+     to direct traffic from the external service to the ingress gateway, and
+     from the ingress gateway to the workload.
+   - [NetworkPolicies](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
+     to allow ingress traffic to their workspace.
 
 ## Troubleshooting
 

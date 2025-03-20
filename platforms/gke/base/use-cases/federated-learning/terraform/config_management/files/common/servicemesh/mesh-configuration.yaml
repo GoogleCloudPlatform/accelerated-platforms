@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-# Configure:
-# - Enable proxy access logs: https://cloud.google.com/service-mesh/docs/observability/access-logs
+# - Enable proxy access logs for Managed Istiod: https://cloud.google.com/service-mesh/docs/observability/access-logs
 # - Enable Cloud Trace on Cloud Service Mesh: https://cloud.google.com/service-mesh/docs/observability/accessing-traces
 # - Minimum TLS version: https://cloud.google.com/service-mesh/docs/enable-optional-features-managed#configure_the_minimum_tls_version_for_your_workloads
 # - Outbound traffic policy: https://cloud.google.com/service-mesh/docs/enable-optional-features-managed#outbound_traffic_policy
@@ -34,6 +33,22 @@ data:
     outboundTrafficPolicy:
       mode: REGISTRY_ONLY
 ---
+# - Enable proxy access logs and traffic logs for Managed Cloud Service Mesh: https://cloud.google.com/service-mesh/docs/observability/access-logs
+# - Enable Cloud Trace on Cloud Service Mesh for Managed Cloud Service Mesh: https://cloud.google.com/service-mesh/docs/observability/accessing-traces
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: enable-envoy-and-sd-access-log
+  namespace: istio-system
+spec:
+  accessLogging:
+    - providers:
+        - name: envoy
+        - name: stackdriver
+  tracing:
+    - providers:
+        - name: stackdriver
+---
 # Duplicate ConfigMap because of a known issue with the TRAFFIC_DIRECTOR control
 # plane implementation: https://cloud.google.com/service-mesh/docs/enable-optional-features-managed
 # If you are using that implementation, then you must make changes in the
@@ -47,6 +62,10 @@ metadata:
   namespace: istio-system
 data:
   mesh: |-
+    accessLogFile: /dev/stdout
+    defaultConfig:
+      tracing:
+        stackdriver: {}
     meshMTLS:
       minProtocolVersion: TLSV1_3
     outboundTrafficPolicy:

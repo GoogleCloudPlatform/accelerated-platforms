@@ -12,11 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-locals {
-  # Use this list to deploy examples when the relevant variable is set to true
-  examples_templates_to_render = flatten(
-    concat(
-      var.federated_learning_nvidia_flare_tff_example_deploy ? local.federated_learning_nvidia_flare_tff_example_templates_to_render : [],
-    )
-  )
+terraform {
+  required_version = ">= 1.5.7"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.12.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.2"
+    }
+  }
+
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_fl_nvflare_tff_example_deploy-v1"
+  }
 }

@@ -75,6 +75,9 @@ for terraservice in "${terraservices[@]}"; do
     gcloud storage rm -r "gs://${terraform_bucket_name}/*" &&
       terraform destroy -auto-approve || exit 1
 
+    rm -rf .terraform/
+    rm -rf terraform.tfstate*
+
     rm -rf \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/" \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config"/terraform.tfstate* \

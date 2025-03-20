@@ -21,8 +21,6 @@ data:
   nvflare-config-file-name: ${nvidia_flare_tff_example_config_file_name}
   nvflare-python_module_name: ${nvidia_flare_tff_example_python_module_name}
   site: ${nvidia_flare_tff_example_site_name}
-
-%{ if startswith(nvidia_flare_tff_example_workload_name, "server") }
 ---
 apiVersion: v1
 kind: Service
@@ -43,7 +41,6 @@ spec:
       name: adminport
   selector:
     run: nvflare-${nvidia_flare_tff_example_workload_name}
-%{ endif }
 ---
 apiVersion: apps/v1
 kind: Deployment

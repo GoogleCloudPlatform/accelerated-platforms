@@ -12,26 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "federated_learning_nvidia_flare_tff_example_deploy" {
-  default     = false
-  description = "Set this variable to true to deploy the Federated Learning NVIDIA FLARE TensorFlow example"
-  type        = bool
-}
-
 variable "federated_learning_nvidia_flare_tff_example_bucket_name" {
-  default     = "nvf-ws"
   description = "Cloud Storage bucket name to store the NVIDIA FLARE example workspace"
   type        = string
 }
 
 variable "federated_learning_nvidia_flare_tff_example_container_image_tag" {
-  default     = "federated_learning_nvidia_flare_tff_example_container_image_tag_placeholder"
   description = "Container image tag of the NVIDIA FLARE container image to deploy"
   type        = string
 }
 
+variable "federated_learning_nvidia_flare_tff_example_domain" {
+  default     = "nvidia-flare-example.com"
+  description = "Domain to use to build the FQDN for NVIDIA FLARE clients and servers"
+  type        = string
+}
+
 variable "federated_learning_nvidia_flare_tff_example_localized_container_image_id" {
-  default     = "federated_learning_nvidia_flare_tff_localized_container_image_id_placeholder"
   description = "Container image id (localized with the repository) of the NVIDIA FLARE container image to deploy"
   type        = string
+}
+
+variable "federated_learning_nvidia_flare_tff_example_tenant_name" {
+  description = "Name of the tenant where to deploy NVIDIA FLARE workloads"
+  type        = string
+}
+
+variable "federated_learning_nvidia_flare_tff_example_workload_to_deploy" {
+  description = "NVIDIA FLARE workload to deploy in the cluster."
+  type        = string
+
+  validation {
+    condition     = var.federated_learning_nvidia_flare_tff_example_workload_to_deploy == "server1"
+    error_message = "Valid values are: client1, client2, server1"
+  }
 }

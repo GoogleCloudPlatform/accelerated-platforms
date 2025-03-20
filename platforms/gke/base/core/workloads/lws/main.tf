@@ -16,7 +16,7 @@ locals {
   kubeconfig_directory = "${path.module}/../../../kubernetes/kubeconfig"
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
 
-  manifests_directory         = "${local.manifests_directory_root}/namespace/lws-system"
+  manifests_directory         = "${local.namespace_directory}/lws-system"
   namespace_directory         = "${local.manifests_directory_root}/namespace"
   version_manifests_directory = "${path.module}/manifests/lws-${var.lws_version}"
 }
@@ -32,8 +32,8 @@ resource "terraform_data" "namespace" {
 
   provisioner "local-exec" {
     command     = <<EOT
-mkdir -p ${self.input.manifests_dir} && \
-cp -r templates/namespace-lws-system.yaml ${self.input.manifests_dir}/
+mkdir -p "${self.input.manifests_dir}" && \
+cp -r templates/namespace-lws-system.yaml "${self.input.manifests_dir}/"
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module
@@ -65,11 +65,11 @@ resource "terraform_data" "manifests" {
 
   provisioner "local-exec" {
     command     = <<EOT
-mkdir -p ${self.input.version_manifests_dir} && \
-mkdir -p ${self.input.manifests_dir} && \
-wget https://github.com/kubernetes-sigs/lws/releases/download/v${self.input.version}/manifests.yaml -O ${self.input.version_manifests_dir}/manifests.yaml && \
-cp -r templates/workload/* ${self.input.version_manifests_dir}/ && \
-cp -r ${self.input.version_manifests_dir}/* ${self.input.manifests_dir}/
+mkdir -p "${self.input.version_manifests_dir}" && \
+mkdir -p "${self.input.manifests_dir}" && \
+wget https://github.com/kubernetes-sigs/lws/releases/download/v${self.input.version}/manifests.yaml -O "${self.input.version_manifests_dir}/manifests.yaml" && \
+cp -r templates/workload/* "${self.input.version_manifests_dir}/" && \
+cp -r "${self.input.version_manifests_dir}"/* "${self.input.manifests_dir}/"
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module

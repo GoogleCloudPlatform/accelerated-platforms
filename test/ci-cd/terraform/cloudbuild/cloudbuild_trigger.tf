@@ -109,6 +109,31 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform" {
   }
 }
 
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terraform" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml"
+  included_files = [
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/workloads/**",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-core-workloads-terraform"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform_destroy" {
   location        = var.build_location
   name            = "platforms-gke-base-core-terraform-destroy"

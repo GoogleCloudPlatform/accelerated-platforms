@@ -7,4 +7,5 @@ libglib
 nounset
 pipefail
 pkill
+xtraces
 zxvf

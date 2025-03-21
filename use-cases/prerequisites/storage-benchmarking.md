@@ -1,9 +1,9 @@
 # Storage Benchmarking Prerequisites
 
-These steps walk you through downloading Llama-3.3-70B-Instruct from Hugging Face
-into the model GCS bucket for use within the guide for the
-respective [use case](/use-cases). Please note that, we will be copying the model 
-in two bucket, one of them is a flat bucket while the other is hierarchical.
+These steps walk you through downloading Llama-3.3-70B-Instruct from Hugging
+Face into the model GCS bucket for use within the guide for the respective
+[use case](/use-cases). Please note that, we will be copying the model in two
+bucket, one of them is a flat bucket while the other is hierarchical.
 
 These prereqs were developed to be run on the
 [playground AI/ML platform](/platforms/gke-aiml/playground/README.md). If you
@@ -41,7 +41,7 @@ modified for that environment.
   ```
 
 - Create a Kubernetes secret to hold the Hugging Face token
-  
+
   ```sh
   kubectl create secret generic hf-secret \
     --from-literal=HF_TOKEN=${HF_TOKEN} \
@@ -51,75 +51,70 @@ modified for that environment.
 
 ### Copy the model in the flat GCS bucket
 
-  - Replace the respective variables required for the job
+- Replace the respective variables required for the job
 
-    ```sh
-    MODEL_REPO=meta-llama/Meta-Llama-3-70B-Instruct
+  ```sh
+  MODEL_REPO=meta-llama/Meta-Llama-3-70B-Instruct
 
-    sed \
-      -i -e "s|V_KSA|${MLP_MODEL_SERVE_KSA}|" \
-      -i -e "s|V_BUCKET|${MLP_STORAGE_BENCHMARK_FLAT_BUCKET}|" \
-      -i -e "s|V_MODEL_REPO|${MODEL_REPO}|" \
-      manifests/transfer-llama-to-flat-gcs.yaml
-    ```
+  sed \
+    -i -e "s|V_KSA|${MLP_MODEL_SERVE_KSA}|" \
+    -i -e "s|V_BUCKET|${MLP_STORAGE_BENCHMARK_FLAT_BUCKET}|" \
+    -i -e "s|V_MODEL_REPO|${MODEL_REPO}|" \
+    manifests/transfer-llama-to-flat-gcs.yaml
+  ```
 
-  - Deploy the job
+- Deploy the job
 
-    ```sh
-    kubectl apply --namespace ${MLP_KUBERNETES_NAMESPACE} \
-      -f manifests/transfer-llama-to-flat-gcs.yaml
-    ```
+  ```sh
+  kubectl apply --namespace ${MLP_KUBERNETES_NAMESPACE} \
+    -f manifests/transfer-llama-to-flat-gcs.yaml
+  ```
 
-  - Trigger the wait for job completion (the job will take ~5 minutes to
-    complete)
+- Trigger the wait for job completion (the job will take ~5 minutes to complete)
 
-    ```sh
-    kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait \
-      --for=condition=complete --timeout=900s job/transfer-llama-to-flat-gcs
-    ```
+  ```sh
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait \
+    --for=condition=complete --timeout=900s job/transfer-llama-to-flat-gcs
+  ```
 
-  - Example output of the job completion
+- Example output of the job completion
 
-    ```sh
-    job.batch/transfer-llama-to-flat-gcs condition met
-    ```
-
-
+  ```sh
+  job.batch/transfer-llama-to-flat-gcs condition met
+  ```
 
 ### Copy the model in the hierarchical GCS bucket
 
-  - Replace the respective variables required for the job
+- Replace the respective variables required for the job
 
-    ```sh
-    MODEL_REPO=meta-llama/Meta-Llama-3-70B-Instruct
+  ```sh
+  MODEL_REPO=meta-llama/Meta-Llama-3-70B-Instruct
 
-    sed \
-      -i -e "s|V_KSA|${MLP_MODEL_SERVE_KSA}|" \
-      -i -e "s|V_BUCKET|${MLP_STORAGE_BENCHMARK_HIERARCHICAL_BUCKET}|" \
-      -i -e "s|V_MODEL_REPO|${MODEL_REPO}|" \
-      manifests/transfer-llama-to-hierarchical-gcs.yaml
-    ```
+  sed \
+    -i -e "s|V_KSA|${MLP_MODEL_SERVE_KSA}|" \
+    -i -e "s|V_BUCKET|${MLP_STORAGE_BENCHMARK_HIERARCHICAL_BUCKET}|" \
+    -i -e "s|V_MODEL_REPO|${MODEL_REPO}|" \
+    manifests/transfer-llama-to-hierarchical-gcs.yaml
+  ```
 
-  - Deploy the job
+- Deploy the job
 
-    ```sh
-    kubectl apply --namespace ${MLP_KUBERNETES_NAMESPACE} \
-      -f manifests/transfer-llama-to-hierarchical-gcs.yaml
-    ```
+  ```sh
+  kubectl apply --namespace ${MLP_KUBERNETES_NAMESPACE} \
+    -f manifests/transfer-llama-to-hierarchical-gcs.yaml
+  ```
 
-  - Trigger the wait for job completion (the job will take ~5 minutes to
-    complete)
+- Trigger the wait for job completion (the job will take ~5 minutes to complete)
 
-    ```sh
-    kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait \
-      --for=condition=complete --timeout=900s job/transfer-llama-to-hierarchical-gcs
-    ```
+  ```sh
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait \
+    --for=condition=complete --timeout=900s job/transfer-llama-to-hierarchical-gcs
+  ```
 
-  - Example output of the job completion
+- Example output of the job completion
 
-    ```sh
-    job.batch/transfer-llama-to-hierarchical-gcs condition met
-    ```
+  ```sh
+  job.batch/transfer-llama-to-hierarchical-gcs condition met
+  ```
 
-
-  > **NOTE:** Return to the respective use case instructions you were following.
+> **NOTE:** Return to the respective use case instructions you were following.

@@ -1,7 +1,9 @@
 # Use GCS to store model and GCSFuse to download
 
-In this guide, we will store Llama-3.3-70B-Instruct model in GCS bucket and use GCSFuse to download the model to start inference using vllm.
-You will start with running the model inference with no fine tuning in GCSFuse configuration. Then you will add the fine tuning to the speed up the inference startup.
+In this guide, we will store Llama-3.3-70B-Instruct model in GCS bucket and use
+GCSFuse to download the model to start inference using vllm. You will start with
+running the model inference with no fine tuning in GCSFuse configuration. Then
+you will add the fine tuning to the speed up the inference startup.
 
 ## Prerequisites
 
@@ -10,7 +12,8 @@ You will start with running the model inference with no fine tuning in GCSFuse c
   are using a different environment the scripts and manifest will need to be
   modified for that environment.
 
-- Follow  [these instructions](/use-cases/prerequisites/storage-benchmarking.md) to download the Llama-3.3-70B-Instruct model into GCS bucket.
+- Follow [these instructions](/use-cases/prerequisites/storage-benchmarking.md)
+  to download the Llama-3.3-70B-Instruct model into GCS bucket.
 
 ## Preparation
 
@@ -47,10 +50,10 @@ You will start with running the model inference with no fine tuning in GCSFuse c
 
 - Configure the environment.
 
-  | Variable      | Description                                                                    | Example      |
-  | ------------- | ------------------------------------------------------------------------------ | ------------ |
-  | ACCELERATOR   | Type of GPU accelerator to use (a100, h100, l4)                                | a100           |
-  | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | meta-llama |
+  | Variable      | Description                                                                    | Example                |
+  | ------------- | ------------------------------------------------------------------------------ | ---------------------- |
+  | ACCELERATOR   | Type of GPU accelerator to use (a100, h100, l4)                                | a100                   |
+  | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | meta-llama             |
   | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | Llama-3.3-70B-Instruct |
 
   ```sh

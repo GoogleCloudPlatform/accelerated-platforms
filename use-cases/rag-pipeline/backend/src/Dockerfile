@@ -5,6 +5,7 @@ WORKDIR /workspace
 COPY requirements.txt /workspace/
 
 RUN pip install --no-cache-dir -r /workspace/requirements.txt
+RUN opentelemetry-bootstrap -a install
 
 COPY alloydb_connect.py \ 
     backend_service.py \ 
@@ -17,5 +18,4 @@ COPY alloydb_connect.py \
 
 ENV PYTHONUNBUFFERED 1
 
-CMD ["python", "backend_service.py"]
-
+ENTRYPOINT [ "opentelemetry-instrument", "python", "backend_service.py"]

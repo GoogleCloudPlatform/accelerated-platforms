@@ -31,6 +31,7 @@ locals {
   model_serve_ksa            = "${var.environment_name}-${local.model_serve_namespace}-model-serve"
   model_serve_namespace      = var.namespace
   rag_data_processing_ksa    = "${var.environment_name}-${var.namespace}-rag-data-processing"
+  rag_cloud_trace_ksa        = "${var.environment_name}-${var.namespace}-rag-trace"
   repo_container_images_id   = var.environment_name
   repo_container_images_url  = "${google_artifact_registry_repository.container_images.location}-docker.pkg.dev/${google_artifact_registry_repository.container_images.project}/${local.repo_container_images_id}"
   wi_member_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.environment.number}/locations/global/workloadIdentityPools/${data.google_project.environment.project_id}.svc.id.goog/subject/ns/${var.namespace}/sa"
@@ -231,6 +232,17 @@ resource "kubernetes_service_account_v1" "rag_data_processing" {
   }
 }
 
+resource "kubernetes_service_account_v1" "rag_cloud_trace" {
+  depends_on = [
+    null_resource.namespace_manifests,
+  ]
+
+  metadata {
+    name      = local.rag_cloud_trace_ksa
+    namespace = var.namespace
+  }
+}
+
 # IAM
 ###############################################################################
 
@@ -246,6 +258,17 @@ resource "google_project_iam_member" "data_preparation_aiplatform_user" {
   role    = "roles/aiplatform.user"
 }
 
+# CLOUD TRACE
+###########################################################
+resource "google_project_iam_member" "rag_cloud_trace_ksa_user" {
+  depends_on = [
+    google_container_cluster.mlp
+  ]
+
+  project = data.google_project.environment.project_id
+  member  = "${local.wi_member_principal_prefix}/${local.rag_cloud_trace_ksa}"
+  role    = "roles/cloudtrace.agent"
+}
 # DATA BUCKET
 ###########################################################
 resource "google_storage_bucket_iam_member" "data_bucket_batch_inference_storage_object_user" {
@@ -388,6 +411,7 @@ MLP_PROJECT_NUMBER="${data.google_project.environment.number}"
 MLP_RAG_BACKEND_IMAGE="${local.repo_container_images_url}/rag-backend:1.0.0"
 MLP_RAG_DATA_PROCESSING_IMAGE="${local.repo_container_images_url}/rag-data-processing:1.0.0"
 MLP_RAG_DATA_PROCESSING_KSA="${local.rag_data_processing_ksa}"
+MLP_RAG_CLOUD_TRACE_KSA="${local.rag_cloud_trace_ksa}"
 MLP_RAG_FRONTEND_IMAGE="${local.repo_container_images_url}/rag-frontend:1.0.0"
 MLP_RAG_FRONTEND_NAMESPACE_ENDPOINT="https://${local.rag_frontend_endpoint}"
 MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT="https://${local.ray_dashboard_endpoint}"

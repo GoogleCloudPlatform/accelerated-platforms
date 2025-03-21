@@ -1,6 +1,6 @@
 # Use GCS to store model and GCSFuse to download
 
-In this guide, we will store Llama-3.3-70B-Instruct model in GCS bucket and use GCSFuse to downlaod the model to start inference using vllm.
+In this guide, we will store Llama-3.3-70B-Instruct model in GCS bucket and use GCSFuse to download the model to start inference using vllm.
 You will start with running the model inference with no fine tuning in GCSFuse configuration. Then you will add the fine tuning to the speed up the inference startup.
 
 ## Prerequisites

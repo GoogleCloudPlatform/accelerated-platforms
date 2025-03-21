@@ -15,7 +15,7 @@ The storage option is a key factor in determining the cost and performance of yo
 
 ## Storage benchmarking
 
-In the [storage-benchmarking][storage-benchmarking] guide, we demonstrate how you can fine tune the different storage options to achieve the best performance with an esitmated cost. This will help you asses you if a given storage type is a fit for you or not.
+In the [storage-benchmarking][storage-benchmarking] guide, we demonstrate how you can fine tune the different storage options to achieve the best performance with an estimated cost. This will help you asses you if a given storage type is a fit for you or not.
 
 ---
 [gpus]: https://cloud.google.com/compute/docs/gpus

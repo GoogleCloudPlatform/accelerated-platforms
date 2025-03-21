@@ -40,7 +40,7 @@ modified for that environment.
   HF_TOKEN=
   ```
 
-- Create a Kubernetes secret to hold the Hugging Face tokem
+- Create a Kubernetes secret to hold the Hugging Face token
   
   ```sh
   kubectl create secret generic hf-secret \

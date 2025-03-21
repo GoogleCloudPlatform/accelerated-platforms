@@ -39,9 +39,9 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            echo "########### $(date) - Starting parrallel-fetch-safetensors"
+            echo "########### $(date) - Starting parallel-fetch-safetensors"
             find /gcs/V_MODEL_NAME/V_MODEL_VERSION/*safetensors -type f | xargs -I {} -P 15 sh -c 'echo "########### $(date) - Fetching: {}"; dd if={} of=/dev/null'
-            echo "########### $(date) - Finished parrallel-fetch-safetensors"
+            echo "########### $(date) - Finished parallel-fetch-safetensors"
             sleep infinity
         volumeMounts:
         - name: gcsfuse

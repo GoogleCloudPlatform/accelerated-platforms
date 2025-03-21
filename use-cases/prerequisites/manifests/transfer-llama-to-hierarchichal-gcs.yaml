@@ -1,13 +1,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: transfer-llama-to-gcs
+  name: transfer-llama-to-hierarchical-gcs
 spec:
   backoffLimit: 0
   template:
     metadata:
       labels:
-        app: transfer-llama-to-gcs
+        app: transfer-llama-to-hierarchical-gcs
     spec:
       nodeSelector:
         iam.gke.io/gke-metadata-server-enabled: "true"
@@ -15,17 +15,8 @@ spec:
       terminationGracePeriodSeconds: 0
       serviceAccountName: V_KSA
       containers:
-      - name: transfer-llama-to-gcs
+      - name: transfer-llama-to-hierarchical-gcs
         image: google/cloud-sdk:502.0.0-slim
-        env:
-        - name: HF_TOKEN
-          valueFrom:
-            secretKeyRef:
-              name: hf-secret
-              key: HF_TOKEN
-        envFrom:
-          - secretRef:
-              secretName: hf-secret
         command:
         - sh
         - -c
@@ -40,3 +31,8 @@ spec:
           value: "V_MODEL_REPO"
         - name: MLP_MODEL_BUCKET
           value: "V_BUCKET"
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: HF_TOKEN  

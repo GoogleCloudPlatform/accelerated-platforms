@@ -27,22 +27,6 @@ spec:
       - apiGroups: [""]
         kinds: ["Service"]
 ---
-# Prevent the creation of known resources that expose workloads to external IPs.
-apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: K8sNoExternalServices
-metadata:
-  name: no-external-services
-spec:
-  match:
-    kinds:
-      - apiGroups: [""]
-        kinds: ["Service"]
-      - apiGroups: ["networking.k8s.io"]
-        kinds: ["Ingress"]
-      - apiGroups: ["networking.istio.io"]
-        kinds: ["Gateway"]
-    excludedNamespaces: ["istio-egress", "istio-ingress", "istio-system"]
----
 # In tenant namespaces, only allow images to be pulled from
 # a named set of repositories
 apiVersion: constraints.gatekeeper.sh/v1beta1

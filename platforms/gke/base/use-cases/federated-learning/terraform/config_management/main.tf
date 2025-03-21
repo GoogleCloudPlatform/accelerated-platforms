@@ -16,20 +16,33 @@ locals {
   push_container_image_script_path = "${path.module}/scripts/build-push-container-image.sh"
 
   config_management_files_path                    = "${path.module}/files"
+  config_management_additional_files_path         = "${local.config_management_files_path}/additional"
   config_management_common_files_path             = "${local.config_management_files_path}/common"
   config_management_oci_descriptors_path          = "${local.config_management_files_path}/oci_descriptors"
   config_management_templates_directory_path      = "${path.module}/templates"
+  common_templates_directory_path                 = "${local.config_management_templates_directory_path}/common"
   namespace_configuration_template_directory_path = "${local.config_management_templates_directory_path}/namespace_configuration"
 
-  config_management_destination_directory_path                 = "${local.config_management_files_path}/config_management"
-  config_management_common_files_destination_directory_path    = "${local.config_management_destination_directory_path}/common"
-  config_management_oci_descriptors_destination_directory_path = local.config_management_destination_directory_path
-  namespace_configuration_destination_directory_path           = "${local.config_management_destination_directory_path}/namespace_configuration"
+  config_management_destination_directory_path                  = "${local.config_management_files_path}/config_management"
+  config_management_additional_files_destination_directory_path = "${local.config_management_destination_directory_path}/additional"
+  config_management_common_files_destination_directory_path     = "${local.config_management_destination_directory_path}/common"
+  config_management_oci_descriptors_destination_directory_path  = local.config_management_destination_directory_path
+  namespace_configuration_destination_directory_path            = "${local.config_management_destination_directory_path}/namespace_configuration"
 
+  config_management_additional_files      = flatten([for _, file in flatten(fileset(local.config_management_additional_files_path, "**")) : file if file != "README.md"])
   config_management_common_files          = flatten([for _, file in flatten(fileset(local.config_management_common_files_path, "**")) : file])
   config_management_oci_descriptors_files = flatten([for _, file in flatten(fileset(local.config_management_oci_descriptors_path, "**")) : file])
 
+  common_template_files                  = flatten([for _, file in flatten(fileset(local.common_templates_directory_path, "**")) : "${local.common_templates_directory_path}/${file}"])
   namespace_configuration_template_files = flatten([for _, file in flatten(fileset(local.namespace_configuration_template_directory_path, "**")) : "${local.namespace_configuration_template_directory_path}/${file}"])
+
+  common_configuration = [
+    for template_file in local.common_template_files : {
+      destination_file_path     = "${local.config_management_common_files_destination_directory_path}/${basename(dirname(template_file))}/${trimsuffix(basename(template_file), ".tpl")}"
+      template_source_file_path = "${template_file}"
+      template_variables        = local.common_kubernetes_templates_configuration_values
+    }
+  ]
 
   namespaces_configuration = flatten([
     for tenant in local.tenants : concat([
@@ -39,11 +52,16 @@ locals {
         template_variables        = tenant.kubernetes_templates_configuration_values
       }
       ],
-      # Add templates to render to namespace configuration in case the user
-      # enabled any examples to deploy
-      local.examples_templates_to_render,
     )
   ])
+}
+
+resource "local_file" "additional_configuration" {
+  for_each = toset(local.config_management_additional_files)
+
+  content         = file("${local.config_management_additional_files_path}/${each.value}")
+  file_permission = "0644"
+  filename        = "${local.config_management_additional_files_destination_directory_path}/${each.value}"
 }
 
 resource "local_file" "common_configuration" {
@@ -52,6 +70,19 @@ resource "local_file" "common_configuration" {
   content         = file("${local.config_management_common_files_path}/${each.value}")
   file_permission = "0644"
   filename        = "${local.config_management_common_files_destination_directory_path}/${each.value}"
+}
+
+resource "local_file" "common_configuration_templates" {
+  for_each = {
+    for common_config in local.common_configuration : common_config.destination_file_path => common_config
+  }
+
+  content = templatefile(
+    each.value.template_source_file_path,
+    each.value.template_variables
+  )
+  file_permission = "0644"
+  filename        = each.value.destination_file_path
 }
 
 resource "local_file" "oci_descriptors_configuration" {
@@ -92,6 +123,7 @@ resource "terraform_data" "config_management_oci_archive_push" {
     # Trigger whenever the contents of source directories or template configuration values change.
     # Don't depend on destination directory content because it might change between plan and apply.
     sha512(join("", [for f in fileset(local.config_management_templates_directory_path, "**") : filesha512("${local.config_management_templates_directory_path}/${f}")])),
+    sha512(join("", [for f in fileset(local.config_management_additional_files_path, "**") : filesha512("${local.config_management_additional_files_path}/${f}")])),
     sha512(join("", [for f in fileset(local.config_management_common_files_path, "**") : filesha512("${local.config_management_common_files_path}/${f}")])),
     sha512(join("", [for f in fileset(local.config_management_oci_descriptors_path, "**") : filesha512("${local.config_management_oci_descriptors_path}/${f}")])),
     # Trigger whenever the namespace configuration changes

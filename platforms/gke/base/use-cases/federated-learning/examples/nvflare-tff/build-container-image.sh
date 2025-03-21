@@ -29,6 +29,8 @@ load_fl_terraform_outputs
 
 NVFLARE_EXAMPLE_CONTAINER_IMAGE_BUILD_CONTEXT_PATH="${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/container-image"
 
+echo "Building: ${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID_WITH_TAG}"
+
 docker build \
   --file "${NVFLARE_EXAMPLE_CONTAINER_IMAGE_BUILD_CONTEXT_PATH}/Dockerfile" \
   --tag "${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID_WITH_TAG}" \

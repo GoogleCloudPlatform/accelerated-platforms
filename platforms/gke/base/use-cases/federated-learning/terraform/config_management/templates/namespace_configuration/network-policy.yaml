@@ -89,21 +89,6 @@ spec:
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1
 metadata:
-  name: allow-egress-istio-egress
-  namespace: ${namespace_name}
-spec:
-  podSelector: {}
-  policyTypes:
-    - Egress
-  egress:
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: istio-egress
----
-kind: NetworkPolicy
-apiVersion: networking.k8s.io/v1
-metadata:
   name: allow-egress-kube-system-dns
   namespace: ${namespace_name}
 spec:

@@ -1,4 +1,4 @@
-# Fine-tuned model
+# Storage Benchmarking Prerequisites
 
 These steps walk you through downloading Llama-3.3-70B-Instruct from Hugging Face
 into the model GCS bucket for use within the guide for the
@@ -31,13 +31,30 @@ modified for that environment.
     gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
     ```
 
+- Set `HF_TOKEN` to your HuggingFace access token. Go to
+  <https://huggingface.co/settings/tokens> , click `Create new token` , provide
+  a token name, select `Read` in token type and click `Create token`.
+
+  ```sh
+  HF_TOKEN=
+  ```
+
+- Create a Kubernetes secret to hold the Hugging Face tokem
+  
+  ```sh
+  kubectl create secret generic hf-secret \
+    --from-literal=HF_TOKEN=${HF_TOKEN} \
+    --dry-run=client -o yaml | \
+    kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply  -f -
+  ```
+
   - Replace the respective variables required for the job
 
     ```sh
     MODEL_REPO=meta-llama/Meta-Llama-3-70B-Instruct
 
     sed \
-      -i -e "s|V_KSA|${MLP_MODEL_EVALUATION_KSA}|" \
+      -i -e "s|V_KSA|${MLP_MODEL_SERVE_KSA}|" \
       -i -e "s|V_BUCKET|${MLP_MODEL_BUCKET}|" \
       -i -e "s|V_MODEL_REPO|${MODEL_REPO}|" \
       manifests/transfer-llama-to-gcs.yaml

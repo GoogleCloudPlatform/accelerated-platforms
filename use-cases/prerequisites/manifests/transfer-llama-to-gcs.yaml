@@ -17,13 +17,22 @@ spec:
       containers:
       - name: transfer-llama-to-gcs
         image: google/cloud-sdk:502.0.0-slim
+        env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: HF_TOKEN
+        envFrom:
+          - secretRef:
+              secretName: hf-secret
         command:
         - sh
         - -c
         - |
           gcloud config set storage/parallel_composite_upload_enabled False
           pip3 install -U "huggingface_hub[cli]==0.26.2" --break-system-packages
-          huggingface-cli download --repo-type model $(MODEL_REPO) --local-dir ./temp
+          huggingface-cli download --repo-type model $(MODEL_REPO) --local-dir ./temp --token ${HF_TOKEN}
           gcloud storage cp -R ./temp/* \
             gs://$(MLP_MODEL_BUCKET)/$(MODEL_REPO)
         env:

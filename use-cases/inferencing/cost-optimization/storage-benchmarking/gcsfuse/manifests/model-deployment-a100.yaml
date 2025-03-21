@@ -29,9 +29,6 @@ spec:
         app: vllm-openai-gcs-llama33-70b-a100
       annotations:
         gke-gcsfuse/volumes: "true"
-        gke-gcsfuse/cpu-limit: "0"
-        gke-gcsfuse/memory-limit: "0"
-        gke-gcsfuse/ephemeral-storage-limit: "0"
     spec:
       containers:   
       - name: inference-server
@@ -42,8 +39,6 @@ spec:
         env:
         - name: MODEL
           value: /gcs/V_MODEL_NAME/V_MODEL_VERSION
-        - name: VLLM_ATTENTION_BACKEND
-          value: FLASHINFER
         image: V_IMAGE_NAME
         imagePullPolicy: Always
         readinessProbe:

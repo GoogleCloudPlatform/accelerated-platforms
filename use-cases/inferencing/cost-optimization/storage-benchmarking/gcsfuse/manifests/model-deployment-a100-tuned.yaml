@@ -55,8 +55,6 @@ spec:
         env:
         - name: MODEL
           value: /gcs/V_MODEL_NAME/V_MODEL_VERSION
-        - name: VLLM_ATTENTION_BACKEND
-          value: FLASHINFER
         image: V_IMAGE_NAME
         imagePullPolicy: Always
         readinessProbe:
@@ -104,7 +102,7 @@ spec:
           driver: gcsfuse.csi.storage.gke.io
           volumeAttributes:
             bucketName: V_MODEL_BUCKET
-            mountOptions: "metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1,only-dir:Llama-3.3-70B-Instruct"
+            mountOptions: "metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1,only-dir:gcs"
             skipCSIBucketAccessCheck: "true"
       - name: gke-gcsfuse-cache
         emptyDir:

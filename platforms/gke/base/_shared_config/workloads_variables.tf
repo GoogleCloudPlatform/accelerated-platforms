@@ -20,8 +20,20 @@ locals {
   manifests_directory_root = "${path.module}/../../../kubernetes/manifests"
 }
 
+variable "jobset_version" {
+  default     = "0.8.0"
+  description = "Version of JobSet (https://github.com/kubernetes-sigs/jobset/) to install."
+  type        = string
+}
+
 variable "kueue_version" {
   default     = "0.10.2"
   description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
+  type        = string
+}
+
+variable "lws_version" {
+  default     = "0.5.1"
+  description = "Version of LeaderWorkerSet (LWS) (https://github.com/kubernetes-sigs/lws/) to install."
   type        = string
 }

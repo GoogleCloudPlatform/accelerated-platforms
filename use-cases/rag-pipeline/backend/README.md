@@ -147,13 +147,14 @@ Trace explorer, similar to the following:
 
 The left side allows you to filter trace spans based on various criteria. The
 top right displays a heatmap of received traces, and you can change the chart
-view via the dropdown menu. The bottom right panel shows all filtered spans.
-For instance, clicking the span `POST /generate_product_recommendations/`,
-reveals detailed information, such as:
+view via the dropdown menu. The bottom right panel shows all filtered spans. For
+instance, clicking the span `POST /generate_product_recommendations/`, reveals
+detailed information, such as:
 
 ![trace-example](/docs/use-cases/rag-pipeline/images/trace_example.png)
 
 In the top panel of the page, the left side displays each span. Selecting a span
 reveals its corresponding execution time on the right side. For instance,
 connecting to the database requires approximately half a second. However, the
-final `POST` call to the LLM model takes over seven seconds to return a response.
+final `POST` call to the LLM model takes over seven seconds to return a
+response.

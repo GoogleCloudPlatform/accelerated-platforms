@@ -16,6 +16,7 @@ cloudbuildv
 cloudkms
 cloudresourcemanager
 cloudsdktool
+cloudtrace
 configmanagement
 configsync
 connectgateway
@@ -29,6 +30,7 @@ datapath
 dataplane
 datas
 datasource
+distro
 drwxr
 fakeroot
 filestore
@@ -43,6 +45,7 @@ gkee
 gkegw
 gkehub
 googleapi
+googlecloud
 gsutil
 gvnic
 hdml
@@ -50,6 +53,7 @@ heatmaps
 highgpu
 httproute
 hyperdiskml
+instrumentor
 ipcidr
 k8sserviceaccount
 kaniko
@@ -66,6 +70,7 @@ pgaudit
 podslice
 policycontroller
 reposync
+resourcedetection
 resourcemanager
 rootsync
 rrdatas

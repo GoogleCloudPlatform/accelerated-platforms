@@ -30,22 +30,27 @@ track of which version is being used where.
 
 Important: To complete this tutorial, you will need to delete the initial experimental MLflow deployment that is part of MLplayground.
 
-1. Clone github repository configured to store config sync manifests.
+1. Clone the Config Sync manifest repository:
+
 ```sh
 
+git clone <https://github.com/IshmeetMehta/mlp-configsync-mlflow.git>
 ```
+
+Then, remove the MLflow deployment YAML file reference from the `manifests/apps/ml-team/kustomization.yaml` from the cloned repository to prevent Config Sync from deploying it to your MLPlayground cluster."
+
 
 2. Create an artifact store to store the mlflow deployment artifacts as a GCS bucket.
 
 ```sh
-gcloud artifacts repositories create mlflow-artifacts \
+gcloud artifacts repositories create mlflow-artifacts-prod \
     --repository-format=docker \
     --location=<region>
 ```
 
 3. Create database `mflowdb` in the existing alloydb instance.
 
-
+Alternatively, you can also follow these (instructions)[] to create the database.
 
 4. Build the MLflow image:
 

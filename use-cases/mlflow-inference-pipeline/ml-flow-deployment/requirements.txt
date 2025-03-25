@@ -1,4 +1,4 @@
-mlflow==v2.21.0
-psycopg2-binary==2.9.10
 google-cloud-storage==3.0.0
 google==3.0.0
+mlflow==v2.21.0
+psycopg2-binary==2.9.10

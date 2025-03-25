@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-tracking
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: mlflow-tracking
+  template:
+    metadata:
+      labels:
+        app: mlflow-tracking
+    spec:
+      serviceAccountName: mlflow-ml-team-db-admin # Why do we need this account?
+      initContainers:
+        - name: alloydb-auth-proxy
+          restartPolicy: Always
+          image: gcr.io/alloydb-connectors/alloydb-auth-proxy:latest
+          args:
+            - "projects/gkebatchenv3a4ec43f/locations/us-central1/clusters/mlp-mlflow/instances/mlp-mlflow-primary"
+            - "--psc"
+            - "--port=5432"
+            - "--auto-iam-authn"
+            - "--structured-logs"
+          securityContext:
+            runAsNonRoot: true
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+      containers:
+        - name: mlflow
+          image: us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-artifacts/mlflow:v2
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: "2"
+              memory: "10Gi"
+            limits:
+              cpu: "2"
+              memory: "10Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow-tracking-svc
+spec:
+  selector:
+    app: mlflow-tracking
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: LoadBalancer

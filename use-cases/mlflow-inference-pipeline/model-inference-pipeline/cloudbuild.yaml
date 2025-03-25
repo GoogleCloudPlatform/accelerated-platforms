@@ -1,0 +1,11 @@
+images:
+  - "us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-artifacts/random-forest-model:v1"
+options:
+  logging: CLOUD_LOGGING_ONLY
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - -t
+      - "us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-artifacts/random-forest-model:v1"
+      - "."

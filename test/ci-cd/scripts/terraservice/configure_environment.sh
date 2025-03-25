@@ -21,20 +21,21 @@ if [ "${DEBUG,,}" == "true" ]; then
   set -o xtrace
 fi
 
+ACP_REPO_DIR="/workspace"
+
 # Use the truncated BUILD_ID as project suffix.
 # Truncate it at 7 characters similar to short build ID
 PROJECT_SUFFIX="${BUILD_ID:0:7}"
 
 cat >/workspace/build.env <<EOT
-export TERM="xterm+256color"
-
 #export NO_COLOR="1"
+export TERM="xterm"
 #export TF_CLI_ARGS="-no-color"
 #export TF_IN_AUTOMATION="1"
 
-export ACP_REPO_DIR="/workspace"
-export ACP_PLATFORM_BASE_DIR="/workspace/platforms/gke/base"
-export ACP_PLATFORM_CORE_DIR="/workspace/platforms/gke/base/core"
+export ACP_REPO_DIR="${ACP_REPO_DIR}"
+export ACP_PLATFORM_BASE_DIR="\${ACP_REPO_DIR}/platforms/gke/base"
+export ACP_PLATFORM_CORE_DIR="\${ACP_PLATFORM_BASE_DIR}/core"
 export PROJECT_SUFFIX=${PROJECT_SUFFIX}
 
 EOT

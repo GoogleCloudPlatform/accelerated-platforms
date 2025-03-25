@@ -32,9 +32,9 @@ TERRASERVICE_FOLDER="${2}"
 
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
 
-export STATE_MIGRATED="false"
+STATE_MIGRATED="false"
 if gcloud storage ls "gs://${terraform_bucket_name}/terraform" &>/dev/null; then
-  export STATE_MIGRATED="true"
+  STATE_MIGRATED="true"
 fi
 
 "${MY_PATH}/apply.sh" "${TERRASERVICE_DIR}" "${TERRASERVICE_FOLDER}"

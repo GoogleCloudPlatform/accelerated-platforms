@@ -1,0 +1,158 @@
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+- id: "Build runner image" 
+  args:
+  - --cache=true
+  - --cache-ttl=48h
+  - --context=dir://test/ci-cd/container_images
+  - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest
+  - --dockerfile=test/ci-cd/container_images/dockerfile.runner
+  - --log-format=text
+  - --log-timestamp=false
+  - --verbosity=info
+  name: "gcr.io/kaniko-project/executor:latest"
+  waitFor: ["-"]
+
+- id: "Configure the environment"
+  entrypoint: "test/ci-cd/scripts/terraservice/configure_environment.sh"
+  args:
+  - DEBUG=${_DEBUG}
+  - TF_VAR_cluster_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+  - TF_VAR_platform_name="${SHORT_SHA}"
+  - TF_VAR_terraform_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+  env:
+  - BUILD_ID=${BUILD_ID}
+  - DEBUG=${_DEBUG}
+  - PROJECT_ID=${PROJECT_ID}
+  - SHORT_SHA=${SHORT_SHA}
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Build runner image"
+
+- id: "Core Terraservice 'initialize'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply_initialize.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - initialize
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Configure the environment"
+
+- id: "Core Terraservice 'networking'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - networking
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'initialize'"
+
+- id: "Core Terraservice 'container_cluster'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - container_cluster
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'networking'"
+
+- id: "Core Terraservice 'workloads/cluster_credentials'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/cluster_credentials
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'container_cluster'"
+
+- id: "Core Terraservice 'workloads/jobset'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/jobset
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'workloads/cluster_credentials'"
+
+- id: "Core Terraservice 'workloads/kueue'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/kueue
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'workloads/cluster_credentials'"
+
+- id: "Core Terraservice 'workloads/lws'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/lws
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'workloads/cluster_credentials'"
+
+- id: "Core Terraservice 'networking' check for changes"
+  entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - networking
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'workloads/jobset'"
+  - "Core Terraservice 'workloads/kueue'"
+  - "Core Terraservice 'workloads/lws'"
+
+- id: "Core Terraservice 'container_cluster' check for changes"
+  entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - container_cluster
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'networking' check for changes"
+
+- id: "Core Terraservice 'workloads/jobset' check for changes"
+  entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/jobset
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'container_cluster' check for changes"
+
+- id: "Core Terraservice 'workloads/kueue' check for changes"
+  entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/kueue
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'container_cluster' check for changes"
+
+- id: "Core Terraservice 'workloads/lws' check for changes"
+  entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/lws
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'container_cluster' check for changes"
+
+- id: "Delete the environment"
+  entrypoint: "test/ci-cd/scripts/terraservice/delete_environment.sh"
+  args:
+  - DEBUG=${_DEBUG}
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+
+- id: "Set build status"
+  entrypoint: "test/ci-cd/scripts/terraservice/set_build_status.sh"
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Delete the environment"
+
+substitutions:
+  _AR_REPO_LOCATION: "us-central1"
+  _DEBUG: "false"

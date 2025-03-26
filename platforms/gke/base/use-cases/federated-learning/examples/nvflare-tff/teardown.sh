@@ -36,8 +36,13 @@ echo "ACP_PLATFORM_CORE_DIR: ${ACP_PLATFORM_CORE_DIR}"
 
 start_timestamp_federated_learning=$(date +%s)
 
+echo "Stopping NVIDIA FLARE clients"
+docker stop nvflare-client1 || true
+docker stop nvflare-client2 || true
+
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/setup-environment.sh"
+load_fl_terraform_outputs
 
 echo "Destroying the services that the NVIDIA FLARE TFF example depends on"
 # shellcheck disable=SC2154 # variable defined in setup-environment.sh
@@ -59,6 +64,11 @@ done
 
 echo "Deleting the generated NVFLARE workspace"
 sudo rm -rf "${NVFLARE_GENERATED_WORKSPACE_PATH}"
+sudo chown -R "$(id -u)":"$(id -g)" "${NVFLARE_WORKSPACE_PATH}"
+
+echo "Deleting the ${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID} container image from the registry"
+gcloud artifacts docker images delete "${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID}" \
+  --quiet || true
 
 echo "Running the Federated learning use case deploy script"
 "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/deploy.sh"

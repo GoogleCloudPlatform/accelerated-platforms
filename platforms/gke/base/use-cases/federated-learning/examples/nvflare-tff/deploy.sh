@@ -37,6 +37,7 @@ echo "ACP_PLATFORM_CORE_DIR: ${ACP_PLATFORM_CORE_DIR}"
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/nvflare-tff/setup-environment.sh"
 
+DEPLOY_EXAMPLE_DESCRIPTION="Deploy example"
 WORKLOAD_NAME_DESCRIPTION="Name of the workload to deploy"
 
 usage() {
@@ -47,6 +48,7 @@ usage() {
   echo "  ${SCRIPT_BASENAME} [options]"
   echo
   echo "OPTIONS"
+  echo "  -e $(is_linux && echo "| --deploy-example"): ${DEPLOY_EXAMPLE_DESCRIPTION}"
   echo "  -h $(is_linux && echo "| --help"): ${HELP_DESCRIPTION}"
   echo "  -w $(is_linux && echo "| --workload-name"): ${WORKLOAD_NAME_DESCRIPTION}"
   echo
@@ -59,8 +61,8 @@ usage() {
   echo "  ${ERR_ARGUMENT_EVAL_ERROR} when there was an error while evaluating the program options."
 }
 
-LONG_OPTIONS="help,workload-name:"
-SHORT_OPTIONS="hw:"
+LONG_OPTIONS="deploy-example,help,workload-name:"
+SHORT_OPTIONS="ehw:"
 
 # BSD getopt (bundled in MacOS) doesn't support long options, and has different parameters than GNU getopt
 if is_linux; then
@@ -76,9 +78,14 @@ if [ ! ${RET_CODE} ]; then
 fi
 eval set -- "${TEMP}"
 
+DEPLOY_EXAMPLE=""
 WORKLOAD_NAME=""
 while true; do
   case "${1}" in
+  -e | --deploy-example)
+    DEPLOY_EXAMPLE="true"
+    shift
+    ;;
   -w | --workload-name)
     WORKLOAD_NAME="${2}"
     shift 2
@@ -95,6 +102,7 @@ while true; do
 done
 
 check_argument "${WORKLOAD_NAME}" "${WORKLOAD_NAME_DESCRIPTION}"
+check_optional_argument "${DEPLOY_EXAMPLE}" "${DEPLOY_EXAMPLE_DESCRIPTION}" || true
 
 start_timestamp_federated_learning=$(date +%s)
 
@@ -135,12 +143,26 @@ provision_terraservice "config_management"
 echo "Building the NVIDIA FLARE container image"
 "${FEDERATED_LEARNING_USE_CASE_DIR}/examples/nvflare-tff/build-container-image.sh"
 
-if [[ ! -d "${NVFLARE_GENERATED_WORKSPACE_PATH}" ]]; then
-  echo "Generating NVFLARE workspace files in ${NVFLARE_WORKSPACE_PATH}"
-  sudo chown -R 10000:10000 "${NVFLARE_WORKSPACE_PATH}"
-  docker run --rm -v "${NVFLARE_WORKSPACE_PATH}:/opt/NVFlare/workspace" -it "${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID_WITH_TAG}" nvflare provision
+if [[ ! -d "${NVFLARE_GENERATED_WORKSPACE_PATH}" ]] || [[ ("${DEPLOY_EXAMPLE}" == "true" && ! -d "${NVFLARE_WORKSPACE_PATH}/workspace/example_project/prod_00/admin\@nvidia.com/transfer/hello-numpy-sag") ]]; then
+  if [[ ! -d "${NVFLARE_GENERATED_WORKSPACE_PATH}" ]]; then
+    echo "Generating NVFLARE workspace files in ${NVFLARE_WORKSPACE_PATH}"
+    sudo chown -R 10000:10000 "${NVFLARE_WORKSPACE_PATH}"
+    docker run --rm -v "${NVFLARE_WORKSPACE_PATH}:/opt/NVFlare/workspace" -it "${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID_WITH_TAG}" nvflare provision
+  fi
+  if [[ ("${DEPLOY_EXAMPLE}" == "true" && ! -d "${NVFLARE_WORKSPACE_PATH}/workspace/example_project/prod_00/admin\@nvidia.com/transfer/hello-numpy-sag") ]]; then
+    echo "Copying an example workload in the NVIDIA FLARE workspace"
+    sudo chown -R 10000:10000 "${NVFLARE_WORKSPACE_PATH}"
+    docker run --rm -it \
+      -v "${NVFLARE_WORKSPACE_PATH}:/opt/NVFlare/workspace" \
+      "${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID_WITH_TAG}" \
+      /bin/bash -c 'cp -R /opt/NVFlare/NVFlare-${NVFLARE_RELEASE_TAG}/examples/hello-world/hello-numpy-sag /opt/NVFlare/workspace/workspace/example_project/prod_00/admin@nvidia.com/transfer'
+  fi
+
   sudo chown -R "$(id -u)":"$(id -g)" "${NVFLARE_WORKSPACE_PATH}"
-  gcloud storage cp --recursive "${NVFLARE_GENERATED_WORKSPACE_PATH}" "gs://${NVFLARE_EXAMPLE_WORKSPACE_BUCKET_NAME}"
+  gcloud storage cp \
+    "${NVFLARE_GENERATED_WORKSPACE_PATH}" "gs://${NVFLARE_EXAMPLE_WORKSPACE_BUCKET_NAME}" \
+    --recursive
+  sudo chown -R 10000:10000 "${NVFLARE_WORKSPACE_PATH}"
 else
   echo "Skip generating the NVFLARE workspace because it was already generated"
 fi

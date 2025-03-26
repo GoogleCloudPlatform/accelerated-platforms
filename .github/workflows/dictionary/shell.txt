@@ -2,6 +2,7 @@ allexport
 chdir
 envsubst
 errexit
+getopt
 libgl
 libglib
 nounset

@@ -63,6 +63,10 @@ locals {
     }
   }
 
+  common_kubernetes_templates_configuration_values = {
+    external_services_allowed_namespaces = var.federated_learning_external_services_allowed_namespaces
+  }
+
   service_account_domain = "${var.cluster_project_id}.iam.gserviceaccount.com"
 
   node_pool_service_account_names = [
@@ -97,6 +101,8 @@ locals {
   )
 
   tenant_apps_kubernetes_service_account_name = "fl-ksa"
+
+  federated_learning_firewall_policy_name = "${local.cluster_name}-federated-learning-firewall-policy"
 }
 
 variable "federated_learning_cloud_storage_buckets" {
@@ -116,6 +122,12 @@ variable "federated_learning_cloud_storage_buckets_iam_bindings" {
     member      = string
     role        = string
   }))
+}
+
+variable "federated_learning_external_services_allowed_namespaces" {
+  default     = []
+  description = "List of tenant names for which creating services that expose workloads directly is allowed."
+  type        = list(string)
 }
 
 variable "federated_learning_tenant_names" {

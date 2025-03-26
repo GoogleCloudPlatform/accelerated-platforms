@@ -11,6 +11,7 @@ flowschemas
 gmsa
 horizontalpodautoscaler
 ingressgateway
+istiod
 jobset
 jobsets
 k8s

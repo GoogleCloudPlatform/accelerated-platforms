@@ -20,30 +20,6 @@ metadata:
     istio-injection: "enabled"
     tenant-ns: "false"
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: istio-egressgateway
-  namespace: istio-egress
-spec:
-  type: ClusterIP
-  selector:
-    app: istio-egressgateway
-    istio: egressgateway
-  ports:
-    - name: http2
-      port: 80
-      protocol: TCP
-      targetPort: 8080
-    - name: https
-      port: 443
-      protocol: TCP
-      targetPort: 8443
-    - name: status-port
-      port: 15021
-      protocol: TCP
-      targetPort: 15021
----
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -172,3 +148,12 @@ spec:
           simple: ROUND_ROBIN
         tls:
           mode: ISTIO_MUTUAL
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-all-egress-from-egressgateway
+  namespace: istio-egress
+spec:
+  rules:
+    - {}

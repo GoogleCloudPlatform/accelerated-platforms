@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-mlflowdb-job
+spec:
+  template:
+    spec:
+      serviceAccountName: mlflow-ml-team-db-admin 
+      containers:
+        - name: create-db
+          image: us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-artifacts/create-db:v2
+          imagePullPolicy: Always
+          env:
+            - name: MLP_DB_INSTANCE_URI
+              value: "projects/gkebatchenv3a4ec43f/locations/us-central1/clusters/mlp-mlflow/instances/mlp-mlflow-primary" # Replace with your instance URI
+            - name: DATABASE_NAME
+              value: "mlflowdb"
+      restartPolicy: Never
+  backoffLimit: 4

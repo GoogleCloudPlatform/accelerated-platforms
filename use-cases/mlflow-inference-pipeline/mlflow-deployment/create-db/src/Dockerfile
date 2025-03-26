@@ -26,4 +26,4 @@ COPY create_mlflowdb.py \
 
 ENV PYTHONUNBUFFERED 1
 
-ENTRYPOINT ["python", "db_setup.py"]
+ENTRYPOINT ["python", "create_mlflowdb.py"]

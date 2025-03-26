@@ -50,7 +50,10 @@ gcloud artifacts repositories create mlflow-artifacts-prod \
 
 3. Create database `mflowdb` in the existing alloydb instance.
 
-Alternatively, you can also follow these (instructions)[] to create the database.
+Build the image 
+Deploy this image on gke
+
+Alternatively, you can also follow these [instructions]() to create the database.
 
 4. Build the MLflow image:
 

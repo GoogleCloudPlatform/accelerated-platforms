@@ -11,6 +11,14 @@ These prereqs were developed to be run on the
 are using a different environment the scripts and manifest will need to be
 modified for that environment.
 
+> NOTE: Due to the limitations of Cloud Shell’s storage and the size of llama
+> 70B model we need to run this transfer via Kubernetes job.
+
+- Get access to the model `meta-llama/Llama-3.3-70B-Instruct`
+
+  Go to https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct . Sign In and
+  accept the license agreement to get the access to the model.
+
 - Change directory to the guide directory.
 
   ```sh
@@ -20,24 +28,23 @@ modified for that environment.
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured
 
   ```sh
+  set -a
   cat ${MLP_ENVIRONMENT_FILE} && \
   source ${MLP_ENVIRONMENT_FILE}
+  set +a
   ```
 
   > You should see the various variables populated with the information specific
   > to your environment.
 
-- Download Llama-3.3-70B-Instruct from Hugging Face and copy it into the GCS
-  bucket.
+- Get credentials for the GKE cluster
 
-  > NOTE: Due to the limitations of Cloud Shell’s storage and the size of our
-  > model we need to run this transfer via Kubernetes job.
-
-  - Get credentials for the GKE cluster
-
-    ```sh
-    gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
-    ```
+  ```sh
+  gcloud container clusters get-credentials ${MLP_CLUSTER_NAME} \
+  --dns-endpoint \
+  --location=${MLP_REGION} \
+  --project=${MLP_PROJECT_ID}
+  ```
 
 - Set `HF_TOKEN` to your HuggingFace access token. Go to
   <https://huggingface.co/settings/tokens> , click `Create new token` , provide
@@ -47,10 +54,11 @@ modified for that environment.
   HF_TOKEN=
   ```
 
-- Set accelerator
+- Configure the environment
 
   ```sh
   export ACCELERATOR=a100
+  export MODEL_REPO=meta-llama/Llama-3.3-70B-Instruct
   ```
 
 - Create a Kubernetes secret to hold the Hugging Face token
@@ -62,33 +70,30 @@ modified for that environment.
     kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply  -f -
   ```
 
-### Copy the model in flat GCS bucket
+- Configure the deployment.
 
-- Replace the respective variables required for the job
-
-  ```sh
-  MODEL_REPO=meta-llama/Meta-Llama-3-70B-Instruct
-
-  sed \
-    -i -e "s|V_KSA|${MLP_STORAGE_BENCHMARKING_KSA}|" \
-    -i -e "s|V_BUCKET|${MLP_STORAGE_BENCHMARK_FLAT_BUCKET}|" \
-    -i -e "s|V_MODEL_REPO|${MODEL_REPO}|" \
-    manifests/transfer-llama-to-flat-gcs-${ACCELERATOR}-dws.yaml
+  ```
+  git restore manifests/transfer-llama-to-gcs-${ACCELERATOR}-dws.yaml
+  envsubst < manifests/transfer-llama-to-gcs-${ACCELERATOR}-dws.yaml | sponge manifests/transfer-llama-to-gcs-${ACCELERATOR}-dws.yaml
   ```
 
-- Create the provisioning request and the job
+  > Ensure there are no bash: <ENVIRONMENT_VARIABLE> unbound variable error
+  > messages.
+
+- Create the provisioning request and the job. The job copies llama 70B model to
+  the flat and hierarchical GCS buckets.
 
   ```sh
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/provisioning-request-flat-gcs-${ACCELERATOR}.yaml
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/transfer-llama-to-flat-gcs-${ACCELERATOR}-dws.yaml
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/provisioning-request-llama-transfer-${ACCELERATOR}.yaml
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/transfer-llama-to-gcs-${ACCELERATOR}-dws.yaml
   ```
 
   You will see output similar to the following:
 
   ```sh
-  podtemplate/a100-flat-transfer-job created
-  provisioningrequest.autoscaling.x-k8s.io/a100-flat-transfer-job created
-  job.batch/transfer-llama-to-flat-gcs created
+  podtemplate/a100-gcs-transfer-job created
+  provisioningrequest.autoscaling.x-k8s.io/a100-gcs-transfer-job created
+  job.batch/transfer-llama-to-gcs created
   ```
 
   > Note : It may take a few minutes before the provisioning request is accepted
@@ -99,85 +104,29 @@ modified for that environment.
   shows `True`, the deployment will start.
 
   ```sh
-  watch -n 5 kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get provisioningrequest a100-flat-transfer-job
+  watch -n 5 kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get provisioningrequest ${ACCELERATOR}-gcs-transfer-job
   ```
 
 - Once the job is started, trigger the wait for job completion(the job will take
-  ~12 minutes to complete)
+  ~24 minutes to complete)
 
   ```sh
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait \
-    --for=condition=complete --timeout=900s job/transfer-llama-to-flat-gcs
+    --for=condition=complete --timeout=900s job/transfer-llama-to-gcs
   ```
 
 - Example output of the job completion
 
   ```sh
-  job.batch/transfer-llama-to-flat-gcs condition met
+  job.batch/transfer-llama-to-gcs condition met
   ```
 
-- List the model files in the GCS bucket to verify the transfer.
-  ```sh
-  gcloud storage ls gs://${MLP_STORAGE_BENCHMARK_FLAT_BUCKET}/meta-llama/Meta-Llama-3-70B-Instruct
-  ```
-
-### Copy the model in hierarchical GCS bucket
-
-- Replace the respective variables required for the job
+- List the model files in the GCS buckets to verify the transfer.
 
   ```sh
-  MODEL_REPO=meta-llama/Meta-Llama-3-70B-Instruct
+  gcloud storage ls gs://${MLP_STORAGE_BENCHMARK_FLAT_BUCKET}/meta-llama/Llama-3.3-70B-Instruct
 
-  sed \
-    -i -e "s|V_KSA|${MLP_STORAGE_BENCHMARKING_KSA}|" \
-    -i -e "s|V_BUCKET|${MLP_STORAGE_BENCHMARK_HIERARCHICAL_BUCKET}|" \
-    -i -e "s|V_MODEL_REPO|${MODEL_REPO}|" \
-    manifests/transfer-llama-to-hierarchical-gcs-${ACCELERATOR}-dws.yaml
-  ```
-
-- Create the provisioning request and job
-
-  ```sh
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/provisioning-request-hierarchical-gcs-${ACCELERATOR}.yaml
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/transfer-llama-to-hierarchical-gcs-${ACCELERATOR}-dws.yaml
-  ```
-
-  You will see output similar to the following:
-
-  ```sh
-  podtemplate/a100-hierarchical-transfer-job created
-  provisioningrequest.autoscaling.x-k8s.io/a100-hierarchical-transfer-job created
-  job.batch/transfer-llama-to-hierarchical-gcs created
-  ```
-
-  > Note : It may take a few minutes before the provisioning request is accepted
-  > and the resources are provisioned. The job will be started as soon as the
-  > resources are provisioned.
-
-- Check the status of the provisioning request, once the `PROVISIONED` column
-  shows `True`, the deployment will start.
-
-  ```sh
-  watch -n 5 kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get provisioningrequest a100-hierarchical-transfer-job
-  ```
-
-- Once the jobs has started, trigger the wait for job completion(the job will
-  take ~12 minutes to complete)
-
-  ```sh
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} wait \
-    --for=condition=complete --timeout=900s job/transfer-llama-to-hierarchical-gcs
-  ```
-
-- Example output of the job completion
-
-  ```sh
-  job.batch/transfer-llama-to-hierarchical-gcs condition met
-  ```
-
-- List the model files in the GCS bucket to verify the transfer.
-  ```sh
-  gcloud storage ls gs://${MLP_STORAGE_BENCHMARK_HIERARCHICAL_BUCKET}/meta-llama/Meta-Llama-3-70B-Instruct
+  gcloud storage ls gs://${MLP_STORAGE_BENCHMARK_HIERARCHICAL_BUCKET}/meta-llama/Llama-3.3-70B-Instruct
   ```
 
 > **NOTE:** Return to the respective use case instructions you were following.

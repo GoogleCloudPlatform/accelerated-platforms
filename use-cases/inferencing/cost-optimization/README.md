@@ -7,7 +7,7 @@ accelerators on high end virtual machines with expansive storage options. Often,
 there is confusion in choosing the right accelerator , virtual machine and
 storage options when if comes to running the large language models. The goal of
 this guide is to provide the cost efficient and high performant ways to run
-inference for llama models.
+inference for Llama models.
 
 ## Choosing accelerator, machine and storage
 
@@ -41,14 +41,14 @@ and decide to run inference workload in 3 different zones, you will need three
 instance of the storage in each of those zones. Therefore, it becomes critical
 to choose the storage option wisely to optimize the cost.
 
-## Storage benchmarking
+## Storage optimization
 
-In the [storage-benchmarking][storage-benchmarking] guide, we demonstrate how
-you can fine tune the different storage options to achieve the best performance
-with an estimated cost. This will help you asses you if a given storage type is
-a fit for you or not.
+In the [GCS storage optimization][gcs-storage-optimization] guide, we
+demonstrate how you can fine tune GCS to achieve the best performance with lower
+cost. T
 
 ---
 
 [gpus]: https://cloud.google.com/compute/docs/gpus
-[storage-benchmarking]: storage-benchmarking/README.md
+[gcs-storage-optimization]:
+  /use-cases/inferencing/cost-optimization/gcsfuse/README.md

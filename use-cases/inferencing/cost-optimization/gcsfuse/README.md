@@ -7,6 +7,8 @@ inference. In the second run, the model will be stored in a hierarchical GCS
 bucket and you will fine-tune GCSFuse configurations to download the model from
 the bucket and start inference.
 
+> Note : By default, a GCS bucket is created as flat.
+
 The goal of this guide is to demonstrate performance improvement in the model
 load time and pod startup time when using fine-tuned configurations with
 GCSFuse.
@@ -33,14 +35,16 @@ GCSFuse.
 - Change directory to the guide directory.
 
   ```sh
-  cd use-cases/inferencing/cost-optimization/storage-benchmarking/gcsfuse
+  cd use-cases/inferencing/cost-optimization/gcsfuse/
   ```
 
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
 
   ```sh
+  set -a
   cat ${MLP_ENVIRONMENT_FILE} && \
   source ${MLP_ENVIRONMENT_FILE}
+  set +a
   ```
 
   > You should see the various variables populated with the information specific
@@ -49,21 +53,27 @@ GCSFuse.
 - Get credentials for the GKE cluster.
 
   ```sh
-  gcloud container fleet memberships get-credentials ${MLP_CLUSTER_NAME} --project ${MLP_PROJECT_ID}
+  gcloud container clusters get-credentials ${MLP_CLUSTER_NAME} \
+  --dns-endpoint \
+  --location=${MLP_REGION} \
+  --project=${MLP_PROJECT_ID}
   ```
 
 - Configure the environment.
 
-  | Variable      | Description                                                                    | Example                   |
-  | ------------- | ------------------------------------------------------------------------------ | ------------------------- |
-  | ACCELERATOR   | Type of GPU accelerator to use (a100, h100, l4)                                | a100                      |
-  | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | meta-llama                |
-  | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | Meta-Llama-3-70B-Instruct |
+  | Variable      | Description                                                                    | Example                |
+  | ------------- | ------------------------------------------------------------------------------ | ---------------------- |
+  | ACCELERATOR   | Type of GPU accelerator to use (a100, h100, l4)                                | a100                   |
+  | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | meta-llama             |
+  | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | Llama-3.3-70B-Instruct |
 
   ```sh
-  ACCELERATOR="a100"
-  MODEL_NAME="meta-llama"
-  MODEL_VERSION="Meta-Llama-3-70B-Instruct"
+  set -o nounset
+  export ACCELERATOR="a100"
+  export MODEL_NAME="meta-llama"
+  export MODEL_VERSION="Llama-3.3-70B-Instruct"
+  export VLLM_IMAGE_NAME="vllm/vllm-openai:v0.6.6.post1"
+  set +o nounset
   ```
 
 ## Serve the model with vLLM with no tuning
@@ -71,19 +81,12 @@ GCSFuse.
 - Configure the deployment.
 
   ```
-  VLLM_IMAGE_NAME="vllm/vllm-openai:v0.6.6.post1"
+  git restore manifests/model-deployment-${ACCELERATOR}-dws.yaml
+  envsubst < manifests/model-deployment-${ACCELERATOR}-dws.yaml | sponge manifests/model-deployment-${ACCELERATOR}-dws.yaml
   ```
 
-  ```sh
-  git restore manifests/model-deployment-${ACCELERATOR}-dws.yaml
-  sed \
-  -i -e "s|V_MODEL_BUCKET|${MLP_STORAGE_BENCHMARK_FLAT_BUCKET}|" \
-  -i -e "s|V_MODEL_NAME|${MODEL_NAME}|" \
-  -i -e "s|V_MODEL_VERSION|${MODEL_VERSION}|" \
-  -i -e "s|V_IMAGE_NAME|${VLLM_IMAGE_NAME}|" \
-  -i -e "s|V_KSA|${MLP_STORAGE_BENCHMARKING_KSA}|" \
-  manifests/model-deployment-${ACCELERATOR}-dws.yaml
-  ```
+  > Ensure there are no bash: <ENVIRONMENT_VARIABLE> unbound variable error
+  > messages.
 
 - Create the provisioning request and the deployment.
 
@@ -109,7 +112,7 @@ GCSFuse.
   shows `True`, the deployment will start.
 
   ```sh
-  watch -n 5 kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get provisioningrequest a100-storage-benchmark
+  watch -n 5 kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get provisioningrequest ${ACCELERATOR}-storage-benchmark
   ```
 
 - When the deployment has started, watch the it until it is ready and available.
@@ -128,12 +131,6 @@ GCSFuse.
 
 ## Calculate pod startup time
 
-- Install bc in CloudShell
-
-  ```sh
-  sudo apt-get install bc
-  ```
-
 - Run the following commands to get the model load time in seconds
 
   ```sh
@@ -143,9 +140,9 @@ GCSFuse.
 
   ENDING_MODEL_DOWNLOAD_TIME=`kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} logs ${POD_NAME} -c "inference-server" | grep "^INFO.*Loading model weights took" | head -n 1 | awk '{print $2" "$3}' | xargs -I {} date -d "$(date +%Y)-{}" +%s%3N`
 
-  MODEL_LOAD_TIME_WITHOUT_TUNING=`echo "($ENDING_MODEL_DOWNLOAD_TIME - $BEGIN_MODEL_DOWNLOAD_TIME)/1000" | bc`
+  MODEL_LOAD_TIME_WITHOUT_TUNING=$(( (ENDING_MODEL_DOWNLOAD_TIME - BEGIN_MODEL_DOWNLOAD_TIME)/1000 ))
 
-  echo "MODEL LOAD TIME WITHOUT TUNING - ${MODEL_LOAD_TIME_WITHOUT_TUNING}"
+  echo "MODEL LOAD TIME WITHOUT TUNING - ${MODEL_LOAD_TIME_WITHOUT_TUNING}s"
   ```
 
   > Loading llama 70B model with GCSFuse and no tuning will typically take
@@ -159,25 +156,22 @@ GCSFuse.
 
   POD_READY_TIME=`kubectl --namespace "${MLP_MODEL_SERVE_NAMESPACE}" get pods "$POD_NAME" -o json | jq -r '.status.conditions[] | select(.type == "Ready") | .lastTransitionTime' | date -f - +%s%3N`
 
-  POD_STARTUP_TIME_WITHOUT_TUNING=`echo "($POD_READY_TIME - $POD_SCHEDULED_TIME)/1000" | bc`
+  POD_STARTUP_TIME_WITHOUT_TUNING=$(( (POD_READY_TIME - POD_SCHEDULED_TIME)/1000 ))
 
   echo "POD STARTUP TIME WITHOUT TUNING - ${POD_STARTUP_TIME_WITHOUT_TUNING}s"
   ```
 
 ## Serve the model with vLLM with tuning
 
-- Configure the deployment.
+- Configure the deployment
 
-  ```sh
-  git restore manifests/model-deployment-tuned-${ACCELERATOR}-dws.yaml
-  sed \
-  -i -e "s|V_MODEL_BUCKET|${MLP_STORAGE_BENCHMARK_HIERARCHICAL_BUCKET}|" \
-  -i -e "s|V_MODEL_NAME|${MODEL_NAME}|" \
-  -i -e "s|V_MODEL_VERSION|${MODEL_VERSION}|" \
-  -i -e "s|V_IMAGE_NAME|${VLLM_IMAGE_NAME}|" \
-  -i -e "s|V_KSA|${MLP_STORAGE_BENCHMARKING_KSA}|" \
-  manifests/model-deployment-tuned-${ACCELERATOR}-dws.yaml
   ```
+  git restore manifests/model-deployment-tuned-${ACCELERATOR}-dws.yaml
+  envsubst < manifests/model-deployment-tuned-${ACCELERATOR}-dws.yaml | sponge manifests/model-deployment-tuned-${ACCELERATOR}-dws.yaml
+  ```
+
+  > Ensure there are no bash: <ENVIRONMENT_VARIABLE> unbound variable error
+  > messages.
 
 - Create the provisioning request and the deployment
 
@@ -231,13 +225,13 @@ GCSFuse.
 
   ENDING_MODEL_DOWNLOAD_TIME_TUNED=`kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} logs ${POD_NAME_TUNED} -c "inference-server" | grep "^INFO.*Loading model weights took" | head -n 1 | awk '{print $2" "$3}' | xargs -I {} date -d "$(date +%Y)-{}" +%s%3N`
 
-  MODEL_LOAD_TIME_WITH_TUNING=`echo "($ENDING_MODEL_DOWNLOAD_TIME_TUNED - $BEGIN_MODEL_DOWNLOAD_TIME_TUNED)/1000" | bc`
+  MODEL_LOAD_TIME_WITH_TUNING=$(( (ENDING_MODEL_DOWNLOAD_TIME_TUNED - BEGIN_MODEL_DOWNLOAD_TIME_TUNED)/1000 ))
 
   echo "MODEL LOAD TIME WITH TUNING - ${MODEL_LOAD_TIME_WITH_TUNING}s"
   ```
 
   > Loading llama 70B model with GCSFuse with tuned configurations will
-  > typically take around 40 seconds.
+  > typically take around 35 seconds.
 
 - Run the following commands to get the pod startup time in seconds. This is the
   time taken by the pod to change from `PodScheduled` to `Ready` status.
@@ -247,7 +241,7 @@ GCSFuse.
 
   POD_READY_TIME_TUNED=`kubectl --namespace "${MLP_MODEL_SERVE_NAMESPACE}" get pods "$POD_NAME_TUNED" -o json | jq -r '.status.conditions[] | select(.type == "Ready") | .lastTransitionTime' | date -f - +%s%3N`
 
-  POD_STARTUP_TIME_WITH_TUNING=`echo "($POD_READY_TIME_TUNED - $POD_SCHEDULED_TIME_TUNED)/1000" | bc`
+  POD_STARTUP_TIME_WITH_TUNING=$(( (POD_READY_TIME_TUNED - POD_SCHEDULED_TIME_TUNED)/1000 ))
 
   echo "POD STARTUP TIME WITH TUNING - ${POD_STARTUP_TIME_WITH_TUNING}s"
   ```

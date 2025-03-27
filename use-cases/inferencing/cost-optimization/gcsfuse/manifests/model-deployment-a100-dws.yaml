@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,8 +40,8 @@ spec:
         - --trust-remote-code
         env:
         - name: MODEL
-          value: /gcs/V_MODEL_NAME/V_MODEL_VERSION
-        image: V_IMAGE_NAME
+          value: /gcs/${MODEL_NAME}/${MODEL_VERSION}
+        image: ${VLLM_IMAGE_NAME}
         imagePullPolicy: Always
         readinessProbe:
           failureThreshold: 3
@@ -70,7 +70,7 @@ spec:
           readOnly: true
       nodeSelector:
         cloud.google.com/gke-accelerator: nvidia-tesla-a100
-      serviceAccountName: V_KSA
+      serviceAccountName: ${MLP_STORAGE_BENCHMARKING_KSA}
       tolerations:
       - key: "nvidia.com/gpu"
         operator: "Exists"
@@ -87,10 +87,8 @@ spec:
         csi:
           driver: gcsfuse.csi.storage.gke.io
           volumeAttributes:
-            bucketName: V_MODEL_BUCKET
-            mountOptions: "implicit-dirs"
-
-      
+            bucketName: ${MLP_STORAGE_BENCHMARK_FLAT_BUCKET}
+            mountOptions: "implicit-dirs"      
 ---
 apiVersion: v1
 kind: Service

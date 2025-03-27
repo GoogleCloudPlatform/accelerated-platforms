@@ -171,7 +171,7 @@ variable "cluster_node_auto_provisioning_resource_limits" {
   ]
   description = "Resource limits to set if using node auto-provisioning."
   type = list(object({
-    maximum       = optional(number, 9223372036854775807)
+    maximum       = optional(number, 9223372036854775806)
     minimum       = optional(number, 0)
     resource_type = string
   }))

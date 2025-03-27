@@ -7,6 +7,8 @@ inference. In the second run, the model will be stored in a hierarchical GCS
 bucket and you will fine-tune GCSFuse configurations to download the model from
 the bucket and start inference.
 
+> Note : By default, a GCS bucket is created as flat.
+
 The goal of this guide is to demonstrate performance improvement in the model
 load time and pod startup time when using fine-tuned configurations with
 GCSFuse.
@@ -54,16 +56,16 @@ GCSFuse.
 
 - Configure the environment.
 
-  | Variable      | Description                                                                    | Example                   |
-  | ------------- | ------------------------------------------------------------------------------ | ------------------------- |
-  | ACCELERATOR   | Type of GPU accelerator to use (a100, h100, l4)                                | a100                      |
-  | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | meta-llama                |
-  | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | Meta-Llama-3-70B-Instruct |
+  | Variable      | Description                                                                    | Example                |
+  | ------------- | ------------------------------------------------------------------------------ | ---------------------- |
+  | ACCELERATOR   | Type of GPU accelerator to use (a100, h100, l4)                                | a100                   |
+  | MODEL_NAME    | The name of the model folder in the root of the GCS model bucket               | meta-llama             |
+  | MODEL_VERSION | The name of the version folder inside the model folder of the GCS model bucket | Llama-3.3-70B-Instruct |
 
   ```sh
   ACCELERATOR="a100"
   MODEL_NAME="meta-llama"
-  MODEL_VERSION="Meta-Llama-3-70B-Instruct"
+  MODEL_VERSION="Llama-3.3-70B-Instruct"
   ```
 
 ## Serve the model with vLLM with no tuning

@@ -303,7 +303,9 @@ get_kubernetes_load_balancer_service_external_ip_address_or_wait() {
   local -n SERVICE_IP_ADDRESS="${SERVICE_IP_ADDRESS_VARIABLE_NAME}"
   while [[ -z "${SERVICE_IP_ADDRESS:-}" ]]; do
     echo "Waiting for ${SERVICE_NAME} (namespace: ${SERVICE_NAMESPACE}) to have an external IP address..."
-    SERVICE_IP_ADDRESS="$(kubectl get svc "${SERVICE_NAME}" -n "${SERVICE_NAMESPACE}" --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}")"
+    if ! SERVICE_IP_ADDRESS="$(kubectl get svc "${SERVICE_NAME}" -n "${SERVICE_NAMESPACE}" --template="{{range .status.loadBalancer.ingress}}{{.ip}}{{end}}")"; then
+      echo "${SERVICE_NAME} (namespace: ${SERVICE_NAMESPACE}) not ready yet, waiting"
+    fi
     [[ -z "${SERVICE_IP_ADDRESS:-}" ]] && sleep 10
   done
   unset -n SERVICE_IP_ADDRESS

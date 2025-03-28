@@ -17,7 +17,9 @@ To deploy this reference architecture, you need:
 This reference architecture builds on the
 [Reference implementation for the Core GKE Accelerated Platform](/platforms/gke/base/README.md).
 In this document, we reference the Reference implementation for the Core GKE
-Accelerated Platform as _core platform_.
+Accelerated Platform as _core platform_. The deployment procedure described in
+the [Deploy the reference architecture](#deploy-the-reference-architecture)
+section takes care of deploying an instance of the core platform for you.
 
 ### Service account roles and permissions
 
@@ -457,6 +459,20 @@ following errors:
     clusters in the same project that depend on those resources. For example,
     when you destroy this reference architecture, these resources will be
     destroyed too, potentially impacting other GKE clusters in the same project.
+    For example, you can run the following command from the root directory of
+    this repository to import the `configmanagement` feature:
+
+    ```bash
+    terraform -chdir=platforms/gke/base/core/gke_enterprise/configmanagement/oci init && \
+      terraform -chdir=platforms/gke/base/core/gke_enterprise/configmanagement/oci import \
+      google_gke_hub_feature.configmanagement \
+      projects/<PROJECT_ID>/locations/global/features/configmanagement
+    ```
+
+    Where:
+
+    - `<PROJECT_ID>` is the Google Cloud project ID where you deployed the
+      reference architecture.
 
 ## Understanding security controls
 

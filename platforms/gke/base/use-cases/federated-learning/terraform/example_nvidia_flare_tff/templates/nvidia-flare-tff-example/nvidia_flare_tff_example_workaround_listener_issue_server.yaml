@@ -55,3 +55,23 @@ spec:
           port: 8002
         - protocol: TCP
           port: 8003
+---
+# Disable service mesh mTLS enforcement on nvflare ports because nvflare handles mTLS
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: disable-mtls-${nvidia_flare_tff_example_workload_name}
+  namespace: ${namespace_name}
+spec:
+  selector:
+    matchLabels:
+      run: nvflare-${nvidia_flare_tff_example_workload_name}
+  # Inherit mTLS mode from mesh- or namespace-wide settings
+  mtls:
+    mode: UNSET
+  # Overwrite settings for nvflare ports
+  portLevelMtls:
+    8002:
+      mode: DISABLE
+    8003:
+      mode: DISABLE

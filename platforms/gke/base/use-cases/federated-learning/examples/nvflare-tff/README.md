@@ -1,7 +1,7 @@
-# Train an image classifier using NVIDIA FLARE
+# Deploy NVIDIA FLARE on the Federated learning reference architecture
 
-This example uses nVidia FLARE to train an image classifier using federated
-averaging and TensorFlow as the deep learning framework.
+This example shows how to deploy NVIDIA FLARE on the
+[Google Cloud Federated learning reference architecture](/platforms/gke/base/use-cases/federated-learning/README.md).
 
 [NVIDIA FLARE](https://nvflare.readthedocs.io/en/main/index.html) is a
 domain-agnostic, open-source, extensible SDK that allows researchers and data
@@ -31,12 +31,40 @@ The previous diagram illustrates:
   and independent from the NVIDIA FLARE server runtime environment. The NVIDIA
   FLARE clients connect to the NVIDIA FLARE server.
 
+Cloud Service Mesh is configured to avoid intercepting traffic directed to the
+NVIDIA FLARE server because NVIDIA FLARE handles mTLS authentication. If Cloud
+Service Mesh intercepted the traffic directed at the NVIDIA FLARE server, the
+Cloud Service Mesh proxy sidecar would present the service mesh certificate,
+causing the NVIDIA FLARE clients to fail TLS certificate validation because they
+receive a certificate that they don't recognize.
+
 Note: due a bug in the Istio gateway implementation when exposing TCP services,
 this reference architecture exposes the NVIDIA FLARE server using a LoadBalancer
 service instead of exposing it using the service mesh ingress gateway. As soon
 as the bug is resolved, the reference architecture will be refactored to use the
 service mesh ingress gateway instead of exposing the NVIDIA FLARE server using a
 LoadBalancer service.
+
+### Modify the NVIDIA FLARE workspace and upload training code
+
+If you need to modify the NVIDIA FLARE workspace, you interact with the `nvf-ws`
+Cloud Storage bucket. For example, if you need to upload code to train your
+model, you upload files in the `nvf-ws` bucket, respecting the
+[NVIDIA FLARE workspace structure](https://nvflare.readthedocs.io/en/2.5/real_world_fl/workspace.html).
+
+The NVIDIA FLARE server has access to the files you upload in the `nvf-ws`
+bucket as soon as you upload it. For more information about uploading files from
+a file system to Cloud Storage, see
+[Upload objects from a file system](https://cloud.google.com/storage/docs/uploading-objects).
+
+### Install dependencies in the NVIDIA FLARE containers
+
+To install dependencies in the NVIDIA FLARE container image, edit the
+`platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/container-image/requirements.txt`
+file by adding listing the dependencies that you need.
+
+Note: in a production environment, we recommend that you set up a workflow to
+automatically build NVIDIA FLARE container images.
 
 ## Understand the repository structure
 
@@ -113,6 +141,12 @@ ones that the Federated learning reference architecture provisions.
    ```text
    NVFLARE server1 IP address: 1.2.3.4
    ```
+
+For simplicity, the
+`"platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/deploy.sh"`
+convenience deployment script uploads the entire NVIDIA FLARE workspace to Cloud
+Storage. In a production environment, we recommend that you upload only the
+necessary part of the NVIDIA FLARE workspace.
 
 ### Check the status of the server
 
@@ -266,6 +300,11 @@ To run NVIDIA FLARE clients, you do the following:
    2025-03-19 13:42:35,728 - FederatedClient - INFO - Got the new primary SP: grpc://server1:8002
    ```
 
+For simplicity, in this example, NVIDIA FLARE clients have access to the entire
+NVIDIA FLARE workspace. In a production environment, we recommend that you only
+share the minimum amount of data from the NVIDIA FLARE workspace for the clients
+to work correctly.
+
 ### Check the status of the registered clients
 
 In this section, you check the status of the registered NVIDIA FLARE clients:
@@ -355,6 +394,77 @@ In this section, you check the status of the registered NVIDIA FLARE clients:
    exit
    ```
 
+## Next steps
+
+After deploying NVIDIA FLARE on the reference architecture, you can deploy your
+training workloads. For example, you can:
+
+- [Deploy a NVIDIA FLARE example](#deploy-a-nvidia-flare-example)
+- [Deploy a deep learning NVIDIA FLARE example](https://nvflare.readthedocs.io/en/2.4/example_applications_algorithms.html#deep-learning).
+
+### Deploy a NVIDIA FLARE example
+
+In this section, you deploy the
+[Hello Scatter and Gather NVIDIA FLARE example](https://nvflare.readthedocs.io/en/2.4/examples/hello_scatter_and_gather.html)
+in the reference architecture.
+
+1. Open [Cloud Shell](https://cloud.google.com/shell).
+
+1. Change the working directory to the directory where you cloned the repository
+   for the `server1` instance of the reference architecture.
+
+1. Run the script to configure the reference architecture:
+
+   ```bash
+   "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/deploy.sh" \
+     --deploy-example \
+     --workload "server1"
+   ```
+
+1. Connect to the NVIDIA FLARE server as described in the
+   [Check the status of the registered clients](#check-the-status-of-the-registered-clients)
+   section.
+
+1. Submit the training job:
+
+   ```bash
+   submit_job hello-numpy-sag/jobs/hello-numpy-sag
+   ```
+
+   The output looks like the following:
+
+   ```text
+   Submitted job: c8973f05-8787-41c5-8568-ecc15c7683b2
+   Done [262650 usecs] 2025-03-26 09:47:04.543903
+   ```
+
+1. Verify that the training job completed successfully:
+
+   ```bash
+   list_jobs
+   ```
+
+   The output looks like the following:
+
+   ```markdown
+   -----------------------------------------------------------------------------------------------------------------------------------
+   | JOB ID                               | NAME            | STATUS             | SUBMIT TIME                      | RUN DURATION   |
+   -----------------------------------------------------------------------------------------------------------------------------------
+   | bbbbf80d-f313-4f6c-a8e5-043ea517a4a5 | hello-numpy-sag | FINISHED:COMPLETED | 2025-03-27T09:11:39.249673+00:00 | 0:00:12.168104 |
+   -----------------------------------------------------------------------------------------------------------------------------------
+   Done [41622 usecs] 2025-03-27 09:11:55.515199
+   ```
+
+1. Exit from NVIDIA FLARE by pressing the `CTRL+D` key combination.
+
+   When prompted, input the username: `admin@nvidia.com`
+
+1. Close the container shell:
+
+   ```bash
+   exit
+   ```
+
 ## Destroy the example environment
 
 To destroy an instance of this example, you do the following:
@@ -371,3 +481,7 @@ To destroy an instance of this example, you do the following:
    ```sh
    "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/teardown.sh"
    ```
+
+## Useful NVIDIA FLARE references
+
+- [NVFLARE logging configuration](https://nvflare.readthedocs.io/en/2.4/user_guide/configurations/logging_configuration.html).

@@ -36,3 +36,41 @@ spec:
 %{ for namespace in external_services_allowed_namespaces ~}
       - "${namespace}"
 %{ endfor ~}
+---
+# Requires that STRICT Istio mutual TLS is always specified when using
+# PeerAuthentication. This constraint also ensures that the deprecated Policy
+# and MeshPolicy resources enforce STRICT mutual TLS.
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: PolicyStrictOnly
+metadata:
+  name: peerauthentication-strict-constraint
+spec:
+  match:
+    kinds:
+      - apiGroups:
+          - security.istio.io
+        kinds:
+          - PeerAuthentication
+    excludedNamespaces:
+%{ for namespace in external_services_allowed_namespaces ~}
+      - "${namespace}"
+%{ endfor ~}
+---
+# Enforce all PeerAuthentications cannot overwrite strict mtls
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: AsmPeerAuthnStrictMtls
+metadata:
+  name: asm-peer-authn-strict-mtls-constraint
+spec:
+  match:
+    kinds:
+      - apiGroups:
+          - security.istio.io
+        kinds:
+          - PeerAuthentication
+    excludedNamespaces:
+%{ for namespace in external_services_allowed_namespaces ~}
+      - "${namespace}"
+%{ endfor ~}
+  parameters:
+    strictnessLevel: High

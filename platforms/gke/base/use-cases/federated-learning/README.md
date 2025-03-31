@@ -391,6 +391,46 @@ This section describes common issues and troubleshooting steps.
 If Terraform reports `connect: cannot assign requested address` errors when you
 run Terraform, try running the command again.
 
+### Errors when provisioning the reference architecture
+
+- Cloud Shell has 5GBs of available disk space. Depending on your Cloud Shell
+  usage, it might not be enough for deploying the reference architecture, unless
+  you enable Terraform plugin caching to enable reusing plugins and providers,
+  instead of downloading multiple copies of each plugin and provider. Symptoms
+  of this issue are errors like the following:
+
+  ```text
+  │ Error: Failed to install provider
+  │
+  │ Error while installing hashicorp/google v6.12.0: write
+  │ .terraform/providers/registry.terraform.io/hashicorp/google/6.12.0/linux_amd64/terraform-provider-google_v6.12.0_x5: no space left on device
+  ╵
+  ```
+
+- If Cloud Service Mesh is reported as `Pending enablement` state in the
+  [GKE Enterprise feature dashboard](https://pantheon.corp.google.com/kubernetes/features/services/details),
+  If this error occurs, try disabling and re-enabling Cloud Service Mesh:
+
+  ```bash
+  terraform -chdir=platforms/gke/base/core/gke_enterprise/servicemesh init && \
+    terraform -chdir=platforms/gke/base/core/gke_enterprise/servicemesh destroy -auto-approve -input=false && \
+    terraform -chdir=platforms/gke/base/core/gke_enterprise/servicemesh apply -input=false
+  ```
+
+- Client-side tools and Cloud Shell authenticate with Google Cloud using a
+  short-lived token. If the token expires, you might receive errors similar to
+  the following:
+
+  ```text
+  │ Error: Error when reading or editing Project "PROJECT_ID": Get "https://cloudresourcemanager.googleapis.com/v1/projects/PROJECT_ID?alt=json&prettyPrint=false": oauth2/google: invalid token JSON from metadata: EOF
+  │
+  │   with data.google_project.cluster,
+  │   on project.tf line 15, in data "google_project" "cluster":
+  │   15: data "google_project" "cluster" {
+  ```
+
+  If this error occurs, try reloading Cloud Shell.
+
 ### Errors when adding the GKE cluster to the Fleet
 
 If Terraform reports errors about the format of the fleet membership
@@ -404,6 +444,55 @@ does not match a current membership in this project. Keys should be in the form:
 ```
 
 If this error occurs, try running `terraform apply` again.
+
+### Errors when enabling GKE Enterprise features
+
+- GKE Enterprise features already enabled in the Google Cloud project:
+
+  ```text
+  Error: Error creating Feature: googleapi: Error 409: Resource
+  'projects/PROJECT_NAME/locations/global/features/configmanagement' already
+  exists
+  ```
+
+  To avoid this error, you can either:
+
+  - Deploy the reference architecture in a new Google Cloud project, where GKE
+    Enterprise features are not already enabled, so that the reference
+    architecture can manage them.
+  - [Import the `gke_hub_feature` resources](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/gke_hub_feature#import)
+    in the Terraform state, so that Terraform is aware of them. In this case,
+    Terraform will also apply any configuration changes that the reference
+    architecture requires. Before you import `gke_hub_feature` resources in the
+    Terraform state, we recommend that you assess the impact on other GKE
+    clusters in the same project that depend on those resources. For example,
+    when you destroy this reference architecture, these resources will be
+    destroyed too, potentially impacting other GKE clusters in the same project.
+
+    For example, you can run the following command from the root directory of
+    this repository to import the `configmanagement` feature:
+
+    ```bash
+    terraform -chdir=platforms/gke/base/core/gke_enterprise/configmanagement/oci init && \
+      terraform -chdir=platforms/gke/base/core/gke_enterprise/configmanagement/oci import \
+      google_gke_hub_feature.configmanagement \
+      projects/<PROJECT_ID>/locations/global/features/configmanagement
+    ```
+
+    As another example, you can run the following command from the root
+    directory of this repository to import the `policycontroller` feature:
+
+    ```bash
+    terraform -chdir=platforms/gke/base/core/gke_enterprise/policycontroller init && \
+      terraform -chdir=platforms/gke/base/core/gke_enterprise/policycontroller import \
+      google_gke_hub_feature.policycontroller \
+      projects/<PROJECT_ID>/locations/global/features/policycontroller
+    ```
+
+    Where:
+
+    - `<PROJECT_ID>` is the Google Cloud project ID where you deployed the
+      reference architecture.
 
 ### Errors when pulling container images
 
@@ -437,42 +526,6 @@ following errors:
 
   If this happens, see the note at the end of
   [Uninstall Cloud Service Mesh](https://cloud.google.com/service-mesh/docs/uninstall)
-
-- GKE Enterprise features already enabled in the Google Cloud project:
-
-  ```text
-  Error: Error creating Feature: googleapi: Error 409: Resource
-  'projects/PROJECT_NAME/locations/global/features/configmanagement' already
-  exists
-  ```
-
-  To avoid this error, you can either:
-
-  - Deploy the reference architecture in a new Google Cloud project, where GKE
-    Enterprise features are not already enabled, so that the reference
-    architecture can manage them.
-  - [Import the `gke_hub_feature` resources](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/gke_hub_feature#import)
-    in the Terraform state, so that Terraform is aware of them. In this case,
-    Terraform will also apply any configuration changes that the reference
-    architecture requires. Before you import `gke_hub_feature` resources in the
-    Terraform state, we recommend that you assess the impact on other GKE
-    clusters in the same project that depend on those resources. For example,
-    when you destroy this reference architecture, these resources will be
-    destroyed too, potentially impacting other GKE clusters in the same project.
-    For example, you can run the following command from the root directory of
-    this repository to import the `configmanagement` feature:
-
-    ```bash
-    terraform -chdir=platforms/gke/base/core/gke_enterprise/configmanagement/oci init && \
-      terraform -chdir=platforms/gke/base/core/gke_enterprise/configmanagement/oci import \
-      google_gke_hub_feature.configmanagement \
-      projects/<PROJECT_ID>/locations/global/features/configmanagement
-    ```
-
-    Where:
-
-    - `<PROJECT_ID>` is the Google Cloud project ID where you deployed the
-      reference architecture.
 
 ## Understanding security controls
 

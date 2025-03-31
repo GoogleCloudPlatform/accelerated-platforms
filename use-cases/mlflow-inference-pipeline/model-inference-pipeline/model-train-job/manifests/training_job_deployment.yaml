@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-job
+spec:
+  template:
+    spec:
+      serviceAccountName: mlflow-ml-team-db-admin # To store model artifacts in GCS
+      containers:
+        - name: train-job
+          image: us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-artifacts/train-job:v1
+          imagePullPolicy: Always
+      restartPolicy: Never
+  backoffLimit: 4

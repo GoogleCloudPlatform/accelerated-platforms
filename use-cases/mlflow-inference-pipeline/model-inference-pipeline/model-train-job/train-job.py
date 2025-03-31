@@ -6,8 +6,7 @@ from sklearn.model_selection import train_test_split
 import mlflow
 import mlflow.sklearn
 
-mlflow.set_tracking_uri("http://localhost:5000/") 
-mlflow.set_experiment("sklearn-random-forest-new")
+mlflow.set_tracking_uri("http://mlflow-tracking-svc.ml-team:5000") 
 
 with mlflow.start_run() as run:
     X, y = make_regression(n_features=4, n_informative=2, random_state=0, shuffle=False)
@@ -25,7 +24,7 @@ with mlflow.start_run() as run:
     y_pred = model.predict(X_test)
     mlflow.log_metrics({"mse": mean_squared_error(y_test, y_pred)})
 
-    mlflow.log_artifact("train_model.py")
+    mlflow.log_artifact("train-job.py")
 
     # Log the sklearn model and register as version 1
     mlflow.sklearn.log_model(

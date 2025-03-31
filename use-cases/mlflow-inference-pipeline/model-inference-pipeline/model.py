@@ -5,10 +5,10 @@ import numpy as np
 
 app = Flask(__name__)
 
-mlflow.set_tracking_uri("http://34.60.27.247:5000/")
+mlflow.set_tracking_uri("http://mlflow-tracking-service.ml-team:5000")
 model_name = "random-forest"
 # Deploying version n. Change the version below for desired version
-model_version = "3"
+model_version = "1"
 
 # Load the model from the Model Registry (Do this outside the route so it's only loaded once)
 model_uri = f"models:/{model_name}/{model_version}"

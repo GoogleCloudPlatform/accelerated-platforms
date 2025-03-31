@@ -12,7 +12,7 @@ spec:
       labels:
         app: random-forest
     spec:
-      serviceAccountName: mlflow-ksa
+      serviceAccountName: default
       containers:
         - name: random-forest
           image: us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-artifacts/random-forest-model:v1

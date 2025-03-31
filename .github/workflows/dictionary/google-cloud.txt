@@ -50,6 +50,7 @@ gsutil
 gvnic
 hdml
 heatmaps
+highcpu
 highgpu
 httproute
 hyperdiskml

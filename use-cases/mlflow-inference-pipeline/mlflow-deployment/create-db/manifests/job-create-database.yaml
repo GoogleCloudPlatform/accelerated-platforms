@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: create-database
+spec:
+  template:
+    spec:
+      serviceAccountName: mlflow-ml-team-db-admin
+      containers:
+        - name: create-mlflow-database
+          image: ${MLP_MLFLOW_DB_SETUP_IMAGE}
+          imagePullPolicy: Always
+          env:
+            - name: MLP_DB_INSTANCE_URI
+              value: "${MLP_DB_INSTANCE_URI}"
+            - name: DATABASE_NAME
+              value: "mlflowdb"
+      restartPolicy: Never
+  backoffLimit: 4

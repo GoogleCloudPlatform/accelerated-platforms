@@ -1,5 +1,5 @@
 images:
-  - "us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-artifacts/mlflow:v2"
+  - ${_DESTINATION}
 options:
   logging: CLOUD_LOGGING_ONLY
 steps:
@@ -7,5 +7,5 @@ steps:
     args:
       - build
       - -t
-      - "us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-artifacts/mlflow:v2"
+      - ${_DESTINATION}
       - "."

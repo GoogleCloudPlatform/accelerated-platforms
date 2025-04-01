@@ -33,7 +33,7 @@ spec:
               cpu: "1"
       containers:
         - name: mlflow
-          image: us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-artifacts/mlflow:v2
+          image: "${MLP_MLFLOW_IMAGE}"
           imagePullPolicy: Always
           resources:
             requests:
@@ -44,9 +44,9 @@ spec:
               memory: "10Gi"
           env:
             - name: MLP_MLFLOW_DATABASE_URI
-              value: "postgresql+psycopg2://wi-mlp-mlflow-db-admin@gkebatchenv3a4ec43f.iam:@127.0.0.1:5432/mlflowdbnew"
+              value: "${MLP_MLFLOW_DATABASE_URI}"
             - name: MLP_MLFLOW_ARTIFACT_LOCATION
-              value: "gs://mlflow-artifacts-bucket-v13/mlflow"
+              value: "${MLP_MLFLOW_ARTIFACT_LOCATION}"
 ---
 apiVersion: v1
 kind: Service

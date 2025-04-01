@@ -21,7 +21,7 @@ locals {
   data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
   data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
   fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"
-  mlflow_ksa             = "${var.environment_name}-${var.namespace}-mlflow_ksa"
+  mlflow_ksa             = "${var.environment_name}-${var.namespace}-mlflow"
   gsa_build_account_id   = "${var.environment_name}-${var.namespace}-build"
   gsa_build_email        = google_service_account.build.email
   gsa_build_roles = [
@@ -201,6 +201,17 @@ resource "kubernetes_service_account_v1" "fine_tuning" {
   }
 }
 
+resource "kubernetes_service_account_v1" "mlflow" {
+  depends_on = [
+    null_resource.namespace_manifests,
+  ]
+
+  metadata {
+    name      = local.mlflow_ksa
+    namespace = var.namespace
+  }
+}
+
 resource "kubernetes_service_account_v1" "model_evaluation" {
   depends_on = [
     null_resource.namespace_manifests,
@@ -339,6 +350,12 @@ resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_a
   role   = "roles/storage.objectAdmin"
 }
 
+resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_admin" {
+  bucket = google_storage_bucket.mlflow.name
+  member = "${local.wi_member_principal_prefix}/${local.mlflow_ksa}"
+  role   = "roles/storage.objectAdmin"
+}
+
 resource "google_storage_bucket_iam_member" "data_bucket_rag_frontend_storage_object_admin" {
   bucket = google_storage_bucket.data.name
   member = "${local.wi_member_principal_prefix}/${local.rag_frontend_service_account}"
@@ -380,6 +397,15 @@ resource "google_storage_bucket_iam_member" "model_bucket_model_ops_storage_obje
 resource "google_storage_bucket_iam_member" "model_bucket_model_serve_storage_object_user" {
   bucket = google_storage_bucket.model.name
   member = "${local.wi_member_principal_prefix}/${local.model_serve_ksa}"
+  role   = "roles/storage.objectUser"
+}
+
+# MLFLOW BUCKET
+###########################################################
+
+resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_user" {
+  bucket = google_storage_bucket.mlflow.name
+  member = "${local.wi_member_principal_prefix}/${local.mlflow_ksa}"
   role   = "roles/storage.objectUser"
 }
 

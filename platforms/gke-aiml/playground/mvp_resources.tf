@@ -21,6 +21,7 @@ locals {
   data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
   data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
   fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"
+  mlflow_ksa             = "${var.environment_name}-${var.namespace}-mlflow_ksa"
   gsa_build_account_id   = "${var.environment_name}-${var.namespace}-build"
   gsa_build_email        = google_service_account.build.email
   gsa_build_roles = [
@@ -412,7 +413,7 @@ MLP_KUBERNETES_NAMESPACE="${var.namespace}"
 MLP_LOCUST_NAMESPACE_ENDPOINT="https://${local.locust_endpoint}"
 MLP_MLFLOW_ARTIFACT_LOCATION = "${local.bucket_mlflow_name}"
 MLP_MLFLOW_DATABASE_URI = "postgresql+psycopg2://${local.alloydb_database_admin_iam_user}:@127.0.0.1:5432/mlflowdb"
-MLP_MLFLOW_KSA="${local.mlflow_kubernetes_service_account}"
+MLP_MLFLOW_KSA="${local.mlflow_ksa}"
 MLP_MLFLOW_DB_SETUP_IMAGE = "${local.repo_container_images_url}/mlflow-db-setup:1.0.0"
 MLP_MLFLOW_IMAGE="${local.repo_container_images_url}/mlflow:1.0.0"
 MLP_MLFLOW_TRACKING_NAMESPACE_ENDPOINT="https://${local.mlflow_tracking_endpoint}"

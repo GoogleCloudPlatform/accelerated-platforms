@@ -14,13 +14,13 @@ spec:
       labels:
         app: mlflow-tracking
     spec:
-      serviceAccountName: mlflow-ml-team-db-admin # Why do we need this account?
+      serviceAccountName: "${MLP_DB_USER_KSA}"
       initContainers:
         - name: alloydb-auth-proxy
           restartPolicy: Always
           image: gcr.io/alloydb-connectors/alloydb-auth-proxy:latest
           args:
-            - "projects/gkebatchenv3a4ec43f/locations/us-central1/clusters/mlp-mlflow/instances/mlp-mlflow-primary"
+            - "${MLP_DB_INSTANCE_URI}"
             - "--psc"
             - "--port=5432"
             - "--auto-iam-authn"

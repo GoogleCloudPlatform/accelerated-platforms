@@ -5,7 +5,7 @@ metadata:
 spec:
   template:
     spec:
-      serviceAccountName: mlflow-ml-team-db-admin
+      serviceAccountName: ${MLP_DB_ADMIN_KSA}
       containers:
         - name: create-mlflow-database
           image: ${MLP_MLFLOW_DB_SETUP_IMAGE}

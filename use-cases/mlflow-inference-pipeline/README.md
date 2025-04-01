@@ -25,7 +25,7 @@ repository to manage and track different versions of your machine learning
 models, allowing you to easily deploy them to various environments while keeping
 track of which version is being used where.
 
-## ML Flow Deployment on GKE
+## Deployment steps for MLflow on GKE
 
 Important: To complete this tutorial, you will need to delete the initial
 experimental MLflow deployment that is part of MLPlayground.
@@ -73,7 +73,7 @@ experimental MLflow deployment that is part of MLPlayground.
   --region=${MLP_REGION}
   ```
 
-## Build the container image
+## Build the container image for create database job.
 
 - Build the container image using Cloud Build and push the image to Artifact
   Registry
@@ -93,7 +93,7 @@ experimental MLflow deployment that is part of MLPlayground.
 
   It takes approximately 2 minutes for the build to complete.
 
-## Run the create-db job
+## Run the create-database job
 
 - Create the database creation job.
 
@@ -109,49 +109,19 @@ experimental MLflow deployment that is part of MLPlayground.
   watch --color --interval 5 --no-title \
   "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/create-database | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/initialize-database --tail 10"
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/create-database --tail 10"
   ```
 
   ```
   NAME                  STATUS     COMPLETIONS   DURATION   AGE
   create-database   Complete   1/1           XXXXX      XXXXX
   ```
+ It takes approximately 1 minutes for the job to complete.
 
 - Check logs for any errors.
 
-  ```shell
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/initialize-database
-  ```
 
-- Create the populate table job.
-
-  ```shell
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job-populate-table.yaml
-  ```
-
-  It takes approximately 12 minutes for the job to complete.
-
-- Watch the job until it is complete.
-
-  ```shell
-  watch --color --interval 5 --no-title \
-  "kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} get job/populate-table | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/populate-table --tail 10"
-  ```
-
-  ```
-  NAME             STATUS     COMPLETIONS   DURATION   AGE
-  populate-table   Complete   1/1           XXXXX      XXXXX
-  ```
-
-- Check logs for any errors.
-
-  ```shell
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs job/populate-table
-  ```
-
-1. ML flow backend store
+- ML flow backend store
 
    Mlflow needs an artifact store to store the mlflow deployment artifacts. A
    GCS bucket has already been created as part of MLP Playground.
@@ -162,13 +132,26 @@ experimental MLflow deployment that is part of MLPlayground.
 
    ```
 
-3. Create database `mflowdb` in the existing alloydb instance.
+## Build the MLflow container image:
 
-Build the image Deploy this image on gke
+- Build the container image using Cloud Build and push the image to Artifact
+  Registry
 
-Alternatively, you can also follow these [instructions]() to create the
-database.
+  ```shell
+  cd src
+  git restore cloudbuild.yaml
+  sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
+  gcloud beta builds submit \
+  --config cloudbuild.yaml \
+  --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
+  --project ${MLP_PROJECT_ID} \
+  --region ${MLP_REGION} \
+  --substitutions _DESTINATION=${MLP_MLFLOW_DB_SETUP_IMAGE}
+  cd -
+  ```
 
-4. Build the MLflow image:
+## Deploy the image on the MLPlayground cluster.
 
-5. Deploy the image on the MLPlayground cluster.
+  ```shell
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
+  ```

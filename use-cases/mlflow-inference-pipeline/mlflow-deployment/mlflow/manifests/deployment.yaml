@@ -14,7 +14,7 @@ spec:
       labels:
         app: mlflow-tracking
     spec:
-      serviceAccountName: "${MLP_DB_USER_KSA}"
+      serviceAccountName: "${MLP_MLFLOW_KSA}"
       initContainers:
         - name: alloydb-auth-proxy
           restartPolicy: Always
@@ -42,11 +42,6 @@ spec:
             limits:
               cpu: "2"
               memory: "10Gi"
-          env:
-            - name: MLP_MLFLOW_DATABASE_URI
-              value: "${MLP_MLFLOW_DATABASE_URI}"
-            - name: MLP_MLFLOW_ARTIFACT_LOCATION
-              value: "${MLP_MLFLOW_ARTIFACT_LOCATION}"
 ---
 apiVersion: v1
 kind: Service

@@ -58,7 +58,7 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
 
 
 def create_database(db_name: str, initial_db: str = "postgres"):
-    """Creates a database with robust error handling and verification."""
+    """Creates a database with error handling and verification."""
     connector = Connector()
     try:
         pool = init_connection_pool(connector, initial_db)

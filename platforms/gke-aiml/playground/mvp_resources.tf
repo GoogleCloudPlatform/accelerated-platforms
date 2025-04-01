@@ -17,6 +17,7 @@ locals {
   bucket_cloudbuild_name = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
   bucket_data_name       = "${data.google_project.environment.project_id}-${var.environment_name}-data"
   bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
+  bucket_mlflow_name      = "${data.google_project.environment.project_id}-${var.environment_name}-mlflow"
   data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
   data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
   fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"
@@ -92,6 +93,18 @@ resource "google_storage_bucket" "model" {
   force_destroy               = true
   location                    = var.region
   name                        = local.bucket_model_name
+  project                     = data.google_project.environment.project_id
+  uniform_bucket_level_access = true
+}
+
+resource "google_storage_bucket" "mlflow" {
+  depends_on = [
+    google_container_cluster.mlp
+  ]
+
+  force_destroy               = true
+  location                    = var.region
+  name                        = local.bucket_mlflow_name
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
 }
@@ -397,6 +410,11 @@ MLP_FINE_TUNING_KSA="${local.fine_tuning_ksa}"
 MLP_GRADIO_MODEL_OPS_ENDPOINT="https://${local.gradio_endpoint}"
 MLP_KUBERNETES_NAMESPACE="${var.namespace}"
 MLP_LOCUST_NAMESPACE_ENDPOINT="https://${local.locust_endpoint}"
+MLP_MLFLOW_ARTIFACT_LOCATION = "${local.bucket_mlflow_name}"
+MLP_MLFLOW_DATABASE_URI = "postgresql+psycopg2://${local.alloydb_database_admin_iam_user}:@127.0.0.1:5432/mlflowdb"
+MLP_MLFLOW_KSA="${local.mlflow_kubernetes_service_account}"
+MLP_MLFLOW_DB_SETUP_IMAGE = "${local.repo_container_images_url}/mlflow-db-setup:1.0.0"
+MLP_MLFLOW_IMAGE="${local.repo_container_images_url}/mlflow:1.0.0"
 MLP_MLFLOW_TRACKING_NAMESPACE_ENDPOINT="https://${local.mlflow_tracking_endpoint}"
 MLP_MODEL_BUCKET="${local.bucket_model_name}"
 MLP_MODEL_EVALUATION_IMAGE="${local.repo_container_images_url}/model-evaluation:1.0.0"

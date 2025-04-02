@@ -30,7 +30,7 @@ spec:
           port: 8002
       route:
         - destination:
-            host: ${nvidia_flare_tff_example_workload_name}.${namespace_name}
+            host: ${nvidia_flare_tff_example_workload_name}.${namespace_name}.svc.cluster.local
             port:
               number: 8002
           weight: 100
@@ -40,7 +40,7 @@ spec:
           port: 8003
       route:
         - destination:
-            host: ${nvidia_flare_tff_example_workload_name}.${namespace_name}
+            host: ${nvidia_flare_tff_example_workload_name}.${namespace_name}.svc.cluster.local
             port:
               number: 8003
           weight: 100

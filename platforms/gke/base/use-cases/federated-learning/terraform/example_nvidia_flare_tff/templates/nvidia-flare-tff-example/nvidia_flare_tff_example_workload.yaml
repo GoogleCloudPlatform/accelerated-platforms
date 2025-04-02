@@ -61,13 +61,6 @@ spec:
       annotations:
         gke-gcsfuse/volumes: "true"
         proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
-        # Don't intercept these ports using the Cloud Service Mesh sidecar
-        # (istio-proxy) because NVIDIA FLARE handles mTLS between NVIDIA FLARE
-        # clients and servers. If this annotation is omitted, istio-proxy
-        # intercepts traffic as expected, and presents its own TLS certificate,
-        # causing NVIDIA FLARE clients to fail validation because they expect a
-        # TLS certificate generated when creating the NVFLARE workspace.
-        traffic.sidecar.istio.io/excludeInboundPorts: "8002,8003"
     spec:
       containers:
         - name: nvflare

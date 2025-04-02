@@ -94,3 +94,19 @@ load_fl_terraform_outputs() {
   # shellcheck disable=SC2034 # Variable is used in other scripts
   NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID_WITH_TAG=${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID}:${NVFLARE_EXAMPLE_CONTAINER_IMAGE_TAG}
 }
+
+load_kubernetes_outputs() {
+  CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS=
+  get_kubernetes_load_balancer_service_external_ip_address_or_wait "istio-ingressgateway-nvflare" "istio-ingress" "CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS"
+  echo "Cloud Service Mesh ingress gateway IP address: ${CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS}"
+  export CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS
+
+  NVFLARE_EXAMPLE_WORKLOAD_POD_NAME=
+  kubectl get pods -n "${NVFLARE_EXAMPLE_TENANT_NAME}" -l "run=nvflare-${WORKLOAD_NAME}" -o jsonpath='{.items[0].metadata.name}'
+  local RET_CODE=$?
+  if [[ "${RET_CODE}" -gt 0 ]]; then
+    echo "Error while initializing NVFLARE_EXAMPLE_WORKLOAD_POD_NAME"
+    return 1
+  fi
+  export NVFLARE_EXAMPLE_WORKLOAD_POD_NAME
+}

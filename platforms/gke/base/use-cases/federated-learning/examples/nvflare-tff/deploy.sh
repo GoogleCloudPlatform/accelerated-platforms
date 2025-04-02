@@ -139,6 +139,7 @@ for terraservice in "${nvflare_example_terraservices[@]}"; do
 done
 
 provision_terraservice "config_management"
+provision_terraservice "cloud_storage"
 
 echo "Building the NVIDIA FLARE container image"
 "${FEDERATED_LEARNING_USE_CASE_DIR}/examples/nvflare-tff/build-container-image.sh"
@@ -174,14 +175,6 @@ gcloud container clusters get-credentials "${cluster_name}" \
   --region "${cluster_region}" \
   --project "${cluster_project_id}" \
   --dns-endpoint
-
-INGRESS_GATEWAY_IP_ADDRESS=
-get_kubernetes_load_balancer_service_external_ip_address_or_wait "istio-ingressgateway-nvflare" "istio-ingress" "INGRESS_GATEWAY_IP_ADDRESS"
-echo "Cloud Service Mesh ingress gateway IP address: ${INGRESS_GATEWAY_IP_ADDRESS}"
-
-NVFLARE_SERVER_IP_ADDRESS=
-get_kubernetes_load_balancer_service_external_ip_address_or_wait "nvflare-${WORKLOAD_NAME}-lb" "${NVFLARE_EXAMPLE_TENANT_NAME}" "NVFLARE_SERVER_IP_ADDRESS"
-echo "NVFLARE ${WORKLOAD_NAME} external IP address: ${NVFLARE_SERVER_IP_ADDRESS}"
 
 end_timestamp_federated_learning=$(date +%s)
 total_runtime_value_federated_learning=$((end_timestamp_federated_learning - start_timestamp_federated_learning))

@@ -2,10 +2,10 @@ images:
   - ${_DESTINATION}
 options:
   logging: CLOUD_LOGGING_ONLY
-  machineType: "E2_HIGHCPU_8"
+  machineType: E2_HIGHCPU_8
 serviceAccount:
 steps:
-  - name: 'docker:28.0.4"'
+  - name: docker:28.0.4
     args:
       - build
       - -t

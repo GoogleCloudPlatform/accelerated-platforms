@@ -1,17 +1,18 @@
-# Use GCS to store model and GCSFuse to download
+# GCS storage optimization
 
-In this guide, you will run inference of llama 70B model twice. In the first
-run, the model will be stored in a flat GCS bucket and you will use GCSFuse
-without any fine tuning to download the model from the bucket and start
-inference. In the second run, the model will be stored in a hierarchical GCS
-bucket and you will fine-tune GCSFuse configurations to download the model from
-the bucket and start inference.
+This guide will demonstrate two different methods to deploy the Llama 70B model
+for inference using
+[Cloud Storage FUSE](https://cloud.google.com/storage/docs/cloud-storage-fuse/overview)
+via the Google Kubernetes Engine (GKE) Cloud Storage FUSE CSI driver. The first
+method uses a standard, "flat" GCS bucket to store the model. The second method
+utilizes a
+[hierarchical namespace](https://cloud.google.com/storage/docs/hns-overview) GCS
+bucket and tuned configuration.
 
 > Note : By default, a GCS bucket is created as flat.
 
-The goal of this guide is to demonstrate performance improvement in the model
-load time and pod startup time when using fine-tuned configurations with
-GCSFuse.
+This guide aims to show how to improve model load time and pod startup time by
+using tuned configurations with Cloud Storage FUSE.
 
 ## Prerequisites
 
@@ -41,10 +42,10 @@ GCSFuse.
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
 
   ```sh
-  set -a
+  set -o allexport
   cat ${MLP_ENVIRONMENT_FILE} && \
   source ${MLP_ENVIRONMENT_FILE}
-  set +a
+  set +o allexport
   ```
 
   > You should see the various variables populated with the information specific
@@ -126,7 +127,7 @@ GCSFuse.
 
   ```
   NAME                              READY   UP-TO-DATE   AVAILABLE    AGE
-  vllm-openai-gcs-llama33-70b-a100   1/1     1            1           XXXXX
+  vllm-openai-gcs-llama33-70b-a100  1/1     1            1           XXXXX
   ```
 
 ## Calculate pod startup time
@@ -140,7 +141,7 @@ GCSFuse.
 
   ENDING_MODEL_DOWNLOAD_TIME=`kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} logs ${POD_NAME} -c "inference-server" | grep "^INFO.*Loading model weights took" | head -n 1 | awk '{print $2" "$3}' | xargs -I {} date -d "$(date +%Y)-{}" +%s%3N`
 
-  MODEL_LOAD_TIME_WITHOUT_TUNING=$(( (ENDING_MODEL_DOWNLOAD_TIME - BEGIN_MODEL_DOWNLOAD_TIME)/1000 ))
+  MODEL_LOAD_TIME_WITHOUT_TUNING=$(((ENDING_MODEL_DOWNLOAD_TIME - BEGIN_MODEL_DOWNLOAD_TIME)/1000 ))
 
   echo "MODEL LOAD TIME WITHOUT TUNING - ${MODEL_LOAD_TIME_WITHOUT_TUNING}s"
   ```
@@ -156,7 +157,7 @@ GCSFuse.
 
   POD_READY_TIME=`kubectl --namespace "${MLP_MODEL_SERVE_NAMESPACE}" get pods "$POD_NAME" -o json | jq -r '.status.conditions[] | select(.type == "Ready") | .lastTransitionTime' | date -f - +%s%3N`
 
-  POD_STARTUP_TIME_WITHOUT_TUNING=$(( (POD_READY_TIME - POD_SCHEDULED_TIME)/1000 ))
+  POD_STARTUP_TIME_WITHOUT_TUNING=$(((POD_READY_TIME - POD_SCHEDULED_TIME)/1000 ))
 
   echo "POD STARTUP TIME WITHOUT TUNING - ${POD_STARTUP_TIME_WITHOUT_TUNING}s"
   ```
@@ -225,7 +226,7 @@ GCSFuse.
 
   ENDING_MODEL_DOWNLOAD_TIME_TUNED=`kubectl --namespace ${MLP_MODEL_SERVE_NAMESPACE} logs ${POD_NAME_TUNED} -c "inference-server" | grep "^INFO.*Loading model weights took" | head -n 1 | awk '{print $2" "$3}' | xargs -I {} date -d "$(date +%Y)-{}" +%s%3N`
 
-  MODEL_LOAD_TIME_WITH_TUNING=$(( (ENDING_MODEL_DOWNLOAD_TIME_TUNED - BEGIN_MODEL_DOWNLOAD_TIME_TUNED)/1000 ))
+  MODEL_LOAD_TIME_WITH_TUNING=$(((ENDING_MODEL_DOWNLOAD_TIME_TUNED - BEGIN_MODEL_DOWNLOAD_TIME_TUNED)/1000 ))
 
   echo "MODEL LOAD TIME WITH TUNING - ${MODEL_LOAD_TIME_WITH_TUNING}s"
   ```
@@ -241,7 +242,7 @@ GCSFuse.
 
   POD_READY_TIME_TUNED=`kubectl --namespace "${MLP_MODEL_SERVE_NAMESPACE}" get pods "$POD_NAME_TUNED" -o json | jq -r '.status.conditions[] | select(.type == "Ready") | .lastTransitionTime' | date -f - +%s%3N`
 
-  POD_STARTUP_TIME_WITH_TUNING=$(( (POD_READY_TIME_TUNED - POD_SCHEDULED_TIME_TUNED)/1000 ))
+  POD_STARTUP_TIME_WITH_TUNING=$(((POD_READY_TIME_TUNED - POD_SCHEDULED_TIME_TUNED)/1000 ))
 
   echo "POD STARTUP TIME WITH TUNING - ${POD_STARTUP_TIME_WITH_TUNING}s"
   ```
@@ -257,7 +258,7 @@ echo $POD_STARTUP_TIME_WITHOUT_TUNING
 echo $POD_STARTUP_TIME_WITH_TUNING
 ```
 
-The pod startup time without fine-tuning will be around 20 minutes and with
-fine-tuning, it will be around 3 mins. GCSFuse can facilitate faster download of
-the model weights and reduces the time to startup inference server. You will see
-good improvements with large models which have weights over several GBs.
+The pod startup time is approximately 20 minutes, but with tuning it can be
+reduced to around 3 minutes. GCSFuse can further decrease startup time by
+enabling faster downloads of model weights, which is especially beneficial for
+large models with weights exceeding several GBs.

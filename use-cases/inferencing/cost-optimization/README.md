@@ -1,54 +1,51 @@
 # Inference Cost Optimization
 
-Running inference for large language models can be expensive. Often, this cost
-goes even higher based on your requirements. For example, if your requirement is
-to reduce the latency in starting up inference, it may need advanced
-accelerators on high end virtual machines with expansive storage options. Often,
-there is confusion in choosing the right accelerator , virtual machine and
-storage options when if comes to running the large language models. The goal of
-this guide is to provide the cost efficient and high performant ways to run
-inference for Llama models.
+Running inference for large language models (LLMs) can be expensive and costs
+can increase due to specific requirements. For example, reducing inference
+startup latency may require advanced accelerators on high-end virtual machines
+with extensive storage options. Choosing the right combination of accelerator,
+virtual machine, and storage options for running large language models can be
+complicated. The goal of this guide is to provide cost-efficient and
+high-performance methods for running Llama model inference.
 
 ## Choosing accelerator, machine and storage
 
-Google Cloud provides different types of accelerators, GPUs(L4, A100, H100) and
-TPUs and storage options(GCS, Parallelstore, Hyperdisk ML, Persistent Disk) that
-covers end to end requirements for running large language models in cost
-efficient fashion.
+Google Cloud offers a variety of accelerators, including
+[Graphics Processing Units (GPUs)](https://cloud.google.com/gpu) and
+[Tensor Processing Units (TPUs)](https://cloud.google.com/tpu) model, as well as
+[storage options](https://cloud.google.com/products/storage) such as Google
+Cloud Storage (GCS), Parallelstore, Hyperdisk ML, and Persistent Disk. These
+comprehensive options enable cost-effective operation of large language models
+for various requirements.
 
-Typically, the type and the number of accelerators that will be used in your
-inference is decided based on the size of your model. For example, if you want
-to run llama 70B model which has weights of about 132GB, you will need at least
-8 nvidia-l4 or 4 nvidia-tesla-a100 or 2 nvidia-a100-80gb to run inference.
-However, you can use additional accelerators to achieve faster model load time
-and serving e.g use 8 nvidia-tesla-a100 instead of 4.
+The number and type of accelerators needed for inference is typically determined
+by the size of your model. For instance, running a
+[Llama](https://www.llama.com/) 70B model, which has weights of roughly 132GB,
+requires a minimum of eight NVIDIA L4 GPUs, four NVIDIA A100 40GB GPUs, or two
+NVIDIA A100 80GB GPUs. However, using additional accelerators, such as using
+eight NVIDIA A100 40GB instead of four, can result in faster model loading times
+and improved inference.
 
-Different VM types provide different number of GPUs, GPU memory, vCPU, VM memory
-and network bandwidth. You can choose the VM once you have decided what and how
-many accelerators you want to use to run inference. For example, if you decide
-to use 8 nvidia-l4 GPUs to serve llama 70B model, you can use g2-standard-96
-which is the only machine type that provides 8 nvidia-l4 in G2 machine series.
-You can configuration of different machine types at [Google Cloud GPU Machine
-types documentation][gpus]
+The number of GPUs, amount of GPU memory, vCPU, memory, and network bandwidth
+are all factors that vary across different virtual machine types. After deciding
+on the type and quantity of accelerators required for inference, you can select
+the appropriate VM family and type. For example, if you need eight NVIDIA L4
+GPUs to serve the Llama 70B model, in the G2 instances the `g2-standard-96`
+machine type is the only one that can accommodate this requirement. For an
+overview of the different GPU VMs that are available on Compute Engine, see the
+[GPU Machine types](https://cloud.google.com/compute/docs/gpus) documentation.
 
-The storage option is a key factor in determining the cost and performance of
-your inference along with the accelerator. This is because the model is loaded
-from storage into GPU memory to run inference. The more throughput a storage
-provides, the faster will be the model load time and shorter will be the
-inference start up time and Time To First Token. On Google Cloud, the storage
-can be zonal, regional or multi-regional. This means if you use a zonal storage
-and decide to run inference workload in 3 different zones, you will need three
-instance of the storage in each of those zones. Therefore, it becomes critical
-to choose the storage option wisely to optimize the cost.
+The storage and accelerator that you choose are key factors that affect the cost
+and performance of your inference. To run inference, the model must be loaded
+from storage into GPU memory. Thus, storage throughput affects model load time,
+inference start-up time, and time to first token (TTFT). Google Cloud storage
+can be zonal, regional, or multi-regional. If you use zonal storage and run
+inference workloads in three different zones, you will need three instances of
+storage, one in each of the zones. Choosing the right storage option is critical
+for cost optimization.
 
 ## Storage optimization
 
-In the [GCS storage optimization][gcs-storage-optimization] guide, we
-demonstrate how you can fine tune GCS to achieve the best performance with lower
-cost. T
-
----
-
-[gpus]: https://cloud.google.com/compute/docs/gpus
-[gcs-storage-optimization]:
-  /use-cases/inferencing/cost-optimization/gcsfuse/README.md
+In the
+[GCS storage optimization](/use-cases/inferencing/cost-optimization/gcsfuse/README.md)
+guide, we demonstrate how you can tune GCS to achieve the best cost performance.

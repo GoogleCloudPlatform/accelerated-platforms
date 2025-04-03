@@ -29,6 +29,7 @@ persistentvolumeclaim
 podmonitoring
 podset
 podsets
+podtemplate
 podtemplates
 preconfigured
 preemptible

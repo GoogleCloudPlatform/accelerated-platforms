@@ -67,6 +67,7 @@ negs
 nodepool
 nodepools
 ondemand
+parallelstore
 pgaudit
 podslice
 policycontroller

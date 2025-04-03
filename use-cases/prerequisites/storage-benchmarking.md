@@ -11,7 +11,7 @@ These prereqs were developed to be run on the
 are using a different environment the scripts and manifest will need to be
 modified for that environment.
 
-> NOTE: Due to the limitations of Cloud Shell’s storage and the size of llama
+> NOTE: Due to the limitations of Cloud Shell's storage and the size of llama
 > 70B model we need to run this transfer via Kubernetes job.
 
 - Get access to the model `meta-llama/Llama-3.3-70B-Instruct`
@@ -28,10 +28,10 @@ modified for that environment.
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured
 
   ```sh
-  set -a
+  set -o allexport
   cat ${MLP_ENVIRONMENT_FILE} && \
   source ${MLP_ENVIRONMENT_FILE}
-  set +a
+  set +o allexport
   ```
 
   > You should see the various variables populated with the information specific

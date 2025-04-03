@@ -25,9 +25,7 @@ spec:
     - "*"
   tcp:
     - match:
-        - gateways:
-            - istio-ingress/ingress-gateway-nvflare
-          port: 8002
+        - port: 8002
       route:
         - destination:
             host: ${nvidia_flare_tff_example_workload_name}.${namespace_name}.svc.cluster.local
@@ -35,9 +33,7 @@ spec:
               number: 8002
           weight: 100
     - match:
-        - gateways:
-            - istio-ingress/ingress-gateway-nvflare
-          port: 8003
+        - port: 8003
       route:
         - destination:
             host: ${nvidia_flare_tff_example_workload_name}.${namespace_name}.svc.cluster.local

@@ -31,20 +31,6 @@ The previous diagram illustrates:
   and independent from the NVIDIA FLARE server runtime environment. The NVIDIA
   FLARE clients connect to the NVIDIA FLARE server.
 
-Cloud Service Mesh is configured to avoid intercepting traffic directed to the
-NVIDIA FLARE server because NVIDIA FLARE handles mTLS authentication. If Cloud
-Service Mesh intercepted the traffic directed at the NVIDIA FLARE server, the
-Cloud Service Mesh proxy sidecar would present the service mesh certificate,
-causing the NVIDIA FLARE clients to fail TLS certificate validation because they
-receive a certificate that they don't recognize.
-
-Note: due a bug in the Istio gateway implementation when exposing TCP services,
-this reference architecture exposes the NVIDIA FLARE server using a LoadBalancer
-service instead of exposing it using the service mesh ingress gateway. As soon
-as the bug is resolved, the reference architecture will be refactored to use the
-service mesh ingress gateway instead of exposing the NVIDIA FLARE server using a
-LoadBalancer service.
-
 ### Modify the NVIDIA FLARE workspace and upload training code
 
 If you need to modify the NVIDIA FLARE workspace, you interact with the `nvf-ws`

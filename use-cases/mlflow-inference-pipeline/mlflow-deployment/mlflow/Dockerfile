@@ -15,4 +15,4 @@ ENV MLP_MLFLOW_ARTIFACT_LOCATION="${MLP_MLFLOW_ARTIFACT_LOCATION}"
 EXPOSE 5000
 
 # Run the MLflow server 
-CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000", "--backend-store-uri","${MLP_MLFLOW_DATABASE_URI}" , "--default-artifact-root", "${MLP_MLFLOW_ARTIFACT_LOCATION}}"]
+CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000", "--backend-store-uri","${MLP_MLFLOW_DATABASE_URI}" , "--default-artifact-root", "${MLP_MLFLOW_ARTIFACT_LOCATION}"]

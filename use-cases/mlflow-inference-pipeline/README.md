@@ -12,10 +12,10 @@ Deploying MLflow on Google Kubernetes Engine (GKE) enhances production-grade ML
 deployments. GKE's managed Kubernetes service simplifies cluster management,
 allowing teams to focus on model development.
 
-MLflow's versioning combined with GKE's scalable, managed
-environment creates a powerful, efficient, and reliable platform for deploying
-and managing production ML models. This synergy simplifies MLOps, enhances
-reproducibility, and ensures consistent deployments.
+MLflow's versioning combined with GKE's scalable, managed environment creates a
+powerful, efficient, and reliable platform for deploying and managing production
+ML models. This synergy simplifies MLOps, enhances reproducibility, and ensures
+consistent deployments.
 
 # Mlflow deployment on GKE
 
@@ -93,6 +93,15 @@ experimental MLflow deployment that is part of MLPlayground.
 
   It takes approximately 2 minutes for the build to complete.
 
+## Configure the create-database job
+
+git restore manifests/job-create-database.yaml sed \
+-i -e "s|V_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
+-i -e "s|V_MLFLOW_DB_SETUP_IMAGE|${MLP_MLFLOW_DB_SETUP_IMAGE}|"
+\
+-i -e "s|V_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
+manifests/job-create-database.yaml
+
 ## Run the create-database job
 
 - Create the database creation job.
@@ -116,21 +125,35 @@ experimental MLflow deployment that is part of MLPlayground.
   NAME                  STATUS     COMPLETIONS   DURATION   AGE
   create-database   Complete   1/1           XXXXX      XXXXX
   ```
- It takes approximately 1 minutes for the job to complete.
+
+  It takes approximately 1 minutes for the job to complete.
 
 - Check logs for any errors.
 
+```
+kubectl logs  create-database-XXXX -n ml-team
+```
+
+```
+{"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Connection pool created", "timestamp": 1743724348.0579753, "level": "INFO", "runtime": 4981.638719}
+{"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Connecting to db 'postgres' as user 'wi-mlp-mlflow-prod-db-admin@gkebatchenv3a4ec43f.iam'", "timestamp": 1743724348.0581832, "level": "INFO", "runtime": 4981.846764}
+{"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Database 'mlflowdb' dropped (if existed)", "timestamp": 1743724348.705331, "level": "INFO", "runtime": 5628.994754}
+{"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Database 'mlflowdb' creation initiated", "timestamp": 1743724349.3212118, "level": "INFO", "runtime": 6244.875518}
+{"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Database 'mlflowdb' creation verified", "timestamp": 1743724349.3237712, "level": "INFO", "runtime": 6247.434572}
+{"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Connector closed", "timestamp": 1743724349.3288069, "level": "INFO", "runtime": 6252.470507}
+{"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Database 'mlflowdb' creation successful.", "timestamp": 1743724349.3289633, "level": "INFO", "runtime": 6252.626789}
+```
 
 - ML flow backend store
 
-   Mlflow needs an artifact store to store the mlflow deployment artifacts. A
-   GCS bucket has already been created as part of MLP Playground.
+  Mlflow needs an artifact store to store the mlflow deployment artifacts. A GCS
+  bucket has already been created as part of MLP Playground.
 
-   Validate that this GCS bucket exists in your project.
+  Validate that this GCS bucket exists in your project.
 
-   ```sh
-
-   ```
+  ```shell
+  gcloud storage buckets describe gs://${MLP_MLFLOW_ARTIFACT_LOCATION}
+  ```
 
 ## Build the MLflow container image:
 
@@ -152,6 +175,6 @@ experimental MLflow deployment that is part of MLPlayground.
 
 ## Deploy the image on the MLPlayground cluster.
 
-  ```shell
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
-  ```
+```shell
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
+```

@@ -19,14 +19,14 @@ metadata:
 spec:
   template:
     spec:
-      serviceAccountName: ${MLP_DB_ADMIN_KSA}
+      serviceAccountName: mlflow-prod-ml-team-db-admin
       containers:
         - name: create-mlflow-database
-          image: ${MLP_MLFLOW_DB_SETUP_IMAGE}
+          image: us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-prod/mlflow-db-setup:1.0.0
           imagePullPolicy: Always
           env:
             - name: MLP_DB_INSTANCE_URI
-              value: "${MLP_DB_INSTANCE_URI}"
+              value: projects/gkebatchenv3a4ec43f/locations/us-central1/clusters/mlp-mlflow-prod/instances/mlp-mlflow-prod-primary
             - name: DATABASE_NAME
               value: "mlflowdb"
       restartPolicy: Never

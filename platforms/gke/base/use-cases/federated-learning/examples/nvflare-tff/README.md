@@ -315,7 +315,7 @@ In this section, you check the status of the registered NVIDIA FLARE clients:
 1. Open a shell in the NVIDIA FLARE server pod:
 
    ```bash
-   kubectl exec --stdin --tty --namespace "${NVFLARE_EXAMPLE_TENANT_NAME}" "${NVFLARE_EXAMPLE_WORKLOAD_POD_NAME}" -- /bin/bash
+   kubectl exec --stdin --tty --namespace "${NVFLARE_EXAMPLE_TENANT_NAME}" "${NVFLARE_EXAMPLE_SERVER1_POD_NAME}" -- /bin/bash
    ```
 
 1. Connect to NVIDIA FLARE:

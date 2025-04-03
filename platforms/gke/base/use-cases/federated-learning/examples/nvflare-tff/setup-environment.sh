@@ -101,12 +101,12 @@ load_kubernetes_outputs() {
   echo "Cloud Service Mesh ingress gateway IP address: ${CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS}"
   export CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS
 
-  NVFLARE_EXAMPLE_WORKLOAD_POD_NAME=
-  kubectl get pods -n "${NVFLARE_EXAMPLE_TENANT_NAME}" -l "run=nvflare-${WORKLOAD_NAME}" -o jsonpath='{.items[0].metadata.name}'
+  NVFLARE_EXAMPLE_SERVER1_POD_NAME="$(kubectl get pods -n "${NVFLARE_EXAMPLE_TENANT_NAME}" -l run=nvflare-server1 -o jsonpath='{.items[0].metadata.name}')"
   local RET_CODE=$?
   if [[ "${RET_CODE}" -gt 0 ]]; then
-    echo "Error while initializing NVFLARE_EXAMPLE_WORKLOAD_POD_NAME"
+    echo "Error while initializing NVFLARE_EXAMPLE_SERVER1_POD_NAME"
     return 1
   fi
-  export NVFLARE_EXAMPLE_WORKLOAD_POD_NAME
+  export NVFLARE_EXAMPLE_SERVER1_POD_NAME
+  echo "NVIDIA FLARE server1 pod name: ${NVFLARE_EXAMPLE_SERVER1_POD_NAME}"
 }

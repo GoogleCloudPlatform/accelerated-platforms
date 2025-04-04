@@ -49,7 +49,7 @@ experimental MLflow deployment that is part of MLPlayground.
 - Change directory to the guide directory.
 
   ```shell
-  cd use-cases/mlflow-deployment/create-db
+  cd use-cases/mlflow-inference-pipeline/mlflow-deployment/
   ```
 
 - Ensure that your `MLP_ENVIRONMENT_FILE` is configured.
@@ -79,7 +79,7 @@ experimental MLflow deployment that is part of MLPlayground.
   Registry
 
   ```shell
-  cd src
+  cd create-db/src
   git restore cloudbuild.yaml
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
   gcloud beta builds submit \
@@ -177,7 +177,7 @@ manifests/job-create-database.yaml
   --gcs-source-staging-dir gs://${MLP_CLOUDBUILD_BUCKET}/source \
   --project ${MLP_PROJECT_ID} \
   --region ${MLP_REGION} \
-  --substitutions _DESTINATION=${MLP_MLFLOW_DB_SETUP_IMAGE}
+  --substitutions _DESTINATION=${MLP_MLFLOW_IMAGE}
   cd -
   ```
 
@@ -201,6 +201,7 @@ cd mlflow
 kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
 cd -
 ```
+
 It takes approximately 5 minutes for the deployment to complete.
 
 ## Check if the MLflow dashboard is available

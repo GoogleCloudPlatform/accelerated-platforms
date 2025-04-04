@@ -294,6 +294,19 @@ resource "google_project_iam_member" "rag_cloud_trace_ksa_user" {
   member  = "${local.wi_member_principal_prefix}/${local.rag_cloud_trace_ksa}"
   role    = "roles/cloudtrace.agent"
 }
+
+# MLFLOW
+###########################################################
+resource "google_project_iam_member" "mlflow_ksa_user" {
+  depends_on = [
+    google_container_cluster.mlp
+  ]
+
+  project = data.google_project.environment.project_id
+  member  = "${local.wi_member_principal_prefix}/${local.mlflow_ksa}"
+  role    = "roles/alloydb.client"
+}
+
 # DATA BUCKET
 ###########################################################
 resource "google_storage_bucket_iam_member" "data_bucket_batch_inference_storage_object_user" {

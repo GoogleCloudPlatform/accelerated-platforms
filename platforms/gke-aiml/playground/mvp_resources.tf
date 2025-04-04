@@ -304,7 +304,7 @@ resource "google_project_iam_member" "mlflow_ksa_user" {
 
   project = data.google_project.environment.project_id
   member  = "${local.wi_member_principal_prefix}/${local.mlflow_ksa}"
-  role    = "roles/alloydb.client"
+  role    = ["roles/alloydb.admin", "roles/serviceusage.serviceUsageConsumer"]
 }
 
 # DATA BUCKET

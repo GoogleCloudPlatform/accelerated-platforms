@@ -131,10 +131,6 @@ manifests/job-create-database.yaml
 - Check logs for any errors.
 
 ```
-kubectl logs  create-database-XXXX -n ml-team
-```
-
-```
 {"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Connection pool created", "timestamp": 1743724348.0579753, "level": "INFO", "runtime": 4981.638719}
 {"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Connecting to db 'postgres' as user 'wi-mlp-mlflow-prod-db-admin@gkebatchenv3a4ec43f.iam'", "timestamp": 1743724348.0581832, "level": "INFO", "runtime": 4981.846764}
 {"name": "__main__", "thread": 140149397920640, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Database 'mlflowdb' dropped (if existed)", "timestamp": 1743724348.705331, "level": "INFO", "runtime": 5628.994754}
@@ -157,6 +153,18 @@ kubectl logs  create-database-XXXX -n ml-team
 
 ## Build the MLflow container image:
 
+- Configure build job
+
+```shell
+ cd mlflow
+ git restore Dockerfile
+ sed \
+ -i -e "s|V_MLFLOW_ARTIFACT_LOCATION|${MLP_MLFLOW_ARTIFACT_LOCATION}|" \
+ -i -e "s|V_MLFLOW_DATABASE_URI|${MLP_MLFLOW_DATABASE_URI}|" \
+  Dockerfile
+  cd -
+```
+
 - Build the container image using Cloud Build and push the image to Artifact
   Registry
 
@@ -175,16 +183,28 @@ kubectl logs  create-database-XXXX -n ml-team
 
 ## Deploy the image on the MLPlayground cluster.
 
+- Configure the deployment file for mlflow
+
 ```shell
-kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
+ cd mlflow
+ git restore manifests/deployment.yaml
+ sed \
+ -i -e "s|V_MLFLOW_KSA|${MLP_MLFLOW_KSA}|" \
+ -i -e "s|V_MLP_MLFLOW_IMAGE|${MLP_MLFLOW_IMAGE}|" \
+ -i -e "s|V_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
+ manifests/deployment.yaml
+ cd -
 ```
 
+```shell
+cd mlflow
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
+cd -
+```
 It takes approximately 5 minutes for the deployment to complete.
-
 
 ## Check if the MLflow dashboard is available
 
-```shelll
-
-
+```shell
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} logs mlflow-tracking-XXXX --tail 10"
 ```

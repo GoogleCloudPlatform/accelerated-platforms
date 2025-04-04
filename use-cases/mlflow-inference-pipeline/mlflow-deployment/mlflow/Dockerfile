@@ -10,8 +10,8 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 ENV PYTHONUNBUFFERED 1
 ENV PGPASSWORD=""
-ENV MLP_MLFLOW_DATABASE_URI=V_MLFLOW_DATABASE_URI
-ENV MLP_MLFLOW_ARTIFACT_LOCATION=V_MLFLOW_ARTIFACT_LOCATION
+ENV MLP_MLFLOW_DATABASE_URI=postgresql+psycopg2://wi-mlp-mlflow-prod-db-admin@gkebatchenv3a4ec43f.iam:@127.0.0.1:5432/mlflowdb
+ENV MLP_MLFLOW_ARTIFACT_LOCATION=gkebatchenv3a4ec43f-mlflow-prod-mlflow
 EXPOSE 5000
 
 # Run the MLflow server 

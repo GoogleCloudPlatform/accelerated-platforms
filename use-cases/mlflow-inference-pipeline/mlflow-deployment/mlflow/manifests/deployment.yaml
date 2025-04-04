@@ -14,13 +14,13 @@ spec:
       labels:
         app: mlflow-tracking
     spec:
-      serviceAccountName: "${MLP_MLFLOW_KSA}"
+      serviceAccountName: V_MLFLOW_KSA
       initContainers:
         - name: alloydb-auth-proxy
           restartPolicy: Always
           image: gcr.io/alloydb-connectors/alloydb-auth-proxy:latest
           args:
-            - "${MLP_DB_INSTANCE_URI}"
+            - "V_DB_INSTANCE_URI"
             - "--psc"
             - "--port=5432"
             - "--auto-iam-authn"
@@ -33,7 +33,7 @@ spec:
               cpu: "1"
       containers:
         - name: mlflow
-          image: "${MLP_MLFLOW_IMAGE}"
+          image: V_MLP_MLFLOW_IMAGE
           imagePullPolicy: Always
           resources:
             requests:

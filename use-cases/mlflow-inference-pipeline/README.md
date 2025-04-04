@@ -161,7 +161,7 @@ kubectl logs  create-database-XXXX -n ml-team
   Registry
 
   ```shell
-  cd src
+  cd mlflow
   git restore cloudbuild.yaml
   sed -i -e "s|^serviceAccount:.*|serviceAccount: projects/${MLP_PROJECT_ID}/serviceAccounts/${MLP_BUILD_GSA}|" cloudbuild.yaml
   gcloud beta builds submit \
@@ -177,4 +177,14 @@ kubectl logs  create-database-XXXX -n ml-team
 
 ```shell
 kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
+```
+
+It takes approximately 5 minutes for the deployment to complete.
+
+
+## Check if the MLflow dashboard is available
+
+```shelll
+
+
 ```

@@ -352,8 +352,6 @@ In this section, you check the status of the registered NVIDIA FLARE clients:
 
 1. Exit from NVIDIA FLARE by pressing the `CTRL+D` key combination.
 
-   When prompted, input the username: `admin@nvidia.com`
-
 1. Close the container shell:
 
    ```bash
@@ -422,8 +420,6 @@ in the reference architecture.
    ```
 
 1. Exit from NVIDIA FLARE by pressing the `CTRL+D` key combination.
-
-   When prompted, input the username: `admin@nvidia.com`
 
 1. Close the container shell:
 

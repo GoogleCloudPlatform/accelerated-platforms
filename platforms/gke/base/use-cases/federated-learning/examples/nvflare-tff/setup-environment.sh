@@ -20,7 +20,7 @@
 set -o nounset
 set -o pipefail
 
-if [[ -v ACP_REPO_DIR ]]; then
+if [[ ! -v ACP_REPO_DIR ]]; then
   SCRIPT_DIRECTORY_PATH="$(cd -P "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
   echo "This script directory path is: ${SCRIPT_DIRECTORY_PATH}"

@@ -20,6 +20,22 @@
 set -o nounset
 set -o pipefail
 
+if [[ -v ACP_REPO_DIR ]]; then
+  SCRIPT_DIRECTORY_PATH="$(cd -P "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
+  echo "This script directory path is: ${SCRIPT_DIRECTORY_PATH}"
+
+  ACP_REPO_DIR="$(readlink -f "${SCRIPT_DIRECTORY_PATH}/../../../../../../../")"
+  export ACP_REPO_DIR
+  export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+
+  echo "ACP_REPO_DIR: ${ACP_REPO_DIR}"
+  echo "ACP_PLATFORM_BASE_DIR: ${ACP_PLATFORM_BASE_DIR}"
+
+  export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
+  echo "ACP_PLATFORM_CORE_DIR: ${ACP_PLATFORM_CORE_DIR}"
+fi
+
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 

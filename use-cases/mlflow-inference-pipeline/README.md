@@ -95,12 +95,20 @@ experimental MLflow deployment that is part of MLPlayground.
 
 ## Configure the create-database job
 
-git restore manifests/job-create-database.yaml sed \
+```shell
+cd create-db
+git restore manifests/job-create-database.yaml
+sed \
 -i -e "s|V_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
--i -e "s|V_MLFLOW_DB_SETUP_IMAGE|${MLP_MLFLOW_DB_SETUP_IMAGE}|"
-\
+-i -e "s|V_MLFLOW_DB_SETUP_IMAGE|${MLP_MLFLOW_DB_SETUP_IMAGE}|" \
 -i -e "s|V_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
 manifests/job-create-database.yaml
+```
+
+## ADD this permission
+
+GRANT ALL ON SCHEMA public TO
+"wi-mlp-mlflow-prod-db-user@gkebatchenv3a4ec43f.iam";
 
 ## Run the create-database job
 
@@ -108,6 +116,7 @@ manifests/job-create-database.yaml
 
   ```shell
   kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job-create-database.yaml
+  cd -
   ```
 
   It takes approximately 1 minute for the job to complete.
@@ -190,7 +199,7 @@ manifests/job-create-database.yaml
  git restore manifests/deployment.yaml
  sed \
  -i -e "s|V_MLFLOW_KSA|${MLP_MLFLOW_KSA}|" \
- -i -e "s|V_MLP_MLFLOW_IMAGE|${MLP_MLFLOW_IMAGE}|" \
+ -i -e "s|V_MLFLOW_IMAGE|${MLP_MLFLOW_IMAGE}|" \
  -i -e "s|V_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
  manifests/deployment.yaml
  cd -

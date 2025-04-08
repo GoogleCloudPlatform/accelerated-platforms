@@ -26,8 +26,10 @@ spec:
           imagePullPolicy: Always
           env:
             - name: MLP_DB_INSTANCE_URI
-              value: projects/gkebatchenv3a4ec43f/locations/us-central1/clusters/mlp-mlflow-prod/instances/mlp-mlflow-prod-primary
+              value: V_DB_INSTANCE_URI
             - name: DATABASE_NAME
               value: "mlflowdb"
+            - name: MLP_DB_USER_IAM
+              value: V_DB_USER_IAM
       restartPolicy: Never
   backoffLimit: 4

@@ -21,7 +21,6 @@ locals {
   data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
   data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
   fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"
-  mlflow_ksa             = "${var.environment_name}-${var.namespace}-mlflow"
   gsa_build_account_id   = "${var.environment_name}-${var.namespace}-build"
   gsa_build_email        = google_service_account.build.email
   gsa_build_roles = [
@@ -94,18 +93,6 @@ resource "google_storage_bucket" "model" {
   force_destroy               = true
   location                    = var.region
   name                        = local.bucket_model_name
-  project                     = data.google_project.environment.project_id
-  uniform_bucket_level_access = true
-}
-
-resource "google_storage_bucket" "mlflow" {
-  depends_on = [
-    google_container_cluster.mlp
-  ]
-
-  force_destroy               = true
-  location                    = var.region
-  name                        = local.bucket_mlflow_name
   project                     = data.google_project.environment.project_id
   uniform_bucket_level_access = true
 }
@@ -201,17 +188,6 @@ resource "kubernetes_service_account_v1" "fine_tuning" {
   }
 }
 
-resource "kubernetes_service_account_v1" "mlflow" {
-  depends_on = [
-    null_resource.namespace_manifests,
-  ]
-
-  metadata {
-    name      = local.mlflow_ksa
-    namespace = var.namespace
-  }
-}
-
 resource "kubernetes_service_account_v1" "model_evaluation" {
   depends_on = [
     null_resource.namespace_manifests,
@@ -293,18 +269,6 @@ resource "google_project_iam_member" "rag_cloud_trace_ksa_user" {
   project = data.google_project.environment.project_id
   member  = "${local.wi_member_principal_prefix}/${local.rag_cloud_trace_ksa}"
   role    = "roles/cloudtrace.agent"
-}
-
-# MLFLOW
-###########################################################
-resource "google_project_iam_member" "mlflow_ksa_user" {
-  depends_on = [
-    google_container_cluster.mlp
-  ]
-
-  project = data.google_project.environment.project_id
-  member  = "${local.wi_member_principal_prefix}/${local.mlflow_ksa}"
-  role    = "roles/alloydb.admin, roles/serviceusage.serviceUsageConsumer"
 }
 
 # DATA BUCKET
@@ -404,15 +368,6 @@ resource "google_storage_bucket_iam_member" "model_bucket_model_ops_storage_obje
 resource "google_storage_bucket_iam_member" "model_bucket_model_serve_storage_object_user" {
   bucket = google_storage_bucket.model.name
   member = "${local.wi_member_principal_prefix}/${local.model_serve_ksa}"
-  role   = "roles/storage.objectUser"
-}
-
-# MLFLOW BUCKET
-###########################################################
-
-resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_user" {
-  bucket = google_storage_bucket.mlflow.name
-  member = "${local.wi_member_principal_prefix}/${local.mlflow_ksa}"
   role   = "roles/storage.objectUser"
 }
 

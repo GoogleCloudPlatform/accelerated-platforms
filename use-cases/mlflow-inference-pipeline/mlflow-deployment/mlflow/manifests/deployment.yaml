@@ -14,12 +14,13 @@ spec:
       labels:
         app: mlflow-tracking
     spec:
-      serviceAccountName: V_MLFLOW_KSA
+      serviceAccountName: mlflow-prod-ml-team-mlflow
       containers:
         - name: alloydb-proxy
           image: gcr.io/alloydb-connectors/alloydb-auth-proxy:latest
+          imagePullPolicy: Always
           args:
-            - "V_DB_INSTANCE_URI"
+            - "projects/gkebatchenv3a4ec43f/locations/us-central1/clusters/mlp-mlflow-prod/instances/mlp-mlflow-prod-primary"
             - "--psc"
             - "--port=5432"
             - "--auto-iam-authn"
@@ -34,7 +35,7 @@ spec:
               memory: "2Gi"
               cpu: "1"
         - name: mlflow
-          image: V_MLFLOW_IMAGE
+          image: us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-prod/mlflow:1.0.0
           imagePullPolicy: Always
           ports:
             - containerPort: 5000

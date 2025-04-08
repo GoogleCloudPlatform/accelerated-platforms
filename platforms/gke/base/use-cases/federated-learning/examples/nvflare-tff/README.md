@@ -31,20 +31,6 @@ The previous diagram illustrates:
   and independent from the NVIDIA FLARE server runtime environment. The NVIDIA
   FLARE clients connect to the NVIDIA FLARE server.
 
-Cloud Service Mesh is configured to avoid intercepting traffic directed to the
-NVIDIA FLARE server because NVIDIA FLARE handles mTLS authentication. If Cloud
-Service Mesh intercepted the traffic directed at the NVIDIA FLARE server, the
-Cloud Service Mesh proxy sidecar would present the service mesh certificate,
-causing the NVIDIA FLARE clients to fail TLS certificate validation because they
-receive a certificate that they don't recognize.
-
-Note: due a bug in the Istio gateway implementation when exposing TCP services,
-this reference architecture exposes the NVIDIA FLARE server using a LoadBalancer
-service instead of exposing it using the service mesh ingress gateway. As soon
-as the bug is resolved, the reference architecture will be refactored to use the
-service mesh ingress gateway instead of exposing the NVIDIA FLARE server using a
-LoadBalancer service.
-
 ### Modify the NVIDIA FLARE workspace and upload training code
 
 If you need to modify the NVIDIA FLARE workspace, you interact with the `nvf-ws`
@@ -135,13 +121,6 @@ ones that the Federated learning reference architecture provisions.
       --workload "server1"
    ```
 
-   1. Take note of the NVIDIA FLARE server IP address from the output of the
-      last command. The output is similar to the following:
-
-   ```text
-   NVFLARE server1 IP address: 1.2.3.4
-   ```
-
 For simplicity, the
 `"platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/deploy.sh"`
 convenience deployment script uploads the entire NVIDIA FLARE workspace to Cloud
@@ -202,6 +181,7 @@ To run NVIDIA FLARE clients, you do the following:
    ```bash
    source "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/setup-environment.sh"
    load_fl_terraform_outputs
+   load_kubernetes_outputs
    ```
 
 1. Run `client1`:
@@ -209,7 +189,7 @@ To run NVIDIA FLARE clients, you do the following:
    ```bash
    docker run --rm -it --entrypoint /usr/local/bin/python3 \
      --detach \
-     --add-host=server1:<NVIDIA_FLARE_SERVER_IP_ADDRESS> \
+     --add-host=server1:${CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS} \
      --name "nvflare-client1" \
      -v "$(pwd)/platforms/gke/base/use-cases/federated-learning/terraform/example_nvidia_flare_tff/nvflare-workspace":/workspace/nvfl/ \
      -u 10000:10000 \
@@ -223,11 +203,6 @@ To run NVIDIA FLARE clients, you do the following:
      config_folder=config \
      org=nvidia
    ```
-
-   Where:
-
-   - `<NVIDIA_FLARE_SERVER_IP_ADDRESS>` is the IP address of the NVIDIA FLARE
-     server.
 
 1. Confirm that the `client1` is running:
 
@@ -257,7 +232,7 @@ To run NVIDIA FLARE clients, you do the following:
    ```bash
    docker run --rm -it --entrypoint /usr/local/bin/python3 \
      --detach \
-     --add-host=server1:<NVIDIA_FLARE_SERVER_IP_ADDRESS> \
+     --add-host=server1:${CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS} \
      --name "nvflare-client2" \
      -v "$(pwd)/platforms/gke/base/use-cases/federated-learning/terraform/example_nvidia_flare_tff/nvflare-workspace":/workspace/nvfl/ \
      -u 10000:10000 \
@@ -271,11 +246,6 @@ To run NVIDIA FLARE clients, you do the following:
      config_folder=config \
      org=nvidia
    ```
-
-   Where:
-
-   - `<NVIDIA_FLARE_SERVER_IP_ADDRESS>` is the IP address of the NVIDIA FLARE
-     server.
 
 1. Confirm that the `client2` is running:
 
@@ -319,6 +289,7 @@ In this section, you check the status of the registered NVIDIA FLARE clients:
    ```bash
    source "platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/setup-environment.sh"
    load_fl_terraform_outputs
+   load_kubernetes_outputs
    ```
 
 1. Configure `kubectl` to access the cluster:
@@ -330,13 +301,8 @@ In this section, you check the status of the registered NVIDIA FLARE clients:
 1. Open a shell in the NVIDIA FLARE server pod:
 
    ```bash
-   kubectl exec --stdin --tty --namespace fl-1 <NVIDIA_FLARE_SERVER_POD_NAME> -- /bin/bash
+   kubectl exec --stdin --tty --namespace "${NVFLARE_EXAMPLE_TENANT_NAME}" "${NVFLARE_EXAMPLE_SERVER1_POD_NAME}" -- /bin/bash
    ```
-
-   Where:
-
-   - `<NVIDIA_FLARE_SERVER_POD_NAME>` is the name of the NVIDIA FLARE server
-     pod.
 
 1. Connect to NVIDIA FLARE:
 
@@ -385,8 +351,6 @@ In this section, you check the status of the registered NVIDIA FLARE clients:
    ```
 
 1. Exit from NVIDIA FLARE by pressing the `CTRL+D` key combination.
-
-   When prompted, input the username: `admin@nvidia.com`
 
 1. Close the container shell:
 
@@ -456,8 +420,6 @@ in the reference architecture.
    ```
 
 1. Exit from NVIDIA FLARE by pressing the `CTRL+D` key combination.
-
-   When prompted, input the username: `admin@nvidia.com`
 
 1. Close the container shell:
 

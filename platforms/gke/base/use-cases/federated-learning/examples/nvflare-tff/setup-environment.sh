@@ -20,6 +20,22 @@
 set -o nounset
 set -o pipefail
 
+if [[ ! -v ACP_REPO_DIR ]]; then
+  SCRIPT_DIRECTORY_PATH="$(cd -P "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+
+  echo "This script directory path is: ${SCRIPT_DIRECTORY_PATH}"
+
+  ACP_REPO_DIR="$(readlink -f "${SCRIPT_DIRECTORY_PATH}/../../../../../../../")"
+  export ACP_REPO_DIR
+  export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+
+  echo "ACP_REPO_DIR: ${ACP_REPO_DIR}"
+  echo "ACP_PLATFORM_BASE_DIR: ${ACP_PLATFORM_BASE_DIR}"
+
+  export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
+  echo "ACP_PLATFORM_CORE_DIR: ${ACP_PLATFORM_CORE_DIR}"
+fi
+
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
@@ -45,7 +61,6 @@ NVFLARE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES=(
 # shellcheck disable=SC2034 # Variable is used in other scripts
 NVFLARE_EXAMPLE_TERRAFORM_FEDERATED_LEARNING_USE_CASE_CONFIGURATION_VARIABLES=(
   "federated_learning_cloud_storage_buckets_iam_bindings = [ {bucket_name = \"${NVFLARE_EXAMPLE_WORKSPACE_BUCKET_BASE_NAME}\", member = \"federated_learning_nvidia_flare_tff_apps_service_account_placeholder\", role = \"roles/storage.objectUser\"} ]"
-  "federated_learning_external_services_allowed_namespaces = [\"${NVFLARE_EXAMPLE_TENANT_NAME}\"]"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
@@ -93,4 +108,20 @@ load_fl_terraform_outputs() {
   NVFLARE_EXAMPLE_CONTAINER_IMAGE_TAG="0.0.1"
   # shellcheck disable=SC2034 # Variable is used in other scripts
   NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID_WITH_TAG=${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID}:${NVFLARE_EXAMPLE_CONTAINER_IMAGE_TAG}
+}
+
+load_kubernetes_outputs() {
+  CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS=
+  get_kubernetes_load_balancer_service_external_ip_address_or_wait "istio-ingressgateway-nvflare" "istio-ingress" "CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS"
+  echo "Cloud Service Mesh ingress gateway IP address: ${CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS}"
+  export CLOUD_SERVICE_MESH_INGRESS_GATEWAY_IP_ADDRESS
+
+  NVFLARE_EXAMPLE_SERVER1_POD_NAME="$(kubectl get pods -n "${NVFLARE_EXAMPLE_TENANT_NAME}" -l run=nvflare-server1 -o jsonpath='{.items[0].metadata.name}')"
+  local RET_CODE=$?
+  if [[ "${RET_CODE}" -gt 0 ]]; then
+    echo "Error while initializing NVFLARE_EXAMPLE_SERVER1_POD_NAME"
+    return 1
+  fi
+  export NVFLARE_EXAMPLE_SERVER1_POD_NAME
+  echo "NVIDIA FLARE server1 pod name: ${NVFLARE_EXAMPLE_SERVER1_POD_NAME}"
 }

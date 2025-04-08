@@ -104,12 +104,6 @@ sed \
 -i -e "s|V_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
 manifests/job-create-database.yaml
 ```
-
-## ADD this permission
-
-GRANT ALL ON SCHEMA public TO
-"wi-mlp-mlflow-prod-db-user@gkebatchenv3a4ec43f.iam";
-
 ## Run the create-database job
 
 - Create the database creation job.

@@ -12,4 +12,4 @@ ENV PGPASSWORD=""
 EXPOSE 5000
 
 # Run the MLflow server 
-CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000", "--backend-store-uri","V_MLFLOW_DATABASE_URI" , "--default-artifact-root", "gs://V_MLFLOW_DATABASE_URI"]
+CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000", "--backend-store-uri","V_MLFLOW_DATABASE_URI" , "--default-artifact-root", "gs://V_MLFLOW_ARTIFACT_LOCATION"]

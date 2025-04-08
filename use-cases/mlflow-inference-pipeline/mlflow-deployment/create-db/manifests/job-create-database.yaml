@@ -27,7 +27,7 @@ spec:
           env:
             - name: MLP_DB_INSTANCE_URI
               value: V_DB_INSTANCE_URI
-            - name: DATABASE_NAME
+            - name: MLFLOW_DATABASE_NAME
               value: "mlflowdb"
             - name: MLP_DB_USER_IAM
               value: V_DB_USER_IAM

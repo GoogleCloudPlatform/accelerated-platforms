@@ -9,30 +9,34 @@ import sqlalchemy
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from google.cloud.alloydb.connector import Connector, IPTypes
+from sqlalchemy.orm import Session  # Import Session for cleaner context management
 
 # AlloyDB
 instance_uri = os.environ.get("MLP_DB_INSTANCE_URI")
 
-# Use the application default credentials
+# Authentication
 credentials, project = google.auth.default()
 auth_request = google.auth.transport.requests.Request()
 credentials.refresh(auth_request)
 user = credentials.service_account_email.removesuffix(".gserviceaccount.com")
 
-# Configure logging
+# Logging Configuration
 logging.config.fileConfig("logging.conf")
 logger = logging.getLogger(__name__)
 
-if "LOG_LEVEL" in os.environ:
-    logger.setLevel(os.environ["LOG_LEVEL"].upper())
-    logger.info("Log level set to '%s' via LOG_LEVEL env var", logger.level)
+log_level_str = os.environ.get("LOG_LEVEL", "INFO").upper()  # Default to INFO
+try:
+    logger.setLevel(log_level_str)
+    logger.info(f"Log level set to '{log_level_str}' via LOG_LEVEL env var")
+except ValueError:
+    logger.warning(f"Invalid log level '{log_level_str}' specified in LOG_LEVEL. Using default: INFO.")
+    logger.setLevel(logging.INFO)
 
 
 def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Engine:
     """Initializes a SQLAlchemy engine for connecting to AlloyDB."""
-
     def getconn():
-        logger.info("Connecting to db '%s' as user '%s'", db, user)
+        logger.info(f"Connecting to database '{db}' as user '{user}'")
         try:
             conn = connector.connect(
                 db=db,
@@ -44,43 +48,49 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
             )
             return conn
         except Exception as e:
-            logger.error(f"Failed to connect to AlloyDB: {e}")
+            logger.error(f"Failed to connect to AlloyDB for database '{db}': {e}")
             raise
 
     pool = sqlalchemy.create_engine(
         creator=getconn,
         url="postgresql+pg8000://",
         pool_pre_ping=True,
+        pool_size=5,  
+        max_overflow=10,  
+        pool_recycle=3600,
     )
     pool.dialect.description_encoding = None
-    logger.info("Connection pool created")
+    logger.info(f"Connection pool created for database '{db}'")
     return pool
 
 
 def create_database(db_name: str, initial_db: str = "postgres"):
     """Creates a database with error handling and verification."""
     connector = Connector()
+    pool = None  
     try:
         pool = init_connection_pool(connector, initial_db)
-        with pool.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
-            # Drop the database if it exists (for idempotency or testing)
-            conn.execute(sqlalchemy.text(f"DROP DATABASE IF EXISTS {db_name};"))
-            logger.info("Database '%s' dropped (if existed)", db_name)
+        with Session(pool) as session: 
+            # Drop the database if it exists
+            session.execute(text(f"DROP DATABASE IF EXISTS {db_name};"))
+            session.commit()
+            logger.info(f"Database '{db_name}' dropped (if existed)")
 
             # Create the database
-            conn.execute(sqlalchemy.text(f"CREATE DATABASE {db_name};"))
-            logger.info("Database '%s' creation initiated", db_name)
+            session.execute(text(f"CREATE DATABASE {db_name};"))
+            session.commit()
+            logger.info(f"Database '{db_name}' creation initiated")
 
             # Verify database creation
             max_retries = 3
             retry_delay = 5
             for attempt in range(1, max_retries + 1):
                 try:
-                    result = conn.execute(
+                    result = session.execute(
                         text(f"SELECT 1 FROM pg_database WHERE datname='{db_name}';")
-                    ).fetchone()
+                    ).scalar_one_or_none()
                     if result:
-                        logger.info("Database '%s' creation verified", db_name)
+                        logger.info(f"Database '{db_name}' creation verified")
                         return
                     else:
                         raise SQLAlchemyError(f"Database '{db_name}' not found after creation.")
@@ -92,19 +102,46 @@ def create_database(db_name: str, initial_db: str = "postgres"):
             raise SQLAlchemyError(f"Failed to verify database '{db_name}' creation after {max_retries} attempts.")
 
     except SQLAlchemyError as e:
-        logger.error(f"Database creation failed: {e}")
-        raise  
+        logger.error(f"Database creation failed for '{db_name}': {e}")
+        raise
     except Exception as e:
-        logger.exception("An unexpected error occurred during database creation: %s", e)
+        logger.exception(f"An unexpected error occurred during database creation for '{db_name}': %s", e)
         raise
     finally:
-        connector.close()
-        logger.info("Connector closed")
+        if connector:
+            connector.close()
+            logger.info("Connector closed")
+        if pool:
+            pool.dispose()
+
+
+def grant_permissions(db_name: str, user_name: str):
+    """Grants all privileges on the public schema of the specified database to the given user."""
+    connector = Connector()
+    pool = None
+    try:
+        pool = init_connection_pool(connector, db_name)
+        with Session(pool) as session:
+            logger.info(f"Granting ALL privileges on schema 'public' of database '{db_name}' to user '{user_name}'")
+            session.execute(text(f"GRANT ALL ON SCHEMA public TO {user_name};"))
+            session.commit()
+            logger.info(f"Successfully granted ALL privileges on schema 'public' of database '{db_name}' to user '{user_name}'")
+    except SQLAlchemyError as e:
+        logger.error(f"Failed to grant permissions to user '{user_name}' on database '{db_name}': {e}")
+        raise
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while granting permissions to user '{user_name}' on database '{db_name}': {e}")
+        raise
+    finally:
+        if connector:
+            connector.close()
+            logger.info("Connector closed")
+        if pool:
+            pool.dispose()
 
 
 if __name__ == "__main__":
-    # default to mlflowdb if not set.
-    db_name = os.environ.get("DATABASE_NAME", "mlflowdb")
+    db_name = os.environ.get("MLFLOW_DATABASE_NAME", "mlflowdb")
     try:
         create_database(db_name)
         logger.info(f"Database '{db_name}' creation successful.")
@@ -112,3 +149,12 @@ if __name__ == "__main__":
         logger.error(f"Database '{db_name}' creation failed after retries: {e}")
     except Exception as e:
         logger.error(f"An unexpected error occurred during database creation: {e}")
+
+    user_name = os.environ.get("MLP_DB_USER_IAM")
+    try:
+        grant_permissions(db_name, user_name)
+        logger.info(f"Permissions granted to user '{user_name}' on database '{db_name}'.")
+    except SQLAlchemyError as e:
+        logger.error(f"Failed to grant permissions to user '{user_name}' on database '{db_name}': {e}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred while granting permissions: {e}")

@@ -39,7 +39,7 @@ resource "kubernetes_service_account_v1" "mlflow" {
     name      = local.mlflow_ksa
     namespace = var.namespace
     annotations = {
-      "iam.gke.io/gcp-service-account" = "${google_service_account.alloydb_superuser.email}"
+      "iam.gke.io/gcp-service-account" = "${google_service_account.alloydb_user.email}"
     }
   }
 }

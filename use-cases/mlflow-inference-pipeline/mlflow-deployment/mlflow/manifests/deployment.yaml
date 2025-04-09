@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow-tracking
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: mlflow-tracking
+  template:
+    metadata:
+      labels:
+        app: mlflow-tracking
+    spec:
+      serviceAccountName: V_MLFLOW_KSA
+      containers:
+        - name: alloydb-proxy
+          image: gcr.io/alloydb-connectors/alloydb-auth-proxy:latest
+          imagePullPolicy: Always
+          args:
+            - "V_DB_INSTANCE_URI"
+            - "--psc"
+            - "--port=5432"
+            - "--auto-iam-authn"
+            - "--structured-logs"
+          ports:
+            - containerPort: 5432
+              name: alloydb
+          securityContext:
+            runAsNonRoot: true
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+        - name: mlflow
+          image: V_MLFLOW_IMAGE
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+              name: mlflow-port
+          resources:
+            requests:
+              cpu: "2"
+              memory: "10Gi"
+            limits:
+              cpu: "2"
+              memory: "10Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow-tracking-svc
+spec:
+  selector:
+    app: mlflow-tracking
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP

@@ -43,12 +43,15 @@ try:
     logger.setLevel(log_level_str)
     logger.info(f"Log level set to '{log_level_str}' via LOG_LEVEL env var")
 except ValueError:
-    logger.warning(f"Invalid log level '{log_level_str}' specified in LOG_LEVEL. Using default: INFO.")
+    logger.warning(
+        f"Invalid log level '{log_level_str}' specified in LOG_LEVEL. Using default: INFO."
+    )
     logger.setLevel(logging.INFO)
 
 
 def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Engine:
     """Initializes a SQLAlchemy engine for connecting to AlloyDB."""
+
     def getconn():
         logger.info(f"Connecting to database '{db}' as user '{user}'")
         try:
@@ -101,13 +104,17 @@ def create_database(db_name: str, initial_db: str = "postgres"):
                     verification_pool = init_connection_pool(connector, db_name)
                     with verification_pool.connect() as verification_conn:
                         result = verification_conn.execute(
-                            text(f"SELECT 1 FROM pg_database WHERE datname='{db_name}';")
+                            text(
+                                f"SELECT 1 FROM pg_database WHERE datname='{db_name}';"
+                            )
                         ).fetchone()
                         if result:
                             logger.info("Database '%s' creation verified", db_name)
                             break
                         else:
-                            raise SQLAlchemyError(f"Database '{db_name}' not found after creation.")
+                            raise SQLAlchemyError(
+                                f"Database '{db_name}' not found after creation."
+                            )
                 except SQLAlchemyError as e:
                     logger.warning(
                         f"Verification attempt {attempt} failed: {e}. Retrying in {retry_delay} seconds."
@@ -117,7 +124,9 @@ def create_database(db_name: str, initial_db: str = "postgres"):
                     if verification_pool:
                         verification_pool.dispose()
             else:
-                raise SQLAlchemyError(f"Failed to verify database '{db_name}' creation after {max_retries} attempts.")
+                raise SQLAlchemyError(
+                    f"Failed to verify database '{db_name}' creation after {max_retries} attempts."
+                )
 
     except SQLAlchemyError as e:
         logger.error(f"Database creation failed: {e}")
@@ -129,6 +138,7 @@ def create_database(db_name: str, initial_db: str = "postgres"):
         connector.close()
         logger.info("Connector closed")
 
+
 def grant_permissions(db_name: str, user_name: str):
     """Grants all privileges on the public schema of the specified database to the given user."""
     connector = Connector()
@@ -136,18 +146,26 @@ def grant_permissions(db_name: str, user_name: str):
     try:
         pool = init_connection_pool(connector, db_name)
         with Session(pool) as session:
-            logger.info(f"Granting ALL privileges on schema 'public' of database '{db_name}' to user '{user_name}'")
+            logger.info(
+                f"Granting ALL privileges on schema 'public' of database '{db_name}' to user '{user_name}'"
+            )
             # Add double quotes around the username
-            quoted_user_name = f'"{user_name}"'  
+            quoted_user_name = f'"{user_name}"'
             # Grant ALL privileges on the public schema to the user
             session.execute(text(f"GRANT ALL ON SCHEMA public TO {quoted_user_name};"))
             session.commit()
-            logger.info(f"Successfully granted ALL privileges on schema 'public' of database '{db_name}' to user '{user_name}'")
+            logger.info(
+                f"Successfully granted ALL privileges on schema 'public' of database '{db_name}' to user '{user_name}'"
+            )
     except SQLAlchemyError as e:
-        logger.error(f"Failed to grant permissions to user '{user_name}' on database '{db_name}': {e}")
+        logger.error(
+            f"Failed to grant permissions to user '{user_name}' on database '{db_name}': {e}"
+        )
         raise
     except Exception as e:
-        logger.error(f"An unexpected error occurred while granting permissions to user '{user_name}' on database '{db_name}': {e}")
+        logger.error(
+            f"An unexpected error occurred while granting permissions to user '{user_name}' on database '{db_name}': {e}"
+        )
         raise
     finally:
         if connector:
@@ -171,8 +189,12 @@ if __name__ == "__main__":
 
     try:
         grant_permissions(db_name, user_name)
-        logger.info(f"Permissions granted to user '{user_name}' on database '{db_name}'.")
+        logger.info(
+            f"Permissions granted to user '{user_name}' on database '{db_name}'."
+        )
     except SQLAlchemyError as e:
-        logger.error(f"Failed to grant permissions to user '{user_name}' on database '{db_name}': {e}")
+        logger.error(
+            f"Failed to grant permissions to user '{user_name}' on database '{db_name}': {e}"
+        )
     except Exception as e:
         logger.error(f"An unexpected error occurred while granting permissions: {e}")

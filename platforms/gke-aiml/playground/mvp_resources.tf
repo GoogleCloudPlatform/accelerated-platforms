@@ -17,7 +17,6 @@ locals {
   bucket_cloudbuild_name = "${data.google_project.environment.project_id}-${var.environment_name}-cloudbuild"
   bucket_data_name       = "${data.google_project.environment.project_id}-${var.environment_name}-data"
   bucket_model_name      = "${data.google_project.environment.project_id}-${var.environment_name}-model"
-  bucket_mlflow_name      = "${data.google_project.environment.project_id}-${var.environment_name}-mlflow"
   data_preparation_ksa   = "${var.environment_name}-${var.namespace}-data-preparation"
   data_processing_ksa    = "${var.environment_name}-${var.namespace}-data-processing"
   fine_tuning_ksa        = "${var.environment_name}-${var.namespace}-fine-tuning"

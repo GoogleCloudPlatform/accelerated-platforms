@@ -14,6 +14,7 @@
 
 locals {
   mlflow_ksa             = "${var.environment_name}-${var.namespace}-mlflow"
+  bucket_mlflow_name      = "${data.google_project.environment.project_id}-${var.environment_name}-mlflow"
 }
 
 resource "google_storage_bucket" "mlflow" {

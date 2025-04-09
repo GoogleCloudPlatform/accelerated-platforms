@@ -31,6 +31,10 @@
       "path": ".github/workflows/dictionary/kueue.txt"
     },
     {
+      "name": "mlflow.txt",
+      "path": ".github/workflows/dictionary/mlflow.txt"
+    },
+    {
       "name": "nvidia",
       "path": ".github/workflows/dictionary/nvidia.txt"
     },
@@ -71,6 +75,7 @@
     "kubeflow",
     "kubernetes",
     "kueue",
+    "mlflow",
     "nvidia",
     "python",
     "ray",

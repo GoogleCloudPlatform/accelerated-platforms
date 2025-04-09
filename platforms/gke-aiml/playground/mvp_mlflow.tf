@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  mlflow_ksa             = "${var.environment_name}-${var.namespace}-mlflow"
+  mlflow_ksa              = "${var.environment_name}-${var.namespace}-mlflow"
   bucket_mlflow_name      = "${data.google_project.environment.project_id}-${var.environment_name}-mlflow"
 }
 

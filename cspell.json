@@ -31,7 +31,7 @@
       "path": ".github/workflows/dictionary/kueue.txt"
     },
     {
-      "name": "mlflow.txt",
+      "name": "mlflow",
       "path": ".github/workflows/dictionary/mlflow.txt"
     },
     {

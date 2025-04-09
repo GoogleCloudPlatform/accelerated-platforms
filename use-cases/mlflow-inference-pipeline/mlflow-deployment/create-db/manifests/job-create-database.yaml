@@ -19,10 +19,10 @@ metadata:
 spec:
   template:
     spec:
-      serviceAccountName: mlflow-prod-ml-team-db-admin
+      serviceAccountName: V_DB_ADMIN_KSA
       containers:
         - name: create-mlflow-database
-          image: us-central1-docker.pkg.dev/gkebatchenv3a4ec43f/mlflow-prod/mlflow-db-setup:1.0.0
+          image: V_MLFLOW_DB_SETUP_IMAGE
           imagePullPolicy: Always
           env:
             - name: MLP_DB_INSTANCE_URI

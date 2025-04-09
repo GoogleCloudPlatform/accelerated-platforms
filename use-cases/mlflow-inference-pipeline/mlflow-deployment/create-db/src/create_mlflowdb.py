@@ -69,8 +69,8 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
         creator=getconn,
         url="postgresql+pg8000://",
         pool_pre_ping=True,
-        pool_size=5,  
-        max_overflow=10,  
+        pool_size=5,
+        max_overflow=10,
         pool_recycle=3600,
     )
     pool.dialect.description_encoding = None
@@ -81,18 +81,20 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
 def create_database(db_name: str, initial_db: str = "postgres"):
     """Creates a database with error handling and verification."""
     connector = Connector()
-    pool = None  
+    admin_pool = None
     try:
-        pool = init_connection_pool(connector, initial_db)
-        with Session(pool) as session: 
+        admin_pool = init_connection_pool(connector, initial_db)
+        with admin_pool.connect() as conn:
+            conn.execute(text("COMMIT"))  
+
             # Drop the database if it exists
-            session.execute(text(f"DROP DATABASE IF EXISTS {db_name};"))
-            session.commit()
+            conn.execute(text(f"DROP DATABASE IF EXISTS {db_name};"))
+            conn.commit()
             logger.info(f"Database '{db_name}' dropped (if existed)")
 
             # Create the database
-            session.execute(text(f"CREATE DATABASE {db_name};"))
-            session.commit()
+            conn.execute(text(f"CREATE DATABASE {db_name};"))
+            conn.commit()
             logger.info(f"Database '{db_name}' creation initiated")
 
             # Verify database creation
@@ -100,20 +102,24 @@ def create_database(db_name: str, initial_db: str = "postgres"):
             retry_delay = 5
             for attempt in range(1, max_retries + 1):
                 try:
-                    result = session.execute(
-                        text(f"SELECT 1 FROM pg_database WHERE datname='{db_name}';")
-                    ).scalar_one_or_none()
-                    if result:
-                        logger.info(f"Database '{db_name}' creation verified")
-                        return
-                    else:
-                        raise SQLAlchemyError(f"Database '{db_name}' not found after creation.")
+                    verification_pool = init_connection_pool(connector, db_name)
+                    with verification_pool.connect() as verification_conn:
+                        verification_result = verification_conn.execute(text("SELECT 1;")).scalar_one_or_none()
+                        if verification_result == 1:
+                            logger.info(f"Database '{db_name}' creation verified")
+                            break
+                        else:
+                            raise SQLAlchemyError(f"Verification query failed for database '{db_name}'.")
                 except SQLAlchemyError as e:
                     logger.warning(
                         f"Verification attempt {attempt} failed: {e}. Retrying in {retry_delay} seconds."
                     )
                     time.sleep(retry_delay)
-            raise SQLAlchemyError(f"Failed to verify database '{db_name}' creation after {max_retries} attempts.")
+                finally:
+                    if verification_pool:
+                        verification_pool.dispose()
+            else:
+                raise SQLAlchemyError(f"Failed to verify database '{db_name}' creation after {max_retries} attempts.")
 
     except SQLAlchemyError as e:
         logger.error(f"Database creation failed for '{db_name}': {e}")
@@ -125,8 +131,8 @@ def create_database(db_name: str, initial_db: str = "postgres"):
         if connector:
             connector.close()
             logger.info("Connector closed")
-        if pool:
-            pool.dispose()
+        if admin_pool:
+            admin_pool.dispose()
 
 
 def grant_permissions(db_name: str, user_name: str):
@@ -156,6 +162,8 @@ def grant_permissions(db_name: str, user_name: str):
 
 if __name__ == "__main__":
     db_name = os.environ.get("MLFLOW_DATABASE_NAME", "mlflowdb")
+    user_name = os.environ.get("MLP_DB_USER_KSA")
+
     try:
         create_database(db_name)
         logger.info(f"Database '{db_name}' creation successful.")
@@ -164,7 +172,6 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error(f"An unexpected error occurred during database creation: {e}")
 
-    user_name = os.environ.get("MLP_DB_USER_IAM")
     try:
         grant_permissions(db_name, user_name)
         logger.info(f"Permissions granted to user '{user_name}' on database '{db_name}'.")

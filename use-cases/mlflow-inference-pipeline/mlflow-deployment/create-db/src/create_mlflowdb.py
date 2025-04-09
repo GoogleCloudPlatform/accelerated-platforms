@@ -137,10 +137,8 @@ def grant_permissions(db_name: str, user_name: str):
         pool = init_connection_pool(connector, db_name)
         with Session(pool) as session:
             logger.info(f"Granting ALL privileges on schema 'public' of database '{db_name}' to user '{user_name}'")
-            user_name = user_name.strip(".gserviceaccount.com")
             # Add double quotes around the username
             quoted_user_name = f'"{user_name}"'  
-            print(quoted_user_name)
             # Grant ALL privileges on the public schema to the user
             session.execute(text(f"GRANT ALL ON SCHEMA public TO {quoted_user_name};"))
             session.commit()
@@ -161,7 +159,7 @@ def grant_permissions(db_name: str, user_name: str):
 
 if __name__ == "__main__":
     db_name = os.environ.get("MLFLOW_DATABASE_NAME", "mlflowdb")
-    user_name = os.environ.get("MLP_DB_USER_KSA")
+    user_name = os.environ.get("MLP_DB_USER_IAM")
 
     try:
         create_database(db_name)

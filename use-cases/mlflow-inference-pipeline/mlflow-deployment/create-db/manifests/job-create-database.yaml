@@ -29,7 +29,7 @@ spec:
               value: V_DB_INSTANCE_URI
             - name: MLFLOW_DATABASE_NAME
               value: "mlflowdb"
-            - name: MLP_DB_USER_KSA
-              value: V_DB_USER_KSA
+            - name: MLP_DB_USER_IAM
+              value: V_DB_USER_IAM
       restartPolicy: Never
   backoffLimit: 4

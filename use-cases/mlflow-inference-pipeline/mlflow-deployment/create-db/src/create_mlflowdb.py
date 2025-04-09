@@ -81,35 +81,33 @@ def init_connection_pool(connector: Connector, db: str) -> sqlalchemy.engine.Eng
 def create_database(db_name: str, initial_db: str = "postgres"):
     """Creates a database with error handling and verification."""
     connector = Connector()
-    admin_pool = None
     try:
-        admin_pool = init_connection_pool(connector, initial_db)
-        with admin_pool.connect() as conn:
-            conn.execute(text("COMMIT"))  
-
-            # Drop the database if it exists
-            conn.execute(text(f"DROP DATABASE IF EXISTS {db_name};"))
-            conn.commit()
-            logger.info(f"Database '{db_name}' dropped (if existed)")
+        pool = init_connection_pool(connector, initial_db)
+        with pool.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+            # Drop the database if it exists (for idempotency or testing)
+            conn.execute(sqlalchemy.text(f"DROP DATABASE IF EXISTS {db_name};"))
+            logger.info("Database '%s' dropped (if existed)", db_name)
 
             # Create the database
-            conn.execute(text(f"CREATE DATABASE {db_name};"))
-            conn.commit()
-            logger.info(f"Database '{db_name}' creation initiated")
+            conn.execute(sqlalchemy.text(f"CREATE DATABASE {db_name};"))
+            logger.info("Database '%s' creation initiated", db_name)
 
             # Verify database creation
             max_retries = 3
             retry_delay = 5
             for attempt in range(1, max_retries + 1):
                 try:
+                    # Establish a new connection to the newly created database for verification
                     verification_pool = init_connection_pool(connector, db_name)
                     with verification_pool.connect() as verification_conn:
-                        verification_result = verification_conn.execute(text("SELECT 1;")).scalar_one_or_none()
-                        if verification_result == 1:
-                            logger.info(f"Database '{db_name}' creation verified")
+                        result = verification_conn.execute(
+                            text(f"SELECT 1 FROM pg_database WHERE datname='{db_name}';")
+                        ).fetchone()
+                        if result:
+                            logger.info("Database '%s' creation verified", db_name)
                             break
                         else:
-                            raise SQLAlchemyError(f"Verification query failed for database '{db_name}'.")
+                            raise SQLAlchemyError(f"Database '{db_name}' not found after creation.")
                 except SQLAlchemyError as e:
                     logger.warning(
                         f"Verification attempt {attempt} failed: {e}. Retrying in {retry_delay} seconds."
@@ -122,18 +120,14 @@ def create_database(db_name: str, initial_db: str = "postgres"):
                 raise SQLAlchemyError(f"Failed to verify database '{db_name}' creation after {max_retries} attempts.")
 
     except SQLAlchemyError as e:
-        logger.error(f"Database creation failed for '{db_name}': {e}")
+        logger.error(f"Database creation failed: {e}")
         raise
     except Exception as e:
-        logger.exception(f"An unexpected error occurred during database creation for '{db_name}': %s", e)
+        logger.exception("An unexpected error occurred during database creation: %s", e)
         raise
     finally:
-        if connector:
-            connector.close()
-            logger.info("Connector closed")
-        if admin_pool:
-            admin_pool.dispose()
-
+        connector.close()
+        logger.info("Connector closed")
 
 def grant_permissions(db_name: str, user_name: str):
     """Grants all privileges on the public schema of the specified database to the given user."""
@@ -143,7 +137,12 @@ def grant_permissions(db_name: str, user_name: str):
         pool = init_connection_pool(connector, db_name)
         with Session(pool) as session:
             logger.info(f"Granting ALL privileges on schema 'public' of database '{db_name}' to user '{user_name}'")
-            session.execute(text(f"GRANT ALL ON SCHEMA public TO {user_name};"))
+            user_name = user_name.strip(".gserviceaccount.com")
+            # Add double quotes around the username
+            quoted_user_name = f'"{user_name}"'  
+            print(quoted_user_name)
+            # Grant ALL privileges on the public schema to the user
+            session.execute(text(f"GRANT ALL ON SCHEMA public TO {quoted_user_name};"))
             session.commit()
             logger.info(f"Successfully granted ALL privileges on schema 'public' of database '{db_name}' to user '{user_name}'")
     except SQLAlchemyError as e:

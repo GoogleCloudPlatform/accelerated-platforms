@@ -95,12 +95,15 @@ experimental MLflow deployment that is part of MLPlayground.
 
 ## Configure the create-database job
 
+
+
 ```shell
 cd create-db
 git restore manifests/job-create-database.yaml
+
 sed \
 -i -e "s|V_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
--i -e "s|V_DB_USER_KSA|${MLP_DB_USER_KSA}|" \
+-i -e "s|V_DB_USER_IAM|${MLP_DB_USER_IAM}|" \
 -i -e "s|V_MLFLOW_DB_SETUP_IMAGE|${MLP_MLFLOW_DB_SETUP_IMAGE}|" \
 -i -e "s|V_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
 manifests/job-create-database.yaml

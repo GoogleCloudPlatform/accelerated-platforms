@@ -166,6 +166,10 @@ resource "google_container_cluster" "cluster" {
 
     managed_prometheus {
       enabled = true
+
+      auto_monitoring_config {
+        scope = var.cluster_auto_monitoring_config_scope
+      }
     }
   }
 

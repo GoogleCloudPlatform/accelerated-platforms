@@ -43,6 +43,23 @@ locals {
   kubeconfig_file_name = "${var.cluster_project_id}-${local.cluster_name}"
 }
 
+variable "cluster_auto_monitoring_config_scope" {
+  default     = "ALL"
+  description = "Whether or not to enable GKE Auto-Monitoring. Supported values include: ALL, NONE"
+  type        = string
+
+  validation {
+    condition = contains(
+      [
+        "ALL",
+        "NONE",
+      ],
+      var.cluster_auto_monitoring_config_scope
+    )
+    error_message = "'cluster_auto_monitoring_config_scope' value is invalid"
+  }
+}
+
 variable "cluster_binary_authorization_evaluation_mode" {
   default     = "DISABLED"
   description = "Mode of operation for Binary Authorization policy evaluation. Valid values are DISABLED and PROJECT_SINGLETON_POLICY_ENFORCE."

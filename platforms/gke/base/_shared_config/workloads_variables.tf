@@ -37,3 +37,21 @@ variable "lws_version" {
   description = "Version of LeaderWorkerSet (LWS) (https://github.com/kubernetes-sigs/lws/) to install."
   type        = string
 }
+
+variable "nvidia_dcgm_exporter_image" {
+  default     = "nvcr.io/nvidia/k8s/dcgm-exporter:4.1.1-4.0.4-ubuntu22.04"
+  description = "NVIDIA Data Center GPU Manager (DCGM) Exporter image (https://hub.docker.com/r/nvidia/dcgm-exporter/tags) to install."
+  type        = string
+}
+
+variable "nvidia_dcgm_image" {
+  default     = "nvcr.io/nvidia/cloud-native/dcgm:4.1.1-1-ubuntu22.04"
+  description = "NVIDIA Data Center GPU Manager (DCGM) image (https://hub.docker.com/r/nvidia/dcgm-exporter/tags) to install."
+  type        = string
+}
+
+variable "nvidia_dcgm_version" {
+  default     = "4.1.1-1"
+  description = "NVIDIA Data Center GPU Manager (DCGM) version to install. The corresponding image should be used for the 'nvidia_dcgm_image' amd 'nvidia_dcgm_exporter_image' variables."
+  type        = string
+}

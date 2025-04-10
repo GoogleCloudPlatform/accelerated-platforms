@@ -67,6 +67,15 @@ steps:
   waitFor:
   - "Core Terraservice 'container_cluster'"
 
+- id: "Core Terraservice 'workloads/auto_monitoring'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/auto_monitoring
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'workloads/cluster_credentials'"
+
 - id: "Core Terraservice 'workloads/jobset'"
   entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
   args:
@@ -74,7 +83,7 @@ steps:
   - workloads/jobset
   name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
   waitFor:
-  - "Core Terraservice 'workloads/cluster_credentials'"
+  - "Core Terraservice 'workloads/auto_monitoring'"
 
 - id: "Core Terraservice 'workloads/kueue'"
   entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
@@ -83,7 +92,7 @@ steps:
   - workloads/kueue
   name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
   waitFor:
-  - "Core Terraservice 'workloads/cluster_credentials'"
+  - "Core Terraservice 'workloads/auto_monitoring'"
 
 - id: "Core Terraservice 'workloads/lws'"
   entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
@@ -92,7 +101,7 @@ steps:
   - workloads/lws
   name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
   waitFor:
-  - "Core Terraservice 'workloads/cluster_credentials'"
+  - "Core Terraservice 'workloads/auto_monitoring'"
 
 - id: "Core Terraservice 'networking' check for changes"
   entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"

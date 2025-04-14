@@ -27,6 +27,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/acp_gke_base_core_workloads_kueue_deploy-v1"
+    module_name = "cloud-solutions/acp_gke_base_core_workloads_auto-monitoring_deploy-v1"
   }
 }

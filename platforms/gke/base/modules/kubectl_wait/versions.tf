@@ -23,6 +23,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/acp_gke_base_uc_aiml_pipeline_fine-tuning_deploy-v1"
+    module_name = "cloud-solutions/acp_gke_base_modules_kubectl-wait_deploy-v1"
   }
 }

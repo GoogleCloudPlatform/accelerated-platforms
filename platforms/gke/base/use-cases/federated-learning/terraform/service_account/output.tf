@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "federated_learning_tenant_apps_service_accounts_iam_emails" {
-  description = "List of apps service accounts IAM emails"
-  value       = local.apps_service_account_iam_emails
-}
-
 output "federated_learning_kubernetes_service_account_name" {
   description = "Kubernetes service account name used by federated learning workloads"
   value       = local.tenant_apps_kubernetes_service_account_name

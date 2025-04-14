@@ -22,12 +22,6 @@ variable "federated_learning_nvidia_flare_tff_example_container_image_tag" {
   type        = string
 }
 
-variable "federated_learning_nvidia_flare_tff_example_domain" {
-  default     = "nvidia-flare-example.com"
-  description = "Domain to use to build the FQDN for NVIDIA FLARE clients and servers"
-  type        = string
-}
-
 variable "federated_learning_nvidia_flare_tff_example_localized_container_image_id" {
   description = "Container image id (localized with the repository) of the NVIDIA FLARE container image to deploy"
   type        = string

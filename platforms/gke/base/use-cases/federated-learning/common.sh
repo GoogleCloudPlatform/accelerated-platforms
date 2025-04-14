@@ -64,7 +64,6 @@ federated_learning_terraservices=(
   "firewall"
   "container_image_repository"
   "private_google_access"
-  "workload_identity"
   "container_node_pool"
   "config_management"
   "cloud_storage"

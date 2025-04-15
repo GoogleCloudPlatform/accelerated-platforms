@@ -127,7 +127,6 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
 
   target_service_accounts = concat(
     local.node_pool_service_account_emails,
-    local.apps_service_account_emails
   )
 
   match {

@@ -129,7 +129,7 @@ and configure the following infrastructure components:
     [minimum amount of permissions needed by GKE](https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa).
   - A service account for workloads in each tenant. These service don't have any
     permission by default, and map to Kubernetes service accounts using
-    [Workload Identity for GKE](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity).
+    [Workload Identity for GKE](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#authenticating_to).
 
 - An [Artifact Registry](https://cloud.google.com/artifact-registry/docs)
   repository to store container images for your workloads.

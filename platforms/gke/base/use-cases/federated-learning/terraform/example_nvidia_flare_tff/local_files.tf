@@ -40,7 +40,6 @@ locals {
       nvidia_flare_tff_example_python_module_name                              = startswith(var.federated_learning_nvidia_flare_tff_example_workload_to_deploy, "server") ? "nvflare.private.fed.app.server.server_train" : "nvflare.private.fed.app.client.client_train"
       nvidia_flare_tff_example_workload_name                                   = var.federated_learning_nvidia_flare_tff_example_workload_to_deploy
       nvidia_flare_tff_example_site_name                                       = var.federated_learning_nvidia_flare_tff_example_workload_to_deploy
-      nvidia_flare_tff_example_site_domain                                     = var.federated_learning_nvidia_flare_tff_example_domain
     },
   )
 

@@ -36,6 +36,7 @@ else
     # Disable gke_enterprise/servicemesh due to b/376312292
     # "gke_enterprise/servicemesh"
     "workloads/cluster_credentials"
+    "workloads/auto_monitoring"
     "workloads/kueue"
   )
 fi

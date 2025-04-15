@@ -97,6 +97,21 @@ module "kubectl_apply_manifests" {
   use_kustomize               = true
 }
 
+module "kubectl_wait" {
+  depends_on = [
+    module.kubectl_apply_manifests,
+  ]
+
+  source = "../../../modules/kubectl_wait"
+
+  for             = "condition=ready"
+  kubeconfig_file = data.local_file.kubeconfig.filename
+  namespace       = "kueue-system"
+  resource        = "pod"
+  selector        = "control-plane=controller-manager"
+  timeout         = "300s"
+}
+
 resource "google_monitoring_dashboard" "kueue_monitoring_dashboard" {
   dashboard_json = file("${path.module}/dashboards/kueue-monitoring-dashboard.json")
   project        = data.google_project.default.project_id

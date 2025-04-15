@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/acp_fl_config_management_deploy-v1"
+    module_name = "cloud-solutions/acp_gke_base_core_workloads_auto-monitoring_deploy-v1"
   }
 }

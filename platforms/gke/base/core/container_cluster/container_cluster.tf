@@ -13,6 +13,10 @@
 # limitations under the License.
 
 resource "google_container_cluster" "cluster" {
+  depends_on = [
+    google_project_iam_member.cluster_sa
+  ]
+
   provider = google-beta
 
   datapath_provider        = "ADVANCED_DATAPATH"
@@ -128,6 +132,7 @@ resource "google_container_cluster" "cluster" {
     enable_components = [
       "APISERVER",
       "CONTROLLER_MANAGER",
+      "KCP_HPA",
       "SCHEDULER",
       "SYSTEM_COMPONENTS",
       "WORKLOADS"
@@ -198,6 +203,10 @@ resource "google_container_cluster" "cluster" {
         enabled = true
       }
     }
+  }
+
+  pod_autoscaling {
+    hpa_profile = "PERFORMANCE"
   }
 
   private_cluster_config {

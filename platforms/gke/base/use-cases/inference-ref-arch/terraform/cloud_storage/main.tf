@@ -12,6 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "use_case" {
-  value = "inference-ref-arch"
+resource "google_storage_bucket" "ira_cloud_storage_buckets" {
+  for_each = var.ira_cloud_storage_buckets
+
+  force_destroy               = each.value.force_destroy
+  location                    = var.cluster_region
+  name                        = join("-", [data.google_project.default.project_id, local.unique_identifier_prefix, each.key])
+  project                     = data.google_project.default.project_id
+  uniform_bucket_level_access = true
+
+  hierarchical_namespace {
+    enabled = true
+  }
+
+  versioning {
+    enabled = each.value.versioning_enabled
+  }
 }

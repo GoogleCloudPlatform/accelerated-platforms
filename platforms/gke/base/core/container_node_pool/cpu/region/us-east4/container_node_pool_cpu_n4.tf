@@ -47,6 +47,9 @@ resource "google_container_node_pool" "cpu_n4s8" {
 
   node_config {
     # Variables
+    # N4 machines don't support local SSDs. Provision a disk that is likely
+    # large enough to download mainstream LLMs
+    disk_size_gb = 2048
     labels = {
       "resource-model" : "n4"
       "resource-type" : "cpu"
@@ -116,6 +119,9 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
 
   node_config {
     # Variables
+    # N4 machines don't support local SSDs. Provision a disk that is likely
+    # large enough to download mainstream LLMs
+    disk_size_gb = 2048
     labels = {
       "resource-model" : "n4"
       "resource-type" : "cpu"

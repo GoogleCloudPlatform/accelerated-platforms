@@ -80,6 +80,10 @@ terraform_project_id = "<PROJECT_ID>"
 
 ## Deploy
 
+To deploy this reference implementation, you need Terraform >= 1.8.0. For more
+information about installing Terraform, see
+[Install Terraform](https://developer.hashicorp.com/terraform/install).
+
 ```shell
 ${ACP_PLATFORM_CORE_DIR}/deploy.sh
 ```

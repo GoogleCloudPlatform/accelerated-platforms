@@ -3,22 +3,25 @@ ARG GCLOUD_VERSION="504.0.1"
 FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:${GCLOUD_VERSION}-alpine
 
 ARG CRANE_VERSION="v0.20.2"
-ARG TERRAFORM_VERSION="1.9.7"
+# When updating the Terraform version, ensure that you also updated the
+# required_version in Terraform modules and services across the repository.
+# Also, consider what Terraform version Cloud Shell ships.
+ARG TERRAFORM_VERSION="1.8.0"
 
 RUN echo "Installing Alpine packages" && \
-apk upgrade && \
-apk --no-cache add go ncurses && \
-echo "Installing Terraform v${TERRAFORM_VERSION}" && \
-cd /usr/local/bin && \
-curl -o terraform.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
-unzip terraform.zip && \
-chmod u+x terraform && \
-rm -f LICENSE.txt terraform.zip && \
-echo "Installing gcloud components" && \
-gcloud components install beta kubectl --quiet && \
-rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && \
-rm -rf /google-cloud-sdk/.install/.backup && \
-echo "Installing crane" && \
-go install github.com/google/go-containerregistry/cmd/crane@${CRANE_VERSION}
+  apk upgrade && \
+  apk --no-cache add go ncurses && \
+  echo "Installing Terraform v${TERRAFORM_VERSION}" && \
+  cd /usr/local/bin && \
+  curl -o terraform.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
+  unzip terraform.zip && \
+  chmod u+x terraform && \
+  rm -f LICENSE.txt terraform.zip && \
+  echo "Installing gcloud components" && \
+  gcloud components install beta kubectl --quiet && \
+  rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && \
+  rm -rf /google-cloud-sdk/.install/.backup && \
+  echo "Installing crane" && \
+  go install github.com/google/go-containerregistry/cmd/crane@${CRANE_VERSION}
 
 ENV PATH="${PATH}:/root/go/bin"

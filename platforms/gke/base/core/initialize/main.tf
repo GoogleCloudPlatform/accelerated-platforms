@@ -14,6 +14,22 @@
 
 locals {
   container_node_pool_folder = abspath("${path.module}/../container_node_pool")
+
+  cpu_container_node_pools_directory = "${local.container_node_pool_folder}/cpu/region/${var.cluster_region}"
+  cpu_container_node_pool_files      = var.initialize_container_node_pools_cpu ? flatten([for _, file in flatten(fileset("${local.cpu_container_node_pools_directory}", "*.tf")) : "${local.cpu_container_node_pools_directory}/${file}"]) : []
+
+  gpu_container_node_pools_directory = "${local.container_node_pool_folder}/gpu/region/${var.cluster_region}"
+  gpu_container_node_pool_files      = var.initialize_container_node_pools_gpu ? flatten([for _, file in flatten(fileset("${local.gpu_container_node_pools_directory}", "*.tf")) : "${local.gpu_container_node_pools_directory}/${file}"]) : []
+
+  tpu_container_node_pools_directory = "${local.container_node_pool_folder}/tpu/region/${var.cluster_region}"
+  tpu_container_node_pool_files      = var.initialize_container_node_pools_tpu ? flatten([for _, file in flatten(fileset("${local.tpu_container_node_pools_directory}", "*.tf")) : "${local.tpu_container_node_pools_directory}/${file}"]) : []
+
+  container_node_pool_files = compact(flatten(concat(
+    [],
+    local.cpu_container_node_pool_files,
+    local.gpu_container_node_pool_files,
+    local.tpu_container_node_pool_files,
+  )))
 }
 
 data "google_project" "default" {
@@ -41,18 +57,10 @@ data "google_storage_bucket" "terraform" {
   project = data.google_project.default.project_id
 }
 
-resource "null_resource" "configure_nodepools_for_region" {
-  provisioner "local-exec" {
-    command = <<EOT
-cd ${local.container_node_pool_folder} && \
-rm -f container_node_pool_*.tf && \
-ln -s cpu/region/${var.cluster_region}/container_node_pool_*.tf ./
-ln -s gpu/region/${var.cluster_region}/container_node_pool_*.tf ./
-ln -s tpu/region/${var.cluster_region}/container_node_pool_*.tf ./
-EOT
-  }
+resource "local_file" "container_node_pools_files_for_region" {
+  for_each = toset(local.container_node_pool_files)
 
-  triggers = {
-    always_run = timestamp()
-  }
+  content         = file(each.value)
+  file_permission = "0644"
+  filename        = "${local.container_node_pool_folder}/${basename(each.value)}"
 }

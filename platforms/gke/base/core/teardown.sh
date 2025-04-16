@@ -83,7 +83,6 @@ for terraservice in "${terraservices[@]}"; do
       "${ACP_PLATFORM_CORE_DIR}/networking/.terraform/" \
       "${ACP_PLATFORM_CORE_DIR}/container_cluster/.terraform/" \
       "${ACP_PLATFORM_CORE_DIR}/container_node_pool/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/container_node_pool"/container_node_pool_*.tf \
       "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/git/.terraform/" \
       "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/oci/.terraform/" \
       "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership/.terraform/" \
@@ -93,8 +92,7 @@ for terraservice in "${terraservices[@]}"; do
       "${ACP_PLATFORM_CORE_DIR}/workloads/manifests"
 
     git restore \
-      "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" \
-      "${ACP_PLATFORM_CORE_DIR}/container_node_pool"/container_node_pool_*.tf
+      "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
   fi
 done
 

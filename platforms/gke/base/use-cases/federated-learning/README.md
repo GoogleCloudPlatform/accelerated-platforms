@@ -166,68 +166,70 @@ controls to each Kubernetes namespace:
 
 To deploy the reference architecture, you do the following:
 
-1.  Open [Cloud Shell](https://cloud.google.com/shell).
+1. [Install Terraform >= 1.8.0](https://developer.hashicorp.com/terraform/install).
 
-1.  Clone this repository and change the working directory:
+1. Open [Cloud Shell](https://cloud.google.com/shell).
 
-    ```shell
-    git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-    cd accelerated-platforms
-    ```
+1. Clone this repository and change the working directory:
 
-1.  Configure the ID of the Google Cloud project where you want to initialize
-    the provisioning and configuration environment. This project will also
-    contain the remote Terraform backend. Add the following content to
-    `platforms/gke/base/_shared_config/terraform.auto.tfvars`:
+   ```shell
+   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+   cd accelerated-platforms
+   ```
 
-    ```hcl
-    terraform_project_id = "<CONFIG_PROJECT_ID>"
-    ```
+1. Configure the ID of the Google Cloud project where you want to initialize the
+   provisioning and configuration environment. This project will also contain
+   the remote Terraform backend. Add the following content to
+   `platforms/gke/base/_shared_config/terraform.auto.tfvars`:
 
-    Where:
+   ```hcl
+   terraform_project_id = "<CONFIG_PROJECT_ID>"
+   ```
 
-    - `<CONFIG_PROJECT_ID>` is the Google Cloud project ID.
+   Where:
 
-1.  Configure the ID of the Google Cloud project where you want to deploy the
-    reference architecture by adding the following content to
-    `platforms/gke/base/_shared_config/cluster.auto.tfvars`:
+   - `<CONFIG_PROJECT_ID>` is the Google Cloud project ID.
 
-    ```hcl
-    cluster_project_id = "<PROJECT_ID>"
-    ```
+1. Configure the ID of the Google Cloud project where you want to deploy the
+   reference architecture by adding the following content to
+   `platforms/gke/base/_shared_config/cluster.auto.tfvars`:
 
-    Where:
+   ```hcl
+   cluster_project_id = "<PROJECT_ID>"
+   ```
 
-    - `<PROJECT_ID>` is the Google Cloud project ID. Can be different from
-      `<CONFIG_PROJECT_ID>`.
+   Where:
 
-1.  Optionally configure a unique identifier to append to the name of all the
-    resources in the reference architecture to identify a particular instance of
-    the reference architecture, and to allow for multiple instances of the
-    reference architecture to be deployed in the same Google Cloud project. To
-    optionally configure the unique prefix, add the following content to
-    `platforms/gke/base/_shared_config/platform.auto.tfvars`:
+   - `<PROJECT_ID>` is the Google Cloud project ID. Can be different from
+     `<CONFIG_PROJECT_ID>`.
 
-    ```hcl
-    resource_name_prefix = "<RESOURCE_NAME_PREFIX>"
-    platform_name        = "<PLATFORM_NAME>"
-    ```
+1. Optionally configure a unique identifier to append to the name of all the
+   resources in the reference architecture to identify a particular instance of
+   the reference architecture, and to allow for multiple instances of the
+   reference architecture to be deployed in the same Google Cloud project. To
+   optionally configure the unique prefix, add the following content to
+   `platforms/gke/base/_shared_config/platform.auto.tfvars`:
 
-    Where:
+   ```hcl
+   resource_name_prefix = "<RESOURCE_NAME_PREFIX>"
+   platform_name        = "<PLATFORM_NAME>"
+   ```
 
-    - `<RESOURCE_NAME_PREFIX>` and `<PLATFORM_NAME>` are strings that compose
-      the unique identifier to append to the name of all the resources in the
-      reference architecture.
+   Where:
 
-    When you set `resource_name_prefix` and `platform_name`, we recommend that
-    you avoid long strings because the might make resource naming validation to
-    fail because the resource name might be too long.
+   - `<RESOURCE_NAME_PREFIX>` and `<PLATFORM_NAME>` are strings that compose the
+     unique identifier to append to the name of all the resources in the
+     reference architecture.
 
-1.  Run the script to provision the reference architecture:
+   When you set `resource_name_prefix` and `platform_name`, we recommend that
+   you avoid long strings because the might make resource naming validation to
+   fail because the resource name might be too long.
 
-    ```sh
-    "platforms/gke/base/use-cases/federated-learning/deploy.sh"
-    ```
+1. Run the script to provision the reference architecture:
+
+   ```sh
+   "platforms/gke/base/use-cases/federated-learning/deploy.sh"
+   ```
 
 It takes about 20 minutes to provision the reference architecture.
 

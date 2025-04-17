@@ -76,20 +76,20 @@ steps:
   waitFor:
   - "Core Terraservice 'workloads/cluster_credentials'"
 
+- id: "Core Terraservice 'workloads/inference_gateway'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/inference_gateway
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'workloads/auto_monitoring'"
+
 - id: "Core Terraservice 'workloads/jobset'"
   entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
   args:
   - /workspace/platforms/gke/base/core
   - workloads/jobset
-  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-  waitFor:
-  - "Core Terraservice 'workloads/auto_monitoring'"
-
-- id: "Core Terraservice 'workloads/kueue'"
-  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
-  args:
-  - /workspace/platforms/gke/base/core
-  - workloads/kueue
   name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
   waitFor:
   - "Core Terraservice 'workloads/auto_monitoring'"
@@ -103,6 +103,17 @@ steps:
   waitFor:
   - "Core Terraservice 'workloads/auto_monitoring'"
 
+- id: "Core Terraservice 'workloads/kueue'"
+  entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/kueue
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'workloads/inference_gateway'"
+  - "Core Terraservice 'workloads/jobset'"
+  - "Core Terraservice 'workloads/lws'"
+
 - id: "Core Terraservice 'networking' check for changes"
   entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
   args:
@@ -110,9 +121,7 @@ steps:
   - networking
   name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
   waitFor:
-  - "Core Terraservice 'workloads/jobset'"
   - "Core Terraservice 'workloads/kueue'"
-  - "Core Terraservice 'workloads/lws'"
 
 - id: "Core Terraservice 'container_cluster' check for changes"
   entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
@@ -122,6 +131,15 @@ steps:
   name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
   waitFor:
   - "Core Terraservice 'networking' check for changes"
+
+- id: "Core Terraservice 'workloads/inference_gateway' check for changes"
+  entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+  args:
+  - /workspace/platforms/gke/base/core
+  - workloads/inference_gateway
+  name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  waitFor:
+  - "Core Terraservice 'container_cluster' check for changes"
 
 - id: "Core Terraservice 'workloads/jobset' check for changes"
   entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"

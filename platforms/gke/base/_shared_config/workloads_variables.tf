@@ -20,6 +20,12 @@ locals {
   manifests_directory_root = "${path.module}/../../../kubernetes/manifests"
 }
 
+variable "inference_gateway_version" {
+  default     = "0.3.0"
+  description = "Version of Gateway API Inference Extension (https://github.com/kubernetes-sigs/gateway-api-inference-extension) to install."
+  type        = string
+}
+
 variable "jobset_version" {
   default     = "0.8.0"
   description = "Version of JobSet (https://github.com/kubernetes-sigs/jobset/) to install."

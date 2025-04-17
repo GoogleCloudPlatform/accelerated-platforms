@@ -5,6 +5,8 @@ apiservice
 clusterregistry
 clusterrole
 clusterrolebinding
+crd
+crds
 egressgateway
 flowcontrol
 flowschemas

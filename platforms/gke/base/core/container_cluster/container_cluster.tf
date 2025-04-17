@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+data "google_compute_zones" "region" {
+  project = data.google_project.cluster.project_id
+  region  = var.cluster_region
+}
+
 resource "google_container_cluster" "cluster" {
   depends_on = [
     google_project_iam_member.cluster_sa
@@ -25,6 +30,7 @@ resource "google_container_cluster" "cluster" {
   location                 = var.cluster_region
   name                     = local.cluster_name
   network                  = local.network_name
+  node_locations           = data.google_compute_zones.region.names
   project                  = google_project_service.container_googleapis_com.project
   remove_default_node_pool = true
   subnetwork               = local.subnetwork_name

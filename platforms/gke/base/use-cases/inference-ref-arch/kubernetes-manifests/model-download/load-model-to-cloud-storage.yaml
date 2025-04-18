@@ -27,7 +27,7 @@ spec:
         iam.gke.io/gke-metadata-server-enabled: "true"
       restartPolicy: Never
       terminationGracePeriodSeconds: 0
-      serviceAccountName: ira-online-gpu-ksa
+      serviceAccountName: ira-model-download-ksa
       containers:
         - name: transfer-model-to-gcs
           image: gcr.io/google.com/cloudsdktool/cloud-sdk:518.0.0-slim

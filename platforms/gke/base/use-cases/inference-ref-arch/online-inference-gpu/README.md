@@ -64,7 +64,7 @@ the following:
 
 1.  Initialize the configuration variables to set the name of the Cloud Storage
     bucket where the model will be downloaded in
-    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/model-download.env`:
+    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/base/model-download.env`:
 
     ```shell
     IRA_BUCKET_NAME=<IRA_BUCKET_NAME>
@@ -88,7 +88,7 @@ the following:
     permission to the Hugging Face token.
 
 1.  Store the Hugging Face token in
-    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/hugging-face-token.env`:
+    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/base/hugging-face-token.env`:
 
     ```shell
     HUGGING_FACE_TOKEN=<HUGGING_FACE_TOKEN>
@@ -99,7 +99,7 @@ the following:
     - `<HUGGING_FACE_TOKEN>` is the Hugging Face token.
 
     If the
-    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/hugging-face-token.env`
+    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/base/hugging-face-token.env`
     file doesn't exist, create it.
 
 1.  Get access to the model by signing the consent agreement:

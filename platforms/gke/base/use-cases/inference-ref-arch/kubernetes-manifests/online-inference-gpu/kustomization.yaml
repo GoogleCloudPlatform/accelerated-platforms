@@ -11,8 +11,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ira-model-download-ksa
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../base
+  - service-account.yaml
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: model-download-configmap
+      fieldPath: data.IRA_BUCKET_NAME
+    targets:
+      - select:
+          kind: Deployment
+          name: vllm-a100
+        fieldPaths:
+          - spec.template.spec.volumes.[name=gcsfuse].csi.volumeAttributes.bucketName
+        options:
+          delimiter: .
+          index: 0

@@ -31,9 +31,14 @@ resource "local_file" "cloud_storage_terraform_configuration_file" {
   ira_cloud_storage_buckets_iam_bindings = [
     {
       bucket_name = "ira-model",
-      member      = "${var.ira_kubernetes_namespace}/sa/${var.ira_use_case_flavor}-ksa",
+      member      = "${var.ira_kubernetes_namespace}/sa/ira-online-gpu-ksa",
+      role        = "roles/storage.objectViewer"
+    },
+    {
+      bucket_name = "ira-model",
+      member      = "${var.ira_kubernetes_namespace}/sa/ira-model-download-ksa",
       role        = "roles/storage.objectUser"
-    }
+    },
   ]
   EOT
 

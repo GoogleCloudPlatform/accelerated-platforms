@@ -21,6 +21,12 @@ locals {
   terraform_bucket_name = "${var.terraform_project_id}-${local.unique_identifier_prefix}-terraform"
 }
 
+variable "create_terraform_bucket" {
+  default     = true
+  description = "Create the Google Cloud Storage Terraform bucket."
+  type        = string
+}
+
 variable "terraform_project_id" {
   description = "The GCP project where terraform will be run"
   type        = string
@@ -31,8 +37,8 @@ variable "terraform_project_id" {
   }
 }
 
-variable "create_terraform_bucket" {
+variable "terraform_write_tfvars" {
   default     = true
-  description = "Create the Google Cloud Storage Terraform bucket"
+  description = "Write the configured values to the tfvars configuration files."
   type        = string
 }

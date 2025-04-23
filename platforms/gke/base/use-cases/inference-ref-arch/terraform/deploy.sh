@@ -27,6 +27,7 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "container_cluster"
   "container_node_pool"
   "workloads/cluster_credentials"
+  "custom_compute_class"
   "workloads/auto_monitoring"
   "workloads/inference_gateway"
   "workloads/jobset"

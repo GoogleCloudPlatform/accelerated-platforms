@@ -52,6 +52,7 @@ hdml
 heatmaps
 highcpu
 highgpu
+hightpu
 httproute
 hyperdiskml
 instrumentor

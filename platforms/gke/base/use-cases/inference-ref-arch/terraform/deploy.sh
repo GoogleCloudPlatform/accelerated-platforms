@@ -32,12 +32,14 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "workloads/lws"
   "workloads/kueue"
 )
-CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" ${ACP_PLATFORM_CORE_DIR}/deploy.sh
+CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
-source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config ${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config" "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"
 
 declare -a aiml_terraservices=(
   "initialize"
+  "cloud_storage"
 )
 for terraservice in "${aiml_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
@@ -47,6 +49,12 @@ for terraservice in "${aiml_terraservices[@]}"; do
     terraform apply -input=false tfplan || exit 1
   rm tfplan
 done
+
+# shellcheck disable=SC2154
+gcloud container clusters get-credentials "${cluster_name}" \
+  --region "${cluster_region}" \
+  --project "${cluster_project_id}" \
+  --dns-endpoint
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))

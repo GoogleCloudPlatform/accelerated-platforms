@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "use_case" {
-  value = "inference-ref-arch"
+output "ira_google_storage_bucket_names" {
+  description = "List of Cloud Storage bucket names"
+  value = [
+    for bucket in google_storage_bucket.ira_cloud_storage_buckets : bucket.name
+  ]
 }

@@ -60,7 +60,7 @@ for terraservice in "${terraservices[@]}"; do
       echo "Current directory: $(pwd)" &&
       terraform init &&
       terraform destroy -auto-approve || exit 1
-    rm -rf .terraform/
+    rm -rf .terraform/ manifests/
   # Destroy the backend only if we're destroying the initialize service,
   # otherwise we wouldn't be able to support a tiered core platform provisioning
   # and teardown
@@ -75,19 +75,13 @@ for terraservice in "${terraservices[@]}"; do
     gcloud storage rm -r "gs://${terraform_bucket_name}/*" &&
       terraform destroy -auto-approve || exit 1
 
-    rm -rf .terraform/
-    rm -rf terraform.tfstate*
-
     rm -rf \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/" \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config"/terraform.tfstate* \
       "${ACP_PLATFORM_BASE_DIR}/kubernetes/kubeconfig" \
       "${ACP_PLATFORM_BASE_DIR}/kubernetes/manifests" \
       "${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/initialize"/terraform.tfstate* \
-      "${ACP_PLATFORM_CORE_DIR}/workloads/jobset/manifests" \
-      "${ACP_PLATFORM_CORE_DIR}/workloads/kueue/manifests" \
-      "${ACP_PLATFORM_CORE_DIR}/workloads/lws/manifests"
+      "${ACP_PLATFORM_CORE_DIR}/initialize"/terraform.tfstate*
 
     git restore \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config"/*.auto.tfvars \

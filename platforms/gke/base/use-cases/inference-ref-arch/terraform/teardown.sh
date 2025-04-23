@@ -23,43 +23,46 @@ export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="inf"
 
-source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config ${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config" "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"
 
-cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
-    echo "Current directory: $(pwd)" &&
-    sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket &&
-    cp backend.tf.bucket backend.tf &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
+# shellcheck disable=SC2154
+cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
+  echo "Current directory: $(pwd)" &&
+  sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
+  cp backend.tf.bucket backend.tf &&
+  terraform init &&
+  terraform plan -input=false -out=tfplan &&
+  terraform apply -input=false tfplan || exit 1
 rm tfplan
 
 declare -a use_case_terraservices=(
-    "initialize"
+  "cloud_storage"
+  "initialize"
 )
 for terraservice in $(echo "${use_case_terraservices[@]}" | tac -s " "); do
-    cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
-        echo "Current directory: $(pwd)" &&
-        terraform init &&
-        terraform destroy -auto-approve || exit 1
-    rm -rf .terraform/
+  cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
+    echo "Current directory: $(pwd)" &&
+    terraform init &&
+    terraform destroy -auto-approve || exit 1
+  rm -rf .terraform/
 done
 
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
-    declare -a CORE_TERRASERVICES_DESTROY=(
-        "workloads/kueue"
-        "workloads/lws"
-        "workloads/jobset"
-        "workloads/auto_monitoring"
-        "workloads/cluster_credentials"
-        "container_node_pool"
-        "container_cluster"
-        "networking"
-        "initialize"
-    )
-    CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY[*]}" ${ACP_PLATFORM_CORE_DIR}/teardown.sh
+  declare -a CORE_TERRASERVICES_DESTROY=(
+    "workloads/kueue"
+    "workloads/lws"
+    "workloads/jobset"
+    "workloads/auto_monitoring"
+    "workloads/cluster_credentials"
+    "container_node_pool"
+    "container_cluster"
+    "networking"
+    "initialize"
+  )
+  CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY[*]}" "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
 else
-    echo "Skipping core platform teardown."
+  echo "Skipping core platform teardown."
 fi
 
 end_timestamp=$(date +%s)

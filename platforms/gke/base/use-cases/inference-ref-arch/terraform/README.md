@@ -78,6 +78,10 @@ precedence over earlier ones:
 
 ## Deploy
 
+To deploy this reference implementation, you need Terraform >= 1.8.0. For more
+information about installing Terraform, see
+[Install Terraform](https://developer.hashicorp.com/terraform/install).
+
 ```
 ${ACP_PLATFORM_USE_CASE_DIR}/terraform/deploy.sh
 ```

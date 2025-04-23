@@ -80,7 +80,6 @@ for terraservice in "${terraservices[@]}"; do
       "${ACP_PLATFORM_BASE_DIR}/_shared_config"/terraform.tfstate* \
       "${ACP_PLATFORM_BASE_DIR}/kubernetes/kubeconfig" \
       "${ACP_PLATFORM_BASE_DIR}/kubernetes/manifests" \
-      "${ACP_PLATFORM_CORE_DIR}/container_node_pool"/container_node_pool_*.tf \
       "${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/" \
       "${ACP_PLATFORM_CORE_DIR}/initialize"/terraform.tfstate* \
       "${ACP_PLATFORM_CORE_DIR}/workloads/jobset/manifests" \

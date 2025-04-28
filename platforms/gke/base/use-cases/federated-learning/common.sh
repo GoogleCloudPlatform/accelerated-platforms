@@ -61,6 +61,7 @@ federated_learning_core_platform_terraservices=(
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 federated_learning_terraservices=(
+  "initialize"
   "firewall"
   "container_image_repository"
   "private_google_access"

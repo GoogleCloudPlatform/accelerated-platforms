@@ -20,6 +20,12 @@ locals {
   manifests_directory_root = "${path.module}/../../../kubernetes/manifests"
 }
 
+variable "custom_metrics_adapter_version" {
+  default     = "0.16.1"
+  description = "Version of Custom Metrics Adapter (https://github.com/GoogleCloudPlatform/k8s-stackdriver) to install."
+  type        = string
+}
+
 variable "inference_gateway_version" {
   default     = "0.3.0"
   description = "Version of Gateway API Inference Extension (https://github.com/kubernetes-sigs/gateway-api-inference-extension) to install."

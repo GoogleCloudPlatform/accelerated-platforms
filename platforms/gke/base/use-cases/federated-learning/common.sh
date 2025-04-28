@@ -55,13 +55,13 @@ FEDERATED_LEARNING_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARNING_SHARED_CONFIG_DIR
 # shellcheck disable=SC2034 # Variable is used in other scripts
 # Terraservices that are necessary for the core platform
 federated_learning_core_platform_terraservices=(
-  "key_management_service"
+  "initialize"
   "service_account"
+  "key_management_service"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 federated_learning_terraservices=(
-  "initialize"
   "firewall"
   "container_image_repository"
   "private_google_access"

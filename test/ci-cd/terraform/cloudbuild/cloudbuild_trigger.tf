@@ -171,6 +171,32 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
   }
 }
 
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_scripts" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml"
+  included_files = [
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/**",
+    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-inference-ref-arch-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
 resource "google_cloudbuild_trigger" "uc_mftp_data_prep_gemma_it_build" {
   filename = "test/ci-cd/cloudbuild/uc-mftp-data-prep-gemma-it-build.yaml"
   included_files = [

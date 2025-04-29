@@ -12,6 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "google_cloudbuild_trigger" "acp_ci_cd_runner_image" {
+  filename = "test/ci-cd/cloudbuild/ci-cd/runner-image.yaml"
+  included_files = [
+    "test/ci-cd/cloudbuild/ci-cd/runner-image.yaml",
+    "test/ci-cd/container_images/dockerfile.runner",
+  ]
+  location        = var.build_location
+  name            = "acp-ci-cd-runner-image"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+}
+
 resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
   filename = "test/ci-cd/cloudbuild/acp-ci-cd-terraform.yaml"
   ignored_files = [
@@ -33,6 +54,10 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
       branch       = "^main$"
       invert_regex = false
     }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
   }
 }
 

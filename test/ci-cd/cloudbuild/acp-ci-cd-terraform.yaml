@@ -6,8 +6,8 @@ steps:
   - "${_WAIT_FOR_TRIGGER}"
   entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
   env:
-    - "LOCATION=${LOCATION}"
-    - "PROJECT_ID=${PROJECT_ID}"
+  - "LOCATION=${LOCATION}"
+  - "PROJECT_ID=${PROJECT_ID}"
   id: "Check triggers"
   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
   waitFor: ["-"]

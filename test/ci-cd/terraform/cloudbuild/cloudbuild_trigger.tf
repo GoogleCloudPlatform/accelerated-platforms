@@ -132,6 +132,10 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terrafo
       invert_regex    = false
     }
   }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform" {
@@ -183,6 +187,10 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
       comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
       invert_regex    = false
     }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
   }
 }
 

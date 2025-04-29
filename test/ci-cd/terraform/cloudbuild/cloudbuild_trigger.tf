@@ -86,29 +86,6 @@ resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform_destroy" {
-  location        = var.build_location
-  name            = "platforms-gke-aiml-playground-terraform-destroy"
-  project         = data.google_project.build.project_id
-  service_account = google_service_account.integration.id
-  substitutions = {
-    "_ENVIRONMENT_NAME" = "dev"
-  }
-
-  git_file_source {
-    path       = "test/ci-cd/cloudbuild/platforms-gke-aiml-playground-terraform-destroy.yaml"
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-    repo_type  = "GITHUB"
-    revision   = "refs/heads/main"
-  }
-
-  source_to_build {
-    ref        = "refs/heads/main"
-    repo_type  = "GITHUB"
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-  }
-}
-
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terraform" {
   filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml"
   included_files = [
@@ -191,29 +168,6 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
 
   substitutions = {
     _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
-  }
-}
-
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform_destroy" {
-  location        = var.build_location
-  name            = "platforms-gke-base-core-terraform-destroy"
-  project         = data.google_project.build.project_id
-  service_account = google_service_account.integration.id
-  substitutions = {
-    "_PLATFORM_NAME" = "dev"
-  }
-
-  git_file_source {
-    path       = "test/ci-cd/cloudbuild/platforms-gke-base-core-terraform-destroy.yaml"
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-    repo_type  = "GITHUB"
-    revision   = "refs/heads/main"
-  }
-
-  source_to_build {
-    ref        = "refs/heads/main"
-    repo_type  = "GITHUB"
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
   }
 }
 
@@ -331,29 +285,6 @@ resource "google_cloudbuild_trigger" "uc_federated_learning_terraform" {
       comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
       invert_regex    = false
     }
-  }
-}
-
-resource "google_cloudbuild_trigger" "uc_federated_learning_terraform_destroy" {
-  location        = var.build_location
-  name            = "uc-federated-learning-terraform-destroy"
-  project         = data.google_project.build.project_id
-  service_account = google_service_account.integration.id
-  substitutions = {
-    "_PLATFORM_NAME" = "dev"
-  }
-
-  git_file_source {
-    path       = "test/ci-cd/cloudbuild/uc-federated-learning-terraform-destroy.yaml"
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-    repo_type  = "GITHUB"
-    revision   = "refs/heads/main"
-  }
-
-  source_to_build {
-    ref        = "refs/heads/main"
-    repo_type  = "GITHUB"
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
   }
 }
 

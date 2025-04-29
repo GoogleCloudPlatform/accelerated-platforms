@@ -26,7 +26,7 @@ steps:
   id: "Configure the environment"
   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
   waitFor:
-  - "Build runner image"
+  - "Check triggers"
 
 - args:
   - /workspace/platforms/gke/base/core

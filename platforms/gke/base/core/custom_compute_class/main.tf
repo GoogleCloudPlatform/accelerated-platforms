@@ -62,3 +62,34 @@ module "kubectl_apply_manifests" {
   recursive                   = true
   use_kustomize               = false
 }
+
+module "kubectl_wait" {
+  depends_on = [
+    module.kubectl_apply_manifests,
+  ]
+
+  source = "../../modules/kubectl_wait"
+
+  filename        = local.manifests_directory
+  for             = "jsonpath={.status.conditions[?(@.type==\"Health\")].reason}=Health"
+  kubeconfig_file = data.local_file.kubeconfig.filename
+  timeout         = "60s"
+}
+
+resource "terraform_data" "check" {
+  depends_on = [
+    module.kubectl_wait
+  ]
+
+  provisioner "local-exec" {
+    command = <<EOT
+kubectl get computeclass -o jsonpath='{range .items[*]}{.metadata.name}{": "}{.status.conditions[*].message}{"\n"}{end}' && 
+exit $(kubectl get ComputeClass -o jsonpath='{range .items[*]}{.metadata.name}{": "}{.status.conditions[*].message}{"\n"}{end}' | grep -c 'not healthy')
+EOT
+    environment = {
+      KUBECONFIG = data.local_file.kubeconfig.filename
+    }
+    interpreter = ["bash", "-c"]
+    working_dir = path.module
+  }
+}

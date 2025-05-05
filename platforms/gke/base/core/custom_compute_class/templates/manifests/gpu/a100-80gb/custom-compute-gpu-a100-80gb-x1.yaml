@@ -26,6 +26,7 @@ spec:
   #     count: 1
   #     driverVersion: latest
   #     type: nvidia-a100-80gb
+  #   machineType: a2-ultragpu-1g
   #   maxPodsPerNode: 16
 
   # Use spot
@@ -33,6 +34,7 @@ spec:
       count: 1
       driverVersion: latest
       type: nvidia-a100-80gb
+    machineType: a2-ultragpu-1g
     maxPodsPerNode: 16
     spot: true
 

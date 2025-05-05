@@ -6,6 +6,20 @@ spec:
   activeMigration:
     optimizeRulePriority: true
   priorities:
+  # Use specific reservation
+  # - machineType: ct5lp-hightpu-8t
+  #   maxPodsPerNode: 16
+  #   reservations:
+  #     affinity: Specific
+  #     specific:
+  #     - name: tpu-ct5lp-hightpu-8t
+  #   spot: false
+  #   tpu:
+  #     count: 8
+  #     topology: 2x4
+  #     type: tpu-v5-lite-podslice
+  
+  # Use any reservation
   # TPU currently only supports Specific affinity.
   # - machineType: ct5lp-hightpu-8t
   #   maxPodsPerNode: 16

@@ -1,18 +1,14 @@
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
 metadata:
-  name: gpu-a100-40gb-x2
+  name: cpu-n4-s-8
 spec:
   activeMigration:
     optimizeRulePriority: true
   priorities:
   # Use reservations if available, fall back to on-demand otherwise
-  - gpu:
-      count: 2
-      driverVersion: latest
-      type: nvidia-tesla-a100
-    machineType: a2-highgpu-2g
-    maxPodsPerNode: 16
+  - machineType: n4-standard-8
+    maxPodsPerNode: 64
     reservations:
       affinity: AnyBestEffort
     spot: false
@@ -22,20 +18,12 @@ spec:
   #     enabled: true
   #     nodeRecycling:
   #       leadTimeSeconds: 3600
-  #   gpu:
-  #     count: 2
-  #     driverVersion: latest
-  #     type: nvidia-tesla-a100 
-  #   machineType: a2-highgpu-2g
-  #   maxPodsPerNode: 16
+  #   machineType: n4-standard-8
+  #   maxPodsPerNode: 64
 
   # Use spot
-  - gpu:
-      count: 2
-      driverVersion: latest
-      type: nvidia-tesla-a100
-    machineType: a2-highgpu-2g
-    maxPodsPerNode: 16
+  - machineType: n4-standard-8
+    maxPodsPerNode: 64
     spot: true
 
   nodePoolAutoCreation:

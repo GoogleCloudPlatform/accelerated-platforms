@@ -18,6 +18,7 @@ cloudresourcemanager
 cloudscheduler
 cloudsdktool
 cloudtrace
+computeclass
 configmanagement
 configsync
 connectgateway

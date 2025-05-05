@@ -17,6 +17,12 @@ variable "kubeconfig_file" {
   type        = string
 }
 
+variable "filename" {
+  default     = null
+  description = "Filename or path containing the resources."
+  type        = string
+}
+
 variable "for" {
   description = "The condition to wait on: [create|delete|condition=condition-name[=condition-value]|jsonpath='{JSONPath expression}'=[JSONPath value]]. The default condition-value is true. Condition values are compared after Unicode simple case folding, which is a more general form of case-insensitivity."
   type        = string
@@ -29,6 +35,7 @@ variable "namespace" {
 }
 
 variable "resource" {
+  default     = null
   description = "Resources to wait for a specific condition on."
   type        = string
 }

@@ -38,6 +38,16 @@ For an outline of Google Cloud products and features used in the platform, see
     scenarios with our example
     [use case](/platforms/gke/base/use-cases/README.md) implementations.
 
+## Additional Reading
+
+- [Google Cloud Well-Architected Framework](https://cloud.google.com/architecture/framework)
+
+  - [Well-Architected Framework: AI and ML perspective ](https://cloud.google.com/architecture/framework/perspectives/ai-ml)
+
+- [Landing zone design in Google Cloud](https://cloud.google.com/architecture/landing-zones)
+- [Google Cloud deployment archetypes](https://cloud.google.com/architecture/deployment-archetypes)
+- [Google Cloud infrastructure reliability guide](https://cloud.google.com/architecture/infra-reliability-guide)
+
 ## Directory Structure
 
 ### **`_shared_config/`**

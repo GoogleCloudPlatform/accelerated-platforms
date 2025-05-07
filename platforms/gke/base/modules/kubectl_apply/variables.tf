@@ -58,6 +58,12 @@ variable "namespace" {
   type        = string
 }
 
+variable "recursive" {
+  default     = false
+  description = "Run the command with the --recursive flag."
+  type        = bool
+}
+
 variable "use_kustomize" {
   default     = false
   description = "Does the manifest use kustomize."

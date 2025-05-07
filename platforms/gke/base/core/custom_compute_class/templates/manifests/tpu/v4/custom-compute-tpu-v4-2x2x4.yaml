@@ -1,0 +1,48 @@
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: tpu-v4-2x2x4
+spec:
+  activeMigration:  
+    optimizeRulePriority: true
+  priorities:
+  # TPU currently only supports Specific affinity.
+  # - machineType: 
+  #   maxPodsPerNode: 16
+  #   reservations:
+  #     affinity: AnyBestEffort
+  #   spot: false
+  #   tpu:
+  #     count: 4
+  #     topology: 2x2x4
+  #     type: tpu-v4-podslice
+  
+  # Use on-demand
+  - maxPodsPerNode: 16
+    spot: false
+    tpu:
+      count: 4
+      topology: 2x2x4
+      type: tpu-v4-podslice
+  
+  # Use DWS FlexStart, currently not support for TPUs as of 4/18
+  # - flexStart:
+  #     enabled: true
+  #     nodeRecycling:
+  #       leadTimeSeconds: 3600
+  #   maxPodsPerNode: 16
+  #   tpu:
+  #     count: 4
+  #     topology: 2x2x4
+  #     type: tpu-v4-podslice
+  
+  # Use spot
+  - maxPodsPerNode: 16
+    spot: true
+    tpu:
+      count: 4
+      topology: 2x2x4
+      type: tpu-v4-podslice
+ 
+  nodePoolAutoCreation:
+    enabled: true

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  container_node_pool_folder = abspath("${path.module}/../container_node_pool")
+  container_node_pool_folder = "${path.module}/../container_node_pool"
 
   cpu_container_node_pools_directory = "${local.container_node_pool_folder}/cpu/region/${var.cluster_region}"
   cpu_container_node_pool_files      = var.initialize_container_node_pools_cpu ? flatten([for _, file in flatten(fileset("${local.cpu_container_node_pools_directory}", "*.tf")) : "${local.cpu_container_node_pools_directory}/${file}"]) : []

@@ -16,11 +16,32 @@ data "google_project" "build" {
   project_id = var.build_project_id
 }
 
+resource "google_project_service" "build_cloudbuild_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.build.project_id
+  service                    = "cloudbuild.googleapis.com"
+}
+
 resource "google_project_service" "build_cloudresourcemanager_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
   project                    = data.google_project.build.project_id
   service                    = "cloudresourcemanager.googleapis.com"
+}
+
+resource "google_project_service" "build_cloudscheduler_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.build.project_id
+  service                    = "cloudscheduler.googleapis.com"
+}
+
+resource "google_project_service" "build_containerscanning_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.build.project_id
+  service                    = "containerscanning.googleapis.com"
 }
 
 resource "google_project_service" "build_iam_googleapis_com" {

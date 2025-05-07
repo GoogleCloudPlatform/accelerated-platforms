@@ -15,6 +15,7 @@ cloudbuild
 cloudbuildv
 cloudkms
 cloudresourcemanager
+cloudscheduler
 cloudsdktool
 cloudtrace
 configmanagement

@@ -50,6 +50,7 @@ qwiklabs
 rayutil
 safetensors
 scann
+sched
 schedulable
 tunables
 usecs

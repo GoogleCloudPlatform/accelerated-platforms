@@ -77,6 +77,7 @@ policycontroller
 reposync
 resourcedetection
 resourcemanager
+rollouts
 rootsync
 rrdatas
 secretmanager

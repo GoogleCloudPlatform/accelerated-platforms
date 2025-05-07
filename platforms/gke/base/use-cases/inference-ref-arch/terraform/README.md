@@ -1,4 +1,4 @@
-# Inference Platform reference implementation
+# Inference reference implementation
 
 ## Pull the source code
 

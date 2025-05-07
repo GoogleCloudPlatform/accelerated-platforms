@@ -1,7 +1,7 @@
 # GKE Accelerated Platform Use Cases
 
 - [Federated learning](/docs/use-cases/federated-learning/README.md)
-- [Inference Platform reference architecture](/platforms/gke/base/use-cases/inference-ref-arch/README.md)
+- [Inference reference architecture](/platforms/gke/base/use-cases/inference-ref-arch/README.md)
 
 ## How to develop a new use case
 

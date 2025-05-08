@@ -16,9 +16,13 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../base
-  - load-model-to-cloud-storage.yaml
-  - service-account.yaml
+  - ../online-inference-gpu-base
+
+nameSuffix: -llama4-scout
+
+patches:
+  - path: set-h100-80gb-high-compute-class.yaml
+  - path: set-vllm-llama4-scout-resources-limits.yaml
 
 replacements:
   - source:
@@ -27,10 +31,32 @@ replacements:
       fieldPath: data.IRA_BUCKET_NAME
     targets:
       - select:
-          kind: Job
-          name: transfer-model-to-gcs
+          kind: Deployment
+          name: vllm
         fieldPaths:
           - spec.template.spec.volumes.[name=gcsfuse].csi.volumeAttributes.bucketName
         options:
           delimiter: .
           index: 0
+  - source:
+      kind: ConfigMap
+      name: ira-model-configmap
+      fieldPath: data.MODEL_ID
+    targets:
+      - select:
+          kind: Deployment
+          name: vllm
+        fieldPaths:
+          - spec.template.spec.volumes.[name=gcsfuse].csi.volumeAttributes.mountOptions
+        options:
+          delimiter: "only-dir:"
+          index: 1
+      - select:
+          kind: Deployment
+          name: vllm
+        fieldPaths:
+          - spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=gcsfuse].mountPath
+          - spec.template.spec.containers.[name=inference-server].volumeMounts.[name=gcsfuse].mountPath
+        options:
+          delimiter: "/"
+          index: 2

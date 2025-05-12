@@ -70,3 +70,9 @@ variable "configmanagement_sync_repo" {
   description = "Repository to use for Config Sync"
   type        = string
 }
+
+variable "configmanagement_version" {
+  default     = "1.21.0"
+  description = "Version of Config Sync to install."
+  type        = string
+}

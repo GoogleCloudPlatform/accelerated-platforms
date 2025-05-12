@@ -21,7 +21,8 @@ resource "google_gke_hub_feature" "configmanagement" {
 
   fleet_default_member_config {
     configmanagement {
-      management = "MANAGEMENT_AUTOMATIC"
+      management = "MANAGEMENT_MANUAL"
+      version    = var.configmanagement_version
 
       config_sync {
         enabled       = true
@@ -48,7 +49,8 @@ resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
   project    = data.google_project.cluster.project_id
 
   configmanagement {
-    management = "MANAGEMENT_AUTOMATIC"
+    management = "MANAGEMENT_MANUAL"
+    version    = var.configmanagement_version
 
     config_sync {
       enabled       = true

@@ -79,6 +79,7 @@ resource "local_file" "shared_config_configmanagement_auto_tfvars" {
       configmanagement_prevent_drift   = var.configmanagement_prevent_drift
       configmanagement_sync_branch     = var.configmanagement_sync_branch
       configmanagement_sync_repo       = var.configmanagement_sync_repo
+      configmanagement_version         = var.configmanagement_version
     }
   )
   file_permission = "0644"

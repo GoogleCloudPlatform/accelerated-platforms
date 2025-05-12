@@ -13,10 +13,12 @@
 # limitations under the License.
 
 locals {
+  kubectl_wait_filename  = var.filename != null ? " --filename=${var.filename}" : ""
   kubectl_wait_namespace = var.namespace != null ? " --namespace=${var.namespace}" : " --all-namespaces"
+  kubectl_wait_resource  = var.resource != null ? " ${var.resource}" : ""
   kubectl_wait_selector  = var.selector != null ? " --selector=${var.selector}" : ""
 
-  kubectl_wait_command = "kubectl wait --for=${var.for}${local.kubectl_wait_namespace} --timeout=${var.timeout} ${var.resource}${local.kubectl_wait_selector}"
+  kubectl_wait_command = "kubectl wait --for='${var.for}'${local.kubectl_wait_namespace} --timeout=${var.timeout}${local.kubectl_wait_resource}${local.kubectl_wait_selector}${local.kubectl_wait_filename}"
 }
 
 data "local_file" "kubeconfig" {

@@ -1,0 +1,42 @@
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: gpu-a100-80gb-x1
+spec:
+  activeMigration:
+    optimizeRulePriority: true
+  priorities:
+  # Use reservations if available, fall back to on-demand otherwise
+  - gpu:
+      count: 1
+      driverVersion: latest
+      type: nvidia-a100-80gb
+    machineType: a2-ultragpu-1g
+    maxPodsPerNode: 16
+    reservations:
+      affinity: AnyBestEffort
+    spot: false
+
+  # Use DWS FlexStart
+  # - flexStart:
+  #     enabled: true
+  #     nodeRecycling:
+  #       leadTimeSeconds: 3600
+  #   gpu:
+  #     count: 1
+  #     driverVersion: latest
+  #     type: nvidia-a100-80gb
+  #   machineType: a2-ultragpu-1g
+  #   maxPodsPerNode: 16
+
+  # Use spot
+  - gpu:
+      count: 1
+      driverVersion: latest
+      type: nvidia-a100-80gb
+    machineType: a2-ultragpu-1g
+    maxPodsPerNode: 16
+    spot: true
+
+  nodePoolAutoCreation:
+    enabled: true

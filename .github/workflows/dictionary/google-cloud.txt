@@ -18,6 +18,7 @@ cloudresourcemanager
 cloudscheduler
 cloudsdktool
 cloudtrace
+computeclass
 configmanagement
 configsync
 connectgateway
@@ -53,6 +54,7 @@ hdml
 heatmaps
 highcpu
 highgpu
+hightpu
 httproute
 hyperdiskml
 instrumentor
@@ -75,6 +77,7 @@ policycontroller
 reposync
 resourcedetection
 resourcemanager
+rollouts
 rootsync
 rrdatas
 secretmanager

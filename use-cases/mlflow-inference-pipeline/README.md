@@ -96,14 +96,20 @@ experimental MLflow deployment that is part of MLPlayground.
 ## Configure the create-database job
 
 ```shell
-cd create-db
-git restore manifests/job-create-database.yaml
-sed \
--i -e "s|V_DB_ADMIN_KSA|${MLP_DB_ADMIN_KSA}|" \
--i -e "s|V_DB_USER_IAM|${MLP_DB_USER_IAM}|" \
--i -e "s|V_MLFLOW_DB_SETUP_IMAGE|${MLP_MLFLOW_DB_SETUP_IMAGE}|" \
--i -e "s|V_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
-manifests/job-create-database.yaml
+set -o nounset
+export DB_ADMIN_KSA="${MLP_DB_ADMIN_KSA}"
+export DB_INSTANCE_URI= "${MLP_DB_INSTANCE_URI}"
+export DB_USER_IAM="${MLP_DB_USER_IAM}"
+export MLFLOW_DB_SETUP_IMAGE= "${MLP_MLFLOW_DB_SETUP_IMAGE}"
+set +o nounset
+```
+
+> Ensure there are no `bash: <ENVIRONMENT_VARIABLE> unbound variable` error
+> messages.
+
+```shell
+git restore create-db/manifests/job-create-database.yaml
+envsubst < create-db/manifests/job-create-database.yaml | sponge create-db/manifests/job-create-database.yaml
 ```
 
 ## Run the create-database job
@@ -111,7 +117,7 @@ manifests/job-create-database.yaml
 - Create the database creation job.
 
   ```shell
-  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/job-create-database.yaml
+  kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f create-db/manifests/job-create-database.yaml
   cd -
   ```
 
@@ -128,7 +134,7 @@ manifests/job-create-database.yaml
 
   ```
   NAME                  STATUS     COMPLETIONS   DURATION   AGE
-  create-database   Complete   1/1           XXXXX      XXXXX
+  create-database       Complete   1/1           XXXXX      XXXXX
   ```
 
   It takes approximately 1 minutes for the job to complete.
@@ -154,10 +160,10 @@ manifests/job-create-database.yaml
 {"name": "__main__", "thread": 135677854571392, "threadName": "MainThread", "processName": "MainProcess", "process": 1, "message": "Permissions granted to user 'wi-xxxx-user@xxxxx.iam' on database 'mlflowdb'.", "timestamp": 1744226226.8089216, "level": "INFO", "runtime": 7517.86128}
 ```
 
-- ML flow backend store
+- MLflow backend store
 
-  Mlflow needs an artifact store to store the mlflow deployment artifacts. A GCS
-  bucket has already been created as part of MLP Playground.
+  Mlflow needs an artifact store to store the deployment artifacts. A GCS bucket
+  has already been created as part of MLP Playground.
 
   Validate that this GCS bucket exists in your project.
 
@@ -166,18 +172,6 @@ manifests/job-create-database.yaml
   ```
 
 ## Build the MLflow container image:
-
-- Configure build job
-
-```shell
- cd mlflow
- git restore Dockerfile
- sed \
- -i -e "s|V_MLFLOW_ARTIFACT_LOCATION|${MLP_MLFLOW_ARTIFACT_LOCATION}|" \
- -i -e "s|V_MLFLOW_DATABASE_URI|${MLP_MLFLOW_DATABASE_URI}|" \
-  Dockerfile
-  cd -
-```
 
 - Build the container image using Cloud Build and push the image to Artifact
   Registry
@@ -197,23 +191,28 @@ manifests/job-create-database.yaml
 
 ## Deploy the image on the MLPlayground cluster.
 
-- Configure the deployment file for mlflow
+- Configure the deployment file for MLflow
 
 ```shell
- cd mlflow
- git restore manifests/deployment.yaml
- sed \
- -i -e "s|V_MLFLOW_KSA|${MLP_MLFLOW_KSA}|" \
- -i -e "s|V_MLFLOW_IMAGE|${MLP_MLFLOW_IMAGE}|" \
- -i -e "s|V_DB_INSTANCE_URI|${MLP_DB_INSTANCE_URI}|" \
- manifests/deployment.yaml
- cd -
+set -o nounset
+export MLFLOW_KSA="${MLP_MLFLOW_KSA}"
+export DB_INSTANCE_URI="${MLP_DB_INSTANCE_URI}"
+export MLFLOW_ARTIFACT_LOCATION="${MLP_MLFLOW_ARTIFACT_LOCATION}"
+export MLFLOW_DATABASE_URI="${MLP_MLFLOW_DATABASE_URI}"
+export MLFLOW_IMAGE="${MLP_MLFLOW_IMAGE}"
+set +o nounset
+```
+
+> Ensure there are no `bash: <ENVIRONMENT_VARIABLE> unbound variable` error
+> messages.
+
+```shell
+git mlflow/manifests/deployment.yaml
+envsubst < mlflow/manifests/deployment.yaml | sponge mlflow/manifests/deployment.yaml
 ```
 
 ```shell
-cd mlflow
-kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f manifests/deployment.yaml
-cd -
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} apply -f mlflow/manifests/deployment.yaml
 ```
 
 It takes approximately 5 minutes for the deployment to complete.

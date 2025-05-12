@@ -14,16 +14,16 @@ spec:
       labels:
         app: mlflow-tracking
     spec:
-      serviceAccountName: V_MLFLOW_KSA
+      serviceAccountName: ${MLFLOW_KSA}
       containers:
         - name: alloydb-proxy
           image: gcr.io/alloydb-connectors/alloydb-auth-proxy:latest
           imagePullPolicy: Always
           args:
-            - "V_DB_INSTANCE_URI"
+            - "${DB_INSTANCE_URI}"
+            - "--auto-iam-authn"
             - "--psc"
             - "--port=5432"
-            - "--auto-iam-authn"
             - "--structured-logs"
           ports:
             - containerPort: 5432
@@ -34,8 +34,13 @@ spec:
             requests:
               memory: "2Gi"
               cpu: "1"
-        - name: mlflow
-          image: V_MLFLOW_IMAGE
+        - args:
+            - --default-artifact-root=gs://${MLFLOW_ARTIFACT_LOCATION}
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: "${MLFLOW_DATABASE_URI}"
+          name: mlflow
+          image: ${MLFLOW_IMAGE}
           imagePullPolicy: Always
           ports:
             - containerPort: 5000

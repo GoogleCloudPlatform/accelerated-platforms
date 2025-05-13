@@ -18,6 +18,7 @@ metadata:
   name: transfer-model-to-gcs
 spec:
   backoffLimit: 0
+  ttlSecondsAfterFinished: 600
   template:
     metadata:
       labels:
@@ -32,7 +33,6 @@ spec:
         iam.gke.io/gke-metadata-server-enabled: "true"
       restartPolicy: Never
       terminationGracePeriodSeconds: 0
-      ttlSecondsAfterFinished: 600
       serviceAccountName: ira-model-download-ksa
       containers:
         - name: transfer-model-to-gcs

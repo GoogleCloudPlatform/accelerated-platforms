@@ -28,7 +28,7 @@ deployment.
   and deployment of workloads.
 
 For an outline of Google Cloud products and features used in the platform, see
-[Platform Products and Features](/docs/platforms/gke-aiml/products-and-features.md).
+[Platform Products and Features](/docs/platforms/gke/base/products-and-features.md).
 
 ## Getting Started
 

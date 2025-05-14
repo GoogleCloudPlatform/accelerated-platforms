@@ -47,6 +47,14 @@ resource "google_container_cluster" "cluster" {
     gce_persistent_disk_csi_driver_config {
       enabled = true
     }
+
+    horizontal_pod_autoscaling {
+      disabled = false
+    }
+
+    parallelstore_csi_driver_config {
+      enabled = true
+    }
   }
 
   cluster_autoscaling {

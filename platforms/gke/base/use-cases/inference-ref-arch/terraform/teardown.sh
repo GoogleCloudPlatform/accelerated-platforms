@@ -45,7 +45,8 @@ for terraservice in $(echo "${use_case_terraservices[@]}" | tac -s " "); do
     echo "Current directory: $(pwd)" &&
     terraform init &&
     terraform destroy -auto-approve || exit 1
-  rm -rf .terraform/
+  rm -rf .terraform/ \
+    "terraform.tfstate"*
 done
 
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then

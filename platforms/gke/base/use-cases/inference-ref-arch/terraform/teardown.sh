@@ -18,10 +18,23 @@ set -o nounset
 
 start_timestamp=$(date +%s)
 
-export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
 
+# Set repository values
+export ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../)"
+export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
+export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
+
+# Set use-case specific values
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="inf"
+
+# Set execution specific values
+export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config" "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"

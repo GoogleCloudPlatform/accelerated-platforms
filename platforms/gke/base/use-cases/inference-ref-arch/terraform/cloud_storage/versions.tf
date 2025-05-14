@@ -12,6 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "use_case" {
-  value = "inference-ref-arch"
+terraform {
+  required_version = ">= 1.5.7"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.29.0"
+    }
+  }
+
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_ira_gcs_deploy-v1"
+  }
 }

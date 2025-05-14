@@ -23,3 +23,5 @@ test/scripts/environment_files/*
 
 # Node
 node_modules
+
+gke_gcloud_auth_plugin_cache

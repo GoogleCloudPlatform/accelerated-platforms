@@ -39,6 +39,7 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "workloads/cluster_credentials"
   "custom_compute_class"
   "workloads/auto_monitoring"
+  "workloads/custom_metrics_adapter"
   "workloads/inference_gateway"
   "workloads/jobset"
   "workloads/lws"

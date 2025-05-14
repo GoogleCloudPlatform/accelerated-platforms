@@ -69,6 +69,7 @@ if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
     "workloads/lws"
     "workloads/jobset"
     "workloads/inference_gateway"
+    "workloads/custom_metrics_adapter"
     "workloads/auto_monitoring"
     "custom_compute_class"
     "workloads/cluster_credentials"

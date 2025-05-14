@@ -18,6 +18,7 @@ metadata:
   name: transfer-model-to-gcs
 spec:
   backoffLimit: 0
+  ttlSecondsAfterFinished: 600
   template:
     metadata:
       labels:
@@ -32,7 +33,7 @@ spec:
         iam.gke.io/gke-metadata-server-enabled: "true"
       restartPolicy: Never
       terminationGracePeriodSeconds: 0
-      serviceAccountName: ira-online-gpu-ksa
+      serviceAccountName: ira-model-download-ksa
       containers:
         - name: transfer-model-to-gcs
           image: gcr.io/google.com/cloudsdktool/cloud-sdk:518.0.0-slim
@@ -73,12 +74,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_ID
-                  name: model-download-configmap
+                  name: ira-model-configmap
             - name: IRA_BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
                   key: IRA_BUCKET_NAME
-                  name: model-download-configmap
+                  name: ira-model-configmap
             - name: HUGGING_FACE_TOKEN
               valueFrom:
                 secretKeyRef:

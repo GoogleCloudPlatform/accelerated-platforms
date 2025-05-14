@@ -4,8 +4,8 @@ This document outlines the reference architecture for deploying and managing
 inference workloads, particularly on Google Kubernetes Engine (GKE). It serves
 as a foundational guide for building robust and scalable inference solutions.
 This implementation is an extension of the
-[Base GKE Accelerated Platform](platforms/gke/base/use-cases/inference-ref-arch/README.md)
-tailored for inference workloads.
+[Base GKE Accelerated Platform](/platforms/gke/base/README.md) tailored for
+inference workloads.
 
 ## Purpose
 
@@ -47,7 +47,7 @@ the
 This reference architecture is designed to support various inference patterns.
 Some example patterns provided are:
 
-- [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
+- Online inference with GPUs (Under development)
 
 Further use cases and patterns can be built upon this foundational architecture.
 

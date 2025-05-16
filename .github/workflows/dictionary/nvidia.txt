@@ -7,4 +7,5 @@ nccl
 nvcr
 nvlink
 nvml
+oauthtoken
 vgpu

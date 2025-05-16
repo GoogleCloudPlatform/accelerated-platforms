@@ -1,0 +1,24 @@
+image:
+  repository: nvcr.io/nim/deepmind/alphafold2
+  tag: 2.1.1
+imagePullSecrets:
+  - name: ngc-image-pull
+model:
+  name: deepmind/alphafold2
+  ngcAPISecret: ngc-api-key
+persistence:
+  enabled: true
+  existingClaim: deepmind-alphafold2-nvidia-model-store
+podAnnotations:
+  gke-gcsfuse/volumes: "true"
+nodeSelector:
+  cloud.google.com/compute-class: gpu-a100-80gb-x1
+resources:
+  limits:
+    nvidia.com/gpu: 1
+  requests:
+    nvidia.com/gpu: 1
+serviceAccount:
+  create: true
+statefulSet:
+  enabled: false

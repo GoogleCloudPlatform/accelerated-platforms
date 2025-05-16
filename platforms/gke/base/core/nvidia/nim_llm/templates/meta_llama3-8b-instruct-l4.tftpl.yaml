@@ -1,0 +1,27 @@
+image:
+  repository: nvcr.io/nim/meta/llama3-8b-instruct
+  tag: 1.0.3
+imagePullSecrets:
+  - name: ngc-image-pull
+model:
+  name: meta/llama3-8b-instruct
+  ngcAPISecret: ngc-api-key
+persistence:
+  enabled: true
+  existingClaim: meta-llama3-8b-instruct-nvidia-model-store
+podAnnotations:
+  gke-gcsfuse/cpu-limit: "0"
+  gke-gcsfuse/ephemeral-storage-limit: "0"
+  gke-gcsfuse/memory-limit: "0"
+  gke-gcsfuse/volumes: "true"
+nodeSelector:
+  cloud.google.com/compute-class: gpu-l4-24gb-x2
+resources:
+  limits:
+    nvidia.com/gpu: 2
+  requests:
+    nvidia.com/gpu: 2
+serviceAccount:
+  create: true
+statefulSet:
+  enabled: false

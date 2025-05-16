@@ -24,6 +24,26 @@ output "cluster_region" {
   value = var.cluster_region
 }
 
+output "nvidia_ncg_api_key_secret_manager_project_id" {
+  value = local.nvidia_ncg_api_key_secret_manager_project_id
+}
+
+output "nvidia_ncg_api_key_secret_manager_secret_name" {
+  value = local.nvidia_ncg_api_key_secret_manager_secret_name
+}
+
+output "nvidia_nim_model_store_bucket_location" {
+  value = local.nvidia_nim_model_store_bucket_location
+}
+
+output "nvidia_nim_model_store_bucket_name" {
+  value = local.nvidia_nim_model_store_bucket_name
+}
+
+output "nvidia_nim_model_store_bucket_project_id" {
+  value = local.nvidia_nim_model_store_bucket_project_id
+}
+
 output "platform_name" {
   value = var.platform_name
 }

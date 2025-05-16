@@ -1,8 +1,9 @@
-ARG GCLOUD_VERSION="504.0.1"
+ARG GCLOUD_VERSION="522.0.0"
 
 FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:${GCLOUD_VERSION}-alpine
 
 ARG CRANE_VERSION="v0.20.2"
+ARG KUBECTL_VALIDATE_VERSION="v0.0.4"
 # When updating the Terraform version, ensure that you also updated the
 # required_version in Terraform modules and services across the repository.
 # Also, consider what Terraform version Cloud Shell ships.
@@ -22,6 +23,8 @@ RUN echo "Installing Alpine packages" && \
   rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && \
   rm -rf /google-cloud-sdk/.install/.backup && \
   echo "Installing crane" && \
-  go install github.com/google/go-containerregistry/cmd/crane@${CRANE_VERSION}
+  go install github.com/google/go-containerregistry/cmd/crane@${CRANE_VERSION} && \
+  echo "Installing kubectl validate" && \
+  go install sigs.k8s.io/kubectl-validate@${KUBECTL_VALIDATE_VERSION}
 
 ENV PATH="${PATH}:/root/go/bin"

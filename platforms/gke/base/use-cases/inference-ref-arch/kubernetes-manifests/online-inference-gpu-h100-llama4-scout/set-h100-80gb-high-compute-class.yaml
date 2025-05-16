@@ -17,5 +17,7 @@ kind: Deployment
 metadata:
   name: vllm
 spec:
-  nodeSelector:
-    cloud.google.com/compute-class: gpu-h100-80gb-x8-high
+  template:
+    spec:
+      nodeSelector:
+        cloud.google.com/compute-class: gpu-h100-80gb-x8-high

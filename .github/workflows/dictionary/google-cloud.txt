@@ -2,6 +2,7 @@ aiplatform
 alloydb
 alloydbiamuser
 alloydbsuperuser
+alphafold
 anthos
 anthosconfigmanagement
 anthospolicycontroller

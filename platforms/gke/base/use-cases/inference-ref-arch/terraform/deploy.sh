@@ -54,6 +54,7 @@ source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variable
 declare -a aiml_terraservices=(
   "initialize"
   "cloud_storage"
+  "comfyui"
 )
 for terraservice in "${aiml_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
@@ -61,6 +62,9 @@ for terraservice in "${aiml_terraservices[@]}"; do
     terraform init &&
     terraform plan -input=false -out=tfplan &&
     terraform apply -input=false tfplan || exit 1
+    if [ ${terraservice} == "comfyui" ]; then
+      terraform output -raw environment_configuration > ${ACP_REPO_DIR}/env_vars
+    fi
   rm tfplan
 done
 

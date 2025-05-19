@@ -64,6 +64,12 @@ variable "recursive" {
   type        = bool
 }
 
+variable "source_content_hash" {
+  default     = ""
+  description = "Hash of the contents of the source files. Can be used to trigger a new kubectl apply whenever the source contents change."
+  type        = string
+}
+
 variable "use_kustomize" {
   default     = false
   description = "Does the manifest use kustomize."

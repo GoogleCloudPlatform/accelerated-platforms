@@ -12,6 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: transfer-model-to-gcs
+spec:
+  storageClassName: premium-rwo
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Ti
+---
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -29,9 +41,11 @@ spec:
         gke-gcsfuse/memory-limit: "0"
         gke-gcsfuse/ephemeral-storage-limit: "0"
     spec:
+      securityContext:
+        fsGroup: 10000
       nodeSelector:
         iam.gke.io/gke-metadata-server-enabled: "true"
-      restartPolicy: Never
+      restartPolicy: OnFailure
       terminationGracePeriodSeconds: 0
       serviceAccountName: ira-model-download-ksa
       containers:
@@ -61,7 +75,7 @@ spec:
               echo "Downloading ${MODEL_ID} to ${IRA_BUCKET_NAME} Cloud Storage bucket"
               echo "Debug Hugging Face token length: ${#HUGGING_FACE_TOKEN}"
 
-              pip3 install -U "huggingface_hub[cli]==0.30.2" --break-system-packages
+              pip3 install -U "huggingface_hub[cli]==0.31.4" --break-system-packages
 
               huggingface-cli download --repo-type model ${MODEL_ID} --local-dir /local/temp --token ${HUGGING_FACE_TOKEN}
 
@@ -89,10 +103,10 @@ spec:
           # package, at the expense of download speed.
           resources:
             limits:
-              cpu: 2000m
+              cpu: 4000m
               memory: 8Gi
             requests:
-              cpu: 2000m
+              cpu: 4000m
               memory: 8Gi
           volumeMounts:
             - name: gcsfuse
@@ -106,6 +120,9 @@ spec:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: cloud-storage-bucket-name
+        - name: gke-gcsfuse-buffer
+          persistentVolumeClaim:
+            claimName: transfer-model-to-gcs
       tolerations:
         - key: "on-demand"
           value: "true"

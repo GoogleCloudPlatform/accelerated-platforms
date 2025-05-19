@@ -1,0 +1,106 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${app_name}-${accelerator}
+  namespace: ${namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${app_name}-${accelerator}
+  template:
+    metadata:
+      labels:
+        app: ${app_name}-${accelerator}
+      annotations:
+        gke-gcsfuse/volumes: "true"
+    spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      volumes:
+      - name: dshm
+        emptyDir:
+            medium: Memory   
+      - name: comfyui-input
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ${input_bucket}  
+            mountOptions: "metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
+      - name: comfyui-output
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ${output_bucket} 
+            mountOptions: "metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
+      - name: comfyui-model
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ${model_buckets}
+            mountOptions: "implicit-dirs" 
+      containers:
+      - name: ${app_name}-${accelerator}
+        image: ${image}
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8848
+        volumeMounts:
+        - mountPath: /app/ComfyUI/models
+          name: comfyui-model
+        - mountPath: /app/ComfyUI/input
+          name: comfyui-input
+        - mountPath: /app/ComfyUI/output
+          name: comfyui-output
+        resources:
+          requests:
+            nvidia.com/gpu: 2
+          limits:
+            nvidia.com/gpu: 2
+      nodeSelector:
+        cloud.google.com/gke-accelerator: ${accelerator}
+      serviceAccountName: ${serviceaccount}
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: "on-demand"
+        value: "true"
+        operator: "Equal"
+        effect: "NoSchedule" 
+      - key: "reservation"
+        value: "true"
+        operator: "Equal"
+        effect: "NoSchedule" 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${app_name}-svc
+  namespace: ${namespace}
+  labels:
+    app: ${app_name}-${accelerator}
+spec:
+  selector:
+    app: ${app_name}-${accelerator}
+  ports:
+  - port: 8848
+    protocol: TCP
+    targetPort: 8848
+  type: NodePort

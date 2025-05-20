@@ -4,9 +4,9 @@ metadata:
   name: not-applicable
 spec:
   template:
-    nodeSelector:
-      resource-type: system
     spec:
+      nodeSelector:
+        resource-type: system
       tolerations:
       - effect: NoSchedule
         key: "components.gke.io/gke-managed-components"

@@ -4,6 +4,8 @@ metadata:
   name: not-applicable
 spec:
   template:
+    nodeSelector:
+      resource-type: system
     spec:
       tolerations:
       - effect: NoSchedule

@@ -20,6 +20,12 @@ resources:
 
 nameSuffix: -gemma3-27b
 
+configMapGenerator:
+  - name: ira-model-configmap
+    behavior: merge
+    envs:
+      - vllm-runtime-config.env
+
 patches:
   - path: set-h100-80gb-high-compute-class.yaml
   - path: set-vllm-gemma3-27b-resources-limits.yaml

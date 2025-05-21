@@ -18,7 +18,7 @@ kind: Kustomization
 resources:
   - ../online-inference-gpu-base
 
-nameSuffix: -llama3
+nameSuffix: -gemma3-27b
 
 configMapGenerator:
   - name: ira-model-configmap
@@ -27,8 +27,8 @@ configMapGenerator:
       - vllm-runtime-config.env
 
 patches:
-  - path: set-h100-80gb-high-compute-class.yaml
-  - path: set-vllm-llama3-resources-limits.yaml
+  - path: set-l4-24gb-compute-class.yaml
+  - path: set-vllm-gemma3-27b-resources-limits.yaml
 
 replacements:
   - source:

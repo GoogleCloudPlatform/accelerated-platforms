@@ -80,7 +80,7 @@ the following:
       model will be downloaded.
     - `<MODEL_ID>` is the fully qualified model identifier.
 
-      - For Gemma, the fully qualified model identifier is:
+      - For Gemma 3 27B, the fully qualified model identifier is:
         `google/gemma-3-27b-it`
       - For Llama 4, the fully qualified model identifier is:
         `meta-llama/Llama-4-Scout-17B-16E-Instruct`
@@ -105,6 +105,10 @@ the following:
 
     - `<MAX_MODEL_LEN>` is the maximum context length. For more information, see
       [vLLM Engine arguments](https://docs.vllm.ai/en/latest/serving/engine_args.html).
+
+      - For Gemma 3 27B:
+
+        - NVIDIA H100: `131072`
 
       - For Llama 3.3 70B:
 
@@ -178,7 +182,12 @@ the following:
     Note: the model downloader job has `ttlSecondsAfterFinished` configured, so
     the command to delete it might return an error if you wait for more than
     `ttlSecondsAfterFinished` seconds after the job completes because GKE
-    automatically deletes it to reclaim resources.
+    automatically deletes it to reclaim resources. In this case, the output
+    looks like the following:
+
+    ```text
+    Error from server (NotFound): jobs.batch "transfer-model-to-gcs" not found
+    ```
 
 1.  Delete the model downloader cache PersistentVolumeClaim:
 
@@ -202,6 +211,7 @@ the following:
 
     - `MODEL_NAME` is the name of the model to deploy. Valid values are:
 
+      - `gemma3-27b`
       - `llama3`
       - `llama4-scout`
 

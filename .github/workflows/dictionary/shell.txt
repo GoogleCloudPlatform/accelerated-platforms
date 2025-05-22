@@ -4,6 +4,7 @@ envsubst
 errexit
 getopt
 libgl
+libexec
 libglib
 nounset
 pipefail

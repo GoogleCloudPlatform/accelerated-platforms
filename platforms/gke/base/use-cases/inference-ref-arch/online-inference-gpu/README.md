@@ -84,7 +84,7 @@ the following:
         `google/gemma-3-27b-it`
       - For Llama 4, the fully qualified model identifier is:
         `meta-llama/Llama-4-Scout-17B-16E-Instruct`
-      - For Llama 3.3, the fully qualified model identifier is:
+      - For Llama 3.3 70B, the fully qualified model identifier is:
         `meta-llama/Llama-3.3-70B-Instruct`
 
     - `<TENSOR_PARALLEL_SIZE>` is the number of GPUs necessary to run the model.
@@ -95,7 +95,7 @@ the following:
 
         - NVIDIA H100: at least 1
 
-      - For Llama 3.3:
+      - For Llama 3.3 70B:
 
         - NVIDIA H100: at least 4
 
@@ -105,6 +105,10 @@ the following:
 
     - `<MAX_MODEL_LEN>` is the maximum context length. For more information, see
       [vLLM Engine arguments](https://docs.vllm.ai/en/latest/serving/engine_args.html).
+
+      - For Llama 3.3 70B:
+
+        - NVIDIA H100: `131072`
 
       - For Llama 4 Scout:
 
@@ -171,6 +175,17 @@ the following:
     kubectl delete job transfer-model-to-gcs
     ```
 
+    Note: the model downloader job has `ttlSecondsAfterFinished` configured, so
+    the command to delete it might return an error if you wait for more than
+    `ttlSecondsAfterFinished` seconds after the job completes because GKE
+    automatically deletes it to reclaim resources.
+
+1.  Delete the model downloader cache PersistentVolumeClaim:
+
+    ```shell
+    kubectl delete pvc transfer-model-to-gcs
+    ```
+
 ## Deploy the online inference workload
 
 1.  Deploy the online inference workload in the GKE cluster:
@@ -187,6 +202,7 @@ the following:
 
     - `MODEL_NAME` is the name of the model to deploy. Valid values are:
 
+      - `llama3`
       - `llama4-scout`
 
     Ensure that you have enough quota in your project to provision the selected

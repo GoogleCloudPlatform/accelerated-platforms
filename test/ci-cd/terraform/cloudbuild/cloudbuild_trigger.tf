@@ -312,6 +312,10 @@ resource "google_cloudbuild_trigger" "uc_federated_learning_terraform" {
       invert_regex    = false
     }
   }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
 }
 
 resource "google_cloudbuild_trigger" "uc_rag_data_proc_ray_build" {

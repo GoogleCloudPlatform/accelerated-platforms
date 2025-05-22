@@ -69,15 +69,14 @@ the following:
 
     ```shell
     IRA_BUCKET_NAME=<IRA_BUCKET_NAME>
-    MAX_MODEL_LEN=<MAX_MODEL_LEN>
     MODEL_ID=<MODEL_ID>
-    TENSOR_PARALLEL_SIZE=<TENSOR_PARALLEL_SIZE>
     ```
 
     Where:
 
     - `<IRA_BUCKET_NAME>` is the name of the Cloud Storage bucket where the
       model will be downloaded.
+
     - `<MODEL_ID>` is the fully qualified model identifier.
 
       - For Gemma 3 27B, the fully qualified model identifier is:
@@ -86,37 +85,6 @@ the following:
         `meta-llama/Llama-4-Scout-17B-16E-Instruct`
       - For Llama 3.3 70B, the fully qualified model identifier is:
         `meta-llama/Llama-3.3-70B-Instruct`
-
-    - `<TENSOR_PARALLEL_SIZE>` is the number of GPUs necessary to run the model.
-      For more information, see
-      [Distributed inference and serving](https://docs.vllm.ai/en/latest/serving/distributed_serving.html#distributed-inference-and-serving).
-
-      - For Gemma 3 27B:
-
-        - NVIDIA H100: at least 1
-
-      - For Llama 3.3 70B:
-
-        - NVIDIA H100: at least 4
-
-      - For Llama 4 Scout:
-
-        - NVIDIA H100: at least 8
-
-    - `<MAX_MODEL_LEN>` is the maximum context length. For more information, see
-      [vLLM Engine arguments](https://docs.vllm.ai/en/latest/serving/engine_args.html).
-
-      - For Gemma 3 27B:
-
-        - NVIDIA H100: `131072`
-
-      - For Llama 3.3 70B:
-
-        - NVIDIA H100: `131072`
-
-      - For Llama 4 Scout:
-
-        - NVIDIA H100: `1000000`
 
 1.  [Generate a Hugging Face token](https://huggingface.co/docs/hub/security-tokens).
     Make sure to grant the
@@ -173,10 +141,10 @@ the following:
     transfer-model-to-gcs   Complete   1/1           33m        3h30m
     ```
 
-1.  Delete the model downloader job:
+1.  Delete the model downloader:
 
     ```shell
-    kubectl delete job transfer-model-to-gcs
+    kubectl delete -k platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download
     ```
 
     Note: the model downloader job has `ttlSecondsAfterFinished` configured, so
@@ -187,12 +155,6 @@ the following:
 
     ```text
     Error from server (NotFound): jobs.batch "transfer-model-to-gcs" not found
-    ```
-
-1.  Delete the model downloader cache PersistentVolumeClaim:
-
-    ```shell
-    kubectl delete pvc transfer-model-to-gcs
     ```
 
 ## Deploy the online inference workload
@@ -207,7 +169,9 @@ the following:
 
     - `<GPU_TYPE>` is the GPU type. Valid values are:
 
+      - `l4` (only for `gemma3-27b`)
       - `h100`
+      - `h200`
 
     - `MODEL_NAME` is the name of the model to deploy. Valid values are:
 

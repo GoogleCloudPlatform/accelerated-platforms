@@ -1,4 +1,11 @@
+# When updating GCLOUD_VERSION, update DOCKER_VERSION to match the Docker
+# version that the google-cloud-cli:${GCLOUD_VERSION}-alpine image includes.
+# Example command to get the Docker version:
+# docker run --rm -it --entrypoint docker gcr.io/google.com/cloudsdktool/cloud-sdk:522.0.0-alpine --version
 ARG GCLOUD_VERSION="522.0.0"
+ARG DOCKER_VERSION="28.1.1"
+
+FROM docker:${DOCKER_VERSION} AS static-docker-source
 
 FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:${GCLOUD_VERSION}-alpine
 
@@ -10,7 +17,6 @@ ARG KUBECTL_VALIDATE_VERSION="v0.0.4"
 ARG TERRAFORM_VERSION="1.8.0"
 
 RUN echo "Installing Alpine packages" && \
-  apk upgrade && \
   apk --no-cache add go ncurses && \
   echo "Installing Terraform v${TERRAFORM_VERSION}" && \
   cd /usr/local/bin && \
@@ -26,5 +32,7 @@ RUN echo "Installing Alpine packages" && \
   go install github.com/google/go-containerregistry/cmd/crane@${CRANE_VERSION} && \
   echo "Installing kubectl validate" && \
   go install sigs.k8s.io/kubectl-validate@${KUBECTL_VALIDATE_VERSION}
+
+COPY --from=static-docker-source /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
 
 ENV PATH="${PATH}:/root/go/bin"

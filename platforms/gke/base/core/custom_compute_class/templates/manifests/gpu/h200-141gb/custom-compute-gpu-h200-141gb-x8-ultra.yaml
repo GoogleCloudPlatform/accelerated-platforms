@@ -5,6 +5,8 @@ metadata:
 spec:
   activeMigration:
     optimizeRulePriority: true
+  nodePoolAutoCreation:
+    enabled: true
   priorities:
     # Use reservations if available, fall back to on-demand otherwise
     - gpu:
@@ -17,7 +19,7 @@ spec:
         affinity: AnyBestEffort
       spot: false
 
-    # Use DWS FlexStart
+    # Use DWS FlexStart with 7 day limit
     - flexStart:
         enabled: true
         nodeRecycling:
@@ -28,6 +30,7 @@ spec:
         type: nvidia-h200-141gb
       machineType: a3-ultragpu-8g
       maxPodsPerNode: 16
+      maxRunDurationSeconds: 604800
 
     # Use spot
     - gpu:
@@ -37,6 +40,3 @@ spec:
       machineType: a3-ultragpu-8g
       maxPodsPerNode: 16
       spot: true
-
-  nodePoolAutoCreation:
-    enabled: true

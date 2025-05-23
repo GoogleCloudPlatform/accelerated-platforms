@@ -5,44 +5,43 @@ metadata:
 spec:
   activeMigration:
     optimizeRulePriority: true
-  priorities:
-  # TPU currently only supports Specific affinity.
-  # - machineType: 
-  #   maxPodsPerNode: 16
-  #   reservations:
-  #     affinity: AnyBestEffort
-  #   spot: false
-  #   tpu:
-  #     count: 8
-  #     topology: 2x4
-  #     type: tpu-v6e-slice
-  
-  # Use on-demand
-  - maxPodsPerNode: 16
-    spot: false
-    tpu:
-      count: 8
-      topology: 2x4
-      type: tpu-v6e-slice
-  
-  # Use DWS FlexStart, currently not support for TPUs as of 4/18
-  # - flexStart:
-  #     enabled: true
-  #     nodeRecycling:
-  #       leadTimeSeconds: 3600
-  #   maxPodsPerNode: 16
-  #   tpu:
-  #     count: 8
-  #     topology: 2x4
-  #     type: tpu-v6e-slice
-  
-  # Use spot
-  - maxPodsPerNode: 16
-    spot: true
-    tpu:
-      count: 8
-      topology: 2x4
-      type: tpu-v6e-slice
-
   nodePoolAutoCreation:
     enabled: true
+  priorities:
+    # TPU currently only supports Specific affinity.
+    # - machineType:
+    #   maxPodsPerNode: 16
+    #   reservations:
+    #     affinity: AnyBestEffort
+    #   spot: false
+    #   tpu:
+    #     count: 8
+    #     topology: 2x4
+    #     type: tpu-v6e-slice
+
+    # Use on-demand
+    - maxPodsPerNode: 16
+      spot: false
+      tpu:
+        count: 8
+        topology: 2x4
+        type: tpu-v6e-slice
+
+    # Use DWS FlexStart, currently not support for TPUs as of 4/18
+    # - flexStart:
+    #     enabled: true
+    #     nodeRecycling:
+    #       leadTimeSeconds: 3600
+    #   maxPodsPerNode: 16
+    #   tpu:
+    #     count: 8
+    #     topology: 2x4
+    #     type: tpu-v6e-slice
+
+    # Use spot
+    - maxPodsPerNode: 16
+      spot: true
+      tpu:
+        count: 8
+        topology: 2x4
+        type: tpu-v6e-slice

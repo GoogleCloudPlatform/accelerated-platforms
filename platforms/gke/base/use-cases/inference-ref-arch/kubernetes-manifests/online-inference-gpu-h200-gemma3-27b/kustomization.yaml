@@ -1,0 +1,68 @@
+# Copyright 2025 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../online-inference-gpu-base
+
+nameSuffix: -gemma3-27b
+
+configMapGenerator:
+  - name: ira-model-configmap
+    behavior: merge
+    envs:
+      - vllm-runtime-config.env
+
+patches:
+  - path: set-h200-141gb-ultra-compute-class.yaml
+  - path: set-vllm-gemma3-27b-resources-limits.yaml
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: ira-model-configmap
+      fieldPath: data.IRA_BUCKET_NAME
+    targets:
+      - select:
+          kind: Deployment
+          name: vllm
+        fieldPaths:
+          - spec.template.spec.volumes.[name=gcsfuse].csi.volumeAttributes.bucketName
+        options:
+          delimiter: .
+          index: 0
+  - source:
+      kind: ConfigMap
+      name: ira-model-configmap
+      fieldPath: data.MODEL_ID
+    targets:
+      - select:
+          kind: Deployment
+          name: vllm
+        fieldPaths:
+          - spec.template.spec.volumes.[name=gcsfuse].csi.volumeAttributes.mountOptions
+        options:
+          delimiter: "only-dir:"
+          index: 1
+      - select:
+          kind: Deployment
+          name: vllm
+        fieldPaths:
+          - spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=gcsfuse].mountPath
+          - spec.template.spec.containers.[name=inference-server].volumeMounts.[name=gcsfuse].mountPath
+        options:
+          delimiter: "/"
+          index: 2

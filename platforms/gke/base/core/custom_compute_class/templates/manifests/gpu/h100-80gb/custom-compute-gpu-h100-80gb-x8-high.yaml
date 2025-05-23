@@ -1,0 +1,42 @@
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: gpu-h100-80gb-x8-high
+spec:
+  activeMigration:
+    optimizeRulePriority: true
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    # Use reservations if available, fall back to on-demand otherwise
+    - gpu:
+        count: 8
+        driverVersion: latest
+        type: nvidia-h100-80gb
+      machineType: a3-highgpu-8g
+      maxPodsPerNode: 16
+      reservations:
+        affinity: AnyBestEffort
+      spot: false
+
+    # Use DWS FlexStart with 7 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      gpu:
+        count: 8
+        driverVersion: latest
+        type: nvidia-h100-80gb
+      machineType: a3-highgpu-8g
+      maxPodsPerNode: 16
+      maxRunDurationSeconds: 604800
+
+    # Use spot
+    - gpu:
+        count: 8
+        driverVersion: latest
+        type: nvidia-h100-80gb
+      machineType: a3-highgpu-8g
+      maxPodsPerNode: 16
+      spot: true

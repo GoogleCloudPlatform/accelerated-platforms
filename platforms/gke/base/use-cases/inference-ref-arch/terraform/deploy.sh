@@ -18,6 +18,17 @@ set -o nounset
 
 start_timestamp=$(date +%s)
 
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
+
+# Set repository values
+export ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../)"
+export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
+export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
+
 # Set use-case specific values
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="inf"
@@ -28,18 +39,21 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "workloads/cluster_credentials"
   "custom_compute_class"
   "workloads/auto_monitoring"
+  "workloads/custom_metrics_adapter"
   "workloads/inference_gateway"
   "workloads/jobset"
   "workloads/lws"
   "workloads/priority_class"
   "workloads/kueue"
 )
-CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" ${ACP_PLATFORM_CORE_DIR}/deploy.sh
+CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
-source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config ${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config" "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"
 
 declare -a aiml_terraservices=(
   "initialize"
+  "cloud_storage"
 )
 for terraservice in "${aiml_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
@@ -49,6 +63,12 @@ for terraservice in "${aiml_terraservices[@]}"; do
     terraform apply -input=false tfplan || exit 1
   rm tfplan
 done
+
+# shellcheck disable=SC2154
+gcloud container clusters get-credentials "${cluster_name}" \
+  --region "${cluster_region}" \
+  --project "${cluster_project_id}" \
+  --dns-endpoint
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))

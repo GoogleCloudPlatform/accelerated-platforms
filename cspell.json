@@ -65,6 +65,10 @@
     {
       "name": "vllm",
       "path": ".github/workflows/dictionary/vllm.txt"
+    },
+    {
+      "name": "comfyui",
+      "path": ".github/workflows/dictionary/comfyui.txt"
     }
   ],
   "dictionaries": [
@@ -83,7 +87,8 @@
     "svg",
     "terraform",
     "use-case-federated-learning",
-    "vllm"
+    "vllm",
+    "comfyui"
   ],
   "ignorePaths": [
     "node_modules",

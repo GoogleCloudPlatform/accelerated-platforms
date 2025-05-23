@@ -52,6 +52,7 @@ rm tfplan
 declare -a use_case_terraservices=(
   "cloud_storage"
   "initialize"
+  "comfyui"
 )
 for terraservice in $(echo "${use_case_terraservices[@]}" | tac -s " "); do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&

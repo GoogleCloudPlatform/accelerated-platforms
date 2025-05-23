@@ -1,7 +1,7 @@
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
 metadata:
-  name: gpu-h100-80gb-x8-high
+  name: gpu-h100-80gb-x1-high
 spec:
   activeMigration:
     optimizeRulePriority: true
@@ -10,10 +10,10 @@ spec:
   priorities:
     # Use reservations if available, fall back to on-demand otherwise
     - gpu:
-        count: 8
+        count: 1
         driverVersion: latest
         type: nvidia-h100-80gb
-      machineType: a3-highgpu-8g
+      machineType: a3-highgpu-1g
       maxPodsPerNode: 16
       reservations:
         affinity: AnyBestEffort
@@ -25,18 +25,18 @@ spec:
         nodeRecycling:
           leadTimeSeconds: 3600
       gpu:
-        count: 8
+        count: 1
         driverVersion: latest
         type: nvidia-h100-80gb
-      machineType: a3-highgpu-8g
+      machineType: a3-highgpu-1g
       maxPodsPerNode: 16
       maxRunDurationSeconds: 604800
 
     # Use spot
     - gpu:
-        count: 8
+        count: 1
         driverVersion: latest
         type: nvidia-h100-80gb
-      machineType: a3-highgpu-8g
+      machineType: a3-highgpu-1g
       maxPodsPerNode: 16
       spot: true

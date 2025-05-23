@@ -1,7 +1,7 @@
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
 metadata:
-  name: gpu-h100-80gb-x8-high
+  name: gpu-l4-24gb-x8
 spec:
   activeMigration:
     optimizeRulePriority: true
@@ -12,8 +12,8 @@ spec:
     - gpu:
         count: 8
         driverVersion: latest
-        type: nvidia-h100-80gb
-      machineType: a3-highgpu-8g
+        type: nvidia-l4
+      machineType: g2-standard-96
       maxPodsPerNode: 16
       reservations:
         affinity: AnyBestEffort
@@ -27,8 +27,8 @@ spec:
       gpu:
         count: 8
         driverVersion: latest
-        type: nvidia-h100-80gb
-      machineType: a3-highgpu-8g
+        type: nvidia-l4
+      machineType: g2-standard-96
       maxPodsPerNode: 16
       maxRunDurationSeconds: 604800
 
@@ -36,7 +36,7 @@ spec:
     - gpu:
         count: 8
         driverVersion: latest
-        type: nvidia-h100-80gb
-      machineType: a3-highgpu-8g
+        type: nvidia-l4
+      machineType: g2-standard-96
       maxPodsPerNode: 16
       spot: true

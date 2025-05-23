@@ -70,12 +70,17 @@ spec:
         - name: inference-server
           args:
             - --disable-log-requests
-            - --gpu-memory-utilization=0.95
+            - --gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)
             - --model=/gcs/$(MODEL_ID)
             - --tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)
             - --trust-remote-code
             - --max-model-len=$(MAX_MODEL_LEN)
           env:
+            - name: GPU_MEMORY_UTILIZATION
+              valueFrom:
+                configMapKeyRef:
+                  key: GPU_MEMORY_UTILIZATION
+                  name: ira-model-configmap
             - name: MAX_MODEL_LEN
               valueFrom:
                 configMapKeyRef:

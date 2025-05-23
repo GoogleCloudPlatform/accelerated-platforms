@@ -27,7 +27,7 @@ configMapGenerator:
       - vllm-runtime-config.env
 
 patches:
-  - path: set-h100-80gb-high-compute-class.yaml
+  - path: set-h200-141gb-ultra-compute-class.yaml
   - path: set-vllm-llama3-resources-limits.yaml
 
 replacements:

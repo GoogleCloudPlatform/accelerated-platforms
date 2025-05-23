@@ -1,0 +1,22 @@
+name: Terraform validation
+on: 
+  push:
+    branches:
+      - main
+      - staging
+  pull_request:
+    branches:
+      - main
+      - staging
+jobs:
+  Terraform-Checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.5.7" # Cloud Shell version
+
+      - name: terraform fmt
+        id: fmt
+        run: terraform fmt -check -recursive

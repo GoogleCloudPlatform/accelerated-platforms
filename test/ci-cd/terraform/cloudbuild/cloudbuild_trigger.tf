@@ -84,6 +84,10 @@ resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
       invert_regex    = false
     }
   }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terraform" {
@@ -138,6 +142,10 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform" {
       comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
       invert_regex    = false
     }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
   }
 }
 

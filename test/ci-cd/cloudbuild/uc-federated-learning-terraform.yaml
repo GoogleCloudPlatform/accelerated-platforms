@@ -17,7 +17,7 @@ options:
 
 steps:
   - args:
-    - "${_WAIT_FOR_TRIGGER}"
+      - "${_WAIT_FOR_TRIGGER}"
     entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
     env:
       - "LOCATION=${LOCATION}"

@@ -63,6 +63,8 @@ steps:
         export TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
         export TF_VAR_platform_name="${SHORT_SHA}"
 
+        export TF_VAR_iap_domain="${_IAP_DOMAIN}"
+
         # Create a dedicated project
         export NEW_PROJECT_ID="$${TF_VAR_platform_default_project_id}"
         test/ci-cd/scripts/create_project.sh

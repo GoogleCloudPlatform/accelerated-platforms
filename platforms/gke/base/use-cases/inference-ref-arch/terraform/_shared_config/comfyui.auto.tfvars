@@ -33,4 +33,3 @@ comfyui_storage_buckets = {
     versioning_enabled = false
   },
 }
-iap_domain = ""

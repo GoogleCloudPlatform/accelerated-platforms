@@ -12,58 +12,64 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "app_name" {
-  default = null
+variable "comfyui_accelerator_type" {
+  default = "nvidia-l4"
   type    = string
 }
 
-variable "accelerator" {
-  default = null
+variable "comfyui_app_name" {
+  default = "comfyui"
   type    = string
 }
 
-variable "artifact_repo_name" {
-  default = null
+variable "comfyui_artifact_repo_name" {
+  default = "comfyui"
   type    = string
 }
 
-variable "comfyui_kubernetes_namespace" {
+variable "comfyui_iap_domain" {
   default = null
   type    = string
 }
 
 variable "comfyui_image_name" {
-  default = null
+  default = "comfyui"
   type    = string
 }
 
 variable "comfyui_image_staging_bucket" {
-  default = null
+  default = "comfyui-image-staging"
   type    = string
 }
 
 variable "comfyui_image_tag" {
-  default = null
+  default = "0.0.1"
+  type    = string
+}
+
+variable "comfyui_kubernetes_namespace" {
+  default = "comfyui"
   type    = string
 }
 
 variable "comfyui_storage_buckets" {
-  default     = {}
+  default = {
+    "comfyui-models" = {
+      force_destroy      = true,
+      versioning_enabled = false
+    },
+    "comfyui-input" = {
+      force_destroy      = true,
+      versioning_enabled = false
+    },
+    "comfyui-output" = {
+      force_destroy      = true,
+      versioning_enabled = false
+    },
+  }
   description = "Map describing the Cloud Storage buckets to create. Keys are bucket names."
   type = map(object({
     force_destroy      = bool
     versioning_enabled = bool
   }))
 }
-
-variable "iap_domain" {
-  default = null
-  type    = string
-}
-
-
-
-
-
-
-

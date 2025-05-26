@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "comfyui_app_name" {
+  description = "App name for the COmfyUI deployment."
+  value       = var.comfyui_app_name
+}
+
 output "comfyui_artifact_registry_repository_id" {
   description = "The ID of the Artifact Registry repository for ComfyUI container images."
   value       = google_artifact_registry_repository.comfyui_container_images.repository_id
-}
-
-output "comfyui_app_name" {
-  description = "App name for the COmfyUI deployment."
-  value       = var.app_name
 }
 
 output "comfyui_deployment_namespace" {
@@ -90,8 +90,8 @@ GKE_CLUSTER_NAME="${local.cluster_name}"
 GKE_CLUSTER_REGION="${var.cluster_region}"
 GKE_PROJECT_ID="${var.cluster_project_id}"
 COMFYUI_NAMESPACE="${var.comfyui_kubernetes_namespace}"
-COMFYUI_APP_NAME="${var.app_name}"
-ACCELERATOR="${var.accelerator}"
+COMFYUI_APP_NAME="${var.comfyui_app_name}"
+ACCELERATOR="${var.comfyui_accelerator_type}"
 COMFYUI_URL="${google_endpoints_service.comfyui_https.id}"
 CUSTOM_SA="${google_service_account.custom_cloudbuild_sa.id}"
 COMFYUI_MODEL_BUCKET="${google_storage_bucket.comfyui_storage_buckets["comfyui-models"].name}"

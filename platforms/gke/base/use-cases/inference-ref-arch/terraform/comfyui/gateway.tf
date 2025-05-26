@@ -19,7 +19,7 @@ locals {
   gateway_manifests_directory   = "${local.manifests_directory}/gateway"
   gateway_name                  = "external-https"
   hostname_suffix               = "endpoints.${data.google_project.default.project_id}.cloud.goog"
-  iap_domain                    = var.iap_domain != null ? var.iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
+  iap_domain                    = var.comfyui_iap_domain != null ? var.comfyui_iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
   iap_oath_brand                = "projects/${data.google_project.default.number}/brands/${data.google_project.default.number}"
   kubeconfig_directory          = "${path.module}/../../../../kubernetes/kubeconfig"
   kubeconfig_file               = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
@@ -43,16 +43,16 @@ data "local_file" "kubeconfig" {
 
 resource "terraform_data" "namespace" {
   input = {
-    manifests_dir = local.namespace_directory
-    namespace     = var.comfyui_kubernetes_namespace
-    app_name      = var.app_name
+    manifests_dir    = local.namespace_directory
+    namespace        = var.comfyui_kubernetes_namespace
+    comfyui_app_name = var.comfyui_app_name
   }
 
   provisioner "local-exec" {
     command     = <<EOT
 mkdir -p ${self.input.manifests_dir} && \
 cp -r templates/namespace/namespace-comfyui.tftpl.yaml ${self.input.manifests_dir}/namespace-comfyui.yaml
-sed -i "s/\$${namespace}/${self.input.namespace}/; s/\$${app}/${self.input.app_name}/"  ${self.input.manifests_dir}/namespace-comfyui.yaml
+sed -i "s/\$${namespace}/${self.input.namespace}/; s/\$${app}/${self.input.comfyui_app_name}/"  ${self.input.manifests_dir}/namespace-comfyui.yaml
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module
@@ -61,7 +61,7 @@ EOT
   triggers_replace = {
     manifests_dir         = local.namespace_directory
     namespace             = var.comfyui_kubernetes_namespace
-    app_name              = var.app_name
+    comfyui_app_name      = var.comfyui_app_name
     template_content_hash = filemd5("${path.module}/templates/namespace/namespace-comfyui.tftpl.yaml")
 
   }

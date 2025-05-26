@@ -18,7 +18,8 @@
 #
 
 locals {
-  terraform_bucket_name = "${var.terraform_project_id}-${local.unique_identifier_prefix}-terraform"
+  terraform_project_id  = var.terraform_project_id != null ? var.terraform_project_id : var.platform_default_project_id
+  terraform_bucket_name = "${local.terraform_project_id}-${local.unique_identifier_prefix}-terraform"
 }
 
 variable "create_terraform_bucket" {
@@ -28,13 +29,9 @@ variable "create_terraform_bucket" {
 }
 
 variable "terraform_project_id" {
+  default     = null
   description = "The GCP project where terraform will be run"
   type        = string
-
-  validation {
-    condition     = var.terraform_project_id != ""
-    error_message = "'terraform_project_id' was not set, please set the value in 'shared_config/terraform.auto.tfvars' file or via the TF_VAR_terraform_project_id"
-  }
 }
 
 variable "terraform_write_tfvars" {

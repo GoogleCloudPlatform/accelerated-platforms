@@ -31,7 +31,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24" {
     "us-central1-b",
     "us-central1-c"
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   autoscaling {
     location_policy      = "ANY"
@@ -115,7 +115,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_dws" {
     "us-central1-b",
     "us-central1-c"
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   autoscaling {
     location_policy      = "ANY"
@@ -203,7 +203,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_res" {
     "us-central1-b",
     "us-central1-c"
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   autoscaling {
     location_policy      = "ANY"
@@ -287,7 +287,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_spot" {
     "us-central1-b",
     "us-central1-c"
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   # Blocks
   autoscaling {

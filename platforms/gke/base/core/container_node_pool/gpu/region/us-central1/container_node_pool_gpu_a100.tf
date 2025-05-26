@@ -32,7 +32,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2" {
     "us-central1-c",
     "us-central1-f"
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   # Blocks
   autoscaling {
@@ -119,7 +119,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_dws" {
     "us-central1-c",
     "us-central1-f"
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   # Blocks
   autoscaling {
@@ -210,7 +210,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_res" {
     "us-central1-c",
     "us-central1-f"
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   # Blocks
   autoscaling {
@@ -297,7 +297,7 @@ resource "google_container_node_pool" "gpu_a100x2_a2h2_spot" {
     "us-central1-c",
     "us-central1-f"
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   # Blocks
   autoscaling {

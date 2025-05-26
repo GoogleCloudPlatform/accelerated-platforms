@@ -21,14 +21,14 @@ data "google_service_account" "cluster" {
 resource "google_compute_network_firewall_policy" "federated_learning_fw_policy" {
   description = "Federated learning firewall policy"
   name        = local.federated_learning_firewall_policy_name
-  project     = data.google_project.default.project_id
+  project     = data.google_project.cluster.project_id
 }
 
 resource "google_compute_network_firewall_policy_association" "federated_learning_vpc_associations" {
   name              = "${local.cluster_name}-federated-learning-firewall-policy-association"
   attachment_target = data.google_compute_network.main_vpc_network.id
   firewall_policy   = google_compute_network_firewall_policy.federated_learning_fw_policy.name
-  project           = data.google_project.default.project_id
+  project           = data.google_project.cluster.project_id
 }
 
 resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_rule_deny_all" {
@@ -38,7 +38,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging          = true
   firewall_policy         = google_compute_network_firewall_policy.federated_learning_fw_policy.name
   priority                = 65535
-  project                 = data.google_project.default.project_id
+  project                 = data.google_project.cluster.project_id
   rule_name               = "${local.cluster_name}-node-pools-deny-egress"
   target_service_accounts = local.node_pool_service_account_emails
 
@@ -58,7 +58,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging          = true
   firewall_policy         = google_compute_network_firewall_policy.federated_learning_fw_policy.name
   priority                = 1000
-  project                 = data.google_project.default.project_id
+  project                 = data.google_project.cluster.project_id
   rule_name               = "${local.cluster_name}-node-pools-allow-egress-nodes-pods-services"
   target_service_accounts = local.node_pool_service_account_emails
 
@@ -81,7 +81,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging          = true
   firewall_policy         = google_compute_network_firewall_policy.federated_learning_fw_policy.name
   priority                = 1001
-  project                 = data.google_project.default.project_id
+  project                 = data.google_project.cluster.project_id
   rule_name               = "${local.cluster_name}-node-pools-allow-egress-api-server"
   target_service_accounts = local.node_pool_service_account_emails
 
@@ -102,7 +102,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging          = true
   firewall_policy         = google_compute_network_firewall_policy.federated_learning_fw_policy.name
   priority                = 1002
-  project                 = data.google_project.default.project_id
+  project                 = data.google_project.cluster.project_id
   rule_name               = "${local.cluster_name}-node-pools-allow-egress-api-server"
   target_service_accounts = local.node_pool_service_account_emails
 
@@ -122,7 +122,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging  = true
   firewall_policy = google_compute_network_firewall_policy.federated_learning_fw_policy.name
   priority        = 1003
-  project         = data.google_project.default.project_id
+  project         = data.google_project.cluster.project_id
   rule_name       = "${local.cluster_name}-intra-cluster-egress"
 
   target_service_accounts = concat(
@@ -154,7 +154,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging  = true
   firewall_policy = google_compute_network_firewall_policy.federated_learning_fw_policy.name
   priority        = 1004
-  project         = data.google_project.default.project_id
+  project         = data.google_project.cluster.project_id
   rule_name       = "${local.cluster_name}-control-plane-ingress-webhooks"
 
   target_service_accounts = local.node_pool_service_account_emails
@@ -176,7 +176,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging  = true
   firewall_policy = google_compute_network_firewall_policy.federated_learning_fw_policy.name
   priority        = 1006
-  project         = data.google_project.default.project_id
+  project         = data.google_project.cluster.project_id
   rule_name       = "${local.cluster_name}-ingress-ingress-gateway"
 
   target_service_accounts = local.node_pool_service_account_emails
@@ -206,7 +206,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging  = true
   firewall_policy = google_compute_network_firewall_policy.federated_learning_fw_policy.name
   priority        = 1007
-  project         = data.google_project.default.project_id
+  project         = data.google_project.cluster.project_id
   rule_name       = "${local.cluster_name}-ingress-cloud-lb-health-checks"
 
   target_service_accounts = flatten(concat(

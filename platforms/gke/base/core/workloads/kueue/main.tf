@@ -114,7 +114,7 @@ module "kubectl_wait" {
 
 resource "google_monitoring_dashboard" "kueue_monitoring_dashboard" {
   dashboard_json = file("${path.module}/dashboards/kueue-monitoring-dashboard.json")
-  project        = data.google_project.default.project_id
+  project        = data.google_project.cluster.project_id
 
   lifecycle {
     ignore_changes = [

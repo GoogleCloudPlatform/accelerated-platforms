@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_project" "default" {
-  project_id = var.cluster_project_id
+data "google_project" "cluster" {
+  project_id = local.cluster_project_id
 }

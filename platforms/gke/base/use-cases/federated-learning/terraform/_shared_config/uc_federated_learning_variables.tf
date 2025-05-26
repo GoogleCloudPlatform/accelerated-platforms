@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  gke_robot_service_account           = "service-${data.google_project.default.number}@container-engine-robot.iam.gserviceaccount.com"
+  gke_robot_service_account           = "service-${data.google_project.cluster.number}@container-engine-robot.iam.gserviceaccount.com"
   gke_robot_service_account_iam_email = "serviceAccount:${local.gke_robot_service_account}"
 
   # Define values that other values depend on
@@ -23,7 +23,7 @@ locals {
       tenant_nodepool_name                               = format("%s-%s-p", local.cluster_name, name)
       tenant_nodepool_sa_name                            = format("%s-%s-n", local.cluster_name, name)
       tenant_apps_kubernetes_service_account_name        = local.tenant_apps_kubernetes_service_account_name
-      tenant_apps_workload_identity_service_account_name = "serviceAccount:${var.cluster_project_id}.svc.id.goog[${name}/${local.tenant_apps_kubernetes_service_account_name}]"
+      tenant_apps_workload_identity_service_account_name = "serviceAccount:${local.cluster_project_id}.svc.id.goog[${name}/${local.tenant_apps_kubernetes_service_account_name}]"
     }
   }
 
@@ -61,7 +61,7 @@ locals {
     external_services_allowed_namespaces = var.federated_learning_external_services_allowed_namespaces
   }
 
-  service_account_domain = "${var.cluster_project_id}.iam.gserviceaccount.com"
+  service_account_domain = "${local.cluster_project_id}.iam.gserviceaccount.com"
 
   node_pool_service_account_names = [
     for tenant in local.tenants : tenant.tenant_nodepool_sa_name

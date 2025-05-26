@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#
+# Configuration dependencies
+# - shared_config/cluster_variables.tf
+# - shared_config/platform_variables.tf
+#
+
 locals {
   config_management_kubernetes_namespace       = "config-management-system"
   config_management_kubernetes_service_account = "root-reconciler"
@@ -23,7 +29,7 @@ locals {
 
   oci_repo_id              = "${local.unique_identifier_prefix}-config-sync"
   oci_repo_domain          = "${var.cluster_region}-docker.pkg.dev"
-  oci_repo_url             = "${local.oci_repo_domain}/${var.cluster_project_id}/${local.oci_repo_id}"
+  oci_repo_url             = "${local.oci_repo_domain}/${local.cluster_project_id}/${local.oci_repo_id}"
   oci_root_sync_image      = "${local.oci_root_sync_image_name}:${local.oci_root_sync_image_tag}"
   oci_root_sync_image_name = "root-sync"
   oci_root_sync_image_tag  = "latest"

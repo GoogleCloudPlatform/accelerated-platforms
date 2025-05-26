@@ -2,36 +2,28 @@
 
 ## Pull the source code
 
-1. Open [Cloud Shell](https://cloud.google.com/shell).
+- Clone the repository and set the repository directory environment variable.
 
-1. Clone the repository and change directory to the guide directory
+  ```
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms && \
+  export ACP_REPO_DIR="$(pwd)"
+  ```
 
-   ```shell
-   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-   cd accelerated-platforms
-   ```
+  To set the `ACP_REPO_DIR` value for new shell instances, write the value to
+  your shell initialization file.
 
-1. Set environment variables
+  `bash`
 
-   ```shell
-   ACP_REPO_DIR="$(pwd)" && \
-   export ACP_REPO_DIR && \
-   echo "export ACP_REPO_DIR=${ACP_REPO_DIR}" >> ${HOME}/.bashrc
-   ```
+  ```
+  sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.bashrc
+  ```
 
-   ```shell
-   cd "${ACP_REPO_DIR}/platforms/gke/base" && \
-   ACP_PLATFORM_BASE_DIR="$(pwd)" && \
-   export ACP_PLATFORM_BASE_DIR && \
-   echo "export ACP_PLATFORM_BASE_DIR=${ACP_PLATFORM_BASE_DIR}" >> ${HOME}/.bashrc
-   ```
+  `zsh`
 
-   ```shell
-   cd "${ACP_REPO_DIR}/platforms/gke/base/core" && \
-   ACP_PLATFORM_CORE_DIR="$(pwd)" && \
-   export ACP_PLATFORM_CORE_DIR && \
-   echo "export ACP_PLATFORM_CORE_DIR=${ACP_PLATFORM_CORE_DIR}" >> ${HOME}/.bashrc
-   ```
+  ```
+  sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
+  ```
 
 ## Configure the Core GKE Accelerated Platform
 
@@ -46,37 +38,21 @@ precedence over earlier ones:
 For more information about providing values for Terraform input variables, see
 [Terraform input variables](https://developer.hashicorp.com/terraform/language/values/variables).
 
-- Set the cluster project ID
+- Set the platform default project ID
 
-```shell
-export TF_VAR_cluster_project_id="<PROJECT_ID>"
-```
+  ```shell
+  export TF_VAR_platform_default_project_id="<PROJECT_ID>"
+  ```
 
-**-- OR --**
+  **-- OR --**
 
-```shell
-vi ${ACP_PLATFORM_BASE_DIR}/_shared_config/cluster.auto.tfvars
-```
+  ```shell
+  vi ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
+  ```
 
-```hcl
-cluster_project_id = "<PROJECT_ID>"
-```
-
-- Set the Terraform project ID
-
-```shell
-export TF_VAR_terraform_project_id="<PROJECT_ID>"
-```
-
-**-- OR --**
-
-```shell
-vi ${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.auto.tfvars
-```
-
-```hcl
-terraform_project_id = "<PROJECT_ID>"
-```
+  ```hcl
+  platform_default_project_id = "<PROJECT_ID>"
+  ```
 
 ## Deploy
 

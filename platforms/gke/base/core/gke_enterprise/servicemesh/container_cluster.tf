@@ -15,5 +15,5 @@
 data "google_container_cluster" "cluster" {
   location = var.cluster_region
   name     = local.cluster_name
-  project  = data.google_project.default.project_id
+  project  = data.google_project.cluster.project_id
 }

@@ -17,8 +17,8 @@ resource "google_storage_bucket" "ira_cloud_storage_buckets" {
 
   force_destroy               = each.value.force_destroy
   location                    = var.cluster_region
-  name                        = join("-", [data.google_project.default.project_id, local.unique_identifier_prefix, each.key])
-  project                     = data.google_project.default.project_id
+  name                        = join("-", [data.google_project.cluster.project_id, local.unique_identifier_prefix, each.key])
+  project                     = data.google_project.cluster.project_id
   uniform_bucket_level_access = true
 
   hierarchical_namespace {

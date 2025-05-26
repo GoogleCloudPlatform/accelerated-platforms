@@ -2,7 +2,7 @@
 
 ## Pull the source code
 
-- Clone the repository and change directory to the guide directory
+- Clone the repository and set the repository directory environment variable.
 
   ```
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
@@ -35,36 +35,23 @@ precedence over earlier ones:
 - Any `-var` and `-var-file` options on the command line, in the order they are
   provided.
 
-- Set the cluster project ID
+For more information about providing values for Terraform input variables, see
+[Terraform input variables](https://developer.hashicorp.com/terraform/language/values/variables).
 
-  ```
-  export TF_VAR_cluster_project_id="<PROJECT_ID>"
-  ```
+- Set the platform default project ID
 
-  **-- OR --**
-
-  ```
-  vi ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars
-  ```
-
-  ```
-  cluster_project_id = "<PROJECT_ID>"
-  ```
-
-- Set the Terraform project ID
-
-  ```
-  export TF_VAR_terraform_project_id="<PROJECT_ID>"
+  ```shell
+  export TF_VAR_platform_default_project_id="<PROJECT_ID>"
   ```
 
   **-- OR --**
 
-  ```
-  vi ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/terraform.auto.tfvars
+  ```shell
+  vi ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
   ```
 
-  ```
-  terraform_project_id = "<PROJECT_ID>"
+  ```hcl
+  platform_default_project_id = "<PROJECT_ID>"
   ```
 
 ## Deploy
@@ -73,12 +60,12 @@ To deploy this reference implementation, you need Terraform >= 1.8.0. For more
 information about installing Terraform, see
 [Install Terraform](https://developer.hashicorp.com/terraform/install).
 
-```
+```shell
 ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh
 ```
 
 ## Teardown
 
-```
+```shell
 ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh
 ```

@@ -17,7 +17,7 @@ output "cluster_name" {
 }
 
 output "cluster_project_id" {
-  value = var.cluster_project_id
+  value = local.cluster_project_id
 }
 
 output "cluster_region" {
@@ -33,7 +33,7 @@ output "terraform_bucket_name" {
 }
 
 output "terraform_project_id" {
-  value = var.terraform_project_id
+  value = local.terraform_project_id
 }
 
 output "resource_name_prefix" {

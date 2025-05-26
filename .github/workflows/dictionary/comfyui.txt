@@ -1,5 +1,6 @@
 filebase
 comfygroup
+comfyui
 comfyuser
 controlnet
 gligen

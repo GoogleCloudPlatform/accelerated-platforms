@@ -7,7 +7,6 @@ byop
 checkpointing
 cicd
 colab
-comfyui
 creds
 curlimages
 datacleaner

@@ -7,6 +7,10 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
+      "name": "comfyui",
+      "path": ".github/workflows/dictionary/comfyui.txt"
+    },
+    {
       "name": "docker",
       "path": ".github/workflows/dictionary/docker.txt"
     },
@@ -65,14 +69,11 @@
     {
       "name": "vllm",
       "path": ".github/workflows/dictionary/vllm.txt"
-    },
-    {
-      "name": "comfyui",
-      "path": ".github/workflows/dictionary/comfyui.txt"
     }
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "comfyui",
     "docker",
     "flipkart",
     "google-cloud",
@@ -87,8 +88,7 @@
     "svg",
     "terraform",
     "use-case-federated-learning",
-    "vllm",
-    "comfyui"
+    "vllm"
   ],
   "ignorePaths": [
     "node_modules",

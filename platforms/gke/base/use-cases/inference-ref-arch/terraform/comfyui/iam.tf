@@ -34,7 +34,7 @@ resource "google_artifact_registry_repository_iam_member" "writer_access" {
 # Create Custom Cloud Build SA and grant it permissions
 
 resource "google_service_account" "custom_cloudbuild_sa" {
-  account_id   = "${var.platform_name}-comfyui-build-sa"
+  account_id   = "${local.unique_identifier_prefix}-comfyui-build"
   display_name = "Custom Service Account for Cloud Build"
   project      = data.google_project.default.project_id
 }

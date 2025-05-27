@@ -54,7 +54,7 @@ declare -a use_case_terraservices=(
   "cloud_storage"
   "initialize"
 )
-for terraservice in $(echo "${use_case_terraservices[@]}" | tac -s " "); do
+for terraservice in "${use_case_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
     echo "Current directory: $(pwd)" &&
     terraform init &&

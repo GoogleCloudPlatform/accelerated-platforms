@@ -139,7 +139,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
     google_project_service.certificatemanager_googleapis_com,
   ]
 
-  name    = "${var.platform_name}-${var.comfyui_kubernetes_namespace}-external-gateway"
+  name    = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-external-gateway"
   project = data.google_project.default.project_id
 
   managed {
@@ -150,7 +150,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
 }
 
 resource "google_compute_global_address" "external_gateway_https" {
-  name    = "${var.platform_name}-comfyui-external-gateway-https"
+  name    = "${local.unique_identifier_prefix}-comfyui-external-gateway-https"
   project = data.google_project.default.project_id
 }
 

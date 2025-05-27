@@ -88,7 +88,7 @@ output "environment_configuration" {
   value = <<EOT
 GKE_CLUSTER_NAME="${local.cluster_name}"
 GKE_CLUSTER_REGION="${var.cluster_region}"
-GKE_PROJECT_ID="${var.cluster_project_id}"
+GKE_PROJECT_ID="${local.cluster_project_id}"
 COMFYUI_NAMESPACE="${var.comfyui_kubernetes_namespace}"
 COMFYUI_APP_NAME="${var.comfyui_app_name}"
 ACCELERATOR="${var.comfyui_accelerator_type}"

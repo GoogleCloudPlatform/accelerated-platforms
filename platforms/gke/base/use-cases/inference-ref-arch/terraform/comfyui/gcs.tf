@@ -16,8 +16,8 @@ resource "google_storage_bucket" "comfyui_storage_buckets" {
   for_each                    = var.comfyui_storage_buckets
   force_destroy               = each.value.force_destroy
   location                    = var.cluster_region
-  name                        = join("-", [data.google_project.default.project_id, local.unique_identifier_prefix, each.key])
-  project                     = data.google_project.default.project_id
+  name                        = join("-", [data.google_project.cluster.project_id, local.unique_identifier_prefix, each.key])
+  project                     = data.google_project.cluster.project_id
   uniform_bucket_level_access = true
 
   hierarchical_namespace {
@@ -32,8 +32,8 @@ resource "google_storage_bucket" "comfyui_storage_buckets" {
 resource "google_storage_bucket" "docker_staging_bucket" {
   location                    = var.cluster_region
   force_destroy               = true
-  name                        = join("-", [data.google_project.default.project_id, local.unique_identifier_prefix, var.comfyui_image_staging_bucket])
-  project                     = data.google_project.default.project_id
+  name                        = join("-", [data.google_project.cluster.project_id, local.unique_identifier_prefix, var.comfyui_image_staging_bucket])
+  project                     = data.google_project.cluster.project_id
   uniform_bucket_level_access = true
 
   hierarchical_namespace {

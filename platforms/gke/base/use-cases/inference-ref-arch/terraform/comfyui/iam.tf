@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.default.number}/locations/global/workloadIdentityPools/${data.google_project.default.project_id}.svc.id.goog/subject"
+  workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }
 
 resource "google_storage_bucket_iam_member" "comfyui_storage_bucket_iam_member" {
@@ -26,7 +26,7 @@ resource "google_storage_bucket_iam_member" "comfyui_storage_bucket_iam_member" 
 resource "google_artifact_registry_repository_iam_member" "writer_access" {
   repository = google_artifact_registry_repository.comfyui_container_images.repository_id
   location   = var.cluster_region
-  project    = data.google_project.default.project_id
+  project    = data.google_project.cluster.project_id
   role       = "roles/artifactregistry.writer"
   member     = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
 }
@@ -36,17 +36,17 @@ resource "google_artifact_registry_repository_iam_member" "writer_access" {
 resource "google_service_account" "custom_cloudbuild_sa" {
   account_id   = "${local.unique_identifier_prefix}-comfyui-build"
   display_name = "Custom Service Account for Cloud Build"
-  project      = data.google_project.default.project_id
+  project      = data.google_project.cluster.project_id
 }
 
 resource "google_project_iam_member" "custom_cloudbuild_sa_artifact_writer" {
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
   role    = "roles/artifactregistry.writer"
   member  = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
 }
 
 resource "google_project_iam_member" "custom_cloudbuild_sa_log_writer" {
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
   role    = "roles/logging.logWriter"
   member  = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
 }

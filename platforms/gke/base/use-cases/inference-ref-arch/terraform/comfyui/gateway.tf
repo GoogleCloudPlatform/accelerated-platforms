@@ -18,9 +18,9 @@ locals {
   comfyui_service_name          = "comfyui-svc"
   gateway_manifests_directory   = "${local.manifests_directory}/gateway"
   gateway_name                  = "external-https"
-  hostname_suffix               = "endpoints.${data.google_project.default.project_id}.cloud.goog"
+  hostname_suffix               = "endpoints.${data.google_project.cluster.project_id}.cloud.goog"
   iap_domain                    = var.comfyui_iap_domain != null ? var.comfyui_iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
-  iap_oath_brand                = "projects/${data.google_project.default.number}/brands/${data.google_project.default.number}"
+  iap_oath_brand                = "projects/${data.google_project.cluster.number}/brands/${data.google_project.cluster.number}"
   kubeconfig_directory          = "${path.module}/../../../../kubernetes/kubeconfig"
   kubeconfig_file               = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
   manifests_directory           = "${local.manifests_directory_root}/namespace/${var.comfyui_kubernetes_namespace}"
@@ -130,7 +130,7 @@ module "kubectl_apply_namespace_setup" {
 resource "google_project_service" "certificatemanager_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "certificatemanager.googleapis.com"
 }
 
@@ -140,7 +140,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
   ]
 
   name    = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-external-gateway"
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   managed {
     domains = [
@@ -151,7 +151,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
 
 resource "google_compute_global_address" "external_gateway_https" {
   name    = "${local.unique_identifier_prefix}-comfyui-external-gateway-https"
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 }
 
 resource "local_file" "gateway_external_https_yaml" {
@@ -178,7 +178,7 @@ resource "google_endpoints_service" "comfyui_https" {
       ip_address = google_compute_global_address.external_gateway_https.address
     }
   )
-  project      = data.google_project.default.project_id
+  project      = data.google_project.cluster.project_id
   service_name = local.comfyui_endpoint
 }
 
@@ -205,7 +205,7 @@ resource "local_file" "route_comfyui_https_yaml" {
 resource "google_project_service" "iap_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "iap.googleapis.com"
 }
 
@@ -225,7 +225,7 @@ resource "google_iap_web_iam_member" "domain_iap_https_resource_accessor" {
     local_file.gateway_external_https_yaml
   ]
 
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
   member  = "domain:${local.iap_domain}"
   role    = "roles/iap.httpsResourceAccessor"
 }

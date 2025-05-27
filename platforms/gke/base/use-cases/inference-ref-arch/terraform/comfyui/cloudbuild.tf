@@ -14,7 +14,7 @@
 
 locals {
   final_artifact_repo_name = split("/", google_artifact_registry_repository.comfyui_container_images.id)[5]
-  image_destination        = "${var.cluster_region}-docker.pkg.dev/${data.google_project.default.project_id}/${local.final_artifact_repo_name}/${var.comfyui_image_name}:${var.comfyui_image_tag}"
+  image_destination        = "${var.cluster_region}-docker.pkg.dev/${data.google_project.cluster.project_id}/${local.final_artifact_repo_name}/${var.comfyui_image_name}:${var.comfyui_image_tag}"
 }
 
 resource "null_resource" "submit_docker_build" {
@@ -38,9 +38,9 @@ resource "null_resource" "submit_docker_build" {
       while ! gcloud builds submit \
       --config="${path.module}/cloudbuild.yaml" \
       --gcs-source-staging-dir="${google_storage_bucket.docker_staging_bucket.url}/source" \
-      --project="${data.google_project.default.project_id}" \
+      --project="${data.google_project.cluster.project_id}" \
       --quiet \
-      --service-account="projects/${data.google_project.default.project_id}/serviceAccounts/${google_service_account.custom_cloudbuild_sa.email}" \
+      --service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${google_service_account.custom_cloudbuild_sa.email}" \
       --substitutions=_DESTINATION="${local.image_destination}"
       do
         sleep 5

@@ -15,6 +15,6 @@
 resource "google_artifact_registry_repository" "comfyui_container_images" {
   format        = "DOCKER"
   location      = var.cluster_region
-  project       = data.google_project.default.project_id
+  project       = data.google_project.cluster.project_id
   repository_id = "${local.unique_identifier_prefix}-${var.comfyui_artifact_repo_name}"
 }

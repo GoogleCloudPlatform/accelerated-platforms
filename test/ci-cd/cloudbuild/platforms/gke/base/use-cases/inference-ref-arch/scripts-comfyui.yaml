@@ -45,6 +45,20 @@ steps:
         export NEW_PROJECT_ID="$${TF_VAR_cluster_project_id}"
         test/ci-cd/scripts/create_project.sh
 
+        # Enable IAP
+        gcloud services enable iap.googleapis.com \
+        --project="$${NEW_PROJECT_ID}"
+
+        # Create OAuth brand
+        while !  gcloud iap oauth-brands create \
+          --application_title="IAP Secured Application" \
+          --project="$${NEW_PROJECT_ID}" \
+          --quiet \
+          --support_email="iap-support@accelerated-platforms.joonix.net"
+        do
+          sleep 5
+        done
+
         $${ACP_PLATFORM_USE_CASE_DIR}/terraform/deploy-comfyui.sh
 
         APPLY_RETURN_CODE=$?

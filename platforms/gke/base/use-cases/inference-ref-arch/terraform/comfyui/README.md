@@ -1,6 +1,12 @@
-# Inference reference implementation
+# ComfyUI reference implementation
 
 ## Pull the source code
+
+- Open [Cloud Shell](https://cloud.google.com/shell).
+
+  To deploy this reference implementation, you need Terraform >= 1.8.0. For more
+  information about installing Terraform, see
+  [Install Terraform](https://developer.hashicorp.com/terraform/install).
 
 - Clone the repository and change directory to the guide directory
 
@@ -35,30 +41,17 @@ precedence over earlier ones:
 - Any `-var` and `-var-file` options on the command line, in the order they are
   provided.
 
-- Set the cluster project ID
+- Set the platform defaults project ID
 
   ```
-  export TF_VAR_cluster_project_id="<PROJECT_ID>"
-  ```
-
-  **-- OR --**
-
-  ```
-  cluster_project_id="<PROJECT_ID>"
-  sed -i '/^cluster_project_id[[:blank:]]*=/{h;s/=.*/= "'"${cluster_project_id}"'"/};${x;/^$/{s//cluster_project_id="'"${cluster_project_id}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars
-  ```
-
-- Set the Terraform project ID
-
-  ```
-  export TF_VAR_terraform_project_id="<PROJECT_ID>"
+  export TF_VAR_platform_default_project_id="<PROJECT_ID>"
   ```
 
   **-- OR --**
 
   ```
-  terraform_project_id="<PROJECT_ID>"
-  sed -i '/^terraform_project_id[[:blank:]]*=/{h;s/=.*/= "'"${terraform_project_id}"'"/};${x;/^$/{s//terraform_project_id="'"${terraform_project_id}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/terraform.auto.tfvars
+  platform_default_project_id = "<PROJECT_ID>"
+  sed -i '/^platform_default_project_id[[:blank:]]*=/{h;s/=.*/= "'"${platform_default_project_id}"'"/};${x;/^$/{s//platform_default_project_id = "'"${platform_default_project_id}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
   ```
 
 - Optional : By default, the platform name is set to `dev`. If you want to
@@ -144,14 +137,10 @@ IAP application or resources.
 - Set the IAP domain in the configuration file
 
   ```
-  sed -i '/^iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/comfyui.auto.tfvars
+  sed -i '/^comfyui_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//comfyui_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/comfyui.auto.tfvars
   ```
 
 ## Deploy
-
-To deploy this reference implementation, you need Terraform >= 1.8.0. For more
-information about installing Terraform, see
-[Install Terraform](https://developer.hashicorp.com/terraform/install).
 
 ```
 ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh

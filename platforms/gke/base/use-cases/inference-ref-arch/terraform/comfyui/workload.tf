@@ -26,16 +26,17 @@ resource "local_file" "workload" {
       serviceaccount = local.serviceaccount
     }
   )
-  depends_on = [null_resource.submit_docker_build,
+  depends_on = [
+    null_resource.submit_docker_build,
     google_artifact_registry_repository.comfyui_container_images,
     google_storage_bucket.comfyui_storage_buckets,
     google_storage_bucket.docker_staging_bucket,
     google_service_account.custom_cloudbuild_sa,
-  module.kubectl_apply_gateway_res]
+    module.kubectl_apply_gateway_res
+  ]
 
   filename = "${local.namespace_manifests_directory}/comfyui_${var.comfyui_accelerator_type}.yaml"
 }
-
 
 module "kubectl_apply_workload_manifest" {
   depends_on = [local_file.workload]

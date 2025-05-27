@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  comfyui_endpoint              = "comfyui.${var.comfyui_kubernetes_namespace}.${var.platform_name}.${local.hostname_suffix}"
+  comfyui_endpoint              = "comfyui.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.${local.hostname_suffix}"
   comfyui_port                  = 8848
   comfyui_service_name          = "comfyui-svc"
   gateway_manifests_directory   = "${local.manifests_directory}/gateway"
@@ -216,12 +216,12 @@ resource "google_iap_client" "comfyui_client" {
   ]
 
   brand        = local.iap_oath_brand
-  display_name = "IAP-gkegw-${var.platform_name}-${var.comfyui_kubernetes_namespace}-comfyui-dashboard"
+  display_name = "IAP-gkegw-${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-comfyui-dashboard"
 }
 
 resource "google_iap_web_iam_member" "domain_iap_https_resource_accessor" {
   depends_on = [
-    #google_project_service.iap_googleapis_com,
+    google_project_service.iap_googleapis_com,
     local_file.gateway_external_https_yaml
   ]
 

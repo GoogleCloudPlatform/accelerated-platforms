@@ -18,6 +18,12 @@ locals {
 }
 
 resource "null_resource" "submit_docker_build" {
+  depends_on = [
+    google_project_iam_member.custom_cloudbuild_sa_log_writer,
+    google_project_service.cloudbuild_googleapis_com,
+    google_storage_bucket_iam_member.docker_staging_bucket_creator,
+  ]
+
   triggers = {
     repository_id     = google_artifact_registry_repository.comfyui_container_images.id
     custom_sa_email   = google_service_account.custom_cloudbuild_sa.email
@@ -28,17 +34,19 @@ resource "null_resource" "submit_docker_build" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      cd src && gcloud builds submit \
-             --config="${path.module}/cloudbuild.yaml" \
-             --service-account="projects/${data.google_project.default.project_id}/serviceAccounts/${google_service_account.custom_cloudbuild_sa.email}" \
-             --gcs-source-staging-dir="${google_storage_bucket.docker_staging_bucket.url}/source" \
-             --project="${data.google_project.default.project_id}" \
-             --substitutions=_DESTINATION="${local.image_destination}"
+      cd src && \
+      while ! gcloud builds submit \
+      --config="${path.module}/cloudbuild.yaml" \
+      --gcs-source-staging-dir="${google_storage_bucket.docker_staging_bucket.url}/source" \
+      --project="${data.google_project.default.project_id}" \
+      --quiet \
+      --service-account="projects/${data.google_project.default.project_id}/serviceAccounts/${google_service_account.custom_cloudbuild_sa.email}" \
+      --substitutions=_DESTINATION="${local.image_destination}"
+      do
+        sleep 5
+      done
     EOT
 
     when = create
   }
-  depends_on = [
-    google_project_iam_member.custom_cloudbuild_sa_log_writer
-  ]
 }

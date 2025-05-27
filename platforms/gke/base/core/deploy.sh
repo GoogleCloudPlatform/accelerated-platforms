@@ -17,10 +17,20 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+start_timestamp=$(date +%s)
+
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
+
+# Set repository values
+ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../)"
+ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
+
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_CORE_DIR}/functions.sh"
-
-start_timestamp=$(date +%s)
 
 declare -a terraservices
 if [[ -v CORE_TERRASERVICES_APPLY ]] &&

@@ -182,8 +182,24 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
 resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_scripts" {
   filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml"
   included_files = [
-    "platforms/gke/base/core/**",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/jobset/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/lws/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh",
     "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml",
   ]
   location        = var.build_location
@@ -210,8 +226,22 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_s
 resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_comfyui_scripts" {
   filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml"
   included_files = [
-    "platforms/gke/base/core/**",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh",
     "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml",
   ]
   location        = var.build_location

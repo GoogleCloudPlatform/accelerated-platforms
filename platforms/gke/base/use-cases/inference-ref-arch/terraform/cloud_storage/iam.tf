@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.default.number}/locations/global/workloadIdentityPools/${data.google_project.default.project_id}.svc.id.goog/subject"
+  workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }
 
 resource "google_storage_bucket_iam_member" "ira_cloud_storage_bucket_iam_member" {

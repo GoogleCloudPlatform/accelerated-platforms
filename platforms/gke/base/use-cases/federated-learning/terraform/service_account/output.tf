@@ -19,5 +19,5 @@ output "federated_learning_kubernetes_service_account_name" {
 
 output "workload_identity_principal_prefix" {
   description = "Workload identity principal prefix"
-  value       = "principal://iam.googleapis.com/projects/${data.google_project.default.number}/locations/global/workloadIdentityPools/${data.google_project.default.project_id}.svc.id.goog/subject"
+  value       = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }

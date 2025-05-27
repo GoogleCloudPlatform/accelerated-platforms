@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-# - shared_config/platform_variables.tf
-#
-
 variable "initialize_backend_use_case_name" {
   default     = null
   description = "Create a templated backend.tf file in each folder that contains a versions.tf file for the specified use case. This value should be a folder or path within the 'base/use-cases' directory."

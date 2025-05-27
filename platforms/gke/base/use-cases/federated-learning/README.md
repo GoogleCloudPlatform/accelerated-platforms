@@ -166,49 +166,54 @@ controls to each Kubernetes namespace:
 
 To deploy the reference architecture, you do the following:
 
-1. [Install Terraform >= 1.8.0](https://developer.hashicorp.com/terraform/install).
-
 1. Open [Cloud Shell](https://cloud.google.com/shell).
+
+   To deploy this reference architecture, you need Terraform >= 1.8.0. For more
+   information about installing Terraform, see
+   [Install Terraform](https://developer.hashicorp.com/terraform/install).
 
 1. Clone this repository and change the working directory:
 
    ```shell
    git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-   cd accelerated-platforms
+   cd accelerated-platforms  && \
+   export ACP_REPO_DIR="$(pwd)"
    ```
 
-1. Configure the ID of the Google Cloud project where you want to initialize the
-   provisioning and configuration environment. This project will also contain
-   the remote Terraform backend. Add the following content to
-   `platforms/gke/base/_shared_config/terraform.auto.tfvars`:
+   To set the `ACP_REPO_DIR` value for new shell instances, write the value to
+   your shell initialization file.
+
+   `bash`
+
+   ```
+   sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.bashrc
+   ```
+
+   `zsh`
+
+   ```
+   sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
+   ```
+
+1. Configure the ID of the default Google Cloud project to use for the
+   environment. This project will be used by default unless a project ID is
+   provided for a more specific setting
+   `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars`:
 
    ```hcl
-   terraform_project_id = "<CONFIG_PROJECT_ID>"
+   terraform_project_id = "<PROJECT_ID>"
    ```
 
    Where:
 
-   - `<CONFIG_PROJECT_ID>` is the Google Cloud project ID.
-
-1. Configure the ID of the Google Cloud project where you want to deploy the
-   reference architecture by adding the following content to
-   `platforms/gke/base/_shared_config/cluster.auto.tfvars`:
-
-   ```hcl
-   cluster_project_id = "<PROJECT_ID>"
-   ```
-
-   Where:
-
-   - `<PROJECT_ID>` is the Google Cloud project ID. Can be different from
-     `<CONFIG_PROJECT_ID>`.
+   - `<PROJECT_ID>` is the Google Cloud project ID.
 
 1. Optionally configure a unique identifier to append to the name of all the
    resources in the reference architecture to identify a particular instance of
    the reference architecture, and to allow for multiple instances of the
    reference architecture to be deployed in the same Google Cloud project. To
    optionally configure the unique prefix, add the following content to
-   `platforms/gke/base/_shared_config/platform.auto.tfvars`:
+   `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars`:
 
    ```hcl
    resource_name_prefix = "<RESOURCE_NAME_PREFIX>"
@@ -228,17 +233,18 @@ To deploy the reference architecture, you do the following:
 1. Run the script to provision the reference architecture:
 
    ```sh
-   "platforms/gke/base/use-cases/federated-learning/deploy.sh"
+   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh"
    ```
 
 It takes about 20 minutes to provision the reference architecture.
 
 ### Understand the deployment and destroy processes
 
-The `platforms/gke/base/use-cases/federated-learning/deploy.sh` script is a
-convenience script to orchestrate the provisioning and configuration of an
-instance of the reference architecture.
-`platforms/gke/base/use-cases/federated-learning/deploy.sh` does the following:
+The `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh`
+script is a convenience script to orchestrate the provisioning and configuration
+of an instance of the reference architecture.
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh` does
+the following:
 
 1. Configure environment variables to reference libraries and other
    dependencies.
@@ -251,12 +257,14 @@ instance of the reference architecture.
 1. Provision and configures Google Cloud resources that the FL reference
    architecture depends on, augmenting the core platform.
 
-The `platforms/gke/base/use-cases/federated-learning/teardown.sh` script is a
-convenience script to orchestrate the destruction of an instance of the
-reference architecture.
-`platforms/gke/base/use-cases/federated-learning/teardown.sh` performs actions
-that are opposite to
-`platforms/gke/base/use-cases/federated-learning/deploy.sh`, in reverse order.
+The
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/teardown.sh`
+script is a convenience script to orchestrate the destruction of an instance of
+the reference architecture.
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/teardown.sh`
+performs actions that are opposite to
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh`, in
+reverse order.
 
 ## Next steps
 
@@ -287,15 +295,17 @@ To destroy an instance of the reference architecture, you do the following:
 You can configure the reference architecture by modifying files in the following
 directories:
 
-- `platforms/gke/base/_shared_config`
-- `platforms/gke/base/use-cases/federated-learning/terraform/_shared_config`
+- `${ACP_REPO_DIR}/platforms/gke/base/_shared_config`
+- `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/_shared_config`
 
 To add files to the package that Config Sync uses to sync cluster configuration:
 
 1. Copy the additional files in the
-   `platforms/gke/base/use-cases/federated-learning/terraform/config_management/files/additional`
+   `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/config_management/files/additional`
    directory.
-1. Run the `platforms/gke/base/use-cases/federated-learning/deploy.sh` script.
+1. Run the
+   `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh`
+   script.
 
 ### Configure isolated runtime environments
 
@@ -313,7 +323,7 @@ For more information about the design of these tenants, see
 By default, this reference architecture configures one tenant. To configure
 additional tenants, or change their names, set the value of the
 `federated_learning_tenant_names` Terraform variable in
-`platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`
 according to how many tenants you need. For example, to create two isolated
 tenants named `fl-1` and `fl-2`, you set the `federated_learning_tenant_names`
 variable as follows:
@@ -327,7 +337,7 @@ federated_learning_tenant_names = [
 
 For more information about the `federated_learning_tenant_names`, see its
 definition in
-`platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning_variables.tf`
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning_variables.tf`
 
 ### Enable Confidential GKE Nodes
 
@@ -335,7 +345,7 @@ The reference architecture can optionally configure Confidential GKE Nodes using
 Terraform. To enable Confidential GKE Nodes, you do the following:
 
 1. Initialize the following Terraform variables in
-   `platforms/gke/base/_shared_config/cluster.auto.tfvars`:
+   `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars`:
 
    1. Set `cluster_confidential_nodes_enabled` to `true`
 
@@ -345,7 +355,7 @@ Terraform. To enable Confidential GKE Nodes, you do the following:
       [Encrypt workload data in-use with Confidential GKE Nodes](https://cloud.google.com/kubernetes-engine/docs/how-to/confidential-gke-nodes#availability).
 
 1. Initialize the following Terraform variables in
-   `platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`:
+   `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`:
 
    1. Set `federated_learning_node_pool_machine_type` to a machine type that
       supports Confidential GKE Nodes.

@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_project" "default" {
-  project_id = var.cluster_project_id
+data "google_project" "cluster" {
+  project_id = local.cluster_project_id
 }
 
 resource "google_project_service" "cloudkms_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "cloudkms.googleapis.com"
 }
 
@@ -27,6 +27,6 @@ resource "google_project_service" "cloudkms_googleapis_com" {
 resource "google_project_service" "container_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "container.googleapis.com"
 }

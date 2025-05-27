@@ -41,10 +41,7 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "workloads/auto_monitoring"
   "workloads/custom_metrics_adapter"
   "workloads/inference_gateway"
-  "workloads/jobset"
-  "workloads/lws"
   "workloads/priority_class"
-  "workloads/kueue"
 )
 CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
@@ -54,6 +51,7 @@ source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variable
 declare -a aiml_terraservices=(
   "initialize"
   "cloud_storage"
+  "comfyui"
 )
 for terraservice in "${aiml_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&

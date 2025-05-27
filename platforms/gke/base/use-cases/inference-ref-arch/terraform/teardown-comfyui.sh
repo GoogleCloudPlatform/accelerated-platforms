@@ -33,46 +33,53 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-r
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="inf"
 
-declare -a CORE_TERRASERVICES_APPLY=(
-  "networking"
-  "container_cluster"
-  "workloads/cluster_credentials"
-  "custom_compute_class"
-  "workloads/auto_monitoring"
-  "workloads/custom_metrics_adapter"
-  "workloads/inference_gateway"
-  "workloads/jobset"
-  "workloads/lws"
-  "workloads/priority_class"
-  "workloads/kueue"
-)
-CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+# Set execution specific values
+export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config" "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"
 
-declare -a aiml_terraservices=(
-  "initialize"
+# shellcheck disable=SC2154
+cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
+  echo "Current directory: $(pwd)" &&
+  sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
+  cp backend.tf.bucket backend.tf &&
+  terraform init &&
+  terraform plan -input=false -out=tfplan &&
+  terraform apply -input=false tfplan || exit 1
+rm tfplan
+
+declare -a use_case_terraservices=(
+  "comfyui"
   "cloud_storage"
+  "initialize"
 )
-for terraservice in "${aiml_terraservices[@]}"; do
+for terraservice in "${use_case_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
     echo "Current directory: $(pwd)" &&
     terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-  if [ ${terraservice} == "comfyui" ]; then
-    terraform output -raw environment_configuration >${ACP_REPO_DIR}/env_vars
-  fi
-  rm tfplan
+    terraform destroy -auto-approve || exit 1
+  rm -rf .terraform/ \
+    "terraform.tfstate"*
 done
 
-# shellcheck disable=SC2154
-gcloud container clusters get-credentials "${cluster_name}" \
-  --region "${cluster_region}" \
-  --project "${cluster_project_id}" \
-  --dns-endpoint
+if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
+  declare -a CORE_TERRASERVICES_DESTROY=(
+    "workloads/priority_class"
+    "workloads/inference_gateway"
+    "workloads/custom_metrics_adapter"
+    "workloads/auto_monitoring"
+    "custom_compute_class"
+    "workloads/cluster_credentials"
+    "container_cluster"
+    "networking"
+    "initialize"
+  )
+  CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY[*]}" "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
+else
+  echo "Skipping core platform teardown."
+fi
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "inference-ref-arch deploy total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "inference-ref-arch teardown total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"

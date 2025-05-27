@@ -13,32 +13,7 @@ steps:
     waitFor: ["-"]
 
   - name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    id: "Validate Kustomize application configurations"
-    entrypoint: "bash"
-    args:
-      - "-e"
-      - "-u"
-      - "-x"
-      - "-c"
-      - |
-        inf_reference_architecture_dir_path="/workspace/platforms/gke/base/use-cases/inference-ref-arch"
-        echo "HUGGING_FACE_TOKEN=dummy-hf-token" >"${inf_reference_architecture_dir_path}/kubernetes-manifests/base/hugging-face-token.env"
-
-        find "${inf_reference_architecture_dir_path}" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
-          kustomize_directory_path="$(dirname "${file}")"
-          rendered_kubernetes_manifests_file_path="/tmp/rendered-kustomize.yaml"
-
-          # Basic validation:
-          # - Render manifests with Kustomize
-          # - Validate manifests with kubectl-validate
-          kubectl kustomize "${kustomize_directory_path}" | tee "${rendered_kubernetes_manifests_file_path}"
-          kubectl validate "${rendered_kubernetes_manifests_file_path}"
-        done
-    waitFor:
-      - "Check triggers"
-
-  - name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    id: "Test platforms/gke/base/use-cases/inference-ref-arch scripts"
+    id: "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui scripts"
     entrypoint: "bash"
     args:
       - "-u"
@@ -63,18 +38,32 @@ steps:
         export TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
         export TF_VAR_platform_name="${SHORT_SHA}"
 
-        export TF_VAR_iap_domain="${_IAP_DOMAIN}"
+        export TF_VAR_comfyui_iap_domain="${_IAP_DOMAIN}"
 
         # Create a dedicated project
         export NEW_PROJECT_ID="$${TF_VAR_platform_default_project_id}"
         test/ci-cd/scripts/create_project.sh
 
-        $${ACP_PLATFORM_USE_CASE_DIR}/terraform/deploy.sh
+        # Enable IAP
+        gcloud services enable iap.googleapis.com \
+        --project="$${NEW_PROJECT_ID}"
+
+        # Create OAuth brand
+        while !  gcloud iap oauth-brands create \
+          --application_title="IAP Secured Application" \
+          --project="$${NEW_PROJECT_ID}" \
+          --quiet \
+          --support_email="iap-support@accelerated-platforms.joonix.net"
+        do
+          sleep 5
+        done
+
+        $${ACP_PLATFORM_USE_CASE_DIR}/terraform/deploy-comfyui.sh
 
         APPLY_RETURN_CODE=$?
         echo "APPLY_RETURN_CODE=$${APPLY_RETURN_CODE}"
 
-        $${ACP_PLATFORM_USE_CASE_DIR}/terraform/teardown.sh
+        $${ACP_PLATFORM_USE_CASE_DIR}/terraform/teardown-comfyui.sh
 
         # Delete the dedicated project
         export DELETE_PROJECT_ID="$${NEW_PROJECT_ID}"

@@ -1,0 +1,12 @@
+filebase
+comfygroup
+comfyui
+comfyuser
+controlnet
+gligen
+hypernetworks
+loras
+SDXL
+torchaudio
+torchvision
+unet

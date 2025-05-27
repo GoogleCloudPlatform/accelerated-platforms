@@ -2,6 +2,12 @@
 
 ## Pull the source code
 
+- Open [Cloud Shell](https://cloud.google.com/shell).
+
+  To deploy this reference implementation, you need Terraform >= 1.8.0. For more
+  information about installing Terraform, see
+  [Install Terraform](https://developer.hashicorp.com/terraform/install).
+
 - Clone the repository and set the repository directory environment variable.
 
   ```
@@ -55,10 +61,6 @@ For more information about providing values for Terraform input variables, see
   ```
 
 ## Deploy
-
-To deploy this reference implementation, you need Terraform >= 1.8.0. For more
-information about installing Terraform, see
-[Install Terraform](https://developer.hashicorp.com/terraform/install).
 
 ```shell
 ${ACP_PLATFORM_CORE_DIR}/deploy.sh

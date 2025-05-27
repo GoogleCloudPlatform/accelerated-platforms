@@ -166,9 +166,11 @@ controls to each Kubernetes namespace:
 
 To deploy the reference architecture, you do the following:
 
-1. [Install Terraform >= 1.8.0](https://developer.hashicorp.com/terraform/install).
-
 1. Open [Cloud Shell](https://cloud.google.com/shell).
+
+   To deploy this reference architecture, you need Terraform >= 1.8.0. For more
+   information about installing Terraform, see
+   [Install Terraform](https://developer.hashicorp.com/terraform/install).
 
 1. Clone this repository and change the working directory:
 

@@ -2,8 +2,9 @@
 
 This reference architecture implements online inferencing using GPUs on Google
 Cloud. This reference architecture builds on top of the
-[Inference Platform reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
+[inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
 
+<!-- WIP
 ## Best practices for online inferencing on Google Cloud
 
 ### Accelerator selection
@@ -17,6 +18,7 @@ Cloud. This reference architecture builds on top of the
 ### Scalability
 
 ### Cost optimization
+-->
 
 ## Architecture
 
@@ -25,28 +27,20 @@ Cloud. This reference architecture builds on top of the
 ## Deploy the reference architecture
 
 This reference architecture builds on top of the infrastructure that the
-[Inference Platform reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+[inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
 provides, and follows the best practices that the reference implementations
-establishes.
+establishes. To deploy this reference architecture, do the following:
 
-Before deploying the reference architecture described in this document, you
-deploy one instance of the Inference Platform reference implementation. The
-reference architecture supports deploying multiple instances of the reference
-architecture in the same project. To deploy the reference architecture, you do
-the following:
-
-1.  To enable deploying resources for the online inference reference
-    architecture, initialize the following configuration variables in
+1.  Enable deployment of the the online inference example resources by setting
+    the following configuration variables in
     `platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/inference-ref-arch.auto.tfvars`:
 
     ```hcl
     ira_use_case_flavor = "ira-online-gpu"
     ```
 
-1.  Deploy an instance of the Inference Platform reference implementation. For
-    more information about how to deploy an instance of the reference
-    architecture, see
-    [Inference Platform reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+1.  Deploy the
+    [inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
 
     After you deploy the reference architecture instances, continue following
     this document.
@@ -63,8 +57,7 @@ the following:
     The output might contain multiple bucket names. The name of the bucket where
     the model will be downloaded ends with the `ira-model` suffix.
 
-1.  Initialize the configuration variables to set the name of the Cloud Storage
-    bucket where the model will be downloaded in
+1.  Set the environment configuration variables for the model downloader in
     `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/base/ira-model-config.env`:
 
     ```shell
@@ -131,7 +124,7 @@ the following:
 
     ```shell
     watch --color --interval 5 --no-title \
-      "kubectl get job/transfer-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
+    "kubectl get job/transfer-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
     ```
 
     The output is similar to the following:
@@ -198,6 +191,9 @@ the following:
 ## Next steps
 
 ## Destroy the reference architecture
+
+- Teardown the
+  [inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md#teardown)
 
 ## Troubleshooting
 

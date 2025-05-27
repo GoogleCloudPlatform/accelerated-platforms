@@ -63,11 +63,11 @@ For more information about providing values for Terraform input variables, see
 ## Deploy
 
 ```shell
-${ACP_PLATFORM_CORE_DIR}/deploy.sh
+${ACP_REPO_DIR}/platforms/gke/base/core/deploy.sh
 ```
 
 ## Teardown
 
 ```shell
-${ACP_PLATFORM_CORE_DIR}/teardown.sh
+${ACP_REPO_DIR}/platforms/gke/base/core/teardown.sh
 ```

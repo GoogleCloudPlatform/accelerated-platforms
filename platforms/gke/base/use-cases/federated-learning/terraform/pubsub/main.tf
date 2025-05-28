@@ -31,7 +31,7 @@
 
 resource "google_pubsub_topic" "federated_learning_pubsub_topics" {
   for_each = toset(local.federated_learning_pubsub_topics)
-  name = join("-", [local.unique_identifier_prefix, each.key, "topic"])
+  name     = join("-", [local.unique_identifier_prefix, each.key, "topic"])
 
   depends_on = [
     google_project_service.pubsub_googleapis_com
@@ -40,7 +40,7 @@ resource "google_pubsub_topic" "federated_learning_pubsub_topics" {
 
 resource "google_pubsub_topic" "federated_learning_pubsub_dead_letter_topics" {
   for_each = toset(local.federated_learning_pubsub_topics)
-  name = join("-", [local.unique_identifier_prefix, each.key, "topic-dead-letter"])
+  name     = join("-", [local.unique_identifier_prefix, each.key, "topic-dead-letter"])
 
   depends_on = [
     google_project_service.pubsub_googleapis_com
@@ -49,8 +49,8 @@ resource "google_pubsub_topic" "federated_learning_pubsub_dead_letter_topics" {
 
 resource "google_pubsub_subscription" "federated_learning_pubsub_subscriptions" {
   for_each = toset(local.federated_learning_pubsub_topics)
-  name = join("-", [local.unique_identifier_prefix, each.key, "subscription"])
-  topic = google_pubsub_topic.federated_learning_pubsub_topics[each.key].name
+  name     = join("-", [local.unique_identifier_prefix, each.key, "subscription"])
+  topic    = google_pubsub_topic.federated_learning_pubsub_topics[each.key].name
 
   # 7 days
   message_retention_duration = "604800s"
@@ -68,8 +68,8 @@ resource "google_pubsub_subscription" "federated_learning_pubsub_subscriptions" 
 
 resource "google_pubsub_subscription" "federated_learning_pubsub_dead_letter_queue_subscriptions" {
   for_each = toset(local.federated_learning_pubsub_topics)
-  name = join("-", [local.unique_identifier_prefix, each.key, "dlq-subscription"])
-  topic = google_pubsub_topic.federated_learning_pubsub_dead_letter_topics[each.key].name
+  name     = join("-", [local.unique_identifier_prefix, each.key, "dlq-subscription"])
+  topic    = google_pubsub_topic.federated_learning_pubsub_dead_letter_topics[each.key].name
 
   # 7 days
   message_retention_duration = "604800s"

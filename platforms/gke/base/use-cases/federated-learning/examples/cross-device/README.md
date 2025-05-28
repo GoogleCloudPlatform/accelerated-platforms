@@ -1,3 +1,20 @@
+cluster.auto.tfvars
+cluster_confidential_nodes_enabled           = true
+cluster_system_node_pool_machine_type                = "n2d-standard-4"
+
+platform.auto.tfvars
+platform_name        = "dev"
+resource_name_prefix = "lgu"
+
+terraform.auto.tfvars
+terraform_project_id    = "accelerated-platform"
+
+<!-- initialize_container_node_pools_cpu = true
+initialize_container_node_pools_gpu = true
+initialize_container_node_pools_tpu = true -->
+
+
+
 # Deploy cross-device on the Federated learning reference architecture
 
 This example shows how to deploy the cross-device example on the

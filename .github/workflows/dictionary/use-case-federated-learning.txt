@@ -8,3 +8,9 @@ modelupdater
 confidentialcomputing
 cloudfunction
 cooldown
+opallowedusr
+opwip
+pvdr
+opverifiedusr
+vtpm
+acked

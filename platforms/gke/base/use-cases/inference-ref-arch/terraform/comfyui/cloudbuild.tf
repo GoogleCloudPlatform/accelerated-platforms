@@ -21,7 +21,7 @@ resource "null_resource" "submit_docker_build" {
   depends_on = [
     google_project_iam_member.custom_cloudbuild_sa_log_writer,
     google_project_service.cloudbuild_googleapis_com,
-    google_storage_bucket_iam_member.docker_staging_bucket_creator,
+    google_storage_bucket_iam_member.cloudbuild_source_creator,
   ]
 
   triggers = {
@@ -37,7 +37,7 @@ resource "null_resource" "submit_docker_build" {
       cd src && \
       while ! gcloud builds submit \
       --config="${path.module}/cloudbuild.yaml" \
-      --gcs-source-staging-dir="${google_storage_bucket.docker_staging_bucket.url}/source" \
+      --gcs-source-staging-dir="${google_storage_bucket.cloudbuild_source.url}/source" \
       --project="${data.google_project.cluster.project_id}" \
       --quiet \
       --service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${google_service_account.custom_cloudbuild_sa.email}" \

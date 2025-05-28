@@ -59,9 +59,6 @@ for terraservice in "${aiml_terraservices[@]}"; do
     terraform init &&
     terraform plan -input=false -out=tfplan &&
     terraform apply -input=false tfplan || exit 1
-  if [ ${terraservice} == "comfyui" ]; then
-    terraform output -raw environment_configuration >${ACP_REPO_DIR}/env_vars
-  fi
   rm tfplan
 done
 

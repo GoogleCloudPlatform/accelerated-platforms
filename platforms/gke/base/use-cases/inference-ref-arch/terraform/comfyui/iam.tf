@@ -16,11 +16,16 @@ locals {
   workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }
 
-resource "google_storage_bucket_iam_member" "comfyui_storage_bucket_iam_member" {
-  for_each = var.comfyui_storage_buckets
-  bucket   = google_storage_bucket.comfyui_storage_buckets[each.key].name
-  role     = "roles/storage.objectUser"
-  member   = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
+resource "google_storage_bucket_iam_member" "workload_identity_storage_object_user" {
+  for_each = toset([
+    local.comfyui_cloud_storage_input_bucket_name,
+    local.comfyui_cloud_storage_model_bucket_name,
+    local.comfyui_cloud_storage_output_bucket_name
+  ])
+
+  bucket = each.key
+  role   = "roles/storage.objectUser"
+  member = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
 }
 
 resource "google_artifact_registry_repository_iam_member" "writer_access" {
@@ -34,7 +39,7 @@ resource "google_artifact_registry_repository_iam_member" "writer_access" {
 # Create Custom Cloud Build SA and grant it permissions
 
 resource "google_service_account" "custom_cloudbuild_sa" {
-  account_id   = "${local.unique_identifier_prefix}-comfyui-build"
+  account_id   = local.comfyui_cloudbuild_service_account_name
   display_name = "Custom Service Account for Cloud Build"
   project      = data.google_project.cluster.project_id
 }
@@ -51,14 +56,18 @@ resource "google_project_iam_member" "custom_cloudbuild_sa_log_writer" {
   member  = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
 }
 
-resource "google_storage_bucket_iam_member" "docker_staging_bucket_creator" {
-  bucket = google_storage_bucket.docker_staging_bucket.name
+resource "google_storage_bucket_iam_member" "cloudbuild_source_creator" {
+  bucket = google_storage_bucket.cloudbuild_source.name
   role   = "roles/storage.objectUser"
   member = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
 }
 
-resource "google_storage_bucket_iam_member" "model_bucket" {
-  bucket = google_storage_bucket.comfyui_storage_buckets["comfyui-models"].name
+resource "google_storage_bucket_iam_member" "cloudbuild_service_account_storage_object_user" {
+  for_each = toset([
+    google_storage_bucket.cloudbuild_source.name,
+    local.comfyui_cloud_storage_model_bucket_name,
+  ])
+  bucket = each.key
   role   = "roles/storage.objectUser"
   member = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
 }

@@ -47,7 +47,7 @@ the
 This reference architecture is designed to support various inference patterns.
 Some example patterns provided are:
 
-- [ComfyUI reference implementation](platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
+- [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
 - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
 
 Further use cases and patterns can be built upon this foundational architecture.

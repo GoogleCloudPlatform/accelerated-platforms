@@ -12,12 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_storage_bucket" "comfyui_storage_buckets" {
-  for_each                    = var.comfyui_storage_buckets
-  force_destroy               = each.value.force_destroy
-  location                    = var.cluster_region
-  name                        = join("-", [data.google_project.cluster.project_id, local.unique_identifier_prefix, each.key])
-  project                     = data.google_project.cluster.project_id
+resource "google_storage_bucket" "comfyui_input" {
+  force_destroy               = true
+  location                    = local.comfyui_cloud_storage_location
+  name                        = local.comfyui_cloud_storage_input_bucket_name
+  project                     = local.comfyui_cloud_storage_project_id
   uniform_bucket_level_access = true
 
   hierarchical_namespace {
@@ -25,15 +24,47 @@ resource "google_storage_bucket" "comfyui_storage_buckets" {
   }
 
   versioning {
-    enabled = each.value.versioning_enabled
+    enabled = false
   }
 }
 
-resource "google_storage_bucket" "docker_staging_bucket" {
-  location                    = var.cluster_region
+resource "google_storage_bucket" "comfyui_model" {
   force_destroy               = true
-  name                        = join("-", [data.google_project.cluster.project_id, local.unique_identifier_prefix, var.comfyui_image_staging_bucket])
-  project                     = data.google_project.cluster.project_id
+  location                    = local.comfyui_cloud_storage_location
+  name                        = local.comfyui_cloud_storage_model_bucket_name
+  project                     = local.comfyui_cloud_storage_project_id
+  uniform_bucket_level_access = true
+
+  hierarchical_namespace {
+    enabled = true
+  }
+
+  versioning {
+    enabled = false
+  }
+}
+
+resource "google_storage_bucket" "comfyui_output" {
+  force_destroy               = true
+  location                    = local.comfyui_cloud_storage_location
+  name                        = local.comfyui_cloud_storage_output_bucket_name
+  project                     = local.comfyui_cloud_storage_project_id
+  uniform_bucket_level_access = true
+
+  hierarchical_namespace {
+    enabled = true
+  }
+
+  versioning {
+    enabled = false
+  }
+}
+
+resource "google_storage_bucket" "cloudbuild_source" {
+  location                    = local.comfyui_cloudbuild_source_bucket_location
+  force_destroy               = true
+  name                        = local.comfyui_cloudbuild_source_bucket_name
+  project                     = local.comfyui_cloudbuild_project_id
   uniform_bucket_level_access = true
 
   hierarchical_namespace {

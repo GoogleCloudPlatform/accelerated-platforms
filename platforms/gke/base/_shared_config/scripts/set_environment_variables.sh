@@ -13,7 +13,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-SHARED_CONFIG_PATHS=("${@}")
+
+if [[ ! -v SHARED_CONFIG_PATHS ]]; then
+  SHARED_CONFIG_PATHS=("${@}")
+fi
 
 for SHARED_CONFIG_PATH in "${SHARED_CONFIG_PATHS[@]}"; do
   echo "Loading shared configuration(${SHARED_CONFIG_PATH})"

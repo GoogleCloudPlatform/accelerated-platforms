@@ -31,7 +31,7 @@ resource "local_file" "gateway" {
   content = templatefile(
     "${path.module}/templates/cross_device_gateway.yaml",
     {
-      namespace_name = var.namespace
+      namespace_name  = var.namespace
       ip_address_name = google_compute_address.default.name
     }
   )

@@ -13,14 +13,14 @@
 # limitations under the License.
 
 locals {
-  comfyui_endpoint              = "comfyui.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.${local.hostname_suffix}"
+  comfyui_endpoint              = local.comfyui_endpoints_hostname
   comfyui_port                  = 8848
   comfyui_service_name          = "comfyui-svc"
   gateway_manifests_directory   = "${local.manifests_directory}/gateway"
   gateway_name                  = "external-https"
   hostname_suffix               = "endpoints.${data.google_project.cluster.project_id}.cloud.goog"
   iap_domain                    = var.comfyui_iap_domain != null ? var.comfyui_iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
-  iap_oath_brand                = "projects/${data.google_project.cluster.number}/brands/${data.google_project.cluster.number}"
+  iap_oath_brand                = "projects/${data.google_project.comfyui_iap_oath_branding.number}/brands/${data.google_project.comfyui_iap_oath_branding.number}"
   kubeconfig_directory          = "${path.module}/../../../../kubernetes/kubeconfig"
   kubeconfig_file               = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
   manifests_directory           = "${local.manifests_directory_root}/namespace/${var.comfyui_kubernetes_namespace}"

@@ -12,6 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "comfyui_accelerator_type" {
+  value = var.comfyui_accelerator_type
+}
+
+output "comfyui_app_name" {
+  value = var.comfyui_app_name
+}
+output "comfyui_cloud_storage_model_bucket_name" {
+  value = local.comfyui_cloud_storage_model_bucket_name
+}
+
+output "comfyui_cloudbuild_source_bucket_name" {
+  value = local.comfyui_cloudbuild_source_bucket_name
+}
+
+output "comfyui_cloudbuild_service_account_id" {
+  value = local.comfyui_cloudbuild_service_account_id
+}
+
+output "comfyui_endpoints_hostname" {
+  value = local.comfyui_endpoints_hostname
+}
+
+output "comfyui_iap_oath_branding_project_id" {
+  value = local.comfyui_iap_oath_branding_project_id
+}
+output "comfyui_kubernetes_namespace" {
+  value = var.comfyui_kubernetes_namespace
+}
+
 output "use_case" {
   value = "inference-ref-arch"
 }

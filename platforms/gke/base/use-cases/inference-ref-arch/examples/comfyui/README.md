@@ -66,11 +66,15 @@ precedence over earlier ones:
   other than L4 which is the default accelerator for this deployment.
 
   ```
-  accelerator="<ACCELERATOR>"
-  sed -i '/^accelerator[[:blank:]]*=/{h;s/=.*/= "'"${accelerator}"'"/};${x;/^$/{s//accelerator="'"${accelerator}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/comfyui.auto.tfvars
-
-  Valid values for ACCELERATOR are nvidia-h100-80gb, nvidia-tesla-a100 and nvidia-l4(default)
+  comfyui_accelerator_type="<ACCELERATOR>"
+  sed -i '/^comfyui_accelerator_type[[:blank:]]*=/{h;s/=.*/= "'"${comfyui_accelerator_type}"'"/};${x;/^$/{s//comfyui_accelerator_type="'"${comfyui_accelerator_type}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/comfyui.auto.tfvars
   ```
+
+  Valid values for `ACCELERATOR` are:
+
+  - `nvidia-h100-80gb`
+  - `nvidia-tesla-a100`
+  - `nvidia-l4(default)`
 
 ## Configure Identity-Aware Proxy (IAP)
 
@@ -96,22 +100,39 @@ See the
 [Configuring the OAuth consent screen documentation](https://developers.google.com/workspace/guides/configure-oauth-consent)
 for additional information
 
-**NOTE: These steps only need to be completed once for a project.**
+- Set environment variables.
 
-- Go to [APIs & Services](https://console.cloud.google.com/apis/dashboard?) >
-  [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent)
-  configuration page.
-- Select **Internal** for the **User Type**
-- Click **CREATE**
-- Enter **IAP Secured Application** for the the **App name**
-- Enter an email address for the **User support email**
-- Enter an email address for the **Developer contact information**
-- Click **SAVE AND CONTINUE**
-- Leave the default values for **Scopes**
-- Click **SAVE AND CONTINUE**
-- On the **Summary** page, click **BACK TO DASHBOARD**
-- The **OAuth consent screen** should now look like this:
-  ![oauth consent screen](/docs/platforms/gke-aiml/playground/images/oauth-consent-screen.png)
+  ```shell
+  source ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh
+  ```
+
+- Ensure that IAP is enabled.
+
+  ```shell
+  gcloud services enable iap.googleapis.com \
+  --project="${comfyui_iap_oath_branding_project_id}"
+  ```
+
+- Check if the branding is already configured.
+
+  ```shell
+  gcloud iap oauth-brands list \
+  --project="${comfyui_iap_oath_branding_project_id}"
+  ```
+
+  > If an entry is displayed, the branding is already configured.
+
+- Configure the branding.
+
+  ```shell
+  gcloud iap oauth-brands create \
+  --application_title="IAP Secured Application" \
+  --project="${comfyui_iap_oath_branding_project_id}" \
+  --support_email="<SUPPORT_EMAIL_ADDRESS>"
+  ```
+
+  Replace `<SUPPORT_EMAIL_ADDRESS>` with a group email address that you are a
+  manger on or your personal email address.
 
 ### Default IAP access
 
@@ -127,11 +148,11 @@ IAP application or resources.
   ```
 
   **If the domain of the active `gcloud` user is different from the organization
-  that the `cluster_project_id` project is in, you will need to manually set
-  `IAP_DOMAIN` environment variable**
+  that the `comfyui_iap_oath_branding_project_id` project is in, you will need
+  to manually set `IAP_DOMAIN` environment variable**
 
   ```
-  IAP_DOMAIN="<cluster_project_id organization domain>"
+  IAP_DOMAIN="<project_id's organization domain>"
   ```
 
 - Set the IAP domain in the configuration file
@@ -163,26 +184,26 @@ The `deploy-comfyui.sh` script will perform the following steps:
 
 ## Verify ComfyUI deployment is up and running
 
-- Source output variables from Terraform run
+- Set the environment variables
 
   ```
-  source ${ACP_REPO_DIR}/env_vars
+  source ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh
   ```
 
 - Source GKE cluster credentials
 
   ```
-  gcloud container clusters get-credentials ${GKE_CLUSTER_NAME} \
+  gcloud container clusters get-credentials ${cluster_name} \
   --dns-endpoint \
-  --location="${GKE_CLUSTER_REGION}" \
-  --project="${GKE_PROJECT_ID}"
+  --location="${cluster_region}" \
+  --project="${cluster_project_id}"
   ```
 
 - Check the ComfyUI deployment
 
   ```
   watch --color --interval 5 --no-title \
-  "kubectl --namespace ${COMFYUI_NAMESPACE} get deployment/${COMFYUI_APP_NAME}-${ACCELERATOR} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  "kubectl --namespace ${comfyui_kubernetes_namespace} get deployment/${comfyui_app_name}-${comfyui_accelerator_type} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
   ```
 
 - When the deployment is ready, you will output similar to the following
@@ -192,13 +213,13 @@ The `deploy-comfyui.sh` script will perform the following steps:
   comfyui-nvidia-l4   1/1     1            1           XXXX
   ```
 
-- Fetch the DNS.
+- Output the ComfyUI URL.
 
   ```
-  echo $COMFYUI_URL
+  echo -e "\nComfyUI URL: https://${comfyui_endpoints_hostname}\n"
   ```
 
-- Open the DNS in the web browser to access COmfyUI.
+- Open the ComfyUI URL in a web browser.
 
 ## Load models in ComfyUI
 
@@ -220,32 +241,34 @@ Cloudbuild pipeline or some thing else.
   checkpoint files for Stable diffusion base and refiner models from Huggingface
   to the GCS bucket.
 
-  ```
-  https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors?download=true"
-
-  https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner-1.0.safetensors?download=true
-
-  ```
+  - https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors?download=true
+  - https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner-1.0.safetensors?download=true
 
 - Run the following command to trigger cloudbuild pipeline to copy checkpoint
   files:
 
   ```
-  gcloud builds submit --no-source --config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy_checkpoints/cloudbuild.yaml" --service-account="${CUSTOM_SA}"  --gcs-source-staging-dir="gs://${STAGING_BUCKET}/source" --project="${GKE_PROJECT_ID}" --substitutions="_BUCKET_NAME=${COMFYUI_MODEL_BUCKET}"
+  gcloud builds submit \
+  --config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy_checkpoints/cloudbuild.yaml" \
+  --gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
+  --no-source \
+  --project="${cluster_project_id}" \
+  --service-account="${comfyui_cloud_build_service_account_id}" \
+  --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
   ```
 
 - When the copy is finished, you will see the output similar to the following:
 
   ```
-  ID: XXXXXXXXXXXXXXXXX
-  CREATE_TIME: XXXXXXXXX
-  DURATION: XXXX
+  ID: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+  CREATE_TIME: YYYY-MM-DDTHH:MM:SS+ZZ:ZZ
+  DURATION: #M##S
   SOURCE: -
   IMAGES: -
   STATUS: SUCCESS
   ```
 
-- Refresh ComfyUI and click on `checkpoints` , you will see two checkpoint files
+- Refresh ComfyUI and click on `checkpoints`, you will see two checkpoint files
   available to use.
 
 - You can download more models to use in your ComfyUI instance in a similar

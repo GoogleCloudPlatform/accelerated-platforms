@@ -19,18 +19,17 @@ resource "local_file" "workload" {
       namespace      = var.comfyui_kubernetes_namespace,
       app_name       = var.comfyui_app_name,
       accelerator    = var.comfyui_accelerator_type
-      input_bucket   = google_storage_bucket.comfyui_storage_buckets["comfyui-input"].name
-      output_bucket  = google_storage_bucket.comfyui_storage_buckets["comfyui-output"].name
-      model_buckets  = google_storage_bucket.comfyui_storage_buckets["comfyui-models"].name
       image          = local.image_destination
+      input_bucket   = google_storage_bucket.comfyui_input.name
+      model_buckets  = google_storage_bucket.comfyui_model.name
+      output_bucket  = google_storage_bucket.comfyui_output.name
       serviceaccount = local.serviceaccount
     }
   )
   depends_on = [
     null_resource.submit_docker_build,
     google_artifact_registry_repository.comfyui_container_images,
-    google_storage_bucket.comfyui_storage_buckets,
-    google_storage_bucket.docker_staging_bucket,
+    google_storage_bucket.cloudbuild_source,
     google_service_account.custom_cloudbuild_sa,
     module.kubectl_apply_gateway_res
   ]

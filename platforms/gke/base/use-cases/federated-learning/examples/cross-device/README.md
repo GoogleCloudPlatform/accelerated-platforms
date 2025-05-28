@@ -52,7 +52,6 @@ ones that the Federated learning reference architecture provisions.
 
 1. Open [Cloud Shell](https://cloud.google.com/shell).
 
-
 ### Check the status of the server
 
 In this section, you check the status of the NVIDIA FLARE server:
@@ -86,15 +85,11 @@ In this section, you check the status of the NVIDIA FLARE server:
 
 ### Run clients
 
-
 ### Check the status of the registered clients
-
 
 ## Next steps
 
-
 ### Deploy a NVIDIA FLARE example
-
 
 ## Destroy the example environment
 

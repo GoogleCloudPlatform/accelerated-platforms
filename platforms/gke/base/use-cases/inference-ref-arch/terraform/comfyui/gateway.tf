@@ -24,6 +24,7 @@ locals {
   kubeconfig_directory          = "${path.module}/../../../../kubernetes/kubeconfig"
   kubeconfig_file               = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
   manifests_directory           = "${local.manifests_directory_root}/namespace/${var.comfyui_kubernetes_namespace}"
+  manifests_directory_root      = "${path.module}/../../../../kubernetes/manifests"
   namespace_directory           = "${local.manifests_directory_root}/namespace"
   namespace_manifests_directory = "${local.manifests_directory}/namespace"
   serviceaccount                = "${var.comfyui_kubernetes_namespace}-sa"

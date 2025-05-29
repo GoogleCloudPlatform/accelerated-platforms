@@ -48,12 +48,12 @@ CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_D
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config" "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"
 
-declare -a aiml_terraservices=(
+declare -a use_case_terraservices=(
   "initialize"
   "cloud_storage"
   "comfyui"
 )
-for terraservice in "${aiml_terraservices[@]}"; do
+for terraservice in "${use_case_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
     echo "Current directory: $(pwd)" &&
     terraform init &&
@@ -70,4 +70,4 @@ gcloud container clusters get-credentials "${cluster_name}" \
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "inference-ref-arch deploy total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "comfyui deploy total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"

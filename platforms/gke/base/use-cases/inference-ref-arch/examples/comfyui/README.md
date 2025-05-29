@@ -167,12 +167,6 @@ IAP application or resources.
 ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh
 ```
 
-## Teardown
-
-```
-${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh
-```
-
 ## Workflow
 
 The `deploy-comfyui.sh` script will perform the following steps:
@@ -274,3 +268,9 @@ Cloudbuild pipeline or some thing else.
 - You can download more models to use in your ComfyUI instance in a similar
   fashion.
 - Get creative and storyboard your ideas on ComfyUI!
+
+## Teardown
+
+```
+${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh
+```

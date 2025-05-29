@@ -82,4 +82,4 @@ fi
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "inference-ref-arch teardown total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "comfyui teardown total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"

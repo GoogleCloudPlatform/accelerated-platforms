@@ -62,10 +62,6 @@ For more information about providing values for Terraform input variables, see
 
 ## Deploy
 
-To deploy this reference implementation, you need Terraform >= 1.8.0. For more
-information about installing Terraform, see
-[Install Terraform](https://developer.hashicorp.com/terraform/install).
-
 ```shell
 ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh
 ```

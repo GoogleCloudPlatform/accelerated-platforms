@@ -182,7 +182,24 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
 resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_scripts" {
   filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml"
   included_files = [
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/jobset/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/lws/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh",
     "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml",
   ]
   location        = var.build_location
@@ -201,6 +218,49 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_s
   }
 
   substitutions = {
+    _IAP_DOMAIN       = "accelerated-platforms.joonix.net"
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_comfyui_scripts" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml"
+  included_files = [
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh",
+    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-inference-ref-arch-comfyui-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _IAP_DOMAIN       = "accelerated-platforms.joonix.net"
     _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
   }
 }
@@ -315,7 +375,7 @@ resource "google_cloudbuild_trigger" "uc_federated_learning_terraform" {
     repository = google_cloudbuildv2_repository.accelerated_platforms.id
 
     pull_request {
-      branch          = "^main$|^int-federated-learning$"
+      branch          = "^main$|^int-"
       comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
       invert_regex    = false
     }

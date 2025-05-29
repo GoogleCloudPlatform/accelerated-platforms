@@ -13,7 +13,11 @@
 # limitations under the License.
 
 data "google_project" "cluster" {
-  project_id = var.cluster_project_id
+  project_id = local.cluster_project_id
+}
+
+data "google_project" "terraform" {
+  project_id = local.terraform_project_id
 }
 
 resource "google_project_service" "cluster_compute_googleapis_com" {

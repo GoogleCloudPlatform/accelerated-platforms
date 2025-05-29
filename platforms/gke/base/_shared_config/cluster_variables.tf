@@ -18,8 +18,8 @@
 #
 
 locals {
-  cluster_credentials_command_gke  = "gcloud container clusters get-credentials ${local.cluster_name} --dns-endpoint --location ${var.cluster_region} --project ${var.cluster_project_id}"
-  cluster_credentials_command_gkee = "gcloud container fleet memberships get-credentials ${local.cluster_name} --project ${var.cluster_project_id}"
+  cluster_credentials_command_gke  = "gcloud container clusters get-credentials ${local.cluster_name} --dns-endpoint --location ${var.cluster_region} --project ${local.cluster_project_id}"
+  cluster_credentials_command_gkee = "gcloud container fleet memberships get-credentials ${local.cluster_name} --project ${local.cluster_project_id}"
   cluster_credentials_command      = var.cluster_use_connect_gateway ? local.cluster_credentials_command_gkee : local.cluster_credentials_command_gke
 
   cluster_name = local.unique_identifier_prefix
@@ -27,7 +27,9 @@ locals {
   cluster_node_auto_provisioning_resource_limits = var.cluster_node_auto_provisioning_enabled ? var.cluster_node_auto_provisioning_resource_limits : []
 
   cluster_node_pool_service_account_id         = var.cluster_node_pool_default_service_account_id != null ? var.cluster_node_pool_default_service_account_id : "vm-${local.cluster_name}"
-  cluster_node_pool_service_account_project_id = var.cluster_node_pool_default_service_account_project_id != null ? var.cluster_node_pool_default_service_account_project_id : var.cluster_project_id
+  cluster_node_pool_service_account_project_id = var.cluster_node_pool_default_service_account_project_id != null ? var.cluster_node_pool_default_service_account_project_id : local.cluster_project_id
+
+  cluster_project_id = var.cluster_project_id != null ? var.cluster_project_id : var.platform_default_project_id
 
   # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
   cluster_sa_roles = [
@@ -40,7 +42,7 @@ locals {
     "roles/stackdriver.resourceMetadata.writer",
   ]
 
-  kubeconfig_file_name = "${var.cluster_project_id}-${local.cluster_name}"
+  kubeconfig_file_name = "${local.cluster_project_id}-${local.cluster_name}"
 }
 
 variable "cluster_auto_monitoring_config_scope" {
@@ -213,13 +215,9 @@ variable "cluster_private_endpoint_subnetwork" {
 }
 
 variable "cluster_project_id" {
+  default     = null
   description = "The GCP project where the cluster resources will be created"
   type        = string
-
-  validation {
-    condition     = var.cluster_project_id != ""
-    error_message = "'cluster_project_id' was not set, please set the value in the mlp.auto.tfvars file"
-  }
 }
 
 variable "cluster_region" {

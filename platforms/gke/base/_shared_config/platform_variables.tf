@@ -12,13 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-# - shared_config/platform_variables.tf
-#
-
 locals {
   unique_identifier_prefix = "${var.resource_name_prefix}-${var.platform_name}"
+}
+
+variable "platform_default_project_id" {
+  description = "The default project ID to use if a specific project ID is not specified"
+  type        = string
+
+  validation {
+    condition     = var.platform_default_project_id != ""
+    error_message = "'platform_default_project_id' was not set, please set the value in 'shared_config/platform.auto.tfvars' file or via the TF_VAR_platform_default_project_id"
+  }
 }
 
 variable "platform_name" {

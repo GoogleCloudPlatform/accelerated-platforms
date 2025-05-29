@@ -14,9 +14,8 @@ steps:
 
 - args:
   - DEBUG=${_DEBUG}
-  - TF_VAR_cluster_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+  - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
   - TF_VAR_platform_name="${SHORT_SHA}"
-  - TF_VAR_terraform_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
   entrypoint: "test/ci-cd/scripts/terraservice/configure_environment.sh"
   env:
   - BUILD_ID=${BUILD_ID}

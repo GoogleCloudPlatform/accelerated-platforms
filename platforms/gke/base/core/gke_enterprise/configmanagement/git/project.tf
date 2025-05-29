@@ -13,7 +13,7 @@
 # limitations under the License.
 
 data "google_project" "cluster" {
-  project_id = var.cluster_project_id
+  project_id = local.cluster_project_id
 }
 
 resource "google_project_service" "anthosconfigmanagement_googleapis_com" {

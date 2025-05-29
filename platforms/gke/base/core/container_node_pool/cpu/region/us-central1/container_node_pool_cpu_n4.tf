@@ -32,7 +32,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
     "us-central1-c",
     "us-central1-f",
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   # Blocks
   autoscaling {
@@ -102,7 +102,7 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
     "us-central1-c",
     "us-central1-f",
   ]
-  project = data.google_project.default.project_id
+  project = data.google_project.cluster.project_id
 
   # Blocks
   autoscaling {

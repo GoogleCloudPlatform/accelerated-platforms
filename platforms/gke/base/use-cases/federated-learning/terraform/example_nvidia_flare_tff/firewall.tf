@@ -26,7 +26,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging  = true
   firewall_policy = local.federated_learning_firewall_policy_name
   priority        = 1010
-  project         = data.google_project.default.project_id
+  project         = data.google_project.cluster.project_id
   rule_name       = "${local.cluster_name}-node-pools-allow-egress-nvidia-flare"
 
   target_service_accounts = flatten(concat(
@@ -49,7 +49,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging  = true
   firewall_policy = local.federated_learning_firewall_policy_name
   priority        = 1011
-  project         = data.google_project.default.project_id
+  project         = data.google_project.cluster.project_id
   rule_name       = "${local.cluster_name}-ingress-ingress-gateway-nvflare"
 
   target_service_accounts = flatten(concat(
@@ -82,7 +82,7 @@ resource "google_compute_network_firewall_policy_rule" "federated_learning_fw_ru
   enable_logging  = true
   firewall_policy = local.federated_learning_firewall_policy_name
   priority        = 1012
-  project         = data.google_project.default.project_id
+  project         = data.google_project.cluster.project_id
   rule_name       = "${local.cluster_name}-ingress-cloud-lb-health-checks-nvflare"
 
   target_service_accounts = flatten(concat(

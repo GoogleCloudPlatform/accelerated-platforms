@@ -13,6 +13,6 @@
 # limitations under the License.
 
 data "google_service_account" "cluster" {
-  project    = data.google_project.default.project_id
+  project    = data.google_project.cluster.project_id
   account_id = "vm-${local.cluster_name}"
 }

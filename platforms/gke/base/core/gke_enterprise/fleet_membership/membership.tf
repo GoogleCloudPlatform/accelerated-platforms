@@ -19,7 +19,7 @@ resource "google_gke_hub_membership" "cluster" {
   ]
 
   membership_id = data.google_container_cluster.cluster.name
-  project       = data.google_project.default.project_id
+  project       = data.google_project.cluster.project_id
 
   endpoint {
     gke_cluster {

@@ -123,8 +123,9 @@ resource "local_file" "shared_config_platform_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
-      platform_name        = var.platform_name
-      resource_name_prefix = var.resource_name_prefix
+      platform_default_project_id = var.platform_default_project_id
+      platform_name               = var.platform_name
+      resource_name_prefix        = var.resource_name_prefix
     }
   )
   file_permission = "0644"

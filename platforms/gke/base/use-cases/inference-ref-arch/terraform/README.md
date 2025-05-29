@@ -2,36 +2,33 @@
 
 ## Pull the source code
 
-- Clone the repository and change directory to the guide directory
+- Open [Cloud Shell](https://cloud.google.com/shell).
+
+  To deploy this reference implementation, you need Terraform >= 1.8.0. For more
+  information about installing Terraform, see
+  [Install Terraform](https://developer.hashicorp.com/terraform/install).
+
+- Clone the repository and set the repository directory environment variable.
 
   ```
   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-  cd accelerated-platforms
+  cd accelerated-platforms && \
+  export ACP_REPO_DIR="$(pwd)"
   ```
 
-- Set environment variables
+  To set the `ACP_REPO_DIR` value for new shell instances, write the value to
+  your shell initialization file.
+
+  `bash`
 
   ```
-  export ACP_REPO_DIR=$(pwd) && \
-  echo "export ACP_REPO_DIR=${ACP_REPO_DIR}" >> ${HOME}/.bashrc
+  sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.bashrc
   ```
 
-  ```
-  cd ${ACP_REPO_DIR}/platforms/gke/base && \
-  export ACP_PLATFORM_BASE_DIR=$(pwd) && \
-  echo "export ACP_PLATFORM_BASE_DIR=${ACP_PLATFORM_BASE_DIR}" >> ${HOME}/.bashrc
-  ```
+  `zsh`
 
   ```
-  cd ${ACP_REPO_DIR}/platforms/gke/base/core && \
-  export ACP_PLATFORM_CORE_DIR=$(pwd) && \
-  echo "export ACP_PLATFORM_CORE_DIR=${ACP_PLATFORM_CORE_DIR}" >> ${HOME}/.bashrc
-  ```
-
-  ```
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch && \
-  export ACP_PLATFORM_USE_CASE_DIR=$(pwd) && \
-  echo "export ACP_PLATFORM_USE_CASE_DIR=${ACP_PLATFORM_USE_CASE_DIR}" >> ${HOME}/.bashrc
+  sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
   ```
 
 ## Configure
@@ -44,46 +41,33 @@ precedence over earlier ones:
 - Any `-var` and `-var-file` options on the command line, in the order they are
   provided.
 
-- Set the cluster project ID
+For more information about providing values for Terraform input variables, see
+[Terraform input variables](https://developer.hashicorp.com/terraform/language/values/variables).
 
-  ```
-  export TF_VAR_cluster_project_id="<PROJECT_ID>"
-  ```
+- Set the platform default project ID
 
-  **-- OR --**
-
-  ```
-  vi ${ACP_PLATFORM_BASE_DIR}/_shared_config/cluster.auto.tfvars
-  ```
-
-  ```
-  cluster_project_id = "<PROJECT_ID>"
-  ```
-
-- Set the Terraform project ID
-
-  ```
-  export TF_VAR_terraform_project_id="<PROJECT_ID>"
+  ```shell
+  export TF_VAR_platform_default_project_id="<PROJECT_ID>"
   ```
 
   **-- OR --**
 
-  ```
-  vi ${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.auto.tfvars
+  ```shell
+  vi ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
   ```
 
-  ```
-  terraform_project_id = "<PROJECT_ID>"
+  ```hcl
+  platform_default_project_id = "<PROJECT_ID>"
   ```
 
 ## Deploy
 
-```
-${ACP_PLATFORM_USE_CASE_DIR}/terraform/deploy.sh
+```shell
+${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh
 ```
 
 ## Teardown
 
-```
-${ACP_PLATFORM_USE_CASE_DIR}/terraform/teardown.sh
+```shell
+${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh
 ```

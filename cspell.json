@@ -7,6 +7,10 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
+      "name": "comfyui",
+      "path": ".github/workflows/dictionary/comfyui.txt"
+    },
+    {
       "name": "docker",
       "path": ".github/workflows/dictionary/docker.txt"
     },
@@ -69,6 +73,7 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "comfyui",
     "docker",
     "flipkart",
     "google-cloud",

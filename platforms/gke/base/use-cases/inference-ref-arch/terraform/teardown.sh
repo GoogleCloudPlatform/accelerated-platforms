@@ -18,31 +18,48 @@ set -o nounset
 
 start_timestamp=$(date +%s)
 
-export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
 
+# Set repository values
+export ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../)"
+export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
+export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
+
+# Set use-case specific values
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="inf"
 
-source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config ${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config
+# Set execution specific values
+export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 
-cd ${ACP_PLATFORM_CORE_DIR}/initialize &&
-    echo "Current directory: $(pwd)" &&
-    sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" ${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket &&
-    cp backend.tf.bucket backend.tf &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config" "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"
+
+# shellcheck disable=SC2154
+cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
+  echo "Current directory: $(pwd)" &&
+  sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
+  cp backend.tf.bucket backend.tf &&
+  terraform init &&
+  terraform plan -input=false -out=tfplan &&
+  terraform apply -input=false tfplan || exit 1
 rm tfplan
 
 declare -a use_case_terraservices=(
-    "initialize"
+  "cloud_storage"
+  "initialize"
 )
-for terraservice in $(echo "${use_case_terraservices[@]}" | tac -s " "); do
-    cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
-        echo "Current directory: $(pwd)" &&
-        terraform init &&
-        terraform destroy -auto-approve || exit 1
-    rm -rf .terraform/
+for terraservice in "${use_case_terraservices[@]}"; do
+  cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
+    echo "Current directory: $(pwd)" &&
+    terraform init &&
+    terraform destroy -auto-approve || exit 1
+  rm -rf .terraform/ \
+    "terraform.tfstate"*
 done
 
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
@@ -52,6 +69,7 @@ if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
     "workloads/lws"
     "workloads/jobset"
     "workloads/inference_gateway"
+    "workloads/custom_metrics_adapter"
     "workloads/auto_monitoring"
     "custom_compute_class"
     "workloads/cluster_credentials"
@@ -61,7 +79,7 @@ if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
   )
   CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY[*]}" "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
 else
-    echo "Skipping core platform teardown."
+  echo "Skipping core platform teardown."
 fi
 
 end_timestamp=$(date +%s)

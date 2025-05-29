@@ -2,36 +2,34 @@
 
 ## Pull the source code
 
-1. Open [Cloud Shell](https://cloud.google.com/shell).
+- Open [Cloud Shell](https://cloud.google.com/shell).
 
-1. Clone the repository and change directory to the guide directory
+  To deploy this reference implementation, you need Terraform >= 1.8.0. For more
+  information about installing Terraform, see
+  [Install Terraform](https://developer.hashicorp.com/terraform/install).
 
-   ```shell
-   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-   cd accelerated-platforms
-   ```
+- Clone the repository and set the repository directory environment variable.
 
-1. Set environment variables
+  ```
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms && \
+  export ACP_REPO_DIR="$(pwd)"
+  ```
 
-   ```shell
-   ACP_REPO_DIR="$(pwd)" && \
-   export ACP_REPO_DIR && \
-   echo "export ACP_REPO_DIR=${ACP_REPO_DIR}" >> ${HOME}/.bashrc
-   ```
+  To set the `ACP_REPO_DIR` value for new shell instances, write the value to
+  your shell initialization file.
 
-   ```shell
-   cd "${ACP_REPO_DIR}/platforms/gke/base" && \
-   ACP_PLATFORM_BASE_DIR="$(pwd)" && \
-   export ACP_PLATFORM_BASE_DIR && \
-   echo "export ACP_PLATFORM_BASE_DIR=${ACP_PLATFORM_BASE_DIR}" >> ${HOME}/.bashrc
-   ```
+  `bash`
 
-   ```shell
-   cd "${ACP_REPO_DIR}/platforms/gke/base/core" && \
-   ACP_PLATFORM_CORE_DIR="$(pwd)" && \
-   export ACP_PLATFORM_CORE_DIR && \
-   echo "export ACP_PLATFORM_CORE_DIR=${ACP_PLATFORM_CORE_DIR}" >> ${HOME}/.bashrc
-   ```
+  ```
+  sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.bashrc
+  ```
+
+  `zsh`
+
+  ```
+  sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
+  ```
 
 ## Configure the Core GKE Accelerated Platform
 
@@ -46,50 +44,30 @@ precedence over earlier ones:
 For more information about providing values for Terraform input variables, see
 [Terraform input variables](https://developer.hashicorp.com/terraform/language/values/variables).
 
-- Set the cluster project ID
+- Set the platform default project ID
 
-```shell
-export TF_VAR_cluster_project_id="<PROJECT_ID>"
-```
+  ```shell
+  export TF_VAR_platform_default_project_id="<PROJECT_ID>"
+  ```
 
-**-- OR --**
+  **-- OR --**
 
-```shell
-vi ${ACP_PLATFORM_BASE_DIR}/_shared_config/cluster.auto.tfvars
-```
+  ```shell
+  vi ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
+  ```
 
-```hcl
-cluster_project_id = "<PROJECT_ID>"
-```
-
-- Set the Terraform project ID
-
-```shell
-export TF_VAR_terraform_project_id="<PROJECT_ID>"
-```
-
-**-- OR --**
-
-```shell
-vi ${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.auto.tfvars
-```
-
-```hcl
-terraform_project_id = "<PROJECT_ID>"
-```
+  ```hcl
+  platform_default_project_id = "<PROJECT_ID>"
+  ```
 
 ## Deploy
 
-To deploy this reference implementation, you need Terraform >= 1.8.0. For more
-information about installing Terraform, see
-[Install Terraform](https://developer.hashicorp.com/terraform/install).
-
 ```shell
-${ACP_PLATFORM_CORE_DIR}/deploy.sh
+${ACP_REPO_DIR}/platforms/gke/base/core/deploy.sh
 ```
 
 ## Teardown
 
 ```shell
-${ACP_PLATFORM_CORE_DIR}/teardown.sh
+${ACP_REPO_DIR}/platforms/gke/base/core/teardown.sh
 ```

@@ -59,6 +59,6 @@ resource "terraform_data" "manifest" {
     kubeconfig_file        = data.local_file.kubeconfig.filename
     kubectl_apply_command  = local.kubectl_apply_command
     kubectl_delete_command = local.kubectl_delete_command
-    manifest_md5           = var.apply_once ? "" : local.manifest_is_directory ? md5(join("", [for f in fileset(var.manifest, "**") : md5("${var.manifest}/${f}")])) : md5(var.manifest)
+    source_content_hash    = var.apply_once ? "" : var.source_content_hash
   }
 }

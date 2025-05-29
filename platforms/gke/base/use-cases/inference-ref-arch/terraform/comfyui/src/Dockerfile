@@ -51,18 +51,16 @@ RUN python3.10 -m venv $VIRTUAL_ENV
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Clone ComfyUI and its dependencies
-RUN git clone https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI --branch v0.3.9
-#WORKDIR /app/ComfyUI
-#RUN git checkout v0.3.9
-
-# Install PyTorch (inside the venv)
-RUN pip install --no-cache-dir torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu121
+RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI --branch v0.3.36
 
 # Install ComfyUI requirements (inside the venv)
 RUN pip install --no-cache-dir -r /app/ComfyUI/requirements.txt
 
+# Install PyTorch (inside the venv)
+RUN pip install --no-cache-dir torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu121
+
 # Clone custom nodes (ensure they are in the correct location relative to the WORKDIR)
-RUN git clone https://github.com/ltdrdata/ComfyUI-Manager /app/ComfyUI/custom_nodes/comfyui-manager
+RUN git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager --branch 3.32.5 /app/ComfyUI/custom_nodes/comfyui-manager
 
 # Expose the port
 EXPOSE 8848

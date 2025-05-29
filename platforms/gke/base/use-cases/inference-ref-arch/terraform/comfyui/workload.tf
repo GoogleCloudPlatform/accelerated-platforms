@@ -16,14 +16,15 @@ resource "local_file" "workload" {
   content = templatefile(
     "${path.module}/templates/workloads/comfyui_${var.comfyui_accelerator_type}.tftpl.yaml",
     {
-      namespace      = var.comfyui_kubernetes_namespace,
-      app_name       = var.comfyui_app_name,
-      accelerator    = var.comfyui_accelerator_type
-      image          = local.image_destination
-      input_bucket   = google_storage_bucket.comfyui_input.name
-      model_buckets  = google_storage_bucket.comfyui_model.name
-      output_bucket  = google_storage_bucket.comfyui_output.name
-      serviceaccount = local.serviceaccount
+      namespace       = var.comfyui_kubernetes_namespace,
+      app_name        = var.comfyui_app_name,
+      accelerator     = var.comfyui_accelerator_type
+      image           = local.image_destination
+      input_bucket    = google_storage_bucket.comfyui_input.name
+      model_buckets   = google_storage_bucket.comfyui_model.name
+      output_bucket   = google_storage_bucket.comfyui_output.name
+      workflow_bucket = google_storage_bucket.comfyui_workflow.name
+      serviceaccount  = local.serviceaccount
     }
   )
   depends_on = [

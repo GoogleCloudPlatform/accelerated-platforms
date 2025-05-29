@@ -6,6 +6,7 @@ controlnet
 gligen
 hypernetworks
 loras
+photomaker
 SDXL
 torchaudio
 torchvision

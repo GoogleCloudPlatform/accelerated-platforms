@@ -50,7 +50,7 @@ precedence over earlier ones:
   **-- OR --**
 
   ```
-  platform_default_project_id = "<PROJECT_ID>"
+  platform_default_project_id="<PROJECT_ID>"
   sed -i '/^platform_default_project_id[[:blank:]]*=/{h;s/=.*/= "'"${platform_default_project_id}"'"/};${x;/^$/{s//platform_default_project_id = "'"${platform_default_project_id}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
   ```
 

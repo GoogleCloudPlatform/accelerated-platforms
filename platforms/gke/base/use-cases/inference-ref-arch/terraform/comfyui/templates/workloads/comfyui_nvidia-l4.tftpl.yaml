@@ -28,6 +28,9 @@ spec:
         app: ${app_name}-${accelerator}
       annotations:
         gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
     spec:
       securityContext:
         runAsUser: 1000
@@ -42,19 +45,25 @@ spec:
           driver: gcsfuse.csi.storage.gke.io
           volumeAttributes:
             bucketName: ${input_bucket}  
-            mountOptions: "metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
+            mountOptions: "implicit-dirs,metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
       - name: comfyui-output
         csi:
           driver: gcsfuse.csi.storage.gke.io
           volumeAttributes:
             bucketName: ${output_bucket} 
-            mountOptions: "metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
+            mountOptions: "implicit-dirs,metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
       - name: comfyui-model
         csi:
           driver: gcsfuse.csi.storage.gke.io
           volumeAttributes:
             bucketName: ${model_buckets}
-            mountOptions: "implicit-dirs" 
+            mountOptions: "implicit-dirs,metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
+      - name: comfyui-workflows
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: ${workflow_bucket}
+            mountOptions: "implicit-dirs,metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
       containers:
       - name: ${app_name}-${accelerator}
         image: ${image}
@@ -68,10 +77,16 @@ spec:
           name: comfyui-input
         - mountPath: /app/ComfyUI/output
           name: comfyui-output
+        - mountPath: /app/ComfyUI/user/default/workflows
+          name: comfyui-workflows
         resources:
           requests:
+            cpu: "16"
+            memory: "80G"
             nvidia.com/gpu: 2
           limits:
+            cpu: "22"
+            memory: "90G"
             nvidia.com/gpu: 2
       nodeSelector:
         cloud.google.com/gke-accelerator: ${accelerator}
@@ -103,4 +118,4 @@ spec:
   - port: 8848
     protocol: TCP
     targetPort: 8848
-  type: NodePort
+  type: ClusterIP

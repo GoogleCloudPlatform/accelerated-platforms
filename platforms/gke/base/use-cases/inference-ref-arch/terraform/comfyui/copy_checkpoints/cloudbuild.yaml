@@ -5,7 +5,7 @@ steps:
     args:
       - '-c'
       - |
-        dirs=(checkpoints clip clip_vision configs controlnet diffusers embeddings gligen hypernetworks loras style_models unet upscale_models vae vae_approx)
+        dirs=(checkpoints loras vae text_encoders diffusion_models clip_vision style_models embeddings diffusers vae_approx controlnet gligen upscale_models hypernetworks photomaker classifiers)
         for dir in "${dirs[@]}"; do
             mkdir -p /workspace/comfyui-models/$dir
             touch /workspace/comfyui-models/$dir/put_here

@@ -21,6 +21,7 @@ resource "google_storage_bucket_iam_member" "workload_identity_storage_object_us
     google_storage_bucket.comfyui_input.name,
     google_storage_bucket.comfyui_model.name,
     google_storage_bucket.comfyui_output.name,
+    google_storage_bucket.comfyui_workflow.name,
   ])
 
   bucket = each.key

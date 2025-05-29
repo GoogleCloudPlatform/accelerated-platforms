@@ -19,6 +19,7 @@ output "comfyui_accelerator_type" {
 output "comfyui_app_name" {
   value = var.comfyui_app_name
 }
+
 output "comfyui_cloud_storage_model_bucket_name" {
   value = local.comfyui_cloud_storage_model_bucket_name
 }
@@ -38,6 +39,7 @@ output "comfyui_endpoints_hostname" {
 output "comfyui_iap_oath_branding_project_id" {
   value = local.comfyui_iap_oath_branding_project_id
 }
+
 output "comfyui_kubernetes_namespace" {
   value = var.comfyui_kubernetes_namespace
 }

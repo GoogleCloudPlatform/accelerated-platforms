@@ -60,6 +60,22 @@ resource "google_storage_bucket" "comfyui_output" {
   }
 }
 
+resource "google_storage_bucket" "comfyui_workflow" {
+  force_destroy               = true
+  location                    = local.comfyui_cloud_storage_location
+  name                        = local.comfyui_cloud_storage_workflow_bucket_name
+  project                     = local.comfyui_cloud_storage_project_id
+  uniform_bucket_level_access = true
+
+  hierarchical_namespace {
+    enabled = true
+  }
+
+  versioning {
+    enabled = false
+  }
+}
+
 resource "google_storage_bucket" "cloudbuild_source" {
   location                    = local.comfyui_cloudbuild_source_bucket_location
   force_destroy               = true

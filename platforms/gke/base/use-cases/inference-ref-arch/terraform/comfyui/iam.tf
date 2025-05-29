@@ -18,9 +18,9 @@ locals {
 
 resource "google_storage_bucket_iam_member" "workload_identity_storage_object_user" {
   for_each = toset([
-    local.comfyui_cloud_storage_input_bucket_name,
-    local.comfyui_cloud_storage_model_bucket_name,
-    local.comfyui_cloud_storage_output_bucket_name
+    google_storage_bucket.comfyui_input.name,
+    google_storage_bucket.comfyui_models.name,
+    google_storage_bucket.comfyui_output.name,
   ])
 
   bucket = each.key

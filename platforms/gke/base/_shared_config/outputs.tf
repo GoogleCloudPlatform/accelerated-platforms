@@ -24,6 +24,22 @@ output "cluster_region" {
   value = var.cluster_region
 }
 
+output "huggingface_hub_access_token_read_secret_manager_secret_name" {
+  value = local.huggingface_hub_access_token_read_secret_manager_secret_name
+}
+
+output "huggingface_hub_access_token_write_secret_manager_secret_name" {
+  value = local.huggingface_hub_access_token_write_secret_manager_secret_name
+}
+
+output "huggingface_hub_models_bucket_name" {
+  value = local.huggingface_hub_models_bucket_name
+}
+
+output "huggingface_secret_manager_project_id" {
+  value = local.huggingface_secret_manager_project_id
+}
+
 output "platform_name" {
   value = var.platform_name
 }

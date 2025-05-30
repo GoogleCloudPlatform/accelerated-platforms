@@ -36,6 +36,7 @@ export TF_VAR_resource_name_prefix="inf"
 declare -a CORE_TERRASERVICES_APPLY=(
   "networking"
   "container_cluster"
+  "huggingface/initialize"
   "workloads/cluster_credentials"
   "custom_compute_class"
   "workloads/auto_monitoring"

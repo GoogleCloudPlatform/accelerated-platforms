@@ -62,12 +62,20 @@ For more information about providing values for Terraform input variables, see
 
 ## Deploy
 
-```shell
-${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh
-```
+- Deploy the inference reference implementation.
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh
+  ```
+
+- Configure the platform.
+
+  - [Hugging Face initialization](/platforms/gke/base/core/huggingface/initialize/README.md)
 
 ## Teardown
 
-```shell
-${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh
-```
+- Teardown the inference reference implementation.
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh
+  ```

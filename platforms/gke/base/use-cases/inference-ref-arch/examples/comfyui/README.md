@@ -247,7 +247,7 @@ Cloudbuild pipeline or some thing else.
   --gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
   --no-source \
   --project="${cluster_project_id}" \
-  --service-account="${comfyui_cloud_build_service_account_id}" \
+  --service-account="${comfyui_cloudbuild_service_account_id}" \
   --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
   ```
 

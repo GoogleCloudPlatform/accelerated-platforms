@@ -7,6 +7,10 @@ This implementation is an extension of the
 [Base GKE Accelerated Platform](/platforms/gke/base/README.md) tailored for
 inference workloads.
 
+<!-- Source: https://gcpdraw.googleplex.com/diagrams/7822a266-c831-4374-a1e8-a8f67a174d89 -->
+
+![Reference Architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/images/reference_architecture_simple.svg)
+
 ## Purpose
 
 The primary goal of this reference architecture is to provide a best practices,

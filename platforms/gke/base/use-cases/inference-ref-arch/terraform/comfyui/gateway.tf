@@ -171,7 +171,18 @@ resource "local_file" "gateway_external_https_yaml" {
 
 # ENDPOINTS
 ###############################################################################
+resource "terraform_data" "comfyui_https_endpoint_undelete" {
+  provisioner "local-exec" {
+    command     = "gcloud endpoints services undelete ${local.comfyui_endpoint} --project=${data.google_project.cluster.project_id} --quiet >/dev/null 2>&1 || exit 0"
+    interpreter = ["bash", "-c"]
+    working_dir = path.module
+  }
+}
+
 resource "google_endpoints_service" "comfyui_https" {
+  depends_on = [
+    terraform_data.comfyui_https_endpoint_undelete,
+  ]
   openapi_config = templatefile(
     "${path.module}/templates/openapi/endpoint.tftpl.yaml",
     {

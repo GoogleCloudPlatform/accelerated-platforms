@@ -13,21 +13,20 @@
 # limitations under the License.
 
 locals {
-  comfyui_endpoint              = local.comfyui_endpoints_hostname
-  comfyui_port                  = 8848
-  comfyui_service_name          = "comfyui-svc"
-  gateway_manifests_directory   = "${local.manifests_directory}/gateway"
-  gateway_name                  = "external-https"
-  hostname_suffix               = "endpoints.${data.google_project.cluster.project_id}.cloud.goog"
-  iap_domain                    = var.comfyui_iap_domain != null ? var.comfyui_iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
-  iap_oath_brand                = "projects/${data.google_project.comfyui_iap_oath_branding.number}/brands/${data.google_project.comfyui_iap_oath_branding.number}"
-  kubeconfig_directory          = "${path.module}/../../../../kubernetes/kubeconfig"
-  kubeconfig_file               = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
-  manifests_directory           = "${local.manifests_directory_root}/namespace/${var.comfyui_kubernetes_namespace}"
-  manifests_directory_root      = "${path.module}/../../../../kubernetes/manifests"
-  namespace_directory           = "${local.manifests_directory_root}/namespace"
-  namespace_manifests_directory = "${local.manifests_directory}/namespace"
-  serviceaccount                = "${var.comfyui_kubernetes_namespace}-sa"
+  comfyui_endpoint            = local.comfyui_endpoints_hostname
+  comfyui_port                = 8848
+  comfyui_service_name        = "comfyui-svc"
+  gateway_manifests_directory = "${local.manifests_directory}/gateway"
+  gateway_name                = "external-https"
+  hostname_suffix             = "endpoints.${data.google_project.cluster.project_id}.cloud.goog"
+  iap_domain                  = var.comfyui_iap_domain != null ? var.comfyui_iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
+  iap_oath_brand              = "projects/${data.google_project.comfyui_iap_oath_branding.number}/brands/${data.google_project.comfyui_iap_oath_branding.number}"
+  kubeconfig_directory        = "${path.module}/../../../../kubernetes/kubeconfig"
+  kubeconfig_file             = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
+  manifests_directory         = "${local.namespace_directory}/${var.comfyui_kubernetes_namespace}"
+  manifests_directory_root    = "${path.module}/../../../../kubernetes/manifests"
+  namespace_directory         = "${local.manifests_directory_root}/namespace"
+  serviceaccount              = "${var.comfyui_kubernetes_namespace}-sa"
 }
 
 data "google_client_config" "default" {}
@@ -42,42 +41,26 @@ data "local_file" "kubeconfig" {
   filename = local.kubeconfig_file
 }
 
-resource "terraform_data" "namespace" {
-  input = {
-    manifests_dir    = local.namespace_directory
-    namespace        = var.comfyui_kubernetes_namespace
-    comfyui_app_name = var.comfyui_app_name
-  }
-
-  provisioner "local-exec" {
-    command     = <<EOT
-mkdir -p ${self.input.manifests_dir} && \
-cp -r templates/namespace/namespace-comfyui.tftpl.yaml ${self.input.manifests_dir}/namespace-comfyui.yaml
-sed -i "s/\$${namespace}/${self.input.namespace}/; s/\$${app}/${self.input.comfyui_app_name}/"  ${self.input.manifests_dir}/namespace-comfyui.yaml
-EOT
-    interpreter = ["bash", "-c"]
-    working_dir = path.module
-  }
-
-  triggers_replace = {
-    manifests_dir         = local.namespace_directory
-    namespace             = var.comfyui_kubernetes_namespace
-    comfyui_app_name      = var.comfyui_app_name
-    template_content_hash = filemd5("${path.module}/templates/namespace/namespace-comfyui.tftpl.yaml")
-
-  }
+resource "local_file" "comfyui_namespace_manifest" {
+  content = templatefile(
+    "${path.module}/templates/namespace/namespace-comfyui.tftpl.yaml",
+    {
+      app       = var.comfyui_app_name
+      namespace = var.comfyui_kubernetes_namespace
+    }
+  )
+  filename = "${local.namespace_directory}/namespace-${var.comfyui_kubernetes_namespace}.yaml"
 }
 
-module "kubectl_apply_namespace" {
+module "kubectl_apply_comfyui_namespace_manifest" {
   depends_on = [
-    terraform_data.namespace,
+    local_file.comfyui_namespace_manifest,
   ]
 
   source = "../../../../modules/kubectl_apply"
 
-  kubeconfig_file = data.local_file.kubeconfig.filename
-  #manifest                    = "${local.namespace_directory}/namespace-comfyui.yaml"
-  manifest                    = local.namespace_directory
+  kubeconfig_file             = data.local_file.kubeconfig.filename
+  manifest                    = local_file.comfyui_namespace_manifest.filename
   manifest_includes_namespace = true
 }
 
@@ -85,43 +68,39 @@ module "kubectl_apply_namespace" {
 # Setup service account and network policies in the namespace
 ###############################################################################
 
-resource "local_file" "serviceaccount" {
+resource "local_file" "comfyui_serviceaccount" {
   content = templatefile(
     "${path.module}/templates/namespace/serviceaccount.tftpl.yaml",
     {
-      serviceaccount = local.serviceaccount,
-      namespace      = var.comfyui_kubernetes_namespace,
-
+      name      = local.serviceaccount
+      namespace = var.comfyui_kubernetes_namespace
     }
   )
-  filename = "${local.namespace_manifests_directory}/serviceaccount.yaml"
+  filename = "${local.manifests_directory}/serviceaccount-${local.serviceaccount}.yaml"
 }
 
-resource "local_file" "network_policy" {
+resource "local_file" "comfyui_network_policy" {
   content = templatefile(
     "${path.module}/templates/namespace/network-policy.tftpl.yaml",
     {
-      namespace = var.comfyui_kubernetes_namespace,
-      name      = var.comfyui_kubernetes_namespace,
-
+      name      = var.comfyui_kubernetes_namespace
+      namespace = var.comfyui_kubernetes_namespace
     }
   )
-  filename = "${local.namespace_manifests_directory}/network-policy.yaml"
+  filename = "${local.manifests_directory}/network-policy.yaml"
 }
 
 module "kubectl_apply_namespace_setup" {
   depends_on = [
-    terraform_data.namespace,
-    module.kubectl_apply_namespace,
-    local_file.serviceaccount,
-    local_file.network_policy,
-    #local_file.iap_oauth_k8s_secret
+    local_file.comfyui_network_policy,
+    local_file.comfyui_serviceaccount,
+    module.kubectl_apply_comfyui_namespace_manifest,
   ]
 
   source = "../../../../modules/kubectl_apply"
 
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = local.namespace_manifests_directory
+  manifest                    = local.manifests_directory
   manifest_includes_namespace = true
 }
 
@@ -156,17 +135,20 @@ resource "google_compute_global_address" "external_gateway_https" {
 }
 
 resource "local_file" "gateway_external_https_yaml" {
+  depends_on = [
+    google_compute_global_address.external_gateway_https
+  ]
+
   content = templatefile(
     "${path.module}/templates/gateway/gateway-external-https.tftpl.yaml",
     {
-      address_name         = google_compute_global_address.external_gateway_https.name,
-      namespace            = var.comfyui_kubernetes_namespace,
-      gateway_name         = local.gateway_name,
+      address_name         = google_compute_global_address.external_gateway_https.name
+      gateway_name         = local.gateway_name
+      namespace            = var.comfyui_kubernetes_namespace
       ssl_certificate_name = google_compute_managed_ssl_certificate.external_gateway.name
     }
   )
-  filename   = "${local.gateway_manifests_directory}/gateway-external-https.yaml"
-  depends_on = [google_compute_global_address.external_gateway_https]
+  filename = "${local.gateway_manifests_directory}/gateway-external-https.yaml"
 }
 
 # ENDPOINTS
@@ -183,10 +165,11 @@ resource "google_endpoints_service" "comfyui_https" {
   depends_on = [
     terraform_data.comfyui_https_endpoint_undelete,
   ]
+
   openapi_config = templatefile(
     "${path.module}/templates/openapi/endpoint.tftpl.yaml",
     {
-      endpoint   = local.comfyui_endpoint,
+      endpoint   = local.comfyui_endpoint
       ip_address = google_compute_global_address.external_gateway_https.address
     }
   )
@@ -200,10 +183,10 @@ resource "local_file" "route_comfyui_https_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/http-route-service.tftpl.yaml",
     {
-      gateway_name    = local.gateway_name,
-      namespace       = var.comfyui_kubernetes_namespace,
-      http_route_name = "comfyui-https",
+      gateway_name    = local.gateway_name
       hostname        = local.comfyui_endpoint
+      http_route_name = "comfyui-https"
+      namespace       = var.comfyui_kubernetes_namespace
       service_name    = local.comfyui_service_name
       service_port    = local.comfyui_port
     }
@@ -234,11 +217,11 @@ resource "google_iap_client" "comfyui_client" {
 resource "google_iap_web_iam_member" "domain_iap_https_resource_accessor" {
   depends_on = [
     google_project_service.iap_googleapis_com,
-    local_file.gateway_external_https_yaml
+    local_file.gateway_external_https_yaml,
   ]
 
-  project = data.google_project.cluster.project_id
   member  = "domain:${local.iap_domain}"
+  project = data.google_project.cluster.project_id
   role    = "roles/iap.httpsResourceAccessor"
 }
 
@@ -246,6 +229,10 @@ resource "google_iap_web_iam_member" "domain_iap_https_resource_accessor" {
 # IAP Policy
 ###############################################################################
 resource "kubernetes_secret_v1" "comfyui_oauth" {
+  depends_on = [
+    module.kubectl_apply_comfyui_namespace_manifest,
+  ]
+
   data = {
     secret = google_iap_client.comfyui_client.secret
   }
@@ -254,10 +241,13 @@ resource "kubernetes_secret_v1" "comfyui_oauth" {
     name      = "comfyui-oauth"
     namespace = var.comfyui_kubernetes_namespace
   }
-  depends_on = [module.kubectl_apply_namespace]
 }
 
 resource "local_file" "policy_iap_comfyui_yaml" {
+  depends_on = [
+    module.kubectl_apply_namespace_setup,
+  ]
+
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
     {
@@ -268,8 +258,7 @@ resource "local_file" "policy_iap_comfyui_yaml" {
       namespace                = var.comfyui_kubernetes_namespace
     }
   )
-  filename   = "${local.gateway_manifests_directory}/policy-iap-comfyui.yaml"
-  depends_on = [module.kubectl_apply_namespace_setup]
+  filename = "${local.gateway_manifests_directory}/policy-iap-comfyui.yaml"
 }
 
 ###############################################################################
@@ -277,13 +266,12 @@ resource "local_file" "policy_iap_comfyui_yaml" {
 ###############################################################################
 module "kubectl_apply_gateway_res" {
   depends_on = [
-    terraform_data.namespace,
-    module.kubectl_apply_namespace_setup,
-    local_file.gateway_external_https_yaml,
-    local_file.route_comfyui_https_yaml,
-    local_file.policy_iap_comfyui_yaml,
+    google_endpoints_service.comfyui_https,
     kubernetes_secret_v1.comfyui_oauth,
-    google_endpoints_service.comfyui_https
+    local_file.gateway_external_https_yaml,
+    local_file.policy_iap_comfyui_yaml,
+    local_file.route_comfyui_https_yaml,
+    module.kubectl_apply_namespace_setup,
   ]
 
   source = "../../../../modules/kubectl_apply"

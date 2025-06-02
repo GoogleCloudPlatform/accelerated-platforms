@@ -19,5 +19,5 @@ info:
   version: "1.0.0"
 paths: {}
 x-google-endpoints:
-- name: "${endpoint}"
-  target: "${ip_address}"
+  - name: "${endpoint}"
+    target: "${ip_address}"

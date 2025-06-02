@@ -13,8 +13,16 @@
 # limitations under the License.
 
 resource "local_file" "workload" {
+  depends_on = [
+    google_artifact_registry_repository.comfyui_container_images,
+    google_service_account.custom_cloudbuild_sa,
+    google_storage_bucket.cloudbuild_source,
+    module.kubectl_apply_gateway_res,
+    null_resource.submit_docker_build,
+  ]
+
   content = templatefile(
-    "${path.module}/templates/workloads/comfyui_${var.comfyui_accelerator_type}.tftpl.yaml",
+    "${path.module}/templates/workloads/comfyui-${var.comfyui_accelerator_type}.tftpl.yaml",
     {
       namespace       = var.comfyui_kubernetes_namespace,
       app_name        = var.comfyui_app_name,
@@ -27,23 +35,18 @@ resource "local_file" "workload" {
       serviceaccount  = local.serviceaccount
     }
   )
-  depends_on = [
-    null_resource.submit_docker_build,
-    google_artifact_registry_repository.comfyui_container_images,
-    google_storage_bucket.cloudbuild_source,
-    google_service_account.custom_cloudbuild_sa,
-    module.kubectl_apply_gateway_res
-  ]
-
-  filename = "${local.namespace_manifests_directory}/comfyui_${var.comfyui_accelerator_type}.yaml"
+  filename = "${local.manifests_directory}/comfyui-${var.comfyui_accelerator_type}.yaml"
 }
 
 module "kubectl_apply_workload_manifest" {
-  depends_on = [local_file.workload]
+  depends_on = [
+    local_file.workload,
+  ]
 
-  source                      = "../../../../modules/kubectl_apply"
+  source = "../../../../modules/kubectl_apply"
+
   apply_once                  = false
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = "${local.namespace_manifests_directory}/comfyui_${var.comfyui_accelerator_type}.yaml"
+  manifest                    = local_file.workload.filename
   manifest_includes_namespace = true
 }

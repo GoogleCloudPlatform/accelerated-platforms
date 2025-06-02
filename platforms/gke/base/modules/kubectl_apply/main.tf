@@ -13,14 +13,18 @@
 # limitations under the License.
 
 locals {
+  kubectl_apply_server_side = var.apply_server_side ? "--server-side " : ""
+
   kubectl_delete_error_on_failure = var.error_on_delete_failure ? "" : "; exit 0"
-  kubectl_apply_server_side       = var.apply_server_side ? "--server-side " : ""
-  kubectl_manifest_option         = var.use_kustomize ? "--kustomize=" : "--filename="
-  kubectl_namespace               = var.manifest_includes_namespace ? "" : "--namespace=${var.namespace} "
-  kubectl_recursive               = var.recursive ? " --recursive" : ""
+  kubectl_delete_ignore_not_found = var.delete_ignore_not_found ? " --ignore-not-found" : ""
+  kubectl_delete_timeout          = " --timeout=${var.delete_timeout}"
+
+  kubectl_manifest_option = var.use_kustomize ? "--kustomize=" : "--filename="
+  kubectl_namespace       = var.manifest_includes_namespace ? "" : "--namespace=${var.namespace} "
+  kubectl_recursive       = var.recursive ? " --recursive" : ""
 
   kubectl_apply_command  = "kubectl ${local.kubectl_namespace}apply ${local.kubectl_apply_server_side}${local.kubectl_manifest_option}${var.manifest}${local.kubectl_recursive}"
-  kubectl_delete_command = var.manifest_can_be_updated ? "" : "kubectl ${local.kubectl_namespace}delete ${local.kubectl_manifest_option}${var.manifest}${local.kubectl_recursive}${local.kubectl_delete_error_on_failure}"
+  kubectl_delete_command = var.manifest_can_be_updated ? "" : "kubectl ${local.kubectl_namespace}delete ${local.kubectl_manifest_option}${var.manifest}${local.kubectl_delete_ignore_not_found}${local.kubectl_recursive}${local.kubectl_delete_timeout}${local.kubectl_delete_error_on_failure}"
 
   manifest_is_directory = try(provider::local::direxists(var.manifest), false)
 }

@@ -35,6 +35,18 @@ variable "kubeconfig_file" {
   type        = string
 }
 
+variable "delete_ignore_not_found" {
+  default     = false
+  description = "Treat 'resource not found' as a successful delete."
+  type        = bool
+}
+
+variable "delete_timeout" {
+  default     = "0"
+  description = "The length of time to wait before giving up on a delete, zero means determine a timeout from the size of the object"
+  type        = string
+}
+
 variable "manifest" {
   description = "Path to the manifest or directory of manifests to apply."
   type        = string

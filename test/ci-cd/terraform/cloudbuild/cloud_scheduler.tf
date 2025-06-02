@@ -44,7 +44,7 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_initialize_terraf
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
     http_method = "POST"
-    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_initialize_terraform.trigger_id}:run"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_initialize_terraform_push.trigger_id}:run"
 
     oauth_token {
       service_account_email = google_service_account.cicd_sched.email
@@ -62,7 +62,7 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_terraform" {
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
     http_method = "POST"
-    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_terraform.trigger_id}:run"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_terraform_push.trigger_id}:run"
 
     oauth_token {
       service_account_email = google_service_account.cicd_sched.email
@@ -80,7 +80,7 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_workloads_terrafo
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
     http_method = "POST"
-    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_workloads_terraform.trigger_id}:run"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_workloads_terraform_push.trigger_id}:run"
 
     oauth_token {
       service_account_email = google_service_account.cicd_sched.email
@@ -98,7 +98,7 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_uc_federated_learning_
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
     http_method = "POST"
-    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.uc_federated_learning_terraform.trigger_id}:run"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_uc_federated_learning_scripts_push.trigger_id}:run"
 
     oauth_token {
       service_account_email = google_service_account.cicd_sched.email
@@ -116,7 +116,7 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_uc_inference_ref_arch_
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
     http_method = "POST"
-    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_uc_inference_ref_arch_scripts.trigger_id}:run"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_uc_inference_ref_arch_scripts_push.trigger_id}:run"
 
     oauth_token {
       service_account_email = google_service_account.cicd_sched.email
@@ -134,7 +134,7 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_uc_inference_ref_arch_
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
     http_method = "POST"
-    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_uc_inference_ref_arch_comfyui_scripts.trigger_id}:run"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_push.trigger_id}:run"
 
     oauth_token {
       service_account_email = google_service_account.cicd_sched.email

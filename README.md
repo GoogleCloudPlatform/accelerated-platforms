@@ -29,6 +29,8 @@ benefits of GKE as the primary runtime.
 - [GKE AI/ML Platform for enabling AI/ML Ops](/docs/platforms/gke-aiml/README.md)
 - [Federated learning](/docs/use-cases/federated-learning/README.md)
 - [Inference reference architecture](/platforms/gke/base/use-cases/inference-ref-arch/README.md)
+  - [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
+  - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
 
 ### Playground AI/ML Platform on GKE
 

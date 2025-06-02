@@ -33,3 +33,111 @@ resource "google_cloud_scheduler_job" "acp_ci_cd_runner_image_daily" {
     }
   }
 }
+
+resource "google_cloud_scheduler_job" "platforms_gke_base_core_initialize_terraform" {
+  name      = "platforms-gke-base-core-initialize-terraform-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 0 * * *"
+  time_zone = "Etc/UTC"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_initialize_terraform.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
+resource "google_cloud_scheduler_job" "platforms_gke_base_core_terraform" {
+  name      = "platforms-gke-base-core-terraform-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 0 * * *"
+  time_zone = "Etc/UTC"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_terraform.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
+resource "google_cloud_scheduler_job" "platforms_gke_base_core_workloads_terraform" {
+  name      = "platforms-gke-base-core-workloads-terraform-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 0 * * *"
+  time_zone = "Etc/UTC"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_workloads_terraform.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
+resource "google_cloud_scheduler_job" "platforms_gke_base_uc_federated_learning_scripts" {
+  name      = "platforms-gke-base-uc-federated_learning-scripts-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 0 * * *"
+  time_zone = "Etc/UTC"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.uc_federated_learning_terraform.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
+resource "google_cloud_scheduler_job" "platforms_gke_base_uc_inference_ref_arch_scripts" {
+  name      = "platforms-gke-base-uc-inference-ref-arch-scripts-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 0 * * *"
+  time_zone = "Etc/UTC"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_uc_inference_ref_arch_scripts.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
+resource "google_cloud_scheduler_job" "platforms_gke_base_uc_inference_ref_arch_comfyui_scripts" {
+  name      = "platforms-gke-base-uc-inference-ref-arch-comfyui-scripts-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 0 * * *"
+  time_zone = "Etc/UTC"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_uc_inference_ref_arch_comfyui_scripts.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}

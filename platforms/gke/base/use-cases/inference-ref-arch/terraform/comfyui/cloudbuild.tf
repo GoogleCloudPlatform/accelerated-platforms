@@ -17,26 +17,18 @@ locals {
   image_destination        = "${var.cluster_region}-docker.pkg.dev/${data.google_project.cluster.project_id}/${local.final_artifact_repo_name}/${var.comfyui_image_name}:${var.comfyui_image_tag}"
 }
 
-resource "null_resource" "submit_docker_build" {
+resource "terraform_data" "submit_docker_build" {
   depends_on = [
     google_project_iam_member.custom_cloudbuild_sa_log_writer,
     google_project_service.cloudbuild_googleapis_com,
     google_storage_bucket_iam_member.cloudbuild_source_creator,
   ]
 
-  triggers = {
-    repository_id     = google_artifact_registry_repository.comfyui_container_images.id
-    custom_sa_email   = google_service_account.custom_cloudbuild_sa.email
-    image_tag         = var.comfyui_image_tag
-    build_config_hash = filebase64sha256("${path.module}/src/cloudbuild.yaml")
-    dockerfile_hash   = filebase64sha256("${path.module}/src/Dockerfile")
-  }
-
   provisioner "local-exec" {
-    command = <<-EOT
+    command     = <<-EOT
       cd src && \
       while ! gcloud builds submit \
-      --config="${path.module}/cloudbuild.yaml" \
+      --config="cloudbuild.yaml" \
       --gcs-source-staging-dir="${google_storage_bucket.cloudbuild_source.url}/source" \
       --project="${data.google_project.cluster.project_id}" \
       --quiet \
@@ -46,7 +38,16 @@ resource "null_resource" "submit_docker_build" {
         sleep 5
       done
     EOT
+    interpreter = ["bash", "-c"]
+    working_dir = path.module
+  }
 
-    when = create
+  triggers_replace = {
+    custom_sa_email        = google_service_account.custom_cloudbuild_sa.email
+    hash_cloudbuild_config = filebase64sha256("${path.module}/src/cloudbuild.yaml")
+    hash_dockerfile        = filebase64sha256("${path.module}/src/Dockerfile")
+    hash_entrypoint        = filebase64sha256("${path.module}/src/entrypoint.sh")
+    image_tag              = var.comfyui_image_tag
+    repository_id          = google_artifact_registry_repository.comfyui_container_images.id
   }
 }

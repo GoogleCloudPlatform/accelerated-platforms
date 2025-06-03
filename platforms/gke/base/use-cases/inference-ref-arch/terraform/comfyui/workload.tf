@@ -12,27 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  deployment_name = "${var.comfyui_app_name}-${var.comfyui_accelerator_type}"
+}
+
 resource "local_file" "workload" {
   depends_on = [
     google_artifact_registry_repository.comfyui_container_images,
     google_service_account.custom_cloudbuild_sa,
     google_storage_bucket.cloudbuild_source,
     module.kubectl_apply_gateway_res,
-    null_resource.submit_docker_build,
+    terraform_data.submit_docker_build,
   ]
 
   content = templatefile(
     "${path.module}/templates/workloads/comfyui-${var.comfyui_accelerator_type}.tftpl.yaml",
     {
-      namespace       = var.comfyui_kubernetes_namespace,
-      app_name        = var.comfyui_app_name,
       accelerator     = var.comfyui_accelerator_type
+      deployment_name = local.deployment_name
       image           = local.image_destination
       input_bucket    = google_storage_bucket.comfyui_input.name
       model_buckets   = google_storage_bucket.comfyui_model.name
+      namespace       = var.comfyui_kubernetes_namespace
       output_bucket   = google_storage_bucket.comfyui_output.name
-      workflow_bucket = google_storage_bucket.comfyui_workflow.name
+      port            = "${local.comfyui_port}"
+      service_name    = local.comfyui_service_name
       serviceaccount  = local.serviceaccount
+      workflow_bucket = google_storage_bucket.comfyui_workflow.name
     }
   )
   filename = "${local.manifests_directory}/comfyui-${var.comfyui_accelerator_type}.yaml"

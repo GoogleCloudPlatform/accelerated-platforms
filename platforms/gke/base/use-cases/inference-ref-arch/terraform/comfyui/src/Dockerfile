@@ -12,59 +12,64 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Use a NVIDIA CUDA base image
-FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+ARG cuda_version=12.6
+ARG pytorch_version=2.7.0
+
+FROM pytorch/pytorch:${pytorch_version}-cuda${cuda_version}-cudnn9-runtime
+
+ENV CMAKE_BUILD_PARALLEL_LEVEL "8"
+ENV COMFY_VERSION "0.3.39"
+ENV CUDA_VERSION "12.6"
+ENV DEBIAN_FRONTEND "noninteractive"
+ENV PIP_PREFER_BINARY "1"
 
 # Set a non-root user and group
-ARG UID=1000
-ARG GID=1000
+ARG UID=10000
+ARG GID=10000
 ARG USER=comfyuser
 ARG GROUP=comfygroup
 
-# Create the group and user
-RUN groupadd --gid $GID $GROUP && \
-    useradd --uid $UID --gid $GID -m $USER
-
 # Set the working directory for the application
-WORKDIR /app
+ENV COMFY_DIR "/home/${USER}/comfy"
+WORKDIR ${COMFY_DIR}
 
-# Install system dependencies
-# Use --no-install-recommends to keep the image size down
-# And clean up apt cache to further reduce image size
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        git \
-        python3.10 \
-        python3-pip \
-        python3.10-venv && \  
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-# Ensure the app directory is owned by the new user
-RUN chown -R ${USER}:${GROUP} /app
+# Create the group and user
+RUN groupadd --gid ${GID} ${GROUP} \ 
+  && useradd --uid ${UID} --gid ${GID} -m ${USER} \
+  && chown -R ${USER}:${GROUP} /home/${USER}
 
-# Switch to the non-root user
+SHELL ["/bin/bash", "-c"]
+
+RUN apt-get update \
+  && apt-get install --yes \
+  curl \
+  gettext \
+  git \
+  unzip \
+  wget \
+  && apt clean --yes \ 
+  && rm --force --recursive /var/lib/apt/lists/* \
+  && pip install --no-cache-dir uv \ 
+  && uv pip install --no-cache-dir --system comfy-cli
+
 USER ${USER}
 
-# Create and activate the Python virtual environment
-ENV VIRTUAL_ENV=/app/venv
-RUN python3.10 -m venv $VIRTUAL_ENV
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+ENV COMFY_HOME "${COMFY_DIR}/ComfyUI"
+ENV PATH "/home/${USER}/.local/bin:${PATH}"
 
-# Clone ComfyUI and its dependencies
-RUN git clone --depth 1 https://github.com/comfyanonymous/ComfyUI.git /app/ComfyUI --branch v0.3.36
+RUN comfy --skip-prompt --workspace=${COMFY_DIR} tracking disable \
+  && comfy --skip-prompt --workspace=${COMFY_HOME} install --cuda-version=${CUDA_VERSION} --nvidia --version=${COMFY_VERSION} \
+  && comfy --skip-prompt set-default ${COMFY_HOME}
 
-# Install ComfyUI requirements (inside the venv)
-RUN pip install --no-cache-dir -r /app/ComfyUI/requirements.txt
+COPY --chown=${USER}:${GROUP} --chmod=700 entrypoint.sh ./
 
-# Install PyTorch (inside the venv)
-RUN pip install --no-cache-dir torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu121
+ENV BASE ""
+ENV INPUT_DIR "${COMFY_HOME}/input"
+ENV MODEL_DIR "${COMFY_HOME}/models"
+ENV OUTPUT_DIR "${COMFY_HOME}/output"
 
-# Clone custom nodes (ensure they are in the correct location relative to the WORKDIR)
-RUN git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager --branch 3.32.5 /app/ComfyUI/custom_nodes/comfyui-manager
+ENV COMFYUI_HOST "0.0.0.0"
+ENV COMFYUI_PORT "8188"
 
-# Expose the port
-EXPOSE 8848
-
-# Define the command to run the application
-# Use the python interpreter from the virtual environment
-CMD ["python", "-u", "/app/ComfyUI/main.py", "--listen", "0.0.0.0", "--port", "8848"]
+ENTRYPOINT  [ "./entrypoint.sh" ]
+CMD ["--", "--listen=${COMFYUI_HOST}", "--port=${COMFYUI_PORT}"]

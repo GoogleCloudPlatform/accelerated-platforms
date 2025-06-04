@@ -15,107 +15,107 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${app_name}-${accelerator}
+  name: ${deployment_name}
   namespace: ${namespace}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ${app_name}-${accelerator}
+      app: ${deployment_name}
   template:
     metadata:
-      labels:
-        app: ${app_name}-${accelerator}
       annotations:
-        gke-gcsfuse/volumes: "true"
         gke-gcsfuse/cpu-limit: "0"
-        gke-gcsfuse/memory-limit: "0"
         gke-gcsfuse/ephemeral-storage-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/volumes: "true"
+      labels:
+        app: ${deployment_name}
     spec:
+      containers:
+        - image: ${image}
+          imagePullPolicy: Always
+          name: ${deployment_name}
+          ports:
+            - containerPort: ${port}
+          resources:
+            limits:
+              cpu: "22"
+              memory: 90G
+              nvidia.com/gpu: 2
+            requests:
+              cpu: "16"
+              memory: 80G
+              nvidia.com/gpu: 2
+          volumeMounts:
+            - mountPath: /home/comfyuser/comfy/ComfyUI/models
+              name: comfyui-model
+            - mountPath: /home/comfyuser/comfy/ComfyUI/input
+              name: comfyui-input
+            - mountPath: /home/comfyuser/comfy/ComfyUI/output
+              name: comfyui-output
+            - mountPath: /home/comfyuser/comfy/ComfyUI/user/default/workflows
+              name: comfyui-workflows
+      nodeSelector:
+        cloud.google.com/gke-accelerator: ${accelerator}
       securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
+        fsGroup: 10000
+        runAsGroup: 10000
+        runAsUser: 10000
+      serviceAccountName: ${serviceaccount}
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+        - effect: NoSchedule
+          key: on-demand
+          operator: Equal
+          value: "true"
+        - effect: NoSchedule
+          key: reservation
+          operator: Equal
+          value: "true"
       volumes:
-        - name: dshm
-          emptyDir:
+        - emptyDir:
             medium: Memory
-        - name: comfyui-input
-          csi:
+          name: dshm
+        - csi:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: ${input_bucket}
-              mountOptions: "implicit-dirs,metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
-        - name: comfyui-output
-          csi:
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:-1,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:-1,metadata-cache:type-cache-max-size-mb:-1
+          name: comfyui-input
+        - csi:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: ${output_bucket}
-              mountOptions: "implicit-dirs,metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
-        - name: comfyui-model
-          csi:
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:-1,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:-1,metadata-cache:type-cache-max-size-mb:-1
+          name: comfyui-output
+        - csi:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: ${model_buckets}
-              mountOptions: "implicit-dirs,metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
-        - name: comfyui-workflows
-          csi:
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:-1,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:-1,metadata-cache:type-cache-max-size-mb:-1
+          name: comfyui-model
+        - csi:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: ${workflow_bucket}
-              mountOptions: "implicit-dirs,metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-system:kernel-list-cache-ttl-secs:-1"
-      containers:
-        - name: ${app_name}-${accelerator}
-          image: ${image}
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 8848
-          volumeMounts:
-            - mountPath: /app/ComfyUI/models
-              name: comfyui-model
-            - mountPath: /app/ComfyUI/input
-              name: comfyui-input
-            - mountPath: /app/ComfyUI/output
-              name: comfyui-output
-            - mountPath: /app/ComfyUI/user/default/workflows
-              name: comfyui-workflows
-          resources:
-            requests:
-              cpu: "16"
-              memory: "80G"
-              nvidia.com/gpu: 2
-            limits:
-              cpu: "22"
-              memory: "90G"
-              nvidia.com/gpu: 2
-      nodeSelector:
-        cloud.google.com/gke-accelerator: ${accelerator}
-      serviceAccountName: ${serviceaccount}
-      tolerations:
-        - key: "nvidia.com/gpu"
-          operator: "Exists"
-          effect: "NoSchedule"
-        - key: "on-demand"
-          value: "true"
-          operator: "Equal"
-          effect: "NoSchedule"
-        - key: "reservation"
-          value: "true"
-          operator: "Equal"
-          effect: "NoSchedule"
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:-1,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:-1,metadata-cache:type-cache-max-size-mb:-1
+          name: comfyui-workflows
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: ${app_name}-svc
-  namespace: ${namespace}
   labels:
-    app: ${app_name}-${accelerator}
+    app: ${deployment_name}
+  name: ${service_name}
+  namespace: ${namespace}
 spec:
-  selector:
-    app: ${app_name}-${accelerator}
   ports:
-    - port: 8848
+    - port: ${port}
       protocol: TCP
-      targetPort: 8848
+      targetPort: ${port}
+  selector:
+    app: ${deployment_name}
   type: ClusterIP

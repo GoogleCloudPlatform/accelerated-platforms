@@ -17,4 +17,4 @@ kind: Namespace
 metadata:
   name: ${namespace}
   labels:
-    app: ${app}
+    app: ${app_name}

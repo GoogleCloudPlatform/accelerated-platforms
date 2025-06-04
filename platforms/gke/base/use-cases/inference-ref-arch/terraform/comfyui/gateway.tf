@@ -14,8 +14,8 @@
 
 locals {
   comfyui_endpoint            = local.comfyui_endpoints_hostname
-  comfyui_port                = 8848
-  comfyui_service_name        = "comfyui-svc"
+  comfyui_port                = 8188
+  comfyui_service_name        = "${var.comfyui_app_name}-${var.comfyui_accelerator_type}"
   gateway_manifests_directory = "${local.manifests_directory}/gateway"
   gateway_name                = "external-https"
   hostname_suffix             = "endpoints.${data.google_project.cluster.project_id}.cloud.goog"
@@ -45,7 +45,7 @@ resource "local_file" "comfyui_namespace_manifest" {
   content = templatefile(
     "${path.module}/templates/namespace/namespace-comfyui.tftpl.yaml",
     {
-      app       = var.comfyui_app_name
+      app_name  = var.comfyui_app_name
       namespace = var.comfyui_kubernetes_namespace
     }
   )

@@ -16,6 +16,19 @@ locals {
   workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }
 
+resource "google_storage_bucket_iam_member" "workload_identity_storage_legacy_bucket_reader" {
+  for_each = toset([
+    google_storage_bucket.comfyui_input.name,
+    google_storage_bucket.comfyui_model.name,
+    google_storage_bucket.comfyui_output.name,
+    google_storage_bucket.comfyui_workflow.name,
+  ])
+
+  bucket = each.key
+  role   = "roles/storage.legacyBucketReader"
+  member = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
+}
+
 resource "google_storage_bucket_iam_member" "workload_identity_storage_object_user" {
   for_each = toset([
     google_storage_bucket.comfyui_input.name,

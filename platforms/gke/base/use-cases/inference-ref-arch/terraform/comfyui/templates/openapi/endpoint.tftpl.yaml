@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-swagger: "2.0"
-host: "${endpoint}"
+host: ${endpoint}
 info:
-  title: "Cloud Endpoints DNS"
-  version: "1.0.0"
+  title: Cloud Endpoints DNS
+  version: 1.0.0
 paths: {}
+swagger: "2.0"
 x-google-endpoints:
-  - name: "${endpoint}"
-    target: "${ip_address}"
+  - name: ${endpoint}
+    target: ${ip_address}

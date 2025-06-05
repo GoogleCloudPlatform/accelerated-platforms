@@ -16,7 +16,7 @@ locals {
   workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }
 
-resource "google_storage_bucket_iam_member" "workload_identity_storage_legacy_bucket_reader" {
+resource "google_storage_bucket_iam_member" "workload_identity_gcsfuse_user" {
   for_each = toset([
     google_storage_bucket.comfyui_input.name,
     google_storage_bucket.comfyui_model.name,
@@ -25,20 +25,7 @@ resource "google_storage_bucket_iam_member" "workload_identity_storage_legacy_bu
   ])
 
   bucket = each.key
-  role   = "roles/storage.legacyBucketReader"
-  member = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
-}
-
-resource "google_storage_bucket_iam_member" "workload_identity_storage_object_user" {
-  for_each = toset([
-    google_storage_bucket.comfyui_input.name,
-    google_storage_bucket.comfyui_model.name,
-    google_storage_bucket.comfyui_output.name,
-    google_storage_bucket.comfyui_workflow.name,
-  ])
-
-  bucket = each.key
-  role   = "roles/storage.objectUser"
+  role   = "projects/${data.google_project.cluster.project_id}/roles/gcsfuse.user"
   member = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
 }
 
@@ -51,7 +38,6 @@ resource "google_artifact_registry_repository_iam_member" "writer_access" {
 }
 
 # Create Custom Cloud Build SA and grant it permissions
-
 resource "google_service_account" "custom_cloudbuild_sa" {
   account_id   = local.comfyui_cloudbuild_service_account_name
   display_name = "Custom Service Account for Cloud Build"

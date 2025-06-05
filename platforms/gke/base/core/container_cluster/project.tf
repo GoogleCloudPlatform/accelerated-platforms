@@ -16,6 +16,10 @@ data "google_project" "cluster" {
   project_id = local.cluster_project_id
 }
 
+data "google_project_ancestry" "cluster" {
+  project = local.cluster_project_id
+}
+
 resource "google_project_service" "cloudresourcemanager_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false

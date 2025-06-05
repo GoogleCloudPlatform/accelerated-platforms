@@ -1,7 +1,7 @@
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
 metadata:
-  name: gpu-a100-40gb-x2
+  name: gpu-h100-80gb-high-x1
 spec:
   activeMigration:
     optimizeRulePriority: true
@@ -10,25 +10,25 @@ spec:
   priorities:
     # Use a specific reservation
     # - gpu:
-    #     count: 2
+    #     count: 1
     #     driverVersion: latest
-    #     type: nvidia-tesla-a100
-    #   machineType: a2-highgpu-2g
+    #     type: nvidia-h100-80gb
+    #   machineType: a3-highgpu-1g
     #   maxPodsPerNode: 32
     #   reservations:
     #     affinity: Specific
     #     specific:
-    #       - name: nvidia-tesla-a100-specific
+    #       - name: nvidia-h100-80gb-specific
     #         reservationBlock:
     #           name: <RESERVATION_NAME>
     #   spot: false
 
     # Use any reservation
     - gpu:
-        count: 2
+        count: 1
         driverVersion: latest
-        type: nvidia-tesla-a100
-      machineType: a2-highgpu-2g
+        type: nvidia-h100-80gb
+      machineType: a3-highgpu-1g
       maxPodsPerNode: 32
       reservations:
         affinity: AnyBestEffort
@@ -36,10 +36,10 @@ spec:
 
     # Use on-demand
     - gpu:
-        count: 2
+        count: 1
         driverVersion: latest
-        type: nvidia-tesla-a100
-      machineType: a2-highgpu-2g
+        type: nvidia-h100-80gb
+      machineType: a3-highgpu-1g
       maxPodsPerNode: 32
       spot: false
 
@@ -49,10 +49,10 @@ spec:
         nodeRecycling:
           leadTimeSeconds: 3600
       gpu:
-        count: 2
+        count: 1
         driverVersion: latest
-        type: nvidia-tesla-a100
-      machineType: a2-highgpu-2g
+        type: nvidia-h100-80gb
+      machineType: a3-highgpu-1g
       maxPodsPerNode: 32
       maxRunDurationSeconds: 604800
 
@@ -62,18 +62,18 @@ spec:
         nodeRecycling:
           leadTimeSeconds: 3600
       gpu:
-        count: 2
+        count: 1
         driverVersion: latest
-        type: nvidia-tesla-a100
-      machineType: a2-highgpu-2g
+        type: nvidia-h100-80gb
+      machineType: a3-highgpu-1g
       maxPodsPerNode: 32
       maxRunDurationSeconds: 86400
 
     # Use spot
     - gpu:
-        count: 2
+        count: 1
         driverVersion: latest
-        type: nvidia-tesla-a100
-      machineType: a2-highgpu-2g
+        type: nvidia-h100-80gb
+      machineType: a3-highgpu-1g
       maxPodsPerNode: 32
       spot: true

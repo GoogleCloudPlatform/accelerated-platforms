@@ -8,15 +8,39 @@ spec:
   nodePoolAutoCreation:
     enabled: true
   priorities:
-    # Use reservations if available, fall back to on-demand otherwise
+    # Use a specific reservation
+    # - gpu:
+    #     count: 8
+    #     driverVersion: latest
+    #     type: nvidia-l4
+    #   machineType: g2-standard-96
+    #   maxPodsPerNode: 32
+    #   reservations:
+    #     affinity: Specific
+    #     specific:
+    #       - name: nvidia-l4-specific
+    #         reservationBlock:
+    #           name: <RESERVATION_NAME>
+    #   spot: false
+
+    # Use any reservation
     - gpu:
         count: 8
         driverVersion: latest
         type: nvidia-l4
       machineType: g2-standard-96
-      maxPodsPerNode: 16
+      maxPodsPerNode: 32
       reservations:
         affinity: AnyBestEffort
+      spot: false
+
+    # Use on-demand
+    - gpu:
+        count: 8
+        driverVersion: latest
+        type: nvidia-l4
+      machineType: g2-standard-96
+      maxPodsPerNode: 32
       spot: false
 
     # Use DWS FlexStart with 7 day limit
@@ -29,8 +53,21 @@ spec:
         driverVersion: latest
         type: nvidia-l4
       machineType: g2-standard-96
-      maxPodsPerNode: 16
+      maxPodsPerNode: 32
       maxRunDurationSeconds: 604800
+
+    # Use DWS FlexStart with 1 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      gpu:
+        count: 8
+        driverVersion: latest
+        type: nvidia-l4
+      machineType: g2-standard-96
+      maxPodsPerNode: 32
+      maxRunDurationSeconds: 86400
 
     # Use spot
     - gpu:
@@ -38,5 +75,5 @@ spec:
         driverVersion: latest
         type: nvidia-l4
       machineType: g2-standard-96
-      maxPodsPerNode: 16
+      maxPodsPerNode: 32
       spot: true

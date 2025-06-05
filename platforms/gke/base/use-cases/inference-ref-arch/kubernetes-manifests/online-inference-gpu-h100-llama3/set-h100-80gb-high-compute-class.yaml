@@ -20,4 +20,4 @@ spec:
   template:
     spec:
       nodeSelector:
-        cloud.google.com/compute-class: gpu-h100-80gb-x4-high
+        cloud.google.com/compute-class: gpu-h100-80gb-high-x4

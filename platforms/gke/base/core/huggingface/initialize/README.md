@@ -68,7 +68,9 @@
   export WORKLOAD_KUBERNETES_SERVICE_ACCOUNT="default"
   ```
 
-- Give the Kubernetes service account IAM permissions
+- Give the Kubernetes service account IAM permissions.
+
+  **Read token**
 
   ```shell
   cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
@@ -78,6 +80,8 @@
   --role=roles/secretmanager.secretAccessor
   ```
 
+  **Write token**
+
   ```shell
   cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
   gcloud secrets add-iam-policy-binding ${huggingface_hub_access_token_write_secret_manager_secret_name} \
@@ -86,7 +90,7 @@
   --role=roles/secretmanager.secretAccessor
   ```
 
-- Create a `SecretProviderClass`es in the workload's namespace
+- Create the `SecretProviderClass`es in the workload's namespace.
 
   ```shell
   export WORKLOAD_NAMESPACE="default"
@@ -105,7 +109,7 @@
                 secretProviderClass: huggingface-token-<token_type>
   ```
 
-### **Standard** `huggingface-cli` support
+### Standard `huggingface-cli` support
 
 - Add the volume mount to the container.
 
@@ -123,7 +127,7 @@
               value: /var/run/secrets/huggingface.co/token
   ```
 
-### **Non-standard** `huggingface-cli` support
+### Non-standard `huggingface-cli` support
 
 For images that don't support the standard `huggingface-cli` environment
 variables you will need to determine the correct place to mount the token and/or
@@ -136,9 +140,9 @@ modifying the `SecretProviderClass` to mount the token at an additional path.
 
 The jetstream-pytorch image expects the token to be mounted at
 `/huggingface/HUGGINGFACE_TOKEN`. This requires modifying or adding an
-additional path to the `SecretProviderClass`es
+additional path to the `SecretProviderClass`es.
 
-- Modify the `SecretProviderClass`
+- Modify the `SecretProviderClass`es.
 
   ```yaml
   apiVersion: secrets-store.csi.x-k8s.io/v1
@@ -183,8 +187,8 @@ additional path to the `SecretProviderClass`es
 
 - Add the volume mount to the container.
 
-```yaml
-          volumeMounts:
-            - mountPath: /huggingface
-              name: huggingface-token
-```
+  ```yaml
+            volumeMounts:
+              - mountPath: /huggingface
+                name: huggingface-token
+  ```

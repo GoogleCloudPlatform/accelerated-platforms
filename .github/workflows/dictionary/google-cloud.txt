@@ -66,6 +66,7 @@ keepalive
 keyrings
 krmapihost
 krmapihosting
+megagpu
 meshconfig
 negs
 nodepool

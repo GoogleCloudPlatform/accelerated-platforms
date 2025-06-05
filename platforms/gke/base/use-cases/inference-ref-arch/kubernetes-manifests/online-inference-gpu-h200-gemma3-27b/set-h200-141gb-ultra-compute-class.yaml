@@ -20,4 +20,4 @@ spec:
   template:
     spec:
       nodeSelector:
-        cloud.google.com/compute-class: gpu-h200-141gb-x8-ultra
+        cloud.google.com/compute-class: gpu-h200-141gb-ultra-x8

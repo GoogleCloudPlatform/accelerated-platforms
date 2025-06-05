@@ -1,7 +1,7 @@
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
 metadata:
-  name: tpu-v5e-2x2
+  name: tpu-v5p-2x2x2
 spec:
   activeMigration:
     optimizeRulePriority: true
@@ -9,27 +9,26 @@ spec:
     enabled: true
   priorities:
     # Use a specific reservation
-    # - machineType: ct5lp-hightpu-4t
-    #   maxPodsPerNode: 32
+    # - maxPodsPerNode: 32
     #   reservations:
     #     affinity: Specific
     #     specific:
-    #       - name: tpu-v5-lite-podslice-specific
+    #       - name: tpu-v5p-slice-specific
     #         reservationBlock:
     #           name: <RESERVATION_NAME>
     #   spot: false
     #   tpu:
     #     count: 4
-    #     topology: 2x2
-    #     type: tpu-v5-lite-podslice
+    #     topology: 2x2x2
+    #     type: tpu-v5p-slice
 
     # Use on-demand
     - maxPodsPerNode: 32
       spot: false
       tpu:
         count: 4
-        topology: 2x2
-        type: tpu-v5-lite-podslice
+        topology: 2x2x2
+        type: tpu-v5p-slice
 
     # Use DWS FlexStart with 7 day limit
     - flexStart:
@@ -40,10 +39,10 @@ spec:
       maxRunDurationSeconds: 604800
       tpu:
         count: 4
-        topology: 2x2
-        type: tpu-v5-lite-podslice
+        topology: 2x2x2
+        type: tpu-v5p-slice
 
-    # Use DWS FlexStart with 7 day limit
+    # Use DWS FlexStart with 1 day limit
     - flexStart:
         enabled: true
         nodeRecycling:
@@ -52,13 +51,13 @@ spec:
       maxRunDurationSeconds: 86400
       tpu:
         count: 4
-        topology: 2x2
-        type: tpu-v5-lite-podslice
+        topology: 2x2x2
+        type: tpu-v5p-slice
 
     # Use spot
     - maxPodsPerNode: 32
       spot: true
       tpu:
         count: 4
-        topology: 2x2
-        type: tpu-v5-lite-podslice
+        topology: 2x2x2
+        type: tpu-v5p-slice

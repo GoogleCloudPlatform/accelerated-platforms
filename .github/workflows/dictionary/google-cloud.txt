@@ -59,6 +59,7 @@ httproute
 hyperdiskml
 instrumentor
 ipcidr
+jetstream
 k8sserviceaccount
 kaniko
 keepalive

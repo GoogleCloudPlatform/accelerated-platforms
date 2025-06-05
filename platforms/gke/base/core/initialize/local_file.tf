@@ -86,6 +86,23 @@ resource "local_file" "shared_config_configmanagement_auto_tfvars" {
   filename        = "${local.shared_config_folder}/configmanagement.auto.tfvars"
 }
 
+resource "local_file" "shared_config_huggingface_auto_tfvars" {
+  for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
+
+  content = provider::terraform::encode_tfvars(
+    {
+      huggingface_hub_access_token_read_secret_manager_secret_name  = var.huggingface_hub_access_token_read_secret_manager_secret_name
+      huggingface_hub_access_token_write_secret_manager_secret_name = var.huggingface_hub_access_token_write_secret_manager_secret_name
+      huggingface_hub_models_bucket_location                        = var.huggingface_hub_models_bucket_location
+      huggingface_hub_models_bucket_name                            = var.huggingface_hub_models_bucket_name
+      huggingface_hub_models_bucket_project_id                      = var.huggingface_hub_models_bucket_project_id
+      huggingface_secret_manager_project_id                         = var.huggingface_secret_manager_project_id
+    }
+  )
+  file_permission = "0644"
+  filename        = "${local.shared_config_folder}/huggingface.auto.tfvars"
+}
+
 resource "local_file" "shared_config_initialize_auto_tfvars" {
   for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
 

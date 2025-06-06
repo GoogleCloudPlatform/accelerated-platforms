@@ -1,0 +1,20 @@
+{
+  "game_name": "ChronoBlades: Echoes of the Rift",
+  "description": "In a fractured timeline where ancient magic and futuristic tech collide, warriors known as Timewalkers battle across epochs to restore balance to the multiverse.",
+  "scene": "A rain-soaked, neon-lit market in Neo-Kairos, where timelines bleed into each other. Shady figures barter with relics from ancient Egypt and future Martian tech.",
+  "player_characters": [
+    {
+      "name": "Arin Vox",
+      "description": "A cybernetic knight wielding a sword forged in the past but upgraded with AI."
+    },
+    {
+      "name": "Nyra Vale",
+      "description": "A rogue chronomancer who can pause or rewind time."
+    }
+  ],
+  "npc": {
+    "name": "Vektor",
+    "description": "A mysterious merchant with shifting faces who remembers futures that never happened."
+  }
+}
+

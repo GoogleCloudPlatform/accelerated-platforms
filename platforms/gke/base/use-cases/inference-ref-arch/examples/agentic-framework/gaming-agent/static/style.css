@@ -1,0 +1,357 @@
+/* Existing styles (as provided by you) */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1a1a2e;
+    color: #e0e0e0;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.container {
+    background-color: #16213e;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+    padding: 30px;
+    width: 100%;
+    max-width: 900px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+h1 {
+    color: #e94560; /* Changed to match primary accent color */
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 2.2em;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.tagline {
+    text-align: center;
+    color: #b0b0b0;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+}
+
+.chat-area, .input-area {
+    display: flex;
+    flex-direction: column;
+}
+
+#messages {
+    background-color: #0f3460;
+    border-radius: 8px;
+    padding: 15px;
+    min-height: 250px;
+    max-height: 450px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+    border: 1px solid #0a2342;
+    display: flex; /* Added for message alignment */
+    flex-direction: column; /* Added for message alignment */
+}
+
+.message {
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    line-height: 1.5;
+    word-wrap: break-word;
+    max-width: 80%; /* Limit message width */
+}
+
+.message.user {
+    background-color: #2e4a86;
+    align-self: flex-end;
+    text-align: right;
+    border-bottom-right-radius: 0;
+    margin-right: 0; /* Align to edge */
+    margin-left: auto; /* Push to right */
+}
+
+.message.agent {
+    background-color: #3b5b9a;
+    align-self: flex-start;
+    text-align: left;
+    border-bottom-left-radius: 0;
+    margin-left: 0; /* Align to edge */
+    margin-right: auto; /* Push to left */
+}
+
+.message.system {
+    background-color: #1e3a6c;
+    color: #a0a0a0;
+    text-align: center;
+    font-style: italic;
+    align-self: center; /* Center system messages */
+    max-width: 90%; /* Allow system messages to be wider */
+}
+
+/* NEW: Style for the loading message in chat */
+.message.loading {
+    background-color: #1e3a6c; /* Same as system message */
+    color: #a0a0a0;
+    font-style: italic;
+    text-align: center;
+    align-self: center;
+    display: flex; /* To align spinner and text */
+    align-items: center;
+    justify-content: center;
+}
+
+.input-area textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px solid #0f3460;
+    background-color: #0a1f3a;
+    color: #e0e0e0;
+    font-size: 1em;
+    resize: vertical;
+    min-height: 60px;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    transition: border-color 0.3s ease, background-color 0.3s ease; /* Added transition */
+}
+
+.input-area textarea:focus {
+    outline: none;
+    border-color: #e94560; /* Highlight on focus */
+    background-color: #1a2a4b; /* Slightly lighter on focus */
+}
+
+.input-area button, #selectDialogue {
+    padding: 12px 20px;
+    background-color: #e94560;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.input-area button:hover, #selectDialogue:hover {
+    background-color: #d13a52;
+    transform: translateY(-1px);
+}
+.input-area button:active, #selectDialogue:active {
+    transform: translateY(0);
+}
+
+.input-area button:disabled, #selectDialogue:disabled {
+    background-color: #6a6a6a;
+    cursor: not-allowed;
+    opacity: 0.7; /* Slightly dim disabled buttons */
+}
+
+#dialogueSelection, #generatedContent {
+    background-color: #0f3460;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    border: 1px solid #0a2342;
+}
+
+#dialogueSelection h2, #generatedContent h2 {
+    color: #e94560;
+    margin-bottom: 15px;
+    font-size: 1.5em;
+    text-align: center;
+}
+
+#dialogueOptions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.dialogue-option {
+    background-color: #2e4a86;
+    padding: 12px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; /* Added transitions */
+    border: 1px solid #223c6e;
+    display: flex; /* For aligning number and text */
+    align-items: flex-start;
+    gap: 10px; /* Space between number and text */
+}
+
+.dialogue-option span { /* Styling for the number */
+    font-weight: bold;
+    color: #b0b0b0; /* Slightly different color for the number */
+    flex-shrink: 0; /* Prevent number from shrinking */
+}
+
+.dialogue-option:hover {
+    background-color: #3b5b9a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3); /* Subtle lift on hover */
+}
+
+.dialogue-option.selected {
+    background-color: #e94560;
+    border-color: #b32a41;
+    color: white;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4); /* More pronounced shadow for selected */
+}
+
+.dialogue-option.selected span {
+    color: white; /* Number also white when selected */
+}
+
+
+#imagesContainer, #videosContainer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+/* NEW: Styling for individual asset items */
+.asset-item {
+    background-color: #0a1f3a;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    border: 1px solid #0a2342;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 150px; /* Ensure a minimum height for consistency */
+}
+
+.asset-item img, .asset-item video { /* Target elements within asset-item */
+    width: 100%;
+    height: auto;
+    max-height: 250px; /* Cap max height for large images/videos */
+    border-radius: 6px; /* Slightly smaller radius for internal elements */
+    border: 2px solid #0f3460;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    object-fit: contain; /* Use contain to ensure full asset is visible, might leave black bars */
+    display: block; /* Remove extra space below images/videos */
+    margin-bottom: 8px; /* Space between asset and URL */
+}
+
+/* Style for text-based placeholders when image/video fails to load */
+.asset-item img[alt="Image failed to load."],
+.asset-item video[alt="Video failed to load."] {
+    background-color: #333;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9em;
+    font-style: italic;
+    border: 1px dashed #6a6a6a;
+    min-height: 120px; /* Give enough height for the text */
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+
+.hidden {
+    display: none;
+}
+
+/* Spinner style */
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid #e94560;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 10px;
+    margin-right: 10px; /* Added for spacing around text */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px;
+        margin: 10px;
+    }
+
+    h1 {
+        font-size: 1.8em;
+    }
+
+    .tagline {
+        font-size: 1em;
+    }
+
+    .message {
+        max-width: 95%; /* Allow messages to take more width on smaller screens */
+        font-size: 0.9em;
+    }
+
+    .input-area textarea, .input-area button, #selectDialogue {
+        font-size: 0.95em;
+        padding: 10px;
+    }
+
+    #dialogueSelection h2, #generatedContent h2 {
+        font-size: 1.3em;
+    }
+
+    #imagesContainer, #videosContainer {
+        grid-template-columns: 1fr; /* Stack assets vertically on small screens */
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        border-radius: 8px;
+        padding: 15px;
+        gap: 15px;
+    }
+
+    h1 {
+        font-size: 1.6em;
+    }
+
+    .tagline {
+        font-size: 0.9em;
+        margin-bottom: 15px;
+    }
+
+    #messages {
+        min-height: 200px;
+        max-height: 350px;
+        padding: 10px;
+    }
+
+    .message {
+        padding: 8px 12px;
+        margin-bottom: 8px;
+    }
+
+    .input-area textarea {
+        min-height: 50px;
+    }
+}

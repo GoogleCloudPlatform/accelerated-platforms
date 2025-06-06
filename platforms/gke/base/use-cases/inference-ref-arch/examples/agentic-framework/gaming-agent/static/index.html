@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Co-Creator: Narrative Forge</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>AI Co-Creator: Narrative Forge</h1>
+        <p class="tagline">Dynamically generate game content with AI agents.</p>
+
+        <div class="chat-area">
+            <div id="messages">
+                <div class="message system">
+                    Welcome to Narrative Forge! Type a prompt to start creating game content.
+                    <br>
+                    Example: "Generate three distinct dialogue options for a mysterious NPC who knows about time and fate."
+                </div>
+            </div>
+            <div class="input-area">
+                <textarea id="promptInput" placeholder="Type your prompt here..."></textarea>
+                <button id="sendPrompt">Send Prompt</button>
+            </div>
+        </div>
+
+        <div id="dialogueSelection" class="hidden">
+            <h2>Select a Dialogue Option:</h2>
+            <div id="dialogueOptions">
+                </div>
+            </div>
+
+        <div id="generatedContent" class="hidden">
+            <h2>Generated Assets:</h2>
+            <div id="imagesContainer"></div>
+            <div id="videosContainer"></div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

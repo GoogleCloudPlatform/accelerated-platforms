@@ -38,8 +38,8 @@ resource "google_project_iam_custom_role" "gcs_fuse_user" {
     "storage.objects.update",
   ]
   project = data.google_project.cluster.project_id
-  role_id = "gcsfuse.user"
-  title   = "GCS FUSE User"
+  role_id = local.cluster_gcsfuse_user_role_name
+  title   = "${local.unique_identifier_prefix} GCS FUSE User"
 }
 
 resource "google_project_iam_custom_role" "gcs_fuse_viewer" {
@@ -54,6 +54,6 @@ resource "google_project_iam_custom_role" "gcs_fuse_viewer" {
     "storage.objects.list",
   ]
   project = data.google_project.cluster.project_id
-  role_id = "gcsfuse.viewer"
-  title   = "GCS FUSE Viewer"
+  role_id = local.cluster_gcsfuse_viewer_role_name
+  title   = "${local.unique_identifier_prefix} GCS FUSE Viewer"
 }

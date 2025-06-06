@@ -22,6 +22,11 @@ locals {
   cluster_credentials_command_gkee = "gcloud container fleet memberships get-credentials ${local.cluster_name} --project ${local.cluster_project_id}"
   cluster_credentials_command      = var.cluster_use_connect_gateway ? local.cluster_credentials_command_gkee : local.cluster_credentials_command_gke
 
+  cluster_gcsfuse_user_role        = "projects/${local.cluster_project_id}/roles/${local.cluster_gcsfuse_user_role_name}"
+  cluster_gcsfuse_user_role_name   = "${local.unique_identifier_prefix_underscore}.gcsfuse.user"
+  cluster_gcsfuse_viewer_role      = "projects/${local.cluster_project_id}/roles/${local.cluster_gcsfuse_viewer_role_name}"
+  cluster_gcsfuse_viewer_role_name = "${local.unique_identifier_prefix_underscore}.gcsfuse.viewer"
+
   cluster_name = local.unique_identifier_prefix
 
   cluster_node_auto_provisioning_resource_limits = var.cluster_node_auto_provisioning_enabled ? var.cluster_node_auto_provisioning_resource_limits : []

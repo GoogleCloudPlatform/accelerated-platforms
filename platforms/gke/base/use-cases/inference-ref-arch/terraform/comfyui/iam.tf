@@ -25,7 +25,7 @@ resource "google_storage_bucket_iam_member" "workload_identity_gcsfuse_user" {
   ])
 
   bucket = each.key
-  role   = "projects/${data.google_project.cluster.project_id}/roles/gcsfuse.user"
+  role   = local.cluster_gcsfuse_user_role
   member = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
 }
 

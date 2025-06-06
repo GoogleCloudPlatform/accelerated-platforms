@@ -13,7 +13,8 @@
 # limitations under the License.
 
 locals {
-  unique_identifier_prefix = "${var.resource_name_prefix}-${var.platform_name}"
+  unique_identifier_prefix            = "${var.resource_name_prefix}-${var.platform_name}"
+  unique_identifier_prefix_underscore = replace("${var.resource_name_prefix}-${var.platform_name}", "-", "_")
 }
 
 variable "platform_default_project_id" {

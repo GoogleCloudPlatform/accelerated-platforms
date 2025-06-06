@@ -336,6 +336,7 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_s
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/huggingface/initialize/**",
     "platforms/gke/base/core/initialize/**",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",

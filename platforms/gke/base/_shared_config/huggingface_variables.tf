@@ -22,7 +22,7 @@ locals {
   huggingface_hub_access_token_read_secret_manager_secret_name  = var.huggingface_hub_access_token_read_secret_manager_secret_name != null ? var.huggingface_hub_access_token_read_secret_manager_secret_name : "${local.unique_identifier_prefix}-huggingface-hub-access-token-read"
   huggingface_hub_access_token_write_secret_manager_secret_name = var.huggingface_hub_access_token_write_secret_manager_secret_name != null ? var.huggingface_hub_access_token_write_secret_manager_secret_name : "${local.unique_identifier_prefix}-huggingface-hub-access-token-write"
   huggingface_hub_models_bucket_location                        = var.huggingface_hub_models_bucket_location != null ? var.huggingface_hub_models_bucket_location : var.cluster_region
-  huggingface_hub_models_bucket_name                            = var.huggingface_hub_models_bucket_name != null ? var.huggingface_hub_models_bucket_name : "${local.huggingface_hub_models_bucket_project_id}-${local.unique_identifier_prefix}-huggingface-hub-models"
+  huggingface_hub_models_bucket_name                            = var.huggingface_hub_models_bucket_name != null ? var.huggingface_hub_models_bucket_name : "${local.huggingface_hub_models_bucket_project_id}.${local.unique_identifier_prefix}.huggingface-hub-models"
   huggingface_hub_models_bucket_project_id                      = var.huggingface_hub_models_bucket_project_id != null ? var.huggingface_hub_models_bucket_project_id : var.platform_default_project_id
   huggingface_secret_manager_project_id                         = var.huggingface_secret_manager_project_id != null ? var.huggingface_secret_manager_project_id : var.platform_default_project_id
 }

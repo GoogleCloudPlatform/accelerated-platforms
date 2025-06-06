@@ -33,7 +33,7 @@ data "google_secret_manager_secret" "hub_access_token_read" {
   secret_id = local.huggingface_hub_access_token_read_secret_manager_secret_name
 }
 
-resource "google_secret_manager_secret" "access_token_write" {
+resource "google_secret_manager_secret" "hub_access_token_write" {
   for_each = toset(var.huggingface_hub_access_token_write_secret_manager_secret_name == null ? ["new"] : [])
 
   project   = google_project_service.secretmanager_googleapis_com.project
@@ -44,9 +44,9 @@ resource "google_secret_manager_secret" "access_token_write" {
   }
 }
 
-data "google_secret_manager_secret" "access_token_write" {
+data "google_secret_manager_secret" "hub_access_token_write" {
   depends_on = [
-    google_secret_manager_secret.access_token_write,
+    google_secret_manager_secret.hub_access_token_write,
   ]
 
   project   = google_project_service.secretmanager_googleapis_com.project

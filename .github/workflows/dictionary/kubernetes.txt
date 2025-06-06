@@ -7,6 +7,7 @@ clusterrole
 clusterrolebinding
 crd
 crds
+dockerconfigjson
 egressgateway
 flowcontrol
 flowschemas

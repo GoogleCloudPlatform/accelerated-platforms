@@ -21,3 +21,30 @@ resource "google_secret_manager_secret" "github_token" {
     auto {}
   }
 }
+
+resource "google_secret_manager_secret" "huggingface_token_read" {
+  project   = google_project_service.build_secretmanager_googleapis_com.project
+  secret_id = local.build_huggingface_token_read_secret
+
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret" "huggingface_token_write" {
+  project   = google_project_service.build_secretmanager_googleapis_com.project
+  secret_id = local.build_huggingface_token_write_secret
+
+  replication {
+    auto {}
+  }
+}
+
+resource "google_secret_manager_secret" "ngc_api_key" {
+  project   = google_project_service.build_secretmanager_googleapis_com.project
+  secret_id = local.build_ngc_api_key_secret
+
+  replication {
+    auto {}
+  }
+}

@@ -135,6 +135,22 @@ resource "local_file" "shared_config_networking_auto_tfvars" {
   filename        = "${local.shared_config_folder}/networking.auto.tfvars"
 }
 
+resource "local_file" "shared_config_nvidia_auto_tfvars" {
+  for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
+
+  content = provider::terraform::encode_tfvars(
+    {
+      nvidia_ncg_api_key_secret_manager_project_id  = var.nvidia_ncg_api_key_secret_manager_project_id
+      nvidia_ncg_api_key_secret_manager_secret_name = var.nvidia_ncg_api_key_secret_manager_secret_name
+      nvidia_nim_model_store_bucket_location        = var.nvidia_nim_model_store_bucket_location
+      nvidia_nim_model_store_bucket_name            = var.nvidia_nim_model_store_bucket_name
+      nvidia_nim_model_store_bucket_project_id      = var.nvidia_nim_model_store_bucket_project_id
+    }
+  )
+  file_permission = "0644"
+  filename        = "${local.shared_config_folder}/nvidia.auto.tfvars"
+}
+
 resource "local_file" "shared_config_platform_auto_tfvars" {
   for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
 

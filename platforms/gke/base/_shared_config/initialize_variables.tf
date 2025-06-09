@@ -30,6 +30,18 @@ variable "initialize_container_node_pools_gpu" {
   type        = bool
 }
 
+variable "initialize_container_node_pools_gpu_without_rtx" {
+  default     = true
+  description = "Set to true to prepare the files to provision GPU-based node pools in the cluster region with GPUs that don't provide NVIDIA RTX cores"
+  type        = bool
+}
+
+variable "initialize_container_node_pools_gpu_with_rtx" {
+  default     = true
+  description = "Set to true to prepare the files to provision GPU-based node pools in the cluster region with GPUs that provide NVIDIA RTX cores"
+  type        = bool
+}
+
 variable "initialize_container_node_pools_tpu" {
   default     = true
   description = "Set to true to prepare the files to provision TPU-based node pools in the cluster region"

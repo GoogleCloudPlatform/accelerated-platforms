@@ -15,6 +15,7 @@ rrdatas
 setproduct
 setsubtract
 startswith
+strcontains
 templatefile
 terraservice
 terraservices

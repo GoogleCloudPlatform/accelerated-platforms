@@ -71,3 +71,5 @@ steps:
 
 substitutions:
   _IAP_DOMAIN: "accelerated-platforms.joonix.net"
+
+timeout: 5400s

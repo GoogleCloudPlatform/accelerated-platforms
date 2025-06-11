@@ -108,10 +108,12 @@ resource "local_file" "shared_config_initialize_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
-      initialize_backend_use_case_name    = var.initialize_backend_use_case_name
-      initialize_container_node_pools_cpu = var.initialize_container_node_pools_cpu
-      initialize_container_node_pools_gpu = var.initialize_container_node_pools_gpu
-      initialize_container_node_pools_tpu = var.initialize_container_node_pools_tpu
+      initialize_backend_use_case_name                = var.initialize_backend_use_case_name
+      initialize_container_node_pools_cpu             = var.initialize_container_node_pools_cpu
+      initialize_container_node_pools_gpu             = var.initialize_container_node_pools_gpu
+      initialize_container_node_pools_gpu_without_rtx = var.initialize_container_node_pools_gpu_without_rtx
+      initialize_container_node_pools_gpu_with_rtx    = var.initialize_container_node_pools_gpu_with_rtx
+      initialize_container_node_pools_tpu             = var.initialize_container_node_pools_tpu
     }
   )
   file_permission = "0644"

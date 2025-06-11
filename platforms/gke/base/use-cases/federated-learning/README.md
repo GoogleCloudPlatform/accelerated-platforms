@@ -15,11 +15,11 @@ To deploy this reference architecture, you need:
   [Enabling and disabling services](https://cloud.google.com/service-usage/docs/enable-disable)
 
 This reference architecture builds on the
-[Reference implementation for the Core GKE Accelerated Platform](/platforms/gke/base/README.md).
-In this document, we reference the Reference implementation for the Core GKE
-Accelerated Platform as _core platform_. The deployment procedure described in
-the [Deploy the reference architecture](#deploy-the-reference-architecture)
-section takes care of deploying an instance of the core platform for you.
+[Base GKE Accelerated Platform](/docs/platforms/gke/base/README.md). In this
+document, we reference the Reference implementation for the Core GKE Accelerated
+Platform as _core platform_. The deployment procedure described in the
+[Deploy the reference architecture](#deploy-the-reference-architecture) section
+takes care of deploying an instance of the core platform for you.
 
 ### Service account roles and permissions
 

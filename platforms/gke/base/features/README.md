@@ -1,1 +1,1 @@
-# GKE Accelerated Platform Features
+# GKE Base Platform Features

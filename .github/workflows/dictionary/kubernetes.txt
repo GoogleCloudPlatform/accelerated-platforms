@@ -5,6 +5,7 @@ apiservice
 clusterregistry
 clusterrole
 clusterrolebinding
+computeclasses
 crd
 crds
 dockerconfigjson

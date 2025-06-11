@@ -1,7 +1,7 @@
 # Deploy the Federated learning reference architecture on Google Cloud
 
 This document shows how to deploy the
-[Google Cloud Federated Learning (FL) reference architecture](/docs/use-cases/federated-learning/README.md).
+[Google Cloud Federated Learning (FL) reference architecture](/docs/platforms/gke/base/use-cases/federated-learning/README.md).
 
 To deploy this reference architecture, you need:
 
@@ -15,11 +15,11 @@ To deploy this reference architecture, you need:
   [Enabling and disabling services](https://cloud.google.com/service-usage/docs/enable-disable)
 
 This reference architecture builds on the
-[Reference implementation for the Core GKE Accelerated Platform](/platforms/gke/base/README.md).
-In this document, we reference the Reference implementation for the Core GKE
-Accelerated Platform as _core platform_. The deployment procedure described in
-the [Deploy the reference architecture](#deploy-the-reference-architecture)
-section takes care of deploying an instance of the core platform for you.
+[GKE Base Platform](/docs/platforms/gke/base/README.md). In this document, we
+reference the Reference implementation for the Core GKE Accelerated Platform as
+_core platform_. The deployment procedure described in the
+[Deploy the reference architecture](#deploy-the-reference-architecture) section
+takes care of deploying an instance of the core platform for you.
 
 ### Service account roles and permissions
 
@@ -318,7 +318,7 @@ from each other. Each runtime environment gets:
 These isolated runtime environments are defined as _tenants_.
 
 For more information about the design of these tenants, see
-[Federated Learning reference architecture](/docs/use-cases/federated-learning/README.md).
+[Federated Learning reference architecture](/docs/platforms/gke/base/use-cases/federated-learning/README.md).
 
 By default, this reference architecture configures one tenant. To configure
 additional tenants, or change their names, set the value of the

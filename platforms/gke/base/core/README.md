@@ -1,4 +1,4 @@
-# Reference implementation for the Core GKE Accelerated Platform
+# GKE Base Platform reference implementation
 
 ## Pull the source code
 
@@ -31,7 +31,7 @@
   sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
   ```
 
-## Configure the Core GKE Accelerated Platform
+## Configure the platform
 
 Terraform loads variables in the following order, with later sources taking
 precedence over earlier ones:

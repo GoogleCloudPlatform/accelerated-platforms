@@ -1,0 +1,12 @@
+# Development
+**/backend.tf
+platforms/gke/base/core/container_node_pool/container_node_pool_*
+platforms/gke/base/core/custom_compute_class/manifests/*
+platforms/gke/base/core/workloads/custom_metrics_adapter/manifests/*
+platforms/gke/base/core/workloads/inference_gateway/manifests/*
+platforms/gke/base/core/workloads/jobset/manifests/*
+platforms/gke/base/core/workloads/kueue/manifests/*
+platforms/gke/base/core/workloads/lws/manifests/*
+platforms/gke/base/core/workloads/nvidia_nim/*
+platforms/gke/base/core/workloads/priority_class/manifests/*
+platforms/gke/base/kubernetes/*

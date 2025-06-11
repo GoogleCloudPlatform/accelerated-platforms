@@ -70,7 +70,10 @@ For more information about providing values for Terraform input variables, see
 
 - Configure the platform.
 
-  - [Hugging Face initialization](/platforms/gke/base/core/huggingface/initialize/README.md)
+  - [Optional]
+    [Hugging Face initialization](/platforms/gke/base/core/huggingface/initialize/README.md)
+  - [Optional]
+    [NVIDIA initialization](/platforms/gke/base/core/nvidia/initialize/README.md)
 
 ## Teardown
 

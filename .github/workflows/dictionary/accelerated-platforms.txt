@@ -48,6 +48,7 @@ prereqs
 psutil
 qwiklabs
 rayutil
+rueth
 safetensors
 scann
 sched

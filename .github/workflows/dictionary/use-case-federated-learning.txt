@@ -25,4 +25,4 @@ dont
 notif
 jdbc
 varchar
-timestampz
+timestamptz

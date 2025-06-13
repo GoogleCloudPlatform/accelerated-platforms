@@ -13,6 +13,6 @@
 # limitations under the License.
 
 resource "google_compute_address" "default" {
-  name = "${local.unique_identifier_prefix}-cdn-ip"
+  name   = "${local.unique_identifier_prefix}-cdn-ip"
   region = var.cluster_region
 }

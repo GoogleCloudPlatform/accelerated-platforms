@@ -33,7 +33,7 @@ locals {
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            ip_address_name = ""
+            ip_address_name = "${local.unique_identifier_prefix}-cdn-ip}"
           },
         )
       },

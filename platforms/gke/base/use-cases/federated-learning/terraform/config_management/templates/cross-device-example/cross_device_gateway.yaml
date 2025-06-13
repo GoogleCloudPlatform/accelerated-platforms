@@ -18,7 +18,7 @@ metadata:
   name: ingress-gateway-cross-device
   namespace: istio-ingress
   annotations:
-    networking.gke.io/load-balancer-ip-addresses: ${ip_address_name}
+    networking.gke.io/load-balancer-ip-addresses: "${ip_address_name}"
 spec:
   selector:
     app: istio-ingressgateway

@@ -1,5 +1,6 @@
 aiohttp
 asyncio
+classmethod
 dataframe
 dbapi
 dbcommands
@@ -8,17 +9,22 @@ dropna
 einops
 fastapi
 fillna
+fromarray
 fsspec
+gcsuri
 getattr
 getconn
 getenv
 gunicorn
+hasattr
 httpx
 iloc
 imgf
 inplace
 ipynb
+isfile
 isin
+isinstance
 isna
 iterrows
 jsonify
@@ -43,6 +49,7 @@ rerank
 reranked
 rsplit
 setdefaulttimeout
+shutil
 spacy
 splitlines
 sqlalchemy

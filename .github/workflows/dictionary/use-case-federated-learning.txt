@@ -14,3 +14,15 @@ pvdr
 opverifiedusr
 vtpm
 acked
+taskmanagement
+taskassignment
+taskscheduler
+tmport
+taport
+networkservices
+istiod
+dont
+notif
+jdbc
+varchar
+timestampz

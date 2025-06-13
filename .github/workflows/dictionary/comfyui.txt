@@ -11,6 +11,8 @@ filebase
 genai
 generativeai
 gligen
+genai
+generativeai
 hypernetworks
 imagen
 imagen3

@@ -75,6 +75,7 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_FEDERATED_LEARNING_USE_CASE_CONFIGURATION_VARIABL
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
+  "federated_learning_cross_device_example_deploy = true"
   "federated_learning_confidential_space_instance_image_name = \"projects/confidential-space-images/global/images/confidential-space-debug-250301\""
   "federated_learning_cross_device_allowed_operator_service_accounts = \"ca-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com,cb-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com\""
   "federated_learning_model_bucket = \"${CROSS_DEVICE_MODEL_BUCKET}\""
@@ -114,6 +115,7 @@ cross_device_example_terraservices=(
   "service_account_cross_device"
   "confidential_space"
   "secret_manager"
+  "config_management"
   # "example_cross_device"
 )
 

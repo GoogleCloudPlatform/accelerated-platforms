@@ -79,6 +79,12 @@ locals {
   ]
 }
 
+variable "federated_learning_cross_device_example_deploy" {
+  default     = false
+  description = "Set this variable to true to deploy the Federated Learning cross device example"
+  type        = bool
+}
+
 ## Federated Learning bucket names
 variable "federated_learning_client_gradient_bucket" {
   description = "Client gradient bucket name"

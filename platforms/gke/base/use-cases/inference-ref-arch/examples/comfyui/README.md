@@ -232,24 +232,28 @@ limited. So, you can use perform the copy operation using a K8s job or
 Cloudbuild pipeline or some thing else.
 
 - In this guide, we will use Cloudbuild pipeline to copy the following
-  checkpoint files for Stable diffusion base and refiner models from Huggingface
-  to the GCS bucket.
+  checkpoint files for Stable diffusion base and refiner models, LTXV model and
+  Flux text encoder from Hugging Face to the GCS bucket.
 
-  - https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors?download=true
-  - https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner-1.0.safetensors?download=true
+  - https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors
+  - https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner-1.0.safetensors
+  - https://huggingface.co/Lightricks/LTX-Video/resolve/main/ltx-video-2b-v0.9.1.safetensors
+  - https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors
 
 - Run the following command to trigger cloudbuild pipeline to copy checkpoint
   files:
 
   ```
   gcloud builds submit \
-  --config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy_checkpoints/cloudbuild.yaml" \
+  --config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" \
   --gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
   --no-source \
   --project="${cluster_project_id}" \
   --service-account="${comfyui_cloudbuild_service_account_id}" \
   --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
   ```
+
+  It will take around 6 minutes to finish.
 
 - When the copy is finished, you will see the output similar to the following:
 
@@ -262,12 +266,39 @@ Cloudbuild pipeline or some thing else.
   STATUS: SUCCESS
   ```
 
-- Refresh ComfyUI and click on `checkpoints`, you will see two checkpoint files
-  available to use.
+- Refresh ComfyUI and click on `checkpoints` in MODEL LIBRARY, you will see
+  three checkpoint files available to use. These files will be named
+  `sd_xl_base_1.0.safetensors`, `sd_xl_refiner_1.0.safetensors` and
+  `ltx-video-2b-v0.9`
+
+- Click on `text_encoders` on ComfyUI in MODEL_LIBRARY, you will see a file
+  named `t5xxl_fp16`
 
 - You can download more models to use in your ComfyUI instance in a similar
   fashion.
 - Get creative and storyboard your ideas on ComfyUI!
+
+## ComfyUI workflows
+
+This guide provides five workflows out of the box. On ComfyUI, click on
+WORKFLOWS. You will five json workflow files.
+
+- `imagen3-text-to-image` : This workflow shows text to image generation with
+  Google's Imagen3 model.
+- `imagen3-veo2-text-to-image-to-video` : This workflow shows text to image
+  generation with Google's Imagen3 model and image to video generation with
+  Google's Veo2 model.
+- `ltxv-text-to-video` : This workflow shows text to video generation with
+  Lightricks' LTXV-Video model.
+- `sdxl-text-to-image` : This workflow shows text to image generation with
+  Stable Diffusion refiner model.
+- `veo2-text-to-video` : This workflow shows text to video generation with
+  Google's Veo2 model.
+
+> Note: ComfyUI custom nodes to Imagen3 and Veo2 are in preview mode.
+
+Click any of the workflow files to open the workflow and click `Run` to see the
+results.
 
 ## Teardown
 

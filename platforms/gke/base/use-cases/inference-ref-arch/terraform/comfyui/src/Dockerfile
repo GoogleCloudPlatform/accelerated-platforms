@@ -45,6 +45,7 @@ RUN apt-get update \
   curl \
   gettext \
   git \
+  libglib2.0-0 \
   unzip \
   wget \
   && apt clean --yes \ 
@@ -67,9 +68,21 @@ ENV BASE ""
 ENV INPUT_DIR "${COMFY_HOME}/input"
 ENV MODEL_DIR "${COMFY_HOME}/models"
 ENV OUTPUT_DIR "${COMFY_HOME}/output"
+ENV WORKFLOWS_DIR "${COMFY_HOME}/user/default/workflows"
 
 ENV COMFYUI_HOST "0.0.0.0"
 ENV COMFYUI_PORT "8188"
+
+ARG COMFYUI_CUSTOM_NODE_PATH="${COMFY_HOME}/custom_nodes"
+ARG VHS_REPO="https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite"
+ARG VHS_CUSTOM_NODE_DIR_NAME="${COMFYUI_CUSTOM_NODE_PATH}/ComfyUI-VideoHelperSuite"
+
+COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/imagen3 ${COMFYUI_CUSTOM_NODE_PATH}/imagen3
+COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/veo2 ${COMFYUI_CUSTOM_NODE_PATH}/veo2
+RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen3/requirements.txt -r ${COMFYUI_CUSTOM_NODE_PATH}/veo2/requirements.txt \
+  && git clone ${VHS_REPO} ${VHS_CUSTOM_NODE_DIR_NAME} \
+  && pip install -r ${VHS_CUSTOM_NODE_DIR_NAME}/requirements.txt
+
 
 ENTRYPOINT  [ "./entrypoint.sh" ]
 CMD ["--", "--listen=${COMFYUI_HOST}", "--port=${COMFYUI_PORT}"]

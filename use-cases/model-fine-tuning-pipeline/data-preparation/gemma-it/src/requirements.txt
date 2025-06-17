@@ -6,6 +6,6 @@ jsonpickle==3.2.2
 numpy==1.26.4
 openai==1.57.3
 pandas==2.2.2
-protobuf==4.24.4 ## lowered version
+protobuf==4.25.8 ## lowered version
 tenacity==9.0.0
 thejsonlogger==0.0.3

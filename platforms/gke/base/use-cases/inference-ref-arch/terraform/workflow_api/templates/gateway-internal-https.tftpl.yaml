@@ -24,10 +24,10 @@ spec:
   gatewayClassName: gke-l7-rilb
   listeners:
     - name: https
-      hostname: test.workflow-api.internal.com
+      hostname: ${hostname}
       protocol: HTTPS
       port: 443
       tls:
         mode: Terminate
         options:
-          networking.gke.io/pre-shared-certs: ${ssl_certificate_name}
+          networking.gke.io/cert-manager-certs: ${ssl_certificate_name}

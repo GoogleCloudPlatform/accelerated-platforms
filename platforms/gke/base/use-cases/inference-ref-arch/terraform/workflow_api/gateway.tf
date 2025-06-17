@@ -65,20 +65,20 @@ resource "google_project_service" "certificatemanager_googleapis_com" {
   service                    = "certificatemanager.googleapis.com"
 }
 
-
 resource "google_certificate_manager_certificate" "internal_regional_gateway" {
   depends_on = [
     google_project_service.certificatemanager_googleapis_com,
   ]
 
-  name    = "${local.unique_identifier_prefix}-workflow-api-internal-gateway"
-  project = data.google_project.cluster.project_id
+  name      = "${local.unique_identifier_prefix}-workflow-api-internal-gateway"
+  project   = data.google_project.cluster.project_id
   location  = var.cluster_region
+  scope     = 
 
 
   managed {
     domains = [
-      google_certificate_manager_dns_authorization.test_workflow_api_internal.domain,
+      local.workflow_api_endpoint,
       ]
     dns_authorizations = [
       google_certificate_manager_dns_authorization.test_workflow_api_internal.id,
@@ -86,19 +86,16 @@ resource "google_certificate_manager_certificate" "internal_regional_gateway" {
   }
 }
 
-
 resource "google_certificate_manager_dns_authorization" "test_workflow_api_internal" {
   name        = "dns-auth"
   description = "DNS auth for Managed SSL Certificate"
-  domain      = "workflow-api.internal.com"
+  domain      = local.workflow_api_endpoint
   location    = var.cluster_region 
   project     = data.google_project.cluster.project_id
 }
 
-
-
 resource "google_compute_subnetwork" "gateway_subnet" {
-  ip_cidr_range            = var.gateway_subnet_cidr_range
+  ip_cidr_range            = var.workflow_api_gateway_subnet_cidr_range
   name                     = local.gateway_subnetwork_name
   network                  = local.network_name
   role                     = "ACTIVE"
@@ -108,14 +105,13 @@ resource "google_compute_subnetwork" "gateway_subnet" {
 
 resource "google_compute_subnetwork" "proxy_subnet" {
   name                     = "gateway-proxy-subnet"
-  ip_cidr_range            = var.proxy_subnet_cidr_range
+  ip_cidr_range            = var.workflow_api_proxy_subnet_cidr_range
   network                  = local.network_name
   role                     = "ACTIVE"
   project                  = data.google_project.cluster.project_id
   region                   = var.cluster_region
   purpose                  = "REGIONAL_MANAGED_PROXY"
 }
-
 
 resource "google_compute_address" "internal_gateway_https" {
   name         = "${local.unique_identifier_prefix}-workflow-api-internal-gateway-https"
@@ -138,6 +134,7 @@ resource "local_file" "internal_gateway_https_yaml" {
       gateway_name         = local.gateway_name
       namespace            = var.comfyui_kubernetes_namespace
       ssl_certificate_name = google_certificate_manager_certificate.internal_regional_gateway.name
+      hostname             = local.workflow_api_endpoint
     }
   )
   filename = "${local.gateway_manifests_directory}/gateway-internal-https.yaml"
@@ -178,8 +175,7 @@ resource "local_file" "route_workflow_api_https_yaml" {
     "${path.module}/templates/http-route-service.tftpl.yaml",
     {
       gateway_name    = local.gateway_name # Should match the Gateway K8s object name
-      # hostname        = local.workflow_api_endpoint
-      hostname        = "test.workflow-api.internal"
+      hostname        = local.workflow_api_endpoint
       http_route_name = "workflow-api-https"
       namespace       = var.comfyui_kubernetes_namespace
       service_name    = local.workflow_api_service_name
@@ -205,4 +201,3 @@ module "kubectl_apply_gateway_res" {
   manifest                    = local.gateway_manifests_directory
   manifest_includes_namespace = true
 }
-

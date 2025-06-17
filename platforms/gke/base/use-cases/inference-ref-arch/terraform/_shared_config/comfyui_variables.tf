@@ -27,9 +27,11 @@ locals {
   comfyui_cloud_storage_project_id           = var.comfyui_cloud_storage_project_id != null ? var.comfyui_cloud_storage_project_id : var.platform_default_project_id
   comfyui_cloud_storage_workflow_bucket_name = var.comfyui_cloud_storage_workflow_bucket_name != null ? var.comfyui_cloud_storage_workflow_bucket_name : "${local.comfyui_cloud_storage_project_id}-${local.unique_identifier_prefix}-comfyui-workflows"
 
-  comfyui_endpoints_hostname = var.comfyui_endpoints_hostname != null ? var.comfyui_endpoints_hostname : "comfyui.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
-
-  comfyui_iap_oath_branding_project_id = var.comfyui_iap_oath_branding_project_id != null ? var.comfyui_iap_oath_branding_project_id : var.platform_default_project_id
+  comfyui_endpoints_hostname             = var.comfyui_endpoints_hostname != null ? var.comfyui_endpoints_hostname : "comfyui.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
+  comfyui_endpoints_ssl_certificate_name = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-external-gateway"
+  comfyui_iap_oath_branding_project_id   = var.comfyui_iap_oath_branding_project_id != null ? var.comfyui_iap_oath_branding_project_id : var.platform_default_project_id
+  comfyui_gateway_name                   = "external-https"
+  comfyui_gateway_address_name           = "${local.unique_identifier_prefix}-comfyui-external-gateway-https"
 }
 
 variable "comfyui_accelerator_type" {

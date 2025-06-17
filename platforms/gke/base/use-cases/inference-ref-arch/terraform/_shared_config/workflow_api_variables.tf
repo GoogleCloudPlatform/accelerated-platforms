@@ -15,6 +15,8 @@
 locals {
   workflow_api_artifact_repo_name = "${local.unique_identifier_prefix}-${var.workflow_api_artifact_repo_name}"
   workflow_api_endpoints_hostname = var.workflow_api_endpoints_hostname != null ? var.workflow_api_endpoints_hostname : "workflow-api.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
+  workflow_api_endpoints_ssl_certificate_name = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-workflow-api"
+  workflow_api_gateway_ssl_certificates = "${local.comfyui_endpoints_ssl_certificate_name},${local.workflow_api_endpoints_ssl_certificate_name}"
 }
 
 variable "workflow_api_artifact_repo_name" {

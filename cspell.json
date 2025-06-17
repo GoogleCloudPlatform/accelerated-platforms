@@ -19,6 +19,10 @@
       "path": ".github/workflows/dictionary/flipkart.txt"
     },
     {
+      "name": "golang",
+      "path": ".github/workflows/dictionary/golang.txt"
+    },
+    {
       "name": "google-cloud",
       "path": ".github/workflows/dictionary/google-cloud.txt"
     },
@@ -76,6 +80,7 @@
     "comfyui",
     "docker",
     "flipkart",
+    "golang",
     "google-cloud",
     "huggingface",
     "kubeflow",

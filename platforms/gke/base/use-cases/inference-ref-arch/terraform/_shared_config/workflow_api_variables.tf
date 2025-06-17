@@ -40,12 +40,12 @@ variable "workflow_api_endpoints_hostname" {
   type = string
 }
 
-variable "gateway_subnet_cidr_range" {
+variable "workflow_api_gateway_subnet_cidr_range" {
   default = "172.18.0.0/26"
   type = string
 }
 
-variable "proxy_subnet_cidr_range" {
+variable "workflow_api_proxy_subnet_cidr_range" {
   default = "172.19.0.0/26"
   type = string
 }

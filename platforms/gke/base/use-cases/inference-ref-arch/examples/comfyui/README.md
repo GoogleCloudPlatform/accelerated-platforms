@@ -300,6 +300,203 @@ WORKFLOWS. You will five json workflow files.
 Click any of the workflow files to open the workflow and click `Run` to see the
 results.
 
+## [Optional] Setup a Workflow API for batch operation
+
+In this section you can deploy a Workflow API to front the ComfyUI deployment
+and use it in batch mode by submitting ComfyUI workflows exported as .json
+objects to the Workflow API. ComfyUI will still output the generated media in
+the output bucket.
+
+Deploy Workflow API resources:
+
+```
+cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api
+terraform init
+terraform apply
+```
+
+Verify that the Workflow API has been successfully deployed:
+
+```
+kubectl -n comfyui get deploy,svc
+```
+
+Response should look like this:
+
+```
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/comfyui-nvidia-l4   1/1     1            1           10d
+deployment.apps/workflow-api        1/1     1            1           15h
+
+NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+service/comfyui-nvidia-l4   ClusterIP   34.118.235.48    <none>        8188/TCP   10d
+service/workflow-api        ClusterIP   34.118.228.170   <none>        8080/TCP   15h
+```
+
+Once the deployment is ready, we can run a Pod running curl which we can use to
+send requests to the Workflow API.
+
+```
+kubectl run -n comfyui --image=curlimages/curl:8.13.0 shell-long-running -- sh -c 'while sleep 3600; do :; done'
+```
+
+We can then exec into this Pod:
+
+```
+kubectl -n comfyui exec -it shell-long-running -- sh
+```
+
+Create a .json file containing an example workflow:
+
+```
+cat <<'EOF' >> sdxl.json
+{ "prompt": {
+   "3": {
+     "inputs": {
+       "seed": 780438972461674,
+       "steps": 20,
+       "cfg": 8,
+       "sampler_name": "euler",
+       "scheduler": "normal",
+       "denoise": 1,
+       "model": [
+         "4",
+         0
+       ],
+       "positive": [
+         "6",
+         0
+       ],
+       "negative": [
+         "7",
+         0
+       ],
+       "latent_image": [
+         "5",
+         0
+       ]
+     },
+     "class_type": "KSampler",
+     "_meta": {
+       "title": "KSampler"
+     }
+   },
+   "4": {
+     "inputs": {
+       "ckpt_name": "sd_xl_base_1.0.safetensors"
+     },
+     "class_type": "CheckpointLoaderSimple",
+     "_meta": {
+       "title": "Load Checkpoint"
+     }
+   },
+   "5": {
+     "inputs": {
+       "width": 512,
+       "height": 512,
+       "batch_size": 1
+     },
+     "class_type": "EmptyLatentImage",
+     "_meta": {
+       "title": "Empty Latent Image"
+     }
+   },
+   "6": {
+     "inputs": {
+       "text": "Futuristic city with flying cars, highly detailed, award winning color photograph.",
+       "clip": [
+         "4",
+         1
+       ]
+     },
+     "class_type": "CLIPTextEncode",
+     "_meta": {
+       "title": "CLIP Text Encode (Prompt)"
+     }
+   },
+   "7": {
+     "inputs": {
+       "text": "text, watermark",
+       "clip": [
+         "4",
+         1
+       ]
+     },
+     "class_type": "CLIPTextEncode",
+     "_meta": {
+       "title": "CLIP Text Encode (Prompt)"
+     }
+   },
+   "8": {
+     "inputs": {
+       "samples": [
+         "3",
+         0
+       ],
+       "vae": [
+         "4",
+         2
+       ]
+     },
+     "class_type": "VAEDecode",
+     "_meta": {
+       "title": "VAE Decode"
+     }
+   },
+   "9": {
+     "inputs": {
+       "filename_prefix": "ComfyUI",
+       "images": [
+         "8",
+         0
+       ]
+     },
+     "class_type": "SaveImage",
+     "_meta": {
+       "title": "Save Image"
+     }
+   }
+ }
+}
+EOF
+```
+
+And run curl to send the request to the Workflow API:
+
+```
+curl --header "Content-Type: application/json"   --request POST   http://workflow-api.comfyui.svc.cluster.local:8080/api/v1/queue_prompt --data "@sdxl.json"
+```
+
+The response should look like this:
+
+```
+{"prompt_id":"b2f1bdb0-1690-4d81-ac8b-b2f58685e81d","number":0}
+```
+
+### Gateway
+
+As a part of the Workflow API setup, an internal Gateway was also deployed along
+with supporting resources (e.g HTTPRoute, SSL Certificate, IP Address, DNS Zone,
+DNS record). This allows for clients that have private access to the VPC (e.g.
+GKE, GCE, Cloud Run with VPC access enabled) to be able to reach the Workflow
+API privately.
+
+We can use the same curl Pod we created earlier to test the Gateway
+connectivity. Exec into this Pod:
+
+```
+kubectl -n comfyui exec -it shell-long-running -- sh
+```
+
+Then:
+
+```
+curl --header "Content-Type: application/json"   --request POST   https://workflow-api.internal.com/api/v1/queue_prompt --data "@sdxl.json"
+```
+
+Where `workflow-api.internal.com` is the domain indicated in the DNS Zone
+created in the Workflow API setup.
+
 ## Teardown
 
 ```

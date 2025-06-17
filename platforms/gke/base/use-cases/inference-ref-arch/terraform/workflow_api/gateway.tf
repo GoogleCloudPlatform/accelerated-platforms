@@ -73,8 +73,6 @@ resource "google_certificate_manager_certificate" "internal_regional_gateway" {
   name      = "${local.unique_identifier_prefix}-workflow-api-internal-gateway"
   project   = data.google_project.cluster.project_id
   location  = var.cluster_region
-  scope     = 
-
 
   managed {
     domains = [

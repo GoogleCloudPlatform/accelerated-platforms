@@ -49,7 +49,7 @@ seccomp
 secretproviderclass
 statefulsets
 subjectaccessreviews
-TLSV
+tlsv
 tokenreviews
 tolerations
 validatingwebhookconfigurations

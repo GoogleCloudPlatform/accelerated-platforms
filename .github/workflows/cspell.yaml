@@ -1,13 +1,20 @@
-name: 'Check spelling'
+# https://github.com/streetsidesoftware/cspell-action
+name: "CSpell"
 on:
-- pull_request
-- push
+  - pull_request
+  - push
 
 jobs:
-  spellcheck:
+  checks:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: streetsidesoftware/cspell-action@v6
-      with:
-        incremental_files_only: false
+      - name: Git checkout
+        uses: actions/checkout@v4
+
+      - name: Dictionary files check
+        run: bash .dev-tools/bin/dictionaries_check.sh
+
+      - name: Spell check
+        uses: streetsidesoftware/cspell-action@v6
+        with:
+          incremental_files_only: false

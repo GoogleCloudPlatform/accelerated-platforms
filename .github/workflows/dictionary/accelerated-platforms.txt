@@ -54,5 +54,6 @@ scann
 sched
 schedulable
 tunables
+unconfigure
 usecs
 virt

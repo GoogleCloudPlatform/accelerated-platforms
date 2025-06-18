@@ -96,6 +96,8 @@
     "vllm"
   ],
   "ignorePaths": [
+    "**/go.mod",
+    "**/go.sum",
     "node_modules",
     "use-cases/inferencing/batch-inference/example_predictions.txt",
     "use-cases/model-fine-tuning-pipeline/model-eval/examples/"

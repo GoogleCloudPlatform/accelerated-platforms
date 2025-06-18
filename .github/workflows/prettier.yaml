@@ -1,16 +1,16 @@
 # https://github.com/prettier/prettier
 name: Markdown formatter
-on: 
-- push
-- pull_request
+on:
+  - push
+  - pull_request
 jobs:
   prettier-md:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: prettier --check
-      # Get Prettier version from the devcontainer dependencies to ensure that
-      # we run the same version in both environments
-      run: |-
-        npx prettier@$(node -p -e "require('./.devcontainer/dependencies/package.json').dependencies['prettier']") --check '**.md'
+      - name: prettier --check
+        # Get Prettier version from the devcontainer dependencies to ensure that
+        # we run the same version in both environments
+        run: |-
+          npx prettier@$(node -p -e "require('./.devcontainer/dependencies/package.json').dependencies['prettier']") --check '**.md'

@@ -27,7 +27,7 @@ type Config struct {
 	ComfyUIBaseURL string
 	GoogleClientID string
 	// GoogleClientSecret string // Secret might not be needed for just validating access tokens
-	AllowedAuthDomain string // Optional: Restrict login to a specific GSuite domain (e.g., "yourcompany.com")
+	AllowedAuthDomain string // Optional: Restrict login to a specific GSuite domain (e.g., "example.com")
 	ServerPort        string
 	GinMode           string // "debug" or "release"
 }

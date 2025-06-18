@@ -13,12 +13,15 @@
 # limitations under the License.
 
 locals {
-  deployment_name          = "workflow-api"
-  comfyui_service_name     = "comfyui-nvidia-l4"
-  manifests_directory      = "${local.manifests_directory_root}/${local.deployment_name}"
-  manifests_directory_root = "${path.module}/../../../../kubernetes/manifests"
-  kubeconfig_directory     = "${path.module}/../../../../kubernetes/kubeconfig"
-  kubeconfig_file          = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
+  comfyui_service_name = "comfyui-nvidia-l4"
+  deployment_name      = "workflow-api"
+
+  kubeconfig_directory = "${path.module}/../../../../kubernetes/kubeconfig"
+  kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
+
+  manifests_directory_root      = "${path.module}/../../../../kubernetes/manifests"
+  namespace_directory           = "${local.manifests_directory_root}/namespace"
+  namespace_manifests_directory = "${local.namespace_directory}/${var.comfyui_kubernetes_namespace}"
 }
 
 provider "kubernetes" {
@@ -44,7 +47,7 @@ resource "local_file" "workload" {
       service_account      = local.workflow_api_serviceaccount
     }
   )
-  filename = "${local.manifests_directory}/${local.deployment_name}-deployment.yaml"
+  filename = "${local.namespace_manifests_directory}/${local.deployment_name}-deployment.yaml"
 }
 
 module "kubectl_apply_workload_manifest" {

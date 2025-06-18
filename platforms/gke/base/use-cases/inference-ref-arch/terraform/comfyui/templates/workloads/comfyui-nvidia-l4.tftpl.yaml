@@ -40,13 +40,13 @@ spec:
             - containerPort: ${port}
           resources:
             limits:
-              cpu: "22"
-              memory: 90G
-              nvidia.com/gpu: 2
+              cpu: "30"
+              memory: 120G
+              nvidia.com/gpu: "1"
             requests:
               cpu: "16"
               memory: 80G
-              nvidia.com/gpu: 2
+              nvidia.com/gpu: "1"
           volumeMounts:
             - mountPath: /home/comfyuser/comfy/ComfyUI/models
               name: comfyui-model

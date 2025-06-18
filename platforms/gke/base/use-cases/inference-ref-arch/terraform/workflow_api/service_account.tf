@@ -12,17 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_project" "cluster" {
-  project_id = local.cluster_project_id
-}
-
-data "google_project" "comfyui_iap_oath_branding" {
-  project_id = local.comfyui_iap_oath_branding_project_id
-}
-
-resource "google_project_service" "cloudbuild_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "cloudbuild.googleapis.com"
+resource "google_service_account" "workflow_api_user" {
+  account_id   = local.workflow_api_service_account_name
+  description  = "Terraform-managed service account for ${local.workflow_api_service_account_name}"
+  display_name = "${local.workflow_api_service_account_name} service account"
+  project      = local.workflow_api_service_account_project_id
 }

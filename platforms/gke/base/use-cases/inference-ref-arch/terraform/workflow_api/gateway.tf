@@ -13,17 +13,19 @@
 # limitations under the License.
 
 locals {
-  workflow_api_endpoint       = local.workflow_api_endpoints_hostname
-  workflow_api_service_name   = "workflow-api"
-  workflow_api_service_port   = 8080
+  gateway_subnetwork_name = "${local.unique_identifier_prefix}-gateway"
+  proxy_subnetwork_name   = "${local.unique_identifier_prefix}-proxy"
+
+  hostname_suffix = "endpoints.${data.google_project.cluster.project_id}.cloud.goog"
+
   gateway_manifests_directory = "${local.manifests_directory}/gateway"
-  network_name                = var.network_name != null ? var.network_name : local.unique_identifier_prefix
-  gateway_subnetwork_name     = "gateway-subnet"
-  hostname_suffix             = "endpoints.${data.google_project.cluster.project_id}.cloud.goog"
-  workflow_api_serviceaccount = "workflow-api-sa"
   manifests_directory         = "${local.namespace_directory}/${var.comfyui_kubernetes_namespace}"
   manifests_directory_root    = "${path.module}/../../../../kubernetes/manifests"
   namespace_directory         = "${local.manifests_directory_root}/namespace"
+
+  workflow_api_service_name   = "workflow-api"
+  workflow_api_service_port   = 8080
+  workflow_api_serviceaccount = "${local.unique_identifier_prefix}-workflow-api"
 }
 
 data "google_client_config" "default" {}
@@ -82,7 +84,7 @@ resource "google_compute_managed_ssl_certificate" "workflow_api" {
 
   managed {
     domains = [
-      local.workflow_api_endpoint,
+      local.workflow_api_endpoints_hostname,
     ]
   }
 }
@@ -98,7 +100,7 @@ resource "google_compute_managed_ssl_certificate" "workflow_api" {
 
 #   managed {
 #     domains = [
-#       local.workflow_api_endpoint,
+#       local.workflow_api_endpoints_hostname,
 #       ]
 #     dns_authorizations = [
 #       google_certificate_manager_dns_authorization.test_workflow_api_internal.id,
@@ -109,24 +111,24 @@ resource "google_compute_managed_ssl_certificate" "workflow_api" {
 # resource "google_certificate_manager_dns_authorization" "test_workflow_api_internal" {
 #   name        = "dns-auth"
 #   description = "DNS auth for Managed SSL Certificate"
-#   domain      = local.workflow_api_endpoint
+#   domain      = local.workflow_api_endpoints_hostname
 #   location    = var.cluster_region 
 #   project     = data.google_project.cluster.project_id
 # }
 
 # resource "google_compute_subnetwork" "gateway_subnet" {
-#   ip_cidr_range = var.workflow_api_gateway_subnet_cidr_range
+#   ip_cidr_range = var.workflow_api_subnet_gateway_cidr_range
 #   name          = local.gateway_subnetwork_name
-#   network       = local.network_name
+#   network       = local.networking_network_name
 #   role          = "ACTIVE"
 #   project       = data.google_project.cluster.project_id
 #   region        = var.cluster_region
 # }
 
 # resource "google_compute_subnetwork" "proxy_subnet" {
-#   name          = "gateway-proxy-subnet"
-#   ip_cidr_range = var.workflow_api_proxy_subnet_cidr_range
-#   network       = local.network_name
+#   name          = local.proxy_subnetwork_name
+#   ip_cidr_range = var.workflow_api_subnet_proxy_cidr_range
+#   network       = local.networking_network_name
 #   role          = "ACTIVE"
 #   project       = data.google_project.cluster.project_id
 #   region        = var.cluster_region
@@ -164,7 +166,7 @@ resource "local_file" "internal_gateway_https_yaml" {
 ###############################################################################
 resource "terraform_data" "workflow_api_https_endpoint_undelete" {
   provisioner "local-exec" {
-    command     = "gcloud endpoints services undelete ${local.workflow_api_endpoint} --project=${data.google_project.cluster.project_id} --quiet >/dev/null 2>&1 || exit 0"
+    command     = "gcloud endpoints services undelete ${local.workflow_api_endpoints_hostname} --project=${data.google_project.cluster.project_id} --quiet >/dev/null 2>&1 || exit 0"
     interpreter = ["bash", "-c"]
     working_dir = path.module
   }
@@ -179,12 +181,12 @@ resource "google_endpoints_service" "workflow_api_https" {
   openapi_config = templatefile(
     "${path.module}/templates/endpoint.tftpl.yaml",
     {
-      endpoint   = local.workflow_api_endpoint
+      endpoint   = local.workflow_api_endpoints_hostname
       ip_address = data.google_compute_address.external_gateway_https.address
     }
   )
   project      = data.google_project.cluster.project_id
-  service_name = local.workflow_api_endpoint
+  service_name = local.workflow_api_endpoints_hostname
 }
 
 # ROUTES
@@ -194,7 +196,7 @@ resource "local_file" "route_workflow_api_https_yaml" {
     "${path.module}/templates/http-route-service.tftpl.yaml",
     {
       gateway_name    = local.comfyui_gateway_name # Should match the Gateway K8s object name
-      hostname        = local.workflow_api_endpoint
+      hostname        = local.workflow_api_endpoints_hostname
       http_route_name = "workflow-api-https"
       namespace       = var.comfyui_kubernetes_namespace
       service_name    = local.workflow_api_service_name
@@ -218,5 +220,6 @@ module "kubectl_apply_gateway_res" {
 
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local.gateway_manifests_directory
+  manifest_can_be_updated     = true
   manifest_includes_namespace = true
 }

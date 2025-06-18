@@ -3,13 +3,14 @@ comfygroup
 comfyui
 comfyuser
 controlnet
+denoise
 denoised
 dont
 dont_allow
 filebase
-gligen
 genai
 generativeai
+gligen
 hypernetworks
 imagen
 imagen3
@@ -19,8 +20,8 @@ lightricks
 loras
 ltxv
 mimetypes
-pingpong
 photomaker
+pingpong
 sdxl
 torchaudio
 torchvision

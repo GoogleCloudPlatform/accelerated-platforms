@@ -3,8 +3,8 @@ chdir
 envsubst
 errexit
 getopt
-libgl
 libexec
+libgl
 libglib
 noninteractive
 nounset

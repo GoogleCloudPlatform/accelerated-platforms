@@ -13,47 +13,42 @@
 # limitations under the License.
 
 locals {
-  workflow_api_artifact_repo_name = "${local.unique_identifier_prefix}-${var.workflow_api_artifact_repo_name}"
-  workflow_api_endpoints_hostname = var.workflow_api_endpoints_hostname != null ? var.workflow_api_endpoints_hostname : "workflow-api.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
+  workflow_api_artifact_repo_name             = "${local.unique_identifier_prefix}-${var.workflow_api_artifact_repo_name}"
+  workflow_api_endpoints_hostname             = var.workflow_api_endpoints_hostname != null ? var.workflow_api_endpoints_hostname : "workflow-api.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
   workflow_api_endpoints_ssl_certificate_name = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-workflow-api"
-  workflow_api_gateway_ssl_certificates = "${local.comfyui_endpoints_ssl_certificate_name},${local.workflow_api_endpoints_ssl_certificate_name}"
+  workflow_api_gateway_ssl_certificates       = "${local.comfyui_endpoints_ssl_certificate_name},${local.workflow_api_endpoints_ssl_certificate_name}"
 }
 
 variable "workflow_api_artifact_repo_name" {
-  default = "workflow-api"
+  default     = "workflow-api"
   description = ""
-  type = string
-}
-
-variable "workflow_api_image_name" {
-  default = "workflow-api"
-  description = ""
-  type = string
-}
-
-variable "workflow_api_image_tag" {
-  default = "0.0.1"
-  description = ""
-  type = string
+  type        = string
 }
 
 variable "workflow_api_endpoints_hostname" {
-  default = null
-  type = string
-}
-
-variable "workflow_api_gateway_subnet_cidr_range" {
-  default = "172.18.0.0/26"
-  type = string
-}
-
-variable "workflow_api_proxy_subnet_cidr_range" {
-  default = "172.19.0.0/26"
-  type = string
-}
-
-variable "network_name" {
   default     = null
-  description = "Name of the VPC network"
+  description = ""
   type        = string
+}
+
+variable "workflow_api_image_name" {
+  default     = "workflow-api"
+  description = ""
+  type        = string
+}
+
+variable "workflow_api_image_tag" {
+  default     = "0.0.1"
+  description = ""
+  type        = string
+}
+
+variable "workflow_api_subnet_gateway_cidr_range" {
+  default = "172.18.0.0/26"
+  type    = string
+}
+
+variable "workflow_api_subnet_proxy_cidr_range" {
+  default = "172.19.0.0/26"
+  type    = string
 }

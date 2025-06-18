@@ -307,38 +307,91 @@ and use it in batch mode by submitting ComfyUI workflows exported as .json
 objects to the Workflow API. ComfyUI will still output the generated media in
 the output bucket.
 
-Deploy Workflow API resources:
+- Deploy Workflow API resources:
 
-```
-cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api
-terraform init
-terraform apply
-```
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
+  ```
 
-Verify that the Workflow API has been successfully deployed:
+- Set the environment variables
 
-```
-kubectl -n comfyui get deploy,svc
-```
+  ```
+  source ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh
+  ```
 
-Response should look like this:
+- Verify that the Workflow API has been successfully deployed:
 
-```
-NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/comfyui-nvidia-l4   1/1     1            1           10d
-deployment.apps/workflow-api        1/1     1            1           15h
+  ```
+  kubectl -n comfyui get deploy,svc
+  ```
 
-NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
-service/comfyui-nvidia-l4   ClusterIP   34.118.235.48    <none>        8188/TCP   10d
-service/workflow-api        ClusterIP   34.118.228.170   <none>        8080/TCP   15h
-```
+  Response should look like this:
 
-Once the deployment is ready, we can run a Pod running curl which we can use to
-send requests to the Workflow API.
+  ```
+  NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment.apps/comfyui-nvidia-l4   1/1     1            1           10d
+  deployment.apps/workflow-api        1/1     1            1           15h
 
-```
-kubectl run -n comfyui --image=curlimages/curl:8.13.0 shell-long-running -- sh -c 'while sleep 3600; do :; done'
-```
+  NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+  service/comfyui-nvidia-l4   ClusterIP   34.118.235.48    <none>        8188/TCP   10d
+  service/workflow-api        ClusterIP   34.118.228.170   <none>        8080/TCP   15h
+  ```
+
+- In order to send a sample workflow the the active `gcloud` account needs to
+  have the
+  [Service Account Token Creator](https://cloud.google.com/iam/docs/roles-permissions/iam#iam.serviceAccountTokenCreator)
+  for the Workflow API service account. The following command will apply add the
+  role to the active `gcloud` account.
+
+  ```shell
+  gcloud iam service-accounts add-iam-policy-binding ${workflow_api_service_account_email} \
+  --member="user:$(gcloud auth list --filter=status:ACTIVE --format="value(account)")" \
+  --project="${workflow_api_service_account_project_id}" \
+  --role="roles/iam.serviceAccountTokenCreator"
+  ```
+
+- Send a sample workflow to the Workflow API:
+
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+  iap_brand=$(gcloud iap oauth-brands list --format="value(name)" --project="${comfyui_iap_oath_branding_project_id}") && \
+  oauth_client_name=$(gcloud iap oauth-clients list "${iap_brand}" --filter="displayName=${workflow_api_service_account_oauth_display_name}" --format="value(name)") && \
+  oauth_client_id=$(basename "${oauth_client_name}")
+  curl \
+  --data "@workflows/sdxl.json" \
+  --header "Authorization: Bearer $(gcloud auth print-identity-token --audiences=${oauth_client_id} --impersonate-service-account=${workflow_api_service_account_email} --include-email)" \
+  --header "Content-Type: application/json" \
+  --request POST \
+  https://${workflow_api_endpoints_hostname}/api/v1/queue_prompt
+  ```
+
+> [!NOTE]  
+> If you get `curl: (35) Recv failure: Connection reset by peer` or
+> `curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ...` the
+> SSL certificate could still be provisioning. You can check the status of the
+> SSL certificate by running the following command:  
+> `gcloud compute ssl-certificates describe ${workflow_api_endpoints_ssl_certificate_name} --project ${cluster_project_id}`
+
+- The response should look like this:
+
+  ```shell
+  {"prompt_id":"XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX","number":##}
+  ```
+
+<!--
+#######################################
+# Saved for if we do internal gateway #
+#######################################
+- Once the deployment is ready, we can run a Pod running curl which we can use
+  to send requests to the Workflow API.
+
+  ```
+  kubectl run -n comfyui --image=curlimages/curl:8.13.0 shell-long-running -- sh -c 'while sleep 3600; do :; done'
+  ```
 
 We can then exec into this Pod:
 
@@ -491,14 +544,25 @@ kubectl -n comfyui exec -it shell-long-running -- sh
 Then:
 
 ```
-curl --header "Content-Type: application/json"   --request POST   https://workflow-api.internal.com/api/v1/queue_prompt --data "@sdxl.json"
+curl --header "Content-Type: application/json"   --request POST   https://workflow-api.comfyui.inf-rueth-dev.endpoints.accelerated-platforms-dev.cloud.goog/api/v1/queue_prompt --data "@sdxl.json"
 ```
 
 Where `workflow-api.internal.com` is the domain indicated in the DNS Zone
 created in the Workflow API setup.
+-->
 
 ## Teardown
 
-```
-${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh
-```
+- Destroy the Workflow API resources.
+
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+  terraform init &&
+  terraform destroy -auto-approve
+  ```
+
+- Teardown the ComfyUI platform
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh
+  ```

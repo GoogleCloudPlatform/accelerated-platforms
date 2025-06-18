@@ -16,26 +16,20 @@ locals {
   gateway_subnetwork_name = "${local.unique_identifier_prefix}-gateway"
   proxy_subnetwork_name   = "${local.unique_identifier_prefix}-proxy"
 
+  gateway_manifests_directory = "${local.namespace_manifests_directory}/gateway-${local.workflow_api_default_name}"
+
   hostname_suffix = "endpoints.${data.google_project.cluster.project_id}.cloud.goog"
 
-  gateway_manifests_directory = "${local.manifests_directory}/gateway"
-  manifests_directory         = "${local.namespace_directory}/${var.comfyui_kubernetes_namespace}"
-  manifests_directory_root    = "${path.module}/../../../../kubernetes/manifests"
-  namespace_directory         = "${local.manifests_directory_root}/namespace"
+  iap_oath_brand = "projects/${data.google_project.comfyui_iap_oath_branding.number}/brands/${data.google_project.comfyui_iap_oath_branding.number}"
 
-  workflow_api_service_name   = "workflow-api"
+  workflow_api_service_name   = local.workflow_api_default_name
   workflow_api_service_port   = 8080
-  workflow_api_serviceaccount = "${local.unique_identifier_prefix}-workflow-api"
+  workflow_api_serviceaccount = "${local.unique_identifier_prefix}-${local.workflow_api_default_name}"
 }
 
 data "google_client_config" "default" {}
 
 data "google_client_openid_userinfo" "identity" {}
-
-data "google_compute_global_address" "external_gateway_https" {
-  name    = local.comfyui_gateway_address_name
-  project = data.google_project.cluster.project_id
-}
 
 ###############################################################################
 # Setup service account for workflow-api in the namespace
@@ -49,7 +43,7 @@ resource "local_file" "workflow_api_serviceaccount" {
       namespace = var.comfyui_kubernetes_namespace
     }
   )
-  filename = "${local.manifests_directory}/serviceaccount-${local.workflow_api_serviceaccount}.yaml"
+  filename = "${local.namespace_manifests_directory}/serviceaccount-${local.workflow_api_serviceaccount}.yaml"
 }
 
 module "kubectl_apply_serviceaccount" {
@@ -60,7 +54,7 @@ module "kubectl_apply_serviceaccount" {
   source = "../../../../modules/kubectl_apply"
 
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = local.manifests_directory
+  manifest                    = local_file.workflow_api_serviceaccount.filename
   manifest_includes_namespace = true
 }
 
@@ -74,12 +68,17 @@ resource "google_project_service" "certificatemanager_googleapis_com" {
   service                    = "certificatemanager.googleapis.com"
 }
 
+resource "google_compute_global_address" "external_gateway_https" {
+  name    = local.workflow_api_gateway_address_name
+  project = data.google_project.cluster.project_id
+}
+
 resource "google_compute_managed_ssl_certificate" "workflow_api" {
   depends_on = [
     google_project_service.certificatemanager_googleapis_com,
   ]
 
-  name    = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-workflow-api"
+  name    = local.workflow_api_endpoints_ssl_certificate_name
   project = data.google_project.cluster.project_id
 
   managed {
@@ -89,76 +88,77 @@ resource "google_compute_managed_ssl_certificate" "workflow_api" {
   }
 }
 
-# resource "google_certificate_manager_certificate" "internal_regional_gateway" {
-#   depends_on = [
-#     google_project_service.certificatemanager_googleapis_com,
-#   ]
-
-#   name      = "${local.unique_identifier_prefix}-workflow-api-internal-gateway"
-#   project   = data.google_project.cluster.project_id
-#   location  = var.cluster_region
-
-#   managed {
-#     domains = [
-#       local.workflow_api_endpoints_hostname,
-#       ]
-#     dns_authorizations = [
-#       google_certificate_manager_dns_authorization.test_workflow_api_internal.id,
-#       ]
-#   }
-# }
-
-# resource "google_certificate_manager_dns_authorization" "test_workflow_api_internal" {
-#   name        = "dns-auth"
-#   description = "DNS auth for Managed SSL Certificate"
-#   domain      = local.workflow_api_endpoints_hostname
-#   location    = var.cluster_region 
-#   project     = data.google_project.cluster.project_id
-# }
-
-# resource "google_compute_subnetwork" "gateway_subnet" {
-#   ip_cidr_range = var.workflow_api_subnet_gateway_cidr_range
-#   name          = local.gateway_subnetwork_name
-#   network       = local.networking_network_name
-#   role          = "ACTIVE"
-#   project       = data.google_project.cluster.project_id
-#   region        = var.cluster_region
-# }
-
-# resource "google_compute_subnetwork" "proxy_subnet" {
-#   name          = local.proxy_subnetwork_name
-#   ip_cidr_range = var.workflow_api_subnet_proxy_cidr_range
-#   network       = local.networking_network_name
-#   role          = "ACTIVE"
-#   project       = data.google_project.cluster.project_id
-#   region        = var.cluster_region
-#   purpose       = "REGIONAL_MANAGED_PROXY"
-# }
-
-# resource "google_compute_address" "internal_gateway_https" {
-#   name         = "${local.unique_identifier_prefix}-workflow-api-internal-gateway-https"
-#   project      = data.google_project.cluster.project_id
-#   subnetwork   = google_compute_subnetwork.gateway_subnet.id
-#   region       = var.cluster_region
-#   address_type = "INTERNAL"
-#   purpose      = "SHARED_LOADBALANCER_VIP"
-# }
-
-resource "local_file" "internal_gateway_https_yaml" {
-  depends_on = [
-    data.google_compute_address.external_gateway_https
-  ]
-
+resource "local_file" "external_gateway_https_yaml" {
   content = templatefile(
-    "${path.module}/../comfyui/templates/gateway/gateway-external-https.tftpl.yaml",
+    "${path.module}/templates/gateway-external-https.tftpl.yaml",
     {
-      address_name         = local.comfyui_gateway_address_name
-      gateway_name         = local.comfyui_gateway_name
+      address_name         = google_compute_global_address.external_gateway_https.name
+      gateway_name         = local.workflow_api_gateway_name
       namespace            = var.comfyui_kubernetes_namespace
-      ssl_certificate_name = local.workflow_api_gateway_ssl_certificates
+      ssl_certificate_name = google_compute_managed_ssl_certificate.workflow_api.name
     }
   )
-  filename = "${local.gateway_manifests_directory}/gateway-external-https.yaml"
+  filename = "${local.gateway_manifests_directory}/${local.workflow_api_gateway_name}.yaml"
+}
+
+resource "local_file" "health_check_policy_yaml" {
+  content = templatefile(
+    "${path.module}/templates/health-check-policy.tftpl.yaml",
+    {
+      policy_name  = local.workflow_api_default_name
+      service_name = local.workflow_api_service_name
+      namespace    = var.comfyui_kubernetes_namespace
+    }
+  )
+  filename = "${local.gateway_manifests_directory}/health-check-policy-${local.workflow_api_default_name}.yaml"
+}
+
+resource "local_file" "route_workflow_api_https_yaml" {
+  content = templatefile(
+    "${path.module}/templates/http-route-service.tftpl.yaml",
+    {
+      gateway_name    = local.workflow_api_gateway_name
+      hostname        = local.workflow_api_endpoints_hostname
+      http_route_name = "${local.workflow_api_default_name}-https"
+      namespace       = var.comfyui_kubernetes_namespace
+      service_name    = local.workflow_api_service_name
+      service_port    = local.workflow_api_service_port
+    }
+  )
+  filename = "${local.gateway_manifests_directory}/route-${local.workflow_api_default_name}-https.yaml"
+}
+
+###############################################################################
+# IAP
+###############################################################################
+resource "google_iap_client" "workflow_api" {
+  brand        = local.iap_oath_brand
+  display_name = local.workflow_api_service_account_oauth_display_name
+}
+
+resource "kubernetes_secret_v1" "workflow_api_oauth" {
+  data = {
+    secret = google_iap_client.workflow_api.secret
+  }
+
+  metadata {
+    name      = "${local.workflow_api_default_name}-oauth"
+    namespace = var.comfyui_kubernetes_namespace
+  }
+}
+
+resource "local_file" "policy_iap_workflow_api_yaml" {
+  content = templatefile(
+    "${path.module}/templates/gcp-backend-policy-iap-service.tftpl.yaml",
+    {
+      oauth_client_id          = google_iap_client.workflow_api.client_id
+      oauth_client_secret_name = "${local.workflow_api_default_name}-oauth"
+      policy_name              = local.workflow_api_default_name
+      service_name             = local.workflow_api_service_name
+      namespace                = var.comfyui_kubernetes_namespace
+    }
+  )
+  filename = "${local.gateway_manifests_directory}/gcp-backend-policy-${local.workflow_api_default_name}.yaml"
 }
 
 ###############################################################################
@@ -175,35 +175,18 @@ resource "terraform_data" "workflow_api_https_endpoint_undelete" {
 resource "google_endpoints_service" "workflow_api_https" {
   depends_on = [
     terraform_data.workflow_api_https_endpoint_undelete,
-    data.google_compute_address.external_gateway_https,
+    google_compute_global_address.external_gateway_https,
   ]
 
   openapi_config = templatefile(
     "${path.module}/templates/endpoint.tftpl.yaml",
     {
       endpoint   = local.workflow_api_endpoints_hostname
-      ip_address = data.google_compute_address.external_gateway_https.address
+      ip_address = google_compute_global_address.external_gateway_https.address
     }
   )
   project      = data.google_project.cluster.project_id
   service_name = local.workflow_api_endpoints_hostname
-}
-
-# ROUTES
-###############################################################################
-resource "local_file" "route_workflow_api_https_yaml" {
-  content = templatefile(
-    "${path.module}/templates/http-route-service.tftpl.yaml",
-    {
-      gateway_name    = local.comfyui_gateway_name # Should match the Gateway K8s object name
-      hostname        = local.workflow_api_endpoints_hostname
-      http_route_name = "workflow-api-https"
-      namespace       = var.comfyui_kubernetes_namespace
-      service_name    = local.workflow_api_service_name
-      service_port    = local.workflow_api_service_port
-    }
-  )
-  filename = "${local.gateway_manifests_directory}/route-workflow-api-https.yaml"
 }
 
 ###############################################################################
@@ -212,7 +195,8 @@ resource "local_file" "route_workflow_api_https_yaml" {
 module "kubectl_apply_gateway_res" {
   depends_on = [
     google_endpoints_service.workflow_api_https,
-    local_file.internal_gateway_https_yaml,
+    local_file.external_gateway_https_yaml,
+    local_file.policy_iap_workflow_api_yaml,
     local_file.route_workflow_api_https_yaml,
   ]
 
@@ -220,6 +204,31 @@ module "kubectl_apply_gateway_res" {
 
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local.gateway_manifests_directory
-  manifest_can_be_updated     = true
   manifest_includes_namespace = true
+}
+
+###############################################################################
+# IAP Permissions
+###############################################################################
+data "external" "backend_service" {
+  depends_on = [
+    module.kubectl_apply_gateway_res,
+    module.kubectl_apply_workload_manifest,
+  ]
+
+  program = ["bash", "-c", "${path.module}/../../../../scripts/iap/get_backend_service_by_oauth2_client_id.sh"]
+
+  query = {
+    oauth2_client_id = google_iap_client.workflow_api.client_id
+    project_id       = local.cluster_project_id
+    retries          = "12"
+    wait_delay       = "10"
+  }
+}
+
+resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {
+  member              = google_service_account.workflow_api_user.member
+  role                = "roles/iap.httpsResourceAccessor"
+  project             = local.cluster_project_id
+  web_backend_service = data.external.backend_service.result.name
 }

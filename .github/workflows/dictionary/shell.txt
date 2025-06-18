@@ -10,5 +10,6 @@ noninteractive
 nounset
 pipefail
 pkill
+syscall
 xtraces
 zxvf

@@ -25,7 +25,7 @@ locals {
   manifests_directory         = "${local.namespace_directory}/${var.comfyui_kubernetes_namespace}"
   manifests_directory_root    = "${path.module}/../../../../kubernetes/manifests"
   namespace_directory         = "${local.manifests_directory_root}/namespace"
-  serviceaccount              = "${var.comfyui_kubernetes_namespace}-sa"
+  serviceaccount              = "${local.unique_identifier_prefix}-${local.comfyui_default_name}"
 }
 
 data "google_client_config" "default" {}

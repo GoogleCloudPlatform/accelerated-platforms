@@ -14,9 +14,16 @@
 
 locals {
   workflow_api_artifact_repo_name             = "${local.unique_identifier_prefix}-${var.workflow_api_artifact_repo_name}"
-  workflow_api_endpoints_hostname             = var.workflow_api_endpoints_hostname != null ? var.workflow_api_endpoints_hostname : "workflow-api.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
-  workflow_api_endpoints_ssl_certificate_name = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-workflow-api"
-  workflow_api_gateway_ssl_certificates       = "${local.comfyui_endpoints_ssl_certificate_name},${local.workflow_api_endpoints_ssl_certificate_name}"
+  workflow_api_default_name                   = "workflow-api"
+  workflow_api_endpoints_hostname             = var.workflow_api_endpoints_hostname != null ? var.workflow_api_endpoints_hostname : "${local.workflow_api_default_name}.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
+  workflow_api_endpoints_ssl_certificate_name = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-${local.workflow_api_default_name}"
+  workflow_api_gateway_address_name           = "${local.unique_identifier_prefix}-${local.workflow_api_default_name}-external-gateway-https"
+  workflow_api_gateway_name                   = "${local.workflow_api_default_name}-external-https"
+
+  workflow_api_service_account_email              = "${local.workflow_api_service_account_name}@${local.workflow_api_service_account_project_id}.iam.gserviceaccount.com"
+  workflow_api_service_account_name               = "${local.unique_identifier_prefix}-${local.workflow_api_default_name}"
+  workflow_api_service_account_oauth_display_name = "${local.unique_identifier_prefix}-${local.workflow_api_default_name}"
+  workflow_api_service_account_project_id         = var.workflow_api_service_account_project_id != null ? var.workflow_api_service_account_project_id : var.platform_default_project_id
 }
 
 variable "workflow_api_artifact_repo_name" {
@@ -39,6 +46,12 @@ variable "workflow_api_image_name" {
 
 variable "workflow_api_image_tag" {
   default     = "0.0.1"
+  description = ""
+  type        = string
+}
+
+variable "workflow_api_service_account_project_id" {
+  default     = null
   description = ""
   type        = string
 }

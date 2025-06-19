@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${deployment_name}
+  namespace: comfyui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${deployment_name}
+  template:
+    metadata:
+      labels:
+        app: ${deployment_name}
+    spec:
+      containers:
+        - name: ${deployment_name}
+          image: ${image_name}
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: 2
+              memory: 4G
+          env:
+            - name: COMFYUI_BASE_URL
+              value: http://${comfyui_service_name}.${namespace}.svc.cluster.local:8188
+      serviceAccountName: ${service_account}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow-api
+  namespace: comfyui
+  labels:
+    app: workflow-api
+spec:
+  selector:
+    app: workflow-api
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+  type: ClusterIP

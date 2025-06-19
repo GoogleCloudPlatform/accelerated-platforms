@@ -19,6 +19,10 @@
       "path": ".github/workflows/dictionary/flipkart.txt"
     },
     {
+      "name": "golang",
+      "path": ".github/workflows/dictionary/golang.txt"
+    },
+    {
       "name": "google-cloud",
       "path": ".github/workflows/dictionary/google-cloud.txt"
     },
@@ -76,6 +80,7 @@
     "comfyui",
     "docker",
     "flipkart",
+    "golang",
     "google-cloud",
     "huggingface",
     "kubeflow",
@@ -91,6 +96,8 @@
     "vllm"
   ],
   "ignorePaths": [
+    "**/go.mod",
+    "**/go.sum",
     "node_modules",
     "use-cases/inferencing/batch-inference/example_predictions.txt",
     "use-cases/model-fine-tuning-pipeline/model-eval/examples/"

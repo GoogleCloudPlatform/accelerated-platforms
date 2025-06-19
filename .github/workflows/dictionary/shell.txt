@@ -3,12 +3,13 @@ chdir
 envsubst
 errexit
 getopt
-libgl
 libexec
+libgl
 libglib
 noninteractive
 nounset
 pipefail
 pkill
+syscall
 xtraces
 zxvf

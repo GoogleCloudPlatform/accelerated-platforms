@@ -23,9 +23,9 @@ locals {
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskassignment"
-            cross_device_workload_replicas = 4
-            cross_device_workload_port = 8083
+            cross_device_workload_name         = "taskassignment"
+            cross_device_workload_replicas     = 4
+            cross_device_workload_port         = 8083
             cross_device_workload_min_replicas = 4
             cross_device_workload_max_replicas = 20
           },
@@ -37,9 +37,9 @@ locals {
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskmanagement"
-            cross_device_workload_replicas = 2
-            cross_device_workload_port = 8082
+            cross_device_workload_name         = "taskmanagement"
+            cross_device_workload_replicas     = 2
+            cross_device_workload_port         = 8082
             cross_device_workload_min_replicas = 2
             cross_device_workload_max_replicas = 5
           },
@@ -51,9 +51,9 @@ locals {
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskscheduler"
-            cross_device_workload_replicas = 2
-            cross_device_workload_port = 8082
+            cross_device_workload_name         = "taskscheduler"
+            cross_device_workload_replicas     = 2
+            cross_device_workload_port         = 8082
             cross_device_workload_min_replicas = 2
             cross_device_workload_max_replicas = 5
           },
@@ -65,9 +65,9 @@ locals {
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskbuilder"
-            cross_device_workload_replicas = 2
-            cross_device_workload_port = 5000
+            cross_device_workload_name         = "taskbuilder"
+            cross_device_workload_replicas     = 2
+            cross_device_workload_port         = 5000
             cross_device_workload_min_replicas = 2
             cross_device_workload_max_replicas = 5
           },
@@ -79,9 +79,9 @@ locals {
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "collector"
-            cross_device_workload_replicas = 1
-            cross_device_workload_port = 8082
+            cross_device_workload_name         = "collector"
+            cross_device_workload_replicas     = 1
+            cross_device_workload_port         = 8082
             cross_device_workload_min_replicas = 1
             cross_device_workload_max_replicas = 3
           },

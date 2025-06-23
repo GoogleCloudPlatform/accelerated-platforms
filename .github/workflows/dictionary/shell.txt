@@ -1,6 +1,14 @@
+allexport
 chdir
+envsubst
 errexit
+getopt
+libgl
+libexec
+libglib
+noninteractive
 nounset
 pipefail
 pkill
+xtraces
 zxvf

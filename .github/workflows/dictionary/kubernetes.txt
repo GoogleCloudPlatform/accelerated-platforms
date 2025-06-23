@@ -5,12 +5,16 @@ apiservice
 clusterregistry
 clusterrole
 clusterrolebinding
+crd
+crds
+dockerconfigjson
 egressgateway
 flowcontrol
 flowschemas
 gmsa
 horizontalpodautoscaler
 ingressgateway
+istiod
 jobset
 jobsets
 k8s
@@ -28,6 +32,7 @@ persistentvolumeclaim
 podmonitoring
 podset
 podsets
+podtemplate
 podtemplates
 preconfigured
 preemptible
@@ -41,6 +46,7 @@ replicatedjob
 rolebinding
 runtimeclasses
 seccomp
+secretproviderclass
 statefulsets
 subjectaccessreviews
 TLSV

@@ -1,0 +1,79 @@
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: gpu-l4-24gb-x2
+spec:
+  activeMigration:
+    optimizeRulePriority: true
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    # Use a specific reservation
+    # - gpu:
+    #     count: 2
+    #     driverVersion: latest
+    #     type: nvidia-l4
+    #   machineType: g2-standard-24
+    #   maxPodsPerNode: 32
+    #   reservations:
+    #     affinity: Specific
+    #     specific:
+    #       - name: nvidia-l4-specific
+    #         reservationBlock:
+    #           name: <RESERVATION_NAME>
+    #   spot: false
+
+    # Use any reservation
+    - gpu:
+        count: 2
+        driverVersion: latest
+        type: nvidia-l4
+      machineType: g2-standard-24
+      maxPodsPerNode: 32
+      reservations:
+        affinity: AnyBestEffort
+      spot: false
+
+    # Use on-demand
+    - gpu:
+        count: 2
+        driverVersion: latest
+        type: nvidia-l4
+      machineType: g2-standard-24
+      maxPodsPerNode: 32
+      spot: false
+
+    # Use DWS FlexStart with 7 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      gpu:
+        count: 2
+        driverVersion: latest
+        type: nvidia-l4
+      machineType: g2-standard-24
+      maxPodsPerNode: 32
+      maxRunDurationSeconds: 604800
+
+    # Use DWS FlexStart with 1 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      gpu:
+        count: 2
+        driverVersion: latest
+        type: nvidia-l4
+      machineType: g2-standard-24
+      maxPodsPerNode: 32
+      maxRunDurationSeconds: 86400
+
+    # Use spot
+    - gpu:
+        count: 2
+        driverVersion: latest
+        type: nvidia-l4
+      machineType: g2-standard-24
+      maxPodsPerNode: 32
+      spot: true

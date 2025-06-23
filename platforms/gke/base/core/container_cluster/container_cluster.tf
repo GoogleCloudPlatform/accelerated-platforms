@@ -12,7 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+data "google_compute_zones" "region" {
+  project = data.google_project.cluster.project_id
+  region  = var.cluster_region
+}
+
 resource "google_container_cluster" "cluster" {
+  depends_on = [
+    google_project_iam_member.cluster_sa
+  ]
+
   provider = google-beta
 
   datapath_provider        = "ADVANCED_DATAPATH"
@@ -21,6 +30,7 @@ resource "google_container_cluster" "cluster" {
   location                 = var.cluster_region
   name                     = local.cluster_name
   network                  = local.network_name
+  node_locations           = data.google_compute_zones.region.names
   project                  = google_project_service.container_googleapis_com.project
   remove_default_node_pool = true
   subnetwork               = local.subnetwork_name
@@ -35,6 +45,14 @@ resource "google_container_cluster" "cluster" {
     }
 
     gce_persistent_disk_csi_driver_config {
+      enabled = true
+    }
+
+    horizontal_pod_autoscaling {
+      disabled = false
+    }
+
+    parallelstore_csi_driver_config {
       enabled = true
     }
   }
@@ -128,6 +146,7 @@ resource "google_container_cluster" "cluster" {
     enable_components = [
       "APISERVER",
       "CONTROLLER_MANAGER",
+      "KCP_HPA",
       "SCHEDULER",
       "SYSTEM_COMPONENTS",
       "WORKLOADS"
@@ -156,6 +175,7 @@ resource "google_container_cluster" "cluster" {
       "DCGM",
       "DEPLOYMENT",
       "HPA",
+      "JOBSET",
       "KUBELET",
       "POD",
       "SCHEDULER",
@@ -166,6 +186,10 @@ resource "google_container_cluster" "cluster" {
 
     managed_prometheus {
       enabled = true
+
+      auto_monitoring_config {
+        scope = var.cluster_auto_monitoring_config_scope
+      }
     }
   }
 
@@ -194,6 +218,10 @@ resource "google_container_cluster" "cluster" {
         enabled = true
       }
     }
+  }
+
+  pod_autoscaling {
+    hpa_profile = "PERFORMANCE"
   }
 
   private_cluster_config {

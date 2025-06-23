@@ -2,52 +2,47 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-- args:
-  - --cache=true
-  - --cache-ttl=48h
-  - --context=dir://test/ci-cd/container_images
-  - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest
-  - --dockerfile=test/ci-cd/container_images/dockerfile.runner
-  - --log-format=text
-  - --log-timestamp=false
-  - --verbosity=info
-  id: "Build runner image"
-  name: "gcr.io/kaniko-project/executor:latest"
-  waitFor: ["-"]
+  - args:
+      - "${_WAIT_FOR_TRIGGER}"
+    entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
+    env:
+      - "LOCATION=${LOCATION}"
+      - "PROJECT_ID=${PROJECT_ID}"
+    id: "Check triggers"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor: ["-"]
 
-- name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-  id: "Test platforms/gke/base/core Terraform"
-  entrypoint: "ash"
-  args:
-    - "-x"
-    - "-c"
-    - |
-      export NO_COLOR="1"
-      export TERM="xterm"
-      export TF_CLI_ARGS="-no-color"
-      export TF_IN_AUTOMATION="1"
+  - name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    id: "Test platforms/gke/base/core Terraform"
+    entrypoint: "ash"
+    args:
+      - "-x"
+      - "-c"
+      - |
+        export NO_COLOR="1"
+        export TERM="xterm"
+        export TF_CLI_ARGS="-no-color"
+        export TF_IN_AUTOMATION="1"
 
-      export ACP_REPO_DIR="/workspace"
-      export ACP_PLATFORM_BASE_DIR="/workspace/platforms/gke/base"
-      export ACP_PLATFORM_CORE_DIR="/workspace/platforms/gke/base/core"
+        export ACP_REPO_DIR="/workspace"
+        export ACP_PLATFORM_BASE_DIR="/workspace/platforms/gke/base"
+        export ACP_PLATFORM_CORE_DIR="/workspace/platforms/gke/base/core"
 
-      export TF_VAR_cluster_project_id="${PROJECT_ID}"
-      export TF_VAR_platform_name="commit-${SHORT_SHA}"
-      export TF_VAR_terraform_project_id="${PROJECT_ID}"
+        export TF_VAR_platform_default_project_id="${PROJECT_ID}"
+        export TF_VAR_platform_name="commit-${SHORT_SHA}"
 
-      platforms/gke/base/core/deploy.sh
-      platforms/gke/base/core/deploy.sh
+        platforms/gke/base/core/deploy.sh
+        platforms/gke/base/core/deploy.sh
 
-      APPLY_RETURN_CODE=$?
-      echo "APPLY_RETURN_CODE=$${APPLY_RETURN_CODE}"
+        APPLY_RETURN_CODE=$?
+        echo "APPLY_RETURN_CODE=$${APPLY_RETURN_CODE}"
 
-      platforms/gke/base/core/teardown.sh || exit 1
-      if [[ $${APPLY_RETURN_CODE} -ne 0 ]]; then
-        exit $${APPLY_RETURN_CODE}
-      fi
-  waitFor:
-  - "Build runner image"
+        platforms/gke/base/core/teardown.sh || exit 1
+        if [[ $${APPLY_RETURN_CODE} -ne 0 ]]; then
+          exit $${APPLY_RETURN_CODE}
+        fi
+    waitFor:
+      - "Check triggers"
 
 substitutions:
-  _AR_REPO_LOCATION: "us-central1"
   _IAP_DOMAIN: "accelerated-platforms.joonix.net"

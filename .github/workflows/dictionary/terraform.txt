@@ -1,5 +1,6 @@
 abspath
 cidrhost
+direxists
 endfor
 filemd
 fileset
@@ -14,6 +15,7 @@ rrdatas
 setproduct
 setsubtract
 startswith
+strcontains
 templatefile
 terraservice
 terraservices

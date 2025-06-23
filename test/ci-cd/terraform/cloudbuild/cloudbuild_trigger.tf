@@ -12,6 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "google_cloudbuild_trigger" "acp_ci_cd_runner_image" {
+  filename = "test/ci-cd/cloudbuild/ci-cd/runner-image.yaml"
+  included_files = [
+    "test/ci-cd/cloudbuild/ci-cd/runner-image.yaml",
+    "test/ci-cd/container_images/dockerfile.runner",
+  ]
+  location        = var.build_location
+  name            = "acp-ci-cd-runner-image"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+}
+
 resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
   filename = "test/ci-cd/cloudbuild/acp-ci-cd-terraform.yaml"
   ignored_files = [
@@ -33,6 +54,10 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
       branch       = "^main$"
       invert_regex = false
     }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
   }
 }
 
@@ -59,28 +84,125 @@ resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
       invert_regex    = false
     }
   }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform_destroy" {
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/README.md",
+  ]
+  included_files = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/**",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml",
+  ]
   location        = var.build_location
-  name            = "platforms-gke-aiml-playground-terraform-destroy"
+  name            = "platforms-gke-base-core-full-scripts"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
   substitutions = {
-    "_ENVIRONMENT_NAME" = "dev"
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts_push" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/README.md",
+  ]
+  included_files = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/**",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-core-full-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
   }
 
-  git_file_source {
-    path       = "test/ci-cd/cloudbuild/platforms-gke-aiml-playground-terraform-destroy.yaml"
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terraform" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml"
+  included_files = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-core-initialize-terraform"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
     repository = google_cloudbuildv2_repository.accelerated_platforms.id
-    repo_type  = "GITHUB"
-    revision   = "refs/heads/main"
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
   }
 
-  source_to_build {
-    ref        = "refs/heads/main"
-    repo_type  = "GITHUB"
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terraform_push" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml"
+  included_files = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-core-initialize-terraform-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
     repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
   }
 }
 
@@ -90,6 +212,7 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform" {
     "platforms/gke/base/core/README.md",
   ]
   included_files = [
+    "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/**",
     "test/ci-cd/cloudbuild/platforms-gke-base-core-terraform.yaml",
   ]
@@ -107,28 +230,333 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform" {
       invert_regex    = false
     }
   }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform_destroy" {
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform_push" {
+  filename = "test/ci-cd/cloudbuild/platforms-gke-base-core-terraform.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/README.md",
+  ]
+  included_files = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/**",
+    "test/ci-cd/cloudbuild/platforms-gke-base-core-terraform.yaml",
+  ]
   location        = var.build_location
-  name            = "platforms-gke-base-core-terraform-destroy"
+  name            = "platforms-gke-base-core-terraform-push"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
   substitutions = {
-    "_PLATFORM_NAME" = "dev"
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terraform" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml"
+  included_files = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/**",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-core-workloads-terraform"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
   }
 
-  git_file_source {
-    path       = "test/ci-cd/cloudbuild/platforms-gke-base-core-terraform-destroy.yaml"
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terraform_push" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml"
+  included_files = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/**",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-core-workloads-terraform-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
     repository = google_cloudbuildv2_repository.accelerated_platforms.id
-    repo_type  = "GITHUB"
-    revision   = "refs/heads/main"
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
   }
 
-  source_to_build {
-    ref        = "refs/heads/main"
-    repo_type  = "GITHUB"
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_scripts" {
+  filename = "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/README.md",
+    "platforms/gke/base/use-cases/federated-learning/README.md"
+  ]
+  included_files = [
+    # Include the whole core platform because we want to ensure that
+    # changes to the base platform don't break this use case
+    "platforms/gke/base/core/**",
+    "platforms/gke/base/use-cases/federated-learning/**",
+    "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-federated-learning-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
     repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_scripts_push" {
+  filename = "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/README.md",
+    "platforms/gke/base/use-cases/federated-learning/README.md"
+  ]
+  included_files = [
+    # Include the whole core platform because we want to ensure that
+    # changes to the base platform don't break this use case
+    "platforms/gke/base/core/**",
+    "platforms/gke/base/use-cases/federated-learning/**",
+    "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-federated-learning-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_scripts" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml"
+  included_files = [
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/jobset/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/lws/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh",
+    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-inference-ref-arch-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _IAP_DOMAIN       = "accelerated-platforms.joonix.net"
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_scripts_push" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml"
+  included_files = [
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/jobset/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/lws/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh",
+    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-inference-ref-arch-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _IAP_DOMAIN       = "accelerated-platforms.joonix.net"
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_comfyui_scripts" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml"
+  included_files = [
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh",
+    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-inference-ref-arch-comfyui-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _IAP_DOMAIN       = "accelerated-platforms.joonix.net"
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_push" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml"
+  included_files = [
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh",
+    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-inference-ref-arch-comfyui-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _IAP_DOMAIN       = "accelerated-platforms.joonix.net"
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
   }
 }
 
@@ -220,21 +648,14 @@ resource "google_cloudbuild_trigger" "uc_mftp_model_eval_build" {
   }
 }
 
-resource "google_cloudbuild_trigger" "uc_federated_learning_terraform" {
-  filename = "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml"
-  ignored_files = [
-    "platforms/gke/base/core/README.md",
-    "platforms/gke/base/use-cases/federated-learning/README.md"
-  ]
+resource "google_cloudbuild_trigger" "uc_rag_data_proc_ray_build" {
+  filename = "test/ci-cd/cloudbuild/uc-rag-data-proc-ray-build.yaml"
   included_files = [
-    # Include the whole core platform because we want to ensure that
-    # changes to the base platform don't break this use case
-    "platforms/gke/base/core/**",
-    "platforms/gke/base/use-cases/federated-learning/**",
-    "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml",
+    "test/ci-cd/cloudbuild/uc-rag-data-proc-ray-build.yaml",
+    "use-cases/rag-pipeline/data-preprocessing/src/**",
   ]
   location        = var.build_location
-  name            = "uc-federated-learning-terraform"
+  name            = "uc-rag-data-proc-ray-build"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 
@@ -242,32 +663,9 @@ resource "google_cloudbuild_trigger" "uc_federated_learning_terraform" {
     repository = google_cloudbuildv2_repository.accelerated_platforms.id
 
     pull_request {
-      branch          = "^main$|^int-federated-learning$"
+      branch          = "^main$|^int-"
       comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
       invert_regex    = false
     }
-  }
-}
-
-resource "google_cloudbuild_trigger" "uc_federated_learning_terraform_destroy" {
-  location        = var.build_location
-  name            = "uc-federated-learning-terraform-destroy"
-  project         = data.google_project.build.project_id
-  service_account = google_service_account.integration.id
-  substitutions = {
-    "_PLATFORM_NAME" = "dev"
-  }
-
-  git_file_source {
-    path       = "test/ci-cd/cloudbuild/uc-federated-learning-terraform-destroy.yaml"
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-    repo_type  = "GITHUB"
-    revision   = "refs/heads/main"
-  }
-
-  source_to_build {
-    ref        = "refs/heads/main"
-    repo_type  = "GITHUB"
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
   }
 }

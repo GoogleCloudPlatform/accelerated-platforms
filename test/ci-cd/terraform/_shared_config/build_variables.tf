@@ -13,8 +13,11 @@
 # limitations under the License.
 
 locals {
-  build_github_token_secret   = "github-token"
-  build_terraform_bucket_name = "${var.build_project_id}-build-terraform"
+  build_github_token_secret            = "github-token"
+  build_huggingface_token_read_secret  = "huggingface-hub-access-token-read"
+  build_huggingface_token_write_secret = "huggingface-hub-access-token-write"
+  build_ngc_api_key_secret             = "ngc-api-key"
+  build_terraform_bucket_name          = "${var.build_project_id}-build-terraform"
 }
 
 variable "build_location" {

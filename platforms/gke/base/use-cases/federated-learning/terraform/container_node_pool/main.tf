@@ -19,7 +19,7 @@ resource "google_container_node_pool" "fl_container_node_pool" {
   initial_node_count = 1
   location           = var.cluster_region
   name               = each.value.tenant_nodepool_name
-  project            = data.google_project.default.project_id
+  project            = data.google_project.cluster.project_id
 
   autoscaling {
     location_policy      = "BALANCED"

@@ -13,11 +13,28 @@
 # limitations under the License.
 
 locals {
-  container_node_pool_folder = abspath("${path.module}/../container_node_pool")
-}
+  container_node_pool_folder = "${path.module}/../container_node_pool"
 
-data "google_project" "default" {
-  project_id = var.cluster_project_id
+  cpu_container_node_pools_directory = "${local.container_node_pool_folder}/cpu/region/${var.cluster_region}"
+  cpu_container_node_pool_files      = var.initialize_container_node_pools_cpu ? flatten([for _, file in flatten(fileset("${local.cpu_container_node_pools_directory}", "*.tf")) : "${local.cpu_container_node_pools_directory}/${file}"]) : []
+
+  gpu_container_node_pools_directory = "${local.container_node_pool_folder}/gpu/region/${var.cluster_region}"
+
+  rtx_filename_string = "_rtx"
+
+  gpu_without_rtx_container_node_pool_files = var.initialize_container_node_pools_gpu && var.initialize_container_node_pools_gpu_without_rtx ? flatten([for _, file in flatten(fileset("${local.gpu_container_node_pools_directory}", "*.tf")) : "${local.gpu_container_node_pools_directory}/${file}" if !strcontains(file, local.rtx_filename_string)]) : []
+  gpu_with_rtx_container_node_pool_files    = var.initialize_container_node_pools_gpu && var.initialize_container_node_pools_gpu_with_rtx ? flatten([for _, file in flatten(fileset("${local.gpu_container_node_pools_directory}", "*.tf")) : "${local.gpu_container_node_pools_directory}/${file}" if strcontains(file, local.rtx_filename_string)]) : []
+
+  tpu_container_node_pools_directory = "${local.container_node_pool_folder}/tpu/region/${var.cluster_region}"
+  tpu_container_node_pool_files      = var.initialize_container_node_pools_tpu ? flatten([for _, file in flatten(fileset("${local.tpu_container_node_pools_directory}", "*.tf")) : "${local.tpu_container_node_pools_directory}/${file}"]) : []
+
+  container_node_pool_files = compact(flatten(concat(
+    [],
+    local.cpu_container_node_pool_files,
+    local.gpu_without_rtx_container_node_pool_files,
+    local.gpu_with_rtx_container_node_pool_files,
+    local.tpu_container_node_pool_files,
+  )))
 }
 
 resource "google_storage_bucket" "terraform" {
@@ -26,7 +43,7 @@ resource "google_storage_bucket" "terraform" {
   force_destroy               = false
   location                    = var.cluster_region
   name                        = local.terraform_bucket_name
-  project                     = data.google_project.default.project_id
+  project                     = data.google_project.terraform.project_id
   uniform_bucket_level_access = true
 
   versioning {
@@ -38,21 +55,13 @@ data "google_storage_bucket" "terraform" {
   depends_on = [google_storage_bucket.terraform]
 
   name    = local.terraform_bucket_name
-  project = data.google_project.default.project_id
+  project = data.google_project.terraform.project_id
 }
 
-resource "null_resource" "configure_nodepools_for_region" {
-  provisioner "local-exec" {
-    command = <<EOT
-cd ${local.container_node_pool_folder} && \
-rm -f container_node_pool_*.tf && \
-ln -s cpu/region/${var.cluster_region}/container_node_pool_*.tf ./
-ln -s gpu/region/${var.cluster_region}/container_node_pool_*.tf ./
-ln -s tpu/region/${var.cluster_region}/container_node_pool_*.tf ./
-EOT
-  }
+resource "local_file" "container_node_pools_files_for_region" {
+  for_each = toset(local.container_node_pool_files)
 
-  triggers = {
-    always_run = timestamp()
-  }
+  content         = file(each.value)
+  file_permission = "0644"
+  filename        = "${local.container_node_pool_folder}/${basename(each.value)}"
 }

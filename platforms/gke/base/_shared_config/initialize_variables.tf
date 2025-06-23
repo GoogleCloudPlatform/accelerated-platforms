@@ -12,13 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#
-# Configuration dependencies
-# - shared_config/platform_variables.tf
-#
-
 variable "initialize_backend_use_case_name" {
   default     = null
   description = "Create a templated backend.tf file in each folder that contains a versions.tf file for the specified use case. This value should be a folder or path within the 'base/use-cases' directory."
   type        = string
+}
+
+variable "initialize_container_node_pools_cpu" {
+  default     = true
+  description = "Set to true to prepare the files to provision CPU-based node pools in the cluster region"
+  type        = bool
+}
+
+variable "initialize_container_node_pools_gpu" {
+  default     = true
+  description = "Set to true to prepare the files to provision GPU-based node pools in the cluster region"
+  type        = bool
+}
+
+variable "initialize_container_node_pools_gpu_without_rtx" {
+  default     = true
+  description = "Set to true to prepare the files to provision GPU-based node pools in the cluster region with GPUs that don't provide NVIDIA RTX cores"
+  type        = bool
+}
+
+variable "initialize_container_node_pools_gpu_with_rtx" {
+  default     = true
+  description = "Set to true to prepare the files to provision GPU-based node pools in the cluster region with GPUs that provide NVIDIA RTX cores"
+  type        = bool
+}
+
+variable "initialize_container_node_pools_tpu" {
+  default     = true
+  description = "Set to true to prepare the files to provision TPU-based node pools in the cluster region"
+  type        = bool
 }

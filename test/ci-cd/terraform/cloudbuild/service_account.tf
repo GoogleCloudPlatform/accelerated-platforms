@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Create the scheduler service account
+resource "google_service_account" "cicd_sched" {
+  account_id   = "cicd-sched"
+  description  = "Terraform-managed service account for CI/CD scheduler"
+  display_name = "ci-cd scheduler service account"
+  project      = data.google_project.build.project_id
+}
+
 resource "google_service_account" "integration" {
   project      = data.google_project.build.project_id
   account_id   = "integration"

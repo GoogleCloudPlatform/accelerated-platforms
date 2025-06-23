@@ -1,0 +1,63 @@
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: tpu-v4-2x2x2
+spec:
+  activeMigration:
+    optimizeRulePriority: true
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    # Use a specific reservation
+    # - maxPodsPerNode: 32
+    #   reservations:
+    #     affinity: Specific
+    #     specific:
+    #       - name: tpu-v4-podslice-specific
+    #         reservationBlock:
+    #           name: <RESERVATION_NAME>
+    #   spot: false
+    #   tpu:
+    #     count: 4
+    #     topology: 2x2x2
+    #     type: tpu-v4-podslice
+
+    # Use on-demand
+    - maxPodsPerNode: 32
+      spot: false
+      tpu:
+        count: 4
+        topology: 2x2x2
+        type: tpu-v4-podslice
+
+    # Use DWS FlexStart with 7 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      maxPodsPerNode: 32
+      maxRunDurationSeconds: 604800
+      tpu:
+        count: 4
+        topology: 2x2x2
+        type: tpu-v4-podslice
+
+    # Use DWS FlexStart with 1 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      maxPodsPerNode: 32
+      maxRunDurationSeconds: 86400
+      tpu:
+        count: 4
+        topology: 2x2x2
+        type: tpu-v4-podslice
+
+    # Use spot
+    - maxPodsPerNode: 32
+      spot: true
+      tpu:
+        count: 4
+        topology: 2x2x2
+        type: tpu-v4-podslice

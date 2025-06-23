@@ -6,7 +6,7 @@
 - Install the `python` version
 
   ```
-  pyenv install 3.10.14
+  pyenv install 3.12.8
   ```
 
 - Clone the repository
@@ -19,13 +19,19 @@
 - Change directory to the `src` directory
 
   ```
-  cd examples/use-case/data-processing/ray/src
+  cd use-cases/model-fine-tuning-pipeline/data-processing/ray/src
+  ```
+
+- Copy python modules to the current directory
+
+  ```
+  cp -r ${MLP_BASE_DIR}/modules/python/src/datapreprocessing .
   ```
 
 - Set the local `python` version
 
   ```
-  pyenv local 3.10.14
+  pyenv local 3.12.8
   ```
 
 - Create a virtual environment
@@ -64,8 +70,8 @@
   export PROCESSING_BUCKET=
   ```
 
-- Run the `preprocessing.py` script
+- Run the `preprocessing_finetuning.py` script
 
   ```
-  python ./preprocessing.py
+  python preprocessing_finetuning.py
   ```

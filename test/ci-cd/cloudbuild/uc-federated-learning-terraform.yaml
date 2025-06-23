@@ -17,19 +17,16 @@ options:
 
 steps:
   - args:
-      - --cache=true
-      - --cache-ttl=48h
-      - --context=dir://test/ci-cd/container_images
-      - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest
-      - --dockerfile=test/ci-cd/container_images/dockerfile.runner
-      - --log-format=text
-      - --log-timestamp=false
-      - --verbosity=info
-    id: "Build runner image"
-    name: "gcr.io/kaniko-project/executor:latest"
+      - "${_WAIT_FOR_TRIGGER}"
+    entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
+    env:
+      - "LOCATION=${LOCATION}"
+      - "PROJECT_ID=${PROJECT_ID}"
+    id: "Check triggers"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor: ["-"]
 
-  - name: "${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  - name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     id: "Test platforms/gke/base/use-cases/federated-learning Terraform"
     entrypoint: "ash"
     args:
@@ -42,21 +39,16 @@ steps:
         export TF_CLI_ARGS="-no-color"
         export TF_IN_AUTOMATION="1"
 
-        export ACP_REPO_DIR="/workspace"
-        export ACP_PLATFORM_BASE_DIR="/workspace/platforms/gke/base"
-        export ACP_PLATFORM_CORE_DIR="/workspace/platforms/gke/base/core"
-
         # Use the truncated BUILD_ID as project suffix.
         # Truncate it at 7 characters as a short Git SHA
         PROJECT_SUFFIX="${BUILD_ID}"
         PROJECT_SUFFIX="$${PROJECT_SUFFIX:0:7}"
 
-        export TF_VAR_cluster_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+        export TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
         export TF_VAR_platform_name="${SHORT_SHA}-fl"
-        export TF_VAR_terraform_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
 
         # Create a dedicated project
-        export NEW_PROJECT_ID="$${TF_VAR_cluster_project_id}"
+        export NEW_PROJECT_ID="$${TF_VAR_platform_default_project_id}"
         test/ci-cd/scripts/create_project.sh
 
         # Deploy the base platform and the use case
@@ -75,8 +67,9 @@ steps:
           exit $${APPLY_RETURN_CODE}
         fi
     waitFor:
-      - "Build runner image"
+      - "Check triggers"
 
 substitutions:
-  _AR_REPO_LOCATION: "us-central1"
   _IAP_DOMAIN: "accelerated-platforms.joonix.net"
+
+timeout: 5400s

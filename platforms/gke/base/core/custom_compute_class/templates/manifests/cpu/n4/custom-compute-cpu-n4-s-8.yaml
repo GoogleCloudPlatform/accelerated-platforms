@@ -1,0 +1,21 @@
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: cpu-n4-s-8
+spec:
+  activeMigration:
+    optimizeRulePriority: true
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    # Use reservations if available, fall back to on-demand otherwise
+    - machineType: n4-standard-8
+      maxPodsPerNode: 64
+      reservations:
+        affinity: AnyBestEffort
+      spot: false
+
+    # Use spot
+    - machineType: n4-standard-8
+      maxPodsPerNode: 64
+      spot: true

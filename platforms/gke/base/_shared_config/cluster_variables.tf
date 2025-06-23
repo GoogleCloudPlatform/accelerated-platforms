@@ -18,21 +18,23 @@
 #
 
 locals {
-  cluster_credentials_command_private = "gcloud container clusters get-credentials ${local.cluster_name} --internal-ip --location ${var.cluster_region} --project ${var.cluster_project_id}"
-  cluster_credentials_command_public  = "gcloud container clusters get-credentials ${local.cluster_name} --location ${var.cluster_region} --project ${var.cluster_project_id}"
-  cluster_credentials_command_gke     = var.cluster_enable_private_endpoint ? local.cluster_credentials_command_private : local.cluster_credentials_command_public
-  cluster_credentials_command_gkee    = "gcloud container fleet memberships get-credentials ${local.cluster_name} --project ${var.cluster_project_id}"
-  cluster_credentials_command         = var.cluster_use_connect_gateway ? local.cluster_credentials_command_gkee : local.cluster_credentials_command_gke
+  cluster_credentials_command_gke  = "gcloud container clusters get-credentials ${local.cluster_name} --dns-endpoint --location ${var.cluster_region} --project ${local.cluster_project_id}"
+  cluster_credentials_command_gkee = "gcloud container fleet memberships get-credentials ${local.cluster_name} --project ${local.cluster_project_id}"
+  cluster_credentials_command      = var.cluster_use_connect_gateway ? local.cluster_credentials_command_gkee : local.cluster_credentials_command_gke
+
+  cluster_gcsfuse_user_role        = "projects/${local.cluster_project_id}/roles/${local.cluster_gcsfuse_user_role_name}"
+  cluster_gcsfuse_user_role_name   = "${local.unique_identifier_prefix_underscore}.gcsfuse.user"
+  cluster_gcsfuse_viewer_role      = "projects/${local.cluster_project_id}/roles/${local.cluster_gcsfuse_viewer_role_name}"
+  cluster_gcsfuse_viewer_role_name = "${local.unique_identifier_prefix_underscore}.gcsfuse.viewer"
 
   cluster_name = local.unique_identifier_prefix
 
   cluster_node_auto_provisioning_resource_limits = var.cluster_node_auto_provisioning_enabled ? var.cluster_node_auto_provisioning_resource_limits : []
 
   cluster_node_pool_service_account_id         = var.cluster_node_pool_default_service_account_id != null ? var.cluster_node_pool_default_service_account_id : "vm-${local.cluster_name}"
-  cluster_node_pool_service_account_project_id = var.cluster_node_pool_default_service_account_project_id != null ? var.cluster_node_pool_default_service_account_project_id : var.cluster_project_id
+  cluster_node_pool_service_account_project_id = var.cluster_node_pool_default_service_account_project_id != null ? var.cluster_node_pool_default_service_account_project_id : local.cluster_project_id
 
-  kubeconfig_directory = abspath("${path.module}/../kubeconfig")
-  kubeconfig_file      = abspath("${local.kubeconfig_directory}/${var.cluster_project_id}-${local.unique_identifier_prefix}")
+  cluster_project_id = var.cluster_project_id != null ? var.cluster_project_id : var.platform_default_project_id
 
   # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
   cluster_sa_roles = [
@@ -44,6 +46,25 @@ locals {
     "roles/serviceusage.serviceUsageConsumer",
     "roles/stackdriver.resourceMetadata.writer",
   ]
+
+  kubeconfig_file_name = "${local.cluster_project_id}-${local.cluster_name}"
+}
+
+variable "cluster_auto_monitoring_config_scope" {
+  default     = "ALL"
+  description = "Whether or not to enable GKE Auto-Monitoring. Supported values include: ALL, NONE"
+  type        = string
+
+  validation {
+    condition = contains(
+      [
+        "ALL",
+        "NONE",
+      ],
+      var.cluster_auto_monitoring_config_scope
+    )
+    error_message = "'cluster_auto_monitoring_config_scope' value is invalid"
+  }
 }
 
 variable "cluster_binary_authorization_evaluation_mode" {
@@ -174,7 +195,7 @@ variable "cluster_node_auto_provisioning_resource_limits" {
   ]
   description = "Resource limits to set if using node auto-provisioning."
   type = list(object({
-    maximum       = optional(number, 9223372036854775807)
+    maximum       = optional(number, 9223372036854775806)
     minimum       = optional(number, 0)
     resource_type = string
   }))
@@ -199,13 +220,9 @@ variable "cluster_private_endpoint_subnetwork" {
 }
 
 variable "cluster_project_id" {
+  default     = null
   description = "The GCP project where the cluster resources will be created"
   type        = string
-
-  validation {
-    condition     = var.cluster_project_id != ""
-    error_message = "'cluster_project_id' was not set, please set the value in the mlp.auto.tfvars file"
-  }
 }
 
 variable "cluster_region" {
@@ -231,7 +248,7 @@ variable "cluster_system_node_pool_machine_type" {
 }
 
 variable "cluster_use_connect_gateway" {
-  default     = true
-  description = "Use Connect gateway to connect to the cluster, require GKE Enterprise. (https://cloud.google.com/kubernetes-engine/enterprise/multicluster-management/gateway)"
+  default     = false
+  description = "Use Connect gateway to connect to the cluster, requires GKE Enterprise. (https://cloud.google.com/kubernetes-engine/enterprise/multicluster-management/gateway)"
   type        = bool
 }

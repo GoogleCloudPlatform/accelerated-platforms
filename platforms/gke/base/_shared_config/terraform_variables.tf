@@ -18,21 +18,24 @@
 #
 
 locals {
-  terraform_bucket_name = "${var.terraform_project_id}-${local.unique_identifier_prefix}-terraform"
-}
-
-variable "terraform_project_id" {
-  description = "The GCP project where terraform will be run"
-  type        = string
-
-  validation {
-    condition     = var.terraform_project_id != ""
-    error_message = "'terraform_project_id' was not set, please set the value in 'shared_config/terraform.auto.tfvars' file or via the TF_VAR_terraform_project_id"
-  }
+  terraform_project_id  = var.terraform_project_id != null ? var.terraform_project_id : var.platform_default_project_id
+  terraform_bucket_name = "${local.terraform_project_id}-${local.unique_identifier_prefix}-terraform"
 }
 
 variable "create_terraform_bucket" {
   default     = true
-  description = "Create the Google Cloud Storage Terraform bucket"
+  description = "Create the Google Cloud Storage Terraform bucket."
+  type        = string
+}
+
+variable "terraform_project_id" {
+  default     = null
+  description = "The GCP project where terraform will be run"
+  type        = string
+}
+
+variable "terraform_write_tfvars" {
+  default     = true
+  description = "Write the configured values to the tfvars configuration files."
   type        = string
 }

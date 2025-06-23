@@ -1,0 +1,11 @@
+patches:
+- path: patch/gke-managed-components-toleration.yaml
+  target:
+    group: apps
+    kind: Deployment
+    version: v1
+- path: patch/no-create-namespace.yaml
+
+resources:
+- manifests.yaml
+- kueue-monitoring-gmp.yaml

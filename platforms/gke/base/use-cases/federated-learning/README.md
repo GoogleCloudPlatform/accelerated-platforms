@@ -1,7 +1,7 @@
 # Deploy the Federated learning reference architecture on Google Cloud
 
 This document shows how to deploy the
-[Google Cloud Federated Learning reference architecture](/docs/use-cases/federated-learning/README.md).
+[Google Cloud Federated Learning (FL) reference architecture](/docs/use-cases/federated-learning/README.md).
 
 To deploy this reference architecture, you need:
 
@@ -14,10 +14,17 @@ To deploy this reference architecture, you need:
   information about enabling APIs, see
   [Enabling and disabling services](https://cloud.google.com/service-usage/docs/enable-disable)
 
+This reference architecture builds on the
+[Reference implementation for the Core GKE Accelerated Platform](/platforms/gke/base/README.md).
+In this document, we reference the Reference implementation for the Core GKE
+Accelerated Platform as _core platform_. The deployment procedure described in
+the [Deploy the reference architecture](#deploy-the-reference-architecture)
+section takes care of deploying an instance of the core platform for you.
+
 ### Service account roles and permissions
 
-You can choose between Project Owner access (full access) or Granular Access for
-more fine-tuned permissions.
+You can choose between Project Owner access or Granular Access for more
+fine-tuned permissions.
 
 #### Option 1: Project Owner role
 
@@ -68,7 +75,7 @@ directories and files:
 The following diagram describes the architecture that you can create with this
 reference architecture:
 
-![alt_text](/platforms/gke/base/use-cases/federated-learning/assets/architecture.svg "Architecture overview")
+![alt_text](/platforms/gke/base/use-cases/federated-learning/assets/architecture.png "Architecture overview")
 
 As shown in the preceding diagram, the reference architecture helps you create
 and configure the following infrastructure components:
@@ -101,8 +108,8 @@ and configure the following infrastructure components:
   ensure that only the tenant's workloads are schedulable onto the GKE nodes
   belonging to a particular tenant.
 
-- A GKE node pool to host coordination and management workloads that aren't tied
-  to specific tenants.
+- A GKE node pool (`system`) to host coordination and management workloads that
+  aren't tied to specific tenants.
 
 - [Firewall policies](https://cloud.google.com/firewall/docs/firewall-policies-overview)
   to limit ingress and egress traffic from GKE node pools, unless explicitly
@@ -120,11 +127,9 @@ and configure the following infrastructure components:
 
   - A service account for GKE nodes in each GKE node pool with only the
     [minimum amount of permissions needed by GKE](https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa).
-  - A service account for workloads in each tenant. This service doesn't have
-    any permission by default.
-
-- Kubernetes service accounts that map to a Cloud IAM service accounts using
-  [Workload Identity for GKE](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity).
+  - A service account for workloads in each tenant. These service don't have any
+    permission by default, and map to Kubernetes service accounts using
+    [Workload Identity for GKE](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity#authenticating_to).
 
 - An [Artifact Registry](https://cloud.google.com/artifact-registry/docs)
   repository to store container images for your workloads.
@@ -161,97 +166,117 @@ controls to each Kubernetes namespace:
 
 To deploy the reference architecture, you do the following:
 
-1.  Open [Cloud Shell](https://cloud.google.com/shell).
+1. Open [Cloud Shell](https://cloud.google.com/shell).
 
-1.  Clone this repository and change the working directory:
+   To deploy this reference architecture, you need Terraform >= 1.8.0. For more
+   information about installing Terraform, see
+   [Install Terraform](https://developer.hashicorp.com/terraform/install).
 
-    ```shell
-    git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
-    cd accelerated-platforms
-    ```
+1. Clone this repository and change the working directory:
 
-1.  Initialize the required environment variables:
+   ```shell
+   git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+   cd accelerated-platforms  && \
+   export ACP_REPO_DIR="$(pwd)"
+   ```
 
-    ```shell
-    ACP_REPO_DIR="$(pwd)"
-    export ACP_REPO_DIR
-    export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
-    export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
-    ```
+   To set the `ACP_REPO_DIR` value for new shell instances, write the value to
+   your shell initialization file.
 
-1.  Optionally, you can make the required environment variables configuration
-    persistent by updating your
-    [Bash startup files](https://www.gnu.org/software/bash/manual/html_node/Bash-Startup-Files.html).
-    For example, you can update your `.bashrc` file:
+   `bash`
 
-    ```shell
-    {
-      echo "export \"ACP_REPO_DIR=${ACP_REPO_DIR}\""
-      echo "export \"ACP_PLATFORM_BASE_DIR=${ACP_PLATFORM_BASE_DIR}\""
-      echo "export \"ACP_PLATFORM_CORE_DIR=${ACP_PLATFORM_CORE_DIR}\""
-    } >>"${HOME}/.bashrc"
-    ```
+   ```
+   sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.bashrc
+   ```
 
-1.  Configure the ID of the Google Cloud project where you want to initialize
-    the provisioning and configuration environment. This project will also
-    contain the remote Terraform backend. Add the following content to
-    `${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.auto.tfvars`:
+   `zsh`
 
-    ```hcl
-    terraform_project_id = "<CONFIG_PROJECT_ID>"
-    ```
+   ```
+   sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
+   ```
 
-    Where:
+1. Configure the ID of the default Google Cloud project to use for the
+   environment. This project will be used by default unless a project ID is
+   provided for a more specific setting
+   `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars`:
 
-    - `<CONFIG_PROJECT_ID>` is the Google Cloud project ID.
+   ```hcl
+   terraform_project_id = "<PROJECT_ID>"
+   ```
 
-1.  Configure the ID of the Google Cloud project where you want to deploy the
-    reference architecture by adding the following content to
-    `${ACP_PLATFORM_BASE_DIR}/_shared_config/cluster.auto.tfvars`:
+   Where:
 
-    ```hcl
-    cluster_project_id = "<PROJECT_ID>"
-    ```
+   - `<PROJECT_ID>` is the Google Cloud project ID.
 
-    Where:
+1. Optionally configure a unique identifier to append to the name of all the
+   resources in the reference architecture to identify a particular instance of
+   the reference architecture, and to allow for multiple instances of the
+   reference architecture to be deployed in the same Google Cloud project. To
+   optionally configure the unique prefix, add the following content to
+   `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars`:
 
-    - `<PROJECT_ID>` is the Google Cloud project ID. Can be different from
-      `<CONFIG_PROJECT_ID>`.
+   ```hcl
+   resource_name_prefix = "<RESOURCE_NAME_PREFIX>"
+   platform_name        = "<PLATFORM_NAME>"
+   ```
 
-1.  Optionally configure a unique identifier to append to the name of all the
-    resources in the reference architecture to identify a particular instance of
-    the reference architecture, and to allow for multiple instances of the
-    reference architecture to be deployed in the same Google Cloud project. To
-    optionally configure the unique prefix, add the following content to
-    `${ACP_PLATFORM_BASE_DIR}/_shared_config/platform.auto.tfvars`:
+   Where:
 
-    ```hcl
-    resource_name_prefix = "<RESOURCE_NAME_PREFIX>"
-    platform_name        = "<PLATFORM_NAME>"
-    ```
+   - `<RESOURCE_NAME_PREFIX>` and `<PLATFORM_NAME>` are strings that compose the
+     unique identifier to append to the name of all the resources in the
+     reference architecture.
 
-    Where:
+   When you set `resource_name_prefix` and `platform_name`, we recommend that
+   you avoid long strings because the might make resource naming validation to
+   fail because the resource name might be too long.
 
-    - `<RESOURCE_NAME_PREFIX>` and `<PLATFORM_NAME>` are strings that compose
-      the unique identifier to append to the name of all the resources in the
-      reference architecture.
+1. Run the script to provision the reference architecture:
 
-    When you set `resource_name_prefix` and `platform_name`, we recommend that
-    you avoid long strings because the might make resource naming validation to
-    fail because the resource name might be too long.
-
-1.  Run the script to provision the reference architecture:
-
-    ```sh
-    "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/deploy.sh"
-    ```
+   ```sh
+   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh"
+   ```
 
 It takes about 20 minutes to provision the reference architecture.
+
+### Understand the deployment and destroy processes
+
+The `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh`
+script is a convenience script to orchestrate the provisioning and configuration
+of an instance of the reference architecture.
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh` does
+the following:
+
+1. Configure environment variables to reference libraries and other
+   dependencies.
+1. Initialize the core platform configuration files.
+1. Initialize the core platform by running the
+   [core platform `initialize` service](/platforms/gke/base/core/initialize/).
+1. Provision and configure Google Cloud resources that the core platform depends
+   on.
+1. Provision and configure an instance of the core platform.
+1. Provision and configures Google Cloud resources that the FL reference
+   architecture depends on, augmenting the core platform.
+
+The
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/teardown.sh`
+script is a convenience script to orchestrate the destruction of an instance of
+the reference architecture.
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/teardown.sh`
+performs actions that are opposite to
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh`, in
+reverse order.
+
+## Next steps
 
 After deploying the reference architecture, the GKE cluster is ready to host
 your federated learning workloads. For example, you can:
 
-- [Deploy NVIDIA FLARE in the GKE cluster](/platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/README.md).
+- Familiarize with the reference architecture by
+  [deploying a NVIDIA FLARE example in the GKE cluster](/platforms/gke/base/use-cases/federated-learning/examples/nvflare-tff/README.md).
+- Explore the
+  [Federated Learning on Google Cloud repository](https://github.com/GoogleCloudPlatform/federated-learning)
+  for cross-silo FL, cross-device FL, more examples and extensions to this
+  reference architecture.
 
 ## Destroy the reference architecture
 
@@ -262,7 +287,7 @@ To destroy an instance of the reference architecture, you do the following:
 1. Run the script to destroy the reference architecture:
 
    ```sh
-   "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/teardown.sh"
+   "platforms/gke/base/use-cases/federated-learning/teardown.sh"
    ```
 
 ## Configure the Federated learning reference architecture
@@ -270,8 +295,17 @@ To destroy an instance of the reference architecture, you do the following:
 You can configure the reference architecture by modifying files in the following
 directories:
 
-- `${ACP_PLATFORM_BASE_DIR}/_shared_config`
-- `${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/terraform/_shared_config`
+- `${ACP_REPO_DIR}/platforms/gke/base/_shared_config`
+- `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/_shared_config`
+
+To add files to the package that Config Sync uses to sync cluster configuration:
+
+1. Copy the additional files in the
+   `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/config_management/files/additional`
+   directory.
+1. Run the
+   `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/deploy.sh`
+   script.
 
 ### Configure isolated runtime environments
 
@@ -289,7 +323,7 @@ For more information about the design of these tenants, see
 By default, this reference architecture configures one tenant. To configure
 additional tenants, or change their names, set the value of the
 `federated_learning_tenant_names` Terraform variable in
-`${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`
 according to how many tenants you need. For example, to create two isolated
 tenants named `fl-1` and `fl-2`, you set the `federated_learning_tenant_names`
 variable as follows:
@@ -303,7 +337,7 @@ federated_learning_tenant_names = [
 
 For more information about the `federated_learning_tenant_names`, see its
 definition in
-`${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning_variables.tf`
+`${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning_variables.tf`
 
 ### Enable Confidential GKE Nodes
 
@@ -311,7 +345,7 @@ The reference architecture can optionally configure Confidential GKE Nodes using
 Terraform. To enable Confidential GKE Nodes, you do the following:
 
 1. Initialize the following Terraform variables in
-   `${ACP_PLATFORM_BASE_DIR}/_shared_config/cluster.auto.tfvars`:
+   `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars`:
 
    1. Set `cluster_confidential_nodes_enabled` to `true`
 
@@ -321,7 +355,7 @@ Terraform. To enable Confidential GKE Nodes, you do the following:
       [Encrypt workload data in-use with Confidential GKE Nodes](https://cloud.google.com/kubernetes-engine/docs/how-to/confidential-gke-nodes#availability).
 
 1. Initialize the following Terraform variables in
-   `${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`:
+   `${ACP_REPO_DIR}/platforms/gke/base/use-cases/federated-learning/terraform/_shared_config/uc_federated_learning.auto.tfvars`:
 
    1. Set `federated_learning_node_pool_machine_type` to a machine type that
       supports Confidential GKE Nodes.
@@ -332,6 +366,34 @@ Terraform. To enable Confidential GKE Nodes, you do the following:
    current Kubernetes network policies are affecting traffic in your cluster
    [using Cloud Logging](https://cloud.google.com/kubernetes-engine/docs/how-to/network-policy-logging#accessing_logs).
 
+1. If your workloads need to access hosts that are external to the service mesh,
+   configure a
+   [ServiceEntry](https://istio.io/latest/docs/reference/config/networking/service-entry/)
+   for each external host.
+
+1. If your workloads need to send traffic outside the cluster, configure:
+
+   - [AuthorizationPolicies](https://istio.io/latest/docs/reference/config/security/authorization-policy)
+     to allow traffic from the workload namespace to the `istio-egress`
+     namespace.
+   - [VirtualServices](https://istio.io/latest/docs/reference/config/networking/virtual-service)
+     to direct traffic from the workload to the egress gateway, and from the
+     egress gateway to the destination.
+   - [NetworkPolicies](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
+     to allow egress traffic from their workspace.
+
+1. If your workloads need to receive traffic from outside the cluster,
+   configure:
+
+   - [AuthorizationPolicies](https://istio.io/latest/docs/reference/config/security/authorization-policy)
+     to allow traffic from the `istio-ingress` namespace to the workload
+     namespace.
+   - [VirtualServices](https://istio.io/latest/docs/reference/config/networking/virtual-service)
+     to direct traffic from the external service to the ingress gateway, and
+     from the ingress gateway to the workload.
+   - [NetworkPolicies](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
+     to allow ingress traffic to their workspace.
+
 ## Troubleshooting
 
 This section describes common issues and troubleshooting steps.
@@ -340,6 +402,46 @@ This section describes common issues and troubleshooting steps.
 
 If Terraform reports `connect: cannot assign requested address` errors when you
 run Terraform, try running the command again.
+
+### Errors when provisioning the reference architecture
+
+- Cloud Shell has 5GBs of available disk space. Depending on your Cloud Shell
+  usage, it might not be enough for deploying the reference architecture, unless
+  you enable Terraform plugin caching to enable reusing plugins and providers,
+  instead of downloading multiple copies of each plugin and provider. Symptoms
+  of this issue are errors like the following:
+
+  ```text
+  │ Error: Failed to install provider
+  │
+  │ Error while installing hashicorp/google v6.12.0: write
+  │ .terraform/providers/registry.terraform.io/hashicorp/google/6.12.0/linux_amd64/terraform-provider-google_v6.12.0_x5: no space left on device
+  ╵
+  ```
+
+- If Cloud Service Mesh is reported as `Pending enablement` state in the
+  [GKE Enterprise feature dashboard](https://pantheon.corp.google.com/kubernetes/features/services/details),
+  If this error occurs, try disabling and re-enabling Cloud Service Mesh:
+
+  ```bash
+  terraform -chdir=platforms/gke/base/core/gke_enterprise/servicemesh init && \
+    terraform -chdir=platforms/gke/base/core/gke_enterprise/servicemesh destroy -auto-approve -input=false && \
+    terraform -chdir=platforms/gke/base/core/gke_enterprise/servicemesh apply -input=false
+  ```
+
+- Client-side tools and Cloud Shell authenticate with Google Cloud using a
+  short-lived token. If the token expires, you might receive errors similar to
+  the following:
+
+  ```text
+  │ Error: Error when reading or editing Project "PROJECT_ID": Get "https://cloudresourcemanager.googleapis.com/v1/projects/PROJECT_ID?alt=json&prettyPrint=false": oauth2/google: invalid token JSON from metadata: EOF
+  │
+  │   with data.google_project.cluster,
+  │   on project.tf line 15, in data "google_project" "cluster":
+  │   15: data "google_project" "cluster" {
+  ```
+
+  If this error occurs, try reloading Cloud Shell.
 
 ### Errors when adding the GKE cluster to the Fleet
 
@@ -354,6 +456,55 @@ does not match a current membership in this project. Keys should be in the form:
 ```
 
 If this error occurs, try running `terraform apply` again.
+
+### Errors when enabling GKE Enterprise features
+
+- GKE Enterprise features already enabled in the Google Cloud project:
+
+  ```text
+  Error: Error creating Feature: googleapi: Error 409: Resource
+  'projects/PROJECT_NAME/locations/global/features/configmanagement' already
+  exists
+  ```
+
+  To avoid this error, you can either:
+
+  - Deploy the reference architecture in a new Google Cloud project, where GKE
+    Enterprise features are not already enabled, so that the reference
+    architecture can manage them.
+  - [Import the `gke_hub_feature` resources](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/gke_hub_feature#import)
+    in the Terraform state, so that Terraform is aware of them. In this case,
+    Terraform will also apply any configuration changes that the reference
+    architecture requires. Before you import `gke_hub_feature` resources in the
+    Terraform state, we recommend that you assess the impact on other GKE
+    clusters in the same project that depend on those resources. For example,
+    when you destroy this reference architecture, these resources will be
+    destroyed too, potentially impacting other GKE clusters in the same project.
+
+    For example, you can run the following command from the root directory of
+    this repository to import the `configmanagement` feature:
+
+    ```bash
+    terraform -chdir=platforms/gke/base/core/gke_enterprise/configmanagement/oci init && \
+      terraform -chdir=platforms/gke/base/core/gke_enterprise/configmanagement/oci import \
+      google_gke_hub_feature.configmanagement \
+      projects/<PROJECT_ID>/locations/global/features/configmanagement
+    ```
+
+    As another example, you can run the following command from the root
+    directory of this repository to import the `policycontroller` feature:
+
+    ```bash
+    terraform -chdir=platforms/gke/base/core/gke_enterprise/policycontroller init && \
+      terraform -chdir=platforms/gke/base/core/gke_enterprise/policycontroller import \
+      google_gke_hub_feature.policycontroller \
+      projects/<PROJECT_ID>/locations/global/features/policycontroller
+    ```
+
+    Where:
+
+    - `<PROJECT_ID>` is the Google Cloud project ID where you deployed the
+      reference architecture.
 
 ### Errors when pulling container images
 
@@ -388,217 +539,14 @@ following errors:
   If this happens, see the note at the end of
   [Uninstall Cloud Service Mesh](https://cloud.google.com/service-mesh/docs/uninstall)
 
-- GKE Enterprise features already enabled in the Google Cloud project:
+## Understanding security controls
 
-  ```text
-  Error: Error creating Feature: googleapi: Error 409: Resource
-  'projects/PROJECT_NAME/locations/global/features/configmanagement' already
-  exists
-  ```
+For more information about the controls that this reference architecture
+implements to help you secure your environment, see
+[GKE security controls](https://cloud.google.com/architecture/cross-silo-cross-device-federated-learning-google-cloud).
 
-  To avoid this error, you can either:
+## What's next
 
-  - Deploy the reference architecture in a new Google Cloud project, where GKE
-    Enterprise features are not already enabled, so that the reference
-    architecture can manage them.
-  - [Import the `gke_hub_feature` resources](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/gke_hub_feature#import)
-    in the Terraform state, so that Terraform is aware of them. In this case,
-    Terraform will also apply any configuration changes that the reference
-    architecture requires. Before you import `gke_hub_feature` resources in the
-    Terraform state, we recommend that you assess the impact on other GKE
-    clusters in the same project that depend on those resources. For example,
-    when you destroy this reference architecture, these resources will be
-    destroyed too, potentially impacting other GKE clusters in the same project.
-
-## Understanding the security controls that you need
-
-This section discusses the controls that you apply with the blueprint to help
-you secure your GKE cluster.
-
-For more information, see
-[Security, privacy, and compliance for the Federated Learning architecture on Google Cloud](https://cloud.google.com/architecture/cross-silo-cross-device-federated-learning-google-cloud).
-
-### Enhanced security of GKE clusters
-
-_Creating clusters according to security best practices._
-
-The blueprint helps you create GKE clusters that implement the following
-security settings:
-
-- Limit exposure of your GKE nodes and control plane to the internet by creating
-  a
-  [private GKE cluster](https://cloud.google.com/kubernetes-engine/docs/concepts/private-cluster-concept).
-- Use
-  [shielded nodes](https://cloud.google.com/kubernetes-engine/docs/how-to/shielded-gke-nodes)
-  that provide strong, verifiable node identity and integrity to increase the
-  security of GKE nodes.
-- [Encrypt cluster secrets](https://cloud.google.com/kubernetes-engine/docs/how-to/encrypting-secrets)
-  at the application layer.
-
-For more information about GKE security settings, refer to
-[Harden your cluster's security](https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster).
-
-### Firewall policies: restrict traffic between virtual machines
-
-Firewall policies govern which traffic is allowed to or from Compute Engine VMs
-and GKE nodes. The policies let you filter traffic at node granularity.
-
-The reference architecture creates a GKE cluster with the
-[default GKE cluster firewall rules and policies](https://cloud.google.com/kubernetes-engine/docs/concepts/firewall-rules#cluster-fws).
-These firewall rules enable communication between the cluster nodes and GKE
-control plane, and between nodes and pods in the cluster. Then, in order to
-increase the isolation of GKE nodes, the reference architecture applies
-additional firewall policies to restrict egress traffic from GKE nodes:
-
-- By default, all egress traffic from the tenant nodes is denied.
-- Any required egress must be explicitly configured. For example, you use the
-  reference architecture to create firewall policies to allow egress from GKE
-  nodes to the GKE control plane and to Google APIs.
-
-### Node taints and affinities: control workload scheduling
-
-[Node taints](https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/)
-and
-[node affinity](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity)
-are Kubernetes mechanisms that let you influence how pods are scheduled onto
-cluster nodes.
-
-Tainted nodes repel pods. Kubernetes will not schedule a Pod onto a tainted node
-unless the Pod has a _toleration_ for the taint. You can use node taints to
-reserve nodes for use only by certain workloads or tenants. Taints and
-tolerations are often used in multi-tenant clusters. See the
-[dedicated nodes with taints and tolerations](https://cloud.google.com/kubernetes-engine/docs/concepts/multitenancy-overview#dedicated_nodes_with_taints_and_tolerations)
-documentation for more information.
-
-Node affinity lets you constrain pods to nodes with particular labels. If a pod
-has a node affinity requirement, Kubernetes will not schedule the Pod onto a
-node unless the node has a label that matches the affinity requirement. You can
-use node affinity to ensure that pods are scheduled onto appropriate nodes.
-
-You can use node taints and node affinity together to ensure tenant workload
-pods are scheduled exclusively onto nodes reserved for the tenant.
-
-The reference architecture helps you control the scheduling of workloads in the
-following ways:
-
-- Creates a GKE node pool dedicated to each tenant. Each node in the pool has a
-  taint related to the tenant name.
-- Applies the appropriate toleration and node affinity to any Pod targeting the
-  tenant namespace using
-  [PolicyController mutations](https://cloud.google.com/anthos-config-management/docs/how-to/mutation).
-
-By applying taints and tolerations as described, GKE only allow scheduling pods
-that belong to their tenant on the tenant node pool, rejecting pods belonging to
-other tenants.
-
-### Network policies: enforce network traffic flow within clusters
-
-[Kubernetes Network policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
-enforce OSI layer 3 or 4 network traffic flows by using Pod-level firewall
-rules. Network policies are
-[scoped to a namespace](https://cloud.google.com/kubernetes-engine/enterprise/config-sync/docs/concepts/configs#network-policy-config).
-
-The reference architecture applies network policies to each tenant namespace. By
-default, network policies deny all traffic to and from pods in the namespace.
-Any required traffic must be explicitly allowlisted. For example, the network
-policies explicitly allow traffic to required cluster services, such as the
-cluster internal DNS and the Cloud Service Mesh control plane.
-
-### Config Sync: apply configurations to your GKE clusters
-
-Config Sync keeps your GKE clusters in sync with configs stored in a
-[Git repository](https://cloud.google.com/anthos-config-management/docs/how-to/repo)
-or in an
-[Artifact Registry repository](https://cloud.google.com/kubernetes-engine/enterprise/config-sync/docs/how-to/sync-oci-artifacts-from-artifact-registry)
-
-The repository acts as the single source of truth for your cluster configuration
-and policies.
-
-The reference architecture installs Config Sync to configure the following
-resources:
-
-- Cluster-level Cloud Service Mesh configuration
-- Cluster-level network and security policies
-- Namespace-level configuration and policies, including network policies,
-  service accounts, RBAC rules, and namespace-level Cloud Service Mesh
-  configuration
-
-### Policy Controller: enforce compliance with policies
-
-[Policy Controller](https://cloud.google.com/kubernetes-engine/enterprise/policy-controller/docs/overview)
-is a
-[dynamic admission controller](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/)
-for Kubernetes that enforces policies.
-
-The reference architecture installs Policy Controller into the GKE cluster and
-includes policies to help secure your GKE cluster. The reference architecture
-automatically applies the following policies to your GKE cluster using Config
-Sync:
-
-- Selected policies to help
-  [enforce Pod security](https://cloud.google.com/kubernetes-engine/enterprise/policy-controller/docs/how-to/using-constraints-to-enforce-pod-security).
-  For example, you apply policies that prevent pods running privileged
-  containers and that require a non-read-only root file system.
-- Policies from the Policy Controller
-  [template library](https://cloud.google.com/kubernetes-engine/enterprise/policy-controller/docs/latest/reference/constraint-template-library).
-  For example, you apply a policy that disallows services with type NodePort.
-
-### Cloud Service Mesh: manage secure communications between services
-
-[Cloud Service Mesh](https://cloud.google.com/service-mesh/docs/overview) helps
-you monitor and manage an infrastructure layer to create managed, observable,
-and secure communication channels across your services in the following ways:
-
-- Manage authentication and encryption of traffic
-  ([supported protocols](https://cloud.google.com/service-mesh/docs/supported-features#protocol_support)
-  within the cluster using
-  [mutual Transport Layer Communication (mTLS)](https://cloud.google.com/service-mesh/docs/security-overview#mutual_tls)).
-  Cloud Service Mesh manages the provisioning and rotation of mTLS certificates
-  and certificates for workloads without disrupting communications. Regularly
-  rotating mTLS certificates is a security best practice that helps reduce
-  exposure in the event of an attack.
-- Let you configure network security policies based on service identity rather
-  than on the IP address. Cloud Service Mesh lets you configure identity-aware
-  access control policies that are independent of the network location of the
-  workload.
-- Let you configure policies that permit access from certain clients only.
-
-The reference architecture installs Cloud Service Mesh in your cluster, and it
-configures each Kubernetes namespace for
-[automatic sidecar proxy injection](https://cloud.google.com/service-mesh/docs/proxy-injection).
-
-The reference architecture automatically configure Cloud Service Mesh using
-Config Sync to do the following:
-
-- Enforce
-  [mTLS communication](https://cloud.google.com/service-mesh/docs/security/configuring-mtls#enforcing_mesh-wide_mtls)
-  between services in the mesh.
-- Limit outbound traffic from the mesh to only known hosts.
-- Limit
-  [authorized communication](https://cloud.google.com/service-mesh/docs/security/authorization-policy-overview)
-  between services in the mesh. For example, workloads in a namespace are only
-  allowed to communicate with workloads in the same namespace, or with a set of
-  known external hosts.
-- Route all ingress and egress traffic through gateways where you can apply
-  further traffic controls.
-
-### Least privilege: limit access to cluster and project resources
-
-It is a security best practice to adopt a principle of least privilege for your
-Google Cloud projects and resources. This way, the apps that run inside your
-cluster, and the developers and operators that use the cluster, have only the
-minimum set of permissions required.
-
-The reference architecture helps you use least privilege service accounts in the
-following ways:
-
-- Each GKE node pool receives its own service account. Node service accounts are
-  configured with the
-  [minimum required permissions](https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa).
-- The GKE cluster uses
-  [Workload Identity for GKE](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity)
-  to associate Kubernetes service accounts with Cloud IAM service accounts. This
-  way, workloads can be granted limited access to any required Google APIs
-  without downloading and storing service account keys. For example, you can
-  grant the service account permissions to read data from a Cloud Storage
-  bucket.
+For a complete overview about how to implement Federated Learning on Google
+Cloud, see
+[Cross-silo and cross-device federated learning on Google Cloud](https://cloud.google.com/architecture/cross-silo-cross-device-federated-learning-google-cloud).

@@ -13,15 +13,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-SHARED_CONFIG_PATHS=("${@}")
+
+if [[ ! -v SHARED_CONFIG_PATHS ]]; then
+  SHARED_CONFIG_PATHS=("${@}")
+fi
 
 for SHARED_CONFIG_PATH in "${SHARED_CONFIG_PATHS[@]}"; do
   echo "Loading shared configuration(${SHARED_CONFIG_PATH})"
   echo "-------------------------------------------------------------------------"
-  cd "${SHARED_CONFIG_PATH}" || exit 1
-  terraform init >/dev/null
-  terraform apply -auto-approve -input=false >/dev/null
-  terraform output
+  terraform -chdir="${SHARED_CONFIG_PATH}" init >/dev/null
+  terraform -chdir="${SHARED_CONFIG_PATH}" apply -auto-approve -input=false >/dev/null
+  terraform -chdir="${SHARED_CONFIG_PATH}" output
   echo -e "-------------------------------------------------------------------------\n"
-  eval "$(terraform output | sed -r 's/(\".*\")|\s*/\1/g')"
+  eval "$(terraform -chdir="${SHARED_CONFIG_PATH}" output | sed -r 's/(\".*\")|\s*/\1/g')"
 done

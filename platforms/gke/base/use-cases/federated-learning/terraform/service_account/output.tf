@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "federated_learning_tenant_apps_service_accounts_iam_emails" {
-  description = "List of apps service accounts IAM emails"
-  value       = local.apps_service_account_iam_emails
-}
-
 output "federated_learning_kubernetes_service_account_name" {
   description = "Kubernetes service account name used by federated learning workloads"
   value       = local.tenant_apps_kubernetes_service_account_name
@@ -24,5 +19,5 @@ output "federated_learning_kubernetes_service_account_name" {
 
 output "workload_identity_principal_prefix" {
   description = "Workload identity principal prefix"
-  value       = "principal://iam.googleapis.com/projects/${data.google_project.default.number}/locations/global/workloadIdentityPools/${data.google_project.default.project_id}.svc.id.goog/subject"
+  value       = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }

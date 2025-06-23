@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_project" "default" {
-  project_id = var.cluster_project_id
+data "google_project" "cluster" {
+  project_id = local.cluster_project_id
 }
 
 resource "google_project_service" "iam_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "iam.googleapis.com"
 }

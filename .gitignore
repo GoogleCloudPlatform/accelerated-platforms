@@ -2,16 +2,24 @@
 .vscode/
 *.code-workspace
 
+# GKE
+gke_gcloud_auth_plugin_cache
+
+# Node
+node_modules
+
 # Python
 __pycache__/
 .venv/
 venv/
+.python-version
 
 # Repositories
 monitoring-dashboard-samples/
 
 # Terraform
 **/tfplan
+**/.terraform.tfstate.lock.info
 *.terraform/
 *.terraform-*/
 terraform.tfstate*
@@ -19,6 +27,3 @@ terraform.tfstate*
 # Test
 test/log/*.log
 test/scripts/environment_files/*
-
-# Node
-node_modules

@@ -18,7 +18,7 @@ the platform optimizes high-performance computing.
 
 ### Base GKE Accelerated Platform
 
-The [Base GKE Accelerated Platform](platforms/gke/base/README.md) is an
+The [Base GKE Accelerated Platform](/platforms/gke/base/README.md) is an
 implementation of a foundational platform built on GKE that incorporates best
 practices and provides a core environment optimized for running accelerated
 workloads. It offers a streamlined and efficient solution to leverage the
@@ -28,6 +28,9 @@ benefits of GKE as the primary runtime.
 
 - [GKE AI/ML Platform for enabling AI/ML Ops](/docs/platforms/gke-aiml/README.md)
 - [Federated learning](/docs/use-cases/federated-learning/README.md)
+- [Inference reference architecture](/platforms/gke/base/use-cases/inference-ref-arch/README.md)
+  - [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
+  - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
 
 ### Playground AI/ML Platform on GKE
 
@@ -40,6 +43,7 @@ concepts covered in the use cases.
 
 - [Model Fine Tuning Pipeline](/docs/use-cases/model-fine-tuning-pipeline/README.md)
 - [Scalable and Distributed LLM Inference on GKE with vLLM](/docs/use-cases/inferencing/README.md)
+- [Retrieval Augmented Generation (RAG) pipeline](/docs/use-cases/rag-pipeline/README.md)
 
 ## Contributing
 

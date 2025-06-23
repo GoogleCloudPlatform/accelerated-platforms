@@ -17,11 +17,39 @@ output "cluster_name" {
 }
 
 output "cluster_project_id" {
-  value = var.cluster_project_id
+  value = local.cluster_project_id
 }
 
 output "cluster_region" {
   value = var.cluster_region
+}
+
+output "huggingface_hub_access_token_read_secret_manager_secret_name" {
+  value = local.huggingface_hub_access_token_read_secret_manager_secret_name
+}
+
+output "huggingface_hub_access_token_write_secret_manager_secret_name" {
+  value = local.huggingface_hub_access_token_write_secret_manager_secret_name
+}
+
+output "huggingface_hub_models_bucket_name" {
+  value = local.huggingface_hub_models_bucket_name
+}
+
+output "huggingface_secret_manager_project_id" {
+  value = local.huggingface_secret_manager_project_id
+}
+
+output "nvidia_ncg_api_key_secret_manager_project_id" {
+  value = local.nvidia_ncg_api_key_secret_manager_project_id
+}
+
+output "nvidia_ncg_api_key_secret_manager_secret_name" {
+  value = local.nvidia_ncg_api_key_secret_manager_secret_name
+}
+
+output "nvidia_nim_model_store_bucket_name" {
+  value = local.nvidia_nim_model_store_bucket_name
 }
 
 output "platform_name" {
@@ -33,7 +61,7 @@ output "terraform_bucket_name" {
 }
 
 output "terraform_project_id" {
-  value = var.terraform_project_id
+  value = local.terraform_project_id
 }
 
 output "resource_name_prefix" {

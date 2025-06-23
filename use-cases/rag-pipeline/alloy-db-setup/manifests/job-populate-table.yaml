@@ -1,0 +1,63 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: populate-table
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      serviceAccountName: ${MLP_DB_USER_KSA}
+      containers:
+      - args:
+        - --populate-table
+        env:
+        - name: CATALOG_DB
+          value: "${CATALOG_DB_NAME}"
+        - name: CATALOG_TABLE_NAME
+          value: "${CATALOG_TABLE_NAME}"
+        - name: DB_READ_USERS
+          value: "${DB_READ_USERS}"
+        - name: DB_WRITE_USERS
+          value: "${DB_WRITE_USERS}"
+        - name: EMBEDDING_COLUMN_IMAGE
+          value: "${EMBEDDING_COLUMN_IMAGE}"
+        - name: EMBEDDING_COLUMN_MULTIMODAL
+          value: "${EMBEDDING_COLUMN_MULTIMODAL}"
+        - name: EMBEDDING_COLUMN_TEXT
+          value: "${EMBEDDING_COLUMN_TEXT}"
+        - name: EMBEDDING_DIMENSION
+          value: "${EMBEDDING_DIMENSION}"
+        - name: EMBEDDING_ENDPOINT_IMAGE
+          value: "${EMBEDDING_ENDPOINT_IMAGE}"
+        - name: EMBEDDING_ENDPOINT_MULTIMODAL
+          value: "${EMBEDDING_ENDPOINT_MULTIMODAL}"
+        - name: EMBEDDING_ENDPOINT_TEXT
+          value: "${EMBEDDING_ENDPOINT_TEXT}"
+        - name: MASTER_CATALOG_FILE_NAME
+          value: "${MASTER_CATALOG_FILE_NAME}"
+        - name: MLP_DB_INSTANCE_URI
+          value: "${MLP_DB_INSTANCE_URI}"
+        - name: MLP_KUBERNETES_NAMESPACE
+          value: "${MLP_KUBERNETES_NAMESPACE}"
+        - name: NUM_LEAVES_VALUE
+          value: "${NUM_LEAVES_VALUE}"
+        - name: PROCESSED_DATA_BUCKET
+          value: "${MLP_DATA_BUCKET}"
+        image: ${MLP_DB_SETUP_IMAGE}
+        imagePullPolicy: Always
+        name: db-setup
+      restartPolicy: Never

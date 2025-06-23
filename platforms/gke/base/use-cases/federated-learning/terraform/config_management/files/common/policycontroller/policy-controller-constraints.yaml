@@ -27,22 +27,6 @@ spec:
       - apiGroups: [""]
         kinds: ["Service"]
 ---
-# Prevent the creation of known resources that expose workloads to external IPs.
-apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: K8sNoExternalServices
-metadata:
-  name: no-external-services
-spec:
-  match:
-    kinds:
-      - apiGroups: [""]
-        kinds: ["Service"]
-      - apiGroups: ["networking.k8s.io"]
-        kinds: ["Ingress"]
-      - apiGroups: ["networking.istio.io"]
-        kinds: ["Gateway"]
-    excludedNamespaces: ["istio-egress", "istio-ingress", "istio-system"]
----
 # In tenant namespaces, only allow images to be pulled from
 # a named set of repositories
 apiVersion: constraints.gatekeeper.sh/v1beta1
@@ -149,21 +133,6 @@ spec:
         kinds:
           - Pod
 ---
-# Enforce all PeerAuthentications cannot overwrite strict mtls
-apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: AsmPeerAuthnStrictMtls
-metadata:
-  name: asm-peer-authn-strict-mtls-constraint
-spec:
-  match:
-    kinds:
-      - apiGroups:
-          - security.istio.io
-        kinds:
-          - PeerAuthentication
-  parameters:
-    strictnessLevel: High
----
 # Enforce the istio proxy sidecar always been injected to workload pods
 apiVersion: constraints.gatekeeper.sh/v1beta1
 kind: AsmSidecarInjection
@@ -179,21 +148,6 @@ spec:
     excludedNamespaces: ["kube-system"]
   parameters:
     strictnessLevel: High
----
-# Requires that STRICT Istio mutual TLS is always specified when using
-# PeerAuthentication. This constraint also ensures that the deprecated Policy
-# and MeshPolicy resources enforce STRICT mutual TLS.
-apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: PolicyStrictOnly
-metadata:
-  name: peerauthentication-strict-constraint
-spec:
-  match:
-    kinds:
-      - apiGroups:
-          - security.istio.io
-        kinds:
-          - PeerAuthentication
 ---
 # Enforce the AuthorizationPolicy safe patterns.
 # Reference:

@@ -1,0 +1,15 @@
+fastapi==0.115.5
+google.auth==2.36.0
+google-cloud-alloydb-connector[pg8000]==1.5.0
+opentelemetry-distro==0.51b0
+opentelemetry-exporter-otlp==1.30.0
+opentelemetry-exporter-otlp-proto-grpc==1.30.0
+opentelemetry-exporter-otlp-proto-http==1.30.0
+opentelemetry-instrumentation-fastapi==0.51b0
+opentelemetry-instrumentation-logging==0.51b0
+pandas==2.2.3
+pydantic==2.9.2
+requests==2.32.3
+sqlalchemy==2.0.36
+thejsonlogger==0.0.3
+uvicorn==0.32.0

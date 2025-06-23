@@ -22,8 +22,8 @@ document.
 ### Project
 
 In this guide you can choose to bring your project (BYOP) or have Terraform
-create a new project for you. The requirements are difference based on the
-option that you choose.
+create a new project for you. The requirements are different based on the option
+that you choose.
 
 #### Option 1: Bring your own project (BYOP)
 
@@ -184,8 +184,8 @@ You only need to complete the section for the option that you have selected
   sed -i "s/YOUR_PROJECT_ID/${MLP_PROJECT_ID}/g" ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
   ```
 
-You can now the
-[Configure Identity-Aware Proxy (IAP)](#configure-identity-aware-proxy-iap).
+You can now
+[configure Identity-Aware Proxy (IAP)](#configure-identity-aware-proxy-iap).
 
 ### Option 2: Terraform managed project
 
@@ -335,6 +335,7 @@ Management API are enabled.
   gcloud endpoints services undelete gradio.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
   gcloud endpoints services undelete locust.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
   gcloud endpoints services undelete mlflow-tracking.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
+  gcloud endpoints services undelete rag-frontend.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
   gcloud endpoints services undelete ray-dashboard.ml-team.mlp-${MLP_ENVIRONMENT_NAME}.endpoints.${MLP_PROJECT_ID}.cloud.goog --quiet 2>/dev/null
   ```
 
@@ -504,7 +505,9 @@ Shell:
 
   ```
   cd ${MLP_TYPE_BASE_DIR} && \
-  terraform init && \
+  terraform init
+  terraform state rm google_alloydb_user.superuser
+  terraform state rm google_alloydb_user.user
   terraform destroy -auto-approve -var git_token="$(tr --delete '\n' < ${HOME}/secrets/mlp-github-token)" && \
   rm -rf .terraform .terraform.lock.hcl
   ```

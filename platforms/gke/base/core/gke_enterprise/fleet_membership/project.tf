@@ -12,34 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_project" "default" {
-  project_id = var.cluster_project_id
+data "google_project" "cluster" {
+  project_id = local.cluster_project_id
 }
 
 resource "google_project_service" "anthos_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "anthos.googleapis.com"
 }
 
 resource "google_project_service" "connectgateway_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "connectgateway.googleapis.com"
 }
 
 resource "google_project_service" "gkeconnect_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "gkeconnect.googleapis.com"
 }
 
 resource "google_project_service" "gkehub_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "gkehub.googleapis.com"
 }

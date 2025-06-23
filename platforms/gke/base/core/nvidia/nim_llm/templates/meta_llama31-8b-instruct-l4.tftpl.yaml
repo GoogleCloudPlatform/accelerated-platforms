@@ -1,0 +1,31 @@
+image:
+  repository: nvcr.io/nim/meta/llama-3.1-8b-instruct
+  tag: 1.8.5
+imagePullSecrets:
+  - name: ${release_name}-ngc-image-pull # Don't modify, it is created by the nvidia_nim_llm feature
+model:
+  ngcAPISecret: ${release_name}-ngc-api-key # Don't modify, it is created by the nvidia_nim_llm feature
+persistence:
+  accessMode: ReadWriteMany
+  enabled: true
+  existingClaim: ${release_name}-nvidia-model-store # Don't modify, it is created by the nvidia_nim_llm feature
+podAnnotations:
+  gke-gcsfuse/cpu-limit: "0"
+  gke-gcsfuse/ephemeral-storage-limit: "0"
+  gke-gcsfuse/memory-limit: "0"
+  gke-gcsfuse/volumes: "true"
+nodeSelector:
+  cloud.google.com/compute-class: gpu-l4-24gb-s32-x1
+resources:
+  limits:
+    cpu: 32000m
+    memory: 88Gi
+    nvidia.com/gpu: 1
+  requests:
+    cpu: 8000m
+    memory: 32Gi
+    nvidia.com/gpu: 1
+serviceAccount:
+  create: true
+statefulSet:
+  enabled: false

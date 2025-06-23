@@ -28,7 +28,7 @@ deployment.
   and deployment of workloads.
 
 For an outline of Google Cloud products and features used in the platform, see
-[Platform Products and Features](/docs/platforms/gke-aiml/products-and-features.md).
+[Platform Products and Features](/docs/platforms/gke/base/products-and-features.md).
 
 ## Getting Started
 
@@ -37,6 +37,16 @@ For an outline of Google Cloud products and features used in the platform, see
 2.  **Explore Use Cases:** See how the platform can be applied to specific
     scenarios with our example
     [use case](/platforms/gke/base/use-cases/README.md) implementations.
+
+## Additional Reading
+
+- [Google Cloud Well-Architected Framework](https://cloud.google.com/architecture/framework)
+
+  - [Well-Architected Framework: AI and ML perspective ](https://cloud.google.com/architecture/framework/perspectives/ai-ml)
+
+- [Landing zone design in Google Cloud](https://cloud.google.com/architecture/landing-zones)
+- [Google Cloud deployment archetypes](https://cloud.google.com/architecture/deployment-archetypes)
+- [Google Cloud infrastructure reliability guide](https://cloud.google.com/architecture/infra-reliability-guide)
 
 ## Directory Structure
 

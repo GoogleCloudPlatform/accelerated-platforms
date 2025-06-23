@@ -17,10 +17,20 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+start_timestamp=$(date +%s)
+
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
+
+# Set repository values
+ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../)"
+ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
+
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_CORE_DIR}/functions.sh"
-
-start_timestamp=$(date +%s)
 
 declare -a terraservices
 if [[ -v CORE_TERRASERVICES_DESTROY ]] &&
@@ -60,7 +70,7 @@ for terraservice in "${terraservices[@]}"; do
       echo "Current directory: $(pwd)" &&
       terraform init &&
       terraform destroy -auto-approve || exit 1
-    rm -rf .terraform/
+    rm -rf .terraform/ manifests/
   # Destroy the backend only if we're destroying the initialize service,
   # otherwise we wouldn't be able to support a tiered core platform provisioning
   # and teardown
@@ -78,23 +88,16 @@ for terraservice in "${terraservices[@]}"; do
     rm -rf \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/" \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config"/terraform.tfstate* \
+      "${ACP_PLATFORM_BASE_DIR}/kubernetes/kubeconfig" \
+      "${ACP_PLATFORM_BASE_DIR}/kubernetes/manifests" \
       "${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/initialize"/terraform.tfstate* \
-      "${ACP_PLATFORM_CORE_DIR}/networking/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/container_cluster/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/container_node_pool/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/container_node_pool"/container_node_pool_*.tf \
-      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/git/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/configmanagement/oci/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/fleet_membership/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/gke_enterprise/servicemesh/.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/workloads/kueue.terraform/" \
-      "${ACP_PLATFORM_CORE_DIR}/workloads/kubeconfig" \
-      "${ACP_PLATFORM_CORE_DIR}/workloads/manifests"
+      "${ACP_PLATFORM_CORE_DIR}/initialize"/terraform.tfstate*
 
     git restore \
-      "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" \
-      "${ACP_PLATFORM_CORE_DIR}/container_node_pool"/container_node_pool_*.tf
+      "${ACP_PLATFORM_BASE_DIR}/_shared_config"/*.auto.tfvars \
+      "${ACP_PLATFORM_BASE_DIR}/kubernetes/kubeconfig/.gitkeep" \
+      "${ACP_PLATFORM_BASE_DIR}/kubernetes/manifests/.gitkeep" \
+      "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
   fi
 done
 

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  gke_robot_service_account           = "service-${data.google_project.default.number}@container-engine-robot.iam.gserviceaccount.com"
+  gke_robot_service_account           = "service-${data.google_project.cluster.number}@container-engine-robot.iam.gserviceaccount.com"
   gke_robot_service_account_iam_email = "serviceAccount:${local.gke_robot_service_account}"
 
   # Define values that other values depend on
@@ -22,9 +22,8 @@ locals {
       tenant_name                                        = name
       tenant_nodepool_name                               = format("%s-%s-p", local.cluster_name, name)
       tenant_nodepool_sa_name                            = format("%s-%s-n", local.cluster_name, name)
-      tenant_apps_sa_name                                = format("%s-%s-a", local.cluster_name, name)
       tenant_apps_kubernetes_service_account_name        = local.tenant_apps_kubernetes_service_account_name
-      tenant_apps_workload_identity_service_account_name = "serviceAccount:${var.cluster_project_id}.svc.id.goog[${name}/${local.tenant_apps_kubernetes_service_account_name}]"
+      tenant_apps_workload_identity_service_account_name = "serviceAccount:${local.cluster_project_id}.svc.id.goog[${name}/${local.tenant_apps_kubernetes_service_account_name}]"
     }
   }
 
@@ -35,8 +34,6 @@ locals {
       tenant_nodepool_name                               = values.tenant_nodepool_name
       tenant_nodepool_sa_name                            = values.tenant_nodepool_sa_name
       tenant_nodepool_sa_email                           = "${values.tenant_nodepool_sa_name}@${local.service_account_domain}"
-      tenant_apps_sa_name                                = values.tenant_apps_sa_name
-      tenant_apps_sa_email                               = "${values.tenant_apps_sa_name}@${local.service_account_domain}"
       tenant_apps_kubernetes_service_account_name        = values.tenant_apps_kubernetes_service_account_name
       tenant_apps_workload_identity_service_account_name = values.tenant_apps_workload_identity_service_account_name
     }
@@ -50,9 +47,6 @@ locals {
       tenant_nodepool_sa_name                            = values.tenant_nodepool_sa_name
       tenant_nodepool_sa_email                           = values.tenant_nodepool_sa_email
       tenant_nodepool_sa_iam_email                       = "serviceAccount:${values.tenant_nodepool_sa_email}"
-      tenant_apps_sa_name                                = values.tenant_apps_sa_name
-      tenant_apps_sa_email                               = values.tenant_apps_sa_email
-      tenant_apps_sa_iam_email                           = "serviceAccount:${values.tenant_apps_sa_email}"
       tenant_apps_kubernetes_service_account_name        = values.tenant_apps_kubernetes_service_account_name
       tenant_apps_workload_identity_service_account_name = values.tenant_apps_workload_identity_service_account_name
 
@@ -63,7 +57,11 @@ locals {
     }
   }
 
-  service_account_domain = "${var.cluster_project_id}.iam.gserviceaccount.com"
+  common_kubernetes_templates_configuration_values = {
+    external_services_allowed_namespaces = var.federated_learning_external_services_allowed_namespaces
+  }
+
+  service_account_domain = "${local.cluster_project_id}.iam.gserviceaccount.com"
 
   node_pool_service_account_names = [
     for tenant in local.tenants : tenant.tenant_nodepool_sa_name
@@ -77,26 +75,15 @@ locals {
     for tenant in local.tenants : tenant.tenant_nodepool_sa_iam_email
   ]
 
-  apps_service_account_names = [
-    for tenant in local.tenants : tenant.tenant_apps_sa_name
-  ]
-
-  apps_service_account_emails = [
-    for tenant in local.tenants : tenant.tenant_apps_sa_email
-  ]
-
-  apps_service_account_iam_emails = [
-    for tenant in local.tenants : tenant.tenant_apps_sa_iam_email
-  ]
-
   # Put all service account names in a list so we can create them with a single
   # google_service_account resource
   service_account_names = concat(
     local.node_pool_service_account_names,
-    local.apps_service_account_names,
   )
 
   tenant_apps_kubernetes_service_account_name = "fl-ksa"
+
+  federated_learning_firewall_policy_name = "${local.cluster_name}-federated-learning-firewall-policy"
 }
 
 variable "federated_learning_cloud_storage_buckets" {
@@ -116,6 +103,12 @@ variable "federated_learning_cloud_storage_buckets_iam_bindings" {
     member      = string
     role        = string
   }))
+}
+
+variable "federated_learning_external_services_allowed_namespaces" {
+  default     = []
+  description = "List of tenant names for which creating services that expose workloads directly is allowed."
+  type        = list(string)
 }
 
 variable "federated_learning_tenant_names" {

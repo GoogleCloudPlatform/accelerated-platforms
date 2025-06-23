@@ -1,0 +1,19 @@
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+- args:
+  - --cache=true
+  - --cache-ttl=48h
+  - --context=dir://test/ci-cd/container_images
+  - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest
+  - --dockerfile=test/ci-cd/container_images/dockerfile.runner
+  - --log-format=text
+  - --log-timestamp=false
+  - --verbosity=info
+  id: "Build runner image"
+  name: "gcr.io/kaniko-project/executor:latest"
+  waitFor: ["-"]
+
+substitutions:
+  _AR_REPO_LOCATION: "us-central1"

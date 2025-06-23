@@ -12,23 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# locals {
-#   topics = {
-#     aggregator_topic               = {
-#       name = "aggregator-${var.platform_name}",
-#       service_account_name = module.service_accounts.service_accounts_map[var.aggregator_compute_service_account].email
-#     }
-#     modelupdater_topic             = {
-#       name = "modelupdater-${var.platform_name}",
-#       service_account_name = module.service_accounts.service_accounts_map[var.model_updater_compute_service_account].email
-#     }
-#     aggregator_notifications_topic = {
-#       name = "aggregator-notifications-${var.platform_name}",
-#       service_account_name = module.service_accounts.service_accounts_map[var.aggregator_compute_service_account].email
-#     }
-#   }
-# }
-
 resource "google_pubsub_topic" "federated_learning_pubsub_topics" {
   for_each = toset(local.federated_learning_pubsub_topics)
   name     = join("-", [local.unique_identifier_prefix, each.key, "topic"])
@@ -62,8 +45,6 @@ resource "google_pubsub_subscription" "federated_learning_pubsub_subscriptions" 
     # Dont expire
     ttl = ""
   }
-
-  # enable_exactly_once_delivery = var.enable_exactly_once_delivery
 }
 
 resource "google_pubsub_subscription" "federated_learning_pubsub_dead_letter_queue_subscriptions" {
@@ -86,6 +67,4 @@ resource "google_pubsub_subscription" "federated_learning_pubsub_dead_letter_que
     dead_letter_topic     = google_pubsub_topic.federated_learning_pubsub_dead_letter_topics[each.key].id
     max_delivery_attempts = 10
   }
-
-  # enable_exactly_once_delivery = var.enable_exactly_once_delivery
 }

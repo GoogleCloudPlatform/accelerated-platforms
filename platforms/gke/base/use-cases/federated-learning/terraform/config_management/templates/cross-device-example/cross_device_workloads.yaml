@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,45 +12,54 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: ${cross_device_workload_name}
   namespace: ${namespace_name}
   labels:
-    run: cross-device-${cross_device_workload_name}
+    app: odp-federated
+    service: ${cross_device_workload_name}
 spec:
-  ports:
-    - port: ${cross_device_workload_port}
-      protocol: TCP
-      targetPort: ${cross_device_workload_port}
-      name: tcp-cross-device
-  selector:
-    run: cross-device-${cross_device_workload_name}
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: cross-device-${cross_device_workload_name}
-  namespace: ${namespace_name}
-  labels:
-    run: cross-device-${cross_device_workload_name}
-spec:
-  replicas: 1
+  replicas: ${cross_device_workload_replicas}
   selector:
     matchLabels:
-      run: cross-device-${cross_device_workload_name}
+      app: odp-federated
+      service: ${cross_device_workload_name}
   template:
     metadata:
       labels:
-        run: cross-device-${cross_device_workload_name}
+        app: odp-federated
+        service: ${cross_device_workload_name}
       annotations:
-        proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
     spec:
+      serviceAccountName: ${cross_device_kubernetes_service_account_name}
       containers:
         - name: ${cross_device_workload_name}
-          image: ${cross_device_localized_container_image_id}:${cross_device_container_image_tag}
-          imagePullPolicy: Always
+          image: ${cross_device_container_image_tag}
+          ports:
+            - containerPort: ${cross_device_workload_port}
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Xmx2g -Xms2g"
+          resources:
+            limits:
+              cpu: "2"
+              memory: "3Gi"
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: ${cross_device_workload_port}
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: ${cross_device_workload_port}
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false
@@ -58,14 +67,45 @@ spec:
             runAsUser: 10000
             runAsGroup: 10000
             capabilities:
+              add: []
               drop:
-                - ALL
-          env:
-          resources:
-            requests:
-              cpu: "1"
-              memory: "1Gi"
-            limits:
-              cpu: "1"
-              memory: "1Gi"
-      serviceAccountName: ${cross_device_kubernetes_service_account_name}
+                - NET_RAW
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${cross_device_workload_name}
+  namespace: ${namespace_name}
+  labels:
+    app: odp-federated
+    service: ${cross_device_workload_name}
+spec:
+  selector:
+    app: odp-federated
+    service: ${cross_device_workload_name}
+  ports:
+    - port: ${cross_device_workload_port}
+      protocol: TCP
+      targetPort: ${cross_device_workload_port}
+      name: tcp-cross-device
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ${cross_device_workload_name}
+  namespace: ${namespace_name}
+spec:
+  minReplicas: ${cross_device_workload_min_replicas}
+  maxReplicas: ${cross_device_workload_max_replicas}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ${cross_device_workload_name}

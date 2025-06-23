@@ -12,17 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-<<<<<<< HEAD:platforms/gke/base/use-cases/federated-learning/terraform/config_management/examples.tf
-locals {
-  # Use this list to deploy examples when the relevant variable is set to true
-  examples_templates_to_render = flatten(
-    concat(
-      var.federated_learning_nvidia_flare_tff_example_deploy ? local.federated_learning_nvidia_flare_tff_example_templates_to_render : [],
-      var.federated_learning_cross_device_example_deploy ? local.federated_learning_cross_device_example_templates_to_render : [],
-    )
-  )
-=======
 data "google_project" "cluster" {
   project_id = local.cluster_project_id
->>>>>>> main:platforms/gke/base/use-cases/federated-learning/terraform/example_nvidia_flare_tff/project.tf
 }

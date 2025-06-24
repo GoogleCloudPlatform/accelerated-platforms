@@ -14,9 +14,17 @@ Before proceeding, ensure you have the following prerequisites in place:
   [request additional quota](https://www.google.com/search?q=https://cloud.google.com/docs/quotas%23requesting_additional_quota).
   - Ensure **TPU v5e** quota is available.
   - Ensure **TPU v6e** quota is available.
+  - The GKE cluster is created by defualt in us-central1 region. To change the
+    region to where you have TPUs available, update this file:
+    accelerated-platforms/platforms/gke/base/\_shared_config/cluster.auto.tfvars
+  ```shell
+  cluster_region = "us-east5"
+  ```
+
+````
 - **Enabled APIs:** Enable the following Google Cloud APIs in your project:
 
-  - Cloud TPU API
+ - Cloud TPU API
 
 ## Deploy the reference architecture
 
@@ -26,30 +34,30 @@ provides, and follows the best practices that the reference implementations
 establishes. To deploy this reference architecture, do the following:
 
 1.  Deploy the
-    [inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+   [inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
 
-    After you deploy the reference architecture instances, continue following
-    this document.
+   After you deploy the reference architecture instances, continue following
+   this document.
 
 2.  Create
-    [Hugging Face Account token](/platforms/gke/base/core/huggingface/initialize/README.md)
+   [Hugging Face Account token](/platforms/gke/base/core/huggingface/initialize/README.md)
 
 3.  Get access to the Gemma models by signing the consent agreement:
 
 - For Gemma:
 
-  1. Access the
-     [model consent page on Kaggle.com](https://www.kaggle.com/models/google/gemma).
+ 1. Access the
+    [model consent page on Kaggle.com](https://www.kaggle.com/models/google/gemma).
 
-  1. Verify consent using your Hugging Face account.
+ 1. Verify consent using your Hugging Face account.
 
-  1. Accept the model terms.
+ 1. Accept the model terms.
 
 4. Set the environment variables
 
 ```shell
 source ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh
-```
+````
 
 6. Source GKE cluster credentials
 

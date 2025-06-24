@@ -47,3 +47,23 @@ output "comfyui_kubernetes_namespace" {
 output "use_case" {
   value = "inference-ref-arch"
 }
+
+output "workflow_api_endpoints_hostname" {
+  value = local.workflow_api_endpoints_hostname
+}
+
+output "workflow_api_endpoints_ssl_certificate_name" {
+  value = local.workflow_api_endpoints_ssl_certificate_name
+}
+
+output "workflow_api_service_account_email" {
+  value = local.workflow_api_service_account_email
+}
+
+output "workflow_api_service_account_oauth_display_name" {
+  value = local.workflow_api_service_account_oauth_display_name
+}
+
+output "workflow_api_service_account_project_id" {
+  value = local.workflow_api_service_account_project_id
+}

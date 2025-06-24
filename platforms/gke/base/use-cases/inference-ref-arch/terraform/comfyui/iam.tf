@@ -37,6 +37,12 @@ resource "google_artifact_registry_repository_iam_member" "writer_access" {
   member     = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
 }
 
+resource "google_project_iam_member" "vertex_ai_user_binding" {
+  project = data.google_project.cluster.project_id
+  role    = "roles/aiplatform.user"
+  member  = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
+}
+
 # Create Custom Cloud Build SA and grant it permissions
 resource "google_service_account" "custom_cloudbuild_sa" {
   account_id   = local.comfyui_cloudbuild_service_account_name
@@ -68,6 +74,6 @@ resource "google_storage_bucket_iam_member" "cloudbuild_service_account_storage_
     local.comfyui_cloud_storage_model_bucket_name,
   ])
   bucket = each.key
-  role   = "roles/storage.objectUser"
+  role   = local.cluster_gcsfuse_user_role
   member = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
 }

@@ -17,7 +17,6 @@ locals {
   comfyui_port                = 8188
   comfyui_service_name        = "${var.comfyui_app_name}-${var.comfyui_accelerator_type}"
   gateway_manifests_directory = "${local.manifests_directory}/gateway"
-  gateway_name                = "external-https"
   hostname_suffix             = "endpoints.${data.google_project.cluster.project_id}.cloud.goog"
   iap_domain                  = var.comfyui_iap_domain != null ? var.comfyui_iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
   iap_oath_brand              = "projects/${data.google_project.comfyui_iap_oath_branding.number}/brands/${data.google_project.comfyui_iap_oath_branding.number}"
@@ -26,7 +25,7 @@ locals {
   manifests_directory         = "${local.namespace_directory}/${var.comfyui_kubernetes_namespace}"
   manifests_directory_root    = "${path.module}/../../../../kubernetes/manifests"
   namespace_directory         = "${local.manifests_directory_root}/namespace"
-  serviceaccount              = "${var.comfyui_kubernetes_namespace}-sa"
+  serviceaccount              = "${local.unique_identifier_prefix}-${local.comfyui_default_name}"
 }
 
 data "google_client_config" "default" {}
@@ -119,7 +118,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
     google_project_service.certificatemanager_googleapis_com,
   ]
 
-  name    = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-external-gateway"
+  name    = local.comfyui_endpoints_ssl_certificate_name
   project = data.google_project.cluster.project_id
 
   managed {
@@ -130,7 +129,7 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
 }
 
 resource "google_compute_global_address" "external_gateway_https" {
-  name    = "${local.unique_identifier_prefix}-comfyui-external-gateway-https"
+  name    = local.comfyui_gateway_address_name
   project = data.google_project.cluster.project_id
 }
 
@@ -143,7 +142,7 @@ resource "local_file" "gateway_external_https_yaml" {
     "${path.module}/templates/gateway/gateway-external-https.tftpl.yaml",
     {
       address_name         = google_compute_global_address.external_gateway_https.name
-      gateway_name         = local.gateway_name
+      gateway_name         = local.comfyui_gateway_name
       namespace            = var.comfyui_kubernetes_namespace
       ssl_certificate_name = google_compute_managed_ssl_certificate.external_gateway.name
     }
@@ -183,7 +182,7 @@ resource "local_file" "route_comfyui_https_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/http-route-service.tftpl.yaml",
     {
-      gateway_name    = local.gateway_name
+      gateway_name    = local.comfyui_gateway_name
       hostname        = local.comfyui_endpoint
       http_route_name = "comfyui-https"
       namespace       = var.comfyui_kubernetes_namespace

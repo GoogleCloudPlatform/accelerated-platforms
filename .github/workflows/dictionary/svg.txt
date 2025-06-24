@@ -1,7 +1,7 @@
 dasharray
 evenodd
 googleplex
-KHTML
+khtml
 linecap
 linejoin
 miterlimit

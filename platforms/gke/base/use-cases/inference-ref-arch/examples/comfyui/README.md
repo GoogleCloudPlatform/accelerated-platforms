@@ -232,24 +232,28 @@ limited. So, you can use perform the copy operation using a K8s job or
 Cloudbuild pipeline or some thing else.
 
 - In this guide, we will use Cloudbuild pipeline to copy the following
-  checkpoint files for Stable diffusion base and refiner models from Huggingface
-  to the GCS bucket.
+  checkpoint files for Stable diffusion base and refiner models, LTXV model and
+  Flux text encoder from Hugging Face to the GCS bucket.
 
-  - https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors?download=true
-  - https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner-1.0.safetensors?download=true
+  - https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors
+  - https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner-1.0.safetensors
+  - https://huggingface.co/Lightricks/LTX-Video/resolve/main/ltx-video-2b-v0.9.1.safetensors
+  - https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors
 
 - Run the following command to trigger cloudbuild pipeline to copy checkpoint
   files:
 
   ```
   gcloud builds submit \
-  --config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy_checkpoints/cloudbuild.yaml" \
+  --config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" \
   --gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
   --no-source \
   --project="${cluster_project_id}" \
   --service-account="${comfyui_cloudbuild_service_account_id}" \
   --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
   ```
+
+  It will take around 6 minutes to finish.
 
 - When the copy is finished, you will see the output similar to the following:
 
@@ -262,15 +266,134 @@ Cloudbuild pipeline or some thing else.
   STATUS: SUCCESS
   ```
 
-- Refresh ComfyUI and click on `checkpoints`, you will see two checkpoint files
-  available to use.
+- Refresh ComfyUI and click on `checkpoints` in MODEL LIBRARY, you will see
+  three checkpoint files available to use. These files will be named
+  `sd_xl_base_1.0.safetensors`, `sd_xl_refiner_1.0.safetensors` and
+  `ltx-video-2b-v0.9`
+
+- Click on `text_encoders` on ComfyUI in MODEL_LIBRARY, you will see a file
+  named `t5xxl_fp16`
 
 - You can download more models to use in your ComfyUI instance in a similar
   fashion.
 - Get creative and storyboard your ideas on ComfyUI!
 
+## ComfyUI workflows
+
+This guide provides five workflows out of the box. On ComfyUI, click on
+WORKFLOWS. You will five json workflow files.
+
+- `imagen3-text-to-image` : This workflow shows text to image generation with
+  Google's Imagen3 model.
+- `imagen3-veo2-text-to-image-to-video` : This workflow shows text to image
+  generation with Google's Imagen3 model and image to video generation with
+  Google's Veo2 model.
+- `ltxv-text-to-video` : This workflow shows text to video generation with
+  Lightricks' LTXV-Video model.
+- `sdxl-text-to-image` : This workflow shows text to image generation with
+  Stable Diffusion refiner model.
+- `veo2-text-to-video` : This workflow shows text to video generation with
+  Google's Veo2 model.
+
+> Note: ComfyUI custom nodes to Imagen3 and Veo2 are in preview mode.
+
+Click any of the workflow files to open the workflow and click `Run` to see the
+results.
+
+## [Optional] Setup a Workflow API for batch operation
+
+In this section you can deploy a Workflow API to front the ComfyUI deployment
+and use it in batch mode by submitting ComfyUI workflows exported as .json
+objects to the Workflow API. ComfyUI will still output the generated media in
+the output bucket.
+
+- Deploy Workflow API resources:
+
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
+  ```
+
+- Set the environment variables
+
+  ```
+  source ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh
+  ```
+
+- Verify that the Workflow API has been successfully deployed:
+
+  ```
+  kubectl -n comfyui get deploy,svc
+  ```
+
+  Response should look like this:
+
+  ```
+  NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment.apps/comfyui-nvidia-l4   1/1     1            1           10d
+  deployment.apps/workflow-api        1/1     1            1           15h
+
+  NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+  service/comfyui-nvidia-l4   ClusterIP   34.118.235.48    <none>        8188/TCP   10d
+  service/workflow-api        ClusterIP   34.118.228.170   <none>        8080/TCP   15h
+  ```
+
+- In order to send a sample workflow the active `gcloud` account needs to have
+  the
+  [Service Account Token Creator](https://cloud.google.com/iam/docs/roles-permissions/iam#iam.serviceAccountTokenCreator)
+  role for the Workflow API service account. The following command will add the
+  role to the active `gcloud` account.
+
+  ```shell
+  gcloud iam service-accounts add-iam-policy-binding ${workflow_api_service_account_email} \
+  --member="user:$(gcloud auth list --filter=status:ACTIVE --format="value(account)")" \
+  --project="${workflow_api_service_account_project_id}" \
+  --role="roles/iam.serviceAccountTokenCreator"
+  ```
+
+- Send a sample workflow to the Workflow API.
+
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+  iap_brand=$(gcloud iap oauth-brands list --format="value(name)" --project="${comfyui_iap_oath_branding_project_id}") && \
+  oauth_client_name=$(gcloud iap oauth-clients list "${iap_brand}" --filter="displayName=${workflow_api_service_account_oauth_display_name}" --format="value(name)") && \
+  oauth_client_id=$(basename "${oauth_client_name}")
+  curl \
+  --data "@workflows/sdxl.json" \
+  --header "Authorization: Bearer $(gcloud auth print-identity-token --audiences=${oauth_client_id} --impersonate-service-account=${workflow_api_service_account_email} --include-email)" \
+  --header "Content-Type: application/json" \
+  --request POST \
+  https://${workflow_api_endpoints_hostname}/api/v1/queue_prompt
+  ```
+
+> [!NOTE]  
+> If you get `curl: (35) Recv failure: Connection reset by peer` or
+> `curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ...` the
+> SSL certificate could still be provisioning. You can check the status of the
+> SSL certificate by running the following command:  
+> `gcloud compute ssl-certificates describe ${workflow_api_endpoints_ssl_certificate_name} --project ${cluster_project_id}`
+
+- The response should look like this:
+
+  ```shell
+  {"prompt_id":"XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX","number":##}
+  ```
+
 ## Teardown
 
-```
-${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh
-```
+- Destroy the Workflow API resources.
+
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+  terraform init &&
+  terraform destroy -auto-approve
+  ```
+
+- Teardown the ComfyUI platform
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh
+  ```

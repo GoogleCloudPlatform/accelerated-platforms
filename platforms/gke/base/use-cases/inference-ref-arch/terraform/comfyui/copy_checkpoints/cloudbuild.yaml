@@ -1,0 +1,53 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+steps:
+  - id: 'Create Directories'
+    name: 'ubuntu'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        dirs=(checkpoints loras vae text_encoders diffusion_models clip_vision style_models embeddings diffusers vae_approx controlnet gligen upscale_models hypernetworks photomaker classifiers)
+        for dir in "${dirs[@]}"; do
+            mkdir -p /workspace/comfyui-models/$dir
+            touch /workspace/comfyui-models/$dir/put_here
+        done
+
+  - id: 'Download SDXL Base Model'
+    name: 'gcr.io/cloud-builders/curl'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        curl -L -o /workspace/comfyui-models/checkpoints/sd_xl_base_1.0.safetensors "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/main/sd_xl_base_1.0.safetensors?download=true"
+
+  - id: 'Download SDXL Refiner Model'
+    name: 'gcr.io/cloud-builders/curl' # Or any image with curl
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        curl -L -o /workspace/comfyui-models/checkpoints/sd_xl_refiner_1.0.safetensors "https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner_1.0.safetensors?download=true"
+
+  - id: 'Upload Models to GCS'
+    name: 'gcr.io/cloud-builders/gsutil'
+    args:
+      - "cp"
+      - "-r"
+      - "/workspace/comfyui-models/*"
+      - "gs://${_BUCKET_NAME}/"
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -1,5 +1,3 @@
-#!/usr/bin/env bash
-
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,21 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-MY_PATH="$(
-  cd "$(dirname "$0")" >/dev/null 2>&1
-  pwd -P
-)"
+# https://github.com/google/addlicense
+name: License header
+on:
+  - push
+  - pull_request
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-source "${MY_PATH}/helpers/git.sh"
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "stable"
 
-ACP_REPO_DIR="$(realpath ${MY_PATH}/../../)"
+      - name: Install addlicense
+        run: go install github.com/google/addlicense@latest
 
-for file in "${git_assume_unchanged_files[@]}"; do
-  echo "no-assume-unchanged ${file}"
-  git update-index --no-assume-unchanged ${ACP_REPO_DIR}/${file}
-done
-
-echo "Removing the .dev-tools/.gitignore file"
-cd "${ACP_REPO_DIR}" &&
-  git config core.excludesfile "" &&
-  cd - &>/dev/null
+      - name: Check for missing license headers
+        run: |
+          addlicense \
+          -check \
+          -ignore **/.terraform.lock.hcl \
+          .

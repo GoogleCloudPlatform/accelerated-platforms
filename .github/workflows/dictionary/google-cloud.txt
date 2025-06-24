@@ -1,3 +1,4 @@
+addlicense
 aiplatform
 alloydb
 alloydbiamuser

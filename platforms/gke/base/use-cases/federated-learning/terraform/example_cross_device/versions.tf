@@ -23,6 +23,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/acp_fl_cross_device_deploy-v1"
+    module_name = "cloud-solutions/acp_fl_cross_device_example_deploy-v1"
   }
 }

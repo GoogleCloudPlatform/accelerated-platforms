@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_compute_firewall" "firewall" {
-  name    = join("-", [local.unique_identifier_prefix, "firewall"])
+data "google_compute_lb_ip_ranges" "google" {
+}
+
+resource "google_compute_firewall" "workloads" {
+  name    = join("-", [local.unique_identifier_prefix, "workloads"])
   network = local.network_name
   project = var.cluster_project_id
 
@@ -21,7 +24,7 @@ resource "google_compute_firewall" "firewall" {
     protocol = "tcp"
     ports    = ["8082"]
   }
-  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
+  source_ranges = data.google_compute_lb_ip_ranges.google.http_ssl_tcp_internal
 }
 
 resource "google_compute_firewall" "ssh" {

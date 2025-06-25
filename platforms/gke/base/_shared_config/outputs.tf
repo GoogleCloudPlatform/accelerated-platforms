@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "cluster_gcsfuse_user_role" {
+  value = local.cluster_gcsfuse_user_role
+}
+
+output "cluster_gcsfuse_viewer_role" {
+  value = local.cluster_gcsfuse_viewer_role
+}
+
 output "cluster_name" {
   value = local.cluster_name
 }

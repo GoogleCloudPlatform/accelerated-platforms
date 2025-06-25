@@ -4,25 +4,39 @@ This reference architecture implements online inferencing using GPUs on Google
 Cloud. This reference architecture builds on top of the
 [inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
 
-<!-- WIP
-## Best practices for online inferencing on Google Cloud
-
-### Accelerator selection
-
-### Storage solution selection
-
-### Model selection
-
-### Observability
-
-### Scalability
-
-### Cost optimization
--->
-
-## Architecture
-
 ## Roles and permissions
+
+You can choose between Project Owner access or granular access for more
+fine-tuned permissions.
+
+### Option 1: Project Owner role
+
+Your account will have full administrative access to the project.
+
+- `roles/owner`: Full administrative access to the project
+  ([Project Owner role](https://cloud.google.com/iam/docs/understanding-roles#resource-manager-roles))
+
+### Option 2: Granular Access
+
+Your account needs to be assigned the following roles to limit access to
+required resources:
+
+- `roles/artifactregistry.admin`: Grants full administrative access to Artifact
+  Registry, allowing management of repositories and artifacts.
+- `roles/browser`: Provides read-only access to browse resources in a project.
+- `roles/compute.networkAdmin`: Grants full control over Compute Engine network
+  resources.
+- `roles/container.clusterAdmin`: Provides full control over Google Kubernetes
+  Engine (GKE) clusters, including creating and managing clusters.
+- `roles/gkehub.editor`: Grants permission to manage GKE Hub features.
+- `roles/iam.serviceAccountAdmin`: Grants full control over managing service
+  accounts in the project.
+- `roles/resourcemanager.projectIamAdmin`: Allows managing IAM policies and
+  roles at the project level.
+- `roles/servicenetworking.serviceAgent`: Allows managing service networking
+  configurations.
+- `roles/serviceusage.serviceUsageAdmin`: Grants permission to enable and manage
+  services and APIs for a project.
 
 ## Deploy the reference architecture
 

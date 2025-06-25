@@ -26,12 +26,31 @@ project:
   gcloud services enable tpu.googleapis.com
   ```
 
-2. **TPU Quotas:** Verify that your Google Cloud project has sufficient TPU
-   quota for the desired TPU types and topologies.
+2. **TPU Quotas and Capacity:** Ensure your Google Cloud project has sufficient
+   TPU quota for the desired TPU types and topologies. TPU capacity can be
+   provisioned in different ways, each with its own pricing and availability
+   characteristics:
 
-- Ensure TPU v5e quota is available.
-- Ensure TPU v6e quota is available (if planning to deploy 27B v6e).
-- If needed, you can request additional quota through the Google Cloud Console.
+   - On-Demand (Standard) Quota
+   - Preemptible (Spot) Quota
+   - Reservations (for Guaranteed Capacity)
+
+- Checking Your Current Quota:
+
+  You can view your current TPU quota usage and limits in the Google Cloud
+  Console:
+
+  1.  Go to the **IAM & Admin** section.
+  2.  Select **Quotas & System Limits**.
+  3.  In the filter bar, search for `Service: Cloud TPU API` or
+      `Service: Compute Engine API`.
+  4.  Look for quota names like:
+
+  - `TPU v5 lite pod cores per project per zone` (for on-demand v5e)
+  - `Preemptible TPU v5 lite pod cores per project per zone` (for preemptible
+    v5e)
+  - `TPU v6e cores per project per zone` (for on-demand v6e)
+  - `Preemptible TPU v6e cores per project per zone` (for preemptible v6e)
 
 3. **Region Configuration:** The GKE cluster is created by default in the
    us-central1 region. If your desired TPU quota is available in a different
@@ -120,32 +139,108 @@ below deploys a specific Gemma model size with its corresponding TPU topology.
 Ensure these environment variables are correctly set and exported in your
 current shell session before running.
 
-**Gemma 1B (TPU v5e 1x1)** Deploys the Gemma 3 1B IT model, on a single TPU v5e
-chip.
+## **Gemma 1B (TPU v5e 1x1)**
+
+Deploy the Gemma 3 1B IT model, on a single TPU v5e chip.
 
 ```shell
 envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-1b-tpu-v5e.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}
 apply -f -
 ```
 
-**Gemma 4B (TPU v5e 2x2)** Deploys the Gemma 3 4B IT model, leveraging a 2x2 TPU
-v5e podslice (4 chips).
+### Test Gemma 1B Inference (Port Forwarding & cURL)
+
+Once the Gemma 1B deployment is complete and the pod is running, you can test
+the inference service by port-forwarding the ClusterIP service to your local
+machine and sending a curl request.
+
+1. **Verify Pod Status:** Wait for your VLLM pod to transition to Running and
+   Ready status. This may take several minutes as the model downloads and
+   initializes on the TPU.
+
+```bash
+kubectl get pods -n "${WORKLOAD_NAMESPACE}" -l app=vllm-tpu-gemma-3-1b-it
+
+```
+
+2. **Verify Service Status:** Confirm that your ClusterIP service is deployed.
+
+```bash
+kubectl get service -n "${WORKLOAD_NAMESPACE}" vllm-service-gemma-3-1b-it
+```
+
+Look for output similar to:
+
+```bash
+NAME                         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
+vllm-service-gemma-3-1b-it   ClusterIP   X.X.X.X     <none>        8000/TCP   5m
+```
+
+3. **Establish Port Forwarding:** Open a new terminal window and run the
+   following command. This will forward traffic from your local machine's port
+   8000 to the service's port 8000 within the cluster.
+
+```bash
+
+kubectl port-forward service/vllm-service-gemma-3-1b-it 8000:8000 -n "${WORKLOAD_NAMESPACE}"
+```
+
+You should see output indicating that the forwarding is active:
+
+```bash
+Forwarding from 127.0.0.1:8000 -> 8000
+Handling connection for 8000
+```
+
+Keep this terminal window open as long as you want to access the service
+locally.
+
+4. **Test with curl:** In a separate terminal window (where port-forwarding is
+   NOT running), send a curl request to your locally forwarded endpoint.
+
+Example for Chat Completion (if using a chat-tuned model and
+/v1/chat/completions):
+
+```bash
+
+curl -X POST -H "Content-Type: application/json" \
+     -d '{
+           "model": "google/gemma-3-1b-it",
+           "messages": [
+             {"role": "user", "content": "Tell me a short story about a brave knight and a dragon."}
+           ],
+           "max_tokens": 100,
+           "temperature": 0.7
+         }' \
+     http://localhost:8000/v1/chat/completions
+```
+
+5. **Clean Up Port Forwarding:** Once you are done testing, simply close the
+   terminal window where kubectl port-forward is running.
+
+## **Gemma 4B (TPU v5e 2x2)**
+
+Deploy the Gemma 3 4B IT model, leveraging a 2x2 TPU v5e podslice (4 chips).
 
 ```shell
 envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-4b-tpu-v5e.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}
 apply -f -
 ```
 
-**Gemma 27B (1K context window on TPU v5e)** Deploys the Gemma 27B model (with a
-1K context window), using TPU v5e, 2\*4 topology (8 chips).
+## **Gemma 27B (1K context window on TPU v5e)**
+
+Deploy the Gemma 27B model (with a 1K context window), using TPU v5e, 2\*4
+topology (8 chips).
 
 ```shell
 envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-27b-tpu-v5e.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}
 apply -f -
 ```
 
-**Gemma 27B (16K context window on TPU v6e)** Deploys the Gemma 27B model (with
-a 16K context window), utilizing TPU v6e for higher performance.
+## **Gemma 27B (16K context window on TPU v6e)**
+
+Deploy the Gemma 27B model (with a 16K context window), utilizing TPU v6e for
+higher performance.
 
 ```shell
 envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-27b-tpu-v6e.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}

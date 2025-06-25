@@ -63,9 +63,9 @@ project:
   cluster_region = "us-east5" # Change to your preferred TPU region
   ```
 
-## Deploy the Core Reference Architecture
+## Deploy the Reference Architecture
 
-This solution builds upon the foundational infrastructure provided by
+This solution uses the platform provided by the
 [inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
 
 1. **Deploy the Inference Reference Implementation:** Navigate to and follow the
@@ -139,7 +139,7 @@ below deploys a specific Gemma model size with its corresponding TPU topology.
 Ensure these environment variables are correctly set and exported in your
 current shell session before running.
 
-## **Gemma 1B (TPU v5e 1x1)**
+## Gemma 1B (TPU v5e 1x1)
 
 Deploy the Gemma 3 1B IT model, on a single TPU v5e chip.
 
@@ -160,7 +160,6 @@ machine and sending a curl request.
 
 ```bash
 kubectl get pods -n "${WORKLOAD_NAMESPACE}" -l app=vllm-tpu-gemma-3-1b-it
-
 ```
 
 2. **Verify Service Status:** Confirm that your ClusterIP service is deployed.
@@ -181,7 +180,6 @@ vllm-service-gemma-3-1b-it   ClusterIP   X.X.X.X     <none>        8000/TCP   5m
    8000 to the service's port 8000 within the cluster.
 
 ```bash
-
 kubectl port-forward service/vllm-service-gemma-3-1b-it 8000:8000 -n "${WORKLOAD_NAMESPACE}"
 ```
 
@@ -202,7 +200,6 @@ Example for Chat Completion (if using a chat-tuned model and
 /v1/chat/completions):
 
 ```bash
-
 curl -X POST -H "Content-Type: application/json" \
      -d '{
            "model": "google/gemma-3-1b-it",
@@ -218,7 +215,7 @@ curl -X POST -H "Content-Type: application/json" \
 5. **Clean Up Port Forwarding:** Once you are done testing, simply close the
    terminal window where kubectl port-forward is running.
 
-## **Gemma 4B (TPU v5e 2x2)**
+## Gemma 4B (TPU v5e 2x2)
 
 Deploy the Gemma 3 4B IT model, leveraging a 2x2 TPU v5e podslice (4 chips).
 
@@ -227,7 +224,7 @@ envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubern
 apply -f -
 ```
 
-## **Gemma 27B (1K context window on TPU v5e)**
+## Gemma 27B (1K context window on TPU v5e)
 
 Deploy the Gemma 27B model (with a 1K context window), using TPU v5e, 2\*4
 topology (8 chips).
@@ -237,7 +234,7 @@ envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubern
 apply -f -
 ```
 
-## **Gemma 27B (16K context window on TPU v6e)**
+## Gemma 27B (16K context window on TPU v6e)
 
 Deploy the Gemma 27B model (with a 16K context window), utilizing TPU v6e for
 higher performance.

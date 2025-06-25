@@ -53,7 +53,7 @@ class VeoTextToVideoNode:
                     {
                         "default": 0,
                         "min": 0,
-                        "max": 0xFFFFFFFFFFFFFFFF,
+                        "max": 0xFFFFFFFF,
                         "tooltip": "0 seed let's Veo API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),
@@ -182,7 +182,7 @@ class VeoGcsUriImageToVideoNode:
                     {
                         "default": 0,
                         "min": 0,
-                        "max": 0xFFFFFFFFFFFFFFFF,
+                        "max": 0xFFFFFFFF,
                         "tooltip": "0 seed let's Veo API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),
@@ -313,7 +313,7 @@ class VeoImageToVideoNode:
                     {
                         "default": 0,
                         "min": 0,
-                        "max": 0xFFFFFFFFFFFFFFFF,
+                        "max": 0xFFFFFFFF,
                         "tooltip": "0 seed let's Veo API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),

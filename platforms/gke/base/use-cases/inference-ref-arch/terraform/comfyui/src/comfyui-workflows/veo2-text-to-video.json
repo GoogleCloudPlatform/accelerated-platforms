@@ -1,8 +1,8 @@
 {
   "id": "4ad5ba7d-f47c-4fdc-bb07-c5704cf8b540",
   "revision": 0,
-  "last_node_id": 3,
-  "last_link_id": 2,
+  "last_node_id": 4,
+  "last_link_id": 3,
   "nodes": [
     {
       "id": 3,
@@ -87,12 +87,12 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 1
+          "link": 3
         }
       ],
       "outputs": [
         {
-          "name": "Frames",
+          "name": "frames",
           "type": "IMAGE",
           "links": [
             2
@@ -105,11 +105,11 @@
       "widgets_values": []
     },
     {
-      "id": 1,
+      "id": 4,
       "type": "VeoTextToVideoNode",
       "pos": [
-        1050.5531005859375,
-        331.67327880859375
+        956.3753662109375,
+        304.32867431640625
       ],
       "size": [
         400,
@@ -124,7 +124,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            1
+            3
           ]
         }
       ],
@@ -132,14 +132,14 @@
         "Node name for S&R": "VeoTextToVideoNode"
       },
       "widgets_values": [
-        "A vivid landscape painting of a futuristic city with flying cars",
+        "A vivid landscape painting of a futuristic city",
         "16:9",
-        "dont_allow",
+        "allow_adult",
         8,
         true,
-        2,
+        1,
         "",
-        6939708175756,
+        0,
         "randomize",
         "",
         ""
@@ -148,20 +148,20 @@
   ],
   "links": [
     [
-      1,
-      1,
-      0,
-      2,
-      0,
-      "VEO_VIDEO"
-    ],
-    [
       2,
       2,
       0,
       3,
       0,
       "IMAGE"
+    ],
+    [
+      3,
+      4,
+      0,
+      2,
+      0,
+      "VEO_VIDEO"
     ]
   ],
   "groups": [],
@@ -170,11 +170,11 @@
     "ds": {
       "scale": 1.2666661150000007,
       "offset": [
-        -562.6929854917533,
-        -121.99039889168719
+        -597.660073860232,
+        -119.74535621726318
       ]
     },
-    "frontendVersion": "1.20.5",
+    "frontendVersion": "1.20.7",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

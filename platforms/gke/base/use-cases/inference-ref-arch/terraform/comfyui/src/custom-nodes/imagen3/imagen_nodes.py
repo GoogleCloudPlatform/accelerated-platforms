@@ -66,7 +66,7 @@ class ImagenTextToImageNode:
                     {
                         "default": 0,
                         "min": 0,
-                        "max": 0xFFFFFFFFFFFFFFFF,
+                        "max": 0xFFFFFFFF,
                         "tooltip": "0 seed let's Imagen3 API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),

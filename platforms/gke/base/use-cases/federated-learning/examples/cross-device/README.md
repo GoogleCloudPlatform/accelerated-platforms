@@ -9,34 +9,48 @@ and follows the best practices the reference architecture establishes.
 
 ## Architecture
 
-The following diagram shows the deployment of the cross-device
-example with one client connected to the server:
+The following diagram shows the deployment of the cross-device example with one
+client connected to the server:
 
 ![Cross-device example architecture](/platforms/gke/base/use-cases/federated-learning/examples/cross-device/assets/cross-device.png "Cross-device example architecture")
 
-The private GKE cluster uses confidential nodes as its primary pool to help secure the data in use.
+The private GKE cluster uses confidential nodes as its primary pool to help
+secure the data in use.
 
-The cross-device architecture uses components from the open source [Federated Compute Platform (FCP)](https://github.com/google-parfait/federated-compute) project. This project includes the following:
+The cross-device architecture uses components from the open source
+[Federated Compute Platform (FCP)](https://github.com/google-parfait/federated-compute)
+project. This project includes the following:
+
 - Client code for communicating with a server and executing tasks on the devices
 - A protocol for client-server communication
-- Connection points with TensorFlow Federated to make it easier to define your federated computations
+- Connection points with TensorFlow Federated to make it easier to define your
+  federated computations
 
-The FCP components shown in the preceding diagram can be deployed as a set of microservices. These components do the following:
-- Collector: this job runs periodically to query active tasks and encrypted gradients. This information determines when aggregation starts
+The FCP components shown in the preceding diagram can be deployed as a set of
+microservices. These components do the following:
+
+- Collector: this job runs periodically to query active tasks and encrypted
+  gradients. This information determines when aggregation starts
 - Task-assignment: this front-end service distributes training tasks to devices
 - Task-management: this job manages tasks
-- Task-scheduler: this job either runs periodically or is triggered by specific events
+- Task-scheduler: this job either runs periodically or is triggered by specific
+  events
 - Task-builder: this job builds tasks to be sent to clients
 
-Two of the FCP compoments have to be run in a confidential space virtual machine that ensures the memory
-is encrypted during use. These components are:
-- Aggregator: this job reads device gradients and calculates aggregated result with Differential Privacy
-- Model updater: this job listens to events and publishes results so that device can download updated models
+Two of the FCP compoments have to be run in a confidential space virtual machine
+that ensures the memory is encrypted during use. These components are:
+
+- Aggregator: this job reads device gradients and calculates aggregated result
+  with Differential Privacy
+- Model updater: this job listens to events and publishes results so that device
+  can download updated models
 
 In addition to these components, the architecture also deploys:
+
 - A GCS bucket to store the consolidated model and gradients
 - A pubsub that enables communication between the different microservices
-- A spanner table that register the tasks to be sent and the history of the training tasks
+- A spanner table that register the tasks to be sent and the history of the
+  training tasks
 
 ## Understand the repository structure
 
@@ -81,7 +95,7 @@ ones that the Federated learning reference architecture provisions.
 
 1. Deploy the infrastructure
 
-    1. Run the script to configure the reference architecture and provision
+   1. Run the script to configure the reference architecture and provision
       Google Cloud resources that this example needs:
 
    ```sh
@@ -132,7 +146,9 @@ In this section, you check the status of the cross-device example:
 
 ## Run an end-to-end test
 
-To validate that the deployment is working correctly, you can use the [On-Device Personalization Federated Compute Server](https://github.com/privacysandbox/odp-federatedcompute) to run an end-to-end test:
+To validate that the deployment is working correctly, you can use the
+[On-Device Personalization Federated Compute Server](https://github.com/privacysandbox/odp-federatedcompute)
+to run an end-to-end test:
 
 1. Get the ingress public IP:
 
@@ -147,7 +163,8 @@ To validate that the deployment is working correctly, you can use the [On-Device
    git submodule update --init --recursive
    ```
 
-1. Once inside the `odp-federatedcompute` directory, run this command to go inside the Docker container:
+1. Once inside the `odp-federatedcompute` directory, run this command to go
+   inside the Docker container:
 
    ```bash
    ./scripts/docker/docker_sh.sh

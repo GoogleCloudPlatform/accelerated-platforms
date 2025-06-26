@@ -147,8 +147,7 @@ cluster and manage resources.
 4. Create Kubernetes Service Account (KSA):
 
    ```shell
-   envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/service-account.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}
-   apply -f -
+   envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/service-account.yaml | kubectl apply -f -
    ```
 
 5. Give the Kubernetes service account IAM permissions.
@@ -191,8 +190,7 @@ current shell session before running.
 Deploy the Gemma 3 1B IT model, on a single TPU v5e chip.
 
 ```shell
-envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-1b-tpu-v5e.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}
-apply -f -
+envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-1b-tpu-v5e.yaml | kubectl apply -f -
 ```
 
 ### Test Gemma 1B Inference (Port Forwarding & cURL)
@@ -267,18 +265,16 @@ machine and sending a curl request.
 Deploy the Gemma 3 4B IT model, leveraging a 2x2 TPU v5e podslice (4 chips).
 
 ```shell
-envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-4b-tpu-v5e.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}
-apply -f -
+envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-4b-tpu-v5e.yaml | kubectl apply -f -
 ```
 
 ## Gemma 27B (1K context window on TPU v5e)
 
-Deploy the Gemma 27B model (with a 1K context window), using TPU v5e, 2\*4
+Deploy the Gemma 27B model (with a 1K context window), using TPU v5e, 2x4
 topology (8 chips).
 
 ```shell
-envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-27b-tpu-v5e.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}
-apply -f -
+envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-27b-tpu-v5e.yaml | kubectl apply -f -
 ```
 
 ## Gemma 27B (16K context window on TPU v6e)
@@ -287,6 +283,5 @@ Deploy the Gemma 27B model (with a 16K context window), utilizing TPU v6e for
 higher performance.
 
 ```shell
-envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-27b-tpu-v6e.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}
-apply -f -
+envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-27b-tpu-v6e.yaml | kubectl apply -f -
 ```

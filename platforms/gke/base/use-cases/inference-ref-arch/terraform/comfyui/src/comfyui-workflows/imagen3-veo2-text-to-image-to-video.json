@@ -1,8 +1,8 @@
 {
   "id": "1bc411cb-e9d1-412b-9103-d0f1b65da951",
   "revision": 0,
-  "last_node_id": 6,
-  "last_link_id": 5,
+  "last_node_id": 10,
+  "last_link_id": 10,
   "nodes": [
     {
       "id": 6,
@@ -16,7 +16,7 @@
         238
       ],
       "flags": {},
-      "order": 3,
+      "order": 4,
       "mode": 0,
       "inputs": [
         {
@@ -73,26 +73,26 @@
       "id": 4,
       "type": "VideoPreviewNode",
       "pos": [
-        2652.355712890625,
-        -281.99774169921875
+        2819.67919921875,
+        -320.5704040527344
       ],
       "size": [
         150.38671875,
         26
       ],
       "flags": {},
-      "order": 2,
+      "order": 3,
       "mode": 0,
       "inputs": [
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 3
+          "link": 9
         }
       ],
       "outputs": [
         {
-          "name": "Frames",
+          "name": "frames",
           "type": "IMAGE",
           "links": [
             5
@@ -105,54 +105,11 @@
       "widgets_values": []
     },
     {
-      "id": 1,
-      "type": "ImagenTextToImageNode",
-      "pos": [
-        1788.29443359375,
-        -311.28448486328125
-      ],
-      "size": [
-        400,
-        376
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "Generated Image",
-          "type": "IMAGE",
-          "links": [
-            2
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "ImagenTextToImageNode"
-      },
-      "widgets_values": [
-        "A vivid landscape painting of a futuristic city",
-        "ALLOW_ADULT",
-        "16:9",
-        2,
-        "",
-        28950517104348,
-        "randomize",
-        true,
-        false,
-        "PNG",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "",
-        ""
-      ]
-    },
-    {
-      "id": 3,
+      "id": 9,
       "type": "VeoImageToVideoNode",
       "pos": [
-        2211.4658203125,
-        -301.7425537109375
+        2338.93994140625,
+        -310.8781433105469
       ],
       "size": [
         400,
@@ -165,7 +122,7 @@
         {
           "name": "image",
           "type": "IMAGE",
-          "link": 2
+          "link": 8
         }
       ],
       "outputs": [
@@ -173,7 +130,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            3
+            9
           ]
         }
       ],
@@ -189,8 +146,80 @@
         true,
         1,
         "",
-        869040713176427,
+        0,
         "randomize",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 10,
+      "type": "PreviewImage",
+      "pos": [
+        2152.229736328125,
+        -103.68756103515625
+      ],
+      "size": [
+        140,
+        26
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 10
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.39",
+        "Node name for S&R": "PreviewImage"
+      }
+    },
+    {
+      "id": 8,
+      "type": "ImagenTextToImageNode",
+      "pos": [
+        1713.7041015625,
+        -296.0448913574219
+      ],
+      "size": [
+        400,
+        376
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            8,
+            10
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImagenTextToImageNode"
+      },
+      "widgets_values": [
+        "A vivid landscape painting of a futuristic city",
+        "ALLOW_ADULT",
+        "16:9",
+        1,
+        "",
+        0,
+        "randomize",
+        true,
+        true,
+        "PNG",
+        "BLOCK_MEDIUM_AND_ABOVE",
         "",
         ""
       ]
@@ -198,26 +227,34 @@
   ],
   "links": [
     [
-      2,
-      1,
+      5,
+      4,
       0,
-      3,
+      6,
       0,
       "IMAGE"
     ],
     [
-      3,
-      3,
+      8,
+      8,
+      0,
+      9,
+      0,
+      "IMAGE"
+    ],
+    [
+      9,
+      9,
       0,
       4,
       0,
       "VEO_VIDEO"
     ],
     [
-      5,
-      4,
+      10,
+      8,
       0,
-      6,
+      10,
       0,
       "IMAGE"
     ]
@@ -228,15 +265,15 @@
     "ds": {
       "scale": 1.4122927695244532,
       "offset": [
-        -1682.0013262008724,
-        386.75278180605096
+        -1680.6175588191086,
+        386.05646836543826
       ]
     },
-    "frontendVersion": "1.20.5",
+    "frontendVersion": "1.20.7",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,
     "VHS_KeepIntermediate": true
   },
   "version": 0.4
-}   
+}

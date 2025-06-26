@@ -1,19 +1,19 @@
 {
   "id": "7e14936e-0f03-4401-bd90-874b1d0587d4",
   "revision": 0,
-  "last_node_id": 2,
-  "last_link_id": 1,
+  "last_node_id": 3,
+  "last_link_id": 2,
   "nodes": [
     {
-      "id": 2,
+      "id": 3,
       "type": "PreviewImage",
       "pos": [
-        1517.4923095703125,
-        332.29412841796875
+        1585.304443359375,
+        339.6247863769531
       ],
       "size": [
         140,
-        246
+        26
       ],
       "flags": {},
       "order": 1,
@@ -22,16 +22,15 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 1
+          "link": 2
         }
       ],
       "outputs": [],
       "properties": {
         "cnr_id": "comfy-core",
-        "ver": "0.3.36",
+        "ver": "0.3.39",
         "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
+      }
     },
     {
       "id": 1,
@@ -53,7 +52,7 @@
           "name": "Generated Image",
           "type": "IMAGE",
           "links": [
-            1
+            2
           ]
         }
       ],
@@ -66,7 +65,7 @@
         "16:9",
         4,
         "",
-        75093912896778,
+        842061401,
         "randomize",
         true,
         false,
@@ -79,10 +78,10 @@
   ],
   "links": [
     [
-      1,
+      2,
       1,
       0,
-      2,
+      3,
       0,
       "IMAGE"
     ]
@@ -97,7 +96,7 @@
         -120.3927307025424
       ]
     },
-    "frontendVersion": "1.20.5",
+    "frontendVersion": "1.20.7",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

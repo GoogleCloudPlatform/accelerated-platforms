@@ -1,6 +1,17 @@
 adminport
+cloudfunction
+cooldown
 dhtqz
+endtoendtests
+federatedcompute
 flport
+modelupdater
 nvfl
 nvflare
+ondevicepersonalization
+opallowedusr
+opallowedusr
+opverifiedusr
+opwip
+pvdr
 ython

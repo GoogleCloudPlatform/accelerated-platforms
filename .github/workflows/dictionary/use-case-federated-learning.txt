@@ -1,9 +1,7 @@
 adminport
 cloudfunction
-confidentialcomputing
 cooldown
 dhtqz
-dkzkh
 endtoendtests
 federatedcompute
 dkzkh
@@ -11,13 +9,12 @@ endtoendtests
 federatedcompute
 flport
 modelupdater
-notif
 nvfl
 nvflare
 ondevicepersonalization
 opallowedusr
+opallowedusr
 opverifiedusr
 opwip
-pqhk
 pvdr
 ython

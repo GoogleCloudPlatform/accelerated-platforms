@@ -18,6 +18,7 @@ import numpy as np
 import torch
 from google.genai import types
 
+from .constants import MAX_SEED
 from .imagen_api import ImagenAPI
 
 
@@ -66,7 +67,7 @@ class ImagenTextToImageNode:
                     {
                         "default": 0,
                         "min": 0,
-                        "max": 0xFFFFFFFF,
+                        "max": MAX_SEED,
                         "tooltip": "0 seed let's Imagen3 API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),

@@ -21,6 +21,7 @@ import folder_paths
 import numpy as np
 import torch
 
+from .constants import MAX_SEED
 from .veo_api import VeoAPI
 
 
@@ -53,7 +54,7 @@ class VeoTextToVideoNode:
                     {
                         "default": 0,
                         "min": 0,
-                        "max": 0xFFFFFFFF,
+                        "max": MAX_SEED,
                         "tooltip": "0 seed let's Veo API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),
@@ -182,7 +183,7 @@ class VeoGcsUriImageToVideoNode:
                     {
                         "default": 0,
                         "min": 0,
-                        "max": 0xFFFFFFFF,
+                        "max": MAX_SEED,
                         "tooltip": "0 seed let's Veo API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),
@@ -313,7 +314,7 @@ class VeoImageToVideoNode:
                     {
                         "default": 0,
                         "min": 0,
-                        "max": 0xFFFFFFFF,
+                        "max": MAX_SEED,
                         "tooltip": "0 seed let's Veo API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),

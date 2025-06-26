@@ -77,8 +77,37 @@ This solution uses the platform provided by the
 
 2. **Create Hugging Face Account Token:** Your VLLM deployment will need access
    to Hugging Face models. Follow the steps to create and configure a Hugging
-   Face token:
-   [Hugging Face Token Setup Guide](/platforms/gke/base/core/huggingface/initialize/README.md).
+   Face token.
+
+   - Set environment variables:
+
+     ```shell
+     set -o allexport
+     source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"
+     set +o allexport
+     ```
+
+   - Add the Hugging Face Hub access token with read permissions using **one**
+     of the following:
+
+   - [Generate a Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens)
+     with token type **Read**.
+
+     **Console**
+
+     ```shell
+     echo -e "\n${huggingface_hub_access_token_read_secret_manager_secret_name} versions URL: https://console.cloud.google.com/security/secret-manager/secret/${huggingface_hub_access_token_read_secret_manager_secret_name}/versions?project=${huggingface_secret_manager_project_id}\n"
+     ```
+
+     **`gcloud`**
+
+     ```shell
+     unset HISTORY
+     HF_TOKEN_READ="<read token>"
+     echo ${HF_TOKEN_READ} | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} \
+     --data-file=- \
+     --project=${huggingface_secret_manager_project_id}
+     ```
 
 3. **Gain Access to Gemma Models:** To download and use Gemma models, you must
    accept their terms and conditions on Kaggle.com:
@@ -92,41 +121,59 @@ This solution uses the platform provided by the
 These steps set up your local shell environment to interact with your GKE
 cluster and manage resources.
 
-1. Set Core Environment Variables:
+1. Set Kubernetes Namespace ans Service Account (KSA) variables:
 
-```shell
-set -o allexport
-source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"
-set +o allexport
-```
+   ```shell
+   export WORKLOAD_NAMESPACE="tpu-inf"
+   export WORKLOAD_KSA="tpu-inf-ksa"
+   ```
 
 2. Source GKE Cluster Credentials: Configure kubectl to connect to your newly
    deployed GKE cluster.
 
-```shell
-gcloud container clusters get-credentials ${cluster_name} \
---dns-endpoint \
---location="${cluster_region}" \
---project="${cluster_project_id}"
-```
+   ```shell
+   gcloud container clusters get-credentials ${cluster_name} \
+   --dns-endpoint \
+   --location="${cluster_region}" \
+   --project="${cluster_project_id}"
+   ```
 
-3. Define Kubernetes Service Account (KSA) Variable:
+3. Create Kubernetes namespace:
 
-```shell
-export WORKLOAD_KSA="default"
-```
+   ```shell
+   kubectl create namespace ${WORKLOAD_NAMESPACE}
+   ```
 
-4. Add GCS Bucket Access Permission to Workload KSA Grant your Kubernetes
-   Service Account the necessary IAM permissions to access the GCS bucket where
-   your Hugging Face models are stored.
+4. Create Kubernetes Service Account (KSA):
 
-```shell
-export ROLE_NAME="roles/storage.objectAdmin"
+   ```shell
+   envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/service-account.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE}
+   apply -f -
+   ```
 
-export cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
+5. Give the Kubernetes service account IAM permissions.
 
-gcloud storage buckets add-iam-policy-binding gs://"${huggingface_hub_models_bucket_name}" --member "principal://iam.googleapis.com/projects/${cluster_project_number}/locations/global/workloadIdentityPools/accelerated-platforms-dev.svc.id.goog/subject/ns/${WORKLOAD_NAMESPACE}/sa/${WORKLOAD_KSA}" --role "${ROLE_NAME}"
-```
+   ```shell
+   cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
+   gcloud secrets add-iam-policy-binding ${huggingface_hub_access_token_read_secret_manager_secret_name} \
+   --member=principal://iam.googleapis.com/projects/${cluster_project_number}/locations/global/workloadIdentityPools/${cluster_project_id}.svc.id.goog/subject/ns/${WORKLOAD_NAMESPACE}/sa/${WORKLOAD_KUBERNETES_SERVICE_ACCOUNT} \
+   --project=${huggingface_secret_manager_project_id} \
+   --role=roles/secretmanager.secretAccessor
+   ```
+
+   ```shell
+   cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
+   gcloud storage buckets add-iam-policy-binding ${huggingface_hub_models_bucket_name} \
+   --member=principal://iam.googleapis.com/projects/${cluster_project_number}/locations/global/workloadIdentityPools/${cluster_project_id}.svc.id.goog/subject/ns/${WORKLOAD_NAMESPACE}/sa/${WORKLOAD_KUBERNETES_SERVICE_ACCOUNT} \
+   --project=${cluster_project_id} \
+   --role=${cluster_gcsfuse_user_role}
+   ```
+
+- Create the `SecretProviderClass`es in the workload's namespace.
+
+  ```shell
+  envsubst <${ACP_REPO_DIR}/platforms/gke/base/core/huggingface/initialize/templates/secretproviderclass-huggingface-tokens.tftpl.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE} apply -f -
+  ```
 
 # Deploy the Online Inference Workloads
 
@@ -158,59 +205,59 @@ machine and sending a curl request.
    Ready status. This may take several minutes as the model downloads and
    initializes on the TPU.
 
-```bash
-kubectl get pods -n "${WORKLOAD_NAMESPACE}" -l app=vllm-tpu-gemma-3-1b-it
-```
+   ```bash
+   kubectl get pods -n "${WORKLOAD_NAMESPACE}" -l app=vllm-tpu-gemma-3-1b-it
+   ```
 
 2. **Verify Service Status:** Confirm that your ClusterIP service is deployed.
 
-```bash
-kubectl get service -n "${WORKLOAD_NAMESPACE}" vllm-service-gemma-3-1b-it
-```
+   ```bash
+   kubectl get service -n "${WORKLOAD_NAMESPACE}" vllm-service-gemma-3-1b-it
+   ```
 
-Look for output similar to:
+   Look for output similar to:
 
-```bash
-NAME                         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
-vllm-service-gemma-3-1b-it   ClusterIP   X.X.X.X     <none>        8000/TCP   5m
-```
+   ```bash
+   NAME                         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
+   vllm-service-gemma-3-1b-it   ClusterIP   X.X.X.X     <none>        8000/TCP   5m
+   ```
 
 3. **Establish Port Forwarding:** Open a new terminal window and run the
    following command. This will forward traffic from your local machine's port
    8000 to the service's port 8000 within the cluster.
 
-```bash
-kubectl port-forward service/vllm-service-gemma-3-1b-it 8000:8000 -n "${WORKLOAD_NAMESPACE}"
-```
+   ```bash
+   kubectl port-forward service/vllm-service-gemma-3-1b-it 8000:8000 -n "${WORKLOAD_NAMESPACE}"
+   ```
 
-You should see output indicating that the forwarding is active:
+   You should see output indicating that the forwarding is active:
 
-```bash
-Forwarding from 127.0.0.1:8000 -> 8000
-Handling connection for 8000
-```
+   ```bash
+   Forwarding from 127.0.0.1:8000 -> 8000
+   Handling connection for 8000
+   ```
 
-Keep this terminal window open as long as you want to access the service
-locally.
+   Keep this terminal window open as long as you want to access the service
+   locally.
 
 4. **Test with curl:** In a separate terminal window (where port-forwarding is
    NOT running), send a curl request to your locally forwarded endpoint.
 
-Example for Chat Completion (if using a chat-tuned model and
-/v1/chat/completions):
+   Example for Chat Completion (if using a chat-tuned model and
+   /v1/chat/completions):
 
-```bash
-curl -X POST -H "Content-Type: application/json" \
-     -d '{
-           "model": "google/gemma-3-1b-it",
-           "messages": [
-             {"role": "user", "content": "Tell me a short story about a brave knight and a dragon."}
-           ],
-           "max_tokens": 100,
-           "temperature": 0.7
-         }' \
-     http://localhost:8000/v1/chat/completions
-```
+   ```bash
+   curl -X POST -H "Content-Type: application/json" \
+      -d '{
+            "model": "google/gemma-3-1b-it",
+            "messages": [
+               {"role": "user", "content": "Tell me a short story about a brave knight and a dragon."}
+            ],
+            "max_tokens": 100,
+            "temperature": 0.7
+            }' \
+      http://localhost:8000/v1/chat/completions
+   ```
 
 5. **Clean Up Port Forwarding:** Once you are done testing, simply close the
    terminal window where kubectl port-forward is running.

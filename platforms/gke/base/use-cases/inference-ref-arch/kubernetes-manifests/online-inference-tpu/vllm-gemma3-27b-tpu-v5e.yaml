@@ -78,7 +78,7 @@ spec:
           driver: secrets-store-gke.csi.k8s.io
           readOnly: true
           volumeAttributes:
-            secretProviderClass: huggingface-token-write
+            secretProviderClass: huggingface-token-read
       - name: dshm
         emptyDir:
             medium: Memory

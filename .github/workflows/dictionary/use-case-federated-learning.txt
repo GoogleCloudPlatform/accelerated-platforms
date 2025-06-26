@@ -10,7 +10,6 @@ nvfl
 nvflare
 ondevicepersonalization
 opallowedusr
-opallowedusr
 opverifiedusr
 opwip
 pvdr

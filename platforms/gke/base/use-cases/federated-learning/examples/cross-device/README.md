@@ -37,7 +37,7 @@ microservices. These components do the following:
   events
 - Task-builder: this job builds tasks to be sent to clients
 
-Two of the FCP compoments have to be run in a confidential space virtual machine
+Two of the FCP components have to be run in a confidential space virtual machine
 that ensures the memory is encrypted during use. These components are:
 
 - Aggregator: this job reads device gradients and calculates aggregated result
@@ -98,7 +98,7 @@ ones that the Federated learning reference architecture provisions.
    1. Run the script to configure the reference architecture and provision
       Google Cloud resources that this example needs:
 
-   ```sh
+   ```bash
    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh"
    ```
 
@@ -129,7 +129,7 @@ In this section, you check the status of the cross-device example:
 
    The output is similar to the following:
 
-   ```bash
+   ```text
    NAME                                        READY   STATUS    RESTARTS      AGE
    demo-dev-collector-6f465bcdf4-24lft         2/2     Running   0              1d
    demo-dev-task-assignment-84d65486c7-j5mvk   2/2     Running   0              1d
@@ -192,6 +192,6 @@ To destroy an instance of this example, you do the following:
 
    1. Run the script to destroy an instance of this example:
 
-   ```sh
+   ```bash
    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh"
    ```

@@ -39,27 +39,11 @@ fi
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
-CROSS_DEVICE_BASE_IMAGE_URL=
-
 echo "Setting up the environment for the cross-device federated learning example"
 CROSS_DEVICE_EXAMPLE_TENANT_NAME="fl-1"
 CROSS_DEVICE_MODEL_BUCKET="model-0"
 CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET="aggregated-gradient-0"
 CROSS_DEVICE_CLIENT_GRADIENT_BUCKET="client-gradient-0"
-CROSS_DEVICE_AGGREGATOR_SERVICE_ACCOUNT="aggregator"
-CROSS_DEVICE_MODELUPDATER_SERVICE_ACCOUNT="modelupdater"
-CROSS_DEVICE_COLLECTOR_SERVICE_ACCOUNT="collector"
-CROSS_DEVICE_TASK_ASSIGNMENT_SERVICE_ACCOUNT="task-assignment"
-CROSS_DEVICE_TASK_MANAGEMENT_SERVICE_ACCOUNT="task-management"
-CROSS_DEVICE_TASK_SCHEDULER_SERVICE_ACCOUNT="task-scheduler"
-CROSS_DEVICE_TASK_BUILDER_SERVICE_ACCOUNT="task-builder"
-CROSS_DEVICE_AGGREGATOR_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/aggregator_image@sha256:1043eb980b618e325d5b490c879fc72f211a70104d7f645b1bbb70996a42de2c"
-CROSS_DEVICE_MODELUPDATER_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/model_updater_image@sha256:b0bc213e4cb34c99525345b1d544371ce5c9d647ec08405a9ca96d61e0b272fa"
-CROSS_DEVICE_COLLECTOR_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/collector_image"
-CROSS_DEVICE_TASK_ASSIGNMENT_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/task_assignment_image"
-CROSS_DEVICE_TASK_MANAGEMENT_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/task_management_image"
-CROSS_DEVICE_TASK_SCHEDULER_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/task_scheduler_image"
-CROSS_DEVICE_TASK_BUILDER_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/task_builder_image"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 FEDERATED_LEARNING_CROSS_DEVICE_EXAMPLE_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARNING_SHARED_CONFIG_DIR}/uc_federated_learning_cross_device_example.auto.tfvars"
@@ -111,34 +95,5 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 cross_device_example_terraservices=(
-  "network"
-  "cloud_storage"
-  "spanner"
-  "pubsub"
-  "service_account_cross_device"
-  "confidential_space"
   "secret_manager"
-  "config_management"
-  "example_cross_device"
 )
-
-load_fl_terraform_outputs() {
-  echo "Loading container_image_repository_fully_qualified_hostname Terraform output"
-  if ! CROSS_DEVICE_EXAMPLE_CONTAINER_IMAGE_REPOSITORY_HOSTNAME="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/container_image_repository" "container_image_repository_fully_qualified_hostname" "raw")"; then
-    exit 1
-  fi
-  echo "Loading container_image_repository_name Terraform output"
-  if ! CROSS_DEVICE_EXAMPLE_CONTAINER_IMAGE_REPOSITORY_NAME="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/container_image_repository" "container_image_repository_name" "raw")"; then
-    exit 1
-  fi
-  echo "Loading workload_identity_principal_prefix Terraform output"
-  if ! CROSS_DEVICE_EXAMPLE_CLUSTER_WORKLOAD_IDENTITY_PRINCIPAL_PREFIX="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/service_account" "workload_identity_principal_prefix" "raw")"; then
-    exit 1
-  fi
-  echo "Loading federated_learning_kubernetes_service_account_name Terraform output"
-  if ! CROSS_DEVICE_EXAMPLE_KUBERNETES_SERVICE_ACCOUNT_NAME="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/service_account" "federated_learning_kubernetes_service_account_name" "raw")"; then
-    exit 1
-  fi
-  # shellcheck disable=SC2034 # Variable is used in other scripts
-  CROSS_DEVICE_EXAMPLE_APPS_SERVICE_ACCOUNT_IAM_EMAIL="${CROSS_DEVICE_EXAMPLE_CLUSTER_WORKLOAD_IDENTITY_PRINCIPAL_PREFIX}/ns/${CROSS_DEVICE_EXAMPLE_TENANT_NAME}/sa/${CROSS_DEVICE_EXAMPLE_KUBERNETES_SERVICE_ACCOUNT_NAME}"
-}

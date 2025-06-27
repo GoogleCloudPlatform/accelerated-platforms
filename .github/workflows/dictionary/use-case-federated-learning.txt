@@ -7,7 +7,9 @@ dkzkh
 endtoendtests
 federatedcompute
 flport
+lgtlq
 modelupdater
+njgb
 notif
 nvfl
 nvflare

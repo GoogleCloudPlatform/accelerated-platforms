@@ -7,8 +7,10 @@ endtoendtests
 federatedcompute
 flport
 lgtlq
+lgtlq
 modelupdater
 njgb
+notif
 nvfl
 nvflare
 ondevicepersonalization

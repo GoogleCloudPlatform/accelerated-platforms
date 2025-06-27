@@ -81,6 +81,7 @@ class VeoAPI:
         self,
         prompt: str,
         aspect_ratio: str,
+        compression_quality: str,
         person_generation: str,
         duration_seconds: int,
         enhance_prompt: bool,
@@ -94,6 +95,7 @@ class VeoAPI:
         Args:
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
+            compression_quality: Compression quality i.e optimized and lossless.
             person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
             duration_seconds: The desired duration of the video in seconds (5-8 seconds).
             enhance_prompt: Whether to enhance the prompt automatically.
@@ -118,9 +120,17 @@ class VeoAPI:
             raise ValueError(
                 f"sample_count must be between 1 and 4, but got {sample_count}."
             )
+        if not (
+            compression_quality.lower() == "optimized"
+            or compression_quality.lower() == "lossless"
+        ):
+            raise ValueError(
+                f"compression_quality can either be optimized or lossless."
+            )
 
         config = GenerateVideosConfig(
             aspect_ratio=aspect_ratio,
+            compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
             enhance_prompt=enhance_prompt,
@@ -427,6 +437,7 @@ class VeoAPI:
         image_format: str,
         prompt: str,
         aspect_ratio: str,
+        compression_quality: str,
         person_generation: str,
         duration_seconds: int,
         enhance_prompt: bool,
@@ -442,6 +453,7 @@ class VeoAPI:
             image_format: The format of the input image (e.g., "PNG", "JPEG", "WEBP").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized and lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
@@ -468,6 +480,14 @@ class VeoAPI:
         if not (1 <= sample_count <= 4):
             raise ValueError(
                 f"sample_count must be between 1 and 4, but got {sample_count}."
+            )
+
+        if not (
+            compression_quality.lower() == "optimized"
+            or compression_quality.lower() == "lossless"
+        ):
+            raise ValueError(
+                f"compression_quality can either be optimized or lossless."
             )
 
         if image is None:
@@ -509,6 +529,7 @@ class VeoAPI:
 
         config = GenerateVideosConfig(
             aspect_ratio=aspect_ratio,
+            compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
             enhance_prompt=enhance_prompt,
@@ -517,6 +538,7 @@ class VeoAPI:
             seed=seed,
         )
 
+        print(f"Config for image-to-video generation: {config}")
         retries = 0
         while retries <= self.retry_count:
             try:
@@ -611,6 +633,7 @@ class VeoAPI:
         image_format: str,
         prompt: str,
         aspect_ratio: str,
+        compression_quality: str,
         person_generation: str,
         duration_seconds: int,
         enhance_prompt: bool,
@@ -626,6 +649,7 @@ class VeoAPI:
             image_format: The format of the input image (e.g., "PNG", "JPEG", "WEBP").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized and lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
@@ -658,7 +682,13 @@ class VeoAPI:
             raise ValueError(
                 f"sample_count must be between 1 and 4, but got {sample_count}."
             )
-
+        if not (
+            compression_quality.lower() == "optimized"
+            or compression_quality.lower() == "lossless"
+        ):
+            raise ValueError(
+                f"compression_quality can either be optimized or lossless."
+            )
         valid_bucket, validation_message = self.validate_gcs_uri_and_image(gcsuri)
         if valid_bucket:
             print(validation_message)
@@ -678,6 +708,7 @@ class VeoAPI:
 
         config = GenerateVideosConfig(
             aspect_ratio=aspect_ratio,
+            compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
             enhance_prompt=enhance_prompt,
@@ -686,6 +717,7 @@ class VeoAPI:
             seed=seed,
         )
 
+        print(f"Config for image-to-video generation: {config}")
         retries = 0
         while retries <= self.retry_count:
             try:

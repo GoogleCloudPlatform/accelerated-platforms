@@ -36,6 +36,10 @@ class VeoTextToVideoNode:
             "required": {
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "compression_quality": (
+                    ["optimized", "lossless"],
+                    {"default": "optimized"},
+                ),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "dont_allow"},
@@ -84,6 +88,7 @@ class VeoTextToVideoNode:
         self,
         prompt: str,
         aspect_ratio: str = "16:9",
+        compression_quality: str = "optimized",
         person_generation: str = "dont_allow",
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
@@ -99,6 +104,7 @@ class VeoTextToVideoNode:
         Args:
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
@@ -126,6 +132,7 @@ class VeoTextToVideoNode:
             video_paths = api.generate_video_from_text(
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
+                compression_quality=compression_quality,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
                 enhance_prompt=enhance_prompt,
@@ -165,6 +172,10 @@ class VeoGcsUriImageToVideoNode:
                 ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "compression_quality": (
+                    ["optimized", "lossless"],
+                    {"default": "optimized"},
+                ),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "dont_allow"},
@@ -215,6 +226,7 @@ class VeoGcsUriImageToVideoNode:
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
+        compression_quality: str = "optimized",
         person_generation: str = "dont_allow",
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
@@ -232,6 +244,7 @@ class VeoGcsUriImageToVideoNode:
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
@@ -260,6 +273,7 @@ class VeoGcsUriImageToVideoNode:
                 image_format=image_format,
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
+                compression_quality=compression_quality,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
                 enhance_prompt=enhance_prompt,
@@ -296,6 +310,10 @@ class VeoImageToVideoNode:
                 ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "compression_quality": (
+                    ["optimized", "lossless"],
+                    {"default": "optimized"},
+                ),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "dont_allow"},
@@ -346,6 +364,7 @@ class VeoImageToVideoNode:
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
+        compression_quality: str = "optimized",
         person_generation: str = "dont_allow",
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
@@ -363,6 +382,7 @@ class VeoImageToVideoNode:
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized and lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
@@ -400,6 +420,7 @@ class VeoImageToVideoNode:
                     image_format=image_format,
                     prompt=prompt,
                     aspect_ratio=aspect_ratio,
+                    compression_quality=compression_quality,
                     person_generation=person_generation,
                     duration_seconds=duration_seconds,
                     enhance_prompt=enhance_prompt,

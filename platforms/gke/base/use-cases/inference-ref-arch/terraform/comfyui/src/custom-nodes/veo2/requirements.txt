@@ -14,5 +14,5 @@
 # This is a preview version of veo2 custom node
 google-api-core==2.24.2
 google-cloud-storage==3.1.0
-google-genai==1.20.0
+google-genai==1.22.0
 opencv-python-headless==4.11.0.86

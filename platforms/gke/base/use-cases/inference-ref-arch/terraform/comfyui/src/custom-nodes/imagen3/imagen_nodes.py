@@ -51,8 +51,8 @@ class ImagenTextToImageNode:
                     },
                 ),
                 "person_generation": (
-                    ["ALLOW_ADULT", "DONT_ALLOW"],
-                    {"default": "ALLOW_ADULT"},
+                    ["allow_adult", "dont_allow"],
+                    {"default": "allow_adult"},
                 ),
                 "aspect_ratio": (
                     ["1:1", "16:9", "4:3", "3:4", "9:16"],
@@ -109,7 +109,7 @@ class ImagenTextToImageNode:
     def generate_and_return_image(
         self,
         prompt: str,
-        person_generation: str = "DONT_ALLOW",
+        person_generation: str = "dont_allow",
         aspect_ratio: str = "16:9",
         number_of_images: int = 4,
         negative_prompt: Optional[str] = None,
@@ -150,7 +150,7 @@ class ImagenTextToImageNode:
                 f"Failed to initialize Imagen API client for node execution: {e}"
             )
 
-        p_gen_enum = getattr(types.PersonGeneration, person_generation)
+        p_gen_enum = getattr(types.PersonGeneration, person_generation.upper())
 
         seed_for_api = seed if seed != 0 else None
 

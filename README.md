@@ -16,19 +16,18 @@ the platform optimizes high-performance computing.
 
 ## Google Kubernetes Engine (GKE)
 
-### Base GKE Accelerated Platform
+### GKE Base Platform
 
-The [Base GKE Accelerated Platform](/platforms/gke/base/README.md) is an
-implementation of a foundational platform built on GKE that incorporates best
-practices and provides a core environment optimized for running accelerated
-workloads. It offers a streamlined and efficient solution to leverage the
-benefits of GKE as the primary runtime.
+The [GKE Base Platform](/docs/platforms/gke/base/README.md) is an implementation
+of a foundational platform built on GKE that incorporates best practices and
+provides a core environment optimized for running accelerated workloads. It
+offers a streamlined and efficient solution to leverage the benefits of GKE as
+the primary runtime.
 
 #### Example implementations
 
-- [GKE AI/ML Platform for enabling AI/ML Ops](/docs/platforms/gke-aiml/README.md)
-- [Federated learning](/docs/use-cases/federated-learning/README.md)
-- [Inference reference architecture](/platforms/gke/base/use-cases/inference-ref-arch/README.md)
+- [Federated learning](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
+- [Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
   - [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
   - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
 
@@ -38,6 +37,8 @@ The [Playground AI/ML Platform on GKE](/platforms/gke-aiml/playground/README.md)
 is a quick-start implementation of the platform that can be used to familiarize
 yourself with the GKE architecture and to get an understanding of various
 concepts covered in the use cases.
+
+- [GKE AI/ML Platform for enabling AI/ML Ops](/docs/platforms/gke-aiml/README.md)
 
 #### Use cases
 

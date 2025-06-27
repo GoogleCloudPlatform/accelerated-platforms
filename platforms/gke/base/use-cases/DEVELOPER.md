@@ -1,4 +1,4 @@
-# Base GKE Accelerated Platform developers guide
+# GKE Base Platform developers guide
 
 In this document, we explain how developers should work on the base platform to
 add new features, implement new use cases, and fix bugs.
@@ -9,15 +9,15 @@ In order to develop new use cases or integrate existing use cases on top of the
 core platform, you follow this approach:
 
 1. Create a new documentation directory about the use case under
-   `docs/use-cases`. In the context of this document, this directory is defined
-   as the _use case documentation directory_. Example:
-   `docs/use-cases/federated-learning`.
+   `docs/platforms/gke/base/use-cases`. In the context of this document, this
+   directory is defined as the _use case documentation directory_. Example:
+   `docs/platforms/gke/base/use-cases/federated-learning`.
 
 1. Create a documentation page about the use case and store it in the use case
    documentation directory. At minimum, the documentation page should include: a
    description of the use case, and an architecture diagram of the use case.
    Example:
-   [Federated learning use case documentation](/docs/use-cases/federated-learning/README.md)
+   [Federated learning use case documentation](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
 
 1. Create a new directory to contain use case assets under
    `platforms/gke/base/use-cases`. In the context of this document, this

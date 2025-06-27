@@ -1,4 +1,8 @@
-# Inference reference implementation
+# GKE Inference reference implementation
+
+## Architecture
+
+![Reference Architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/images/reference_architecture_simple.svg)
 
 ## Pull the source code
 
@@ -74,6 +78,75 @@ For more information about providing values for Terraform input variables, see
     [Hugging Face initialization](/platforms/gke/base/core/huggingface/initialize/README.md)
   - [Optional]
     [NVIDIA initialization](/platforms/gke/base/core/nvidia/initialize/README.md)
+
+### Resources created
+
+- Cloud Storage Buckets
+
+  - Hugging Face Hub models
+  - Terraform state
+
+- VPC Network
+
+  - Cloud Router
+    - Google API direct connectivity routes
+  - Regional Subnet
+    - NAT Gateway
+  - VPC firewall rules
+    - Allow Google API direct connectivity rule
+
+- Private GKE Standard Cluster
+
+  - Automatic application monitoring
+  - Custom Compute Classes
+    - [CPU](/platforms/gke/base/core/custom_compute_class/templates/manifests/cpu)
+      - cpu-n4-s-8
+    - [GPU](/platforms/gke/base/core/custom_compute_class/templates/manifests/gpu)
+      - gpu-a100-40gb-x2
+      - gpu-a100-80gb-x1
+      - gpu-h100-80gb-high-x1
+      - gpu-h100-80gb-high-x2
+      - gpu-h100-80gb-high-x4
+      - gpu-h100-80gb-high-x8
+      - gpu-h100-80gb-mega-x8
+      - gpu-h200-141gb-ultra-x8
+      - gpu-l4-24gb-s4-x1
+      - gpu-l4-24gb-s8-x1
+      - gpu-l4-24gb-s12-x1
+      - gpu-l4-24gb-s16-x1
+      - gpu-l4-24gb-s32-x1
+      - gpu-l4-24gb-x2
+      - gpu-l4-24gb-x4
+      - gpu-l4-24gb-x8
+    - [TPU](/platforms/gke/base/core/custom_compute_class/templates/manifests/tpu)
+      - tpu-v4-2x2x1
+      - tpu-v4-2x2x2
+      - tpu-v5e-2x2
+      - tpu-v5e-2x4
+      - tpu-v5p-2x2x1
+      - tpu-v5p-2x2x2
+      - tpu-v6e-2x2
+      - tpu-v6e-2x4
+  - Gateway API
+    - Inference Gateway
+  - `system` Node Pool
+  - Workloads
+    - Custom metrics adapter
+    - Jobset
+    - Kueue
+    - LeaderWorkerSet (LWS)
+    - [Priority Classes](/platforms/gke/base/core/workloads/priority_class/templates/manifests)
+      - [critical](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-critical.yaml)
+      - [high](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-high.yaml)
+      - [standard](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-standard.yaml)
+        (default)
+      - [low](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-low.yaml)
+      - [lowest](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-lowest.yaml)
+
+- Secret Manager Secrets
+
+  - Hugging Face Hub read token
+  - Hugging Face Hub write token
 
 ## Teardown
 

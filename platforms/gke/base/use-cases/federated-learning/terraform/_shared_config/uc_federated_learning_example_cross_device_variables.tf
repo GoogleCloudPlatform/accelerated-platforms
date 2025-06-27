@@ -32,57 +32,6 @@ locals {
   client_gradient_bucket_name     = var.federated_learning_client_gradient_bucket
   aggregated_gradient_bucket_name = var.federated_learning_aggregated_gradient_bucket
   model_bucket_name               = var.federated_learning_model_bucket
-
-  confidential_space_aggregator_service_account   = var.federated_learning_confidential_space_aggregator_service_account
-  confidential_space_modelupdater_service_account = var.federated_learning_confidential_space_modelupdater_service_account
-
-  confidential_space_service_accounts = [
-    local.confidential_space_aggregator_service_account,
-    local.confidential_space_modelupdater_service_account
-  ]
-
-  cross_device_collector_service_account       = var.federated_learning_collector_service_account
-  cross_device_task_assignment_service_account = var.federated_learning_task_assignment_service_account
-  cross_device_task_management_service_account = var.federated_learning_task_management_service_account
-  cross_device_task_scheduler_service_account  = var.federated_learning_task_scheduler_service_account
-  cross_device_task_builder_service_account    = var.federated_learning_task_builder_service_account
-
-  cross_device_service_accounts = [
-    local.cross_device_collector_service_account,
-    local.cross_device_task_assignment_service_account,
-    local.cross_device_task_management_service_account,
-    local.cross_device_task_scheduler_service_account,
-    local.cross_device_task_builder_service_account
-  ]
-
-  cross_device_common_roles = [
-    "roles/logging.logWriter",
-    "roles/iam.serviceAccountTokenCreator",
-    "roles/storage.objectUser",
-    "roles/pubsub.subscriber",
-    "roles/pubsub.publisher",
-    "roles/secretmanager.secretAccessor"
-  ]
-
-  confidential_space_roles = [
-    "roles/iam.serviceAccountUser",
-    "roles/confidentialcomputing.workloadUser",
-    "roles/monitoring.viewer",
-    "roles/monitoring.metricWriter",
-    "roles/artifactregistry.reader"
-  ]
-
-  cross_device_workload_roles = [
-    "roles/spanner.databaseUser",
-    "roles/gkehub.serviceAgent",
-    "roles/iam.workloadIdentityUser"
-  ]
-}
-
-variable "federated_learning_cross_device_example_deploy" {
-  default     = false
-  description = "Set this variable to true to deploy the Federated Learning cross device example"
-  type        = bool
 }
 
 ## Federated Learning bucket names
@@ -120,32 +69,6 @@ variable "federated_learning_spanner_lock_database_name" {
   default     = "lock-database"
 }
 
-# Spanner configuration
-variable "federated_learning_spanner_database_retention_period" {
-  description = "Duration to maintain table versioning for point-in-time recovery."
-  type        = string
-  nullable    = false
-  default     = "1h"
-}
-
-variable "federated_learning_spanner_processing_units" {
-  description = "Spanner's compute capacity. 1000 processing units = 1 node and must be set as a multiple of 100."
-  type        = number
-  default     = 1000
-}
-
-variable "federated_learning_spanner_database_deletion_protection" {
-  description = "Prevents destruction of the Spanner database."
-  type        = bool
-  default     = false
-}
-
-variable "federated_learning_spanner_nodes" {
-  description = "Number of nodes for Spanner instance"
-  type        = number
-  default     = 1
-}
-
 ## Federated Learning pubsub variables
 variable "federated_learning_aggregator_pubsub_name" {
   description = "Aggregator topic to be created for the cross-device example"
@@ -157,32 +80,6 @@ variable "federated_learning_modelupdater_pubsub_name" {
   description = "Modelupdater topic to be created for the cross-device example"
   type        = string
   default     = "modelupdater"
-}
-
-## Federated Learning confidential space variables
-variable "federated_learning_confidential_space_instance_image_name" {
-  description = "The Confidential Space OS source container image to run. Ref: https://cloud.google.com/confidential-computing/confidential-space/docs/confidential-space-images"
-  type        = string
-  default     = "projects/confidential-space-images/global/images/confidential-space-250301"
-}
-
-variable "federated_learning_confidential_space_workloads" {
-  default     = {}
-  description = "Map describing the Confidential Space workloads to create. Keys are virtual machine name."
-  type = map(object({
-    workload_image                = string
-    service_account               = string
-    min_replicas                  = number
-    max_replicas                  = number
-    cooldown_period               = number
-    autoscaling_jobs_per_instance = number
-    machine_type                  = string
-  }))
-}
-
-variable "federated_learning_cross_device_allowed_operator_service_accounts" {
-  description = "The service accounts provided by coordinator for the worker to impersonate"
-  type        = string
 }
 
 ## Keys service
@@ -223,78 +120,6 @@ variable "federated_learning_service_account_a" {
 
 variable "federated_learning_service_account_b" {
   description = "The service account to impersonate of the encryption key service B."
-  type        = string
-}
-
-## Service accounts
-variable "federated_learning_confidential_space_aggregator_service_account" {
-  description = "Name of the aggregator service account to allowlist in the coordinator"
-  type        = string
-}
-
-variable "federated_learning_confidential_space_modelupdater_service_account" {
-  description = "Name of the model updater service account to allowlist in the coordinator"
-  type        = string
-}
-
-variable "federated_learning_collector_service_account" {
-  description = "Name of the collector service account"
-  type        = string
-}
-
-variable "federated_learning_task_assignment_service_account" {
-  description = "Name of the task assignment service account"
-  type        = string
-}
-
-variable "federated_learning_task_management_service_account" {
-  description = "Name of the task management service account"
-  type        = string
-}
-
-variable "federated_learning_task_scheduler_service_account" {
-  description = "Name of the task scheduler service account"
-  type        = string
-}
-
-variable "federated_learning_task_builder_service_account" {
-  description = "Name of the task builder service account"
-  type        = string
-}
-
-## Container images
-variable "federated_learning_aggregator_image" {
-  description = "The container image for aggregator"
-  type        = string
-}
-
-variable "federated_learning_modelupdater_image" {
-  description = "The container image for model updater"
-  type        = string
-}
-
-variable "federated_learning_collector_image" {
-  description = "The container image for collector"
-  type        = string
-}
-
-variable "federated_learning_task_assignment_image" {
-  description = "The container image for task assignment"
-  type        = string
-}
-
-variable "federated_learning_task_management_image" {
-  description = "The container image for task management"
-  type        = string
-}
-
-variable "federated_learning_task_scheduler_image" {
-  description = "The container image for task scheduler"
-  type        = string
-}
-
-variable "federated_learning_task_builder_image" {
-  description = "The container image for task builder"
   type        = string
 }
 

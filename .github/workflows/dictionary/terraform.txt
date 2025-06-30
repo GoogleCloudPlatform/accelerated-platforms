@@ -19,6 +19,7 @@ strcontains
 templatefile
 terraservice
 terraservices
+tflint
 tfstate
 tftpl
 tfvars

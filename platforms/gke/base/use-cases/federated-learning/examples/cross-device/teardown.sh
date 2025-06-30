@@ -58,10 +58,6 @@ for configuration_variable in "${NVFLARE_EXAMPLE_TERRAFORM_FEDERATED_LEARNING_US
   remove_terraform_configuration_variable_from_file "${configuration_variable}" "${FEDERATED_LEARNING_CONFIG_AUTO_VARS_FILE}"
 done
 
-echo "Deleting the ${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID} container image from the registry"
-gcloud artifacts docker images delete "${NVFLARE_EXAMPLE_CONTAINER_IMAGE_LOCALIZED_ID}" \
-  --quiet || true
-
 echo "Running the Federated learning use case deploy script"
 "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/deploy.sh"
 

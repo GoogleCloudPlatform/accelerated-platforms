@@ -4,6 +4,7 @@ autolog
 autoscaled
 bitsandbytes
 byop
+chatbots
 checkpointing
 cicd
 colab

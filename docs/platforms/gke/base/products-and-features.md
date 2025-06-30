@@ -1,4 +1,4 @@
-# Base GKE Accelerated Platform Products and Features
+# GKE Base Platform Products and Features
 
 This document outlines the products and features that are used in the base GKE
 Accelerated Platform.

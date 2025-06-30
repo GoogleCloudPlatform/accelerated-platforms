@@ -73,6 +73,7 @@ meshconfig
 negs
 nodepool
 nodepools
+obtainability
 ondemand
 parallelstore
 pgaudit

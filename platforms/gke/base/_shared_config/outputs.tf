@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "cluster_credentials_command" {
+  value = local.cluster_credentials_command
+}
+
 output "cluster_gcsfuse_user_role" {
   value = local.cluster_gcsfuse_user_role
 }

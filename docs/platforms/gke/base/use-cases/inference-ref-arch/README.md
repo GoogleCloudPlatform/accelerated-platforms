@@ -1,5 +1,13 @@
 # GKE Inference reference architecture
 
+> [!IMPORTANT]  
+> 🚀 Dynamic Landscape 🚀: The field of AI inference is experiencing continuous,
+> rapid evolution. This document is regularly updated to reflect the latest
+> products, features, and architectural patterns, ensuring it remains current
+> with the advancements in AI, Google Cloud and Google Kubernetes Engine.
+>
+> Last Update: 2025-07-01
+
 This document outlines the reference architecture for deploying and managing
 inference workloads, particularly on Google Kubernetes Engine (GKE). It serves
 as a foundational guide for building robust and scalable inference solutions.

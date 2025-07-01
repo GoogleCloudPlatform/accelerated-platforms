@@ -8,4 +8,4 @@
 
 ### GKE
 
-- [GK Base Platform](/docs/platforms/gke/base/README.md)
+- [GKE Base Platform](/docs/platforms/gke/base/README.md)

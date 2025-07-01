@@ -38,7 +38,7 @@ class VeoTextToVideoNode:
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
-                    {"default": "dont_allow"},
+                    {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
                     "INT",
@@ -84,7 +84,7 @@ class VeoTextToVideoNode:
         self,
         prompt: str,
         aspect_ratio: str = "16:9",
-        person_generation: str = "dont_allow",
+        person_generation: str = "allow_adult",
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
         sample_count: int = 1,
@@ -167,7 +167,7 @@ class VeoGcsUriImageToVideoNode:
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
-                    {"default": "dont_allow"},
+                    {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
                     "INT",
@@ -215,7 +215,7 @@ class VeoGcsUriImageToVideoNode:
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
-        person_generation: str = "dont_allow",
+        person_generation: str = "allow_adult",
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
         sample_count: int = 1,
@@ -298,7 +298,7 @@ class VeoImageToVideoNode:
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
-                    {"default": "dont_allow"},
+                    {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
                     "INT",
@@ -346,7 +346,7 @@ class VeoImageToVideoNode:
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
-        person_generation: str = "dont_allow",
+        person_generation: str = "allow_adult",
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
         sample_count: int = 1,

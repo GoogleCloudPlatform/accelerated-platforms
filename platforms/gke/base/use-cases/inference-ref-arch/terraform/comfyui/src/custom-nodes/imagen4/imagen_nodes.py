@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# This is a preview version of imagen3 custom node
+# This is a preview version of imagen4 custom node
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -22,7 +22,7 @@ from .constants import MAX_SEED
 from .imagen_api import ImagenAPI
 
 
-class ImagenTextToImageNode:
+class Imagen4TextToImageNode:
     """
     A ComfyUI node for generating images from text prompts using the Google Imagen API.
     """
@@ -43,6 +43,14 @@ class ImagenTextToImageNode:
         """
         return {
             "required": {
+                "model": (
+                    [
+                        "imagen-4.0-generate-preview-06-06",
+                        "imagen-4.0-fast-generate-preview-06-06",
+                        "imagen-4.0-ultra-generate-preview-06-06",
+                    ],
+                    {"default": "imagen-4.0-generate-preview-06-06"},
+                ),
                 "prompt": (
                     "STRING",
                     {
@@ -51,8 +59,8 @@ class ImagenTextToImageNode:
                     },
                 ),
                 "person_generation": (
-                    ["ALLOW_ADULT", "DONT_ALLOW"],
-                    {"default": "ALLOW_ADULT"},
+                    ["allow_adult", "dont_allow"],
+                    {"default": "allow_adult"},
                 ),
                 "aspect_ratio": (
                     ["1:1", "16:9", "4:3", "3:4", "9:16"],
@@ -68,7 +76,7 @@ class ImagenTextToImageNode:
                         "default": 0,
                         "min": 0,
                         "max": MAX_SEED,
-                        "tooltip": "0 seed let's Imagen3 API handle randomness. Seed works with enhance_prompt disabled",
+                        "tooltip": "0 seed let's Imagen4 API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
@@ -104,12 +112,13 @@ class ImagenTextToImageNode:
     RETURN_NAMES = ("Generated Image",)
 
     FUNCTION = "generate_and_return_image"
-    CATEGORY = "Google AI/Imagen3"
+    CATEGORY = "Google AI/Imagen4"
 
     def generate_and_return_image(
         self,
-        prompt: str,
-        person_generation: str = "DONT_ALLOW",
+        model: str = "imagen-4.0-generate-preview-06-06",
+        prompt: str = "A vivid landscape painting of a futuristic city",
+        person_generation: str = "dont_allow",
         aspect_ratio: str = "16:9",
         number_of_images: int = 4,
         negative_prompt: Optional[str] = None,
@@ -126,6 +135,7 @@ class ImagenTextToImageNode:
         and returns them as a PyTorch tensor suitable for ComfyUI.
 
         Args:
+            model: Imagen4 model it. There are three as of Jul 1, 2025.
             prompt: The text prompt for image generation.
             person_generation: Controls whether the model can generate people.
             aspect_ratio: The desired aspect ratio of the images.
@@ -149,13 +159,13 @@ class ImagenTextToImageNode:
             raise RuntimeError(
                 f"Failed to initialize Imagen API client for node execution: {e}"
             )
-
-        p_gen_enum = getattr(types.PersonGeneration, person_generation)
+        p_gen_enum = getattr(types.PersonGeneration, person_generation.upper())
 
         seed_for_api = seed if seed != 0 else None
 
         try:
             pil_images = imagen_api.generate_image_from_text(
+                model=model,
                 prompt=prompt,
                 person_generation=p_gen_enum,
                 aspect_ratio=aspect_ratio,
@@ -189,6 +199,6 @@ class ImagenTextToImageNode:
         return (batched_images_tensor,)
 
 
-NODE_CLASS_MAPPINGS = {"ImagenTextToImageNode": ImagenTextToImageNode}
+NODE_CLASS_MAPPINGS = {"Imagen4TextToImageNode": Imagen4TextToImageNode}
 
-NODE_DISPLAY_NAME_MAPPINGS = {"ImagenTextToImageNode": "Imagen3 Text To Image"}
+NODE_DISPLAY_NAME_MAPPINGS = {"Imagen4TextToImageNode": "Imagen4 Text To Image"}

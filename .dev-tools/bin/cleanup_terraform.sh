@@ -23,13 +23,33 @@ source "${MY_PATH}/helpers/git.sh"
 
 ACP_REPO_DIR="$(realpath ${MY_PATH}/../../)"
 
+source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh"
+
 echo "Removing .terraform directories..."
 find "${ACP_REPO_DIR}" -name ".terraform" -type d
 find "${ACP_REPO_DIR}" -name ".terraform" -type d -exec rm -r {} +
 echo
 
+initialize_backend_file="${ACP_REPO_DIR}/platforms/gke/base/core/initialize/backend.tf"
+echo "Checking ${initialize_backend_file} file..."
+if [ -f "${initialize_backend_file}" ]; then
+  bucket_name=$(grep bucket "${initialize_backend_file}" | cut -d'"' -f2)
+
+  if [[ "${bucket_name}" != "${terraform_bucket_name}" ]]; then
+    echo "Bucket '${bucket_name}' does no match the configured value '${terraform_bucket_name}'"
+  fi
+
+  if gcloud storage buckets describe gs://${bucket_name} >/dev/null 2>&1; then
+    echo "Bucket '${bucket_name}' exists, NOT removing backend.tf file"
+  else
+    echo "Removing backend file '${initialize_backend_file}'"
+    rm -f "${initialize_backend_file}"
+  fi
+fi
+echo
+
+echo "==================================================================================="
+echo "If any terraform.tfstate files are found, review and delete any unnecessary files. "
+echo "==================================================================================="
 echo "Searching for terraform.tfstate files..."
 find "${ACP_REPO_DIR}" -name "terraform.tfstate*" -type f
-echo "==================================================================================="
-echo "If any terraform.tfstate files were found, review and delete any unnecessary files."
-echo "==================================================================================="

@@ -103,7 +103,7 @@ for additional information
 - Set environment variables.
 
   ```shell
-  source ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Ensure that IAP is enabled.
@@ -181,7 +181,7 @@ The `deploy-comfyui.sh` script will perform the following steps:
 - Set the environment variables
 
   ```
-  source ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Source GKE cluster credentials
@@ -326,7 +326,7 @@ the output bucket.
 - Set the environment variables
 
   ```
-  source ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Verify that the Workflow API has been successfully deployed:

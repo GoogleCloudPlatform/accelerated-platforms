@@ -37,7 +37,7 @@ export TF_VAR_resource_name_prefix="inf"
 export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 
 # shellcheck disable=SC1091
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config" "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"
+source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 # shellcheck disable=SC2154
 cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&

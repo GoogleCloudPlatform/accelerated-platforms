@@ -63,7 +63,7 @@ fi
 echo "Core platform terraservices to destroy: ${terraservices[*]}"
 
 # shellcheck disable=SC1091
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 # shellcheck disable=SC2154 # Variable is defined as a terraform output and sourced in other scripts
 cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&

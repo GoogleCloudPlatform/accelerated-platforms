@@ -5,7 +5,7 @@
 - Set environment variables.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"
+  source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Add the Hugging Face Hub access token with read permissions using **one** of
@@ -60,7 +60,7 @@
 - Set environment variables.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"
+  source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh"
   ```
 
   ```

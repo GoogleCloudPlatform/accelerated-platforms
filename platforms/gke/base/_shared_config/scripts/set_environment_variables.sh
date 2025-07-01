@@ -14,8 +14,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+BASH_SOURCE_MY_PATH="$(
+  cd "$(dirname "${BASH_SOURCE}")" >/dev/null 2>&1
+  pwd -P
+)"
+
+ACP_REPO_DIR=$(realpath "${BASH_SOURCE_MY_PATH}/../../../../../")
+ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+
 if [[ ! -v SHARED_CONFIG_PATHS ]]; then
-  SHARED_CONFIG_PATHS=("${@}")
+  if [ "$#" -eq 0 ]; then
+    SHARED_CONFIG_PATHS=("${ACP_PLATFORM_BASE_DIR}/_shared_config")
+  else
+    SHARED_CONFIG_PATHS=("${@}")
+  fi
+fi
+
+if ! grep -q "platform_default_project_id" "${ACP_PLATFORM_BASE_DIR}/_shared_config/platform.auto.tfvars"; then
+  if [[ ! -v TF_VAR_platform_default_project_id ]]; then
+    echo "Terraform variable 'platform_default_project_id' must be set!"
+    if [[ ${BASH_SOURCE[0]} = "$0" ]]; then
+      exit 1
+    else
+      return 1
+    fi
+  fi
 fi
 
 for SHARED_CONFIG_PATH in "${SHARED_CONFIG_PATHS[@]}"; do

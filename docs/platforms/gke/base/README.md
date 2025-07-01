@@ -199,7 +199,7 @@ This architecture is designed to be the foundation for other use cases. Some
 example use cases are:
 
 - [Federated learning](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
-- [Inference reference architecture](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
+- [Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
 
 ## Additional Reading
 

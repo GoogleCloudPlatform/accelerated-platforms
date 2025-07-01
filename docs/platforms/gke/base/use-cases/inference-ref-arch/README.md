@@ -6,7 +6,7 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2025-07-01
+> Last Update: 2025-07-01 (YYYY-MM-DD)
 
 This document outlines the reference architecture for deploying and managing
 inference workloads, particularly on Google Kubernetes Engine (GKE). It serves

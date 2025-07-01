@@ -89,3 +89,37 @@ data "google_compute_router_nat" "nat_gateway" {
   region  = var.cluster_region
   router  = data.google_compute_router.router.name
 }
+
+resource "terraform_data" "neg_cleanup" {
+  depends_on = [
+    google_compute_network.vpc,
+    google_compute_subnetwork.region,
+  ]
+
+  for_each = toset(var.network_name == null ? ["run-on-destroy"] : [])
+
+  input = {
+    network_self_link = data.google_compute_network.vpc.self_link
+    project_id        = google_project_service.compute_googleapis_com.project
+  }
+
+  provisioner "local-exec" {
+    command     = <<EOT
+echo "Cleaning up network endpoint groups..."
+negs=$(gcloud compute network-endpoint-groups list --filter="network=${self.input.network_self_link}" --format='value(format("{0},{1}", name, zone.basename()))' --project=${self.input.project_id})
+for neg in $${negs}; do
+  name="$${neg%,*}"
+  zone="$${neg#*,}"
+
+  echo "Deleting '$${name}' network endpoint group in $${zone}..."
+  gcloud compute network-endpoint-groups delete $${name} \
+  --project=${self.input.project_id} \
+  --quiet \
+  --zone=$${zone}
+done
+EOT
+    interpreter = ["bash", "-c"]
+    when        = destroy
+    working_dir = path.module
+  }
+}

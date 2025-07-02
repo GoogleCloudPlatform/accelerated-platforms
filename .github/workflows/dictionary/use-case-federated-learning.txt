@@ -1,14 +1,10 @@
 adminport
 cloudfunction
 cooldown
-dhtqz
-endtoendtests
-federatedcompute
 dkzkh
 endtoendtests
 federatedcompute
 flport
-lgtlq
 lgtlq
 modelupdater
 njgb
@@ -16,7 +12,6 @@ notif
 nvfl
 nvflare
 ondevicepersonalization
-opallowedusr
 opallowedusr
 opverifiedusr
 opwip

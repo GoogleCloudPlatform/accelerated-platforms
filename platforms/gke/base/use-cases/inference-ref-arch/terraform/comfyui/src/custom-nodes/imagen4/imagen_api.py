@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#  This is a preview version of imagen3 custom node
+# This is a preview version of imagen4 custom node
 import time
 from io import BytesIO
 from typing import List, Optional
@@ -42,7 +42,7 @@ class ImagenAPI:
         Raises:
             ValueError: If GCP Project or region cannot be determined.
         """
-        self.USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
+        self.USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"
         self.project_id = project_id or get_gcp_metadata("project/project-id")
         self.region = region or "-".join(
             get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
@@ -52,7 +52,6 @@ class ImagenAPI:
         if not self.region:
             raise ValueError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
-        self.model_id = "imagen-3.0-generate-002"
         http_options = genai.types.HttpOptions(headers={"User-Agent": self.USER_AGENT})
         self.client = genai.Client(
             vertexai=True,
@@ -66,6 +65,7 @@ class ImagenAPI:
 
     def generate_image_from_text(
         self,
+        model: str,
         prompt: str,
         person_generation: str,
         aspect_ratio: str,
@@ -78,9 +78,10 @@ class ImagenAPI:
         safety_filter_level: str,
     ) -> List[Image.Image]:
         """
-        Generate image from text prompt using Imagen3.
+        Generate image from text prompt using Imagen4.
 
         Args:
+            model: Imagen4 model it. There are three as of Jul 1, 2025.
             prompt: The text prompt for image generation.
             person_generation: Controls whether the model can generate people.
             aspect_ratio: The desired aspect ratio of the images.
@@ -115,6 +116,9 @@ class ImagenAPI:
         else:
             raise ValueError(f"Unsupported image format: {output_image_type}")
 
+        if model == "imagen-4.0-ultra-generate-preview-06-06" and number_of_images > 1:
+            raise ValueError("Ultra model only generates one image at a time.")
+
         config = types.GenerateImagesConfig(
             number_of_images=number_of_images,
             aspect_ratio=aspect_ratio,
@@ -131,9 +135,14 @@ class ImagenAPI:
         generated_pil_images: List[Image.Image] = []
         while retries <= self.retry_count:
             try:
-                print("Sending request to Imagen API for text-to-image generation...")
+                print(
+                    "Sending request to Imagen API for text-to-image generation with the following payload..."
+                )
+                print(f"Model - {model}")
+                print(f"Prompt - {prompt}")
+                print(f"Config - {config}")
                 response = self.client.models.generate_images(
-                    model=self.model_id, prompt=prompt, config=config
+                    model=model, prompt=prompt, config=config
                 )
 
                 if not response.generated_images:
@@ -163,7 +172,7 @@ class ImagenAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {self.model_id} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(

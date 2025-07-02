@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of imagen3 custom node
+# This is a preview version of imagen4 custom node
 import os
 
 from .imagen_nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS

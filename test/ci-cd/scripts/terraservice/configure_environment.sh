@@ -48,7 +48,7 @@ done
 cat /workspace/build.env
 source /workspace/build.env
 
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 # Create a dedicated project
 export NEW_PROJECT_ID="${cluster_project_id}"

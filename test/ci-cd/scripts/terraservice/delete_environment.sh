@@ -22,7 +22,7 @@ if [ "${DEBUG,,}" == "true" ]; then
   set -o xtrace
 fi
 
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 export DELETE_PROJECT_ID="${cluster_project_id}"
 ${ACP_REPO_DIR}/test/ci-cd/scripts/delete_project.sh

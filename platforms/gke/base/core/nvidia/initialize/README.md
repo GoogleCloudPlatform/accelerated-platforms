@@ -3,7 +3,7 @@
 - Set environment variables.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"
+  source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Add NGC API key secret version using **one** of the following:

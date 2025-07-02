@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,19 +13,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -o errexit
+set -o nounset
+set -o pipefail
 
 if [[ ! -v SHARED_CONFIG_PATHS ]]; then
   SHARED_CONFIG_PATHS=("${@}")
 fi
 
 for SHARED_CONFIG_PATH in "${SHARED_CONFIG_PATHS[@]}"; do
-  echo "Loading shared configuration(${SHARED_CONFIG_PATH})"
-  echo "-------------------------------------------------------------------------"
-  terraform -chdir="${SHARED_CONFIG_PATH}" init >/dev/null
-  terraform -chdir="${SHARED_CONFIG_PATH}" apply -auto-approve -input=false >/dev/null
-  terraform -chdir="${SHARED_CONFIG_PATH}" output
-  echo -e "-------------------------------------------------------------------------\n"
-  set -o allexport
-  eval "$(terraform -chdir="${SHARED_CONFIG_PATH}" output | sed -r 's/(\".*\")|\s*/\1/g')"
-  set +o allexport
+  echo "Uploading configurations(${SHARED_CONFIG_PATH})..."
+  bucket_folder=${SHARED_CONFIG_PATH#*/gke/base/}
+  gcloud storage cp \
+    --preserve-posix \
+    --preserve-symlinks \
+    "${SHARED_CONFIG_PATH}/*" \
+    "gs://${terraform_bucket_name}/terraform/configuration/${bucket_folder}"
 done

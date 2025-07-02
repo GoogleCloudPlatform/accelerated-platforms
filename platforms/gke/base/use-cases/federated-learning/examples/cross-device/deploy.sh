@@ -47,6 +47,9 @@ done
 echo "Running the Federated learning use case provisioning script"
 "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/deploy.sh"
 
+echo "Refreshing the environment configuration"
+load_fl_terraform_outputs
+
 echo "Updating the reference architecture configuration to deploy the cross-device example"
 for configuration_variable in "${CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES[@]}"; do
   write_terraform_configuration_variable_to_file "${configuration_variable}" "${FEDERATED_LEARNING_CROSS_DEVICE_EXAMPLE_CONFIG_AUTO_VARS_FILE}"
@@ -54,6 +57,9 @@ done
 for configuration_variable in "${CROSS_DEVICE_EXAMPLE_TERRAFORM_FEDERATED_LEARNING_USE_CASE_CONFIGURATION_VARIABLES[@]}"; do
   write_terraform_configuration_variable_to_file "${configuration_variable}" "${FEDERATED_LEARNING_CONFIG_AUTO_VARS_FILE}"
 done
+
+echo "Updating the reference architecture configuration values to deploy the cross-device example"
+edit_terraform_configuration_variable_value_in_file "federated_learning_cross_device_apps_service_account_placeholder" "${CROSS_DEVICE_EXAMPLE_APPS_SERVICE_ACCOUNT_IAM_EMAIL}" "${FEDERATED_LEARNING_CONFIG_AUTO_VARS_FILE}"
 
 echo "Provision services that the cross-device example depends on"
 # shellcheck disable=SC2154 # variable defined in setup-environment.sh

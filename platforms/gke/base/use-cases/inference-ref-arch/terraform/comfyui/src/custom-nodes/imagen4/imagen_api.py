@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 # This is a preview version of imagen4 custom node
 import time
 from io import BytesIO
@@ -115,8 +116,8 @@ class ImagenAPI:
         else:
             raise ValueError(f"Unsupported image format: {output_image_type}")
 
-        # if model == "imagen-4.0-ultra-generate-preview-06-06" and number_of_images > 1:
-        #     raise ValueError("Ultra model only generates one image at a time.")
+        if model == "imagen-4.0-ultra-generate-preview-06-06" and number_of_images > 1:
+            raise ValueError("Ultra model only generates one image at a time.")
 
         config = types.GenerateImagesConfig(
             number_of_images=number_of_images,

@@ -80,7 +80,9 @@ ARG VHS_CUSTOM_NODE_DIR_NAME="${COMFYUI_CUSTOM_NODE_PATH}/ComfyUI-VideoHelperSui
 COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/imagen3 ${COMFYUI_CUSTOM_NODE_PATH}/imagen3
 COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/veo2 ${COMFYUI_CUSTOM_NODE_PATH}/veo2
 COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/imagen4 ${COMFYUI_CUSTOM_NODE_PATH}/imagen4
-RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen3/requirements.txt -r ${COMFYUI_CUSTOM_NODE_PATH}/veo2/requirements.txt \
+RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen3/requirements.txt \
+  -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen4/requirements.txt \
+  -r ${COMFYUI_CUSTOM_NODE_PATH}/veo2/requirements.txt \
   && git clone ${VHS_REPO} ${VHS_CUSTOM_NODE_DIR_NAME} \
   && pip install -r ${VHS_CUSTOM_NODE_DIR_NAME}/requirements.txt
 

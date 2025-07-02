@@ -280,8 +280,8 @@ Cloudbuild pipeline or some thing else.
 
 ## ComfyUI workflows
 
-This guide provides six workflows out of the box. On ComfyUI, click on
-WORKFLOWS. You will six json workflow files.
+This guide provides example workflows out of the box. On ComfyUI, click on
+WORKFLOWS. You should see the following workflow files:
 
 - `imagen3-text-to-image` : This workflow shows text to image generation with
   Google's Imagen3 model.
@@ -302,9 +302,9 @@ WORKFLOWS. You will six json workflow files.
 Click any of the workflow files to open the workflow and click `Run` to see the
 results.
 
-Additionally, you can create more workflows using Imagen and Veo custom nodes.
-To view these custom nodes, right click in ComfyUI screen, choose `Google AI` in
-the dropdown, it will show the Imagen and Veo custom nodes.
+You can create additional workflows using the Imagen and Veo custom nodes. To
+view these custom nodes, right click in the ComfyUI screen, choose `Google AI`
+in the dropdown, it will show the Imagen and Veo custom nodes.
 
 ## [Optional] Setup a Workflow API for batch operation
 

@@ -60,9 +60,7 @@
 - Set environment variables.
 
   ```shell
-  set -o allexport
   source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"
-  set +o allexport
   ```
 
   ```

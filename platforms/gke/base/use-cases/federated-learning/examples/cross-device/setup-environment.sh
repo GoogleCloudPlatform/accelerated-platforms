@@ -39,8 +39,6 @@ fi
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
-CROSS_DEVICE_BASE_IMAGE_URL=
-
 echo "Setting up the environment for the cross-device federated learning example"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
@@ -60,6 +58,7 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 cross_device_example_terraservices=(
+  "secret-manager"
 )
 
 load_fl_terraform_outputs() {

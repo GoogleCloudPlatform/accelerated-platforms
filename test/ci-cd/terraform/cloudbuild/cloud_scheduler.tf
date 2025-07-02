@@ -124,6 +124,24 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_uc_federated_learning_
   }
 }
 
+resource "google_cloud_scheduler_job" "platforms_gke_base_uc_federated_learning_cross_device_scripts" {
+  name      = "platforms-gke-base-uc-federated_learning-cross-device-scripts-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 0 * * *"
+  time_zone = "Etc/UTC"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_uc_federated_learning_cross_device_scripts_push.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
 resource "google_cloud_scheduler_job" "platforms_gke_base_uc_inference_ref_arch_scripts" {
   name      = "platforms-gke-base-uc-inference-ref-arch-scripts-schedule"
   project   = data.google_project.build.project_id

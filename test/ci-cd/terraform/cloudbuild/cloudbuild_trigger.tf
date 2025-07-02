@@ -389,6 +389,123 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_s
   }
 }
 
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_cross_device_scripts" {
+  filename = "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/README.md",
+    "platforms/gke/base/use-cases/federated-learning/README.md",
+    "platforms/gke/base/use-cases/federated-learning/cross-device/README.md"
+  ]
+  included_files = [
+    # Include the whole core platform because we want to ensure that
+    # changes to the base platform don't break this use case
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/jobset/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/lws/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/federated-learning/terraform/initialize/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/service_account/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/key_management_service/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/firewall/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/container_image_repository/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/private_google_access/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/container_node_pool/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/private_google_access/**",
+    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh",
+    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/setup-environment.sh",
+    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh",
+    "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-federated-learning-cross-device-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_cross_device_scripts_push" {
+  filename = "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/README.md",
+    "platforms/gke/base/use-cases/federated-learning/README.md",
+    "platforms/gke/base/use-cases/federated-learning/cross-device/README.md"
+  ]
+  included_files = [
+    # Include the whole core platform because we want to ensure that
+    # changes to the base platform don't break this use case
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
+    "platforms/gke/base/core/workloads/inference_gateway/**",
+    "platforms/gke/base/core/workloads/jobset/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/lws/**",
+    "platforms/gke/base/core/workloads/priority_class/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/federated-learning/terraform/initialize/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/service_account/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/key_management_service/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/firewall/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/container_image_repository/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/private_google_access/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/container_node_pool/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/private_google_access/**",
+    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh",
+    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/setup-environment.sh",
+    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh",
+    "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-federated-learning-cross-device-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
 resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_scripts" {
   filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml"
   included_files = [

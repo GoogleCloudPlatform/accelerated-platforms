@@ -1,4 +1,6 @@
+autoplay
 bgcolor
+cachebuster
 comfygroup
 comfyui
 comfyuser

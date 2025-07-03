@@ -1,8 +1,8 @@
 {
   "id": "1bc411cb-e9d1-412b-9103-d0f1b65da951",
   "revision": 0,
-  "last_node_id": 11,
-  "last_link_id": 12,
+  "last_node_id": 12,
+  "last_link_id": 13,
   "nodes": [
     {
       "id": 7,
@@ -79,15 +79,15 @@
       "widgets_values": []
     },
     {
-      "id": 4,
-      "type": "VideoPreviewNode",
+      "id": 12,
+      "type": "VeoSaveAndPreview",
       "pos": [
-        2870.8642578125,
-        -328.50579833984375
+        2795.593505859375,
+        -300.495361328125
       ],
       "size": [
-        150.38671875,
-        26
+        282.740234375,
+        154
       ],
       "flags": {},
       "order": 3,
@@ -96,22 +96,20 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 11
+          "link": 13
         }
       ],
-      "outputs": [
-        {
-          "name": "frames",
-          "type": "IMAGE",
-          "links": [
-            12
-          ]
-        }
-      ],
+      "outputs": [],
       "properties": {
-        "Node name for S&R": "VideoPreviewNode"
+        "Node name for S&R": "VeoSaveAndPreview"
       },
-      "widgets_values": []
+      "widgets_values": [
+        true,
+        true,
+        false,
+        false,
+        "veo_video"
+      ]
     },
     {
       "id": 10,
@@ -139,7 +137,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            11
+            13
           ]
         }
       ],
@@ -160,71 +158,6 @@
         "",
         ""
       ]
-    },
-    {
-      "id": 11,
-      "type": "VHS_VideoCombine",
-      "pos": [
-        2779.766845703125,
-        -158.3715057373047
-      ],
-      "size": [
-        218.8280487060547,
-        238
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 12
-        },
-        {
-          "name": "audio",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "meta_batch",
-          "shape": 7,
-          "type": "VHS_BatchManager",
-          "link": null
-        },
-        {
-          "name": "vae",
-          "shape": 7,
-          "type": "VAE",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "Filenames",
-          "type": "VHS_FILENAMES",
-          "links": null
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfyui-videohelpersuite",
-        "ver": "a7ce59e381934733bfae03b1be029756d6ce936d",
-        "Node name for S&R": "VHS_VideoCombine"
-      },
-      "widgets_values": {
-        "frame_rate": 8,
-        "loop_count": 0,
-        "filename_prefix": "veo_preview",
-        "format": "image/gif",
-        "pingpong": false,
-        "save_output": true,
-        "videopreview": {
-          "hidden": false,
-          "paused": false,
-          "params": {}
-        }
-      }
     }
   ],
   "links": [
@@ -245,20 +178,12 @@
       "IMAGE"
     ],
     [
-      11,
+      13,
       10,
       0,
-      4,
+      12,
       0,
       "VEO_VIDEO"
-    ],
-    [
-      12,
-      4,
-      0,
-      11,
-      0,
-      "IMAGE"
     ]
   ],
   "groups": [],

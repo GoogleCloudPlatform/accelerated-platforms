@@ -227,7 +227,8 @@ class VeoAPI:
         Raises:
             RuntimeError: If no video data is found in the API response or if saving fails.
         """
-        output_dir = folder_paths.get_output_directory()
+        # store the output in temp directory. The video will be previewed using Preview custom node custom node and saved in output dir if needed
+        output_dir = folder_paths.get_temp_directory()
         os.makedirs(output_dir, exist_ok=True)
 
         video_paths: List[str] = []

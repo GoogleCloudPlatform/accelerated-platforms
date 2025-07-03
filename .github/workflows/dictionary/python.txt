@@ -17,6 +17,8 @@ getconn
 getenv
 gunicorn
 hasattr
+hashlib
+hexdigest
 httpx
 iloc
 imgf
@@ -33,6 +35,7 @@ makedirs
 nbconvert
 numpy
 opencv
+pathlib
 pgvector
 pipreqs
 pycache

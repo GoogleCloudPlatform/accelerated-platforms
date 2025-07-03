@@ -32,6 +32,14 @@ locals {
   federated_learning_cross_device_example_client_gradient_bucket_name     = join("-", [local.unique_identifier_prefix, var.federated_learning_cross_device_example_client_gradient_bucket])
   federated_learning_cross_device_example_aggregated_gradient_bucket_name = join("-", [local.unique_identifier_prefix, var.federated_learning_cross_device_example_aggregated_gradient_bucket])
   federated_learning_cross_device_example_model_bucket_name               = join("-", [local.unique_identifier_prefix, var.federated_learning_cross_device_example_model_bucket])
+
+  federated_learning_cross_device_example_confidential_space_aggregator_service_account   = var.federated_learning_cross_device_example_confidential_space_aggregator_service_account
+  federated_learning_cross_device_example_confidential_space_modelupdater_service_account = var.federated_learning_cross_device_example_confidential_space_modelupdater_service_account
+
+  federated_learning_cross_device_example_confidential_space_service_accounts = [
+    local.federated_learning_cross_device_example_confidential_space_aggregator_service_account,
+    local.federated_learning_cross_device_example_confidential_space_modelupdater_service_account
+  ]
 }
 
 ## Federated Learning bucket names
@@ -208,4 +216,29 @@ variable "federated_learning_cross_device_example_federatedcompute_tag" {
   description = "The release of the Federated Compute server to checkout"
   type        = string
   default     = "v0.7.1"
+}
+
+variable "federated_learning_cross_device_example_confidential_space_instance_image_name" {
+  description = "The Confidential Space OS source container image to run. Ref: https://cloud.google.com/confidential-computing/confidential-space/docs/confidential-space-images"
+  type        = string
+  default     = "projects/confidential-space-images/global/images/confidential-space-250301"
+}
+
+variable "federated_learning_cross_device_example_confidential_space_workloads" {
+  default     = {}
+  description = "Map describing the Confidential Space workloads to create. Keys are virtual machine name."
+  type = map(object({
+    workload_image                = string
+    service_account               = string
+    min_replicas                  = number
+    max_replicas                  = number
+    cooldown_period               = number
+    autoscaling_jobs_per_instance = number
+    machine_type                  = string
+  }))
+}
+
+variable "federated_learning_cross_device_example_allowed_operator_service_accounts" {
+  description = "The service accounts provided by coordinator for the worker to impersonate"
+  type        = string
 }

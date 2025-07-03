@@ -1,4 +1,7 @@
+autoplay
 bgcolor
+bioluminescent
+cachebuster
 comfygroup
 comfyui
 comfyuser
@@ -12,6 +15,7 @@ genai
 generativeai
 gligen
 hypernetworks
+hyperrealistic
 imagen
 imagen3
 latentpreview

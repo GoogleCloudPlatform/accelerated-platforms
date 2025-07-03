@@ -1,8 +1,8 @@
 {
   "id": "1bc411cb-e9d1-412b-9103-d0f1b65da951",
   "revision": 0,
-  "last_node_id": 11,
-  "last_link_id": 12,
+  "last_node_id": 12,
+  "last_link_id": 13,
   "nodes": [
     {
       "id": 7,
@@ -34,12 +34,12 @@
       },
       "widgets_values": [
         "imagen-4.0-generate-preview-06-06",
-        "A vivid landscape painting of a futuristic city",
+        "A hyperrealistic, macro shot of a bioluminescent forest where every leaf and branch glows with intricate, pulsating patterns. Raindrops suspended mid-air reflect miniature galaxies, and the ground is covered in iridescent, crystalline moss. The lighting is ethereal, creating deep shadows and vibrant highlights, with a soft, misty atmosphere",
         "allow_adult",
         "16:9",
-        1,
+        2,
         "",
-        984671805,
+        632487124,
         "randomize",
         true,
         false,
@@ -50,75 +50,11 @@
       ]
     },
     {
-      "id": 8,
-      "type": "PreviewImage",
-      "pos": [
-        2143.32470703125,
-        -168.62916564941406
-      ],
-      "size": [
-        140,
-        246
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 7
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.36",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 4,
-      "type": "VideoPreviewNode",
-      "pos": [
-        2870.8642578125,
-        -328.50579833984375
-      ],
-      "size": [
-        150.38671875,
-        26
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 11
-        }
-      ],
-      "outputs": [
-        {
-          "name": "frames",
-          "type": "IMAGE",
-          "links": [
-            12
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VideoPreviewNode"
-      },
-      "widgets_values": []
-    },
-    {
       "id": 10,
       "type": "VeoImageToVideoNode",
       "pos": [
-        2323.103271484375,
-        -309.1360778808594
+        2353.120361328125,
+        -314.97393798828125
       ],
       "size": [
         400,
@@ -139,7 +75,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            11
+            13
           ]
         }
       ],
@@ -148,83 +84,85 @@
       },
       "widgets_values": [
         "PNG",
-        "Add flying cars",
+        "make the tree branches sway in the wind",
         "16:9",
         "allow_adult",
         8,
         true,
-        1,
+        2,
         "",
-        1246276989,
+        1454127652,
         "randomize",
         "",
         ""
       ]
     },
     {
-      "id": 11,
-      "type": "VHS_VideoCombine",
+      "id": 8,
+      "type": "PreviewImage",
       "pos": [
-        2779.766845703125,
-        -158.3715057373047
+        2119.299560546875,
+        -234.6420135498047
       ],
       "size": [
-        218.8280487060547,
-        238
+        210,
+        370.52130126953125
       ],
       "flags": {},
-      "order": 4,
+      "order": 1,
       "mode": 0,
       "inputs": [
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 12
-        },
-        {
-          "name": "audio",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "meta_batch",
-          "shape": 7,
-          "type": "VHS_BatchManager",
-          "link": null
-        },
-        {
-          "name": "vae",
-          "shape": 7,
-          "type": "VAE",
-          "link": null
+          "link": 7
         }
       ],
-      "outputs": [
-        {
-          "name": "Filenames",
-          "type": "VHS_FILENAMES",
-          "links": null
-        }
-      ],
+      "outputs": [],
       "properties": {
-        "cnr_id": "comfyui-videohelpersuite",
-        "ver": "a7ce59e381934733bfae03b1be029756d6ce936d",
-        "Node name for S&R": "VHS_VideoCombine"
+        "cnr_id": "comfy-core",
+        "ver": "0.3.36",
+        "Node name for S&R": "PreviewImage"
       },
-      "widgets_values": {
-        "frame_rate": 8,
-        "loop_count": 0,
-        "filename_prefix": "veo_preview",
-        "format": "image/gif",
-        "pingpong": false,
-        "save_output": true,
-        "videopreview": {
+      "widgets_values": []
+    },
+    {
+      "id": 12,
+      "type": "VeoSaveAndPreview",
+      "pos": [
+        2775.054931640625,
+        -192.22976684570312
+      ],
+      "size": [
+        282.740234375,
+        355.7913818359375
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 13
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video",
+        {
           "hidden": false,
           "paused": false,
-          "params": {}
+          "parameters": {}
         }
-      }
+      ]
     }
   ],
   "links": [
@@ -245,30 +183,22 @@
       "IMAGE"
     ],
     [
-      11,
+      13,
       10,
       0,
-      4,
+      12,
       0,
       "VEO_VIDEO"
-    ],
-    [
-      12,
-      4,
-      0,
-      11,
-      0,
-      "IMAGE"
     ]
   ],
   "groups": [],
   "config": {},
   "extra": {
     "ds": {
-      "scale": 1.283902517749503,
+      "scale": 1.283902517749511,
       "offset": [
-        -1655.7316243192174,
-        399.7815738691087
+        -1613.9377758988974,
+        422.6527287364829
       ]
     },
     "frontendVersion": "1.20.7",

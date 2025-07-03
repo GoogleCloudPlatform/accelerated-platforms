@@ -186,6 +186,18 @@ variable "federated_learning_cross_device_example_collector_batch_size" {
   default     = 50
 }
 
+## Service accounts
+variable "federated_learning_cross_device_example_confidential_space_aggregator_service_account" {
+  description = "Name of the aggregator service account to allowlist in the coordinator"
+  type        = string
+}
+
+variable "federated_learning_cross_device_example_confidential_space_modelupdater_service_account" {
+  description = "Name of the model updater service account to allowlist in the coordinator"
+  type        = string
+}
+
+## Federated Learning confidential space variables
 variable "federated_learning_cross_device_example_confidential_space_instance_image_name" {
   description = "The Confidential Space OS source container image to run. Ref: https://cloud.google.com/confidential-computing/confidential-space/docs/confidential-space-images"
   type        = string

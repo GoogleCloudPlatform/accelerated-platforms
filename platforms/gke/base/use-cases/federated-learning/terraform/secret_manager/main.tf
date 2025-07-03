@@ -51,6 +51,7 @@ locals {
 resource "google_secret_manager_secret" "federated_learning_worker_parameter" {
   for_each  = local.parameters
   secret_id = format("fc-%s-%s", var.platform_name, each.key)
+  project   = google_project_service.secret_manager_googleapis_com.project
   replication {
     auto {}
   }

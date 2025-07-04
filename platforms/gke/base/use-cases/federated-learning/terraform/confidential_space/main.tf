@@ -13,14 +13,16 @@
 # limitations under the License.
 
 data "google_compute_zones" "available" {
-  project = var.cluster_project_id
+  project = google_project_service.confidentialcomputing_googleapis_com.project
   region  = var.cluster_region
 }
 
 resource "google_compute_instance_template" "instance_template" {
   for_each = var.federated_learning_cross_device_example_confidential_space_workloads
-  project  = var.cluster_project_id
+  project  = google_project_service.confidentialcomputing_googleapis_com.project
   region   = var.cluster_region
+
+  name_prefix = "${local.unique_identifier_prefix}-"
 
   disk {
     auto_delete  = true
@@ -36,6 +38,7 @@ resource "google_compute_instance_template" "instance_template" {
 
   metadata = {
     # Allocate 2GB to dev/shm
+    # Workloads running inside confidential space need at least 2GB
     tee-dev-shm-size-kb              = 2000000
     tee-image-reference              = each.value.workload_image
     tee-container-log-redirect       = true
@@ -44,8 +47,6 @@ resource "google_compute_instance_template" "instance_template" {
     environment                      = var.platform_name
   }
 
-  name_prefix = "${local.unique_identifier_prefix}-"
-
   network_interface {
     access_config {
       network_tier = "PREMIUM"
@@ -53,7 +54,7 @@ resource "google_compute_instance_template" "instance_template" {
 
     network            = local.network_name
     subnetwork         = local.subnetwork_name
-    subnetwork_project = var.cluster_project_id
+    subnetwork_project = google_project_service.confidentialcomputing_googleapis_com.project
   }
 
   scheduling {
@@ -67,7 +68,7 @@ resource "google_compute_instance_template" "instance_template" {
   }
 
   service_account {
-    email  = format("%s@%s.iam.gserviceaccount.com", each.value.service_account, var.cluster_project_id)
+    email  = format("%s@%s.iam.gserviceaccount.com", each.value.service_account, google_project_service.confidentialcomputing_googleapis_com.project)
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
@@ -80,17 +81,13 @@ resource "google_compute_instance_template" "instance_template" {
   lifecycle {
     create_before_destroy = true
   }
-
-  depends_on = [
-    google_project_service.confidentialcomputing_googleapis_com
-  ]
 }
 
 resource "google_compute_region_instance_group_manager" "instance_group" {
   for_each           = var.federated_learning_cross_device_example_confidential_space_workloads
   name               = join("-", [local.unique_identifier_prefix, each.key, "instance-group"])
   description        = join(" ", [local.unique_identifier_prefix, each.key, "instance group"])
-  project            = var.cluster_project_id
+  project            = google_project_service.confidentialcomputing_googleapis_com.project
   base_instance_name = join("-", [local.unique_identifier_prefix, each.key])
 
   version {
@@ -128,7 +125,7 @@ resource "google_compute_health_check" "default" {
 resource "google_compute_region_autoscaler" "autoscaler" {
   for_each = var.federated_learning_cross_device_example_confidential_space_workloads
   name     = join("-", [local.unique_identifier_prefix, each.key, "autoscaler"])
-  project  = var.cluster_project_id
+  project  = google_project_service.confidentialcomputing_googleapis_com.project
   region   = var.cluster_region
   target   = google_compute_region_instance_group_manager.instance_group[each.key].id
 

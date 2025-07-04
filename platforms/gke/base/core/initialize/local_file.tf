@@ -86,6 +86,18 @@ resource "local_file" "shared_config_configmanagement_auto_tfvars" {
   filename        = "${local.shared_config_folder}/configmanagement.auto.tfvars"
 }
 
+resource "local_file" "shared_config_policycontroller_auto_tfvars" {
+  for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
+
+  content = provider::terraform::encode_tfvars(
+    {
+      policycontroller_bundles = var.policycontroller_bundles
+    }
+  )
+  file_permission = "0644"
+  filename        = "${local.shared_config_folder}/policycontroller.auto.tfvars"
+}
+
 resource "local_file" "shared_config_huggingface_auto_tfvars" {
   for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
 

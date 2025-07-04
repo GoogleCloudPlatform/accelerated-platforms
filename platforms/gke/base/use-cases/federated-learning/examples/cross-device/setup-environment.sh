@@ -40,10 +40,15 @@ fi
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 echo "Setting up the environment for the cross-device federated learning example"
+CROSS_DEVICE_BASE_URL=""
 CROSS_DEVICE_EXAMPLE_TENANT_NAME="fl-1"
 CROSS_DEVICE_MODEL_BUCKET="model-0"
 CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET="aggregated-gradient-0"
 CROSS_DEVICE_CLIENT_GRADIENT_BUCKET="client-gradient-0"
+CROSS_DEVICE_AGGREGATOR_SERVICE_ACCOUNT="aggregator"
+CROSS_DEVICE_MODELUPDATER_SERVICE_ACCOUNT="modelupdater"
+CROSS_DEVICE_AGGREGATOR_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/aggregator_image@sha256:1043eb980b618e325d5b490c879fc72f211a70104d7f645b1bbb70996a42de2c"
+CROSS_DEVICE_MODELUPDATER_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/model_updater_image@sha256:b0bc213e4cb34c99525345b1d544371ce5c9d647ec08405a9ca96d61e0b272fa"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 FEDERATED_LEARNING_CROSS_DEVICE_EXAMPLE_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARNING_SHARED_CONFIG_DIR}/uc_federated_learning_cross_device_example.auto.tfvars"
@@ -72,10 +77,12 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
   "federated_learning_cross_device_example_wip_provider_b = \"projects/586348853457/locations/global/workloadIdentityPools/cb-staging-opwip-1/providers/cb-staging-opwip-pvdr-1\""
   "federated_learning_cross_device_example_service_account_a = \"ca-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com\""
   "federated_learning_cross_device_example_service_account_b = \"cb-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com\""
+  "federated_learning_cross_device_example_confidential_space_workloads = {\"aggregator\"={workload_image = \"${CROSS_DEVICE_AGGREGATOR_IMAGE}\",service_account=\"${CROSS_DEVICE_AGGREGATOR_SERVICE_ACCOUNT}\",min_replicas=2,max_replicas=5,cooldown_period=180,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"},\"modelupdater\"={workload_image=\"${CROSS_DEVICE_MODELUPDATER_IMAGE}\",service_account=\"${CROSS_DEVICE_MODELUPDATER_SERVICE_ACCOUNT}\",min_replicas=2,max_replicas=5,cooldown_period=120,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"}}"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 cross_device_example_terraservices=(
+  "confidential_space"
   "secret_manager"
 )
 

@@ -47,8 +47,8 @@ CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET="aggregated-gradient-0"
 CROSS_DEVICE_CLIENT_GRADIENT_BUCKET="client-gradient-0"
 CROSS_DEVICE_AGGREGATOR_SERVICE_ACCOUNT="aggregator"
 CROSS_DEVICE_MODELUPDATER_SERVICE_ACCOUNT="modelupdater"
-CROSS_DEVICE_AGGREGATOR_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/aggregator_image@sha256:1043eb980b618e325d5b490c879fc72f211a70104d7f645b1bbb70996a42de2c"
-CROSS_DEVICE_MODELUPDATER_IMAGE="europe-docker.pkg.dev/driven-density-457716-m7/container-image-repository/model_updater_image@sha256:b0bc213e4cb34c99525345b1d544371ce5c9d647ec08405a9ca96d61e0b272fa"
+CROSS_DEVICE_AGGREGATOR_IMAGE="${CROSS_DEVICE_BASE_URL}/aggregator_image@sha256:1043eb980b618e325d5b490c879fc72f211a70104d7f645b1bbb70996a42de2c"
+CROSS_DEVICE_MODELUPDATER_IMAGE="${CROSS_DEVICE_BASE_URL}/model_updater_image@sha256:b0bc213e4cb34c99525345b1d544371ce5c9d647ec08405a9ca96d61e0b272fa"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 FEDERATED_LEARNING_CROSS_DEVICE_EXAMPLE_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARNING_SHARED_CONFIG_DIR}/uc_federated_learning_cross_device_example.auto.tfvars"

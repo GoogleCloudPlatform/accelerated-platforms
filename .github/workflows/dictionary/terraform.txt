@@ -22,6 +22,7 @@ terraservices
 tfstate
 tftpl
 tfvars
+tomap
 toset
 trimprefix
 trimspace

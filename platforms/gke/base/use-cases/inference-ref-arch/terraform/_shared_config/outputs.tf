@@ -44,6 +44,14 @@ output "comfyui_kubernetes_namespace" {
   value = var.comfyui_kubernetes_namespace
 }
 
+output "ira_online_gpu_kubernetes_namespace_name" {
+  value = local.ira_online_gpu_kubernetes_namespace_name
+}
+
+output "ira_online_gpu_kubernetes_service_account_name" {
+  value = local.ira_online_gpu_kubernetes_service_account_name
+}
+
 output "use_case" {
   value = "inference-ref-arch"
 }

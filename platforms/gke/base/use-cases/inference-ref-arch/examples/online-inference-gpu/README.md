@@ -1,256 +1,238 @@
-# Online inference with GPUs on Google Cloud
+# Online inference with GPUs on Google Kubernetes Engine (GKE)
 
-This reference architecture implements online inferencing using GPUs on Google
-Cloud. This reference architecture builds on top of the
-[inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
+This example implements online inference using GPUs on Google Kubernetes Engine
+(GKE)
 
-## Roles and permissions
+This example is built on top of the
+[GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
 
-You can choose between Project Owner access or granular access for more
-fine-tuned permissions.
+## Before you begin
 
-### Option 1: Project Owner role
+- The
+  [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+  is deployed and configured.
 
-Your account will have full administrative access to the project.
+- Get access to the models.
 
-- `roles/owner`: Full administrative access to the project
-  ([Project Owner role](https://cloud.google.com/iam/docs/understanding-roles#resource-manager-roles))
+  - For Gemma:
 
-### Option 2: Granular Access
+    - Consented to the license on [Kaggle](https://www.kaggle.com/) using a
+      Hugging Face account.
 
-Your account needs to be assigned the following roles to limit access to
-required resources:
+      - [**google/gemma**](https://www.kaggle.com/models/google/gemma).
 
-- `roles/artifactregistry.admin`: Grants full administrative access to Artifact
-  Registry, allowing management of repositories and artifacts.
-- `roles/browser`: Provides read-only access to browse resources in a project.
-- `roles/compute.networkAdmin`: Grants full control over Compute Engine network
-  resources.
-- `roles/container.clusterAdmin`: Provides full control over Google Kubernetes
-  Engine (GKE) clusters, including creating and managing clusters.
-- `roles/gkehub.editor`: Grants permission to manage GKE Hub features.
-- `roles/iam.serviceAccountAdmin`: Grants full control over managing service
-  accounts in the project.
-- `roles/resourcemanager.projectIamAdmin`: Allows managing IAM policies and
-  roles at the project level.
-- `roles/servicenetworking.serviceAgent`: Allows managing service networking
-  configurations.
-- `roles/serviceusage.serviceUsageAdmin`: Grants permission to enable and manage
-  services and APIs for a project.
+  - For Llama:
 
-## Deploy the reference architecture
+    - Accept the terms of the license on the Hugging Face model page.
 
-This reference architecture builds on top of the infrastructure that the
-[inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
-provides, and follows the best practices that the reference implementations
-establishes. To deploy this reference architecture, do the following:
+      - [**meta-llama/Llama-4-Scout-17B-16E-Instruct**](https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct)
+      - [**meta-llama/Llama-3.3-70B-Instruct**](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct)
 
-1.  Enable deployment of the the online inference example resources by setting
-    the following configuration variables in
-    `platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/inference-ref-arch.auto.tfvars`:
+## Create and configure Google Cloud resources
 
-    ```hcl
-    ira_use_case_flavor = "ira-online-gpu"
-    ```
+- Deploy the online GPU resources.
 
-1.  Deploy the
-    [inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
+  ```
 
-    After you deploy the reference architecture instances, continue following
-    this document.
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Configure the Hugging Face `SecretProviderClass`es.
+
+  ```shell
+  envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/secretproviderclass-huggingface-tokens.tpl.yaml \
+    | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/secretproviderclass-huggingface-tokens.yaml
+  ```
 
 ## Download the model to Cloud Storage
 
-1.  Take note of the name of the Cloud Storage bucket where the model will be
-    downloaded:
+- Set the environment variables for the model downloader.
+
+  - Set the model name.
+
+    - **Gemma 3 27B**:
+
+      ```shell
+      export MODEL_ID="google/gemma-3-27b-it"
+      ```
+
+    - **Llama 4 Scout**:
+
+      ```shell
+      export MODEL_ID="meta-llama/Llama-4-Scout-17B-16E-Instruct"
+      ```
+
+    - **Llama 3.3 70B**:
+
+      ```shell
+      export MODEL_ID="meta-llama/Llama-3.3-70B-Instruct"
+      ```
+
+  - Configure the Kustomize environment file
 
     ```shell
-    terraform -chdir="${ACP_PLATFORM_USE_CASE_DIR}/terraform/cloud_storage" output -json ira_google_storage_bucket_names
+    envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/downloader.tpl.env \
+      | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/downloader.env
     ```
 
-    The output might contain multiple bucket names. The name of the bucket where
-    the model will be downloaded ends with the `ira-model` suffix.
+- Deploy the model downloader in the GKE cluster.
 
-1.  Set the environment configuration variables for the model downloader in
-    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/base/ira-model-config.env`:
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download"
+  ```
 
-    ```shell
-    IRA_BUCKET_NAME=<IRA_BUCKET_NAME>
-    MODEL_ID=<MODEL_ID>
-    ```
+- Wait for the model downloader to download the model:
 
-    Where:
+  Note: the model downloader job has `ttlSecondsAfterFinished` configured, so if
+  you wait for more than `ttlSecondsAfterFinished` seconds after the job
+  completes, GKE will have automatically deleted it to reclaim resources.
 
-    - `<IRA_BUCKET_NAME>` is the name of the Cloud Storage bucket where the
-      model will be downloaded.
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/transfer-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/transfer-model-to-gcs --tail 10"
+  ```
 
-    - `<MODEL_ID>` is the fully qualified model identifier.
+  The output is similar to the following.
 
-      - For Gemma 3 27B, the fully qualified model identifier is:
-        `google/gemma-3-27b-it`
-      - For Llama 4, the fully qualified model identifier is:
-        `meta-llama/Llama-4-Scout-17B-16E-Instruct`
-      - For Llama 3.3 70B, the fully qualified model identifier is:
-        `meta-llama/Llama-3.3-70B-Instruct`
+  ```text
+  NAME                    STATUS     COMPLETIONS   DURATION   AGE
+  transfer-model-to-gcs   Complete   1/1           33m        3h30m
+  ```
 
-1.  [Generate a Hugging Face token](https://huggingface.co/docs/hub/security-tokens).
-    Make sure to grant the
-    `Read access to contents of all public gated repos you can access`
-    permission to the Hugging Face token.
+- Delete the model downloader.
 
-1.  Store the Hugging Face token in
-    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/base/hugging-face-token.env`:
-
-    ```shell
-    HUGGING_FACE_TOKEN=<HUGGING_FACE_TOKEN>
-    ```
-
-    Where:
-
-    - `<HUGGING_FACE_TOKEN>` is the Hugging Face token.
-
-    If the
-    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/base/hugging-face-token.env`
-    file doesn't exist, create it.
-
-1.  Get access to the model by signing the consent agreement:
-
-    - For Gemma:
-
-      1. Access the
-         [model consent page on Kaggle.com](https://www.kaggle.com/models/google/gemma).
-
-      1. Verify consent using your Hugging Face account.
-
-      1. Accept the model terms.
-
-    - For Llama:
-
-      1. Accept the model terms on Hugging Face
-
-1.  Deploy the model downloader in the GKE cluster:
-
-    ```shell
-    kubectl apply -k platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download
-    ```
-
-1.  Wait for the model downloader to download the model:
-
-    ```shell
-    watch --color --interval 5 --no-title \
-    "kubectl get job/transfer-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'"
-    ```
-
-    The output is similar to the following:
-
-    ```text
-    NAME                    STATUS     COMPLETIONS   DURATION   AGE
-    transfer-model-to-gcs   Complete   1/1           33m        3h30m
-    ```
-
-1.  Delete the model downloader:
-
-    ```shell
-    kubectl delete -k platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download
-    ```
-
-    Note: the model downloader job has `ttlSecondsAfterFinished` configured, so
-    the command to delete it might return an error if you wait for more than
-    `ttlSecondsAfterFinished` seconds after the job completes because GKE
-    automatically deletes it to reclaim resources. In this case, the output
-    looks like the following:
-
-    ```text
-    Error from server (NotFound): jobs.batch "transfer-model-to-gcs" not found
-    ```
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download"
+  ```
 
 ## Deploy the online inference workload
 
-1.  Deploy the online inference workload in the GKE cluster:
+- Set the environment variables for the model.
 
-    ```shell
-    kubectl apply -k platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-<GPU_TYPE>-<MODEL_NAME>
-    ```
+  - Set the model name.
 
-    Where:
+    - **Gemma 3 27B**:
 
-    - `<GPU_TYPE>` is the GPU type. Valid values are:
+      ```shell
+      export MODEL_NAME="gemma3-27b"
+      ```
 
-      - `l4` (only for `gemma3-27b`)
-      - `h100`
-      - `h200`
+    - **Llama 4 Scout**:
 
-    - `MODEL_NAME` is the name of the model to deploy. Valid values are:
+      ```shell
+      export MODEL_NAME="llama4-scout"
+      ```
 
-      - `gemma3-27b`
-      - `llama3`
-      - `llama4-scout`
+    - **Llama 3.3 70B**:
+
+      ```shell
+      export MODEL_NAME="llama3"
+      ```
+
+  - Set the accelerator type.
+
+    - **NVIDIA Tesla L4 24GB** (only for `gemma3-27b`):
+
+      ```shell
+      export ACCELERATOR_TYPE="l4"
+      ```
+
+    - **NVIDIA H100 80GB**:
+
+      ```shell
+      export ACCELERATOR_TYPE="h100"
+      ```
+
+    - **NVIDIA H200 141GB**:
+
+      ```shell
+      export ACCELERATOR_TYPE="h200"
+      ```
 
     Ensure that you have enough quota in your project to provision the selected
-    GPU type. For more information, see about viewing GPU quotas, see
+    accelerator type. For more information, see about viewing GPU quotas, see
     [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
-    The Kubernetes manifests in the
-    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-<GPU_TYPE>-<MODEL_NAME>`
-    directories include
-    [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+- Configure the Kustomize environment file.
 
-1.  Wait for the Pod to be ready:
+  ```shell
+  envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-base/templates/deployment.tpl.env \
+    | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-base/deployment.env
+  ```
 
-    ```shell
-    watch --color --interval 5 --no-title \
-      "kubectl get deployment/vllm-h100 | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
-    ```
+- Deploy the online inference workload in the GKE cluster.
 
-## Next steps
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  ```
 
-## Destroy the reference architecture
+  The Kubernetes manifests in the
+  `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-<ACCELERATOR_TYPE>-<MODEL_NAME>`
+  directories include
+  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
 
-- Teardown the
-  [inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md#teardown)
+- Wait for the Pod to be ready.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} --tail 10"
+  ```
+
+- Send a test request.
+
+  ```shell
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} 8000:8000 >/dev/null &
+  PF_PID=$!
+  while ! nc -z localhost 8000; do
+    sleep 0.1
+  done
+  echo "/v1/models:"
+  curl --request GET --show-error --silent http:/127.0.0.1:8000/v1/models | jq
+  sleep 1
+  echo "/v1/chat/completions:"
+  curl http://127.0.0.1:8000/v1/chat/completions \
+  --data '{
+    "model": "/gcs/'${MODEL_ID}'",
+    "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
+    }' \
+  --header "Content-Type: application/json" \
+  --request POST \
+  --show-error \
+  --silent | jq
+  kill -9 ${PF_PID}
+  ```
+
+- Delete the workload.
+
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  ```
 
 ## Troubleshooting
 
-This section describes common issues and troubleshooting steps.
+If you experience any issue while deploying the workload, see the
+[Online inference with GPUs Troubleshooting](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/troubleshooting.md)
+guide.
 
-### Node provisioning
+## Clean up
 
-- If the online inference workload Pod doesn't trigger a node scale up, and
-  remains in pending state, check if its events contain something like:
-
-  ```
-  kubectl describe pod <POD_NAME>
-  ```
-
-  Where:
-
-  - `<POD_NAME>` is the name of the Pod running the online inference workload.
-    `<POD_NAME>` starts with the `vllm-` prefix.
-
-  In case this happens, try deleting the Pod after the ProvisioningRequest is
-  reported with the status of `Provisioned=True`. To get the list of ``s, run
-  the following command:
+- Destroy the online GPU resources.
 
   ```shell
-  kubectl get provisioningrequest.autoscaling.x-k8s.io
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
+  terraform init &&
+  terraform destroy -auto-approve
   ```
-
-  The output is similar to the following:
-
-  ```text
-  NAME        ACCEPTED   PROVISIONED   FAILED   AGE
-  vllm-h100   True       True                   10m
-  ```
-
-  To delete the online inference workload pod, run the following command:
-
-  ```shell
-  kubectl delete pod <POD_NAME>
-  ```
-
-  Where:
-
-  - `<POD_NAME>` is the name of the Pod running the online inference workload.
-    `<POD_NAME>` starts with the `vllm-` prefix.
-
-  Google Kubernetes Engine (GKE) takes care of recreating the Pod.

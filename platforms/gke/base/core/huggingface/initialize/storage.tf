@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_storage_bucket" "hub_models" {
-  force_destroy               = false
+  force_destroy               = true
   location                    = local.huggingface_hub_models_bucket_location
   name                        = local.huggingface_hub_models_bucket_name
   project                     = local.huggingface_hub_models_bucket_project_id

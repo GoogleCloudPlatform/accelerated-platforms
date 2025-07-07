@@ -1,30 +1,27 @@
 # Copyright 2025 Google LLC
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 # https://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+---
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-resources:
-  - ../online-inference-gpu-base
-
-nameSuffix: -gemma3-27b
-
 configMapGenerator:
-  - name: ira-model-configmap
-    behavior: merge
-    envs:
-      - vllm-runtime-config.env
+  - envs:
+      - vllm-runtime.env
+    name: vllm-runtime
+    namespace: replaced-by-kustomize
+
+nameSuffix: -l4-gemma3-27b
 
 patches:
   - path: set-l4-24gb-compute-class.yaml
@@ -32,37 +29,71 @@ patches:
 
 replacements:
   - source:
+      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
       kind: ConfigMap
-      name: ira-model-configmap
-      fieldPath: data.IRA_BUCKET_NAME
+      name: deployment
     targets:
-      - select:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
           kind: Deployment
-          name: vllm
-        fieldPaths:
-          - spec.template.spec.volumes.[name=gcsfuse].csi.volumeAttributes.bucketName
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Service
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ServiceAccount
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.template.spec.serviceAccountName
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - metadata.name
+        select:
+          kind: ServiceAccount
+  - source:
+      fieldPath: data.MODEL_BUCKET_NAME
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
         options:
           delimiter: .
           index: 0
-  - source:
-      kind: ConfigMap
-      name: ira-model-configmap
-      fieldPath: data.MODEL_ID
-    targets:
-      - select:
+        select:
           kind: Deployment
-          name: vllm
-        fieldPaths:
-          - spec.template.spec.volumes.[name=gcsfuse].csi.volumeAttributes.mountOptions
+  - source:
+      fieldPath: data.MODEL_ID
+      kind: ConfigMap
+      name: vllm-runtime
+    targets:
+      - fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
         options:
           delimiter: "only-dir:"
           index: 1
-      - select:
+        select:
           kind: Deployment
-          name: vllm
-        fieldPaths:
-          - spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=gcsfuse].mountPath
-          - spec.template.spec.containers.[name=inference-server].volumeMounts.[name=gcsfuse].mountPath
+      - fieldPaths:
+          - spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
         options:
-          delimiter: "/"
+          delimiter: /
           index: 2
+        select:
+          kind: Deployment
+
+resources:
+  - ../online-inference-gpu-base

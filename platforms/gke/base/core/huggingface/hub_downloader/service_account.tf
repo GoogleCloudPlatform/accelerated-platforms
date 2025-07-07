@@ -12,20 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_storage_bucket" "ira_cloud_storage_buckets" {
-  for_each = var.ira_cloud_storage_buckets
+resource "google_service_account" "hub_downloader" {
+  for_each = toset(var.huggingface_hub_downloader_service_account_name == null ? ["new"] : [])
 
-  force_destroy               = each.value.force_destroy
-  location                    = var.cluster_region
-  name                        = join("-", [data.google_project.cluster.project_id, local.unique_identifier_prefix, each.key])
-  project                     = data.google_project.cluster.project_id
-  uniform_bucket_level_access = true
+  account_id = local.huggingface_hub_downloader_service_account_name
+  project    = data.google_project.huggingface_hub_downloader_service_account.project_id
+}
 
-  hierarchical_namespace {
-    enabled = true
-  }
+data "google_service_account" "hub_downloader" {
+  depends_on = [
+    google_service_account.hub_downloader,
+  ]
 
-  versioning {
-    enabled = each.value.versioning_enabled
-  }
+  account_id = local.huggingface_hub_downloader_service_account_name
+  project    = data.google_project.huggingface_hub_downloader_service_account.project_id
 }

@@ -1,36 +1,69 @@
 # Copyright 2025 Google LLC
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 # https://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+---
 apiVersion: kustomize.config.k8s.io/v1beta1
+configMapGenerator:
+  - envs:
+      - downloader.env
+    name: downloader
+    namespace: replaced-by-kustomize
 kind: Kustomization
-
-resources:
-  - ../base
-  - load-model-to-cloud-storage.yaml
-  - service-account.yaml
-
 replacements:
   - source:
+      fieldPath: data.DOWNLOADER_KUBERNETES_NAMESPACE
       kind: ConfigMap
-      name: ira-model-configmap
-      fieldPath: data.IRA_BUCKET_NAME
+      name: downloader
     targets:
-      - select:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Job
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PersistentVolumeClaim
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: SecretProviderClass
+  - source:
+      fieldPath: data.DOWNLOADER_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: downloader
+    targets:
+      - fieldPaths:
+          - spec.template.spec.serviceAccountName
+        select:
           kind: Job
           name: transfer-model-to-gcs
-        fieldPaths:
-          - spec.template.spec.volumes.[name=gcsfuse].csi.volumeAttributes.bucketName
+  - source:
+      fieldPath: data.MODEL_BUCKET_NAME
+      kind: ConfigMap
+      name: downloader
+    targets:
+      - fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
         options:
           delimiter: .
           index: 0
+        select:
+          kind: Job
+          name: transfer-model-to-gcs
+resources:
+  - load-model-to-cloud-storage.yaml
+  - secretproviderclass-huggingface-tokens.yaml

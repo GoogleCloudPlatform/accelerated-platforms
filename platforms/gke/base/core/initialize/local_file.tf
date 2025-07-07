@@ -105,6 +105,10 @@ resource "local_file" "shared_config_huggingface_auto_tfvars" {
     {
       huggingface_hub_access_token_read_secret_manager_secret_name  = var.huggingface_hub_access_token_read_secret_manager_secret_name
       huggingface_hub_access_token_write_secret_manager_secret_name = var.huggingface_hub_access_token_write_secret_manager_secret_name
+      huggingface_hub_downloader_kubernetes_namespace_name          = var.huggingface_hub_downloader_kubernetes_namespace_name
+      huggingface_hub_downloader_kubernetes_service_account_name    = var.huggingface_hub_downloader_kubernetes_service_account_name
+      huggingface_hub_downloader_service_account_name               = var.huggingface_hub_downloader_service_account_name
+      huggingface_hub_downloader_service_account_project_id         = var.huggingface_hub_downloader_service_account_project_id
       huggingface_hub_models_bucket_location                        = var.huggingface_hub_models_bucket_location
       huggingface_hub_models_bucket_name                            = var.huggingface_hub_models_bucket_name
       huggingface_hub_models_bucket_project_id                      = var.huggingface_hub_models_bucket_project_id

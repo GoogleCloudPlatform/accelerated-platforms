@@ -4,13 +4,67 @@
 
 ![Reference Architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/images/reference_architecture_simple.svg)
 
-## Pull the source code
+## Before you begin
+
+### Permissions
+
+You can choose between Project Owner access or granular access to implement a
+principle of least privilege access.
+
+#### Option 1: Project Owner role
+
+Your account will have full administrative access to the project.
+
+- `roles/owner`: Full access to all resources in the project.
+  ([Project Owner role](https://cloud.google.com/iam/docs/roles-overview#legacy-basic))
+
+#### Option 2: Granular Access
+
+Your account needs to be assigned the following roles to access to the required
+resources:
+
+- `roles/artifactregistry.admin`: Grants full administrative access to Artifact
+  Registry, allowing management of repositories and artifacts.
+- `roles/browser`: Provides read-only access to browse resources in a project.
+- `roles/compute.networkAdmin`: Grants full control over Compute Engine network
+  resources.
+- `roles/container.clusterAdmin`: Provides full control over Google Kubernetes
+  Engine (GKE) clusters, including creating and managing clusters.
+- `roles/iam.serviceAccountAdmin`: Grants full control over managing service
+  accounts in the project.
+- `roles/resourcemanager.projectIamAdmin`: Allows managing IAM policies and
+  roles at the project level.
+- `roles/servicenetworking.serviceAgent`: Allows managing service networking
+  configurations.
+- `roles/serviceusage.serviceUsageAdmin`: Grants permission to enable and manage
+  services and APIs for a project.
+
+### Requirements
+
+This guide was designed to be run from
+[Cloud Shell](https://cloud.google.com/shell) in the Google Cloud console. Cloud
+Shell has the following tools installed:
+
+- [Google Cloud Command Line Interface (`gcloud` CLI)](https://cloud.google.com/cli)
+- `curl`
+- `envsubst`
+- `jq`
+- `kubectl`
+- `nc`
+- `sponge`
+- `wget`
+
+> [!IMPORTANT]  
+> At the time this guide was written, Cloud Shell had Terraform v1.5.7 installed
+> by default. Terraform version 1.8.0 or later is required for this guide. For
+> more information about installing Terraform, see
+> [Install Terraform](https://developer.hashicorp.com/terraform/install).
+
+## Prepare the environment
+
+### Pull the source code
 
 - Open [Cloud Shell](https://cloud.google.com/shell).
-
-  To deploy this reference implementation, you need Terraform >= 1.8.0. For more
-  information about installing Terraform, see
-  [Install Terraform](https://developer.hashicorp.com/terraform/install).
 
 - Clone the repository and set the repository directory environment variable.
 
@@ -35,7 +89,7 @@
   sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
   ```
 
-## Configure
+### Configuration
 
 Terraform loads variables in the following order, with later sources taking
 precedence over earlier ones:
@@ -64,7 +118,7 @@ For more information about providing values for Terraform input variables, see
   platform_default_project_id = "<PROJECT_ID>"
   ```
 
-## Deploy
+## Deploy and configure Google Cloud resources
 
 - Deploy the inference reference implementation.
 
@@ -148,7 +202,7 @@ For more information about providing values for Terraform input variables, see
   - Hugging Face Hub read token
   - Hugging Face Hub write token
 
-## Teardown
+## Clean up
 
 - Teardown the inference reference implementation.
 

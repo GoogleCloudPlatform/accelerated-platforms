@@ -96,8 +96,7 @@ the
 1. Clone and update the repository
 
    ```bash
-   git clone https://github.com/privacysandbox/odp-federatedcompute
-   git submodule update --init --recursive
+   git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute
    ```
 
 1. Create a worker-pool large enough to build the images

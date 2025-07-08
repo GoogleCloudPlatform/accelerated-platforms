@@ -19,7 +19,7 @@ import numpy as np
 import torch
 from google.genai import types
 
-from .constants import MAX_SEED
+from .constants import MAX_SEED, Imagen4Model
 from .imagen_api import ImagenAPI
 
 
@@ -45,12 +45,8 @@ class Imagen4TextToImageNode:
         return {
             "required": {
                 "model": (
-                    [
-                        "imagen-4.0-generate-preview-06-06",
-                        "imagen-4.0-fast-generate-preview-06-06",
-                        "imagen-4.0-ultra-generate-preview-06-06",
-                    ],
-                    {"default": "imagen-4.0-generate-preview-06-06"},
+                    [model.name for model in Imagen4Model],
+                    {"default": Imagen4Model.IMAGEN_4_PREVIEW.name},
                 ),
                 "prompt": (
                     "STRING",
@@ -117,7 +113,7 @@ class Imagen4TextToImageNode:
 
     def generate_and_return_image(
         self,
-        model: str = "imagen-4.0-generate-preview-06-06",
+        model: str = Imagen4Model.IMAGEN_4_PREVIEW.name,
         prompt: str = "A vivid landscape painting of a futuristic city",
         person_generation: str = "dont_allow",
         aspect_ratio: str = "16:9",

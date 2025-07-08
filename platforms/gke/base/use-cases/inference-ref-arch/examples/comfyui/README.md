@@ -132,7 +132,8 @@ for additional information
   ```
 
   Replace `<SUPPORT_EMAIL_ADDRESS>` with a group email address that you are a
-  manger on or your personal email address.
+  manager on or your personal email address. The email address should be
+  supplied without the domain.
 
 ### Default IAP access
 
@@ -160,6 +161,16 @@ IAP application or resources.
   ```
   sed -i '/^comfyui_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//comfyui_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/comfyui.auto.tfvars
   ```
+
+## Enable APIs
+
+Enable Cloud Resource Manager API, Service Usage API and Service Management API.
+
+```
+gcloud services enable cloudresourcemanager.googleapis.com
+gcloud services enable serviceusage.googleapis.com
+gcloud services enable servicemanagement.googleapis.com
+```
 
 ## Deploy
 
@@ -214,6 +225,15 @@ The `deploy-comfyui.sh` script will perform the following steps:
   ```
 
 - Open the ComfyUI URL in a web browser.
+
+  > Note: If the browser doesn't load ComfyUI, the SSL certificate could still
+  > be getting provisioned. Check the status of the certificate by running the
+  > following command:
+  >
+  > `gcloud compute ssl-certificates describe ${comfyui_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
+  >
+  > If the output of the command is `PROVISIONING`, it means the certificate has
+  > not been provisioned yet. Wait for the status to change to `ACTIVE`
 
 ## Load models in ComfyUI
 
@@ -297,7 +317,8 @@ WORKFLOWS. You should see the following workflow files:
 - `veo2-text-to-video` : This workflow shows text to video generation with
   Google's Veo2 model.
 
-> Note: ComfyUI custom nodes to Imagen3 and Veo2 are in preview mode.
+> Note: ComfyUI custom nodes to Imagen3, Imagen4, Veo2 and Veo3 are in preview
+> mode.
 
 Click any of the workflow files to open the workflow and click `Run` to see the
 results.
@@ -375,12 +396,18 @@ the output bucket.
   https://${workflow_api_endpoints_hostname}/api/v1/queue_prompt
   ```
 
-> [!NOTE]  
-> If you get `curl: (35) Recv failure: Connection reset by peer` or
-> `curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ...` the
-> SSL certificate could still be provisioning. You can check the status of the
-> SSL certificate by running the following command:  
-> `gcloud compute ssl-certificates describe ${workflow_api_endpoints_ssl_certificate_name} --project ${cluster_project_id}`
+  > NOTE: If you get any of the following errors:
+  >
+  > `curl: (35) Recv failure: Connection reset by peer` or
+  > `curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ...`
+  >
+  > It means that the SSL certificate could still be provisioning. You can check
+  > the status of the SSL certificate by running the following command:
+  >
+  > `gcloud compute ssl-certificates describe ${workflow_api_endpoints_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
+  >
+  > If the output of the command is `PROVISIONING`, it means the certificate has
+  > not been provisioned yet. Wait for the status to change to `ACTIVE`
 
 - The response should look like this:
 

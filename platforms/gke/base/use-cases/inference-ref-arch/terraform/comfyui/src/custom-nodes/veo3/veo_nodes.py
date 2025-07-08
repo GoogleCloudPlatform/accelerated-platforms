@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of veo2 custom node
+# This is a preview version of veo3 custom node
 import hashlib
 import os
 import shutil
@@ -24,31 +24,36 @@ import cv2
 import numpy as np
 import torch
 
-from .constants import MAX_SEED, SUPPORTED_VIDEO_EXTENSIONS
+from .constants import MAX_SEED, SUPPORTED_VIDEO_EXTENSIONS, Veo3Model
 from .veo_api import VeoAPI
 
 
-class Veo2TextToVideoNode:
+class Veo3TextToVideoNode:
     """
-    A ComfyUI node for generating videos from text prompts using the Google Veo 2.0 API.
+    A ComfyUI node for generating videos from text prompts using the Google Veo 3.0 API.
     """
 
     @classmethod
     def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
         return {
             "required": {
+                "model": (
+                    [model.name for model in Veo3Model],
+                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    "INT",
-                    {"default": 8, "min": 5, "max": 8, "step": 1},
+                    [8],
+                    {"default": 8},
                 ),
+                "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
-                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 2, "step": 1}),
             },
             "optional": {
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
@@ -81,14 +86,16 @@ class Veo2TextToVideoNode:
     RETURN_TYPES = ("VEO_VIDEO",)
     RETURN_NAMES = ("video_paths",)
     FUNCTION = "generate"
-    CATEGORY = "Google AI/Veo2"
+    CATEGORY = "Google AI/Veo3"
 
     def generate(
         self,
-        prompt: str,
+        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        prompt: str = "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn.",
         aspect_ratio: str = "16:9",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
+        generate_audio: bool = True,
         enhance_prompt: bool = True,
         sample_count: int = 1,
         negative_prompt: Optional[str] = None,
@@ -97,13 +104,15 @@ class Veo2TextToVideoNode:
         gcp_region: Optional[str] = None,
     ) -> Tuple[List[str],]:
         """
-        Generates a video from a text prompt using the Google Veo 2.0 API.
+        Generates a video from a text prompt using the Google Veo 3.0 API.
 
         Args:
+            model: Veo3 model
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -127,10 +136,12 @@ class Veo2TextToVideoNode:
 
         try:
             video_paths = api.generate_video_from_text(
+                model=model,
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
+                generate_audio=generate_audio,
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
                 negative_prompt=negative_prompt,
@@ -148,16 +159,20 @@ class Veo2TextToVideoNode:
         return (video_paths,)
 
 
-class Veo2GcsUriImageToVideoNode:
+class Veo3GcsUriImageToVideoNode:
     """
     A ComfyUI node for generating videos from a Google Cloud Storage (GCS) image URI
-    using the Google Veo 2.0 API.
+    using the Google Veo 3.0 API.
     """
 
     @classmethod
     def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
         return {
             "required": {
+                "model": (
+                    [model.name for model in Veo3Model],
+                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                ),
                 "gcsuri": (
                     "STRING",
                     {"default": "", "tooltip": "GCS URI for the Image"},
@@ -167,17 +182,18 @@ class Veo2GcsUriImageToVideoNode:
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    "INT",
-                    {"default": 8, "min": 5, "max": 8, "step": 1},
+                    [8],
+                    {"default": 8},
                 ),
+                "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
-                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 2, "step": 1}),
             },
             "optional": {
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
@@ -210,16 +226,18 @@ class Veo2GcsUriImageToVideoNode:
     RETURN_TYPES = ("VEO_VIDEO",)
     RETURN_NAMES = ("video_paths",)
     FUNCTION = "generate"
-    CATEGORY = "Google AI/Veo2"
+    CATEGORY = "Google AI/Veo3"
 
     def generate(
         self,
+        model: str = Veo3Model.VEO_3_PREVIEW.name,
         gcsuri: str = "",
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
+        generate_audio: bool = True,
         enhance_prompt: bool = True,
         sample_count: int = 1,
         negative_prompt: Optional[str] = None,
@@ -228,15 +246,17 @@ class Veo2GcsUriImageToVideoNode:
         gcp_region: Optional[str] = None,
     ) -> Tuple[List[str],]:
         """
-        Generates a video from a GCS image URI using the Google Veo 2.0 API.
+        Generates a video from a GCS image URI using the Google Veo 3.0 API.
 
         Args:
+            model: Veo3 model
             gcsuri: The GCS URI of the input image.
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -259,12 +279,14 @@ class Veo2GcsUriImageToVideoNode:
 
         try:
             video_paths = api.generate_video_from_gcsuri_image(
+                model=model,
                 gcsuri=gcsuri,
                 image_format=image_format,
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
+                generate_audio=generate_audio,
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
                 negative_prompt=negative_prompt,
@@ -282,33 +304,38 @@ class Veo2GcsUriImageToVideoNode:
         return (video_paths,)
 
 
-class Veo2ImageToVideoNode:
+class Veo3ImageToVideoNode:
     """
     A ComfyUI node for generating videos from an input image (torch.Tensor)
-    using the Google Veo 2.0 API.
+    using the Google Veo 3.0 API.
     """
 
     @classmethod
     def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
         return {
             "required": {
+                "model": (
+                    [model.name for model in Veo3Model],
+                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                ),
                 "image": ("IMAGE",),
                 "image_format": (
                     ["PNG", "JPEG", "MP4"],
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    "INT",
-                    {"default": 8, "min": 5, "max": 8, "step": 1},
+                    [8],
+                    {"default": 8},
                 ),
+                "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
-                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 2, "step": 1}),
             },
             "optional": {
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
@@ -341,16 +368,18 @@ class Veo2ImageToVideoNode:
     RETURN_TYPES = ("VEO_VIDEO",)
     RETURN_NAMES = ("video_paths",)
     FUNCTION = "generate"
-    CATEGORY = "Google AI/Veo2"
+    CATEGORY = "Google AI/Veo3"
 
     def generate(
         self,
-        image: torch.Tensor,
+        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        image: torch.Tensor = None,
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
+        generate_audio: bool = True,
         enhance_prompt: bool = True,
         sample_count: int = 1,
         seed: Optional[int] = None,
@@ -359,15 +388,17 @@ class Veo2ImageToVideoNode:
         gcp_region: Optional[str] = None,
     ) -> Tuple[List[str],]:
         """
-        Generates a video from an input image (torch.Tensor) using the Google Veo 2.0 API.
+        Generates a video from an input image (torch.Tensor) using the Google Veo 3.0 API.
 
         Args:
+            model: Veo3 model
             image: The input image as a torch.Tensor.
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             seed: An optional seed for reproducible video generation.
@@ -399,12 +430,14 @@ class Veo2ImageToVideoNode:
             )
             try:
                 video_paths = api.generate_video_from_image(
+                    model=model,
                     image=single_image_tensor,
                     image_format=image_format,
                     prompt=prompt,
                     aspect_ratio=aspect_ratio,
                     person_generation=person_generation,
                     duration_seconds=duration_seconds,
+                    generate_audio=generate_audio,
                     enhance_prompt=enhance_prompt,
                     sample_count=sample_count,
                     negative_prompt=negative_prompt,
@@ -423,7 +456,7 @@ class Veo2ImageToVideoNode:
         return (all_generated_video_paths,)
 
 
-class Veo2VideoPreviewNode:
+class Veo3VideoPreviewNode:
     """
     A ComfyUI node for generating VHS compatible frames.
     """
@@ -448,7 +481,7 @@ class Veo2VideoPreviewNode:
 
     FUNCTION = "preview_videos"
 
-    CATEGORY = "Google AI/Veo2"
+    CATEGORY = "Google AI/Veo3"
 
     def preview_videos(self, video_paths: list[str]):
         """
@@ -526,7 +559,7 @@ class Veo2VideoPreviewNode:
             return (dummy_image,)
 
 
-class Veo2SaveAndPreview:
+class Veo3SaveAndPreview:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -542,7 +575,7 @@ class Veo2SaveAndPreview:
 
     RETURN_TYPES = ()
     FUNCTION = "preview_video"
-    CATEGORY = "Google AI/Veo2"
+    CATEGORY = "Google AI/Veo3"
     OUTPUT_NODE = True
 
     def preview_video(
@@ -605,17 +638,17 @@ class Veo2SaveAndPreview:
 
 
 NODE_CLASS_MAPPINGS = {
-    "Veo2TextToVideoNode": Veo2TextToVideoNode,
-    "Veo2GcsUriImageToVideoNode": Veo2GcsUriImageToVideoNode,
-    "Veo2ImageToVideoNode": Veo2ImageToVideoNode,
-    "Veo2VideoPreviewNode": Veo2VideoPreviewNode,
-    "Veo2SaveAndPreview": Veo2SaveAndPreview,
+    "Veo3TextToVideoNode": Veo3TextToVideoNode,
+    "Veo3GcsUriImageToVideoNode": Veo3GcsUriImageToVideoNode,
+    "Veo3ImageToVideoNode": Veo3ImageToVideoNode,
+    "Veo3VideoPreviewNode": Veo3VideoPreviewNode,
+    "Veo3SaveAndPreview": Veo3SaveAndPreview,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Veo2TextToVideoNode": "Veo2 Text To Video",
-    "Veo2GcsUriImageToVideoNode": "Veo2 Image To Video (GcsUriImage)",
-    "Veo2ImageToVideoNode": "Veo2 Image To Video",
-    "Veo2VideoPreviewNode": "Veo2 Video to VHS",
-    "Veo2SaveAndPreview": "Veo2 preview and save video",
+    "Veo3TextToVideoNode": "Veo3 Text To Video",
+    "Veo3GcsUriImageToVideoNode": "Veo3 Image To Video (GcsUriImage)",
+    "Veo3ImageToVideoNode": "Veo3 Image To Video",
+    "Veo3VideoPreviewNode": "Veo3 Video to VHS",
+    "Veo3SaveAndPreview": "Veo3 preview and save video",
 }

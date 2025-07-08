@@ -28,7 +28,7 @@ from .constants import MAX_SEED, SUPPORTED_VIDEO_EXTENSIONS
 from .veo_api import VeoAPI
 
 
-class VeoTextToVideoNode:
+class Veo2TextToVideoNode:
     """
     A ComfyUI node for generating videos from text prompts using the Google Veo 2.0 API.
     """
@@ -148,7 +148,7 @@ class VeoTextToVideoNode:
         return (video_paths,)
 
 
-class VeoGcsUriImageToVideoNode:
+class Veo2GcsUriImageToVideoNode:
     """
     A ComfyUI node for generating videos from a Google Cloud Storage (GCS) image URI
     using the Google Veo 2.0 API.
@@ -282,7 +282,7 @@ class VeoGcsUriImageToVideoNode:
         return (video_paths,)
 
 
-class VeoImageToVideoNode:
+class Veo2ImageToVideoNode:
     """
     A ComfyUI node for generating videos from an input image (torch.Tensor)
     using the Google Veo 2.0 API.
@@ -423,7 +423,7 @@ class VeoImageToVideoNode:
         return (all_generated_video_paths,)
 
 
-class VideoPreviewNode:
+class Veo2VideoPreviewNode:
     """
     A ComfyUI node for generating VHS compatible frames.
     """
@@ -526,7 +526,7 @@ class VideoPreviewNode:
             return (dummy_image,)
 
 
-class VeoSaveAndPreview:
+class Veo2SaveAndPreview:
     @classmethod
     def INPUT_TYPES(cls):
         return {
@@ -605,17 +605,17 @@ class VeoSaveAndPreview:
 
 
 NODE_CLASS_MAPPINGS = {
-    "VeoTextToVideoNode": VeoTextToVideoNode,
-    "VeoGcsUriImageToVideoNode": VeoGcsUriImageToVideoNode,
-    "VeoImageToVideoNode": VeoImageToVideoNode,
-    "VideoPreviewNode": VideoPreviewNode,
-    "VeoSaveAndPreview": VeoSaveAndPreview,
+    "Veo2TextToVideoNode": Veo2TextToVideoNode,
+    "Veo2GcsUriImageToVideoNode": Veo2GcsUriImageToVideoNode,
+    "Veo2ImageToVideoNode": Veo2ImageToVideoNode,
+    "Veo2VideoPreviewNode": Veo2VideoPreviewNode,
+    "Veo2SaveAndPreview": Veo2SaveAndPreview,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "VeoTextToVideoNode": "Veo2 Text To Video",
-    "VeoGcsUriImageToVideoNode": "Veo2 Image To Video (GcsUriImage)",
-    "VeoImageToVideoNode": "Veo2 Image To Video",
-    "VideoPreviewNode": "Video to VHS",
-    "VeoSaveAndPreview": "Video save and preview",
+    "Veo2TextToVideoNode": "Veo2 Text To Video",
+    "Veo2GcsUriImageToVideoNode": "Veo2 Image To Video (GcsUriImage)",
+    "Veo2ImageToVideoNode": "Veo2 Image To Video",
+    "Veo2VideoPreviewNode": "Veo2 Video to VHS",
+    "Veo2SaveAndPreview": "Veo2 preview and save video",
 }

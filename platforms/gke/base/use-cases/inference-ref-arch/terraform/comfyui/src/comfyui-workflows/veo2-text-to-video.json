@@ -1,50 +1,15 @@
 {
-  "id": "4ad5ba7d-f47c-4fdc-bb07-c5704cf8b540",
+  "id": "fa185caa-774a-4f0a-8748-3afed8b49e35",
   "revision": 0,
-  "last_node_id": 4,
-  "last_link_id": 3,
+  "last_node_id": 2,
+  "last_link_id": 1,
   "nodes": [
     {
-      "id": 2,
-      "type": "VideoPreviewNode",
-      "pos": [
-        1506.1439208984375,
-        228.17431640625
-      ],
-      "size": [
-        150.38671875,
-        26
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 3
-        }
-      ],
-      "outputs": [
-        {
-          "name": "frames",
-          "type": "IMAGE",
-          "links": [
-            2
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VideoPreviewNode"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 4,
+      "id": 1,
       "type": "VeoTextToVideoNode",
       "pos": [
-        978.862548828125,
-        279.3126220703125
+        830.5654907226562,
+        219.76861572265625
       ],
       "size": [
         400,
@@ -59,7 +24,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            3
+            1
           ]
         }
       ],
@@ -67,97 +32,62 @@
         "Node name for S&R": "VeoTextToVideoNode"
       },
       "widgets_values": [
-        "a flying cat",
+        "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn. As it progresses, the mist slowly dissipates, revealing colossal, glowing crystal formations emerging from the ground. Fauna, never-before-seen, begins to stir – iridescent birds with long tails take flight, and massive, gentle creatures with bioluminescent markings graze among the crystals. The light subtly shifts from dawn's muted tones to vibrant daylight, illuminating new details with each passing second. The camera eventually ascends above the canopy, revealing a breathtaking vista of the entire crystal forest.",
         "16:9",
         "allow_adult",
         8,
         true,
-        1,
+        4,
         "",
-        312912228,
+        1727210716,
         "randomize",
         "",
         ""
       ]
     },
     {
-      "id": 3,
-      "type": "VHS_VideoCombine",
+      "id": 2,
+      "type": "VeoSaveAndPreview",
       "pos": [
-        1668.671142578125,
-        382.3876037597656
+        1364.8760986328125,
+        196.88011169433594
       ],
       "size": [
-        218.8280487060547,
-        238
+        443.7759704589844,
+        446.3739929199219
       ],
       "flags": {},
-      "order": 2,
+      "order": 1,
       "mode": 0,
       "inputs": [
         {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 2
-        },
-        {
-          "name": "audio",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "meta_batch",
-          "shape": 7,
-          "type": "VHS_BatchManager",
-          "link": null
-        },
-        {
-          "name": "vae",
-          "shape": 7,
-          "type": "VAE",
-          "link": null
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 1
         }
       ],
-      "outputs": [
-        {
-          "name": "Filenames",
-          "type": "VHS_FILENAMES",
-          "links": null
-        }
-      ],
+      "outputs": [],
       "properties": {
-        "cnr_id": "comfyui-videohelpersuite",
-        "ver": "1.6.1",
-        "Node name for S&R": "VHS_VideoCombine"
+        "Node name for S&R": "VeoSaveAndPreview"
       },
-      "widgets_values": {
-        "frame_rate": 8,
-        "loop_count": 0,
-        "filename_prefix": "veo_preview",
-        "format": "image/gif",
-        "pingpong": false,
-        "save_output": true,
-        "videopreview": {
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video",
+        {
           "hidden": false,
           "paused": false,
-          "params": {}
+          "parameters": {}
         }
-      }
+      ]
     }
   ],
   "links": [
     [
-      2,
-      2,
-      0,
-      3,
-      0,
-      "IMAGE"
-    ],
-    [
-      3,
-      4,
+      1,
+      1,
       0,
       2,
       0,
@@ -168,10 +98,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 1.2666661150000007,
+      "scale": 1.2666661150000031,
       "offset": [
-        -562.6929854917533,
-        -121.99039889168719
+        -661.5596169425305,
+        -104.15173643369593
       ]
     },
     "frontendVersion": "1.20.7",

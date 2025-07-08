@@ -15,3 +15,4 @@
 # This is a preview version of veo2 custom node
 
 MAX_SEED = 0xFFFFFFFF
+SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".mkv"}

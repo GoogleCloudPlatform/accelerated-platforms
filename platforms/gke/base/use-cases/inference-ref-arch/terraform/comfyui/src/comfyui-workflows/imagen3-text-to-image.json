@@ -1,44 +1,15 @@
 {
-  "id": "7e14936e-0f03-4401-bd90-874b1d0587d4",
+  "id": "55861478-4288-4d11-89b2-c22b53161219",
   "revision": 0,
-  "last_node_id": 4,
-  "last_link_id": 3,
+  "last_node_id": 2,
+  "last_link_id": 1,
   "nodes": [
     {
-      "id": 2,
-      "type": "PreviewImage",
-      "pos": [
-        1517.4923095703125,
-        332.29412841796875
-      ],
-      "size": [
-        140,
-        246
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 3
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.36",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 4,
+      "id": 1,
       "type": "ImagenTextToImageNode",
       "pos": [
-        901.5177001953125,
-        265.8881530761719
+        940.7188110351562,
+        266.312255859375
       ],
       "size": [
         400,
@@ -53,7 +24,7 @@
           "name": "Generated Image",
           "type": "IMAGE",
           "links": [
-            3
+            1
           ]
         }
       ],
@@ -61,12 +32,12 @@
         "Node name for S&R": "ImagenTextToImageNode"
       },
       "widgets_values": [
-        "A vivid landscape painting of a futuristic city",
+        "A close-up of a single, ancient tree that is slowly transforming into pure energy. Its bark is cracking to reveal an intricate network of glowing, golden circuits, and its leaves are dissolving into swirling nebulae of light. The setting sun casts a warm, golden glow on the untouched parts of the tree, creating a stark contrast with the vibrant energy emanating from its core. Photorealistic, hyper-detailed, spiritual",
         "ALLOW_ADULT",
         "16:9",
-        1,
+        4,
         "",
-        0,
+        3803044742,
         "randomize",
         true,
         false,
@@ -75,12 +46,41 @@
         "",
         ""
       ]
+    },
+    {
+      "id": 2,
+      "type": "PreviewImage",
+      "pos": [
+        1405.10546875,
+        198.6300506591797
+      ],
+      "size": [
+        421.1771545410156,
+        473.9154052734375
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 1
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.39",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
     }
   ],
   "links": [
     [
-      3,
-      4,
+      1,
+      1,
       0,
       2,
       0,
@@ -91,10 +91,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 1.2666661150000007,
+      "scale": 1.2666661150000031,
       "offset": [
-        -565.9353028989337,
-        -120.3927307025424
+        -661.5596169425305,
+        -104.15173643369593
       ]
     },
     "frontendVersion": "1.20.7",

@@ -1,43 +1,15 @@
 {
-  "id": "56416c28-fe1c-4c36-b4b8-bfa735d026bc",
+  "id": "de45b167-560d-4074-9b42-38ea1f416357",
   "revision": 0,
-  "last_node_id": 4,
-  "last_link_id": 2,
+  "last_node_id": 2,
+  "last_link_id": 1,
   "nodes": [
     {
-      "id": 4,
-      "type": "PreviewImage",
-      "pos": [
-        1575.5,
-        256.156005859375
-      ],
-      "size": [
-        140,
-        26
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 2
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.36",
-        "Node name for S&R": "PreviewImage"
-      }
-    },
-    {
-      "id": 3,
+      "id": 1,
       "type": "Imagen4TextToImageNode",
       "pos": [
-        962.1448364257812,
-        220.61891174316406
+        872.6834106445312,
+        237.7627716064453
       ],
       "size": [
         400,
@@ -52,7 +24,7 @@
           "name": "Generated Image",
           "type": "IMAGE",
           "links": [
-            2
+            1
           ]
         }
       ],
@@ -61,12 +33,12 @@
       },
       "widgets_values": [
         "imagen-4.0-generate-preview-06-06",
-        "A vivid landscape painting of a futuristic city",
+        "An impossible architectural marvel: a colossal, spiraling tower made of interwoven glass and liquid metal, reaching into a stormy, aurora-lit sky. Swarms of tiny, luminous drones navigate its complex structure, leaving trails of light. The base of the tower is submerged in a perfectly still, reflective lake that mirrors the celestial spectacle above. Ultra-high resolution, cinematic lighting",
         "allow_adult",
         "16:9",
-        1,
+        4,
         "",
-        0,
+        2625351687,
         "randomize",
         true,
         false,
@@ -75,14 +47,43 @@
         "",
         ""
       ]
+    },
+    {
+      "id": 2,
+      "type": "PreviewImage",
+      "pos": [
+        1325.388671875,
+        170.55650329589844
+      ],
+      "size": [
+        475.8949890136719,
+        544.7722778320312
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 1
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.39",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
     }
   ],
   "links": [
     [
-      2,
-      3,
+      1,
+      1,
       0,
-      4,
+      2,
       0,
       "IMAGE"
     ]
@@ -91,13 +92,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 1.2666661150000007,
+      "scale": 1.2666661150000031,
       "offset": [
-        -562.6929854917533,
-        -121.99039889168719
+        -661.5596169425305,
+        -104.15173643369593
       ]
     },
-    "frontendVersion": "1.20.5",
+    "frontendVersion": "1.20.7",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

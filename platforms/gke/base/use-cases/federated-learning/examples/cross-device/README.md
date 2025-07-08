@@ -60,6 +60,8 @@ In the `platforms/gke/base/use-cases/federated-learning/examples/cross-device`
 directory:
 
 - `assets`: contains documentation static assets.
+- `prerequisites.sh`: convenient script to build and push workload images used
+  in the cross-device example.
 - `deploy.sh`: convenience script to deploy an instance of the cross-device
   example on the reference architecture.
 - `teardown.sh`: convenience script to destroy the cross-device example
@@ -93,35 +95,15 @@ push on a registry the images to run the workloads. These images can be found in
 the
 [On-Device Personalization Federated Compute Server](https://github.com/privacysandbox/odp-federatedcompute).
 
-1. Clone and update the repository
+1. Open [Cloud Shell](https://cloud.google.com/shell).
+
+1. Build and push the images
+
+   1. Run the script to build and push the images needed for the cross-device
+      example:
 
    ```bash
-   git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute
-   ```
-
-1. Create a worker-pool large enough to build the images
-
-   ```bash
-   gcloud builds worker-pools create odp-federatedcompute-privatepool --region us-central1 --worker-machine-type=e2-standard-32
-   ```
-
-1. Give the required permissions to the service account
-
-   ```bash
-   export PROJECT_NUMBER=$(gcloud projects list --filter="$(gcloud config get project)" --format="value(PROJECT_NUMBER)")
-   export PROJECT_ID=$(gcloud config get project)
-   gcloud projects add-iam-policy-binding ${PROJECT_ID} --member=serviceAccount:"${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/storage.objectUser
-   gcloud projects add-iam-policy-binding ${PROJECT_ID} --member=serviceAccount:"${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/logging.logWriter
-   gcloud projects add-iam-policy-binding ${PROJECT_ID} --member=serviceAccount:"${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" --role=roles/artifactregistry.writer
-   ```
-
-1. In the `cloudbuild.yaml` of the repository, uncomment lines 30,31 and replace
-   `Registry` with the name of your registry
-
-1. Submit the job
-
-   ```bash
-   gcloud builds submit --substitutions=_PROJECT_ID="${PROJECT_ID},_REGISTRY=europe-docker.pkg.dev/${PROJECT_ID}/container-image-repository" --region us-central1
+   "platforms/gke/base/use-cases/federated-learning/examples/cross-device/prerequisites.sh"
    ```
 
 ## Provision and configure Google Cloud infrastructure

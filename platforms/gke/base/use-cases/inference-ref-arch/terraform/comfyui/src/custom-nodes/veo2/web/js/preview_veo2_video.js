@@ -204,7 +204,7 @@ function recalculateComponentSize(component) {
 app.registerExtension({
     name: "custom.SingleMediaPreviewWithNav",
     async beforeRegisterNodeDef(nodeType, nodeData, appInstance) {
-        if (nodeData?.name === "VeoSaveAndPreview") {
+        if (nodeData?.name === "Veo2SaveAndPreview") {
             nodeType.prototype.onExecuted = function(data) {
                 const videoData = data.video || []; // Expected format: [[filename1, category1], [filename2, category2], ...]
 

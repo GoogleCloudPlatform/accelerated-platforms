@@ -52,12 +52,12 @@ steps:
         test/ci-cd/scripts/create_project.sh
 
         # Deploy the base platform and the use case
-        platforms/gke/base/use-cases/federated-learning/cross-device/deploy.sh
+        platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh
 
         APPLY_RETURN_CODE=$?
         echo "APPLY_RETURN_CODE=$${APPLY_RETURN_CODE}"
 
-        platforms/gke/base/use-cases/federated-learning/cross-device/teardown.sh
+        platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh
 
         # Delete the dedicated project
         export DELETE_PROJECT_ID="$${NEW_PROJECT_ID}"

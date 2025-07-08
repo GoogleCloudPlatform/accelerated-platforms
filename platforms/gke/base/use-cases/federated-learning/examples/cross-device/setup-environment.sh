@@ -50,13 +50,13 @@ FEDERATED_LEARNING_CROSS_DEVICE_EXAMPLE_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARN
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 CROSS_DEVICE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES=(
-  "federated_learning_cloud_storage_buckets = {\"${CROSS_DEVICE_MODEL_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"}}"
-  "federated_learning_cloud_storage_buckets_iam_bindings = [{bucket_name=\"${CROSS_DEVICE_MODEL_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"},{bucket_name=\"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"},{bucket_name=\"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"}]"
   "federated_learning_tenant_names = [\"${CROSS_DEVICE_EXAMPLE_TENANT_NAME}\"]"
+  "federated_learning_cloud_storage_buckets = {\"${CROSS_DEVICE_MODEL_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"}}"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 CROSS_DEVICE_EXAMPLE_TERRAFORM_FEDERATED_LEARNING_USE_CASE_CONFIGURATION_VARIABLES=(
+  "federated_learning_cloud_storage_buckets_iam_bindings = [{bucket_name=\"${CROSS_DEVICE_MODEL_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"},{bucket_name=\"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"},{bucket_name=\"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"}]"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts

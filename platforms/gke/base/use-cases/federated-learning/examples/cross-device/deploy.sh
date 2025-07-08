@@ -48,7 +48,6 @@ echo "Running the Federated learning use case provisioning script"
 "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/deploy.sh"
 
 echo "Refreshing the environment configuration"
-load_fl_terraform_outputs
 
 echo "Updating the reference architecture configuration to deploy the cross-device example"
 for configuration_variable in "${CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES[@]}"; do

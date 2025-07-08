@@ -78,6 +78,3 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
 cross_device_example_terraservices=(
   "secret_manager"
 )
-
-load_fl_terraform_outputs() {
-}

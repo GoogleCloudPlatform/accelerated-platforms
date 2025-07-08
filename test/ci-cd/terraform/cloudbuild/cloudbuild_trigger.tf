@@ -429,7 +429,7 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_c
     "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml",
   ]
   location        = var.build_location
-  name            = "platforms-gke-base-uc-federated-learning-cross-device-scripts"
+  name            = "platforms-gke-base-uc-fl-cross-device-scripts"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 
@@ -488,7 +488,7 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_c
     "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml",
   ]
   location        = var.build_location
-  name            = "platforms-gke-base-uc-federated-learning-cross-device-scripts-push"
+  name            = "platforms-gke-base-uc-fl-cross-device-scripts-push"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 

@@ -17,7 +17,12 @@ ARG KUBECTL_VALIDATE_VERSION="v0.0.4"
 ARG TERRAFORM_VERSION="1.8.0"
 
 RUN echo "Installing Alpine packages" && \
-  apk --no-cache add go ncurses && \
+  apk --no-cache add \
+  envsubst \
+  go \
+  jq \
+  moreutils \
+  ncurses && \
   echo "Installing Terraform v${TERRAFORM_VERSION}" && \
   cd /usr/local/bin && \
   curl -o terraform.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \

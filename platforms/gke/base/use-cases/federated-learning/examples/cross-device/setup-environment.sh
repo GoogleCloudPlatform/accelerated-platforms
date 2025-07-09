@@ -50,13 +50,13 @@ FEDERATED_LEARNING_CROSS_DEVICE_EXAMPLE_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARN
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 CROSS_DEVICE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES=(
-  "federated_learning_cloud_storage_buckets = {\"${CROSS_DEVICE_MODEL_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"}}"
-  "federated_learning_cloud_storage_buckets_iam_bindings = [{bucket_name=\"${CROSS_DEVICE_MODEL_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"},{bucket_name=\"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"},{bucket_name=\"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"}]"
   "federated_learning_tenant_names = [\"${CROSS_DEVICE_EXAMPLE_TENANT_NAME}\"]"
+  "federated_learning_cloud_storage_buckets = {\"${CROSS_DEVICE_MODEL_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"}}"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 CROSS_DEVICE_EXAMPLE_TERRAFORM_FEDERATED_LEARNING_USE_CASE_CONFIGURATION_VARIABLES=(
+  "federated_learning_cloud_storage_buckets_iam_bindings = [{bucket_name=\"${CROSS_DEVICE_MODEL_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"},{bucket_name=\"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"},{bucket_name=\"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\",member=\"federated_learning_cross_device_apps_service_account_placeholder\",role=\"roles/storage.objectUser\"}]"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
@@ -80,4 +80,14 @@ cross_device_example_terraservices=(
 )
 
 load_fl_terraform_outputs() {
+  echo "Loading workload_identity_principal_prefix Terraform output"
+  if ! CROSS_DEVICE_EXAMPLE_CLUSTER_WORKLOAD_IDENTITY_PRINCIPAL_PREFIX="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/service_account" "workload_identity_principal_prefix" "raw")"; then
+    exit 1
+  fi
+  echo "Loading federated_learning_kubernetes_service_account_name Terraform output"
+  if ! CROSS_DEVICE_EXAMPLE_KUBERNETES_SERVICE_ACCOUNT_NAME="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/service_account" "federated_learning_kubernetes_service_account_name" "raw")"; then
+    exit 1
+  fi
+  # shellcheck disable=SC2034 # Variable is used in other scripts
+  CROSS_DEVICE_EXAMPLE_APPS_SERVICE_ACCOUNT_IAM_EMAIL="${CROSS_DEVICE_EXAMPLE_CLUSTER_WORKLOAD_IDENTITY_PRINCIPAL_PREFIX}/ns/${CROSS_DEVICE_EXAMPLE_TENANT_NAME}/sa/${CROSS_DEVICE_EXAMPLE_KUBERNETES_SERVICE_ACCOUNT_NAME}"
 }

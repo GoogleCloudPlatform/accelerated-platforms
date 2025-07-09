@@ -6,6 +6,7 @@ getopt
 libexec
 libgl
 libglib
+moreutils
 noninteractive
 nounset
 pipefail

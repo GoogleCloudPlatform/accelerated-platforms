@@ -32,6 +32,51 @@ locals {
   federated_learning_cross_device_example_client_gradient_bucket_name     = join("-", [local.unique_identifier_prefix, var.federated_learning_cross_device_example_client_gradient_bucket])
   federated_learning_cross_device_example_aggregated_gradient_bucket_name = join("-", [local.unique_identifier_prefix, var.federated_learning_cross_device_example_aggregated_gradient_bucket])
   federated_learning_cross_device_example_model_bucket_name               = join("-", [local.unique_identifier_prefix, var.federated_learning_cross_device_example_model_bucket])
+
+  cross_device_confidential_space_aggregator_service_account   = var.federated_learning_cross_device_confidential_space_aggregator_service_account
+  cross_device_confidential_space_modelupdater_service_account = var.federated_learning_cross_device_confidential_space_modelupdater_service_account
+
+  cross_device_confidential_space_service_accounts = [
+    local.cross_device_confidential_space_aggregator_service_account,
+    local.cross_device_confidential_space_modelupdater_service_account
+  ]
+
+  cross_device_collector_service_account       = var.federated_learning_cross_device_collector_service_account
+  cross_device_task_assignment_service_account = var.federated_learning_cross_device_task_assignment_service_account
+  cross_device_task_management_service_account = var.federated_learning_cross_device_task_management_service_account
+  cross_device_task_scheduler_service_account  = var.federated_learning_cross_device_task_scheduler_service_account
+  cross_device_task_builder_service_account    = var.federated_learning_cross_device_task_builder_service_account
+
+  cross_device_service_accounts = [
+    local.cross_device_collector_service_account,
+    local.cross_device_task_assignment_service_account,
+    local.cross_device_task_management_service_account,
+    local.cross_device_task_scheduler_service_account,
+    local.cross_device_task_builder_service_account
+  ]
+
+  cross_device_common_roles = [
+    "roles/logging.logWriter",
+    "roles/iam.serviceAccountTokenCreator",
+    "roles/storage.objectUser",
+    "roles/pubsub.subscriber",
+    "roles/pubsub.publisher",
+    "roles/secretmanager.secretAccessor"
+  ]
+
+  cross_device_confidential_space_roles = [
+    "roles/iam.serviceAccountUser",
+    "roles/confidentialcomputing.workloadUser",
+    "roles/monitoring.viewer",
+    "roles/monitoring.metricWriter",
+    "roles/artifactregistry.reader"
+  ]
+
+  cross_device_workload_roles = [
+    "roles/spanner.databaseUser",
+    "roles/gkehub.serviceAgent",
+    "roles/iam.workloadIdentityUser"
+  ]
 }
 
 ## Federated Learning bucket names
@@ -121,6 +166,49 @@ variable "federated_learning_cross_device_example_service_account_a" {
 variable "federated_learning_cross_device_example_service_account_b" {
   description = "The service account to impersonate of the encryption key service B."
   type        = string
+}
+
+## Service accounts
+variable "federated_learning_cross_device_confidential_space_aggregator_service_account" {
+  description = "Name of the aggregator service account to allowlist in the coordinator"
+  type        = string
+  default     = "aggregator"
+}
+
+variable "federated_learning_cross_device_confidential_space_modelupdater_service_account" {
+  description = "Name of the model updater service account to allowlist in the coordinator"
+  type        = string
+  default     = "modelupdater"
+}
+
+variable "federated_learning_cross_device_collector_service_account" {
+  description = "Name of the collector service account"
+  type        = string
+  default     = "collector"
+}
+
+variable "federated_learning_cross_device_task_assignment_service_account" {
+  description = "Name of the task assignment service account"
+  type        = string
+  default     = "task-assignment"
+}
+
+variable "federated_learning_cross_device_task_management_service_account" {
+  description = "Name of the task management service account"
+  type        = string
+  default     = "task-management"
+}
+
+variable "federated_learning_cross_device_task_scheduler_service_account" {
+  description = "Name of the task scheduler service account"
+  type        = string
+  default     = "task-scheduler"
+}
+
+variable "federated_learning_cross_device_task_builder_service_account" {
+  description = "Name of the task builder service account"
+  type        = string
+  default     = "task-builder"
 }
 
 ## Misc

@@ -1,5 +1,6 @@
 adminport
 cloudfunction
+confidentialcomputing
 cooldown
 dkzkh
 endtoendtests

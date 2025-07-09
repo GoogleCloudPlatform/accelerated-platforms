@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_compute_address" "cdn" {
-  name   = "${local.unique_identifier_prefix}-cdn-ip"
-  region = var.cluster_region
+  name    = "${local.unique_identifier_prefix}-cdn-ip"
+  region  = var.cluster_region
   project = google_project_service.networkservices_googleapis_com.project
 }

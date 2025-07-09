@@ -78,3 +78,16 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
 cross_device_example_terraservices=(
   "secret_manager"
 )
+
+load_fl_terraform_outputs() {
+  echo "Loading workload_identity_principal_prefix Terraform output"
+  if ! CROSS_DEVICE_EXAMPLE_CLUSTER_WORKLOAD_IDENTITY_PRINCIPAL_PREFIX="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/service_account" "workload_identity_principal_prefix" "raw")"; then
+    exit 1
+  fi
+  echo "Loading federated_learning_kubernetes_service_account_name Terraform output"
+  if ! CROSS_DEVICE_EXAMPLE_KUBERNETES_SERVICE_ACCOUNT_NAME="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/service_account" "federated_learning_kubernetes_service_account_name" "raw")"; then
+    exit 1
+  fi
+  # shellcheck disable=SC2034 # Variable is used in other scripts
+  CROSS_DEVICE_EXAMPLE_APPS_SERVICE_ACCOUNT_IAM_EMAIL="${CROSS_DEVICE_EXAMPLE_CLUSTER_WORKLOAD_IDENTITY_PRINCIPAL_PREFIX}/ns/${CROSS_DEVICE_EXAMPLE_TENANT_NAME}/sa/${CROSS_DEVICE_EXAMPLE_KUBERNETES_SERVICE_ACCOUNT_NAME}"
+}

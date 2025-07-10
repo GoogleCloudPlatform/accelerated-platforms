@@ -73,6 +73,7 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
   "federated_learning_cross_device_example_wip_provider_b = \"projects/586348853457/locations/global/workloadIdentityPools/cb-staging-opwip-1/providers/cb-staging-opwip-pvdr-1\""
   "federated_learning_cross_device_example_service_account_a = \"ca-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com\""
   "federated_learning_cross_device_example_service_account_b = \"cb-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com\""
+  "federated_learning_cross_device_example_allowed_operator_service_accounts = \"ca-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com,cb-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com\""
   "federated_learning_cross_device_example_confidential_space_workloads = {\"aggregator\"={workload_image = \"${CROSS_DEVICE_AGGREGATOR_IMAGE}\",service_account=\"${CROSS_DEVICE_AGGREGATOR_SERVICE_ACCOUNT}\",min_replicas=2,max_replicas=5,cooldown_period=180,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"},\"modelupdater\"={workload_image=\"${CROSS_DEVICE_MODELUPDATER_IMAGE}\",service_account=\"${CROSS_DEVICE_MODELUPDATER_SERVICE_ACCOUNT}\",min_replicas=2,max_replicas=5,cooldown_period=120,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"}}"
 )
 

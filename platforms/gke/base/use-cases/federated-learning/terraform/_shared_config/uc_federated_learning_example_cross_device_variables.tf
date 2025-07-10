@@ -40,6 +40,23 @@ locals {
     local.federated_learning_cross_device_example_confidential_space_aggregator_service_account,
     local.federated_learning_cross_device_example_confidential_space_modelupdater_service_account
   ]
+
+  federated_learning_cross_device_example_common_roles = [
+    "roles/logging.logWriter",
+    "roles/iam.serviceAccountTokenCreator",
+    "roles/storage.objectUser",
+    "roles/pubsub.subscriber",
+    "roles/pubsub.publisher",
+    "roles/secretmanager.secretAccessor"
+  ]
+
+  federated_learning_cross_device_example_confidential_space_roles = [
+    "roles/iam.serviceAccountUser",
+    "roles/confidentialcomputing.workloadUser",
+    "roles/monitoring.viewer",
+    "roles/monitoring.metricWriter",
+    "roles/artifactregistry.reader"
+  ]
 }
 
 ## Federated Learning bucket names
@@ -215,7 +232,13 @@ variable "federated_learning_cross_device_example_collector_batch_size" {
 variable "federated_learning_cross_device_example_federatedcompute_tag" {
   description = "The release of the Federated Compute server to checkout"
   type        = string
-  default     = "v0.7.1"
+  default     = "aggregator"
+}
+
+variable "federated_learning_cross_device_example_confidential_space_modelupdater_service_account" {
+  description = "Name of the model updater service account to allowlist in the coordinator"
+  type        = string
+  default     = "modelupdater"
 }
 
 variable "federated_learning_cross_device_example_confidential_space_instance_image_name" {

@@ -53,7 +53,7 @@ class ImagenAPI:
             raise ValueError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
         self.model_id = "imagen-3.0-generate-002"
-        http_options = genai.types.HttpOptions(headers={"User-Agent": self.USER_AGENT})
+        http_options = genai.types.HttpOptions(headers={"user-agent": self.USER_AGENT})
         self.client = genai.Client(
             vertexai=True,
             project=self.project_id,

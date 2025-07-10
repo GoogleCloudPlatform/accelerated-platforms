@@ -30,14 +30,14 @@ resource "google_service_account" "federated_learning_cross_device_example_confi
   account_id   = each.value
   description  = "Terraform-managed service account for the federated learning use case in confidential space"
   display_name = "${each.value} service account"
-  project      = google_project_service.iam_googleapis_com.project
+  project      = data.google_project.default.project_id
 }
 
 resource "google_project_iam_member" "federated_learning_cross_device_example_confidential_space_iam_member" {
   for_each = local.federated_learning_cross_device_example_confidential_space_iam_members
 
   member  = each.value[1]
-  project = google_project_service.iam_googleapis_com.project
+  project = data.google_project.default.project_id
   role    = each.value[0]
 
   depends_on = [

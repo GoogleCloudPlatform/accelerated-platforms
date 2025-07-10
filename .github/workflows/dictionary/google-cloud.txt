@@ -9,6 +9,7 @@ anthosconfigmanagement
 anthospolicycontroller
 apiserver
 artifactregistry
+automap
 autoscale
 autoscaler
 cadvisor

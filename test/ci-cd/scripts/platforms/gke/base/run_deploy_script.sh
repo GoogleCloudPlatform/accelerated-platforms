@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,22 +13,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -o errexit
+set -o nounset
+set -o pipefail
 
-terraform {
-  required_version = ">= 1.5.7"
+source /workspace/build.env
+if [ "${DEBUG,,}" == "true" ]; then
+  set -o xtrace
+fi
 
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "6.38.0"
-    }
-    local = {
-      source  = "hashicorp/local"
-      version = "2.5.3"
-    }
-  }
+STEP_ID=${1}
+DEPLOY_SCRIPT="${2}"
 
-  provider_meta "google" {
-    module_name = "cloud-solutions/acp_ira_initialize_deploy-v1"
-  }
+exit_handler() {
+  exit_code=$?
+
+  if [ ${exit_code} -ne 0 ]; then
+    echo "- ${STEP_ID}" >>/workspace/build-failed.lock
+  fi
+
+  exit 0
 }
+trap exit_handler EXIT
+
+${DEPLOY_SCRIPT}

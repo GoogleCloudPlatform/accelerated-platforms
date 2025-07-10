@@ -44,6 +44,18 @@ output "huggingface_hub_access_token_write_secret_manager_secret_name" {
   value = local.huggingface_hub_access_token_write_secret_manager_secret_name
 }
 
+output "huggingface_hub_downloader_kubernetes_namespace_name" {
+  value = local.huggingface_hub_downloader_kubernetes_namespace_name
+}
+
+output "huggingface_hub_downloader_kubernetes_service_account_name" {
+  value = local.huggingface_hub_downloader_kubernetes_service_account_name
+}
+
+output "huggingface_hub_downloader_service_account_id" {
+  value = local.huggingface_hub_downloader_service_account_email
+}
+
 output "huggingface_hub_models_bucket_name" {
   value = local.huggingface_hub_models_bucket_name
 }
@@ -62,6 +74,10 @@ output "nvidia_ncg_api_key_secret_manager_secret_name" {
 
 output "nvidia_nim_model_store_bucket_name" {
   value = local.nvidia_nim_model_store_bucket_name
+}
+
+output "platform_default_project_id" {
+  value = var.platform_default_project_id
 }
 
 output "platform_name" {

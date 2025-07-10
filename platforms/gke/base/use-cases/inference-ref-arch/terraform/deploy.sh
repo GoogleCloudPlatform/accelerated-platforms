@@ -36,8 +36,9 @@ export TF_VAR_resource_name_prefix="inf"
 declare -a CORE_TERRASERVICES_APPLY=(
   "networking"
   "container_cluster"
-  "huggingface/initialize"
   "workloads/cluster_credentials"
+  "huggingface/initialize"
+  "huggingface/hub_downloader"
   "custom_compute_class"
   "workloads/auto_monitoring"
   "workloads/custom_metrics_adapter"
@@ -54,7 +55,6 @@ source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_enviro
 
 declare -a use_case_terraservices=(
   "initialize"
-  "cloud_storage"
 )
 for terraservice in "${use_case_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&

@@ -50,7 +50,6 @@ source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_enviro
 
 declare -a use_case_terraservices=(
   "initialize"
-  "cloud_storage"
   "comfyui"
 )
 for terraservice in "${use_case_terraservices[@]}"; do

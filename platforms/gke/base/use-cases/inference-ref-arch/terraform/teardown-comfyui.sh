@@ -51,7 +51,6 @@ rm tfplan
 
 declare -a use_case_terraservices=(
   "comfyui"
-  "cloud_storage"
   "initialize"
 )
 for terraservice in "${use_case_terraservices[@]}"; do

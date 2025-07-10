@@ -12,9 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "ira_google_storage_bucket_names" {
-  description = "List of Cloud Storage bucket names"
-  value = [
-    for bucket in google_storage_bucket.ira_cloud_storage_buckets : bucket.name
-  ]
+terraform {
+  required_version = ">= 1.5.7"
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.38.0"
+    }
+  }
+
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_ira_online-gpu_deploy-v1"
+  }
 }

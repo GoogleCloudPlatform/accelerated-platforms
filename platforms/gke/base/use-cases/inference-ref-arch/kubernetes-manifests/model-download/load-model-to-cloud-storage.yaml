@@ -1,11 +1,11 @@
 # Copyright 2025 Google LLC
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
+#
 # https://www.apache.org/licenses/LICENSE-2.0
-
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,68 +16,56 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: transfer-model-to-gcs
+  namespace: replaced-by-kustomize
 spec:
-  storageClassName: premium-rwo
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 1Ti
+  storageClassName: premium-rwo
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
   name: transfer-model-to-gcs
+  namespace: replaced-by-kustomize
 spec:
   backoffLimit: 0
-  ttlSecondsAfterFinished: 600
   template:
     metadata:
+      annotations:
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/volumes: "true"
       labels:
         app: transfer-model-to-gcs
-      annotations:
-        gke-gcsfuse/volumes: "true"
-        gke-gcsfuse/cpu-limit: "0"
-        gke-gcsfuse/memory-limit: "0"
-        gke-gcsfuse/ephemeral-storage-limit: "0"
     spec:
-      securityContext:
-        fsGroup: 10000
-      nodeSelector:
-        iam.gke.io/gke-metadata-server-enabled: "true"
-      restartPolicy: OnFailure
-      terminationGracePeriodSeconds: 0
-      serviceAccountName: ira-model-download-ksa
       containers:
-        - name: transfer-model-to-gcs
-          image: gcr.io/google.com/cloudsdktool/cloud-sdk:518.0.0-slim
-          command:
+        - command:
             - bash
-            - -c
+            - "-c"
             - |
               set -o errexit
               set -o nounset
               set -o pipefail
 
-              if [ -z "${HUGGING_FACE_TOKEN:-}" ]; then
-                echo "Error: HUGGING_FACE_TOKEN is not set."
-                exit 1
-              fi
               if [ -z "${MODEL_ID:-}" ]; then
                 echo "Error: MODEL_ID is not set."
                 exit 1
               fi
-               if [ -z "${IRA_BUCKET_NAME:-}" ]; then
-                echo "Error: IRA_BUCKET_NAME is not set."
+               if [ -z "${MODEL_BUCKET_NAME:-}" ]; then
+                echo "Error: MODEL_BUCKET_NAME is not set."
                 exit 1
               fi
 
-              echo "Downloading ${MODEL_ID} to ${IRA_BUCKET_NAME} Cloud Storage bucket"
-              echo "Debug Hugging Face token length: ${#HUGGING_FACE_TOKEN}"
+              echo "Downloading ${MODEL_ID} to ${MODEL_BUCKET_NAME} Cloud Storage bucket"
+              echo "Debug Hugging Face token path: ${HF_TOKEN_PATH}"
 
               pip3 install -U "huggingface_hub[cli]==0.31.4" --break-system-packages
 
-              huggingface-cli download --repo-type model ${MODEL_ID} --local-dir /local/temp --token ${HUGGING_FACE_TOKEN}
+              huggingface-cli download --repo-type model ${MODEL_ID} --local-dir /local/temp
 
               rm -rfv /local/temp/.cache
               mkdir -pv "/local/${MODEL_ID}"
@@ -88,19 +76,16 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_ID
-                  name: ira-model-configmap
-            - name: IRA_BUCKET_NAME
+                  name: downloader
+            - name: MODEL_BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
-                  key: IRA_BUCKET_NAME
-                  name: ira-model-configmap
-            - name: HUGGING_FACE_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: hugging-face-token-secret
-                  key: HUGGING_FACE_TOKEN
-          # If you want to consume less resources, don't install the hf_net
-          # package, at the expense of download speed.
+                  key: MODEL_BUCKET_NAME
+                  name: downloader
+            - name: HF_TOKEN_PATH
+              value: /var/run/secrets/huggingface.co/token
+          image: gcr.io/google.com/cloudsdktool/cloud-sdk:529.0.0-slim
+          name: transfer-model-to-gcs
           resources:
             limits:
               cpu: 4000m
@@ -109,22 +94,35 @@ spec:
               cpu: 4000m
               memory: 8Gi
           volumeMounts:
-            - name: gcsfuse
-              mountPath: /local
+            - mountPath: /dev/shm
+              name: dev-shm
+            - mountPath: /local
+              name: huggingface-hub-model-bucket
+            - mountPath: /var/run/secrets/huggingface.co
+              name: huggingface-token
+      nodeSelector:
+        iam.gke.io/gke-metadata-server-enabled: "true"
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 10000
+      serviceAccountName: replaced-by-kustomize
+      terminationGracePeriodSeconds: 0
       volumes:
-        - name: dshm
-          emptyDir:
+        - emptyDir:
             medium: Memory
-        - name: gcsfuse
-          csi:
-            driver: gcsfuse.csi.storage.gke.io
-            volumeAttributes:
-              bucketName: cloud-storage-bucket-name
+          name: dev-shm
         - name: gke-gcsfuse-buffer
           persistentVolumeClaim:
             claimName: transfer-model-to-gcs
-      tolerations:
-        - key: "on-demand"
-          value: "true"
-          operator: "Equal"
-          effect: "NoSchedule"
+        - csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: replaced-by-kustomize
+          name: huggingface-hub-model-bucket
+        - csi:
+            driver: secrets-store-gke.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: huggingface-token-read
+          name: huggingface-token
+  ttlSecondsAfterFinished: 600

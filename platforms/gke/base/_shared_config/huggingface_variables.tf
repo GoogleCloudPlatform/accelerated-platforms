@@ -21,6 +21,12 @@
 locals {
   huggingface_hub_access_token_read_secret_manager_secret_name  = var.huggingface_hub_access_token_read_secret_manager_secret_name != null ? var.huggingface_hub_access_token_read_secret_manager_secret_name : "${local.unique_identifier_prefix}-huggingface-hub-access-token-read"
   huggingface_hub_access_token_write_secret_manager_secret_name = var.huggingface_hub_access_token_write_secret_manager_secret_name != null ? var.huggingface_hub_access_token_write_secret_manager_secret_name : "${local.unique_identifier_prefix}-huggingface-hub-access-token-write"
+  huggingface_hub_downloader_service_account_email              = "${local.huggingface_hub_downloader_service_account_name}@${local.huggingface_hub_downloader_service_account_project_id}.iam.gserviceaccount.com"
+  huggingface_hub_downloader_service_account_id                 = "projects/${local.huggingface_hub_downloader_service_account_project_id}/serviceAccounts/${local.huggingface_hub_downloader_service_account_email}"
+  huggingface_hub_downloader_service_account_name               = var.huggingface_hub_downloader_service_account_name != null ? var.huggingface_hub_downloader_service_account_name : "${local.unique_identifier_prefix}-hf-hub-dl"
+  huggingface_hub_downloader_service_account_project_id         = var.huggingface_hub_downloader_service_account_project_id != null ? var.huggingface_hub_downloader_service_account_project_id : var.platform_default_project_id
+  huggingface_hub_downloader_kubernetes_namespace_name          = var.huggingface_hub_downloader_kubernetes_namespace_name != null ? var.huggingface_hub_downloader_kubernetes_namespace_name : "${local.unique_identifier_prefix}-hf-hub-downloader"
+  huggingface_hub_downloader_kubernetes_service_account_name    = var.huggingface_hub_downloader_kubernetes_service_account_name != null ? var.huggingface_hub_downloader_kubernetes_service_account_name : "${local.unique_identifier_prefix}-hf-hub-downloader"
   huggingface_hub_models_bucket_location                        = var.huggingface_hub_models_bucket_location != null ? var.huggingface_hub_models_bucket_location : var.cluster_region
   huggingface_hub_models_bucket_name                            = var.huggingface_hub_models_bucket_name != null ? var.huggingface_hub_models_bucket_name : "${local.huggingface_hub_models_bucket_project_id}-${local.unique_identifier_prefix}-hf-hub-models"
   huggingface_hub_models_bucket_project_id                      = var.huggingface_hub_models_bucket_project_id != null ? var.huggingface_hub_models_bucket_project_id : var.platform_default_project_id
@@ -29,13 +35,37 @@ locals {
 
 variable "huggingface_hub_access_token_read_secret_manager_secret_name" {
   default     = null
-  description = "The name of the Secret Manager secret containing the Hugging Face Hub access token with read permissions"
+  description = "The name of the Secret Manager secret containing the Hugging Face Hub access token with read permissions."
   type        = string
 }
 
 variable "huggingface_hub_access_token_write_secret_manager_secret_name" {
   default     = null
-  description = "The name of the Secret Manager secret containing the Hugging Face Hub access token with write permissions"
+  description = "The name of the Secret Manager secret containing the Hugging Face Hub access token with write permissions."
+  type        = string
+}
+
+variable "huggingface_hub_downloader_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace for the Hugging Face Hub downloader."
+  type        = string
+}
+
+variable "huggingface_hub_downloader_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account for the Hugging Face Hub downloader."
+  type        = string
+}
+
+variable "huggingface_hub_downloader_service_account_name" {
+  default     = null
+  description = "The name of the Hugging Face Hub downloader Google Cloud service account."
+  type        = string
+}
+
+variable "huggingface_hub_downloader_service_account_project_id" {
+  default     = null
+  description = "The project ID of the Hugging Face Hub downloader Google Cloud service account."
   type        = string
 }
 
@@ -59,6 +89,6 @@ variable "huggingface_hub_models_bucket_project_id" {
 
 variable "huggingface_secret_manager_project_id" {
   default     = null
-  description = "The project ID of the Secret Manager project containing the Hugging Face secrets"
+  description = "The project ID of the Secret Manager project containing the Hugging Face secrets."
   type        = string
 }

@@ -50,7 +50,6 @@ cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
 rm tfplan
 
 declare -a use_case_terraservices=(
-  "cloud_storage"
   "initialize"
 )
 for terraservice in "${use_case_terraservices[@]}"; do
@@ -72,8 +71,9 @@ if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
     "workloads/custom_metrics_adapter"
     "workloads/auto_monitoring"
     "custom_compute_class"
-    "workloads/cluster_credentials"
+    "huggingface/hub_downloader"
     "huggingface/initialize"
+    "workloads/cluster_credentials"
     "container_cluster"
     "networking"
     "initialize"

@@ -22,6 +22,8 @@ if [ "${DEBUG,,}" == "true" ]; then
   set -o xtrace
 fi
 
+STEP_ID=${1}
+
 exit_handler() {
   exit_code=$?
 
@@ -33,6 +35,7 @@ exit_handler() {
 }
 trap exit_handler EXIT
 
+set --
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 envsubst <"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/secretproviderclass-huggingface-tokens.tpl.yaml" |

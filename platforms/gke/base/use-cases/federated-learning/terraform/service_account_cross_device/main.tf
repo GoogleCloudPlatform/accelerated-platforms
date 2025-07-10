@@ -14,11 +14,11 @@
 
 locals {
   cross_device_confidential_space_service_accounts_emails = [
-    for entry in local.cross_device_confidential_space_service_accounts : format("serviceAccount:%s@%s.iam.gserviceaccount.com", entry, var.cluster_project_id)
+    for entry in local.cross_device_confidential_space_service_accounts : format("serviceAccount:%s@%s.iam.gserviceaccount.com", entry, local.cluster_project_id)
   ]
 
   cross_device_service_accounts_emails = [
-    for entry in local.cross_device_service_accounts : format("serviceAccount:%s@%s.iam.gserviceaccount.com", entry, var.cluster_project_id)
+    for entry in local.cross_device_service_accounts : format("serviceAccount:%s@%s.iam.gserviceaccount.com", entry, local.cluster_project_id)
   ]
 
   cross_device_confidential_space_iam_roles_setproduct = setproduct(concat(local.cross_device_common_roles, local.cross_device_confidential_space_roles), local.cross_device_confidential_space_service_accounts_emails)

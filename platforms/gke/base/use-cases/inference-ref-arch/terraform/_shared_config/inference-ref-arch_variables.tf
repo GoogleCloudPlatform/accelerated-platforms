@@ -15,6 +15,8 @@
 locals {
   ira_online_gpu_kubernetes_namespace_name       = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_kubernetes_service_account_name = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
+  ira_online_tpu_kubernetes_namespace_name       = var.ira_online_tpu_kubernetes_namespace_name != null ? var.ira_online_tpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-tpu"
+  ira_online_tpu_kubernetes_service_account_name = var.ira_online_tpu_kubernetes_service_account_name != null ? var.ira_online_tpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-tpu"
 }
 
 variable "ira_online_gpu_kubernetes_namespace_name" {
@@ -26,5 +28,17 @@ variable "ira_online_gpu_kubernetes_namespace_name" {
 variable "ira_online_gpu_kubernetes_service_account_name" {
   default     = null
   description = "The Kubernetes service account for the online GPU inference workloads."
+  type        = string
+}
+
+variable "ira_online_tpu_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace for the online TPU inference workloads."
+  type        = string
+}
+
+variable "ira_online_tpu_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account for the online TPU inference workloads."
   type        = string
 }

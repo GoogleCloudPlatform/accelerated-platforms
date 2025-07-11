@@ -15,3 +15,4 @@
 # This is a preview version of imagen4 custom node
 
 MAX_SEED = 0xFFFFFFFF
+USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"

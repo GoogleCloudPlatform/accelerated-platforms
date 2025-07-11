@@ -38,17 +38,18 @@ class Veo3TextToVideoNode:
         return {
             "required": {
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    "INT",
-                    {"default": 8, "min": 5, "max": 8, "step": 1},
+                    [8],
+                    {"default": 8},
                 ),
+                "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
-                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 2, "step": 1}),
             },
             "optional": {
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
@@ -89,6 +90,7 @@ class Veo3TextToVideoNode:
         aspect_ratio: str = "16:9",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
+        generate_audio: bool = True,
         enhance_prompt: bool = True,
         sample_count: int = 1,
         negative_prompt: Optional[str] = None,
@@ -104,6 +106,7 @@ class Veo3TextToVideoNode:
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -131,6 +134,7 @@ class Veo3TextToVideoNode:
                 aspect_ratio=aspect_ratio,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
+                generate_audio=generate_audio,
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
                 negative_prompt=negative_prompt,
@@ -163,21 +167,22 @@ class Veo3GcsUriImageToVideoNode:
                     {"default": "", "tooltip": "GCS URI for the Image"},
                 ),
                 "image_format": (
-                    ["PNG", "JPEG", "WEBP"],
+                    ["PNG", "JPEG", "MP4"],
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    "INT",
-                    {"default": 8, "min": 5, "max": 8, "step": 1},
+                    [8],
+                    {"default": 8},
                 ),
+                "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
-                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 2, "step": 1}),
             },
             "optional": {
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
@@ -220,6 +225,7 @@ class Veo3GcsUriImageToVideoNode:
         aspect_ratio: str = "16:9",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
+        generate_audio: bool = True,
         enhance_prompt: bool = True,
         sample_count: int = 1,
         negative_prompt: Optional[str] = None,
@@ -237,6 +243,7 @@ class Veo3GcsUriImageToVideoNode:
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -265,6 +272,7 @@ class Veo3GcsUriImageToVideoNode:
                 aspect_ratio=aspect_ratio,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
+                generate_audio=generate_audio,
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
                 negative_prompt=negative_prompt,
@@ -294,21 +302,22 @@ class Veo3ImageToVideoNode:
             "required": {
                 "image": ("IMAGE",),
                 "image_format": (
-                    ["PNG", "JPEG", "WEBP"],
+                    ["PNG", "JPEG", "MP4"],
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    "INT",
-                    {"default": 8, "min": 5, "max": 8, "step": 1},
+                    [8],
+                    {"default": 8},
                 ),
+                "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
-                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 2, "step": 1}),
             },
             "optional": {
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
@@ -351,6 +360,7 @@ class Veo3ImageToVideoNode:
         aspect_ratio: str = "16:9",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
+        generate_audio: bool = True,
         enhance_prompt: bool = True,
         sample_count: int = 1,
         seed: Optional[int] = None,
@@ -368,6 +378,7 @@ class Veo3ImageToVideoNode:
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             seed: An optional seed for reproducible video generation.
@@ -405,6 +416,7 @@ class Veo3ImageToVideoNode:
                     aspect_ratio=aspect_ratio,
                     person_generation=person_generation,
                     duration_seconds=duration_seconds,
+                    generate_audio=generate_audio,
                     enhance_prompt=enhance_prompt,
                     sample_count=sample_count,
                     negative_prompt=negative_prompt,

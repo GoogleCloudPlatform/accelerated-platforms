@@ -36,6 +36,7 @@ from grpc import StatusCode
 from PIL import Image as PIL_Image
 
 from .config import get_gcp_metadata
+from .constants import USER_AGENT
 
 
 class VeoAPI:
@@ -56,7 +57,6 @@ class VeoAPI:
         Raises:
             ValueError: If GCP Project or Zone cannot be determined.
         """
-        self.USER_AGENT = "cloud-solutions/comfyui-veo2-custom-node-v1"
         self.project_id = project_id or get_gcp_metadata("project/project-id")
         self.region = region or "-".join(
             get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
@@ -67,7 +67,7 @@ class VeoAPI:
             raise ValueError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
         self.model_id = "veo-2.0-generate-001"
-        http_options = genai.types.HttpOptions(headers={"User-Agent": self.USER_AGENT})
+        http_options = genai.types.HttpOptions(headers={"user-agent": USER_AGENT})
         self.client = genai.Client(
             vertexai=True,
             project=self.project_id,
@@ -363,7 +363,7 @@ class VeoAPI:
 
         try:
             storage_client = storage.Client(
-                client_info=ClientInfo(user_agent=self.USER_AGENT)
+                client_info=ClientInfo(user_agent=USER_AGENT)
             )
             bucket = storage_client.bucket(bucket_name)
 
@@ -441,7 +441,7 @@ class VeoAPI:
 
         Args:
             image: The input image as a torch.Tensor (ComfyUI format).
-            image_format: The format of the input image (e.g., "PNG", "JPEG", "WEBP").
+            image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
@@ -492,8 +492,8 @@ class VeoAPI:
             mime_type = "image/png"
         elif input_image_format_upper == "JPEG":
             mime_type = "image/jpeg"
-        elif input_image_format_upper == "WEBP":
-            mime_type = "image/webp"
+        elif input_image_format_upper == "MP4":
+            mime_type = "image/mp4"
         else:
             raise ValueError(
                 f"Unsupported image format for Base64 encoding: {image_format}"
@@ -625,7 +625,7 @@ class VeoAPI:
 
         Args:
             gcsuri: The GCS URI of the input image (e.g., "gs://my-bucket/path/to/image.jpg").
-            image_format: The format of the input image (e.g., "PNG", "JPEG", "WEBP").
+            image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
@@ -673,8 +673,8 @@ class VeoAPI:
             mime_type = "image/png"
         elif input_image_format_upper == "JPEG":
             mime_type = "image/jpeg"
-        elif input_image_format_upper == "WEBP":
-            mime_type = "image/webp"
+        elif input_image_format_upper == "MP4":
+            mime_type = "image/mp4"
         else:
             raise ValueError(f"Unsupported image format: {image_format}")
 

@@ -132,7 +132,8 @@ for additional information
   ```
 
   Replace `<SUPPORT_EMAIL_ADDRESS>` with a group email address that you are a
-  manger on or your personal email address.
+  manger on or your personal email address. The email address should be supplied
+  without the domain.
 
 ### Default IAP access
 

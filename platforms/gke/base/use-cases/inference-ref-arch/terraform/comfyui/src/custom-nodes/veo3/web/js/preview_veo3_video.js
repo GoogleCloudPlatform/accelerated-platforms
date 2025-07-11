@@ -202,7 +202,7 @@ function recalculateComponentSize(component) {
 
 // Register the custom extension with the application
 app.registerExtension({
-    name: "custom.SingleMediaPreviewWithNav",
+    name: "custom.Veo3PreviewWithNav",
     async beforeRegisterNodeDef(nodeType, nodeData, appInstance) {
         if (nodeData?.name === "Veo3SaveAndPreview") {
             nodeType.prototype.onExecuted = function(data) {

@@ -202,7 +202,7 @@ function recalculateComponentSize(component) {
 
 // Register the custom extension with the application
 app.registerExtension({
-    name: "custom.SingleMediaPreviewWithNav",
+    name: "custom.Veo2PreviewWithNav",
     async beforeRegisterNodeDef(nodeType, nodeData, appInstance) {
         if (nodeData?.name === "Veo2SaveAndPreview") {
             nodeType.prototype.onExecuted = function(data) {

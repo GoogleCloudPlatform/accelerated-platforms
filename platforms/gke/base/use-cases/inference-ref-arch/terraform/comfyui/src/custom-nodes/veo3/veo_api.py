@@ -36,6 +36,7 @@ from grpc import StatusCode
 from PIL import Image as PIL_Image
 
 from .config import get_gcp_metadata
+from .constants import USER_AGENT
 
 
 class VeoAPI:
@@ -56,7 +57,6 @@ class VeoAPI:
         Raises:
             ValueError: If GCP Project or Zone cannot be determined.
         """
-        self.USER_AGENT = "cloud-solutions/comfyui-veo3-custom-node-v1"
         self.project_id = project_id or get_gcp_metadata("project/project-id")
         self.region = region or "-".join(
             get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
@@ -67,7 +67,7 @@ class VeoAPI:
             raise ValueError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
         self.model_id = "veo-3.0-generate-preview"
-        http_options = genai.types.HttpOptions(headers={"User-Agent": self.USER_AGENT})
+        http_options = genai.types.HttpOptions(headers={"user-agent": USER_AGENT})
         self.client = genai.Client(
             vertexai=True,
             project=self.project_id,
@@ -84,6 +84,7 @@ class VeoAPI:
         aspect_ratio: str,
         person_generation: str,
         duration_seconds: int,
+        generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
         negative_prompt: Optional[str],
@@ -97,6 +98,7 @@ class VeoAPI:
             aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
             person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
             duration_seconds: The desired duration of the video in seconds (5-8 seconds).
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate (1-4).
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -111,19 +113,24 @@ class VeoAPI:
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
             raise ValueError("Prompt cannot be empty for text-to-video generation.")
-        if not (5 <= duration_seconds <= 8):
+        if duration_seconds != 8:
             raise ValueError(
-                f"duration_seconds must be between 5 and 8, but got {duration_seconds}."
+                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if not (1 <= sample_count <= 2):
             raise ValueError(
-                f"sample_count must be between 1 and 4, but got {sample_count}."
+                f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
+            )
+        if aspect_ratio != "16:9":
+            raise ValueError(
+                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
 
         config = GenerateVideosConfig(
             aspect_ratio=aspect_ratio,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
             enhance_prompt=enhance_prompt,
             number_of_videos=sample_count,
             negative_prompt=negative_prompt,
@@ -363,7 +370,7 @@ class VeoAPI:
 
         try:
             storage_client = storage.Client(
-                client_info=ClientInfo(user_agent=self.USER_AGENT)
+                client_info=ClientInfo(user_agent=USER_AGENT)
             )
             bucket = storage_client.bucket(bucket_name)
 
@@ -431,6 +438,7 @@ class VeoAPI:
         aspect_ratio: str,
         person_generation: str,
         duration_seconds: int,
+        generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
         negative_prompt: Optional[str],
@@ -441,11 +449,12 @@ class VeoAPI:
 
         Args:
             image: The input image as a torch.Tensor (ComfyUI format).
-            image_format: The format of the input image (e.g., "PNG", "JPEG", "WEBP").
+            image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -463,17 +472,22 @@ class VeoAPI:
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
 
-        if not (1 <= duration_seconds <= 8):
+        if duration_seconds != 8:
             raise ValueError(
-                f"duration_seconds must be between 1 and 8, but got {duration_seconds}."
+                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if not (1 <= sample_count <= 2):
             raise ValueError(
-                f"sample_count must be between 1 and 4, but got {sample_count}."
+                f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
             )
 
         if image is None:
             raise ValueError("Image input (torch.Tensor) cannot be None.")
+
+        if aspect_ratio != "16:9":
+            raise ValueError(
+                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+            )
 
         pil_image: PIL_Image.Image
         if isinstance(image, torch.Tensor):
@@ -492,8 +506,8 @@ class VeoAPI:
             mime_type = "image/png"
         elif input_image_format_upper == "JPEG":
             mime_type = "image/jpeg"
-        elif input_image_format_upper == "WEBP":
-            mime_type = "image/webp"
+        elif input_image_format_upper == "MP4":
+            mime_type = "image/mp4"
         else:
             raise ValueError(
                 f"Unsupported image format for Base64 encoding: {image_format}"
@@ -513,6 +527,7 @@ class VeoAPI:
             aspect_ratio=aspect_ratio,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
             enhance_prompt=enhance_prompt,
             number_of_videos=sample_count,
             negative_prompt=negative_prompt,
@@ -615,6 +630,7 @@ class VeoAPI:
         aspect_ratio: str,
         person_generation: str,
         duration_seconds: int,
+        generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
         negative_prompt: Optional[str],
@@ -625,11 +641,12 @@ class VeoAPI:
 
         Args:
             gcsuri: The GCS URI of the input image (e.g., "gs://my-bucket/path/to/image.jpg").
-            image_format: The format of the input image (e.g., "PNG", "JPEG", "WEBP").
+            image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -652,13 +669,17 @@ class VeoAPI:
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
 
-        if not (1 <= duration_seconds <= 8):
+        if duration_seconds != 8:
             raise ValueError(
-                f"duration_seconds must be between 1 and 8, but got {duration_seconds}."
+                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if not (1 <= sample_count <= 2):
             raise ValueError(
-                f"sample_count must be between 1 and 4, but got {sample_count}."
+                f"sample_count must be between 1 and 2, but got {sample_count}."
+            )
+        if aspect_ratio != "16:9":
+            raise ValueError(
+                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
 
         valid_bucket, validation_message = self.validate_gcs_uri_and_image(gcsuri)
@@ -673,8 +694,8 @@ class VeoAPI:
             mime_type = "image/png"
         elif input_image_format_upper == "JPEG":
             mime_type = "image/jpeg"
-        elif input_image_format_upper == "WEBP":
-            mime_type = "image/webp"
+        elif input_image_format_upper == "MP4":
+            mime_type = "image/mp4"
         else:
             raise ValueError(f"Unsupported image format: {image_format}")
 
@@ -682,6 +703,7 @@ class VeoAPI:
             aspect_ratio=aspect_ratio,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
             enhance_prompt=enhance_prompt,
             number_of_videos=sample_count,
             negative_prompt=negative_prompt,

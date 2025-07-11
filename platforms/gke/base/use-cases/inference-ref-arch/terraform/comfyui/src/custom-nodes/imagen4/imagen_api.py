@@ -24,6 +24,7 @@ from grpc import StatusCode
 from PIL import Image
 
 from .config import get_gcp_metadata
+from .constants import USER_AGENT
 
 
 class ImagenAPI:
@@ -42,7 +43,6 @@ class ImagenAPI:
         Raises:
             ValueError: If GCP Project or region cannot be determined.
         """
-        self.USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"
         self.project_id = project_id or get_gcp_metadata("project/project-id")
         self.region = region or "-".join(
             get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
@@ -52,7 +52,7 @@ class ImagenAPI:
         if not self.region:
             raise ValueError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
-        http_options = genai.types.HttpOptions(headers={"User-Agent": self.USER_AGENT})
+        http_options = genai.types.HttpOptions(headers={"user-agent": USER_AGENT})
         self.client = genai.Client(
             vertexai=True,
             project=self.project_id,

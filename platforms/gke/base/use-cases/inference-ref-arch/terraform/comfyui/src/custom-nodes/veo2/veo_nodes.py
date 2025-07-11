@@ -163,7 +163,7 @@ class Veo2GcsUriImageToVideoNode:
                     {"default": "", "tooltip": "GCS URI for the Image"},
                 ),
                 "image_format": (
-                    ["PNG", "JPEG", "WEBP"],
+                    ["PNG", "JPEG", "MP4"],
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
@@ -294,7 +294,7 @@ class Veo2ImageToVideoNode:
             "required": {
                 "image": ("IMAGE",),
                 "image_format": (
-                    ["PNG", "JPEG", "WEBP"],
+                    ["PNG", "JPEG", "MP4"],
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),

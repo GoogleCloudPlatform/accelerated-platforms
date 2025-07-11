@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  cloudbuild_submit_command = "gcloud builds submit --substitutions=_PROJECT_ID=\"${google_project_service.cloud_build_googleapis_com.project},_REGISTRY=europe-docker.pkg.dev/${google_project_service.secret_manager_googleapis_com.project}/container-image-repository\" --region ${var.cluster_region}"
+  cloudbuild_submit_command = "gcloud builds submit --substitutions=_PROJECT_ID=\"${google_project_service.cloud_build_googleapis_com.project},_REGISTRY=europe-docker.pkg.dev/${google_project_service.cloud_build_googleapis_com.project}/container-image-repository\" --region ${var.cluster_region}"
   cloudbuild_sa_roles = [
     "roles/storage.objectUser",
     "roles/logging.logWriter",

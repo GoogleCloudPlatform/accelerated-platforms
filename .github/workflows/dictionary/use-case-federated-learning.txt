@@ -1,5 +1,6 @@
 adminport
 cloudfunction
+confidentialcomputing
 cooldown
 dkzkh
 endtoendtests
@@ -16,5 +17,7 @@ ondevicepersonalization
 opallowedusr
 opverifiedusr
 opwip
+privatepool
 pvdr
+vtpm
 ython

@@ -17,7 +17,7 @@ locals {
     for entry in local.federated_learning_cross_device_example_confidential_space_service_accounts : format("serviceAccount:%s@%s.iam.gserviceaccount.com", entry, local.cluster_project_id)
   ]
 
-  federated_learning_cross_device_example_confidential_space_iam_roles_setproduct = setproduct(concat(local.federated_learning_cross_device_example_common_roles, local.federated_learning_cross_device_example_confidential_space_roles), local.federated_learning_cross_device_example_confidential_space_service_accounts)
+  federated_learning_cross_device_example_confidential_space_iam_roles_setproduct = setproduct(concat(local.federated_learning_cross_device_example_common_roles, local.federated_learning_cross_device_example_confidential_space_roles), local.federated_learning_cross_device_example_confidential_space_service_accounts_emails)
 
   federated_learning_cross_device_example_confidential_space_iam_members = {
     for entry in local.federated_learning_cross_device_example_confidential_space_iam_roles_setproduct : "${entry[0]}-${entry[1]}" => entry

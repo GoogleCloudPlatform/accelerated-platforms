@@ -83,6 +83,11 @@ else
   echo "Skipping core platform teardown."
 fi
 
+rm -rf \
+  "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/downloader.env" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/secretproviderclass-huggingface-tokens.yaml" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu-base/deployment.env"
+
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
 echo "inference-ref-arch teardown total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"

@@ -52,12 +52,39 @@ steps:
       - "Configure the build environment"
 
   - args:
+      - platforms/gke/base/use-cases/inference-ref-arch/terraform
+      - online_gpu
+    entrypoint: "test/ci-cd/scripts/terraservice/apply_initialize.sh"
+    id: "Apply inference-ref-arch Terraservice 'online_gpu'"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch"
+
+  - args:
       - "Validate Kustomize"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/use-cases/inference-ref-arch/validate_kustomize.sh"
     id: "Validate Kustomize"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch"
+      - "Apply inference-ref-arch Terraservice 'online_gpu'"
+
+  - args:
+      - platforms/gke/base/use-cases/inference-ref-arch/terraform
+      - online_gpu
+    entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+    id: "inference-ref-arch Terraservice 'online_gpu' check for changes"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Validate Kustomize"
+
+  - args:
+      - platforms/gke/base/use-cases/inference-ref-arch/terraform
+      - online_gpu
+    entrypoint: "test/ci-cd/scripts/terraservice/destroy.sh"
+    id: "Destroy inference-ref-arch Terraservice 'online_gpu'"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "inference-ref-arch Terraservice 'online_gpu' check for changes"
 
   - args:
       - "Teardown platforms/gke/base/use-cases/inference-ref-arch"
@@ -66,7 +93,7 @@ steps:
     id: "Teardown platforms/gke/base/use-cases/inference-ref-arch"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Validate Kustomize"
+      - "Destroy inference-ref-arch Terraservice 'online_gpu'"
 
   - args:
       - "Cleanup the build environment"

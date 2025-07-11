@@ -1,4 +1,4 @@
-# Online Inference with Gemma on Google Kubernetes Engine (GKE) with TPUs
+# Online inference with TPUs on Google Kubernetes Engine (GKE)
 
 This guide demonstrates how to deploy and serve Gemma large language models
 (LLMs) for online inference on Google Kubernetes Engine (GKE), specifically
@@ -6,281 +6,205 @@ leveraging Cloud TPUs. It showcases high-performance and scalable LLM serving
 using various Gemma model sizes and their corresponding TPU v5e and v6e
 topologies.
 
-Follow these steps to set up your environment and deploy Gemma inference
-workloads on GKE with TPUs.
+This example is built on top of the
+[GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
 
-## Prerequisites
+## Before you begin
 
-Before you begin, ensure the following are in place within your Google Cloud
-project:
+- The
+  [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+  is deployed and configured.
 
-1. **Google Cloud APIs:** Enable the following essential APIs:
+- Get access to the models.
 
-- Cloud TPU API
+  - For Gemma:
 
-  You can enable them using the gcloud CLI:
+    - Consented to the license on [Kaggle](https://www.kaggle.com/) using a
+      Hugging Face account.
 
-  ```bash
-  gcloud services enable tpu.googleapis.com
-  ```
+      - [**google/gemma**](https://www.kaggle.com/models/google/gemma).
 
-2. **TPU Quotas and Capacity:** Ensure your Google Cloud project has sufficient
-   TPU quota for the desired TPU types and topologies. TPU capacity can be
-   provisioned in different ways, each with its own pricing and availability
-   characteristics:
+## Create and configure Google Cloud resources
 
-   - On-Demand (Standard) Quota
-   - Preemptible (Spot) Quota
-   - Reservations (for Guaranteed Capacity)
-
-- Checking Your Current Quota:
-
-  You can view your current TPU quota usage and limits in the Google Cloud
-  Console:
-
-  1.  Go to the **IAM & Admin** section.
-  2.  Select **Quotas & System Limits**.
-  3.  In the filter bar, search for `Service: Cloud TPU API` or
-      `Service: Compute Engine API`.
-  4.  Look for quota names like:
-
-  - `TPU v5 lite pod cores per project per zone` (for on-demand v5e)
-  - `Preemptible TPU v5 lite pod cores per project per zone` (for preemptible
-    v5e)
-  - `TPU v6e cores per project per zone` (for on-demand v6e)
-  - `Preemptible TPU v6e cores per project per zone` (for preemptible v6e)
-
-3. **Region Configuration:** The GKE cluster is created by default in the
-   us-central1 region. If your desired TPU quota is available in a different
-   region, you must update the cluster region before deployment.
-
-- Add the cluster_region variable in:
-  `accelerated-platforms/platforms/gke/base/\_shared_config/cluster.auto.tfvars`
-- Example:
-  ```shell
-  cluster_region = "us-east5" # Change to your preferred TPU region
-  ```
-
-## Deploy the Reference Architecture
-
-This solution uses the platform provided by the
-[inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
-
-1. **Deploy the Inference Reference Implementation:** Navigate to and follow the
-   instructions in the main
-   [inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
-   guide. This step sets up the necessary GKE cluster, network, and other core
-   components. After successfully deploying the reference architecture
-   instances, return to this document to continue.
-
-2. **Create Hugging Face Account Token:** Your VLLM deployment will need access
-   to Hugging Face models. Follow the steps to create and configure a Hugging
-   Face token.
-
-   - Set environment variables:
-
-     ```shell
-     set -o allexport
-     source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"
-     set +o allexport
-     ```
-
-   - Add the Hugging Face Hub access token with read permissions using **one**
-     of the following:
-
-   - [Generate a Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens)
-     with token type **Read**.
-
-     **Console**
-
-     ```shell
-     echo -e "\n${huggingface_hub_access_token_read_secret_manager_secret_name} versions URL: https://console.cloud.google.com/security/secret-manager/secret/${huggingface_hub_access_token_read_secret_manager_secret_name}/versions?project=${huggingface_secret_manager_project_id}\n"
-     ```
-
-     **`gcloud`**
-
-     ```shell
-     unset HISTORY
-     HF_TOKEN_READ="<read token>"
-     echo ${HF_TOKEN_READ} | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} \
-     --data-file=- \
-     --project=${huggingface_secret_manager_project_id}
-     ```
-
-3. **Gain Access to Gemma Models:** To download and use Gemma models, you must
-   accept their terms and conditions on Kaggle.com:
-   - Access the Gemma
-     [model consent page on Kaggle.com](https://www.kaggle.com/models/google/gemma).
-   - Verify your consent using your Hugging Face account credentials.
-   - Accept the model terms.
-
-## Prepare Environment Variables and Kubeconfig
-
-These steps set up your local shell environment to interact with your GKE
-cluster and manage resources.
-
-1. Set Kubernetes Namespace and Kubernetes Service Account (KSA) environment
-   variables:
-
-   ```shell
-   export WORKLOAD_NAMESPACE="tpu-inf"
-   export WORKLOAD_KSA="tpu-inf"
-   ```
-
-2. Source GKE Cluster Credentials: Configure kubectl to connect to your newly
-   deployed GKE cluster.
-
-   ```shell
-   gcloud container clusters get-credentials ${cluster_name} \
-   --dns-endpoint \
-   --location="${cluster_region}" \
-   --project="${cluster_project_id}"
-   ```
-
-3. Create Kubernetes namespace:
-
-   ```shell
-   kubectl create namespace ${WORKLOAD_NAMESPACE}
-   ```
-
-4. Create Kubernetes Service Account (KSA):
-
-   ```shell
-   envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/service-account.yaml | kubectl apply -f -
-   ```
-
-5. Give the Kubernetes service account IAM permissions.
-
-   ```shell
-   cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
-   gcloud secrets add-iam-policy-binding ${huggingface_hub_access_token_read_secret_manager_secret_name} \
-   --member=principal://iam.googleapis.com/projects/${cluster_project_number}/locations/global/workloadIdentityPools/${cluster_project_id}.svc.id.goog/subject/ns/${WORKLOAD_NAMESPACE}/sa/${WORKLOAD_KUBERNETES_SERVICE_ACCOUNT} \
-   --project=${huggingface_secret_manager_project_id} \
-   --role=roles/secretmanager.secretAccessor
-   ```
-
-   ```shell
-   cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
-   gcloud storage buckets add-iam-policy-binding ${huggingface_hub_models_bucket_name} \
-   --member=principal://iam.googleapis.com/projects/${cluster_project_number}/locations/global/workloadIdentityPools/${cluster_project_id}.svc.id.goog/subject/ns/${WORKLOAD_NAMESPACE}/sa/${WORKLOAD_KUBERNETES_SERVICE_ACCOUNT} \
-   --project=${cluster_project_id} \
-   --role=${cluster_gcsfuse_user_role}
-   ```
-
-- Create the `SecretProviderClass`es in the workload's namespace.
+- Deploy the online TPU resources.
 
   ```shell
-  envsubst <${ACP_REPO_DIR}/platforms/gke/base/core/huggingface/initialize/templates/secretproviderclass-huggingface-tokens.tftpl.yaml | kubectl --namespace=${WORKLOAD_NAMESPACE} apply -f -
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
   ```
 
-## Deploy the Online Inference Workloads
+- Source the environment configuration.
 
-You are now ready to deploy your Gemma inference services to GKE. Each command
-below deploys a specific Gemma model size with its corresponding TPU topology.
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
 
-**Important**: These commands use envsubst to replace variables like
-\${WORKLOAD_NAMESPACE}, \${WORKLOAD_KSA}, and
-\${huggingface_hub_models_bucket_name} within the Kubernetes YAML manifests.
-Ensure these environment variables are correctly set and exported in your
-current shell session before running.
+- Configure the Hugging Face `SecretProviderClass`es.
 
-### Gemma 1B (TPU v5e 1x1)
+  ```shell
+  envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/secretproviderclass-huggingface-tokens.tpl.yaml \
+    | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/secretproviderclass-huggingface-tokens.yaml
+  ```
 
-Deploy the Gemma 3 1B IT model, on a single TPU v5e chip.
+## Download the model to Cloud Storage
 
-```shell
-envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-1b-tpu-v5e.yaml | kubectl apply -f -
-```
+- Set the environment variables for the model downloader.
 
-#### Test Gemma 1B Inference (Port Forwarding & cURL)
+  - Set the model name.
 
-Once the Gemma 1B deployment is complete and the pod is running, you can test
-the inference service by port-forwarding the ClusterIP service to your local
-machine and sending a curl request.
+    - **Gemma 3 1B Instruction-Tuned**:
 
-1. **Verify Pod Status:** Wait for your VLLM pod to transition to Running and
-   Ready status. This may take several minutes as the model downloads and
-   initializes on the TPU.
+      ```shell
+      export MODEL_ID="google/gemma-3-1b-it"
+      ```
 
-   ```bash
-   kubectl get pods -n "${WORKLOAD_NAMESPACE}" -l app=vllm-tpu-gemma-3-1b-it
-   ```
+    - **Gemma 3 4B Instruction-Tuned**:
 
-2. **Verify Service Status:** Confirm that your ClusterIP service is deployed.
+      ```shell
+      export MODEL_ID="google/gemma-3-4b-it"
+      ```
 
-   ```bash
-   kubectl get service -n "${WORKLOAD_NAMESPACE}" vllm-service-gemma-3-1b-it
-   ```
+    - **Gemma 3 27B Instruction-Tuned**:
 
-   Look for output similar to:
+      ```shell
+      export MODEL_ID="google/gemma-3-27b-it"
+      ```
 
-   ```bash
-   NAME                         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
-   vllm-service-gemma-3-1b-it   ClusterIP   X.X.X.X     <none>        8000/TCP   5m
-   ```
+  - Configure the Kustomize environment file
 
-3. **Establish Port Forwarding:** Open a new terminal window and run the
-   following command. This will forward traffic from your local machine's port
-   8000 to the service's port 8000 within the cluster.
+    ```shell
+    envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/downloader.tpl.env \
+      | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/downloader.env
+    ```
 
-   ```bash
-   kubectl port-forward service/vllm-service-gemma-3-1b-it 8000:8000 -n "${WORKLOAD_NAMESPACE}"
-   ```
+- Deploy the model downloader in the GKE cluster.
 
-   You should see output indicating that the forwarding is active:
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download"
+  ```
 
-   ```bash
-   Forwarding from 127.0.0.1:8000 -> 8000
-   Handling connection for 8000
-   ```
+- Wait for the model downloader to download the model:
 
-   Keep this terminal window open as long as you want to access the service
-   locally.
+  Note: the model downloader job has `ttlSecondsAfterFinished` configured, so if
+  you wait for more than `ttlSecondsAfterFinished` seconds after the job
+  completes, GKE will have automatically deleted it to reclaim resources.
 
-4. **Test with curl:** In a separate terminal window (where port-forwarding is
-   NOT running), send a curl request to your locally forwarded endpoint.
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/transfer-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/transfer-model-to-gcs --tail 10"
+  ```
 
-   Example for Chat Completion (if using a chat-tuned model and
-   /v1/chat/completions):
+  The output is similar to the following.
 
-   ```bash
-   curl -X POST -H "Content-Type: application/json" \
-      -d '{
-            "model": "google/gemma-3-1b-it",
-            "messages": [
-               {"role": "user", "content": "Tell me a short story about a brave knight and a dragon."}
-            ],
-            "max_tokens": 100,
-            "temperature": 0.7
-            }' \
-      http://localhost:8000/v1/chat/completions
-   ```
+  ```text
+  NAME                    STATUS     COMPLETIONS   DURATION   AGE
+  transfer-model-to-gcs   Complete   1/1           ##m        ##m
+  ```
 
-5. **Clean Up Port Forwarding:** Once you are done testing, simply close the
-   terminal window where kubectl port-forward is running.
+- Delete the model downloader.
 
-### Gemma 4B (TPU v5e 2x2)
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download"
+  ```
 
-Deploy the Gemma 3 4B IT model, leveraging a 2x2 TPU v5e podslice (4 chips).
+## Deploy the online inference workload
 
-```shell
-envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-4b-tpu-v5e.yaml | kubectl apply -f -
-```
+- Configure the Kustomize environment file.
 
-### Gemma 27B (1K context window on TPU v5e)
+  ```shell
+  envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/templates/deployment.tpl.env \
+    | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/deployment.env
+  ```
 
-Deploy the Gemma 27B model (with a 1K context window), using TPU v5e, 2x4
-topology (8 chips).
+- Set the environment variables for the model.
 
-```shell
-envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-27b-tpu-v5e.yaml | kubectl apply -f -
-```
+  - Set the model name.
 
-### Gemma 27B (16K context window on TPU v6e)
+    ```shell
+    export MODEL_NAME="${MODEL_ID##*/}"
+    echo "MODEL_NAME=${MODEL_NAME}"
+    ```
 
-Deploy the Gemma 27B model (with a 16K context window), utilizing TPU v6e for
-higher performance.
+  - Select an accelerator.
 
-```shell
-envsubst <${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm-gemma3-27b-tpu-v6e.yaml | kubectl apply -f -
-```
+    | Model          | v5e | v6e |
+    | -------------- | --- | --- |
+    | gemma-3-1b-it  | ✅  | ❌  |
+    | gemma-3-4b-it  | ✅  | ❌  |
+    | gemma-3-27b-it | ✅  | ✅  |
+
+    - **v5e**:
+
+      ```shell
+      export ACCELERATOR_TYPE="v5e"
+      ```
+
+    - **v56e**:
+
+      ```shell
+      export ACCELERATOR_TYPE="v6e"
+      ```
+
+    Ensure that you have enough quota in your project to provision the selected
+    accelerator type. For more information, see about viewing TPU quotas, see
+    [Ensure that you have TPU quota](https://cloud.google.com/kubernetes-engine/docs/how-to/tpus#ensure-quota).
+
+- Deploy the online inference workload in the GKE cluster.
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  ```
+
+- Wait for the Pod to be ready.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} --tail 10"
+  ```
+
+- Send a test request.
+
+  ```shell
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} 8000:8000 >/dev/null &
+  PF_PID=$!
+  while ! nc -z localhost 8000; do
+    sleep 0.1
+  done
+  echo "/v1/models:"
+  curl --request GET --show-error --silent http:/127.0.0.1:8000/v1/models | jq
+  sleep 1
+  echo "/v1/chat/completions:"
+  curl http://127.0.0.1:8000/v1/chat/completions \
+  --data '{
+    "model": "/gcs/'${MODEL_ID}'",
+    "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
+    }' \
+  --header "Content-Type: application/json" \
+  --request POST \
+  --show-error \
+  --silent | jq
+  kill -9 ${PF_PID}
+  ```
+
+- Delete the workload.
+
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  ```
+
+## Clean up
+
+- Destroy the online TPU resources.
+
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu && \
+  terraform init &&
+  terraform destroy -auto-approve
+  ```

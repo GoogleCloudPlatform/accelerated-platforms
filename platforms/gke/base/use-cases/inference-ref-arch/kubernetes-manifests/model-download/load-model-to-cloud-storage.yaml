@@ -63,7 +63,7 @@ spec:
               echo "Downloading ${MODEL_ID} to ${MODEL_BUCKET_NAME} Cloud Storage bucket"
               echo "Debug Hugging Face token path: ${HF_TOKEN_PATH}"
 
-              pip3 install -U "huggingface_hub[cli]==0.31.4" --break-system-packages
+              pip3 install --break-system-packages --upgrade huggingface_hub[cli] hf_transfer
 
               huggingface-cli download --repo-type model ${MODEL_ID} --local-dir /local/temp
 
@@ -72,6 +72,8 @@ spec:
               mv -v /local/temp/* "/local/${MODEL_ID}/"
               rm -rfv /local/temp /local/.gcsfuse_tmp
           env:
+            - name: HF_HUB_ENABLE_HF_TRANSFER
+              value: "1"
             - name: MODEL_ID
               valueFrom:
                 configMapKeyRef:

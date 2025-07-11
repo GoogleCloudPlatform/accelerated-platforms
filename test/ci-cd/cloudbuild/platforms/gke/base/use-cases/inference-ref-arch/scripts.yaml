@@ -54,7 +54,7 @@ steps:
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
       - online_gpu
-    entrypoint: "test/ci-cd/scripts/terraservice/apply_initialize.sh"
+    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
     id: "Apply inference-ref-arch Terraservice 'online_gpu'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
@@ -63,7 +63,7 @@ steps:
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
       - online_tpu
-    entrypoint: "test/ci-cd/scripts/terraservice/apply_initialize.sh"
+    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
     id: "Apply inference-ref-arch Terraservice 'online_tpu'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:

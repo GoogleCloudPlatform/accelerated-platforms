@@ -24,7 +24,7 @@ from grpc import StatusCode
 from PIL import Image
 
 from .config import get_gcp_metadata
-from .constants import USER_AGENT
+from .constants import USER_AGENT, Imagen4Model
 
 
 class ImagenAPI:
@@ -116,7 +116,7 @@ class ImagenAPI:
         else:
             raise ValueError(f"Unsupported image format: {output_image_type}")
 
-        if model == "imagen-4.0-ultra-generate-preview-06-06" and number_of_images > 1:
+        if model == Imagen4Model.IMAGEN_4_ULTRA.value and number_of_images > 1:
             raise ValueError("Ultra model only generates one image at a time.")
 
         config = types.GenerateImagesConfig(

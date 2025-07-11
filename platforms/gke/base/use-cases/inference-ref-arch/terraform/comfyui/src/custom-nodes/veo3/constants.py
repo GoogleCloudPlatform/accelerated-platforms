@@ -14,6 +14,8 @@
 
 # This is a preview version of veo3 custom node
 
+from enum import Enum
+
 MAX_SEED = 0xFFFFFFFF
 SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".mkv"}
 USER_AGENT = "cloud-solutions/comfyui-veo3-custom-node-v1"

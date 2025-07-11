@@ -36,7 +36,7 @@ from grpc import StatusCode
 from PIL import Image as PIL_Image
 
 from .config import get_gcp_metadata
-from .constants import USER_AGENT
+from .constants import USER_AGENT, Veo3Model
 
 
 class VeoAPI:
@@ -66,7 +66,7 @@ class VeoAPI:
         if not self.region:
             raise ValueError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
-        self.model_id = "veo-3.0-generate-preview"
+
         http_options = genai.types.HttpOptions(headers={"user-agent": USER_AGENT})
         self.client = genai.Client(
             vertexai=True,
@@ -80,6 +80,7 @@ class VeoAPI:
 
     def generate_video_from_text(
         self,
+        model: str,
         prompt: str,
         aspect_ratio: str,
         person_generation: str,
@@ -94,6 +95,7 @@ class VeoAPI:
         Generates video from a text prompt using the Veo 3.0 API.
 
         Args:
+            model: Veo3 model.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
             person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
@@ -125,7 +127,7 @@ class VeoAPI:
             raise ValueError(
                 f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
-
+        model = Veo3Model[model]
         config = GenerateVideosConfig(
             aspect_ratio=aspect_ratio,
             person_generation=person_generation,
@@ -143,7 +145,7 @@ class VeoAPI:
             try:
                 print("Sending request to Veo API for text-to-video generation...")
                 operation = self.client.models.generate_videos(
-                    model=self.model_id, prompt=prompt, config=config
+                    model=model, prompt=prompt, config=config
                 )
                 print(f"Initial operation response object type: {type(operation)}")
 
@@ -171,7 +173,7 @@ class VeoAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {self.model_id} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(
@@ -432,6 +434,7 @@ class VeoAPI:
 
     def generate_video_from_image(
         self,
+        model: str,
         image: torch.Tensor,
         image_format: str,
         prompt: str,
@@ -448,6 +451,7 @@ class VeoAPI:
         Generates video from an image input (as a torch.Tensor) using the Veo 3.0 API.
 
         Args:
+            model: Veo3 model.
             image: The input image as a torch.Tensor (ComfyUI format).
             image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
@@ -488,6 +492,7 @@ class VeoAPI:
             raise ValueError(
                 f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
+        model = Veo3Model[model]
 
         pil_image: PIL_Image.Image
         if isinstance(image, torch.Tensor):
@@ -542,7 +547,7 @@ class VeoAPI:
                 )
 
                 operation = self.client.models.generate_videos(
-                    model=self.model_id,
+                    model=model,
                     image=Image(image_bytes=veo_image_input_bytes, mime_type=mime_type),
                     prompt=prompt,
                     config=config,
@@ -571,7 +576,7 @@ class VeoAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {self.model_id} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(
@@ -624,6 +629,7 @@ class VeoAPI:
 
     def generate_video_from_gcsuri_image(
         self,
+        model: str,
         gcsuri: str,
         image_format: str,
         prompt: str,
@@ -640,6 +646,7 @@ class VeoAPI:
         Generates video from a Google Cloud Storage (GCS) image URI using the Veo 3.0 API.
 
         Args:
+            model: Veo3 model.
             gcsuri: The GCS URI of the input image (e.g., "gs://my-bucket/path/to/image.jpg").
             image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
@@ -699,6 +706,8 @@ class VeoAPI:
         else:
             raise ValueError(f"Unsupported image format: {image_format}")
 
+        model = Veo3Model[model]
+
         config = GenerateVideosConfig(
             aspect_ratio=aspect_ratio,
             person_generation=person_generation,
@@ -715,7 +724,7 @@ class VeoAPI:
             try:
                 print("Sending request to Veo API for image-to-video generation")
                 operation = self.client.models.generate_videos(
-                    model=self.model_id,
+                    model=model,
                     image=Image(gcs_uri=gcsuri, mime_type=mime_type),
                     prompt=prompt,
                     config=config,
@@ -744,7 +753,7 @@ class VeoAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {self.model_id} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(

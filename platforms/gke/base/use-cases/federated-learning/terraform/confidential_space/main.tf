@@ -111,6 +111,7 @@ resource "google_compute_region_instance_group_manager" "instance_group" {
 
 resource "google_compute_health_check" "default" {
   for_each            = var.federated_learning_cross_device_example_confidential_space_workloads
+  project             = google_project_service.confidentialcomputing_googleapis_com.project
   name                = join("-", [local.unique_identifier_prefix, each.key, "http-health-check"])
   timeout_sec         = 10
   check_interval_sec  = 30

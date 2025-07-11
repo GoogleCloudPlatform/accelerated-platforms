@@ -36,7 +36,7 @@ from grpc import StatusCode
 from PIL import Image as PIL_Image
 
 from .config import get_gcp_metadata
-from .constants import USER_AGENT
+from .constants import MODEL_ID, USER_AGENT
 
 
 class VeoAPI:
@@ -66,7 +66,6 @@ class VeoAPI:
         if not self.region:
             raise ValueError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
-        self.model_id = "veo-2.0-generate-001"
         http_options = genai.types.HttpOptions(headers={"user-agent": USER_AGENT})
         self.client = genai.Client(
             vertexai=True,
@@ -136,7 +135,7 @@ class VeoAPI:
             try:
                 print("Sending request to Veo API for text-to-video generation...")
                 operation = self.client.models.generate_videos(
-                    model=self.model_id, prompt=prompt, config=config
+                    model=MODEL_ID, prompt=prompt, config=config
                 )
                 print(f"Initial operation response object type: {type(operation)}")
 
@@ -164,7 +163,7 @@ class VeoAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {self.model_id} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {MODEL_ID} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(
@@ -527,7 +526,7 @@ class VeoAPI:
                 )
 
                 operation = self.client.models.generate_videos(
-                    model=self.model_id,
+                    model=MODEL_ID,
                     image=Image(image_bytes=veo_image_input_bytes, mime_type=mime_type),
                     prompt=prompt,
                     config=config,
@@ -556,7 +555,7 @@ class VeoAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {self.model_id} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {MODEL_ID} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(
@@ -693,7 +692,7 @@ class VeoAPI:
             try:
                 print("Sending request to Veo API for image-to-video generation")
                 operation = self.client.models.generate_videos(
-                    model=self.model_id,
+                    model=MODEL_ID,
                     image=Image(gcs_uri=gcsuri, mime_type=mime_type),
                     prompt=prompt,
                     config=config,
@@ -722,7 +721,7 @@ class VeoAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {self.model_id} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {MODEL_ID} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(

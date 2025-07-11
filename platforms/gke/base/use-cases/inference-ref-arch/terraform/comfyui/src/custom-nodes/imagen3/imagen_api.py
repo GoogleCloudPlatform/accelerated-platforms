@@ -24,7 +24,7 @@ from grpc import StatusCode
 from PIL import Image
 
 from .config import get_gcp_metadata
-from .constants import USER_AGENT
+from .constants import MODEL_ID, USER_AGENT
 
 
 class ImagenAPI:
@@ -52,7 +52,6 @@ class ImagenAPI:
         if not self.region:
             raise ValueError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
-        self.model_id = "imagen-3.0-generate-002"
         http_options = genai.types.HttpOptions(headers={"user-agent": USER_AGENT})
         self.client = genai.Client(
             vertexai=True,
@@ -133,7 +132,7 @@ class ImagenAPI:
             try:
                 print("Sending request to Imagen API for text-to-image generation...")
                 response = self.client.models.generate_images(
-                    model=self.model_id, prompt=prompt, config=config
+                    model=MODEL_ID, prompt=prompt, config=config
                 )
 
                 if not response.generated_images:
@@ -163,7 +162,7 @@ class ImagenAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {self.model_id} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {MODEL_ID} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(

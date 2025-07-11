@@ -16,3 +16,4 @@
 
 MAX_SEED = 0xFFFFFFFF
 USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
+MODEL_ID = "imagen-3.0-generate-002"

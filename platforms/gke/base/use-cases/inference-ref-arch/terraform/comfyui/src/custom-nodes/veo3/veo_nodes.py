@@ -24,7 +24,7 @@ import cv2
 import numpy as np
 import torch
 
-from .constants import MAX_SEED, SUPPORTED_VIDEO_EXTENSIONS
+from .constants import MAX_SEED, SUPPORTED_VIDEO_EXTENSIONS, Veo3Model
 from .veo_api import VeoAPI
 
 
@@ -37,6 +37,10 @@ class Veo3TextToVideoNode:
     def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
         return {
             "required": {
+                "model": (
+                    [model.name for model in Veo3Model],
+                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "person_generation": (
@@ -86,7 +90,8 @@ class Veo3TextToVideoNode:
 
     def generate(
         self,
-        prompt: str,
+        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        prompt: str = "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn.",
         aspect_ratio: str = "16:9",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
@@ -102,6 +107,7 @@ class Veo3TextToVideoNode:
         Generates a video from a text prompt using the Google Veo 3.0 API.
 
         Args:
+            model: Veo3 model
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
@@ -130,6 +136,7 @@ class Veo3TextToVideoNode:
 
         try:
             video_paths = api.generate_video_from_text(
+                model=model,
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
                 person_generation=person_generation,
@@ -162,6 +169,10 @@ class Veo3GcsUriImageToVideoNode:
     def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
         return {
             "required": {
+                "model": (
+                    [model.name for model in Veo3Model],
+                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                ),
                 "gcsuri": (
                     "STRING",
                     {"default": "", "tooltip": "GCS URI for the Image"},
@@ -219,6 +230,7 @@ class Veo3GcsUriImageToVideoNode:
 
     def generate(
         self,
+        model: str = Veo3Model.VEO_3_PREVIEW.name,
         gcsuri: str = "",
         image_format: str = "PNG",
         prompt: str = "",
@@ -237,6 +249,7 @@ class Veo3GcsUriImageToVideoNode:
         Generates a video from a GCS image URI using the Google Veo 3.0 API.
 
         Args:
+            model: Veo3 model
             gcsuri: The GCS URI of the input image.
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
@@ -266,6 +279,7 @@ class Veo3GcsUriImageToVideoNode:
 
         try:
             video_paths = api.generate_video_from_gcsuri_image(
+                model=model,
                 gcsuri=gcsuri,
                 image_format=image_format,
                 prompt=prompt,
@@ -300,6 +314,10 @@ class Veo3ImageToVideoNode:
     def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
         return {
             "required": {
+                "model": (
+                    [model.name for model in Veo3Model],
+                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                ),
                 "image": ("IMAGE",),
                 "image_format": (
                     ["PNG", "JPEG", "MP4"],
@@ -354,7 +372,8 @@ class Veo3ImageToVideoNode:
 
     def generate(
         self,
-        image: torch.Tensor,
+        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        image: torch.Tensor = None,
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
@@ -372,6 +391,7 @@ class Veo3ImageToVideoNode:
         Generates a video from an input image (torch.Tensor) using the Google Veo 3.0 API.
 
         Args:
+            model: Veo3 model
             image: The input image as a torch.Tensor.
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
@@ -410,6 +430,7 @@ class Veo3ImageToVideoNode:
             )
             try:
                 video_paths = api.generate_video_from_image(
+                    model=model,
                     image=single_image_tensor,
                     image_format=image_format,
                     prompt=prompt,

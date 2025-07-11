@@ -22,5 +22,5 @@ USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"
 
 class Imagen4Model(str, Enum):
     IMAGEN_4_PREVIEW = "imagen-4.0-generate-preview-06-06"
-    IMAGEN_4_FAST = "imagen-4.0-fast-generate-preview-06-06"
-    IMAGEN_4_ULTRA = "imagen-4.0-ultra-generate-preview-06-06"
+    IMAGEN_4_FAST_PREVIEW = "imagen-4.0-fast-generate-preview-06-06"
+    IMAGEN_4_ULTRA_PREVIEW = "imagen-4.0-ultra-generate-preview-06-06"

@@ -17,3 +17,8 @@
 MAX_SEED = 0xFFFFFFFF
 SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".mkv"}
 USER_AGENT = "cloud-solutions/comfyui-veo3-custom-node-v1"
+
+
+class Veo3Model(str, Enum):
+    VEO_3_PREVIEW = "veo-3.0-generate-preview"
+    VEO_3_FAST_PREVIEW = "veo-3.0-fast-generate-preview"

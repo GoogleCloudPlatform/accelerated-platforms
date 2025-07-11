@@ -45,8 +45,8 @@ class Imagen4TextToImageNode:
         return {
             "required": {
                 "model": (
-                    [model.value for model in Imagen4Model],
-                    {"default": Imagen4Model.IMAGEN_4_PREVIEW.value},
+                    [model.name for model in Imagen4Model],
+                    {"default": Imagen4Model.IMAGEN_4_PREVIEW.name},
                 ),
                 "prompt": (
                     "STRING",
@@ -113,7 +113,7 @@ class Imagen4TextToImageNode:
 
     def generate_and_return_image(
         self,
-        model: str = Imagen4Model.IMAGEN_4_PREVIEW.value,
+        model: str = Imagen4Model.IMAGEN_4_PREVIEW.name,
         prompt: str = "A vivid landscape painting of a futuristic city",
         person_generation: str = "dont_allow",
         aspect_ratio: str = "16:9",

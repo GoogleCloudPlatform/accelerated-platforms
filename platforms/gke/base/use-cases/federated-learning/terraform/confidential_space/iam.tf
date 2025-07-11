@@ -42,6 +42,6 @@ resource "google_project_iam_member" "federated_learning_cross_device_example_co
 
   depends_on = [
     # Wait for service account creation before attempting to assign roles
-    google_service_account.cross_device_confidential_space_service_account
+    google_service_account.federated_learning_cross_device_example_confidential_space_service_account
   ]
 }

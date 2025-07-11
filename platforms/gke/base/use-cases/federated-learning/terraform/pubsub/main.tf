@@ -27,6 +27,7 @@ resource "google_pubsub_topic" "federated_learning_pubsub_dead_letter_topics" {
 resource "google_pubsub_subscription" "federated_learning_pubsub_subscriptions" {
   for_each = toset(local.federated_learning_cross_device_example_pubsub_topics)
   name     = join("-", [local.unique_identifier_prefix, each.key, "subscription"])
+  project  = google_project_service.pubsub_googleapis_com.project
   topic    = google_pubsub_topic.federated_learning_pubsub_topics[each.key].name
 
   # 7 days
@@ -44,6 +45,7 @@ resource "google_pubsub_subscription" "federated_learning_pubsub_subscriptions" 
 resource "google_pubsub_subscription" "federated_learning_pubsub_dead_letter_queue_subscriptions" {
   for_each = toset(local.federated_learning_cross_device_example_pubsub_topics)
   name     = join("-", [local.unique_identifier_prefix, each.key, "dlq-subscription"])
+  project  = google_project_service.pubsub_googleapis_com.project
   topic    = google_pubsub_topic.federated_learning_pubsub_dead_letter_topics[each.key].name
 
   # 7 days

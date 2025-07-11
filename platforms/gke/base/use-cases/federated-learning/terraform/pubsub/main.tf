@@ -15,19 +15,13 @@
 resource "google_pubsub_topic" "federated_learning_pubsub_topics" {
   for_each = toset(local.federated_learning_cross_device_example_pubsub_topics)
   name     = join("-", [local.unique_identifier_prefix, each.key, "topic"])
-
-  depends_on = [
-    google_project_service.pubsub_googleapis_com
-  ]
+  project  = google_project_service.pubsub_googleapis_com.project
 }
 
 resource "google_pubsub_topic" "federated_learning_pubsub_dead_letter_topics" {
   for_each = toset(local.federated_learning_cross_device_example_pubsub_topics)
   name     = join("-", [local.unique_identifier_prefix, each.key, "topic-dead-letter"])
-
-  depends_on = [
-    google_project_service.pubsub_googleapis_com
-  ]
+  project  = google_project_service.pubsub_googleapis_com.project
 }
 
 resource "google_pubsub_subscription" "federated_learning_pubsub_subscriptions" {

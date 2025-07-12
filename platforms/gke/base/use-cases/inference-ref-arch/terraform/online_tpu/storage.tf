@@ -12,21 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-terraform {
-  required_version = ">= 1.5.7"
-
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "6.38.0"
-    }
-    local = {
-      source  = "hashicorp/local"
-      version = "2.5.3"
-    }
-  }
-
-  provider_meta "google" {
-    module_name = "cloud-solutions/acp_ira_online-gpu_deploy-v1"
-  }
+data "google_storage_bucket" "hub_models" {
+  name    = local.huggingface_hub_models_bucket_name
+  project = local.huggingface_hub_models_bucket_project_id
 }

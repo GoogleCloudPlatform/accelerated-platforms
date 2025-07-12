@@ -52,6 +52,14 @@ output "ira_online_gpu_kubernetes_service_account_name" {
   value = local.ira_online_gpu_kubernetes_service_account_name
 }
 
+output "ira_online_tpu_kubernetes_namespace_name" {
+  value = local.ira_online_tpu_kubernetes_namespace_name
+}
+
+output "ira_online_tpu_kubernetes_service_account_name" {
+  value = local.ira_online_tpu_kubernetes_service_account_name
+}
+
 output "use_case" {
   value = "inference-ref-arch"
 }

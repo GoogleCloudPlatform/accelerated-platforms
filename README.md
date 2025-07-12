@@ -30,6 +30,7 @@ the primary runtime.
 - [Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
   - [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
   - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
+  - [Online inference with TPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-tpu/README.md)
 
 ### Playground AI/ML Platform on GKE
 

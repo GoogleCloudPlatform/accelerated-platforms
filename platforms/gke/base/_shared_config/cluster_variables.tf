@@ -235,9 +235,10 @@ variable "cluster_region" {
       [
         "us-central1",
         "us-east4",
+        "us-east5",
       ],
     var.cluster_region)
-    error_message = "'cluster_region' must be one of ['us-central1', 'us-east4']"
+    error_message = "'cluster_region' must be one of ['us-central1', 'us-east4', 'us-east5']"
   }
 }
 

@@ -13,3 +13,4 @@ platforms/gke/base/kubernetes/*
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/downloader.env
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/secretproviderclass-huggingface-tokens.yaml
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-base/deployment.env
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-tpu/base/deployment.env

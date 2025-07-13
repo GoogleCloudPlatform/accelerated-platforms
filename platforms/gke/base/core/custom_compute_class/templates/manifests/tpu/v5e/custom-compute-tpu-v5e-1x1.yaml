@@ -1,0 +1,78 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: tpu-v5e-1x1
+spec:
+  activeMigration:
+    optimizeRulePriority: true
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    # Use a specific reservation
+    # - machineType: ct5lp-hightpu-4t
+    #   maxPodsPerNode: 32
+    #   reservations:
+    #     affinity: Specific
+    #     specific:
+    #       - name: tpu-v5-lite-podslice-specific
+    #         reservationBlock:
+    #           name: <RESERVATION_NAME>
+    #   spot: false
+    #   tpu:
+    #     count: 1
+    #     topology: 1x1
+    #     type: tpu-v5-lite-podslice
+
+    # Use on-demand
+    - maxPodsPerNode: 32
+      spot: false
+      tpu:
+        count: 1
+        topology: 1x1
+        type: tpu-v5-lite-podslice
+
+    # Use DWS FlexStart with 7 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      maxPodsPerNode: 32
+      maxRunDurationSeconds: 604800
+      tpu:
+        count: 1
+        topology: 1x1
+        type: tpu-v5-lite-podslice
+
+    # Use DWS FlexStart with 1 day limit
+    - flexStart:
+        enabled: true
+        nodeRecycling:
+          leadTimeSeconds: 3600
+      maxPodsPerNode: 32
+      maxRunDurationSeconds: 86400
+      tpu:
+        count: 1
+        topology: 1x1
+        type: tpu-v5-lite-podslice
+
+    # Use spot
+    - maxPodsPerNode: 32
+      spot: true
+      tpu:
+        count: 1
+        topology: 1x1
+        type: tpu-v5-lite-podslice

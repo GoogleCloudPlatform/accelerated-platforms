@@ -27,6 +27,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/acp_ira_online-gpu_deploy-v1"
+    module_name = "cloud-solutions/acp_ira_online-tpu_deploy-v1"
   }
 }

@@ -22,6 +22,7 @@ declare -a git_assume_unchanged_files=(
   "platforms/gke/base/_shared_config/networking.auto.tfvars"
   "platforms/gke/base/_shared_config/nvidia.auto.tfvars"
   "platforms/gke/base/_shared_config/platform.auto.tfvars"
+  "platforms/gke/base/_shared_config/policycontroller.auto.tfvars"
   "platforms/gke/base/_shared_config/terraform.auto.tfvars"
   "platforms/gke/base/_shared_config/workloads.auto.tfvars"
   "platforms/gke/base/core/initialize/backend.tf.bucket"

@@ -1,0 +1,10 @@
+CREATE TABLE ModelMetrics (
+  PopulationName STRING(64) NOT NULL,
+  TaskId INT64 NOT NULL,
+  IterationId INT64 NOT NULL,
+  MetricName STRING(64) NOT NULL,
+  MetricValue FLOAT64 NOT NULL,
+  CreatedTime TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true)
+) PRIMARY KEY(PopulationName, TaskId, IterationId, MetricName)
+
+CREATE INDEX ModelMetricsCreatedTimeIndex ON ModelMetrics(CreatedTime)

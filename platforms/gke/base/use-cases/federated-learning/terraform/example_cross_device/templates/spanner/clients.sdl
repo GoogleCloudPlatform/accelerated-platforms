@@ -1,0 +1,8 @@
+CREATE TABLE Clients (
+  ClientId STRING(36) NOT NULL,
+  Status STRING(20) NOT NULL,
+  LastSeen TIMESTAMP OPTIONS (allow_commit_timestamp=true),
+  Properties JSON,
+) PRIMARY KEY (ClientId)
+
+CREATE INDEX ClientsByStatus ON Clients(Status)

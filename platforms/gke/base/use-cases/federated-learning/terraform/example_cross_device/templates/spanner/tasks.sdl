@@ -1,0 +1,12 @@
+CREATE TABLE Tasks (
+  TaskId STRING(36) NOT NULL,
+  ModelId STRING(36) NOT NULL,
+  Status STRING(20) NOT NULL,
+  CreatedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+  UpdatedAt TIMESTAMP OPTIONS (allow_commit_timestamp=true),
+  CompletedAt TIMESTAMP,
+  Parameters JSON
+) PRIMARY KEY (TaskId)
+
+CREATE INDEX TasksByStatus ON Tasks(Status)
+CREATE INDEX TasksByModel ON Tasks(ModelId)

@@ -80,6 +80,7 @@ cross_device_example_terraservices=(
   "secret_manager"
   "network"
   "pubsub"
+  "spanner"
 )
 
 load_fl_terraform_outputs() {

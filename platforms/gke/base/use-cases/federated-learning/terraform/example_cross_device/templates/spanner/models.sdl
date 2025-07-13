@@ -1,0 +1,10 @@
+CREATE TABLE Models (
+  ModelId STRING(36) NOT NULL,
+  Version INT64 NOT NULL,
+  Status STRING(20) NOT NULL,
+  CreatedAt TIMESTAMP NOT NULL OPTIONS (allow_commit_timestamp=true),
+  UpdatedAt TIMESTAMP OPTIONS (allow_commit_timestamp=true),
+  Parameters JSON,
+) PRIMARY KEY (ModelId, Version)
+
+CREATE INDEX ModelsByStatus ON Models(Status)

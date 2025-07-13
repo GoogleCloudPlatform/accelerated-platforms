@@ -69,6 +69,32 @@ variable "federated_learning_cross_device_example_spanner_lock_database_name" {
   default     = "lock-database"
 }
 
+## Spanner configuration
+variable "federated_learning_cross_device_example_spanner_database_retention_period" {
+  description = "Duration to maintain table versioning for point-in-time recovery."
+  type        = string
+  nullable    = false
+  default     = "1h"
+}
+
+variable "federated_learning_cross_device_example_spanner_processing_units" {
+  description = "Spanner's compute capacity. 1000 processing units = 1 node and must be set as a multiple of 100."
+  type        = number
+  default     = 1000
+}
+
+variable "federated_learning_cross_device_example_spanner_database_deletion_protection" {
+  description = "Prevents destruction of the Spanner database."
+  type        = bool
+  default     = false
+}
+
+variable "federated_learning_cross_device_example_spanner_nodes" {
+  description = "Number of nodes for Spanner instance"
+  type        = number
+  default     = 1
+}
+
 ## Federated Learning pubsub variables
 variable "federated_learning_cross_device_example_aggregator_pubsub_name" {
   description = "Aggregator topic to be created for the cross-device example"

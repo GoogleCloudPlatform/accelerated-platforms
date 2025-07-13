@@ -6,6 +6,7 @@ dkzkh
 endtoendtests
 federatedcompute
 flport
+JDBC
 lgtlq
 modelupdater
 networkservices

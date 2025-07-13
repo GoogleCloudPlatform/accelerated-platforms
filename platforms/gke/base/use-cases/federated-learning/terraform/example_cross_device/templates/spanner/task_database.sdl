@@ -1,0 +1,143 @@
+CREATE TABLE Task (
+  PopulationName STRING(64) NOT NULL,
+  TaskId INT64 NOT NULL,
+  TotalIteration INT64,
+  MinAggregationSize INT64,
+  MaxAggregationSize INT64,
+  Status INT64,
+  CreatedTime TIMESTAMP,
+  StartTime TIMESTAMP,
+  StopTime TIMESTAMP,
+  StartTaskNoEarlierThan TIMESTAMP,
+  DoNotCreateIterationAfter TIMESTAMP,
+  MaxParallel INT64,
+  CorrelationId STRING(MAX),
+  MinClientVersion STRING(32),
+  MaxClientVersion STRING(32),
+  Info JSON NOT NULL
+) PRIMARY KEY(PopulationName,TaskId)
+
+CREATE INDEX TaskStatusIndex ON Task(Status)
+
+CREATE INDEX TaskPopulationStatusMinClientIndex ON Task(PopulationName, Status, MinClientVersion)
+
+CREATE INDEX TaskPopulationStatusMaxClientIndex ON Task(PopulationName, Status, MaxClientVersion)
+
+CREATE INDEX TaskMinCorrelationIdIndex ON Task(CorrelationId)
+
+CREATE TABLE TaskStatusHistory (
+  PopulationName STRING(64) NOT NULL,
+  TaskId INT64 NOT NULL,
+  StatusId INT64 NOT NULL,
+  Status INT64 NOT NULL,
+  CreatedTime TIMESTAMP NOT NULL
+) PRIMARY KEY(PopulationName, TaskId, StatusId), INTERLEAVE IN PARENT Task ON DELETE CASCADE
+
+CREATE INDEX TaskStatusHistoryStatusIndex ON TaskStatusHistory(PopulationName, TaskId, Status)
+
+CREATE INDEX TaskStatusHistoryCreatedTimeIndex ON TaskStatusHistory(CreatedTime)
+
+CREATE TABLE Iteration (
+  PopulationName STRING(64) NOT NULL,
+  TaskId INT64 NOT NULL,
+  IterationId INT64 NOT NULL,
+  AttemptId INT64 NOT NULL,
+  Status INT64 NOT NULL,
+  BaseIterationId INT64 NOT NULL,
+  BaseOnResultId INT64 NOT NULL,
+  ReportGoal INT64 NOT NULL,
+  ExpirationTime TIMESTAMP,
+  ResultId INT64 NOT NULL,
+  Info JSON NOT NULL,
+  AggregationLevel INT64 NOT NULL,
+  MaxAggregationSize INT64 NOT NULL,
+  MinClientVersion STRING(32) NOT NULL,
+  MaxClientVersion STRING(32) NOT NULL
+) PRIMARY KEY(PopulationName, TaskId, IterationId, AttemptId), INTERLEAVE IN PARENT Task ON DELETE CASCADE
+
+CREATE INDEX InterationStatusIndex ON Iteration(Status)
+
+CREATE INDEX IterationPopulationNameStatusClientVersionIndex ON Iteration (PopulationName, Status, MinClientVersion, MaxClientVersion) STORING (BaseIterationId, BaseOnResultId, ReportGoal, ResultId, Info, AggregationLevel, MaxAggregationSize)
+
+CREATE TABLE IterationStatusHistory (
+  PopulationName STRING(64) NOT NULL,
+  TaskId INT64 NOT NULL,
+  IterationId INT64 NOT NULL,
+  AttemptId INT64 NOT NULL,
+  StatusId INT64 NOT NULL,
+  Status INT64 NOT NULL,
+  CreatedTime TIMESTAMP NOT NULL,
+  AggregationLevel INT64 NOT NULL
+) PRIMARY KEY(PopulationName, TaskId, IterationId, AttemptId, StatusId), INTERLEAVE IN PARENT Iteration ON DELETE CASCADE
+
+CREATE INDEX IterationStatusHistoryStatusIndex ON IterationStatusHistory(PopulationName, TaskId, IterationId, AttemptId, Status, AggregationLevel)
+
+CREATE INDEX IterationStatusHistoryCreatedTimeIndex ON IterationStatusHistory(CreatedTime)
+
+CREATE TABLE Assignment (
+  PopulationName STRING(64) NOT NULL,
+  TaskId INT64 NOT NULL,
+  IterationId INT64 NOT NULL,
+  AttemptId INT64 NOT NULL,
+  SessionId STRING(64) NOT NULL,
+  CorrelationId STRING(MAX),
+  Status INT64 NOT NULL,
+  CreatedTime TIMESTAMP NOT NULL,
+  BatchId STRING(64)
+) PRIMARY KEY(PopulationName, TaskId, IterationId, AttemptId, SessionId), INTERLEAVE IN PARENT Iteration ON DELETE CASCADE
+
+CREATE INDEX AssignmentStatusIndex ON Assignment(PopulationName, TaskId, IterationId, AttemptId, Status)
+
+CREATE TABLE AssignmentStatusHistory (
+  PopulationName STRING(64) NOT NULL,
+  TaskId INT64 NOT NULL,
+  IterationId INT64 NOT NULL,
+  AttemptId INT64 NOT NULL,
+  SessionId STRING(64) NOT NULL,
+  StatusId INT64 NOT NULL,
+  Status INT64 NOT NULL,
+  CreatedTime TIMESTAMP NOT NULL,
+  BatchId STRING(64)
+) PRIMARY KEY(PopulationName, TaskId, IterationId, AttemptId, SessionId, StatusId), INTERLEAVE IN PARENT Assignment ON DELETE CASCADE
+
+CREATE INDEX AssignmentStatusHistoryStatusBatchIdIndex ON AssignmentStatusHistory(PopulationName, TaskId, IterationId, AttemptId, Status, BatchId)
+
+CREATE INDEX AssignmentStatusHistoryStatusCreatedTimeIndex ON AssignmentStatusHistory(PopulationName, TaskId, IterationId, AttemptId, Status, CreatedTime)
+
+CREATE TABLE AggregationBatch (
+  PopulationName STRING(64) NOT NULL,
+  TaskId INT64 NOT NULL,
+  IterationId INT64 NOT NULL,
+  AttemptId INT64 NOT NULL,
+  BatchId STRING(64) NOT NULL,
+  AggregationLevel INT64 NOT NULL,
+  Status INT64 NOT NULL,
+  BatchSize INT64 NOT NULL,
+  CreatedByPartition STRING(64) NOT NULL,
+  CreatedTime TIMESTAMP NOT NULL,
+  AggregatedBy STRING(64)
+) PRIMARY KEY(PopulationName, TaskId, IterationId, AttemptId, BatchId), INTERLEAVE IN PARENT Iteration ON DELETE CASCADE
+
+CREATE INDEX AggregationBatchAggregationLevelStatusIndex ON AggregationBatch(PopulationName, TaskId, IterationId, AttemptId, AggregationLevel, Status, CreatedByPartition) STORING (BatchSize)
+
+CREATE TABLE AggregationBatchStatusHistory (
+  PopulationName STRING(64) NOT NULL,
+  TaskId INT64 NOT NULL,
+  IterationId INT64 NOT NULL,
+  AttemptId INT64 NOT NULL,
+  BatchId STRING(64) NOT NULL,
+  StatusId INT64 NOT NULL,
+  AggregationLevel INT64 NOT NULL,
+  Status INT64 NOT NULL,
+  CreatedByPartition STRING(64) NOT NULL,
+  CreatedTime TIMESTAMP NOT NULL,
+  AggregatedBy STRING(64)
+) PRIMARY KEY(PopulationName, TaskId, IterationId, AttemptId, BatchId, StatusId), INTERLEAVE IN PARENT AggregationBatch ON DELETE CASCADE
+
+CREATE INDEX AggregationBatchStatusHistoryAggregationLevelStatusIndex ON AggregationBatchStatusHistory(PopulationName, TaskId, IterationId, AttemptId, AggregationLevel, Status, CreatedByPartition)
+
+CREATE TABLE AllowedAuthorizationToken (
+  Token STRING(64) NOT NULL,
+  CreatedAt TIMESTAMP NOT NULL,
+  ExpiredAt TIMESTAMP NOT NULL
+) PRIMARY KEY(Token), ROW DELETION POLICY (OLDER_THAN(ExpiredAt, INTERVAL 0 DAY))

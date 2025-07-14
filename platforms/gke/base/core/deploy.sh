@@ -56,6 +56,35 @@ echo "Core platform terraservices to provision: ${terraservices[*]}"
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
 
+declare -a projects=(
+  "${cluster_node_pool_service_account_project_id}"
+  "${cluster_project_id}"
+  "${huggingface_hub_models_bucket_project_id}"
+  "${huggingface_secret_manager_project_id}"
+  "${nvidia_ncg_api_key_secret_manager_project_id}"
+  "${nvidia_nim_model_store_bucket_project_id}"
+  "${platform_default_project_id}"
+  "${terraform_project_id}"
+)
+unique_projects=($(printf "%s\n" "${projects[@]}" | sort -u))
+
+declare -a services=(
+  "cloudresourcemanager.googleapis.com"
+  "servicemanagement.googleapis.com"
+  "serviceusage.googleapis.com"
+)
+
+for project in "${unique_projects[@]}"; do
+  echo "Enabling services for project ${project}:"
+  for service in "${services[@]}"; do
+    echo " - ${service}"
+    gcloud services enable ${service} \
+      --project=${project} \
+      --quiet
+  done
+  echo
+done
+
 # shellcheck disable=SC2154 # Variable is defined as a terraform output and sourced in other scripts
 cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
   echo "Current directory: $(pwd)" &&

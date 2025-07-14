@@ -28,6 +28,10 @@ output "cluster_name" {
   value = local.cluster_name
 }
 
+output "cluster_node_pool_service_account_project_id" {
+  value = local.cluster_node_pool_service_account_project_id
+}
+
 output "cluster_project_id" {
   value = local.cluster_project_id
 }
@@ -60,6 +64,10 @@ output "huggingface_hub_models_bucket_name" {
   value = local.huggingface_hub_models_bucket_name
 }
 
+output "huggingface_hub_models_bucket_project_id" {
+  value = local.huggingface_hub_models_bucket_project_id
+}
+
 output "huggingface_secret_manager_project_id" {
   value = local.huggingface_secret_manager_project_id
 }
@@ -74,6 +82,10 @@ output "nvidia_ncg_api_key_secret_manager_secret_name" {
 
 output "nvidia_nim_model_store_bucket_name" {
   value = local.nvidia_nim_model_store_bucket_name
+}
+
+output "nvidia_nim_model_store_bucket_project_id" {
+  value = local.nvidia_nim_model_store_bucket_project_id
 }
 
 output "platform_default_project_id" {

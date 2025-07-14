@@ -52,8 +52,9 @@ resource "google_container_cluster" "cluster" {
       disabled = false
     }
 
+    # Disabled until b/431744489 is fixed.
     parallelstore_csi_driver_config {
-      enabled = true
+      enabled = false
     }
   }
 

@@ -40,7 +40,7 @@ fi
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 echo "Setting up the environment for the cross-device federated learning example"
-CROSS_DEVICE_BASE_URL = ""
+CROSS_DEVICE_BASE_URL=""
 CROSS_DEVICE_EXAMPLE_TENANT_NAME="fl-1"
 CROSS_DEVICE_MODEL_BUCKET="m-0"
 CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET="ag-0"

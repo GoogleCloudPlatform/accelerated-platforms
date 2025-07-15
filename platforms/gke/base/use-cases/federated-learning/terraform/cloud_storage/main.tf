@@ -17,7 +17,7 @@ resource "google_storage_bucket" "federated_learning_cloud_storage_buckets" {
 
   force_destroy               = each.value.force_destroy
   location                    = var.cluster_region
-  name                        = join("-", [local.unique_identifier_prefix, each.key])
+  name                        = join("-", [local.terraform_project_id, local.unique_identifier_prefix, each.key])
   project                     = data.google_project.cluster.project_id
   uniform_bucket_level_access = true
 

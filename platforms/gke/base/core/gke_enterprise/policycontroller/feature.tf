@@ -97,18 +97,18 @@ module "kubectl_wait_gatekeeper_controller" {
   wait_for_create = true
 }
 
-module "kubectl_wait_gatekeeper_mutation" {
-  depends_on = [
-    google_gke_hub_feature_membership.cluster_policycontroller,
-  ]
+# module "kubectl_wait_gatekeeper_mutation" {
+#   depends_on = [
+#     google_gke_hub_feature_membership.cluster_policycontroller,
+#   ]
 
-  source = "../../../modules/kubectl_wait"
+#   source = "../../../modules/kubectl_wait"
 
-  for             = "condition=ready"
-  kubeconfig_file = data.local_file.kubeconfig.filename
-  namespace       = local.policy_controller_kubernetes_namespace
-  resource        = "pod"
-  selector        = "control-plane=mutation-controller"
-  timeout         = "300s"
-  wait_for_create = true
-}
+#   for             = "condition=ready"
+#   kubeconfig_file = data.local_file.kubeconfig.filename
+#   namespace       = local.policy_controller_kubernetes_namespace
+#   resource        = "pod"
+#   selector        = "control-plane=mutation-controller"
+#   timeout         = "300s"
+#   wait_for_create = true
+# }

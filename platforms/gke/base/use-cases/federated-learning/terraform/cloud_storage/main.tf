@@ -17,7 +17,7 @@ resource "google_storage_bucket" "federated_learning_cloud_storage_buckets" {
 
   force_destroy               = each.value.force_destroy
   location                    = var.cluster_region
-  name                        = join("-", [local.unique_identifier_prefix, random_id.bucket_prefix[0].hex, each.key])
+  name                        = join("-", [local.unique_identifier_prefix, random_id.bucket_prefix.hex, each.key])
   project                     = data.google_project.cluster.project_id
   uniform_bucket_level_access = true
 
@@ -27,5 +27,5 @@ resource "google_storage_bucket" "federated_learning_cloud_storage_buckets" {
 }
 
 resource "random_id" "bucket_prefix" {
-  byte_length = 4
+  byte_length = 2
 }

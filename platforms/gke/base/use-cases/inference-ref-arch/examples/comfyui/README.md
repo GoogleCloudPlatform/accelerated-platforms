@@ -162,16 +162,6 @@ IAP application or resources.
   sed -i '/^comfyui_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//comfyui_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/comfyui.auto.tfvars
   ```
 
-## Enable APIs
-
-Enable Cloud Resource Manager API, Service Usage API and Service Management API.
-
-```
-gcloud services enable cloudresourcemanager.googleapis.com
-gcloud services enable serviceusage.googleapis.com
-gcloud services enable servicemanagement.googleapis.com
-```
-
 ## Deploy
 
 ```

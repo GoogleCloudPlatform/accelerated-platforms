@@ -41,9 +41,9 @@ source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 echo "Setting up the environment for the cross-device federated learning example"
 CROSS_DEVICE_EXAMPLE_TENANT_NAME="fl-1"
-CROSS_DEVICE_MODEL_BUCKET="model-0"
-CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET="aggregated-gradient-0"
-CROSS_DEVICE_CLIENT_GRADIENT_BUCKET="client-gradient-0"
+CROSS_DEVICE_MODEL_BUCKET="m-0"
+CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET="ag-0"
+CROSS_DEVICE_CLIENT_GRADIENT_BUCKET="cg-0"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 FEDERATED_LEARNING_CROSS_DEVICE_EXAMPLE_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARNING_SHARED_CONFIG_DIR}/uc_federated_learning_cross_device_example.auto.tfvars"

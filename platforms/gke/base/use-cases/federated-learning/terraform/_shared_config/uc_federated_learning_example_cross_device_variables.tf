@@ -232,6 +232,25 @@ variable "federated_learning_cross_device_example_collector_batch_size" {
 variable "federated_learning_cross_device_example_federatedcompute_tag" {
   description = "The release of the Federated Compute server to checkout"
   type        = string
+  default     = "v0.7.1"
+}
+
+variable "federated_learning_cross_device_example_repository_name" {
+  description = "The name of the repository that will contains workloads images"
+  type        = string
+  default     = "container-image-repository"
+}
+
+variable "federated_learning_cross_device_example_confidential_space_debug" {
+  description = "Flag to enable debugging of confidential space workloads"
+  type        = bool
+  default     = false
+}
+
+## Service accounts
+variable "federated_learning_cross_device_example_confidential_space_aggregator_service_account" {
+  description = "Name of the aggregator service account to allowlist in the coordinator"
+  type        = string
   default     = "aggregator"
 }
 

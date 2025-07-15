@@ -30,6 +30,7 @@ resource "google_compute_firewall" "workloads" {
 }
 
 resource "google_compute_firewall" "ssh" {
+  count       = var.federated_learning_cross_device_example_confidential_space_debug ? 1 : 0
   name        = join("-", [local.unique_identifier_prefix, "ssh"])
   description = "Allow SSH connections to confidential space VM for debugging purpose"
   network     = local.network_name

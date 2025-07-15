@@ -40,7 +40,6 @@ fi
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 echo "Setting up the environment for the cross-device federated learning example"
-CROSS_DEVICE_BASE_URL=""
 CROSS_DEVICE_EXAMPLE_TENANT_NAME="fl-1"
 CROSS_DEVICE_MODEL_BUCKET="m-0"
 CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET="ag-0"
@@ -99,6 +98,10 @@ load_fl_terraform_outputs() {
   fi
   echo "Loading federated_learning_kubernetes_service_account_name Terraform output"
   if ! CROSS_DEVICE_EXAMPLE_KUBERNETES_SERVICE_ACCOUNT_NAME="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/service_account" "federated_learning_kubernetes_service_account_name" "raw")"; then
+    exit 1
+  fi
+  echo "Loading container_image_repository_name Terraform output"
+  if ! CROSS_DEVICE_EXAMPLE_CONTAINER_IMAGE_REPOSITORY_NAME="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/container_image_repository" "container_image_repository_name" "raw")"; then
     exit 1
   fi
   # shellcheck disable=SC2034 # Variable is used in other scripts

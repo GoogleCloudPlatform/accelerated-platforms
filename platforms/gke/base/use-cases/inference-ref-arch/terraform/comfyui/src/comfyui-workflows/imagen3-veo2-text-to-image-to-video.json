@@ -1,0 +1,210 @@
+{
+  "id": "91a98122-0f28-4d82-8cb3-11d8d24553aa",
+  "revision": 0,
+  "last_node_id": 4,
+  "last_link_id": 3,
+  "nodes": [
+    {
+      "id": 3,
+      "type": "PreviewImage",
+      "pos": [
+        1167.5919189453125,
+        441.431884765625
+      ],
+      "size": [
+        140,
+        246
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 1
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.39",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 1,
+      "type": "ImagenTextToImageNode",
+      "pos": [
+        719.260986328125,
+        205.9137420654297
+      ],
+      "size": [
+        400,
+        376
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            1,
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImagenTextToImageNode"
+      },
+      "widgets_values": [
+        "A hyperrealistic, macro shot of a bioluminescent forest where every leaf and branch glows with intricate, pulsating patterns. Raindrops suspended mid-air reflect miniature galaxies, and the ground is covered in iridescent, crystalline moss. The lighting is ethereal, creating deep shadows and vibrant highlights, with a soft, misty atmosphere",
+        "ALLOW_ADULT",
+        "16:9",
+        1,
+        "",
+        351284980,
+        "randomize",
+        true,
+        false,
+        "PNG",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 4,
+      "type": "Veo2SaveAndPreview",
+      "pos": [
+        1776.95166015625,
+        245.6395721435547
+      ],
+      "size": [
+        282.740234375,
+        355.7913818359375
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "Veo2SaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "Veo2ImageToVideoNode",
+      "pos": [
+        1333.5504150390625,
+        206.64169311523438
+      ],
+      "size": [
+        400,
+        382
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Veo2ImageToVideoNode"
+      },
+      "widgets_values": [
+        "PNG",
+        "make the tree branches sway in the wind",
+        "16:9",
+        "allow_adult",
+        8,
+        true,
+        2,
+        "",
+        3217602763,
+        "randomize",
+        "",
+        ""
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      1,
+      0,
+      2,
+      0,
+      "IMAGE"
+    ],
+    [
+      3,
+      2,
+      0,
+      4,
+      0,
+      "VEO_VIDEO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.2666661150000031,
+      "offset": [
+        -661.5596169425305,
+        -104.15173643369593
+      ]
+    },
+    "frontendVersion": "1.20.7",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

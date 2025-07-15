@@ -98,10 +98,22 @@ resource "google_storage_bucket_object" "workflow-imagen3" {
   source = "src/comfyui-workflows/imagen3-text-to-image.json"
 }
 
-resource "google_storage_bucket_object" "workflow-imagen4-veo2" {
+resource "google_storage_bucket_object" "workflow-imagen3-veo2" {
   bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "imagen4-veo2-text-to-image-to-video.json"
-  source = "src/comfyui-workflows/imagen4-veo2-text-to-image-to-video.json"
+  name   = "imagen3-veo2-text-to-image-to-video.json"
+  source = "src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.json"
+}
+
+resource "google_storage_bucket_object" "workflow-imagen4" {
+  bucket = google_storage_bucket.comfyui_workflow.name
+  name   = "imagen4-text-to-image.json"
+  source = "src/comfyui-workflows/imagen4-text-to-image.json"
+}
+
+resource "google_storage_bucket_object" "workflow-imagen4-veo3" {
+  bucket = google_storage_bucket.comfyui_workflow.name
+  name   = "imagen4-veo3-text-to-image-to-video.json"
+  source = "src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.json"
 }
 
 resource "google_storage_bucket_object" "workflows-ltxv" {
@@ -122,8 +134,8 @@ resource "google_storage_bucket_object" "workflow-veo2" {
   source = "src/comfyui-workflows/veo2-text-to-video.json"
 }
 
-resource "google_storage_bucket_object" "workflow-imagen4" {
+resource "google_storage_bucket_object" "workflow-veo3" {
   bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "imagen4-text-to-image.json"
-  source = "src/comfyui-workflows/imagen4-text-to-image.json"
+  name   = "veo3-text-to-video.json"
+  source = "src/comfyui-workflows/veo3-text-to-video.json"
 }

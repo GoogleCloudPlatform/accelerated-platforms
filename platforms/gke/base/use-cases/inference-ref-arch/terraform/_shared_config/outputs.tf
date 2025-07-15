@@ -44,6 +44,10 @@ output "comfyui_kubernetes_namespace" {
   value = var.comfyui_kubernetes_namespace
 }
 
+output "comfyui_ssl_certificate_name" {
+  value = local.comfyui_endpoints_ssl_certificate_name
+}
+
 output "ira_online_gpu_kubernetes_namespace_name" {
   value = local.ira_online_gpu_kubernetes_namespace_name
 }

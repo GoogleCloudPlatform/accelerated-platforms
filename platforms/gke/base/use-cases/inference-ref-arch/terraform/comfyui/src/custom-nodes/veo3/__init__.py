@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#  This is a preview version of imagen3 custom node
+# This is a preview version of veo3 custom node
+import os
 
-MAX_SEED = 0xFFFFFFFF
-USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
-MODEL_ID = "imagen-3.0-generate-002"
+from .veo_nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
+
+WEB_DIRECTORY = "./web"
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of veo2 custom node
+# This is a preview version of veo3 custom node
 import base64
 import io
 import mimetypes
@@ -36,12 +36,12 @@ from grpc import StatusCode
 from PIL import Image as PIL_Image
 
 from .config import get_gcp_metadata
-from .constants import MODEL_ID, USER_AGENT
+from .constants import USER_AGENT, Veo3Model
 
 
 class VeoAPI:
     """
-    A client for interacting with the Google Veo 2.0 API for video generation.
+    A client for interacting with the Google Veo 3.0 API for video generation.
     """
 
     def __init__(
@@ -66,6 +66,7 @@ class VeoAPI:
         if not self.region:
             raise ValueError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
+
         http_options = genai.types.HttpOptions(headers={"user-agent": USER_AGENT})
         self.client = genai.Client(
             vertexai=True,
@@ -79,23 +80,27 @@ class VeoAPI:
 
     def generate_video_from_text(
         self,
+        model: str,
         prompt: str,
         aspect_ratio: str,
         person_generation: str,
         duration_seconds: int,
+        generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
         """
-        Generates video from a text prompt using the Veo 2.0 API.
+        Generates video from a text prompt using the Veo 3.0 API.
 
         Args:
+            model: Veo3 model.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
             person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
             duration_seconds: The desired duration of the video in seconds (5-8 seconds).
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate (1-4).
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -110,19 +115,24 @@ class VeoAPI:
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
             raise ValueError("Prompt cannot be empty for text-to-video generation.")
-        if not (5 <= duration_seconds <= 8):
+        if duration_seconds != 8:
             raise ValueError(
-                f"duration_seconds must be between 5 and 8, but got {duration_seconds}."
+                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if not (1 <= sample_count <= 2):
             raise ValueError(
-                f"sample_count must be between 1 and 4, but got {sample_count}."
+                f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
             )
-
+        if aspect_ratio != "16:9":
+            raise ValueError(
+                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+            )
+        model = Veo3Model[model]
         config = GenerateVideosConfig(
             aspect_ratio=aspect_ratio,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
             enhance_prompt=enhance_prompt,
             number_of_videos=sample_count,
             negative_prompt=negative_prompt,
@@ -135,7 +145,7 @@ class VeoAPI:
             try:
                 print("Sending request to Veo API for text-to-video generation...")
                 operation = self.client.models.generate_videos(
-                    model=MODEL_ID, prompt=prompt, config=config
+                    model=model, prompt=prompt, config=config
                 )
                 print(f"Initial operation response object type: {type(operation)}")
 
@@ -163,7 +173,7 @@ class VeoAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {MODEL_ID} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(
@@ -424,27 +434,31 @@ class VeoAPI:
 
     def generate_video_from_image(
         self,
+        model: str,
         image: torch.Tensor,
         image_format: str,
         prompt: str,
         aspect_ratio: str,
         person_generation: str,
         duration_seconds: int,
+        generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
         """
-        Generates video from an image input (as a torch.Tensor) using the Veo 2.0 API.
+        Generates video from an image input (as a torch.Tensor) using the Veo 3.0 API.
 
         Args:
+            model: Veo3 model.
             image: The input image as a torch.Tensor (ComfyUI format).
             image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -462,17 +476,23 @@ class VeoAPI:
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
 
-        if not (1 <= duration_seconds <= 8):
+        if duration_seconds != 8:
             raise ValueError(
-                f"duration_seconds must be between 1 and 8, but got {duration_seconds}."
+                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if not (1 <= sample_count <= 2):
             raise ValueError(
-                f"sample_count must be between 1 and 4, but got {sample_count}."
+                f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
             )
 
         if image is None:
             raise ValueError("Image input (torch.Tensor) cannot be None.")
+
+        if aspect_ratio != "16:9":
+            raise ValueError(
+                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+            )
+        model = Veo3Model[model]
 
         pil_image: PIL_Image.Image
         if isinstance(image, torch.Tensor):
@@ -512,6 +532,7 @@ class VeoAPI:
             aspect_ratio=aspect_ratio,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
             enhance_prompt=enhance_prompt,
             number_of_videos=sample_count,
             negative_prompt=negative_prompt,
@@ -526,7 +547,7 @@ class VeoAPI:
                 )
 
                 operation = self.client.models.generate_videos(
-                    model=MODEL_ID,
+                    model=model,
                     image=Image(image_bytes=veo_image_input_bytes, mime_type=mime_type),
                     prompt=prompt,
                     config=config,
@@ -555,7 +576,7 @@ class VeoAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {MODEL_ID} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(
@@ -608,27 +629,31 @@ class VeoAPI:
 
     def generate_video_from_gcsuri_image(
         self,
+        model: str,
         gcsuri: str,
         image_format: str,
         prompt: str,
         aspect_ratio: str,
         person_generation: str,
         duration_seconds: int,
+        generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
         """
-        Generates video from a Google Cloud Storage (GCS) image URI using the Veo 2.0 API.
+        Generates video from a Google Cloud Storage (GCS) image URI using the Veo 3.0 API.
 
         Args:
+            model: Veo3 model.
             gcsuri: The GCS URI of the input image (e.g., "gs://my-bucket/path/to/image.jpg").
             image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
+            generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -651,13 +676,17 @@ class VeoAPI:
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
 
-        if not (1 <= duration_seconds <= 8):
+        if duration_seconds != 8:
             raise ValueError(
-                f"duration_seconds must be between 1 and 8, but got {duration_seconds}."
+                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if not (1 <= sample_count <= 2):
             raise ValueError(
-                f"sample_count must be between 1 and 4, but got {sample_count}."
+                f"sample_count must be between 1 and 2, but got {sample_count}."
+            )
+        if aspect_ratio != "16:9":
+            raise ValueError(
+                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
 
         valid_bucket, validation_message = self.validate_gcs_uri_and_image(gcsuri)
@@ -677,10 +706,13 @@ class VeoAPI:
         else:
             raise ValueError(f"Unsupported image format: {image_format}")
 
+        model = Veo3Model[model]
+
         config = GenerateVideosConfig(
             aspect_ratio=aspect_ratio,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
             enhance_prompt=enhance_prompt,
             number_of_videos=sample_count,
             negative_prompt=negative_prompt,
@@ -692,7 +724,7 @@ class VeoAPI:
             try:
                 print("Sending request to Veo API for image-to-video generation")
                 operation = self.client.models.generate_videos(
-                    model=MODEL_ID,
+                    model=model,
                     image=Image(gcs_uri=gcsuri, mime_type=mime_type),
                     prompt=prompt,
                     config=config,
@@ -721,7 +753,7 @@ class VeoAPI:
                         time.sleep(retry_wait)
                     else:
                         raise RuntimeError(
-                            f"API Quota/Resource Exhausted after {retries} attempts for {MODEL_ID} (Code: {e.code.name}). "
+                            f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
                         )
                 elif e.code == StatusCode.INVALID_ARGUMENT:
                     raise ValueError(

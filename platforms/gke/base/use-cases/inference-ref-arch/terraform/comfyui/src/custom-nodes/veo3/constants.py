@@ -12,8 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#  This is a preview version of imagen3 custom node
+# This is a preview version of veo3 custom node
+
+from enum import Enum
 
 MAX_SEED = 0xFFFFFFFF
-USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
-MODEL_ID = "imagen-3.0-generate-002"
+SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".mkv"}
+USER_AGENT = "cloud-solutions/comfyui-veo3-custom-node-v1"
+
+
+class Veo3Model(str, Enum):
+    VEO_3_PREVIEW = "veo-3.0-generate-preview"
+    VEO_3_FAST_PREVIEW = "veo-3.0-fast-generate-preview"

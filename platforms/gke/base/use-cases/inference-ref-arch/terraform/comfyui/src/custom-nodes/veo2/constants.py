@@ -16,3 +16,5 @@
 
 MAX_SEED = 0xFFFFFFFF
 SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".mkv"}
+USER_AGENT = "cloud-solutions/comfyui-veo2-custom-node-v1"
+MODEL_ID = "veo-2.0-generate-001"

@@ -1,19 +1,19 @@
 {
-  "id": "ae5c91d0-5428-4702-9b3d-828bcd43416e",
+  "id": "84b5eff9-dee6-47b8-9bf8-83a4b4ec04f9",
   "revision": 0,
   "last_node_id": 2,
   "last_link_id": 1,
   "nodes": [
     {
       "id": 1,
-      "type": "Veo2TextToVideoNode",
+      "type": "Veo3TextToVideoNode",
       "pos": [
-        1022.287841796875,
-        235.5940399169922
+        1009.6710205078125,
+        198.24623107910156
       ],
       "size": [
         400,
-        358
+        406
       ],
       "flags": {},
       "order": 0,
@@ -29,17 +29,19 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "Veo2TextToVideoNode"
+        "Node name for S&R": "Veo3TextToVideoNode"
       },
       "widgets_values": [
+        "VEO_3_PREVIEW",
         "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn. As it progresses, the mist slowly dissipates, revealing colossal, glowing crystal formations emerging from the ground. Fauna, never-before-seen, begins to stir – iridescent birds with long tails take flight, and massive, gentle creatures with bioluminescent markings graze among the crystals. The light subtly shifts from dawn's muted tones to vibrant daylight, illuminating new details with each passing second. The camera eventually ascends above the canopy, revealing a breathtaking vista of the entire crystal forest.",
         "16:9",
         "allow_adult",
         8,
         true,
-        4,
+        true,
+        2,
         "",
-        1799993595,
+        3330208436,
         "randomize",
         "",
         ""
@@ -47,10 +49,10 @@
     },
     {
       "id": 2,
-      "type": "Veo2SaveAndPreview",
+      "type": "Veo3SaveAndPreview",
       "pos": [
-        1692.2330322265625,
-        243.924072265625
+        1535.5714111328125,
+        225.61773681640625
       ],
       "size": [
         282.740234375,
@@ -68,7 +70,7 @@
       ],
       "outputs": [],
       "properties": {
-        "Node name for S&R": "Veo2SaveAndPreview"
+        "Node name for S&R": "Veo3SaveAndPreview"
       },
       "widgets_values": [
         true,

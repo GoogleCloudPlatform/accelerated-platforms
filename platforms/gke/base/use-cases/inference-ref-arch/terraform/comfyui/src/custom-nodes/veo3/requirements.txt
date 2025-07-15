@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#  This is a preview version of imagen3 custom node
-
-MAX_SEED = 0xFFFFFFFF
-USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
-MODEL_ID = "imagen-3.0-generate-002"
+# This is a preview version of veo3 custom node
+google-api-core==2.24.2
+google-cloud-storage==3.1.0
+google-genai==1.20.0
+opencv-python-headless==4.11.0.86

@@ -51,3 +51,9 @@ variable "timeout" {
   description = "The length of time to wait before giving up. Zero means check once and don't wait, negative means wait for a week."
   type        = string
 }
+
+variable "wait_for_create" {
+  default     = false
+  description = "Wait for the resource to be created."
+  type        = bool
+}

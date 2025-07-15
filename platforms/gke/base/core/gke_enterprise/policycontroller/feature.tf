@@ -13,14 +13,22 @@
 # limitations under the License.
 
 locals {
-  policy_controller_kubernetes_namespace       = "gatekeeper-system"
-  policy_controller_kubernetes_service_account = "gatekeeper-admin"
-  gatekeeper_wi_member                         = "${local.wi_principal_prefix}/ns/${local.policy_controller_kubernetes_namespace}/sa/${local.policy_controller_kubernetes_service_account}"
-  wi_principal_prefix                          = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
+  kubeconfig_directory = "${path.module}/../../../kubernetes/kubeconfig"
+  kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
 
   gatekeeper_iam_roles = [
-    "roles/monitoring.metricWriter"
+    "roles/monitoring.metricWriter",
   ]
+  gatekeeper_wi_member = "${local.wi_principal_prefix}/ns/${local.policy_controller_kubernetes_namespace}/sa/${local.policy_controller_kubernetes_service_account}"
+
+  policy_controller_kubernetes_namespace       = "gatekeeper-system"
+  policy_controller_kubernetes_service_account = "gatekeeper-admin"
+
+  wi_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
+}
+
+data "local_file" "kubeconfig" {
+  filename = local.kubeconfig_file
 }
 
 resource "google_gke_hub_feature" "policycontroller" {
@@ -61,10 +69,46 @@ resource "google_gke_hub_feature_membership" "cluster_policycontroller" {
   }
 }
 
+locals {
+
+}
+
 resource "google_project_iam_member" "gatekeeper" {
   for_each = toset(local.gatekeeper_iam_roles)
 
   member  = local.gatekeeper_wi_member
   project = google_project_service.anthospolicycontroller_googleapis_com.project
   role    = each.value
+}
+
+module "kubectl_wait_gatekeeper_controller" {
+  depends_on = [
+    google_gke_hub_feature_membership.cluster_policycontroller,
+  ]
+
+  source = "../../../modules/kubectl_wait"
+
+  for             = "condition=ready"
+  kubeconfig_file = data.local_file.kubeconfig.filename
+  namespace       = local.policy_controller_kubernetes_namespace
+  resource        = "pod"
+  selector        = "control-plane=controller-manager"
+  timeout         = "300s"
+  wait_for_create = true
+}
+
+module "kubectl_wait_gatekeeper_mutation" {
+  depends_on = [
+    google_gke_hub_feature_membership.cluster_policycontroller,
+  ]
+
+  source = "../../../modules/kubectl_wait"
+
+  for             = "condition=ready"
+  kubeconfig_file = data.local_file.kubeconfig.filename
+  namespace       = local.policy_controller_kubernetes_namespace
+  resource        = "pod"
+  selector        = "control-plane=mutation-controller"
+  timeout         = "300s"
+  wait_for_create = true
 }

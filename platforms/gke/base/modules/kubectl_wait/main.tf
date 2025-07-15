@@ -18,7 +18,8 @@ locals {
   kubectl_wait_resource  = var.resource != null ? " ${var.resource}" : ""
   kubectl_wait_selector  = var.selector != null ? " --selector=${var.selector}" : ""
 
-  kubectl_wait_command = "kubectl wait --for='${var.for}'${local.kubectl_wait_namespace} --timeout=${var.timeout}${local.kubectl_wait_resource}${local.kubectl_wait_selector}${local.kubectl_wait_filename}"
+  kubectl_wait_command            = "kubectl wait --for='${var.for}'${local.kubectl_wait_namespace} --timeout=${var.timeout}${local.kubectl_wait_resource}${local.kubectl_wait_selector}${local.kubectl_wait_filename}"
+  kubectl_wait_for_create_command = var.wait_for_create ? "kubectl wait --for=create${local.kubectl_wait_namespace} --timeout=${var.timeout}${local.kubectl_wait_resource}${local.kubectl_wait_selector}${local.kubectl_wait_filename}" : ":"
 }
 
 data "local_file" "kubeconfig" {
@@ -27,12 +28,16 @@ data "local_file" "kubeconfig" {
 
 resource "terraform_data" "manifest" {
   input = {
-    kubeconfig_file      = data.local_file.kubeconfig.filename
-    kubectl_wait_command = local.kubectl_wait_command
+    kubeconfig_file                 = data.local_file.kubeconfig.filename
+    kubectl_wait_command            = local.kubectl_wait_command
+    kubectl_wait_for_create_command = local.kubectl_wait_for_create_command
   }
 
   provisioner "local-exec" {
-    command = self.input.kubectl_wait_command
+    command = <<EOT
+${self.input.kubectl_wait_for_create_command} &&
+${self.input.kubectl_wait_command}
+EOT
     environment = {
       KUBECONFIG = self.input.kubeconfig_file
     }

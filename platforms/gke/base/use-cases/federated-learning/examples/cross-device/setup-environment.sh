@@ -40,7 +40,6 @@ fi
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 
 echo "Setting up the environment for the cross-device federated learning example"
-CROSS_DEVICE_BASE_URL=""
 CROSS_DEVICE_EXAMPLE_TENANT_NAME="fl-1"
 CROSS_DEVICE_MODEL_BUCKET="m-0"
 CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET="ag-0"
@@ -65,16 +64,7 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
   "federated_learning_cross_device_example_model_bucket = \"${CROSS_DEVICE_MODEL_BUCKET}\""
   "federated_learning_cross_device_example_aggregated_gradient_bucket = \"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\""
   "federated_learning_cross_device_example_client_gradient_bucket = \"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\""
-  "federated_learning_cross_device_example_encryption_key_service_a_base_url = \"https://privatekeyservice-ca-staging.rb-odp-key-host-dev.com/v1alpha\""
-  "federated_learning_cross_device_example_encryption_key_service_b_base_url = \"https://privatekeyservice-cb-staging.rb-odp-key-host-dev.com/v1alpha\""
-  "federated_learning_cross_device_example_encryption_key_service_a_cloudfunction_url = \"https://ca-staging-us-central1-encryption-key-service-clo-2q6l4c4evq-uc.a.run.app\""
-  "federated_learning_cross_device_example_encryption_key_service_b_cloudfunction_url = \"https://cb-staging-us-central1-encryption-key-service-clo-2q6l4c4evq-uc.a.run.app\""
-  "federated_learning_cross_device_example_wip_provider_a = \"projects/586348853457/locations/global/workloadIdentityPools/ca-staging-opwip-1/providers/ca-staging-opwip-pvdr-1\""
-  "federated_learning_cross_device_example_wip_provider_b = \"projects/586348853457/locations/global/workloadIdentityPools/cb-staging-opwip-1/providers/cb-staging-opwip-pvdr-1\""
-  "federated_learning_cross_device_example_service_account_a = \"ca-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com\""
-  "federated_learning_cross_device_example_service_account_b = \"cb-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com\""
-  "federated_learning_cross_device_example_allowed_operator_service_accounts = \"ca-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com,cb-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com\""
-  "federated_learning_cross_device_example_confidential_space_workloads = {\"aggregator\"={workload_image = \"${CROSS_DEVICE_AGGREGATOR_IMAGE}\",service_account=\"${CROSS_DEVICE_AGGREGATOR_SERVICE_ACCOUNT}\",min_replicas=2,max_replicas=5,cooldown_period=180,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"},\"modelupdater\"={workload_image=\"${CROSS_DEVICE_MODELUPDATER_IMAGE}\",service_account=\"${CROSS_DEVICE_MODELUPDATER_SERVICE_ACCOUNT}\",min_replicas=2,max_replicas=5,cooldown_period=120,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"}}"
+  "federated_learning_cross_device_example_confidential_space_workloads = {\"aggregator\"={min_replicas=2,max_replicas=5,cooldown_period=180,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"},\"modelupdater\"={min_replicas=2,max_replicas=5,cooldown_period=120,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"}}"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
@@ -99,10 +89,6 @@ load_fl_terraform_outputs() {
   fi
   echo "Loading federated_learning_kubernetes_service_account_name Terraform output"
   if ! CROSS_DEVICE_EXAMPLE_KUBERNETES_SERVICE_ACCOUNT_NAME="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/service_account" "federated_learning_kubernetes_service_account_name" "raw")"; then
-    exit 1
-  fi
-  echo "Loading container_image_repository_name Terraform output"
-  if ! CROSS_DEVICE_EXAMPLE_CONTAINER_IMAGE_REPOSITORY_NAME="$(get_terraform_output "${FEDERATED_LEARNING_USE_CASE_TERRAFORM_DIR}/container_image_repository" "container_image_repository_name" "raw")"; then
     exit 1
   fi
   # shellcheck disable=SC2034 # Variable is used in other scripts

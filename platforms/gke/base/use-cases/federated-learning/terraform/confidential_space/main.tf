@@ -40,7 +40,7 @@ resource "google_compute_instance_template" "instance_template" {
     # Allocate 2GB to dev/shm
     # Workloads running inside confidential space need at least 2GB
     tee-dev-shm-size-kb              = 2000000
-    tee-image-reference              = each.value.workload_image
+    tee-image-reference              = data.google_artifact_registry_docker_image.workload_image.self_link
     tee-container-log-redirect       = true
     tee-impersonate-service-accounts = var.federated_learning_cross_device_example_allowed_operator_service_accounts
     tee-monitoring-memory-enable     = true
@@ -68,7 +68,7 @@ resource "google_compute_instance_template" "instance_template" {
   }
 
   service_account {
-    email  = format("%s@%s.iam.gserviceaccount.com", each.value.service_account, google_project_service.confidentialcomputing_googleapis_com.project)
+    email  = google_service_account.federated_learning_cross_device_example_confidential_space_service_account[each.key].email
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 

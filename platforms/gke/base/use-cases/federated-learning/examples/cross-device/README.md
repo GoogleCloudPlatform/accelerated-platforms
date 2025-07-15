@@ -88,24 +88,6 @@ establishes.
 After you deploy the reference architecture instances, continue following this
 document.
 
-## Build the images needed
-
-In order to completely deployed this infrastructure, you will need to build and
-push on a registry the images to run the workloads. These images can be found in
-the
-[On-Device Personalization Federated Compute Server](https://github.com/privacysandbox/odp-federatedcompute).
-
-1. Open [Cloud Shell](https://cloud.google.com/shell).
-
-1. Build and push the images
-
-   1. Run the script to build and push the images needed for the cross-device
-      example:
-
-   ```bash
-   "platforms/gke/base/use-cases/federated-learning/examples/cross-device/prerequisites.sh"
-   ```
-
 ## Provision and configure Google Cloud infrastructure
 
 For this example, you provision new Google Cloud resources in addition to the
@@ -129,6 +111,24 @@ workloads like `aggregator` and `modelupdater` listen to port `8082`. In
 addition, SSH port is open for debugging purpose if you need to connect to the
 VM to see logs. If you don't need it, you can comment the `ssh` block in the
 `firewall.tf` of the confidential_space terraservice.
+
+## Android specific variables
+
+This architecture relies on another project maintained by the Android team at
+Google. There are some variables that are specific to this project. By default,
+theses variables are set to the staging environment.
+
+These variables are:
+
+- `federated_learning_cross_device_example_encryption_key_service_a_base_url = https://privatekeyservice-ca-staging.rb-odp-key-host-dev.com/v1alpha`
+- `federated_learning_cross_device_example_encryption_key_service_b_base_url = https://privatekeyservice-cb-staging.rb-odp-key-host-dev.com/v1alpha`
+- `federated_learning_cross_device_example_encryption_key_service_a_cloudfunction_url = https://ca-staging-us-central1-encryption-key-service-clo-2q6l4c4evq-uc.a.run.app`
+- `federated_learning_cross_device_example_encryption_key_service_b_cloudfunction_url = https://cb-staging-us-central1-encryption-key-service-clo-2q6l4c4evq-uc.a.run.app`
+- `federated_learning_cross_device_example_wip_provider_a = projects/586348853457/locations/global/workloadIdentityPools/ca-staging-opwip-1/providers/ca-staging-opwip-pvdr-1`
+- `federated_learning_cross_device_example_wip_provider_b = projects/586348853457/locations/global/workloadIdentityPools/cb-staging-opwip-1/providers/cb-staging-opwip-pvdr-1`
+- `federated_learning_cross_device_example_service_account_a = ca-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com`
+- `federated_learning_cross_device_example_service_account_b = cb-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com`
+- `federated_learning_cross_device_example_allowed_operator_service_accounts = ca-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com,cb-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com`
 
 ## Destroy the example environment
 

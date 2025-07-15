@@ -137,41 +137,55 @@ variable "federated_learning_cross_device_example_modelupdater_pubsub_name" {
 variable "federated_learning_cross_device_example_encryption_key_service_a_base_url" {
   description = "The base url of the encryption key service A."
   type        = string
+  default     = "https://privatekeyservice-ca-staging.rb-odp-key-host-dev.com/v1alpha"
 }
 
 variable "federated_learning_cross_device_example_encryption_key_service_b_base_url" {
   description = "The base url of the encryption key service B."
   type        = string
+  default     = "https://privatekeyservice-cb-staging.rb-odp-key-host-dev.com/v1alpha"
 }
 
 variable "federated_learning_cross_device_example_encryption_key_service_a_cloudfunction_url" {
   description = "The cloudfunction url of the encryption key service A."
   type        = string
+  default     = "https://ca-staging-us-central1-encryption-key-service-clo-2q6l4c4evq-uc.a.run.app"
 }
 
 variable "federated_learning_cross_device_example_encryption_key_service_b_cloudfunction_url" {
   description = "The cloudfunction url of the encryption key service B."
   type        = string
+  default     = "https://cb-staging-us-central1-encryption-key-service-clo-2q6l4c4evq-uc.a.run.app"
 }
 
 variable "federated_learning_cross_device_example_wip_provider_a" {
   description = "The workload identity provider of the encryption key service A."
   type        = string
+  default     = "projects/586348853457/locations/global/workloadIdentityPools/ca-staging-opwip-1/providers/ca-staging-opwip-pvdr-1"
 }
 
 variable "federated_learning_cross_device_example_wip_provider_b" {
   description = "The workload identity provider of the encryption key service B."
   type        = string
+  default     = "projects/586348853457/locations/global/workloadIdentityPools/cb-staging-opwip-1/providers/cb-staging-opwip-pvdr-1"
 }
 
 variable "federated_learning_cross_device_example_service_account_a" {
   description = "The service account to impersonate of the encryption key service A."
   type        = string
+  default     = "ca-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com"
 }
 
 variable "federated_learning_cross_device_example_service_account_b" {
   description = "The service account to impersonate of the encryption key service B."
   type        = string
+  default     = "cb-staging-opverifiedusr@rb-odp-key-host.iam.gserviceaccount.com"
+}
+
+variable "federated_learning_cross_device_example_allowed_operator_service_accounts" {
+  description = "The service accounts provided by coordinator for the worker to impersonate"
+  type        = string
+  default     = "ca-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com,cb-staging-opallowedusr@rb-odp-key-host.iam.gserviceaccount.com"
 }
 
 ## Misc
@@ -270,17 +284,10 @@ variable "federated_learning_cross_device_example_confidential_space_workloads" 
   default     = {}
   description = "Map describing the Confidential Space workloads to create. Keys are virtual machine name."
   type = map(object({
-    workload_image                = string
-    service_account               = string
     min_replicas                  = number
     max_replicas                  = number
     cooldown_period               = number
     autoscaling_jobs_per_instance = number
     machine_type                  = string
   }))
-}
-
-variable "federated_learning_cross_device_example_allowed_operator_service_accounts" {
-  description = "The service accounts provided by coordinator for the worker to impersonate"
-  type        = string
 }

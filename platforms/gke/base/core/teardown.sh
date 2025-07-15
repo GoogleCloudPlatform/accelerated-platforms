@@ -40,6 +40,9 @@ if [[ -v CORE_TERRASERVICES_DESTROY ]] &&
 else
   terraservices=(
     "workloads/kueue"
+    "workloads/auto_monitoring"
+    "custom_compute_class"
+    "workloads/cluster_credentials"
     # Disable gke_enterprise/servicemesh due to b/376312292
     # "gke_enterprise/servicemesh"
     "gke_enterprise/fleet_membership"

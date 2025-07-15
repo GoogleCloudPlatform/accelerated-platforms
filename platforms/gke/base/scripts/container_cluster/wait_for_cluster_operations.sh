@@ -17,24 +17,34 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
+
 JSON_INPUT=$(</dev/stdin)
 eval "$(jq -n "${JSON_INPUT}" | jq -r 'to_entries[] | "\(.key | ascii_upcase)=\(.value | @sh)"')"
 
-retries="${RETRIES}"
-wait_time="${WAIT_DELAY}"
+wait_time=5
+
+retries=1
+if [ "${TIMEOUT}" -gt 5 ]; then
+  retries=$((TIMEOUT / wait_time))
+fi
+
 while true; do
   if ((retries < 0)); then
     exit 1
   fi
 
-  backend_service=$(gcloud compute backend-services list --project="${PROJECT_ID}" --filter="iap.oauth2ClientId=${OATH2_CLIENT_ID}" --format="json(name)")
-  if [ "${backend_service}" != "[]" ]; then
+  output=$(echo "${JSON_INPUT}" | "${MY_PATH}/list_cluster_operations.sh")
+  if [ "${output}" == "[]" ]; then
     break
   fi
 
-  echo "Waiting for backend service to be created..." >&2
+  echo "Waiting for the cluster operation(s) to complete..." >&2
   retries=$((retries - 1))
-  sleep "${wait_time}"
+  sleep "${wait_time}"s
 done
 
-echo "${backend_service}" | jq .[0]
+echo "${output}" | jq .[0]

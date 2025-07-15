@@ -20,21 +20,6 @@ set -o pipefail
 JSON_INPUT=$(</dev/stdin)
 eval "$(jq -n "${JSON_INPUT}" | jq -r 'to_entries[] | "\(.key | ascii_upcase)=\(.value | @sh)"')"
 
-retries="${RETRIES}"
-wait_time="${WAIT_DELAY}"
-while true; do
-  if ((retries < 0)); then
-    exit 1
-  fi
+operations=$(gcloud container operations list --filter="(status=RUNNING) AND (targetLink ~ ${CLUSTER_NAME})" --format="json" --project="${PROJECT_ID}" --region="${CLUSTER_REGION}")
 
-  backend_service=$(gcloud compute backend-services list --project="${PROJECT_ID}" --filter="iap.oauth2ClientId=${OATH2_CLIENT_ID}" --format="json(name)")
-  if [ "${backend_service}" != "[]" ]; then
-    break
-  fi
-
-  echo "Waiting for backend service to be created..." >&2
-  retries=$((retries - 1))
-  sleep "${wait_time}"
-done
-
-echo "${backend_service}" | jq .[0]
+echo "${operations}" | jq

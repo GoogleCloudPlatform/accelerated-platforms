@@ -14,6 +14,7 @@
 
 locals {
   federated_learning_cross_device_example_spanner_schema_base_directory_path = "${path.module}/../example_cross_device/templates/spanner/schema"
+
   # Read all .sdl files from the schema directory
   schema_files = fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.sdl")
 
@@ -98,15 +99,5 @@ resource "google_spanner_database" "federated_learning_spanner_lock_database" {
   // Spring JDBC Lock Registry DDL
   // https://docs.spring.io/spring-integration/reference/jdbc/lock-registry.html
   database_dialect = "POSTGRESQL"
-  ddl = [
-    <<-EOT
-    CREATE TABLE INT_LOCK (
-      LOCK_KEY VARCHAR(36),
-      REGION VARCHAR(100),
-      CLIENT_ID VARCHAR(36),
-      CREATED_DATE TIMESTAMPTZ NOT NULL,
-      PRIMARY KEY (LOCK_KEY, REGION)
-    )
-    EOT
-  ]
+  ddl              = fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.psdl")
 }

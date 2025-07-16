@@ -18,6 +18,9 @@ ondevicepersonalization
 opallowedusr
 opverifiedusr
 opwip
+psdl
 privatepool
 pvdr
+timestamptz
+varchar
 ython

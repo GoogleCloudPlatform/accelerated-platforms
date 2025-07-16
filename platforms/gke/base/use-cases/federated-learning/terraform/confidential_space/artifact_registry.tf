@@ -14,7 +14,7 @@
 
 data "google_artifact_registry_repository" "federated_learning_repository" {
   location      = var.cluster_region
-  repository_id = "${local.unique_identifier_prefix}-fl-repository"
+  repository_id = local.federated_learning_repository_id
 }
 
 data "google_artifact_registry_docker_image" "workload_image" {

@@ -27,7 +27,7 @@ locals {
   federated_learning_cross_device_example_aggregator_notifications_pubsub_topic        = join("-", [local.unique_identifier_prefix, local.federated_learning_cross_device_example_aggregator_notifications_pubsub_name, "topic"])
   federated_learning_cross_device_example_aggregator_notifications_pubsub_subscription = join("-", [local.unique_identifier_prefix, local.federated_learning_cross_device_example_aggregator_notifications_pubsub_name, "subscription"])
 
-  federated_learning_pubsub_topics = [local.federated_learning_cross_device_example_aggregator_pubsub_name, local.federated_learning_cross_device_example_modelupdater_pubsub_name, local.federated_learning_cross_device_example_aggregator_notifications_pubsub_name]
+  federated_learning_cross_device_example_pubsub_topics = [local.federated_learning_cross_device_example_aggregator_pubsub_name, local.federated_learning_cross_device_example_modelupdater_pubsub_name, local.federated_learning_cross_device_example_aggregator_notifications_pubsub_name]
 
   federated_learning_cross_device_example_client_gradient_bucket_name     = join("-", [local.unique_identifier_prefix, var.federated_learning_cross_device_example_client_gradient_bucket])
   federated_learning_cross_device_example_aggregated_gradient_bucket_name = join("-", [local.unique_identifier_prefix, var.federated_learning_cross_device_example_aggregated_gradient_bucket])

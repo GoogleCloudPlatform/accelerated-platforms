@@ -70,7 +70,7 @@ CREATE TABLE Iteration (
   MaxClientVersion STRING(32) NOT NULL
 ) PRIMARY KEY(PopulationName, TaskId, IterationId, AttemptId), INTERLEAVE IN PARENT Task ON DELETE CASCADE
 
-CREATE INDEX InterationStatusIndex ON Iteration(Status)
+CREATE INDEX IterationStatusIndex ON Iteration(Status)
 
 CREATE INDEX IterationPopulationNameStatusClientVersionIndex ON Iteration (PopulationName, Status, MinClientVersion, MaxClientVersion) STORING (BaseIterationId, BaseOnResultId, ReportGoal, ResultId, Info, AggregationLevel, MaxAggregationSize)
 

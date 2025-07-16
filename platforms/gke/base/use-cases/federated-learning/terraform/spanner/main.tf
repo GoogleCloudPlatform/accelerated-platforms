@@ -16,6 +16,7 @@ locals {
   federated_learning_cross_device_example_spanner_schema_base_directory_path = "${path.module}/../example_cross_device/templates/spanner/schema"
 }
 
+# Wait for Spanner API to be enabled
 # Create the Spanner instance
 resource "google_spanner_instance" "federated_learning_spanner_instance" {
   name             = local.federated_learning_cross_device_example_spanner_instance_name
@@ -40,6 +41,8 @@ resource "google_spanner_instance" "federated_learning_spanner_instance" {
       force_destroy,
     ]
   }
+
+  depends_on = [google_project_service.spanner_googleapis_com]
 }
 
 # Create the Spanner database with deletion protection disabled

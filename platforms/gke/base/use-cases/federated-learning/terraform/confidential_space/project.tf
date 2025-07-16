@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_project" "default" {
+data "google_project" "cluster" {
   project_id = local.cluster_project_id
 }
 

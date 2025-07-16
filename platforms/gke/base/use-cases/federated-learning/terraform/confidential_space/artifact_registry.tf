@@ -15,6 +15,7 @@
 data "google_artifact_registry_repository" "federated_learning_repository" {
   location      = var.cluster_region
   repository_id = local.federated_learning_repository_id
+  project       = google_project_service.confidentialcomputing_googleapis_com.project
 }
 
 data "google_artifact_registry_docker_image" "workload_image" {
@@ -22,4 +23,5 @@ data "google_artifact_registry_docker_image" "workload_image" {
   location      = data.google_artifact_registry_repository.federated_learning_repository.location
   repository_id = data.google_artifact_registry_repository.federated_learning_repository.repository_id
   image_name    = each.key
+  project       = google_project_service.confidentialcomputing_googleapis_com.project
 }

@@ -39,8 +39,8 @@ resource "google_project_service_identity" "cloudbuild_sa" {
 }
 
 resource "google_project_iam_member" "cloudbuild_sa_roles" {
-  for_each = local.cloudbuild_sa_roles
-  project  = data.google_project.project.name
+  for_each = toset(local.cloudbuild_sa_roles)
+  project  = data.google_project.cluster.name
   role     = each.key
   member   = google_project_service_identity.cloudbuild_sa.member
 }

@@ -14,27 +14,6 @@
 
 locals {
   federated_learning_cross_device_example_spanner_schema_base_directory_path = "${path.module}/../example_cross_device/templates/spanner/schema"
-
-  # Read all .sdl files from the schema directory
-  schema_files = fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.sdl")
-
-  # Read each file's content
-  file_contents = {
-    for file in local.schema_files :
-    file => file("${local.federated_learning_cross_device_example_spanner_schema_base_directory_path}/${file}")
-  }
-
-  # Process the content of each file to extract DDL statements
-  raw_statements = flatten([
-    for content in values(local.file_contents) : split("CREATE", content)
-  ])
-
-  # Clean up and format statements
-  ddl_statements = [
-    for stmt in local.raw_statements :
-    "CREATE${stmt}"
-    if trimspace(stmt) != ""
-  ]
 }
 
 # Create the Spanner instance
@@ -71,18 +50,7 @@ resource "google_spanner_database" "federated_learning_spanner_database" {
   version_retention_period = var.federated_learning_cross_device_example_spanner_database_retention_period
   deletion_protection      = var.federated_learning_cross_device_example_spanner_database_deletion_protection
 
-  ddl = [
-    for stmt in local.ddl_statements :
-    replace(
-      replace(
-        trimspace(stmt),
-        "\n",
-        " "
-      ),
-      ",)",
-      ")"
-    )
-  ]
+  ddl = fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.sdl")
 
   lifecycle {
     ignore_changes = [

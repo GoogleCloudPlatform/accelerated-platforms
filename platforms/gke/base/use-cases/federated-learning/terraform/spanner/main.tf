@@ -54,7 +54,7 @@ resource "google_spanner_instance" "federated_learning_spanner_instance" {
     ]
   }
 
-  depends_on = [data.external.wait_for_apis_activation]
+  depends_on = [terraform_data.wait_for_apis_activation]
 }
 
 # Create the Spanner database with deletion protection disabled

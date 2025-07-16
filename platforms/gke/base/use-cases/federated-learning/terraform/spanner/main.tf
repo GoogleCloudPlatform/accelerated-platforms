@@ -19,11 +19,11 @@ locals {
 # Create the Spanner instance
 resource "google_spanner_instance" "federated_learning_spanner_instance" {
   name             = local.federated_learning_cross_device_example_spanner_instance_name
+  project          = google_project_service.spanner_googleapis_com.project
   config           = "regional-${var.cluster_region}"
   display_name     = "Federated Compute Database"
   processing_units = var.federated_learning_cross_device_example_spanner_processing_units == null ? var.federated_learning_cross_device_example_spanner_nodes * 1000 : var.federated_learning_cross_device_example_spanner_processing_units
   force_destroy    = true
-  project          = google_project_service.spanner_googleapis_com.project
 
   labels = {
     environment = var.platform_name

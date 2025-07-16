@@ -587,7 +587,7 @@ locals {
     "platforms/gke/base/use-cases/federated-learning/terraform/private_google_access/**",
     "platforms/gke/base/use-cases/federated-learning/terraform/container_node_pool/**",
     "platforms/gke/base/use-cases/federated-learning/terraform/cloud_storage/**",
-    "platforms/gke/base/use-cases/federated-learning/terraform/private_google_access/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/pubsub/**",
     "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh",
     "platforms/gke/base/use-cases/federated-learning/examples/cross-device/setup-environment.sh",
     "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh",

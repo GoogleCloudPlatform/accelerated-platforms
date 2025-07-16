@@ -25,6 +25,7 @@ locals {
 resource "google_cloudbuild_worker_pool" "privatepool" {
   name     = "privatepool"
   location = var.cluster_region
+  project  = google_project_service.cloud_build_googleapis_com.project
 
   worker_config {
     machine_type   = "e2-standard-32"

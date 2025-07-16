@@ -12,9 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+data "google_artifact_registry_repository" "federated_learning_repository" {
+  location      = var.cluster_region
+  repository_id = "${local.unique_identifier_prefix}-fl-repository"
+}
+
 data "google_artifact_registry_docker_image" "workload_image" {
   for_each      = var.federated_learning_cross_device_example_confidential_space_workloads
-  location      = local.federated_learning_artifact_repository_location
-  repository_id = local.federated_learning_artifact_repository_id
+  location      = data.google_artifact_registry_repository.federated_learning_repository.location
+  repository_id = data.google_artifact_registry_repository.federated_learning_repository.repository_id
   image_name    = each.key
 }

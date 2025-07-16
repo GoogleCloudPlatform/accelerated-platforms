@@ -14,7 +14,7 @@
 
 data "google_artifact_registry_docker_image" "workload_image" {
   for_each      = var.federated_learning_cross_device_example_confidential_space_workloads
-  location      = google_artifact_registry_repository.container_image_repository.location
-  repository_id = google_artifact_registry_repository.container_image_repository.repository_id
+  location      = local.federated_learning_artifact_repository_location
+  repository_id = local.federated_learning_artifact_repository_id
   image_name    = each.key
 }

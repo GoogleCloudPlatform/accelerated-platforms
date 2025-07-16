@@ -85,7 +85,8 @@ locals {
 
   federated_learning_firewall_policy_name = "${local.cluster_name}-federated-learning-firewall-policy"
 
-  federated_learning_repository_id = "${local.unique_identifier_prefix}-fl-repository"
+  federated_learning_artifact_repository_id       = google_artifact_registry_repository.container_image_repository.repository_id
+  federated_learning_artifact_repository_location = google_artifact_registry_repository.container_image_repository.location
 }
 
 variable "federated_learning_cloud_storage_buckets" {

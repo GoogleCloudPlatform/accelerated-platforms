@@ -17,6 +17,18 @@ locals {
 }
 
 # Wait for Spanner API to be enabled
+resource "terraform_data" "wait_for_apis_activation" {
+  provisioner "local-exec" {
+    command = <<EOT
+until gcloud spanner instances list --project="${data.google_project.cluster.project_id}"
+do
+  echo "Waiting for Cloud Spanner API to be enabled"
+  sleep 1
+done
+EOT
+  }
+}
+
 # Create the Spanner instance
 resource "google_spanner_instance" "federated_learning_spanner_instance" {
   name             = local.federated_learning_cross_device_example_spanner_instance_name
@@ -42,7 +54,7 @@ resource "google_spanner_instance" "federated_learning_spanner_instance" {
     ]
   }
 
-  depends_on = [google_project_service.spanner_googleapis_com]
+  depends_on = [data.external.wait_for_apis_activation]
 }
 
 # Create the Spanner database with deletion protection disabled

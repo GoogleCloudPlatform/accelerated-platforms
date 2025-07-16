@@ -20,7 +20,7 @@ locals {
 resource "terraform_data" "wait_for_apis_activation" {
   provisioner "local-exec" {
     command = <<EOT
-until gcloud spanner instances list --project="${data.google_project.cluster.project_id}"
+until gcloud spanner instances list --quiet --project="${data.google_project.cluster.project_id}"
 do
   echo "Waiting for Cloud Spanner API to be enabled"
   sleep 1

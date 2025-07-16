@@ -19,6 +19,6 @@ data "google_project" "cluster" {
 resource "google_project_service" "confidentialcomputing_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.default.project_id
+  project                    = data.google_project.cluster.project_id
   service                    = "confidentialcomputing.googleapis.com"
 }

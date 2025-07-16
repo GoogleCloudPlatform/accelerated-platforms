@@ -17,10 +17,6 @@ data "google_compute_zones" "available" {
   region  = var.cluster_region
 }
 
-data "google_project" "cluster" {
-  project_id = local.cluster_project_id
-}
-
 resource "google_compute_instance_template" "instance_template" {
   for_each = var.federated_learning_cross_device_example_confidential_space_workloads
   project  = google_project_service.confidentialcomputing_googleapis_com.project

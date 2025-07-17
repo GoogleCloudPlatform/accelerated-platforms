@@ -42,6 +42,7 @@ else
     "networking"
     "container_cluster"
     "container_node_pool"
+    "cloudbuild/initialize"
     "gke_enterprise/fleet_membership"
     #"gke_enterprise/configmanagement/oci"
     "gke_enterprise/policycontroller"

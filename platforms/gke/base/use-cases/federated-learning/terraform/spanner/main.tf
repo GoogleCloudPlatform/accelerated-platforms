@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  federated_learning_cross_device_example_spanner_schema_base_directory_path = "${path.module}/../example_cross_device/templates/spanner/schema"
+  federated_learning_cross_device_example_spanner_schema_base_directory_path = "${path.module}/../example_cross_device/templates/spanner"
 
   spanner_ddl_statements = flatten([
     for f in fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.sdl") :

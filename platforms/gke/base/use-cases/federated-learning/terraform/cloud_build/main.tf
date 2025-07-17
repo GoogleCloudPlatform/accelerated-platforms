@@ -22,6 +22,29 @@ locals {
   ]
 }
 
+# Wait for Spanner API to be enabled
+resource "terraform_data" "wait_for_cloud_build_api" {
+  provisioner "local-exec" {
+    command = <<EOT
+retries=12
+until gcloud builds list --quiet --project="${data.google_project.cluster.project_id}"
+do
+  if ((retries <= 0)); then
+    exit 1
+  fi
+
+  retries=$((retries - 1))
+  echo "Waiting for Cloud Spanner API to be enabled..."
+  sleep 5
+done
+EOT
+  }
+
+  depends_on = [
+    google_project_service.cloud_build_googleapis_com,
+  ]
+}
+
 resource "google_cloudbuild_worker_pool" "privatepool" {
   name     = "privatepool"
   location = var.cluster_region
@@ -31,6 +54,8 @@ resource "google_cloudbuild_worker_pool" "privatepool" {
     machine_type   = "e2-standard-32"
     no_external_ip = true
   }
+
+  depends_on = [terraform_data.wait_for_cloud_build_api]
 }
 
 resource "google_project_service_identity" "cloudbuild_sa" {

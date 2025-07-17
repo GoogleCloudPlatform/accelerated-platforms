@@ -17,12 +17,12 @@ locals {
 
   spanner_ddl_statements = flatten([
     for f in fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.sdl") :
-    split("\n", replace(file("${local.federated_learning_cross_device_example_spanner_schema_base_directory_path}/${f}"), "/\\*.*?\\*/", ""))
+    split("\n", replace(file("${local.federated_learning_cross_device_example_spanner_schema_base_directory_path}/${f}"), "^[[:space:]]*#.*$|^[[:space:]]*$", ""))
   ])
 
   spanner_ddl_postgres_statements = flatten([
     for f in fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.psdl") :
-    split("\n", replace(file("${local.federated_learning_cross_device_example_spanner_schema_base_directory_path}/${f}"), "/\\*.*?\\*/", ""))
+    split("\n", replace(file("${local.federated_learning_cross_device_example_spanner_schema_base_directory_path}/${f}"), "^[[:space:]]*#.*$|^[[:space:]]*$", ""))
   ])
 }
 

@@ -14,6 +14,16 @@
 
 locals {
   federated_learning_cross_device_example_spanner_schema_base_directory_path = "${path.module}/../example_cross_device/templates/spanner/schema"
+
+  spanner_ddl_statements = flatten([
+    for f in fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.sdl") :
+    split("\n", file("${local.federated_learning_cross_device_example_spanner_schema_base_directory_path}/${f}"))
+  ])
+
+  spanner_ddl_postgres_statements = flatten([
+    for f in fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.psdl") :
+    split("\n", file("${local.federated_learning_cross_device_example_spanner_schema_base_directory_path}/${f}"))
+  ])
 }
 
 # Wait for Spanner API to be enabled
@@ -77,7 +87,7 @@ resource "google_spanner_database" "federated_learning_spanner_database" {
   version_retention_period = var.federated_learning_cross_device_example_spanner_database_retention_period
   deletion_protection      = var.federated_learning_cross_device_example_spanner_database_deletion_protection
 
-  ddl = fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.sdl")
+  ddl = local.spanner_ddl_statements
 
   lifecycle {
     ignore_changes = [
@@ -94,5 +104,5 @@ resource "google_spanner_database" "federated_learning_spanner_lock_database" {
   // Spring JDBC Lock Registry DDL
   // https://docs.spring.io/spring-integration/reference/jdbc/lock-registry.html
   database_dialect = "POSTGRESQL"
-  ddl              = fileset(local.federated_learning_cross_device_example_spanner_schema_base_directory_path, "*.psdl")
+  ddl              = local.spanner_ddl_postgres_statements
 }

@@ -13,8 +13,8 @@
 # limitations under the License.
 
 locals {
-  cloudbuild_submit_command    = "gcloud builds submit --substitutions=_PROJECT_ID=\"${google_project_service.cloud_build_googleapis_com.project},_REGISTRY=${var.cluster_region}-docker.pkg.dev/${google_project_service.cloud_build_googleapis_com.project}/${var.federated_learning_cross_device_example_repository_name}\" --region ${var.cluster_region}"
-  cloudbuild_git_clone_command = "git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute --branch=${var.federated_learning_cross_device_example_federatedcompute_tag}; cd odp-federatedcompute"
+  cloudbuild_submit_command    = "until gcloud builds submit --substitutions=_PROJECT_ID=\"${google_project_service.cloud_build_googleapis_com.project},_REGISTRY=${var.cluster_region}-docker.pkg.dev/${google_project_service.cloud_build_googleapis_com.project}/${local.federated_learning_repository_id}\" --region ${var.cluster_region}; do echo \"Building workloads images; sleep 5; done"
+  cloudbuild_git_clone_command = "git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute --branch=${var.federated_learning_cross_device_example_federatedcompute_tag}; cd odp-federatedcompute; sed -i '29s/^#//;30s/^#//;31s/^#//' cloudbuild.yaml"
   cloudbuild_sa_roles = [
     "roles/storage.objectUser",
     "roles/logging.logWriter",

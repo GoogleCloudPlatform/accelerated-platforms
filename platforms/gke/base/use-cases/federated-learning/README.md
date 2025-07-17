@@ -201,7 +201,7 @@ To deploy the reference architecture, you do the following:
    `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars`:
 
    ```hcl
-   terraform_project_id = "<PROJECT_ID>"
+   platform_default_project_id = "<PROJECT_ID>"
    ```
 
    Where:

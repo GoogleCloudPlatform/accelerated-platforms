@@ -550,7 +550,7 @@ class Veo2SaveAndPreview:
     ):
         try:
             # Destination directory for saving videos
-            dest_dir = os.path.join("output", "veo")
+            dest_dir = os.path.join("output", "veo2")
             os.makedirs(dest_dir, exist_ok=True)
             # Setting preview dir to temp as the veo nodes save the video there
             preview_dir = "temp"

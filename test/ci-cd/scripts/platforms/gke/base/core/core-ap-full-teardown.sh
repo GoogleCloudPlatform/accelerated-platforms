@@ -53,6 +53,7 @@ else
     "gke_enterprise/policycontroller"
     #"gke_enterprise/configmanagement/oci"
     "gke_enterprise/fleet_membership"
+    "cloudbuild/initialize"
     "container_cluster_ap"
     "networking"
     "initialize"

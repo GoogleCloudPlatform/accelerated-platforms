@@ -39,6 +39,23 @@ resource "local_file" "core_backend_tf" {
   filename        = "${local.base_directory}/${each.key}/backend.tf"
 }
 
+resource "local_file" "shared_config_cloudbuild_auto_tfvars" {
+  for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
+
+  content = provider::terraform::encode_tfvars(
+    {
+      cloudbuild_github_access_token_read_secret_manager_secret_name  = var.cloudbuild_github_access_token_read_secret_manager_secret_name
+      cloudbuild_github_access_token_write_secret_manager_secret_name = var.cloudbuild_github_access_token_write_secret_manager_secret_name
+      cloudbuild_location                                             = var.cloudbuild_location
+      cloudbuild_project_id                                           = var.cloudbuild_project_id
+      cloudbuild_service_account_name                                 = var.cloudbuild_service_account_name
+      cloudbuild_source_bucket_name                                   = var.cloudbuild_source_bucket_name
+    }
+  )
+  file_permission = "0644"
+  filename        = "${local.shared_config_folder}/cloudbuild.auto.tfvars"
+}
+
 resource "local_file" "shared_config_cluster_auto_tfvars" {
   for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
 

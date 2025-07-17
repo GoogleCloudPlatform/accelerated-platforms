@@ -12,6 +12,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "cloudbuild_github_access_token_read_secret_manager_secret_name" {
+  value = local.cloudbuild_github_access_token_read_secret_manager_secret_name
+}
+
+output "cloudbuild_github_access_token_write_secret_manager_secret_name" {
+  value = local.cloudbuild_github_access_token_write_secret_manager_secret_name
+}
+
+output "cloudbuild_location" {
+  value = local.cloudbuild_location
+}
+
+output "cloudbuild_project_id" {
+  value = local.cloudbuild_project_id
+}
+
+output "cloudbuild_service_account_email" {
+  value = local.cloudbuild_service_account_email
+}
+
+output "cloudbuild_service_account_id" {
+  value = local.cloudbuild_service_account_id
+}
+
+output "cloudbuild_source_bucket_name" {
+  value = local.cloudbuild_source_bucket_name
+}
+
 output "cluster_autopilot_enabled" {
   value = var.cluster_autopilot_enabled
 }

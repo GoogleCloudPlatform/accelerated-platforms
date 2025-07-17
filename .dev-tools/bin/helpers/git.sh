@@ -15,6 +15,7 @@
 # limitations under the License.
 
 declare -a git_assume_unchanged_files=(
+  "platforms/gke/base/_shared_config/cloudbuild.auto.tfvars"
   "platforms/gke/base/_shared_config/cluster.auto.tfvars"
   "platforms/gke/base/_shared_config/configmanagement.auto.tfvars"
   "platforms/gke/base/_shared_config/huggingface.auto.tfvars"

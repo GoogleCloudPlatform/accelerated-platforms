@@ -14,7 +14,7 @@
 
 locals {
   cloudbuild_submit_command    = "gcloud builds submit --substitutions=_PROJECT_ID=\"${google_project_service.cloud_build_googleapis_com.project},_REGISTRY=${var.cluster_region}-docker.pkg.dev/${google_project_service.cloud_build_googleapis_com.project}/${var.federated_learning_cross_device_example_repository_name}\" --region ${var.cluster_region}"
-  cloudbuild_git_clone_command = "git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute --branch=${var.federated_learning_cross_device_example_federatedcompute_tag}"
+  cloudbuild_git_clone_command = "git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute --branch=${var.federated_learning_cross_device_example_federatedcompute_tag}; cd odp-federatedcompute"
   cloudbuild_sa_roles = [
     "roles/storage.objectUser",
     "roles/logging.logWriter",

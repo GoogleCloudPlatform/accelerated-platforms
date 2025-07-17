@@ -15,6 +15,8 @@
 locals {
   kubeconfig_directory = "${path.module}/../../../kubernetes/kubeconfig"
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
+
+  kubernetes_namespace = var.cluster_autopilot_enabled ? "gke-gmp-system" : "gmp-system"
 }
 
 data "local_file" "kubeconfig" {
@@ -22,13 +24,13 @@ data "local_file" "kubeconfig" {
 }
 
 module "kubectl_wait" {
-  for_each = toset(var.cluster_auto_monitoring_config_scope == "ALL" ? ["managed-prometheus-operator"] : [])
+  for_each = toset(var.cluster_auto_monitoring_config_scope == "ALL" && var.cluster_autopilot_enabled == false ? ["managed-prometheus-operator"] : [])
 
   source = "../../../modules/kubectl_wait"
 
   for             = "condition=ready"
   kubeconfig_file = data.local_file.kubeconfig.filename
-  namespace       = "gmp-system"
+  namespace       = local.kubernetes_namespace
   resource        = "pod"
   selector        = "app=managed-prometheus-operator"
   timeout         = "300s"

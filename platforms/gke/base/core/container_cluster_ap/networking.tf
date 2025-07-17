@@ -1,10 +1,10 @@
-# Copyright 2025 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-patches:
-  - path: patch/gke-managed-components-toleration.yaml
-    target:
-      group: apps
-      kind: Deployment
-      version: v1
-  - path: patch/no-create-namespace.yaml
+data "google_compute_network" "vpc" {
+  name    = local.network_name
+  project = data.google_project.cluster.project_id
+}
 
-resources:
-  - manifests.yaml
-  - kueue-monitoring-gmp.yaml
+data "google_compute_subnetwork" "region" {
+  name    = local.subnetwork_name
+  project = data.google_project.cluster.project_id
+  region  = var.cluster_region
+}

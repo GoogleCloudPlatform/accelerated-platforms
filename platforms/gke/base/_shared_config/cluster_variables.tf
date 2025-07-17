@@ -67,6 +67,12 @@ variable "cluster_auto_monitoring_config_scope" {
   }
 }
 
+variable "cluster_autopilot_enabled" {
+  default     = false
+  description = "GKE Autopilot cluster"
+  type        = bool
+}
+
 variable "cluster_binary_authorization_evaluation_mode" {
   default     = "DISABLED"
   description = "Mode of operation for Binary Authorization policy evaluation. Valid values are DISABLED and PROJECT_SINGLETON_POLICY_ENFORCE."

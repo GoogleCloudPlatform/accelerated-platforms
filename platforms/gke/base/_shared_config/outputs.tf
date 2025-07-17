@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "cluster_autopilot_enabled" {
+  value = var.cluster_autopilot_enabled
+}
+
 output "cluster_credentials_command" {
   value = local.cluster_credentials_command
 }

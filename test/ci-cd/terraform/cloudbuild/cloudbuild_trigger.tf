@@ -90,15 +90,89 @@ resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
   }
 }
 
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_full_scripts" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-full-scripts.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/README.md",
+    "platforms/gke/base/core/teardown.sh",
+  ]
+  included_files = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/**",
+    "test/ci-cd/scripts/platforms/gke/base/core/core-ap-full-deploy.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/core-ap-full-teardown.sh",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-core-ap-full-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_full_scripts_push" {
+  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-full-scripts.yaml"
+  ignored_files = [
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/deploy-ap.sh",
+    "platforms/gke/base/core/README.md",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/core/teardown-ap.sh",
+  ]
+  included_files = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/**",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-full-scripts.yaml",
+    "test/ci-cd/scripts/platforms/gke/base/core/core-ap-full-deploy.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/core-ap-full-teardown.sh",
+  ]
+  location        = var.build_location
+  name            = "platforms-gke-base-core-ap-full-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts" {
   filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml"
   ignored_files = [
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/deploy-ap.sh",
     "platforms/gke/base/core/README.md",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/core/teardown-ap.sh",
   ]
   included_files = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/**",
     "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml",
+    "test/ci-cd/scripts/platforms/gke/base/core/core-full-deploy.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/core-full-teardown.sh",
   ]
   location        = var.build_location
   name            = "platforms-gke-base-core-full-scripts"
@@ -123,12 +197,18 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts" {
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts_push" {
   filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml"
   ignored_files = [
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/deploy-ap.sh",
     "platforms/gke/base/core/README.md",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/core/teardown-ap.sh",
   ]
   included_files = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/**",
     "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml",
+    "test/ci-cd/scripts/platforms/gke/base/core/core-full-deploy.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/core-full-teardown.sh",
   ]
   location        = var.build_location
   name            = "platforms-gke-base-core-full-scripts-push"

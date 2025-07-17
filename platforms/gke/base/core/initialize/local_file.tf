@@ -45,6 +45,7 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
   content = provider::terraform::encode_tfvars(
     {
       cluster_auto_monitoring_config_scope                 = var.cluster_auto_monitoring_config_scope
+      cluster_autopilot_enabled                            = var.cluster_autopilot_enabled
       cluster_binary_authorization_evaluation_mode         = var.cluster_binary_authorization_evaluation_mode
       cluster_confidential_nodes_enabled                   = var.cluster_confidential_nodes_enabled
       cluster_database_encryption_key_name                 = var.cluster_database_encryption_key_name

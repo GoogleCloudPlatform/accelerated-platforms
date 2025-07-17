@@ -59,8 +59,8 @@ module "kubectl_apply_namespace" {
 resource "terraform_data" "manifests" {
   input = {
     manifests_dir         = local.manifests_directory
-    version_manifests_dir = local.version_manifests_directory
     version               = var.kueue_version
+    version_manifests_dir = local.version_manifests_directory
   }
 
   provisioner "local-exec" {
@@ -77,15 +77,43 @@ EOT
 
   triggers_replace = {
     manifests_dir         = local.manifests_directory
-    version_manifests_dir = local.version_manifests_directory
     version               = var.kueue_version
+    version_manifests_dir = local.version_manifests_directory
+  }
+}
+
+resource "terraform_data" "manifests_ap" {
+  depends_on = [
+    terraform_data.manifests,
+  ]
+
+  for_each = toset(var.cluster_autopilot_enabled ? ["remove-resource-type"] : [])
+
+  input = {
+    manifests_dir         = local.manifests_directory
+    version               = var.kueue_version
+    version_manifests_dir = local.version_manifests_directory
+  }
+  provisioner "local-exec" {
+    command     = <<EOT
+sed --expression='/- path: patch\/gke-managed-components-toleration.yaml$/,+4d' --in-place ${self.input.version_manifests_dir}/kustomization.yaml && \
+sed --expression='/- path: patch\/gke-managed-components-toleration.yaml$/,+4d' --in-place ${self.input.manifests_dir}/kustomization.yaml
+EOT
+    interpreter = ["bash", "-c"]
+    working_dir = path.module
+  }
+
+  triggers_replace = {
+    manifests_dir         = local.manifests_directory
+    version               = var.kueue_version
+    version_manifests_dir = local.version_manifests_directory
   }
 }
 
 module "kubectl_apply_manifests" {
   depends_on = [
-    terraform_data.manifests,
     module.kubectl_apply_namespace,
+    terraform_data.manifests_ap,
   ]
 
   source = "../../../modules/kubectl_apply"

@@ -27,8 +27,8 @@ data "local_file" "kubeconfig" {
 resource "terraform_data" "manifests" {
   input = {
     manifests_dir         = local.manifests_directory
-    version_manifests_dir = local.version_manifests_directory
     version               = var.inference_gateway_version
+    version_manifests_dir = local.version_manifests_directory
   }
 
   provisioner "local-exec" {
@@ -44,8 +44,8 @@ EOT
 
   triggers_replace = {
     manifests_dir         = local.manifests_directory
-    version_manifests_dir = local.version_manifests_directory
     version               = var.inference_gateway_version
+    version_manifests_dir = local.version_manifests_directory
   }
 }
 

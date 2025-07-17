@@ -249,11 +249,6 @@ variable "federated_learning_cross_device_example_federatedcompute_tag" {
   default     = "v0.7.1"
 }
 
-variable "federated_learning_cross_device_example_repository_name" {
-  description = "The name of the repository that will contains workloads images"
-  type        = string
-  default     = "container-image-repository"
-}
 
 variable "federated_learning_cross_device_example_confidential_space_debug" {
   description = "Flag to enable debugging of confidential space workloads"

@@ -64,7 +64,7 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
   "federated_learning_cross_device_example_model_bucket = \"${CROSS_DEVICE_MODEL_BUCKET}\""
   "federated_learning_cross_device_example_aggregated_gradient_bucket = \"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\""
   "federated_learning_cross_device_example_client_gradient_bucket = \"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\""
-  "federated_learning_cross_device_example_confidential_space_workloads = {\"aggregator\"={min_replicas=2,max_replicas=5,cooldown_period=180,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"},\"modelupdater\"={min_replicas=2,max_replicas=5,cooldown_period=120,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"}}"
+  "federated_learning_cross_device_example_confidential_space_workloads = {\"aggregator\"={min_replicas=2,max_replicas=5,cooldown_period=180,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"},\"model-updater\"={min_replicas=2,max_replicas=5,cooldown_period=120,autoscaling_jobs_per_instance=2,machine_type=\"n2d-standard-8\"}}"
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts

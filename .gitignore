@@ -1,9 +1,13 @@
+# GKE
+gke_gcloud_auth_plugin_cache
+
 # IDEs
 .vscode/
 *.code-workspace
 
-# GKE
-gke_gcloud_auth_plugin_cache
+# JWT
+**/jwt-claim.json
+**/token.jwt
 
 # Node
 node_modules

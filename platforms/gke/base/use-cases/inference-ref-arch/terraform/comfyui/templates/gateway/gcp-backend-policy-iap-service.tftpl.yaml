@@ -20,10 +20,7 @@ metadata:
 spec:
   default:
     iap:
-      clientID: ${oauth_client_id}
       enabled: true
-      oauth2ClientSecret:
-        name: ${oauth_client_secret_name}
     timeoutSec: 3600
   targetRef:
     group: ""

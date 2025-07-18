@@ -26,6 +26,8 @@ locals {
   manifests_directory_root    = "${path.module}/../../../../kubernetes/manifests"
   namespace_directory         = "${local.manifests_directory_root}/namespace"
   serviceaccount              = "${local.unique_identifier_prefix}-${local.comfyui_default_name}"
+
+  comfyui_backend_service_regex = ".*${var.comfyui_kubernetes_namespace}-${local.comfyui_service_name}-${local.comfyui_port}-.*"
 }
 
 data "google_client_config" "default" {}
@@ -194,54 +196,8 @@ resource "local_file" "route_comfyui_https_yaml" {
 }
 
 ###############################################################################
-# IAP
-###############################################################################
-resource "google_project_service" "iap_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "iap.googleapis.com"
-}
-
-# TODO: Look at adding validation that the OAuth brand exists
-resource "google_iap_client" "comfyui_client" {
-  depends_on = [
-    google_project_service.iap_googleapis_com
-  ]
-
-  brand        = local.iap_oath_brand
-  display_name = "IAP-gkegw-${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-comfyui-dashboard"
-}
-
-resource "google_iap_web_iam_member" "domain_iap_https_resource_accessor" {
-  depends_on = [
-    google_project_service.iap_googleapis_com,
-    local_file.gateway_external_https_yaml,
-  ]
-
-  member  = "domain:${local.iap_domain}"
-  project = data.google_project.cluster.project_id
-  role    = "roles/iap.httpsResourceAccessor"
-}
-
-###############################################################################
 # IAP Policy
 ###############################################################################
-resource "kubernetes_secret_v1" "comfyui_oauth" {
-  depends_on = [
-    module.kubectl_apply_comfyui_namespace_manifest,
-  ]
-
-  data = {
-    secret = google_iap_client.comfyui_client.secret
-  }
-
-  metadata {
-    name      = "comfyui-oauth"
-    namespace = var.comfyui_kubernetes_namespace
-  }
-}
-
 resource "local_file" "policy_iap_comfyui_yaml" {
   depends_on = [
     module.kubectl_apply_namespace_setup,
@@ -250,11 +206,9 @@ resource "local_file" "policy_iap_comfyui_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
     {
-      oauth_client_id          = google_iap_client.comfyui_client.client_id
-      oauth_client_secret_name = "comfyui-oauth"
-      policy_name              = "comfyui"
-      service_name             = local.comfyui_service_name
-      namespace                = var.comfyui_kubernetes_namespace
+      policy_name  = "comfyui"
+      service_name = local.comfyui_service_name
+      namespace    = var.comfyui_kubernetes_namespace
     }
   )
   filename = "${local.gateway_manifests_directory}/policy-iap-comfyui.yaml"
@@ -266,7 +220,6 @@ resource "local_file" "policy_iap_comfyui_yaml" {
 module "kubectl_apply_gateway_res" {
   depends_on = [
     google_endpoints_service.comfyui_https,
-    kubernetes_secret_v1.comfyui_oauth,
     local_file.gateway_external_https_yaml,
     local_file.policy_iap_comfyui_yaml,
     local_file.route_comfyui_https_yaml,
@@ -278,4 +231,48 @@ module "kubectl_apply_gateway_res" {
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local.gateway_manifests_directory
   manifest_includes_namespace = true
+}
+
+###############################################################################
+# IAP Permissions
+###############################################################################
+module "kubectl_wait_for_gateway" {
+  depends_on = [
+    module.kubectl_apply_gateway_res,
+    module.kubectl_apply_workload_manifest,
+  ]
+
+  source = "../../../../modules/kubectl_wait"
+
+  for             = "jsonpath={.status.conditions[?(@.type==\"networking.gke.io/GatewayHealthy\")].status}=True"
+  kubeconfig_file = data.local_file.kubeconfig.filename
+  namespace       = var.comfyui_kubernetes_namespace
+  resource        = "gateway/${local.comfyui_gateway_name}"
+  timeout         = "300s"
+  wait_for_create = true
+}
+
+data "kubernetes_resources" "gateway" {
+  depends_on = [
+    module.kubectl_wait_for_gateway
+  ]
+
+  api_version    = "gateway.networking.k8s.io/v1"
+  kind           = "Gateway"
+  field_selector = "metadata.name==${local.comfyui_gateway_name}"
+  namespace      = var.comfyui_kubernetes_namespace
+}
+
+resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {
+  member  = "domain:${local.iap_domain}"
+  project = local.cluster_project_id
+  role    = "roles/iap.httpsResourceAccessor"
+  web_backend_service = basename(
+    one(
+      [
+        for backend in split(", ", data.kubernetes_resources.gateway.objects[0].metadata.annotations["networking.gke.io/backend-services"]) : backend
+        if can(regex(local.comfyui_backend_service_regex, backend))
+      ]
+    )
+  )
 }

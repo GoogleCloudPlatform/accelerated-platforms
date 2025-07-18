@@ -25,6 +25,8 @@ locals {
   workflow_api_service_name   = local.workflow_api_default_name
   workflow_api_service_port   = 8080
   workflow_api_serviceaccount = "${local.unique_identifier_prefix}-${local.workflow_api_default_name}"
+
+  workflow_api_backend_service_regex = ".*${var.comfyui_kubernetes_namespace}-${local.workflow_api_default_name}-8080-.*"
 }
 
 data "google_client_config" "default" {}
@@ -131,31 +133,13 @@ resource "local_file" "route_workflow_api_https_yaml" {
 ###############################################################################
 # IAP
 ###############################################################################
-resource "google_iap_client" "workflow_api" {
-  brand        = local.iap_oath_brand
-  display_name = local.workflow_api_service_account_oauth_display_name
-}
-
-resource "kubernetes_secret_v1" "workflow_api_oauth" {
-  data = {
-    secret = google_iap_client.workflow_api.secret
-  }
-
-  metadata {
-    name      = "${local.workflow_api_default_name}-oauth"
-    namespace = var.comfyui_kubernetes_namespace
-  }
-}
-
 resource "local_file" "policy_iap_workflow_api_yaml" {
   content = templatefile(
     "${path.module}/templates/gcp-backend-policy-iap-service.tftpl.yaml",
     {
-      oauth_client_id          = google_iap_client.workflow_api.client_id
-      oauth_client_secret_name = "${local.workflow_api_default_name}-oauth"
-      policy_name              = local.workflow_api_default_name
-      service_name             = local.workflow_api_service_name
-      namespace                = var.comfyui_kubernetes_namespace
+      policy_name  = local.workflow_api_default_name
+      service_name = local.workflow_api_service_name
+      namespace    = var.comfyui_kubernetes_namespace
     }
   )
   filename = "${local.gateway_manifests_directory}/gcp-backend-policy-${local.workflow_api_default_name}.yaml"
@@ -210,25 +194,43 @@ module "kubectl_apply_gateway_res" {
 ###############################################################################
 # IAP Permissions
 ###############################################################################
-data "external" "backend_service" {
+module "kubectl_wait_for_gateway" {
   depends_on = [
     module.kubectl_apply_gateway_res,
     module.kubectl_apply_workload_manifest,
   ]
 
-  program = ["bash", "-c", "${path.module}/../../../../scripts/iap/get_backend_service_by_oauth2_client_id.sh"]
+  source = "../../../../modules/kubectl_wait"
 
-  query = {
-    oauth2_client_id = google_iap_client.workflow_api.client_id
-    project_id       = local.cluster_project_id
-    retries          = "12"
-    wait_delay       = "10"
-  }
+  for             = "jsonpath={.status.conditions[?(@.type==\"networking.gke.io/GatewayHealthy\")].status}=True"
+  kubeconfig_file = data.local_file.kubeconfig.filename
+  namespace       = var.comfyui_kubernetes_namespace
+  resource        = "gateway/${local.workflow_api_gateway_name}"
+  timeout         = "300s"
+  wait_for_create = true
+}
+
+data "kubernetes_resources" "gateway" {
+  depends_on = [
+    module.kubectl_wait_for_gateway
+  ]
+
+  api_version    = "gateway.networking.k8s.io/v1"
+  kind           = "Gateway"
+  field_selector = "metadata.name==${local.workflow_api_gateway_name}"
+  namespace      = var.comfyui_kubernetes_namespace
 }
 
 resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {
-  member              = google_service_account.workflow_api_user.member
-  role                = "roles/iap.httpsResourceAccessor"
-  project             = local.cluster_project_id
-  web_backend_service = data.external.backend_service.result.name
+  member  = google_service_account.workflow_api_user.member
+  role    = "roles/iap.httpsResourceAccessor"
+  project = local.cluster_project_id
+  web_backend_service = basename(
+    one(
+      [
+        for backend in split(", ", data.kubernetes_resources.gateway.objects[0].metadata.annotations["networking.gke.io/backend-services"]) : backend
+        if can(regex(local.workflow_api_backend_service_regex, backend))
+      ]
+    )
+  )
 }

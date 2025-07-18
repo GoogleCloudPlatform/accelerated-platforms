@@ -16,6 +16,10 @@ data "google_project" "cluster" {
   project_id = local.cluster_project_id
 }
 
+data "google_project" "comfyui_cloudbuild" {
+  project_id = local.comfyui_cloudbuild_project_id
+}
+
 data "google_project" "comfyui_iap_oath_branding" {
   project_id = local.comfyui_iap_oath_branding_project_id
 }
@@ -23,6 +27,13 @@ data "google_project" "comfyui_iap_oath_branding" {
 resource "google_project_service" "cloudbuild_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
+  project                    = data.google_project.comfyui_cloudbuild.project_id
   service                    = "cloudbuild.googleapis.com"
+}
+
+resource "google_project_service" "iap_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.comfyui_iap_oath_branding.project_id
+  service                    = "iap.googleapis.com"
 }

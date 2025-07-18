@@ -198,7 +198,7 @@ The `deploy-comfyui.sh` script will perform the following steps:
 
   ```
   watch --color --interval 5 --no-title \
-  "kubectl --namespace ${comfyui_kubernetes_namespace} get deployment/${comfyui_app_name}-${comfyui_accelerator_type} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  "kubectl --namespace=${comfyui_kubernetes_namespace} get deployment/${comfyui_app_name}-${comfyui_accelerator_type} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
   ```
 
 - When the deployment is ready, you will output similar to the following
@@ -216,14 +216,15 @@ The `deploy-comfyui.sh` script will perform the following steps:
 
 - Open the ComfyUI URL in a web browser.
 
-  > Note: If the browser doesn't load ComfyUI, the SSL certificate could still
-  > be getting provisioned. Check the status of the certificate by running the
-  > following command:
-  >
-  > `gcloud compute ssl-certificates describe ${comfyui_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
-  >
-  > If the output of the command is `PROVISIONING`, it means the certificate has
-  > not been provisioned yet. Wait for the status to change to `ACTIVE`
+> [!TIP]  
+> If the browser doesn't load ComfyUI, the SSL certificate could still be
+> getting provisioned. Check the status of the certificate by running the
+> following command:
+>
+> `gcloud compute ssl-certificates describe ${comfyui_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
+>
+> If the output of the command is `PROVISIONING`, it means the certificate has
+> not been provisioned yet. Wait for the status to change to `ACTIVE`
 
 ## Load models in ComfyUI
 
@@ -307,8 +308,8 @@ WORKFLOWS. You should see the following workflow files:
 - `veo2-text-to-video` : This workflow shows text to video generation with
   Google's Veo2 model.
 
-> Note: ComfyUI custom nodes to Imagen3, Imagen4, Veo2 and Veo3 are in preview
-> mode.
+> [!WARNING]  
+> ComfyUI custom nodes to Imagen3, Imagen4, Veo2 and Veo3 are in preview mode.
 
 Click any of the workflow files to open the workflow and click `Run` to see the
 results.
@@ -343,19 +344,19 @@ the output bucket.
 - Verify that the Workflow API has been successfully deployed:
 
   ```
-  kubectl -n comfyui get deploy,svc
+  kubectl --namespace=${comfyui_kubernetes_namespace} get deploy,svc
   ```
 
   Response should look like this:
 
   ```
   NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment.apps/comfyui-nvidia-l4   1/1     1            1           10d
-  deployment.apps/workflow-api        1/1     1            1           15h
+  deployment.apps/comfyui-nvidia-l4   1/1     1            1           XXXX
+  deployment.apps/workflow-api        1/1     1            1           XXXX
 
-  NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
-  service/comfyui-nvidia-l4   ClusterIP   34.118.235.48    <none>        8188/TCP   10d
-  service/workflow-api        ClusterIP   34.118.228.170   <none>        8080/TCP   15h
+  NAME                        TYPE        CLUSTER-IP        EXTERNAL-IP   PORT(S)    AGE
+  service/comfyui-nvidia-l4   ClusterIP   ###.###.###.###   <none>        8188/TCP   XXXX
+  service/workflow-api        ClusterIP   ###.###.###.###   <none>        8080/TCP   XXXX
   ```
 
 - In order to send a sample workflow the active `gcloud` account needs to have
@@ -373,31 +374,50 @@ the output bucket.
 
 - Send a sample workflow to the Workflow API.
 
-  ```shell
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
-  iap_brand=$(gcloud iap oauth-brands list --format="value(name)" --project="${comfyui_iap_oath_branding_project_id}") && \
-  oauth_client_name=$(gcloud iap oauth-clients list "${iap_brand}" --filter="displayName=${workflow_api_service_account_oauth_display_name}" --format="value(name)") && \
-  oauth_client_id=$(basename "${oauth_client_name}")
-  curl \
-  --data "@workflows/sdxl.json" \
-  --header "Authorization: Bearer $(gcloud auth print-identity-token --audiences=${oauth_client_id} --impersonate-service-account=${workflow_api_service_account_email} --include-email)" \
-  --header "Content-Type: application/json" \
-  --request POST \
-  https://${workflow_api_endpoints_hostname}/api/v1/queue_prompt
-  ```
+  - Generate JSON Web Token (JWT)
 
-  > NOTE: If you get any of the following errors:
-  >
-  > `curl: (35) Recv failure: Connection reset by peer` or
-  > `curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ...`
-  >
-  > It means that the SSL certificate could still be provisioning. You can check
-  > the status of the SSL certificate by running the following command:
-  >
-  > `gcloud compute ssl-certificates describe ${workflow_api_endpoints_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
-  >
-  > If the output of the command is `PROVISIONING`, it means the certificate has
-  > not been provisioned yet. Wait for the status to change to `ACTIVE`
+    ```shell
+    cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+    cat > jwt-claim.json << EOF
+    {
+      "iss": "${workflow_api_service_account_email}",
+      "sub": "${workflow_api_service_account_email}",
+      "aud": "https://${workflow_api_endpoints_hostname}/api/v1/queue_prompt",
+      "iat": $(date +%s),
+      "exp": $((`date +%s` + 3600))
+    }
+    EOF
+    ```
+
+    ```shell
+    gcloud iam service-accounts sign-jwt --iam-account="${workflow_api_service_account_email}" jwt-claim.json token.jwt
+    ```
+
+  - Send the request.
+
+    ```shell
+    cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+    curl \
+    --data "@workflows/sdxl.json" \
+    --header "Authorization: Bearer $(cat token.jwt)" \
+    --header "Content-Type: application/json" \
+    --request POST \
+    https://${workflow_api_endpoints_hostname}/api/v1/queue_prompt
+    ```
+
+> [!TIP]  
+> If you get any of the following errors:
+>
+> `curl: (35) Recv failure: Connection reset by peer` or
+> `curl: (35) OpenSSL SSL_connect: SSL_ERROR_SYSCALL in connection to ...`
+>
+> It means that the SSL certificate could still be provisioning. You can check
+> the status of the SSL certificate by running the following command:
+>
+> `gcloud compute ssl-certificates describe ${workflow_api_endpoints_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
+>
+> If the output of the command is `PROVISIONING`, it means the certificate has
+> not been provisioned yet. Wait for the status to change to `ACTIVE`
 
 - The response should look like this:
 

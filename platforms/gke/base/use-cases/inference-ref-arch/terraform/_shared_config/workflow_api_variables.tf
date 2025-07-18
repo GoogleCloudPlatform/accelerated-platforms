@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+#
+# Configuration dependencies
+# - shared_config/cluster_variables.tf
+# - shared_config/platform_variables.tf
+#
+
 locals {
   workflow_api_artifact_repo_name             = "${local.unique_identifier_prefix}-${var.workflow_api_artifact_repo_name}"
   workflow_api_default_name                   = "workflow-api"

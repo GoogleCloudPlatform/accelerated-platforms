@@ -70,6 +70,7 @@ if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
     "workloads/auto_monitoring"
     "custom_compute_class"
     "workloads/cluster_credentials"
+    "cloudbuild/initialize"
     "container_cluster"
     "networking"
     "initialize"

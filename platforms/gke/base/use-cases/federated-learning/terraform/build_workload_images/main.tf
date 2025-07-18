@@ -13,15 +13,8 @@
 # limitations under the License.
 
 locals {
-  cloudbuild_submit_command    = "while ! gcloud builds submit --substitutions=_PROJECT_ID=\"${local.cloudbuild_project_id},_REGISTRY=${local.cloudbuild_location}-docker.pkg.dev/${local.cloudbuild_project_id}/${local.federated_learning_repository_id}\" --region ${local.cloudbuild_location} --service-account=\"${local.cloudbuild_service_account_id}\" --gcs-source-staging-dir=\"${local.cloudbuild_source_bucket_name}/source\" --gcs-log-dir=\"${local.cloudbuild_source_bucket_name}/logs\" --config=cloudbuild.yaml; do echo \"Building workloads images\"; sleep 5; done"
+  cloudbuild_submit_command    = "while ! gcloud builds submit --substitutions=_PROJECT_ID=\"${local.cloudbuild_project_id},_REGISTRY=${local.cloudbuild_location}-docker.pkg.dev/${local.cloudbuild_project_id}/${local.federated_learning_repository_id}\" --region ${local.cloudbuild_location} --service-account=\"${local.cloudbuild_service_account_id}\" --gcs-source-staging-dir=\"gs://${local.cloudbuild_source_bucket_name}/source\" --gcs-log-dir=\"gs://${local.cloudbuild_source_bucket_name}/logs\" --config=cloudbuild.yaml; do echo \"Building workloads images\"; sleep 5; done"
   cloudbuild_git_clone_command = "if [ -d odp-federatedcompute ]; then rm -rf odp-federatedcompute; fi; git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute --branch=${var.federated_learning_cross_device_example_federatedcompute_tag}; cd odp-federatedcompute; sed -i '30s/^#//;31s/^#//' cloudbuild.yaml"
-  cloudbuild_sa_roles = [
-    "roles/cloudbuild.builds.builder",
-    "roles/cloudbuild.workerPoolUser",
-    "roles/storage.objectUser",
-    "roles/logging.logWriter",
-    "roles/artifactregistry.writer"
-  ]
 }
 
 resource "google_cloudbuild_worker_pool" "privatepool" {
@@ -36,13 +29,6 @@ resource "google_cloudbuild_worker_pool" "privatepool" {
     no_external_ip = false
     disk_size_gb   = 100
   }
-}
-
-resource "google_project_iam_member" "cloudbuild_sa_roles" {
-  for_each = toset(local.cloudbuild_sa_roles)
-  project  = data.google_project.cluster.name
-  role     = each.key
-  member   = google_service_account.cloudbuild_sa.member
 }
 
 resource "terraform_data" "build_workloads_images" {

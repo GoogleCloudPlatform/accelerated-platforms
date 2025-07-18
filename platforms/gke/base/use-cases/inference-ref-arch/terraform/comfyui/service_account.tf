@@ -11,18 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: networking.gke.io/v1
-kind: GCPBackendPolicy
-metadata:
-  name: ${policy_name}
-  namespace: ${namespace}
-spec:
-  default:
-    iap:
-      enabled: true
-    timeoutSec: 3600
-  targetRef:
-    group: ""
-    kind: Service
-    name: ${service_name}
+
+data "google_service_account" "cloudbuild" {
+  account_id = local.comfyui_cloudbuild_service_account_name
+  project    = local.comfyui_cloudbuild_project_id
+}

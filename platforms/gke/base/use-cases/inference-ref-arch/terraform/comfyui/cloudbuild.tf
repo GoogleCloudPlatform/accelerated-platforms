@@ -18,32 +18,23 @@ locals {
 }
 
 resource "terraform_data" "submit_docker_build" {
-  depends_on = [
-    google_project_iam_member.custom_cloudbuild_sa_log_writer,
-    google_project_service.cloudbuild_googleapis_com,
-    google_storage_bucket_iam_member.cloudbuild_source_creator,
-  ]
-
   provisioner "local-exec" {
     command     = <<-EOT
-      cd src && \
-      while ! gcloud builds submit \
-      --config="cloudbuild.yaml" \
-      --gcs-source-staging-dir="${google_storage_bucket.cloudbuild_source.url}/source" \
-      --project="${data.google_project.cluster.project_id}" \
-      --quiet \
-      --service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${google_service_account.custom_cloudbuild_sa.email}" \
-      --substitutions=_DESTINATION="${local.image_destination}"
-      do
-        sleep 5
-      done
-    EOT
+cd src && \
+gcloud builds submit \
+--config="cloudbuild.yaml" \
+--gcs-source-staging-dir="${data.google_storage_bucket.cloudbuild_source.url}/source" \
+--project="${data.google_project.cluster.project_id}" \
+--quiet \
+--service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${data.google_service_account.cloudbuild.email}" \
+--substitutions=_DESTINATION="${local.image_destination}"
+EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module
   }
 
   triggers_replace = {
-    custom_sa_email        = google_service_account.custom_cloudbuild_sa.email
+    custom_sa_email        = data.google_service_account.cloudbuild.email
     hash_cloudbuild_config = filebase64sha256("${path.module}/src/cloudbuild.yaml")
     hash_dockerfile        = filebase64sha256("${path.module}/src/Dockerfile")
     hash_entrypoint        = filebase64sha256("${path.module}/src/entrypoint.sh")

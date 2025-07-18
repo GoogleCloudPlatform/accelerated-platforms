@@ -198,7 +198,7 @@ The `deploy-comfyui.sh` script will perform the following steps:
 
   ```
   watch --color --interval 5 --no-title \
-  "kubectl --namespace ${comfyui_kubernetes_namespace} get deployment/${comfyui_app_name}-${comfyui_accelerator_type} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  "kubectl --namespace=${comfyui_kubernetes_namespace} get deployment/${comfyui_app_name}-${comfyui_accelerator_type} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
   ```
 
 - When the deployment is ready, you will output similar to the following
@@ -343,19 +343,19 @@ the output bucket.
 - Verify that the Workflow API has been successfully deployed:
 
   ```
-  kubectl -n comfyui get deploy,svc
+  kubectl --namespace=${comfyui_kubernetes_namespace} get deploy,svc
   ```
 
   Response should look like this:
 
   ```
   NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment.apps/comfyui-nvidia-l4   1/1     1            1           10d
-  deployment.apps/workflow-api        1/1     1            1           15h
+  deployment.apps/comfyui-nvidia-l4   1/1     1            1           XXXX
+  deployment.apps/workflow-api        1/1     1            1           XXXX
 
-  NAME                        TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
-  service/comfyui-nvidia-l4   ClusterIP   34.118.235.48    <none>        8188/TCP   10d
-  service/workflow-api        ClusterIP   34.118.228.170   <none>        8080/TCP   15h
+  NAME                        TYPE        CLUSTER-IP        EXTERNAL-IP   PORT(S)    AGE
+  service/comfyui-nvidia-l4   ClusterIP   ###.###.###.###   <none>        8188/TCP   XXXX
+  service/workflow-api        ClusterIP   ###.###.###.###   <none>        8080/TCP   XXXX
   ```
 
 - In order to send a sample workflow the active `gcloud` account needs to have

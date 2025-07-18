@@ -16,6 +16,26 @@ locals {
   workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }
 
+resource "google_artifact_registry_repository_iam_member" "cloudbuild_artifactregistry_write" {
+  location   = var.cluster_region
+  member     = data.google_service_account.cloudbuild.member
+  project    = data.google_project.cluster.project_id
+  repository = google_artifact_registry_repository.comfyui_container_images.repository_id
+  role       = "roles/artifactregistry.writer"
+}
+
+resource "google_storage_bucket_iam_member" "cloudbuild_gcsfuse_user" {
+  bucket = google_storage_bucket.comfyui_model.name
+  member = data.google_service_account.cloudbuild.member
+  role   = local.cluster_gcsfuse_user_role
+}
+
+resource "google_project_iam_member" "workload_identity_vertex_ai_user_binding" {
+  member  = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
+  project = data.google_project.cluster.project_id
+  role    = "roles/aiplatform.user"
+}
+
 resource "google_storage_bucket_iam_member" "workload_identity_gcsfuse_user" {
   for_each = toset([
     google_storage_bucket.comfyui_input.name,
@@ -25,55 +45,6 @@ resource "google_storage_bucket_iam_member" "workload_identity_gcsfuse_user" {
   ])
 
   bucket = each.key
-  role   = local.cluster_gcsfuse_user_role
   member = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
-}
-
-resource "google_artifact_registry_repository_iam_member" "writer_access" {
-  repository = google_artifact_registry_repository.comfyui_container_images.repository_id
-  location   = var.cluster_region
-  project    = data.google_project.cluster.project_id
-  role       = "roles/artifactregistry.writer"
-  member     = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
-}
-
-resource "google_project_iam_member" "vertex_ai_user_binding" {
-  project = data.google_project.cluster.project_id
-  role    = "roles/aiplatform.user"
-  member  = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
-}
-
-# Create Custom Cloud Build SA and grant it permissions
-resource "google_service_account" "custom_cloudbuild_sa" {
-  account_id   = local.comfyui_cloudbuild_service_account_name
-  display_name = "Custom Service Account for Cloud Build"
-  project      = data.google_project.cluster.project_id
-}
-
-resource "google_project_iam_member" "custom_cloudbuild_sa_artifact_writer" {
-  project = data.google_project.cluster.project_id
-  role    = "roles/artifactregistry.writer"
-  member  = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
-}
-
-resource "google_project_iam_member" "custom_cloudbuild_sa_log_writer" {
-  project = data.google_project.cluster.project_id
-  role    = "roles/logging.logWriter"
-  member  = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
-}
-
-resource "google_storage_bucket_iam_member" "cloudbuild_source_creator" {
-  bucket = google_storage_bucket.cloudbuild_source.name
-  role   = "roles/storage.objectUser"
-  member = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
-}
-
-resource "google_storage_bucket_iam_member" "cloudbuild_service_account_storage_object_user" {
-  for_each = toset([
-    google_storage_bucket.cloudbuild_source.name,
-    local.comfyui_cloud_storage_model_bucket_name,
-  ])
-  bucket = each.key
   role   = local.cluster_gcsfuse_user_role
-  member = "serviceAccount:${google_service_account.custom_cloudbuild_sa.email}"
 }

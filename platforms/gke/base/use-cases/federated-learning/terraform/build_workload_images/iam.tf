@@ -12,31 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-locals {
-  cloudbuild_sa_roles = [
-    "roles/cloudbuild.builds.builder",
-    "roles/cloudbuild.workerPoolUser",
-    "roles/storage.objectUser",
-    "roles/logging.logWriter"
-  ]
-}
-
 data "google_service_account" "cloudbuild_sa" {
   account_id = local.cloudbuild_service_account_id
   project    = local.cloudbuild_project_id
 }
 
-resource "google_project_iam_member" "cloudbuild_sa_roles" {
-  for_each = toset(local.cloudbuild_sa_roles)
-  project  = data.google_project.cluster.name
-  role     = each.key
-  member   = data.google_service_account.cloudbuild_sa.member
+data "google_artifact_registry_repository" "artifact_registry" {
+  project       = local.cloudbuild_project_id
+  repository_id = local.federated_learning_repository_id
+  location      = local.cloudbuild_location
+}
+
+resource "google_project_iam_member" "cloudbuild_sa_worker_pool_role" {
+  project = data.google_project.cluster.name
+  role    = "roles/cloudbuild.workerPoolUser"
+  member  = data.google_service_account.cloudbuild_sa.member
 }
 
 resource "google_artifact_registry_repository_iam_member" "cloudbuild_artifact_registry_writer" {
-  project    = data.google_project.cluster.name
-  location   = local.cloudbuild_location
-  repository = local.federated_learning_repository_id
+  project    = data.google_artifact_registry_repository.artifact_registry.project
+  location   = data.google_artifact_registry_repository.artifact_registry.location
+  repository = data.google_artifact_registry_repository.artifact_registry.repository_id
   role       = "roles/artifactregistry.writer"
   member     = data.google_service_account.cloudbuild_sa.member
 }

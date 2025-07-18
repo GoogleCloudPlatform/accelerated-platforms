@@ -15,10 +15,3 @@
 data "google_project" "cluster" {
   project_id = local.cluster_project_id
 }
-
-resource "google_project_service" "cloud_build_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "cloudbuild.googleapis.com"
-}

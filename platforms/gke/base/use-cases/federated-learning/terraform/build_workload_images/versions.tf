@@ -23,6 +23,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/acp_fl_cloud_build_deploy-v1"
+    module_name = "cloud-solutions/acp_fl_build_workload_images_deploy-v1"
   }
 }

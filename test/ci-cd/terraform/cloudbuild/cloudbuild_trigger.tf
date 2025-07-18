@@ -480,6 +480,7 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_c
     # Include the whole core platform because we want to ensure that
     # changes to the base platform don't break this use case
     "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/cloudbuild/initialize/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/custom_compute_class/**",
     "platforms/gke/base/core/huggingface/initialize/**",
@@ -540,6 +541,7 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_c
     # Include the whole core platform because we want to ensure that
     # changes to the base platform don't break this use case
     "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/cloudbuild/initialize/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/custom_compute_class/**",
     "platforms/gke/base/core/huggingface/initialize/**",

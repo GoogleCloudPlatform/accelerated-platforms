@@ -68,12 +68,6 @@ resource "google_service_account" "cloudbuild_sa" {
   description  = "Service account for Cloud Build operations."
 }
 
-resource "google_project_service_identity" "cloudbuild_sa" {
-  provider = google-beta
-  project  = google_project_service.cloud_build_googleapis_com.project
-  service  = google_project_service.cloud_build_googleapis_com.service
-}
-
 resource "google_project_iam_member" "cloudbuild_sa_roles" {
   for_each = toset(local.cloudbuild_sa_roles)
   project  = data.google_project.cluster.name

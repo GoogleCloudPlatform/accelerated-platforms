@@ -13,6 +13,10 @@
 # limitations under the License.
 
 resource "google_secret_manager_secret" "github_access_token_read" {
+  depends_on = [
+    terraform_data.wait_for_secretmanager_api,
+  ]
+
   for_each = toset(var.cloudbuild_github_access_token_read_secret_manager_secret_name == null ? ["managed"] : [])
 
   project   = google_project_service.secretmanager_googleapis_com.project
@@ -33,6 +37,10 @@ data "google_secret_manager_secret" "github_access_token_read" {
 }
 
 resource "google_secret_manager_secret" "github_access_token_write" {
+  depends_on = [
+    terraform_data.wait_for_secretmanager_api,
+  ]
+
   for_each = toset(var.cloudbuild_github_access_token_write_secret_manager_secret_name == null ? ["managed"] : [])
 
   project   = google_project_service.secretmanager_googleapis_com.project

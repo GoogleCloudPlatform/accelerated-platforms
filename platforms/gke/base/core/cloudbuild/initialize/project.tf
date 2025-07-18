@@ -38,7 +38,7 @@ resource "terraform_data" "wait_for_cloudbuild_api" {
   provisioner "local-exec" {
     command     = <<EOT
 retries=24
-while ! gcloud builds list --project=${self.input.project} >/dev/null 2>&1 --quiet; do
+while ! gcloud builds list --project=${self.input.project} --quiet >/dev/null 2>&1 ; do
   if ((retries = 0)); then
     exit 1
   fi
@@ -54,5 +54,32 @@ EOT
 
   triggers_replace = {
     project = google_project_service.cloudbuild_googleapis_com.project
+  }
+}
+
+resource "terraform_data" "wait_for_secretmanager_api" {
+  input = {
+    project = google_project_service.secretmanager_googleapis_com.project
+  }
+
+  provisioner "local-exec" {
+    command     = <<EOT
+retries=24
+while ! gcloud secrets list --project=${self.input.project} --quiet >/dev/null 2>&1 ; do
+  if ((retries = 0)); then
+    exit 1
+  fi
+  echo "Waiting for Secret Manager API to be enabled..."
+  retries=$((retries - 1))
+  sleep 5
+done 
+echo "Secret Manager API is enabled!"
+EOT
+    interpreter = ["bash", "-c"]
+    working_dir = path.module
+  }
+
+  triggers_replace = {
+    project = google_project_service.secretmanager_googleapis_com.project
   }
 }

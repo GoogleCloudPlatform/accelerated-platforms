@@ -17,7 +17,7 @@ resource "google_artifact_registry_repository" "container_image_repository" {
   format        = "DOCKER"
   location      = var.cluster_region
   project       = google_project_service.artifactregistry_googleapis_com.project
-  repository_id = "${local.unique_identifier_prefix}-fl-repository"
+  repository_id = local.federated_learning_repository_id
 
   cleanup_policies {
     action = "DELETE"

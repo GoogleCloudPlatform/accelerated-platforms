@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  cloudbuild_submit_command    = "while ! gcloud builds submit --substitutions=_PROJECT_ID=\"${google_project_service.cloud_build_googleapis_com.project},_REGISTRY=${var.cluster_region}-docker.pkg.dev/${google_project_service.cloud_build_googleapis_com.project}/${local.federated_learning_repository_id}\" --region ${var.cluster_region} --service-account=\"projects/${data.google_project.cluster.project_id}/serviceAccounts/${google_service_account.cloudbuild_sa.email}\" --gcs-source-staging-dir=\"${google_storage_bucket.cloudbuild_source.url}/source\" --gcs-log-dir=\"${google_storage_bucket.cloudbuild_source.url}/logs\" --config=cloudbuild.yaml; do echo \"Building workloads images\"; sleep 5; done"
+  cloudbuild_submit_command    = "while ! gcloud builds submit --substitutions=_PROJECT_ID=\"${local.cloudbuild_project_id},_REGISTRY=${local.cloudbuild_location}-docker.pkg.dev/${local.cloudbuild_project_id}/${local.federated_learning_repository_id}\" --region ${local.cloudbuild_location} --service-account=\"${local.cloudbuild_service_account_id}\" --gcs-source-staging-dir=\"${local.cloudbuild_source_bucket_name}/source\" --gcs-log-dir=\"${local.cloudbuild_source_bucket_name}/logs\" --config=cloudbuild.yaml; do echo \"Building workloads images\"; sleep 5; done"
   cloudbuild_git_clone_command = "if [ -d odp-federatedcompute ]; then rm -rf odp-federatedcompute; fi; git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute --branch=${var.federated_learning_cross_device_example_federatedcompute_tag}; cd odp-federatedcompute; sed -i '30s/^#//;31s/^#//' cloudbuild.yaml"
   cloudbuild_sa_roles = [
     "roles/cloudbuild.builds.builder",
@@ -24,48 +24,18 @@ locals {
   ]
 }
 
-# Wait for Spanner API to be enabled
-resource "terraform_data" "wait_for_cloud_build_api" {
-  provisioner "local-exec" {
-    command = <<EOT
-retries=12
-until gcloud builds list --quiet --project="${data.google_project.cluster.project_id}"
-do
-  if ((retries <= 0)); then
-    exit 1
-  fi
-
-  retries=$((retries - 1))
-  echo "Waiting for Cloud Spanner API to be enabled..."
-  sleep 5
-done
-EOT
-  }
-
-  depends_on = [
-    google_project_service.cloud_build_googleapis_com,
-  ]
-}
-
 resource "google_cloudbuild_worker_pool" "privatepool" {
+  # Needed for cloudbuild.yaml
   name     = "odp-federatedcompute-privatepool"
-  location = var.cluster_region
+  location = local.cloudbuild_location
   project  = google_project_service.cloud_build_googleapis_com.project
 
   worker_config {
-    machine_type   = "e2-standard-32"
+    machine_type = "e2-standard-32"
+    # Public IP for downloading from Internet
     no_external_ip = false
     disk_size_gb   = 100
   }
-
-  depends_on = [terraform_data.wait_for_cloud_build_api]
-}
-
-resource "google_service_account" "cloudbuild_sa" {
-  account_id   = "cloud-build-runner"
-  display_name = "Cloud Build Runner Service Account"
-  project      = google_project_service.cloud_build_googleapis_com.project
-  description  = "Service account for Cloud Build operations."
 }
 
 resource "google_project_iam_member" "cloudbuild_sa_roles" {
@@ -73,22 +43,6 @@ resource "google_project_iam_member" "cloudbuild_sa_roles" {
   project  = data.google_project.cluster.name
   role     = each.key
   member   = google_service_account.cloudbuild_sa.member
-}
-
-resource "google_storage_bucket" "cloudbuild_source" {
-  location                    = var.cluster_region
-  force_destroy               = true
-  name                        = join("-", [local.unique_identifier_prefix, "cloudbuild-src", local.cluster_project_id])
-  project                     = local.cluster_project_id
-  uniform_bucket_level_access = true
-
-  hierarchical_namespace {
-    enabled = true
-  }
-
-  versioning {
-    enabled = false
-  }
 }
 
 resource "terraform_data" "build_workloads_images" {
@@ -109,7 +63,7 @@ EOT
 
   triggers_replace = {
     federatedcompute_tag = var.federated_learning_cross_device_example_federatedcompute_tag
-    cloudbuild_sa_email  = google_service_account.cloudbuild_sa.email
+    cloudbuild_sa_email  = local.cloudbuild_service_account_email
   }
 
   depends_on = [

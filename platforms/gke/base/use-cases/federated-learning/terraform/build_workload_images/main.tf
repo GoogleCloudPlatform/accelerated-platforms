@@ -21,7 +21,7 @@ resource "google_cloudbuild_worker_pool" "privatepool" {
   # Needed for cloudbuild.yaml
   name     = "odp-federatedcompute-privatepool"
   location = local.cloudbuild_location
-  project  = google_project_service.cloud_build_googleapis_com.project
+  project  = data.google_project.cluster.name
 
   worker_config {
     machine_type = "e2-standard-32"

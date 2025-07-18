@@ -41,6 +41,7 @@ else
   terraservices=(
     "networking"
     "container_cluster_ap"
+    "cloudbuild/initialize"
     "gke_enterprise/fleet_membership"
     #"gke_enterprise/configmanagement/oci"
     "gke_enterprise/policycontroller"

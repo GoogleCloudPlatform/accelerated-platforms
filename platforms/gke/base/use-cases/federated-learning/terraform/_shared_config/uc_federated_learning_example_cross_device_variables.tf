@@ -266,7 +266,7 @@ variable "federated_learning_cross_device_example_confidential_space_aggregator_
 variable "federated_learning_cross_device_example_confidential_space_modelupdater_service_account" {
   description = "Name of the model updater service account to allowlist in the coordinator"
   type        = string
-  default     = "modelupdater"
+  default     = "model-updater"
 }
 
 variable "federated_learning_cross_device_example_confidential_space_instance_image_name" {

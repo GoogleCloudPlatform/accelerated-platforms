@@ -13,9 +13,11 @@
 # limitations under the License.
 
 locals {
-  cloudbuild_submit_command    = "until gcloud builds submit --substitutions=_PROJECT_ID=\"${google_project_service.cloud_build_googleapis_com.project},_REGISTRY=${var.cluster_region}-docker.pkg.dev/${google_project_service.cloud_build_googleapis_com.project}/${local.federated_learning_repository_id}\" --region ${var.cluster_region}; do echo \"Building workloads images; sleep 5; done"
-  cloudbuild_git_clone_command = "git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute --branch=${var.federated_learning_cross_device_example_federatedcompute_tag}; cd odp-federatedcompute; sed -i '29s/^#//;30s/^#//;31s/^#//' cloudbuild.yaml"
+  cloudbuild_submit_command    = "while ! gcloud builds submit --substitutions=_PROJECT_ID=\"${google_project_service.cloud_build_googleapis_com.project},_REGISTRY=${var.cluster_region}-docker.pkg.dev/${google_project_service.cloud_build_googleapis_com.project}/${local.federated_learning_repository_id}\" --region ${var.cluster_region} --service-account=\"projects/${data.google_project.cluster.project_id}/serviceAccounts/${google_service_account.cloudbuild_sa.email}\" --gcs-source-staging-dir=\"${google_storage_bucket.cloudbuild_source.url}/source\" --gcs-log-dir=\"${google_storage_bucket.cloudbuild_source.url}/logs\" --config=cloudbuild.yaml; do echo \"Building workloads images\"; sleep 5; done"
+  cloudbuild_git_clone_command = "if [ -d odp-federatedcompute ]; then rm -rf odp-federatedcompute; fi; git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute --branch=${var.federated_learning_cross_device_example_federatedcompute_tag}; cd odp-federatedcompute; sed -i '30s/^#//;31s/^#//' cloudbuild.yaml"
   cloudbuild_sa_roles = [
+    "roles/cloudbuild.builds.builder",
+    "roles/cloudbuild.workerPoolUser",
     "roles/storage.objectUser",
     "roles/logging.logWriter",
     "roles/artifactregistry.writer"
@@ -46,16 +48,24 @@ EOT
 }
 
 resource "google_cloudbuild_worker_pool" "privatepool" {
-  name     = "privatepool"
+  name     = "odp-federatedcompute-privatepool"
   location = var.cluster_region
   project  = google_project_service.cloud_build_googleapis_com.project
 
   worker_config {
     machine_type   = "e2-standard-32"
-    no_external_ip = true
+    no_external_ip = false
+    disk_size_gb   = 100
   }
 
   depends_on = [terraform_data.wait_for_cloud_build_api]
+}
+
+resource "google_service_account" "cloudbuild_sa" {
+  account_id   = "cloud-build-runner"
+  display_name = "Cloud Build Runner Service Account"
+  project      = google_project_service.cloud_build_googleapis_com.project
+  description  = "Service account for Cloud Build operations."
 }
 
 resource "google_project_service_identity" "cloudbuild_sa" {
@@ -68,7 +78,23 @@ resource "google_project_iam_member" "cloudbuild_sa_roles" {
   for_each = toset(local.cloudbuild_sa_roles)
   project  = data.google_project.cluster.name
   role     = each.key
-  member   = google_project_service_identity.cloudbuild_sa.member
+  member   = google_service_account.cloudbuild_sa.member
+}
+
+resource "google_storage_bucket" "cloudbuild_source" {
+  location                    = var.cluster_region
+  force_destroy               = true
+  name                        = join("-", [local.unique_identifier_prefix, "cloudbuild-src", local.cluster_project_id])
+  project                     = local.cluster_project_id
+  uniform_bucket_level_access = true
+
+  hierarchical_namespace {
+    enabled = true
+  }
+
+  versioning {
+    enabled = false
+  }
 }
 
 resource "terraform_data" "build_workloads_images" {
@@ -89,7 +115,7 @@ EOT
 
   triggers_replace = {
     federatedcompute_tag = var.federated_learning_cross_device_example_federatedcompute_tag
-    cloudbuild_sa_email  = google_project_service_identity.cloudbuild_sa.email
+    cloudbuild_sa_email  = google_service_account.cloudbuild_sa.email
   }
 
   depends_on = [

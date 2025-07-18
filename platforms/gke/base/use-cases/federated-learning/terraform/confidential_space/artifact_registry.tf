@@ -22,6 +22,6 @@ data "google_artifact_registry_docker_image" "workload_image" {
   for_each      = var.federated_learning_cross_device_example_confidential_space_workloads
   location      = data.google_artifact_registry_repository.federated_learning_repository.location
   repository_id = data.google_artifact_registry_repository.federated_learning_repository.repository_id
-  image_name    = each.key
+  image_name    = join("_", [replace(each.key, "-", "_"), "image"])
   project       = google_project_service.confidentialcomputing_googleapis_com.project
 }

@@ -24,7 +24,7 @@ data "google_artifact_registry_repository" "artifact_registry" {
 }
 
 resource "google_project_iam_member" "cloudbuild_sa_worker_pool_role" {
-  project = data.google_project.cluster.name
+  project = local.cloudbuild_project_id
   role    = "roles/cloudbuild.workerPoolUser"
   member  = data.google_service_account.cloudbuild_sa.member
 }

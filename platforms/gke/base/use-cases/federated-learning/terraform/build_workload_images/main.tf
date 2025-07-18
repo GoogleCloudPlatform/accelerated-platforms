@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  cloudbuild_submit_command    = "while ! gcloud builds submit --substitutions=_PROJECT_ID=\"${local.cloudbuild_project_id},_REGISTRY=${local.cloudbuild_location}-docker.pkg.dev/${local.cloudbuild_project_id}/${local.federated_learning_repository_id}\" --region ${local.cloudbuild_location} --service-account=\"${local.cloudbuild_service_account_id}\" --gcs-source-staging-dir=\"gs://${local.cloudbuild_source_bucket_name}/source\" --gcs-log-dir=\"gs://${local.cloudbuild_source_bucket_name}/logs\" --config=cloudbuild.yaml; do echo \"Building workloads images\"; sleep 5; done"
+  cloudbuild_submit_command    = "while ! gcloud builds submit --substitutions=_PROJECT_ID=\"${local.cloudbuild_project_id},_REGISTRY=${local.cloudbuild_location}-docker.pkg.dev/${local.cloudbuild_project_id}/${local.federated_learning_repository_id}\" --region ${local.cloudbuild_location} --service-account=\"${local.cloudbuild_service_account_id}\" --gcs-source-staging-dir=\"gs://${local.cloudbuild_source_bucket_name}/source\" --gcs-log-dir=\"gs://${local.cloudbuild_source_bucket_name}/logs\" --project=\"${local.cloudbuild_project_id}\" --config=cloudbuild.yaml; do echo \"Building workloads images\"; sleep 5; done"
   cloudbuild_git_clone_command = "if [ -d odp-federatedcompute ]; then rm -rf odp-federatedcompute; fi; git clone --recurse-submodules https://github.com/privacysandbox/odp-federatedcompute --branch=${var.federated_learning_cross_device_example_federatedcompute_tag}; cd odp-federatedcompute; sed -i '30s/^#//;31s/^#//' cloudbuild.yaml"
 }
 

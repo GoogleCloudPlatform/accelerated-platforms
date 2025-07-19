@@ -73,6 +73,7 @@ federated_learning_terraservices=(
 # shellcheck disable=SC2034 # Variable is used in other scripts
 core_platform_init_terraservices=(
   "initialize"
+  "cloudbuild/initialize"
   "networking"
 )
 

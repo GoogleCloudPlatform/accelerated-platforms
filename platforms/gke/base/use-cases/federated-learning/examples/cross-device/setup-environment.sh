@@ -76,11 +76,11 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 cross_device_example_terraservices=(
+  "spanner"
   "build_workload_images"
   "secret_manager"
   "network"
   "pubsub"
-  "spanner"
 )
 
 load_fl_terraform_outputs() {

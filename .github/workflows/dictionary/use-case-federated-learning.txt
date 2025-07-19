@@ -17,5 +17,6 @@ ondevicepersonalization
 opallowedusr
 opverifiedusr
 opwip
+privatepool
 pvdr
 ython

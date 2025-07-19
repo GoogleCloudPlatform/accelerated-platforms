@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_artifact_registry_repository" "container_image_repository" {
-  description   = "Federated Learning container image repository"
-  format        = "DOCKER"
-  location      = var.cluster_region
-  project       = google_project_service.artifactregistry_googleapis_com.project
-  repository_id = local.federated_learning_repository_id
+terraform {
+  required_version = ">= 1.5.7"
 
-  cleanup_policies {
-    action = "DELETE"
-    id     = "Delete untagged images"
-
-    condition {
-      tag_state = "UNTAGGED"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.38.0"
     }
+  }
+
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_fl_build_workload_images_deploy-v1"
   }
 }

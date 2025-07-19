@@ -1,6 +1,7 @@
 acked
 adminport
 cloudfunction
+confidentialcomputing
 cooldown
 dkzkh
 endtoendtests
@@ -19,4 +20,5 @@ opverifiedusr
 opwip
 privatepool
 pvdr
+vtpm
 ython

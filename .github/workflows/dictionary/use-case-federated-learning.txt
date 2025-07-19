@@ -18,8 +18,8 @@ ondevicepersonalization
 opallowedusr
 opverifiedusr
 opwip
-psdl
 privatepool
+psdl
 pvdr
 timestamptz
 varchar

@@ -1,6 +1,7 @@
 acked
 adminport
 cloudfunction
+confidentialcomputing
 cooldown
 dkzkh
 endtoendtests
@@ -23,4 +24,5 @@ psdl
 pvdr
 timestamptz
 varchar
+vtpm
 ython

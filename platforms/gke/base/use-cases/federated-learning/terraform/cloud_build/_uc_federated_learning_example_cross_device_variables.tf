@@ -1,1 +1,0 @@
-../_shared_config/uc_federated_learning_example_cross_device_variables.tf

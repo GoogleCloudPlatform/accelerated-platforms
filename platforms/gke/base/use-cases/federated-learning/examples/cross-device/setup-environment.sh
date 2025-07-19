@@ -69,11 +69,10 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 cross_device_example_terraservices=(
-  "cloud_build"
+  "build_workload_images"
   "pubsub"
   "secret_manager"
   "confidential_space"
-  "build_workload_images"
   "secret_manager"
   "network"
 )

@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_artifact_registry_repository" "federated_learning_repository" {
-  location      = var.cluster_region
+data "google_artifact_registry_repository" "artifact_registry" {
+  project       = local.cloudbuild_project_id
   repository_id = local.federated_learning_repository_id
-  project       = google_project_service.confidentialcomputing_googleapis_com.project
+  location      = local.cloudbuild_location
 }
 
 data "google_artifact_registry_docker_image" "workload_image" {

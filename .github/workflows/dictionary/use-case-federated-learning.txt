@@ -6,6 +6,7 @@ dkzkh
 endtoendtests
 federatedcompute
 flport
+jdbc
 lgtlq
 modelupdater
 networkservices
@@ -18,5 +19,8 @@ opallowedusr
 opverifiedusr
 opwip
 privatepool
+psdl
 pvdr
+timestamptz
+varchar
 ython

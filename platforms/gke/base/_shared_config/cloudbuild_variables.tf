@@ -14,6 +14,7 @@
 
 #
 # Configuration dependencies
+# - shared_config/cluster_variables.tf
 # - shared_config/platform_variables.tf
 #
 

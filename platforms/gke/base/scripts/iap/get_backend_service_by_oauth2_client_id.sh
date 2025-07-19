@@ -27,7 +27,7 @@ while true; do
     exit 1
   fi
 
-  backend_service=$(gcloud compute backend-services list --project="${PROJECT_ID}" --filter="iap.oauth2ClientId=${OATH2_CLIENT_ID}" --format="json(name)")
+  backend_service=$(gcloud compute backend-services list --project="${PROJECT_ID}" --filter="iap.oauth2ClientId=${OAUTH2_CLIENT_ID}" --format="json(name)")
   if [ "${backend_service}" != "[]" ]; then
     break
   fi

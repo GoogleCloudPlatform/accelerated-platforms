@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_artifact_registry_repository" "artifact_registry" {
+data "google_artifact_registry_repository" "federated_learning_repository" {
   project       = local.cloudbuild_project_id
   repository_id = local.federated_learning_repository_id
   location      = local.cloudbuild_location

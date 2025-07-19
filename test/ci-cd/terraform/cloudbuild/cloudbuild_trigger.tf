@@ -730,6 +730,7 @@ locals {
     "platforms/gke/base/use-cases/federated-learning/terraform/cloud_storage/**",
     "platforms/gke/base/use-cases/federated-learning/terraform/build_workload_images/**",
     "platforms/gke/base/use-cases/federated-learning/terraform/pubsub/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/spanner/**",
     "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh",
     "platforms/gke/base/use-cases/federated-learning/examples/cross-device/setup-environment.sh",
     "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh",

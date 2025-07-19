@@ -565,6 +565,7 @@ locals {
   ]
   platforms_gke_base_uc_federated_learning_cross_device_scripts_include = [
     "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/cloudbuild/initialize/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/custom_compute_class/**",
     "platforms/gke/base/core/huggingface/initialize/**",
@@ -587,6 +588,7 @@ locals {
     "platforms/gke/base/use-cases/federated-learning/terraform/private_google_access/**",
     "platforms/gke/base/use-cases/federated-learning/terraform/container_node_pool/**",
     "platforms/gke/base/use-cases/federated-learning/terraform/cloud_storage/**",
+    "platforms/gke/base/use-cases/federated-learning/terraform/build_workload_images/**",
     "platforms/gke/base/use-cases/federated-learning/terraform/pubsub/**",
     "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh",
     "platforms/gke/base/use-cases/federated-learning/examples/cross-device/setup-environment.sh",

@@ -177,3 +177,9 @@ variable "federated_learning_cross_device_example_collector_batch_size" {
   type        = number
   default     = 50
 }
+
+variable "federated_learning_cross_device_example_federatedcompute_tag" {
+  description = "The release of the Federated Compute server to checkout"
+  type        = string
+  default     = "v0.7.1"
+}

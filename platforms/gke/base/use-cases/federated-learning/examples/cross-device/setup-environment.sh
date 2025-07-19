@@ -75,7 +75,6 @@ cross_device_example_terraservices=(
   "confidential_space"
   "secret_manager"
   "network"
-  "pubsub"
 )
 
 load_fl_terraform_outputs() {

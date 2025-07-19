@@ -249,7 +249,6 @@ variable "federated_learning_cross_device_example_federatedcompute_tag" {
   default     = "v0.7.1"
 }
 
-
 variable "federated_learning_cross_device_example_confidential_space_debug" {
   description = "Flag to enable debugging of confidential space workloads"
   type        = bool

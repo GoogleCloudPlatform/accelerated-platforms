@@ -67,6 +67,7 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_FEDERATED_LEARNING_USE_CASE_CONFIGURATION_VARIABL
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
+  "federated_learning_node_pool_machine_type = \"n2d-standard-4\""
   "federated_learning_cross_device_example_model_bucket = \"${CROSS_DEVICE_MODEL_BUCKET}\""
   "federated_learning_cross_device_example_aggregated_gradient_bucket = \"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\""
   "federated_learning_cross_device_example_client_gradient_bucket = \"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\""

@@ -285,3 +285,14 @@ variable "federated_learning_cross_device_example_confidential_space_workloads" 
     machine_type                  = string
   }))
 }
+
+variable "federated_learning_cross_device_example_workloads" {
+  default     = {}
+  description = "Map describing the workloads to deploy on GKE. Keys are workload name."
+  type = map(object({
+    replicas     = number
+    port         = number
+    min_replicas = number
+    max_replicas = number
+  }))
+}

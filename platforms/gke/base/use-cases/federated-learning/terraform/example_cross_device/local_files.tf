@@ -21,76 +21,6 @@ locals {
   federated_learning_cross_device_example_templates_to_render = flatten([
     for tenant in local.tenants : [
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskassignment_workloads.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
-        template_variables = merge(
-          tenant.kubernetes_templates_configuration_values,
-          {
-            cross_device_workload_name         = "taskassignment"
-            cross_device_workload_replicas     = 4
-            cross_device_workload_port         = 8083
-            cross_device_workload_min_replicas = 4
-            cross_device_workload_max_replicas = 20
-          },
-        )
-      },
-      {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskmanagement_workloads.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
-        template_variables = merge(
-          tenant.kubernetes_templates_configuration_values,
-          {
-            cross_device_workload_name         = "taskmanagement"
-            cross_device_workload_replicas     = 2
-            cross_device_workload_port         = 8082
-            cross_device_workload_min_replicas = 2
-            cross_device_workload_max_replicas = 5
-          },
-        )
-      },
-      {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskscheduler_workloads.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
-        template_variables = merge(
-          tenant.kubernetes_templates_configuration_values,
-          {
-            cross_device_workload_name         = "taskscheduler"
-            cross_device_workload_replicas     = 2
-            cross_device_workload_port         = 8082
-            cross_device_workload_min_replicas = 2
-            cross_device_workload_max_replicas = 5
-          },
-        )
-      },
-      {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskbuilder_workloads.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
-        template_variables = merge(
-          tenant.kubernetes_templates_configuration_values,
-          {
-            cross_device_workload_name         = "taskbuilder"
-            cross_device_workload_replicas     = 2
-            cross_device_workload_port         = 5000
-            cross_device_workload_min_replicas = 2
-            cross_device_workload_max_replicas = 5
-          },
-        )
-      },
-      {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_collector_workloads.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
-        template_variables = merge(
-          tenant.kubernetes_templates_configuration_values,
-          {
-            cross_device_workload_name         = "collector"
-            cross_device_workload_replicas     = 1
-            cross_device_workload_port         = 8082
-            cross_device_workload_min_replicas = 1
-            cross_device_workload_max_replicas = 3
-          },
-        )
-      },
-      {
         destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_gateway.yaml"
         template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_gateway.yaml"
         template_variables = merge(
@@ -129,64 +59,139 @@ locals {
         )
       },
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskassignment_destination_rules.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_destination_rules.yaml"
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskassignment_workloads.yaml"
+        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskassignment"
+            cross_device_workload_name         = "task-assignment"
+            cross_device_workload_replicas     = 4
+            cross_device_workload_port         = 8083
+            cross_device_workload_min_replicas = 4
+            cross_device_workload_max_replicas = 20
+            cross_device_image                 = data.google_artifact_registry_docker_image.workload_image[each.key].self_link
           },
         )
       },
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskmanagement_destination_rules.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_destination_rules.yaml"
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskmanagement_workloads.yaml"
+        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskmanagement"
+            cross_device_workload_name         = "task-management"
+            cross_device_workload_replicas     = 2
+            cross_device_workload_port         = 8082
+            cross_device_workload_min_replicas = 2
+            cross_device_workload_max_replicas = 5
+            cross_device_image                 = data.google_artifact_registry_docker_image.workload_image[each.key].self_link
           },
         )
       },
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskscheduler_destination_rules.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_destination_rules.yaml"
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_scheduler_workloads.yaml"
+        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskscheduler"
+            cross_device_workload_name         = "task-scheduler"
+            cross_device_workload_replicas     = 2
+            cross_device_workload_port         = 8082
+            cross_device_workload_min_replicas = 2
+            cross_device_workload_max_replicas = 5
+            cross_device_image                 = data.google_artifact_registry_docker_image.workload_image[each.key].self_link
           },
         )
       },
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskassignment_virtual_services.yaml"
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_builder_workloads.yaml"
+        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
+        template_variables = merge(
+          tenant.kubernetes_templates_configuration_values,
+          {
+            cross_device_workload_name         = "task-builder"
+            cross_device_workload_replicas     = 2
+            cross_device_workload_port         = 5000
+            cross_device_workload_min_replicas = 2
+            cross_device_workload_max_replicas = 5
+            cross_device_image                 = data.google_artifact_registry_docker_image.workload_image[each.key].self_link
+          },
+        )
+      },
+      {
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_collector_workloads.yaml"
+        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
+        template_variables = merge(
+          tenant.kubernetes_templates_configuration_values,
+          {
+            cross_device_workload_name         = "collector"
+            cross_device_workload_replicas     = 1
+            cross_device_workload_port         = 8082
+            cross_device_workload_min_replicas = 1
+            cross_device_workload_max_replicas = 3
+            cross_device_image                 = data.google_artifact_registry_docker_image.workload_image[each.key].self_link
+          },
+        )
+      },
+      {
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_assignment_destination_rules.yaml"
+        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_destination_rules.yaml"
+        template_variables = merge(
+          tenant.kubernetes_templates_configuration_values,
+          {
+            cross_device_workload_name = "task-assignment"
+          },
+        )
+      },
+      {
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_management_destination_rules.yaml"
+        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_destination_rules.yaml"
+        template_variables = merge(
+          tenant.kubernetes_templates_configuration_values,
+          {
+            cross_device_workload_name = "task-management"
+          },
+        )
+      },
+      {
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_scheduler_destination_rules.yaml"
+        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_destination_rules.yaml"
+        template_variables = merge(
+          tenant.kubernetes_templates_configuration_values,
+          {
+            cross_device_workload_name = "task-scheduler"
+          },
+        )
+      },
+      {
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_assignment_virtual_services.yaml"
         template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_virtual_services.yaml"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskassignment",
+            cross_device_workload_name = "task-assignment",
             cross_device_workload_port = 8083
           },
         )
       },
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskmanagement_virtual_services.yaml"
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_management_virtual_services.yaml"
         template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_virtual_services.yaml"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskmanagement",
+            cross_device_workload_name = "task-management",
             cross_device_workload_port = 8082
           },
         )
       },
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskscheduler_virtual_services.yaml"
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_scheduler_virtual_services.yaml"
         template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_virtual_services.yaml"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            cross_device_workload_name = "taskscheduler",
+            cross_device_workload_name = "task-scheduler",
             cross_device_workload_port = 8082
           },
         )

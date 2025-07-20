@@ -49,7 +49,7 @@ spec:
     spec:
       containers:
         - name: ${cross_device_workload_name}
-          image: ${cross_device_localized_container_image_id}:${cross_device_container_image_tag}
+          image: ${cross_device_image}
           imagePullPolicy: Always
           securityContext:
             runAsNonRoot: true

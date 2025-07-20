@@ -13,15 +13,15 @@
 # limitations under the License.
 
 data "google_artifact_registry_repository" "federated_learning_repository" {
-  project       = google_project_service.confidentialcomputing_googleapis_com.project
+  project       = google_project_service.artifactregistry_googleapis_com.project
   repository_id = local.federated_learning_repository_id
   location      = var.cluster_region
 }
 
 data "google_artifact_registry_docker_image" "workload_image" {
-  for_each      = var.federated_learning_cross_device_example_confidential_space_workloads
+  for_each      = var.federated_learning_cross_device_example_workloads
   location      = data.google_artifact_registry_repository.federated_learning_repository.location
   repository_id = data.google_artifact_registry_repository.federated_learning_repository.repository_id
   image_name    = join("_", [replace(each.key, "-", "_"), "image"])
-  project       = google_project_service.confidentialcomputing_googleapis_com.project
+  project       = google_project_service.artifactregistry_googleapis_com.project
 }

@@ -119,6 +119,7 @@ module "kubectl_apply_manifests" {
   source = "../../../modules/kubectl_apply"
 
   apply_server_side           = true
+  delete_ignore_not_found     = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local.version_manifests_directory
   manifest_includes_namespace = true
@@ -138,6 +139,7 @@ module "kubectl_wait" {
   resource        = "pod"
   selector        = "control-plane=controller-manager"
   timeout         = "300s"
+  wait_for_create = true
 }
 
 resource "google_monitoring_dashboard" "kueue_monitoring_dashboard" {

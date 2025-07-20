@@ -40,22 +40,22 @@ steps:
       - "Check triggers"
 
   - args:
-      - "Deploy platforms/gke/base/core full with Autopilot"
-      - "test/ci-cd/scripts/platforms/gke/base/core/ap-full-deploy.sh"
+      - "Deploy platforms/gke/base/core Autopilot"
+      - "platforms/gke/base/core/deploy-ap.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
-    id: "Deploy platforms/gke/base/core full with Autopilot"
+    id: "Deploy platforms/gke/base/core Autopilot"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Configure the build environment"
 
   - args:
-      - "Teardown platforms/gke/base/core full with Autopilot"
-      - "test/ci-cd/scripts/platforms/gke/base/core/ap-full-teardown.sh"
+      - "Teardown platforms/gke/base/core Autopilot"
+      - "platforms/gke/base/core/teardown-ap.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
-    id: "Teardown platforms/gke/base/core full with Autopilot"
+    id: "Teardown platforms/gke/base/core Autopilot"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/core full with Autopilot"
+      - "Deploy platforms/gke/base/core Autopilot"
 
   - args:
       - "Cleanup the build environment"
@@ -63,7 +63,7 @@ steps:
     id: "Cleanup the build environment"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Teardown platforms/gke/base/core full with Autopilot"
+      - "Teardown platforms/gke/base/core Autopilot"
 
   - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
     id: "Set the build status"

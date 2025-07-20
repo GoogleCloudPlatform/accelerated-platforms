@@ -25,6 +25,10 @@ resource "google_storage_bucket_iam_member" "source_cloudbuild" {
 }
 
 resource "google_secret_manager_secret_iam_member" "github_access_token_read_cloudbuild" {
+  depends_on = [
+    terraform_data.wait_for_secretmanager_api,
+  ]
+
   member    = data.google_service_account.cloudbuild.member
   project   = data.google_secret_manager_secret.github_access_token_read.project
   role      = "roles/secretmanager.secretAccessor"
@@ -32,6 +36,10 @@ resource "google_secret_manager_secret_iam_member" "github_access_token_read_clo
 }
 
 resource "google_secret_manager_secret_iam_member" "github_access_token_write_cloudbuild" {
+  depends_on = [
+    terraform_data.wait_for_secretmanager_api,
+  ]
+
   member    = data.google_service_account.cloudbuild.member
   project   = data.google_secret_manager_secret.github_access_token_write.project
   role      = "roles/secretmanager.secretAccessor"

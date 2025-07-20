@@ -33,6 +33,8 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_runner_image" {
   }
 }
 
+###################################################################################################
+
 resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
   filename = "test/ci-cd/cloudbuild/acp-ci-cd-terraform.yaml"
   ignored_files = [
@@ -60,6 +62,8 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
     _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
   }
 }
+
+###################################################################################################
 
 resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
   filename = "test/ci-cd/cloudbuild/platforms-gke-aiml-playground-terraform.yaml"
@@ -90,19 +94,29 @@ resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_full_scripts" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-full-scripts.yaml"
-  ignored_files = [
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_ap_full_scripts_ignore = [
     "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/deploy-ap.sh",
     "platforms/gke/base/core/README.md",
     "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/core/teardown-ap.sh",
   ]
-  included_files = [
+  platforms_gke_base_core_ap_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/**",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-ap-full-deploy.sh",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-ap-full-teardown.sh",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-full-scripts.yaml",
+    "test/ci-cd/scripts/platforms/gke/base/core/ap-full-deploy.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/ap-full-teardown.sh",
   ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_full_scripts" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-full-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_core_ap_full_scripts_ignore
+  included_files  = local.platforms_gke_base_core_ap_full_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-core-ap-full-scripts"
   project         = data.google_project.build.project_id
@@ -124,21 +138,9 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_full_scripts" {
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_full_scripts_push" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-full-scripts.yaml"
-  ignored_files = [
-    "platforms/gke/base/core/deploy.sh",
-    "platforms/gke/base/core/deploy-ap.sh",
-    "platforms/gke/base/core/README.md",
-    "platforms/gke/base/core/teardown.sh",
-    "platforms/gke/base/core/teardown-ap.sh",
-  ]
-  included_files = [
-    "platforms/gke/base/_shared_config/**",
-    "platforms/gke/base/core/**",
-    "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-full-scripts.yaml",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-ap-full-deploy.sh",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-ap-full-teardown.sh",
-  ]
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-full-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_core_ap_full_scripts_ignore
+  included_files  = local.platforms_gke_base_core_ap_full_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-core-ap-full-scripts-push"
   project         = data.google_project.build.project_id
@@ -158,22 +160,29 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_full_scripts_pu
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml"
-  ignored_files = [
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_full_scripts_ignore = [
     "platforms/gke/base/core/deploy.sh",
     "platforms/gke/base/core/deploy-ap.sh",
     "platforms/gke/base/core/README.md",
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/teardown-ap.sh",
   ]
-  included_files = [
+  platforms_gke_base_core_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/**",
-    "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/standard-full-scripts.yaml",
     "test/ci-cd/scripts/platforms/gke/base/core/core-full-deploy.sh",
     "test/ci-cd/scripts/platforms/gke/base/core/core-full-teardown.sh",
   ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/standard-full-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_core_full_scripts_ignore
+  included_files  = local.platforms_gke_base_core_full_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-core-full-scripts"
   project         = data.google_project.build.project_id
@@ -195,21 +204,9 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts" {
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts_push" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml"
-  ignored_files = [
-    "platforms/gke/base/core/deploy.sh",
-    "platforms/gke/base/core/deploy-ap.sh",
-    "platforms/gke/base/core/README.md",
-    "platforms/gke/base/core/teardown.sh",
-    "platforms/gke/base/core/teardown-ap.sh",
-  ]
-  included_files = [
-    "platforms/gke/base/_shared_config/**",
-    "platforms/gke/base/core/**",
-    "test/ci-cd/cloudbuild/platforms/gke/base/core/full-scripts.yaml",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-full-deploy.sh",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-full-teardown.sh",
-  ]
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/standard-full-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_core_full_scripts_ignore
+  included_files  = local.platforms_gke_base_core_full_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-core-full-scripts-push"
   project         = data.google_project.build.project_id
@@ -229,15 +226,25 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_full_scripts_push"
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terraform" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml"
-  included_files = [
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_initialize_terraform_ignore = [
+  ]
+  platforms_gke_base_core_initialize_terraform_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/initialize/**",
     "platforms/gke/base/core/networking/**",
     "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml",
   ]
+
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terraform" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml"
+  ignored_files   = local.platforms_gke_base_core_initialize_terraform_ignore
+  included_files  = local.platforms_gke_base_core_initialize_terraform_include
   location        = var.build_location
   name            = "platforms-gke-base-core-initialize-terraform"
   project         = data.google_project.build.project_id
@@ -259,14 +266,9 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terrafo
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terraform_push" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml"
-  included_files = [
-    "platforms/gke/base/_shared_config/**",
-    "platforms/gke/base/core/container_cluster/**",
-    "platforms/gke/base/core/initialize/**",
-    "platforms/gke/base/core/networking/**",
-    "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml",
-  ]
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/initialize.yaml"
+  ignored_files   = local.platforms_gke_base_core_initialize_terraform_ignore
+  included_files  = local.platforms_gke_base_core_initialize_terraform_include
   location        = var.build_location
   name            = "platforms-gke-base-core-initialize-terraform-push"
   project         = data.google_project.build.project_id
@@ -286,18 +288,37 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terrafo
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform" {
-  filename = "test/ci-cd/cloudbuild/platforms-gke-base-core-terraform.yaml"
-  ignored_files = [
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_ap_scripts_ignore = [
+    "platforms/gke/base/core/deploy.sh",
     "platforms/gke/base/core/README.md",
+    "platforms/gke/base/core/teardown.sh",
   ]
-  included_files = [
+  platforms_gke_base_core_ap_scripts_include = [
     "platforms/gke/base/_shared_config/**",
-    "platforms/gke/base/core/**",
-    "test/ci-cd/cloudbuild/platforms-gke-base-core-terraform.yaml",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/container_node_pool/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/gke_enterprise/fleet_membership/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/deploy-ap.sh",
+    "platforms/gke/base/core/teardown-ap.sh",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-scripts.yaml",
   ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_scripts" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_core_ap_scripts_ignore
+  included_files  = local.platforms_gke_base_core_ap_scripts_include
   location        = var.build_location
-  name            = "platforms-gke-base-core-terraform"
+  name            = "platforms-gke-base-core-ap-scripts"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 
@@ -316,18 +337,12 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform" {
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform_push" {
-  filename = "test/ci-cd/cloudbuild/platforms-gke-base-core-terraform.yaml"
-  ignored_files = [
-    "platforms/gke/base/core/README.md",
-  ]
-  included_files = [
-    "platforms/gke/base/_shared_config/**",
-    "platforms/gke/base/core/**",
-    "test/ci-cd/cloudbuild/platforms-gke-base-core-terraform.yaml",
-  ]
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_scripts_push" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/ap-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_core_ap_scripts_ignore
+  included_files  = local.platforms_gke_base_core_ap_scripts_include
   location        = var.build_location
-  name            = "platforms-gke-base-core-terraform-push"
+  name            = "platforms-gke-base-core-ap-scripts-push"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 
@@ -345,9 +360,84 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_terraform_push" {
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terraform" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml"
-  included_files = [
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_scripts_ignore = [
+    "platforms/gke/base/core/deploy-ap.sh",
+    "platforms/gke/base/core/README.md",
+    "platforms/gke/base/core/teardown-ap.sh",
+  ]
+  platforms_gke_base_core_scripts_include = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/container_node_pool/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/gke_enterprise/fleet_membership/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "test/ci-cd/cloudbuild/platforms/gke/base/core/standard-scripts.yaml",
+  ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_scripts" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/standard-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_core_scripts_ignore
+  included_files  = local.platforms_gke_base_core_scripts_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_scripts_push" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/standard-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_core_scripts_ignore
+  included_files  = local.platforms_gke_base_core_scripts_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_workloads_terraform_ignore = [
+  ]
+  platforms_gke_base_core_workloads_terraform_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/initialize/**",
@@ -355,6 +445,12 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
     "platforms/gke/base/core/workloads/**",
     "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml",
   ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terraform" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml"
+  ignored_files   = local.platforms_gke_base_core_workloads_terraform_ignore
+  included_files  = local.platforms_gke_base_core_workloads_terraform_include
   location        = var.build_location
   name            = "platforms-gke-base-core-workloads-terraform"
   project         = data.google_project.build.project_id
@@ -376,15 +472,9 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terraform_push" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml"
-  included_files = [
-    "platforms/gke/base/_shared_config/**",
-    "platforms/gke/base/core/container_cluster/**",
-    "platforms/gke/base/core/initialize/**",
-    "platforms/gke/base/core/networking/**",
-    "platforms/gke/base/core/workloads/**",
-    "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml",
-  ]
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml"
+  ignored_files   = local.platforms_gke_base_core_workloads_terraform_ignore
+  included_files  = local.platforms_gke_base_core_workloads_terraform_include
   location        = var.build_location
   name            = "platforms-gke-base-core-workloads-terraform-push"
   project         = data.google_project.build.project_id
@@ -404,19 +494,24 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_scripts" {
-  filename = "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml"
-  ignored_files = [
+###################################################################################################
+
+locals {
+  platforms_gke_base_uc_federated_learning_scripts_ignore = [
     "platforms/gke/base/core/README.md",
     "platforms/gke/base/use-cases/federated-learning/README.md"
   ]
-  included_files = [
-    # Include the whole core platform because we want to ensure that
-    # changes to the base platform don't break this use case
+  platforms_gke_base_uc_federated_learning_scripts_include = [
     "platforms/gke/base/core/**",
     "platforms/gke/base/use-cases/federated-learning/**",
     "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml",
   ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_scripts" {
+  filename        = "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml"
+  ignored_files   = local.platforms_gke_base_uc_federated_learning_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_federated_learning_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-uc-federated-learning-scripts"
   project         = data.google_project.build.project_id
@@ -438,18 +533,9 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_s
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_scripts_push" {
-  filename = "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml"
-  ignored_files = [
-    "platforms/gke/base/core/README.md",
-    "platforms/gke/base/use-cases/federated-learning/README.md"
-  ]
-  included_files = [
-    # Include the whole core platform because we want to ensure that
-    # changes to the base platform don't break this use case
-    "platforms/gke/base/core/**",
-    "platforms/gke/base/use-cases/federated-learning/**",
-    "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml",
-  ]
+  filename        = "test/ci-cd/cloudbuild/uc-federated-learning-terraform.yaml"
+  ignored_files   = local.platforms_gke_base_uc_federated_learning_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_federated_learning_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-uc-federated-learning-scripts-push"
   project         = data.google_project.build.project_id
@@ -469,16 +555,15 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_s
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_cross_device_scripts" {
-  filename = "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml"
-  ignored_files = [
+###################################################################################################
+
+locals {
+  platforms_gke_base_uc_federated_learning_cross_device_scripts_ignore = [
     "platforms/gke/base/core/README.md",
     "platforms/gke/base/use-cases/federated-learning/README.md",
     "platforms/gke/base/use-cases/federated-learning/cross-device/README.md"
   ]
-  included_files = [
-    # Include the whole core platform because we want to ensure that
-    # changes to the base platform don't break this use case
+  platforms_gke_base_uc_federated_learning_cross_device_scripts_include = [
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/custom_compute_class/**",
@@ -508,6 +593,12 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_c
     "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh",
     "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml",
   ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_cross_device_scripts" {
+  filename        = "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml"
+  ignored_files   = local.platforms_gke_base_uc_federated_learning_cross_device_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_federated_learning_cross_device_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-uc-fl-cross-device-scripts"
   project         = data.google_project.build.project_id
@@ -529,44 +620,9 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_c
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_cross_device_scripts_push" {
-  filename = "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml"
-  ignored_files = [
-    "platforms/gke/base/core/README.md",
-    "platforms/gke/base/use-cases/federated-learning/README.md",
-    "platforms/gke/base/use-cases/federated-learning/cross-device/README.md"
-  ]
-  included_files = [
-    # Include the whole core platform because we want to ensure that
-    # changes to the base platform don't break this use case
-    "platforms/gke/base/core/container_cluster/**",
-    "platforms/gke/base/core/networking/**",
-    "platforms/gke/base/core/custom_compute_class/**",
-    "platforms/gke/base/core/huggingface/initialize/**",
-    "platforms/gke/base/core/initialize/**",
-    "platforms/gke/base/core/workloads/auto_monitoring/**",
-    "platforms/gke/base/core/workloads/cluster_credentials/**",
-    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
-    "platforms/gke/base/core/workloads/inference_gateway/**",
-    "platforms/gke/base/core/workloads/jobset/**",
-    "platforms/gke/base/core/workloads/kueue/**",
-    "platforms/gke/base/core/workloads/lws/**",
-    "platforms/gke/base/core/workloads/priority_class/**",
-    "platforms/gke/base/core/deploy.sh",
-    "platforms/gke/base/core/teardown.sh",
-    "platforms/gke/base/use-cases/federated-learning/terraform/initialize/**",
-    "platforms/gke/base/use-cases/federated-learning/terraform/service_account/**",
-    "platforms/gke/base/use-cases/federated-learning/terraform/key_management_service/**",
-    "platforms/gke/base/use-cases/federated-learning/terraform/firewall/**",
-    "platforms/gke/base/use-cases/federated-learning/terraform/container_image_repository/**",
-    "platforms/gke/base/use-cases/federated-learning/terraform/private_google_access/**",
-    "platforms/gke/base/use-cases/federated-learning/terraform/container_node_pool/**",
-    "platforms/gke/base/use-cases/federated-learning/terraform/cloud_storage/**",
-    "platforms/gke/base/use-cases/federated-learning/terraform/private_google_access/**",
-    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh",
-    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/setup-environment.sh",
-    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh",
-    "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml",
-  ]
+  filename        = "test/ci-cd/cloudbuild/uc-federated-learning-cross-device-terraform.yaml"
+  ignored_files   = local.platforms_gke_base_uc_federated_learning_cross_device_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_federated_learning_cross_device_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-uc-fl-cross-device-scripts-push"
   project         = data.google_project.build.project_id
@@ -586,9 +642,12 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_c
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_scripts" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml"
-  included_files = [
+###################################################################################################
+
+locals {
+  platforms_gke_base_uc_inference_ref_arch_scripts_ignore = [
+  ]
+  platforms_gke_base_uc_inference_ref_arch_scripts_include = [
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/custom_compute_class/**",
@@ -610,8 +669,14 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_s
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh",
-    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml",
+    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/standard-scripts.yaml",
   ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_scripts" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/standard-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_uc_inference_ref_arch_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_inference_ref_arch_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-uc-inference-ref-arch-scripts"
   project         = data.google_project.build.project_id
@@ -634,31 +699,9 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_s
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_scripts_push" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml"
-  included_files = [
-    "platforms/gke/base/core/container_cluster/**",
-    "platforms/gke/base/core/networking/**",
-    "platforms/gke/base/core/custom_compute_class/**",
-    "platforms/gke/base/core/huggingface/hub_downloader/**",
-    "platforms/gke/base/core/huggingface/initialize/**",
-    "platforms/gke/base/core/initialize/**",
-    "platforms/gke/base/core/workloads/auto_monitoring/**",
-    "platforms/gke/base/core/workloads/cluster_credentials/**",
-    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
-    "platforms/gke/base/core/workloads/inference_gateway/**",
-    "platforms/gke/base/core/workloads/jobset/**",
-    "platforms/gke/base/core/workloads/kueue/**",
-    "platforms/gke/base/core/workloads/lws/**",
-    "platforms/gke/base/core/workloads/priority_class/**",
-    "platforms/gke/base/core/deploy.sh",
-    "platforms/gke/base/core/teardown.sh",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu/**",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu/**",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh",
-    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts.yaml",
-  ]
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/standard-scripts.yaml"
+  ignored_files   = local.platforms_gke_base_uc_inference_ref_arch_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_inference_ref_arch_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-uc-inference-ref-arch-scripts-push"
   project         = data.google_project.build.project_id
@@ -679,9 +722,12 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_s
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_comfyui_scripts" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml"
-  included_files = [
+###################################################################################################
+
+locals {
+  platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_ignore = [
+  ]
+  platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_include = [
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/custom_compute_class/**",
@@ -698,8 +744,14 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_c
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh",
-    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml",
+    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/standard-scripts-comfyui.yaml",
   ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_comfyui_scripts" {
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/standard-scripts-comfyui.yaml"
+  ignored_files   = local.platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-uc-inference-ref-arch-comfyui-scripts"
   project         = data.google_project.build.project_id
@@ -722,26 +774,9 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_c
 }
 
 resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_push" {
-  filename = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml"
-  included_files = [
-    "platforms/gke/base/core/container_cluster/**",
-    "platforms/gke/base/core/networking/**",
-    "platforms/gke/base/core/custom_compute_class/**",
-    "platforms/gke/base/core/initialize/**",
-    "platforms/gke/base/core/workloads/auto_monitoring/**",
-    "platforms/gke/base/core/workloads/cluster_credentials/**",
-    "platforms/gke/base/core/workloads/custom_metrics_adapter/**",
-    "platforms/gke/base/core/workloads/inference_gateway/**",
-    "platforms/gke/base/core/workloads/priority_class/**",
-    "platforms/gke/base/core/deploy.sh",
-    "platforms/gke/base/core/teardown.sh",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/cloud_storage/**",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/**",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh",
-    "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/scripts-comfyui.yaml",
-  ]
+  filename        = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/inference-ref-arch/standard-scripts-comfyui.yaml"
+  ignored_files   = local.platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-uc-inference-ref-arch-comfyui-scripts-push"
   project         = data.google_project.build.project_id
@@ -761,6 +796,8 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_c
     _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
   }
 }
+
+###################################################################################################
 
 resource "google_cloudbuild_trigger" "uc_mftp_data_prep_gemma_it_build" {
   filename = "test/ci-cd/cloudbuild/uc-mftp-data-prep-gemma-it-build.yaml"

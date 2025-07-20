@@ -40,12 +40,12 @@ steps:
         export TF_IN_AUTOMATION="1"
 
         # Use the truncated BUILD_ID as project suffix.
-        # Truncate it at 7 characters as a short Git SHA
+        # Truncate it at 8 characters as a short Git SHA
         PROJECT_SUFFIX="${BUILD_ID}"
-        PROJECT_SUFFIX="$${PROJECT_SUFFIX:0:7}"
+        PROJECT_SUFFIX="$${PROJECT_SUFFIX:0:8}"
 
         export TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
-        export TF_VAR_platform_name="${SHORT_SHA}-fl"
+        export TF_VAR_platform_name="ch${SHORT_SHA}"
 
         # Create a dedicated project
         export NEW_PROJECT_ID="$${TF_VAR_platform_default_project_id}"

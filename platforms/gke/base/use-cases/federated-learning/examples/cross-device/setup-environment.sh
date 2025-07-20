@@ -49,6 +49,12 @@ CROSS_DEVICE_CLIENT_GRADIENT_BUCKET="cg-0"
 FEDERATED_LEARNING_CROSS_DEVICE_EXAMPLE_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARNING_SHARED_CONFIG_DIR}/uc_federated_learning_cross_device_example.auto.tfvars"
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
+TERRAFORM_CLUSTER_CONFIGURATION=(
+  "cluster_confidential_nodes_enabled = true"
+  "cluster_system_node_pool_machine_type = n2d-standard-4"
+)
+
+# shellcheck disable=SC2034 # Variable is used in other scripts
 CROSS_DEVICE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES=(
   "federated_learning_tenant_names = [\"${CROSS_DEVICE_EXAMPLE_TENANT_NAME}\"]"
   "federated_learning_cloud_storage_buckets = {\"${CROSS_DEVICE_MODEL_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_AGGREGATED_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"},\"${CROSS_DEVICE_CLIENT_GRADIENT_BUCKET}\"={force_destroy=true,versioning_enabled=false,public_access_prevention=\"enforced\"}}"
@@ -69,12 +75,13 @@ CROSS_DEVICE_EXAMPLE_TERRAFORM_CONFIGURATION_VARIABLES=(
 
 # shellcheck disable=SC2034 # Variable is used in other scripts
 cross_device_example_terraservices=(
-  "spanner"
   "build_workload_images"
+  "spanner"
   "pubsub"
   "confidential_space"
   "secret_manager"
   "network"
+  "example_cross_device"
 )
 
 load_fl_terraform_outputs() {

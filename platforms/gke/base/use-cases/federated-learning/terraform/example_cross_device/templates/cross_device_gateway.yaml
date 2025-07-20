@@ -1,0 +1,58 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingress-gateway-cross-device
+  namespace: istio-ingress
+  annotations:
+    networking.gke.io/load-balancer-ip-addresses: ${ip_address_name}
+spec:
+  selector:
+    app: istio-ingressgateway
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 8082
+        name: tmport
+        protocol: TCP
+      hosts:
+        - "*"
+    - port:
+        number: 8083
+        name: taport
+        protocol: TCP
+      hosts:
+        - "*"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-ingressgateway-cross-device
+  namespace: istio-ingress
+spec:
+  type: LoadBalancer
+  selector:
+    app: istio-ingressgateway
+    istio: ingressgateway
+  ports:
+  - name: tmport
+    port: 8082
+    targetPort: 8082
+    protocol: TCP
+  - name: taport
+    port: 8083
+    targetPort: 8083
+    protocol: TCP

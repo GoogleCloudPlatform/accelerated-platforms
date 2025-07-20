@@ -1,0 +1,71 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${cross_device_workload_name}
+  namespace: ${namespace_name}
+  labels:
+    run: cross-device-${cross_device_workload_name}
+spec:
+  ports:
+    - port: ${cross_device_workload_port}
+      protocol: TCP
+      targetPort: ${cross_device_workload_port}
+      name: tcp-cross-device
+  selector:
+    run: cross-device-${cross_device_workload_name}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cross-device-${cross_device_workload_name}
+  namespace: ${namespace_name}
+  labels:
+    run: cross-device-${cross_device_workload_name}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: cross-device-${cross_device_workload_name}
+  template:
+    metadata:
+      labels:
+        run: cross-device-${cross_device_workload_name}
+      annotations:
+        proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
+    spec:
+      containers:
+        - name: ${cross_device_workload_name}
+          image: ${cross_device_localized_container_image_id}:${cross_device_container_image_tag}
+          imagePullPolicy: Always
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            privileged: false
+            runAsUser: 10000
+            runAsGroup: 10000
+            capabilities:
+              drop:
+                - ALL
+          env:
+          resources:
+            requests:
+              cpu: "1"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+      serviceAccountName: ${cross_device_kubernetes_service_account_name}

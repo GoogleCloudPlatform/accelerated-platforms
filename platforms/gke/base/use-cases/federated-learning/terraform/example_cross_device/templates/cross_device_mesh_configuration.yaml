@@ -1,0 +1,95 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# - Enable proxy access logs for Managed Istiod: https://cloud.google.com/service-mesh/docs/observability/access-logs
+# - Enable Cloud Trace on Cloud Service Mesh: https://cloud.google.com/service-mesh/docs/observability/accessing-traces
+# - Minimum TLS version: https://cloud.google.com/service-mesh/docs/enable-optional-features-managed#configure_the_minimum_tls_version_for_your_workloads
+# - Outbound traffic policy: https://cloud.google.com/service-mesh/docs/enable-optional-features-managed#outbound_traffic_policy
+# Keep the istio-asm-managed and the istio-asm-managed-rapid ConfigMaps in sync
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-asm-managed
+  namespace: istio-system
+data:
+  mesh: |-
+    accessLogFile: /dev/stdout
+    defaultConfig:
+      tracing:
+        stackdriver: {}
+    meshMTLS:
+      minProtocolVersion: TLSV1_3
+    outboundTrafficPolicy:
+      mode: REGISTRY_ONLY
+---
+# - Enable proxy access logs and traffic logs for Managed Cloud Service Mesh: https://cloud.google.com/service-mesh/docs/observability/access-logs
+# - Enable Cloud Trace on Cloud Service Mesh for Managed Cloud Service Mesh: https://cloud.google.com/service-mesh/docs/observability/accessing-traces
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: enable-envoy-and-sd-access-log
+  namespace: istio-system
+spec:
+  accessLogging:
+    - providers:
+        - name: envoy
+        - name: stackdriver
+  tracing:
+    - providers:
+        - name: stackdriver
+---
+# Duplicate ConfigMap because of a known issue with the TRAFFIC_DIRECTOR control
+# plane implementation: https://cloud.google.com/service-mesh/docs/enable-optional-features-managed
+# If you are using that implementation, then you must make changes in the
+# istio-asm-managed-rapid configmap, even if you are using a channel other than
+# rapid.
+# Keep the istio-asm-managed and the istio-asm-managed-rapid ConfigMaps in sync
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-asm-managed-rapid
+  namespace: istio-system
+data:
+  mesh: |-
+    accessLogFile: /dev/stdout
+    defaultConfig:
+      tracing:
+        stackdriver: {}
+    meshMTLS:
+      minProtocolVersion: TLSV1_3
+    outboundTrafficPolicy:
+      mode: REGISTRY_ONLY
+---
+# Enforce a mesh-wide policy to only allow mTLS, and forbid plain-text traffic
+# Ref (scope): https://cloud.google.com/service-mesh/docs/security/configuring-mtls#enforce_mesh-wide_mtls
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+---
+# By default, allow nothing if there are no other ALLOW policies.
+# Applies to all pods in the mesh because it's deployed in the root namespace.
+# Ref: https://cloud.google.com/service-mesh/docs/security/authorization-policy-overview#allow_nothing
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-nothing
+  namespace: istio-system
+spec:
+  action: ALLOW
+

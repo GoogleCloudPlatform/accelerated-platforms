@@ -51,7 +51,7 @@ FEDERATED_LEARNING_CROSS_DEVICE_EXAMPLE_CONFIG_AUTO_VARS_FILE="${FEDERATED_LEARN
 # shellcheck disable=SC2034 # Variable is used in other scripts
 TERRAFORM_CLUSTER_CONFIGURATION=(
   "cluster_confidential_nodes_enabled = true"
-  "cluster_system_node_pool_machine_type = n2d-standard-4"
+  "cluster_system_node_pool_machine_type = \"n2d-standard-4\""
 )
 
 # shellcheck disable=SC2034 # Variable is used in other scripts

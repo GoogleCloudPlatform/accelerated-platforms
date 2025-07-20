@@ -59,7 +59,7 @@ locals {
         )
       },
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskassignment_workloads.yaml"
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_assignment_workloads.yaml"
         template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
@@ -74,7 +74,7 @@ locals {
         )
       },
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_taskmanagement_workloads.yaml"
+        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_task_management_workloads.yaml"
         template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,

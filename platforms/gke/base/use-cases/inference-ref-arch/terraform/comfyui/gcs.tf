@@ -81,6 +81,12 @@ data "google_storage_bucket" "cloudbuild_source" {
   project = local.comfyui_cloudbuild_project_id
 }
 
+resource "google_storage_bucket_object" "workflow-gemini" {
+  bucket = google_storage_bucket.comfyui_workflow.name
+  name   = "gemini.json"
+  source = "src/comfyui-workflows/gemini.json"
+}
+
 resource "google_storage_bucket_object" "workflow-imagen3" {
   bucket = google_storage_bucket.comfyui_workflow.name
   name   = "imagen3-text-to-image.json"

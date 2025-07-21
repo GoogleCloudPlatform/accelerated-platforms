@@ -19,8 +19,8 @@ locals {
 resource "local_file" "workload" {
   depends_on = [
     google_artifact_registry_repository.comfyui_container_images,
-    google_service_account.custom_cloudbuild_sa,
-    google_storage_bucket.cloudbuild_source,
+    data.google_service_account.cloudbuild,
+    data.google_storage_bucket.cloudbuild_source,
     module.kubectl_apply_gateway_res,
     terraform_data.submit_docker_build,
   ]

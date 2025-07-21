@@ -76,20 +76,9 @@ resource "google_storage_bucket" "comfyui_workflow" {
   }
 }
 
-resource "google_storage_bucket" "cloudbuild_source" {
-  location                    = local.comfyui_cloudbuild_source_bucket_location
-  force_destroy               = true
-  name                        = local.comfyui_cloudbuild_source_bucket_name
-  project                     = local.comfyui_cloudbuild_project_id
-  uniform_bucket_level_access = true
-
-  hierarchical_namespace {
-    enabled = true
-  }
-
-  versioning {
-    enabled = false
-  }
+data "google_storage_bucket" "cloudbuild_source" {
+  name    = local.comfyui_cloudbuild_source_bucket_name
+  project = local.comfyui_cloudbuild_project_id
 }
 
 resource "google_storage_bucket_object" "workflow-imagen3" {

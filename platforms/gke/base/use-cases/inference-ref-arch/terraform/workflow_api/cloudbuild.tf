@@ -19,17 +19,14 @@ locals {
 resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
     command     = <<-EOT
-      while ! gcloud builds submit \
-      --config="cloudbuild.yaml" \
-      --gcs-source-staging-dir="gs://${local.comfyui_cloudbuild_source_bucket_name}/source" \
-      --project="${data.google_project.cluster.project_id}" \
-      --quiet \
-      --service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${local.comfyui_cloudbuild_service_account_email}" \
-      --substitutions=_DESTINATION="${local.image_destination}"
-      do
-        sleep 5
-      done
-    EOT
+gcloud builds submit \
+--config="cloudbuild.yaml" \
+--gcs-source-staging-dir="gs://${local.comfyui_cloudbuild_source_bucket_name}/source" \
+--project="${data.google_project.cluster.project_id}" \
+--quiet \
+--service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${local.comfyui_cloudbuild_service_account_email}" \
+--substitutions=_DESTINATION="${local.image_destination}"
+EOT
     interpreter = ["bash", "-c"]
     working_dir = "${path.module}/../../../../../../../projects/workflow-api"
   }

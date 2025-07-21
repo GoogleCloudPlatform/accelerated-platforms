@@ -18,7 +18,7 @@ locals {
   additional_config_files_destination_directory_path = "${path.module}/../config_management/files/additional"
   namespace_configuration_destination_directory_path = "${local.additional_config_files_destination_directory_path}/namespace_configuration"
 
-  federated_learning_cross_device_example_templates_to_render = flatten([
+  federated_learning_cross_device_example_templates_to_render = flatten(concat([
     for tenant in local.tenants : [
       {
         destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_gateway.yaml"
@@ -104,7 +104,7 @@ locals {
         )
       }
     ]
-  ])
+  ]))
 }
 
 resource "local_file" "cross_device_example_templates_to_render" {

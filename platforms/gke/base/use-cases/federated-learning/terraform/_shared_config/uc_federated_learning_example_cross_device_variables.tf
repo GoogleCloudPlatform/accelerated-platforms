@@ -57,6 +57,12 @@ locals {
     "roles/monitoring.metricWriter",
     "roles/artifactregistry.reader"
   ]
+
+  federated_learning_cross_device_example_workload_roles = [
+    "roles/spanner.databaseUser",
+    "roles/gkehub.serviceAgent",
+    "roles/iam.workloadIdentityUser"
+  ]
 }
 
 ## Federated Learning bucket names

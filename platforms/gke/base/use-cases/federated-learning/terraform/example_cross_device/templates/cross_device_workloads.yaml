@@ -68,4 +68,4 @@ spec:
             limits:
               cpu: "1"
               memory: "1Gi"
-      serviceAccountName: ${cross_device_kubernetes_service_account_name}
+      serviceAccountName: ${tenant_apps_kubernetes_service_account_name}

@@ -26,7 +26,7 @@ locals {
   }
 }
 
-resource "google_project_iam_member" "otel_collector" {
+resource "google_project_iam_member" "workloads_roles" {
   for_each = local.federated_learning_cross_device_example_workloads_iam_members
 
   member  = each.value[1]

@@ -74,20 +74,20 @@ ENV COMFYUI_HOST "0.0.0.0"
 ENV COMFYUI_PORT "8188"
 
 ARG COMFYUI_CUSTOM_NODE_PATH="${COMFY_HOME}/custom_nodes"
-ARG VHS_REPO="https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite"
-ARG VHS_CUSTOM_NODE_DIR_NAME="${COMFYUI_CUSTOM_NODE_PATH}/ComfyUI-VideoHelperSuite"
 
+COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/gemini ${COMFYUI_CUSTOM_NODE_PATH}/gemini
 COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/imagen3 ${COMFYUI_CUSTOM_NODE_PATH}/imagen3
 COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/imagen4 ${COMFYUI_CUSTOM_NODE_PATH}/imagen4
 COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/veo2 ${COMFYUI_CUSTOM_NODE_PATH}/veo2
 COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/veo3 ${COMFYUI_CUSTOM_NODE_PATH}/veo3
-RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen3/requirements.txt \
+RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/gemini/requirements.txt \
+  -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen3/requirements.txt \
   -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen4/requirements.txt \
   -r ${COMFYUI_CUSTOM_NODE_PATH}/veo2/requirements.txt \
-  -r ${COMFYUI_CUSTOM_NODE_PATH}/veo3/requirements.txt \
-  && git clone ${VHS_REPO} ${VHS_CUSTOM_NODE_DIR_NAME} \
-  && pip install -r ${VHS_CUSTOM_NODE_DIR_NAME}/requirements.txt
+  -r ${COMFYUI_CUSTOM_NODE_PATH}/veo3/requirements.txt
 
+RUN comfy node install ComfyUI-VideoHelperSuite@nightly
+RUN comfy node install ComfyUI-Custom-Scripts@nightly
 
 ENTRYPOINT  [ "./entrypoint.sh" ]
 CMD ["--", "--listen=${COMFYUI_HOST}", "--port=${COMFYUI_PORT}"]

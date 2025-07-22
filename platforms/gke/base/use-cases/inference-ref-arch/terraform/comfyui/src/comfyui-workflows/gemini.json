@@ -1,0 +1,120 @@
+{
+  "id": "9c72afb1-d41f-4723-878e-9013f899c21a",
+  "revision": 0,
+  "last_node_id": 3,
+  "last_link_id": 2,
+  "nodes": [
+    {
+      "id": 3,
+      "type": "ShowText|pysssss",
+      "pos": [
+        1429.58056640625,
+        389.3135986328125
+      ],
+      "size": [
+        140,
+        26
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "1.2.5",
+        "Node name for S&R": "ShowText|pysssss"
+      }
+    },
+    {
+      "id": 1,
+      "type": "GeminiNode25",
+      "pos": [
+        392.4899597167969,
+        272.61260986328125
+      ],
+      "size": [
+        400,
+        574
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "generated_output",
+          "type": "STRING",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GeminiNode25"
+      },
+      "widgets_values": [
+        "Help me write a prompt for generating a scene for a kids animation movie where the main character squirrel is starting school and excited about it. ",
+        "GEMINI_PRO",
+        0.7,
+        8192,
+        1,
+        32,
+        1,
+        "",
+        "text/plain",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        "output/ComfyUI_00002_.png",
+        "image/png",
+        "",
+        "video/mp4",
+        "",
+        "audio/mp3"
+      ]
+    }
+  ],
+  "links": [
+    [
+      2,
+      1,
+      0,
+      3,
+      0,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.7513148009015779,
+      "offset": [
+        152.16001823068987,
+        -168.4957652231327
+      ]
+    },
+    "frontendVersion": "1.20.7",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

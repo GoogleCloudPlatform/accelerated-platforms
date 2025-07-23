@@ -75,16 +75,9 @@ ENV COMFYUI_PORT "8188"
 
 ARG COMFYUI_CUSTOM_NODE_PATH="${COMFY_HOME}/custom_nodes"
 
-COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/gemini ${COMFYUI_CUSTOM_NODE_PATH}/gemini
-COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/imagen3 ${COMFYUI_CUSTOM_NODE_PATH}/imagen3
-COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/imagen4 ${COMFYUI_CUSTOM_NODE_PATH}/imagen4
-COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/veo2 ${COMFYUI_CUSTOM_NODE_PATH}/veo2
-COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/veo3 ${COMFYUI_CUSTOM_NODE_PATH}/veo3
-RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/gemini/requirements.txt \
-  -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen3/requirements.txt \
-  -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen4/requirements.txt \
-  -r ${COMFYUI_CUSTOM_NODE_PATH}/veo2/requirements.txt \
-  -r ${COMFYUI_CUSTOM_NODE_PATH}/veo3/requirements.txt
+COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/google-genmedia ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia 
+
+RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia/requirements.txt
 
 RUN comfy node install ComfyUI-VideoHelperSuite@nightly
 RUN comfy node install ComfyUI-Custom-Scripts@nightly

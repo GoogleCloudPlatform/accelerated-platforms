@@ -1,8 +1,8 @@
 {
   "id": "a466bac6-78d9-49f4-8fde-3f8af8774e14",
   "revision": 0,
-  "last_node_id": 4,
-  "last_link_id": 3,
+  "last_node_id": 8,
+  "last_link_id": 8,
   "nodes": [
     {
       "id": 4,
@@ -22,7 +22,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 1
+          "link": 7
         }
       ],
       "outputs": [],
@@ -34,94 +34,11 @@
       "widgets_values": []
     },
     {
-      "id": 3,
-      "type": "Veo3SaveAndPreview",
-      "pos": [
-        2742.6982421875,
-        -254.7878875732422
-      ],
-      "size": [
-        282.740234375,
-        355.7913818359375
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 3
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "Veo3SaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        true,
-        true,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
-      ]
-    },
-    {
-      "id": 1,
-      "type": "Imagen4TextToImageNode",
-      "pos": [
-        1692.5618896484375,
-        -307.15576171875
-      ],
-      "size": [
-        400,
-        400
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "Generated Image",
-          "type": "IMAGE",
-          "links": [
-            1,
-            2
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Imagen4TextToImageNode"
-      },
-      "widgets_values": [
-        "IMAGEN_4_PREVIEW",
-        "A hyperrealistic, macro shot of a bioluminescent forest where every leaf and branch glows with intricate, pulsating patterns. Raindrops suspended mid-air reflect miniature galaxies, and the ground is covered in iridescent, crystalline moss. The lighting is ethereal, creating deep shadows and vibrant highlights, with a soft, misty atmosphere",
-        "allow_adult",
-        "16:9",
-        1,
-        "",
-        1780883750,
-        "randomize",
-        true,
-        false,
-        "PNG",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "",
-        ""
-      ]
-    },
-    {
-      "id": 2,
+      "id": 7,
       "type": "Veo3ImageToVideoNode",
       "pos": [
-        2290.75244140625,
-        -292.69244384765625
+        2282.983154296875,
+        -278.26239013671875
       ],
       "size": [
         400,
@@ -134,7 +51,7 @@
         {
           "name": "image",
           "type": "IMAGE",
-          "link": 2
+          "link": 8
         }
       ],
       "outputs": [
@@ -142,7 +59,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            3
+            5
           ]
         }
       ],
@@ -158,39 +75,117 @@
         8,
         true,
         true,
-        2,
+        1,
         "",
-        1648904395,
+        0,
         "randomize",
         "",
         ""
+      ]
+    },
+    {
+      "id": 8,
+      "type": "Imagen4TextToImageNode",
+      "pos": [
+        1654.8690185546875,
+        -314.12750244140625
+      ],
+      "size": [
+        400,
+        400
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            7,
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Imagen4TextToImageNode"
+      },
+      "widgets_values": [
+        "IMAGEN_4_PREVIEW",
+        "A hyperrealistic, macro shot of a bioluminescent forest where every leaf and branch glows with intricate, pulsating patterns. Raindrops suspended mid-air reflect miniature galaxies, and the ground is covered in iridescent, crystalline moss. The lighting is ethereal, creating deep shadows and vibrant highlights, with a soft, misty atmosphere",
+        "allow_adult",
+        "16:9",
+        1,
+        "",
+        0,
+        "randomize",
+        true,
+        false,
+        "PNG",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 5,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        2732.32666015625,
+        -254.74876403808594
+      ],
+      "size": [
+        282.740234375,
+        154
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 5
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video"
       ]
     }
   ],
   "links": [
     [
-      1,
-      1,
+      5,
+      7,
+      0,
+      5,
+      0,
+      "VEO_VIDEO"
+    ],
+    [
+      7,
+      8,
       0,
       4,
       0,
       "IMAGE"
     ],
     [
-      2,
-      1,
+      8,
+      8,
       0,
-      2,
+      7,
       0,
       "IMAGE"
-    ],
-    [
-      3,
-      2,
-      0,
-      3,
-      0,
-      "VEO_VIDEO"
     ]
   ],
   "groups": [],

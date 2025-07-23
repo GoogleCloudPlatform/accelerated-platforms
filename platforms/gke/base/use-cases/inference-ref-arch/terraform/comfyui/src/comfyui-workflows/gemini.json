@@ -1,54 +1,100 @@
 {
-  "id": "9c72afb1-d41f-4723-878e-9013f899c21a",
+  "id": "baa75d65-842d-444d-9ae0-87437ce38134",
   "revision": 0,
-  "last_node_id": 3,
-  "last_link_id": 2,
+  "last_node_id": 7,
+  "last_link_id": 8,
   "nodes": [
     {
-      "id": 3,
-      "type": "ShowText|pysssss",
+      "id": 4,
+      "type": "Imagen4TextToImageNode",
       "pos": [
-        1429.58056640625,
-        389.3135986328125
+        1680.72705078125,
+        283.8246154785156
+      ],
+      "size": [
+        400,
+        400
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Imagen4TextToImageNode"
+      },
+      "widgets_values": [
+        "IMAGEN_4_PREVIEW",
+        "A vivid landscape painting of a futuristic city",
+        "allow_adult",
+        "16:9",
+        1,
+        "",
+        797588173,
+        "randomize",
+        true,
+        false,
+        "PNG",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 6,
+      "type": "PreviewImage",
+      "pos": [
+        2150.407470703125,
+        458.7757568359375
       ],
       "size": [
         140,
         26
       ],
       "flags": {},
-      "order": 1,
+      "order": 3,
       "mode": 0,
       "inputs": [
         {
-          "name": "text",
-          "type": "STRING",
-          "link": 2
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5
         }
       ],
-      "outputs": [
-        {
-          "name": "STRING",
-          "shape": 6,
-          "type": "STRING",
-          "links": null
-        }
-      ],
+      "outputs": [],
       "properties": {
-        "cnr_id": "comfyui-custom-scripts",
-        "ver": "1.2.5",
-        "Node name for S&R": "ShowText|pysssss"
+        "cnr_id": "comfy-core",
+        "ver": "0.3.39",
+        "Node name for S&R": "PreviewImage"
       }
     },
     {
       "id": 1,
       "type": "GeminiNode25",
       "pos": [
-        392.4899597167969,
-        272.61260986328125
+        843.6455078125,
+        292.26910400390625
       ],
       "size": [
         400,
-        574
+        622
       ],
       "flags": {},
       "order": 0,
@@ -59,7 +105,7 @@
           "name": "generated_output",
           "type": "STRING",
           "links": [
-            2
+            7
           ]
         }
       ],
@@ -67,7 +113,7 @@
         "Node name for S&R": "GeminiNode25"
       },
       "widgets_values": [
-        "Help me write a prompt for generating a scene for a kids animation movie where the main character squirrel is starting school and excited about it. ",
+        "Generate a prompt for me to generate an artistic image of a man.The prompt will be fed as a prompt to Image generating model directly so keep it as detailed as possible.",
         "GEMINI_PRO",
         0.7,
         8192,
@@ -81,21 +127,76 @@
         "BLOCK_MEDIUM_AND_ABOVE",
         "BLOCK_MEDIUM_AND_ABOVE",
         "",
-        "output/ComfyUI_00002_.png",
+        "",
         "image/png",
         "",
         "video/mp4",
         "",
-        "audio/mp3"
+        "audio/mp3",
+        "",
+        ""
       ]
+    },
+    {
+      "id": 7,
+      "type": "ShowText|pysssss",
+      "pos": [
+        1376.05419921875,
+        377.3778991699219
+      ],
+      "size": [
+        140,
+        26
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-Custom-Scripts",
+        "ver": "aac13aa7ce35b07d43633c3bbe654a38c00d74f5",
+        "Node name for S&R": "ShowText|pysssss"
+      }
     }
   ],
   "links": [
     [
-      2,
+      5,
+      4,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      7,
       1,
       0,
-      3,
+      7,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      7,
+      0,
+      4,
       0,
       "STRING"
     ]
@@ -104,10 +205,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.7513148009015779,
+      "scale": 1.046831500000004,
       "offset": [
-        152.16001823068987,
-        -168.4957652231327
+        -624.2787944832627,
+        -230.05093058938607
       ]
     },
     "frontendVersion": "1.20.7",

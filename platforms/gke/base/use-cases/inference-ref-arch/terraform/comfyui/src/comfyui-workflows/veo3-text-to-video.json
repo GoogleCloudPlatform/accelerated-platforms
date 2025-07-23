@@ -1,15 +1,48 @@
 {
   "id": "84b5eff9-dee6-47b8-9bf8-83a4b4ec04f9",
   "revision": 0,
-  "last_node_id": 2,
-  "last_link_id": 1,
+  "last_node_id": 4,
+  "last_link_id": 3,
   "nodes": [
     {
-      "id": 1,
+      "id": 3,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        1630.414794921875,
+        249.49887084960938
+      ],
+      "size": [
+        282.740234375,
+        154
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video"
+      ]
+    },
+    {
+      "id": 4,
       "type": "Veo3TextToVideoNode",
       "pos": [
-        1009.6710205078125,
-        198.24623107910156
+        1029.2069091796875,
+        221.72039794921875
       ],
       "size": [
         400,
@@ -24,7 +57,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            1
+            3
           ]
         }
       ],
@@ -39,59 +72,21 @@
         8,
         true,
         true,
-        2,
+        1,
         "",
-        3330208436,
+        0,
         "randomize",
         "",
         ""
-      ]
-    },
-    {
-      "id": 2,
-      "type": "Veo3SaveAndPreview",
-      "pos": [
-        1535.5714111328125,
-        225.61773681640625
-      ],
-      "size": [
-        282.740234375,
-        355.7913818359375
-      ],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 1
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "Veo3SaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        true,
-        true,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
       ]
     }
   ],
   "links": [
     [
-      1,
-      1,
+      3,
+      4,
       0,
-      2,
+      3,
       0,
       "VEO_VIDEO"
     ]

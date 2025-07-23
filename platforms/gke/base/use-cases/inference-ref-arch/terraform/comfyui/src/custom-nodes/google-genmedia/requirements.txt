@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of imagen4 custom node
+# This is a preview version of Google GenAI custom nodes
+
 google-api-core==2.24.2
+google-cloud-storage==3.1.0
 google-genai==1.20.0
 google-generativeai==0.8.5
+opencv-python-headless==4.11.0.86

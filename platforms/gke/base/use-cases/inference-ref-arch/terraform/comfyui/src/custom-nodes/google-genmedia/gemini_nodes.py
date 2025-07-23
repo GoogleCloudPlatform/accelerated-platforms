@@ -13,83 +13,22 @@
 # limitations under the License.
 
 # This is a preview version of gemini custom node
-import os
+
 from typing import Optional
 
 from google import genai
 from google.genai import types
 
+from . import utils
 from .config import get_gcp_metadata
 from .constants import (
     AUDIO_MIME_TYPES,
+    GEMINI_USER_AGENT,
     IMAGE_MIME_TYPES,
-    USER_AGENT,
     VIDEO_MIME_TYPES,
     GeminiModel,
     ThresholdOptions,
 )
-
-
-# Helper Functions for Media Conversion
-def prep_for_media_conversion(file_path: str, mime_type: str) -> Optional[types.Part]:
-    """Attempts to prepare a media file into a genai.types.Part for input to the model.
-
-    This function checks if the specified file exists and, if so, attempts to convert it
-    into a format suitable for the `genai` model. It handles potential errors during
-    the conversion process.
-
-    Args:
-        file_path (str): The absolute or relative path to the media file.
-        mime_type (str): The MIME type of the media file (e.g., 'image/jpeg', 'video/mp4').
-
-    Returns:
-        Optional[types.Part]: A `genai.types.Part` object if the file is successfully
-                              loaded and converted, otherwise `None`.
-    """
-    if os.path.exists(file_path):
-        print(f"Attempting to load media from: {file_path}")
-        try:
-            return media_file_to_genai_part(file_path, mime_type)
-        except Exception as e:
-            print(f"Warning: Could not add media file {file_path}: {e}")
-            return None  # Return None on failure
-    else:
-        print(f"The file path {file_path} does not exist. Skipping.")
-        return None  # Return None if file not found
-
-
-def media_file_to_genai_part(file_path: str, mime_type: str) -> types.Part:
-    """Reads a media file (image, audio, or video) and converts it to a genai.types.Part.
-
-    This function is designed to prepare the raw bytes of a media file for input to
-    the Gemini API. It reads the file in binary mode and encapsulates the content
-    along with its specified MIME type into a `genai.types.Part` object.
-
-    Args:
-        file_path (str): The absolute or relative path to the media file.
-        mime_type (str): The MIME type of the media file (e.g., 'image/png', 'audio/wav', 'video/mp4').
-
-    Returns:
-        types.Part: A `genai.types.Part` object containing the media file's bytes
-                    and MIME type, ready for API input.
-
-    Raises:
-        FileNotFoundError: If the specified `file_path` does not exist.
-        IOError: If an error occurs during the file reading or conversion process.
-    """
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"Media file not found: {file_path}")
-
-    try:
-        with open(file_path, "rb") as f:
-            media_bytes = f.read()
-        print(f"Read the file {file_path}")
-        return types.Part.from_bytes(data=media_bytes, mime_type=mime_type)
-    except Exception as e:
-        # Pass the original exception up, but with more context
-        raise IOError(
-            f"Error converting media file {file_path} (MIME: {mime_type}) to genai.types.Part: {e}"
-        )
 
 
 class GeminiNode25:
@@ -122,7 +61,9 @@ class GeminiNode25:
             raise ValueError("GCP region is required and could not be determined.")
 
         print(f"Project is {self.project_id}, region is {self.region}")
-        http_options = genai.types.HttpOptions(headers={"user-agent": USER_AGENT})
+        http_options = genai.types.HttpOptions(
+            headers={"user-agent": GEMINI_USER_AGENT}
+        )
         try:
             self.client = genai.Client(
                 vertexai=True,
@@ -399,7 +340,7 @@ class GeminiNode25:
             # Prepare contents (prompt, text, image, video, audio)
             contents = [types.Part.from_text(text=prompt)]
             image_content = (
-                prep_for_media_conversion(image_file_path, image_mime_type)
+                utils.prep_for_media_conversion(image_file_path, image_mime_type)
                 if image_file_path
                 else print(f"No image provided")
             )
@@ -411,7 +352,7 @@ class GeminiNode25:
                 )
 
             video_content = (
-                prep_for_media_conversion(video_file_path, video_mime_type)
+                utils.prep_for_media_conversion(video_file_path, video_mime_type)
                 if video_file_path
                 else print(f"No video provided")
             )
@@ -423,7 +364,7 @@ class GeminiNode25:
                 )
 
             audio_content = (
-                prep_for_media_conversion(audio_file_path, audio_mime_type)
+                utils.prep_for_media_conversion(audio_file_path, audio_mime_type)
                 if audio_file_path
                 else print(f"No audio provided")
             )
@@ -445,7 +386,7 @@ class GeminiNode25:
             )
             # Make the API call
             print(
-                f"Making Gemini API call with the following Model : {GeminiModel[model]} , Contents: {contents} , config {gen_config_obj}"
+                f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
             )
             response = self.client.models.generate_content(
                 model=GeminiModel[model],

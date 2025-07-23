@@ -49,6 +49,7 @@ gkeconnect
 gkee
 gkegw
 gkehub
+gkerecommender
 googleapi
 googlecloud
 gsutil

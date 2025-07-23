@@ -24,8 +24,8 @@ fi
 ACP_REPO_DIR="/workspace"
 
 # Use the truncated BUILD_ID as project suffix.
-# Truncate it at 7 characters similar to short build ID
-PROJECT_SUFFIX="${BUILD_ID:0:7}"
+# Truncate it at 8 characters similar to short build ID
+PROJECT_SUFFIX="${BUILD_ID:0:8}"
 
 cat >/workspace/build.env <<EOT
 #export NO_COLOR="1"

@@ -22,24 +22,16 @@ if [ "${DEBUG,,}" == "true" ]; then
   set -o xtrace
 fi
 
-TERRASERVICE_DIR="${1}"
-TERRASERVICE_FOLDER="${2}"
+# Enable IAP
+gcloud services enable iap.googleapis.com \
+--project="${IAP_PROJECT_ID}"
 
-exit_handler() {
-  exit_code=$?
-
-  if [ ${exit_code} -ne 0 ]; then
-    echo "- Apply ${TERRASERVICE_FOLDER}" >>/workspace/build-failed.lock
-  fi
-
-  exit 0
-}
-trap exit_handler EXIT
-
-cd "${TERRASERVICE_DIR}/${TERRASERVICE_FOLDER}"
-echo "Current directory: $(pwd)"
-
-terraform init
-terraform plan -input=false -out=tfplan
-terraform apply -input=false tfplan
-rm tfplan
+# Create OAuth brand
+while !  gcloud iap oauth-brands create \
+  --application_title="IAP Secured Application" \
+  --project="${IAP_PROJECT_ID}" \
+  --quiet \
+  --support_email="iap-support@accelerated-platforms.joonix.net"
+do
+  sleep 5
+done

@@ -29,7 +29,7 @@ exit_handler() {
   exit_code=$?
 
   if [ ${exit_code} -ne 0 ]; then
-    echo "${TERRASERVICE_FOLDER} changes detected" >>/workspace/build-failed.lock
+    echo "- Plan ${TERRASERVICE_FOLDER} changes detected" >>/workspace/build-failed.lock
   fi
 
   exit 0

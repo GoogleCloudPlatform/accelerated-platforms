@@ -30,7 +30,9 @@ steps:
   - args:
       - DEBUG=${_DEBUG}
       - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
-      - TF_VAR_platform_name="${SHORT_SHA}"
+      - TF_VAR_platform_name="ch${SHORT_SHA}"
+      - IAP_PROJECT_ID="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+      - TF_VAR_comfyui_iap_domain="accelerated-platforms.joonix.net"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"
     env:
       - BUILD_ID=${BUILD_ID}
@@ -42,87 +44,56 @@ steps:
     waitFor:
       - "Check triggers"
 
-  - args:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch"
-      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
-    id: "Deploy platforms/gke/base/use-cases/inference-ref-arch"
+  - entrypoint: "test/ci-cd/scripts/cloudbuild/create_iap_brand.sh"
+    id: "Create the IAP Brand"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Configure the build environment"
 
   - args:
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
+    id: "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Create the IAP Brand"
+
+  - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
-      - online_gpu
+      - workflow_api
     entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
-    id: "Apply inference-ref-arch Terraservice 'online_gpu'"
+    id: "Apply inference-ref-arch Terraservice 'workflow_api'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch"
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
 
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
-      - online_tpu
-    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
-    id: "Apply inference-ref-arch Terraservice 'online_tpu'"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch"
-
-  - args:
-      - "Validate Kustomize"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/use-cases/inference-ref-arch/validate_kustomize.sh"
-    id: "Validate Kustomize"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Apply inference-ref-arch Terraservice 'online_gpu'"
-      - "Apply inference-ref-arch Terraservice 'online_tpu'"
-
-  - args:
-      - platforms/gke/base/use-cases/inference-ref-arch/terraform
-      - online_gpu
+      - workflow_api
     entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
-    id: "inference-ref-arch Terraservice 'online_gpu' check for changes"
+    id: "Check inference-ref-arch Terraservice 'workflow_api' check for changes"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Validate Kustomize"
+      - "Apply inference-ref-arch Terraservice 'workflow_api'"
 
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
-      - online_tpu
-    entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
-    id: "inference-ref-arch Terraservice 'online_tpu' check for changes"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Validate Kustomize"
-
-  - args:
-      - platforms/gke/base/use-cases/inference-ref-arch/terraform
-      - online_gpu
+      - workflow_api
     entrypoint: "test/ci-cd/scripts/terraservice/destroy.sh"
-    id: "Destroy inference-ref-arch Terraservice 'online_gpu'"
+    id: "Destroy inference-ref-arch Terraservice 'workflow_api'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "inference-ref-arch Terraservice 'online_gpu' check for changes"
+      - "Check inference-ref-arch Terraservice 'workflow_api' check for changes"
 
   - args:
-      - platforms/gke/base/use-cases/inference-ref-arch/terraform
-      - online_tpu
-    entrypoint: "test/ci-cd/scripts/terraservice/destroy.sh"
-    id: "Destroy inference-ref-arch Terraservice 'online_tpu'"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "inference-ref-arch Terraservice 'online_tpu' check for changes"
-
-  - args:
-      - "Teardown platforms/gke/base/use-cases/inference-ref-arch"
-      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh"
+      - "Teardown platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
-    id: "Teardown platforms/gke/base/use-cases/inference-ref-arch"
+    id: "Teardown platforms/gke/base/use-cases/inference-ref-arch/comfyui"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Destroy inference-ref-arch Terraservice 'online_gpu'"
-      - "Destroy inference-ref-arch Terraservice 'online_tpu'"
+      - "Destroy inference-ref-arch Terraservice 'workflow_api'"
 
   - args:
       - "Cleanup the build environment"
@@ -130,7 +101,7 @@ steps:
     id: "Cleanup the build environment"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Teardown platforms/gke/base/use-cases/inference-ref-arch"
+      - "Teardown platforms/gke/base/use-cases/inference-ref-arch/comfyui"
 
   - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
     id: "Set the build status"

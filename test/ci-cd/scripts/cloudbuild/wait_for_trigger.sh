@@ -17,10 +17,17 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+restart_build="false"
 for trigger_id in "$@"; do
   echo "Checking trigger '${trigger_id}'..."
   while [ $(gcloud builds list --filter="status=WORKING AND triggerId=${trigger_id}" --format="value(substitutions.BUILD_ID)" --project="${PROJECT_ID}" --region="${LOCATION}" | wc -l) -ne 0 ]; do
     echo "Waiting for trigger build to complete"
+    restart_build="true"
     sleep 5
   done
 done
+
+if [[ "${restart_build}" == "true" ]]; then
+  # TODO: restart/retry build or pull new image
+  return
+fi

@@ -93,7 +93,7 @@ module "kubectl_wait_gatekeeper_controller" {
   namespace       = local.policy_controller_kubernetes_namespace
   resource        = "pod"
   selector        = "control-plane=controller-manager"
-  timeout         = "300s"
+  timeout         = "600s"
   wait_for_create = true
 }
 

@@ -84,6 +84,7 @@ cross_device_example_terraservices=(
   "secret_manager"
   "network"
   "example_cross_device"
+  "config_management"
 )
 
 load_fl_terraform_outputs() {

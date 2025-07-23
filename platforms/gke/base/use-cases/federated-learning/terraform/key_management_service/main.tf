@@ -46,7 +46,7 @@ resource "google_kms_crypto_key" "cluster_secrets_key" {
 
 resource "google_kms_crypto_key_iam_binding" "cluster_secrets_decrypters" {
   crypto_key_id = google_kms_crypto_key.cluster_secrets_key.id
-  members       = [local.gke_robot_service_account_iam_email]
+  members       = [local.gke_robot_service_account_iam_email, local.compute_system_service_account_iam_email]
   role          = "roles/cloudkms.cryptoKeyDecrypter"
 
   depends_on = [
@@ -57,7 +57,7 @@ resource "google_kms_crypto_key_iam_binding" "cluster_secrets_decrypters" {
 
 resource "google_kms_crypto_key_iam_binding" "cluster_secrets_encrypters" {
   crypto_key_id = google_kms_crypto_key.cluster_secrets_key.id
-  members       = [local.gke_robot_service_account_iam_email]
+  members       = [local.gke_robot_service_account_iam_email, local.compute_system_service_account_iam_email]
   role          = "roles/cloudkms.cryptoKeyEncrypter"
 
   depends_on = [

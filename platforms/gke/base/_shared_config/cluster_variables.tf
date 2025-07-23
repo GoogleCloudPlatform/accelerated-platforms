@@ -37,7 +37,7 @@ locals {
   cluster_project_id = var.cluster_project_id != null ? var.cluster_project_id : var.platform_default_project_id
 
   # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
-  cluster_sa_roles = [
+  cluster_sa_roles = flatten([
     "roles/artifactregistry.reader",
     "roles/autoscaling.metricsWriter",
     "roles/logging.logWriter",
@@ -45,7 +45,11 @@ locals {
     "roles/monitoring.viewer",
     "roles/serviceusage.serviceUsageConsumer",
     "roles/stackdriver.resourceMetadata.writer",
-  ]
+    var.cluster_confidential_nodes_enabled ? [
+      "roles/cloudkms.cryptoKeyEncrypter",
+      "roles/cloudkms.cryptoKeyDecrypter"
+    ] : []
+  ])
 
   kubeconfig_file_name = "${local.cluster_project_id}-${local.cluster_name}"
 }

@@ -34,7 +34,7 @@ resource "google_container_node_pool" "fl_container_node_pool" {
   node_config {
     boot_disk_kms_key           = var.cluster_confidential_nodes_enabled ? var.cluster_database_encryption_key_name : null
     enable_confidential_storage = var.cluster_confidential_nodes_enabled
-    disk_type                   = var.cluster_confidential_nodes_enabled ? "hyperdisk-balanced" : "pd-standard"
+    disk_type                   = var.cluster_confidential_nodes_enabled ? "hyperdisk-balanced" : "pd-balanced"
     machine_type                = var.federated_learning_node_pool_machine_type
     service_account             = each.value.tenant_nodepool_sa_email
 

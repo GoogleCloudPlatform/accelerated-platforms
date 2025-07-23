@@ -124,6 +124,42 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_scripts" {
   }
 }
 
+resource "google_cloud_scheduler_job" "platforms_gke_base_core_tutorial_ap_scripts" {
+  name      = "platforms-gke-base-core-tutorial-ap-scripts-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 0 * * *"
+  time_zone = "Etc/UTC"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_tutorial_ap_scripts_push.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
+resource "google_cloud_scheduler_job" "platforms_gke_base_core_tutorial_standard_scripts" {
+  name      = "platforms-gke-base-core-tutorial-standard-scripts-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 0 * * *"
+  time_zone = "Etc/UTC"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_tutorial_standard_scripts_push.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
 resource "google_cloud_scheduler_job" "platforms_gke_base_core_workloads_terraform" {
   name      = "platforms-gke-base-core-workloads-terraform-schedule"
   project   = data.google_project.build.project_id

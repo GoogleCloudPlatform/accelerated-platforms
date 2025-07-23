@@ -100,9 +100,13 @@ locals {
   platforms_gke_base_core_ap_full_scripts_ignore = [
     "platforms/gke/base/core/deploy.sh",
     "platforms/gke/base/core/deploy-ap.sh",
+    "platforms/gke/base/core/deploy-tutorial-ap.sh",
+    "platforms/gke/base/core/deploy-tutorial-standard.sh",
     "platforms/gke/base/core/README.md",
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/teardown-ap.sh",
+    "platforms/gke/base/core/teardown-tutorial-ap.sh",
+    "platforms/gke/base/core/teardown-tutorial-standard.sh"
   ]
   platforms_gke_base_core_ap_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
@@ -166,9 +170,13 @@ locals {
   platforms_gke_base_core_full_scripts_ignore = [
     "platforms/gke/base/core/deploy.sh",
     "platforms/gke/base/core/deploy-ap.sh",
+    "platforms/gke/base/core/deploy-tutorial-ap.sh",
+    "platforms/gke/base/core/deploy-tutorial-standard.sh",
     "platforms/gke/base/core/README.md",
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/teardown-ap.sh",
+    "platforms/gke/base/core/teardown-tutorial-ap.sh",
+    "platforms/gke/base/core/teardown-tutorial-standard.sh"
   ]
   platforms_gke_base_core_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
@@ -292,14 +300,10 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terrafo
 
 locals {
   platforms_gke_base_core_ap_scripts_ignore = [
-    "platforms/gke/base/core/deploy.sh",
-    "platforms/gke/base/core/README.md",
-    "platforms/gke/base/core/teardown.sh",
   ]
   platforms_gke_base_core_ap_scripts_include = [
     "platforms/gke/base/_shared_config/**",
-    "platforms/gke/base/core/container_cluster/**",
-    "platforms/gke/base/core/container_node_pool/**",
+    "platforms/gke/base/core/container_cluster_ap/**",
     "platforms/gke/base/core/custom_compute_class/**",
     "platforms/gke/base/core/gke_enterprise/fleet_membership/**",
     "platforms/gke/base/core/initialize/**",
@@ -364,9 +368,6 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_scripts_push" {
 
 locals {
   platforms_gke_base_core_scripts_ignore = [
-    "platforms/gke/base/core/deploy-ap.sh",
-    "platforms/gke/base/core/README.md",
-    "platforms/gke/base/core/teardown-ap.sh",
   ]
   platforms_gke_base_core_scripts_include = [
     "platforms/gke/base/_shared_config/**",
@@ -415,6 +416,142 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_scripts_push" {
   included_files  = local.platforms_gke_base_core_scripts_include
   location        = var.build_location
   name            = "platforms-gke-base-core-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_tutorial_ap_scripts_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/core/tutorial-ap-scripts.yaml"
+  platforms_gke_base_core_tutorial_ap_scripts_ignore = [
+  ]
+  platforms_gke_base_core_tutorial_ap_scripts_include = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster_ap/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/deploy-tutorial-ap.sh",
+    "platforms/gke/base/core/teardown-tutorial-ap.sh",
+    local.platforms_gke_base_core_tutorial_ap_scripts_cb_yaml,
+  ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_ap_scripts" {
+  filename        = local.platforms_gke_base_core_tutorial_ap_scripts_cb_yaml
+  ignored_files   = local.platforms_gke_base_core_tutorial_ap_scripts_ignore
+  included_files  = local.platforms_gke_base_core_tutorial_ap_scripts_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-tutorial-ap-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_ap_scripts_push" {
+  filename        = local.platforms_gke_base_core_tutorial_ap_scripts_cb_yaml
+  ignored_files   = local.platforms_gke_base_core_tutorial_ap_scripts_ignore
+  included_files  = local.platforms_gke_base_core_tutorial_ap_scripts_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-tutorial-ap-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_tutorial_standard_scripts_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/core/tutorial-standard-scripts.yaml"
+  platforms_gke_base_core_tutorial_standard_scripts_ignore = [
+  ]
+  platforms_gke_base_core_tutorial_standard_scripts_include = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/deploy-tutorial-standard.sh",
+    "platforms/gke/base/core/teardown-tutorial-standard.sh",
+    local.platforms_gke_base_core_tutorial_standard_scripts_cb_yaml,
+  ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_standard_scripts" {
+  filename        = local.platforms_gke_base_core_tutorial_standard_scripts_cb_yaml
+  ignored_files   = local.platforms_gke_base_core_tutorial_standard_scripts_ignore
+  included_files  = local.platforms_gke_base_core_tutorial_standard_scripts_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-tutorial-standard-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_standard_scripts_push" {
+  filename        = local.platforms_gke_base_core_tutorial_standard_scripts_cb_yaml
+  ignored_files   = local.platforms_gke_base_core_ap_scripts_ignore
+  included_files  = local.platforms_gke_base_core_ap_scripts_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-tutorial-standard-scripts-push"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 
@@ -498,7 +635,13 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
 
 locals {
   platforms_gke_base_uc_federated_learning_scripts_ignore = [
+    "platforms/gke/base/core/deploy-ap.sh",
+    "platforms/gke/base/core/deploy-tutorial-ap.sh",
+    "platforms/gke/base/core/deploy-tutorial-standard.sh",
     "platforms/gke/base/core/README.md",
+    "platforms/gke/base/core/teardown-ap.sh",
+    "platforms/gke/base/core/teardown-tutorial-ap.sh",
+    "platforms/gke/base/core/teardown-tutorial-standard.sh",
     "platforms/gke/base/use-cases/federated-learning/README.md"
   ]
   platforms_gke_base_uc_federated_learning_scripts_include = [
@@ -559,9 +702,6 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_s
 
 locals {
   platforms_gke_base_uc_federated_learning_cross_device_scripts_ignore = [
-    "platforms/gke/base/core/README.md",
-    "platforms/gke/base/use-cases/federated-learning/README.md",
-    "platforms/gke/base/use-cases/federated-learning/cross-device/README.md"
   ]
   platforms_gke_base_uc_federated_learning_cross_device_scripts_include = [
     "platforms/gke/base/core/container_cluster/**",

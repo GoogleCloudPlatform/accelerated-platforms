@@ -18,7 +18,7 @@ ARG pytorch_version=2.7.0
 FROM pytorch/pytorch:${pytorch_version}-cuda${cuda_version}-cudnn9-runtime
 
 ENV CMAKE_BUILD_PARALLEL_LEVEL "8"
-ENV COMFY_VERSION "0.3.39"
+ENV COMFY_VERSION "0.3.45"
 ENV CUDA_VERSION "12.6"
 ENV DEBIAN_FRONTEND "noninteractive"
 ENV PIP_PREFER_BINARY "1"

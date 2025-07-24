@@ -19,6 +19,7 @@ steps:
       - --cache=true
       - --cache-ttl=48h
       - --destination=${_DESTINATION}
+      - --dockerfile=Dockerfile.nvidia
       - --log-format=text
       - --log-timestamp=false
       - --verbosity=info

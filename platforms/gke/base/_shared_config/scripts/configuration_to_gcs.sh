@@ -17,6 +17,19 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
+
+echo "Uploading Kubernetes files..."
+gcloud storage cp \
+  --preserve-posix \
+  --preserve-symlinks \
+  --recursive \
+  "${MY_PATH}/../../kubernetes" \
+  "gs://${terraform_bucket_name}/terraform/configuration/kubernetes"
+
 if [[ ! -v SHARED_CONFIG_PATHS ]]; then
   SHARED_CONFIG_PATHS=("${@}")
 fi

@@ -18,32 +18,32 @@ metadata:
   name: ${cross_device_workload_name}
   namespace: ${namespace_name}
   labels:
-    run: cross-device-${cross_device_workload_name}
+    run: ${federated_learning_example}-${cross_device_workload_name}
 spec:
   ports:
     - port: ${cross_device_workload_port}
       protocol: TCP
       targetPort: ${cross_device_workload_port}
-      name: tcp-cross-device
+      name: tcp-${federated_learning_example}
   selector:
-    run: cross-device-${cross_device_workload_name}
+    run: ${federated_learning_example}-${cross_device_workload_name}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cross-device-${cross_device_workload_name}
+  name: ${federated_learning_example}-${cross_device_workload_name}
   namespace: ${namespace_name}
   labels:
-    run: cross-device-${cross_device_workload_name}
+    run: ${federated_learning_example}-${cross_device_workload_name}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      run: cross-device-${cross_device_workload_name}
+      run: ${federated_learning_example}-${cross_device_workload_name}
   template:
     metadata:
       labels:
-        run: cross-device-${cross_device_workload_name}
+        run: ${federated_learning_example}-${cross_device_workload_name}
       annotations:
         proxy.istio.io/config: '{ "holdApplicationUntilProxyStarts": true }'
     spec:

@@ -16,11 +16,11 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: ingress-gateway-cross-device-to-${cross_device_workload_name}
+  name: ingress-gateway-${federated_learning_example}-to-${cross_device_workload_name}
   namespace: istio-ingress
 spec:
   gateways:
-    - istio-ingress/ingress-gateway-cross-device
+    - istio-ingress/ingress-gateway-${federated_learning_example}
   hosts:
     - "*"
   tcp:

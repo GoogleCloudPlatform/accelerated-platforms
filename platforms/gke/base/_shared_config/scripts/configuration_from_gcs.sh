@@ -26,6 +26,13 @@ MY_PATH="$(
 ACP_REPO_DIR="$(realpath "${MY_PATH}"/../../../../../)"
 ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 
+echo "Downloading Kubernetes files..."
+gcloud storage cp \
+  --preserve-symlinks \
+  --recursive \
+  "gs://${terraform_bucket_name}/terraform/configuration/kubernetes/*" \
+  "${MY_PATH}/../../kubernetes"
+
 if [[ ! -v GCS_SHARED_CONFIG_PATHS ]]; then
   GCS_SHARED_CONFIG_PATHS=($(gcloud storage ls -r gs://${terraform_bucket_name}/terraform/configuration/ | grep /_shared_config/: | tr '\n' ' '))
 fi

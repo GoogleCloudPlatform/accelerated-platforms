@@ -36,7 +36,7 @@ EOT
   triggers_replace = {
     custom_sa_email        = data.google_service_account.cloudbuild.email
     hash_cloudbuild_config = filebase64sha256("${path.module}/src/cloudbuild.yaml")
-    hash_dockerfile        = filebase64sha256("${path.module}/src/Dockerfile")
+    hash_dockerfile        = filebase64sha256("${path.module}/src/Dockerfile.nvidia")
     hash_entrypoint        = filebase64sha256("${path.module}/src/entrypoint.sh")
     image_tag              = var.comfyui_image_tag
     repository_id          = google_artifact_registry_repository.comfyui_container_images.id

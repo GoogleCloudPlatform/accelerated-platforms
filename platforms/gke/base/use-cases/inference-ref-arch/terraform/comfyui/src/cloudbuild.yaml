@@ -14,12 +14,12 @@
 
 options:
   logging: CLOUD_LOGGING_ONLY
-  machineType: E2_HIGHCPU_8
 steps:
   - args:
       - --cache=true
       - --cache-ttl=48h
       - --destination=${_DESTINATION}
+      - --dockerfile=Dockerfile.nvidia
       - --log-format=text
       - --log-timestamp=false
       - --verbosity=info

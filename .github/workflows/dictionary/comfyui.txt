@@ -13,6 +13,7 @@ dont_allow
 filebase
 genai
 generativeai
+genmedia
 gligen
 hypernetworks
 hyperrealistic

@@ -16,7 +16,7 @@
 */
 
 
-// This is a preview version of veo2 custom node
+// This is a preview version of veo custom node
 
 import { app } from "../../../scripts/app.js";
 
@@ -202,9 +202,9 @@ function recalculateComponentSize(component) {
 
 // Register the custom extension with the application
 app.registerExtension({
-    name: "custom.Veo2PreviewWithNav",
+    name: "custom.VeoPreviewWithNav",
     async beforeRegisterNodeDef(nodeType, nodeData, appInstance) {
-        if (nodeData?.name === "Veo2SaveAndPreview") {
+        if (nodeData?.name === "VeoVideoSaveAndPreview") {
             nodeType.prototype.onExecuted = function(data) {
                 const videoData = data.video || []; // Expected format: [[filename1, category1], [filename2, category2], ...]
 

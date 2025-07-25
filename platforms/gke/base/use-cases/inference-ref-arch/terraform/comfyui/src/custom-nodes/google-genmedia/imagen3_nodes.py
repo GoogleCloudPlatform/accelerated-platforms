@@ -12,25 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of imagen4 custom node
+# This is a preview version of Google GenAI custom nodes
+
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 from google.genai import types
 
-from .constants import MAX_SEED, Imagen4Model
-from .imagen_api import ImagenAPI
+from .constants import MAX_SEED
+from .imagen3_api import Imagen3API
 
 
-class Imagen4TextToImageNode:
+class Imagen3TextToImageNode:
     """
     A ComfyUI node for generating images from text prompts using the Google Imagen API.
     """
 
     def __init__(self) -> None:
         """
-        Initializes the ImagenTextToImageNode.
+        Initializes the Imagen3TextToImageNode.
         """
         pass
 
@@ -44,10 +45,6 @@ class Imagen4TextToImageNode:
         """
         return {
             "required": {
-                "model": (
-                    [model.name for model in Imagen4Model],
-                    {"default": Imagen4Model.IMAGEN_4_PREVIEW.name},
-                ),
                 "prompt": (
                     "STRING",
                     {
@@ -56,8 +53,8 @@ class Imagen4TextToImageNode:
                     },
                 ),
                 "person_generation": (
-                    ["allow_adult", "dont_allow"],
-                    {"default": "allow_adult"},
+                    ["ALLOW_ADULT", "DONT_ALLOW"],
+                    {"default": "ALLOW_ADULT"},
                 ),
                 "aspect_ratio": (
                     ["1:1", "16:9", "4:3", "3:4", "9:16"],
@@ -73,7 +70,7 @@ class Imagen4TextToImageNode:
                         "default": 0,
                         "min": 0,
                         "max": MAX_SEED,
-                        "tooltip": "0 seed let's Imagen4 API handle randomness. Seed works with enhance_prompt disabled",
+                        "tooltip": "0 seed let's Imagen3 API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
@@ -109,13 +106,12 @@ class Imagen4TextToImageNode:
     RETURN_NAMES = ("Generated Image",)
 
     FUNCTION = "generate_and_return_image"
-    CATEGORY = "Google AI/Imagen4"
+    CATEGORY = "Google AI/Imagen3"
 
     def generate_and_return_image(
         self,
-        model: str = Imagen4Model.IMAGEN_4_PREVIEW.name,
-        prompt: str = "A vivid landscape painting of a futuristic city",
-        person_generation: str = "dont_allow",
+        prompt: str,
+        person_generation: str = "DONT_ALLOW",
         aspect_ratio: str = "16:9",
         number_of_images: int = 4,
         negative_prompt: Optional[str] = None,
@@ -132,7 +128,6 @@ class Imagen4TextToImageNode:
         and returns them as a PyTorch tensor suitable for ComfyUI.
 
         Args:
-            model: Imagen4 model it. There are three as of Jul 1, 2025.
             prompt: The text prompt for image generation.
             person_generation: Controls whether the model can generate people.
             aspect_ratio: The desired aspect ratio of the images.
@@ -151,18 +146,18 @@ class Imagen4TextToImageNode:
             formatted as (batch_size, height, width, channels).
         """
         try:
-            imagen_api = ImagenAPI(project_id=gcp_project_id, region=gcp_region)
+            imagen_api = Imagen3API(project_id=gcp_project_id, region=gcp_region)
         except Exception as e:
             raise RuntimeError(
                 f"Failed to initialize Imagen API client for node execution: {e}"
             )
-        p_gen_enum = getattr(types.PersonGeneration, person_generation.upper())
+
+        p_gen_enum = getattr(types.PersonGeneration, person_generation)
 
         seed_for_api = seed if seed != 0 else None
 
         try:
             pil_images = imagen_api.generate_image_from_text(
-                model=model,
                 prompt=prompt,
                 person_generation=p_gen_enum,
                 aspect_ratio=aspect_ratio,
@@ -180,7 +175,7 @@ class Imagen4TextToImageNode:
 
         if not pil_images:
             raise RuntimeError(
-                "ImagenAPI failed to generate images or generated no valid images."
+                "Imagen API failed to generate images or generated no valid images."
             )
 
         output_tensors: List[torch.Tensor] = []
@@ -196,6 +191,6 @@ class Imagen4TextToImageNode:
         return (batched_images_tensor,)
 
 
-NODE_CLASS_MAPPINGS = {"Imagen4TextToImageNode": Imagen4TextToImageNode}
+NODE_CLASS_MAPPINGS = {"Imagen3TextToImageNode": Imagen3TextToImageNode}
 
-NODE_DISPLAY_NAME_MAPPINGS = {"Imagen4TextToImageNode": "Imagen4 Text To Image"}
+NODE_DISPLAY_NAME_MAPPINGS = {"Imagen3TextToImageNode": "Imagen3 Text To Image"}

@@ -1,15 +1,15 @@
 {
   "id": "ae5c91d0-5428-4702-9b3d-828bcd43416e",
   "revision": 0,
-  "last_node_id": 2,
-  "last_link_id": 1,
+  "last_node_id": 4,
+  "last_link_id": 2,
   "nodes": [
     {
-      "id": 1,
+      "id": 4,
       "type": "Veo2TextToVideoNode",
       "pos": [
-        1022.287841796875,
-        235.5940399169922
+        1045.083740234375,
+        231.26132202148438
       ],
       "size": [
         400,
@@ -24,7 +24,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            1
+            2
           ]
         }
       ],
@@ -37,24 +37,24 @@
         "allow_adult",
         8,
         true,
-        4,
+        1,
         "",
-        1799993595,
+        0,
         "randomize",
         "",
         ""
       ]
     },
     {
-      "id": 2,
-      "type": "Veo2SaveAndPreview",
+      "id": 3,
+      "type": "VeoVideoSaveAndPreview",
       "pos": [
-        1692.2330322265625,
-        243.924072265625
+        1607.1865234375,
+        269.97515869140625
       ],
       "size": [
         282.740234375,
-        355.7913818359375
+        154
       ],
       "flags": {},
       "order": 1,
@@ -63,33 +63,28 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 1
+          "link": 2
         }
       ],
       "outputs": [],
       "properties": {
-        "Node name for S&R": "Veo2SaveAndPreview"
+        "Node name for S&R": "VeoVideoSaveAndPreview"
       },
       "widgets_values": [
         true,
         true,
         true,
         true,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
+        "veo_video"
       ]
     }
   ],
   "links": [
     [
-      1,
-      1,
-      0,
       2,
+      4,
+      0,
+      3,
       0,
       "VEO_VIDEO"
     ]

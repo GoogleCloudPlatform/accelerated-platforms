@@ -1,8 +1,8 @@
 {
   "id": "91a98122-0f28-4d82-8cb3-11d8d24553aa",
   "revision": 0,
-  "last_node_id": 4,
-  "last_link_id": 3,
+  "last_node_id": 8,
+  "last_link_id": 6,
   "nodes": [
     {
       "id": 3,
@@ -22,7 +22,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 1
+          "link": 4
         }
       ],
       "outputs": [],
@@ -34,11 +34,11 @@
       "widgets_values": []
     },
     {
-      "id": 1,
-      "type": "ImagenTextToImageNode",
+      "id": 5,
+      "type": "Imagen3TextToImageNode",
       "pos": [
-        719.260986328125,
-        205.9137420654297
+        710.6188354492188,
+        174.7627410888672
       ],
       "size": [
         400,
@@ -53,13 +53,13 @@
           "name": "Generated Image",
           "type": "IMAGE",
           "links": [
-            1,
-            2
+            4,
+            5
           ]
         }
       ],
       "properties": {
-        "Node name for S&R": "ImagenTextToImageNode"
+        "Node name for S&R": "Imagen3TextToImageNode"
       },
       "widgets_values": [
         "A hyperrealistic, macro shot of a bioluminescent forest where every leaf and branch glows with intricate, pulsating patterns. Raindrops suspended mid-air reflect miniature galaxies, and the ground is covered in iridescent, crystalline moss. The lighting is ethereal, creating deep shadows and vibrant highlights, with a soft, misty atmosphere",
@@ -67,7 +67,7 @@
         "16:9",
         1,
         "",
-        351284980,
+        0,
         "randomize",
         true,
         false,
@@ -78,49 +78,11 @@
       ]
     },
     {
-      "id": 4,
-      "type": "Veo2SaveAndPreview",
-      "pos": [
-        1776.95166015625,
-        245.6395721435547
-      ],
-      "size": [
-        282.740234375,
-        355.7913818359375
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 3
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "Veo2SaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        true,
-        true,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
-      ]
-    },
-    {
-      "id": 2,
+      "id": 7,
       "type": "Veo2ImageToVideoNode",
       "pos": [
-        1333.5504150390625,
-        206.64169311523438
+        1407.4761962890625,
+        183.01678466796875
       ],
       "size": [
         400,
@@ -133,7 +95,7 @@
         {
           "name": "image",
           "type": "IMAGE",
-          "link": 2
+          "link": 5
         }
       ],
       "outputs": [
@@ -141,7 +103,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            3
+            6
           ]
         }
       ],
@@ -155,37 +117,70 @@
         "allow_adult",
         8,
         true,
-        2,
+        1,
         "",
-        3217602763,
+        0,
         "randomize",
         "",
         ""
+      ]
+    },
+    {
+      "id": 8,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        1842.9622802734375,
+        297.44244384765625
+      ],
+      "size": [
+        282.740234375,
+        154
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 6
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video"
       ]
     }
   ],
   "links": [
     [
-      1,
-      1,
-      0,
-      3,
-      0,
-      "IMAGE"
-    ],
-    [
-      2,
-      1,
-      0,
-      2,
-      0,
-      "IMAGE"
-    ],
-    [
-      3,
-      2,
-      0,
       4,
+      5,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      5,
+      5,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      7,
+      0,
+      8,
       0,
       "VEO_VIDEO"
     ]
@@ -197,7 +192,7 @@
       "scale": 1.2666661150000031,
       "offset": [
         -661.5596169425305,
-        -104.15173643369593
+        -103.37869371934279
       ]
     },
     "frontendVersion": "1.20.7",

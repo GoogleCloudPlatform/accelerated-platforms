@@ -40,7 +40,7 @@ locals {
           tenant.kubernetes_templates_configuration_values,
           {
             federated_learning_example       = local.federated_learning_example,
-            federated_learning_example_ports = [for workload in var.var.federated_learning_cross_device_example_workloads : "${workload.port}"]
+            federated_learning_example_ports = sort(distinct([for workload in var.federated_learning_cross_device_example_workloads : "${workload.port}"]))
           }
         )
       },
@@ -51,7 +51,7 @@ locals {
           tenant.kubernetes_templates_configuration_values,
           {
             federated_learning_example       = local.federated_learning_example,
-            federated_learning_example_ports = [for workload in var.var.federated_learning_cross_device_example_workloads : "${workload.port}"]
+            federated_learning_example_ports = sort(distinct([for workload in var.federated_learning_cross_device_example_workloads : "${workload.port}"]))
           }
         )
       }
@@ -81,8 +81,8 @@ locals {
           template_variables = merge(
             tenant.kubernetes_templates_configuration_values,
             {
-              federated_learning_example = local.federated_learning_example,
-              cross_device_workload_name = key
+              federated_learning_example       = local.federated_learning_example,
+              federated_learning_workload_name = key
             },
           )
         },

@@ -27,7 +27,7 @@ spec:
     - ports:
 %{ for federated_learning_example_port in federated_learning_example_ports ~}
         - protocol: TCP
-          port: "${federated_learning_example_port}"
+          port: ${federated_learning_example_port}
 %{ endfor ~}
 ---
 kind: NetworkPolicy

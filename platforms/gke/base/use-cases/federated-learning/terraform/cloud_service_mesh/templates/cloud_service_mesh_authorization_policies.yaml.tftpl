@@ -27,8 +27,8 @@ spec:
     - to:
         - operation:
             ports:
-%{ for namespace in federated_learning_example_ports ~}
-              - "${federated_learning_example_ports}"
+%{ for federated_learning_example_port in federated_learning_example_ports ~}
+              - "${federated_learning_example_port}"
 %{ endfor ~}
 ---
 # Allow traffic to ${federated_learning_example} ports

@@ -57,6 +57,12 @@ locals {
     "roles/monitoring.metricWriter",
     "roles/artifactregistry.reader"
   ]
+
+  federated_learning_cross_device_example_workload_roles = [
+    "roles/spanner.databaseUser",
+    "roles/gkehub.serviceAgent",
+    "roles/iam.workloadIdentityUser"
+  ]
 }
 
 ## Federated Learning bucket names
@@ -283,5 +289,16 @@ variable "federated_learning_cross_device_example_confidential_space_workloads" 
     cooldown_period               = number
     autoscaling_jobs_per_instance = number
     machine_type                  = string
+  }))
+}
+
+variable "federated_learning_cross_device_example_workloads" {
+  default     = {}
+  description = "Map describing the workloads to deploy on GKE. Keys are workload name."
+  type = map(object({
+    replicas     = number
+    port         = number
+    min_replicas = number
+    max_replicas = number
   }))
 }

@@ -1,0 +1,52 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingress-gateway-${federated_learning_example}
+  namespace: istio-ingress
+  annotations:
+    networking.gke.io/load-balancer-ip-addresses: ${ip_address_name}
+spec:
+  selector:
+    app: istio-ingressgateway
+    istio: ingressgateway
+  servers:
+%{ for federated_learning_example_port in federated_learning_example_ports ~}
+    - port:
+        name: ${federated_learning_example_port}-port
+        number: ${federated_learning_example_port}
+        protocol: TCP
+      hosts:
+        - "*"
+%{ endfor ~}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-ingressgateway-${federated_learning_example}
+  namespace: istio-ingress
+spec:
+  type: LoadBalancer
+  selector:
+    app: istio-ingressgateway
+    istio: ingressgateway
+  ports:
+%{ for federated_learning_example_port in federated_learning_example_ports ~}
+  - name: ${federated_learning_example_port}-port
+    port: ${federated_learning_example_port}
+    targetPort: ${federated_learning_example_port}
+    protocol: TCP
+%{ endfor ~}

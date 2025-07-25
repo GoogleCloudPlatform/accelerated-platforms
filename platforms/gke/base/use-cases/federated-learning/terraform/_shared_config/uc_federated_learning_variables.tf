@@ -16,6 +16,9 @@ locals {
   gke_robot_service_account           = "service-${data.google_project.cluster.number}@container-engine-robot.iam.gserviceaccount.com"
   gke_robot_service_account_iam_email = "serviceAccount:${local.gke_robot_service_account}"
 
+  compute_system_service_account           = "service-${data.google_project.cluster.number}@compute-system.iam.gserviceaccount.com"
+  compute_system_service_account_iam_email = "serviceAccount:${local.compute_system_service_account}"
+
   # Define values that other values depend on
   _tenants_initial = {
     for name in var.federated_learning_tenant_names : name => {

@@ -39,6 +39,11 @@ source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/cross-dev
 
 start_timestamp_federated_learning=$(date +%s)
 
+echo "Preparing core platform configuration files"
+for configuration_variable in "${TERRAFORM_CLUSTER_CONFIGURATION[@]}"; do
+  write_terraform_configuration_variable_to_file "${configuration_variable}" "${ACP_PLATFORM_SHARED_CONFIG_CLUSTER_AUTO_VARS_FILE}"
+done
+
 echo "Preparing the reference architecture configuration to deploy the cross-device example"
 for configuration_variable in "${CROSS_DEVICE_EXAMPLE_TERRAFORM_INIT_CONFIGURATION_VARIABLES[@]}"; do
   write_terraform_configuration_variable_to_file "${configuration_variable}" "${FEDERATED_LEARNING_CONFIG_AUTO_VARS_FILE}"

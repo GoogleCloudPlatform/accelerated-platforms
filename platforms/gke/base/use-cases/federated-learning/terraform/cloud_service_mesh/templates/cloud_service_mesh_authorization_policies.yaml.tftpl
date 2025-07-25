@@ -15,7 +15,7 @@
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-from-ingress-gateway-to-${namespace_name}-cross-device-port
+  name: allow-from-ingress-gateway-to-${namespace_name}-${federated_learning_example}-ports
   namespace: ${namespace_name}
 spec:
   action: ALLOW
@@ -27,15 +27,15 @@ spec:
     - to:
         - operation:
             ports:
-              - "5000"
-              - "8082"
-              - "8083"
+%{ for namespace in federated_learning_example_ports ~}
+              - "${federated_learning_example_ports}"
+%{ endfor ~}
 ---
-# Allow traffic to cross device ports
+# Allow traffic to ${federated_learning_example} ports
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-ingress-to-ingressgateway-cross-device
+  name: allow-ingress-to-ingressgateway-${federated_learning_example}
   namespace: istio-ingress
 spec:
   action: ALLOW
@@ -46,6 +46,6 @@ spec:
     - to:
         - operation:
             ports:
-              - "5000"
-              - "8082"
-              - "8083"
+%{ for federated_learning_example_port in federated_learning_example_ports ~}
+              - "${federated_learning_example_port}"
+%{ endfor ~}

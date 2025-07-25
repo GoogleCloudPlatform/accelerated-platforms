@@ -15,7 +15,7 @@
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: ingress-gateway-cross-device
+  name: ingress-gateway-${federated_learning_example}
   namespace: istio-ingress
   annotations:
     networking.gke.io/load-balancer-ip-addresses: ${ip_address_name}
@@ -40,7 +40,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: istio-ingressgateway-cross-device
+  name: istio-ingressgateway-${federated_learning_example}
   namespace: istio-ingress
 spec:
   type: LoadBalancer

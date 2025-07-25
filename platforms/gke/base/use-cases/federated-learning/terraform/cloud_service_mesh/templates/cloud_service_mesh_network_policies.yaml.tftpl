@@ -15,7 +15,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: allow-ingress-to-gateway-cross-device
+  name: allow-ingress-to-gateway-${federated_learning_example}
   namespace: istio-ingress
 spec:
   podSelector:
@@ -25,12 +25,10 @@ spec:
     - Ingress
   ingress:
     - ports:
+%{ for federated_learning_example_port in federated_learning_example_ports ~}
         - protocol: TCP
-          port: 5000
-        - protocol: TCP
-          port: 8082
-        - protocol: TCP
-          port: 8083
+          port: "${federated_learning_example_port}"
+%{ endfor ~}
 ---
 kind: NetworkPolicy
 apiVersion: networking.k8s.io/v1

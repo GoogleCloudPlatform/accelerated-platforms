@@ -13,7 +13,9 @@
 # limitations under the License.
 
 locals {
+  federated_learning_example                                       = "cross-device"
   federated_learning_cross_device_example_templates_directory_path = "${path.module}/templates"
+  cloud_service_mesh_templates_directory_path                      = "${path.module}/../cloud_service_mesh/templates"
 
   additional_config_files_destination_directory_path = "${path.module}/../config_management/files/additional"
   namespace_configuration_destination_directory_path = "${local.additional_config_files_destination_directory_path}/namespace_configuration"
@@ -26,36 +28,31 @@ locals {
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            ip_address_name = "${local.unique_identifier_prefix}-cdn-ip"
+            federated_learning_example = local.federated_learning_example,
+            ip_address_name            = "${local.unique_identifier_prefix}-cdn-ip",
           },
         )
       },
       {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_mesh.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_mesh.yaml"
-        template_variables = merge(
-          tenant.kubernetes_templates_configuration_values,
-        )
-      },
-      {
-        destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_telemetry.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_telemetry.yaml"
-        template_variables = merge(
-          tenant.kubernetes_templates_configuration_values,
-        )
-      },
-      {
         destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_authorization_policies.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_authorization_policies.yaml"
+        template_source_file_path = "${local.cloud_service_mesh_templates_directory_path}/cloud_service_mesh_authorization_policies.yaml.tftpl"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
+          {
+            federated_learning_example       = local.federated_learning_example,
+            federated_learning_example_ports = [for workload in var.var.federated_learning_cross_device_example_workloads : "${workload.port}"]
+          }
         )
       },
       {
         destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_network_policies.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_network_policies.yaml"
+        template_source_file_path = "${local.cloud_service_mesh_templates_directory_path}/cloud_service_mesh_network_policies.yaml.tftpl"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
+          {
+            federated_learning_example       = local.federated_learning_example,
+            federated_learning_example_ports = [for workload in var.var.federated_learning_cross_device_example_workloads : "${workload.port}"]
+          }
         )
       }
     ]
@@ -68,6 +65,7 @@ locals {
           template_variables = merge(
             tenant.kubernetes_templates_configuration_values,
             {
+              federated_learning_example         = local.federated_learning_example,
               cross_device_workload_name         = key
               cross_device_workload_replicas     = workload.replicas
               cross_device_workload_port         = workload.port
@@ -79,10 +77,11 @@ locals {
         },
         {
           destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_${replace(key, "-", "_")}_destination_rule.yaml"
-          template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_destination_rules.yaml"
+          template_source_file_path = "${local.cloud_service_mesh_templates_directory_path}/cloud_service_mesh_destination_rules.yaml.tftpl"
           template_variables = merge(
             tenant.kubernetes_templates_configuration_values,
             {
+              federated_learning_example = local.federated_learning_example,
               cross_device_workload_name = key
             },
           )
@@ -93,6 +92,7 @@ locals {
           template_variables = merge(
             tenant.kubernetes_templates_configuration_values,
             {
+              federated_learning_example = local.federated_learning_example,
               cross_device_workload_name = key,
               cross_device_workload_port = workload.port
             },

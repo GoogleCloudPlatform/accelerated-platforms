@@ -12,16 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: telemetry.istio.io/v1alpha1
-kind: Telemetry
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
 metadata:
-  name: enable-envoy-and-sd-access-log
-  namespace: istio-system
+  name: ${federated_learning_example}-${federated_learning_workload_name}
+  namespace: ${namespace_name}
 spec:
-  accessLogging:
-    - providers:
-        - name: envoy
-        - name: stackdriver
-  tracing:
-    - providers:
-        - name: stackdriver
+  host: ${federated_learning_workload_name}.${namespace_name}.svc.cluster.local

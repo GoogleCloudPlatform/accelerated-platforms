@@ -24,18 +24,14 @@ spec:
     app: istio-ingressgateway
     istio: ingressgateway
   servers:
+%{ for federated_learning_example_port in federated_learning_example_ports ~}
     - port:
-        number: 8082
-        name: tmport
+        name: ${federated_learning_example_port}-port
+        number: ${federated_learning_example_port}
         protocol: TCP
       hosts:
         - "*"
-    - port:
-        number: 8083
-        name: taport
-        protocol: TCP
-      hosts:
-        - "*"
+%{ endfor ~}
 ---
 apiVersion: v1
 kind: Service

@@ -15,6 +15,7 @@
 # This is a preview version of Google GenAI custom nodes
 
 import hashlib
+import mimetypes
 import os
 import shutil
 import time
@@ -23,6 +24,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
+from moviepy import VideoFileClip
 
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
 
@@ -153,49 +155,118 @@ class VeoVideoSaveAndPreview:
         self, video_paths, autoplay, mute, loop, save_video, save_video_file_prefix
     ):
         try:
-            # Destination directory for saving videos
-            dest_dir = os.path.join("output", "veo2")
+            dest_dir = os.path.join("output", "veo")
             os.makedirs(dest_dir, exist_ok=True)
+
             # Setting preview dir to temp as the veo nodes save the video there
+            # ComfyUI's 'temp' directory is usually handled by its file system backend
             preview_dir = "temp"
-            os.makedirs(preview_dir, exist_ok=True)
-            videos = []
+            os.makedirs(preview_dir, exist_ok=True)  # Ensure temp directory exists
+
+            videos_output_for_ui = (
+                []
+            )  # This will hold data for both your JS widget and ComfyUI's queue
+
             # Determine which input is provided
             for video_path in video_paths:
                 if video_path and isinstance(video_path, str) and video_path.strip():
-                    video_path = os.path.abspath(video_path)
-                    if not os.path.exists(video_path):
-                        raise FileNotFoundError(f"Video file not found: {video_path}")
+                    video_path_abs = os.path.abspath(
+                        video_path
+                    )  # Use absolute path for moviepy
 
-                    ext = Path(video_path).suffix.lower()  # e.g., '.mp4', '.webm'
+                    if not os.path.exists(video_path_abs):
+                        raise FileNotFoundError(
+                            f"Video file not found: {video_path_abs}"
+                        )
+
+                    ext = Path(video_path_abs).suffix.lower()
                     if ext not in SUPPORTED_VIDEO_EXTENSIONS:
                         raise ValueError(
                             f"Unsupported video format: {ext}. Supported formats: {', '.join(SUPPORTED_VIDEO_EXTENSIONS)}"
                         )
 
-                    video_file = os.path.basename(video_path)
+                    video_file_basename = os.path.basename(video_path_abs)
+                    video_subfolder = (
+                        ""  # ComfyUI expects a subfolder, often empty for 'temp'
+                    )
+                    duration = 0.0
+                    width = 0
+                    height = 0
+                    video_format = ""
+
+                    try:
+                        with VideoFileClip(video_path_abs) as clip:
+                            duration = clip.duration
+                            width, height = clip.size
+                            # Guess MIME type from extension
+                            mime_type, _ = mimetypes.guess_type(video_file_basename)
+                            video_format = (
+                                mime_type
+                                if mime_type and mime_type.startswith("video/")
+                                else "video/mp4"
+                            )
+                    except Exception as moviepy_e:
+                        print(
+                            f"Warning: Could not get video metadata for {video_file_basename} using moviepy: {moviepy_e}"
+                        )
+                        # Fallback for format if moviepy fails. In this case the default will not be mp4 since moviepy failed to process it.
+                        mime_type, _ = mimetypes.guess_type(video_file_basename)
+                        video_format = (
+                            mime_type
+                            if mime_type and mime_type.startswith("video/")
+                            else "video/unknown"
+                        )
 
                     if save_video:
-                        # Generate unique filename with original extension
                         file_hash = hashlib.md5(
-                            open(video_path, "rb").read()
+                            open(video_path_abs, "rb").read()
                         ).hexdigest()[:8]
                         timestamp = int(time.time())
-                        dest_name = f"{save_video_file_prefix}_{timestamp}_{file_hash}{ext}"  # Keeps original extension
+                        dest_name = (
+                            f"{save_video_file_prefix}_{timestamp}_{file_hash}{ext}"
+                        )
                         dest_path = os.path.join(dest_dir, dest_name)
 
-                        shutil.copy2(video_path, dest_path)
+                        shutil.copy2(video_path_abs, dest_path)
                         print(f"Video copied to: {dest_path}")
+                        video_subfolder = "veo"
+                    else:
+                        # if it is just for preview, strip the filename and build the path starting temp directory
+                        dest_path = os.path.join(
+                            os.path.normpath("temp"),
+                            os.path.normpath(video_path_abs)
+                            .rsplit(os.path.normpath("temp"), 1)[1]
+                            .lstrip(os.path.sep),
+                        )
+                    video_item_for_ui = {
+                        "filename": dest_path,
+                        "subfolder": video_subfolder,  # This should be "" if not saved, or "veo" if saved
+                        "type": (
+                            "output" if save_video else "temp"
+                        ),  # 'output' for saved, 'temp' for preview only
+                        "duration": duration,
+                        "width": width,
+                        "height": height,
+                        "format": video_format,
+                    }
+                    videos_output_for_ui.append(video_item_for_ui)
                 else:
-                    raise ValueError("'video_paths' must be provided.")
-                video = [video_file, ""]
-                videos.append(video)
+                    raise ValueError("'video_paths' must be provided and not empty.")
+
             return {
                 "ui": {
-                    "video": videos,
+                    "video": videos_output_for_ui,
                     "metadata": {
-                        "width": 512,
-                        "height": 512,
+                        "width": (
+                            videos_output_for_ui[0]["width"]
+                            if videos_output_for_ui
+                            else 0
+                        ),
+                        "height": (
+                            videos_output_for_ui[0]["height"]
+                            if videos_output_for_ui
+                            else 0
+                        ),
                         "autoplay": autoplay,
                         "mute": mute,
                         "loop": loop,
@@ -204,7 +275,7 @@ class VeoVideoSaveAndPreview:
             }
 
         except Exception as e:
-            print(str(e))
+            print(f"An error occurred in VeoVideoSaveAndPreview: {str(e)}")
             return {"ui": {"video": [], "error": str(e)}}
 
 

@@ -21,7 +21,12 @@ from google import genai
 
 from . import utils
 from .config import get_gcp_metadata
-from .constants import VEO2_MODEL_ID, VEO2_USER_AGENT
+from .constants import (
+    VEO2_GENERATE_AUDIO_FLAG,
+    VEO2_MODEL_ID,
+    VEO2_OUTPUT_RESOLUTION,
+    VEO2_USER_AGENT,
+)
 from .utils import validate_gcs_uri_and_image
 
 
@@ -67,10 +72,12 @@ class Veo2API:
         self,
         prompt: str,
         aspect_ratio: str,
+        compression_quality: str,
         person_generation: str,
         duration_seconds: int,
         enhance_prompt: bool,
         sample_count: int,
+        output_gcs_uri: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
@@ -80,10 +87,12 @@ class Veo2API:
         Args:
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
             duration_seconds: The desired duration of the video in seconds (5-8 seconds).
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate (1-4).
+            output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
 
@@ -109,10 +118,14 @@ class Veo2API:
             model=VEO2_MODEL_ID,
             prompt=prompt,
             aspect_ratio=aspect_ratio,
+            compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=VEO2_GENERATE_AUDIO_FLAG,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
+            output_gcs_uri=output_gcs_uri,
+            output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
             seed=seed,
             retry_count=self.retry_count,
@@ -125,10 +138,12 @@ class Veo2API:
         image_format: str,
         prompt: str,
         aspect_ratio: str,
+        compression_quality: str,
         person_generation: str,
         duration_seconds: int,
         enhance_prompt: bool,
         sample_count: int,
+        output_gcs_uri: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
@@ -140,10 +155,12 @@ class Veo2API:
             image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
 
@@ -178,10 +195,14 @@ class Veo2API:
             image_format=image_format,
             prompt=prompt,
             aspect_ratio=aspect_ratio,
+            compression_quality=compression_quality,
             person_generation=person_generation,
+            generate_audio=VEO2_GENERATE_AUDIO_FLAG,
             duration_seconds=duration_seconds,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
+            output_gcs_uri=output_gcs_uri,
+            output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
             seed=seed,
             retry_count=self.retry_count,
@@ -194,10 +215,12 @@ class Veo2API:
         image_format: str,
         prompt: str,
         aspect_ratio: str,
+        compression_quality: str,
         person_generation: str,
         duration_seconds: int,
         enhance_prompt: bool,
         sample_count: int,
+        output_gcs_uri: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
@@ -209,10 +232,12 @@ class Veo2API:
             image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
 
@@ -266,10 +291,14 @@ class Veo2API:
             image_format=image_format,
             prompt=prompt,
             aspect_ratio=aspect_ratio,
+            compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=VEO2_GENERATE_AUDIO_FLAG,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
+            output_gcs_uri=output_gcs_uri,
+            output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
             seed=seed,
             retry_count=self.retry_count,

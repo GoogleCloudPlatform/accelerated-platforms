@@ -1,12 +1,16 @@
+acked
 adminport
 cloudfunction
+confidentialcomputing
 cooldown
 dkzkh
 endtoendtests
 federatedcompute
 flport
+jdbc
 lgtlq
 modelupdater
+networkservices
 njgb
 notif
 nvfl
@@ -15,5 +19,10 @@ ondevicepersonalization
 opallowedusr
 opverifiedusr
 opwip
+privatepool
+psdl
 pvdr
+timestamptz
+varchar
+vtpm
 ython

@@ -38,6 +38,7 @@ start_timestamp_federated_learning=$(date +%s)
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/examples/cross-device/setup-environment.sh"
+load_fl_terraform_outputs
 
 echo "Destroying the services that the cross-device example depends on"
 # shellcheck disable=SC2154 # variable defined in setup-environment.sh

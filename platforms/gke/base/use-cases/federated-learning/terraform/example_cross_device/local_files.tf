@@ -24,12 +24,13 @@ locals {
     for tenant in local.tenants : [
       {
         destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_gateway.yaml"
-        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_gateway.yaml"
+        template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_gateway.yaml.tftpl"
         template_variables = merge(
           tenant.kubernetes_templates_configuration_values,
           {
-            federated_learning_example = local.federated_learning_example,
-            ip_address_name            = "${local.unique_identifier_prefix}-cdn-ip",
+            federated_learning_example       = local.federated_learning_example,
+            federated_learning_example_ports = sort(distinct([for workload in var.federated_learning_cross_device_example_workloads : "${workload.port}"]))
+            ip_address_name                  = "${local.unique_identifier_prefix}-cdn-ip",
           },
         )
       },
@@ -61,7 +62,7 @@ locals {
       for key, workload in var.federated_learning_cross_device_example_workloads : [
         {
           destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_${replace(key, "-", "_")}_workload.yaml"
-          template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml"
+          template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_workloads.yaml.tftpl"
           template_variables = merge(
             tenant.kubernetes_templates_configuration_values,
             {
@@ -88,7 +89,7 @@ locals {
         },
         {
           destination_file_path     = "${local.namespace_configuration_destination_directory_path}/${tenant.tenant_name}/cross_device_${replace(key, "-", "_")}_virtual_service.yaml"
-          template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_virtual_services.yaml"
+          template_source_file_path = "${local.federated_learning_cross_device_example_templates_directory_path}/cross_device_virtual_services.yaml.tftpl"
           template_variables = merge(
             tenant.kubernetes_templates_configuration_values,
             {

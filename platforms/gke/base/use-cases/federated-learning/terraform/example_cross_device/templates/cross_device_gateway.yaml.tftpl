@@ -48,11 +48,9 @@ spec:
     app: istio-ingressgateway
     istio: ingressgateway
   ports:
-  - name: tmport
-    port: 8082
-    targetPort: 8082
+%{ for federated_learning_example_port in federated_learning_example_ports ~}
+  - name: ${federated_learning_example_port}-port
+    port: ${federated_learning_example_port}
+    targetPort: ${federated_learning_example_port}
     protocol: TCP
-  - name: taport
-    port: 8083
-    targetPort: 8083
-    protocol: TCP
+%{ endfor ~}

@@ -22,9 +22,7 @@ opwip
 privatepool
 psdl
 pvdr
-taport
 timestamptz
-tmport
 varchar
 vtpm
 ython

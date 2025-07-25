@@ -46,8 +46,10 @@ resource "google_kms_crypto_key" "cluster_secrets_key" {
 
 resource "google_kms_crypto_key_iam_binding" "cluster_secrets_decrypters" {
   crypto_key_id = google_kms_crypto_key.cluster_secrets_key.id
-  members       = [local.gke_robot_service_account_iam_email]
-  role          = "roles/cloudkms.cryptoKeyDecrypter"
+  # Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/encrypting-secrets#grant_permission_to_use_the_key
+  # Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/using-cmek#grant_permission
+  members = [local.gke_robot_service_account_iam_email, local.compute_system_service_account_iam_email]
+  role    = "roles/cloudkms.cryptoKeyDecrypter"
 
   depends_on = [
     # Wait for the GKE robot account to be created
@@ -57,8 +59,10 @@ resource "google_kms_crypto_key_iam_binding" "cluster_secrets_decrypters" {
 
 resource "google_kms_crypto_key_iam_binding" "cluster_secrets_encrypters" {
   crypto_key_id = google_kms_crypto_key.cluster_secrets_key.id
-  members       = [local.gke_robot_service_account_iam_email]
-  role          = "roles/cloudkms.cryptoKeyEncrypter"
+  # Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/encrypting-secrets#grant_permission_to_use_the_key
+  # Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/using-cmek#grant_permission
+  members = [local.gke_robot_service_account_iam_email, local.compute_system_service_account_iam_email]
+  role    = "roles/cloudkms.cryptoKeyEncrypter"
 
   depends_on = [
     # Wait for the GKE robot account to be created

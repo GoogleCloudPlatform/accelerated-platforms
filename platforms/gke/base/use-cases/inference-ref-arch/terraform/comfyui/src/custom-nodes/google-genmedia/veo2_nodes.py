@@ -33,6 +33,10 @@ class Veo2TextToVideoNode:
             "required": {
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "compression_quality": (
+                    ["optimized", "lossless"],
+                    {"default": "optimized"},
+                ),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "allow_adult"},
@@ -45,6 +49,7 @@ class Veo2TextToVideoNode:
                 "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
+                "output_gcs_uri": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
                     "INT",
@@ -81,10 +86,12 @@ class Veo2TextToVideoNode:
         self,
         prompt: str,
         aspect_ratio: str = "16:9",
+        compression_quality: str = "optimized",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
         sample_count: int = 1,
+        output_gcs_uri: str = "",
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         gcp_project_id: Optional[str] = None,
@@ -96,10 +103,12 @@ class Veo2TextToVideoNode:
         Args:
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
@@ -123,10 +132,12 @@ class Veo2TextToVideoNode:
             video_paths = api.generate_video_from_text(
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
+                compression_quality=compression_quality,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
+                output_gcs_uri=output_gcs_uri,
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
@@ -162,6 +173,10 @@ class Veo2GcsUriImageToVideoNode:
                 ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "compression_quality": (
+                    ["optimized", "lossless"],
+                    {"default": "optimized"},
+                ),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "allow_adult"},
@@ -174,6 +189,7 @@ class Veo2GcsUriImageToVideoNode:
                 "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
+                "output_gcs_uri": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
                     "INT",
@@ -212,10 +228,12 @@ class Veo2GcsUriImageToVideoNode:
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
+        compression_quality: str = "optimized",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
         sample_count: int = 1,
+        output_gcs_uri: str = "",
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         gcp_project_id: Optional[str] = None,
@@ -229,10 +247,12 @@ class Veo2GcsUriImageToVideoNode:
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
@@ -257,10 +277,12 @@ class Veo2GcsUriImageToVideoNode:
                 image_format=image_format,
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
+                compression_quality=compression_quality,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
+                output_gcs_uri=output_gcs_uri,
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
@@ -293,6 +315,10 @@ class Veo2ImageToVideoNode:
                 ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
+                "compression_quality": (
+                    ["optimized", "lossless"],
+                    {"default": "optimized"},
+                ),
                 "person_generation": (
                     ["dont_allow", "allow_adult"],
                     {"default": "allow_adult"},
@@ -305,6 +331,7 @@ class Veo2ImageToVideoNode:
                 "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
+                "output_gcs_uri": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
                     "INT",
@@ -343,11 +370,13 @@ class Veo2ImageToVideoNode:
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
+        compression_quality: str = "optimized",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
         sample_count: int = 1,
         seed: Optional[int] = None,
+        output_gcs_uri: str = "",
         negative_prompt: Optional[str] = None,
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
@@ -360,11 +389,13 @@ class Veo2ImageToVideoNode:
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             seed: An optional seed for reproducible video generation.
+            output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
             gcp_region: GCP region for Vertex AI APIs to query Veo
@@ -397,10 +428,12 @@ class Veo2ImageToVideoNode:
                     image_format=image_format,
                     prompt=prompt,
                     aspect_ratio=aspect_ratio,
+                    compression_quality=compression_quality,
                     person_generation=person_generation,
                     duration_seconds=duration_seconds,
                     enhance_prompt=enhance_prompt,
                     sample_count=sample_count,
+                    output_gcs_uri=output_gcs_uri,
                     negative_prompt=negative_prompt,
                     seed=seed_for_api,
                 )

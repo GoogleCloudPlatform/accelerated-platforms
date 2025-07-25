@@ -69,11 +69,13 @@ class Veo3API:
         model: str,
         prompt: str,
         aspect_ratio: str,
+        compression_quality: str,
         person_generation: str,
         duration_seconds: int,
         generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
+        output_gcs_uri: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
@@ -84,11 +86,13 @@ class Veo3API:
             model: Veo3 model.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
             duration_seconds: The desired duration of the video in seconds (5-8 seconds).
             generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate (1-4).
+            output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
 
@@ -120,10 +124,13 @@ class Veo3API:
             model=model,
             prompt=prompt,
             aspect_ratio=aspect_ratio,
+            compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
+            output_gcs_uri=output_gcs_uri,
             negative_prompt=negative_prompt,
             seed=seed,
             retry_count=self.retry_count,
@@ -137,11 +144,13 @@ class Veo3API:
         image_format: str,
         prompt: str,
         aspect_ratio: str,
+        compression_quality: str,
         person_generation: str,
         duration_seconds: int,
         generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
+        output_gcs_uri: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
@@ -154,11 +163,13 @@ class Veo3API:
             image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
 
@@ -198,10 +209,13 @@ class Veo3API:
             image_format=image_format,
             prompt=prompt,
             aspect_ratio=aspect_ratio,
+            compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
+            output_gcs_uri=output_gcs_uri,
             negative_prompt=negative_prompt,
             seed=seed,
             retry_count=self.retry_count,
@@ -215,11 +229,13 @@ class Veo3API:
         image_format: str,
         prompt: str,
         aspect_ratio: str,
+        compression_quality: str,
         person_generation: str,
         duration_seconds: int,
         generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
+        output_gcs_uri: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
@@ -231,12 +247,14 @@ class Veo3API:
             gcsuri: The GCS URI of the input image (e.g., "gs://my-bucket/path/to/image.jpg").
             image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
             prompt: The text prompt for video generation.
+            compression_quality: Compression quality i.e optimized vs lossless.
             aspect_ratio: The desired aspect ratio of the video.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
             generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
 
@@ -295,10 +313,13 @@ class Veo3API:
             image_format=image_format,
             prompt=prompt,
             aspect_ratio=aspect_ratio,
+            compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
+            output_gcs_uri=output_gcs_uri,
             negative_prompt=negative_prompt,
             seed=seed,
             retry_count=self.retry_count,

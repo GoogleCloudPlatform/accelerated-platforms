@@ -54,6 +54,7 @@ class Veo3TextToVideoNode:
             },
             "optional": {
                 "output_gcs_uri": ("STRING", {"default": ""}),
+                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
                     "INT",
@@ -98,6 +99,7 @@ class Veo3TextToVideoNode:
         enhance_prompt: bool = True,
         sample_count: int = 1,
         output_gcs_uri: str = "",
+        output_resolution: str = "720p",
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         gcp_project_id: Optional[str] = None,
@@ -117,6 +119,7 @@ class Veo3TextToVideoNode:
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
+            output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
@@ -148,6 +151,7 @@ class Veo3TextToVideoNode:
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
                 output_gcs_uri=output_gcs_uri,
+                output_resolution=output_resolution,
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
@@ -205,6 +209,7 @@ class Veo3GcsUriImageToVideoNode:
             },
             "optional": {
                 "output_gcs_uri": ("STRING", {"default": ""}),
+                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
                     "INT",
@@ -251,6 +256,7 @@ class Veo3GcsUriImageToVideoNode:
         enhance_prompt: bool = True,
         sample_count: int = 1,
         output_gcs_uri: str = "",
+        output_resolution: str = "720p",
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         gcp_project_id: Optional[str] = None,
@@ -272,6 +278,7 @@ class Veo3GcsUriImageToVideoNode:
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
+            output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
@@ -304,6 +311,7 @@ class Veo3GcsUriImageToVideoNode:
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
                 output_gcs_uri=output_gcs_uri,
+                output_resolution=output_resolution,
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
@@ -358,6 +366,7 @@ class Veo3ImageToVideoNode:
             },
             "optional": {
                 "output_gcs_uri": ("STRING", {"default": ""}),
+                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
                     "INT",
@@ -405,6 +414,7 @@ class Veo3ImageToVideoNode:
         sample_count: int = 1,
         seed: Optional[int] = None,
         output_gcs_uri: str = "",
+        output_resolution: str = "720p",
         negative_prompt: Optional[str] = None,
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
@@ -426,6 +436,7 @@ class Veo3ImageToVideoNode:
             sample_count: The number of video samples to generate.
             seed: An optional seed for reproducible video generation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
+            output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
             gcp_region: GCP region for Vertex AI APIs to query Veo
@@ -466,6 +477,7 @@ class Veo3ImageToVideoNode:
                     enhance_prompt=enhance_prompt,
                     sample_count=sample_count,
                     output_gcs_uri=output_gcs_uri,
+                    output_resolution=output_resolution,
                     negative_prompt=negative_prompt,
                     seed=seed_for_api,
                 )

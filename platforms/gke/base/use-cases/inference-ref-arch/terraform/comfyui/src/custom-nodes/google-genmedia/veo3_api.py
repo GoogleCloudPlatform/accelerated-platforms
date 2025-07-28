@@ -16,13 +16,12 @@
 
 from typing import List, Optional
 
-import numpy as np
 import torch
 from google import genai
 
 from . import utils
 from .config import get_gcp_metadata
-from .constants import VEO3_USER_AGENT, Veo3Model
+from .constants import OUTPUT_RESOLUTION, VEO3_USER_AGENT, Veo3Model
 
 
 class Veo3API:
@@ -76,6 +75,7 @@ class Veo3API:
         enhance_prompt: bool,
         sample_count: int,
         output_gcs_uri: str,
+        output_resolution: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
@@ -93,6 +93,7 @@ class Veo3API:
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate (1-4).
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
+            output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
 
@@ -117,6 +118,11 @@ class Veo3API:
             raise ValueError(
                 f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
+        if output_resolution not in OUTPUT_RESOLUTION:
+            raise ValueError(
+                f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
+            )
+
         model = Veo3Model[model]
 
         return utils.generate_video_from_text(
@@ -131,6 +137,7 @@ class Veo3API:
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
             output_gcs_uri=output_gcs_uri,
+            output_resolution=output_resolution,
             negative_prompt=negative_prompt,
             seed=seed,
             retry_count=self.retry_count,
@@ -151,6 +158,7 @@ class Veo3API:
         enhance_prompt: bool,
         sample_count: int,
         output_gcs_uri: str,
+        output_resolution: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
@@ -170,6 +178,7 @@ class Veo3API:
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
+            output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
 
@@ -201,6 +210,10 @@ class Veo3API:
             raise ValueError(
                 f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
+        if output_resolution not in OUTPUT_RESOLUTION:
+            raise ValueError(
+                f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
+            )
         model = Veo3Model[model]
         return utils.generate_video_from_image(
             client=self.client,
@@ -216,6 +229,7 @@ class Veo3API:
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
             output_gcs_uri=output_gcs_uri,
+            output_resolution=output_resolution,
             negative_prompt=negative_prompt,
             seed=seed,
             retry_count=self.retry_count,
@@ -236,6 +250,7 @@ class Veo3API:
         enhance_prompt: bool,
         sample_count: int,
         output_gcs_uri: str,
+        output_resolution: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
     ) -> List[str]:
@@ -255,6 +270,7 @@ class Veo3API:
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
+            output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
 
@@ -286,6 +302,10 @@ class Veo3API:
         if aspect_ratio != "16:9":
             raise ValueError(
                 f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+            )
+        if output_resolution not in OUTPUT_RESOLUTION:
+            raise ValueError(
+                f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
 
         valid_bucket, validation_message = utils.validate_gcs_uri_and_image(gcsuri)
@@ -320,6 +340,7 @@ class Veo3API:
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
             output_gcs_uri=output_gcs_uri,
+            output_resolution=output_resolution,
             negative_prompt=negative_prompt,
             seed=seed,
             retry_count=self.retry_count,

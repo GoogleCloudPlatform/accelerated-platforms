@@ -21,7 +21,7 @@ from google import genai
 
 from . import utils
 from .config import get_gcp_metadata
-from .constants import VEO2_MODEL_ID, VEO2_USER_AGENT
+from .constants import VEO2_GENERATE_AUDIO_FLAG, VEO2_MODEL_ID, VEO2_USER_AGENT
 from .utils import validate_gcs_uri_and_image
 
 
@@ -116,6 +116,7 @@ class Veo2API:
             compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=VEO2_GENERATE_AUDIO_FLAG,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
             output_gcs_uri=output_gcs_uri,
@@ -190,6 +191,7 @@ class Veo2API:
             aspect_ratio=aspect_ratio,
             compression_quality=compression_quality,
             person_generation=person_generation,
+            generate_audio=VEO2_GENERATE_AUDIO_FLAG,
             duration_seconds=duration_seconds,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
@@ -285,6 +287,7 @@ class Veo2API:
             compression_quality=compression_quality,
             person_generation=person_generation,
             duration_seconds=duration_seconds,
+            generate_audio=VEO2_GENERATE_AUDIO_FLAG,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
             output_gcs_uri=output_gcs_uri,

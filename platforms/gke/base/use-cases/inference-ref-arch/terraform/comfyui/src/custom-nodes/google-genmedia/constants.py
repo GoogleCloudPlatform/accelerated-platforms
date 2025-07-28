@@ -27,6 +27,7 @@ IMAGEN4_USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"
 MAX_SEED = 0xFFFFFFFF
 STORAGE_USER_AGENT = "cloud-solutions/comfyui-gcs-custom-node-v1"
 SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".mkv"}
+VEO2_GENERATE_AUDIO_FLAG = False
 VEO2_MODEL_ID = "veo-2.0-generate-001"
 VEO2_USER_AGENT = "cloud-solutions/comfyui-veo2-custom-node-v1"
 VEO3_USER_AGENT = "cloud-solutions/comfyui-veo3-custom-node-v1"

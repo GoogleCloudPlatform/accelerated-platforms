@@ -304,7 +304,7 @@ def generate_video_from_gcsuri_image(
     config = GenerateVideosConfig(
         aspect_ratio=aspect_ratio,
         person_generation=person_generation,
-        compression_quality_type=compression_quality_type,
+        compression_quality=compression_quality_type,
         duration_seconds=duration_seconds,
         enhance_prompt=enhance_prompt,
         number_of_videos=sample_count,
@@ -504,7 +504,7 @@ def generate_video_from_image(
     config = GenerateVideosConfig(
         aspect_ratio=aspect_ratio,
         person_generation=person_generation,
-        compression_quality_type=compression_quality_type,
+        compression_quality=compression_quality_type,
         duration_seconds=duration_seconds,
         enhance_prompt=enhance_prompt,
         number_of_videos=sample_count,
@@ -669,7 +669,7 @@ def generate_video_from_text(
     config = GenerateVideosConfig(
         aspect_ratio=aspect_ratio,
         person_generation=person_generation,
-        compression_quality_type=compression_quality_type,
+        compression_quality=compression_quality_type,
         duration_seconds=duration_seconds,
         enhance_prompt=enhance_prompt,
         number_of_videos=sample_count,

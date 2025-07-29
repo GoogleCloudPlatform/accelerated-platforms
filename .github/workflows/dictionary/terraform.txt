@@ -20,6 +20,7 @@ templatefile
 terraservice
 terraservices
 tfstate
+tfswitch
 tftpl
 tfvars
 tomap

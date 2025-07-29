@@ -54,12 +54,6 @@ Shell has the following tools installed:
 - `sponge`
 - `wget`
 
-> [!IMPORTANT]  
-> At the time this guide was written, Cloud Shell had Terraform v1.5.7 installed
-> by default. Terraform version 1.8.0 or later is required for this guide. For
-> more information about installing Terraform, see
-> [Install Terraform](https://developer.hashicorp.com/terraform/install).
-
 ## Prepare the environment
 
 ### Pull the source code
@@ -79,13 +73,13 @@ Shell has the following tools installed:
 
   `bash`
 
-  ```
+  ```shell
   sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.bashrc
   ```
 
   `zsh`
 
-  ```
+  ```shell
   sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
   ```
 
@@ -116,6 +110,18 @@ For more information about providing values for Terraform input variables, see
 
   ```hcl
   platform_default_project_id = "<PROJECT_ID>"
+  ```
+
+### Install Terraform 1.8.0+
+
+> [!IMPORTANT]  
+> At the time this guide was written, Cloud Shell had Terraform v1.5.7 installed
+> by default. Terraform version 1.8.0 or later is required for this guide.
+
+- Run the `install-terraform.sh` script to install Terraform 1.8.0.
+
+  ```shell
+  "${ACP_REPO_DIR}/tools/bin/install-terraform.sh"
   ```
 
 ## Deploy and configure Google Cloud resources

@@ -51,3 +51,31 @@ resource "google_gke_hub_membership" "cluster" {
     }
   }
 }
+
+resource "terraform_data" "wait_for_cluster_operations_destroy" {
+  depends_on = [
+    google_gke_hub_membership.cluster
+  ]
+
+  input = {
+    query = jsonencode(
+      {
+        cluster_name   = local.cluster_name
+        cluster_region = var.cluster_region
+        project_id     = local.cluster_project_id
+        timeout        = "600"
+      }
+    )
+  }
+
+  provisioner "local-exec" {
+    command     = "${path.module}/../../../scripts/container_cluster/wait_for_cluster_operations.sh <<< '${self.input.query}'"
+    interpreter = ["bash", "-c"]
+    when        = destroy
+    working_dir = path.module
+  }
+
+  triggers_replace = {
+    always_run = timestamp()
+  }
+}

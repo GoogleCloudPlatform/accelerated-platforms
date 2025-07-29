@@ -4,10 +4,6 @@
 
 - Open [Cloud Shell](https://cloud.google.com/shell).
 
-  To deploy this reference implementation, you need Terraform >= 1.8.0. For more
-  information about installing Terraform, see
-  [Install Terraform](https://developer.hashicorp.com/terraform/install).
-
 - Clone the repository and change directory to the guide directory
 
   ```
@@ -160,6 +156,18 @@ IAP application or resources.
 
   ```
   sed -i '/^comfyui_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//comfyui_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/comfyui.auto.tfvars
+  ```
+
+### Install Terraform 1.8.0+
+
+> [!IMPORTANT]  
+> At the time this guide was written, Cloud Shell had Terraform v1.5.7 installed
+> by default. Terraform version 1.8.0 or later is required for this guide.
+
+- Run the `install-terraform.sh` script to install Terraform 1.8.0.
+
+  ```shell
+  "${ACP_REPO_DIR}/tools/bin/install-terraform.sh"
   ```
 
 ## Deploy

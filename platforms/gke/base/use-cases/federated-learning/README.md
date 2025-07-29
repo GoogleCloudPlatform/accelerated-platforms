@@ -168,10 +168,6 @@ To deploy the reference architecture, you do the following:
 
 1. Open [Cloud Shell](https://cloud.google.com/shell).
 
-   To deploy this reference architecture, you need Terraform >= 1.8.0. For more
-   information about installing Terraform, see
-   [Install Terraform](https://developer.hashicorp.com/terraform/install).
-
 1. Clone this repository and change the working directory:
 
    ```shell
@@ -229,6 +225,16 @@ To deploy the reference architecture, you do the following:
    When you set `resource_name_prefix` and `platform_name`, we recommend that
    you avoid long strings because the might make resource naming validation to
    fail because the resource name might be too long.
+
+> [!IMPORTANT]  
+> At the time this guide was written, Cloud Shell had Terraform v1.5.7 installed
+> by default. Terraform version 1.8.0 or later is required for this guide.
+
+1. Run the `install-terraform.sh` script to install Terraform 1.8.0.
+
+   ```shell
+   "${ACP_REPO_DIR}/tools/bin/install-terraform.sh"
+   ```
 
 1. Run the script to provision the reference architecture:
 

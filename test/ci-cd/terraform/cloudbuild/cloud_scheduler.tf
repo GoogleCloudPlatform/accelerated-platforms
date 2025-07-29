@@ -20,8 +20,8 @@ resource "google_cloud_scheduler_job" "acp_ci_cd_runner_image_daily" {
   name      = "acp-ci-cd-runner-image-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 6 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -38,8 +38,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_ap_full_scripts" 
   name      = "platforms-gke-base-core-ap-full-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -56,8 +56,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_full_scripts" {
   name      = "platforms-gke-base-core-full-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -74,8 +74,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_initialize_terraf
   name      = "platforms-gke-base-core-initialize-terraform-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -92,8 +92,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_ap_scripts" {
   name      = "platforms-gke-base-core-ap-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -110,8 +110,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_scripts" {
   name      = "platforms-gke-base-core-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -128,8 +128,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_tutorial_ap_scrip
   name      = "platforms-gke-base-core-tutorial-ap-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -146,8 +146,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_tutorial_standard
   name      = "platforms-gke-base-core-tutorial-standard-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -164,8 +164,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_workloads_terrafo
   name      = "platforms-gke-base-core-workloads-terraform-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -182,8 +182,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_uc_federated_learning_
   name      = "platforms-gke-base-uc-federated_learning-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -200,8 +200,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_uc_federated_learning_
   name      = "platforms-gke-base-uc-federated_learning-cross-device-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -218,8 +218,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_uc_inference_ref_arch_
   name      = "platforms-gke-base-uc-inference-ref-arch-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
@@ -236,8 +236,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_uc_inference_ref_arch_
   name      = "platforms-gke-base-uc-inference-ref-arch-comfyui-scripts-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
-  schedule  = "0 0 * * *"
-  time_zone = "Etc/UTC"
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
 
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))

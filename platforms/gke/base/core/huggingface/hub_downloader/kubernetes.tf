@@ -43,6 +43,8 @@ module "kubectl_apply_namespace" {
   source = "../../../modules/kubectl_apply"
 
   apply_server_side           = true
+  error_on_delete_failure     = false
+  delete_timeout              = "60s"
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = "${local.namespaces_directory}/namespace-${local.huggingface_hub_downloader_kubernetes_namespace_name}.yaml"
   manifest_includes_namespace = true

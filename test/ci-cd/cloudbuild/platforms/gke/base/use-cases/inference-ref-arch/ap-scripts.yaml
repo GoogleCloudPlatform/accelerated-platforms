@@ -43,10 +43,10 @@ steps:
       - "Check triggers"
 
   - args:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch Standard"
-      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-standard.sh"
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch Autopilot"
+      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
-    id: "Deploy platforms/gke/base/use-cases/inference-ref-arch Standard"
+    id: "Deploy platforms/gke/base/use-cases/inference-ref-arch Autopilot"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Configure the build environment"
@@ -58,7 +58,7 @@ steps:
     id: "Apply inference-ref-arch Terraservice 'online_gpu'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch Standard"
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch Autopilot"
 
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
@@ -67,7 +67,7 @@ steps:
     id: "Apply inference-ref-arch Terraservice 'online_tpu'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch Standard"
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch Autopilot"
 
   - args:
       - "Validate Kustomize"
@@ -115,10 +115,10 @@ steps:
       - "inference-ref-arch Terraservice 'online_tpu' check for changes"
 
   - args:
-      - "Teardown platforms/gke/base/use-cases/inference-ref-arch Standard"
-      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-standard.sh"
+      - "Teardown platforms/gke/base/use-cases/inference-ref-arch Autopilot"
+      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
-    id: "Teardown platforms/gke/base/use-cases/inference-ref-arch Standard"
+    id: "Teardown platforms/gke/base/use-cases/inference-ref-arch Autopilot"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Destroy inference-ref-arch Terraservice 'online_gpu'"
@@ -130,7 +130,7 @@ steps:
     id: "Cleanup the build environment"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Teardown platforms/gke/base/use-cases/inference-ref-arch Standard"
+      - "Teardown platforms/gke/base/use-cases/inference-ref-arch Autopilot"
 
   - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
     id: "Set the build status"

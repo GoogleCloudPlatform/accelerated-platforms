@@ -70,12 +70,32 @@ For more information about providing values for Terraform input variables, see
 
 ## Deploy
 
-```shell
-${ACP_REPO_DIR}/platforms/gke/base/core/deploy.sh
-```
+- Deploy the reference implementation.
+
+  **GKE Autopilot**
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/core/deploy-ap.sh
+  ```
+
+  **GKE Standard**
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/core/deploy-standard.sh
+  ```
 
 ## Teardown
 
-```shell
-${ACP_REPO_DIR}/platforms/gke/base/core/teardown.sh
-```
+- Teardown the reference implementation.
+
+  **GKE Autopilot**
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/core/teardown-ap.sh
+  ```
+
+  **GKE Standard**
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/core/teardown-standard.sh
+  ```

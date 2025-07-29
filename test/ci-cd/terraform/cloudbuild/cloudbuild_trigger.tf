@@ -98,13 +98,13 @@ resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
 
 locals {
   platforms_gke_base_core_ap_full_scripts_ignore = [
-    "platforms/gke/base/core/deploy.sh",
     "platforms/gke/base/core/deploy-ap.sh",
+    "platforms/gke/base/core/deploy-standard.sh",
     "platforms/gke/base/core/deploy-tutorial-ap.sh",
     "platforms/gke/base/core/deploy-tutorial-standard.sh",
     "platforms/gke/base/core/README.md",
-    "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/teardown-ap.sh",
+    "platforms/gke/base/core/teardown-standard.sh",
     "platforms/gke/base/core/teardown-tutorial-ap.sh",
     "platforms/gke/base/core/teardown-tutorial-standard.sh"
   ]
@@ -168,13 +168,13 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_ap_full_scripts_pu
 
 locals {
   platforms_gke_base_core_full_scripts_ignore = [
-    "platforms/gke/base/core/deploy.sh",
     "platforms/gke/base/core/deploy-ap.sh",
+    "platforms/gke/base/core/deploy-standard.sh",
     "platforms/gke/base/core/deploy-tutorial-ap.sh",
     "platforms/gke/base/core/deploy-tutorial-standard.sh",
     "platforms/gke/base/core/README.md",
-    "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/teardown-ap.sh",
+    "platforms/gke/base/core/teardown-standard.sh",
     "platforms/gke/base/core/teardown-tutorial-ap.sh",
     "platforms/gke/base/core/teardown-tutorial-standard.sh"
   ]
@@ -636,10 +636,12 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
 locals {
   platforms_gke_base_uc_federated_learning_scripts_ignore = [
     "platforms/gke/base/core/deploy-ap.sh",
+    "platforms/gke/base/core/deploy-standard.sh",
     "platforms/gke/base/core/deploy-tutorial-ap.sh",
     "platforms/gke/base/core/deploy-tutorial-standard.sh",
     "platforms/gke/base/core/README.md",
     "platforms/gke/base/core/teardown-ap.sh",
+    "platforms/gke/base/core/teardown-standard.sh",
     "platforms/gke/base/core/teardown-tutorial-ap.sh",
     "platforms/gke/base/core/teardown-tutorial-standard.sh",
     "platforms/gke/base/use-cases/federated-learning/README.md"

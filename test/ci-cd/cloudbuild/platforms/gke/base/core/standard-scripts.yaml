@@ -40,22 +40,22 @@ steps:
       - "Check triggers"
 
   - args:
-      - "Deploy platforms/gke/base/core"
-      - "platforms/gke/base/core/deploy.sh"
+      - "Deploy platforms/gke/base/core Standard"
+      - "platforms/gke/base/core/deploy-standard.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
-    id: "Deploy platforms/gke/base/core"
+    id: "Deploy platforms/gke/base/core Standard"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Configure the build environment"
 
   - args:
-      - "Teardown platforms/gke/base/core"
-      - "platforms/gke/base/core/teardown.sh"
+      - "Teardown platforms/gke/base/core Standard"
+      - "platforms/gke/base/core/teardown-standard.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
-    id: "Teardown platforms/gke/base/core"
+    id: "Teardown platforms/gke/base/core Standard"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/core"
+      - "Deploy platforms/gke/base/core Standard"
 
   - args:
       - "Cleanup the build environment"
@@ -63,7 +63,7 @@ steps:
     id: "Cleanup the build environment"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Teardown platforms/gke/base/core"
+      - "Teardown platforms/gke/base/core Standard"
 
   - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
     id: "Set the build status"

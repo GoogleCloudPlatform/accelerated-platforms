@@ -1,0 +1,77 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+options:
+  automapSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - args:
+      - "${_WAIT_FOR_TRIGGER}"
+    entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
+    id: "Check triggers"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor: ["-"]
+
+  - args:
+      - DEBUG=${_DEBUG}
+      - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+      - TF_VAR_platform_name="ch${SHORT_SHA}"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"
+    env:
+      - BUILD_ID=${BUILD_ID}
+      - DEBUG=${_DEBUG}
+      - PROJECT_ID=${PROJECT_ID}
+      - SHORT_SHA=${SHORT_SHA}
+    id: "Configure the build environment"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Check triggers"
+
+  - args:
+      - "Deploy platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
+      - "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
+    id: "Deploy platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Configure the build environment"
+
+  - args:
+      - "Teardown platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
+      - "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
+    id: Teardown platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Deploy platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
+
+  - args:
+      - "Cleanup the build environment"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/cleanup_build_environment.sh"
+    id: "Cleanup the build environment"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - Teardown platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard
+
+  - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
+    id: "Set the build status"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Cleanup the build environment"
+
+substitutions:
+  _DEBUG: "false"
+
+timeout: 90m

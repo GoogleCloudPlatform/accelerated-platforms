@@ -723,7 +723,7 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_federated_learning_s
 ###################################################################################################
 
 locals {
-  platforms_gke_base_uc_federated_learning_cross_device_standard_scripts_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/federated-learning/standard-scripts.yaml"
+  platforms_gke_base_uc_federated_learning_cross_device_standard_scripts_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/federated-learning/standard-scripts-cross-device.yaml"
   platforms_gke_base_uc_federated_learning_cross_device_standard_scripts_ignore = [
   ]
   platforms_gke_base_uc_federated_learning_cross_device_standard_scripts_include = [

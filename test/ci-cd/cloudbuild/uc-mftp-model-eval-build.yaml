@@ -16,18 +16,20 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-- args:
-  - --cache=true
-  - --cache-ttl=48h
-  - --context=dir://use-cases/model-fine-tuning-pipeline/model-eval/src
-  - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/uc-mftp-model-eval-build:${SHORT_SHA}
-  - --dockerfile=use-cases/model-fine-tuning-pipeline/model-eval/src/Dockerfile
-  - --log-format=text
-  - --log-timestamp=false
-  - --verbosity=info
-  id: "Build use-cases/model-fine-tuning-pipeline/model-eval/src image"
-  name: "gcr.io/kaniko-project/executor:latest"
-  waitFor: ["-"]
+  - args:
+      - --cache=true
+      - --cache-ttl=48h
+      - --context=dir://use-cases/model-fine-tuning-pipeline/model-eval/src
+      - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/uc-mftp-model-eval-build:${SHORT_SHA}
+      - --dockerfile=use-cases/model-fine-tuning-pipeline/model-eval/src/Dockerfile
+      - --log-format=text
+      - --log-timestamp=false
+      - --verbosity=info
+    id: "Build use-cases/model-fine-tuning-pipeline/model-eval/src image"
+    name: "gcr.io/kaniko-project/executor:latest"
+    waitFor: ["-"]
 
 substitutions:
   _AR_REPO_LOCATION: "us-central1"
+
+timeout: 90m

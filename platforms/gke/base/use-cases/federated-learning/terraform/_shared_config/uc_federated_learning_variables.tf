@@ -16,6 +16,9 @@ locals {
   gke_robot_service_account           = "service-${data.google_project.cluster.number}@container-engine-robot.iam.gserviceaccount.com"
   gke_robot_service_account_iam_email = "serviceAccount:${local.gke_robot_service_account}"
 
+  compute_system_service_account           = "service-${data.google_project.cluster.number}@compute-system.iam.gserviceaccount.com"
+  compute_system_service_account_iam_email = "serviceAccount:${local.compute_system_service_account}"
+
   # Define values that other values depend on
   _tenants_initial = {
     for name in var.federated_learning_tenant_names : name => {
@@ -84,6 +87,8 @@ locals {
   tenant_apps_kubernetes_service_account_name = "fl-ksa"
 
   federated_learning_firewall_policy_name = "${local.cluster_name}-federated-learning-firewall-policy"
+
+  federated_learning_repository_id = "${local.unique_identifier_prefix}-fl-repository"
 }
 
 variable "federated_learning_cloud_storage_buckets" {

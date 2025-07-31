@@ -33,8 +33,9 @@ torchaudio
 torchvision
 unet
 veo
-veopreview
 veo2
+veo3
+veopreview
 vertexai
 videohelpersuite
 videopreview

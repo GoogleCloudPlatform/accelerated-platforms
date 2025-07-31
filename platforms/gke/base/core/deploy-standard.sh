@@ -24,20 +24,20 @@ MY_PATH="$(
   pwd -P
 )"
 
-declare -a CORE_TERRASERVICES_DESTROY_APPLY=(
-  "workloads/auto_monitoring"
-  "custom_compute_class"
-  "huggingface/hub_downloader"
-  "huggingface/initialize"
-  "workloads/cluster_credentials"
-  "container_cluster"
+declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   "networking"
-  "initialize"
+  "container_cluster"
+  "container_node_pool"
+  "gke_enterprise/fleet_membership"
+  "workloads/cluster_credentials"
+  "custom_compute_class"
+  "workloads/auto_monitoring"
+  "workloads/kueue"
 )
-export CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY_APPLY[*]}"
+export CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY_ARRAY[*]}"
 
-"${MY_PATH}/teardown.sh"
+"${MY_PATH}/deploy.sh"
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "Total runtime (core/teardown-tutorial-standard): $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "Total runtime (core/deploy-standard): $(date -d@${total_runtime_value} -u +%H:%M:%S)"

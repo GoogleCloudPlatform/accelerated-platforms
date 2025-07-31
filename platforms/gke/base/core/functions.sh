@@ -19,14 +19,16 @@ ParseSeparatedBashArray() {
   local -n DESTINATION_ARRAY="${2}"
   local STRING_ARRAY_SEPARATOR="${3}"
 
-  echo "Parsing ${STRING_TO_PARSE} as a Bash array"
+  [ -v DEBUG ] && echo "Parsing ${STRING_TO_PARSE} as a Bash array"
 
   local -a PARSED_ARRAY
   IFS="${STRING_ARRAY_SEPARATOR}" read -r -a PARSED_ARRAY <<<"${STRING_TO_PARSE}"
-  echo "Elements to add to ${!DESTINATION_ARRAY}: ${PARSED_ARRAY[*]}"
+
+  [ -v DEBUG ] && echo "Elements to add to ${!DESTINATION_ARRAY}: ${PARSED_ARRAY[*]}"
 
   DESTINATION_ARRAY+=("${PARSED_ARRAY[@]}")
-  echo "${!DESTINATION_ARRAY} after adding options: ${DESTINATION_ARRAY[*]}"
+
+  [ -v DEBUG ] && echo "${!DESTINATION_ARRAY} after adding options: ${DESTINATION_ARRAY[*]}"
 
   unset -n DESTINATION_ARRAY
 }

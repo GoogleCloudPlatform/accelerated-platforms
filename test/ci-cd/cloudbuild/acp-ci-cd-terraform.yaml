@@ -16,32 +16,34 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-- args:
-  - "${_WAIT_FOR_TRIGGER}"
-  entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
-  env:
-  - "LOCATION=${LOCATION}"
-  - "PROJECT_ID=${PROJECT_ID}"
-  id: "Check triggers"
-  name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-  waitFor: ["-"]
+  - args:
+      - "${_WAIT_FOR_TRIGGER}"
+    entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
+    env:
+      - "LOCATION=${LOCATION}"
+      - "PROJECT_ID=${PROJECT_ID}"
+    id: "Check triggers"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor: ["-"]
 
-- name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-  id: "Apply GoogleCloudPlatform/accelerated-platforms CI/CD Terraform"
-  entrypoint: "ash"
-  args:
-    - "-x"
-    - "-c"
-    - |
-      set -o errexit
-      set -o nounset
-      set -o pipefail
+  - name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    id: "Apply GoogleCloudPlatform/accelerated-platforms CI/CD Terraform"
+    entrypoint: "ash"
+    args:
+      - "-x"
+      - "-c"
+      - |
+        set -o errexit
+        set -o nounset
+        set -o pipefail
 
-      export NO_COLOR="1"
-      export TERM="xterm"
-      export TF_CLI_ARGS="-no-color"
-      export TF_IN_AUTOMATION="1"
-      
-      test/ci-cd/terraform/apply.sh
-  waitFor:
-  - "Check triggers"
+        export NO_COLOR="1"
+        export TERM="xterm"
+        export TF_CLI_ARGS="-no-color"
+        export TF_IN_AUTOMATION="1"
+
+        test/ci-cd/terraform/apply.sh
+    waitFor:
+      - "Check triggers"
+
+timeout: 90m

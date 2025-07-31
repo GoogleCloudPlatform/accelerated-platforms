@@ -25,10 +25,11 @@ MY_PATH="$(
 )"
 
 declare -a CORE_TERRASERVICES_DESTROY_APPLY=(
+  "workloads/kueue"
   "workloads/auto_monitoring"
   "custom_compute_class"
-  "huggingface/hub_downloader"
-  "huggingface/initialize"
+  "gke_enterprise/fleet_membership"
+  "container_node_pool"
   "workloads/cluster_credentials"
   "container_cluster"
   "networking"
@@ -40,4 +41,4 @@ export CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY_APPLY[*]}"
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "Total runtime (core/teardown-tutorial-standard): $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "Total runtime (core/teardown-standard): $(date -d@${total_runtime_value} -u +%H:%M:%S)"

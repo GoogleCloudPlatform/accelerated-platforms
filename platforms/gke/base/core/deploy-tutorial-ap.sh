@@ -24,97 +24,19 @@ MY_PATH="$(
   pwd -P
 )"
 
-# Set repository values
-ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../)"
-ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
-ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
-
-# shellcheck disable=SC1091
-source "${ACP_PLATFORM_CORE_DIR}/functions.sh"
-
-declare -a terraservices
-if [[ -v CORE_TERRASERVICES_APPLY ]] &&
-  [[ -n "${CORE_TERRASERVICES_APPLY:-""}" ]]; then
-  echo "Found customized core platform terraservices set to apply: ${CORE_TERRASERVICES_APPLY}"
-  ParseSpaceSeparatedBashArray "${CORE_TERRASERVICES_APPLY}" "terraservices"
-else
-  terraservices=(
-    "networking"
-    "container_cluster_ap"
-    "workloads/cluster_credentials"
-    # Could be included to standardize Hugging Face usage.
-    #"huggingface/initialize"
-    "custom_compute_class"
-    "workloads/auto_monitoring"
-  )
-fi
-echo "Core platform terraservices to provision: ${terraservices[*]}"
-
-# shellcheck disable=SC1091
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
-
-declare -a projects=(
-  "${cluster_node_pool_service_account_project_id}"
-  "${cluster_project_id}"
-  "${huggingface_hub_models_bucket_project_id}"
-  "${huggingface_secret_manager_project_id}"
-  "${nvidia_ncg_api_key_secret_manager_project_id}"
-  "${nvidia_nim_model_store_bucket_project_id}"
-  "${platform_default_project_id}"
-  "${terraform_project_id}"
+declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
+  "networking"
+  "container_cluster_ap"
+  "workloads/cluster_credentials"
+  "huggingface/initialize"
+  "huggingface/hub_downloader"
+  "custom_compute_class"
+  "workloads/auto_monitoring"
 )
-unique_projects=($(printf "%s\n" "${projects[@]}" | sort -u))
+export CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY_ARRAY[*]}"
 
-declare -a services=(
-  "cloudresourcemanager.googleapis.com"
-  "servicemanagement.googleapis.com"
-  "serviceusage.googleapis.com"
-)
-
-for project in "${unique_projects[@]}"; do
-  echo "Enabling services for project ${project}:"
-  for service in "${services[@]}"; do
-    echo " - ${service}"
-    gcloud services enable ${service} \
-      --project=${project} \
-      --quiet
-  done
-  echo
-done
-
-# shellcheck disable=SC2154 # Variable is defined as a terraform output and sourced in other scripts
-cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
-  echo "Current directory: $(pwd)" &&
-  sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
-  export STATE_MIGRATED="false" &&
-  if gcloud storage ls "gs://${terraform_bucket_name}/terraform/initialize/default.tfstate" &>/dev/null; then
-    if [ ! -f "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf" ]; then
-      cp backend.tf.bucket backend.tf
-    fi
-    export STATE_MIGRATED="true"
-  fi
-
-cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
-  terraform init &&
-  terraform plan -input=false -out=tfplan &&
-  terraform apply -input=false tfplan || exit 1
-rm tfplan
-
-if [ "${STATE_MIGRATED}" == "false" ]; then
-  echo "Migrating the state backend"
-  terraform init -force-copy -migrate-state || exit 1
-  rm -rf terraform.tfstate*
-fi
-
-for terraservice in "${terraservices[@]}"; do
-  cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
-    echo "Current directory: $(pwd)" &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-  rm tfplan
-done
+"${MY_PATH}/deploy.sh"
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "Total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "Total runtime (core/deploy-tutorial-ap): $(date -d@${total_runtime_value} -u +%H:%M:%S)"

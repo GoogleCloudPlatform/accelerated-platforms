@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-start_timestamp=$(date +%s)
-
 MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
@@ -33,28 +31,16 @@ ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 source "${ACP_PLATFORM_CORE_DIR}/functions.sh"
 
 declare -a terraservices
-if [[ -v CORE_TERRASERVICES_APPLY ]] &&
-  [[ -n "${CORE_TERRASERVICES_APPLY:-""}" ]]; then
-  echo "Found customized core platform terraservices set to apply: ${CORE_TERRASERVICES_APPLY}"
+if [[ -v CORE_TERRASERVICES_APPLY ]] && [[ -n "${CORE_TERRASERVICES_APPLY:-""}" ]]; then
   ParseSpaceSeparatedBashArray "${CORE_TERRASERVICES_APPLY}" "terraservices"
 else
-  terraservices=(
-    "networking"
-    "container_cluster"
-    "container_node_pool"
-    "gke_enterprise/fleet_membership"
-    # Disable gke_enterprise/servicemesh due to b/376312292
-    # "gke_enterprise/servicemesh"
-    "workloads/cluster_credentials"
-    "custom_compute_class"
-    "workloads/auto_monitoring"
-    "workloads/kueue"
-  )
+  echo "CORE_TERRASERVICES_APPLY was not set, exiting..."
+  exit 1
 fi
-echo "Core platform terraservices to provision: ${terraservices[*]}"
+echo "Core platform Terraservices to provision: ${terraservices[*]}"
 
 # shellcheck disable=SC1091
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 declare -a projects=(
   "${cluster_node_pool_service_account_project_id}"
@@ -117,7 +103,3 @@ for terraservice in "${terraservices[@]}"; do
     terraform apply -input=false tfplan || exit 1
   rm tfplan
 done
-
-end_timestamp=$(date +%s)
-total_runtime_value=$((end_timestamp - start_timestamp))
-echo "Total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"

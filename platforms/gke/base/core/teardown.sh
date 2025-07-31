@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-start_timestamp=$(date +%s)
-
 MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
@@ -33,29 +31,16 @@ ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 source "${ACP_PLATFORM_CORE_DIR}/functions.sh"
 
 declare -a terraservices
-if [[ -v CORE_TERRASERVICES_DESTROY ]] &&
-  [[ -n "${CORE_TERRASERVICES_DESTROY:-""}" ]]; then
-  echo "Found customized core platform terraservices set to destroy: ${CORE_TERRASERVICES_DESTROY}"
+if [[ -v CORE_TERRASERVICES_DESTROY ]] && [[ -n "${CORE_TERRASERVICES_DESTROY:-""}" ]]; then
   ParseSpaceSeparatedBashArray "${CORE_TERRASERVICES_DESTROY}" "terraservices"
 else
-  terraservices=(
-    "workloads/kueue"
-    "workloads/auto_monitoring"
-    "custom_compute_class"
-    # Disable gke_enterprise/servicemesh due to b/376312292
-    # "gke_enterprise/servicemesh"
-    "gke_enterprise/fleet_membership"
-    "container_node_pool"
-    "workloads/cluster_credentials"
-    "container_cluster"
-    "networking"
-    "initialize"
-  )
+  echo "CORE_TERRASERVICES_DESTROY was not set, exiting..."
+  exit 1
 fi
-echo "Core platform terraservices to destroy: ${terraservices[*]}"
+echo "Core platform Terraservices to destroy: ${terraservices[*]}"
 
 # shellcheck disable=SC1091
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" "${ACP_PLATFORM_BASE_DIR}/_shared_config"
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 # shellcheck disable=SC2154 # Variable is defined as a terraform output and sourced in other scripts
 cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
@@ -103,7 +88,3 @@ for terraservice in "${terraservices[@]}"; do
       "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
   fi
 done
-
-end_timestamp=$(date +%s)
-total_runtime_value=$((end_timestamp - start_timestamp))
-echo "Total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"

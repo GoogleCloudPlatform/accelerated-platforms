@@ -40,22 +40,22 @@ steps:
       - "Check triggers"
 
   - args:
-      - "Deploy platforms/gke/base/core tutorial Standard"
-      - "platforms/gke/base/core/deploy-tutorial-standard.sh"
+      - "Deploy platforms/gke/base/use-cases/federated-learning Standard"
+      - "platforms/gke/base/use-cases/federated-learning/deploy.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
-    id: "Deploy platforms/gke/base/core tutorial Standard"
+    id: "Deploy platforms/gke/base/use-cases/federated-learning Standard"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Configure the build environment"
 
   - args:
-      - "Teardown platforms/gke/base/core tutorial Standard"
-      - "platforms/gke/base/core/teardown-tutorial-standard.sh"
+      - "Teardown platforms/gke/base/use-cases/federated-learning Standard"
+      - "platforms/gke/base/use-cases/federated-learning/teardown.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
-    id: "Teardown platforms/gke/base/core tutorial Standard"
+    id: Teardown platforms/gke/base/use-cases/federated-learning Standard
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/core tutorial Standard"
+      - "Deploy platforms/gke/base/use-cases/federated-learning Standard"
 
   - args:
       - "Cleanup the build environment"
@@ -63,7 +63,7 @@ steps:
     id: "Cleanup the build environment"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Teardown platforms/gke/base/core tutorial Standard"
+      - Teardown platforms/gke/base/use-cases/federated-learning Standard
 
   - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
     id: "Set the build status"

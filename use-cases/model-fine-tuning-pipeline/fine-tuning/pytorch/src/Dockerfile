@@ -20,12 +20,16 @@ FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-devel AS devel
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+WORKDIR /workspace/
+
 RUN apt-get update && \
     apt-get install -y \
     git && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/* && \
+    mkdir -p /workspace/wheels
 
 COPY requirements.txt /workspace/
+
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /workspace/wheels -r /workspace/requirements.txt
 
 
@@ -36,6 +40,8 @@ RUN pip wheel --no-cache-dir --no-deps --wheel-dir /workspace/wheels -r /workspa
 # FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL
 # FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL FINAL
 FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
+
+WORKDIR /workspace/
 
 RUN apt-get update && \
     apt-get install -y \

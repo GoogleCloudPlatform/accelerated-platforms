@@ -73,3 +73,5 @@ steps:
 
 substitutions:
   _DEBUG: "false"
+
+timeout: 90m

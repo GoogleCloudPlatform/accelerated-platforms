@@ -128,8 +128,16 @@ For more information about providing values for Terraform input variables, see
 
 - Deploy the inference reference implementation.
 
+  **GKE Autopilot**
+
   ```shell
-  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh
+  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-ap.sh
+  ```
+
+  **GKE Standard**
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-standard.sh
   ```
 
 - Configure the platform.
@@ -155,7 +163,7 @@ For more information about providing values for Terraform input variables, see
   - VPC firewall rules
     - Allow Google API direct connectivity rule
 
-- Private GKE Standard Cluster
+- Private GKE Cluster
 
   - Automatic application monitoring
   - Custom Compute Classes
@@ -212,6 +220,14 @@ For more information about providing values for Terraform input variables, see
 
 - Teardown the inference reference implementation.
 
+  **GKE Autopilot**
+
   ```shell
-  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh
+  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-ap.sh
+  ```
+
+  **GKE Standard**
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-standard.sh
   ```

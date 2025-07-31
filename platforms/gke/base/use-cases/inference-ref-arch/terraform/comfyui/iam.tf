@@ -14,7 +14,7 @@
 
 locals {
   workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
-  ai_platform_service_agent = "service-${data.google_project.cluster.number}@gcp-sa-aiplatform.iam.gserviceaccount.com"
+  ai_platform_service_agent          = "service-${data.google_project.cluster.number}@gcp-sa-aiplatform.iam.gserviceaccount.com"
 }
 
 resource "google_artifact_registry_repository_iam_member" "cloudbuild_artifactregistry_write" {

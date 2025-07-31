@@ -94,10 +94,10 @@ resource "google_storage_bucket_object" "workflow-imagen3" {
 }
 
 resource "google_storage_bucket_object" "workflow-imagen3-veo2" {
-  bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "imagen3-veo2-text-to-image-to-video.json"
-  source = "src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.json"
-  depends_on = [ local_file.workflow-imagen3-veo2 ]
+  bucket     = google_storage_bucket.comfyui_workflow.name
+  name       = "imagen3-veo2-text-to-image-to-video.json"
+  source     = "src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.json"
+  depends_on = [local_file.workflow-imagen3-veo2]
 }
 
 resource "google_storage_bucket_object" "workflow-imagen4" {
@@ -107,10 +107,10 @@ resource "google_storage_bucket_object" "workflow-imagen4" {
 }
 
 resource "google_storage_bucket_object" "workflow-imagen4-veo3" {
-  bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "imagen4-veo3-text-to-image-to-video.json"
-  source = "src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.json"
-  depends_on = [ local_file.workflow-imagen4-veo3 ]
+  bucket     = google_storage_bucket.comfyui_workflow.name
+  name       = "imagen4-veo3-text-to-image-to-video.json"
+  source     = "src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.json"
+  depends_on = [local_file.workflow-imagen4-veo3]
 }
 
 resource "google_storage_bucket_object" "workflows-ltxv" {
@@ -126,24 +126,24 @@ resource "google_storage_bucket_object" "workflows-sdxl" {
 }
 
 resource "google_storage_bucket_object" "workflow-veo2" {
-  bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "veo2-text-to-video.json"
-  source = "src/comfyui-workflows/veo2-text-to-video.json"
-  depends_on = [ local_file.workflow-veo2 ]
+  bucket     = google_storage_bucket.comfyui_workflow.name
+  name       = "veo2-text-to-video.json"
+  source     = "src/comfyui-workflows/veo2-text-to-video.json"
+  depends_on = [local_file.workflow-veo2]
 }
 
 resource "google_storage_bucket_object" "workflow-veo3" {
-  bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "veo3-text-to-video.json"
-  source = "src/comfyui-workflows/veo3-text-to-video.json"
-  depends_on = [ local_file.workflow-veo3 ]
+  bucket     = google_storage_bucket.comfyui_workflow.name
+  name       = "veo3-text-to-video.json"
+  source     = "src/comfyui-workflows/veo3-text-to-video.json"
+  depends_on = [local_file.workflow-veo3]
 }
 
 resource "local_file" "workflow-imagen3-veo2" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.tftpl.json",
     {
-      output_bucket_uri  = google_storage_bucket.comfyui_output.url
+      output_bucket_uri = google_storage_bucket.comfyui_output.url
     }
   )
   filename = "${path.module}/src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.json"
@@ -153,7 +153,7 @@ resource "local_file" "workflow-imagen4-veo3" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.tftpl.json",
     {
-      output_bucket_uri  = google_storage_bucket.comfyui_output.url
+      output_bucket_uri = google_storage_bucket.comfyui_output.url
     }
   )
   filename = "${path.module}/src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.json"
@@ -163,7 +163,7 @@ resource "local_file" "workflow-veo2" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/veo2-text-to-video.tftpl.json",
     {
-      output_bucket_uri  = google_storage_bucket.comfyui_output.url
+      output_bucket_uri = google_storage_bucket.comfyui_output.url
     }
   )
   filename = "${path.module}/src/comfyui-workflows/veo2-text-to-video.json"
@@ -173,7 +173,7 @@ resource "local_file" "workflow-veo3" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/veo3-text-to-video.tftpl.json",
     {
-      output_bucket_uri  = google_storage_bucket.comfyui_output.url
+      output_bucket_uri = google_storage_bucket.comfyui_output.url
     }
   )
   filename = "${path.module}/src/comfyui-workflows/veo3-text-to-video.json"

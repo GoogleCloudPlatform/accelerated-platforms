@@ -20,6 +20,3 @@ configMapGenerator:
       - deployment.env
     name: deployment
     namespace: replaced-by-kustomize
-
-resources:
-  - online-inference-gpu-deployment.yaml

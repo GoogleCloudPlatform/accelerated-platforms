@@ -152,7 +152,7 @@
         "Node name for S&R": "GeminiNode25"
       },
       "widgets_values": [
-        "Write a single prompt for me to generate an artistic image of a man.The prompt will be fed directly to Image generating model so keep it simple and as detailed as possible. Give me just the prompt, no explaination, acknowledgement or paraphrasing. Write the promot to create a high definition and real image.",
+        "Write a single prompt for me to generate an artistic image of a man.The prompt will be fed directly to Image generating model so keep it simple and as detailed as possible. Give me just the prompt, no explanation, acknowledgement or paraphrasing. Write the prompt to create a high definition and real image.",
         "GEMINI_PRO",
         0.7,
         8192,

@@ -124,8 +124,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_scripts" {
   }
 }
 
-resource "google_cloud_scheduler_job" "platforms_gke_base_core_tutorial_ap_scripts" {
-  name      = "platforms-gke-base-core-tutorial-ap-scripts-schedule"
+resource "google_cloud_scheduler_job" "platforms_gke_base_tutorials_hf_gpu_model_scripts_ap" {
+  name      = "${local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_name}-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
   schedule  = "0 7 * * *"
@@ -134,7 +134,7 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_tutorial_ap_scrip
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
     http_method = "POST"
-    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_tutorial_ap_scripts_push.trigger_id}:run"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_push.trigger_id}:run"
 
     oauth_token {
       service_account_email = google_service_account.cicd_sched.email
@@ -142,8 +142,8 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_tutorial_ap_scrip
   }
 }
 
-resource "google_cloud_scheduler_job" "platforms_gke_base_core_tutorial_standard_scripts" {
-  name      = "platforms-gke-base-core-tutorial-standard-scripts-schedule"
+resource "google_cloud_scheduler_job" "platforms_gke_base_tutorials_hf_gpu_model_scripts_standard" {
+  name      = "${local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_name}-schedule"
   project   = data.google_project.build.project_id
   region    = var.build_location
   schedule  = "0 7 * * *"
@@ -152,7 +152,7 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_tutorial_standard
   http_target {
     body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
     http_method = "POST"
-    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_tutorial_standard_scripts_push.trigger_id}:run"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_push.trigger_id}:run"
 
     oauth_token {
       service_account_email = google_service_account.cicd_sched.email

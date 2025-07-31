@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-
+#!/bin/bash
+#
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,16 +17,28 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+start_timestamp=$(date +%s)
+
 MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
 
-curl -L https://raw.githubusercontent.com/warrensbox/terraform-switcher/master/install.sh | bash -s -- -b "${HOME}/.local/bin"
+declare -a CORE_TERRASERVICES_DESTROY_APPLY=(
+  "../use-cases/inference-ref-arch/terraform/online_gpu"
+  "workloads/auto_monitoring"
+  "custom_compute_class"
+  "huggingface/hub_downloader"
+  "huggingface/initialize"
+  "workloads/cluster_credentials"
+  "container_cluster"
+  "networking"
+  "initialize"
+)
+export CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY_APPLY[*]}"
 
-echo -e "\necho -e "\nexport PATH=\${HOME}/bin:\${HOME}/.local/bin:\${PATH}" >> ${HOME}/.bashrc" && \
-export PATH="${HOME}/bin:${HOME}/.local/bin:${PATH}" >> "${HOME}/.bashrc"
+"${MY_PATH}/../../core/teardown.sh"
 
-tfswitch 1.8.0
-
-terraform version
+end_timestamp=$(date +%s)
+total_runtime_value=$((end_timestamp - start_timestamp))
+echo "Total runtime (tutorials/hf-gpu-model): $(date -d@${total_runtime_value} -u +%H:%M:%S)"

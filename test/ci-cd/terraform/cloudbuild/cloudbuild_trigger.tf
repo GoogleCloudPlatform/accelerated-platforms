@@ -101,13 +101,9 @@ locals {
   platforms_gke_base_core_ap_full_scripts_ignore = [
     "platforms/gke/base/core/deploy-ap.sh",
     "platforms/gke/base/core/deploy-standard.sh",
-    "platforms/gke/base/core/deploy-tutorial-ap.sh",
-    "platforms/gke/base/core/deploy-tutorial-standard.sh",
     "platforms/gke/base/core/README.md",
     "platforms/gke/base/core/teardown-ap.sh",
     "platforms/gke/base/core/teardown-standard.sh",
-    "platforms/gke/base/core/teardown-tutorial-ap.sh",
-    "platforms/gke/base/core/teardown-tutorial-standard.sh"
   ]
   platforms_gke_base_core_ap_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
@@ -172,13 +168,9 @@ locals {
   platforms_gke_base_core_full_scripts_ignore = [
     "platforms/gke/base/core/deploy-ap.sh",
     "platforms/gke/base/core/deploy-standard.sh",
-    "platforms/gke/base/core/deploy-tutorial-ap.sh",
-    "platforms/gke/base/core/deploy-tutorial-standard.sh",
     "platforms/gke/base/core/README.md",
     "platforms/gke/base/core/teardown-ap.sh",
     "platforms/gke/base/core/teardown-standard.sh",
-    "platforms/gke/base/core/teardown-tutorial-ap.sh",
-    "platforms/gke/base/core/teardown-tutorial-standard.sh"
   ]
   platforms_gke_base_core_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
@@ -441,30 +433,33 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_scripts_push" {
 ###################################################################################################
 
 locals {
-  platforms_gke_base_core_tutorial_ap_scripts_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/core/tutorial-ap-scripts.yaml"
-  platforms_gke_base_core_tutorial_ap_scripts_ignore = [
+  platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/tutorials/hf-gpu-model/scripts-ap.yaml"
+  platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_ignore = [
   ]
-  platforms_gke_base_core_tutorial_ap_scripts_include = [
+  platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/container_cluster_ap/**",
     "platforms/gke/base/core/custom_compute_class/**",
     "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/huggingface/hub_downloader/**",
     "platforms/gke/base/core/initialize/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
-    "platforms/gke/base/core/deploy-tutorial-ap.sh",
-    "platforms/gke/base/core/teardown-tutorial-ap.sh",
-    local.platforms_gke_base_core_tutorial_ap_scripts_cb_yaml,
+    "platforms/gke/base/tutorials/hf-gpu-model/deploy-ap.sh",
+    "platforms/gke/base/tutorials/hf-gpu-model/teardown-ap.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu",
+    local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_cb_yaml,
   ]
+  platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_name = "platforms-gke-base-tutorials-hf-gpu-model-scripts-ap"
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_ap_scripts" {
-  filename        = local.platforms_gke_base_core_tutorial_ap_scripts_cb_yaml
-  ignored_files   = local.platforms_gke_base_core_tutorial_ap_scripts_ignore
-  included_files  = local.platforms_gke_base_core_tutorial_ap_scripts_include
+resource "google_cloudbuild_trigger" "platforms_gke_base_tutorials_hf_gpu_model_scripts_ap" {
+  filename        = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_cb_yaml
+  ignored_files   = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_ignore
+  included_files  = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_include
   location        = var.build_location
-  name            = "platforms-gke-base-core-tutorial-ap-scripts"
+  name            = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_name
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 
@@ -483,12 +478,12 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_ap_script
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_ap_scripts_push" {
-  filename        = local.platforms_gke_base_core_tutorial_ap_scripts_cb_yaml
-  ignored_files   = local.platforms_gke_base_core_tutorial_ap_scripts_ignore
-  included_files  = local.platforms_gke_base_core_tutorial_ap_scripts_include
+resource "google_cloudbuild_trigger" "platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_push" {
+  filename        = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_cb_yaml
+  ignored_files   = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_ignore
+  included_files  = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_include
   location        = var.build_location
-  name            = "platforms-gke-base-core-tutorial-ap-scripts-push"
+  name            = "${local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_name}-push"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 
@@ -509,30 +504,33 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_ap_script
 ###################################################################################################
 
 locals {
-  platforms_gke_base_core_tutorial_standard_scripts_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/core/tutorial-standard-scripts.yaml"
-  platforms_gke_base_core_tutorial_standard_scripts_ignore = [
+  platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/tutorials/hf-gpu-model/scripts-standard.yaml"
+  platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_ignore = [
   ]
-  platforms_gke_base_core_tutorial_standard_scripts_include = [
+  platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/custom_compute_class/**",
     "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/huggingface/hub_downloader/**",
     "platforms/gke/base/core/initialize/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
-    "platforms/gke/base/core/deploy-tutorial-standard.sh",
-    "platforms/gke/base/core/teardown-tutorial-standard.sh",
-    local.platforms_gke_base_core_tutorial_standard_scripts_cb_yaml,
+    "platforms/gke/base/tutorials/hf-gpu-model/deploy-standard.sh",
+    "platforms/gke/base/tutorials/hf-gpu-model/teardown-standard.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu",
+    local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_cb_yaml,
   ]
+  platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_name = "platforms-gke-base-tutorials-hf-gpu-model-scripts-standard"
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_standard_scripts" {
-  filename        = local.platforms_gke_base_core_tutorial_standard_scripts_cb_yaml
-  ignored_files   = local.platforms_gke_base_core_tutorial_standard_scripts_ignore
-  included_files  = local.platforms_gke_base_core_tutorial_standard_scripts_include
+resource "google_cloudbuild_trigger" "platforms_gke_base_tutorials_hf_gpu_model_scripts_standard" {
+  filename        = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_cb_yaml
+  ignored_files   = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_ignore
+  included_files  = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_include
   location        = var.build_location
-  name            = "platforms-gke-base-core-tutorial-standard-scripts"
+  name            = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_name
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 
@@ -551,12 +549,12 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_standard_
   }
 }
 
-resource "google_cloudbuild_trigger" "platforms_gke_base_core_tutorial_standard_scripts_push" {
-  filename        = local.platforms_gke_base_core_tutorial_standard_scripts_cb_yaml
-  ignored_files   = local.platforms_gke_base_core_ap_scripts_ignore
-  included_files  = local.platforms_gke_base_core_ap_scripts_include
+resource "google_cloudbuild_trigger" "platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_push" {
+  filename        = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_cb_yaml
+  ignored_files   = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_ignore
+  included_files  = local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_include
   location        = var.build_location
-  name            = "platforms-gke-base-core-tutorial-standard-scripts-push"
+  name            = "${local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_name}-push"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 

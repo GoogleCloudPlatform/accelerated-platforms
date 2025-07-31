@@ -230,10 +230,10 @@ To deploy the reference architecture, you do the following:
 > At the time this guide was written, Cloud Shell had Terraform v1.5.7 installed
 > by default. Terraform version 1.8.0 or later is required for this guide.
 
-1. Run the `install-terraform.sh` script to install Terraform 1.8.0.
+1. Run the `install_terraform.sh` script to install Terraform 1.8.0.
 
    ```shell
-   "${ACP_REPO_DIR}/tools/bin/install-terraform.sh"
+   "${ACP_REPO_DIR}/tools/bin/install_terraform.sh"
    ```
 
 1. Run the script to provision the reference architecture:

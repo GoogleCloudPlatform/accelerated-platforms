@@ -36,6 +36,7 @@ class Veo3TextToVideoNode:
                 ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9"], {"default": "16:9"}),
+                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
                     {"default": "optimized"},
@@ -54,7 +55,6 @@ class Veo3TextToVideoNode:
             },
             "optional": {
                 "output_gcs_uri": ("STRING", {"default": ""}),
-                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
                     "INT",
@@ -92,6 +92,7 @@ class Veo3TextToVideoNode:
         model: str = Veo3Model.VEO_3_PREVIEW.name,
         prompt: str = "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn.",
         aspect_ratio: str = "16:9",
+        output_resolution: str = "720p",
         compression_quality: str = "optimized",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
@@ -99,7 +100,6 @@ class Veo3TextToVideoNode:
         enhance_prompt: bool = True,
         sample_count: int = 1,
         output_gcs_uri: str = "",
-        output_resolution: str = "720p",
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         gcp_project_id: Optional[str] = None,
@@ -112,6 +112,7 @@ class Veo3TextToVideoNode:
             model: Veo3 model
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            output_resolution: The resolution of the generated video.
             compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
@@ -119,7 +120,6 @@ class Veo3TextToVideoNode:
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
-            output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
@@ -144,6 +144,7 @@ class Veo3TextToVideoNode:
                 model=model,
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
+                output_resolution=output_resolution,
                 compression_quality=compression_quality,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
@@ -151,7 +152,6 @@ class Veo3TextToVideoNode:
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
                 output_gcs_uri=output_gcs_uri,
-                output_resolution=output_resolution,
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
@@ -191,6 +191,7 @@ class Veo3GcsUriImageToVideoNode:
                 ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9"], {"default": "16:9"}),
+                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
                     {"default": "optimized"},
@@ -209,7 +210,6 @@ class Veo3GcsUriImageToVideoNode:
             },
             "optional": {
                 "output_gcs_uri": ("STRING", {"default": ""}),
-                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
                     "INT",
@@ -249,6 +249,7 @@ class Veo3GcsUriImageToVideoNode:
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
+        output_resolution: str = "720p",
         compression_quality: str = "optimized",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
@@ -256,7 +257,6 @@ class Veo3GcsUriImageToVideoNode:
         enhance_prompt: bool = True,
         sample_count: int = 1,
         output_gcs_uri: str = "",
-        output_resolution: str = "720p",
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
         gcp_project_id: Optional[str] = None,
@@ -271,6 +271,7 @@ class Veo3GcsUriImageToVideoNode:
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            output_resolution: The resolution of the generated video.
             compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
@@ -278,7 +279,6 @@ class Veo3GcsUriImageToVideoNode:
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
-            output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
@@ -304,6 +304,7 @@ class Veo3GcsUriImageToVideoNode:
                 image_format=image_format,
                 prompt=prompt,
                 aspect_ratio=aspect_ratio,
+                output_resolution=output_resolution,
                 compression_quality=compression_quality,
                 person_generation=person_generation,
                 duration_seconds=duration_seconds,
@@ -311,7 +312,6 @@ class Veo3GcsUriImageToVideoNode:
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
                 output_gcs_uri=output_gcs_uri,
-                output_resolution=output_resolution,
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
@@ -348,6 +348,7 @@ class Veo3ImageToVideoNode:
                 ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (["16:9"], {"default": "16:9"}),
+                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
                     {"default": "optimized"},
@@ -366,7 +367,6 @@ class Veo3ImageToVideoNode:
             },
             "optional": {
                 "output_gcs_uri": ("STRING", {"default": ""}),
-                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
                     "INT",
@@ -406,6 +406,7 @@ class Veo3ImageToVideoNode:
         image_format: str = "PNG",
         prompt: str = "",
         aspect_ratio: str = "16:9",
+        output_resolution: str = "720p",
         compression_quality: str = "optimized",
         person_generation: str = "allow_adult",
         duration_seconds: int = 8,
@@ -414,7 +415,6 @@ class Veo3ImageToVideoNode:
         sample_count: int = 1,
         seed: Optional[int] = None,
         output_gcs_uri: str = "",
-        output_resolution: str = "720p",
         negative_prompt: Optional[str] = None,
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
@@ -428,6 +428,7 @@ class Veo3ImageToVideoNode:
             image_format: The format of the input image.
             prompt: The text prompt for video generation.
             aspect_ratio: The desired aspect ratio of the video.
+            output_resolution: The resolution of the generated video.
             compression_quality: Compression quality i.e optimized vs lossless.
             person_generation: Controls whether the model can generate people.
             duration_seconds: The desired duration of the video in seconds.
@@ -436,7 +437,6 @@ class Veo3ImageToVideoNode:
             sample_count: The number of video samples to generate.
             seed: An optional seed for reproducible video generation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
-            output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
             gcp_region: GCP region for Vertex AI APIs to query Veo
@@ -470,6 +470,7 @@ class Veo3ImageToVideoNode:
                     image_format=image_format,
                     prompt=prompt,
                     aspect_ratio=aspect_ratio,
+                    output_resolution=output_resolution,
                     compression_quality=compression_quality,
                     person_generation=person_generation,
                     duration_seconds=duration_seconds,
@@ -477,7 +478,6 @@ class Veo3ImageToVideoNode:
                     enhance_prompt=enhance_prompt,
                     sample_count=sample_count,
                     output_gcs_uri=output_gcs_uri,
-                    output_resolution=output_resolution,
                     negative_prompt=negative_prompt,
                     seed=seed_for_api,
                 )

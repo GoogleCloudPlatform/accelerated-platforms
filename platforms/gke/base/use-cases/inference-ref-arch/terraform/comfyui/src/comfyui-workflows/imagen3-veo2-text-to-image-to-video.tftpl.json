@@ -1,8 +1,8 @@
 {
   "id": "91a98122-0f28-4d82-8cb3-11d8d24553aa",
   "revision": 0,
-  "last_node_id": 8,
-  "last_link_id": 6,
+  "last_node_id": 10,
+  "last_link_id": 8,
   "nodes": [
     {
       "id": 3,
@@ -34,11 +34,49 @@
       "widgets_values": []
     },
     {
+      "id": 8,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        1842.9622802734375,
+        297.44244384765625
+      ],
+      "size": [
+        282.740234375,
+        154
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 8
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
+      ]
+    },
+    {
       "id": 5,
       "type": "Imagen3TextToImageNode",
       "pos": [
-        710.6188354492188,
-        174.7627410888672
+        716.44384765625,
+        170.6139678955078
       ],
       "size": [
         400,
@@ -54,7 +92,7 @@
           "type": "IMAGE",
           "links": [
             4,
-            5
+            7
           ]
         }
       ],
@@ -78,15 +116,15 @@
       ]
     },
     {
-      "id": 7,
+      "id": 10,
       "type": "Veo2ImageToVideoNode",
       "pos": [
-        1407.4761962890625,
-        183.01678466796875
+        1349.8363037109375,
+        178.783203125
       ],
       "size": [
-        400,
-        382
+        429.2769470214844,
+        473.3023376464844
       ],
       "flags": {},
       "order": 2,
@@ -95,7 +133,7 @@
         {
           "name": "image",
           "type": "IMAGE",
-          "link": 5
+          "link": 7
         }
       ],
       "outputs": [
@@ -103,7 +141,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            6
+            8
           ]
         }
       ],
@@ -112,50 +150,19 @@
       },
       "widgets_values": [
         "PNG",
-        "make the tree branches sway in the wind",
+        "make the leaves and branches sway in the wind.",
         "16:9",
+        "optimized",
         "allow_adult",
         8,
         true,
         1,
+        "{output_bucket_uri}",
         "",
         0,
         "randomize",
         "",
         ""
-      ]
-    },
-    {
-      "id": 8,
-      "type": "VeoVideoSaveAndPreview",
-      "pos": [
-        1842.9622802734375,
-        297.44244384765625
-      ],
-      "size": [
-        282.740234375,
-        154
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 6
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "VeoVideoSaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        true,
-        true,
-        "veo_video"
       ]
     }
   ],
@@ -169,16 +176,16 @@
       "IMAGE"
     ],
     [
-      5,
+      7,
       5,
       0,
-      7,
+      10,
       0,
       "IMAGE"
     ],
     [
-      6,
-      7,
+      8,
+      10,
       0,
       8,
       0,
@@ -192,10 +199,10 @@
       "scale": 1.2666661150000031,
       "offset": [
         -661.5596169425305,
-        -103.37869371934279
+        -104.1447976971213
       ]
     },
-    "frontendVersion": "1.20.7",
+    "frontendVersion": "1.23.4",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

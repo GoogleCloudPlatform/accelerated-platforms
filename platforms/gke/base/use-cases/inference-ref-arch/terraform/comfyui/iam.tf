@@ -14,6 +14,7 @@
 
 locals {
   workload_identity_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
+  ai_platform_service_agent = "service-${data.google_project.cluster.number}@gcp-sa-aiplatform.iam.gserviceaccount.com"
 }
 
 resource "google_artifact_registry_repository_iam_member" "cloudbuild_artifactregistry_write" {
@@ -47,4 +48,10 @@ resource "google_storage_bucket_iam_member" "workload_identity_gcsfuse_user" {
   bucket = each.key
   member = "${local.workload_identity_principal_prefix}/ns/${var.comfyui_kubernetes_namespace}/sa/${local.serviceaccount}"
   role   = local.cluster_gcsfuse_user_role
+}
+
+resource "google_storage_bucket_iam_member" "ai_service_agent_gcsfuse_user" {
+  bucket = google_storage_bucket.comfyui_output.name
+  member = local.ai_platform_service_agent
+  role   = "roles/storage.objectUser"
 }

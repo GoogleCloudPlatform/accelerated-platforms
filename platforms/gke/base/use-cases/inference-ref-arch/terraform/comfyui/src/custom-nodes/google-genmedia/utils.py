@@ -235,6 +235,7 @@ def generate_video_from_gcsuri_image(
     image_format: str,
     prompt: str,
     aspect_ratio: str,
+    output_resolution: Optional[str],
     compression_quality: Optional[str],
     person_generation: str,
     duration_seconds: int,
@@ -242,7 +243,6 @@ def generate_video_from_gcsuri_image(
     enhance_prompt: bool,
     sample_count: int,
     output_gcs_uri: Optional[str],
-    output_resolution: Optional[str],
     negative_prompt: Optional[str],
     seed: Optional[int],
     retry_count: int,
@@ -258,6 +258,7 @@ def generate_video_from_gcsuri_image(
         image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
         prompt: The text prompt for video generation.
         aspect_ratio: The desired aspect ratio of the video.
+        output_resolution: The resolution of the generated video.
         compression_quality: Compression quality i.e optimized vs lossless.
         person_generation: Controls whether the model can generate people.
         duration_seconds: The desired duration of the video in seconds.
@@ -265,7 +266,6 @@ def generate_video_from_gcsuri_image(
         enhance_prompt: Whether to enhance the prompt automatically.
         sample_count: The number of video samples to generate.
         output_gcs_uri: output gcs url to store the video. Required with lossless output.
-        output_resolution: The resolution of the generated video.
         negative_prompt: An optional prompt to guide the model to avoid generating certain things.
         seed: An optional seed for reproducible video generation.
         retry_count: number of retries
@@ -329,12 +329,15 @@ def generate_video_from_gcsuri_image(
             raise ValueError(validation_message)
         temp_config["output_gcs_uri"] = output_gcs_uri
 
-    if re.search(r"veo-3\.0", model.value):
+    if re.search(
+        r"veo-3\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
         if generate_audio:
             temp_config["generate_audio"] = generate_audio
         else:
             temp_config["generate_audio"] = False
-        temp_config["output_resolution"] = output_resolution
+        temp_config["resolution"] = output_resolution
 
     config = GenerateVideosConfig(**temp_config)
     print(f"Config for image-to-video generation: {config}")
@@ -431,6 +434,7 @@ def generate_video_from_image(
     image_format: str,
     prompt: str,
     aspect_ratio: str,
+    output_resolution: Optional[str],
     compression_quality: Optional[str],
     person_generation: str,
     duration_seconds: int,
@@ -438,7 +442,6 @@ def generate_video_from_image(
     enhance_prompt: bool,
     sample_count: int,
     output_gcs_uri: Optional[str],
-    output_resolution: Optional[str],
     negative_prompt: Optional[str],
     seed: Optional[int],
     retry_count: int,
@@ -454,6 +457,7 @@ def generate_video_from_image(
         image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
         prompt: The text prompt for video generation.
         aspect_ratio: The desired aspect ratio of the video.
+        output_resolution: The resolution of the generated video.
         compression_quality: Compression quality i.e optimized vs lossless.
         person_generation: Controls whether the model can generate people.
         duration_seconds: The desired duration of the video in seconds.
@@ -461,7 +465,6 @@ def generate_video_from_image(
         enhance_prompt: Whether to enhance the prompt automatically.
         sample_count: The number of video samples to generate.
         output_gcs_uri: output gcs url to store the video. Required with lossless output.
-        output_resolution: The resolution of the generated video.
         negative_prompt: An optional prompt to guide the model to avoid generating certain things.
         seed: An optional seed for reproducible video generation.
         retry_count: number of retries
@@ -541,12 +544,15 @@ def generate_video_from_image(
             raise ValueError(validation_message)
         temp_config["output_gcs_uri"] = output_gcs_uri
 
-    if re.search(r"veo-3\.0", model.value):
+    if re.search(
+        r"veo-3\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
         if generate_audio:
             temp_config["generate_audio"] = generate_audio
         else:
             temp_config["generate_audio"] = False
-        temp_config["output_resolution"] = output_resolution
+        temp_config["resolution"] = output_resolution
 
     config = GenerateVideosConfig(**temp_config)
     print(f"Config for image-to-video generation: {config}")
@@ -644,6 +650,7 @@ def generate_video_from_text(
     model: str,
     prompt: str,
     aspect_ratio: str,
+    output_resolution: Optional[str],
     compression_quality: Optional[str],
     person_generation: str,
     duration_seconds: int,
@@ -651,7 +658,6 @@ def generate_video_from_text(
     enhance_prompt: bool,
     sample_count: int,
     output_gcs_uri: Optional[str],
-    output_resolution: Optional[str],
     negative_prompt: Optional[str],
     seed: Optional[int],
     retry_count: int,
@@ -665,6 +671,7 @@ def generate_video_from_text(
         model: model to be used
         prompt: The text prompt for video generation.
         aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
+        output_resolution: The resolution of the generated video.
         compression_quality: Compression quality i.e optimized vs lossless.
         person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
         duration_seconds: The desired duration of the video in seconds.
@@ -672,7 +679,6 @@ def generate_video_from_text(
         enhance_prompt: Whether to enhance the prompt automatically.
         sample_count: The number of video samples to generate.
         output_gcs_uri: output gcs url to store the video. Required with lossless output.
-        output_resolution: The resolution of the generated video.
         negative_prompt: An optional prompt to guide the model to avoid generating certain things.
         seed: An optional seed for reproducible video generation.
         retry_count: number of retries
@@ -718,12 +724,15 @@ def generate_video_from_text(
             raise ValueError(validation_message)
         temp_config["output_gcs_uri"] = output_gcs_uri
 
-    if re.search(r"veo-3\.0", model.value):
+    if re.search(
+        r"veo-3\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
         if generate_audio:
             temp_config["generate_audio"] = generate_audio
         else:
             temp_config["generate_audio"] = False
-        temp_config["output_resolution"] = output_resolution
+        temp_config["resolution"] = output_resolution
 
     config = GenerateVideosConfig(**temp_config)
     print(f"Config for text-to-video generation: {config}")

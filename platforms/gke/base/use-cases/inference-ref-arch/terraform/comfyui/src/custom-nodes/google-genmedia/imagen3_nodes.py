@@ -48,7 +48,7 @@ class Imagen3TextToImageNode:
                 "prompt": (
                     "STRING",
                     {
-                        "multiline": False,
+                        "multiline": True,
                         "default": "A vivid landscape painting of a futuristic city",
                     },
                 ),

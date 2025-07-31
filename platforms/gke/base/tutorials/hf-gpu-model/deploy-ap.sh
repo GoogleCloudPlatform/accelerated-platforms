@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,8 @@ MY_PATH="$(
   pwd -P
 )"
 
+export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
+
 declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   "networking"
   "container_cluster_ap"
@@ -32,11 +34,12 @@ declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   "huggingface/hub_downloader"
   "custom_compute_class"
   "workloads/auto_monitoring"
+  "../use-cases/inference-ref-arch/terraform/online_gpu"
 )
 export CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY_ARRAY[*]}"
 
-"${MY_PATH}/deploy.sh"
+"${MY_PATH}/../../core/deploy.sh"
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "Total runtime (core/deploy-tutorial-ap): $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "Total runtime (tutorials/hf-gpu-model): $(date -d@${total_runtime_value} -u +%H:%M:%S)"

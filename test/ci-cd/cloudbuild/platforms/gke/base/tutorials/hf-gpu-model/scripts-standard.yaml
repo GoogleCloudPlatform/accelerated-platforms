@@ -40,22 +40,22 @@ steps:
       - "Check triggers"
 
   - args:
-      - "Deploy platforms/gke/base/core tutorial Autopilot"
-      - "platforms/gke/base/core/deploy-tutorial-ap.sh"
+      - "Deploy platforms/gke/base/tutorials/hf-gpu-model Standard"
+      - "platforms/gke/base/tutorials/hf-gpu-model/deploy-standard.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
-    id: "Deploy platforms/gke/base/core tutorial Autopilot"
+    id: "Deploy platforms/gke/base/tutorials/hf-gpu-model Standard"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Configure the build environment"
 
   - args:
-      - "Teardown platforms/gke/base/core tutorial Autopilot"
-      - "platforms/gke/base/core/teardown-tutorial-ap.sh"
+      - "Teardown platforms/gke/base/tutorials/hf-gpu-model Standard"
+      - "platforms/gke/base/tutorials/hf-gpu-model/teardown-standard.sh"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
-    id: "Teardown platforms/gke/base/core tutorial Autopilot"
+    id: "Teardown platforms/gke/base/tutorials/hf-gpu-model Standard"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/core tutorial Autopilot"
+      - "Deploy platforms/gke/base/tutorials/hf-gpu-model Standard"
 
   - args:
       - "Cleanup the build environment"
@@ -63,7 +63,7 @@ steps:
     id: "Cleanup the build environment"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Teardown platforms/gke/base/core tutorial Autopilot"
+      - "Teardown platforms/gke/base/tutorials/hf-gpu-model Standard"
 
   - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
     id: "Set the build status"

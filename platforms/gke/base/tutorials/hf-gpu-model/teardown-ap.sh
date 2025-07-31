@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,19 +24,21 @@ MY_PATH="$(
   pwd -P
 )"
 
-declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
-  "networking"
-  "container_cluster"
-  "workloads/cluster_credentials"
-  "huggingface/initialize"
-  "huggingface/hub_downloader"
-  "custom_compute_class"
+declare -a CORE_TERRASERVICES_DESTROY_APPLY=(
+  "../use-cases/inference-ref-arch/terraform/online_gpu"
   "workloads/auto_monitoring"
+  "custom_compute_class"
+  "huggingface/hub_downloader"
+  "huggingface/initialize"
+  "workloads/cluster_credentials"
+  "container_cluster_ap"
+  "networking"
+  "initialize"
 )
-export CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY_ARRAY[*]}"
+export CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY_APPLY[*]}"
 
-"${MY_PATH}/deploy.sh"
+"${MY_PATH}/../../core/teardown.sh"
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "Total runtime (core/deploy-tutorial-standard): $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "Total runtime (tutorials/hf-gpu-model): $(date -d@${total_runtime_value} -u +%H:%M:%S)"

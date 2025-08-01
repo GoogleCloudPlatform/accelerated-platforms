@@ -232,7 +232,7 @@ class VeoVideoSaveAndPreview:
                         video_subfolder = "veo"
 
                     video_item_for_ui = {
-                        "filename": video_file_basename,
+                        "filename": dest_name,
                         "subfolder": video_subfolder,  # This should be "temp" if not saved, or "veo" if saved
                         "type": (
                             "output" if save_video else "temp"

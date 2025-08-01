@@ -55,6 +55,9 @@ function loadVideoDataFromLocalStorage(nodeId) {
  * @param {boolean} currentLoop Whether the video should loop (applies to the currently playing video).
  */
 function initializeSingleVideoPreviewWithNavigation(targetComponent, videoDataArray, currentAutoplay, currentMute, currentLoop) {
+    // Ensure videoDataArray is an array before proceeding
+    const videos = Array.isArray(videoDataArray) ? videoDataArray : (videoDataArray ? [videoDataArray] : []);
+
     let previewWidget = targetComponent._mediaPreviewWidget;
 
     // Create the video preview widget if it doesn't already exist
@@ -177,17 +180,16 @@ function initializeSingleVideoPreviewWithNavigation(targetComponent, videoDataAr
     previewWidget.shouldLoop = currentLoop;
 
     // Conditionally update previewWidget.videoUrls based on whether new data is provided
-    if (videoDataArray && videoDataArray.length > 0) {
+    if (videos && videos.length > 0) {
         previewWidget.videoUrls = []; // Clear existing only if new data is coming
-        videoDataArray.forEach(videoItem => {
-            // *** FIXED: Access properties from the object (videoItem) ***
+        videos.forEach(videoItem => {
             const videoFilename = videoItem.filename;
-            const videoCategory = videoItem.subfolder; // 'subfolder' is the key from Python output
+            const videoCategory = videoItem.subfolder;
 
             const params = {
                 "filename": videoFilename,
                 "subfolder": videoCategory,
-                "type": videoItem.type, // Use type from Python output ('temp' or 'output')
+                "type": videoItem.type,
                 "cachebuster": Date.now()
             };
             const urlParameters = new URLSearchParams(params);
@@ -223,14 +225,17 @@ app.registerExtension({
 
             const originalOnExecuted = nodeType.prototype.onExecuted;
             nodeType.prototype.onExecuted = function(data) {
+                // Ensure data.video is an array, even if it's a single item
                 const videoData = data.video || [];
-                saveVideoDataToLocalStorage(this.id, videoData);
+                const videoDataArray = Array.isArray(videoData) ? videoData : [videoData];
+
+                saveVideoDataToLocalStorage(this.id, videoDataArray);
 
                 const autoPlaySetting = this.widgets.find(w => w.name === "autoplay")?.value ?? false;
                 const muteSetting = this.widgets.find(w => w.name === "mute")?.value ?? true;
                 const loopSetting = this.widgets.find(w => w.name === "loop")?.value ?? false;
 
-                initializeSingleVideoPreviewWithNavigation(this, videoData, autoPlaySetting, muteSetting, loopSetting);
+                initializeSingleVideoPreviewWithNavigation(this, videoDataArray, autoPlaySetting, muteSetting, loopSetting);
 
                 if (originalOnExecuted) {
                     originalOnExecuted.apply(this, arguments);
@@ -239,16 +244,19 @@ app.registerExtension({
 
             const originalOnConfigure = nodeType.prototype.onConfigure;
             nodeType.prototype.onConfigure = function (nodeConfig) {
+                if (originalOnConfigure) {
+                    originalOnConfigure.apply(this, arguments);
+                }
+                
                 const autoPlaySetting = this.widgets.find(w => w.name === "autoplay")?.value ?? (nodeConfig?.widgets_values?.autoplay ?? false);
                 const muteSetting = this.widgets.find(w => w.name === "mute")?.value ?? (nodeConfig?.widgets_values?.mute ?? true);
                 const loopSetting = this.widgets.find(w => w.name === "loop")?.value ?? (nodeConfig?.widgets_values?.loop ?? false);
 
                 const storedVideoData = loadVideoDataFromLocalStorage(this.id);
-                // Pass stored data if available, otherwise an empty array.
-                initializeSingleVideoPreviewWithNavigation(this, storedVideoData || [], autoPlaySetting, muteSetting, loopSetting);
+                const storedVideoDataArray = storedVideoData ? (Array.isArray(storedVideoData) ? storedVideoData : [storedVideoData]) : [];
 
-                if (originalOnConfigure) {
-                    originalOnConfigure.apply(this, arguments);
+                if (storedVideoDataArray.length > 0) {
+                    initializeSingleVideoPreviewWithNavigation(this, storedVideoDataArray, autoPlaySetting, muteSetting, loopSetting);
                 }
             };
 
@@ -275,8 +283,9 @@ app.registerExtension({
                                         }
                                     } else {
                                         const storedVideoDataFallback = loadVideoDataFromLocalStorage(node.id);
-                                        if (storedVideoDataFallback && storedVideoDataFallback.length > 0) {
-                                            initializeSingleVideoPreviewWithNavigation(node, storedVideoDataFallback, previewWidget.shouldAutoplay, previewWidget.shouldMute, previewWidget.shouldLoop);
+                                        const storedVideoDataFallbackArray = storedVideoDataFallback ? (Array.isArray(storedVideoDataFallback) ? storedVideoDataFallback : [storedVideoDataFallback]) : [];
+                                        if (storedVideoDataFallbackArray && storedVideoDataFallbackArray.length > 0) {
+                                            initializeSingleVideoPreviewWithNavigation(node, storedVideoDataFallbackArray, previewWidget.shouldAutoplay, previewWidget.shouldMute, previewWidget.shouldLoop);
                                             if (previewWidget.shouldAutoplay && !previewWidget.value.paused) {
                                                 setTimeout(() => {
                                                     mediaElement.play().catch(e => {

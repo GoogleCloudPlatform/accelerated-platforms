@@ -17,15 +17,15 @@ kind: Kustomization
 
 configMapGenerator:
   - envs:
-      - vllm-runtime.env
-    name: vllm-runtime
+      - runtime.env
+    name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -l4-gemma3-27b
+nameSuffix: -h100-llama-3.3-70b-instruct
 
 patches:
-  - path: set-l4-24gb-compute-class.yaml
-  - path: set-vllm-gemma3-27b-resources-limits.yaml
+  - path: set-h100-80gb-high-compute-class.yaml
+  - path: set-vllm-llama3-resources-limits.yaml
 
 replacements:
   - source:
@@ -77,7 +77,7 @@ replacements:
   - source:
       fieldPath: data.MODEL_ID
       kind: ConfigMap
-      name: vllm-runtime
+      name: runtime
     targets:
       - fieldPaths:
           - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
@@ -94,6 +94,5 @@ replacements:
           index: 2
         select:
           kind: Deployment
-
 resources:
-  - ../online-inference-gpu-base
+  - ../base

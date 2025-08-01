@@ -12,20 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: vllm
-  namespace: replaced-by-kustomize
-spec:
-  ports:
-    - port: 8000
-      protocol: TCP
-      targetPort: 8000
-  selector:
-    app: vllm
-  type: ClusterIP
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -61,7 +47,7 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_ID
-                  name: vllm-runtime
+                  name: runtime
           image: busybox
           name: fetch-safetensors
           volumeMounts:
@@ -75,27 +61,33 @@ spec:
             - "--tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)"
             - "--trust-remote-code"
             - "--max-model-len=$(MAX_MODEL_LEN)"
+          command:
+            - python3
+            - -m
+            - vllm.entrypoints.openai.api_server
           env:
             - name: GPU_MEMORY_UTILIZATION
               valueFrom:
                 configMapKeyRef:
                   key: GPU_MEMORY_UTILIZATION
-                  name: vllm-runtime
+                  name: runtime
             - name: MAX_MODEL_LEN
               valueFrom:
                 configMapKeyRef:
                   key: MAX_MODEL_LEN
-                  name: vllm-runtime
+                  name: runtime
             - name: MODEL_ID
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_ID
-                  name: vllm-runtime
+                  name: runtime
             - name: TENSOR_PARALLEL_SIZE
               valueFrom:
                 configMapKeyRef:
                   key: TENSOR_PARALLEL_SIZE
-                  name: vllm-runtime
+                  name: runtime
+            - name: VLLM_XLA_CACHE_PATH
+              value: /data
           image: vllm/vllm-openai:v0.8.4
           imagePullPolicy: Always
           name: inference-server
@@ -119,15 +111,7 @@ spec:
             - mountPath: /gcs
               name: huggingface-hub-model-bucket
               readOnly: true
-      serviceAccountName: ira-online-gpu-ksa
-      tolerations:
-        - effect: NoSchedule
-          key: nvidia.com/gpu
-          operator: Exists
-        - effect: NoSchedule
-          key: on-demand
-          operator: Equal
-          value: "true"
+      serviceAccountName: replaced-by-kustomize
       volumes:
         - emptyDir:
             medium: Memory
@@ -136,9 +120,7 @@ spec:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: cloud-storage-bucket-name
-              # Leave the only-dir option at the end of the mountOptions value
-              # because Kustomize will take care of replacing it
-              mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:MODEL_ID
+              mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replaced-by-kustomize
               skipCSIBucketAccessCheck: "true"
           name: huggingface-hub-model-bucket
         - emptyDir:

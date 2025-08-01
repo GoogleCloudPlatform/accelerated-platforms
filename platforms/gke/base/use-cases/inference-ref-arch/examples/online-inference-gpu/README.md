@@ -57,24 +57,24 @@ This example is built on top of the
 
 - Set the environment variables for the model downloader.
 
-  - Set the model name.
+  - Set the model ID.
 
-    - **Gemma 3 27B**:
+    - **Gemma 3 27B Instruction-Tuned**:
 
       ```shell
       export MODEL_ID="google/gemma-3-27b-it"
       ```
 
-    - **Llama 4 Scout**:
+    - **Llama 4 Scout 17B Instruction-Tuned**:
 
       ```shell
-      export MODEL_ID="meta-llama/Llama-4-Scout-17B-16E-Instruct"
+      export MODEL_ID="meta-llama/llama-4-scout-17b-16e-instruct"
       ```
 
-    - **Llama 3.3 70B**:
+    - **Llama 3.3 70B Instruction-Tuned**:
 
       ```shell
-      export MODEL_ID="meta-llama/Llama-3.3-70B-Instruct"
+      export MODEL_ID="meta-llama/llama-3.3-70b-instruct"
       ```
 
   - Configure the Kustomize environment file
@@ -122,27 +122,20 @@ This example is built on top of the
 
   - Set the model name.
 
-    - **Gemma 3 27B**:
+    ```shell
+    MODEL_NAME="${MODEL_ID##*/}" && export MODEL_NAME="${MODEL_NAME,,}"
+    echo "MODEL_NAME=${MODEL_NAME}"
+    ```
 
-      ```shell
-      export MODEL_NAME="gemma3-27b"
-      ```
+  - Select an accelerator.
 
-    - **Llama 4 Scout**:
+    | Model                          | l4  | h100 | h200 |
+    | ------------------------------ | --- | ---- | ---- |
+    | gemma-3-27b-it                 | ✅  | ✅   | ✅   |
+    | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   |
+    | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   |
 
-      ```shell
-      export MODEL_NAME="llama4-scout"
-      ```
-
-    - **Llama 3.3 70B**:
-
-      ```shell
-      export MODEL_NAME="llama3"
-      ```
-
-  - Set the accelerator type.
-
-    - **NVIDIA Tesla L4 24GB** (only for `gemma3-27b`):
+    - **NVIDIA Tesla L4 24GB**:
 
       ```shell
       export ACCELERATOR_TYPE="l4"
@@ -174,11 +167,11 @@ This example is built on top of the
 - Deploy the online inference workload in the GKE cluster.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/${ACCELERATOR_TYPE}-${MODEL_NAME}"
   ```
 
   The Kubernetes manifests in the
-  `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-<ACCELERATOR_TYPE>-<MODEL_NAME>`
+  `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/<ACCELERATOR_TYPE>-<MODEL_NAME>`
   directories include
   [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
 
@@ -218,7 +211,7 @@ This example is built on top of the
 - Delete the workload.
 
   ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${MODEL_NAME}"
   ```
 
 ## Troubleshooting

@@ -13,16 +13,20 @@
 # limitations under the License.
 ---
 apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 configMapGenerator:
   - envs:
-      - vllm-runtime.env
-    name: vllm-runtime
+      - runtime.env
+    name: runtime
     namespace: replaced-by-kustomize
-kind: Kustomization
-nameSuffix: "-h100-llama3"
+
+nameSuffix: -h200-llama-4-scout-17b-16e-instruct
+
 patches:
-  - path: set-h100-80gb-high-compute-class.yaml
-  - path: set-vllm-llama3-resources-limits.yaml
+  - path: set-h200-141gb-ultra-compute-class.yaml
+  - path: set-vllm-llama4-scout-resources-limits.yaml
+
 replacements:
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
@@ -73,7 +77,7 @@ replacements:
   - source:
       fieldPath: data.MODEL_ID
       kind: ConfigMap
-      name: vllm-runtime
+      name: runtime
     targets:
       - fieldPaths:
           - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
@@ -90,5 +94,6 @@ replacements:
           index: 2
         select:
           kind: Deployment
+
 resources:
-  - ../online-inference-gpu-base
+  - ../base

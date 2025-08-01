@@ -448,7 +448,9 @@ locals {
     "platforms/gke/base/core/workloads/cluster_credentials/**",
     "platforms/gke/base/tutorials/hf-gpu-model/deploy-ap.sh",
     "platforms/gke/base/tutorials/hf-gpu-model/teardown-ap.sh",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu/**",
     local.platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_cb_yaml,
   ]
   platforms_gke_base_tutorials_hf_gpu_model_scripts_ap_name = "platforms-gke-base-tutorials-hf-gpu-model-scripts-ap"
@@ -519,7 +521,9 @@ locals {
     "platforms/gke/base/core/workloads/cluster_credentials/**",
     "platforms/gke/base/tutorials/hf-gpu-model/deploy-standard.sh",
     "platforms/gke/base/tutorials/hf-gpu-model/teardown-standard.sh",
-    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu/**",
     local.platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_cb_yaml,
   ]
   platforms_gke_base_tutorials_hf_gpu_model_scripts_standard_name = "platforms-gke-base-tutorials-hf-gpu-model-scripts-standard"
@@ -839,6 +843,9 @@ locals {
     "platforms/gke/base/core/workloads/priority_class/**",
     "platforms/gke/base/core/deploy.sh",
     "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu/**",

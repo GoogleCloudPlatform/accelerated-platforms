@@ -53,7 +53,7 @@ This example is built on top of the
 
 - Set the environment variables for the model downloader.
 
-  - Set the model name.
+  - Set the model ID.
 
     - **Gemma 3 1B Instruction-Tuned**:
 

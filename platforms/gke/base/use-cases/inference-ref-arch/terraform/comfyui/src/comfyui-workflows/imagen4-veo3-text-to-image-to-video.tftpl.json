@@ -1,8 +1,8 @@
 {
   "id": "a466bac6-78d9-49f4-8fde-3f8af8774e14",
   "revision": 0,
-  "last_node_id": 9,
-  "last_link_id": 10,
+  "last_node_id": 10,
+  "last_link_id": 12,
   "nodes": [
     {
       "id": 4,
@@ -51,7 +51,7 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 10
+          "link": 12
         }
       ],
       "outputs": [],
@@ -80,7 +80,7 @@
       ],
       "size": [
         400,
-        400
+        430
       ],
       "flags": {},
       "order": 0,
@@ -92,7 +92,7 @@
           "type": "IMAGE",
           "links": [
             7,
-            9
+            11
           ]
         }
       ],
@@ -117,11 +117,11 @@
       ]
     },
     {
-      "id": 9,
+      "id": 10,
       "type": "Veo3ImageToVideoNode",
       "pos": [
-        2300.277587890625,
-        -319.3798828125
+        2280.68212890625,
+        -315.12908935546875
       ],
       "size": [
         400,
@@ -134,7 +134,7 @@
         {
           "name": "image",
           "type": "IMAGE",
-          "link": 9
+          "link": 11
         }
       ],
       "outputs": [
@@ -142,7 +142,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            10
+            12
           ]
         }
       ],
@@ -152,17 +152,17 @@
       "widgets_values": [
         "VEO_3_PREVIEW",
         "PNG",
-        "make the leaves and branches sway in the wind.",
+        "make leaves and branches sway in the wind.",
         "16:9",
+        "720p",
         "optimized",
         "allow_adult",
         8,
         true,
         true,
         1,
+        "${output_bucket_uri}",
         "",
-        "720p",
-        "{output_bucket_uri}",
         0,
         "randomize",
         "",
@@ -180,16 +180,16 @@
       "IMAGE"
     ],
     [
-      9,
+      11,
       8,
       0,
-      9,
+      10,
       0,
       "IMAGE"
     ],
     [
+      12,
       10,
-      9,
       0,
       5,
       0,

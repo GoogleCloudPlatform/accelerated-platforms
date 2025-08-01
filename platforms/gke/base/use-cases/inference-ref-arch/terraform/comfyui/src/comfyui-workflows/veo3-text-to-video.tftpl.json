@@ -1,8 +1,8 @@
 {
   "id": "84b5eff9-dee6-47b8-9bf8-83a4b4ec04f9",
   "revision": 0,
-  "last_node_id": 5,
-  "last_link_id": 4,
+  "last_node_id": 6,
+  "last_link_id": 5,
   "nodes": [
     {
       "id": 3,
@@ -22,7 +22,7 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 4
+          "link": 5
         }
       ],
       "outputs": [],
@@ -43,11 +43,11 @@
       ]
     },
     {
-      "id": 5,
+      "id": 6,
       "type": "Veo3TextToVideoNode",
       "pos": [
-        992.7501220703125,
-        198.94471740722656
+        1016.4773559570312,
+        181.23043823242188
       ],
       "size": [
         400,
@@ -62,7 +62,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            4
+            5
           ]
         }
       ],
@@ -73,14 +73,14 @@
         "VEO_3_PREVIEW",
         "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn. As it progresses, the mist slowly dissipates, revealing colossal, glowing crystal formations emerging from the ground. Fauna, never-before-seen, begins to stir – iridescent birds with long tails take flight, and massive, gentle creatures with bioluminescent markings graze among the crystals. The light subtly shifts from dawn's muted tones to vibrant daylight, illuminating new details with each passing second. The camera eventually ascends above the canopy, revealing a breathtaking vista of the entire crystal forest.",
         "16:9",
+        "720p",
         "optimized",
         "allow_adult",
         8,
         true,
         true,
         1,
-        "{output_bucket_uri}",
-        "720p",
+        "${output_bucket_uri}",
         "",
         0,
         "randomize",
@@ -91,8 +91,8 @@
   ],
   "links": [
     [
-      4,
       5,
+      6,
       0,
       3,
       0,

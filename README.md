@@ -32,6 +32,10 @@ the primary runtime.
   - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
   - [Online inference with TPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-tpu/README.md)
 
+#### Cost Optimization Best Practices
+
+- [LLM Inference Optimization: Achieving faster Pod Startup with Google Cloud Storage](/use-cases/inferencing/cost-optimization/gcsfuse/AchievingFasterPodStartup.md)
+
 ### Playground AI/ML Platform on GKE
 
 The [Playground AI/ML Platform on GKE](/platforms/gke-aiml/playground/README.md)

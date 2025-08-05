@@ -1,0 +1,81 @@
+{
+  "1": {
+    "inputs": {
+      "prompt": "Generate a prompt for me to generate an artistic image of a man.The prompt will be fed as a prompt to Image generating model directly so keep it as detailed as possible.",
+      "model": "GEMINI_PRO",
+      "temperature": 0.7,
+      "max_output_tokens": 8192,
+      "top_p": 1,
+      "top_k": 32,
+      "candidate_count": 1,
+      "stop_sequences": "",
+      "response_mime_type": "text/plain",
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "system_instruction": "",
+      "image_file_path": "",
+      "image_mime_type": "image/png",
+      "video_file_path": "",
+      "video_mime_type": "video/mp4",
+      "audio_file_path": "",
+      "audio_mime_type": "audio/mp3",
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "GeminiNode25",
+    "_meta": {
+      "title": "Gemini 2.5"
+    }
+  },
+  "4": {
+    "inputs": {
+      "model": "IMAGEN_4_PREVIEW",
+      "prompt": [
+        "7",
+        0
+      ],
+      "person_generation": "allow_adult",
+      "aspect_ratio": "16:9",
+      "number_of_images": 1,
+      "negative_prompt": "",
+      "seed": 3876660363,
+      "enhance_prompt": true,
+      "add_watermark": false,
+      "output_image_type": "PNG",
+      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Imagen4TextToImageNode",
+    "_meta": {
+      "title": "Imagen4 Text To Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "images": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text_0": "Of course. Here are several detailed, artistic prompts for generating an image of a man. They are designed to be copied and pasted directly into an AI image generator like Midjourney, Stable Diffusion, or DALL-E 3.\n\nI've included a few different styles and moods.\n\n---\n\n### Prompt 1: The Pensive Scholar in a Library\n\n**Focus:** Moody, intellectual, classic, detailed.\n\n**Prompt:**\n`cinematic full-body portrait of a thoughtful elderly man with kind, intelligent eyes and wisps of white hair, sitting in a worn leather armchair inside a cozy, dimly-lit personal library. He is wearing a dark tweed jacket with leather elbow patches. The room is filled with floor-to-ceiling bookshelves overflowing with old, leather-bound tomes. A single warm, soft light from a green banker's lamp on a nearby desk illuminates his face, casting deep shadows and creating a dramatic chiaroscuro effect. He is looking thoughtfully towards a rain-streaked window, a faint smile on his lips. The atmosphere is pensive, nostalgic, and serene. Digital painting in the style of Rembrandt and Norman Rockwell, rich textures, hyper-detailed, intricate details, masterpiece.`\n\n---\n\n### Prompt 2: The Cyberpunk Rogue in a Neon City\n\n**Focus:** Futuristic, gritty, vibrant, high-tech.\n\n**Prompt:**\n`ultra-realistic, cinematic medium shot of a rugged man in his late 30s with a sharp jawline, a three-day stubble, and a glowing cybernetic eye. He stands on a grimy, wet balcony overlooking a sprawling, futuristic metropolis at night. The city is a blur of towering skyscrapers and holographic advertisements. He wears a worn, dark brown leather jacket over a simple black hoodie. The scene is drenched in vibrant neon light from the city below, casting dramatic pink and cyan reflections on his face and the rain-slicked surfaces. Anamorphic lens flare, volumetric lighting, gritty texture, Blade Runner aesthetic, 8K, ultra-detailed, sharp focus.`\n\n---\n\n### Prompt 3: The Weathered Seafarer\n\n**Focus:** Powerful, natural, character-driven, painterly.\n\n**Prompt:**\n`hyperrealistic oil painting of a craggy, old sea captain's face in extreme close-up. His face is a roadmap of his life, etched with deep lines from sun and sea. He has piercing, deep-set blue eyes that have seen a thousand storms, and a thick, unruly salt-and-pepper beard. He wears a dark, heavy oilskin coat, glistening with sea spray. The lighting is dramatic and overcast, as if from a brewing storm, with a strong side light that highlights every wrinkle and the rugged texture of his skin. The background is an abstract, out-of-focus tumultuous sea. Style of Ivan Aivazovsky, impasto brush strokes, powerful, resolute, enduring, award-winning portrait photography.`\n\n---\n\n### Prompt 4: The Ethereal Fantasy Prince\n\n**Focus:** Fantasy, elegant, artistic, otherworldly.\n\n**Prompt:**\n`Ethereal and elegant full-body portrait of a serene androgynous man with sharp, delicate features and long, flowing silver hair braided with small, glowing flowers. He is dressed in intricate, flowing white and gold silk robes, adorned with filigree and mother-of-pearl. He stands in a mystical, ancient forest clearing at twilight, surrounded by glowing mushrooms and fireflies. Soft, divine, bioluminescent light emanates from the flora around him, casting a gentle glow on his face. Art Nouveau and fantasy illustration fusion, style of Yoshitaka Amano and Alphonse Mucha. Masterpiece, intricate detail, elegant, flowing lines, celestial, magical atmosphere.`\n\n---\n\n### **How to Customize and Build Your Own**\n\nYou can mix and match elements from the prompts above. A great prompt generally includes:\n\n1.  **Subject & Appearance:** `A young man with freckles`, `An old man with a long beard`, `A handsome man with sharp cheekbones`.\n2.  **Setting & Background:** `In a sun-drenched cafe`, `On a windswept mountain peak`, `In a minimalist concrete room`.\n3.  **Action & Pose:** `Staring directly at the camera`, `Laughing candidly`, `Reading a book`, `Adjusting his tie`.\n4.  **Artistic Style:** `Oil painting`, `Charcoal sketch`, `Studio Ghibli anime style`, `Art Deco illustration`, `3D render`.\n5.  **Lighting:** `Dramatic backlighting`, `Soft morning light`, `Harsh top-down light`, `Cinematic film noir lighting`.\n6.  **Mood & Atmosphere:** `Melancholy and lonely`, `Joyful and energetic`, `Mysterious and tense`, `Peaceful and serene`.\n7.  **Technical Details (The \"Magic Words\"):** `Hyperrealistic`, `Ultra-detailed`, `8K`, `Cinematic`, `Volumetric lighting`, `Sharp focus`, `Wide-angle shot`, `Shallow depth of field`.\n\n**Example of building your own:** `[Subject] in a [Setting], [Action]. Style of [Artist/Style]. [Lighting] creating a [Mood] atmosphere. [Technical Details].`",
+      "text": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "ShowText|pysssss",
+    "_meta": {
+      "title": "Show Text 🐍"
+    }
+  }
+}

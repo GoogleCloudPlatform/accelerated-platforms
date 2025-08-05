@@ -1,0 +1,34 @@
+{
+  "2": {
+    "inputs": {
+      "images": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "3": {
+    "inputs": {
+      "prompt": "A close-up of a single, ancient tree that is slowly transforming into pure energy. Its bark is cracking to reveal an intricate network of glowing, golden circuits, and its leaves are dissolving into swirling nebulae of light. The setting sun casts a warm, golden glow on the untouched parts of the tree, creating a stark contrast with the vibrant energy emanating from its core. Photorealistic, hyper-detailed, spiritual",
+      "person_generation": "ALLOW_ADULT",
+      "aspect_ratio": "16:9",
+      "number_of_images": 1,
+      "negative_prompt": "",
+      "seed": 2998711693,
+      "enhance_prompt": true,
+      "add_watermark": false,
+      "output_image_type": "PNG",
+      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Imagen3TextToImageNode",
+    "_meta": {
+      "title": "Imagen3 Text To Image"
+    }
+  }
+}

@@ -98,7 +98,7 @@ most LLM inference scenarios. Whether your use case is batch or serving, your
 models are small or large, or you’re using entry-level or premium accelerators,
 we recommend that you use the following optimizations:
 
-#### **Create Cloud Storage buckets in the workload's region and enable
+1. **Create Cloud Storage buckets in the workload's region and enable
    hierarchical namespace:**
 
 To improve read performance of your LLM, we recommend that you enable

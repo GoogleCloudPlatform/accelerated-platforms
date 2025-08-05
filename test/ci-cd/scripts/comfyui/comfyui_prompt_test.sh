@@ -26,10 +26,11 @@ execute_workflow() {
     local wrapped_file=$(mktemp)
 
     jq '{prompt: .}' < "$test_file" > "$wrapped_file"
- 
+    echo "Submit prompt to: $COMFYUI_URL/prompt"
     response=$(curl -s -X POST "$COMFYUI_URL/prompt" -H "Content-Type: application/json" -d @"$wrapped_file")
     
     prompt_id=$(echo "$response" | jq -r '.prompt_id')
+    echo "Prompt: ${prompt_id}"
 
     if [ -z "$prompt_id" ] || [ "$prompt_id" == "null" ]; then
         echo "Error: Failed to get prompt ID." >&2
@@ -112,13 +113,12 @@ main() {
         exit 1
     fi
 
-    # Execute workflow, poll history, and get metadata sequentially.
-    local prompt_id
+    # Execute workflow
     execute_workflow "$test_file"    
     echo "--- Test completed successfully ---"
 }
-
+ls tmp
 # Loop through each file in the directory
-for file in tmp/workflows/*.json; do
+for file in tmp/workflows/* ; do
     main "$file"
 done

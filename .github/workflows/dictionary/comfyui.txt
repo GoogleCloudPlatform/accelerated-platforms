@@ -11,6 +11,7 @@ denoised
 dont
 dont_allow
 filebase
+gcsimage
 genai
 generativeai
 genmedia
@@ -34,6 +35,8 @@ torchvision
 unet
 veo
 veo2
+veo3
+veopreview
 vertexai
 videohelpersuite
 videopreview

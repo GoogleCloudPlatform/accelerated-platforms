@@ -1,15 +1,15 @@
 {
-  "id": "84b5eff9-dee6-47b8-9bf8-83a4b4ec04f9",
+  "id": "ae5c91d0-5428-4702-9b3d-828bcd43416e",
   "revision": 0,
-  "last_node_id": 4,
+  "last_node_id": 5,
   "last_link_id": 3,
   "nodes": [
     {
       "id": 3,
       "type": "VeoVideoSaveAndPreview",
       "pos": [
-        1630.414794921875,
-        249.49887084960938
+        1607.1865234375,
+        269.97515869140625
       ],
       "size": [
         282.740234375,
@@ -34,15 +34,20 @@
         true,
         true,
         true,
-        "veo_video"
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
       ]
     },
     {
-      "id": 4,
-      "type": "Veo3TextToVideoNode",
+      "id": 5,
+      "type": "Veo2TextToVideoNode",
       "pos": [
-        1029.2069091796875,
-        221.72039794921875
+        942.1952514648438,
+        221.17752075195312
       ],
       "size": [
         400,
@@ -62,17 +67,17 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "Veo3TextToVideoNode"
+        "Node name for S&R": "Veo2TextToVideoNode"
       },
       "widgets_values": [
-        "VEO_3_PREVIEW",
         "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn. As it progresses, the mist slowly dissipates, revealing colossal, glowing crystal formations emerging from the ground. Fauna, never-before-seen, begins to stir – iridescent birds with long tails take flight, and massive, gentle creatures with bioluminescent markings graze among the crystals. The light subtly shifts from dawn's muted tones to vibrant daylight, illuminating new details with each passing second. The camera eventually ascends above the canopy, revealing a breathtaking vista of the entire crystal forest.",
         "16:9",
+        "optimized",
         "allow_adult",
         8,
         true,
-        true,
         1,
+        "${output_bucket_uri}",
         "",
         0,
         "randomize",
@@ -84,7 +89,7 @@
   "links": [
     [
       3,
-      4,
+      5,
       0,
       3,
       0,
@@ -101,7 +106,7 @@
         -104.15173643369593
       ]
     },
-    "frontendVersion": "1.20.7",
+    "frontendVersion": "1.23.4",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

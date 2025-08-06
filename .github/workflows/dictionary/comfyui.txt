@@ -38,3 +38,10 @@ vertexai
 videohelpersuite
 videopreview
 webp
+Aivazovsky
+Yoshitaka
+Amano
+Mucha
+Ghibli
+backlighting
+DALL

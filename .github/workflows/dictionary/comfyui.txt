@@ -1,4 +1,7 @@
+aivazovsky
+amano
 autoplay
+backlighting
 bgcolor
 bioluminescent
 cachebuster
@@ -6,6 +9,7 @@ comfygroup
 comfyui
 comfyuser
 controlnet
+dall
 denoise
 denoised
 dont
@@ -15,6 +19,7 @@ gcsimage
 genai
 generativeai
 genmedia
+ghibli
 gligen
 hypernetworks
 hyperrealistic
@@ -26,6 +31,7 @@ lightricks
 loras
 ltxv
 mimetypes
+mucha
 photomaker
 pingpong
 pysssss
@@ -41,3 +47,4 @@ vertexai
 videohelpersuite
 videopreview
 webp
+yoshitaka

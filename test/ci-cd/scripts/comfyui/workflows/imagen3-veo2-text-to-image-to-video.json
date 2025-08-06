@@ -1,0 +1,74 @@
+{
+  "3": {
+    "inputs": {
+      "images": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "5": {
+    "inputs": {
+      "prompt": "A hyperrealistic, macro shot of a bioluminescent forest where every leaf and branch glows with intricate, pulsating patterns. Raindrops suspended mid-air reflect miniature galaxies, and the ground is covered in iridescent, crystalline moss. The lighting is ethereal, creating deep shadows and vibrant highlights, with a soft, misty atmosphere",
+      "person_generation": "ALLOW_ADULT",
+      "aspect_ratio": "16:9",
+      "number_of_images": 1,
+      "negative_prompt": "",
+      "seed": 828546618,
+      "enhance_prompt": true,
+      "add_watermark": false,
+      "output_image_type": "PNG",
+      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Imagen3TextToImageNode",
+    "_meta": {
+      "title": "Imagen3 Text To Image"
+    }
+  },
+  "7": {
+    "inputs": {
+      "image_format": "PNG",
+      "prompt": "make the tree branches sway in the wind",
+      "aspect_ratio": "16:9",
+      "person_generation": "allow_adult",
+      "duration_seconds": 8,
+      "enhance_prompt": true,
+      "sample_count": 1,
+      "negative_prompt": "",
+      "seed": 1773576872,
+      "gcp_project_id": "",
+      "gcp_region": "",
+      "image": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "Veo2ImageToVideoNode",
+    "_meta": {
+      "title": "Veo2 Image To Video"
+    }
+  },
+  "8": {
+    "inputs": {
+      "autoplay": true,
+      "mute": true,
+      "loop": true,
+      "save_video": true,
+      "save_video_file_prefix": "veo_video",
+      "video_paths": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "VeoVideoSaveAndPreview",
+    "_meta": {
+      "title": "Preview/Save video"
+    }
+  }
+}

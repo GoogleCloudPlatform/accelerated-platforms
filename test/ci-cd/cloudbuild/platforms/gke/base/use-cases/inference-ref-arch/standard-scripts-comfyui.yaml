@@ -51,13 +51,16 @@ steps:
       - "Configure the build environment"
 
   - args:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
-    id: "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+      - "Test the ComfyUI deployment"
+    entrypoint: "test/ci-cd/scripts/comfyui/run_in_cluster.sh"
+    env:
+      - HEADLESS_COMFYUI_SERVICE="http://comfyui-nvidia-l4.comfyui.svc.cluster.local:8188"
+      - TEST_DIR="test/ci-cd/scripts/comfyui"
+      - WORKFLOWS_DIR="/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src/comfyui-workflows"
+    id: "Test ComfyUI test/ci-cd/scripts/comfyui"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Create the IAP Brand"
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
 
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
@@ -66,7 +69,7 @@ steps:
     id: "Apply inference-ref-arch Terraservice 'workflow_api'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+      - "Test ComfyUI test/ci-cd/scripts/comfyui"
 
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform

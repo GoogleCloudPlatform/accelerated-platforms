@@ -83,25 +83,25 @@ spec:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: ${input_bucket}
-              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:-1,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:-1,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:60,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:60,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
           name: comfyui-input
         - csi:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: ${output_bucket}
-              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:-1,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:-1,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:60,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:60,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
           name: comfyui-output
         - csi:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: ${model_buckets}
-              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:-1,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:-1,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:60,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:60,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
           name: comfyui-model
         - csi:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: ${workflow_bucket}
-              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:-1,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:-1,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:60,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:60,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
           name: comfyui-workflows
 ---
 apiVersion: v1

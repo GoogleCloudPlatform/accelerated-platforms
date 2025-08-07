@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import io
 import mimetypes
 import os
@@ -34,8 +35,28 @@ from google.genai.types import GenerateVideosConfig, Image
 from grpc import StatusCode
 from PIL import Image as PIL_Image
 
-from .config import get_gcp_metadata
 from .constants import STORAGE_USER_AGENT
+
+
+def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
+    """
+    Decodes a base64 string and converts the resulting image to a PyTorch tensor.
+
+    Args:
+        base64_string: The base64 encoded string of an image.
+
+    Returns:
+        A PyTorch tensor of the image, formatted as (1, height, width, channels)
+        with float values in the [0, 1] range.
+    """
+    image_data = base64.b64decode(base64_string)
+    pil_image = PIL_Image.open(io.BytesIO(image_data)).convert("RGBA")
+    image_array = np.array(pil_image, dtype=np.float32) / 255.0
+    tensor = torch.from_numpy(image_array)[
+        None,
+    ]
+
+    return tensor
 
 
 def download_gcsuri(gcsuri: str, destination: str) -> bool:
@@ -222,7 +243,7 @@ def generate_image_from_text(
             else:
                 # Catch any other ServerError types
                 raise RuntimeError(
-                    f"Unexpected Veo API Server Error (Code: {e.code.name}). Error: {e.details}"
+                    f"Unexpected Veo API Server Error (Code: {e.code}). Error: {e.details}"
                 )
 
     return []
@@ -1094,3 +1115,41 @@ def validate_gcs_uri_and_image(
             )
     except Exception as e:
         return False, f"An unexpected error occurred during GCS validation: {e}"
+
+
+def tensor_to_pil_to_base64(image: torch.tensor) -> bytes:
+    """Converts a PyTorch tensor or PIL Image into PNG-encoded bytes.
+
+    This function processes an input image, which can be either a PyTorch tensor
+    or a PIL Image object. If the input is a tensor, it is first converted to a
+    PIL Image. The function then saves the final PIL Image as a PNG into an
+    in-memory buffer and returns its raw byte content.
+
+    Args:
+        image (torch.Tensor | PIL.Image.Image): The input image. If it's a
+            PyTorch tensor, it is expected to have a shape like (1, H, W, C)
+            and float values in the [0, 1] range.
+
+    Returns:
+        bytes: The raw bytes of the image, encoded in PNG format.
+    """
+
+    pil_image: PIL_Image.Image
+    image_input_bytes: bytes
+    try:
+        if isinstance(image, torch.Tensor):
+            image_np = (image.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
+            pil_image = PIL_Image.fromarray(image_np)
+            print("Converted input image tensor to PIL Image for Base64 encoding.")
+        else:
+            pil_image = image
+            print(f"Using input image as is for Base64 (type: {type(image)}).")
+
+        buffered = io.BytesIO()
+        pil_image.save(buffered, format="PNG")
+        image_input_bytes = buffered.getvalue()
+        image_base64 = base64.b64encode(image_input_bytes).decode("utf-8")
+        return image_base64
+    except Exception as e:
+        print(f"Cant convert the image to base64 {e}")
+        print(f"Cant convert the image to base64 {e}")

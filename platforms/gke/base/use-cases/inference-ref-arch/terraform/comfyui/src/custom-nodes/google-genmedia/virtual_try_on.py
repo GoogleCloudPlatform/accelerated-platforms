@@ -152,8 +152,6 @@ class VirtualTryOn:
         self,
         person_image: torch.Tensor,
         product_image: torch.Tensor,
-        person_image_uri: str,
-        product_image_uri: str,
         base_steps: int,
         person_generation: str = "DONT_ALLOW",
         aspect_ratio: str = "16:9",
@@ -209,6 +207,13 @@ class VirtualTryOn:
         if person_image and product_image:
             person_image_bytes = utils.tensor_to_pil_to_bytes(person_image)
             product_image_bytes = utils.tensor_to_pil_to_bytes(product_image)
+            instance = {
+                "personImage": {"image": {"bytesBase64Encoded": person_image_bytes}},
+                "productImages": [
+                    {"image": {"bytesBase64Encoded": product_image_bytes}}
+                ],
+            }
+            instances.append(instance)
         else:
             raise ValueError("Both person_image and product_image must be set.")
 
@@ -218,7 +223,7 @@ class VirtualTryOn:
         parameters["personGeneration"] = p_gen_enum
         parameters["aspect_ratio"] = aspect_ratio
         parameters["negative_prompt"] = negative_prompt
-        parameters["seed"] = seed
+        parameters["seed"] = seed_for_api
         parameters["enhance_prompt"] = enhance_prompt
         parameters["add_watermark"] = add_watermark
         parameters["output_image_type"] = output_image_type
@@ -227,31 +232,27 @@ class VirtualTryOn:
             response = self.client.predict(
                 endpoint=self.model_endpoint, instances=instances, parameters=parameters
             )
+            image_tensors = []
+            for prediction in response.predictions:
+                base64_image = prediction["bytesBase64Encoded"]
+                image_data = base64.b64decode(base64_image)
+                # Open the image data as a PIL Image.
+                pil_image = Image.open(io.BytesIO(image_data)).convert("RGBA")
+                # Convert the PIL Image to a NumPy array and normalize to [0, 1].
+                image_array = np.array(pil_image).astype(np.float32) / 255.0
+                # Convert the NumPy array to a torch.Tensor and add a batch dimension.
+                tensor = torch.from_numpy(image_array)[None,]
+                image_tensors.append(tensor)
+            if not image_tensors:
+                print("API did not return any images.")
+                return (torch.zeros(1, 64, 64, 3, dtype=torch.float32),)
+
+            batch_tensor = torch.cat(image_tensors, 0)
+            return (batch_tensor,)
         except Exception as e:
             raise RuntimeError(f"Error occurred during image generation: {e}")
-            # return (torch.empty(0, 640, 640, 3),)
-
-        image_tensors = []
-        for prediction in response.predictions:
-            base64_image = prediction["bytesBase64Encoded"]
-            image_data = base64.b64decode(base64_image)
-            # Open the image data as a PIL Image.
-            pil_image = Image.open(io.BytesIO(image_data)).convert("RGBA")
-            # Convert the PIL Image to a NumPy array and normalize to [0, 1].
-            image_array = np.array(pil_image).astype(np.float32) / 255.0
-            # Convert the NumPy array to a torch.Tensor and add a batch dimension.
-            tensor = torch.from_numpy(image_array)[None,]
-            image_tensors.append(tensor)
-
-        if not image_tensors:
-            print("API did not return any images.")
-            return (torch.zeros(1, 64, 64, 3, dtype=torch.float32),)
-
-        batch_tensor = torch.cat(image_tensors, 0)
-        return (batch_tensor,)
 
 
 NODE_CLASS_MAPPINGS = {"VirtualTryOn": VirtualTryOn}
 
-NODE_DISPLAY_NAME_MAPPINGS = {"VirtualTryOn": "Virtual try-on"}
 NODE_DISPLAY_NAME_MAPPINGS = {"VirtualTryOn": "Virtual try-on"}

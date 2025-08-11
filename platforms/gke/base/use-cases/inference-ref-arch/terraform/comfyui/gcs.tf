@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  source_path     = "${path.module}/src/comfyui-workflows/input-images/virtual-try-on"
+  files_to_upload = fileset(local.source_path, "**/*.png")
+}
+
 resource "google_storage_bucket" "comfyui_input" {
   force_destroy               = true
   location                    = local.comfyui_cloud_storage_location
@@ -87,6 +92,13 @@ resource "google_storage_bucket_object" "veo3-gcsimage" {
   source = "src/comfyui-workflows/input-images/jellyfish.png"
 }
 
+resource "google_storage_bucket_object" "vto-gcsimage" {
+  for_each = local.files_to_upload
+  bucket   = google_storage_bucket.comfyui_input.name
+  name     = "virtual-try-on/${each.key}"
+  source   = "${local.source_path}/${each.key}"
+}
+
 resource "google_storage_bucket_object" "workflow-gemini-tti" {
   bucket = google_storage_bucket.comfyui_workflow.name
   name   = "gemini-imagen4-text-to-image.json"
@@ -150,6 +162,13 @@ resource "google_storage_bucket_object" "workflow-veo3-ttv" {
   name       = "veo3-text-to-video.json"
   source     = "src/comfyui-workflows/veo3-text-to-video.json"
   depends_on = [local_file.workflow-veo3-ttv]
+}
+
+resource "google_storage_bucket_object" "workflow-vto" {
+  bucket     = google_storage_bucket.comfyui_workflow.name
+  name       = "virtual-try-on.json"
+  source     = "src/comfyui-workflows/virtual-try-on.json"
+  depends_on = [google_storage_bucket_object.vto-gcsimage]
 }
 
 

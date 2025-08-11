@@ -15,7 +15,8 @@
 # This is a preview version of Google GenAI custom nodes
 
 google-api-core==2.24.2
-google-cloud-storage==3.1.0
+google-cloud-aiplatform==1.106.0
+google-cloud-storage==2.19.0
 google-genai==1.27.0
 google-generativeai==0.8.5
 moviepy==2.2.1

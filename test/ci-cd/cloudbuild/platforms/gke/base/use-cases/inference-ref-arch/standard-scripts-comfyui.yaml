@@ -58,8 +58,7 @@ steps:
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Create the IAP Brand"
-  
-# 👇 New step added here
+ 
   - args:
       - "Test the ComfyUI deployment"
     entrypoint: "test/ci-cd/scripts/comfyui/run_in_cluster.sh"

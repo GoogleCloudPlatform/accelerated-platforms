@@ -1,19 +1,19 @@
 {
-  "id": "ae5c91d0-5428-4702-9b3d-828bcd43416e",
+  "id": "b91d5a73-d692-493b-aedd-26f78dad9d86",
   "revision": 0,
   "last_node_id": 4,
-  "last_link_id": 2,
+  "last_link_id": 3,
   "nodes": [
     {
-      "id": 4,
-      "type": "Veo2TextToVideoNode",
+      "id": 3,
+      "type": "Veo3GcsUriImageToVideoNode",
       "pos": [
-        1045.083740234375,
-        231.26132202148438
+        1090.38037109375,
+        222.4357147216797
       ],
       "size": [
         400,
-        358
+        526
       ],
       "flags": {},
       "order": 0,
@@ -24,37 +24,44 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            2
+            3
           ]
         }
       ],
       "properties": {
-        "Node name for S&R": "Veo2TextToVideoNode"
+        "Node name for S&R": "Veo3GcsUriImageToVideoNode"
       },
       "widgets_values": [
-        "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn. As it progresses, the mist slowly dissipates, revealing colossal, glowing crystal formations emerging from the ground. Fauna, never-before-seen, begins to stir – iridescent birds with long tails take flight, and massive, gentle creatures with bioluminescent markings graze among the crystals. The light subtly shifts from dawn's muted tones to vibrant daylight, illuminating new details with each passing second. The camera eventually ascends above the canopy, revealing a breathtaking vista of the entire crystal forest.",
+        "VEO_3_PREVIEW",
+        "${input_bucket_uri}/jellyfish.png",
+        "PNG",
+        "",
         "16:9",
+        "720p",
+        "optimized",
         "allow_adult",
         8,
         true,
+        true,
         1,
+        "${output_bucket_uri}",
         "",
-        0,
+        3041877000,
         "randomize",
         "",
         ""
       ]
     },
     {
-      "id": 3,
+      "id": 4,
       "type": "VeoVideoSaveAndPreview",
       "pos": [
-        1607.1865234375,
-        269.97515869140625
+        1756.109130859375,
+        309.26654052734375
       ],
       "size": [
-        282.740234375,
-        154
+        402.1000061035156,
+        272.4181823730469
       ],
       "flags": {},
       "order": 1,
@@ -63,7 +70,7 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 2
+          "link": 3
         }
       ],
       "outputs": [],
@@ -81,10 +88,10 @@
   ],
   "links": [
     [
-      2,
-      4,
-      0,
       3,
+      3,
+      0,
+      4,
       0,
       "VEO_VIDEO"
     ]
@@ -95,11 +102,11 @@
     "ds": {
       "scale": 1.2666661150000031,
       "offset": [
-        -661.5596169425305,
-        -104.15173643369593
+        -925.1936846558127,
+        -145.91381147482033
       ]
     },
-    "frontendVersion": "1.20.7",
+    "frontendVersion": "1.23.4",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

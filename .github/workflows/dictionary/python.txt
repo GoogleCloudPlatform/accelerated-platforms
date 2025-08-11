@@ -31,7 +31,9 @@ isna
 iterrows
 jsonify
 jsonpickle
+lstrip
 makedirs
+moviepy
 nbconvert
 numpy
 opencv

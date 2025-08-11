@@ -33,3 +33,11 @@ resource "google_project_service" "cloudbuild_googleapis_com" {
   project                    = data.google_project.cluster.project_id
   service                    = "cloudbuild.googleapis.com"
 }
+
+# Create all project-level aiplatform.googleapis.com service agents
+resource "google_project_service_identity" "aiplatform_service_agents" {
+  provider = google-beta
+  project  = data.google_project.cluster.project_id
+  service  = "aiplatform.googleapis.com"
+}
+

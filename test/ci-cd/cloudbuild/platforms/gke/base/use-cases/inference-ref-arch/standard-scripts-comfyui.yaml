@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,106 +13,116 @@
 # limitations under the License.
 
 options:
-  automapSubstitutions: true
-  logging: CLOUD_LOGGING_ONLY
+  automapSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
 
 steps:
-  - args:
-      - "${_WAIT_FOR_TRIGGER}"
-    entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
-    env:
-      - "LOCATION=${LOCATION}"
-      - "PROJECT_ID=${PROJECT_ID}"
-    id: "Check triggers"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor: ["-"]
+  - args:
+      - "${_WAIT_FOR_TRIGGER}"
+    entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
+    env:
+      - "LOCATION=${LOCATION}"
+      - "PROJECT_ID=${PROJECT_ID}"
+    id: "Check triggers"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor: ["-"]
 
-  - args:
-      - DEBUG=${_DEBUG}
-      - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
-      - TF_VAR_platform_name="ch${SHORT_SHA}"
-      - IAP_PROJECT_ID="${PROJECT_ID}-$${PROJECT_SUFFIX}"
-      - TF_VAR_comfyui_iap_domain="accelerated-platforms.joonix.net"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"
-    env:
-      - BUILD_ID=${BUILD_ID}
-      - DEBUG=${_DEBUG}
-      - PROJECT_ID=${PROJECT_ID}
-      - SHORT_SHA=${SHORT_SHA}
-    id: "Configure the build environment"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Check triggers"
+  - args:
+      - DEBUG=${_DEBUG}
+      - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+      - TF_VAR_platform_name="ch${SHORT_SHA}"
+      - IAP_PROJECT_ID="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+      - TF_VAR_comfyui_iap_domain="accelerated-platforms.joonix.net"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"
+    env:
+      - BUILD_ID=${BUILD_ID}
+      - DEBUG=${_DEBUG}
+      - PROJECT_ID=${PROJECT_ID}
+      - SHORT_SHA=${SHORT_SHA}
+    id: "Configure the build environment"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Check triggers"
 
-  - entrypoint: "test/ci-cd/scripts/cloudbuild/create_iap_brand.sh"
-    id: "Create the IAP Brand"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Configure the build environment"
+  - entrypoint: "test/ci-cd/scripts/cloudbuild/create_iap_brand.sh"
+    id: "Create the IAP Brand"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Configure the build environment"
 
-  - args:
-      - "Test the ComfyUI deployment"
-    entrypoint: "test/ci-cd/scripts/comfyui/run_in_cluster.sh"
-    env:
-      - HEADLESS_COMFYUI_SERVICE="http://comfyui-nvidia-l4.comfyui.svc.cluster.local:8188"
-      - TEST_DIR="test/ci-cd/scripts/comfyui"
-      - WORKFLOWS_DIR="/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src/comfyui-workflows"
-    id: "Test ComfyUI test/ci-cd/scripts/comfyui"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+  - args:
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
+    id: "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Create the IAP Brand"
+  
+# 👇 New step added here
+  - args:
+      - "Test the ComfyUI deployment"
+    entrypoint: "test/ci-cd/scripts/comfyui/run_in_cluster.sh"
+    env:
+      - HEADLESS_COMFYUI_SERVICE="http://comfyui-nvidia-l4.comfyui.svc.cluster.local:8188"
+      - TEST_DIR="test/ci-cd/scripts/comfyui"
+      - WORKFLOWS_DIR="/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src/comfyui-workflows"
+    id: "Test ComfyUI test/ci-cd/scripts/comfyui"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
 
-  - args:
-      - platforms/gke/base/use-cases/inference-ref-arch/terraform
-      - workflow_api
-    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
-    id: "Apply inference-ref-arch Terraservice 'workflow_api'"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Test ComfyUI test/ci-cd/scripts/comfyui"
+  - args:
+      - platforms/gke/base/use-cases/inference-ref-arch/terraform
+      - workflow_api
+    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+    id: "Apply inference-ref-arch Terraservice 'workflow_api'"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Test ComfyUI test/ci-cd/scripts/comfyui"
 
-  - args:
-      - platforms/gke/base/use-cases/inference-ref-arch/terraform
-      - workflow_api
-    entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
-    id: "Check inference-ref-arch Terraservice 'workflow_api' check for changes"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Apply inference-ref-arch Terraservice 'workflow_api'"
+  - args:
+      - platforms/gke/base/use-cases/inference-ref-arch/terraform
+      - workflow_api
+    entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+    id: "Check inference-ref-arch Terraservice 'workflow_api' check for changes"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Apply inference-ref-arch Terraservice 'workflow_api'"
 
-  - args:
-      - platforms/gke/base/use-cases/inference-ref-arch/terraform
-      - workflow_api
-    entrypoint: "test/ci-cd/scripts/terraservice/destroy.sh"
-    id: "Destroy inference-ref-arch Terraservice 'workflow_api'"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Check inference-ref-arch Terraservice 'workflow_api' check for changes"
+  - args:
+      - platforms/gke/base/use-cases/inference-ref-arch/terraform
+      - workflow_api
+    entrypoint: "test/ci-cd/scripts/terraservice/destroy.sh"
+    id: "Destroy inference-ref-arch Terraservice 'workflow_api'"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Check inference-ref-arch Terraservice 'workflow_api' check for changes"
 
-  - args:
-      - "Teardown platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
-    id: "Teardown platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Destroy inference-ref-arch Terraservice 'workflow_api'"
+  - args:
+      - "Teardown platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
+    id: "Teardown platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Destroy inference-ref-arch Terraservice 'workflow_api'"
 
-  - args:
-      - "Cleanup the build environment"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/cleanup_build_environment.sh"
-    id: "Cleanup the build environment"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Teardown platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+  - args:
+      - "Cleanup the build environment"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/cleanup_build_environment.sh"
+    id: "Cleanup the build environment"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Teardown platforms/gke/base/use-cases/inference-ref-arch/comfyui"
 
-  - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
-    id: "Set the build status"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Cleanup the build environment"
+  - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
+    id: "Set the build status"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Cleanup the build environment"
 
 substitutions:
-  _DEBUG: "false"
+  _DEBUG: "false"
 
-timeout: 90m
+timeout: 90m"

@@ -25,6 +25,7 @@ hypernetworks
 hyperrealistic
 imagen
 imagen3
+intpl
 latentpreview
 latentpreviewrate
 lightricks

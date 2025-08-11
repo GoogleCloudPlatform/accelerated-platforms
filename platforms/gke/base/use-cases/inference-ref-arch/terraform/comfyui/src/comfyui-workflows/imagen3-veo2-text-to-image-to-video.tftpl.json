@@ -42,7 +42,7 @@
       ],
       "size": [
         282.740234375,
-        154
+        355.7913818359375
       ],
       "flags": {},
       "order": 3,
@@ -80,7 +80,7 @@
       ],
       "size": [
         400,
-        376
+        406
       ],
       "flags": {},
       "order": 0,
@@ -105,7 +105,7 @@
         "16:9",
         1,
         "",
-        0,
+        3812661032,
         "randomize",
         true,
         false,
@@ -134,6 +134,12 @@
           "name": "image",
           "type": "IMAGE",
           "link": 7
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
         }
       ],
       "outputs": [
@@ -159,7 +165,7 @@
         1,
         "${output_bucket_uri}",
         "",
-        0,
+        3718933726,
         "randomize",
         "",
         ""

@@ -67,7 +67,7 @@ get_history() {
 
             if [[ -n "$filename" ]]; then
                 get_image_metadata "$filename" "$subfolder" "$type"
-                return 0
+                 return $? 
             else
                 echo "Error: Could not find filename in response." >&2
                 return 1
@@ -114,8 +114,14 @@ main() {
     fi
 
     # Execute workflow
-    execute_workflow "$test_file"    
+    execute_workflow "$test_file" 
+    local exit_code=$?
+    if [ $exit_code -ne 0 ]; then
+        echo "Failure detected for file: $test_file" >&2
+        return $exit_code
+    fi
     echo "--- Test completed successfully ---"
+    return 0
 }
 ls tmp
 # Loop through each file in the directory

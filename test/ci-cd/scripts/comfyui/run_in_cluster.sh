@@ -30,6 +30,13 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+source /workspace/build.env
+if [ "${DEBUG,,}" == "true" ]; then
+  set -o xtrace
+fi
+
+STEP_ID=${1}
+DEPLOY_SCRIPT="${2}"
 
 # Check for all required environment variables
 if [ -z "$cluster_name" ] || [ -z "$cluster_region" ] || [ -z "$cluster_project_id" ] || \
@@ -59,6 +66,7 @@ cleanup() {
   kubectl delete pod "$POD_NAME" --namespace="$comfyui_kubernetes_namespace" --ignore-not-found=true || true
 }
 trap cleanup EXIT
+
 
 # 1. Get GKE cluster credentials
 echo "--- Getting GKE credentials for project '$cluster_project_id' ---"

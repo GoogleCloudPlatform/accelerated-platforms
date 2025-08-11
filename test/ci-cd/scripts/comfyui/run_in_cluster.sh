@@ -35,9 +35,6 @@ if [ "${DEBUG,,}" == "true" ]; then
   set -o xtrace
 fi
 
-STEP_ID=${1}
-DEPLOY_SCRIPT="${2}"
-
 # Check for all required environment variables
 if [ -z "$cluster_name" ] || [ -z "$cluster_region" ] || [ -z "$cluster_project_id" ] || \
    [ -z "$comfyui_kubernetes_namespace" ] || [ -z "$comfyui_endpoints_hostname" ] || [ -z "$WORKFLOWS_DIR" ] || \

@@ -1,7 +1,7 @@
 {
   "1": {
     "inputs": {
-      "prompt": "Generate a prompt for me to generate an artistic image of a man.The prompt will be fed as a prompt to Image generating model directly so keep it as detailed as possible.",
+      "prompt": "Generate picture of a cat",
       "model": "GEMINI_PRO",
       "temperature": 0.7,
       "max_output_tokens": 8192,
@@ -29,17 +29,20 @@
       "title": "Gemini 2.5"
     }
   },
-  "8": {
+  "11": {
     "inputs": {
-      "text_0": "Of course. Here are three distinct, highly detailed prompts you can use directly. They are designed to produce very different artistic styles. Below them, you'll find a \"Build-Your-Own\" template so you can create your own with the same level of detail.\n\n---\n\n### **Option 1: Cinematic Neo-Noir Detective**\n\nThis prompt aims for a photorealistic, moody, and cinematic image.\n\n**Prompt:**\n`cinematic film still of a grizzled private detective in his late 40s, sharp jawline, tired but determined eyes, 3-day stubble. He stands on a rain-slicked neo-noir city street at midnight, steam rising from a manhole cover beside him. He wears a classic, heavy wool trench coat, collar turned up against the wind, raindrops clinging to the fabric. The scene is illuminated by the harsh, electric blue and magenta glow of towering holographic advertisements, casting long, dramatic chiaroscuro shadows. Medium shot, he looks slightly off-camera with a thoughtful, weary expression. Photorealistic, hyper-detailed, 8k, UHD, Unreal Engine 5 render, volumetric lighting, cinematic color grading, masterpiece.`\n\n---\n\n### **Option 2: Ethereal Fantasy Scholar**\n\nThis prompt aims for a painterly, high-fantasy style with soft, magical lighting.\n\n**Prompt:**\n`Digital painting of an elderly, wise male scholar with a long, flowing white beard and kind, crinkling eyes. He is in a sun-drenched, ancient library filled with towering, carved-oak bookshelves and floating, gently glowing magical orbs. He is looking up from a massive, leather-bound tome on a lectern, a gentle smile on his face as a single, perfect sunbeam (god rays) illuminates the dust motes dancing in the air around him. He wears simple, elegant linen robes of a sage. The style is a blend of fantasy concept art by Alan Lee and the rich textures of a classic oil painting. Warm, golden hour lighting, epic, detailed, masterpiece, trending on Artstation.`\n\n---\n\n### **Option 3: Expressive Modern Portrait**\n\nThis prompt aims for a raw, emotional, and textured artistic portrait, focusing on brushwork and feeling over realism.\n\n**Prompt:**\n`An expressive, impasto oil painting portrait of a young man in his early 20s. Head and shoulders, intimate close-up. He has an introspective and melancholic expression, with messy, windswept dark hair falling across his forehead. The lighting is a single, soft source from the side, creating a dramatic play of light and shadow (chiaroscuro). The background is an abstract, textured canvas of deep indigo and burnt sienna. Focus on the raw emotion and the thick, visible brushstrokes and palette knife textures on the canvas. Muted, emotional color palette. In the style of Jeremy Mann and Lucian Freud. Fine art, masterpiece, highly textured.`\n\n---\n\n### **Build-Your-Own Detailed Prompt Template**\n\nUse this template to construct your own prompts. Mix and match elements to create a unique image.\n\n**[1. Core Subject]** + **[2. Pose & Expression]** + **[3. Clothing & Appearance]** + **[4. Setting & Background]** + **[5. Lighting]** + **[6. Art Style & Medium]** + **[7. Composition & Framing]** + **[8. Technical Keywords]**\n\n**1. Core Subject:**\n*   *Examples:* `a ruggedly handsome man in his 30s`, `an old, weathered sailor`, `a young, androgynous man`, `a stoic Roman centurion`\n\n**2. Pose & Expression:**\n*   *Examples:* `gazing directly at the viewer with a confident smirk`, `laughing wholeheartedly`, `slumped over a table in exhaustion`, `looking out a window with a melancholic stare`, `in a dynamic action pose, mid-stride`\n\n**3. Clothing & Appearance Details:**\n*   *Examples:* `wearing a tailored tweed suit with a bow tie`, `dressed in futuristic, form-fitting chrome armor`, `in a simple, hand-spun linen tunic`, `with intricate facial tattoos and a silver earring`\n\n**4. Setting & Background:**\n*   *Examples:* `in a bustling Victorian workshop filled with brass gears and blueprints`, `on the windswept deck of a wooden sailing ship during a storm`, `in a minimalist, sun-lit Scandinavian apartment`, `against an abstract background of swirling colors`\n\n**5. Lighting:**\n*   *Examples:* `dramatic Rembrandt-style chiaroscuro`, `soft, diffused morning light streaming through a window`, `harsh, direct sunlight of midday`, `eerie, magical glow from a mystical artifact`, `neon cyberpunk lighting`\n\n**6. Art Style & Medium:**\n*   *Examples:* `hyperrealistic photograph`, `classic oil painting`, `delicate watercolor sketch`, `cel-shaded anime style`, `gritty graphic novel ink drawing`, `digital painting in the style of [Artist's Name]`, `3D render`\n\n**7. Composition & Framing:**\n*   *Examples:* `extreme close-up on the eyes`, `medium shot from the waist up`, `full body wide shot showing the epic landscape`, `Dutch angle for a sense of unease`, `rule of thirds composition`\n\n**8. Technical Keywords (The \"Magic Sauce\"):**\n*   *Examples:* `masterpiece`, `8k`, `UHD`, `trending on Artstation`, `photorealistic`, `highly detailed`, `cinematic`, `volumetric lighting`, `global illumination`, `sharp focus`, `vivid colors`, `Unreal Engine`",
+      "root_dir": "input",
+      "file": "file.txt",
+      "append": "append",
+      "insert": true,
       "text": [
         "1",
         0
       ]
     },
-    "class_type": "ShowText|pysssss",
+    "class_type": "SaveText|pysssss",
     "_meta": {
-      "title": "Show Text 🐍"
+      "title": "Save Text 🐍"
     }
   }
 }

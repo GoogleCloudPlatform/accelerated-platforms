@@ -61,6 +61,15 @@ steps:
       - "Create the IAP Brand"
 
   - args:
+      - "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+      - "test/ci-cd/scripts/comfyui/run_in_cluster.sh"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
+    id: "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+
+  - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
       - workflow_api
     entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
@@ -68,7 +77,7 @@ steps:
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-
+  
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
       - workflow_api

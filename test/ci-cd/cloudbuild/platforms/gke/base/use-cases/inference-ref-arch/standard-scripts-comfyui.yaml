@@ -120,6 +120,6 @@ steps:
       - "Cleanup the build environment"
 
 substitutions:
-  _DEBUG: "false"
+  _DEBUG: "true"
 
 timeout: 90m

@@ -189,6 +189,10 @@ class Veo2GcsUriImageToVideoNode:
                 "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
+                "last_frame_gcsuri": (
+                    "STRING",
+                    {"default": "", "tooltip": "GCS URI for the last frame image"},
+                ),
                 "output_gcs_uri": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
@@ -233,6 +237,7 @@ class Veo2GcsUriImageToVideoNode:
         duration_seconds: int = 8,
         enhance_prompt: bool = True,
         sample_count: int = 1,
+        last_frame_gcsuri: str = "",
         output_gcs_uri: str = "",
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
@@ -252,6 +257,7 @@ class Veo2GcsUriImageToVideoNode:
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            last_frame_gcsuri: gcsuri of the last_frame image for interpolation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
@@ -282,6 +288,7 @@ class Veo2GcsUriImageToVideoNode:
                 duration_seconds=duration_seconds,
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
+                last_frame_gcsuri=last_frame_gcsuri,
                 output_gcs_uri=output_gcs_uri,
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
@@ -331,6 +338,7 @@ class Veo2ImageToVideoNode:
                 "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
+                "last_frame": ("IMAGE",),
                 "output_gcs_uri": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
@@ -376,6 +384,7 @@ class Veo2ImageToVideoNode:
         enhance_prompt: bool = True,
         sample_count: int = 1,
         seed: Optional[int] = None,
+        last_frame: Optional[torch.Tensor] = None,
         output_gcs_uri: str = "",
         negative_prompt: Optional[str] = None,
         gcp_project_id: Optional[str] = None,
@@ -395,6 +404,7 @@ class Veo2ImageToVideoNode:
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             seed: An optional seed for reproducible video generation.
+            last_frame: last frame for interpolation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
@@ -433,6 +443,7 @@ class Veo2ImageToVideoNode:
                     duration_seconds=duration_seconds,
                     enhance_prompt=enhance_prompt,
                     sample_count=sample_count,
+                    last_frame=last_frame,
                     output_gcs_uri=output_gcs_uri,
                     negative_prompt=negative_prompt,
                     seed=seed_for_api,

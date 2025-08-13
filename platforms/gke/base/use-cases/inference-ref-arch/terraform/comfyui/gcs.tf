@@ -13,8 +13,10 @@
 # limitations under the License.
 
 locals {
-  source_path     = "${path.module}/src/comfyui-workflows/input-images/virtual-try-on"
-  files_to_upload = fileset(local.source_path, "**/*.png")
+  vto_source_path               = "${path.module}/src/comfyui-workflows/input-images/virtual-try-on"
+  vto_files_to_upload           = fileset(local.vto_source_path, "**/*.png")
+  interpolation_source_path     = "${path.module}/src/comfyui-workflows/input-images/interpolation"
+  interpolation_files_to_upload = fileset(local.interpolation_source_path, "**/*.png")
 }
 
 resource "google_storage_bucket" "comfyui_input" {
@@ -86,93 +88,107 @@ data "google_storage_bucket" "cloudbuild_source" {
   project = local.comfyui_cloudbuild_project_id
 }
 
-resource "google_storage_bucket_object" "veo3-gcsimage" {
+resource "google_storage_bucket_object" "intpl_gcsimage" {
+  for_each = local.interpolation_files_to_upload
+  bucket   = google_storage_bucket.comfyui_input.name
+  name     = "interpolation/${each.key}"
+  source   = "${local.interpolation_source_path}/${each.key}"
+}
+
+resource "google_storage_bucket_object" "veo3_gcsimage" {
   bucket = google_storage_bucket.comfyui_input.name
   name   = "jellyfish.png"
   source = "src/comfyui-workflows/input-images/jellyfish.png"
 }
 
-resource "google_storage_bucket_object" "vto-gcsimage" {
-  for_each = local.files_to_upload
+resource "google_storage_bucket_object" "vto_gcsimage" {
+  for_each = local.vto_files_to_upload
   bucket   = google_storage_bucket.comfyui_input.name
   name     = "virtual-try-on/${each.key}"
-  source   = "${local.source_path}/${each.key}"
+  source   = "${local.vto_source_path}/${each.key}"
 }
 
-resource "google_storage_bucket_object" "workflow-gemini-tti" {
+resource "google_storage_bucket_object" "workflow_gemini_tti" {
   bucket = google_storage_bucket.comfyui_workflow.name
   name   = "gemini-imagen4-text-to-image.json"
   source = "src/comfyui-workflows/gemini-imagen4-text-to-image.json"
 }
 
-resource "google_storage_bucket_object" "workflow-imagen3-tti" {
+resource "google_storage_bucket_object" "workflow_imagen3_tti" {
   bucket = google_storage_bucket.comfyui_workflow.name
   name   = "imagen3-text-to-image.json"
   source = "src/comfyui-workflows/imagen3-text-to-image.json"
 }
 
-resource "google_storage_bucket_object" "workflow-imagen3-veo2-itv" {
+resource "google_storage_bucket_object" "workflow_imagen3_veo2_itv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
   name       = "imagen3-veo2-text-to-image-to-video.json"
   source     = "src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.json"
-  depends_on = [local_file.workflow-imagen3-veo2-itv]
+  depends_on = [local_file.workflow_imagen3_veo2_itv]
 }
 
-resource "google_storage_bucket_object" "workflow-imagen4-tti" {
+resource "google_storage_bucket_object" "workflow_imagen4_tti" {
   bucket = google_storage_bucket.comfyui_workflow.name
   name   = "imagen4-text-to-image.json"
   source = "src/comfyui-workflows/imagen4-text-to-image.json"
 }
 
-resource "google_storage_bucket_object" "workflow-imagen4-veo3-itv" {
+resource "google_storage_bucket_object" "workflow_imagen4_veo3_itv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
   name       = "imagen4-veo3-text-to-image-to-video.json"
   source     = "src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.json"
-  depends_on = [local_file.workflow-imagen4-veo3-itv]
+  depends_on = [local_file.workflow_imagen4_veo3_itv]
 }
 
-resource "google_storage_bucket_object" "workflows-ltxv-ttv" {
+resource "google_storage_bucket_object" "workflow_intpl_veo2_itv" {
+  bucket     = google_storage_bucket.comfyui_workflow.name
+  name       = "interpolation-veo2-image-to-video.json"
+  source     = "src/comfyui-workflows/interpolation-veo2-image-to-video.json"
+  depends_on = [google_storage_bucket_object.intpl_gcsimage]
+}
+
+resource "google_storage_bucket_object" "workflows_ltxv_ttv" {
   bucket = google_storage_bucket.comfyui_workflow.name
   name   = "ltxv-text-to-video.json"
   source = "src/comfyui-workflows/ltxv-text-to-video.json"
 }
 
-resource "google_storage_bucket_object" "workflows-sdxl-tti" {
+resource "google_storage_bucket_object" "workflows_sdxl_tti" {
   bucket = google_storage_bucket.comfyui_workflow.name
   name   = "sdxl-text-to-image.json"
   source = "src/comfyui-workflows/sdxl-text-to-image.json"
 }
 
-resource "google_storage_bucket_object" "workflow-veo2-ttv" {
+resource "google_storage_bucket_object" "workflow_veo2_ttv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
   name       = "veo2-text-to-video.json"
   source     = "src/comfyui-workflows/veo2-text-to-video.json"
-  depends_on = [local_file.workflow-veo2-ttv]
+  depends_on = [local_file.workflow_veo2_ttv]
 }
 
-resource "google_storage_bucket_object" "workflow-veo3-itv" {
+resource "google_storage_bucket_object" "workflow_veo3_itv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
   name       = "veo3-image-to-video.json"
   source     = "src/comfyui-workflows/veo3-image-to-video.json"
-  depends_on = [local_file.workflow-veo3-itv]
+  depends_on = [local_file.workflow_veo3_itv]
 }
 
-resource "google_storage_bucket_object" "workflow-veo3-ttv" {
+resource "google_storage_bucket_object" "workflow_veo3_ttv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
   name       = "veo3-text-to-video.json"
   source     = "src/comfyui-workflows/veo3-text-to-video.json"
-  depends_on = [local_file.workflow-veo3-ttv]
+  depends_on = [local_file.workflow_veo3_ttv]
 }
 
-resource "google_storage_bucket_object" "workflow-vto" {
+resource "google_storage_bucket_object" "workflow_vto" {
   bucket     = google_storage_bucket.comfyui_workflow.name
   name       = "virtual-try-on.json"
   source     = "src/comfyui-workflows/virtual-try-on.json"
-  depends_on = [google_storage_bucket_object.vto-gcsimage]
+  depends_on = [google_storage_bucket_object.vto_gcsimage]
 }
 
 
-resource "local_file" "workflow-imagen3-veo2-itv" {
+resource "local_file" "workflow_imagen3_veo2_itv" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.tftpl.json",
     {
@@ -182,7 +198,7 @@ resource "local_file" "workflow-imagen3-veo2-itv" {
   filename = "${path.module}/src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.json"
 }
 
-resource "local_file" "workflow-imagen4-veo3-itv" {
+resource "local_file" "workflow_imagen4_veo3_itv" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.tftpl.json",
     {
@@ -192,7 +208,7 @@ resource "local_file" "workflow-imagen4-veo3-itv" {
   filename = "${path.module}/src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.json"
 }
 
-resource "local_file" "workflow-veo2-ttv" {
+resource "local_file" "workflow_veo2_ttv" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/veo2-text-to-video.tftpl.json",
     {
@@ -202,7 +218,7 @@ resource "local_file" "workflow-veo2-ttv" {
   filename = "${path.module}/src/comfyui-workflows/veo2-text-to-video.json"
 }
 
-resource "local_file" "workflow-veo3-itv" {
+resource "local_file" "workflow_veo3_itv" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/veo3-image-to-video.tftpl.json",
     {
@@ -213,7 +229,7 @@ resource "local_file" "workflow-veo3-itv" {
   filename = "${path.module}/src/comfyui-workflows/veo3-image-to-video.json"
 }
 
-resource "local_file" "workflow-veo3-ttv" {
+resource "local_file" "workflow_veo3_ttv" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/veo3-text-to-video.tftpl.json",
     {

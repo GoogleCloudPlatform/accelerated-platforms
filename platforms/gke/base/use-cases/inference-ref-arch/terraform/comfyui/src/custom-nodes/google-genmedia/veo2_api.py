@@ -143,6 +143,7 @@ class Veo2API:
         duration_seconds: int,
         enhance_prompt: bool,
         sample_count: int,
+        last_frame: torch.Tensor,
         output_gcs_uri: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
@@ -160,6 +161,7 @@ class Veo2API:
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            last_frame: last frame for interpolation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
@@ -201,6 +203,7 @@ class Veo2API:
             duration_seconds=duration_seconds,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
+            last_frame=last_frame,
             output_gcs_uri=output_gcs_uri,
             output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
@@ -220,6 +223,7 @@ class Veo2API:
         duration_seconds: int,
         enhance_prompt: bool,
         sample_count: int,
+        last_frame_gcsuri: str,
         output_gcs_uri: str,
         negative_prompt: Optional[str],
         seed: Optional[int],
@@ -237,6 +241,7 @@ class Veo2API:
             duration_seconds: The desired duration of the video in seconds.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            last_frame_gcsuri: gcsuri of the last frame image for interpolation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
@@ -269,9 +274,22 @@ class Veo2API:
 
         valid_bucket, validation_message = validate_gcs_uri_and_image(gcsuri)
         if valid_bucket:
-            print(validation_message)
+            print(f"gcsuri of the input image is valid {validation_message}")
         else:
-            raise ValueError(validation_message)
+            raise ValueError(
+                f"gcsuri of the input image is not valid {validation_message}"
+            )
+
+        if last_frame_gcsuri:
+            valid_bucket, validation_message = validate_gcs_uri_and_image(
+                last_frame_gcsuri
+            )
+            if valid_bucket:
+                print(f"last frame gcsuri is valid {validation_message}")
+            else:
+                raise ValueError(
+                    f"last frame gcs uri is not valid {validation_message}"
+                )
 
         input_image_format_upper = image_format.upper()
         mime_type: str
@@ -288,7 +306,7 @@ class Veo2API:
             client=self.client,
             model=VEO2_MODEL_ID,
             gcsuri=gcsuri,
-            image_format=image_format,
+            image_format=mime_type,
             prompt=prompt,
             aspect_ratio=aspect_ratio,
             compression_quality=compression_quality,
@@ -297,6 +315,7 @@ class Veo2API:
             generate_audio=VEO2_GENERATE_AUDIO_FLAG,
             enhance_prompt=enhance_prompt,
             sample_count=sample_count,
+            last_frame_gcsuri=last_frame_gcsuri,
             output_gcs_uri=output_gcs_uri,
             output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,

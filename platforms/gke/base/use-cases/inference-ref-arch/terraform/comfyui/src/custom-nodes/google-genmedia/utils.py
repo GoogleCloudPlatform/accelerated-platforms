@@ -263,6 +263,7 @@ def generate_video_from_gcsuri_image(
     generate_audio: Optional[bool],
     enhance_prompt: bool,
     sample_count: int,
+    last_frame_gcsuri: Optional[str],
     output_gcs_uri: Optional[str],
     negative_prompt: Optional[str],
     seed: Optional[int],
@@ -286,6 +287,7 @@ def generate_video_from_gcsuri_image(
         generate_audio: Flag to generate audio. Only allowed in Veo3.
         enhance_prompt: Whether to enhance the prompt automatically.
         sample_count: The number of video samples to generate.
+        last_frame_gcsuri: gcsuri of the last frame image for interpolation.
         output_gcs_uri: output gcs url to store the video. Required with lossless output.
         negative_prompt: An optional prompt to guide the model to avoid generating certain things.
         seed: An optional seed for reproducible video generation.
@@ -300,23 +302,6 @@ def generate_video_from_gcsuri_image(
                         invalid GCS URI, or if the GCS object is not a valid image).
         RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
     """
-    valid_bucket, validation_message = validate_gcs_uri_and_image(gcsuri)
-    if valid_bucket:
-        print(validation_message)
-    else:
-        raise ValueError(validation_message)
-
-    input_image_format_upper = image_format.upper()
-    mime_type: str
-    if input_image_format_upper == "PNG":
-        mime_type = "image/png"
-    elif input_image_format_upper == "JPEG":
-        mime_type = "image/jpeg"
-    elif input_image_format_upper == "MP4":
-        mime_type = "image/mp4"
-    else:
-        raise ValueError(f"Unsupported image format: {image_format}")
-
     if compression_quality == "lossless" and not output_gcs_uri:
         raise RuntimeError(
             "output_gcs_uri must be passed for lossless video generation."
@@ -360,6 +345,15 @@ def generate_video_from_gcsuri_image(
             temp_config["generate_audio"] = False
         temp_config["resolution"] = output_resolution
 
+    if re.search(
+        r"veo-2\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
+        if last_frame_gcsuri:
+            temp_config["last_frame"] = Image(
+                gcs_uri=last_frame_gcsuri, mime_type=image_format
+            )
+
     config = GenerateVideosConfig(**temp_config)
     print(f"Config for image-to-video generation: {config}")
     retries = 0
@@ -368,7 +362,7 @@ def generate_video_from_gcsuri_image(
             print("Sending request to Veo API for image-to-video generation")
             operation = client.models.generate_videos(
                 model=model,
-                image=Image(gcs_uri=gcsuri, mime_type=mime_type),
+                image=Image(gcs_uri=gcsuri, mime_type=image_format),
                 prompt=prompt,
                 config=config,
             )
@@ -462,6 +456,7 @@ def generate_video_from_image(
     generate_audio: Optional[bool],
     enhance_prompt: bool,
     sample_count: int,
+    last_frame: torch.Tensor,
     output_gcs_uri: Optional[str],
     negative_prompt: Optional[str],
     seed: Optional[int],
@@ -485,6 +480,7 @@ def generate_video_from_image(
         generate_audio: Flag to generate audio. Only allowed in Veo3.
         enhance_prompt: Whether to enhance the prompt automatically.
         sample_count: The number of video samples to generate.
+        last_frame: last frame for interpolation.
         output_gcs_uri: output gcs url to store the video. Required with lossless output.
         negative_prompt: An optional prompt to guide the model to avoid generating certain things.
         seed: An optional seed for reproducible video generation.
@@ -498,16 +494,6 @@ def generate_video_from_image(
         ValueError: If input parameters are invalid (e.g., empty prompt, unsupported image format, out-of-range duration/sample_count).
         RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
     """
-    pil_image: PIL_Image.Image
-    if isinstance(image, torch.Tensor):
-        image_np = (image.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
-        pil_image = PIL_Image.fromarray(image_np)
-        print("Converted input image tensor to PIL Image for Base64 encoding.")
-    else:
-        pil_image = image
-        print(f"Using input image as is for Base64 (type: {type(image)}).")
-
-    veo_image_input_bytes: bytes
     input_image_format_upper = image_format.upper()
     mime_type: str
 
@@ -522,12 +508,8 @@ def generate_video_from_image(
             f"Unsupported image format for Base64 encoding: {image_format}"
         )
 
-    buffered = io.BytesIO()
-    pil_image.save(buffered, format=input_image_format_upper)
-    veo_image_input_bytes = buffered.getvalue()
-    print("Prepared image as BytesIO.")
-
-    if not veo_image_input_bytes:
+    veo_image_input_str = tensor_to_pil_to_base64(image, input_image_format_upper)
+    if not veo_image_input_str:
         raise RuntimeError(
             "Failed to prepare image input bytes for Veo API. Bytes are empty."
         )
@@ -575,6 +557,18 @@ def generate_video_from_image(
             temp_config["generate_audio"] = False
         temp_config["resolution"] = output_resolution
 
+    if re.search(
+        r"veo-2\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
+        if last_frame is not None:
+            last_frame_str = tensor_to_pil_to_base64(
+                last_frame, input_image_format_upper
+            )
+            temp_config["last_frame"] = Image(
+                image_bytes=last_frame_str, mime_type=mime_type
+            )
+
     config = GenerateVideosConfig(**temp_config)
     print(f"Config for image-to-video generation: {config}")
     retries = 0
@@ -586,7 +580,7 @@ def generate_video_from_image(
 
             operation = client.models.generate_videos(
                 model=model,
-                image=Image(image_bytes=veo_image_input_bytes, mime_type=mime_type),
+                image=Image(image_bytes=veo_image_input_str, mime_type=mime_type),
                 prompt=prompt,
                 config=config,
             )
@@ -1117,7 +1111,7 @@ def validate_gcs_uri_and_image(
         return False, f"An unexpected error occurred during GCS validation: {e}"
 
 
-def tensor_to_pil_to_base64(image: torch.tensor) -> bytes:
+def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
     """Converts a PyTorch tensor or PIL Image into PNG-encoded bytes.
 
     This function processes an input image, which can be either a PyTorch tensor
@@ -1146,7 +1140,7 @@ def tensor_to_pil_to_base64(image: torch.tensor) -> bytes:
             print(f"Using input image as is for Base64 (type: {type(image)}).")
 
         buffered = io.BytesIO()
-        pil_image.save(buffered, format="PNG")
+        pil_image.save(buffered, format=format)
         image_input_bytes = buffered.getvalue()
         image_base64 = base64.b64encode(image_input_bytes).decode("utf-8")
         return image_base64

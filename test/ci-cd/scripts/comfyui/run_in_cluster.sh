@@ -90,10 +90,15 @@ kubectl cp "$TEST_DIR/workflows" "${comfyui_kubernetes_namespace}/${POD_NAME}:/t
 echo "--- Setting script permissions in pod ---"
 kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- chmod +x /tmp/comfyui_prompt_test.sh 
 
-# 6. Execute the test script inside the pod, passing environment variables
+# 6. Get ComfyUI IP address
+echo "--- Getting Comfy IP ---"
+SERVICE_IP_AND_PORT=$(kubectl get service -n comfyui comfyui-nvidia-l4 -o=json | jq -r '"\(.spec.clusterIP):\(.spec.ports[0].port)"')
+echo $SERVICE_IP_AND_PORT
+
+# 7. Execute the test script inside the pod, passing environment variables
 echo "--- Executing test script in pod ---"
 kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- \
-  sh -c "export COMFYUI_URL='${HEADLESS_COMFYUI_SERVICE}' && \
+  sh -c "export COMFYUI_URL='${SERVICE_IP_AND_PORT}' && \
          export WORKFLOWS_DIR='${WORKFLOWS_DIR}' && \
          export TEST_DIR='${TEST_DIR}' && \
          export POLL_TIMEOUT=300 && \

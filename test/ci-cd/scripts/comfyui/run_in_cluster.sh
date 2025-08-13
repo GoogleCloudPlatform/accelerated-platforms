@@ -92,7 +92,7 @@ kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- chmod +x
 
 # 6. Get ComfyUI IP address
 echo "--- Getting Comfy IP ---"
-SERVICE_IP_AND_PORT=$(kubectl get service -n comfyui comfyui-nvidia-l4 -o=json | jq -r '"\(.spec.clusterIP):\(.spec.ports[0].port)"')
+SERVICE_IP_AND_PORT=$(kubectl get service -n $comfyui_kubernetes_namespace comfyui-nvidia-l4 -o=json | jq -r '"\(.spec.clusterIP):\(.spec.ports[0].port)"')
 echo $SERVICE_IP_AND_PORT
 
 # 7. Execute the test script inside the pod, passing environment variables

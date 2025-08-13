@@ -19,7 +19,7 @@ set -o pipefail
 
 source /workspace/build.env
 if [ "${DEBUG,,}" == "true" ]; then
-  set -o xtraces
+  set -o xtrace
 fi
 
 TERRASERVICE_DIR="${1}"

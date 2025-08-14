@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
 locals {
   container_node_pool_folder = "${path.module}/../container_node_pool"
 
@@ -42,20 +46,13 @@ resource "google_storage_bucket" "terraform" {
 
   force_destroy               = false
   location                    = var.cluster_region
-  name                        = local.terraform_bucket_name
+  name                        = "${data.google_project.terraform.project_id}-acp-dev-terraform-${random_id.suffix.hex}"
   project                     = data.google_project.terraform.project_id
   uniform_bucket_level_access = true
 
   versioning {
     enabled = true
   }
-}
-
-data "google_storage_bucket" "terraform" {
-  depends_on = [google_storage_bucket.terraform]
-
-  name    = local.terraform_bucket_name
-  project = data.google_project.terraform.project_id
 }
 
 resource "local_file" "container_node_pools_files_for_region" {

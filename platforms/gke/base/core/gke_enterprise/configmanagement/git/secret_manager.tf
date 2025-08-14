@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_secret_manager_secret" "git_creds_new" {
-  for_each = toset(var.configmanagement_git_credentials.secret_name == null ? ["create"] : [])
+  for_each = toset(var.configmanagement_git_credentials.secret_name == null ? ["managed"] : [])
 
   project   = google_project_service.secretmanager_googleapis_com.project
   secret_id = local.git_creds_secret
@@ -24,7 +24,7 @@ resource "google_secret_manager_secret" "git_creds_new" {
 }
 
 resource "google_secret_manager_secret_version" "git_creds_new" {
-  for_each = toset(var.configmanagement_git_credentials.secret_name == null ? ["create"] : [])
+  for_each = toset(var.configmanagement_git_credentials.secret_name == null ? ["managed"] : [])
 
   secret = google_secret_manager_secret.git_creds_new["create"].id
 

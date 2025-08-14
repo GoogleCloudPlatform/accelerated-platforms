@@ -14,7 +14,7 @@
 
 # Create required secrets
 resource "google_secret_manager_secret" "ncg_api_key" {
-  for_each = toset(var.nvidia_ncg_api_key_secret_manager_secret_name == null ? ["new"] : [])
+  for_each = toset(var.nvidia_ncg_api_key_secret_manager_secret_name == null ? ["managed"] : [])
 
   project   = local.nvidia_ncg_api_key_secret_manager_project_id
   secret_id = local.nvidia_ncg_api_key_secret_manager_secret_name

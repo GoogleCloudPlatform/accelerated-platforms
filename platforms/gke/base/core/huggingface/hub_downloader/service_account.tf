@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_service_account" "hub_downloader" {
-  for_each = toset(var.huggingface_hub_downloader_service_account_name == null ? ["new"] : [])
+  for_each = toset(var.huggingface_hub_downloader_service_account_name == null ? ["managed"] : [])
 
   account_id = local.huggingface_hub_downloader_service_account_name
   project    = data.google_project.huggingface_hub_downloader_service_account.project_id

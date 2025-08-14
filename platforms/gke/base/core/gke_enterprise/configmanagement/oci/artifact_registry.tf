@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_artifact_registry_repository" "repository" {
-  for_each = toset(var.configmanagement_sync_repo == null ? ["new"] : [])
+  for_each = toset(var.configmanagement_sync_repo == null ? ["managed"] : [])
 
   format        = "DOCKER"
   location      = var.cluster_region
@@ -25,4 +25,14 @@ resource "google_artifact_registry_repository" "repository" {
       labels
     ]
   }
+}
+
+data "google_artifact_registry_repository" "repository" {
+  depends_on = [
+    google_artifact_registry_repository.repository,
+  ]
+
+  location      = var.cluster_region
+  project       = google_project_service.artifactregistry_googleapis_com.project
+  repository_id = local.oci_repo_id
 }

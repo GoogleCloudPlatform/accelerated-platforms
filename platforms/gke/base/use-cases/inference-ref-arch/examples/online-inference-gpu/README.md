@@ -80,6 +80,7 @@ This example is built on top of the
   - Configure the Kustomize environment file
 
     ```shell
+    MODEL_NAME="${MODEL_ID##*/}" && export MODEL_NAME="${MODEL_NAME,,}"
     envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/downloader.tpl.env \
       | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/downloader.env
     ```
@@ -120,10 +121,9 @@ This example is built on top of the
 
 - Set the environment variables for the model.
 
-  - Set the model name.
+  - Check the model name.
 
     ```shell
-    MODEL_NAME="${MODEL_ID##*/}" && export MODEL_NAME="${MODEL_NAME,,}"
     echo "MODEL_NAME=${MODEL_NAME}"
     ```
 

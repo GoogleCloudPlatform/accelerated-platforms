@@ -13,12 +13,17 @@
 # limitations under the License.
 ---
 apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
 configMapGenerator:
   - envs:
       - downloader.env
     name: downloader
     namespace: replaced-by-kustomize
-kind: Kustomization
+
+patches:
+  - path: set-compute-class.yaml
+
 replacements:
   - source:
       fieldPath: data.DOWNLOADER_KUBERNETES_NAMESPACE
@@ -50,7 +55,7 @@ replacements:
           - spec.template.spec.serviceAccountName
         select:
           kind: Job
-          name: transfer-model-to-gcs
+          name: hf-model-to-gcs
   - source:
       fieldPath: data.MODEL_BUCKET_NAME
       kind: ConfigMap
@@ -63,7 +68,8 @@ replacements:
           index: 0
         select:
           kind: Job
-          name: transfer-model-to-gcs
+          name: hf-model-to-gcs
+
 resources:
-  - load-model-to-cloud-storage.yaml
+  - job.yaml
   - secretproviderclass-huggingface-tokens.yaml

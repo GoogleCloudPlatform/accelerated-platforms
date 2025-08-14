@@ -38,24 +38,19 @@ trap exit_handler EXIT
 set --
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
-envsubst <"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/secretproviderclass-huggingface-tokens.tpl.yaml" |
-  sponge "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/secretproviderclass-huggingface-tokens.yaml"
-
 export MODEL_ID="google/gemma-3-27b-it"
 
-envsubst <"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/downloader.tpl.env" |
-  sponge "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/downloader.env"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
 
-export MODEL_NAME="gemma-3-27b-it"
+MODEL_NAME="${MODEL_ID##*/}" && export MODEL_NAME="${MODEL_NAME,,}"
 export ACCELERATOR_TYPE="l4"
 
-envsubst <"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/base/templates/deployment.tpl.env" |
-  sponge "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/base/deployment.env"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/configure_deployment.sh"
 
 export ACCELERATOR_TYPE="v5e"
 
-envsubst <"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/templates/deployment.tpl.env" |
-  sponge "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/deployment.env"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/configure_deployment.sh"
+
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"

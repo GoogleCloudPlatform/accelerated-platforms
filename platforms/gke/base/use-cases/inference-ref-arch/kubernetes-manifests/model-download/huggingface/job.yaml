@@ -12,23 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: transfer-model-to-gcs
-  namespace: replaced-by-kustomize
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Ti
-  storageClassName: premium-rwo
----
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: transfer-model-to-gcs
+  name: hf-model-to-gcs
   namespace: replaced-by-kustomize
 spec:
   backoffLimit: 0
@@ -40,7 +27,7 @@ spec:
         gke-gcsfuse/memory-limit: "0"
         gke-gcsfuse/volumes: "true"
       labels:
-        app: transfer-model-to-gcs
+        app: hf-model-to-gcs
     spec:
       containers:
         - command:
@@ -51,6 +38,8 @@ spec:
               set -o nounset
               set -o pipefail
 
+              start=$(date +%s)
+
               if [ -z "${MODEL_ID:-}" ]; then
                 echo "Error: MODEL_ID is not set."
                 exit 1
@@ -60,19 +49,59 @@ spec:
                 exit 1
               fi
 
-              echo "Downloading ${MODEL_ID} to ${MODEL_BUCKET_NAME} Cloud Storage bucket"
-              echo "Debug Hugging Face token path: ${HF_TOKEN_PATH}"
+              echo "Downloading '${MODEL_ID}' to '${MODEL_BUCKET_NAME}' Cloud Storage bucket"
 
-              pip3 install --break-system-packages --upgrade huggingface_hub[cli] hf_transfer
+              pip3 install \
+              --break-system-packages \
+              --root-user-action=ignore \
+              --upgrade \
+              huggingface_hub
 
-              huggingface-cli download --repo-type model ${MODEL_ID} --local-dir /local/temp
+              start_download=$(date +%s)
 
-              rm -rfv /local/temp/.cache
-              mkdir -pv "/local/${MODEL_ID}"
-              mv -v /local/temp/* "/local/${MODEL_ID}/"
-              rm -rfv /local/temp /local/.gcsfuse_tmp
+              hf download \
+              --local-dir /local/hf/model \
+              --max-workers ${HF_MAX_WORKERS:-"8"} \
+              --repo-type model \
+              ${MODEL_ID}
+
+              end_download=$(date +%s)
+              runtime_download=$((end_download - start_download))
+              echo "Download runtime: $(date -d@${runtime_download} -u +%H:%M:%S)"
+
+              echo "Removing cache directory"
+              rm -rf /local/hf/model/.cache
+
+              echo "Creating model directory"
+              gcloud storage folders create --recursive "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/"
+
+              start_transfer=$(date +%s)
+
+              echo "Transferring model to the bucket"
+              gcloud config set storage/parallel_composite_upload_enabled True
+              gcloud storage cp \
+              --gzip-in-flight-all \
+              --recursive \
+              /local/hf/model/* \
+              "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/"
+
+              end_transfer=$(date +%s)
+              runtime_transfer=$((end_transfer - start_transfer))
+              echo "Transfer runtime: $(date -d@${runtime_transfer} -u +%H:%M:%S)"
+
+              rm -rf /gcs/.gcsfuse_tmp
+
+              end=$(date +%s)
+              runtime=$((end - start))
+              echo "Total runtime: $(date -d@${runtime} -u +%H:%M:%S)"
           env:
-            - name: HF_HUB_ENABLE_HF_TRANSFER
+            - name: HF_TOKEN_PATH
+              value: /var/run/secrets/huggingface.co/token
+            - name: HF_MAX_WORKERS
+              value: "8"
+            - name: HF_XET_NUM_CONCURRENT_RANGE_GETS
+              value: "16"
+            - name: HF_XET_HIGH_PERFORMANCE
               value: "1"
             - name: MODEL_ID
               valueFrom:
@@ -84,38 +113,26 @@ spec:
                 configMapKeyRef:
                   key: MODEL_BUCKET_NAME
                   name: downloader
-            - name: HF_TOKEN_PATH
-              value: /var/run/secrets/huggingface.co/token
-          image: gcr.io/google.com/cloudsdktool/cloud-sdk:529.0.0-slim
-          name: transfer-model-to-gcs
+          image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+          name: hf-model-to-gcs
           resources:
             limits:
-              cpu: 4000m
-              memory: 8Gi
+              cpu: 3000m
+              memory: 11Gi
             requests:
-              cpu: 4000m
-              memory: 8Gi
+              cpu: 3000m
+              memory: 11Gi
           volumeMounts:
-            - mountPath: /dev/shm
-              name: dev-shm
-            - mountPath: /local
+            - mountPath: /gcs
               name: huggingface-hub-model-bucket
             - mountPath: /var/run/secrets/huggingface.co
               name: huggingface-token
-      nodeSelector:
-        iam.gke.io/gke-metadata-server-enabled: "true"
       restartPolicy: OnFailure
       securityContext:
         fsGroup: 10000
       serviceAccountName: replaced-by-kustomize
       terminationGracePeriodSeconds: 0
       volumes:
-        - emptyDir:
-            medium: Memory
-          name: dev-shm
-        - name: gke-gcsfuse-buffer
-          persistentVolumeClaim:
-            claimName: transfer-model-to-gcs
         - csi:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
@@ -127,4 +144,3 @@ spec:
             volumeAttributes:
               secretProviderClass: huggingface-token-read
           name: huggingface-token
-  ttlSecondsAfterFinished: 600

@@ -36,7 +36,7 @@ locals {
 }
 
 variable "platform_custom_role_unique_suffix" {
-  default     = null
+  default     = "null"
   description = "Unique suffix for custom roles"
   type        = string
 }

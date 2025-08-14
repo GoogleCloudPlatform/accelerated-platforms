@@ -20,7 +20,7 @@ locals {
   core_backend_directories = toset([for _, version_file in local.core_versions_files : trimprefix(trimsuffix(version_file, "/versions.tf"), "../")])
   core_versions_files      = flatten([for _, file in flatten(fileset(local.base_directory, "core/**/versions.tf")) : file])
 
-  platform_custom_role_unique_suffix = var.platform_custom_role_unique_suffix != null ? var.platform_custom_role_unique_suffix : terraform_data.unique_timestamps.input.unix
+  platform_custom_role_unique_suffix = var.platform_custom_role_unique_suffix != "null" ? var.platform_custom_role_unique_suffix : terraform_data.unique_timestamps.input.unix
 
   shared_config_folder = "${path.module}/../../_shared_config"
 

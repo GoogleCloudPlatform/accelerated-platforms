@@ -31,6 +31,10 @@ terraform {
     terraform = {
       source = "terraform.io/builtin/terraform"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = "0.13.1"
+    }
   }
 
   provider_meta "google" {

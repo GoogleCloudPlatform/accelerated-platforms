@@ -5,6 +5,7 @@ endfor
 filemd
 fileset
 filesha
+formatdate
 gitlabhq
 jsondecode
 jsonencode

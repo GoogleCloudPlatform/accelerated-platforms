@@ -35,6 +35,12 @@ locals {
   unique_identifier_prefix_underscore = replace("${var.resource_name_prefix}-${var.platform_name}", "-", "_")
 }
 
+variable "platform_custom_role_unique_suffix" {
+  default     = null
+  description = "Unique suffix for custom roles"
+  type        = string
+}
+
 variable "platform_default_project_id" {
   description = "The default project ID to use if a specific project ID is not specified"
   type        = string

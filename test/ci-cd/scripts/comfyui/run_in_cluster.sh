@@ -30,6 +30,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+ls /workspace
 source /workspace/build.env
 #if [ "$(echo "$DEBUG" | tr '[:upper:]' '[:lower:]')" == "true" ]; then
   #set -o xtrace

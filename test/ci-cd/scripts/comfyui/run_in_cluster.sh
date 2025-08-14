@@ -59,8 +59,7 @@ check_files() {
 }
 # --- Cleanup Function ---
 cleanup() {
-  echo "--- Cleaning up pod: $POD_NAME ---"
-  kubectl delete pod "$POD_NAME" --namespace="$comfyui_kubernetes_namespace" --ignore-not-found=true || true
+  exit 0
 }
 trap cleanup EXIT
 
@@ -107,3 +106,5 @@ kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- \
          /tmp/comfyui_prompt_test.sh"
 
 echo "--- Script executed successfully ---"
+echo "--- Cleaning up pod: $POD_NAME ---"
+kubectl delete pod "$POD_NAME" --namespace="$comfyui_kubernetes_namespace" --ignore-not-found=true || true

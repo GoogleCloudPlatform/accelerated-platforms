@@ -30,11 +30,18 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-ls /workspace
-source /workspace/build.env
-#if [ "$(echo "$DEBUG" | tr '[:upper:]' '[:lower:]')" == "true" ]; then
-  #set -o xtrace
-#fi
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
+echo ${MY_PATH}
+# Set repository values
+export ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../)"
+export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
+export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
+
+source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh
+
 
 # --- Variables ---
 # Use a unique name for the pod for concurrent runs.

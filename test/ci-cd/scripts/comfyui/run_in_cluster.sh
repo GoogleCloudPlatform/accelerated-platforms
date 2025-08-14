@@ -30,10 +30,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-source /workspace/build.env
-if [ "$(echo "$DEBUG" | tr '[:upper:]' '[:lower:]')" == "true" ]; then
-  set -o xtrace
-fi
+#source /workspace/build.env
+#if [ "$(echo "$DEBUG" | tr '[:upper:]' '[:lower:]')" == "true" ]; then
+  #set -o xtrace
+#fi
 
 # --- Variables ---
 # Use a unique name for the pod for concurrent runs.
@@ -42,6 +42,7 @@ POD_NAME="comfyui-client"
 # --- Cleanup and Error Handling Functions ---
 cleanup_on_exit() {
   echo "--- Cleaning up pod: $POD_NAME ---"
+  printenv
   kubectl delete pod "$POD_NAME" --namespace="$comfyui_kubernetes_namespace" --ignore-not-found=true || true
   exit 0
 }

@@ -5,7 +5,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#       http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -31,9 +31,31 @@ set -o nounset
 set -o pipefail
 
 source /workspace/build.env
-if [ "${DEBUG,,}" == "true" ]; then
+if [ "$(echo "$DEBUG" | tr '[:upper:]' '[:lower:]')" == "true" ]; then
   set -o xtrace
 fi
+
+# --- Variables ---
+# Use a unique name for the pod for concurrent runs.
+POD_NAME="comfyui-client"
+
+# --- Cleanup and Error Handling Functions ---
+cleanup_on_exit() {
+  echo "--- Cleaning up pod: $POD_NAME ---"
+  kubectl delete pod "$POD_NAME" --namespace="$comfyui_kubernetes_namespace" --ignore-not-found=true || true
+  exit 0
+}
+
+cleanup_on_error() {
+  echo "--- An error occurred. Logging to build-failed.lock. ---" >&2
+  echo "Build failed at $(date)" >> /workspace/build-failed.lock
+  cleanup_on_exit
+}
+
+# Trap signals for a clean exit
+trap cleanup_on_exit EXIT
+trap cleanup_on_error ERR
+
 
 # Check for all required environment variables
 if [ -z "$cluster_name" ] || [ -z "$cluster_region" ] || [ -z "$cluster_project_id" ] || \
@@ -41,12 +63,10 @@ if [ -z "$cluster_name" ] || [ -z "$cluster_region" ] || [ -z "$cluster_project_
    [ -z "$TEST_DIR" ]; then
     echo "Error: One or more required environment variables are not set." >&2
     echo "Required: cluster_name, cluster_region, cluster_project_id, comfyui_kubernetes_namespace, HEADLESS_COMFYUI_SERVICE, WORKFLOWS_DIR, TEST_DIR" >&2
+    # Since we are trapping ERR, this will trigger the cleanup_on_error function
     exit 1
 fi
 
-# --- Variables ---
-# Use a unique name for the pod for concurrent runs.
-POD_NAME="comfyui-client"
 printenv
 # --- verify each file has a test file ---
 check_files() {
@@ -57,12 +77,6 @@ check_files() {
     fi
   done
 }
-# --- Cleanup Function ---
-cleanup() {
-  exit 0
-}
-trap cleanup EXIT
-
 
 # 1. Get GKE cluster credentials
 echo "--- Getting GKE credentials for project '$cluster_project_id' ---"
@@ -87,7 +101,7 @@ kubectl cp "$TEST_DIR/workflows" "${comfyui_kubernetes_namespace}/${POD_NAME}:/t
 
 # 5. Make the runner script executable inside the pod
 echo "--- Setting script permissions in pod ---"
-kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- chmod +x /tmp/comfyui_prompt_test.sh 
+kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- chmod +x /tmp/comfyui_prompt_test.sh
 
 # 6. Get ComfyUI IP address
 echo "--- Getting Comfy IP ---"
@@ -98,13 +112,11 @@ echo $SERVICE_IP_AND_PORT
 echo "--- Executing test script in pod ---"
 kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- \
   sh -c "export COMFYUI_URL='${SERVICE_IP_AND_PORT}' && \
-         export WORKFLOWS_DIR='${WORKFLOWS_DIR}' && \
-         export TEST_DIR='${TEST_DIR}' && \
-         export POLL_TIMEOUT=300 && \
-         export POLL_INTERVAL=5 && \
-         export MINIMUM_FILE_SIZE_BYTES=1 && \
-         /tmp/comfyui_prompt_test.sh"
+          export WORKFLOWS_DIR='${WORKFLOWS_DIR}' && \
+          export TEST_DIR='${TEST_DIR}' && \
+          export POLL_TIMEOUT=300 && \
+          export POLL_INTERVAL=5 && \
+          export MINIMUM_FILE_SIZE_BYTES=1 && \
+          /tmp/comfyui_prompt_test.sh"
 
 echo "--- Script executed successfully ---"
-echo "--- Cleaning up pod: $POD_NAME ---"
-kubectl delete pod "$POD_NAME" --namespace="$comfyui_kubernetes_namespace" --ignore-not-found=true || true

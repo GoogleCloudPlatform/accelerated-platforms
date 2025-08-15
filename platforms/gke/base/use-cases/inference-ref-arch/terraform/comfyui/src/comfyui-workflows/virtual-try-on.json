@@ -211,7 +211,7 @@
         "select_every_nth": 1,
         "videopreview": {
           "hidden": false,
-          "paused": false,
+          "paused": true,
           "params": {
             "image_load_cap": 0,
             "skip_first_images": 0,

@@ -30,6 +30,9 @@
 set -o nounset
 set -o pipefail
 
+source /workspace/build.env
+
+source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 # --- Variables ---
 # Use a unique name for the pod for concurrent runs.
 POD_NAME="comfyui-client"

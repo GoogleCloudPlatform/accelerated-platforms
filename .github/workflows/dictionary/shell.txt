@@ -12,5 +12,5 @@ nounset
 pipefail
 pkill
 syscall
-xtraces
+xtrace
 zxvf

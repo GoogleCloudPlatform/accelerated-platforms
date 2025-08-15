@@ -30,6 +30,13 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+echo "--- Using printenv ---"
+printenv
+
+echo "--- Using env ---"
+env
+
+ls
 MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P

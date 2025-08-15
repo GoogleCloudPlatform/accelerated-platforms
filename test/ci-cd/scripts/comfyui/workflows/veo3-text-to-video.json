@@ -1,0 +1,39 @@
+{
+  "3": {
+    "inputs": {
+      "autoplay": true,
+      "mute": true,
+      "loop": true,
+      "save_video": true,
+      "save_video_file_prefix": "veo_video",
+      "video_paths": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "VeoVideoSaveAndPreview",
+    "_meta": {
+      "title": "Preview/Save video"
+    }
+  },
+  "4": {
+    "inputs": {
+      "model": "VEO_3_PREVIEW",
+      "prompt": "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn. As it progresses, the mist slowly dissipates, revealing colossal, glowing crystal formations emerging from the ground. Fauna, never-before-seen, begins to stir – iridescent birds with long tails take flight, and massive, gentle creatures with bioluminescent markings graze among the crystals. The light subtly shifts from dawn's muted tones to vibrant daylight, illuminating new details with each passing second. The camera eventually ascends above the canopy, revealing a breathtaking vista of the entire crystal forest.",
+      "aspect_ratio": "16:9",
+      "person_generation": "allow_adult",
+      "duration_seconds": 8,
+      "generate_audio": true,
+      "enhance_prompt": true,
+      "sample_count": 1,
+      "negative_prompt": "",
+      "seed": 0,
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Veo3TextToVideoNode",
+    "_meta": {
+      "title": "Veo3 Text To Video"
+    }
+  }
+}

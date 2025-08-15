@@ -31,26 +31,16 @@ set -o nounset
 set -o pipefail
 
 ls
-MY_PATH="$(
-  cd "$(dirname "$0")" >/dev/null 2>&1
-  pwd -P
-)"
-echo ${MY_PATH}
-# Set repository values
-export ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../)"
-export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
-export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
-export POD_NAME="comfyui-client"
+
+
+source "platforms/gke/base/_shared_config/scripts/set_environment_variables.sh"
+
 
 echo "--- Using printenv ---"
 printenv
 
 echo "--- Using env ---"
 env
-
-source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh
-
-
 # --- Cleanup and Error Handling Functions ---
 cleanup_on_exit() {
   echo "--- Cleaning up pod: $POD_NAME ---"

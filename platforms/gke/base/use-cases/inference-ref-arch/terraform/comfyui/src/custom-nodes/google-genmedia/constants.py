@@ -34,6 +34,7 @@ VEO2_MODEL_ID = "veo-2.0-generate-001"
 VEO2_USER_AGENT = "cloud-solutions/comfyui-veo2-custom-node-v1"
 VEO3_USER_AGENT = "cloud-solutions/comfyui-veo3-custom-node-v1"
 VIDEO_MIME_TYPES = ["video/mp4", "video/mpeg"]
+VTO_MODEL = "virtual-try-on-preview-08-04"
 VTO_USER_AGENT = "cloud-solutions/virtual-try-on-custom-node-v1"
 
 

@@ -126,6 +126,6 @@ kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- \
           export POLL_TIMEOUT=300 && \
           export POLL_INTERVAL=5 && \
           export MINIMUM_FILE_SIZE_BYTES=1 && \
-          /tmp/comfyui_prompt_test.sh"
+          /tmp/comfyui_prompt_test.sh
 
 echo "--- Script executed successfully ---"

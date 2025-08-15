@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_compute_network" "vpc" {
-  count = var.network_name != null ? 0 : 1
+  for_each = toset(var.network_name == null ? ["managed"] : [])
 
   auto_create_subnetworks = false
   name                    = local.network_name
@@ -29,7 +29,7 @@ data "google_compute_network" "vpc" {
 }
 
 resource "google_compute_subnetwork" "region" {
-  count = var.subnetwork_name != null ? 0 : 1
+  for_each = toset(var.subnetwork_name == null ? ["managed"] : [])
 
   ip_cidr_range            = var.subnet_cidr_range
   name                     = local.subnetwork_name
@@ -40,7 +40,9 @@ resource "google_compute_subnetwork" "region" {
 }
 
 data "google_compute_subnetwork" "region" {
-  depends_on = [google_compute_subnetwork.region]
+  depends_on = [
+    google_compute_subnetwork.region,
+  ]
 
   name    = local.subnetwork_name
   project = google_project_service.compute_googleapis_com.project
@@ -48,7 +50,7 @@ data "google_compute_subnetwork" "region" {
 }
 
 resource "google_compute_router" "router" {
-  count = var.router_name != null ? 0 : 1
+  for_each = toset(var.router_name == null ? ["managed"] : [])
 
   name    = local.router_name
   network = data.google_compute_network.vpc.name
@@ -57,7 +59,9 @@ resource "google_compute_router" "router" {
 }
 
 data "google_compute_router" "router" {
-  depends_on = [google_compute_router.router]
+  depends_on = [
+    google_compute_router.router,
+  ]
 
   name    = local.router_name
   network = data.google_compute_network.vpc.name
@@ -66,7 +70,7 @@ data "google_compute_router" "router" {
 }
 
 resource "google_compute_router_nat" "nat_gateway" {
-  count = var.nat_gateway_name != null ? 0 : 1
+  for_each = toset(var.nat_gateway_name == null ? ["managed"] : [])
 
   name                               = local.nat_gateway_name
   nat_ip_allocate_option             = "AUTO_ONLY"
@@ -82,7 +86,9 @@ resource "google_compute_router_nat" "nat_gateway" {
 }
 
 data "google_compute_router_nat" "nat_gateway" {
-  depends_on = [google_compute_router_nat.nat_gateway]
+  depends_on = [
+    google_compute_router_nat.nat_gateway,
+  ]
 
   name    = local.nat_gateway_name
   project = google_project_service.compute_googleapis_com.project

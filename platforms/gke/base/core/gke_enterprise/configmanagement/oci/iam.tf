@@ -27,11 +27,11 @@ resource "google_project_iam_member" "otel_collector" {
 }
 
 resource "google_artifact_registry_repository_iam_member" "artifactregistry_reader" {
-  for_each = toset(var.configmanagement_sync_repo == null ? ["new"] : [])
+  for_each = toset(var.configmanagement_sync_repo == null ? ["managed"] : [])
 
-  location   = google_artifact_registry_repository.repository["new"].location
+  location   = data.google_artifact_registry_repository.repository.location
   member     = "${local.wi_principal_prefix}/ns/${local.config_management_kubernetes_namespace}/sa/${local.config_management_kubernetes_service_account}"
-  project    = google_artifact_registry_repository.repository["new"].project
-  repository = google_artifact_registry_repository.repository["new"].repository_id
+  project    = data.google_artifact_registry_repository.repository.project
+  repository = data.google_artifact_registry_repository.repository.repository_id
   role       = "roles/artifactregistry.reader"
 }

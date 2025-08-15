@@ -62,8 +62,9 @@ steps:
 
   - args:
       - "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-      - "test/ci-cd/scripts/comfyui/run_in_cluster.sh"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
+      #- "test/ci-cd/scripts/comfyui/run_in_cluster.sh"
+    #entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
+    entrypoint: "test/ci-cd/scripts/comfyui/run_in_cluster.sh"
     id: "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:

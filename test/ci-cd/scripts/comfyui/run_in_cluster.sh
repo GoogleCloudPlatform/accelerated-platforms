@@ -32,12 +32,15 @@ set -o pipefail
 
 source /workspace/build.env
 
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
+source ${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh
+
 # --- Variables ---
 # Use a unique name for the pod for concurrent runs.
-POD_NAME="comfyui-client"
+export POD_NAME="comfyui-client"
 # Use a lock file to track errors
-ERROR_FILE="/workspace/build-failed.lock"
+export ERROR_FILE="/workspace/build-failed.lock"
+
+printenv
 
 # --- Cleanup and Error Handling Functions ---
 cleanup_on_exit() {
@@ -72,7 +75,7 @@ if [ -z "${cluster_name:-}" ] || [ -z "${cluster_region:-}" ] || [ -z "${cluster
     exit 1
 fi
 
-printenv
+
 # --- verify each file has a test file ---
 check_files() {
   for file in "$WORKFLOWS_DIR"/*; do

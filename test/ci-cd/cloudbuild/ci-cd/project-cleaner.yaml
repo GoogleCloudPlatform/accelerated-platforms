@@ -1,0 +1,77 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+options:
+  automapSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - name: "gcr.io/google.com/cloudsdktool/google-cloud-cli:alpine"
+    id: "Cleanup CI/CD projects"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        set -o nounset
+        set -o pipefail
+
+        DEBUG=${_DEBUG}
+        if [ "${DEBUG,,}" == "true" ]; then
+          set -o xtrace
+        fi
+
+        projects=$(gcloud projects list --filter='name~accelerated-platforms- AND name!=accelerated-platforms-dev' --format='value(project_id)')
+
+        timestamp=$(printf "%(%Y-%m-%dT%H:%M:%S%z)T" $(( $(printf "%(%s)T") - (60 * 60 * ${_HOURS}) )))
+        builds=$(
+          gcloud builds list \
+          --filter="(status=\"FAILURE\" OR status=\"CANCELLED\") AND create_time>\"${timestamp}\"" \
+          --format="value(format(\"{0},{1}\", id, substitutions.SHORT_SHA))" \
+          --project=${PROJECT_ID} \
+          --region=${LOCATION}
+        )
+        for build in ${builds}; do
+
+          echo "Processing build '${build}'"
+
+          build_id="${build%,*}"
+          short_sha="${build#*,}"
+          short_build_id="${build_id:0:8}"
+
+          project_id="accelerated-platforms-${short_build_id}"
+
+          endpoints=$(
+            gcloud endpoints services list \
+            --format="value(serviceName)" \
+            --project=${project_id} 2>/dev/null
+          )
+          for endpoint in ${endpoints}; do
+            echo "    Deleting endpoint '${endpoint}'"
+            
+            gcloud endpoints services delete ${endpoint} \
+            --project=${project_id} \
+            --quiet
+          done
+
+          echo "    Deleting project '${project_id}'"
+          gcloud projects delete "${project_id}" \
+          --quiet
+        done
+
+        exit 0
+substitutions:
+  _DEBUG: "false"
+  _HOURS: "1"
+
+timeout: 55m

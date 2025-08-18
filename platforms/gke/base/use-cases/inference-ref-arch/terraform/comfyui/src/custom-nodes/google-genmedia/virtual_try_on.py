@@ -27,7 +27,7 @@ from PIL import Image
 
 from . import utils
 from .config import get_gcp_metadata
-from .constants import MAX_SEED, VTO_USER_AGENT
+from .constants import MAX_SEED, VTO_MODEL, VTO_USER_AGENT
 
 
 class VirtualTryOn:
@@ -72,7 +72,7 @@ class VirtualTryOn:
             self.client = aiplatform.gapic.PredictionServiceClient(
                 client_options=self.client_options, client_info=self.client_info
             )
-            self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/virtual-try-on-exp-05-31"
+            self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/{VTO_MODEL}"
             print(
                 f"Prediction client initiated on project : {self.project_id}, location: {self.region}"
             )

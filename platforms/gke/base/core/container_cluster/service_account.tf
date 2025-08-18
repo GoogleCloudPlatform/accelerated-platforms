@@ -14,7 +14,7 @@
 
 # Create dedicated service account for the cluster nodes
 resource "google_service_account" "cluster" {
-  for_each = toset(var.cluster_node_pool_default_service_account_id == null ? ["created"] : [])
+  for_each = toset(var.cluster_node_pool_default_service_account_id == null ? ["managed"] : [])
 
   account_id   = local.cluster_node_pool_service_account_id
   description  = "Terraform-managed service account for cluster ${local.cluster_name}"
@@ -22,18 +22,20 @@ resource "google_service_account" "cluster" {
   project      = google_project_service.iam_googleapis_com.project
 }
 
+data "google_service_account" "cluster" {
+  depends_on = [
+    google_service_account.cluster,
+  ]
+
+  account_id = local.cluster_node_pool_service_account_id
+  project    = local.cluster_node_pool_service_account_project_id
+}
+
 # Bind minimum role list to the service account
 resource "google_project_iam_member" "cluster_sa" {
   for_each = toset(var.cluster_node_pool_default_service_account_id == null ? local.cluster_sa_roles : [])
 
-  member  = google_service_account.cluster["created"].member
+  member  = data.google_service_account.cluster.member
   project = google_project_service.iam_googleapis_com.project
   role    = each.value
-}
-
-data "google_service_account" "cluster" {
-  depends_on = [google_service_account.cluster]
-
-  account_id = local.cluster_node_pool_service_account_id
-  project    = local.cluster_node_pool_service_account_project_id
 }

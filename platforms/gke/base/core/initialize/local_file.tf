@@ -20,10 +20,27 @@ locals {
   core_backend_directories = toset([for _, version_file in local.core_versions_files : trimprefix(trimsuffix(version_file, "/versions.tf"), "../")])
   core_versions_files      = flatten([for _, file in flatten(fileset(local.base_directory, "core/**/versions.tf")) : file])
 
+  platform_custom_role_unique_suffix = var.platform_custom_role_unique_suffix != "null" ? var.platform_custom_role_unique_suffix : terraform_data.unique_timestamps.input.unix
+
   shared_config_folder = "${path.module}/../../_shared_config"
 
   use_case_backend_directories = var.initialize_backend_use_case_name != null ? toset([for _, version_file in local.use_case_versions_files : trimprefix(trimsuffix(dirname(version_file), "/versions.tf"), "../")]) : []
   use_case_versions_files      = var.initialize_backend_use_case_name != null ? flatten([for _, file in flatten(fileset("${local.base_directory}/use-cases", "${var.initialize_backend_use_case_name}/**/versions.tf")) : file]) : []
+}
+
+resource "time_static" "unique" {
+}
+
+resource "terraform_data" "unique_timestamps" {
+  input = {
+    day    = formatdate("YYYYMMDD", time_static.unique.rfc3339)
+    hour   = formatdate("YYYYMMDDhh", time_static.unique.rfc3339)
+    min    = formatdate("YYYYMMDDhhmm", time_static.unique.rfc3339)
+    month  = formatdate("YYYYMM", time_static.unique.rfc3339)
+    second = formatdate("YYYYMMDDhhmmss", time_static.unique.rfc3339)
+    unix   = time_static.unique.unix
+    year   = formatdate("YYYY", time_static.unique.rfc3339)
+  }
 }
 
 resource "local_file" "core_backend_tf" {
@@ -192,9 +209,10 @@ resource "local_file" "shared_config_platform_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
-      platform_default_project_id = var.platform_default_project_id
-      platform_name               = var.platform_name
-      resource_name_prefix        = var.resource_name_prefix
+      platform_custom_role_unique_suffix = local.platform_custom_role_unique_suffix
+      platform_default_project_id        = var.platform_default_project_id
+      platform_name                      = var.platform_name
+      resource_name_prefix               = var.resource_name_prefix
     }
   )
   file_permission = "0644"

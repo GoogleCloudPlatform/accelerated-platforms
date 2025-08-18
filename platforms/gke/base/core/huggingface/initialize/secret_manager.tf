@@ -14,7 +14,7 @@
 
 # Create required secrets
 resource "google_secret_manager_secret" "hub_access_token_read" {
-  for_each = toset(var.huggingface_hub_access_token_read_secret_manager_secret_name == null ? ["new"] : [])
+  for_each = toset(var.huggingface_hub_access_token_read_secret_manager_secret_name == null ? ["managed"] : [])
 
   project   = google_project_service.secretmanager_googleapis_com.project
   secret_id = local.huggingface_hub_access_token_read_secret_manager_secret_name
@@ -34,7 +34,7 @@ data "google_secret_manager_secret" "hub_access_token_read" {
 }
 
 resource "google_secret_manager_secret" "hub_access_token_write" {
-  for_each = toset(var.huggingface_hub_access_token_write_secret_manager_secret_name == null ? ["new"] : [])
+  for_each = toset(var.huggingface_hub_access_token_write_secret_manager_secret_name == null ? ["managed"] : [])
 
   project   = google_project_service.secretmanager_googleapis_com.project
   secret_id = local.huggingface_hub_access_token_write_secret_manager_secret_name

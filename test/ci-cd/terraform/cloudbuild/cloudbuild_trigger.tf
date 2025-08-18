@@ -12,6 +12,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "google_cloudbuild_trigger" "acp_ci_cd_project_cleaner" {
+  location        = var.build_location
+  name            = "acp-ci-cd-project-cleaner"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  git_file_source {
+    path       = "test/ci-cd/cloudbuild/ci-cd/project-cleaner.yaml"
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+    revision   = "refs/heads/main"
+    repo_type  = "GITHUB"
+  }
+
+  source_to_build {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+    ref        = "refs/heads/main"
+    repo_type  = "GITHUB"
+  }
+
+  substitutions = {
+    _DEBUG = "false"
+    _HOURS = "1"
+  }
+}
+
 resource "google_cloudbuild_trigger" "acp_ci_cd_runner_image" {
   filename = "test/ci-cd/cloudbuild/ci-cd/runner-image.yaml"
   included_files = [

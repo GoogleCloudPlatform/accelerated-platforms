@@ -19,6 +19,9 @@ workloads.
 
 ![Reference Architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/images/reference_architecture_simple.svg)
 
+Refer to the [Getting Started](#getting-started) section below for instructions
+on setting up the infrastructure described in this document.
+
 ## Purpose
 
 The primary goal of this reference architecture is to provide a best practices,

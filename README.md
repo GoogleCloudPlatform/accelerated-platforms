@@ -26,11 +26,12 @@ the primary runtime.
 
 #### Example implementations
 
+- [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
 - [Federated learning](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
 - [Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
-  - [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
-  - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
-  - [Online inference with TPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-tpu/README.md)
+  - [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+    - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
+    - [Online inference with TPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-tpu/README.md)
 
 #### Cost Optimization Best Practices
 

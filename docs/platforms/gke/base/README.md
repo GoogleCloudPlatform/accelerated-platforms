@@ -191,15 +191,20 @@ For an outline of Google Cloud products and features used in the platform, see
 ## Getting Started
 
 A practical guide to setting up the infrastructure as described can be found in
-the [Reference implementation](/platforms/gke/base/core/README.md). This guide
-includes detailed Terraform configurations and deployment steps to deploy your
-GKE Base Platform.
+the
+[GKE Base Platform reference implementation](/platforms/gke/base/core/README.md).
+This guide includes detailed Terraform configurations and deployment steps to
+deploy your GKE Base Platform.
 
 This architecture is designed to be the foundation for other use cases. Some
 example use cases are:
 
+- [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
 - [Federated learning](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
 - [Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
+  - [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+    - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
+    - [Online inference with TPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-tpu/README.md)
 
 ## Additional Reading
 

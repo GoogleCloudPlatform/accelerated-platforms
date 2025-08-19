@@ -40,6 +40,10 @@ export CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY_ARRAY[*]}"
 
 "${MY_PATH}/../../core/deploy.sh"
 
+source "${MY_PATH}/../../use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+
+${cluster_credentials_command}
+
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
 echo "Total runtime (tutorials/hf-gpu-model): $(date -d@${total_runtime_value} -u +%H:%M:%S)"

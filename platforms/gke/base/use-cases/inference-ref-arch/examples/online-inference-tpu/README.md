@@ -42,91 +42,78 @@ This example is built on top of the
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Configure the Hugging Face `SecretProviderClass`es.
-
-  ```shell
-  envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/secretproviderclass-huggingface-tokens.tpl.yaml \
-    | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/secretproviderclass-huggingface-tokens.yaml
-  ```
-
 ## Download the model to Cloud Storage
 
-- Set the environment variables for the model downloader.
+- Choose the model ID.
 
-  - Set the model ID.
-
-    - **Gemma 3 1B Instruction-Tuned**:
-
-      ```shell
-      export MODEL_ID="google/gemma-3-1b-it"
-      ```
-
-    - **Gemma 3 4B Instruction-Tuned**:
-
-      ```shell
-      export MODEL_ID="google/gemma-3-4b-it"
-      ```
-
-    - **Gemma 3 27B Instruction-Tuned**:
-
-      ```shell
-      export MODEL_ID="google/gemma-3-27b-it"
-      ```
-
-  - Configure the Kustomize environment file
+  - **Gemma 3 1B Instruction-Tuned**:
 
     ```shell
-    envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/templates/downloader.tpl.env \
-      | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/downloader.env
+    export MODEL_ID="google/gemma-3-1b-it"
     ```
 
-- Deploy the model downloader in the GKE cluster.
+  - **Gemma 3 4B Instruction-Tuned**:
+
+    ```shell
+    export MODEL_ID="google/gemma-3-4b-it"
+    ```
+
+  - **Gemma 3 27B Instruction-Tuned**:
+
+    ```shell
+    export MODEL_ID="google/gemma-3-27b-it"
+    ```
+
+- Configure the model download job.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
   ```
 
-- Wait for the model downloader to download the model:
+- Deploy the model download job.
 
-  Note: the model downloader job has `ttlSecondsAfterFinished` configured, so if
-  you wait for more than `ttlSecondsAfterFinished` seconds after the job
-  completes, GKE will have automatically deleted it to reclaim resources.
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
+  ```
+
+- Watch the model download job until it is complete.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/transfer-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/hf-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/transfer-model-to-gcs --tail 10"
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/hf-model-to-gcs --all-containers --tail 10"
   ```
 
-  The output is similar to the following.
+  When the job is complete, you will see the following:
 
   ```text
-  NAME                    STATUS     COMPLETIONS   DURATION   AGE
-  transfer-model-to-gcs   Complete   1/1           ##m        ##m
+  NAME              STATUS     COMPLETIONS   DURATION   AGE
+  hf-model-to-gcs   Complete   1/1           ###        ###
   ```
 
-- Delete the model downloader.
+  You can press `CTRL`+`c` to terminate the watch.
+
+- Delete the model download job.
 
   ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download"
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
 
 ## Deploy the online inference workload
 
-- Configure the Kustomize environment file.
+- Configure the deployment.
 
   ```shell
-  envsubst < ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/templates/deployment.tpl.env \
-    | sponge ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/deployment.env
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/configure_deployment.sh"
   ```
 
-- Set the environment variables for the model.
+- Set the environment variables for the workload.
 
   - Set the model name.
 
     ```shell
-    export MODEL_NAME="${MODEL_ID##*/}"
+    MODEL_NAME="${MODEL_ID##*/}" && export MODEL_NAME="${MODEL_NAME,,}"
     echo "MODEL_NAME=${MODEL_NAME}"
     ```
 
@@ -154,20 +141,32 @@ This example is built on top of the
     accelerator type. For more information, see about viewing TPU quotas, see
     [Ensure that you have TPU quota](https://cloud.google.com/kubernetes-engine/docs/how-to/tpus#ensure-quota).
 
-- Deploy the online inference workload in the GKE cluster.
+- Deploy the online inference workload.
 
   ```shell
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${MODEL_NAME}"
   ```
 
-- Wait for the Pod to be ready.
+  The Kubernetes manifests are based on the
+  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+
+- Watch the deployment until it is ready.
 
   ```shell
   watch --color --interval 5 --no-title \
   "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} --tail 10"
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} --all-containers --tail 10"
   ```
+
+  When the deployment is ready, you will see the following:
+
+  ```text
+  NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+  vllm-<ACCELERATOR_TYPE>-<MODEL_NAME>   1/1     1            1           ###
+  ```
+
+  You can press `CTRL`+`c` to terminate the watch.
 
 - Send a test request.
 

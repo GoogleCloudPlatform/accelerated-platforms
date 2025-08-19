@@ -1,5 +1,5 @@
-#!/bin/bash
-#
+#!/usr/bin/env bash
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,19 +13,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-MY_PATH_IRA_ENV="$(
-  cd "$(dirname "${BASH_SOURCE}")" >/dev/null 2>&1
+set -o errexit
+set -o nounset
+set -o pipefail
+
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
 
-ACP_REPO_DIR="$(realpath ${MY_PATH_IRA_ENV}/../../../../../../../../)"
-ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
-ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
+source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
-declare -a SHARED_CONFIG_PATHS=(
-  "${ACP_PLATFORM_BASE_DIR}/_shared_config"
-  "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"
-)
-export SHARED_CONFIG_PATHS
+envsubst < "${MY_PATH}/huggingface/templates/downloader.tpl.env" | sponge "${MY_PATH}/huggingface/downloader.env"
 
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
+envsubst < "${MY_PATH}/huggingface/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/huggingface/secretproviderclass-huggingface-tokens.yaml"

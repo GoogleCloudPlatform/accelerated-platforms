@@ -10,7 +10,7 @@ platforms/gke/base/core/workloads/lws/manifests/*
 platforms/gke/base/core/workloads/nvidia_nim/*
 platforms/gke/base/core/workloads/priority_class/manifests/*
 platforms/gke/base/kubernetes/*
-platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/downloader.env
-platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/secretproviderclass-huggingface-tokens.yaml
-platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu-base/deployment.env
-platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-tpu/base/deployment.env
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface/downloader.env
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface/secretproviderclass-huggingface-tokens.yaml
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/base/deployment.env
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/deployment.env

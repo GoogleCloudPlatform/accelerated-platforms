@@ -42,12 +42,12 @@ if ! grep -q "platform_default_project_id" "${ACP_PLATFORM_BASE_DIR}/_shared_con
 fi
 
 display_variables=0
-if [[ -n "${DEBUG}" ]] || [[ -n "${DISPLAY_VARIABLES}" ]]; then
+if [[ -v DEBUG ]] || [[ -v DISPLAY_VARIABLES ]]; then
   display_variables=1
 fi
 
 for SHARED_CONFIG_PATH in "${SHARED_CONFIG_PATHS[@]}"; do
-  [[ -n ${DEBUG} ]] && echo "Loading shared configuration(${SHARED_CONFIG_PATH})"
+  [[ -v DEBUG ]] && echo "Loading shared configuration(${SHARED_CONFIG_PATH})"
   [[ ${display_variables} == 1 ]] && echo "-------------------------------------------------------------------------" 
   terraform -chdir="${SHARED_CONFIG_PATH}" init >/dev/null
   terraform -chdir="${SHARED_CONFIG_PATH}" apply -auto-approve -input=false >/dev/null

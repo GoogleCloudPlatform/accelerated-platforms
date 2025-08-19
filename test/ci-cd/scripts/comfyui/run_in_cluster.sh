@@ -5,150 +5,194 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#        http://www.apache.org/licenses/LICENSE-2.0
+#      http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# ==============================================================================
-#
-# GKE In-Pod Runner
-#
-# Description:
-#   This script automates running a test inside a temporary GKE pod.
-#   It is configured entirely via environment variables.
-#
-# Required Environment Variables:
-#   cluster_name, cluster_region, cluster_project_id, comfyui_kubernetes_namespace, comfyui_endpoints_hostname,
-#
-# ==============================================================================
+# This script NEVER exits non-zero. All failures are logged to ERROR_FILE.
 
-# --- Script Configuration ---
 set -o nounset
 set -o pipefail
+set -o errtrace
 
-source /workspace/build.env
-source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+# --- Load env (best-effort) ---
+# shellcheck disable=SC1091
+source /workspace/build.env 2>/dev/null || true
+if [ -n "${ACP_PLATFORM_BASE_DIR:-}" ]; then
+  # shellcheck disable=SC1091
+  source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh" 2>/dev/null || true
+fi
 
-ls
-# --- Variables ---
-# Use a unique name for the pod for concurrent runs.
-export POD_NAME="comfyui-client"
-# Use a lock file to track errors
-export ERROR_FILE="/workspace/build-failed.lock"
+# --- Vars (preserved defaults) ---
+export POD_NAME="${POD_NAME:-comfyui-client}"
+export ERROR_FILE="${ERROR_FILE:-/workspace/build-failed.lock}"
+export TEST_WORKFLOW_DIR="${TEST_WORKFLOW_DIR:-test/ci-cd/scripts/comfyui/}"
 
-export WORKFLOWS_DIR="test/ci-cd/scripts/comfyui/workflows"
-# --- Cleanup and Error Handling Functions ---
-cleanup_on_exit() {
-  echo "--- Cleaning up pod: $POD_NAME ---"
-  kubectl delete pod "$POD_NAME" --namespace="$comfyui_kubernetes_namespace" --ignore-not-found=true || true
+COMFYUI_PORT="${COMFYUI_PORT:-8188}"
+MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-180}"
+STEP_ID=${1}
+
+# --- Helpers ---
+step() { echo -e "\n==== [STEP] $* ====\n"; }
+info() { echo "[INFO] $*"; }
+warn() { echo "[WARN] $*" >&2; }
+log_error() {
+
+  exit_code=$?
+
+  if [ ${exit_code} -ne 0 ]; then
+    echo "- ${STEP_ID}" >>/workspace/build-failed.lock
+  fi
+
   exit 0
 }
 
-# The main error handler function
-# This function will be called on every command failure
-error_handler() {
-  local exit_code=$?
-  if [ $exit_code -ne 0 ]; then
-    echo "Error $exit_code"
-  fi
-}
+trap 'log_error "shell error (exit=$?) at line ${BASH_LINENO[0]} running: ${BASH_COMMAND}"' ERR
 
-# Trap ERR and call the error handler
-trap error_handler ERR
-# Always clean up on exit, regardless of success or failure
+cleanup_on_exit() {
+  step "Cleanup"
+  info "Deleting pod: ${POD_NAME} (namespace: ${comfyui_kubernetes_namespace})"
+  kubectl delete pod "${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --ignore-not-found=true >/dev/null 2>&1 || true
+
+  step "Final status"
+  if [ -s "${ERROR_FILE}" ]; then
+    warn "Test run had failures. See '${ERROR_FILE}' for details. ❌"
+    step "ERROR FILE CONTENTS"
+    cat "${ERROR_FILE}" || true
+  else
+    info "Test run completed successfully. ✅"
+  fi
+  # ALWAYS exit 0 per requirement
+  exit 0
+}
 trap cleanup_on_exit EXIT
 
-# Check for all required environment variables
-if [ -z "${cluster_name:-}" ] || [ -z "${cluster_region:-}" ] || [ -z "${cluster_project_id:-}" ] || \
-   [ -z "${comfyui_kubernetes_namespace:-}" ]; then
-    echo "Error: One or more required environment variables are not set." >&2
-    echo "Required: cluster_name, cluster_region, cluster_project_id, comfyui_kubernetes_namespace, HEADLESS_COMFYUI_SERVICE, WORKFLOWS_DIR, TEST_DIR" >&2
-    echo "Error: Required environment variables are not set." >> "${ERROR_FILE}"
-    exit 0
-fi
-
-# --- verify each file has a test file ---
+# (defined but NOT called; kept for parity)
 check_files() {
   for file in "$WORKFLOWS_DIR"/*; do
-    if [[ ! -f "$TEST_DIR/workflows/$(basename "$file")" ]]; then
-      echo "Error: $(basename "$file") not found in $TEST_DIR." >&2
-      echo "Error: $(basename "$file") not found in $TEST_DIR." >> "${ERROR_FILE}"
-      exit 0
+    if [[ ! -f "$TEST_WORKFLOW_DIR/workflows/$(basename "$file")" ]]; then
+      echo "Error: $(basename "$file") not found in $TEST_WORKFLOW_DIR." >&2
+      log_error "Missing test file: $(basename "$file") expected in $TEST_WORKFLOW_DIR/workflows"
     fi
   done
 }
 
-# 1. Get GKE cluster credentials
-echo "--- Getting GKE credentials for project '$cluster_project_id' ---"
-# Note: The `cluster_credentials_command` variable is assumed to be sourced from the `set_environment_variables.sh` script
-$cluster_credentials_command
+# ------------------------------------------------------------
+# 1) Credentials — ORIGINAL explicit command
+# ------------------------------------------------------------
+step "Get GKE credentials (original explicit command)"
+echo "[INFO] ${cluster_credentials_command}"
+${cluster_credentials_command} \
+  || log_error "gcloud get-credentials failed for cluster inf-ch73daf3e in us-central1 (project comfyui-ab10)"
 
-# --- Wait for cluster to be available...
-echo "--- Waiting for cluster to become available... ---"
-MAX_WAIT_SECONDS=180
-ATTEMPT=0
+# ------------------------------------------------------------
+# 2) Wait for API & namespace
+# ------------------------------------------------------------
+step "Wait for cluster & namespace '${comfyui_kubernetes_namespace}'"
+attempt=0
 while true; do
-  ATTEMPT=$((ATTEMPT + 1))
-  echo "Attempting to connect to cluster (Attempt $ATTEMPT)..."
-  if kubectl get namespaces >/dev/null 2>&1; then
-    echo "Cluster is available. Proceeding."
+  attempt=$((attempt + 1))
+  if kubectl get namespace "${comfyui_kubernetes_namespace}" >/dev/null 2>&1; then
+    info "Namespace '${comfyui_kubernetes_namespace}' is accessible."
     break
   fi
-  if [ $ATTEMPT -ge $MAX_WAIT_SECONDS ]; then
-    echo "Timeout waiting for cluster to become available. Exiting." >&2
-    exit 0
+  if [ "${attempt}" -ge "${MAX_WAIT_SECONDS}" ]; then
+    log_error "Timeout waiting for namespace '${comfyui_kubernetes_namespace}' after ${MAX_WAIT_SECONDS}s"
+    break
   fi
-  sleep 5
+  sleep 1
 done
 
-# --- Verify namespace exists ---
-echo "--- Verifying that namespace '$comfyui_kubernetes_namespace' exists... ---"
-if ! kubectl get namespace "$comfyui_kubernetes_namespace" >/dev/null 2>&1; then
-    echo "Error: The required namespace '$comfyui_kubernetes_namespace' does not exist." >&2
-    exit 0
-fi
-echo "Namespace '$comfyui_kubernetes_namespace' found."
+info "Listing namespaces:"
+kubectl get namespaces || log_error "kubectl get namespaces failed"
 
-# --- Remaining script steps ---
-echo "-----KUBECTL NAMESPACES-----"
-kubectl get namespaces
-# 2. Run a temporary client pod
-echo "--- Creating pod: $POD_NAME in namespace '$comfyui_kubernetes_namespace' ---"
-kubectl run "$POD_NAME" \
+# ------------------------------------------------------------
+# 3) Start client pod (install bash + curl + jq)
+# ------------------------------------------------------------
+step "Create client pod '${POD_NAME}' in '${comfyui_kubernetes_namespace}'"
+kubectl run "${POD_NAME}" \
   --image=alpine:latest \
   --restart=Never \
-  --namespace="$comfyui_kubernetes_namespace" \
-  --command -- sh -c "apk add --no-cache curl jq && echo 'Pod is ready. Waiting...' && sleep 3600"
+  -n "${comfyui_kubernetes_namespace}" \
+  --command -- sh -c "apk add --no-cache bash curl jq >/dev/null && echo 'Pod is ready. Waiting...' && sleep 3600" \
+  || log_error "Failed to create pod ${POD_NAME}"
 
-# 3. Wait for the pod to be ready
-echo "--- Waiting for pod to be ready ---"
-kubectl wait --for=condition=Ready pod/"$POD_NAME" --namespace="$comfyui_kubernetes_namespace" --timeout=60s
+step "Wait for pod Ready"
+kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=120s \
+  || log_error "Pod ${POD_NAME} not Ready within timeout"
 
-# 4. Copy files to the pod
-echo "--- Copying files to pod ---"
-kubectl cp "$WORKFLOWS_DIR/comfyui_prompt_test.sh" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/comfyui_prompt_test.sh"
-kubectl cp "$WORKFLOWS_DIR/workflows" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/workflows"
+# ------------------------------------------------------------
+# 4) Copy test assets
+# ------------------------------------------------------------
+step "Copy test assets into pod"
+info "Copy comfyui_prompt_test.sh"
+kubectl cp "${TEST_WORKFLOW_DIR}/comfyui_prompt_test.sh" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/comfyui_prompt_test.sh" \
+  || log_error "Failed to copy comfyui_prompt_test.sh"
+info "Copy workflows directory"
+kubectl cp "${TEST_WORKFLOW_DIR}/workflows" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/workflows" \
+  || log_error "Failed to copy workflows directory"
 
-# 5. Make the runner script executable inside the pod
-echo "--- Setting script permissions in pod ---"
-kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- chmod +x /tmp/comfyui_prompt_test.sh
+step "chmod +x in pod"
+kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- chmod +x /tmp/comfyui_prompt_test.sh \
+  || log_error "chmod +x /tmp/comfyui_prompt_test.sh failed"
 
-# 6. Get ComfyUI IP address
-echo "--- Getting Comfy IP ---"
-SERVICE_IP_AND_PORT=$(kubectl get service -n "$comfyui_kubernetes_namespace" | grep "8188" | awk '{print $3}'):8188
-echo "Service IP and Port: $SERVICE_IP_AND_PORT"
+# ------------------------------------------------------------
+# 5) Discover service IP (YOUR ORIGINAL LOGIC)
+# ------------------------------------------------------------
+step "Discover ComfyUI service IP (port ${COMFYUI_PORT})"
+info "Services in namespace '${comfyui_kubernetes_namespace}':"
+kubectl get service -n "${comfyui_kubernetes_namespace}" || log_error "kubectl get service failed"
 
-# 7. Execute the test script inside the pod, passing environment variables
-echo "--- Executing test script in pod ---"
-kubectl exec --namespace="$comfyui_kubernetes_namespace" "$POD_NAME" -- \
-  sh -c "export COMFYUI_URL='${SERVICE_IP_AND_PORT}' && \
-          export WORKFLOWS_DIR='${WORKFLOWS_DIR}' && \
-          export POLL_TIMEOUT=300 && \
-          export POLL_INTERVAL=5 && \
-          export MINIMUM_FILE_SIZE_BYTES=1 && \
-          /tmp/comfyui_prompt_test.sh"
+SERVICE_IP_AND_PORT="$(kubectl get service -n "${comfyui_kubernetes_namespace}" | grep "${COMFYUI_PORT}" | awk '{print $3}'):${COMFYUI_PORT}"
+info "Using service endpoint: ${SERVICE_IP_AND_PORT}"
 
-echo "--- Script execution completed ---"
+# ------------------------------------------------------------
+# 6) Execute tests inside pod — stream logs; stop on first error
+# ------------------------------------------------------------
+step "Execute test script in pod"
+echo "[INFO] Setting env & running tests inside pod..."
+
+POD_RUN_LOG="$(mktemp)"
+
+kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
+  COMFYUI_URL="http://${SERVICE_IP_AND_PORT}" \
+  TEST_WORKFLOW_DIR="/tmp/workflows" \
+  POLL_TIMEOUT="300" \
+  POLL_INTERVAL="5" \
+  MINIMUM_FILE_SIZE_BYTES="1" \
+  /bin/bash -lc '
+    echo ">> Inside pod"
+    echo ">> COMFYUI_URL=${COMFYUI_URL}"
+    echo ">> TEST_WORKFLOW_DIR=${TEST_WORKFLOW_DIR}"
+    echo ">> Listing workflows:"
+    ls -la "${TEST_WORKFLOW_DIR}" || true
+
+    . /tmp/comfyui_prompt_test.sh
+
+    echo ">> Begin workflow tests (stop on first error)"
+    for f in "${TEST_WORKFLOW_DIR}"/*; do
+      echo "---- Working on file: ${f} ----"
+      if ! main "${f}"; then
+        echo "!! FAILED: ${f}" >&2
+        exit 1     # stop on FIRST failure
+      else
+        echo " OK: ${f}"
+      fi
+    done
+
+    echo ">> All workflows completed successfully."
+    exit 0
+  ' 2>&1 | tee "${POD_RUN_LOG}"
+
+exec_ec=${PIPESTATUS[0]}   # exit code of kubectl exec (not tee)
+
+if [ "${exec_ec}" -ne 0 ]; then
+  log_error "In-pod test script reported a failure (stopped on first error; exit=${exec_ec})"
+  cat "${POD_RUN_LOG}" >> "${ERROR_FILE}" || true
+  echo "[INFO] Stopping after first failure. See ${ERROR_FILE}."
+else
+  info "In-pod tests completed successfully."
+fi

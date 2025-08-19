@@ -12,18 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: vllm
+  name: hf-model-to-gcs
   namespace: replaced-by-kustomize
 spec:
   template:
     spec:
-      containers:
-      - name: inference-server
-        resources:
-          limits:
-            google.com/tpu: '8'
-          requests:
-            google.com/tpu: '8'
+      nodeSelector:
+        cloud.google.com/compute-class: model-download

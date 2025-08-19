@@ -4,26 +4,32 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# https://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: apps/v1
-kind: Deployment
+
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
 metadata:
-  name: vllm
-  namespace: replaced-by-kustomize
+  name: model-download
 spec:
-  template:
-    spec:
-      containers:
-      - name: inference-server
-        resources:
-          limits:
-            google.com/tpu: '8'
-          requests:
-            google.com/tpu: '8'
+  activeMigration:
+    optimizeRulePriority: true
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    - machineType: c4-standard-4-lssd
+      maxPodsPerNode: 32
+      spot: false
+      storage:
+        localSSDCount: 1
+
+    - machineType: c3-standard-4-lssd
+      maxPodsPerNode: 32
+      spot: false
+      storage:
+        localSSDCount: 1

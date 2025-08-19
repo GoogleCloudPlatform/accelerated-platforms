@@ -70,6 +70,7 @@ keepalive
 keyrings
 krmapihost
 krmapihosting
+lssd
 megagpu
 meshconfig
 negs

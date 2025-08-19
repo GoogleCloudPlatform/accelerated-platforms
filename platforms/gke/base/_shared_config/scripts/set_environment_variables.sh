@@ -41,13 +41,18 @@ if ! grep -q "platform_default_project_id" "${ACP_PLATFORM_BASE_DIR}/_shared_con
   fi
 fi
 
+display_variables=0
+if [[ -v DEBUG ]] || [[ -v DISPLAY_VARIABLES ]]; then
+  display_variables=1
+fi
+
 for SHARED_CONFIG_PATH in "${SHARED_CONFIG_PATHS[@]}"; do
-  echo "Loading shared configuration(${SHARED_CONFIG_PATH})"
-  echo "-------------------------------------------------------------------------"
+  [[ -v DEBUG ]] && echo "Loading shared configuration(${SHARED_CONFIG_PATH})"
+  [[ ${display_variables} == 1 ]] && echo "-------------------------------------------------------------------------" 
   terraform -chdir="${SHARED_CONFIG_PATH}" init >/dev/null
   terraform -chdir="${SHARED_CONFIG_PATH}" apply -auto-approve -input=false >/dev/null
-  terraform -chdir="${SHARED_CONFIG_PATH}" output
-  echo -e "-------------------------------------------------------------------------\n"
+  [[ ${display_variables} == 1 ]] && terraform -chdir="${SHARED_CONFIG_PATH}" output
+  [[ ${display_variables} == 1 ]] && echo -e "-------------------------------------------------------------------------\n"
   set -o allexport
   eval "$(terraform -chdir="${SHARED_CONFIG_PATH}" output | sed -r 's/(\".*\")|\s*/\1/g')"
   set +o allexport

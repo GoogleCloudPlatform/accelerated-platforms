@@ -24,6 +24,6 @@ spec:
       - name: inference-server
         resources:
           limits:
-            nvidia.com/tpu: '8'
+            google.com/tpu: '8'
           requests:
-            nvidia.com/tpu: '8'
+            google.com/tpu: '8'

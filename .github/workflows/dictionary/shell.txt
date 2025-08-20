@@ -1,5 +1,6 @@
 allexport
 chdir
+dclose
 envsubst
 errexit
 getopt

@@ -196,3 +196,4 @@ if [ "${exec_ec}" -ne 0 ]; then
 else
   info "In-pod tests completed successfully."
 fi
+

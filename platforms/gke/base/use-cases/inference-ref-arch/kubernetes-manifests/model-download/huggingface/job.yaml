@@ -51,6 +51,9 @@ spec:
 
               echo "Downloading '${MODEL_ID}' to '${MODEL_BUCKET_NAME}' Cloud Storage bucket"
 
+              echo "Creating '${MODEL_ID}' model folder in '${MODEL_BUCKET_NAME}' bucket"
+              gcloud storage folders create --recursive "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/"
+
               pip3 install \
               --break-system-packages \
               --root-user-action=ignore \
@@ -59,6 +62,7 @@ spec:
 
               start_download=$(date +%s)
 
+              echo "Starting download of ${MODEL_ID}..."
               hf download \
               --local-dir /local/hf/model \
               --max-workers ${HF_MAX_WORKERS:-"8"} \
@@ -71,9 +75,6 @@ spec:
 
               echo "Removing cache directory"
               rm -rf /local/hf/model/.cache
-
-              echo "Creating model directory"
-              gcloud storage folders create --recursive "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/"
 
               start_transfer=$(date +%s)
 
@@ -89,7 +90,7 @@ spec:
               runtime_transfer=$((end_transfer - start_transfer))
               echo "Transfer runtime: $(date -d@${runtime_transfer} -u +%H:%M:%S)"
 
-              rm -rf /gcs/.gcsfuse_tmp
+              rm -rf /gcs/.gcsfuse_tmp /gcs/gcloud
 
               end=$(date +%s)
               runtime=$((end - start))
@@ -99,6 +100,8 @@ spec:
               value: /var/run/secrets/huggingface.co/token
             - name: HF_MAX_WORKERS
               value: "8"
+            - name: HF_XET_CACHE
+              value: /local/hf/xet
             - name: HF_XET_NUM_CONCURRENT_RANGE_GETS
               value: "16"
             - name: HF_XET_HIGH_PERFORMANCE
@@ -116,12 +119,10 @@ spec:
           image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
           name: hf-model-to-gcs
           resources:
-            limits:
-              cpu: 3000m
-              memory: 11Gi
             requests:
-              cpu: 3000m
-              memory: 11Gi
+              cpu: 2000m
+              ephemeral-storage: 1Gi
+              memory: 10Gi
           volumeMounts:
             - mountPath: /gcs
               name: huggingface-hub-model-bucket

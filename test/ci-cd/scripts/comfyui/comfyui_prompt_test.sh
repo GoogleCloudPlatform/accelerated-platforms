@@ -72,6 +72,8 @@ get_history() {
     local response http_code body now
     response=$(curl -s --connect-timeout 5 --max-time 20 \
       -o - -w "%{http_code}" "${COMFYUI_URL}/history/${prompt_id}")
+    log "history response: ${response}"
+  
     http_code="${response: -3}"
     body="${response::-3}"
 

@@ -63,7 +63,7 @@ execute_workflow() {
 # --- 2) Poll history; print {"filename":"...","subfolder":"...","type":"..."} to stdout ---
 get_history() {
   local prompt_id=$1
-  local poll_timeout=${POLL_TIMEOUT:-600}
+  local poll_timeout=${POLL_TIMEOUT:-1200}
 
   log "get_history: id=${prompt_id}"
   local start; start=$(date +%s)

@@ -50,8 +50,8 @@ Shell has the following tools installed:
 - `envsubst`
 - `jq`
 - `kubectl`
-- `nc`
 - `sponge`
+- `telnet`
 - `wget`
 
 ## Prepare the environment

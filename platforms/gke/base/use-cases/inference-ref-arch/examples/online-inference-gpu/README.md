@@ -183,7 +183,7 @@ This example is built on top of the
   ```shell
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} 8000:8000 >/dev/null &
   PF_PID=$!
-  while ! nc -z localhost 8000; do
+  while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
     sleep 0.1
   done
   echo "/v1/models:"

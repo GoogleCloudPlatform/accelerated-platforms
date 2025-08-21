@@ -43,6 +43,10 @@
       "path": ".github/workflows/dictionary/kueue.txt"
     },
     {
+      "name": "models",
+      "path": ".github/workflows/dictionary/models.txt"
+    },
+    {
       "name": "nvidia",
       "path": ".github/workflows/dictionary/nvidia.txt"
     },

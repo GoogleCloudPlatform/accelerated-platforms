@@ -1,0 +1,121 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hf-model-to-gcs
+  namespace: replaced-by-kustomize
+data:
+  download.sh: |
+    #!/usr/bin/env bash
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+
+    start_download=$(date +%s)
+
+    echo "Starting download of ${MODEL_ID}..."
+    hf download \
+    --local-dir /local/hf/model \
+    --max-workers ${HF_MAX_WORKERS:-"8"} \
+    --repo-type model \
+    ${MODEL_ID}
+
+    end_download=$(date +%s)
+    runtime_download=$((end_download - start_download))
+    echo "Download runtime: $(date -d@${runtime_download} -u +%H:%M:%S)"
+
+    echo "Removing cache directory"
+    rm -rf /local/hf/model/.cache
+  install_packages.sh: |
+    #!/usr/bin/env bash
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+
+    echo "Installing required packages..."
+
+    pip3 install \
+    --break-system-packages \
+    --root-user-action=ignore \
+    --upgrade \
+    huggingface_hub
+  run.sh: |
+    #!/usr/bin/env bash
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+    MY_PATH="$(
+      cd "$(dirname "$0")" >/dev/null 2>&1
+      pwd -P
+    )"
+
+    start=$(date +%s)
+
+    if [ -z "${MODEL_ID:-}" ]; then
+      echo "Error: MODEL_ID is not set."
+      exit 1
+    fi
+    if [ -z "${MODEL_BUCKET_NAME:-}" ]; then
+      echo "Error: MODEL_BUCKET_NAME is not set."
+      exit 1
+    fi
+
+    echo "Preparing to download '${MODEL_ID}' from Hugging Face to the '${MODEL_BUCKET_NAME}' Cloud Storage bucket"
+
+    echo "Creating '${MODEL_ID}' model folder in '${MODEL_BUCKET_NAME}' bucket"
+    if [[ "${REPLACE_EXISTING:-false}" == "true" ]]; then
+      gcloud storage folders create --recursive "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/" || echo "Bucket already exists"
+    else
+      gcloud storage folders create --recursive "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/"
+    fi
+
+    "${MY_PATH}/install_packages.sh"
+
+    "${MY_PATH}/download.sh"
+
+    "${MY_PATH}/transfer.sh"
+
+    end=$(date +%s)
+    runtime=$((end - start))
+    echo "Total runtime: $(date -d@${runtime} -u +%H:%M:%S)"
+  transfer.sh: |
+    #!/usr/bin/env bash
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+
+    start_transfer=$(date +%s)
+
+    if [[ "${REPLACE_EXISTING:-false}" == "true" ]]; then
+      echo "Removing existing model files..."
+      gcloud storage rm \
+      --recursive \
+      "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/*"
+    fi
+
+    echo "Transferring model to the bucket"
+    gcloud config set storage/parallel_composite_upload_enabled True
+    gcloud storage cp \
+    --gzip-in-flight-all \
+    --recursive \
+    /local/hf/model/* \
+    "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/"
+
+    end_transfer=$(date +%s)
+    runtime_transfer=$((end_transfer - start_transfer))
+    echo "Transfer runtime: $(date -d@${runtime_transfer} -u +%H:%M:%S)"
+
+    rm -rf /gcs/.gcsfuse_tmp /gcs/gcloud

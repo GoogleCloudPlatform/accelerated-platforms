@@ -175,7 +175,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     echo ">> Begin workflow tests (stop on first error)"
     for f in "${TEST_WORKFLOW_DIR}"/*; do
       echo "---- Working on file: ${f} ----"
-      if ! main "${f}"; then
+      if ! main "${f}" sleep 15; then
         echo "!! FAILED: ${f}" >&2
         exit 1     # stop on FIRST failure
       else

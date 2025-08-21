@@ -3,3 +3,6 @@ huggingface
 optim
 pretraining
 rdzv
+qwen
+gpt
+gptoss

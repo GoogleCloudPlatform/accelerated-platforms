@@ -25,7 +25,7 @@ nameSuffix: -l4-qwen3-32b
 
 patches:
   - path: set-l4-24gb-compute-class.yaml
-  - path: set-vllm-qwen3-32b-resources-limits.yaml
+  - path: patch-resources.yaml
 
 replacements:
   - source:

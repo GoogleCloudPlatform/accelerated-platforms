@@ -25,7 +25,7 @@ nameSuffix: -h100-llama-4-scout-17b-16e-instruct
 
 patches:
   - path: set-h100-80gb-high-compute-class.yaml
-  - path: set-vllm-llama4-scout-resources-limits.yaml
+  - path: patch-resources.yaml
 
 replacements:
   - source:

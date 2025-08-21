@@ -25,7 +25,7 @@ nameSuffix: -h100-gpt-oss-20b
 
 patches:
   - path: set-h100-80gb-high-compute-class.yaml
-  - path: set-vllm-gpt-oss-20b-resources-limits.yaml
+  - path: patch-resources.yaml
 
 replacements:
   - source:

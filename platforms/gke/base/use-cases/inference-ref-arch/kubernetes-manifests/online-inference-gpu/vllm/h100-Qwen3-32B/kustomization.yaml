@@ -25,7 +25,7 @@ nameSuffix: -h100-qwen3-32b
 
 patches:
   - path: set-h100-80gb-high-compute-class.yaml
-  - path: set-vllm-qwen3-32b-resources-limits.yaml
+  - path: patch-resources.yaml
 
 replacements:
   - source:

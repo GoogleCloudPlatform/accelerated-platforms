@@ -25,7 +25,7 @@ nameSuffix: -h100-llama-3.3-70b-instruct
 
 patches:
   - path: set-h100-80gb-high-compute-class.yaml
-  - path: set-vllm-llama3-resources-limits.yaml
+  - path: patch-resources.yaml
 
 replacements:
   - source:

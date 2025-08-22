@@ -64,13 +64,14 @@
         }
       },
       "extensions": [
+        "docker.docker",
         "EditorConfig.EditorConfig",
         "esbenp.prettier-vscode",
         "googlecloudtools.cloudcode",
         "HashiCorp.terraform",
         "mads-hartmann.bash-ide-vscode",
         "mkhl.shfmt",
-        "ms-azuretools.vscode-docker",
+        "ms-azuretools.vscode-containers",
         "ms-python.black-formatter",
         "streetsidesoftware.code-spell-checker",
         "timonwong.shellcheck"

@@ -56,6 +56,12 @@ This example is built on top of the
     export MODEL_ID="google/gemma-3-27b-it"
     ```
 
+  - **gpt-oss-120b**
+
+    ```shell
+    export MODEL_ID="openai/gpt-oss-20b"
+    ```
+
   - **Llama 4 Scout 17B Instruction-Tuned**:
 
     ```shell
@@ -66,6 +72,12 @@ This example is built on top of the
 
     ```shell
     export MODEL_ID="meta-llama/llama-3.3-70b-instruct"
+    ```
+
+  - **Qwen3-32B**:
+
+    ```shell
+    export MODEL_ID="qwen/qwen3-32B"
     ```
 
 - Configure the model download job.
@@ -126,8 +138,10 @@ This example is built on top of the
     | Model                          | l4  | h100 | h200 |
     | ------------------------------ | --- | ---- | ---- |
     | gemma-3-27b-it                 | ✅  | ✅   | ✅   |
+    | gpt-oss-20b                    | ✅  | ✅   | ✅   |
     | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   |
     | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   |
+    | qwen3-32b                      | ✅  | ✅   | ✅   |
 
     - **NVIDIA Tesla L4 24GB**:
 

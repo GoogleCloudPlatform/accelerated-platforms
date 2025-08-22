@@ -25,7 +25,7 @@ nameSuffix: -l4-gemma-3-27b-it
 
 patches:
   - path: set-l4-24gb-compute-class.yaml
-  - path: set-vllm-gemma3-27b-resources-limits.yaml
+  - path: patch-resources.yaml
 
 replacements:
   - source:

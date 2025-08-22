@@ -1,5 +1,8 @@
 adamw
+gpt
+gptoss
 huggingface
 optim
 pretraining
+qwen
 rdzv

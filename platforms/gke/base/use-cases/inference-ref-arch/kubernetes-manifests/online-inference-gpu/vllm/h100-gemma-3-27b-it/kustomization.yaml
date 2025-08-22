@@ -25,7 +25,7 @@ nameSuffix: -h100-gemma-3-27b-it
 
 patches:
   - path: set-h100-80gb-high-compute-class.yaml
-  - path: set-vllm-gemma3-27b-resources-limits.yaml
+  - path: patch-resources.yaml
 
 replacements:
   - source:

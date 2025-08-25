@@ -28,7 +28,5 @@ envsubst < "${MY_PATH}/huggingface/templates/downloader.tpl.env" | sponge "${MY_
 
 envsubst < "${MY_PATH}/huggingface/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/huggingface/secretproviderclass-huggingface-tokens.yaml"
 
-MODEL_ID_HASH=$(echo "${MODEL_ID}" | md5sum | cut -c1-8)
-
 cd "${MY_PATH}/huggingface"
-kustomize edit set nameprefix "${MODEL_ID_HASH}-"
+kustomize edit set nameprefix "${HF_MODEL_ID_HASH}-"

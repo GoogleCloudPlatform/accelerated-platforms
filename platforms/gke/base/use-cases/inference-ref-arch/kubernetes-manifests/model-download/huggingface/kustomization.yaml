@@ -52,19 +52,6 @@ replacements:
         select:
           kind: Job
           name: hf-model-to-gcs
-  - source:
-      fieldPath: data.MODEL_BUCKET_NAME
-      kind: ConfigMap
-      name: download
-    targets:
-      - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
-        options:
-          delimiter: .
-          index: 0
-        select:
-          kind: Job
-          name: hf-model-to-gcs
 
 resources:
   - configmap-scripts.yaml

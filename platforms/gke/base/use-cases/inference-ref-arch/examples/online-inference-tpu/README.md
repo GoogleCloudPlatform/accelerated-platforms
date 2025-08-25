@@ -49,19 +49,19 @@ This example is built on top of the
   - **Gemma 3 1B Instruction-Tuned**:
 
     ```shell
-    export MODEL_ID="google/gemma-3-1b-it"
+    export HF_MODEL_ID="google/gemma-3-1b-it"
     ```
 
   - **Gemma 3 4B Instruction-Tuned**:
 
     ```shell
-    export MODEL_ID="google/gemma-3-4b-it"
+    export HF_MODEL_ID="google/gemma-3-4b-it"
     ```
 
   - **Gemma 3 27B Instruction-Tuned**:
 
     ```shell
-    export MODEL_ID="google/gemma-3-27b-it"
+    export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
 - Configure the model download job.
@@ -110,11 +110,10 @@ This example is built on top of the
 
 - Set the environment variables for the workload.
 
-  - Set the model name.
+  - Check the model name.
 
     ```shell
-    MODEL_NAME="${MODEL_ID##*/}" && export MODEL_NAME="${MODEL_NAME,,}"
-    echo "MODEL_NAME=${MODEL_NAME}"
+    echo "HF_MODEL_NAME=${HF_MODEL_NAME}"
     ```
 
   - Select an accelerator.
@@ -144,7 +143,7 @@ This example is built on top of the
 - Deploy the online inference workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
   The Kubernetes manifests are based on the
@@ -154,16 +153,16 @@ This example is built on top of the
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} --all-containers --tail 10"
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
   ```
 
   When the deployment is ready, you will see the following:
 
   ```text
-  NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-<ACCELERATOR_TYPE>-<MODEL_NAME>   1/1     1            1           ###
+  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+  vllm-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1     1            1           ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -171,7 +170,7 @@ This example is built on top of the
 - Send a test request.
 
   ```shell
-  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} 8000:8000 >/dev/null &
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
   PF_PID=$!
   while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
     sleep 0.1
@@ -182,7 +181,7 @@ This example is built on top of the
   echo "/v1/chat/completions:"
   curl http://127.0.0.1:8000/v1/chat/completions \
   --data '{
-    "model": "/gcs/'${MODEL_ID}'",
+    "model": "/gcs/'${HF_MODEL_ID}'",
     "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
     }' \
   --header "Content-Type: application/json" \
@@ -195,7 +194,7 @@ This example is built on top of the
 - Delete the workload.
 
   ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
 ## Clean up

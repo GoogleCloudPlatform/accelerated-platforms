@@ -34,5 +34,5 @@ if [[ -v HF_MODEL_ID ]]; then
   export HF_MODEL_ID_HASH=$(echo "${HF_MODEL_ID}" | md5sum | cut -c1-8)
 
   HF_MODEL_NAME="${HF_MODEL_ID##*/}"
-  export MODEL_NAME="${HF_MODEL_NAME,,}"
+  export HF_MODEL_NAME="${HF_MODEL_NAME,,}"
 fi

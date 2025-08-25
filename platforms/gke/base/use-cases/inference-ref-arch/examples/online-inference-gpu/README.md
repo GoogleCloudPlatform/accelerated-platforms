@@ -53,7 +53,7 @@ This example is built on top of the
   - **gpt-oss-120b**
 
     ```shell
-    export MODEL_ID="openai/gpt-oss-20b"
+    export HF_MODEL_ID="openai/gpt-oss-20b"
     ```
 
   - **Llama 4 Scout 17B Instruction-Tuned**:
@@ -71,7 +71,7 @@ This example is built on top of the
   - **Qwen3-32B**:
 
     ```shell
-    export MODEL_ID="qwen/qwen3-32B"
+    export HF_MODEL_ID="qwen/qwen3-32b"
     ```
 
 - Source the environment configuration.

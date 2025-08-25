@@ -73,6 +73,7 @@ data:
       exit 1
     fi
 
+    export MODEL_ID=${MODEL_ID,,}
     echo "Preparing to download '${MODEL_ID}' from Hugging Face to the '${MODEL_BUCKET_NAME}' Cloud Storage bucket"
 
     echo "Creating '${MODEL_ID}' model folder in '${MODEL_BUCKET_NAME}' bucket"

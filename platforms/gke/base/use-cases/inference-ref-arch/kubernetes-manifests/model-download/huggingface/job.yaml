@@ -21,11 +21,6 @@ spec:
   backoffLimit: 0
   template:
     metadata:
-      annotations:
-        gke-gcsfuse/cpu-limit: "0"
-        gke-gcsfuse/ephemeral-storage-limit: "0"
-        gke-gcsfuse/memory-limit: "0"
-        gke-gcsfuse/volumes: "true"
       labels:
         app: hf-model-to-gcs
     spec:
@@ -63,8 +58,6 @@ spec:
               ephemeral-storage: 1Gi
               memory: 10Gi
           volumeMounts:
-            - mountPath: /gcs
-              name: huggingface-hub-model-bucket
             - mountPath: /scripts
               name: scripts
             - mountPath: /var/run/secrets/huggingface.co
@@ -79,11 +72,6 @@ spec:
             defaultMode: 0744
             name: hf-model-to-gcs
           name: scripts
-        - csi:
-            driver: gcsfuse.csi.storage.gke.io
-            volumeAttributes:
-              bucketName: replaced-by-kustomize
-          name: huggingface-hub-model-bucket
         - csi:
             driver: secrets-store-gke.csi.k8s.io
             readOnly: true

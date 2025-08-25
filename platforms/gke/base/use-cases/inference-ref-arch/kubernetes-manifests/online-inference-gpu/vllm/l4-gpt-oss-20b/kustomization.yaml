@@ -21,10 +21,10 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -h100-llama-3.3-70b-instruct
+nameSuffix: -l4-gpt-oss-20b
 
 patches:
-  - path: set-h100-80gb-high-compute-class.yaml
+  - path: set-l4-24gb-compute-class.yaml
   - path: patch-resources.yaml
 
 replacements:
@@ -94,5 +94,6 @@ replacements:
           index: 2
         select:
           kind: Deployment
+
 resources:
   - ../base

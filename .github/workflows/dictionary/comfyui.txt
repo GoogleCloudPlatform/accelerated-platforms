@@ -1,5 +1,6 @@
 aivazovsky
 amano
+argjson
 autoplay
 backlighting
 bgcolor
@@ -15,12 +16,14 @@ denoised
 dont
 dont_allow
 filebase
+ftype
 gcsimage
 genai
 generativeai
 genmedia
 ghibli
 gligen
+httpstatus
 hypernetworks
 hyperrealistic
 imagen
@@ -37,6 +40,7 @@ photomaker
 pingpong
 pysssss
 sdxl
+tolower
 torchaudio
 torchvision
 unet

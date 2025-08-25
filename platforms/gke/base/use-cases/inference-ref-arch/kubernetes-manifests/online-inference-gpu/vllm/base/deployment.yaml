@@ -71,6 +71,8 @@ spec:
                 configMapKeyRef:
                   key: GPU_MEMORY_UTILIZATION
                   name: runtime
+            - name: LD_LIBRARY_PATH
+              value: ${LD_LIBRARY_PATH}:/usr/local/nvidia/lib64
             - name: MAX_MODEL_LEN
               valueFrom:
                 configMapKeyRef:

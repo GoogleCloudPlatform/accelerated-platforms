@@ -36,12 +36,6 @@ This example is built on top of the
   rm tfplan
   ```
 
-- Source the environment configuration.
-
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
-
 ## Download the model to Cloud Storage
 
 - Choose the model ID.
@@ -64,6 +58,12 @@ This example is built on top of the
     export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
 - Configure the model download job.
 
   ```shell
@@ -80,16 +80,16 @@ This example is built on top of the
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/hf-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-hf-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/hf-model-to-gcs --all-containers --tail 10"
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --all-containers --tail 10"
   ```
 
   When the job is complete, you will see the following:
 
   ```text
-  NAME              STATUS     COMPLETIONS   DURATION   AGE
-  hf-model-to-gcs   Complete   1/1           ###        ###
+  NAME                       STATUS     COMPLETIONS   DURATION   AGE
+  XXXXXXXX-hf-model-to-gcs   Complete   1/1           ###        ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -101,6 +101,12 @@ This example is built on top of the
   ```
 
 ## Deploy the online inference workload
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
 
 - Configure the deployment.
 

@@ -33,7 +33,7 @@ ENV COMFY_DIR="/home/${USER}/comfy"
 WORKDIR ${COMFY_DIR}
 
 # Create the group and user
-RUN groupadd --gid ${GID} ${GROUP} \
+RUN groupadd --gid ${GID} ${GROUP} \ 
   && useradd --uid ${UID} --gid ${GID} -m ${USER} \
   && chown -R ${USER}:${GROUP} /home/${USER}
 
@@ -50,9 +50,9 @@ RUN apt-get update \
   pkg-config \
   unzip \
   wget \
-  && apt clean --yes \
+  && apt clean --yes \ 
   && rm --force --recursive /var/lib/apt/lists/* \
-  && pip install --no-cache-dir uv \
+  && pip install --no-cache-dir uv \ 
   && uv pip install --no-cache-dir --system comfy-cli \
   && uv pip install --system torch==${PYTORCH_VERSION} torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
@@ -78,11 +78,20 @@ ENV COMFYUI_PORT="8188"
 
 ARG COMFYUI_CUSTOM_NODE_PATH="${COMFY_HOME}/custom_nodes"
 
-COPY --chown=${USER}:${GROUP} --chmod=700 ../../../../../../modules/python/src/custom_nodes/google_genmedia ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia
-RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia/requirements.txt
+COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/gemini ${COMFYUI_CUSTOM_NODE_PATH}/gemini
+COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/imagen3 ${COMFYUI_CUSTOM_NODE_PATH}/imagen3
+COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/imagen4 ${COMFYUI_CUSTOM_NODE_PATH}/imagen4
+COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/veo2 ${COMFYUI_CUSTOM_NODE_PATH}/veo2
+COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/veo3 ${COMFYUI_CUSTOM_NODE_PATH}/veo3
+RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/gemini/requirements.txt \
+  -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen3/requirements.txt \
+  -r ${COMFYUI_CUSTOM_NODE_PATH}/imagen4/requirements.txt \
+  -r ${COMFYUI_CUSTOM_NODE_PATH}/veo2/requirements.txt \
+  -r ${COMFYUI_CUSTOM_NODE_PATH}/veo3/requirements.txt
 
 RUN comfy node install ComfyUI-VideoHelperSuite@nightly
 RUN comfy node install ComfyUI-Custom-Scripts@nightly
 
 ENTRYPOINT  [ "./entrypoint.sh" ]
 CMD ["--", "--cpu", "--listen=${COMFYUI_HOST}", "--port=${COMFYUI_PORT}"]
+

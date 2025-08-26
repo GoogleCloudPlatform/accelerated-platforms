@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,22 +13,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -o errexit
+set -o nounset
+set -o pipefail
 
-terraform {
-  required_version = ">= 1.8.0"
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
 
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "6.49.2"
-    }
-    local = {
-      source  = "hashicorp/local"
-      version = "2.5.3"
-    }
-  }
+ACP_REPO_DIR="$(realpath ${MY_PATH}/../../)"
 
-  provider_meta "google" {
-    module_name = "cloud-solutions/acp_gke_base_modules_kubectl-apply_deploy-v1"
-  }
-}
+terraform_version_files=$(find "${ACP_REPO_DIR}/platforms/gke/base" -name "versions.tf" -printf "\"%p\"\n" | sort)
+for version_file in ${terraform_version_files}; do
+  directory=$(dirname "${version_file//\"/}")
+  echo "Updating '${directory}'..."
+  cd "${directory}"
+  terraform init -upgrade >/dev/null
+  git add .terraform.lock.hcl
+done

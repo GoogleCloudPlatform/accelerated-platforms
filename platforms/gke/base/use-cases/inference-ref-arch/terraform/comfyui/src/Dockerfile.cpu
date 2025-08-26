@@ -78,7 +78,7 @@ ENV COMFYUI_PORT="8188"
 
 ARG COMFYUI_CUSTOM_NODE_PATH="${COMFY_HOME}/custom_nodes"
 
-COPY --chown=${USER}:${GROUP} --chmod=700 ../../../../../../modules/python/src/custom-nodes/google-genmedia ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia
+COPY --chown=${USER}:${GROUP} --chmod=700 ../../../../../../modules/python/src/custom_nodes/google_genmedia ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia
 RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia/requirements.txt
 
 RUN comfy node install ComfyUI-VideoHelperSuite@nightly

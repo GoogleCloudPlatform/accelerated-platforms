@@ -52,6 +52,16 @@ replacements:
         select:
           kind: Job
           name: hf-model-to-gcs
+  - source:
+      kind: SecretProviderClass
+      name: huggingface-token-read
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: Job
+          name: hf-model-to-gcs
+        fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
 
 resources:
   - configmap-scripts.yaml

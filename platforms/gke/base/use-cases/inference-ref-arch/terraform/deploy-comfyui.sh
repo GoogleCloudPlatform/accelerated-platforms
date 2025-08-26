@@ -41,7 +41,7 @@ mkdir -p "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google
 echo "--------------File path---------------------"
 echo "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia"
 echo "--------------copy path---------------------"
-cp -r "${CUSTOM_NODES_SRC_PATH}" "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia"
+cp -a "${CUSTOM_NODES_SRC_PATH}/." "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia/"
 echo "--------------list files---------------------"
 ls -l "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia" 
 echo "----------------END-------------------"

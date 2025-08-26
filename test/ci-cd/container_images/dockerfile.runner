@@ -1,20 +1,21 @@
-# When updating GCLOUD_VERSION, update DOCKER_VERSION to match the Docker
-# version that the google-cloud-cli:${GCLOUD_VERSION}-alpine image includes.
-# Example command to get the Docker version:
-# docker run --rm -it --entrypoint docker gcr.io/google.com/cloudsdktool/cloud-sdk:522.0.0-alpine --version
-ARG GCLOUD_VERSION="522.0.0"
-ARG DOCKER_VERSION="28.1.1"
+ARG CRANE_VERSION="0.20.2"
+# When updating GCLOUD_VERSION, update DOCKER_VERSION and KUSTOMIZE_VERSION 
+# to match the docker and kustomize versions that are installed in Cloud Shell.
+ARG DOCKER_VERSION="28.3.3"
+ARG GCLOUD_VERSION="534.0.0"
+ARG KUSTOMIZE_VERSION="5.7.1"
+# When updating the Terraform version, ensure that you also updated the
+# required_version in Terraform modules and services across the repository.
+ARG TERRAFORM_VERSION="1.8.0"
 
-FROM docker:${DOCKER_VERSION} AS static-docker-source
+FROM alpine/crane:${CRANE_VERSION} AS crane-image
+FROM docker:${DOCKER_VERSION} AS docker-image
+FROM registry.k8s.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} AS kustomize-image
+FROM hashicorp/terraform:${TERRAFORM_VERSION} AS terraform-image
 
 FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:${GCLOUD_VERSION}-alpine
 
-ARG CRANE_VERSION="v0.20.2"
 ARG KUBECTL_VALIDATE_VERSION="v0.0.4"
-# When updating the Terraform version, ensure that you also updated the
-# required_version in Terraform modules and services across the repository.
-# Also, consider what Terraform version Cloud Shell ships.
-ARG TERRAFORM_VERSION="1.8.0"
 
 RUN echo "Installing Alpine packages" && \
   apk --no-cache add \
@@ -23,21 +24,20 @@ RUN echo "Installing Alpine packages" && \
   jq \
   moreutils \
   ncurses && \
-  echo "Installing Terraform v${TERRAFORM_VERSION}" && \
-  cd /usr/local/bin && \
-  curl -o terraform.zip https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip && \
-  unzip terraform.zip && \
-  chmod u+x terraform && \
-  rm -f LICENSE.txt terraform.zip && \
   echo "Installing gcloud components" && \
   gcloud components install beta kubectl --quiet && \
   rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && \
   rm -rf /google-cloud-sdk/.install/.backup && \
-  echo "Installing crane" && \
-  go install github.com/google/go-containerregistry/cmd/crane@${CRANE_VERSION} && \
   echo "Installing kubectl validate" && \
   go install sigs.k8s.io/kubectl-validate@${KUBECTL_VALIDATE_VERSION}
 
-COPY --from=static-docker-source /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
+COPY --from=crane-image /usr/bin/crane /usr/bin/crane
+
+COPY --from=docker-image /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker-image /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
+
+COPY --from=kustomize-image /app/kustomize /usr/local/bin/kustomize
+
+COPY --from=terraform-image /bin/terraform /usr/bin/terraform
 
 ENV PATH="${PATH}:/root/go/bin"

@@ -21,7 +21,7 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -h100-llama-3.3-70b-instruct
+nameSuffix: -h100-llama-3-3-70b-instruct
 
 patches:
   - path: set-h100-80gb-high-compute-class.yaml

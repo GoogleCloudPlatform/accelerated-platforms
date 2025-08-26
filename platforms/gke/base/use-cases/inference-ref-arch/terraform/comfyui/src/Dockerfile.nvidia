@@ -84,4 +84,3 @@ RUN comfy node install ComfyUI-Custom-Scripts@nightly
 
 ENTRYPOINT  [ "./entrypoint.sh" ]
 CMD ["--", "--listen=${COMFYUI_HOST}", "--port=${COMFYUI_PORT}"]
-

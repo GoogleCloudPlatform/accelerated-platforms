@@ -104,7 +104,7 @@ data:
       echo "Removing existing model files..."
       gcloud storage rm \
       --recursive \
-      "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/*"
+      "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/*" || echo "No existing model files"
     fi
 
     echo "Transferring model to the bucket"

@@ -59,11 +59,11 @@ cleanup_on_exit() {
 
   step "Final status"
   if [ -s "${ERROR_FILE}" ]; then
-    warn "Test run had failures. See '${ERROR_FILE}' for details. ❌"
+    warn "Test run had failures. See '${ERROR_FILE}' for details. "
     step "ERROR FILE CONTENTS"
     cat "${ERROR_FILE}" || true
   else
-    info "Test run completed successfully. ✅"
+    info "Test run completed successfully."
   fi
   # ALWAYS exit 0 per requirement
   exit 0
@@ -81,15 +81,15 @@ check_files() {
 }
 
 # ------------------------------------------------------------
-# 1) Credentials — ORIGINAL explicit command
+# Credentials — ORIGINAL explicit command
 # ------------------------------------------------------------
 step "Get GKE credentials (original explicit command)"
 echo "[INFO] ${cluster_credentials_command}"
 ${cluster_credentials_command} \
-  || log_error "gcloud get-credentials failed for cluster inf-ch73daf3e in us-central1 (project comfyui-ab10)"
+  || log_error "gcloud get-credentials failed ${cluster_credentials_command}"
 
 # ------------------------------------------------------------
-# 2) Wait for API & namespace
+# Wait for API & namespace
 # ------------------------------------------------------------
 step "Wait for cluster & namespace '${comfyui_kubernetes_namespace}'"
 attempt=0
@@ -110,7 +110,18 @@ info "Listing namespaces:"
 kubectl get namespaces || log_error "kubectl get namespaces failed"
 
 # ------------------------------------------------------------
-# 3) Start client pod (install bash + curl + jq)
+# Copy the checkpoint files
+# ------------------------------------------------------------
+gcloud builds submit \
+--config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" \
+--gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
+--no-source \
+--project="${cluster_project_id}" \
+--service-account="${comfyui_cloudbuild_service_account_id}" \
+--substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
+
+# ------------------------------------------------------------
+# Start client pod (install bash + curl + jq)
 # ------------------------------------------------------------
 step "Create client pod '${POD_NAME}' in '${comfyui_kubernetes_namespace}'"
 kubectl run "${POD_NAME}" \
@@ -125,7 +136,7 @@ kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_na
   || log_error "Pod ${POD_NAME} not Ready within timeout"
 
 # ------------------------------------------------------------
-# 4) Copy test assets
+# Copy test assets
 # ------------------------------------------------------------
 step "Copy test assets into pod"
 info "Copy comfyui_prompt_test.sh"
@@ -140,7 +151,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- chmod +x /tmp
   || log_error "chmod +x /tmp/comfyui_prompt_test.sh failed"
 
 # ------------------------------------------------------------
-# 5) Discover service IP (YOUR ORIGINAL LOGIC)
+# Discover service IP (YOUR ORIGINAL LOGIC)
 # ------------------------------------------------------------
 step "Discover ComfyUI service IP (port ${COMFYUI_PORT})"
 info "Services in namespace '${comfyui_kubernetes_namespace}':"
@@ -150,7 +161,7 @@ SERVICE_IP_AND_PORT="$(kubectl get service -n "${comfyui_kubernetes_namespace}" 
 info "Using service endpoint: ${SERVICE_IP_AND_PORT}"
 
 # ------------------------------------------------------------
-# 6) Execute tests inside pod — stream logs; stop on first error
+# Execute tests inside pod — stream logs; stop on first error
 # ------------------------------------------------------------
 step "Execute test script in pod"
 echo "[INFO] Setting env & running tests inside pod..."

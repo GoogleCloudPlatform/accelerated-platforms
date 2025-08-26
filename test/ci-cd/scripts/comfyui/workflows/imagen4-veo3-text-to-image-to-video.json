@@ -62,7 +62,7 @@
       "generate_audio": true,
       "enhance_prompt": true,
       "sample_count": 1,
-      "output_gcs_uri": "gs://comfyui-ab10-inf-ch73daf3e-comfyui-output",
+      "output_gcs_uri": "",
       "negative_prompt": "",
       "seed": 0,
       "gcp_project_id": "",

@@ -90,6 +90,9 @@ spec:
                   name: runtime
             - name: VLLM_XLA_CACHE_PATH
               value: /data
+          # This reference architecture uses the same vLLM container image
+          # version for all models. When updating this version, ensure to
+          # test if all the models still work.
           image: vllm/vllm-openai:v0.10.1.1
           imagePullPolicy: Always
           name: inference-server

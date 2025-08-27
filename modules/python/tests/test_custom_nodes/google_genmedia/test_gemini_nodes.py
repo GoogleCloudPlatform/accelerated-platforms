@@ -125,14 +125,6 @@ def test_generate_content_success(node_instance):
     assert call_kwargs["model"].name == GeminiModel.GEMINI_PRO.name
     assert call_kwargs["config"].temperature == 0.5
 
-
-# =================================================================================
-# --- NEW TESTS ADDED FOR INCREASED COVERAGE ---
-# =================================================================================
-
-# --- Tests for the __init__ method ---
-
-
 @patch("src.custom_nodes.google_genmedia.gemini_nodes.genai.Client")
 @patch("src.custom_nodes.google_genmedia.gemini_nodes.get_gcp_metadata")
 def test_init_with_metadata_success(mock_get_metadata, mock_genai_client):

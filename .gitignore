@@ -1,3 +1,6 @@
+# CWS
+platforms/cws/_shared_config/secrets/cloudbuild_cws_image_git_token
+
 # GKE
 gke_gcloud_auth_plugin_cache
 

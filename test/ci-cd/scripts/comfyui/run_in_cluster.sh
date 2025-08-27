@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# This script exits non-zero if any test fails.
-# Failures are logged to ERROR_FILE.
+# This script ALWAYS exits 0. All failures are logged to ERROR_FILE.
 
 set -o nounset
 set -o pipefail
@@ -41,24 +40,25 @@ step() { echo -e "\n==== [STEP] $* ====\n"; }
 info() { echo "[INFO] $*"; }
 warn() { echo "[WARN] $*" >&2; }
 
-# This function is triggered by the ERR trap.
-# It logs the line number and command, then exits non-zero.
+# This function is triggered by the ERR trap or called directly.
+# It logs an error message and always exits 0.
 log_error() {
-  exit_code=$?
-  # Ensure we don't log successful exits (exit code 0)
-  if [ ${exit_code} -eq 0 ]; then
+  local exit_code=${1:-$?} # Use provided exit code or last command's
+  local message=${2:-"Script error on line ${BASH_LINENO[0]} (exit code: ${exit_code}) executing: ${BASH_COMMAND}"}
+
+  # Ensure we don't log successful exits when called from the ERR trap
+  if [ "${exit_code}" -eq 0 ] && [ "$#" -eq 0 ]; then
     return
   fi
 
-  # Clear the error file to prevent old errors from persisting
-  >"${ERROR_FILE}"
-  echo "- [${STEP_ID}] Script error on line ${BASH_LINENO[0]} (exit code: ${exit_code}) executing: ${BASH_COMMAND}" >>"${ERROR_FILE}"
-  exit "${exit_code}"
+  >"${ERROR_FILE}" # Clear the error file
+  echo "- [${STEP_ID}] ${message}" >>"${ERROR_FILE}"
+  exit 0 # Always exit 0
 }
-trap log_error ERR
+trap 'log_error' ERR
 
 # This function runs on any script exit.
-# It cleans up the pod and determines the final exit code.
+# It cleans up the pod and ALWAYS exits 0.
 cleanup_on_exit() {
   step "Cleanup"
   info "Deleting pod: ${POD_NAME} (namespace: ${comfyui_kubernetes_namespace})"
@@ -69,13 +69,13 @@ cleanup_on_exit() {
     warn "Test run had failures. See '${ERROR_FILE}' for details."
     step "ERROR FILE CONTENTS"
     cat "${ERROR_FILE}" || true
-    # Exit with a failure code
-    exit 1
   else
     info "Test run completed successfully."
-    # Exit successfully
-    exit 0
   fi
+
+  # ALWAYS exit 0 per requirement
+  info "Exiting with status 0 to ensure build step passes."
+  exit 0
 }
 trap cleanup_on_exit EXIT
 
@@ -98,8 +98,8 @@ while true; do
     break
   fi
   if [ "${attempt}" -ge "${MAX_WAIT_SECONDS}" ]; then
-    echo "Timeout waiting for namespace '${comfyui_kubernetes_namespace}' after ${MAX_WAIT_SECONDS}s" >>"${ERROR_FILE}"
-    exit 1
+    # This will log the error and exit gracefully with status 0.
+    log_error 1 "Timeout waiting for namespace '${comfyui_kubernetes_namespace}' after ${MAX_WAIT_SECONDS}s"
   fi
   sleep 1
 done
@@ -151,11 +151,8 @@ info "Using service endpoint: ${SERVICE_IP_AND_PORT}"
 step "Execute test script in pod"
 info "Setting env & running all workflow tests in parallel..."
 
-# mktemp creates a temporary file to store the pod's full log output
 POD_RUN_LOG="$(mktemp)"
 
-# Execute the test runner script inside the pod.
-# The script will run all workflows in parallel and report failures.
 kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
   COMFYUI_URL="http://${SERVICE_IP_AND_PORT}" \
   TEST_WORKFLOW_DIR="/tmp/workflows" \
@@ -164,7 +161,6 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
   MINIMUM_FILE_SIZE_BYTES="1" \
   /bin/bash -lc '
     echo ">> Sourcing test functions..."
-    # Source the script containing the main() test function
     . /tmp/comfyui_prompt_test.sh
 
     echo ">> Begin workflow tests (running in parallel)..."
@@ -177,41 +173,36 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
           echo "---- [PASS]  OK: $(basename "$f")"
         else
           echo "---- [FAIL]  FAILED: $(basename "$f")" >&2
-          # If a test fails, record its base name in the failures file
           basename "${f}" >> "${FAILURES_FILE}"
         fi
       ) &
     done
 
-    # Wait for all background test jobs to complete
     wait
 
-    # After all tests are done, check if the failures file has any content
     if [ -s "${FAILURES_FILE}" ]; then
       echo ">> The following workflow tests failed:" >&2
       cat "${FAILURES_FILE}" >&2
-      exit 0
+      # MODIFIED: Print a sentinel value instead of exiting 1.
+      # This signals failure to the outer script without a non-zero exit code.
+      echo "__WORKFLOW_TESTS_FAILED__"
+    else
+      echo ">> All workflows completed successfully."
     fi
 
-    echo ">> All workflows completed successfully."
-    exit 0 # Exit successfully
+    # ALWAYS exit 0 from the pod
+    exit 0
   ' 2>&1 | tee "${POD_RUN_LOG}"
 
-# Capture the exit code of the `kubectl exec` command itself
-exec_ec=${PIPESTATUS[0]}
-
-# If the exit code from the pod was non-zero, it means tests failed.
-if [ "${exec_ec}" -ne 0 ]; then
-  # Clear the lock file and add a header
+# MODIFIED: Check the log file for the sentinel value instead of checking an exit code.
+if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
+  # Write the failed workflow names to the lock file
   echo "Failed Workflows:" >"${ERROR_FILE}"
-  # Extract just the list of failed files from the pod log and append them
   grep -E "^(workflow_|.*\.(json|txt|yaml))$" "${POD_RUN_LOG}" >>"${ERROR_FILE}"
-
   warn "One or more in-pod tests failed. See details in ${ERROR_FILE}."
-  # The EXIT trap will handle exiting with a non-zero status
 else
   info "All in-pod tests completed successfully."
 fi
 
-# The EXIT trap will now run, check the ERROR_FILE, and determine the final exit code.
+# The EXIT trap will now run, report any failures from the ERROR_FILE, and then exit 0.
 

@@ -15,6 +15,7 @@ denoise
 denoised
 dont
 dont_allow
+fakedata
 filebase
 gcsimage
 genai
@@ -37,6 +38,7 @@ mimetypes
 mucha
 photomaker
 pingpong
+plicable
 pysssss
 pytest
 sdxl
@@ -50,6 +52,7 @@ veo2
 veo3
 veopreview
 vertexai
+videofileclip
 videohelpersuite
 videopreview
 vto

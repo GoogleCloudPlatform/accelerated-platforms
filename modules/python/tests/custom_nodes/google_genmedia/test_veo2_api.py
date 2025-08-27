@@ -17,23 +17,25 @@ from unittest.mock import patch, MagicMock
 import torch
 import sys
 from unittest.mock import MagicMock
-sys.modules['folder_paths'] = MagicMock()
+
+sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.veo2_api import Veo2API
+
 
 class TestVeo2API(unittest.TestCase):
 
-    @patch('src.custom_nodes.google_genmedia.veo2_api.get_gcp_metadata')
-    @patch('src.custom_nodes.google_genmedia.veo2_api.genai.Client')
+    @patch("src.custom_nodes.google_genmedia.veo2_api.get_gcp_metadata")
+    @patch("src.custom_nodes.google_genmedia.veo2_api.genai.Client")
     def setUp(self, mock_genai_client, mock_get_gcp_metadata):
-        mock_get_gcp_metadata.side_effect = ['test-project', 'us-central1']
+        mock_get_gcp_metadata.side_effect = ["test-project", "us-central1"]
         self.mock_client = MagicMock()
         mock_genai_client.return_value = self.mock_client
-        self.api = Veo2API(project_id='test-project', region='us-central1')
+        self.api = Veo2API(project_id="test-project", region="us-central1")
 
-    @patch('src.custom_nodes.google_genmedia.veo2_api.utils.generate_video_from_text')
+    @patch("src.custom_nodes.google_genmedia.veo2_api.utils.generate_video_from_text")
     def test_generate_video_from_text_success(self, mock_generate):
         mock_generate.return_value = ["/path/to/video.mp4"]
-        
+
         paths = self.api.generate_video_from_text(
             prompt="a test video",
             aspect_ratio="16:9",
@@ -44,17 +46,17 @@ class TestVeo2API(unittest.TestCase):
             sample_count=1,
             output_gcs_uri="",
             negative_prompt="",
-            seed=123
+            seed=123,
         )
-        
+
         self.assertEqual(paths, ["/path/to/video.mp4"])
         mock_generate.assert_called_once()
 
-    @patch('src.custom_nodes.google_genmedia.veo2_api.utils.generate_video_from_image')
+    @patch("src.custom_nodes.google_genmedia.veo2_api.utils.generate_video_from_image")
     def test_generate_video_from_image_success(self, mock_generate):
         mock_generate.return_value = ["/path/to/video.mp4"]
         image_tensor = torch.rand(1, 256, 256, 3)
-        
+
         paths = self.api.generate_video_from_image(
             image=image_tensor,
             image_format="PNG",
@@ -68,24 +70,28 @@ class TestVeo2API(unittest.TestCase):
             last_frame=None,
             output_gcs_uri="",
             negative_prompt="",
-            seed=123
+            seed=123,
         )
-        
+
         self.assertEqual(paths, ["/path/to/video.mp4"])
         mock_generate.assert_called_once()
 
-    @patch('src.custom_nodes.google_genmedia.utils.storage.Client')
-    @patch('src.custom_nodes.google_genmedia.veo2_api.utils.generate_video_from_gcsuri_image')
-    def test_generate_video_from_gcsuri_image_success(self, mock_generate, mock_storage_client):
+    @patch("src.custom_nodes.google_genmedia.utils.storage.Client")
+    @patch(
+        "src.custom_nodes.google_genmedia.veo2_api.utils.generate_video_from_gcsuri_image"
+    )
+    def test_generate_video_from_gcsuri_image_success(
+        self, mock_generate, mock_storage_client
+    ):
         mock_bucket = MagicMock()
         mock_bucket.exists.return_value = True
         mock_blob = MagicMock()
         mock_blob.exists.return_value = True
-        mock_blob.content_type = 'image/png'
+        mock_blob.content_type = "image/png"
         mock_bucket.blob.return_value = mock_blob
         mock_storage_client.return_value.bucket.return_value = mock_bucket
         mock_generate.return_value = ["/path/to/video.mp4"]
-        
+
         paths = self.api.generate_video_from_gcsuri_image(
             gcsuri="gs://bucket/image.png",
             image_format="PNG",
@@ -99,11 +105,12 @@ class TestVeo2API(unittest.TestCase):
             last_frame_gcsuri="",
             output_gcs_uri="",
             negative_prompt="",
-            seed=123
+            seed=123,
         )
-        
+
         self.assertEqual(paths, ["/path/to/video.mp4"])
         mock_generate.assert_called_once()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

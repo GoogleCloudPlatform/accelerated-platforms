@@ -30,12 +30,13 @@ from unittest.mock import patch, Mock, MagicMock
 import requests
 import sys
 
-sys.modules['folder_paths'] = MagicMock()
+sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.config import get_gcp_metadata
+
 
 class TestConfig(unittest.TestCase):
 
-    @patch('src.custom_nodes.google_genmedia.config.requests.get')
+    @patch("src.custom_nodes.google_genmedia.config.requests.get")
     def test_get_gcp_metadata_success(self, mock_get):
         """
         Tests that get_gcp_metadata returns the project ID on a successful API call.
@@ -57,7 +58,7 @@ class TestConfig(unittest.TestCase):
             timeout=5,
         )
 
-    @patch('src.custom_nodes.google_genmedia.config.requests.get')
+    @patch("src.custom_nodes.google_genmedia.config.requests.get")
     def test_get_gcp_metadata_failure(self, mock_get):
         """
         Tests that get_gcp_metadata returns None when the API call fails.
@@ -76,5 +77,6 @@ class TestConfig(unittest.TestCase):
             timeout=5,
         )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

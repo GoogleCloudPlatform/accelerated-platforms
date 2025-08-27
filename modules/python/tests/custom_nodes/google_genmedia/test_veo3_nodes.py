@@ -17,13 +17,19 @@ from unittest.mock import patch, MagicMock
 import torch
 import sys
 from unittest.mock import MagicMock
-sys.modules['folder_paths'] = MagicMock()
-from src.custom_nodes.google_genmedia.veo3_nodes import Veo3TextToVideoNode, Veo3ImageToVideoNode, Veo3GcsUriImageToVideoNode
+
+sys.modules["folder_paths"] = MagicMock()
+from src.custom_nodes.google_genmedia.veo3_nodes import (
+    Veo3TextToVideoNode,
+    Veo3ImageToVideoNode,
+    Veo3GcsUriImageToVideoNode,
+)
 from src.custom_nodes.google_genmedia.constants import Veo3Model
+
 
 class TestVeo3Nodes(unittest.TestCase):
 
-    @patch('src.custom_nodes.google_genmedia.veo3_nodes.Veo3API')
+    @patch("src.custom_nodes.google_genmedia.veo3_nodes.Veo3API")
     def test_text_to_video_node(self, mock_veo_api):
         # Arrange
         node = Veo3TextToVideoNode()
@@ -32,13 +38,13 @@ class TestVeo3Nodes(unittest.TestCase):
         mock_veo_api.return_value = mock_api_instance
 
         # Act
-        result, = node.generate(model=Veo3Model.VEO_3_PREVIEW.name, prompt="test")
+        (result,) = node.generate(model=Veo3Model.VEO_3_PREVIEW.name, prompt="test")
 
         # Assert
         self.assertEqual(result, ["/fake/video.mp4"])
         mock_api_instance.generate_video_from_text.assert_called_once()
 
-    @patch('src.custom_nodes.google_genmedia.veo3_nodes.Veo3API')
+    @patch("src.custom_nodes.google_genmedia.veo3_nodes.Veo3API")
     def test_image_to_video_node(self, mock_veo_api):
         # Arrange
         node = Veo3ImageToVideoNode()
@@ -48,26 +54,35 @@ class TestVeo3Nodes(unittest.TestCase):
         image_tensor = torch.rand(1, 256, 256, 3)
 
         # Act
-        result, = node.generate(model=Veo3Model.VEO_3_PREVIEW.name, image=image_tensor, prompt="test")
+        (result,) = node.generate(
+            model=Veo3Model.VEO_3_PREVIEW.name, image=image_tensor, prompt="test"
+        )
 
         # Assert
         self.assertEqual(result, ["/fake/video.mp4"])
         mock_api_instance.generate_video_from_image.assert_called_once()
 
-    @patch('src.custom_nodes.google_genmedia.veo3_nodes.Veo3API')
+    @patch("src.custom_nodes.google_genmedia.veo3_nodes.Veo3API")
     def test_gcsuri_image_to_video_node(self, mock_veo_api):
         # Arrange
         node = Veo3GcsUriImageToVideoNode()
         mock_api_instance = MagicMock()
-        mock_api_instance.generate_video_from_gcsuri_image.return_value = ["/fake/video.mp4"]
+        mock_api_instance.generate_video_from_gcsuri_image.return_value = [
+            "/fake/video.mp4"
+        ]
         mock_veo_api.return_value = mock_api_instance
 
         # Act
-        result, = node.generate(model=Veo3Model.VEO_3_PREVIEW.name, gcsuri="gs://bucket/img.png", prompt="test")
+        (result,) = node.generate(
+            model=Veo3Model.VEO_3_PREVIEW.name,
+            gcsuri="gs://bucket/img.png",
+            prompt="test",
+        )
 
         # Assert
         self.assertEqual(result, ["/fake/video.mp4"])
         mock_api_instance.generate_video_from_gcsuri_image.assert_called_once()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

@@ -16,26 +16,30 @@ import unittest
 from unittest.mock import patch, MagicMock
 import sys
 from unittest.mock import MagicMock
-sys.modules['folder_paths'] = MagicMock()
+
+sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.imagen3_api import Imagen3API
 from PIL import Image
 
+
 class TestImagen3API(unittest.TestCase):
 
-    @patch('src.custom_nodes.google_genmedia.imagen3_api.get_gcp_metadata')
-    @patch('src.custom_nodes.google_genmedia.imagen3_api.genai.Client')
+    @patch("src.custom_nodes.google_genmedia.imagen3_api.get_gcp_metadata")
+    @patch("src.custom_nodes.google_genmedia.imagen3_api.genai.Client")
     def setUp(self, mock_genai_client, mock_get_gcp_metadata):
-        mock_get_gcp_metadata.side_effect = ['test-project', 'us-central1']
+        mock_get_gcp_metadata.side_effect = ["test-project", "us-central1"]
         self.mock_client = MagicMock()
         mock_genai_client.return_value = self.mock_client
-        self.api = Imagen3API(project_id='test-project', region='us-central1')
+        self.api = Imagen3API(project_id="test-project", region="us-central1")
 
-    @patch('src.custom_nodes.google_genmedia.imagen3_api.utils.generate_image_from_text')
+    @patch(
+        "src.custom_nodes.google_genmedia.imagen3_api.utils.generate_image_from_text"
+    )
     def test_generate_image_from_text_success(self, mock_generate):
         # Arrange
-        mock_image = Image.new('RGB', (100, 100))
+        mock_image = Image.new("RGB", (100, 100))
         mock_generate.return_value = [mock_image]
-        
+
         # Act
         images = self.api.generate_image_from_text(
             prompt="a cat",
@@ -47,7 +51,7 @@ class TestImagen3API(unittest.TestCase):
             enhance_prompt=False,
             add_watermark=False,
             output_image_type="PNG",
-            safety_filter_level="BLOCK_LOW_AND_ABOVE"
+            safety_filter_level="BLOCK_LOW_AND_ABOVE",
         )
 
         # Assert
@@ -61,13 +65,13 @@ class TestImagen3API(unittest.TestCase):
                 prompt="a cat",
                 person_generation="ALLOW_ADULT",
                 aspect_ratio="1:1",
-                number_of_images=5, # Invalid
+                number_of_images=5,  # Invalid
                 negative_prompt="",
                 seed=123,
                 enhance_prompt=False,
                 add_watermark=False,
                 output_image_type="PNG",
-                safety_filter_level="BLOCK_LOW_AND_ABOVE"
+                safety_filter_level="BLOCK_LOW_AND_ABOVE",
             )
 
     def test_generate_image_from_text_seed_with_watermark(self):
@@ -80,10 +84,11 @@ class TestImagen3API(unittest.TestCase):
                 negative_prompt="",
                 seed=123,
                 enhance_prompt=False,
-                add_watermark=True, # Invalid with seed
+                add_watermark=True,  # Invalid with seed
                 output_image_type="PNG",
-                safety_filter_level="BLOCK_LOW_AND_ABOVE"
+                safety_filter_level="BLOCK_LOW_AND_ABOVE",
             )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

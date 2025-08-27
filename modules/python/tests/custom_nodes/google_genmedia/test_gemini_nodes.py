@@ -15,13 +15,14 @@ import pytest
 from unittest.mock import MagicMock
 import sys
 
-sys.modules['folder_paths'] = MagicMock()
+sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia import gemini_nodes
 from src.custom_nodes.google_genmedia import constants
 
 GeminiNode25 = gemini_nodes.GeminiNode25
 GeminiModel = gemini_nodes.GeminiModel
 ThresholdOptions = constants.ThresholdOptions
+
 
 @pytest.fixture
 def node_instance(monkeypatch):
@@ -36,13 +37,16 @@ def node_instance(monkeypatch):
     instance.client = MagicMock()
     return instance
 
+
 def node_model():
     """Fixture to create an Example node instance."""
     return GeminiModel()
 
+
 def test_node_initilization(node_instance):
     """Test that the node can be instantiated."""
     assert isinstance(node_instance, GeminiNode25)
+
 
 def test_return_types(node_instance):
     """Test the node's metadata."""
@@ -50,6 +54,7 @@ def test_return_types(node_instance):
     assert node_instance.FUNCTION == ("generate_content")
     assert node_instance.RETURN_TYPES == ("STRING",)
     assert node_instance.RETURN_NAMES == ("generated_output",)
+
 
 def test_input_types_structure():
     """Test the structure and keys of the INPUT_TYPES class method."""
@@ -118,8 +123,12 @@ def test_input_types_content():
     assert "gcp_project_id" in optional
     assert optional["gcp_project_id"] == (
         "STRING",
-        {"default": "", "tooltip": "GCP project id where Vertex AI API will query Gemini"},
+        {
+            "default": "",
+            "tooltip": "GCP project id where Vertex AI API will query Gemini",
+        },
     )
+
 
 def test_generate_content_success(node_instance):
     """Test the generate_content function for a successful API call."""
@@ -136,8 +145,13 @@ def test_generate_content_success(node_instance):
     args = {
         "prompt": "Say hi",
         "model": GeminiModel.GEMINI_PRO.name,
-        "temperature": 0.5, "max_output_tokens": 100, "top_p": 1.0, "top_k": 32,
-        "candidate_count": 1, "stop_sequences": "", "response_mime_type": "text/plain",
+        "temperature": 0.5,
+        "max_output_tokens": 100,
+        "top_p": 1.0,
+        "top_k": 32,
+        "candidate_count": 1,
+        "stop_sequences": "",
+        "response_mime_type": "text/plain",
         "harassment_threshold": ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
         "hate_speech_threshold": ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
         "sexually_explicit_threshold": ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
@@ -152,5 +166,5 @@ def test_generate_content_success(node_instance):
     node_instance.client.models.generate_content.assert_called_once()
     # You can add more specific assertions about the arguments passed to the mock
     call_args, call_kwargs = node_instance.client.models.generate_content.call_args
-    assert call_kwargs['model'].name == GeminiModel.GEMINI_PRO.name
-    assert call_kwargs['config'].temperature == 0.5
+    assert call_kwargs["model"].name == GeminiModel.GEMINI_PRO.name
+    assert call_kwargs["config"].temperature == 0.5

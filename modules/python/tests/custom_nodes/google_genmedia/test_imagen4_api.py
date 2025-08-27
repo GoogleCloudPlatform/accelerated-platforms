@@ -16,26 +16,30 @@ import unittest
 from unittest.mock import patch, MagicMock
 import sys
 from unittest.mock import MagicMock
-sys.modules['folder_paths'] = MagicMock()
+
+sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.imagen4_api import Imagen4API, Imagen4Model
 from PIL import Image
 
+
 class TestImagen4API(unittest.TestCase):
 
-    @patch('src.custom_nodes.google_genmedia.imagen4_api.get_gcp_metadata')
-    @patch('src.custom_nodes.google_genmedia.imagen4_api.genai.Client')
+    @patch("src.custom_nodes.google_genmedia.imagen4_api.get_gcp_metadata")
+    @patch("src.custom_nodes.google_genmedia.imagen4_api.genai.Client")
     def setUp(self, mock_genai_client, mock_get_gcp_metadata):
-        mock_get_gcp_metadata.side_effect = ['test-project', 'us-central1']
+        mock_get_gcp_metadata.side_effect = ["test-project", "us-central1"]
         self.mock_client = MagicMock()
         mock_genai_client.return_value = self.mock_client
-        self.api = Imagen4API(project_id='test-project', region='us-central1')
+        self.api = Imagen4API(project_id="test-project", region="us-central1")
 
-    @patch('src.custom_nodes.google_genmedia.imagen4_api.utils.generate_image_from_text')
+    @patch(
+        "src.custom_nodes.google_genmedia.imagen4_api.utils.generate_image_from_text"
+    )
     def test_generate_image_from_text_success(self, mock_generate):
         # Arrange
-        mock_image = Image.new('RGB', (100, 100))
+        mock_image = Image.new("RGB", (100, 100))
         mock_generate.return_value = [mock_image]
-        
+
         # Act
         images = self.api.generate_image_from_text(
             model=Imagen4Model.IMAGEN_4_PREVIEW.name,
@@ -48,7 +52,7 @@ class TestImagen4API(unittest.TestCase):
             enhance_prompt=False,
             add_watermark=False,
             output_image_type="PNG",
-            safety_filter_level="BLOCK_LOW_AND_ABOVE"
+            safety_filter_level="BLOCK_LOW_AND_ABOVE",
         )
 
         # Assert
@@ -63,14 +67,15 @@ class TestImagen4API(unittest.TestCase):
                 prompt="a cat",
                 person_generation="ALLOW_ADULT",
                 aspect_ratio="1:1",
-                number_of_images=2, # Invalid for ultra
+                number_of_images=2,  # Invalid for ultra
                 negative_prompt="",
                 seed=123,
                 enhance_prompt=False,
                 add_watermark=False,
                 output_image_type="PNG",
-                safety_filter_level="BLOCK_LOW_AND_ABOVE"
+                safety_filter_level="BLOCK_LOW_AND_ABOVE",
             )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

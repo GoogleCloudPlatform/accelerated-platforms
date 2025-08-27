@@ -16,7 +16,7 @@ import unittest
 from unittest.mock import MagicMock
 import sys
 
-sys.modules['folder_paths'] = MagicMock()
+sys.modules["folder_paths"] = MagicMock()
 
 from src.custom_nodes.google_genmedia import (
     NODE_CLASS_MAPPINGS,
@@ -36,6 +36,7 @@ from src.custom_nodes.google_genmedia import (
     VTO_NODE_CLASS_MAPPINGS,
     VTO_NODE_DISPLAY_NAME_MAPPINGS,
 )
+
 
 class TestInit(unittest.TestCase):
 
@@ -75,5 +76,6 @@ class TestInit(unittest.TestCase):
                 self.assertIn(key, NODE_DISPLAY_NAME_MAPPINGS)
                 self.assertEqual(NODE_DISPLAY_NAME_MAPPINGS[key], mapping[key])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

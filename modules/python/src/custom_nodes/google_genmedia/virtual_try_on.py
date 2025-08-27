@@ -158,6 +158,12 @@ class VirtualTryOn:
         Generates images for one person by trying on a batch of product images,
         one API call at a time.
         """
+        # REASON: Inputs must be validated *before* any network calls or initializations are made.
+        # This ensures the function fails fast with a ValueError, as the unit test expects.
+        if not (person_image.numel() > 0 and product_image.numel() > 0):
+            raise ValueError(
+                "Both person_image and product_image must be valid, non-empty images."
+            )
         try:
             # Re-initialize the client if needed
             init_project_id = gcp_project_id if gcp_project_id else None

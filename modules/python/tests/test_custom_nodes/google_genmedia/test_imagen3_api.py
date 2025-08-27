@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
-from unittest.mock import patch, MagicMock
 import sys
-from unittest.mock import MagicMock
+import unittest
+from unittest.mock import MagicMock, patch
 
 sys.modules["folder_paths"] = MagicMock()
-from src.custom_nodes.google_genmedia.imagen3_api import Imagen3API
 from PIL import Image
+from src.custom_nodes.google_genmedia.imagen3_api import Imagen3API
 
 
 class TestImagen3API(unittest.TestCase):

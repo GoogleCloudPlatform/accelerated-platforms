@@ -14,13 +14,12 @@
 
 import sys
 import unittest
-from unittest.mock import MagicMock, patch, ANY, call
+from unittest.mock import ANY, MagicMock, call, patch
 
 # ComfyUI shim so imports in the module don't explode in test envs
 sys.modules.setdefault("folder_paths", MagicMock())
 
-from src.custom_nodes.google_genmedia import gemini_nodes
-from src.custom_nodes.google_genmedia import constants
+from src.custom_nodes.google_genmedia import constants, gemini_nodes
 
 GeminiNode25 = gemini_nodes.GeminiNode25
 GeminiModel = constants.GeminiModel

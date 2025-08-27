@@ -12,17 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
-from unittest.mock import patch, MagicMock, mock_open
-import torch
-import numpy as np
-from PIL import Image
 import base64
 import io
 import sys
+import unittest
+from unittest.mock import MagicMock, mock_open, patch
+
+import numpy as np
+import torch
 from google.api_core import exceptions as api_core_exceptions
 from google.genai import errors as genai_errors
 from grpc import StatusCode
+from PIL import Image
 
 sys.modules["folder_paths"] = MagicMock()
 

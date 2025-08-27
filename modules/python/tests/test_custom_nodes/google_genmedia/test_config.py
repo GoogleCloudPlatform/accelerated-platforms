@@ -25,10 +25,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
-from unittest.mock import patch, Mock, MagicMock
-import requests
 import sys
+import unittest
+from unittest.mock import MagicMock, Mock, patch
+
+import requests
 
 sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.config import get_gcp_metadata

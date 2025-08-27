@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
-from unittest.mock import patch, MagicMock
-import torch
 import sys
-from unittest.mock import MagicMock
+import unittest
+from unittest.mock import MagicMock, patch
+
+import torch
 
 sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.virtual_try_on import VirtualTryOn
+
 
 # -----test---------#
 class TestVirtualTryOn(unittest.TestCase):

@@ -12,18 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
-from unittest.mock import patch, MagicMock, mock_open
-import torch
-import numpy as np
 import sys
-from unittest.mock import MagicMock
+import unittest
+from unittest.mock import MagicMock, mock_open, patch
+
+import numpy as np
+import torch
 
 sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.helper_nodes import (
-    VeoVideoToVHSNode,
-    VeoVideoSaveAndPreview,
-)
+    VeoVideoSaveAndPreview, VeoVideoToVHSNode)
 
 
 class TestVeoVideoToVHSNode(unittest.TestCase):

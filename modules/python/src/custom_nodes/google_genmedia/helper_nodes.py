@@ -22,10 +22,10 @@ import time
 from pathlib import Path
 
 import cv2
+import folder_paths
 import numpy as np
 import torch
 from moviepy import VideoFileClip
-import folder_paths
 
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
 

@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import torch
 from PIL import Image
-import sys
-from unittest.mock import MagicMock
 
 sys.modules["folder_paths"] = MagicMock()
-from src.custom_nodes.google_genmedia.imagen4_nodes import Imagen4TextToImageNode
+from src.custom_nodes.google_genmedia.imagen4_nodes import \
+    Imagen4TextToImageNode
 
 
 class TestImagen4TextToImageNode(unittest.TestCase):

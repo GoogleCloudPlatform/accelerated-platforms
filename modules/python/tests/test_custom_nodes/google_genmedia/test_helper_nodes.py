@@ -21,7 +21,9 @@ import torch
 
 sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.helper_nodes import (
-    VeoVideoSaveAndPreview, VeoVideoToVHSNode)
+    VeoVideoSaveAndPreview,
+    VeoVideoToVHSNode,
+)
 
 
 class TestVeoVideoToVHSNode(unittest.TestCase):

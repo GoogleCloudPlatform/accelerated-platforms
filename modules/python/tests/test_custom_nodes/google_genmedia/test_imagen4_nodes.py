@@ -20,8 +20,7 @@ import torch
 from PIL import Image
 
 sys.modules["folder_paths"] = MagicMock()
-from src.custom_nodes.google_genmedia.imagen4_nodes import \
-    Imagen4TextToImageNode
+from src.custom_nodes.google_genmedia.imagen4_nodes import Imagen4TextToImageNode
 
 
 class TestImagen4TextToImageNode(unittest.TestCase):

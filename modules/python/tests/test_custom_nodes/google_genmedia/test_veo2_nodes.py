@@ -20,7 +20,10 @@ import torch
 
 sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.veo2_nodes import (
-    Veo2GcsUriImageToVideoNode, Veo2ImageToVideoNode, Veo2TextToVideoNode)
+    Veo2GcsUriImageToVideoNode,
+    Veo2ImageToVideoNode,
+    Veo2TextToVideoNode,
+)
 
 
 class TestVeo2Nodes(unittest.TestCase):

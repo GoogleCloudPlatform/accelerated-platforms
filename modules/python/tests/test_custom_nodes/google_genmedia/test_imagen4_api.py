@@ -18,8 +18,7 @@ from unittest.mock import MagicMock, patch
 
 sys.modules["folder_paths"] = MagicMock()
 from PIL import Image
-from src.custom_nodes.google_genmedia.imagen4_api import (Imagen4API,
-                                                          Imagen4Model)
+from src.custom_nodes.google_genmedia.imagen4_api import Imagen4API, Imagen4Model
 
 
 class TestImagen4API(unittest.TestCase):

@@ -21,8 +21,14 @@ from google.genai import types
 
 from . import utils
 from .config import get_gcp_metadata
-from .constants import (AUDIO_MIME_TYPES, GEMINI_USER_AGENT, IMAGE_MIME_TYPES,
-                        VIDEO_MIME_TYPES, GeminiModel, ThresholdOptions)
+from .constants import (
+    AUDIO_MIME_TYPES,
+    GEMINI_USER_AGENT,
+    IMAGE_MIME_TYPES,
+    VIDEO_MIME_TYPES,
+    GeminiModel,
+    ThresholdOptions,
+)
 
 
 class GeminiNode25:

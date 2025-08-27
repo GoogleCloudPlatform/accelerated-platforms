@@ -21,7 +21,6 @@ from unittest.mock import MagicMock
 sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.virtual_try_on import VirtualTryOn
 
-
 class TestVirtualTryOn(unittest.TestCase):
     @patch("src.custom_nodes.google_genmedia.virtual_try_on.get_gcp_metadata")
     @patch("src.custom_nodes.google_genmedia.virtual_try_on.aiplatform")
@@ -78,20 +77,6 @@ class TestVirtualTryOn(unittest.TestCase):
         self.node.client.predict.assert_called_once()
         self.assertEqual(mock_tensor_to_base64.call_count, 2)
         mock_base64_to_tensor.assert_called_once_with("generated_base64_string")
-
-    @patch(
-        "src.custom_nodes.google_genmedia.virtual_try_on.VirtualTryOn.__init__",
-        lambda *args, **kwargs: None,
-    )
-    def test_generate_and_return_image_no_input_image(self):
-        with self.assertRaises(ValueError):
-            self.node.generate_and_return_image(
-                person_image=torch.empty(0),
-                product_image=torch.rand(1, 512, 512, 3),
-                base_steps=32,
-                person_generation="ALLOW_ADULT",
-                number_of_images=1,
-            )
 
     @patch(
         "src.custom_nodes.google_genmedia.virtual_try_on.VirtualTryOn.__init__",

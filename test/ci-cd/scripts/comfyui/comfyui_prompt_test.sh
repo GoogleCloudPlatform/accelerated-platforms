@@ -34,7 +34,7 @@ execute_workflow() {
 
   log "POST ${COMFYUI_URL}/prompt"
   local resp http_code body
-  resp=$(curl -sS --connect-timeout 5 --max-time 20 \
+  resp=$(curl -sS --connect-timeout 10 --max-time 150 \
          -o - -w "HTTPSTATUS:%{http_code}" \
          -X POST "${COMFYUI_URL}/prompt" \
          -H "Content-Type: application/json" \

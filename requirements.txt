@@ -29,5 +29,5 @@ google-generativeai==0.8.5
 moviepy==2.2.1
 opencv-python-headless==4.11.0.86
 pytest==8.4.1
-torch=2.8.0
+torch==2.8.0
 

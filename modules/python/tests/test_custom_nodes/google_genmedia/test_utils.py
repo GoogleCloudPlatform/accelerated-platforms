@@ -193,7 +193,7 @@ class TestUtils(unittest.TestCase):
 
         # Assert
         self.assertFalse(is_valid)
-        self.assertIn("bucket does not exist", message)
+        self.assertIn("does not exist or is inaccessible", message)
 
     @patch("src.custom_nodes.google_genmedia.utils.storage.Client")
     def test_validate_gcs_uri_object_not_found(self, mock_storage_client):
@@ -213,7 +213,7 @@ class TestUtils(unittest.TestCase):
 
         # Assert
         self.assertFalse(is_valid)
-        self.assertIn("object not found", message)
+        self.assertIn("not found in bucket", message)
 
     # --- Tests for process_video_response ---
 
@@ -228,8 +228,14 @@ class TestUtils(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "No video data found"):
             utils.process_video_response(mock_operation)
 
+    # UPDATED DECORATOR: Added a patch for folder_paths to return a real path
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.folder_paths.get_temp_directory",
+        return_value="/tmp/fake_temp_dir",
+    )
     @patch("src.custom_nodes.google_genmedia.utils.download_gcsuri", return_value=True)
-    def test_process_video_response_with_gcs_uri(self, mock_download):
+    # UPDATED SIGNATURE: Added the new mock argument from the patch
+    def test_process_video_response_with_gcs_uri(self, mock_download, mock_get_temp):
         """Tests processing a response where the video is a GCS URI."""
         # Arrange
         mock_video = MagicMock()
@@ -265,9 +271,11 @@ class TestUtils(unittest.TestCase):
         mock_response.generated_images = [fake_image]
 
         # Simulate a resource exhausted error on the first call, then a success
+        error_mock = MagicMock()
+        error_mock.code = StatusCode.RESOURCE_EXHAUSTED
         mock_client.models.generate_images.side_effect = [
-            genai_errors.ClientError("exhausted", code=StatusCode.RESOURCE_EXHAUSTED),
-            mock_response,
+            genai_errors.ClientError("exhausted", error_mock),
+            mock_response
         ]
 
         # Act
@@ -278,7 +286,6 @@ class TestUtils(unittest.TestCase):
             number_of_images=1,
             retry_count=1,
             retry_delay=1,
-            # Other required args...
             person_generation="allow",
             aspect_ratio="1:1",
             negative_prompt="",

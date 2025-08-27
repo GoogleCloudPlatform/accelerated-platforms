@@ -115,7 +115,7 @@ gcloud builds submit \
   --project="${cluster_project_id}" \
   --service-account="${comfyui_cloudbuild_service_account_id}" \
   --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
-
+  
 # ------------------------------------------------------------
 # Start client pod
 # ------------------------------------------------------------
@@ -127,7 +127,7 @@ kubectl run "${POD_NAME}" \
   --command -- sh -c "apk add --no-cache bash curl jq >/dev/null && echo 'Pod is ready. Waiting...' && sleep 3600"
 
 step "Wait for pod to be Ready"
-kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=120s
+kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=3600s
 
 # ------------------------------------------------------------
 # Copy test assets

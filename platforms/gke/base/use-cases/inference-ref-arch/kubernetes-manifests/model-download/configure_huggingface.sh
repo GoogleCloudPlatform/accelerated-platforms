@@ -27,3 +27,6 @@ source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variab
 envsubst < "${MY_PATH}/huggingface/templates/downloader.tpl.env" | sponge "${MY_PATH}/huggingface/downloader.env"
 
 envsubst < "${MY_PATH}/huggingface/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/huggingface/secretproviderclass-huggingface-tokens.yaml"
+
+cd "${MY_PATH}/huggingface"
+kustomize edit set nameprefix "${HF_MODEL_ID_HASH}-"

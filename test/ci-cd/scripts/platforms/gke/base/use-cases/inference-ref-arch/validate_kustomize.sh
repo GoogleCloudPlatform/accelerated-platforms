@@ -36,13 +36,13 @@ exit_handler() {
 trap exit_handler EXIT
 
 set --
-source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
-export MODEL_ID="google/gemma-3-27b-it"
+export HF_MODEL_ID="google/gemma-3-27b-it"
+
+source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
 
-MODEL_NAME="${MODEL_ID##*/}" && export MODEL_NAME="${MODEL_NAME,,}"
 export ACCELERATOR_TYPE="l4"
 
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/configure_deployment.sh"

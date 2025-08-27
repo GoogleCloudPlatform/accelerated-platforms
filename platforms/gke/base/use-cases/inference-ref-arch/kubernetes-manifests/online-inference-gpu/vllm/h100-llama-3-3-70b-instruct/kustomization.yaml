@@ -21,7 +21,7 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -h100-llama-3.3-70b-instruct
+nameSuffix: -h100-llama-3-3-70b-instruct
 
 patches:
   - path: set-h100-80gb-high-compute-class.yaml
@@ -94,5 +94,20 @@ replacements:
           index: 2
         select:
           kind: Deployment
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+
 resources:
   - ../base

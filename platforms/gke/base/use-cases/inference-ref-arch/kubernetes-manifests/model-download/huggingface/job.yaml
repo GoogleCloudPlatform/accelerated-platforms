@@ -21,80 +21,12 @@ spec:
   backoffLimit: 0
   template:
     metadata:
-      annotations:
-        gke-gcsfuse/cpu-limit: "0"
-        gke-gcsfuse/ephemeral-storage-limit: "0"
-        gke-gcsfuse/memory-limit: "0"
-        gke-gcsfuse/volumes: "true"
       labels:
         app: hf-model-to-gcs
     spec:
       containers:
-        - command:
-            - bash
-            - "-c"
-            - |
-              set -o errexit
-              set -o nounset
-              set -o pipefail
-
-              start=$(date +%s)
-
-              if [ -z "${MODEL_ID:-}" ]; then
-                echo "Error: MODEL_ID is not set."
-                exit 1
-              fi
-               if [ -z "${MODEL_BUCKET_NAME:-}" ]; then
-                echo "Error: MODEL_BUCKET_NAME is not set."
-                exit 1
-              fi
-
-              echo "Downloading '${MODEL_ID}' to '${MODEL_BUCKET_NAME}' Cloud Storage bucket"
-
-              echo "Creating '${MODEL_ID}' model folder in '${MODEL_BUCKET_NAME}' bucket"
-              gcloud storage folders create --recursive "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/"
-
-              pip3 install \
-              --break-system-packages \
-              --root-user-action=ignore \
-              --upgrade \
-              huggingface_hub
-
-              start_download=$(date +%s)
-
-              echo "Starting download of ${MODEL_ID}..."
-              hf download \
-              --local-dir /local/hf/model \
-              --max-workers ${HF_MAX_WORKERS:-"8"} \
-              --repo-type model \
-              ${MODEL_ID}
-
-              end_download=$(date +%s)
-              runtime_download=$((end_download - start_download))
-              echo "Download runtime: $(date -d@${runtime_download} -u +%H:%M:%S)"
-
-              echo "Removing cache directory"
-              rm -rf /local/hf/model/.cache
-
-              start_transfer=$(date +%s)
-
-              echo "Transferring model to the bucket"
-              gcloud config set storage/parallel_composite_upload_enabled True
-              gcloud storage cp \
-              --gzip-in-flight-all \
-              --recursive \
-              /local/hf/model/* \
-              "gs://${MODEL_BUCKET_NAME}/${MODEL_ID}/"
-
-              end_transfer=$(date +%s)
-              runtime_transfer=$((end_transfer - start_transfer))
-              echo "Transfer runtime: $(date -d@${runtime_transfer} -u +%H:%M:%S)"
-
-              rm -rf /gcs/.gcsfuse_tmp /gcs/gcloud
-
-              end=$(date +%s)
-              runtime=$((end - start))
-              echo "Total runtime: $(date -d@${runtime} -u +%H:%M:%S)"
+        - args: ["/scripts/run.sh"]
+          command: ["/bin/sh", "-c"]
           env:
             - name: HF_TOKEN_PATH
               value: /var/run/secrets/huggingface.co/token
@@ -110,12 +42,14 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_ID
-                  name: downloader
+                  name: download
             - name: MODEL_BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_BUCKET_NAME
-                  name: downloader
+                  name: download
+            - name: REPLACE_EXISTING
+              value: "true"
           image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
           name: hf-model-to-gcs
           resources:
@@ -124,8 +58,8 @@ spec:
               ephemeral-storage: 1Gi
               memory: 10Gi
           volumeMounts:
-            - mountPath: /gcs
-              name: huggingface-hub-model-bucket
+            - mountPath: /scripts
+              name: scripts
             - mountPath: /var/run/secrets/huggingface.co
               name: huggingface-token
       restartPolicy: OnFailure
@@ -134,11 +68,10 @@ spec:
       serviceAccountName: replaced-by-kustomize
       terminationGracePeriodSeconds: 0
       volumes:
-        - csi:
-            driver: gcsfuse.csi.storage.gke.io
-            volumeAttributes:
-              bucketName: replaced-by-kustomize
-          name: huggingface-hub-model-bucket
+        - configMap:
+            defaultMode: 0744
+            name: hf-model-to-gcs
+          name: scripts
         - csi:
             driver: secrets-store-gke.csi.k8s.io
             readOnly: true

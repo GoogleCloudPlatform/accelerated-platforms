@@ -25,6 +25,7 @@ limitranges
 maxpods
 minpods
 mutatingwebhookconfigurations
+nameprefix
 noexec
 notin
 peerauthentication

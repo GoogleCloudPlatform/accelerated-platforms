@@ -94,6 +94,20 @@ replacements:
           index: 2
         select:
           kind: Deployment
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
 
 resources:
   - ../base

@@ -35,7 +35,6 @@ from src.custom_nodes.google_genmedia.config import get_gcp_metadata
 
 
 class TestConfig(unittest.TestCase):
-
     @patch("src.custom_nodes.google_genmedia.config.requests.get")
     def test_get_gcp_metadata_success(self, mock_get):
         """

@@ -27,7 +27,6 @@ from src.custom_nodes.google_genmedia.veo2_nodes import (
 
 
 class TestVeo2Nodes(unittest.TestCase):
-
     @patch("src.custom_nodes.google_genmedia.veo2_nodes.Veo2API")
     def test_text_to_video_node(self, mock_veo_api):
         # Arrange

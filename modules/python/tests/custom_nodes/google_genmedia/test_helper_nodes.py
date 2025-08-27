@@ -27,7 +27,6 @@ from src.custom_nodes.google_genmedia.helper_nodes import (
 
 
 class TestVeoVideoToVHSNode(unittest.TestCase):
-
     def setUp(self):
         self.node = VeoVideoToVHSNode()
 

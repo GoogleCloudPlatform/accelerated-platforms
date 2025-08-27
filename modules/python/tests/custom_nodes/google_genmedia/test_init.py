@@ -39,7 +39,6 @@ from src.custom_nodes.google_genmedia import (
 
 
 class TestInit(unittest.TestCase):
-
     def test_node_class_mappings_combination(self):
         """
         Tests that NODE_CLASS_MAPPINGS contains all individual mappings.

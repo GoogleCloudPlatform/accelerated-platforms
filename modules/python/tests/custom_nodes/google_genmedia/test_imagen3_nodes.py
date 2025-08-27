@@ -24,7 +24,6 @@ from src.custom_nodes.google_genmedia.imagen3_nodes import Imagen3TextToImageNod
 
 
 class TestImagen3TextToImageNode(unittest.TestCase):
-
     def setUp(self):
         self.node = Imagen3TextToImageNode()
 

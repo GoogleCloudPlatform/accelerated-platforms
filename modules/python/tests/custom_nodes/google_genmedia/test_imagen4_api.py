@@ -23,7 +23,6 @@ from PIL import Image
 
 
 class TestImagen4API(unittest.TestCase):
-
     @patch("src.custom_nodes.google_genmedia.imagen4_api.get_gcp_metadata")
     @patch("src.custom_nodes.google_genmedia.imagen4_api.genai.Client")
     def setUp(self, mock_genai_client, mock_get_gcp_metadata):

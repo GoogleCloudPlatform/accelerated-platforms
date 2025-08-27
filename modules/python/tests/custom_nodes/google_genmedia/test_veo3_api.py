@@ -23,7 +23,6 @@ from src.custom_nodes.google_genmedia.veo3_api import Veo3API, Veo3Model
 
 
 class TestVeo3API(unittest.TestCase):
-
     @patch("src.custom_nodes.google_genmedia.veo3_api.get_gcp_metadata")
     @patch("src.custom_nodes.google_genmedia.veo3_api.genai.Client")
     def setUp(self, mock_genai_client, mock_get_gcp_metadata):

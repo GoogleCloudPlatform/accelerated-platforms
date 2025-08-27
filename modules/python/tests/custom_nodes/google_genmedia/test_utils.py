@@ -28,7 +28,6 @@ from src.custom_nodes.google_genmedia import utils
 
 
 class TestUtils(unittest.TestCase):
-
     def test_tensor_to_pil_to_base64_and_back(self):
         # Create a tensor
         tensor = torch.rand(1, 10, 10, 3)

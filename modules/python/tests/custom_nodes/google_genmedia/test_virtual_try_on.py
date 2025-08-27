@@ -23,7 +23,6 @@ from src.custom_nodes.google_genmedia.virtual_try_on import VirtualTryOn
 
 
 class TestVirtualTryOn(unittest.TestCase):
-
     @patch("src.custom_nodes.google_genmedia.virtual_try_on.get_gcp_metadata")
     @patch("src.custom_nodes.google_genmedia.virtual_try_on.aiplatform")
     def setUp(self, mock_aiplatform, mock_get_gcp_metadata):

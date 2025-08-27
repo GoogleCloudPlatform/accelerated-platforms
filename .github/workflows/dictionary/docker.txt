@@ -1,2 +1,3 @@
 buildx
+dind
 healthcheck

@@ -43,6 +43,10 @@
       "path": ".github/workflows/dictionary/kueue.txt"
     },
     {
+      "name": "linux",
+      "path": ".github/workflows/dictionary/linux.txt"
+    },
+    {
       "name": "models",
       "path": ".github/workflows/dictionary/models.txt"
     },
@@ -90,6 +94,7 @@
     "kubeflow",
     "kubernetes",
     "kueue",
+    "linux",
     "nvidia",
     "python",
     "ray",

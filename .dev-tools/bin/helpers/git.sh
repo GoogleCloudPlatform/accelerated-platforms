@@ -15,6 +15,11 @@
 # limitations under the License.
 
 declare -a git_assume_unchanged_files=(
+  "platforms/cws/_shared_config/initialize/backend.tf.bucket"
+  "platforms/cws/_shared_config/profile/default/build.auto.tfvars"
+  "platforms/cws/_shared_config/profile/default/networking.auto.tfvars"
+  "platforms/cws/_shared_config/profile/default/platform.auto.tfvars"
+  "platforms/cws/_shared_config/profile/default/workstation_cluster.auto.tfvars"
   "platforms/gke/base/_shared_config/cloudbuild.auto.tfvars"
   "platforms/gke/base/_shared_config/cluster.auto.tfvars"
   "platforms/gke/base/_shared_config/configmanagement.auto.tfvars"

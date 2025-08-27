@@ -115,7 +115,7 @@ gcloud builds submit \
   --project="${cluster_project_id}" \
   --service-account="${comfyui_cloudbuild_service_account_id}" \
   --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
-  
+
 # ------------------------------------------------------------
 # Start client pod
 # ------------------------------------------------------------
@@ -127,7 +127,7 @@ kubectl run "${POD_NAME}" \
   --command -- sh -c "apk add --no-cache bash curl jq >/dev/null && echo 'Pod is ready. Waiting...' && sleep 3600"
 
 step "Wait for pod to be Ready"
-kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=3600s
+kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=120s
 
 # ------------------------------------------------------------
 # Copy test assets
@@ -168,13 +168,19 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
 
     for f in "${TEST_WORKFLOW_DIR}"/*; do
       (
+        TEST_LOG=$(mktemp)
         echo "---- [START] Testing $(basename "$f")"
-        if main "${f}"; then
+        
+        # Run test and capture all its output (stdout & stderr) to a log file.
+        if main "${f}" >"${TEST_LOG}" 2>&1; then
           echo "---- [PASS]  OK: $(basename "$f")"
         else
-          echo "---- [FAIL]  FAILED: $(basename "$f")" >&2
+          echo "---- [FAIL]  FAILED: $(basename "$f") - See details below:" >&2
+          # On failure, print the detailed log from the container.
+          cat "${TEST_LOG}" >&2
           basename "${f}" >> "${FAILURES_FILE}"
         fi
+        rm -f "${TEST_LOG}"
       ) &
     done
 
@@ -183,8 +189,6 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     if [ -s "${FAILURES_FILE}" ]; then
       echo ">> The following workflow tests failed:" >&2
       cat "${FAILURES_FILE}" >&2
-      # MODIFIED: Print a sentinel value instead of exiting 1.
-      # This signals failure to the outer script without a non-zero exit code.
       echo "__WORKFLOW_TESTS_FAILED__"
     else
       echo ">> All workflows completed successfully."
@@ -194,11 +198,12 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     exit 0
   ' 2>&1 | tee "${POD_RUN_LOG}"
 
-# MODIFIED: Check the log file for the sentinel value instead of checking an exit code.
+# Check the log file for the sentinel value instead of checking an exit code.
 if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
   # Write the failed workflow names to the lock file
   echo "Failed Workflows:" >"${ERROR_FILE}"
-  grep -E "^(workflow_|.*\.(json|txt|yaml))$" "${POD_RUN_LOG}" >>"${ERROR_FILE}"
+  # This grep command is now more robust to find just the basenames of failed files.
+  grep -oP "(?<=\[FAIL\]\s+FAILED:\s).*" "${POD_RUN_LOG}" | sed 's/ - See details below:$//' >> "${ERROR_FILE}"
   warn "One or more in-pod tests failed. See details in ${ERROR_FILE}."
 else
   info "All in-pod tests completed successfully."

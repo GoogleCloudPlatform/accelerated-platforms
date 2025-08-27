@@ -3,6 +3,7 @@ amano
 argjson
 autoplay
 backlighting
+basenames
 bgcolor
 bioluminescent
 cachebuster

@@ -184,7 +184,7 @@ recommended machine types, for the
 | ---- | ------------------------ | ----------------------- | --------- |
 | L4   | Gemma 3 27B IT           | g2-standard-96 (8 GPUs) | 8         |
 |      | gpt-oss 20B              | g2-standard-96 (8 GPUs) | 8         |
-|      | Qwen 3 32B               | g2-standard-96 (8 GPUs) | 1         |
+|      | Qwen 3 32B               | g2-standard-96 (8 GPUs) | 8         |
 | H100 | Gemma 3 27B IT           | a3-highgpu-1g (1 GPU)   | 1         |
 |      | gpt-oss 20B              | a3-highgpu-1g (1 GPU)   | 1         |
 |      | Qwen 3 32B               | a3-highgpu-1g (1 GPU)   | 1         |

@@ -169,14 +169,14 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     for f in "${TEST_WORKFLOW_DIR}"/*; do
       (
         TEST_LOG=$(mktemp)
-        echo "---- [START] Testing $(basename "$f")"
         
-        # Run test and capture all its output (stdout & stderr) to a log file.
+        # Run test and capture all its output.
         if main "${f}" >"${TEST_LOG}" 2>&1; then
+          # On success, just print a clean OK message.
           echo "---- [PASS]  OK: $(basename "$f")"
         else
-          echo "---- [FAIL]  FAILED: $(basename "$f") - See details below:" >&2
-          # On failure, print the detailed log from the container.
+          # On failure, print the failure message AND the detailed log.
+          echo "---- [FAIL]  FAILED: $(basename "$f") - See full log below:" >&2
           cat "${TEST_LOG}" >&2
           basename "${f}" >> "${FAILURES_FILE}"
         fi
@@ -200,11 +200,11 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
 
 # Check the log file for the sentinel value instead of checking an exit code.
 if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
-  # Write the failed workflow names to the lock file
+  # Write ONLY the failed workflow names to the lock file
   echo "Failed Workflows:" >"${ERROR_FILE}"
-
-  # It finds the lines with failures, extracts the filename, and prints it.
-  sed -n 's/.*\[FAIL\].*FAILED: \(.*\) - See details below:$/\1/p' "${POD_RUN_LOG}" >>"${ERROR_FILE}"
+  
+  # This `sed` command works in BusyBox to find the failure lines and extract the filename.
+  sed -n 's/.*\[FAIL\].*FAILED: \(.*\) - See full log below:$/\1/p' "${POD_RUN_LOG}" >>"${ERROR_FILE}"
   
   warn "One or more in-pod tests failed. See details in ${ERROR_FILE}."
 else

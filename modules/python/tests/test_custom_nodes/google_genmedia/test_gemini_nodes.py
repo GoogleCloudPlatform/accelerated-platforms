@@ -147,8 +147,13 @@ def test_init_with_metadata_success(mock_get_metadata, mock_genai_client):
 @patch(
     "src.custom_nodes.google_genmedia.gemini_nodes.get_gcp_metadata", return_value=None
 )
-def test_init_missing_project_raises_error(mock_get_metadata):
+@patch("src.custom_nodes.google_genmedia.gemini_nodes.get_gcp_metadata")
+def test_init_missing_project_raises_error(self,mock_get_metadata):
     """Tests that a ValueError is raised if the project ID cannot be found."""
+    # UPDATED LINE: Use side_effect to return different values for each call
+    mock_get_metadata.side_effect = [None, "projects/123/zones/us-central1-a"]
+
+    # Act & Assert: Expect a ValueError
     with pytest.raises(ValueError, match="GCP Project is required"):
         GeminiNode25()
 

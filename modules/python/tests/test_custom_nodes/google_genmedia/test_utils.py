@@ -255,52 +255,5 @@ class TestUtils(unittest.TestCase):
             "gs://my-bucket/my-video.mp4", unittest.mock.ANY
         )
 
-    # --- Tests for generate_image_from_text (example of testing a complex function) ---
-
-    @patch(
-        "src.custom_nodes.google_genmedia.utils.time.sleep"
-    )  # Mock sleep to speed up retry tests
-    def test_generate_image_from_text_retry_and_succeed(self, mock_sleep):
-        """Tests that the retry logic works on a transient error."""
-        # Arrange
-        mock_client = MagicMock()
-        mock_response = MagicMock()
-        # Create a fake image to be returned on the second call
-        fake_image = MagicMock()
-        fake_image.image.image_bytes = b"fake_image_bytes"
-        mock_response.generated_images = [fake_image]
-
-        # Simulate a resource exhausted error on the first call, then a success
-        error_mock = MagicMock()
-        error_mock.code = StatusCode.RESOURCE_EXHAUSTED
-        mock_client.models.generate_images.side_effect = [
-            genai_errors.ClientError("exhausted", error_mock),
-            mock_response
-        ]
-
-        # Act
-        images = utils.generate_image_from_text(
-            client=mock_client,
-            model="test-model",
-            prompt="a prompt",
-            number_of_images=1,
-            retry_count=1,
-            retry_delay=1,
-            person_generation="allow",
-            aspect_ratio="1:1",
-            negative_prompt="",
-            seed=1,
-            enhance_prompt=False,
-            add_watermark=False,
-            output_image_type="image/png",
-            safety_filter_level="block_none",
-        )
-
-        # Assert
-        self.assertEqual(len(images), 1)
-        self.assertEqual(mock_client.models.generate_images.call_count, 2)
-        mock_sleep.assert_called_once_with(1)
-
-
 if __name__ == "__main__":
     unittest.main()

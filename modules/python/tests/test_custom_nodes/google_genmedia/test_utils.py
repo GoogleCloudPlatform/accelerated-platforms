@@ -255,5 +255,6 @@ class TestUtils(unittest.TestCase):
             "gs://my-bucket/my-video.mp4", unittest.mock.ANY
         )
 
+
 if __name__ == "__main__":
     unittest.main()

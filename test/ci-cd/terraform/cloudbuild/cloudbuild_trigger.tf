@@ -90,6 +90,67 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
 
 ###################################################################################################
 
+locals {
+  platforms_cws_scripts_all_cb_yaml = "test/ci-cd/cloudbuild/platforms/cws/scripts-all.yaml"
+  platforms_cws_scripts_all_ignore = [
+    "platforms/cws/README.md",
+  ]
+  platforms_cws_scripts_all_include = [
+    "platforms/cws/**",
+    local.platforms_cws_scripts_all_cb_yaml,
+  ]
+  platforms_cws_scripts_all_name = "platforms-cws-scripts-all"
+}
+
+resource "google_cloudbuild_trigger" "platforms_cws_scripts_all" {
+  filename        = local.platforms_cws_scripts_all_cb_yaml
+  ignored_files   = local.platforms_cws_scripts_all_ignore
+  included_files  = local.platforms_cws_scripts_all_include
+  location        = var.build_location
+  name            = local.platforms_cws_scripts_all_name
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_cws_scripts_all_push" {
+  filename        = local.platforms_cws_scripts_all_cb_yaml
+  ignored_files   = local.platforms_cws_scripts_all_ignore
+  included_files  = local.platforms_cws_scripts_all_include
+  location        = var.build_location
+  name            = "${local.platforms_cws_scripts_all_name}-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+###################################################################################################
+
 resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
   filename = "test/ci-cd/cloudbuild/platforms-gke-aiml-playground-terraform.yaml"
   ignored_files = [

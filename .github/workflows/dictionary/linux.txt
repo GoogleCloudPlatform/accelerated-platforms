@@ -1,0 +1,7 @@
+coreutils
+dearmor
+libbz
+libncursesw
+libreadline
+libsqlite
+libz

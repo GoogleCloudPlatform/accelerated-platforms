@@ -34,8 +34,8 @@ export TERM="xterm"
 #export TF_IN_AUTOMATION="1"
 
 export ACP_REPO_DIR="${ACP_REPO_DIR}"
-export ACP_PLATFORM_BASE_DIR="\${ACP_REPO_DIR}/platforms/gke/base"
-export ACP_PLATFORM_CORE_DIR="\${ACP_PLATFORM_BASE_DIR}/core"
+export ACP_PLATFORM_DIR="\${ACP_REPO_DIR}/platforms/gke/base"
+export ACP_PLATFORM_CORE_DIR="\${ACP_PLATFORM_DIR}/core"
 export PROJECT_SUFFIX=${PROJECT_SUFFIX}
 
 EOT
@@ -48,7 +48,7 @@ done
 cat /workspace/build.env
 source /workspace/build.env
 
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
+source "${ACP_PLATFORM_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 # Create a dedicated project
 export NEW_PROJECT_ID="${cluster_project_id}"

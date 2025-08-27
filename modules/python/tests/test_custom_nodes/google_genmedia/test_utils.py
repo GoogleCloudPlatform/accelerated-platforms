@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,9 @@ from PIL import Image
 import base64
 import io
 import sys
-from unittest.mock import MagicMock
+from google.api_core import exceptions as api_core_exceptions
+from google.genai import errors as genai_errors
+from grpc import StatusCode
 
 sys.modules["folder_paths"] = MagicMock()
 
@@ -108,6 +110,189 @@ class TestUtils(unittest.TestCase):
     def test_prep_for_media_conversion_file_not_found(self, mock_exists):
         result = utils.prep_for_media_conversion("/fake/path.png", "image/png")
         self.assertIsNone(result)
+
+    # --- Additional tests for tensor_to_pil_to_base64 ---
+
+    def test_tensor_to_pil_to_base64_with_pil_image(self):
+        """Tests the case where the input is already a PIL Image."""
+        # Arrange
+        pil_image = Image.new("RGB", (10, 10), color="red")
+
+        # Act
+        base64_string = utils.tensor_to_pil_to_base64(pil_image, format="JPEG")
+
+        # Assert
+        self.assertIsInstance(base64_string, str)
+        # Decode to check if it's a valid image
+        decoded_data = base64.b64decode(base64_string)
+        reconstructed_image = Image.open(io.BytesIO(decoded_data))
+        self.assertEqual(reconstructed_image.format, "JPEG")
+
+    # --- Additional tests for download_gcsuri ---
+
+    def test_download_gcsuri_invalid_uri_no_prefix(self):
+        """Tests that download_gcsuri raises ValueError for URIs without 'gs://'."""
+        with self.assertRaisesRegex(ValueError, "Invalid GCS URI format"):
+            utils.download_gcsuri("my-bucket/my-file.txt", "/tmp/file.txt")
+
+    def test_download_gcsuri_invalid_uri_no_object(self):
+        """Tests that download_gcsuri raises ValueError for URIs without an object path."""
+        with self.assertRaisesRegex(ValueError, "No object path specified"):
+            utils.download_gcsuri("gs://my-bucket", "/tmp/file.txt")
+
+    @patch("src.custom_nodes.google_genmedia.utils.storage.Client")
+    def test_download_gcsuri_download_fails(self, mock_storage_client):
+        """Tests that download_gcsuri raises RuntimeError on download failure."""
+        # Arrange
+        mock_blob = MagicMock()
+        mock_blob.download_to_filename.side_effect = Exception("Permission denied")
+        mock_bucket = MagicMock()
+        mock_bucket.blob.return_value = mock_blob
+        mock_storage_client.return_value.bucket.return_value = mock_bucket
+
+        # Act & Assert
+        with self.assertRaisesRegex(RuntimeError, "Error downloading"):
+            utils.download_gcsuri("gs://my-bucket/my-file.txt", "/tmp/file.txt")
+
+    # --- Tests for media_file_to_genai_part ---
+
+    @patch("src.custom_nodes.google_genmedia.utils.types.Part")
+    @patch("builtins.open", new_callable=mock_open, read_data=b"fake_media_bytes")
+    @patch("os.path.exists", return_value=True)
+    def test_media_file_to_genai_part_success(self, mock_exists, mock_file, mock_part):
+        """Tests successful conversion of a media file to a genai Part."""
+        # Act
+        utils.media_file_to_genai_part("/fake/path.mp4", "video/mp4")
+
+        # Assert
+        mock_file.assert_called_with("/fake/path.mp4", "rb")
+        mock_part.from_bytes.assert_called_with(
+            data=b"fake_media_bytes", mime_type="video/mp4"
+        )
+
+    @patch("os.path.exists", return_value=False)
+    def test_media_file_to_genai_part_file_not_found(self, mock_exists):
+        """Tests that FileNotFoundError is raised if the file does not exist."""
+        with self.assertRaises(FileNotFoundError):
+            utils.media_file_to_genai_part("/fake/path.mp4", "video/mp4")
+
+    # --- Additional tests for validate_gcs_uri_and_image ---
+
+    @patch("src.custom_nodes.google_genmedia.utils.storage.Client")
+    def test_validate_gcs_uri_bucket_not_found(self, mock_storage_client):
+        """Tests the case where the GCS bucket does not exist."""
+        # Arrange
+        mock_bucket = MagicMock()
+        mock_bucket.exists.return_value = False
+        mock_storage_client.return_value.bucket.return_value = mock_bucket
+
+        # Act
+        is_valid, message = utils.validate_gcs_uri_and_image(
+            "gs://non-existent-bucket/img.png"
+        )
+
+        # Assert
+        self.assertFalse(is_valid)
+        self.assertIn("bucket does not exist", message)
+
+    @patch("src.custom_nodes.google_genmedia.utils.storage.Client")
+    def test_validate_gcs_uri_object_not_found(self, mock_storage_client):
+        """Tests the case where the GCS object does not exist in the bucket."""
+        # Arrange
+        mock_bucket = MagicMock()
+        mock_bucket.exists.return_value = True
+        mock_blob = MagicMock()
+        mock_blob.exists.return_value = False
+        mock_bucket.blob.return_value = mock_blob
+        mock_storage_client.return_value.bucket.return_value = mock_bucket
+
+        # Act
+        is_valid, message = utils.validate_gcs_uri_and_image(
+            "gs://my-bucket/non-existent-object.png"
+        )
+
+        # Assert
+        self.assertFalse(is_valid)
+        self.assertIn("object not found", message)
+
+    # --- Tests for process_video_response ---
+
+    def test_process_video_response_no_videos_found(self):
+        """Tests that a RuntimeError is raised when no video data is in the response."""
+        # Arrange
+        mock_operation = MagicMock()
+        mock_operation.response = {}  # Empty response
+        mock_operation.result = None
+
+        # Act & Assert
+        with self.assertRaisesRegex(RuntimeError, "No video data found"):
+            utils.process_video_response(mock_operation)
+
+    @patch("src.custom_nodes.google_genmedia.utils.download_gcsuri", return_value=True)
+    def test_process_video_response_with_gcs_uri(self, mock_download):
+        """Tests processing a response where the video is a GCS URI."""
+        # Arrange
+        mock_video = MagicMock()
+        mock_video.video.uri = "gs://my-bucket/my-video.mp4"
+        # Clear the 'save' attribute to ensure the URI path is taken
+        del mock_video.video.save
+
+        mock_operation = MagicMock()
+        mock_operation.response.generated_videos = [mock_video]
+
+        # Act
+        video_paths = utils.process_video_response(mock_operation)
+
+        # Assert
+        self.assertEqual(len(video_paths), 1)
+        mock_download.assert_called_once_with(
+            "gs://my-bucket/my-video.mp4", unittest.mock.ANY
+        )
+
+    # --- Tests for generate_image_from_text (example of testing a complex function) ---
+
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.time.sleep"
+    )  # Mock sleep to speed up retry tests
+    def test_generate_image_from_text_retry_and_succeed(self, mock_sleep):
+        """Tests that the retry logic works on a transient error."""
+        # Arrange
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        # Create a fake image to be returned on the second call
+        fake_image = MagicMock()
+        fake_image.image.image_bytes = b"fake_image_bytes"
+        mock_response.generated_images = [fake_image]
+
+        # Simulate a resource exhausted error on the first call, then a success
+        mock_client.models.generate_images.side_effect = [
+            genai_errors.ClientError("exhausted", code=StatusCode.RESOURCE_EXHAUSTED),
+            mock_response,
+        ]
+
+        # Act
+        images = utils.generate_image_from_text(
+            client=mock_client,
+            model="test-model",
+            prompt="a prompt",
+            number_of_images=1,
+            retry_count=1,
+            retry_delay=1,
+            # Other required args...
+            person_generation="allow",
+            aspect_ratio="1:1",
+            negative_prompt="",
+            seed=1,
+            enhance_prompt=False,
+            add_watermark=False,
+            output_image_type="image/png",
+            safety_filter_level="block_none",
+        )
+
+        # Assert
+        self.assertEqual(len(images), 1)
+        self.assertEqual(mock_client.models.generate_images.call_count, 2)
+        mock_sleep.assert_called_once_with(1)
 
 
 if __name__ == "__main__":

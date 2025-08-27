@@ -1,0 +1,1 @@
+../workstation_cluster.auto.tfvars

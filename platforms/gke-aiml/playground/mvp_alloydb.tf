@@ -224,12 +224,22 @@ resource "google_project_iam_member" "alloydb_user_service_usage_consumer" {
 }
 
 resource "google_service_account_iam_member" "alloydb_superuser_workload_identity_user" {
+  depends_on = [
+    google_container_cluster.mlp,
+    google_project_service.compute_googleapis_com,
+  ]
+
   service_account_id = google_service_account.alloydb_superuser.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "${local.wi_member_principal_prefix}/${local.alloydb_database_admin_ksa}"
 }
 
 resource "google_service_account_iam_member" "alloydb_user_workload_identity_user" {
+  depends_on = [
+    google_container_cluster.mlp,
+    google_project_service.compute_googleapis_com,
+  ]
+
   service_account_id = google_service_account.alloydb_user.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "${local.wi_member_principal_prefix}/${local.alloydb_user_ksa}"

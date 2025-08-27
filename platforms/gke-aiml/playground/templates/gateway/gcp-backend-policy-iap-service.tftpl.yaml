@@ -19,10 +19,7 @@ metadata:
 spec:
   default:
     iap:
-      clientID: ${oauth_client_id}
       enabled: true
-      oauth2ClientSecret:
-        name: ${oauth_client_secret_name}
   targetRef:
     group: ""
     kind: Service

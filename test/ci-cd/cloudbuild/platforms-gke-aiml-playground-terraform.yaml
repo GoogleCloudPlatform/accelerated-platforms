@@ -13,6 +13,7 @@
 # limitations under the License.
 
 options:
+  automapSubstitutions: true
   logging: CLOUD_LOGGING_ONLY
 
 steps:
@@ -26,34 +27,51 @@ steps:
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor: ["-"]
 
-  - name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    id: "Test platforms/gke-aiml/playground Terraform"
-    entrypoint: "ash"
-    args:
-      - "-x"
-      - "-c"
-      - |
-        export NO_COLOR="1"
-        export TERM="xterm"
-        export TF_CLI_ARGS="-no-color"
-        export TF_IN_AUTOMATION="1"
-
-        export MLP_ENVIRONMENT_NAME="commit-${SHORT_SHA}"
-        export MLP_IAP_DOMAIN=${_IAP_DOMAIN}
-        export MLP_PROJECT_ID=${PROJECT_ID}
-
-        test/scripts/qwiklabs/playground_byop_oci_apply.sh
-        test/scripts/qwiklabs/playground_byop_oci_apply.sh
-
-        APPLY_RETURN_CODE=$?
-        echo "APPLY_RETURN_CODE=$${APPLY_RETURN_CODE}"
-
-        test/scripts/qwiklabs/playground_byop_oci_destroy.sh || exit 1
-        if [[ $${APPLY_RETURN_CODE} -ne 0 ]]; then
-          exit $${APPLY_RETURN_CODE}
-        fi
+  - args:
+      - DEBUG=${_DEBUG}
+      - MLP_IAP_DOMAIN="${_IAP_DOMAIN}"
+      - MLP_PROJECT_ID="${PROJECT_ID}-$${SHORT_BUILD_ID}"
+      - NEW_PROJECT_ID="${PROJECT_ID}-$${SHORT_BUILD_ID}"
+    entrypoint: "test/ci-cd/scripts/platforms/configure_build_environment.sh"
+    env:
+      - BUILD_ID=${BUILD_ID}
+      - DEBUG=${_DEBUG}
+      - PROJECT_ID=${PROJECT_ID}
+      - SHORT_SHA=${SHORT_SHA}
+    id: "Configure the build environment"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Check triggers"
+
+  - args:
+      - "test/scripts/qwiklabs/playground_byop_oci_apply.sh"
+      - "Apply test/scripts/qwiklabs/playground_byop_oci_apply.sh"
+    entrypoint: "test/ci-cd/scripts/platforms/run_script.sh"
+    id: "Apply test/scripts/qwiklabs/playground_byop_oci_apply.sh"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Configure the build environment"
+
+  - args:
+      - "test/scripts/qwiklabs/playground_byop_oci_destroy.sh"
+      - "Destroy test/scripts/qwiklabs/playground_byop_oci_destroy.sh"
+    entrypoint: "test/ci-cd/scripts/platforms/run_script.sh"
+    id: "Destroy test/scripts/qwiklabs/playground_byop_oci_destroy.sh"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Apply test/scripts/qwiklabs/playground_byop_oci_apply.sh"
+
+  - entrypoint: "test/ci-cd/scripts/platforms/cleanup_build_environment.sh"
+    id: "Cleanup the build environment"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Destroy test/scripts/qwiklabs/playground_byop_oci_destroy.sh"
+
+  - entrypoint: "test/ci-cd/scripts/platforms/set_build_status.sh"
+    id: "Set the build status"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Cleanup the build environment"
 
 substitutions:
   _IAP_DOMAIN: "accelerated-platforms.joonix.net"

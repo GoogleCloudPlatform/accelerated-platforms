@@ -235,25 +235,35 @@ resource "google_project_service" "iap_googleapis_com" {
   service                    = "iap.googleapis.com"
 }
 
-# TODO: Look at adding validation that the OAuth brand exists
-resource "google_iap_client" "ray_head_client" {
+data "kubernetes_resources" "gateway" {
   depends_on = [
-    google_project_service.iap_googleapis_com
+    null_resource.gateway_manifests,
   ]
 
-  brand        = local.iap_oath_brand
-  display_name = "IAP-gkegw-${var.environment_name}-${data.kubernetes_namespace_v1.team.metadata[0].name}-ray-head-dashboard"
+  api_version    = "gateway.networking.k8s.io/v1"
+  kind           = "Gateway"
+  field_selector = "metadata.name==${local.gateway_name}"
+  namespace      = var.namespace
 }
 
-# TODO: Look at possibly converting to google_iap_web_backend_service_iam_member, but would need the gateway to be created first.
-# BACKEND_SERVICE=$(gcloud compute backend-services list --filter="name~'<backend-service>'" --format="value(name)")
-resource "google_iap_web_iam_member" "domain_iap_https_resource_accessor" {
-  depends_on = [
-    google_project_service.iap_googleapis_com,
-    null_resource.gateway_manifests
-  ]
+resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {
+  for_each = toset([
+    "${local.gradio_service_name}-${local.gradio_port}",
+    "${local.locust_service_name}-${local.locust_port}",
+    "${local.mlflow_tracking_service_name}-${local.mlflow_tracking_port}",
+    "${local.rag_frontend_service_name}-${local.rag_frontend_port}",
+    "${local.ray_head_service_name}-${local.ray_dashboard_port}",
+  ])
 
-  project = data.google_project.environment.project_id
   member  = "domain:${local.iap_domain}"
+  project = data.google_project.environment.project_id
   role    = "roles/iap.httpsResourceAccessor"
+  web_backend_service = basename(
+    one(
+      [
+        for backend in split(", ", data.kubernetes_resources.gateway.objects[0].metadata.annotations["networking.gke.io/backend-services"]) : backend
+        if can(regex(".*${var.namespace}-${each.value}-.*", backend))
+      ]
+    )
+  )
 }

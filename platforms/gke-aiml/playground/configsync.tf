@@ -383,25 +383,12 @@ resource "null_resource" "cluster_namespace_manifests" {
 
 # GATEWAY
 ###############################################################################
-resource "kubernetes_secret_v1" "ray_head_client" {
-  data = {
-    secret = google_iap_client.ray_head_client.secret
-  }
-
-  metadata {
-    name      = "ray-head-client"
-    namespace = data.kubernetes_namespace_v1.team.metadata[0].name
-  }
-}
-
 resource "local_file" "policy_iap_gradio_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
     {
-      oauth_client_id          = google_iap_client.ray_head_client.client_id
-      oauth_client_secret_name = kubernetes_secret_v1.ray_head_client.metadata[0].name
-      policy_name              = "gradio"
-      service_name             = local.gradio_service_name
+      policy_name  = "gradio"
+      service_name = local.gradio_service_name
     }
   )
   filename = "${local.gateway_manifests_directory}/policy-iap-gradio.yaml"
@@ -411,10 +398,8 @@ resource "local_file" "policy_iap_locust_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
     {
-      oauth_client_id          = google_iap_client.ray_head_client.client_id
-      oauth_client_secret_name = kubernetes_secret_v1.ray_head_client.metadata[0].name
-      policy_name              = "locust"
-      service_name             = local.locust_service_name
+      policy_name  = "locust"
+      service_name = local.locust_service_name
     }
   )
   filename = "${local.gateway_manifests_directory}/policy-iap-locust.yaml"
@@ -424,10 +409,8 @@ resource "local_file" "policy_iap_ray_head_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
     {
-      oauth_client_id          = google_iap_client.ray_head_client.client_id
-      oauth_client_secret_name = kubernetes_secret_v1.ray_head_client.metadata[0].name
-      policy_name              = "ray-head"
-      service_name             = local.ray_head_service_name
+      policy_name  = "ray-head"
+      service_name = local.ray_head_service_name
     }
   )
   filename = "${local.gateway_manifests_directory}/policy-iap-ray-head.yaml"
@@ -437,10 +420,8 @@ resource "local_file" "policy_iap_mlflow_tracking_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
     {
-      oauth_client_id          = google_iap_client.ray_head_client.client_id
-      oauth_client_secret_name = kubernetes_secret_v1.ray_head_client.metadata[0].name
-      policy_name              = "mlflow"
-      service_name             = local.mlflow_tracking_service_name
+      policy_name  = "mlflow"
+      service_name = local.mlflow_tracking_service_name
     }
   )
   filename = "${local.gateway_manifests_directory}/policy-iap-mlflow.yaml"
@@ -450,10 +431,8 @@ resource "local_file" "policy_iap_rag_frontend_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
     {
-      oauth_client_id          = google_iap_client.ray_head_client.client_id
-      oauth_client_secret_name = kubernetes_secret_v1.ray_head_client.metadata[0].name
-      policy_name              = "rag-frontend"
-      service_name             = local.rag_frontend_service_name
+      policy_name  = "rag-frontend"
+      service_name = local.rag_frontend_service_name
     }
   )
   filename = "${local.gateway_manifests_directory}/policy-iap-rag-frontend.yaml"
@@ -488,7 +467,6 @@ resource "null_resource" "gateway_manifests" {
     google_endpoints_service.ray_dashboard_https,
     google_gke_hub_feature_membership.cluster_configmanagement,
     google_secret_manager_secret_version.git_config,
-    kubernetes_secret_v1.ray_head_client,
     module.configsync_repository,
     null_resource.cluster_namespace_manifests,
   ]

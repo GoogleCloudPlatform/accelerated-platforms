@@ -57,6 +57,7 @@ class TestVirtualTryOn(unittest.TestCase):
         mock_prediction.__getitem__.return_value = "generated_base64_string"
         mock_response = MagicMock()
         mock_response.predictions = [mock_prediction]
+        self.node.client = MagicMock()
         self.node.client.predict.return_value = mock_response
 
         mock_generated_tensor = torch.rand(1, 512, 512, 4)
@@ -78,11 +79,70 @@ class TestVirtualTryOn(unittest.TestCase):
         self.assertEqual(mock_tensor_to_base64.call_count, 2)
         mock_base64_to_tensor.assert_called_once_with("generated_base64_string")
 
+    @patch(
+        "src.custom_nodes.google_genmedia.virtual_try_on.VirtualTryOn.__init__",
+        lambda *args, **kwargs: None,
+    )
     def test_generate_and_return_image_no_input_image(self):
         with self.assertRaises(ValueError):
             self.node.generate_and_return_image(
                 person_image=torch.empty(0),
                 product_image=torch.rand(1, 512, 512, 3),
+                base_steps=32,
+                person_generation="ALLOW_ADULT",
+                number_of_images=1,
+            )
+
+    @patch(
+        "src.custom_nodes.google_genmedia.virtual_try_on.VirtualTryOn.__init__",
+        lambda *args, **kwargs: None,
+    )
+    @patch(
+        "src.custom_nodes.google_genmedia.virtual_try_on.utils.tensor_to_pil_to_base64",
+        side_effect=RuntimeError("Conversion failed"),
+    )
+    def test_generate_and_return_image_base64_conversion_failure(
+        self, mock_tensor_to_base64
+    ):
+        # Arrange
+        person_image = torch.rand(1, 512, 512, 3)
+        product_image = torch.rand(1, 512, 512, 3)
+
+        # Act & Assert
+        with self.assertRaisesRegex(RuntimeError, "Conversion failed"):
+            self.node.generate_and_return_image(
+                person_image=person_image,
+                product_image=product_image,
+                base_steps=32,
+                person_generation="ALLOW_ADULT",
+                number_of_images=1,
+            )
+
+    @patch(
+        "src.custom_nodes.google_genmedia.virtual_try_on.VirtualTryOn.__init__",
+        lambda *args, **kwargs: None,
+    )
+    @patch(
+        "src.custom_nodes.google_genmedia.virtual_try_on.utils.tensor_to_pil_to_base64"
+    )
+    def test_generate_and_return_image_predict_failure(self, mock_tensor_to_base64):
+        # Arrange
+        person_image = torch.rand(1, 512, 512, 3)
+        product_image = torch.rand(1, 512, 512, 3)
+
+        mock_tensor_to_base64.side_effect = [
+            "person_base64_string",
+            "product_base64_string",
+        ]
+
+        self.node.client = MagicMock()
+        self.node.client.predict.side_effect = Exception("Prediction failed")
+
+        # Act & Assert
+        with self.assertRaises(RuntimeError):
+            self.node.generate_and_return_image(
+                person_image=person_image,
+                product_image=product_image,
                 base_steps=32,
                 person_generation="ALLOW_ADULT",
                 number_of_images=1,

@@ -88,6 +88,28 @@ class TestImagen3API(unittest.TestCase):
                 safety_filter_level="BLOCK_LOW_AND_ABOVE",
             )
 
+    @patch(
+        "src.custom_nodes.google_genmedia.imagen3_api.utils.generate_image_from_text"
+    )
+    def test_generate_image_from_text_api_failure(self, mock_generate):
+        # Arrange
+        mock_generate.side_effect = RuntimeError("API Error")
+
+        # Act & Assert
+        with self.assertRaises(RuntimeError):
+            self.api.generate_image_from_text(
+                prompt="a cat",
+                person_generation="ALLOW_ADULT",
+                aspect_ratio="1:1",
+                number_of_images=1,
+                negative_prompt="",
+                seed=123,
+                enhance_prompt=False,
+                add_watermark=False,
+                output_image_type="PNG",
+                safety_filter_level="BLOCK_LOW_AND_ABOVE",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

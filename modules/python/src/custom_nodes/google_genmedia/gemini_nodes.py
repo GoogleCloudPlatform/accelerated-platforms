@@ -51,9 +51,9 @@ class GeminiNode25:
         if not self.project_id:
             self.project_id = get_gcp_metadata("project/project-id")
         if not self.region:
-            self.region = "-".join(
-                get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-            )
+            zone = get_gcp_metadata("instance/zone")
+            if zone:
+                self.region = "-".join(zone.split("/")[-1].split("-")[:-1])
 
         if not self.project_id:
             raise ValueError("GCP Project is required and could not be determined.")

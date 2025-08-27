@@ -124,8 +124,7 @@ class TestUtils(unittest.TestCase):
         # Assert
         self.assertIsInstance(base64_string, str)
         # Decode to check if it's a valid image
-        decoded_data = base64.b64decode(base64_string)
-        reconstructed_image = Image.open(io.BytesIO(decoded_data))
+        reconstructed_image = Image.open(io.BytesIO(base64.b64decode(base64_string)))
         self.assertEqual(reconstructed_image.format, "JPEG")
 
     # --- Additional tests for download_gcsuri ---
@@ -171,10 +170,9 @@ class TestUtils(unittest.TestCase):
         )
 
     @patch("os.path.exists", return_value=False)
-    def test_media_file_to_genai_part_file_not_found(self, mock_exists):
-        """Tests that FileNotFoundError is raised if the file does not exist."""
-        with self.assertRaises(FileNotFoundError):
-            utils.media_file_to_genai_part("/fake/path.mp4", "video/mp4")
+    def test_prep_for_media_conversion_file_not_found(self, mock_exists):
+        result = utils.prep_for_media_conversion("/fake/path.png", "image/png")
+        self.assertIsNone(result)
 
     # --- Additional tests for validate_gcs_uri_and_image ---
 
@@ -217,30 +215,28 @@ class TestUtils(unittest.TestCase):
 
     # --- Tests for process_video_response ---
 
-    def test_process_video_response_no_videos_found(self):
+    @patch("src.custom_nodes.google_genmedia.utils.os.makedirs")
+    def test_process_video_response_no_videos_found(self, mock_makedirs):
         """Tests that a RuntimeError is raised when no video data is in the response."""
         # Arrange
         mock_operation = MagicMock()
-        mock_operation.response = {}  # Empty response
+        mock_operation.response = {}
         mock_operation.result = None
 
         # Act & Assert
         with self.assertRaisesRegex(RuntimeError, "No video data found"):
             utils.process_video_response(mock_operation)
 
-    # UPDATED DECORATOR: Added a patch for folder_paths to return a real path
     @patch(
         "src.custom_nodes.google_genmedia.utils.folder_paths.get_temp_directory",
         return_value="/tmp/fake_temp_dir",
     )
     @patch("src.custom_nodes.google_genmedia.utils.download_gcsuri", return_value=True)
-    # UPDATED SIGNATURE: Added the new mock argument from the patch
     def test_process_video_response_with_gcs_uri(self, mock_download, mock_get_temp):
         """Tests processing a response where the video is a GCS URI."""
         # Arrange
         mock_video = MagicMock()
         mock_video.video.uri = "gs://my-bucket/my-video.mp4"
-        # Clear the 'save' attribute to ensure the URI path is taken
         del mock_video.video.save
 
         mock_operation = MagicMock()
@@ -254,6 +250,178 @@ class TestUtils(unittest.TestCase):
         mock_download.assert_called_once_with(
             "gs://my-bucket/my-video.mp4", unittest.mock.ANY
         )
+
+    # --- Tests for generate_image_from_text ---
+
+    @patch("src.custom_nodes.google_genmedia.utils.genai.Client")
+    def test_generate_image_from_text_success(self, mock_client):
+        # Arrange
+        mock_image = MagicMock()
+        mock_image.image.image_bytes = b"fake_image_bytes"
+
+        mock_response = MagicMock()
+        mock_response.generated_images = [mock_image]
+        mock_client.models.generate_images.return_value = mock_response
+
+        # Act
+        with patch(
+            "src.custom_nodes.google_genmedia.utils.PIL_Image.open"
+        ) as mock_pil_open:
+            images = utils.generate_image_from_text(
+                client=mock_client,
+                model="imagen3",
+                prompt="a cat",
+                person_generation="ALLOW_ADULT",
+                aspect_ratio="1:1",
+                number_of_images=1,
+                negative_prompt="",
+                seed=None,
+                enhance_prompt=False,
+                add_watermark=False,
+                output_image_type="png",
+                safety_filter_level="BLOCK_MEDIUM_AND_ABOVE",
+                retry_count=0,
+                retry_delay=0,
+            )
+
+            # Assert
+            self.assertEqual(len(images), 1)
+            mock_pil_open.assert_called_once()
+            self.assertEqual(mock_pil_open.call_args[0][0].read(), b"fake_image_bytes")
+
+    @patch("src.custom_nodes.google_genmedia.utils.genai.Client")
+    def test_generate_image_from_text_resource_exhausted(self, mock_client):
+        # Arrange
+        error = genai_errors.ClientError("resource exhausted", response_json={})
+        error.code = StatusCode.RESOURCE_EXHAUSTED
+        mock_client.models.generate_images.side_effect = error
+
+        # Act & Assert
+        with self.assertRaises(RuntimeError):
+            utils.generate_image_from_text(
+                client=mock_client,
+                model="imagen3",
+                prompt="a cat",
+                person_generation="ALLOW_ADULT",
+                aspect_ratio="1:1",
+                number_of_images=1,
+                negative_prompt="",
+                seed=None,
+                enhance_prompt=False,
+                add_watermark=False,
+                output_image_type="png",
+                safety_filter_level="BLOCK_MEDIUM_AND_ABOVE",
+                retry_count=1,
+                retry_delay=0,
+            )
+
+    # --- Tests for generate_video_from_text ---
+
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.process_video_response",
+        return_value=["/tmp/fake.mp4"],
+    )
+    @patch("src.custom_nodes.google_genmedia.utils.genai.Client")
+    def test_generate_video_from_text_success(self, mock_client, mock_process_video):
+        # Arrange
+        mock_operation = MagicMock()
+        mock_operation.done.return_value = True
+        mock_client.models.generate_videos.return_value = mock_operation
+
+        # Act
+        video_paths = utils.generate_video_from_text(
+            client=mock_client,
+            model="veo",
+            prompt="a cat",
+            aspect_ratio="1:1",
+            output_resolution="1080p",
+            compression_quality="optimized",
+            person_generation="ALLOW_ADULT",
+            duration_seconds=5,
+            generate_audio=False,
+            enhance_prompt=False,
+            sample_count=1,
+            output_gcs_uri=None,
+            negative_prompt=None,
+            seed=None,
+            retry_count=0,
+            retry_delay=0,
+        )
+
+        # Assert
+        self.assertEqual(video_paths, ["/tmp/fake.mp4"])
+        mock_client.operations.get.assert_not_called()  # Should not poll if done
+
+    @patch("src.custom_nodes.google_genmedia.utils.genai.Client")
+    def test_generate_video_from_text_invalid_argument(self, mock_client):
+        # Arrange
+        error = genai_errors.ClientError("invalid argument", response_json={})
+        error.code = StatusCode.INVALID_ARGUMENT
+        mock_client.models.generate_videos.side_effect = error
+
+        # Act & Assert
+        with self.assertRaises(ValueError):
+            utils.generate_video_from_text(
+                client=mock_client,
+                model="veo",
+                prompt="a cat",
+                aspect_ratio="1:1",
+                output_resolution="1080p",
+                compression_quality="optimized",
+                person_generation="ALLOW_ADULT",
+                duration_seconds=5,
+                generate_audio=False,
+                enhance_prompt=False,
+                sample_count=1,
+                output_gcs_uri=None,
+                negative_prompt=None,
+                seed=None,
+                retry_count=0,
+                retry_delay=0,
+            )
+
+    # --- Tests for generate_video_from_gcsuri_image ---
+
+    @patch("src.custom_nodes.google_genmedia.utils.validate_gcs_uri_and_image")
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.process_video_response",
+        return_value=["/tmp/fake.mp4"],
+    )
+    @patch("src.custom_nodes.google_genmedia.utils.genai.Client")
+    def test_generate_video_from_gcsuri_image_success(
+        self, mock_client, mock_process_video, mock_validate_gcs
+    ):
+        # Arrange
+        mock_validate_gcs.return_value = (True, "Valid URI message")
+        mock_operation = MagicMock()
+        mock_operation.done.return_value = True
+        mock_client.models.generate_videos.return_value = mock_operation
+
+        # Act
+        video_paths = utils.generate_video_from_gcsuri_image(
+            client=mock_client,
+            model="veo-2.0",
+            gcsuri="gs://my-bucket/my-image.png",
+            image_format="image/png",
+            prompt="a cat",
+            aspect_ratio="1:1",
+            output_resolution="1080p",
+            compression_quality="optimized",
+            person_generation="ALLOW_ADULT",
+            duration_seconds=5,
+            generate_audio=False,
+            enhance_prompt=False,
+            sample_count=1,
+            last_frame_gcsuri=None,
+            output_gcs_uri=None,
+            negative_prompt=None,
+            seed=None,
+            retry_count=0,
+            retry_delay=0,
+        )
+
+        # Assert
+        self.assertEqual(video_paths, ["/tmp/fake.mp4"])
 
 
 if __name__ == "__main__":

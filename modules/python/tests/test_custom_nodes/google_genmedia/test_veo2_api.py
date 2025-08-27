@@ -110,6 +110,24 @@ class TestVeo2API(unittest.TestCase):
         self.assertEqual(paths, ["/path/to/video.mp4"])
         mock_generate.assert_called_once()
 
+    @patch("src.custom_nodes.google_genmedia.veo2_api.utils.generate_video_from_text")
+    def test_generate_video_from_text_api_failure(self, mock_generate):
+        mock_generate.side_effect = RuntimeError("API Error")
+
+        with self.assertRaises(RuntimeError):
+            self.api.generate_video_from_text(
+                prompt="a test video",
+                aspect_ratio="16:9",
+                compression_quality="optimized",
+                person_generation="allow_adult",
+                duration_seconds=8,
+                enhance_prompt=True,
+                sample_count=1,
+                output_gcs_uri="",
+                negative_prompt="",
+                seed=123,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

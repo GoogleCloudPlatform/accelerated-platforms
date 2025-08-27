@@ -25,6 +25,7 @@ import cv2
 import numpy as np
 import torch
 from moviepy import VideoFileClip
+import folder_paths
 
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
 
@@ -63,10 +64,11 @@ class VeoVideoToVHSNode:
         """
         all_preview_frames = []  # List to accumulate frames from ALL videos
         no_of_frames = 120
+        dummy_image = torch.zeros(1, 512, 512, 3)
+
         if not video_paths:
             print("Error: No video paths provided.")
-            dummy_image = torch.zeros(1, 512, 512, 3)
-            return dummy_image
+            return (dummy_image,)
 
         print(f"Received {len(video_paths)} video path(s).")
         total_extracted_frames = 0
@@ -160,7 +162,7 @@ class VeoVideoSaveAndPreview:
 
             # Setting preview dir to temp as the veo nodes save the video there
             # ComfyUI's 'temp' directory is usually handled by its file system backend
-            preview_dir = "temp"
+            preview_dir = folder_paths.get_temp_directory()
             os.makedirs(preview_dir, exist_ok=True)  # Ensure temp directory exists
 
             videos_output_for_ui = (
@@ -233,13 +235,14 @@ class VeoVideoSaveAndPreview:
                     else:
                         # if it is just for preview, strip the filename and build the path starting temp directory
                         dest_path = os.path.join(
-                            os.path.normpath("temp"),
-                            os.path.normpath(video_path_abs)
-                            .rsplit(os.path.normpath("temp"), 1)[1]
-                            .lstrip(os.path.sep),
+                            os.path.normpath(folder_paths.get_temp_directory()),
+                            os.path.basename(video_path_abs),
                         )
+                        shutil.copy2(video_path_abs, dest_path)
+                        video_subfolder = "temp"
+
                     video_item_for_ui = {
-                        "filename": dest_path,
+                        "filename": os.path.basename(dest_path),
                         "subfolder": video_subfolder,  # This should be "" if not saved, or "veo" if saved
                         "type": (
                             "output" if save_video else "temp"

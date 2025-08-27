@@ -41,9 +41,11 @@ pingpong
 plicable
 pysssss
 pytest
+reinit
 sdxl
 setattr
 setitem
+staticmethod
 torchaudio
 torchvision
 unet

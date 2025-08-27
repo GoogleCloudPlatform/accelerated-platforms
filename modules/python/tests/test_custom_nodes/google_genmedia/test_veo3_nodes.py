@@ -82,6 +82,19 @@ class TestVeo3Nodes(unittest.TestCase):
         self.assertEqual(result, ["/fake/video.mp4"])
         mock_api_instance.generate_video_from_gcsuri_image.assert_called_once()
 
+    @patch("src.custom_nodes.google_genmedia.veo3_nodes.Veo3API")
+    def test_init_failure(self, mock_veo_api):
+        # Arrange
+        mock_veo_api.side_effect = Exception("Init failed")
+
+        # Act & Assert
+        with self.assertRaisesRegex(
+            RuntimeError, "Failed to initialize Veo API: Init failed"
+        ):
+            Veo3TextToVideoNode().generate(
+                model=Veo3Model.VEO_3_PREVIEW.name, prompt="test"
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

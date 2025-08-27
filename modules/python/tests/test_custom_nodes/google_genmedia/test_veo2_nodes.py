@@ -6,7 +6,7 @@
 #
 #      http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by a`plicable law or agreed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
@@ -74,6 +74,17 @@ class TestVeo2Nodes(unittest.TestCase):
         # Assert
         self.assertEqual(result, ["/fake/video.mp4"])
         mock_api_instance.generate_video_from_gcsuri_image.assert_called_once()
+
+    @patch("src.custom_nodes.google_genmedia.veo2_nodes.Veo2API")
+    def test_init_failure(self, mock_veo_api):
+        # Arrange
+        mock_veo_api.side_effect = Exception("Init failed")
+
+        # Act & Assert
+        with self.assertRaisesRegex(
+            RuntimeError, "Failed to initialize Veo API: Init failed"
+        ):
+            Veo2TextToVideoNode().generate(prompt="test")
 
 
 if __name__ == "__main__":

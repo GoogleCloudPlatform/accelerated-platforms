@@ -63,6 +63,15 @@ class TestImagen4TextToImageNode(unittest.TestCase):
                 prompt="a test prompt", number_of_images=1
             )
 
+    @patch("src.custom_nodes.google_genmedia.imagen4_nodes.Imagen4API")
+    def test_init_failure(self, mock_imagen_api):
+        # Arrange
+        mock_imagen_api.side_effect = Exception("Init failed")
+
+        # Act & Assert
+        with self.assertRaisesRegex(RuntimeError, "Failed to initialize Imagen API"):
+            self.node.generate_and_return_image(prompt="a test prompt")
+
 
 if __name__ == "__main__":
     unittest.main()

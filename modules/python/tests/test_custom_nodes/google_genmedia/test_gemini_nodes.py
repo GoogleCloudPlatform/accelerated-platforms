@@ -14,7 +14,7 @@
 
 import sys
 import unittest
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, patch, ANY, call
 
 # ComfyUI shim so imports in the module don't explode in test envs
 sys.modules.setdefault("folder_paths", MagicMock())
@@ -42,16 +42,36 @@ class TestClassAndMappings(unittest.TestCase):
         self.assertIn("optional", schema)
         req = schema["required"]
         opt = schema["optional"]
-        # minimal shape checks
+        # All required fields are present
         self.assertIn("prompt", req)
         self.assertIn("model", req)
+        self.assertIn("temperature", req)
+        self.assertIn("max_output_tokens", req)
+        self.assertIn("top_p", req)
+        self.assertIn("top_k", req)
+        self.assertIn("candidate_count", req)
+        self.assertIn("stop_sequences", req)
+        self.assertIn("response_mime_type", req)
+        self.assertIn("harassment_threshold", req)
+        self.assertIn("hate_speech_threshold", req)
+        self.assertIn("sexually_explicit_threshold", req)
+        self.assertIn("dangerous_content_threshold", req)
+
+        # All optional fields are present
+        self.assertIn("system_instruction", opt)
+        self.assertIn("image_file_path", opt)
+        self.assertIn("image_mime_type", opt)
+        self.assertIn("video_file_path", opt)
+        self.assertIn("video_mime_type", opt)
+        self.assertIn("audio_file_path", opt)
+        self.assertIn("audio_mime_type", opt)
+        self.assertIn("gcp_project_id", opt)
+        self.assertIn("gcp_region", opt)
+
         # model list should include default GEMINI_PRO
         model_choices, model_meta = req["model"]
         self.assertTrue(len(model_choices) > 0)
         self.assertEqual(model_meta.get("default"), GeminiModel.GEMINI_PRO.name)
-        # optional GCP overrides exist
-        self.assertIn("gcp_project_id", opt)
-        self.assertIn("gcp_region", opt)
 
     @patch("src.custom_nodes.google_genmedia.gemini_nodes.get_gcp_metadata")
     @patch("src.custom_nodes.google_genmedia.gemini_nodes.genai.Client")
@@ -66,12 +86,31 @@ class TestClassAndMappings(unittest.TestCase):
         self.assertEqual(node.project_id, "proj-123")
         self.assertEqual(node.region, "us-central1")
 
+    @patch("src.custom_nodes.google_genmedia.gemini_nodes.get_gcp_metadata")
+    @patch("src.custom_nodes.google_genmedia.gemini_nodes.genai.Client")
+    def test_init_with_provided_credentials(self, mock_client, mock_meta):
+        node = GeminiNode25(gcp_project_id="my-proj", gcp_region="my-region")
+        mock_client.assert_called_once_with(
+            vertexai=True, project="my-proj", location="my-region", http_options=ANY
+        )
+        mock_meta.assert_not_called()
+        self.assertEqual(node.project_id, "my-proj")
+        self.assertEqual(node.region, "my-region")
+
     @patch(
         "src.custom_nodes.google_genmedia.gemini_nodes.get_gcp_metadata",
         side_effect=[None, "projects/123/zones/us-central1-a"],
     )
     def test_init_missing_project_raises(self, _mock_meta):
         with self.assertRaisesRegex(ValueError, "GCP Project is required"):
+            GeminiNode25()
+
+    @patch(
+        "src.custom_nodes.google_genmedia.gemini_nodes.get_gcp_metadata",
+        side_effect=["proj-123", None],
+    )
+    def test_init_missing_region_raises(self, _mock_meta):
+        with self.assertRaisesRegex(ValueError, "GCP region is required"):
             GeminiNode25()
 
     @patch(
@@ -127,86 +166,231 @@ class _FakeTypesModule:
     GenerateContentConfig = _FakeGenerateContentConfig
 
 
-# Patch __init__ to NOOP for these generate_content tests so we don't touch real env
-@patch(
-    "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
-    return_value=None,
-)
 class TestGenerateContentHappyAndOptions(unittest.TestCase):
-    def setUp(self):
-        self.node = GeminiNode25()
-        # fake client + capture of parameters to assert after call
-        self.captured = {}
-        self.node.client = MagicMock()
-
-        def _fake_generate_content(**kwargs):
-            # capture parameters for assertions
-            self.captured.update(kwargs)
-            fake_part = MagicMock()
-            fake_part.text = "Hi there!"
-            fake_content = MagicMock()
-            fake_content.parts = [fake_part]
-            fake_candidate = MagicMock()
-            fake_candidate.content = fake_content
-            return MagicMock(candidates=[fake_candidate])
-
-        self.node.client.models.generate_content.side_effect = _fake_generate_content
-
-    @patch("src.custom_nodes.google_genmedia.gemini_nodes.types", _FakeTypesModule)
-    @patch(
-        "src.custom_nodes.google_genmedia.gemini_nodes.utils.prep_for_media_conversion",
-        return_value=None,
-    )
-    def test_stop_sequences_and_response_mime_type_and_system_instruction(
-        self, _m_utils, _m_types, _mock_init
-    ):
-        result = self.node.generate_content(
-            prompt="hello",
-            model=GeminiModel.GEMINI_PRO.name,
-            temperature=0.1,
-            max_output_tokens=42,
-            top_p=0.9,
-            top_k=7,
-            candidate_count=2,
-            stop_sequences="END,  STOP ",
-            response_mime_type="application/json",
-            harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
-            hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
-            sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
-            dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
-            system_instruction="answer briefly",
-        )
-        # Returned tuple text
-        self.assertEqual(result, ("Hi there!",))
-        # Model selection was from enum
-        self.assertEqual(
-            self.captured["model"], GeminiModel[GeminiModel.GEMINI_PRO.name]
-        )
-        cfg = self.captured["config"]
-        self.assertEqual(cfg.temperature, 0.1)
-        self.assertEqual(cfg.max_output_tokens, 42)
-        self.assertEqual(cfg.top_p, 0.9)
-        self.assertEqual(cfg.top_k, 7)
-        self.assertEqual(cfg.candidate_count, 2)
-        self.assertEqual(cfg.response_mime_type, "application/json")
-        self.assertListEqual(cfg.stop_sequences, ["END", "STOP"])
-        self.assertIsNotNone(cfg.system_instruction)
-        # 4 safety settings should have been set
-        self.assertEqual(len(cfg.safety_settings), 4)
-
-    @patch("src.custom_nodes.google_genmedia.gemini_nodes.types", _FakeTypesModule)
-    def test_includes_all_media_parts_when_paths_supplied(self, _m_types, _mock_init):
-        # Have utils return sentinel parts in sequence
+    def test_stop_sequences_and_response_mime_type_and_system_instruction(self):
         with patch(
-            "src.custom_nodes.google_genmedia.gemini_nodes.utils.prep_for_media_conversion",
-            side_effect=["IMG", "VID", "AUD"],
+            "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
+            return_value=None,
         ):
-            _ = self.node.generate_content(
-                prompt="use media",
+            with patch(
+                "src.custom_nodes.google_genmedia.gemini_nodes.types", _FakeTypesModule
+            ):
+                with patch(
+                    "src.custom_nodes.google_genmedia.gemini_nodes.utils.prep_for_media_conversion",
+                    return_value=None,
+                ):
+                    node = GeminiNode25.__new__(GeminiNode25)
+                    node.client = MagicMock()
+                    captured = {}
+
+                    def _fake_generate_content(**kwargs):
+                        captured.update(kwargs)
+                        fake_part = MagicMock()
+                        fake_part.text = "Hi there!"
+                        fake_content = MagicMock()
+                        fake_content.parts = [fake_part]
+                        fake_candidate = MagicMock()
+                        fake_candidate.content = fake_content
+                        fake_response = MagicMock(candidates=[fake_candidate])
+                        fake_response.prompt_feedback = None
+                        return fake_response
+
+                    node.client.models.generate_content.side_effect = (
+                        _fake_generate_content
+                    )
+
+                    result = node.generate_content(
+                        prompt="hello",
+                        model=GeminiModel.GEMINI_PRO.name,
+                        temperature=0.1,
+                        max_output_tokens=42,
+                        top_p=0.9,
+                        top_k=7,
+                        candidate_count=2,
+                        stop_sequences="END,  STOP ",
+                        response_mime_type="application/json",
+                        harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                        hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                        sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                        dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                        system_instruction="answer briefly",
+                    )
+                    self.assertEqual(result, ("Hi there!",))
+                    self.assertEqual(
+                        captured["model"], GeminiModel[GeminiModel.GEMINI_PRO.name]
+                    )
+                    cfg = captured["config"]
+                    self.assertEqual(cfg.temperature, 0.1)
+                    self.assertEqual(cfg.max_output_tokens, 42)
+                    self.assertEqual(cfg.top_p, 0.9)
+                    self.assertEqual(cfg.top_k, 7)
+                    self.assertEqual(cfg.candidate_count, 2)
+                    self.assertEqual(cfg.response_mime_type, "application/json")
+                    self.assertListEqual(cfg.stop_sequences, ["END", "STOP"])
+                    self.assertIsNotNone(cfg.system_instruction)
+                    self.assertEqual(len(cfg.safety_settings), 4)
+
+    def test_includes_all_media_parts_when_paths_supplied(self):
+        with patch(
+            "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
+            return_value=None,
+        ):
+            with patch(
+                "src.custom_nodes.google_genmedia.gemini_nodes.types", _FakeTypesModule
+            ):
+                node = GeminiNode25.__new__(GeminiNode25)
+                node.client = MagicMock()
+                captured = {}
+
+                def _fake_generate_content(**kwargs):
+                    captured.update(kwargs)
+                    fake_part = MagicMock()
+                    fake_part.text = "Hi there!"
+                    fake_content = MagicMock()
+                    fake_content.parts = [fake_part]
+                    fake_candidate = MagicMock()
+                    fake_candidate.content = fake_content
+                    fake_response = MagicMock(candidates=[fake_candidate])
+                    fake_response.prompt_feedback = None
+                    return fake_response
+
+                node.client.models.generate_content.side_effect = _fake_generate_content
+
+                with patch(
+                    "src.custom_nodes.google_genmedia.gemini_nodes.utils.prep_for_media_conversion",
+                    side_effect=["IMG", "VID", "AUD"],
+                ):
+                    _ = node.generate_content(
+                        prompt="use media",
+                        model=GeminiModel.GEMINI_PRO.name,
+                        temperature=0.1,
+                        max_output_tokens=5,
+                        top_p=0.9,
+                        top_k=1,
+                        candidate_count=1,
+                        stop_sequences="",
+                        response_mime_type="text/plain",
+                        harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                        hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                        sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                        dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                        image_file_path="a.png",
+                        video_file_path="b.mp4",
+                        audio_file_path="c.mp3",
+                    )
+                contents = captured["contents"]
+                self.assertEqual(len(contents), 4)
+                self.assertIn("IMG", contents)
+                self.assertIn("VID", contents)
+                self.assertIn("AUD", contents)
+
+    def test_prints_when_media_paths_given_but_no_content(self):
+        with patch(
+            "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
+            return_value=None,
+        ):
+            with patch(
+                "src.custom_nodes.google_genmedia.gemini_nodes.print"
+            ) as mock_print:
+                with patch(
+                    "src.custom_nodes.google_genmedia.gemini_nodes.types",
+                    _FakeTypesModule,
+                ):
+                    with patch(
+                        "src.custom_nodes.google_genmedia.gemini_nodes.utils.prep_for_media_conversion",
+                        return_value=None,
+                    ):
+                        node = GeminiNode25.__new__(GeminiNode25)
+                        node.client = MagicMock()
+
+                        def _fake_generate_content(**kwargs):
+                            pass
+
+                        node.client.models.generate_content.side_effect = (
+                            _fake_generate_content
+                        )
+
+                        node.generate_content(
+                            prompt="use media",
+                            model=GeminiModel.GEMINI_PRO.name,
+                            temperature=0.1,
+                            max_output_tokens=5,
+                            top_p=0.9,
+                            top_k=1,
+                            candidate_count=1,
+                            stop_sequences="",
+                            response_mime_type="text/plain",
+                            harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                            hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                            sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                            dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                            image_file_path="a.png",
+                            video_file_path="b.mp4",
+                            audio_file_path="c.mp3",
+                        )
+                        mock_print.assert_has_calls(
+                            [
+                                call(
+                                    "Image path 'a.png' provided but content not retrieved or file not found."
+                                ),
+                                call(
+                                    "Video path 'b.mp4' provided but content not retrieved or file not found."
+                                ),
+                                call(
+                                    "Audio path 'c.mp3' provided but content not retrieved or file not found."
+                                ),
+                            ]
+                        )
+
+    def test_default_response_mime_type(self):
+        with patch(
+            "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
+            return_value=None,
+        ):
+            with patch(
+                "src.custom_nodes.google_genmedia.gemini_nodes.types", _FakeTypesModule
+            ):
+                node = GeminiNode25.__new__(GeminiNode25)
+                node.client = MagicMock()
+                captured = {}
+
+                def _fake_generate_content(**kwargs):
+                    captured.update(kwargs)
+
+                node.client.models.generate_content.side_effect = _fake_generate_content
+
+                node.generate_content(
+                    prompt="hello",
+                    model=GeminiModel.GEMINI_PRO.name,
+                    temperature=0.1,
+                    max_output_tokens=42,
+                    top_p=0.9,
+                    top_k=7,
+                    candidate_count=2,
+                    stop_sequences="",
+                    response_mime_type="text/plain",
+                    harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                    hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                    sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                    dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                )
+                cfg = captured["config"]
+                self.assertEqual(cfg.response_mime_type, "text/plain")
+
+
+class TestGenerateContentFailures(unittest.TestCase):
+    def test_reinit_error_returns_message(self):
+        with patch(
+            "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
+            side_effect=Exception("bad creds"),
+        ):
+            node = GeminiNode25.__new__(GeminiNode25)
+            (msg,) = node.generate_content(
+                prompt="x",
                 model=GeminiModel.GEMINI_PRO.name,
-                temperature=0.1,
-                max_output_tokens=5,
-                top_p=0.9,
+                temperature=0.0,
+                max_output_tokens=1,
+                top_p=0.0,
                 top_k=1,
                 candidate_count=1,
                 stop_sequences="",
@@ -215,43 +399,127 @@ class TestGenerateContentHappyAndOptions(unittest.TestCase):
                 hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
                 sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
                 dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
-                image_file_path="a.png",
-                video_file_path="b.mp4",
-                audio_file_path="c.mp3",
             )
-        # contents should be prompt + 3 media parts
-        contents = self.captured["contents"]
-        self.assertEqual(len(contents), 4)
-        # the three extra are the sentinel strings we returned
-        self.assertIn("IMG", contents)
-        self.assertIn("VID", contents)
-        self.assertIn("AUD", contents)
+            self.assertIn("Error re-initializing Gemini client", msg)
 
+    def test_api_call_failure(self):
+        with patch(
+            "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
+            return_value=None,
+        ):
+            node = GeminiNode25.__new__(GeminiNode25)
+            node.client = MagicMock()
+            node.client.models.generate_content.side_effect = Exception("API error")
+            (msg,) = node.generate_content(
+                prompt="x",
+                model=GeminiModel.GEMINI_PRO.name,
+                temperature=0.0,
+                max_output_tokens=1,
+                top_p=0.0,
+                top_k=1,
+                candidate_count=1,
+                stop_sequences="",
+                response_mime_type="text/plain",
+                harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+            )
+            self.assertIn("Error: API error", msg)
 
-class TestGenerateContentReinitFailures(unittest.TestCase):
-    @patch(
-        "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
-        side_effect=Exception("bad creds"),
-    )
-    def test_reinit_error_returns_message(self, _mock_init):
-        # Bypass __init__ at construction time
-        node = GeminiNode25.__new__(GeminiNode25)
-        (msg,) = node.generate_content(
-            prompt="x",
-            model=GeminiModel.GEMINI_PRO.name,
-            temperature=0.0,
-            max_output_tokens=1,
-            top_p=0.0,
-            top_k=1,
-            candidate_count=1,
-            stop_sequences="",
-            response_mime_type="text/plain",
-            harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
-            hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
-            sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
-            dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
-        )
-        self.assertIn("Error re-initializing Gemini client", msg)
+    def test_blocked_prompt_feedback(self):
+        with patch(
+            "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
+            return_value=None,
+        ):
+            node = GeminiNode25.__new__(GeminiNode25)
+            node.client = MagicMock()
+            mock_response = MagicMock()
+            mock_response.candidates = []
+            mock_response.prompt_feedback.block_reason = "SAFETY"
+            mock_rating = MagicMock()
+            mock_rating.category.name = "HATE_SPEECH"
+            mock_rating.probability.name = "HIGH"
+            mock_response.prompt_feedback.safety_ratings = [mock_rating]
+            node.client.models.generate_content.return_value = mock_response
+
+            (msg,) = node.generate_content(
+                prompt="x",
+                model=GeminiModel.GEMINI_PRO.name,
+                temperature=0.0,
+                max_output_tokens=1,
+                top_p=0.0,
+                top_k=1,
+                candidate_count=1,
+                stop_sequences="",
+                response_mime_type="text/plain",
+                harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+            )
+            self.assertIn("Content blocked by safety filter: SAFETY", msg)
+            self.assertIn("Category: HATE_SPEECH, Probability: HIGH", msg)
+
+    def test_no_candidates_no_feedback(self):
+        with patch(
+            "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
+            return_value=None,
+        ):
+            node = GeminiNode25.__new__(GeminiNode25)
+            node.client = MagicMock()
+            mock_response = MagicMock()
+            mock_response.candidates = []
+            mock_response.prompt_feedback = None
+            node.client.models.generate_content.return_value = mock_response
+
+            (msg,) = node.generate_content(
+                prompt="x",
+                model=GeminiModel.GEMINI_PRO.name,
+                temperature=0.0,
+                max_output_tokens=1,
+                top_p=0.0,
+                top_k=1,
+                candidate_count=1,
+                stop_sequences="",
+                response_mime_type="text/plain",
+                harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+            )
+            self.assertEqual("No content generated.", msg)
+
+    def test_malformed_response_no_parts(self):
+        with patch(
+            "src.custom_nodes.google_genmedia.gemini_nodes.GeminiNode25.__init__",
+            return_value=None,
+        ):
+            node = GeminiNode25.__new__(GeminiNode25)
+            node.client = MagicMock()
+            mock_response = MagicMock()
+            mock_candidate = MagicMock()
+            mock_candidate.content.parts = []
+            mock_response.candidates = [mock_candidate]
+            mock_response.prompt_feedback = None
+            node.client.models.generate_content.return_value = mock_response
+
+            (msg,) = node.generate_content(
+                prompt="x",
+                model=GeminiModel.GEMINI_PRO.name,
+                temperature=0.0,
+                max_output_tokens=1,
+                top_p=0.0,
+                top_k=1,
+                candidate_count=1,
+                stop_sequences="",
+                response_mime_type="text/plain",
+                harassment_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                hate_speech_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                sexually_explicit_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+                dangerous_content_threshold=ThresholdOptions.BLOCK_MEDIUM_AND_ABOVE.name,
+            )
+            self.assertIn("Error: list index out of range", msg)
 
 
 if __name__ == "__main__":

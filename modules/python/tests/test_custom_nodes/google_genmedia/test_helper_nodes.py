@@ -73,7 +73,15 @@ class TestVeoVideoToVHSNode(unittest.TestCase):
         # Act
         result = self.node.convert_videos([])
         # Assert
-        self.assertEqual(result.shape, (1, 512, 512, 3))
+        self.assertEqual(result[0].shape, (1, 512, 512, 3))
+
+    @patch(
+        "src.custom_nodes.google_genmedia.helper_nodes.os.path.exists",
+        return_value=False,
+    )
+    def test_convert_videos_file_not_exist(self, mock_exists):
+        result = self.node.convert_videos(["/fake/video.mp4"])
+        self.assertEqual(result[0].shape, (1, 512, 512, 3))
 
 
 class TestVeoVideoSaveAndPreview(unittest.TestCase):
@@ -90,8 +98,13 @@ class TestVeoVideoSaveAndPreview(unittest.TestCase):
     @patch("src.custom_nodes.google_genmedia.helper_nodes.VideoFileClip")
     @patch("builtins.open", new_callable=mock_open, read_data=b"fakedata")
     @patch("src.custom_nodes.google_genmedia.helper_nodes.hashlib.md5")
+    @patch(
+        "src.custom_nodes.google_genmedia.helper_nodes.folder_paths.get_temp_directory",
+        return_value="/tmp/fake_temp_dir",
+    )
     def test_preview_video_save(
         self,
+        mock_get_temp_directory,
         mock_md5,
         mock_open_file,
         mock_videofileclip,
@@ -117,7 +130,7 @@ class TestVeoVideoSaveAndPreview(unittest.TestCase):
         self.assertIn("video", result["ui"])
         self.assertEqual(len(result["ui"]["video"]), 1)
         video_info = result["ui"]["video"][0]
-        self.assertTrue(video_info["filename"].startswith("output/veo/test_prefix_"))
+        self.assertTrue(video_info["filename"].startswith("test_prefix_"))
         self.assertEqual(video_info["subfolder"], "veo")
         self.assertEqual(video_info["type"], "output")
         mock_copy.assert_called_once()
@@ -130,8 +143,17 @@ class TestVeoVideoSaveAndPreview(unittest.TestCase):
     @patch("src.custom_nodes.google_genmedia.helper_nodes.os.path.abspath", lambda x: x)
     @patch("src.custom_nodes.google_genmedia.helper_nodes.shutil.copy2")
     @patch("src.custom_nodes.google_genmedia.helper_nodes.VideoFileClip")
+    @patch(
+        "src.custom_nodes.google_genmedia.helper_nodes.folder_paths.get_temp_directory",
+        return_value="/tmp/fake_temp_dir",
+    )
     def test_preview_video_preview_only(
-        self, mock_videofileclip, mock_copy, mock_exists, mock_makedirs
+        self,
+        mock_get_temp_directory,
+        mock_videofileclip,
+        mock_copy,
+        mock_exists,
+        mock_makedirs,
     ):
         # Arrange
         mock_clip_instance = MagicMock()
@@ -139,7 +161,7 @@ class TestVeoVideoSaveAndPreview(unittest.TestCase):
         mock_clip_instance.size = (1920, 1080)
         mock_videofileclip.return_value.__enter__.return_value = mock_clip_instance
 
-        video_paths = ["/fake/temp/video.mp4"]
+        video_paths = ["/tmp/video.mp4"]
         # Act
         result = self.node.preview_video(
             video_paths, True, True, False, False, "test_prefix"
@@ -150,10 +172,12 @@ class TestVeoVideoSaveAndPreview(unittest.TestCase):
         self.assertIn("video", result["ui"])
         self.assertEqual(len(result["ui"]["video"]), 1)
         video_info = result["ui"]["video"][0]
-        self.assertEqual(video_info["filename"], "temp/video.mp4")
-        self.assertEqual(video_info["subfolder"], "")
+        self.assertEqual(video_info["filename"], "video.mp4")
+        self.assertEqual(video_info["subfolder"], "temp")
         self.assertEqual(video_info["type"], "temp")
-        mock_copy.assert_not_called()
+        mock_copy.assert_called_once_with(
+            "/tmp/video.mp4", "/tmp/fake_temp_dir/video.mp4"
+        )
 
 
 if __name__ == "__main__":

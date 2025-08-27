@@ -282,6 +282,27 @@ class TestVeo3API(unittest.TestCase):
                     seed=789,
                 )
 
+    @patch("src.custom_nodes.google_genmedia.veo3_api.utils.generate_video_from_text")
+    def test_generate_video_from_text_api_failure(self, mock_generate):
+        mock_generate.side_effect = RuntimeError("API Error")
+
+        with self.assertRaises(RuntimeError):
+            self.api.generate_video_from_text(
+                model=Veo3Model.VEO_3_PREVIEW.name,
+                prompt="a test video",
+                aspect_ratio="16:9",
+                compression_quality="optimized",
+                person_generation="allow_adult",
+                duration_seconds=8,
+                generate_audio=True,
+                enhance_prompt=True,
+                sample_count=1,
+                output_gcs_uri="",
+                output_resolution="720p",
+                negative_prompt="",
+                seed=123,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

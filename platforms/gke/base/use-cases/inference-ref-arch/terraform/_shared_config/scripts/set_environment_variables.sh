@@ -29,3 +29,13 @@ declare -a SHARED_CONFIG_PATHS=(
 export SHARED_CONFIG_PATHS
 
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
+
+if [[ -v HF_MODEL_ID ]]; then
+  HF_MODEL_ID_HASH=$(echo "${HF_MODEL_ID}" | md5sum | cut -c1-8)
+  export HF_MODEL_ID_HASH
+
+  HF_MODEL_NAME="${HF_MODEL_ID##*/}"
+  HF_MODEL_NAME="${HF_MODEL_NAME//./-}"
+  HF_MODEL_NAME="${HF_MODEL_NAME,,}"
+  export HF_MODEL_NAME
+fi

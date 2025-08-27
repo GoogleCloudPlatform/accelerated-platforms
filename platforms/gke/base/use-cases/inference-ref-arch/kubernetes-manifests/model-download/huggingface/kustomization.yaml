@@ -18,7 +18,7 @@ kind: Kustomization
 configMapGenerator:
   - envs:
       - downloader.env
-    name: downloader
+    name: download
     namespace: replaced-by-kustomize
 
 patches:
@@ -28,7 +28,7 @@ replacements:
   - source:
       fieldPath: data.DOWNLOADER_KUBERNETES_NAMESPACE
       kind: ConfigMap
-      name: downloader
+      name: download
     targets:
       - fieldPaths:
           - metadata.namespace
@@ -41,15 +41,11 @@ replacements:
       - fieldPaths:
           - metadata.namespace
         select:
-          kind: PersistentVolumeClaim
-      - fieldPaths:
-          - metadata.namespace
-        select:
           kind: SecretProviderClass
   - source:
       fieldPath: data.DOWNLOADER_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
-      name: downloader
+      name: download
     targets:
       - fieldPaths:
           - spec.template.spec.serviceAccountName
@@ -57,19 +53,17 @@ replacements:
           kind: Job
           name: hf-model-to-gcs
   - source:
-      fieldPath: data.MODEL_BUCKET_NAME
-      kind: ConfigMap
-      name: downloader
+      kind: SecretProviderClass
+      name: huggingface-token-read
+      fieldPath: metadata.name
     targets:
-      - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
-        options:
-          delimiter: .
-          index: 0
-        select:
+      - select:
           kind: Job
           name: hf-model-to-gcs
+        fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
 
 resources:
+  - configmap-scripts.yaml
   - job.yaml
   - secretproviderclass-huggingface-tokens.yaml

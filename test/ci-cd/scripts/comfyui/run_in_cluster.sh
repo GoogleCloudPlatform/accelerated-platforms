@@ -202,8 +202,10 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
 if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
   # Write the failed workflow names to the lock file
   echo "Failed Workflows:" >"${ERROR_FILE}"
-  # This grep command is now more robust to find just the basenames of failed files.
-  grep -oP "(?<=\[FAIL\]\s+FAILED:\s).*" "${POD_RUN_LOG}" | sed 's/ - See details below:$//' >> "${ERROR_FILE}"
+
+  # It finds the lines with failures, extracts the filename, and prints it.
+  sed -n 's/.*\[FAIL\].*FAILED: \(.*\) - See details below:$/\1/p' "${POD_RUN_LOG}" >>"${ERROR_FILE}"
+  
   warn "One or more in-pod tests failed. See details in ${ERROR_FILE}."
 else
   info "All in-pod tests completed successfully."

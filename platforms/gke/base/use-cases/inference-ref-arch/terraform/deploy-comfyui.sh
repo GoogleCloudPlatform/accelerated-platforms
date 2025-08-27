@@ -18,6 +18,8 @@ set -o nounset
 
 start_timestamp=$(date +%s)
 
+CUSTOM_NODES_SRC_PATH="modules/python/src/custom_nodes/google_genmedia"
+ls -1 "$CUSTOM_NODES_SRC_PATH"
 MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
@@ -32,6 +34,10 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-r
 # Set use-case specific values
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="inf"
+
+# Copy comfy node files
+mkdir -p "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia"
+cp -a "${CUSTOM_NODES_SRC_PATH}/." "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia/"
 
 declare -a CORE_TERRASERVICES_APPLY=(
   "networking"

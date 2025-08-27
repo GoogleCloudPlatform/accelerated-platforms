@@ -21,6 +21,7 @@ from unittest.mock import MagicMock
 sys.modules["folder_paths"] = MagicMock()
 from src.custom_nodes.google_genmedia.virtual_try_on import VirtualTryOn
 
+# -----test---------#
 class TestVirtualTryOn(unittest.TestCase):
     @patch("src.custom_nodes.google_genmedia.virtual_try_on.get_gcp_metadata")
     @patch("src.custom_nodes.google_genmedia.virtual_try_on.aiplatform")

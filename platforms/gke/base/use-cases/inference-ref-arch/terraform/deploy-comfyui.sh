@@ -36,15 +36,9 @@ export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="inf"
 
 # Copy comfy node files
-echo "----------------START-------------------"
 mkdir -p "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia"
-echo "--------------File path---------------------"
-echo "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia"
-echo "--------------copy path---------------------"
 cp -a "${CUSTOM_NODES_SRC_PATH}/." "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia/"
-echo "--------------list files---------------------"
-ls -l "${ACP_PLATFORM_USE_CASE_DIR}/terraform/comfyui/src/custom-nodes/google-genmedia" 
-echo "----------------END-------------------"
+
 declare -a CORE_TERRASERVICES_APPLY=(
   "networking"
   "container_cluster"

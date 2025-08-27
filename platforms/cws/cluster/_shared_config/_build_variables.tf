@@ -1,0 +1,1 @@
+../../_shared_config/build_variables.tf

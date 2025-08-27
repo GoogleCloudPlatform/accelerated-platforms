@@ -1,0 +1,1 @@
+../../_shared_config/comfyui_variables.tf

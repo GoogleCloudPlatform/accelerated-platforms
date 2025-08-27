@@ -1,0 +1,1 @@
+../../../../_shared_config/_platform_variables.tf

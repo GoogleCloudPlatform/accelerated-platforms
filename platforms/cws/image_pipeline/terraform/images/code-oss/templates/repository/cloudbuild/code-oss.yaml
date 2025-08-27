@@ -1,0 +1,35 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+images:
+  - $${LOCATION}-docker.pkg.dev/$${PROJECT_ID}/${cloudbuild_cws_image_registry_name}/code-oss:$${SHORT_SHA}_$${BUILD_ID}
+  - $${LOCATION}-docker.pkg.dev/$${PROJECT_ID}/${cloudbuild_cws_image_registry_name}/code-oss:latest
+
+options:
+  automapSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - args:
+      - build
+      - --build-arg=AR_LOCATION=$${LOCATION}
+      - --build-arg=AR_PROJECT_ID=$${PROJECT_ID}
+      - --build-context=my_context=container-images/code-oss
+      - --tag=$${LOCATION}-docker.pkg.dev/$${PROJECT_ID}/${cloudbuild_cws_image_registry_name}/code-oss:$${SHORT_SHA}_$${BUILD_ID}
+      - --tag=$${LOCATION}-docker.pkg.dev/$${PROJECT_ID}/${cloudbuild_cws_image_registry_name}/code-oss:latest
+      - --file=container-images/code-oss/Dockerfile
+      - .
+    id: "Build Code OSS Cloud Workstation image"
+    name: "docker.io/docker:28.4.0-dind-alpine3.22"
+    waitFor: ["-"]

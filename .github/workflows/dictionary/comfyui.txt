@@ -1,6 +1,7 @@
 aivazovsky
 amano
 autoplay
+autouse
 backlighting
 bgcolor
 bioluminescent
@@ -25,6 +26,7 @@ hypernetworks
 hyperrealistic
 imagen
 imagen3
+initilization
 intpl
 latentpreview
 latentpreviewrate
@@ -36,7 +38,10 @@ mucha
 photomaker
 pingpong
 pysssss
+pytest
 sdxl
+setattr
+setitem
 torchaudio
 torchvision
 unet

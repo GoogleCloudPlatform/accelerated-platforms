@@ -66,8 +66,5 @@ WEB_DIRECTORY = "./web"
 __all__ = [
     "NODE_CLASS_MAPPINGS",
     "NODE_DISPLAY_NAME_MAPPINGS",
-    "WEB_DIRECTORY",
-    "gemini_nodes",
-    "config",
-    "utils",
+    "WEB_DIRECTORY"
 ]

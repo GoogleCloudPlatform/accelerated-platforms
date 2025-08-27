@@ -40,12 +40,6 @@ This example is built on top of the
   rm tfplan
   ```
 
-- Source the environment configuration.
-
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
-
 ## Download the model to Cloud Storage
 
 - Choose the model.
@@ -53,32 +47,38 @@ This example is built on top of the
   - **Gemma 3 27B Instruction-Tuned**:
 
     ```shell
-    export MODEL_ID="google/gemma-3-27b-it"
+    export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
   - **gpt-oss-120b**
 
     ```shell
-    export MODEL_ID="openai/gpt-oss-20b"
+    export HF_MODEL_ID="openai/gpt-oss-20b"
     ```
 
   - **Llama 4 Scout 17B Instruction-Tuned**:
 
     ```shell
-    export MODEL_ID="meta-llama/llama-4-scout-17b-16e-instruct"
+    export HF_MODEL_ID="meta-llama/llama-4-scout-17b-16e-instruct"
     ```
 
   - **Llama 3.3 70B Instruction-Tuned**:
 
     ```shell
-    export MODEL_ID="meta-llama/llama-3.3-70b-instruct"
+    export HF_MODEL_ID="meta-llama/llama-3.3-70b-instruct"
     ```
 
   - **Qwen3-32B**:
 
     ```shell
-    export MODEL_ID="qwen/qwen3-32B"
+    export HF_MODEL_ID="qwen/qwen3-32b"
     ```
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
 
 - Configure the model download job.
 
@@ -96,16 +96,16 @@ This example is built on top of the
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/hf-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-hf-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/hf-model-to-gcs --all-containers --tail 10"
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --all-containers --tail 10"
   ```
 
   When the job is complete, you will see the following:
 
   ```text
-  NAME              STATUS     COMPLETIONS   DURATION   AGE
-  hf-model-to-gcs   Complete   1/1           ###        ###
+  NAME                       STATUS     COMPLETIONS   DURATION   AGE
+  XXXXXXXX-hf-model-to-gcs   Complete   1/1           ###        ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -118,6 +118,12 @@ This example is built on top of the
 
 ## Deploy the online inference workload
 
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
 - Configure the deployment.
 
   ```shell
@@ -126,11 +132,10 @@ This example is built on top of the
 
 - Set the environment variables for the workload.
 
-  - Set the model name.
+  - Check the model name.
 
     ```shell
-    MODEL_NAME="${MODEL_ID##*/}" && export MODEL_NAME="${MODEL_NAME,,}"
-    echo "MODEL_NAME=${MODEL_NAME}"
+    echo "HF_MODEL_NAME=${HF_MODEL_NAME}"
     ```
 
   - Select an accelerator.
@@ -168,7 +173,7 @@ This example is built on top of the
 - Deploy the online inference workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
   The Kubernetes manifests are based on the
@@ -178,16 +183,16 @@ This example is built on top of the
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} --all-containers --tail 10"
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
   ```
 
   When the deployment is ready, you will see the following:
 
   ```text
   NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-<ACCELERATOR_TYPE>-<MODEL_NAME>   1/1     1            1           ###
+  vllm-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1     1            1           ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -195,7 +200,7 @@ This example is built on top of the
 - Send a test request.
 
   ```shell
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${MODEL_NAME} 8000:8000 >/dev/null &
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
   PF_PID=$!
   while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
     sleep 0.1
@@ -206,7 +211,7 @@ This example is built on top of the
   echo "/v1/chat/completions:"
   curl http://127.0.0.1:8000/v1/chat/completions \
   --data '{
-    "model": "/gcs/'${MODEL_ID}'",
+    "model": "/gcs/'${HF_MODEL_ID}'",
     "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
     }' \
   --header "Content-Type: application/json" \
@@ -219,7 +224,7 @@ This example is built on top of the
 - Delete the workload.
 
   ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${MODEL_NAME}"
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
 ## Troubleshooting

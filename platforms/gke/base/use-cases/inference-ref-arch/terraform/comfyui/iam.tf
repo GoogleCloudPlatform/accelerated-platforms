@@ -55,9 +55,9 @@ resource "google_storage_bucket_iam_member" "ai_service_agent_gcs_role" {
     google_storage_bucket.comfyui_output.name,
   ])
 
-  bucket = each.key
-  member = "serviceAccount:${google_project_service_identity.aiplatform_service_agents.email}"
-  role   = "roles/storage.objectUser"
+  bucket     = each.key
+  member     = "serviceAccount:${google_project_service_identity.aiplatform_service_agents.email}"
+  role       = "roles/storage.objectUser"
   depends_on = [google_project_service_identity.aiplatform_service_agents]
 }
 

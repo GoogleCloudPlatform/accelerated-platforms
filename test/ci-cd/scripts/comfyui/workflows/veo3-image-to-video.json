@@ -1,10 +1,9 @@
 {
-  "3": {
+  "1": {
     "inputs": {
       "model": "VEO_3_PREVIEW",
-      "gcsuri": "gs://comfyui-ab10-inf-ch73daf3e-comfyui-input/jellyfish.png",
       "image_format": "PNG",
-      "prompt": "",
+      "prompt": "Animate this image",
       "aspect_ratio": "16:9",
       "output_resolution": "720p",
       "compression_quality": "optimized",
@@ -13,26 +12,39 @@
       "generate_audio": true,
       "enhance_prompt": true,
       "sample_count": 1,
-      "output_gcs_uri": "",
+      "output_gcs_uri": "gs://${cloudbuild_source_bucket_name}",
       "negative_prompt": "",
-      "seed": 3041877000,
+      "seed": 2071187930,
       "gcp_project_id": "",
-      "gcp_region": ""
+      "gcp_region": "",
+      "image": [
+        "2",
+        0
+      ]
     },
-    "class_type": "Veo3GcsUriImageToVideoNode",
+    "class_type": "Veo3ImageToVideoNode",
     "_meta": {
-      "title": "Veo3 Image To Video (GcsUriImage)"
+      "title": "Veo3 Image To Video"
     }
   },
-  "4": {
+  "2": {
+    "inputs": {
+      "image": "/tmp/images/jellyfish.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "3": {
     "inputs": {
       "autoplay": true,
       "mute": true,
-      "loop": true,
-      "save_video": true,
+      "loop": false,
+      "save_video": false,
       "save_video_file_prefix": "veo_video",
       "video_paths": [
-        "3",
+        "1",
         0
       ]
     },
@@ -42,4 +54,3 @@
     }
   }
 }
-

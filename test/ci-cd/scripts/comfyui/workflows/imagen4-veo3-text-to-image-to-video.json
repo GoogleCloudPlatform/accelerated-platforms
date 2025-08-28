@@ -62,7 +62,7 @@
       "generate_audio": true,
       "enhance_prompt": true,
       "sample_count": 1,
-      "output_gcs_uri": "",
+      "output_gcs_uri": "gs://${cloudbuild_source_bucket_name}",
       "negative_prompt": "",
       "seed": 0,
       "gcp_project_id": "",

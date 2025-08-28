@@ -1,30 +1,4 @@
-#!/usr/bin/env bash
-# Copyright 2025 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#       http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# This script ALWAYS exits 0. All failures are logged to ERROR_FILE.
 
-set -o nounset
-set -o pipefail
-set -o errtrace
-
-# --- Load env (best-effort) ---
-# shellcheck disable=SC1091
-source /workspace/build.env 2>/dev/null || true
-if [ -n "${ACP_PLATFORM_BASE_DIR:-}" ]; then
-  # shellcheck disable=SC1091
-  source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh" 2>/dev/null || true
-fi
 
 # --- Vars (preserved defaults) ---
 export POD_NAME="${POD_NAME:-comfyui-client}"
@@ -80,50 +54,15 @@ cleanup_on_exit() {
 trap cleanup_on_exit EXIT
 
 # ------------------------------------------------------------
-# Credentials
-# ------------------------------------------------------------
-step "Get GKE credentials"
-info "Fetching credentials for project '${cluster_project_id}'"
-${cluster_credentials_command}
-
-# ------------------------------------------------------------
-# Wait for API & namespace
-# ------------------------------------------------------------
-step "Wait for cluster & namespace '${comfyui_kubernetes_namespace}'"
-attempt=0
-while true; do
-  attempt=$((attempt + 1))
-  if kubectl get namespace "${comfyui_kubernetes_namespace}" >/dev/null 2>&1; then
-    info "Namespace '${comfyui_kubernetes_namespace}' is accessible."
-    break
-  fi
-  if [ "${attempt}" -ge "${MAX_WAIT_SECONDS}" ]; then
-    # This will log the error and exit gracefully with status 0.
-    log_error 1 "Timeout waiting for namespace '${comfyui_kubernetes_namespace}' after ${MAX_WAIT_SECONDS}s"
-  fi
-  sleep 1
-done
-
-# ------------------------------------------------------------
-# Copy the checkpoint files
-# ------------------------------------------------------------
-step "Submit cloud build job to copy checkpoints"
-gcloud builds submit \
-  --config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" \
-  --gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
-  --no-source \
-  --project="${cluster_project_id}" \
-  --service-account="${comfyui_cloudbuild_service_account_id}" \
-  --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
-
-# ------------------------------------------------------------
 # Start client pod
 # ------------------------------------------------------------
 step "Create client pod '${POD_NAME}' in '${comfyui_kubernetes_namespace}'"
+export SA_NAME=$(kubectl get serviceaccount -n ${comfyui_kubernetes_namespace} -o custom-columns=NAME:.metadata.name --no-headers | grep -v "^default$")
 kubectl run "${POD_NAME}" \
   --image=alpine:latest \
   --restart=Never \
   -n "${comfyui_kubernetes_namespace}" \
+  --overrides="{ \"spec\": { \"serviceAccountName\": \"${SA_NAME}\" } }" \
   --command -- sh -c "apk add --no-cache bash curl jq >/dev/null && echo 'Pod is ready. Waiting...' && sleep 3600"
 
 step "Wait for pod to be Ready"
@@ -134,8 +73,17 @@ kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_na
 # ------------------------------------------------------------
 step "Copy test assets into pod"
 info "Copying comfyui_prompt_test.sh and workflows directory"
+TEMP_DIR="${TEST_WORKFLOW_DIR}/tmp"
+mkdir -p "${TEMP_DIR}"
+cp -r "${TEST_WORKFLOW_DIR}/workflows/"* "${TEMP_DIR}"
+for file in "${TEMP_DIR}"/*; do
+    if [[ -f "$file" ]]; then
+        envsubst < "$file" | sponge "$file"
+    fi
+done
+kubectl cp "${TEST_WORKFLOW_DIR}/images" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/images"
 kubectl cp "${TEST_WORKFLOW_DIR}/comfyui_prompt_test.sh" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/comfyui_prompt_test.sh"
-kubectl cp "${TEST_WORKFLOW_DIR}/workflows" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/workflows"
+kubectl cp "${TEMP_DIR}" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/workflows"
 kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- chmod +x /tmp/comfyui_prompt_test.sh
 
 # ------------------------------------------------------------
@@ -146,10 +94,10 @@ SERVICE_IP_AND_PORT="$(kubectl get service -n "${comfyui_kubernetes_namespace}" 
 info "Using service endpoint: ${SERVICE_IP_AND_PORT}"
 
 # ------------------------------------------------------------
-# Execute tests inside pod (in parallel)
+# Execute tests inside pod
 # ------------------------------------------------------------
 step "Execute test script in pod"
-info "Setting env & running all workflow tests in parallel..."
+info "Setting env & running all workflow tests"
 
 POD_RUN_LOG="$(mktemp)"
 
@@ -163,7 +111,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     echo ">> Sourcing test functions..."
     . /tmp/comfyui_prompt_test.sh
 
-    echo ">> Begin workflow tests (running in parallel)..."
+    echo ">> Begin workflow tests..."
     FAILURES_FILE=$(mktemp)
 
     for f in "${TEST_WORKFLOW_DIR}"/*; do
@@ -181,7 +129,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
           basename "${f}" >> "${FAILURES_FILE}"
         fi
         rm -f "${TEST_LOG}"
-      ) &
+      ) 
     done
 
     wait

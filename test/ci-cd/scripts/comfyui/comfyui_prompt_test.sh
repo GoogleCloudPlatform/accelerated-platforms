@@ -14,10 +14,6 @@
 # limitations under the License.
 # ComfyUI workflow tester (runs INSIDE pod)
 
-set -o errexit
-set -o nounset
-set -o pipefail
-
 ts() { date -u +'%Y-%m-%dT%H:%M:%SZ'; }
 # IMPORTANT: log to STDERR so stdout is reserved for JSON
 log() { echo "[$(ts)] $*" >&2; }
@@ -68,32 +64,43 @@ get_history() {
   log "get_history: id=${prompt_id}"
   local start; start=$(date +%s)
 
-  while true; do
+while true; do
     local response http_code body now
-    response=$(curl -s --connect-timeout 5 --max-time 20 \
+    response=$(curl -s --connect-timeout 5 \
       -o - -w "%{http_code}" "${COMFYUI_URL}/history/${prompt_id}")
     log "history response: ${response}"
   
     http_code="${response: -3}"
     body="${response::-3}"
 
-    # --- Print status every poll (stderr) ---
+    # --- Check status and handle errors ---
     if [[ "${http_code}" == "200" && -n "${body}" && "${body}" != "{}" ]]; then
       local status_str
       status_str=$(printf '%s' "${body}" \
         | jq -r --arg id "${prompt_id}" '.[$id].status.status_str // empty' 2>/dev/null || true)
+      
       if [ -z "${status_str}" ] || [ "${status_str}" = "null" ]; then
         status_str="pending completion"
       fi
       log "status: ${status_str}"
+
+      # --- ADDED SECTION START ---
+      # If status is 'error', extract the message and fail
+      if [[ "${status_str}" == "error" ]]; then
+        local exception_msg
+        exception_msg=$(printf '%s' "${body}" | jq -r '.[] | .status.messages[] | select(.[0] == "execution_error") | .[1].exception_message' 2>/dev/null)
+        
+        echo "Error in get_history: Job failed with message: ${exception_msg}" >&2
+        return 1
+      fi
+      # --- ADDED SECTION END ---
+
     else
       log "status: pending completion"
     fi
 
     # --- Success path: emit first output as JSON to stdout ---
     if [[ "${http_code}" == "200" && "${body}" != "{}" ]]; then
-      # stdout: compact JSON object for first detected output
-
       local json
       json=$(printf '%s' "${body}" \
         | jq -c --arg id "${prompt_id}" '
@@ -108,8 +115,6 @@ get_history() {
         printf '%s\n' "${json}"
         return 0
       fi
-      echo "Error in get_history: outputs present but no filename parsed" >&2
-      return 1
     fi
 
     now=$(date +%s)
@@ -117,7 +122,7 @@ get_history() {
       echo "Error in get_history: timeout after ${poll_timeout}s for id=${prompt_id}" >&2
       return 1
     fi
-    sleep 60
+    sleep 5 # Changed to 5s for more frequent checks
   done
 }
 

@@ -211,6 +211,7 @@ def generate_image_from_text(
             elif (
                 e.code == StatusCode.PERMISSION_DENIED
                 or e.code == StatusCode.UNAUTHENTICATED
+                or e.code == StatusCode.FORBIDDEN
             ):
                 raise RuntimeError(
                     f"Permission denied. Check your GCP service account permissions for Veo API. Error: {e.details}"
@@ -399,6 +400,7 @@ def generate_video_from_gcsuri_image(
             elif (
                 e.code == StatusCode.PERMISSION_DENIED
                 or e.code == StatusCode.UNAUTHENTICATED
+                or e.code == StatusCode.FORBIDDEN
             ):
                 raise RuntimeError(
                     f"Permission denied. Check your GCP service account permissions for Veo API. Error: {e.details}"

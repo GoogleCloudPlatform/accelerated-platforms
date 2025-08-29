@@ -31,10 +31,12 @@ STEP_ID=${1:-build-ci}
 
 # --- Test Configuration ---
 COMFYUI_NAMESPACE="${comfyui_kubernetes_namespace:-comfyui}"
-COMFYUI_SERVICE_NAME="${COMFYUI_SERVICE_NAME:-comfyui-nvidia-l4}"
+COMFYUI_SERVICE_NAME="${comfyui_app_name}-${comfyui_accelerator_type}"
+COMFYUI_DEPLOYMENT_NAME="${comfyui_app_name}-${comfyui_accelerator_type}"
 COMFYUI_LOCAL_PORT="${COMFYUI_LOCAL_PORT:-8188}"
 COMFYUI_REMOTE_PORT="${COMFYUI_REMOTE_PORT:-8188}"
 PORT_FORWARD_PID=""
+export COMFYUI_BUCKET="${cluster_project_id}-${unique_identifier_prefix}-${comfyui_app_name}"
 
 # --- Helpers ---
 step() { echo -e "\n==== [STEP] $* ====\n"; }
@@ -77,6 +79,19 @@ cleanup_on_exit() {
 trap cleanup_on_exit EXIT
 
 # ------------------------------------------------------------
+# Trigger cloudbuild pipeline to copy checkpoint files
+# ------------------------------------------------------------
+step "Trigger cloudbuild pipeline to copy checkpoint files"
+
+gcloud builds submit \
+--config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" \
+--gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
+--no-source \
+--project="${cluster_project_id}" \
+--service-account="${comfyui_cloudbuild_service_account_id}" \
+--substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
+
+# ------------------------------------------------------------
 # Prepare local test assets
 # ------------------------------------------------------------
 step "Prepare local test assets"
@@ -86,7 +101,6 @@ info "Preparing workflows in temporary directory: ${PREPARED_ASSETS_DIR}"
 cp -r "${SOURCE_TEST_DIR}/workflows/"* "${PREPARED_ASSETS_DIR}/"
 for file in "${PREPARED_ASSETS_DIR}"/*; do
     if [[ -f "$file" ]]; then
-        # Substitute environment variables into workflow JSON files
         envsubst < "$file" | sponge "$file"
     fi
 done
@@ -94,6 +108,9 @@ done
 # ------------------------------------------------------------
 # Start Port Forwarding
 # ------------------------------------------------------------
+echo "Waiting for '${COMFYUI_DEPLOYMENT_NAME}' in namespace '${COMFYUI_NAMESPACE}' to become ready..."
+kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
+
 step "Start port-forward to ComfyUI service"
 info "Forwarding localhost:${COMFYUI_LOCAL_PORT} to service/${COMFYUI_SERVICE_NAME}:${COMFYUI_REMOTE_PORT} in namespace ${COMFYUI_NAMESPACE}"
 
@@ -133,7 +150,7 @@ export POLL_TIMEOUT="300"
 export MINIMUM_FILE_SIZE_BYTES="1"
 
 # --- Run tests ---
-(
+{
     echo ">> Begin workflow tests..."
     FAILURES_FILE=$(mktemp)
 
@@ -162,7 +179,7 @@ export MINIMUM_FILE_SIZE_BYTES="1"
     else
       echo ">> All workflows completed successfully."
     fi
-) 2>&1 | tee "${POD_RUN_LOG}"
+ } 2>&1 | tee "${POD_RUN_LOG}"
 
 
 if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
@@ -172,3 +189,4 @@ if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
 else
   info "All tests completed successfully."
 fi
+

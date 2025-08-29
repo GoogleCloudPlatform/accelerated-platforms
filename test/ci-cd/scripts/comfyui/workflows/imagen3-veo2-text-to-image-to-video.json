@@ -58,7 +58,7 @@
       "duration_seconds": 8,
       "enhance_prompt": true,
       "sample_count": 1,
-      "output_gcs_uri": "gs://${cloudbuild_source_bucket_name}",
+      "output_gcs_uri": "gs://${COMFYUI_BUCKET}-output",
       "negative_prompt": "",
       "seed": 3718933726,
       "gcp_project_id": "",

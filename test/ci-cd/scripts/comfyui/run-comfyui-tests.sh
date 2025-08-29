@@ -104,12 +104,12 @@ kubectl port-forward \
 PORT_FORWARD_PID=$!
 
 info "Waiting for port-forward to be ready (PID: ${PORT_FORWARD_PID})..."
-local start_time=$(date +%s)
+start_time=$(date +%s)
 while ! curl -s --head "http://localhost:${COMFYUI_LOCAL_PORT}/" > /dev/null; do
     if ! kill -0 $PORT_FORWARD_PID 2>/dev/null; then
         log_error 1 "Port-forward process failed to start."
     fi
-    local current_time=$(date +%s)
+    current_time=$(date +%s)
     if (( current_time - start_time > 30 )); then
         log_error 1 "Timeout waiting for port-forward to establish."
     fi

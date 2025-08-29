@@ -125,7 +125,7 @@ info "Setting env & running all workflow tests"
 
 POD_RUN_LOG="$(mktemp)"
 
-source "${SOURCE_TEST_DIR}/comfyuui-workflow-tester.sh"
+source "${SOURCE_TEST_DIR}/comfyui-workflow-tester.sh"
 
 # Set environment variables for the sourced test functions
 export COMFYUI_URL="http://localhost:${COMFYUI_LOCAL_PORT}"

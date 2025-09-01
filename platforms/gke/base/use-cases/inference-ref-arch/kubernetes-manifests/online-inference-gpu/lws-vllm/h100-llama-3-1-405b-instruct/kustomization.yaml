@@ -25,7 +25,6 @@ nameSuffix: -h100-llama-3-1-405b-instruct
 
 patches:
   - path: set-h100-80gb-high-compute-class.yaml
-  - path: patch-resources.yaml
 
 replacements:
   - source:
@@ -119,6 +118,69 @@ replacements:
           - spec.selector.app
         select:
           kind: Service
+  - source:
+      fieldPath: data.CPU
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.spec.containers.[name=vllm-leader].resources.limits.cpu
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.spec.containers.[name=vllm-leader].resources.requests.cpu
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.workerTemplate.spec.containers.[name=vllm-worker].resources.limits.cpu
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.workerTemplate.spec.containers.[name=vllm-worker].resources.requests.cpu
+        select:
+          kind: LeaderWorkerSet
+  - source:
+      fieldPath: data.MEMORY
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.spec.containers.[name=vllm-leader].resources.limits.memory
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.spec.containers.[name=vllm-leader].resources.requests.memory
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.workerTemplate.spec.containers.[name=vllm-worker].resources.limits.memory
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.workerTemplate.spec.containers.[name=vllm-worker].resources.requests.memory
+        select:
+          kind: LeaderWorkerSet
+  - source:
+      fieldPath: data.GPU
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.spec.containers.[name=vllm-leader].resources.limits.[nvidia.com/gpu]
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.spec.containers.[name=vllm-leader].resources.requests.[nvidia.com/gpu]
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.workerTemplate.spec.containers.[name=vllm-worker].resources.limits.[nvidia.com/gpu]
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.workerTemplate.spec.containers.[name=vllm-worker].resources.requests.[nvidia.com/gpu]
+        select:
+          kind: LeaderWorkerSet  
 
 resources:
   - ../base

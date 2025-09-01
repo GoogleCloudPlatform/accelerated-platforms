@@ -17,7 +17,6 @@
 set -o nounset
 set -o pipefail
 set -o errtrace
-set -x
 
 # --- Load env (best-effort) ---
 source /workspace/build.env 2>/dev/null || true
@@ -127,7 +126,7 @@ echo "Waiting for '${COMFYUI_DEPLOYMENT_NAME}' in namespace '${COMFYUI_NAMESPACE
 
 # This command implicitly checks that the deployment and namespace exist.
 # The 'trap' will catch the error if it fails.
-kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
+kubectl wait service/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
 
 step "Start port-forward to ComfyUI service"
 

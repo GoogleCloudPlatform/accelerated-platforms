@@ -1,0 +1,124 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+configMapGenerator:
+  - envs:
+      - runtime.env
+    name: runtime
+    namespace: replaced-by-kustomize
+
+nameSuffix: -h100-llama-3-1-405b-instruct
+
+patches:
+  - path: set-h100-80gb-high-compute-class.yaml
+  - path: patch-resources.yaml
+
+replacements:
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Service
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ServiceAccount
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.spec.serviceAccountName
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.workerTemplate.spec.serviceAccountName
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - metadata.name
+        select:
+          kind: ServiceAccount
+  - source:
+      fieldPath: data.MODEL_BUCKET_NAME
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.workerTemplate.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
+        options:
+          delimiter: .
+          index: 0
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
+        options:
+          delimiter: .
+          index: 0
+        select:
+          kind: LeaderWorkerSet
+  - source:
+      fieldPath: data.MODEL_ID
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
+        options:
+          delimiter: "only-dir:"
+          index: 1
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.workerTemplate.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
+        options:
+          delimiter: "only-dir:"
+          index: 1
+        select:
+          kind: LeaderWorkerSet
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    # sourceValue is not available to 1.34
+    # sourceValue: "vllm-h100-gemma-3-27b-it"
+    targets:
+      - fieldPaths:
+          - spec.leaderWorkerTemplate.leaderTemplate.metadata.labels.app
+        select:
+          kind: LeaderWorkerSet
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+
+resources:
+  - ../base

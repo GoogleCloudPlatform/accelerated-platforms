@@ -85,11 +85,11 @@ trap cleanup_on_exit EXIT
 step "Create client pod '${POD_NAME}' in '${comfyui_kubernetes_namespace}'"
 export SA_NAME=$(kubectl get serviceaccount -n ${comfyui_kubernetes_namespace} -o custom-columns=NAME:.metadata.name --no-headers | grep -v "^default$")
 kubectl run "${POD_NAME}" \
-  --image=alpine:latest \
+  --image=debian:12-slim \
   --restart=Never \
   -n "${comfyui_kubernetes_namespace}" \
   --overrides="{ \"spec\": { \"serviceAccountName\": \"${SA_NAME}\" } }" \
-  --command -- sh -c "apk add --no-cache bash curl jq >/dev/null && echo 'Pod is ready. Waiting...' && sleep 3600"
+  --command -- sh -c "echo 'Pod is ready with tools pre-installed. Waiting...' && sleep 3600"
 
 step "Wait for pod to be Ready"
 kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=3600s

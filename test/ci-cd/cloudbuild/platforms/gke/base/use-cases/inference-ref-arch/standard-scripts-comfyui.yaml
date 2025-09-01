@@ -51,6 +51,15 @@ steps:
     waitFor:
       - "Configure the build environment"
 
+  - args:
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
+    id: "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Create the IAP Brand"
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'Run-Test-Without-PID'
     entrypoint: 'bash'
@@ -81,15 +90,8 @@ steps:
       # The cleanup command now uses pkill
       echo "## Cleaning up port-forward process..."
       pkill -f "port-forward service/comfyui-nvidia-l4"
-
-  - args:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
-    id: "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Create the IAP Brand"
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
 
   - args:
       - "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"

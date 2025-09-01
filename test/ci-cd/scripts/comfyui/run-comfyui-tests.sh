@@ -19,50 +19,50 @@ set -o pipefail
 set -o errtrace
 
 # --- Load env (best-effort) ---
+# shellcheck disable=SC1091
 source /workspace/build.env 2>/dev/null || true
 if [ -n "${ACP_PLATFORM_BASE_DIR:-}" ]; then
+  # shellcheck disable=SC1091
   source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh" 2>/dev/null || true
 fi
 
-# --- Vars ---
+# --- Vars (preserved defaults) ---
+export POD_NAME="${POD_NAME:-comfyui-client}"
 export ERROR_FILE="${ERROR_FILE:-/workspace/build-failed.lock}"
-export SOURCE_TEST_DIR="${SOURCE_TEST_DIR:-test/ci-cd/scripts/comfyui/}"
-STEP_ID=${1:-build-ci}
+export TEST_WORKFLOW_DIR="${TEST_WORKFLOW_DIR:-test/ci-cd/scripts/comfyui/}"
 
-# --- Test Configuration ---
-COMFYUI_NAMESPACE="${comfyui_kubernetes_namespace:-comfyui}"
-COMFYUI_SERVICE_NAME="${comfyui_app_name}-${comfyui_accelerator_type}"
-COMFYUI_DEPLOYMENT_NAME="${comfyui_app_name}-${comfyui_accelerator_type}"
-COMFYUI_LOCAL_PORT="${COMFYUI_LOCAL_PORT:-8188}"
-COMFYUI_REMOTE_PORT="${COMFYUI_REMOTE_PORT:-8188}"
-PORT_FORWARD_PID=""
-export COMFYUI_BUCKET="${cluster_project_id}-${unique_identifier_prefix}-${comfyui_app_name}"
+COMFYUI_PORT="${COMFYUI_PORT:-8188}"
+MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-180}"
+STEP_ID=${1:-build-ci} # Default STEP_ID to 'build-ci' if not provided
 
 # --- Helpers ---
 step() { echo -e "\n==== [STEP] $* ====\n"; }
 info() { echo "[INFO] $*"; }
 warn() { echo "[WARN] $*" >&2; }
 
+# This function is triggered by the ERR trap or called directly.
+# It logs an error message and always exits 0.
 log_error() {
-  local exit_code=${1:-$?}
+  local exit_code=${1:-$?} # Use provided exit code or last command's
   local message=${2:-"Script error on line ${BASH_LINENO[0]} (exit code: ${exit_code}) executing: ${BASH_COMMAND}"}
 
+  # Ensure we don't log successful exits when called from the ERR trap
   if [ "${exit_code}" -eq 0 ] && [ "$#" -eq 0 ]; then
     return
   fi
 
-  >"${ERROR_FILE}"
+  >"${ERROR_FILE}" # Clear the error file
   echo "- [${STEP_ID}] ${message}" >>"${ERROR_FILE}"
-  exit 0
+  exit 0 # Always exit 0
 }
 trap 'log_error' ERR
 
+# This function runs on any script exit.
+# It cleans up the pod and ALWAYS exits 0.
 cleanup_on_exit() {
   step "Cleanup"
-  if [ -n "${PORT_FORWARD_PID}" ]; then
-    info "Stopping port-forward process (PID: ${PORT_FORWARD_PID})..."
-    kill "${PORT_FORWARD_PID}" >/dev/null 2>&1 || true
-  fi
+  info "Deleting pod: ${POD_NAME} (namespace: ${comfyui_kubernetes_namespace})"
+  kubectl delete pod "${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --ignore-not-found=true >/dev/null 2>&1 || true
 
   step "Final status"
   if [ -s "${ERROR_FILE}" ]; then
@@ -73,140 +73,83 @@ cleanup_on_exit() {
     info "Test run completed successfully."
   fi
 
+  # ALWAYS exit 0 per requirement
   info "Exiting with status 0 to ensure build step passes."
   exit 0
 }
 trap cleanup_on_exit EXIT
 
 # ------------------------------------------------------------
-# Prepare local test assets
+# Start client pod
 # ------------------------------------------------------------
-step "Prepare local test assets"
-PREPARED_ASSETS_DIR=$(mktemp -d)
-info "Preparing workflows in temporary directory: ${PREPARED_ASSETS_DIR}"
+step "Create client pod '${POD_NAME}' in '${comfyui_kubernetes_namespace}'"
+export SA_NAME=$(kubectl get serviceaccount -n ${comfyui_kubernetes_namespace} -o custom-columns=NAME:.metadata.name --no-headers | grep -v "^default$")
+kubectl run "${POD_NAME}" \
+  --image=alpine:latest \
+  --restart=Never \
+  -n "${comfyui_kubernetes_namespace}" \
+  --overrides="{ \"spec\": { \"serviceAccountName\": \"${SA_NAME}\" } }" \
+  --command -- sh -c "apk add --no-cache bash curl jq >/dev/null && echo 'Pod is ready. Waiting...' && sleep 3600"
 
-cp -r "${SOURCE_TEST_DIR}/workflows/"* "${PREPARED_ASSETS_DIR}/"
-for file in "${PREPARED_ASSETS_DIR}"/*; do
+step "Wait for pod to be Ready"
+kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=3600s
+
+# ------------------------------------------------------------
+# Copy test assets
+# ------------------------------------------------------------
+step "Copy test assets into pod"
+info "Copying comfyui_prompt_test.sh and workflows directory"
+TEMP_DIR="${TEST_WORKFLOW_DIR}/tmp"
+mkdir -p "${TEMP_DIR}"
+cp -r "${TEST_WORKFLOW_DIR}/workflows/"* "${TEMP_DIR}"
+for file in "${TEMP_DIR}"/*; do
     if [[ -f "$file" ]]; then
         envsubst < "$file" | sponge "$file"
     fi
 done
-# ------------------------------------------------------------
-# Credentials
-# ------------------------------------------------------------
-step "Get GKE credentials"
-info "Fetching credentials for project '${cluster_project_id}'"
-${cluster_credentials_command}
+
+kubectl cp "${TEST_WORKFLOW_DIR}/comfyui-workflow-tester.sh" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/comfyui-workflow-tester.sh"
+kubectl cp "${TEMP_DIR}" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/workflows"
+kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- chmod +x /tmp/comfyui-workflow-tester.sh
 
 # ------------------------------------------------------------
-# Start Port Forwarding
+# Discover service IP
 # ------------------------------------------------------------
-
-echo "## Starting port-forward in the background..."
-kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
-
-# The PID is no longer captured
-kubectl port-forward service/comfyui-nvidia-l4 -n comfyui 8188:8188
-
-# The wait loop remains the same, but it no longer checks the PID
-echo "## Waiting for connection on localhost:8188..."
-start_time=$(date +%s)
-while ! curl -s --head "http://localhost:8188/" > /dev/null; do
-    if (( ($(date +%s) - $start_time) > 60 )); then
-        echo "Timeout: Waited 60s for port-forward to establish." >&2
-        exit 0
-    fi
-    sleep 2
-done
-echo "## Connection established."
-
-echo "## Sending prompt to ComfyUI..."
-curl -X POST http://localhost:8188/prompt \
-  -H 'Content-Type: application/json' \
-  -d @test/ci-cd/scripts/comfyui/workflows/gemini-imagen4-text-to-image.json 
-
-# The cleanup command now uses pkill
-echo "## Cleaning up port-forward process..."
-pkill -f "port-forward service/comfyui-nvidia-l4"
-: << 'COMMENT'
-kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
-sleep 30
-kubectl port-forward  service/comfyui-nvidia-l4 -n comfyui 8188:8188 &
-
-curl -X POST   http://localhost:8188/prompt   -H 'Content-Type: application/json'   -d  @test/ci-cd/scripts/comfyui/workflows/gemini-imagen4-text-to-image.json 
-
-# cloudbuild.yaml
-echo "Waiting for '${COMFYUI_DEPLOYMENT_NAME}' in namespace '${COMFYUI_NAMESPACE}' to become ready..."
-
-# This command implicitly checks that the deployment and namespace exist.
-# The 'trap' will catch the error if it fails.
-kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
-
-step "Start port-forward to ComfyUI service"
-
-# 1. ADDED: Proactively check if the local port is already in use.
-info "Checking if local port ${COMFYUI_LOCAL_PORT} is available..."
-if ss -tln | grep -q ":${COMFYUI_LOCAL_PORT} "; then
-    log_error 1 "Local port ${COMFYUI_LOCAL_PORT} is already in use."
-fi
-info "Port is available."
-
-info "Forwarding localhost:${COMFYUI_LOCAL_PORT} to service/${COMFYUI_SERVICE_NAME}:${COMFYUI_REMOTE_PORT} in namespace ${COMFYUI_NAMESPACE}"
-
-# 2. MODIFIED: Capture kubectl's output to a log file for better error messages.
-PF_LOG=$(mktemp)
-kubectl port-forward \
-  "service/${COMFYUI_SERVICE_NAME}" \
-  -n "${COMFYUI_NAMESPACE}" \
-  "${COMFYUI_LOCAL_PORT}:${COMFYUI_REMOTE_PORT}" >"${PF_LOG}" 2>&1 &
-PORT_FORWARD_PID=$!
-
-info "Waiting for port-forward to be ready (PID: ${PORT_FORWARD_PID})..."
-start_time=$(date +%s)
-while ! curl -s --head "http://localhost:${COMFYUI_LOCAL_PORT}/" > /dev/null; do
-    # 3. MODIFIED: Check if the process died and provide a specific error message.
-    if ! kill -0 $PORT_FORWARD_PID 2>/dev/null; then
-        pf_error_msg=$(cat "${PF_LOG}")
-        log_error 1 "Port-forward process failed to start. Kubectl error: ${pf_error_msg}"
-    fi
-    current_time=$(date +%s)
-    if (( current_time - start_time > 30 )); then
-        log_error 1 "Timeout waiting for port-forward to establish."
-    fi
-    sleep 1
-done
-
-rm -f "${PF_LOG}" # Clean up the log file on success
-info "Port-forward is active."
+step "Discover ComfyUI service IP (port ${COMFYUI_PORT})"
+SERVICE_IP_AND_PORT="$(kubectl get service -n "${comfyui_kubernetes_namespace}" | grep "${COMFYUI_PORT}" | awk '{print $3}'):${COMFYUI_PORT}"
+info "Using service endpoint: ${SERVICE_IP_AND_PORT}"
 
 # ------------------------------------------------------------
-# Execute tests locally
+# Execute tests inside pod
 # ------------------------------------------------------------
-step "Execute test script locally"
+step "Execute test script in pod"
 info "Setting env & running all workflow tests"
 
 POD_RUN_LOG="$(mktemp)"
 
-source "${SOURCE_TEST_DIR}/comfyui-workflow-tester.sh"
+kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
+  COMFYUI_URL="http://${SERVICE_IP_AND_PORT}" \
+  TEST_WORKFLOW_DIR="/tmp/workflows" \
+  POLL_TIMEOUT="300" \
+  POLL_INTERVAL="5" \
+  MINIMUM_FILE_SIZE_BYTES="1" \
+  /bin/bash -lc '
+    echo ">> Sourcing test functions..."
+    . /tmp/comfyui_prompt_test.sh
 
-# Set environment variables for the sourced test functions
-export COMFYUI_URL="http://localhost:${COMFYUI_LOCAL_PORT}"
-export POLL_TIMEOUT="300"
-export MINIMUM_FILE_SIZE_BYTES="1"
-
-# --- Run tests ---
-{
     echo ">> Begin workflow tests..."
     FAILURES_FILE=$(mktemp)
 
-    for f in "${PREPARED_ASSETS_DIR}"/*; do
+    for f in "${TEST_WORKFLOW_DIR}"/*; do
       (
         TEST_LOG=$(mktemp)
         
-        # Run the main test function and capture all its output.
+        # Run test and capture all its output.
         if main "${f}" >"${TEST_LOG}" 2>&1; then
+          # On success, just print a clean OK message.
           echo "---- [PASS]  OK: $(basename "$f")"
         else
+          # On failure, print the failure message AND the detailed log.
           echo "---- [FAIL]  FAILED: $(basename "$f") - See full log below:" >&2
           cat "${TEST_LOG}" >&2
           basename "${f}" >> "${FAILURES_FILE}"
@@ -224,14 +167,15 @@ export MINIMUM_FILE_SIZE_BYTES="1"
     else
       echo ">> All workflows completed successfully."
     fi
- } 2>&1 | tee "${POD_RUN_LOG}"
 
+    # ALWAYS exit 0 from the pod
+    exit 0
+  ' 2>&1 | tee "${POD_RUN_LOG}"
 
 if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
   echo "Failed Workflows:" >"${ERROR_FILE}"
   sed -n 's/.*\[FAIL\].*FAILED: \(.*\) - See full log below:$/\1/p' "${POD_RUN_LOG}" >>"${ERROR_FILE}"
-  warn "One or more tests failed. See details in ${ERROR_FILE}."
+  warn "One or more in-pod tests failed. See details in ${ERROR_FILE}."
 else
-  info "All tests completed successfully."
+  info "All in-pod tests completed successfully."
 fi
-COMMENT

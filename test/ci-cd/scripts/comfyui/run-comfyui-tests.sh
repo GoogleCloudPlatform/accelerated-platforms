@@ -101,13 +101,41 @@ ${cluster_credentials_command}
 # ------------------------------------------------------------
 # Start Port Forwarding
 # ------------------------------------------------------------
+
+echo "## Starting port-forward in the background..."
+kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
+
+# The PID is no longer captured
+kubectl port-forward service/comfyui-nvidia-l4 -n comfyui 8188:8188
+
+# The wait loop remains the same, but it no longer checks the PID
+echo "## Waiting for connection on localhost:8188..."
+start_time=$(date +%s)
+while ! curl -s --head "http://localhost:8188/" > /dev/null; do
+    if (( ($(date +%s) - $start_time) > 60 )); then
+        echo "Timeout: Waited 60s for port-forward to establish." >&2
+        exit 0
+    fi
+    sleep 2
+done
+echo "## Connection established."
+
+echo "## Sending prompt to ComfyUI..."
+curl -X POST http://localhost:8188/prompt \
+  -H 'Content-Type: application/json' \
+  -d @test/ci-cd/scripts/comfyui/workflows/gemini-imagen4-text-to-image.json 
+
+# The cleanup command now uses pkill
+echo "## Cleaning up port-forward process..."
+pkill -f "port-forward service/comfyui-nvidia-l4"
+: << 'COMMENT'
 kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
 sleep 30
 kubectl port-forward  service/comfyui-nvidia-l4 -n comfyui 8188:8188 &
 
 curl -X POST   http://localhost:8188/prompt   -H 'Content-Type: application/json'   -d  @test/ci-cd/scripts/comfyui/workflows/gemini-imagen4-text-to-image.json 
 
-: << 'COMMENT'
+# cloudbuild.yaml
 echo "Waiting for '${COMFYUI_DEPLOYMENT_NAME}' in namespace '${COMFYUI_NAMESPACE}' to become ready..."
 
 # This command implicitly checks that the deployment and namespace exist.

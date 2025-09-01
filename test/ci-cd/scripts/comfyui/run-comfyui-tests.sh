@@ -79,27 +79,6 @@ cleanup_on_exit() {
 trap cleanup_on_exit EXIT
 
 # ------------------------------------------------------------
-# Trigger cloudbuild pipeline to copy checkpoint files
-# ------------------------------------------------------------
-step "Trigger cloudbuild pipeline to copy checkpoint files"
-echo "ComfyUI bucket: ${comfyui_cloudbuild_source_bucket_name}"
-echo "Model bucket: ${comfyui_cloud_storage_model_bucket_name}"
-echo "Service account: ${comfyui_cloudbuild_service_account_id}"
-echo "Region: ${cluster_region}"
-echo "Project: ${cluster_project_id}"
-echo "Directory: ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" 
-
-cat "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" 
- : << 'COMMENT'
-gcloud builds submit \
---config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" \
---gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
---no-source \
---project="${cluster_project_id}" \
---service-account="${comfyui_cloudbuild_service_account_id}" \
---substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
-COMMENT
-# ------------------------------------------------------------
 # Prepare local test assets
 # ------------------------------------------------------------
 step "Prepare local test assets"
@@ -122,6 +101,11 @@ ${cluster_credentials_command}
 # ------------------------------------------------------------
 # Start Port Forwarding
 # ------------------------------------------------------------
+kubectl port-forward  service/comfyui-nvidia-l4 -n comfyui 8188:8188 &
+sleep 30
+curl -X POST   http://localhost:8188/prompt   -H 'Content-Type: application/json'   -d  @test/ci-cd/scripts/comfyui/workflows/gemini-imagen4-text-to-image.json 
+
+: << 'COMMENT'
 echo "Waiting for '${COMFYUI_DEPLOYMENT_NAME}' in namespace '${COMFYUI_NAMESPACE}' to become ready..."
 
 # This command implicitly checks that the deployment and namespace exist.
@@ -220,4 +204,4 @@ if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
 else
   info "All tests completed successfully."
 fi
-
+COMMENT

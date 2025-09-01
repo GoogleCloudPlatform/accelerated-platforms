@@ -17,6 +17,7 @@
 set -o nounset
 set -o pipefail
 set -o errtrace
+set -x
 
 # --- Load env (best-effort) ---
 source /workspace/build.env 2>/dev/null || true
@@ -132,8 +133,8 @@ step "Start port-forward to ComfyUI service"
 
 # 1. ADDED: Proactively check if the local port is already in use.
 info "Checking if local port ${COMFYUI_LOCAL_PORT} is available..."
-if lsof -i :${COMFYUI_LOCAL_PORT} >/dev/null; then
-    log_error 1 "Local port ${COMFYUI_LOCAL_PORT} is already in use by another process."
+if ss -tln | grep -q ":${COMFYUI_LOCAL_PORT} "; then
+    log_error 1 "Local port ${COMFYUI_LOCAL_PORT} is already in use."
 fi
 info "Port is available."
 

@@ -101,8 +101,10 @@ ${cluster_credentials_command}
 # ------------------------------------------------------------
 # Start Port Forwarding
 # ------------------------------------------------------------
-kubectl port-forward  service/comfyui-nvidia-l4 -n comfyui 8188:8188 &
+kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
 sleep 30
+kubectl port-forward  service/comfyui-nvidia-l4 -n comfyui 8188:8188 &
+
 curl -X POST   http://localhost:8188/prompt   -H 'Content-Type: application/json'   -d  @test/ci-cd/scripts/comfyui/workflows/gemini-imagen4-text-to-image.json 
 
 : << 'COMMENT'
@@ -110,7 +112,7 @@ echo "Waiting for '${COMFYUI_DEPLOYMENT_NAME}' in namespace '${COMFYUI_NAMESPACE
 
 # This command implicitly checks that the deployment and namespace exist.
 # The 'trap' will catch the error if it fails.
-kubectl wait service/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
+kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
 
 step "Start port-forward to ComfyUI service"
 

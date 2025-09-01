@@ -112,6 +112,12 @@ for file in "${PREPARED_ASSETS_DIR}"/*; do
         envsubst < "$file" | sponge "$file"
     fi
 done
+# ------------------------------------------------------------
+# Credentials
+# ------------------------------------------------------------
+step "Get GKE credentials"
+info "Fetching credentials for project '${cluster_project_id}'"
+${cluster_credentials_command}
 
 # ------------------------------------------------------------
 # Start Port Forwarding

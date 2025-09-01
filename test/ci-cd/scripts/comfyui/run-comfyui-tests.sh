@@ -82,7 +82,15 @@ trap cleanup_on_exit EXIT
 # Trigger cloudbuild pipeline to copy checkpoint files
 # ------------------------------------------------------------
 step "Trigger cloudbuild pipeline to copy checkpoint files"
+echo "ComfyUI bucket: ${comfyui_cloudbuild_source_bucket_name}"
+echo "Model bucket: ${comfyui_cloud_storage_model_bucket_name}"
+echo "Service account: ${comfyui_cloudbuild_service_account_id}"
+echo "Region: ${cluster_region}"
+echo "Project: ${cluster_project_id}"
+echo "Directory: ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" 
 
+cat "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" 
+ : << 'COMMENT'
 gcloud builds submit \
 --config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" \
 --gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
@@ -90,7 +98,7 @@ gcloud builds submit \
 --project="${cluster_project_id}" \
 --service-account="${comfyui_cloudbuild_service_account_id}" \
 --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
-
+COMMENT
 # ------------------------------------------------------------
 # Prepare local test assets
 # ------------------------------------------------------------

@@ -123,22 +123,37 @@ ${cluster_credentials_command}
 # Start Port Forwarding
 # ------------------------------------------------------------
 echo "Waiting for '${COMFYUI_DEPLOYMENT_NAME}' in namespace '${COMFYUI_NAMESPACE}' to become ready..."
+
+# This command implicitly checks that the deployment and namespace exist.
+# The 'trap' will catch the error if it fails.
 kubectl wait deployment/${COMFYUI_DEPLOYMENT_NAME} -n ${COMFYUI_NAMESPACE} --for=condition=Available --timeout=300s
 
 step "Start port-forward to ComfyUI service"
+
+# 1. ADDED: Proactively check if the local port is already in use.
+info "Checking if local port ${COMFYUI_LOCAL_PORT} is available..."
+if lsof -i :${COMFYUI_LOCAL_PORT} >/dev/null; then
+    log_error 1 "Local port ${COMFYUI_LOCAL_PORT} is already in use by another process."
+fi
+info "Port is available."
+
 info "Forwarding localhost:${COMFYUI_LOCAL_PORT} to service/${COMFYUI_SERVICE_NAME}:${COMFYUI_REMOTE_PORT} in namespace ${COMFYUI_NAMESPACE}"
 
+# 2. MODIFIED: Capture kubectl's output to a log file for better error messages.
+PF_LOG=$(mktemp)
 kubectl port-forward \
   "service/${COMFYUI_SERVICE_NAME}" \
   -n "${COMFYUI_NAMESPACE}" \
-  "${COMFYUI_LOCAL_PORT}:${COMFYUI_REMOTE_PORT}" >/dev/null 2>&1 &
+  "${COMFYUI_LOCAL_PORT}:${COMFYUI_REMOTE_PORT}" >"${PF_LOG}" 2>&1 &
 PORT_FORWARD_PID=$!
 
 info "Waiting for port-forward to be ready (PID: ${PORT_FORWARD_PID})..."
 start_time=$(date +%s)
 while ! curl -s --head "http://localhost:${COMFYUI_LOCAL_PORT}/" > /dev/null; do
+    # 3. MODIFIED: Check if the process died and provide a specific error message.
     if ! kill -0 $PORT_FORWARD_PID 2>/dev/null; then
-        log_error 1 "Port-forward process failed to start."
+        pf_error_msg=$(cat "${PF_LOG}")
+        log_error 1 "Port-forward process failed to start. Kubectl error: ${pf_error_msg}"
     fi
     current_time=$(date +%s)
     if (( current_time - start_time > 30 )); then
@@ -146,6 +161,8 @@ while ! curl -s --head "http://localhost:${COMFYUI_LOCAL_PORT}/" > /dev/null; do
     fi
     sleep 1
 done
+
+rm -f "${PF_LOG}" # Clean up the log file on success
 info "Port-forward is active."
 
 # ------------------------------------------------------------

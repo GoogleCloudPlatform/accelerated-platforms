@@ -206,6 +206,6 @@ class Gemini25FlashImage:
         return (batched_images_tensor,)
 
 
-NODE_CLASS_MAPPINGS = {"Gemin25FlashImage": Gemini25FlashImage}
+NODE_CLASS_MAPPINGS = {"Gemini25FlashImage": Gemini25FlashImage}
 
-NODE_DISPLAY_NAME_MAPPINGS = {"Gemin25FlashImage": "Gemini 2.5 Flash Image"}
+NODE_DISPLAY_NAME_MAPPINGS = {"Gemini25FlashImage": "Gemini 2.5 Flash Image"}

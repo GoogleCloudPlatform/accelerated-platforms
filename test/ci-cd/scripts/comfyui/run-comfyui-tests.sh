@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # This script ALWAYS exits 0. All failures are logged to ERROR_FILE.
-
 set -o nounset
 set -o pipefail
 set -o errtrace
@@ -40,8 +39,6 @@ step() { echo -e "\n==== [STEP] $* ====\n"; }
 info() { echo "[INFO] $*"; }
 warn() { echo "[WARN] $*" >&2; }
 
-# This function is triggered by the ERR trap or called directly.
-# It logs an error message and always exits 0.
 log_error() {
   local exit_code=${1:-$?} # Use provided exit code or last command's
   local message=${2:-"Script error on line ${BASH_LINENO[0]} (exit code: ${exit_code}) executing: ${BASH_COMMAND}"}
@@ -57,8 +54,6 @@ log_error() {
 }
 trap 'log_error' ERR
 
-# This function runs on any script exit.
-# It cleans up the pod and ALWAYS exits 0.
 cleanup_on_exit() {
   step "Cleanup"
   info "Deleting pod: ${POD_NAME} (namespace: ${comfyui_kubernetes_namespace})"
@@ -179,3 +174,4 @@ if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
 else
   info "All in-pod tests completed successfully."
 fi
+

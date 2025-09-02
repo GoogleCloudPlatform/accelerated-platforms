@@ -29,7 +29,7 @@ fi
 # --- Vars (preserved defaults) ---
 export POD_NAME="${POD_NAME:-comfyui-client}"
 export ERROR_FILE="${ERROR_FILE:-/workspace/build-failed.lock}"
-export TEST_WORKFLOW_DIR="${TEST_WORKFLOW_DIR:-test/ci-cd/scripts/comfyui/}"
+export TEST_WORKFLOW_DIR="${TEST_WORKFLOW_DIR:-test/ci-cd/scripts/comfyui}"
 
 COMFYUI_PORT="${COMFYUI_PORT:-8188}"
 MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-180}"

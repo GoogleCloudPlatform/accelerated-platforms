@@ -137,24 +137,28 @@ class Gemini25FlashImage:
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
     ) -> Tuple[torch.Tensor,]:
-        """
-        Generates images based on the provided parameters using the Imagen API
-        and returns them as a PyTorch tensor suitable for ComfyUI.
+        """Generates images using the Gemini Flash Image API and returns them.
+
+        This method interfaces with the GeminiFlashImageAPI to generate images
+        based on a prompt and other parameters. It then converts the generated
+        PIL images into a PyTorch tensor suitable for use in ComfyUI.
 
         Args:
-            model: Imagen4 model it. There are three as of Jul 1, 2025.
+            model: The Gemini Flash Image model to use. default: gemini-2.5-flash-image-preview 
             prompt: The text prompt for image generation.
-            person_generation: Controls whether the model can generate people.
-            aspect_ratio: The desired aspect ratio of the images.
-            number_of_images: The number of images to generate (1-4).
-            negative_prompt: A prompt to guide the model to avoid generating certain things.
-            seed: A seed for reproducible image generation. If 0, Imagen API handles randomness.
-            enhance_prompt: Whether to enhance the prompt automatically.
-            add_watermark: Whether to add a watermark to the generated images.
-            output_image_type: The desired output image format (PNG or JPEG).
-            safety_filter_level: The safety filter strictness.
-            gcp_project_id: GCP project ID where the Imagen will be queried via Vertex AI APIs
-            gcp_region: GCP region for Vertex AI APIs to query Imagen
+            temperature: Controls randomness in token generation.
+            top_p: The cumulative probability of tokens to consider for sampling.
+            top_k: The number of highest probability tokens to consider for sampling.
+            hate_speech_threshold: Safety threshold for hate speech.
+            harassment_threshold: Safety threshold for harassment.
+            sexually_explicit_threshold: Safety threshold for sexually explicit
+              content.
+            dangerous_content_threshold: Safety threshold for dangerous content.
+            system_instruction: System-level instructions for the model.
+            image: An optional input image tensor for image editing tasks.
+              Defaults to None.
+            gcp_project_id: The GCP project ID.
+            gcp_region: The GCP region. 
 
         Returns:
             A tuple containing a PyTorch tensor of the generated images,

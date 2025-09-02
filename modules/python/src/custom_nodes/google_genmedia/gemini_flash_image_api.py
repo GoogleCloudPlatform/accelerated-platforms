@@ -37,12 +37,14 @@ class GeminiFlashImageAPI:
     """
     
     def __init__(self, project_id: Optional[str] = None, region: Optional[str] = None):
-        """
-        Initialized the Gemini 2.5 Flash Image Preview client
-        
+        """Initializes the Gemini 2.5 Flash Image Preview client.
+
         Args:
-            project_id (Optional[str], optional): _description_. Defaults to None.
-            region (Optional[str], optional): _description_. Defaults to None.
+            project_id (Optional[str], optional): The GCP project ID. If not
+              provided, it will be inferred from the environment. Defaults to None.
+            region (Optional[str], optional): The GCP region. If not provided, it
+              will be inferred from the environment. Defaults to None.
+
         Raises:
             ValueError: If GCP Project or region cannot be determined.
         """
@@ -82,28 +84,25 @@ class GeminiFlashImageAPI:
         system_instruction: str,
         image: Optional[torch.Tensor] = None,
     ) -> List[Image.Image]:
-        """
+        """Generates an image using the Gemini Flash Image model.
+
         Args:
-            model (str): _description_
-            prompt (str): _description_
-            person_generation (str): _description_
-            aspect_ratio (str): _description_
-            number_of_images (int): _description_
-            negative_prompt (str): _description_
-            seed (Optional[int]): _description_
-            enhance_prompt (bool): _description_
-            add_watermark (bool): _description_
-            output_image_type (str): _description_
-            safety_filter_level (str): _description_
+            model: The name of the Gemini model to use. default: gemini-2.5-flash-image-preview
+            prompt: The text prompt for image generation.
+            temperature: Controls randomness in token generation.
+            top_p: The cumulative probability of tokens to consider for sampling.
+            top_k: The number of highest probability tokens to consider for sampling.
+            hate_speech_threshold: Safety threshold for hate speech.
+            harassment_threshold: Safety threshold for harassment.
+            sexually_explicit_threshold: Safety threshold for sexually explicit
+              content.
+            dangerous_content_threshold: Safety threshold for dangerous content.
+            system_instruction: System-level instructions for the model.
+            image: An optional input image tensor for image-to-image tasks.
+              Defaults to None.
 
         Returns:
-            A list of PIL image objects. Return an empty list on failure.
-        
-        Raises:
-            ValueError: If `number_of_images` is not between 1 and 4,
-                        if `seed` is provided with `add_watermark` enabled,
-                        or if `output_image_type` is unsupported.
-
+            A list of generated PIL images.
         """
         model = GeminiFlashImageModel[model]
         

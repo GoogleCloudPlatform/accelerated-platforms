@@ -98,7 +98,7 @@ kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_na
 # Copy test assets
 # ------------------------------------------------------------
 step "Copy test assets into pod"
-info "Copying comfyui_prompt_test.sh and workflows directory"
+info "Copying comfyui-workflow-tester.sh and workflows directory"
 TEMP_DIR="${TEST_WORKFLOW_DIR}/tmp"
 mkdir -p "${TEMP_DIR}"
 cp -r "${TEST_WORKFLOW_DIR}/workflows/"* "${TEMP_DIR}"
@@ -135,7 +135,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
   MINIMUM_FILE_SIZE_BYTES="1" \
   /bin/bash -lc '
     echo ">> Sourcing test functions..."
-    . /tmp/comfyui_prompt_test.sh
+    . /tmp/comfyui-workflow-tester.sh
 
     echo ">> Begin workflow tests..."
     FAILURES_FILE=$(mktemp)

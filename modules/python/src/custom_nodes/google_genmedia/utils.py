@@ -174,9 +174,7 @@ def generate_image_from_text(
 
     generated_pil_images: List[PIL_Image.Image] = []
     print("Sending request to Imagen API for text-to-image generation...")
-    response = client.models.generate_images(
-        model=model, prompt=prompt, config=config
-    )
+    response = client.models.generate_images(model=model, prompt=prompt, config=config)
 
     if not response.generated_images:
         error_message = "Image generation failed or was blocked by safety filters."
@@ -565,9 +563,7 @@ def generate_video_from_text(
     print(f"Config for text-to-video generation: {config}")
 
     print("Sending request to Veo API for text-to-video generation...")
-    operation = client.models.generate_videos(
-        model=model, prompt=prompt, config=config
-    )
+    operation = client.models.generate_videos(model=model, prompt=prompt, config=config)
     print(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0

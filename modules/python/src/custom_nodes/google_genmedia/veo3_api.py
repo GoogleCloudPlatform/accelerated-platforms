@@ -324,7 +324,9 @@ class Veo3API:
         elif input_image_format_upper == "MP4":
             mime_type = "image/mp4"
         else:
-            raise exceptions.ConfigurationError(f"Unsupported image format: {image_format}")
+            raise exceptions.ConfigurationError(
+                f"Unsupported image format: {image_format}"
+            )
         last_frame_gcsuri = None  # this is because veo3 doesn't support last frame yet and both veo2 and veo3 share the same code base for making API calls.
         model = Veo3Model[model]
         return utils.generate_video_from_gcsuri_image(

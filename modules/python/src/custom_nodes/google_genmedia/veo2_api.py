@@ -299,7 +299,9 @@ class Veo2API:
         elif input_image_format_upper == "MP4":
             mime_type = "image/mp4"
         else:
-            raise exceptions.ConfigurationError(f"Unsupported image format: {image_format}")
+            raise exceptions.ConfigurationError(
+                f"Unsupported image format: {image_format}"
+            )
 
         return utils.generate_video_from_gcsuri_image(
             client=self.client,

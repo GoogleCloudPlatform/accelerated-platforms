@@ -43,3 +43,4 @@ class FileProcessingError(GoogleGenMediaException):
     """Raised for errors during file processing."""
 
     pass
+

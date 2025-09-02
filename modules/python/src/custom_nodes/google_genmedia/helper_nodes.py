@@ -26,6 +26,7 @@ import numpy as np
 import torch
 from moviepy import VideoFileClip
 
+from . import exceptions
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
 
 
@@ -119,7 +120,9 @@ class VeoVideoToVHSNode:
                 print(f"Finished processing '{video_path}'.")
 
         except Exception as e:
-            print(f"An unexpected error occurred during frame extraction: {str(e)}")
+            raise exceptions.FileProcessingError(
+                f"An unexpected error occurred during frame extraction: {str(e)}"
+            )
 
         if all_preview_frames:
             final_output_frames = torch.stack(all_preview_frames, dim=0)
@@ -175,13 +178,13 @@ class VeoVideoSaveAndPreview:
                     )  # Use absolute path for moviepy
 
                     if not os.path.exists(video_path_abs):
-                        raise FileNotFoundError(
+                        raise exceptions.FileProcessingError(
                             f"Video file not found: {video_path_abs}"
                         )
 
                     ext = Path(video_path_abs).suffix.lower()
                     if ext not in SUPPORTED_VIDEO_EXTENSIONS:
-                        raise ValueError(
+                        raise exceptions.ConfigurationError(
                             f"Unsupported video format: {ext}. Supported formats: {', '.join(SUPPORTED_VIDEO_EXTENSIONS)}"
                         )
 
@@ -251,7 +254,9 @@ class VeoVideoSaveAndPreview:
                     }
                     videos_output_for_ui.append(video_item_for_ui)
                 else:
-                    raise ValueError("'video_paths' must be provided and not empty.")
+                    raise exceptions.ConfigurationError(
+                        "'video_paths' must be provided and not empty."
+                    )
 
             return {
                 "ui": {
@@ -274,8 +279,11 @@ class VeoVideoSaveAndPreview:
                 }
             }
 
-        except Exception as e:
+        except (exceptions.FileProcessingError, exceptions.ConfigurationError) as e:
             print(f"An error occurred in VeoVideoSaveAndPreview: {str(e)}")
+            return {"ui": {"video": [], "error": str(e)}}
+        except Exception as e:
+            print(f"An unexpected error occurred in VeoVideoSaveAndPreview: {str(e)}")
             return {"ui": {"video": [], "error": str(e)}}
 
 

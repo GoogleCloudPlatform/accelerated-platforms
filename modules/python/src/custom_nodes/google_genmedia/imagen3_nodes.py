@@ -20,6 +20,7 @@ import numpy as np
 import torch
 from google.genai import types
 
+from . import exceptions
 from .constants import MAX_SEED
 from .imagen3_api import Imagen3API
 
@@ -147,7 +148,7 @@ class Imagen3TextToImageNode:
         """
         try:
             imagen_api = Imagen3API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
             raise RuntimeError(
                 f"Failed to initialize Imagen API client for node execution: {e}"
             )
@@ -169,9 +170,12 @@ class Imagen3TextToImageNode:
                 output_image_type=output_image_type,
                 safety_filter_level=safety_filter_level,
             )
-        except Exception as e:
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
             raise RuntimeError(f"Error occurred during image generation: {e}")
-            # return (torch.empty(0, 640, 640, 3),)
+        except Exception as e:
+            raise RuntimeError(
+                f"An unexpected error occurred during image generation: {e}"
+            )
 
         if not pil_images:
             raise RuntimeError(

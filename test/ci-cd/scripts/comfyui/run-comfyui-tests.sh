@@ -12,10 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# This script ALWAYS exits 0. All failures are logged to ERROR_FILE.
-set -o nounset
-set -o pipefail
-set -o errtrace
 
 # --- Load env (best-effort) ---
 # shellcheck disable=SC1091
@@ -27,12 +23,12 @@ fi
 
 # --- Vars (preserved defaults) ---
 export POD_NAME="${POD_NAME:-comfyui-client}"
-export ERROR_FILE="${ERROR_FILE:-/workspace/build-failed.lock}"
+export ERROR_FILE="/workspace/build-failed.lock"
 export TEST_WORKFLOW_DIR="${TEST_WORKFLOW_DIR:-test/ci-cd/scripts/comfyui}"
-
-COMFYUI_PORT="${COMFYUI_PORT:-8188}"
+export COMFYUI_BUCKET="${cluster_project_id}-${unique_identifier_prefix}-${comfyui_app_name}"
+export COMFYUI_PORT="${COMFYUI_PORT:-8188}"
 MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-180}"
-STEP_ID=${1:-build-ci} # Default STEP_ID to 'build-ci' if not provided
+STEP_ID=${1:-build-ci}
 
 # --- Helpers ---
 step() { echo -e "\n==== [STEP] $* ====\n"; }
@@ -40,17 +36,14 @@ info() { echo "[INFO] $*"; }
 warn() { echo "[WARN] $*" >&2; }
 
 log_error() {
-  local exit_code=${1:-$?} # Use provided exit code or last command's
+  local exit_code=${1:-$?}
   local message=${2:-"Script error on line ${BASH_LINENO[0]} (exit code: ${exit_code}) executing: ${BASH_COMMAND}"}
 
-  # Ensure we don't log successful exits when called from the ERR trap
-  if [ "${exit_code}" -eq 0 ] && [ "$#" -eq 0 ]; then
-    return
+  if [ ${exit_code} -ne 0 ]; then
+    echo "- [${STEP_ID}] ${message}" >> '${ERROR_FILE}'
   fi
 
-  >"${ERROR_FILE}" # Clear the error file
-  echo "- [${STEP_ID}] ${message}" >>"${ERROR_FILE}"
-  exit 0 # Always exit 0
+  exit 0
 }
 trap 'log_error' ERR
 
@@ -75,16 +68,25 @@ cleanup_on_exit() {
 trap cleanup_on_exit EXIT
 
 # ------------------------------------------------------------
+# Get GKE credentials
+# ------------------------------------------------------------
+step "Get GKE credentials"
+info "Fetching credentials for project '${cluster_project_id}'"
+${cluster_credentials_command}
+
+# ------------------------------------------------------------
 # Start client pod
 # ------------------------------------------------------------
 step "Create client pod '${POD_NAME}' in '${comfyui_kubernetes_namespace}'"
-export SA_NAME=$(kubectl get serviceaccount -n ${comfyui_kubernetes_namespace} -o custom-columns=NAME:.metadata.name --no-headers | grep -v "^default$")
+# Correctly gets only ONE service account name
+export SA_NAME=$(kubectl get serviceaccount -n ${comfyui_kubernetes_namespace} -o custom-columns=NAME:.metadata.name --no-headers | grep -v "^default$" | head -n 1)
+
 kubectl run "${POD_NAME}" \
-  --image=debian:12-slim \
+  --image=alpine:latest \
   --restart=Never \
   -n "${comfyui_kubernetes_namespace}" \
   --overrides="{ \"spec\": { \"serviceAccountName\": \"${SA_NAME}\" } }" \
-  --command -- sh -c "echo 'Pod is ready with tools pre-installed. Waiting...' && sleep 3600"
+  --command -- sh -c "apk add --no-cache bash curl jq >/dev/null && echo 'Pod is ready. Waiting...' && sleep 3600"
 
 step "Wait for pod to be Ready"
 kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=3600s
@@ -106,7 +108,7 @@ done
 kubectl cp "${TEST_WORKFLOW_DIR}/comfyui-workflow-tester.sh" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/comfyui-workflow-tester.sh"
 kubectl cp "${TEMP_DIR}" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/workflows"
 kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- chmod +x /tmp/comfyui-workflow-tester.sh
-
+rm -rf "${TEMP_DIR}"
 # ------------------------------------------------------------
 # Discover service IP
 # ------------------------------------------------------------
@@ -135,17 +137,20 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     echo ">> Begin workflow tests..."
     FAILURES_FILE=$(mktemp)
 
-    for f in "${TEST_WORKFLOW_DIR}"/*; do
+    # --- CHANGE 1: Get the total number of test files ---
+    test_files=("${TEST_WORKFLOW_DIR}"/*)
+    total_tests=${#test_files[@]}
+    echo ">> Found ${total_tests} workflow files to test."
+
+    # --- CHANGE 2: Loop over the array of files ---
+    for f in "${test_files[@]}"; do
       (
         TEST_LOG=$(mktemp)
         
-        # Run test and capture all its output.
-        if main "${f}" >"${TEST_LOG}" 2>&1; then
-          # On success, just print a clean OK message.
-          echo "---- [PASS]  OK: $(basename "$f")"
+        if main "${f}"; then
+          echo "[PASS] filename: $(basename "$f")"
         else
-          # On failure, print the failure message AND the detailed log.
-          echo "---- [FAIL]  FAILED: $(basename "$f") - See full log below:" >&2
+          echo "[FAIL] filename: $(basename "$f") - See full log below:" >&2
           cat "${TEST_LOG}" >&2
           basename "${f}" >> "${FAILURES_FILE}"
         fi
@@ -154,6 +159,15 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     done
 
     wait
+
+    # --- CHANGE 3: Calculate success/failure counts and print summary ---
+    num_failures=0
+    # Check if the failure file has content before counting
+    if [ -s "${FAILURES_FILE}" ]; then
+      num_failures=$(wc -l < "${FAILURES_FILE}")
+    fi
+    num_successes=$((total_tests - num_failures))
+    echo ">> Summary: ${num_successes} out of ${total_tests} files completed successfully."
 
     if [ -s "${FAILURES_FILE}" ]; then
       echo ">> The following workflow tests failed:" >&2

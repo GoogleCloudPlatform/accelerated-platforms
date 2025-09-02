@@ -14,9 +14,7 @@
 # limitations under the License.
 # ComfyUI workflow tester (runs INSIDE pod)
 
-ts() { date -u +'%Y-%m-%dT%H:%M:%SZ'; }
-# IMPORTANT: log to STDERR so stdout is reserved for JSON
-log() { echo "[$(ts)] $*" >&2; }
+log() { echo "---- $*" >&2; }
 
 # --- 1) Submit a workflow; print {"prompt_id":"..."} to stdout (compact JSON) ---
 execute_workflow() {
@@ -64,11 +62,10 @@ get_history() {
   log "get_history: id=${prompt_id}"
   local start; start=$(date +%s)
 
-while true; do
+  while true; do
     local response http_code body now
     response=$(curl -s --connect-timeout 5 \
       -o - -w "%{http_code}" "${COMFYUI_URL}/history/${prompt_id}")
-    log "history response: ${response}"
   
     http_code="${response: -3}"
     body="${response::-3}"
@@ -78,13 +75,7 @@ while true; do
       local status_str
       status_str=$(printf '%s' "${body}" \
         | jq -r --arg id "${prompt_id}" '.[$id].status.status_str // empty' 2>/dev/null || true)
-      
-      if [ -z "${status_str}" ] || [ "${status_str}" = "null" ]; then
-        status_str="pending completion"
-      fi
-      log "status: ${status_str}"
 
-      # --- ADDED SECTION START ---
       # If status is 'error', extract the message and fail
       if [[ "${status_str}" == "error" ]]; then
         local exception_msg
@@ -93,10 +84,6 @@ while true; do
         echo "Error in get_history: Job failed with message: ${exception_msg}" >&2
         return 1
       fi
-      # --- ADDED SECTION END ---
-
-    else
-      log "status: pending completion"
     fi
 
     # --- Success path: emit first output as JSON to stdout ---

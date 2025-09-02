@@ -1,38 +1,13 @@
 {
   "3": {
     "inputs": {
-      "model": "VEO_3_PREVIEW",
-      "gcsuri": "gs://comfyui-ab17-inf-dev-comfyui-input/jellyfish.png",
-      "image_format": "PNG",
-      "prompt": "",
-      "aspect_ratio": "16:9",
-      "output_resolution": "720p",
-      "compression_quality": "optimized",
-      "person_generation": "allow_adult",
-      "duration_seconds": 8,
-      "generate_audio": true,
-      "enhance_prompt": true,
-      "sample_count": 1,
-      "output_gcs_uri": "gs://comfyui-ab17-inf-dev-comfyui-output",
-      "negative_prompt": "",
-      "seed": 3041877000,
-      "gcp_project_id": "",
-      "gcp_region": ""
-    },
-    "class_type": "Veo3GcsUriImageToVideoNode",
-    "_meta": {
-      "title": "Veo3 Image To Video (GcsUriImage)"
-    }
-  },
-  "4": {
-    "inputs": {
       "autoplay": true,
       "mute": true,
       "loop": true,
       "save_video": true,
       "save_video_file_prefix": "veo_video",
       "video_paths": [
-        "3",
+        "5",
         0
       ]
     },
@@ -40,7 +15,25 @@
     "_meta": {
       "title": "Preview/Save video"
     }
+  },
+  "5": {
+    "inputs": {
+      "prompt": "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn. As it progresses, the mist slowly dissipates, revealing colossal, glowing crystal formations emerging from the ground. Fauna, never-before-seen, begins to stir – iridescent birds with long tails take flight, and massive, gentle creatures with bioluminescent markings graze among the crystals. The light subtly shifts from dawn's muted tones to vibrant daylight, illuminating new details with each passing second. The camera eventually ascends above the canopy, revealing a breathtaking vista of the entire crystal forest.",
+      "aspect_ratio": "16:9",
+      "compression_quality": "optimized",
+      "person_generation": "allow_adult",
+      "duration_seconds": 8,
+      "enhance_prompt": true,
+      "sample_count": 1,
+      "output_gcs_uri": "gs://${COMFYUI_BUCKET}-output",
+      "negative_prompt": "",
+      "seed": 0,
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Veo2TextToVideoNode",
+    "_meta": {
+      "title": "Veo2 Text To Video"
+    }
   }
 }
-
-

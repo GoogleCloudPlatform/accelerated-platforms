@@ -31,11 +31,14 @@ from .constants import (
     GeminiModel,
     ThresholdOptions,
 )
+from .retry import retry_on_api_error
 
 
 class GeminiNode25:
     def __init__(
-        self, gcp_project_id: Optional[str] = None, gcp_region: Optional[str] = None
+        self,
+        gcp_project_id: Optional[str] = None,
+        gcp_region: Optional[str] = None,
     ):
         """
         Initializes the Gemini client.
@@ -87,7 +90,6 @@ class GeminiNode25:
 
     @classmethod
     def INPUT_TYPES(s):
-
         return {
             "required": {
                 "prompt": (
@@ -209,6 +211,17 @@ class GeminiNode25:
     RETURN_NAMES = ("generated_output",)
     FUNCTION = "generate_content"
     CATEGORY = "Google AI/Gemini"
+
+    @retry_on_api_error()
+    def _generate_content(self, model, contents, config):
+        print(
+            f"Making Gemini API call with the following Model : {model} , config {config}"
+        )
+        return self.client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=config,
+        )
 
     def generate_content(
         self,
@@ -396,11 +409,8 @@ class GeminiNode25:
                 system_instruction_parts if system_instruction_parts else None
             )
             # Make the API call
-            print(
-                f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
-            )
-            response = self.client.models.generate_content(
-                model=GeminiModel[model],
+            response = self._generate_content(
+                model=GeminiModel[model].value,
                 contents=contents,
                 config=gen_config_obj,
             )
@@ -408,34 +418,32 @@ class GeminiNode25:
             # Extract and return the generated text
             generated_text = ""
             if response.candidates:
-                generated_text = response.candidates[0].content.parts[0].text
-
-            else:
-                if response.prompt_feedback and response.prompt_feedback.block_reason:
-                    generated_text = f"Content blocked by safety filter: {response.prompt_feedback.block_reason}"
-                    if response.prompt_feedback.safety_ratings:
-                        for rating in response.prompt_feedback.safety_ratings:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts:
+                    generated_text = candidate.content.parts[0].text
+                elif (
+                    hasattr(candidate, "finish_reason")
+                    and candidate.finish_reason.name == "SAFETY"
+                ):
+                    generated_text = f"Content generation stopped due to safety filters. Finish reason: {candidate.finish_reason.name}"
+                    if candidate.safety_ratings:
+                        for rating in candidate.safety_ratings:
                             generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
-                else:
-                    generated_text = "No content generated."
+                elif hasattr(candidate, "finish_reason"):
+                    generated_text = f"No content generated. Finish reason: {candidate.finish_reason.name}"
+
+            elif response.prompt_feedback and response.prompt_feedback.block_reason:
+                generated_text = f"Content blocked due to safety filters on the prompt. Reason: {response.prompt_feedback.block_reason}"
+                if response.prompt_feedback.safety_ratings:
+                    for rating in response.prompt_feedback.safety_ratings:
+                        generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
+            else:
+                generated_text = "No content generated. The response was empty."
 
             return (generated_text,)
 
-        except genai_errors.ClientError as e:
-            if e.code == StatusCode.INVALID_ARGUMENT:
-                error_message = f"Invalid argument provided to Gemini API: {e.details}"
-                print(error_message)
-                return (f"Error: {error_message}",)
-            elif e.code in [StatusCode.PERMISSION_DENIED, StatusCode.UNAUTHENTICATED]:
-                error_message = f"Permission denied. Check your GCP service account permissions for Gemini API. Error: {e.details}"
-                print(error_message)
-                return (f"Error: {error_message}",)
-            else:
-                error_message = f"A client error occurred: {e.details}"
-                print(error_message)
-                return (f"Error: {error_message}",)
-        except genai_errors.ServerError as e:
-            error_message = f"A server error occurred: {e.details}"
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            error_message = str(e)
             print(error_message)
             return (f"Error: {error_message}",)
         except Exception as e:

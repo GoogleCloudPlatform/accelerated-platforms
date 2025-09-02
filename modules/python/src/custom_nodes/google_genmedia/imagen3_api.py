@@ -102,10 +102,6 @@ class Imagen3API:
         """
         if not prompt or not prompt.strip():
             raise exceptions.ConfigurationError("Prompt cannot be empty.")
-        if not (1 <= number_of_images <= 4):
-            raise exceptions.ConfigurationError(
-                f"number_of_images must be between 1 and 4, but got {number_of_images}."
-            )
         if seed and add_watermark:
             raise exceptions.ConfigurationError(
                 "Seed is not supported when add_watermark is enabled."

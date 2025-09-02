@@ -28,6 +28,7 @@ from PIL import Image
 from . import exceptions, utils
 from .config import get_gcp_metadata
 from .constants import MAX_SEED, VTO_MODEL, VTO_USER_AGENT
+from .retry import retry_on_api_error
 
 
 class VirtualTryOn:
@@ -146,6 +147,14 @@ class VirtualTryOn:
     FUNCTION = "generate_and_return_image"
     CATEGORY = "Google AI/Use-cases"
 
+    @retry_on_api_error()
+    def _predict(self, endpoint, instances, parameters):
+        return self.client.predict(
+            endpoint=endpoint,
+            instances=instances,
+            parameters=parameters,
+        )
+
     def generate_and_return_image(
         self,
         person_image: torch.Tensor,
@@ -205,7 +214,7 @@ class VirtualTryOn:
             }
 
             try:
-                response = self.client.predict(
+                response = self._predict(
                     endpoint=self.model_endpoint,
                     instances=instances,
                     parameters=parameters,
@@ -214,7 +223,7 @@ class VirtualTryOn:
                     base64_image_string = prediction["bytesBase64Encoded"]
                     tensor = utils.base64_to_pil_to_tensor(base64_image_string)
                     all_generated_tensors.append(tensor)
-            except Exception as e:
+            except (exceptions.APICallError, exceptions.ConfigurationError) as e:
                 print(f"Could not generate image for product {i+1}. Error: {e}")
                 continue
 

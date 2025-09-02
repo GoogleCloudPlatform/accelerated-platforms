@@ -62,9 +62,6 @@ class Veo3API:
             http_options=http_options,
         )
 
-        self.retry_count = 3  # Number of retries for transient errors
-        self.retry_delay = 5  # Initial delay between retries (seconds)
-
     def generate_video_from_text(
         self,
         model: str,
@@ -144,8 +141,6 @@ class Veo3API:
             output_resolution=output_resolution,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )
 
     def generate_video_from_image(
@@ -240,8 +235,6 @@ class Veo3API:
             output_resolution=output_resolution,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )
 
     def generate_video_from_gcsuri_image(
@@ -352,6 +345,4 @@ class Veo3API:
             output_resolution=output_resolution,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )

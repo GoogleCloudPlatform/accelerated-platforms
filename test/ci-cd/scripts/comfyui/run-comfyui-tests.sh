@@ -96,7 +96,7 @@ step "Copy test assets into pod"
 info "Copying comfyui-workflow-tester.sh and workflows directory"
 TEMP_DIR="${TEST_WORKFLOW_DIR}/tmp"
 mkdir -p "${TEMP_DIR}"
-cp -r "${TEST_WORKFLOW_DIR}/workflows/"* "${TEMP_DIR}"
+cp -r "${TEST_WORKFLOW_DIR}/workflows"/* "${TEMP_DIR}"
 for file in "${TEMP_DIR}"/*; do
     if [[ -f "$file" ]]; then
         envsubst < "$file" | sponge "$file"

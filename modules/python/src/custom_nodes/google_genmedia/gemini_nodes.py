@@ -17,9 +17,11 @@
 from typing import Optional
 
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
+from grpc import StatusCode
 
-from . import utils
+from . import exceptions, utils
 from .config import get_gcp_metadata
 from .constants import (
     AUDIO_MIME_TYPES,
@@ -43,7 +45,7 @@ class GeminiNode25:
             gcp_region: The GCP region. If provided, overrides metadata lookup.
 
         Raises:
-            ValueError: If GCP Project or region cannot be determined.
+            exceptions.APIInitializationError: If GCP Project or region cannot be determined.
         """
         self.project_id = gcp_project_id
         self.region = gcp_region
@@ -51,14 +53,18 @@ class GeminiNode25:
         if not self.project_id:
             self.project_id = get_gcp_metadata("project/project-id")
         if not self.region:
-            self.region = "-".join(
-                get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-            )
+            zone = get_gcp_metadata("instance/zone")
+            if zone:
+                self.region = "-".join(zone.split("/")[-1].split("-")[:-1])
 
         if not self.project_id:
-            raise ValueError("GCP Project is required and could not be determined.")
+            raise exceptions.APIInitializationError(
+                "GCP Project is required and could not be determined."
+            )
         if not self.region:
-            raise ValueError("GCP region is required and could not be determined.")
+            raise exceptions.APIInitializationError(
+                "GCP region is required and could not be determined."
+            )
 
         print(f"Project is {self.project_id}, region is {self.region}")
         http_options = genai.types.HttpOptions(
@@ -75,7 +81,9 @@ class GeminiNode25:
                 f"genai.Client initialized for Vertex AI project: {self.project_id}, location: {self.region}"
             )
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize genai.Client for Vertex AI: {e}")
+            raise exceptions.APIInitializationError(
+                f"Failed to initialize genai.Client for Vertex AI: {e}"
+            )
 
     @classmethod
     def INPUT_TYPES(s):
@@ -281,13 +289,16 @@ class GeminiNode25:
                    is blocked, it will contain a message indicating the reason and safety
                    ratings. If an error occurs, it will contain an error message.
         """
+        if not prompt or not prompt.strip():
+            return ("Error: Prompt cannot be empty.",)
+
         # Re-initialize the client to avoid re-launching the node when the customers
         # provide gcp_project_id and gcp_region first and then remove them to use the defaults.
         try:
             init_project_id = gcp_project_id if gcp_project_id else None
             init_region = gcp_region if gcp_region else None
             self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
             return (
                 f"Error re-initializing Gemini client with provided GCP credentials: {e}",
             )
@@ -410,8 +421,25 @@ class GeminiNode25:
 
             return (generated_text,)
 
+        except genai_errors.ClientError as e:
+            if e.code == StatusCode.INVALID_ARGUMENT:
+                error_message = f"Invalid argument provided to Gemini API: {e.details}"
+                print(error_message)
+                return (f"Error: {error_message}",)
+            elif e.code in [StatusCode.PERMISSION_DENIED, StatusCode.UNAUTHENTICATED]:
+                error_message = f"Permission denied. Check your GCP service account permissions for Gemini API. Error: {e.details}"
+                print(error_message)
+                return (f"Error: {error_message}",)
+            else:
+                error_message = f"A client error occurred: {e.details}"
+                print(error_message)
+                return (f"Error: {error_message}",)
+        except genai_errors.ServerError as e:
+            error_message = f"A server error occurred: {e.details}"
+            print(error_message)
+            return (f"Error: {error_message}",)
         except Exception as e:
-            print(f"An error occurred in calling Gemini API: {e}")
+            print(f"An unexpected error occurred in calling Gemini API: {e}")
             return (f"Error: {e}",)
 
 

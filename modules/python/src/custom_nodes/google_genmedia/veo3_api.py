@@ -19,7 +19,7 @@ from typing import List, Optional
 import torch
 from google import genai
 
-from . import utils
+from . import exceptions, utils
 from .config import get_gcp_metadata
 from .constants import OUTPUT_RESOLUTION, VEO3_USER_AGENT, Veo3Model
 
@@ -40,16 +40,18 @@ class Veo3API:
             region: The GCP region. If None, it will be retrieved from GCP metadata.
 
         Raises:
-            ValueError: If GCP Project or Zone cannot be determined.
+            exceptions.APIInitializationError: If GCP Project or Zone cannot be determined.
         """
         self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-        )
-        if not self.project_id:
-            raise ValueError("GCP Project is required")
+        self.region = region
         if not self.region:
-            raise ValueError("GCP region is required")
+            zone = get_gcp_metadata("instance/zone")
+            if zone:
+                self.region = "-".join(zone.split("/")[-1].split("-")[:-1])
+        if not self.project_id:
+            raise exceptions.APIInitializationError("GCP Project is required")
+        if not self.region:
+            raise exceptions.APIInitializationError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
 
         http_options = genai.types.HttpOptions(headers={"user-agent": VEO3_USER_AGENT})
@@ -101,25 +103,27 @@ class Veo3API:
             A list of file paths to the generated videos.
 
         Raises:
-            ValueError: If input parameters are invalid (e.g., empty prompt, out-of-range duration/sample_count).
-            RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+            exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, out-of-range duration/sample_count).
+            exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty for text-to-video generation.")
+            raise exceptions.ConfigurationError(
+                "Prompt cannot be empty for text-to-video generation."
+            )
         if duration_seconds != 8:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
         if not (1 <= sample_count <= 2):
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
             )
         if aspect_ratio != "16:9":
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
 
@@ -186,8 +190,8 @@ class Veo3API:
             A list of file paths to the generated videos.
 
         Raises:
-            ValueError: If input parameters are invalid (e.g., empty prompt, unsupported image format, out-of-range duration/sample_count).
-            RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+            exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, unsupported image format, out-of-range duration/sample_count).
+            exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
             print(
@@ -195,23 +199,25 @@ class Veo3API:
             )
 
         if duration_seconds != 8:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
         if not (1 <= sample_count <= 2):
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
             )
 
         if image is None:
-            raise ValueError("Image input (torch.Tensor) cannot be None.")
+            raise exceptions.ConfigurationError(
+                "Image input (torch.Tensor) cannot be None."
+            )
 
         if aspect_ratio != "16:9":
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
         last_frame = None  # this is because veo3 doesn't support last frame yet and both veo2 and veo3 share the same code base for making API calls.
@@ -280,12 +286,12 @@ class Veo3API:
             A list of file paths to the generated videos.
 
         Raises:
-            ValueError: If input parameters are invalid (e.g., empty prompt, unsupported image format,
+            exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, unsupported image format,
                         invalid GCS URI, or if the GCS object is not a valid image).
-            RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+            exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if gcsuri is None:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 "GCS URI for the image cannot be None for image-to-video generation."
             )
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
@@ -294,19 +300,19 @@ class Veo3API:
             )
 
         if duration_seconds != 8:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
         if not (1 <= sample_count <= 2):
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"sample_count must be between 1 and 2, but got {sample_count}."
             )
         if aspect_ratio != "16:9":
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
 
@@ -314,7 +320,7 @@ class Veo3API:
         if valid_bucket:
             print(validation_message)
         else:
-            raise ValueError(validation_message)
+            raise exceptions.ConfigurationError(validation_message)
 
         input_image_format_upper = image_format.upper()
         mime_type: str
@@ -325,7 +331,7 @@ class Veo3API:
         elif input_image_format_upper == "MP4":
             mime_type = "image/mp4"
         else:
-            raise ValueError(f"Unsupported image format: {image_format}")
+            raise exceptions.ConfigurationError(f"Unsupported image format: {image_format}")
         last_frame_gcsuri = None  # this is because veo3 doesn't support last frame yet and both veo2 and veo3 share the same code base for making API calls.
         model = Veo3Model[model]
         return utils.generate_video_from_gcsuri_image(

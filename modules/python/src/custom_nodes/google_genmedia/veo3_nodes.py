@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
+from . import exceptions
 from .constants import MAX_SEED, SUPPORTED_VIDEO_EXTENSIONS, Veo3Model
 from .veo3_api import Veo3API
 
@@ -133,7 +134,7 @@ class Veo3TextToVideoNode:
         """
         try:
             api = Veo3API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
             # Catch any exception from Veo3API.__init__ (ValueError, RuntimeError)
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
 
@@ -155,10 +156,8 @@ class Veo3TextToVideoNode:
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
-        except ValueError as e:
-            raise RuntimeError(f"Video generation configuration error: {e}")
-        except RuntimeError as e:
-            raise RuntimeError(f"Veo API error: {e}")
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            raise RuntimeError(f"Video generation error: {e}")
         except Exception as e:
             raise RuntimeError(
                 f"An unexpected error occurred during video generation: {e}"
@@ -292,7 +291,7 @@ class Veo3GcsUriImageToVideoNode:
         """
         try:
             api = Veo3API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
 
         seed_for_api = seed if seed != 0 else None
@@ -315,9 +314,7 @@ class Veo3GcsUriImageToVideoNode:
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
-        except ValueError as e:
-            raise RuntimeError(f"Video generation configuration error: {e}")
-        except RuntimeError as e:
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
             raise RuntimeError(f"Video generation API error: {e}")
         except Exception as e:
             raise RuntimeError(
@@ -449,7 +446,7 @@ class Veo3ImageToVideoNode:
         """
         try:
             api = Veo3API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
 
         seed_for_api = seed if seed != 0 else None
@@ -482,13 +479,11 @@ class Veo3ImageToVideoNode:
                     seed=seed_for_api,
                 )
                 all_generated_video_paths.extend(video_paths)
-            except ValueError as e:
-                raise RuntimeError(f"Video generation configuration error: {e}")
-            except RuntimeError as e:
-                raise RuntimeError(f"Video generation API error: {e}")
+            except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+                raise RuntimeError(f"Video generation error for image {i+1}: {e}")
             except Exception as e:
                 raise RuntimeError(
-                    f"An unexpected error occurred during video generation: {e}"
+                    f"An unexpected error occurred during video generation for image {i+1}: {e}"
                 )
 
         return (all_generated_video_paths,)

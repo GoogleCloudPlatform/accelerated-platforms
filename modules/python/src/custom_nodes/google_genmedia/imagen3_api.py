@@ -19,7 +19,7 @@ from typing import List, Optional
 from google import genai
 from PIL import Image
 
-from . import utils
+from . import exceptions, utils
 from .config import get_gcp_metadata
 from .constants import IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT
 
@@ -38,16 +38,18 @@ class Imagen3API:
             region: The GCP region. If None, it will be retrieved from GCP metadata.
 
         Raises:
-            ValueError: If GCP Project or region cannot be determined.
+            exceptions.APIInitializationError: If GCP Project or region cannot be determined.
         """
         self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-        )
-        if not self.project_id:
-            raise ValueError("GCP Project is required")
+        self.region = region
         if not self.region:
-            raise ValueError("GCP region is required")
+            zone = get_gcp_metadata("instance/zone")
+            if zone:
+                self.region = "-".join(zone.split("/")[-1].split("-")[:-1])
+        if not self.project_id:
+            raise exceptions.APIInitializationError("GCP Project is required")
+        if not self.region:
+            raise exceptions.APIInitializationError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
         http_options = genai.types.HttpOptions(
             headers={"user-agent": IMAGEN3_USER_AGENT}
@@ -94,16 +96,20 @@ class Imagen3API:
             A list of PIL Image objects. Returns an empty list on failure.
 
         Raises:
-            ValueError: If `number_of_images` is not between 1 and 4,
+            exceptions.ConfigurationError: If `number_of_images` is not between 1 and 4,
                         if `seed` is provided with `add_watermark` enabled,
                         or if `output_image_type` is unsupported.
         """
+        if not prompt or not prompt.strip():
+            raise exceptions.ConfigurationError("Prompt cannot be empty.")
         if not (1 <= number_of_images <= 4):
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"number_of_images must be between 1 and 4, but got {number_of_images}."
             )
         if seed and add_watermark:
-            raise ValueError("Seed is not supported when add_watermark is enabled.")
+            raise exceptions.ConfigurationError(
+                "Seed is not supported when add_watermark is enabled."
+            )
 
         output_image_type = output_image_type.upper()
         if output_image_type == "PNG":
@@ -111,7 +117,9 @@ class Imagen3API:
         elif output_image_type == "JPEG":
             output_mime_type = "image/jpeg"
         else:
-            raise ValueError(f"Unsupported image format: {output_image_type}")
+            raise exceptions.ConfigurationError(
+                f"Unsupported image format: {output_image_type}"
+            )
 
         return utils.generate_image_from_text(
             client=self.client,

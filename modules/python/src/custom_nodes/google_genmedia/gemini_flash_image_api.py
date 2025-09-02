@@ -26,16 +26,16 @@ from . import utils
 
 from .config import get_gcp_metadata
 from .constants import (
-    GEMINI_25_FLASH_IMAGE_USER_AGENT, 
+    GEMINI_25_FLASH_IMAGE_USER_AGENT,
     GeminiFlashImageModel,
-    ThresholdOptions
 )
+
 
 class GeminiFlashImageAPI:
     """
     A class to interact with the Gemini Flash Image Preview model.
     """
-    
+
     def __init__(self, project_id: Optional[str] = None, region: Optional[str] = None):
         """Initializes the Gemini 2.5 Flash Image Preview client.
 
@@ -56,20 +56,14 @@ class GeminiFlashImageAPI:
             raise ValueError("GCP Project is required")
         if not self.region:
             raise ValueError("GCP region is required")
-        print(f"Project is {self.project_id}, region is {self.region}")
-        http_options = genai.types.HttpOptions(
-            headers={"user-agent": GEMINI_25_FLASH_IMAGE_USER_AGENT}
-        )
-        
+
         self.client = genai.Client(
-            vertexai=True,
-            project=self.project_id,
-            location=self.region
+            vertexai=True, project=self.project_id, location=self.region
         )
-        
+
         self.retry_count = 3
         self.retry_delay = 5
-    
+
     def generate_image(
         self,
         model: str,
@@ -105,64 +99,71 @@ class GeminiFlashImageAPI:
             A list of generated PIL images.
         """
         model = GeminiFlashImageModel[model]
-        
+
         generated_pil_images: List[Image.Image] = []
-        
+
         generate_content_config = types.GenerateContentConfig(
-            temperature = temperature,
-            top_p = top_p,
+            temperature=temperature,
+            top_p=top_p,
             top_k=top_k,
-            max_output_tokens = 32768,
-            response_modalities = ["TEXT", "IMAGE"],
+            max_output_tokens=32768,
+            response_modalities=["TEXT", "IMAGE"],
             system_instruction=system_instruction,
-            safety_settings = [types.SafetySetting(
-            category="HARM_CATEGORY_HATE_SPEECH",
-            threshold=hate_speech_threshold,
-            ),types.SafetySetting(
-            category="HARM_CATEGORY_DANGEROUS_CONTENT",
-            threshold=dangerous_content_threshold,
-            ),types.SafetySetting(
-            category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
-            threshold=sexually_explicit_threshold,
-            ),types.SafetySetting(
-            category="HARM_CATEGORY_HARASSMENT",
-            threshold=harassment_threshold
-            ),types.SafetySetting(
-            category="HARM_CATEGORY_IMAGE_HATE",
-            threshold=hate_speech_threshold
-            ),types.SafetySetting(
-            category="HARM_CATEGORY_IMAGE_DANGEROUS_CONTENT",
-            threshold=dangerous_content_threshold
-            ),types.SafetySetting(
-            category="HARM_CATEGORY_IMAGE_HARASSMENT",
-            threshold=harassment_threshold
-            ),types.SafetySetting(
-            category="HARM_CATEGORY_IMAGE_SEXUALLY_EXPLICIT",
-            threshold=sexually_explicit_threshold
-            )],
+            safety_settings=[
+                types.SafetySetting(
+                    category="HARM_CATEGORY_HATE_SPEECH",
+                    threshold=hate_speech_threshold,
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold=dangerous_content_threshold,
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold=sexually_explicit_threshold,
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_HARASSMENT", threshold=harassment_threshold
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_IMAGE_HATE", threshold=hate_speech_threshold
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_IMAGE_DANGEROUS_CONTENT",
+                    threshold=dangerous_content_threshold,
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_IMAGE_HARASSMENT",
+                    threshold=harassment_threshold,
+                ),
+                types.SafetySetting(
+                    category="HARM_CATEGORY_IMAGE_SEXUALLY_EXPLICIT",
+                    threshold=sexually_explicit_threshold,
+                ),
+            ],
         )
-        
+
         contents = [types.Part.from_text(text=prompt)]
-        
+
         if image != None:
             num_images = image.shape[0]
             print(f"Number of Images {num_images}")
             for i in range(num_images):
                 image_tensor = image[i].unsqueeze(0)
                 image_to_b64 = utils.tensor_to_pil_to_base64(image_tensor)
-                contents.append(types.Part.from_bytes(data=image_to_b64, mime_type='image/png'))
-        
+                contents.append(
+                    types.Part.from_bytes(data=image_to_b64, mime_type="image/png")
+                )
+
         response = self.client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=generate_content_config
+            model=model, contents=contents, config=generate_content_config
         )
-        
+
         for part in response.candidates[0].content.parts:
             if part.text is not None:
                 print(part.text)
             elif part.inline_data is not None:
                 image = Image.open(BytesIO(part.inline_data.data))
                 generated_pil_images.append(image)
-        
+
         return generated_pil_images

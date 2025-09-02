@@ -16,16 +16,10 @@
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from PIL import Image
 import numpy as np
 import torch
-from google.genai import types
 
-from .constants import (
-    MAX_SEED, 
-    GeminiFlashImageModel,     
-    ThresholdOptions
-)
+from .constants import GeminiFlashImageModel, ThresholdOptions
 from .gemini_flash_image_api import GeminiFlashImageAPI
 
 
@@ -52,7 +46,9 @@ class Gemini25FlashImage:
             "required": {
                 "model": (
                     [model.name for model in GeminiFlashImageModel],
-                    {"default": GeminiFlashImageModel.GEMINI_25_FLASH_IMAGE_PREVIEW.name},
+                    {
+                        "default": GeminiFlashImageModel.GEMINI_25_FLASH_IMAGE_PREVIEW.name
+                    },
                 ),
                 "prompt": (
                     "STRING",
@@ -144,7 +140,7 @@ class Gemini25FlashImage:
         PIL images into a PyTorch tensor suitable for use in ComfyUI.
 
         Args:
-            model: The Gemini Flash Image model to use. default: gemini-2.5-flash-image-preview 
+            model: The Gemini Flash Image model to use. default: gemini-2.5-flash-image-preview
             prompt: The text prompt for image generation.
             temperature: Controls randomness in token generation.
             top_p: The cumulative probability of tokens to consider for sampling.
@@ -158,19 +154,21 @@ class Gemini25FlashImage:
             image: An optional input image tensor for image editing tasks.
               Defaults to None.
             gcp_project_id: The GCP project ID.
-            gcp_region: The GCP region. 
+            gcp_region: The GCP region.
 
         Returns:
             A tuple containing a PyTorch tensor of the generated images,
             formatted as (batch_size, height, width, channels).
         """
         try:
-            gemini_flash_image_api = GeminiFlashImageAPI(project_id=gcp_project_id, region=gcp_region)
+            gemini_flash_image_api = GeminiFlashImageAPI(
+                project_id=gcp_project_id, region=gcp_region
+            )
         except Exception as e:
             raise RuntimeError(
                 f"Failed to initialize Imagen API client for node execution: {e}"
             )
-            
+
         if image != None:
             print(type(image))
 
@@ -201,9 +199,7 @@ class Gemini25FlashImage:
         for img in pil_images:
             img = img.convert("RGB")
             img_np = np.array(img).astype(np.float32) / 255.0
-            img_tensor = torch.from_numpy(img_np)[
-                None,
-            ]
+            img_tensor = torch.from_numpy(img_np)[None,]
             output_tensors.append(img_tensor)
 
         batched_images_tensor = torch.cat(output_tensors, dim=0)

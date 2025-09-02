@@ -232,7 +232,6 @@ class VirtualTryOn:
                 "addWatermark": add_watermark,
                 "safety_filter_level": safety_filter_level,
             }
-            print(f"PARAMETER is {parameters}")
             try:
                 response = self.client.predict(
                     endpoint=self.model_endpoint,

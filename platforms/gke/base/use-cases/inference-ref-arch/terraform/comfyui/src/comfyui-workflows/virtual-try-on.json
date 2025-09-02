@@ -1,59 +1,9 @@
 {
   "id": "17f0d127-0d4d-4da0-8327-a65598eac49a",
   "revision": 0,
-  "last_node_id": 22,
-  "last_link_id": 24,
+  "last_node_id": 23,
+  "last_link_id": 30,
   "nodes": [
-    {
-      "id": 18,
-      "type": "VirtualTryOn",
-      "pos": [
-        758.4299926757812,
-        -292.5035095214844
-      ],
-      "size": [
-        326.9017639160156,
-        360.4317932128906
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "person_image",
-          "type": "IMAGE",
-          "link": 18
-        },
-        {
-          "name": "product_image",
-          "type": "IMAGE",
-          "link": 17
-        }
-      ],
-      "outputs": [
-        {
-          "name": "Generated Image",
-          "type": "IMAGE",
-          "links": [
-            19,
-            20
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "VirtualTryOn"
-      },
-      "widgets_values": [
-        32,
-        "ALLOW_ADULT",
-        1,
-        2996779527,
-        "randomize",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "",
-        ""
-      ]
-    },
     {
       "id": 14,
       "type": "PreviewImage",
@@ -95,7 +45,7 @@
         409.5345764160156
       ],
       "flags": {},
-      "order": 4,
+      "order": 3,
       "mode": 0,
       "inputs": [
         {
@@ -111,6 +61,126 @@
         "Node name for S&R": "PreviewImage"
       },
       "widgets_values": []
+    },
+    {
+      "id": 13,
+      "type": "PreviewImage",
+      "pos": [
+        1217.2789306640625,
+        -318.6766052246094
+      ],
+      "size": [
+        921.646728515625,
+        412.34954833984375
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 27
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.45",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 15,
+      "type": "Veo3ImageToVideoNode",
+      "pos": [
+        1018.2672729492188,
+        229.465087890625
+      ],
+      "size": [
+        400,
+        502
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "links": [
+            24
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Veo3ImageToVideoNode"
+      },
+      "widgets_values": [
+        "VEO_3_PREVIEW",
+        "PNG",
+        "make the models do ramp walk with upbeat music in the background",
+        "16:9",
+        "720p",
+        "optimized",
+        "allow_adult",
+        8,
+        true,
+        true,
+        1,
+        "",
+        "",
+        154782474,
+        "randomize",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 22,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        1542.7208251953125,
+        240.6404266357422
+      ],
+      "size": [
+        643.5447387695312,
+        558.743896484375
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 24
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
+      ]
     },
     {
       "id": 12,
@@ -133,7 +203,7 @@
           "type": "IMAGE",
           "links": [
             9,
-            18
+            29
           ]
         }
       ],
@@ -184,8 +254,8 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            17,
-            23
+            23,
+            30
           ]
         },
         {
@@ -224,118 +294,54 @@
       }
     },
     {
-      "id": 13,
-      "type": "PreviewImage",
+      "id": 23,
+      "type": "VirtualTryOn",
       "pos": [
-        1217.2789306640625,
-        -318.6766052246094
+        640.9481811523438,
+        -231.8859405517578
       ],
       "size": [
-        921.646728515625,
-        412.34954833984375
+        444.24261474609375,
+        296.9232482910156
       ],
       "flags": {},
-      "order": 5,
+      "order": 4,
       "mode": 0,
       "inputs": [
         {
-          "name": "images",
+          "name": "person_image",
           "type": "IMAGE",
-          "link": 19
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.45",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 15,
-      "type": "Veo3ImageToVideoNode",
-      "pos": [
-        1018.2672729492188,
-        229.465087890625
-      ],
-      "size": [
-        400,
-        502
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
+          "link": 29
+        },
         {
-          "name": "image",
+          "name": "product_image",
           "type": "IMAGE",
-          "link": 20
+          "link": 30
         }
       ],
       "outputs": [
         {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
+          "name": "Generated Image",
+          "type": "IMAGE",
           "links": [
-            24
+            27,
+            28
           ]
         }
       ],
       "properties": {
-        "Node name for S&R": "Veo3ImageToVideoNode"
+        "Node name for S&R": "VirtualTryOn"
       },
       "widgets_values": [
-        "VEO_3_PREVIEW",
-        "PNG",
-        "make the models do ramp walk with upbeat music in the background",
-        "16:9",
-        "720p",
-        "optimized",
-        "allow_adult",
-        8,
-        true,
-        true,
+        32,
+        "ALLOW_ADULT",
         1,
-        "",
-        "",
-        154782474,
+        0,
         "randomize",
+        false,
+        "BLOCK_MEDIUM_AND_ABOVE",
         "",
         ""
-      ]
-    },
-    {
-      "id": 22,
-      "type": "VeoVideoSaveAndPreview",
-      "pos": [
-        1542.7208251953125,
-        240.6404266357422
-      ],
-      "size": [
-        643.5447387695312,
-        426.3039245605469
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 24
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "VeoVideoSaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        true,
-        true,
-        "veo_video"
       ]
     }
   ],
@@ -345,38 +351,6 @@
       12,
       0,
       14,
-      0,
-      "IMAGE"
-    ],
-    [
-      17,
-      17,
-      0,
-      18,
-      1,
-      "IMAGE"
-    ],
-    [
-      18,
-      12,
-      0,
-      18,
-      0,
-      "IMAGE"
-    ],
-    [
-      19,
-      18,
-      0,
-      13,
-      0,
-      "IMAGE"
-    ],
-    [
-      20,
-      18,
-      0,
-      15,
       0,
       "IMAGE"
     ],
@@ -395,6 +369,38 @@
       22,
       0,
       "VEO_VIDEO"
+    ],
+    [
+      27,
+      23,
+      0,
+      13,
+      0,
+      "IMAGE"
+    ],
+    [
+      28,
+      23,
+      0,
+      15,
+      0,
+      "IMAGE"
+    ],
+    [
+      29,
+      12,
+      0,
+      23,
+      0,
+      "IMAGE"
+    ],
+    [
+      30,
+      17,
+      0,
+      23,
+      1,
+      "IMAGE"
     ]
   ],
   "groups": [],

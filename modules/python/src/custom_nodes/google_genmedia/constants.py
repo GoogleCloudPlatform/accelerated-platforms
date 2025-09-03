@@ -24,7 +24,9 @@ IMAGE_MIME_TYPES = ["image/png", "image/jpeg"]
 IMAGEN3_MODEL_ID = "imagen-3.0-generate-002"
 IMAGEN3_USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
 IMAGEN4_USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"
-GEMINI_25_FLASH_IMAGE_USER_AGENT = "cloud-solutions/comfyui-gemini-25-flash-image-custom-node-v1"
+GEMINI_25_FLASH_IMAGE_USER_AGENT = (
+    "cloud-solutions/comfyui-gemini-25-flash-image-custom-node-v1"
+)
 MAX_SEED = 0xFFFFFFFF
 OUTPUT_RESOLUTION = ["720p", "1080p"]
 STORAGE_USER_AGENT = "cloud-solutions/comfyui-gcs-custom-node-v1"
@@ -50,8 +52,10 @@ class Imagen4Model(str, Enum):
     IMAGEN_4_FAST_PREVIEW = "imagen-4.0-fast-generate-preview-06-06"
     IMAGEN_4_ULTRA_PREVIEW = "imagen-4.0-ultra-generate-preview-06-06"
 
+
 class GeminiFlashImageModel(Enum):
     GEMINI_25_FLASH_IMAGE_PREVIEW = "gemini-2.5-flash-image-preview"
+
 
 class ThresholdOptions(Enum):
     BLOCK_NONE = types.HarmBlockThreshold.BLOCK_NONE

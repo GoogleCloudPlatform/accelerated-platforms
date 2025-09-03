@@ -199,7 +199,9 @@ class Gemini25FlashImage:
         for img in pil_images:
             img = img.convert("RGB")
             img_np = np.array(img).astype(np.float32) / 255.0
-            img_tensor = torch.from_numpy(img_np)[None,]
+            img_tensor = torch.from_numpy(img_np)[
+                None,
+            ]
             output_tensors.append(img_tensor)
 
         batched_images_tensor = torch.cat(output_tensors, dim=0)

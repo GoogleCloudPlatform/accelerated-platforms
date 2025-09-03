@@ -15,12 +15,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-configMapGenerator:
-  - envs:
-      - downloader.env
-    name: download
-    namespace: replaced-by-kustomize
-
 patches:
   - path: set-compute-class.yaml
 
@@ -42,28 +36,6 @@ replacements:
           - metadata.namespace
         select:
           kind: SecretProviderClass
-  - source:
-      fieldPath: data.DOWNLOADER_KUBERNETES_SERVICE_ACCOUNT
-      kind: ConfigMap
-      name: download
-    targets:
-      - fieldPaths:
-          - spec.template.spec.serviceAccountName
-        select:
-          kind: Job
-          name: hf-model-to-gcs
-  - source:
-      kind: SecretProviderClass
-      name: huggingface-token-read
-      fieldPath: metadata.name
-    targets:
-      - select:
-          kind: Job
-          name: hf-model-to-gcs
-        fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
 
 resources:
-  - configmap-scripts.yaml
-  - job.yaml
-  - secretproviderclass-huggingface-tokens.yaml
+  - ../base

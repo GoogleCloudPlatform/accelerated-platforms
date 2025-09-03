@@ -1,0 +1,82 @@
+{
+  "1": {
+    "inputs": {
+      "prompt": "Write a single prompt for me to generate an artistic image of a man.The prompt will be fed directly to Image generating model so keep it simple and as detailed as possible. Give me just the prompt, no explanation, acknowledgement or paraphrasing. Write the prompt to create a high definition and real image.",
+      "model": "GEMINI_PRO",
+      "temperature": 0.7,
+      "max_output_tokens": 8192,
+      "top_p": 1,
+      "top_k": 32,
+      "candidate_count": 1,
+      "stop_sequences": "",
+      "response_mime_type": "text/plain",
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "system_instruction": "",
+      "image_file_path": "",
+      "image_mime_type": "image/png",
+      "video_file_path": "",
+      "video_mime_type": "video/mp4",
+      "audio_file_path": "",
+      "audio_mime_type": "audio/mp3",
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "GeminiNode25",
+    "_meta": {
+      "title": "Gemini 2.5"
+    }
+  },
+  "4": {
+    "inputs": {
+      "model": "IMAGEN_4_PREVIEW",
+      "prompt": [
+        "7",
+        0
+      ],
+      "person_generation": "allow_adult",
+      "aspect_ratio": "16:9",
+      "number_of_images": 1,
+      "negative_prompt": "",
+      "seed": 797588173,
+      "enhance_prompt": true,
+      "add_watermark": false,
+      "output_image_type": "PNG",
+      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Imagen4TextToImageNode",
+    "_meta": {
+      "title": "Imagen4 Text To Image"
+    }
+  },
+  "6": {
+    "inputs": {
+      "images": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "7": {
+    "inputs": {
+      "text": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "ShowText|pysssss",
+    "_meta": {
+      "title": "Show Text 🐍"
+    }
+  }
+}
+
+

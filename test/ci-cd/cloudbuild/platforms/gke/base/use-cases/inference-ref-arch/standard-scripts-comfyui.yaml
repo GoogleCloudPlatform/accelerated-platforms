@@ -61,22 +61,22 @@ steps:
       - "Create the IAP Brand"
 
   - args:
-      - "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-    entrypoint: "test/ci-cd/scripts/comfyui/run-comfyui-tests.sh"
-    id: "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
-
-  - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
       - workflow_api
     entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
     id: "Apply inference-ref-arch Terraservice 'workflow_api'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
 
+  - args:
+      - "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+    entrypoint: "test/ci-cd/scripts/comfyui/run-comfyui-tests.sh"
+    id: "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Apply inference-ref-arch Terraservice 'workflow_api'"
+  
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
       - workflow_api
@@ -84,7 +84,7 @@ steps:
     id: "Check inference-ref-arch Terraservice 'workflow_api' check for changes"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Apply inference-ref-arch Terraservice 'workflow_api'"
+      - "Test platforms/gke/base/use-cases/inference-ref-arch/comfyui"
 
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform

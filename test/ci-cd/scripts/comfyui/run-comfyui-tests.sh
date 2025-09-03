@@ -26,7 +26,8 @@ export POD_NAME="${POD_NAME:-comfyui-client}"
 export ERROR_FILE="/workspace/build-failed.lock"
 export TEST_WORKFLOW_DIR="${TEST_WORKFLOW_DIR:-test/ci-cd/scripts/comfyui}"
 export COMFYUI_BUCKET="${cluster_project_id}-${unique_identifier_prefix}-${comfyui_app_name}"
-export COMFYUI_PORT="${COMFYUI_PORT:-8188}"
+export COMFYUI_SERVICE="${comfyui_app_name}-${comfyui_accelerator_type}:8188"
+
 MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-180}"
 STEP_ID=${1:-build-ci}
 
@@ -73,6 +74,7 @@ trap cleanup_on_exit EXIT
 step "Get GKE credentials"
 info "Fetching credentials for project '${cluster_project_id}'"
 ${cluster_credentials_command}
+kubectl get deployment -n ${comfyui_kubernetes_namespace}
 
 # ------------------------------------------------------------
 # Start client pod
@@ -109,12 +111,6 @@ kubectl cp "${TEST_WORKFLOW_DIR}/comfyui-workflow-tester.sh" "${comfyui_kubernet
 kubectl cp "${TEMP_DIR}" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/workflows"
 kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- chmod +x /tmp/comfyui-workflow-tester.sh
 rm -rf "${TEMP_DIR}"
-# ------------------------------------------------------------
-# Discover service IP
-# ------------------------------------------------------------
-step "Discover ComfyUI service IP (port ${COMFYUI_PORT})"
-SERVICE_IP_AND_PORT="$(kubectl get service -n "${comfyui_kubernetes_namespace}" | grep "${COMFYUI_PORT}" | awk '{print $3}'):${COMFYUI_PORT}"
-info "Using service endpoint: ${SERVICE_IP_AND_PORT}"
 
 # ------------------------------------------------------------
 # Execute tests inside pod
@@ -125,7 +121,7 @@ info "Setting env & running all workflow tests"
 POD_RUN_LOG="$(mktemp)"
 
 kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
-  COMFYUI_URL="http://${SERVICE_IP_AND_PORT}" \
+  COMFYUI_URL="http://${COMFYUI_SERVICE}" \
   TEST_WORKFLOW_DIR="/tmp/workflows" \
   POLL_TIMEOUT="300" \
   POLL_INTERVAL="5" \
@@ -137,12 +133,10 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     echo ">> Begin workflow tests..."
     FAILURES_FILE=$(mktemp)
 
-    # --- CHANGE 1: Get the total number of test files ---
     test_files=("${TEST_WORKFLOW_DIR}"/*)
     total_tests=${#test_files[@]}
     echo ">> Found ${total_tests} workflow files to test."
 
-    # --- CHANGE 2: Loop over the array of files ---
     for f in "${test_files[@]}"; do
       (
         TEST_LOG=$(mktemp)
@@ -160,7 +154,6 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
 
     wait
 
-    # --- CHANGE 3: Calculate success/failure counts and print summary ---
     num_failures=0
     # Check if the failure file has content before counting
     if [ -s "${FAILURES_FILE}" ]; then

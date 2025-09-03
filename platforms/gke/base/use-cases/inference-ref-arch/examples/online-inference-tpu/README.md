@@ -58,6 +58,11 @@ This example is built on top of the
     export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
+  - **Stable Diffusion XL**:
+    ```shell
+      export HF_MODEL_ID="stabilityai/stable-diffusion-xl-base-1.0"
+    ```  
+
 - Source the environment configuration.
 
   ```shell
@@ -129,6 +134,8 @@ This example is built on top of the
     | gemma-3-1b-it  | ✅  | ❌  |
     | gemma-3-4b-it  | ✅  | ❌  |
     | gemma-3-27b-it | ✅  | ✅  |
+    | stable-diffusion-xl-base-1.0 | ✅  | ✅  |
+
 
     - **v5e**:
 

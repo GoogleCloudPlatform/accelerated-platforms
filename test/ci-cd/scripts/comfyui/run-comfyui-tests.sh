@@ -41,7 +41,8 @@ log_error() {
   local message=${2:-"Script error on line ${BASH_LINENO[0]} (exit code: ${exit_code}) executing: ${BASH_COMMAND}"}
 
   if [ ${exit_code} -ne 0 ]; then
-    echo "- [${STEP_ID}] ${message}" >> '${ERROR_FILE}'
+    # Corrected line with double quotes
+    echo "- [${STEP_ID}] ${message}" >> "${ERROR_FILE}"
   fi
 
   exit 0
@@ -88,7 +89,7 @@ kubectl run "${POD_NAME}" \
   --restart=Never \
   -n "${comfyui_kubernetes_namespace}" \
   --overrides="{ \"spec\": { \"serviceAccountName\": \"${SA_NAME}\" } }" \
-  --command -- sh -c "apk add --no-cache bash curl jq >/dev/null && echo 'Pod is ready. Waiting...' && sleep 3600"
+  --command -- sh -c "apk add --no-cache bash curl jq && echo 'Pod is ready. Waiting...' && sleep 3600"
 
 step "Wait for pod to be Ready"
 kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=3600s

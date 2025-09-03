@@ -70,7 +70,7 @@ cleanup_on_exit() {
 trap cleanup_on_exit EXIT
 
 # ------------------------------------------------------------
-# Copy checkpoint files
+#  Copy checkpoint filee
 # ------------------------------------------------------------
 step "Copy checkpoint files"
 gcloud builds submit \

@@ -1,0 +1,17 @@
+# Core model + transformers
+diffusers>=0.27.0
+transformers>=4.41.0
+
+# JAX + TPY 
+jax[tpu]>=0.4.23
+flax>=0.7.0
+optax>=0.1.9
+
+# Server
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+
+# Utilities
+ftfy>=6.2.0
+pillow>=10.0.0
+numpy>=1.26.0

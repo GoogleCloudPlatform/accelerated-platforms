@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of imagen4 custom node
+# This is a preview version of Gemini 2.5 Flash Image custom node
 
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -188,7 +188,6 @@ class Gemini25FlashImage:
             )
         except Exception as e:
             raise RuntimeError(f"Error occurred during image generation: {e}")
-            # return (torch.empty(0, 640, 640, 3),)
 
         if not pil_images:
             raise RuntimeError(
@@ -210,4 +209,4 @@ class Gemini25FlashImage:
 
 NODE_CLASS_MAPPINGS = {"Gemini25FlashImage": Gemini25FlashImage}
 
-NODE_DISPLAY_NAME_MAPPINGS = {"Gemini25FlashImage": "Gemini 2.5 Flash Image"}
+NODE_DISPLAY_NAME_MAPPINGS = {"Gemini25FlashImage": "Gemini 2.5 Flash Image (🍌)"}

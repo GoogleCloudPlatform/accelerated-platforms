@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#  This is a preview version of Google GenAI custom nodes
+# This is a preview version of Gemini 2.5 Flash Image custom node
 
 from typing import List, Optional
 
@@ -25,10 +25,7 @@ import torch
 from . import utils
 
 from .config import get_gcp_metadata
-from .constants import (
-    GEMINI_25_FLASH_IMAGE_USER_AGENT,
-    GeminiFlashImageModel,
-)
+from .constants import GeminiFlashImageModel, GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN
 
 
 class GeminiFlashImageAPI:
@@ -106,7 +103,7 @@ class GeminiFlashImageAPI:
             temperature=temperature,
             top_p=top_p,
             top_k=top_k,
-            max_output_tokens=32768,
+            max_output_tokens=GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN,
             response_modalities=["TEXT", "IMAGE"],
             system_instruction=system_instruction,
             safety_settings=[

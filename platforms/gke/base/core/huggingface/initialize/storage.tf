@@ -13,6 +13,8 @@
 # limitations under the License.
 
 resource "google_storage_bucket" "hub_models" {
+  for_each = toset(var.huggingface_hub_models_bucket_name == null ? ["managed"] : [])
+
   force_destroy               = true
   location                    = local.huggingface_hub_models_bucket_location
   name                        = local.huggingface_hub_models_bucket_name

@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import io,os
+
+import asyncio
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
+import io
 import logging
 import logging.config
-import asyncio
+import os
 from PIL import Image
-#from diffusers import StableDiffusionPipeline
-import uvicorn
 import time
+import uvicorn
+
 
 import jax
 import jax.numpy as jnp

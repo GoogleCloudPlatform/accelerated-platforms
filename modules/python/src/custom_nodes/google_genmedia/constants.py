@@ -20,14 +20,14 @@ from google.genai import types
 
 AUDIO_MIME_TYPES = ["audio/mp3", "audio/wav", "audio/mpeg"]
 GEMINI_USER_AGENT = "cloud-solutions/comfyui-gemini-custom-node-v1"
-IMAGE_MIME_TYPES = ["image/png", "image/jpeg"]
-IMAGEN3_MODEL_ID = "imagen-3.0-generate-002"
-IMAGEN3_USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
-IMAGEN4_USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"
 GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN = 32768
 GEMINI_25_FLASH_IMAGE_USER_AGENT = (
     "cloud-solutions/comfyui-gemini-25-flash-image-custom-node-v1"
 )
+IMAGE_MIME_TYPES = ["image/png", "image/jpeg"]
+IMAGEN3_MODEL_ID = "imagen-3.0-generate-002"
+IMAGEN3_USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
+IMAGEN4_USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"
 MAX_SEED = 0xFFFFFFFF
 OUTPUT_RESOLUTION = ["720p", "1080p"]
 STORAGE_USER_AGENT = "cloud-solutions/comfyui-gcs-custom-node-v1"

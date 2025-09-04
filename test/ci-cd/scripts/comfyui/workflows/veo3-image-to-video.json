@@ -1,0 +1,46 @@
+{
+  "3": {
+    "inputs": {
+      "model": "VEO_3_PREVIEW",
+      "gcsuri": "gs://${COMFYUI_BUCKET}-input/jellyfish.png",
+      "image_format": "PNG",
+      "prompt": "Animate this image",
+      "aspect_ratio": "16:9",
+      "output_resolution": "720p",
+      "compression_quality": "optimized",
+      "person_generation": "allow_adult",
+      "duration_seconds": 8,
+      "generate_audio": true,
+      "enhance_prompt": true,
+      "sample_count": 1,
+      "output_gcs_uri": "gs://${COMFYUI_BUCKET}-output",
+      "negative_prompt": "",
+      "seed": 933745934,
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Veo3GcsUriImageToVideoNode",
+    "_meta": {
+      "title": "Veo3 Image To Video (GcsUriImage)"
+    }
+  },
+  "4": {
+    "inputs": {
+      "autoplay": true,
+      "mute": true,
+      "loop": true,
+      "save_video": true,
+      "save_video_file_prefix": "veo_video",
+      "video_paths": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "VeoVideoSaveAndPreview",
+    "_meta": {
+      "title": "Preview/Save video"
+    }
+  }
+}
+
+

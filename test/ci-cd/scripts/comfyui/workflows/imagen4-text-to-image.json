@@ -1,0 +1,37 @@
+{
+  "2": {
+    "inputs": {
+      "images": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "3": {
+    "inputs": {
+      "model": "IMAGEN_4_PREVIEW",
+      "prompt": "An impossible architectural marvel: a colossal, spiraling tower made of interwoven glass and liquid metal, reaching into a stormy, aurora-lit sky. Swarms of tiny, luminous drones navigate its complex structure, leaving trails of light. The base of the tower is submerged in a perfectly still, reflective lake that mirrors the celestial spectacle above. Ultra-high resolution, cinematic lighting",
+      "person_generation": "allow_adult",
+      "aspect_ratio": "16:9",
+      "number_of_images": 1,
+      "negative_prompt": "",
+      "seed": 0,
+      "enhance_prompt": true,
+      "add_watermark": false,
+      "output_image_type": "PNG",
+      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Imagen4TextToImageNode",
+    "_meta": {
+      "title": "Imagen4 Text To Image"
+    }
+  }
+}
+
+

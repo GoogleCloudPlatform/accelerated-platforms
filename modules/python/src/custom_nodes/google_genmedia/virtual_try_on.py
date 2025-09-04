@@ -107,9 +107,10 @@ class VirtualTryOn:
                         "default": 0,
                         "min": 0,
                         "max": MAX_SEED,
-                        "tooltip": "0 seed let's Imagen3 API handle randomness. Seed works with enhance_prompt disabled",
+                        "tooltip": "0 seed let's VTO API handle randomness. Seed works with enhance_prompt disabled",
                     },
                 ),
+                "add_watermark": ("BOOLEAN", {"default": False}),
                 "safety_filter_level": (
                     [
                         "BLOCK_LOW_AND_ABOVE",
@@ -150,13 +151,40 @@ class VirtualTryOn:
         person_generation: str,
         number_of_images: int,
         seed: int = 0,
+        add_watermark: bool = False,
         safety_filter_level: str = "BLOCK_MEDIUM_AND_ABOVE",
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
     ) -> Tuple[torch.Tensor,]:
         """
-        Generates images for one person by trying on a batch of product images,
-        one API call at a time.
+        This function iterates through each provided product image, makes an API call to the
+        Virtual Try-On service, and returns the generated images as a concatenated tensor.
+
+        Args:
+            person_image: A PyTorch tensor representing the image of the person.
+            product_image: A PyTorch tensor representing the product image(s).
+            base_steps: The number of base steps for image generation.
+            person_generation: A string indicating the safety level for person generation,
+                            e.g., 'ALLOW_ADULT' or 'DONT_ALLOW'.
+            number_of_images: The number of images to generate for each product.
+            seed: The seed for the image generation process. A value of 0 lets the API
+              handle randomness.
+            add_watermark: A boolean indicating whether to add a watermark to the output image.
+            safety_filter_level: The safety filter level for the generated images, with options
+                            like 'BLOCK_LOW_AND_ABOVE', 'BLOCK_MEDIUM_AND_ABOVE', etc.
+            gcp_project_id: An optional string for the GCP project ID. If provided, it overrides
+                        the project ID determined from metadata.
+            gcp_region: An optional string for the GCP region. If provided, it overrides the
+                    region determined from metadata.
+
+        Returns:
+            A tuple containing a concatenated PyTorch tensor of all generated images.
+
+        Raises:
+            RuntimeError: If the client fails to initialize or if image generation fails for
+                        all products in the batch.
+            ValueError: If `person_image` or `product_image` are empty, or if `seed` is used
+                        when `add_watermark` is enabled.
         """
         try:
             # Re-initialize the client if needed
@@ -171,6 +199,9 @@ class VirtualTryOn:
             raise ValueError(
                 "Both person_image and product_image must be valid, non-empty images."
             )
+        seed_for_api = seed if seed != 0 else None
+        if seed_for_api and add_watermark:
+            raise ValueError("Seed is not supported when add_watermark is enabled.")
 
         person_image_base64 = utils.tensor_to_pil_to_base64(person_image)
 
@@ -197,9 +228,10 @@ class VirtualTryOn:
                 "baseSteps": base_steps,
                 "safetySetting": safety_filter_level,
                 "personGeneration": person_generation,
-                "seed": seed if seed != 0 else None,
+                "seed": seed_for_api,
+                "addWatermark": add_watermark,
+                "safety_filter_level": safety_filter_level,
             }
-
             try:
                 response = self.client.predict(
                     endpoint=self.model_endpoint,

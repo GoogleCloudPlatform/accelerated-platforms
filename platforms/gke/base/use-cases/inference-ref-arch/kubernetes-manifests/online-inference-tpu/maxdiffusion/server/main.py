@@ -1,4 +1,18 @@
-import io
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import io,os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,6 +71,8 @@ LOG = logging.getLogger(__name__)
 LOG.info("API is starting up")
 LOG.info(uvicorn.Config.asgi_version)
 
+MODEL_DIR = os.environ.get("MODEL_ID", "/models/sdxl")
+
 app = FastAPI()
 origins = ["*"]
 app.add_middleware(
@@ -88,7 +104,7 @@ if(NUM_DEVICES>0):
 # Adhering to JAX's functional approach, the model's parameters are returned seperatetely and
 # will have to be passed to the pipeline during inference
 pipeline, params = FlaxStableDiffusionXLPipeline.from_pretrained(
-    "stabilityai/stable-diffusion-xl-base-1.0", revision="refs/pr/95", split_head_dim=True
+    MODEL_DIR, revision="refs/pr/95", split_head_dim=True
 )
 LOG.info("parameters preparation")
 # 2. We cast all parameters to bfloat16 EXCEPT the scheduler which we leave in
@@ -206,5 +222,3 @@ async def generate(request: Request):
 
 if __name__ == "__main__":
    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, log_level="debug")
-
-

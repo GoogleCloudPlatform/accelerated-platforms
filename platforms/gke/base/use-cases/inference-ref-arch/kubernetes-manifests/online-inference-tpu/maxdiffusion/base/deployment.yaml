@@ -54,29 +54,13 @@ spec:
             - mountPath: /gcs
               name: huggingface-hub-model-bucket
               readOnly: true
-        - args:
-            - "--disable-log-requests"
-            - "--gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)"
-            - "--model=/gcs/$(MODEL_ID)"
-            - "--tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)"
-            - "--trust-remote-code"
-          command:
-            - uvicorn 
-            - serve:app
-            - --host 
-            - "0.0.0.0"
-            - --port
-            - "8000"
+        - args: []
+          command: []
           env:
             - name: GPU_MEMORY_UTILIZATION
               valueFrom:
                 configMapKeyRef:
                   key: GPU_MEMORY_UTILIZATION
-                  name: runtime
-            - name: MAX_MODEL_LEN
-              valueFrom:
-                configMapKeyRef:
-                  key: MAX_MODEL_LEN
                   name: runtime
             - name: MODEL_ID
               valueFrom:

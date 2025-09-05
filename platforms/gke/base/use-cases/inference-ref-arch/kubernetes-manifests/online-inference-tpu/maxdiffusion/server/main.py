@@ -25,7 +25,6 @@ from PIL import Image
 import time
 import uvicorn
 
-
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -35,6 +34,7 @@ from jax.experimental.compilation_cache import compilation_cache as cc
 from maxdiffusion import FlaxStableDiffusionXLPipeline
 
 ROOT_LEVEL = "INFO"
+MODEL_DIR = os.environ.get("MODEL_ID")
 
 LOGGING_CONFIG = {
     "version": 1,
@@ -72,8 +72,6 @@ logging.config.dictConfig(LOGGING_CONFIG)
 LOG = logging.getLogger(__name__)
 LOG.info("API is starting up")
 LOG.info(uvicorn.Config.asgi_version)
-
-MODEL_DIR = os.environ.get("MODEL_ID", "/models/sdxl")
 
 app = FastAPI()
 origins = ["*"]
@@ -224,3 +222,4 @@ async def generate(request: Request):
 
 if __name__ == "__main__":
    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, log_level="debug")
+   

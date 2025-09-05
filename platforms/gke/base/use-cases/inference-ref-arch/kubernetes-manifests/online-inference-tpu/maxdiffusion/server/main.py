@@ -101,7 +101,7 @@ NUM_DEVICES = jax.device_count()
 if(NUM_DEVICES>0):
    LOG.info("TPU Devices Detected:")
 # 1. Let's start by downloading the model and loading it into our pipeline class
-# Adhering to JAX's functional approach, the model's parameters are returned seperatetely and
+# Adhering to JAX's functional approach, the model's parameters are returned separately and
 # will have to be passed to the pipeline during inference
 pipeline, params = FlaxStableDiffusionXLPipeline.from_pretrained(
     MODEL_DIR, revision="refs/pr/95", split_head_dim=True
@@ -154,7 +154,7 @@ def replicate_all(prompt_ids, neg_prompt_ids, seed):
 # to the function and tell JAX which are static arguments, that is, arguments that
 # are known at compile time and won't change. In our case, it is num_inference_steps,
 # height, width and return_latents.
-# Once the function is compiled, these parameters are ommited from future calls and
+# Once the function is compiled, these parameters are omitted from future calls and
 # cannot be changed without modifying the code and recompiling.
 def aot_compile(
     prompt=default_prompt,
@@ -186,7 +186,7 @@ def aot_compile(
         .compile()
     )
 
-LOG.info("start initialized comppiling")
+LOG.info("start initialized compiling")
 start = time.time()
 LOG.info("Compiling ...")
 p_generate = aot_compile()

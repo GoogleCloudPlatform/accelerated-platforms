@@ -17,6 +17,8 @@ locals {
   vto_files_to_upload           = fileset(local.vto_source_path, "**/*.png")
   interpolation_source_path     = "${path.module}/src/comfyui-workflows/input-images/interpolation"
   interpolation_files_to_upload = fileset(local.interpolation_source_path, "**/*.png")
+  nano_banana_source_path       = "${path.module}/src/comfyui-workflows/input-images/nano-banana"
+  nano_banana_files_to_upload   = fileset(local.nano_banana_source_path, "**/*.png")
 }
 
 resource "google_storage_bucket" "comfyui_input" {
@@ -95,6 +97,13 @@ resource "google_storage_bucket_object" "intpl_gcsimage" {
   source   = "${local.interpolation_source_path}/${each.key}"
 }
 
+resource "google_storage_bucket_object" "nano_banana_gcsimage" {
+  for_each = local.nano_banana_files_to_upload
+  bucket   = google_storage_bucket.comfyui_input.name
+  name     = "nano-banana/${each.key}"
+  source   = "${local.nano_banana_source_path}/${each.key}"
+}
+
 resource "google_storage_bucket_object" "veo3_gcsimage" {
   bucket = google_storage_bucket.comfyui_input.name
   name   = "jellyfish.png"
@@ -151,6 +160,13 @@ resource "google_storage_bucket_object" "workflows_ltxv_ttv" {
   bucket = google_storage_bucket.comfyui_workflow.name
   name   = "ltxv-text-to-video.json"
   source = "src/comfyui-workflows/ltxv-text-to-video.json"
+}
+
+resource "google_storage_bucket_object" "workflow_nano_banana_i2v" {
+  bucket     = google_storage_bucket.comfyui_workflow.name
+  name       = "nano-banana.json"
+  source     = "src/comfyui-workflows/nano-banana.json"
+  depends_on = [google_storage_bucket_object.nano_banana_gcsimage]
 }
 
 resource "google_storage_bucket_object" "workflows_sdxl_tti" {

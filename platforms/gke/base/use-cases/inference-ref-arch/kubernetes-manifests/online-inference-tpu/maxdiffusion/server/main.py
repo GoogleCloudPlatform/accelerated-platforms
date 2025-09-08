@@ -87,19 +87,14 @@ async def health() -> Response:
     """Health check."""
     return Response(status_code=200)
 
-@app.get("/")
-async def read_root():
-    message = f"Hello world! From FastAPI running on Uvicorn with Gunicorn."
-    LOG.info(message)
-    return {"message": message}
 # Let's cache the model compilation, so that it doesn't take as long the next time around.
-
-# Load the Stable Diffusion model
 cc.initialize_cache("~/jax_cache")
 
 NUM_DEVICES = jax.device_count()
 if(NUM_DEVICES>0):
    LOG.info("TPU Devices Detected:")
+
+# Load the Stable Diffusion model
 # 1. Let's start by downloading the model and loading it into our pipeline class
 # Adhering to JAX's functional approach, the model's parameters are returned separately and
 # will have to be passed to the pipeline during inference
@@ -213,11 +208,10 @@ async def generate(request: Request):
     for i, image in enumerate(images):
         if i==0:
           image.save(buffer, format="PNG")
-    #await images[0].save(buffer, format="PNG")
 
     # Return the image as a response
     return Response(content=buffer.getvalue(), media_type="image/png")
 
 if __name__ == "__main__":
    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, log_level="debug")
-   
+

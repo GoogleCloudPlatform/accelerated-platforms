@@ -191,7 +191,7 @@ This example is built on top of the
   When the deployment is ready, you will see the following:
 
   ```text
-  NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
   vllm-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1     1            1           ###
   ```
 

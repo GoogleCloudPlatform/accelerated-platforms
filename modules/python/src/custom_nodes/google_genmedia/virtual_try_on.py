@@ -272,7 +272,9 @@ class VirtualTryOn:
             )
             return (final_batch_tensor,)
         except Exception as e:
-            raise RuntimeError(f"Failed to concatenate generated images into a batch: {e}")
+            raise RuntimeError(
+                f"Failed to concatenate generated images into a batch: {e}"
+            )
 
 
 NODE_CLASS_MAPPINGS = {"VirtualTryOn": VirtualTryOn}

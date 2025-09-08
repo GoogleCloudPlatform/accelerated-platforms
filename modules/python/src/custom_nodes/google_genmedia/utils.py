@@ -175,7 +175,9 @@ def generate_image_from_text(
     generated_pil_images: List[PIL_Image.Image] = []
     print("Sending request to Imagen API for text-to-image generation...")
     try:
-        response = client.models.generate_images(model=model, prompt=prompt, config=config)
+        response = client.models.generate_images(
+            model=model, prompt=prompt, config=config
+        )
     except Exception as e:
         print(f"An unexpected error occurred during image generation: {e}")
         raise exceptions.APICallError(f"Image generation failed: {e}") from e
@@ -321,8 +323,12 @@ def generate_video_from_gcsuri_image(
         try:
             operation = client.operations.get(operation)
         except Exception as e:
-            print(f"An unexpected error occurred while polling for video generation status: {e}")
-            raise exceptions.APICallError(f"Polling for video generation status failed: {e}") from e
+            print(
+                f"An unexpected error occurred while polling for video generation status: {e}"
+            )
+            raise exceptions.APICallError(
+                f"Polling for video generation status failed: {e}"
+            ) from e
         operation_count += 1
         print(f"Polling operation (attempt {operation_count})...")
 
@@ -482,8 +488,12 @@ def generate_video_from_image(
         try:
             operation = client.operations.get(operation)
         except Exception as e:
-            print(f"An unexpected error occurred while polling for video generation status: {e}")
-            raise exceptions.APICallError(f"Polling for video generation status failed: {e}") from e
+            print(
+                f"An unexpected error occurred while polling for video generation status: {e}"
+            )
+            raise exceptions.APICallError(
+                f"Polling for video generation status failed: {e}"
+            ) from e
         operation_count += 1
         print(f"Polling operation (attempt {operation_count})...")
 
@@ -584,7 +594,9 @@ def generate_video_from_text(
 
     print("Sending request to Veo API for text-to-video generation...")
     try:
-        operation = client.models.generate_videos(model=model, prompt=prompt, config=config)
+        operation = client.models.generate_videos(
+            model=model, prompt=prompt, config=config
+        )
     except Exception as e:
         print(f"An unexpected error occurred during video generation: {e}")
         raise exceptions.APICallError(f"Video generation failed: {e}") from e
@@ -596,8 +608,12 @@ def generate_video_from_text(
         try:
             operation = client.operations.get(operation)
         except Exception as e:
-            print(f"An unexpected error occurred while polling for video generation status: {e}")
-            raise exceptions.APICallError(f"Polling for video generation status failed: {e}") from e
+            print(
+                f"An unexpected error occurred while polling for video generation status: {e}"
+            )
+            raise exceptions.APICallError(
+                f"Polling for video generation status failed: {e}"
+            ) from e
         operation_count += 1
         print(f"Polling operation (attempt {operation_count})...")
 

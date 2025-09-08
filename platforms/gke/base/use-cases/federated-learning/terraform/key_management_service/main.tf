@@ -18,7 +18,7 @@ resource "random_id" "keyring_suffix" {
 }
 
 resource "google_kms_key_ring" "key_ring" {
-  location = var.cluster_region
+  location = local.cluster_region
   name     = "${local.unique_identifier_prefix}-keyring-${random_id.keyring_suffix.hex}"
   project  = google_project_service.cloudkms_googleapis_com.project
 }

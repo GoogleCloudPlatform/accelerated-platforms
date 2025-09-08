@@ -14,13 +14,13 @@
 
 data "google_compute_zones" "available" {
   project = google_project_service.confidentialcomputing_googleapis_com.project
-  region  = var.cluster_region
+  region  = local.cluster_region
 }
 
 resource "google_compute_instance_template" "instance_template" {
   for_each = var.federated_learning_cross_device_example_confidential_space_workloads
   project  = google_project_service.confidentialcomputing_googleapis_com.project
-  region   = var.cluster_region
+  region   = local.cluster_region
 
   name_prefix = "${local.unique_identifier_prefix}-"
 
@@ -106,7 +106,7 @@ resource "google_compute_region_instance_group_manager" "instance_group" {
     type            = "PROACTIVE"
   }
 
-  region = var.cluster_region
+  region = local.cluster_region
 }
 
 resource "google_compute_health_check" "default" {
@@ -127,7 +127,7 @@ resource "google_compute_region_autoscaler" "autoscaler" {
   for_each = var.federated_learning_cross_device_example_confidential_space_workloads
   name     = join("-", [local.unique_identifier_prefix, each.key, "autoscaler"])
   project  = google_project_service.confidentialcomputing_googleapis_com.project
-  region   = var.cluster_region
+  region   = local.cluster_region
   target   = google_compute_region_instance_group_manager.instance_group[each.key].id
 
   autoscaling_policy {

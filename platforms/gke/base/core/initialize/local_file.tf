@@ -96,7 +96,7 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
       cluster_node_pool_default_service_account_project_id = var.cluster_node_pool_default_service_account_project_id
       cluster_private_endpoint_subnetwork                  = var.cluster_private_endpoint_subnetwork
       cluster_project_id                                   = var.cluster_project_id
-      cluster_region                                       = var.cluster_region
+      cluster_region                                       = local.cluster_region
       cluster_system_node_pool_machine_type                = var.cluster_system_node_pool_machine_type
       cluster_use_connect_gateway                          = var.cluster_use_connect_gateway
     }
@@ -212,6 +212,7 @@ resource "local_file" "shared_config_platform_auto_tfvars" {
     {
       platform_custom_role_unique_suffix = local.platform_custom_role_unique_suffix
       platform_default_project_id        = var.platform_default_project_id
+      platform_default_region            = var.platform_default_region
       platform_name                      = var.platform_name
       resource_name_prefix               = var.resource_name_prefix
     }

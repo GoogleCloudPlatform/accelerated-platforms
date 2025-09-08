@@ -16,7 +16,7 @@ resource "google_artifact_registry_repository" "repository" {
   for_each = toset(var.configmanagement_sync_repo == null ? ["managed"] : [])
 
   format        = "DOCKER"
-  location      = var.cluster_region
+  location      = local.cluster_region
   project       = google_project_service.artifactregistry_googleapis_com.project
   repository_id = local.oci_repo_id
 
@@ -32,7 +32,7 @@ data "google_artifact_registry_repository" "repository" {
     google_artifact_registry_repository.repository,
   ]
 
-  location      = var.cluster_region
+  location      = local.cluster_region
   project       = google_project_service.artifactregistry_googleapis_com.project
   repository_id = local.oci_repo_id
 }

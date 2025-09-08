@@ -21,7 +21,7 @@
 locals {
   cloudbuild_github_access_token_read_secret_manager_secret_name  = var.cloudbuild_github_access_token_read_secret_manager_secret_name != null ? var.cloudbuild_github_access_token_read_secret_manager_secret_name : "${local.unique_identifier_prefix}-github-access-token-read"
   cloudbuild_github_access_token_write_secret_manager_secret_name = var.cloudbuild_github_access_token_write_secret_manager_secret_name != null ? var.cloudbuild_github_access_token_write_secret_manager_secret_name : "${local.unique_identifier_prefix}-github-access-token-write"
-  cloudbuild_location                                             = var.cloudbuild_location != null ? var.cloudbuild_location : var.cluster_region
+  cloudbuild_location                                             = var.cloudbuild_location != null ? var.cloudbuild_location : var.platform_default_region
   cloudbuild_project_id                                           = var.cloudbuild_project_id != null ? var.cloudbuild_project_id : var.platform_default_project_id
   cloudbuild_service_account_email                                = "${local.cloudbuild_service_account_name}@${local.cloudbuild_project_id}.iam.gserviceaccount.com"
   cloudbuild_service_account_id                                   = "projects/${local.cloudbuild_project_id}/serviceAccounts/${local.cloudbuild_service_account_email}"

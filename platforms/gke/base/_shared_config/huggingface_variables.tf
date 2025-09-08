@@ -27,7 +27,7 @@ locals {
   huggingface_hub_downloader_service_account_project_id         = var.huggingface_hub_downloader_service_account_project_id != null ? var.huggingface_hub_downloader_service_account_project_id : var.platform_default_project_id
   huggingface_hub_downloader_kubernetes_namespace_name          = var.huggingface_hub_downloader_kubernetes_namespace_name != null ? var.huggingface_hub_downloader_kubernetes_namespace_name : "${local.unique_identifier_prefix}-hf-hub-downloader"
   huggingface_hub_downloader_kubernetes_service_account_name    = var.huggingface_hub_downloader_kubernetes_service_account_name != null ? var.huggingface_hub_downloader_kubernetes_service_account_name : "${local.unique_identifier_prefix}-hf-hub-downloader"
-  huggingface_hub_models_bucket_location                        = var.huggingface_hub_models_bucket_location != null ? var.huggingface_hub_models_bucket_location : var.cluster_region
+  huggingface_hub_models_bucket_location                        = var.huggingface_hub_models_bucket_location != null ? var.huggingface_hub_models_bucket_location : local.cluster_region
   huggingface_hub_models_bucket_name                            = var.huggingface_hub_models_bucket_name != null ? var.huggingface_hub_models_bucket_name : "${local.huggingface_hub_models_bucket_project_id}-${local.unique_identifier_prefix}-hf-hub-models"
   huggingface_hub_models_bucket_project_id                      = var.huggingface_hub_models_bucket_project_id != null ? var.huggingface_hub_models_bucket_project_id : var.platform_default_project_id
   huggingface_secret_manager_project_id                         = var.huggingface_secret_manager_project_id != null ? var.huggingface_secret_manager_project_id : var.platform_default_project_id

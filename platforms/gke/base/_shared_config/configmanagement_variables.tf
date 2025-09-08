@@ -28,7 +28,7 @@ locals {
   git_creds_secret = var.configmanagement_git_credentials.secret_name == null ? "${var.platform_name}-git-creds" : var.configmanagement_git_credentials.secret_name
 
   oci_repo_id              = "${local.unique_identifier_prefix}-config-sync"
-  oci_repo_domain          = "${var.cluster_region}-docker.pkg.dev"
+  oci_repo_domain          = "${local.cluster_region}-docker.pkg.dev"
   oci_repo_url             = "${local.oci_repo_domain}/${local.cluster_project_id}/${local.oci_repo_id}"
   oci_root_sync_image      = "${local.oci_root_sync_image_name}:${local.oci_root_sync_image_tag}"
   oci_root_sync_image_name = "root-sync"

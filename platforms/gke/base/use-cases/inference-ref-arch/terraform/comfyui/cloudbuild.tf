@@ -14,7 +14,7 @@
 
 locals {
   final_artifact_repo_name = split("/", google_artifact_registry_repository.comfyui_container_images.id)[5]
-  image_destination        = "${var.cluster_region}-docker.pkg.dev/${data.google_project.cluster.project_id}/${local.final_artifact_repo_name}/${var.comfyui_image_name}:${var.comfyui_image_tag}"
+  image_destination        = "${local.cluster_region}-docker.pkg.dev/${data.google_project.cluster.project_id}/${local.final_artifact_repo_name}/${var.comfyui_image_name}:${var.comfyui_image_tag}"
 }
 
 resource "terraform_data" "submit_docker_build" {

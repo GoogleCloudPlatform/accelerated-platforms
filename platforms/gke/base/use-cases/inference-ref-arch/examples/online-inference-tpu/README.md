@@ -81,7 +81,7 @@ This example is built on top of the
   ```shell
   watch --color --interval 5 --no-title \
   "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-hf-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
-  echo '\nLogs(last 10 lines):'
+  echo -e '\nLogs(last 10 lines):'
   kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --all-containers --tail 10"
   ```
 
@@ -160,7 +160,7 @@ This example is built on top of the
   ```shell
   watch --color --interval 5 --no-title \
   "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
+  echo -e '\nLogs(last 10 lines):'
   kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
   ```
 

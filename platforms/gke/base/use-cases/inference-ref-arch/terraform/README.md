@@ -134,11 +134,15 @@ For more information about providing values for Terraform input variables, see
   ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-ap.sh
   ```
 
+  > The `deploy-ap.sh` script usually takes 15 to 20 minutes.
+
   **GKE Standard**
 
   ```shell
   ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-standard.sh
   ```
+
+  > The `deploy-standard.sh` script usually takes 15 to 20 minutes.
 
 - Configure the platform.
 
@@ -167,37 +171,57 @@ For more information about providing values for Terraform input variables, see
 
   - Automatic application monitoring
   - Custom Compute Classes
-    - [CPU](/platforms/gke/base/core/custom_compute_class/templates/manifests/cpu)
-      - cpu-n4-s-8
-    - [GPU](/platforms/gke/base/core/custom_compute_class/templates/manifests/gpu)
-      - gpu-a100-40gb-x2
-      - gpu-a100-80gb-x1
-      - gpu-h100-80gb-high-x1
-      - gpu-h100-80gb-high-x2
-      - gpu-h100-80gb-high-x4
-      - gpu-h100-80gb-high-x8
-      - gpu-h100-80gb-mega-x8
-      - gpu-h200-141gb-ultra-x8
-      - gpu-l4-24gb-s4-x1
-      - gpu-l4-24gb-s8-x1
-      - gpu-l4-24gb-s12-x1
-      - gpu-l4-24gb-s16-x1
-      - gpu-l4-24gb-s32-x1
-      - gpu-l4-24gb-x2
-      - gpu-l4-24gb-x4
-      - gpu-l4-24gb-x8
-    - [TPU](/platforms/gke/base/core/custom_compute_class/templates/manifests/tpu)
-      - tpu-v4-2x2x1
-      - tpu-v4-2x2x2
-      - tpu-v5e-2x2
-      - tpu-v5e-2x4
-      - tpu-v5p-2x2x1
-      - tpu-v5p-2x2x2
-      - tpu-v6e-2x2
-      - tpu-v6e-2x4
+
+    - <details>
+        <summary>        
+          <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/cpu">CPU</a>
+        </summary>
+        <ul>
+          <li>cpu-n4-s-8</li>
+        <ul>
+      </details>
+    - <details>
+        <summary>        
+          <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/gpu">GPU</a>
+        </summary>
+        <ul>
+          <li>gpu-a100-40gb-x2</li>
+          <li>gpu-a100-80gb-x1</li>
+          <li>gpu-h100-80gb-high-x1</li>
+          <li>gpu-h100-80gb-high-x2</li>
+          <li>gpu-h100-80gb-high-x4</li>
+          <li>gpu-h100-80gb-high-x8</li>
+          <li>gpu-h100-80gb-mega-x8</li>
+          <li>gpu-h200-141gb-ultra-x8</li>
+          <li>gpu-l4-24gb-s4-x1</li>
+          <li>gpu-l4-24gb-s8-x1</li>
+          <li>gpu-l4-24gb-s12-x1</li>
+          <li>gpu-l4-24gb-s16-x1</li>
+          <li>gpu-l4-24gb-s32-x1</li>
+          <li>gpu-l4-24gb-x2</li>
+          <li>gpu-l4-24gb-x4</li>
+          <li>gpu-l4-24gb-x8</li>
+        <ul>
+      </details>
+    - <details>
+        <summary>        
+          <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/tpu">TPU</a>
+        </summary>
+        <ul>
+          <li>tpu-v4-2x2x1</li>
+          <li>tpu-v4-2x2x2</li>
+          <li>tpu-v5e-2x2</li>
+          <li>tpu-v5e-2x4</li>
+          <li>tpu-v5p-2x2x1</li>
+          <li>tpu-v5p-2x2x2</li>
+          <li>tpu-v6e-2x2</li>
+          <li>tpu-v6e-2x4</li>
+        </ul>
+      </details>
+
   - Gateway API
     - Inference Gateway
-  - `system` Node Pool
+  - `system` Node Pool (GKE Standard only)
   - Workloads
     - Custom metrics adapter
     - Jobset
@@ -226,8 +250,12 @@ For more information about providing values for Terraform input variables, see
   ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-ap.sh
   ```
 
+  > The `teardown-ap.sh` script usually takes 10 to 15 minutes.
+
   **GKE Standard**
 
   ```shell
   ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-standard.sh
   ```
+
+  > The `teardown-standard.sh` script usually takes 10 to 15 minutes.

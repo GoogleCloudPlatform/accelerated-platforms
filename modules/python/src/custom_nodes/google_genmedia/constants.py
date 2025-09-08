@@ -20,6 +20,10 @@ from google.genai import types
 
 AUDIO_MIME_TYPES = ["audio/mp3", "audio/wav", "audio/mpeg"]
 GEMINI_USER_AGENT = "cloud-solutions/comfyui-gemini-custom-node-v1"
+GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN = 32768
+GEMINI_25_FLASH_IMAGE_USER_AGENT = (
+    "cloud-solutions/comfyui-gemini-25-flash-image-custom-node-v1"
+)
 IMAGE_MIME_TYPES = ["image/png", "image/jpeg"]
 IMAGEN3_MODEL_ID = "imagen-3.0-generate-002"
 IMAGEN3_USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
@@ -36,6 +40,10 @@ VEO3_USER_AGENT = "cloud-solutions/comfyui-veo3-custom-node-v1"
 VIDEO_MIME_TYPES = ["video/mp4", "video/mpeg"]
 VTO_MODEL = "virtual-try-on-preview-08-04"
 VTO_USER_AGENT = "cloud-solutions/virtual-try-on-custom-node-v1"
+
+
+class GeminiFlashImageModel(Enum):
+    GEMINI_25_FLASH_IMAGE_PREVIEW = "gemini-2.5-flash-image-preview"
 
 
 class GeminiModel(Enum):

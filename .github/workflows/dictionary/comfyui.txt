@@ -1,7 +1,9 @@
 aivazovsky
 amano
+argjson
 autoplay
 backlighting
+basenames
 bgcolor
 bioluminescent
 cachebuster
@@ -15,6 +17,7 @@ denoised
 dont
 dont_allow
 filebase
+ftype
 functools
 gcsimage
 genai
@@ -22,6 +25,7 @@ generativeai
 genmedia
 ghibli
 gligen
+httpstatus
 hypernetworks
 hyperrealistic
 imagen
@@ -39,6 +43,7 @@ pingpong
 pysssss
 retryable
 sdxl
+tolower
 torchaudio
 torchvision
 unet

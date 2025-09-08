@@ -90,6 +90,12 @@ variable "cluster_binary_authorization_evaluation_mode" {
   }
 }
 
+variable "cluster_check_custom_compute_classes_healthy" {
+  default     = false
+  description = "Whether to check if the Custom Compute Classes are healthy."
+  type        = bool
+}
+
 variable "cluster_confidential_nodes_enabled" {
   default     = false
   description = "Enable Confidential GKE Nodes for this node pool, to enforce encryption of data in-use. When setting this to true, ensure that the machine types you configured for your node pools support Confidential GKE Nodes. Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/confidential-gke-nodes"

@@ -60,6 +60,7 @@ scann
 sched
 schedulable
 schnell
+stabilityai
 tunables
 unconfigure
 usecs

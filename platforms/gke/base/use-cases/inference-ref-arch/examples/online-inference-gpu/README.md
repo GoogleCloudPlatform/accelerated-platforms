@@ -237,6 +237,27 @@ This example is built on top of the
 
 ### Deploy the Image models online inference workload.
 
+- Create Artifact Registry repository 
+
+  ```shell
+    cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/build" \
+
+    export PROJECT_ID=<YOUR_PROJECT_ID> \
+
+    gcloud artifacts repositories create online-inference-gpu \
+        --repository-format=docker \
+        --location=us-central1 \
+        --description="Docker repository for online GPU inference service." \
+  ```
+
+- Build the image for the Diffusers online inference web server
+
+  ```shell
+  gcloud builds submit .
+  ```
+
+- Deploy the model Flux.1-Schnell with Diffusers library
+
   ```shell
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```

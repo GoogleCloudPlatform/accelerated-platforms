@@ -61,9 +61,6 @@ class Imagen3API:
             http_options=http_options,
         )
 
-        self.retry_count = 3  # Number of retries for quota errors
-        self.retry_delay = 5  # Delay between retries (seconds)
-
     def generate_image_from_text(
         self,
         prompt: str,
@@ -102,11 +99,17 @@ class Imagen3API:
         """
         if not prompt or not prompt.strip():
             raise exceptions.ConfigurationError("Prompt cannot be empty.")
+        if not 1 <= number_of_images <= 4:
+            raise exceptions.ConfigurationError(
+                "Number of images must be between 1 and 4."
+            )
         if seed and add_watermark:
             raise exceptions.ConfigurationError(
                 "Seed is not supported when add_watermark is enabled."
             )
 
+        if not output_image_type:
+            raise exceptions.ConfigurationError("Output image type cannot be empty.")
         output_image_type = output_image_type.upper()
         if output_image_type == "PNG":
             output_mime_type = "image/png"
@@ -130,6 +133,4 @@ class Imagen3API:
             add_watermark=add_watermark,
             output_image_type=output_mime_type,
             safety_filter_level=safety_filter_level,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )

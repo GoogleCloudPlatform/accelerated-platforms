@@ -135,7 +135,7 @@ def generate_image_from_text(
     safety_filter_level: str,
 ) -> List[PIL_Image.Image]:
     """
-    Generate image from text prompt using Imagen3.
+    Generate image from text prompt using Imagen.
 
     Args:
         client: genai.Client
@@ -174,7 +174,11 @@ def generate_image_from_text(
 
     generated_pil_images: List[PIL_Image.Image] = []
     print("Sending request to Imagen API for text-to-image generation...")
-    response = client.models.generate_images(model=model, prompt=prompt, config=config)
+    try:
+        response = client.models.generate_images(model=model, prompt=prompt, config=config)
+    except Exception as e:
+        print(f"An unexpected error occurred during image generation: {e}")
+        raise exceptions.APICallError(f"Image generation failed: {e}") from e
 
     if not response.generated_images:
         error_message = "Image generation failed or was blocked by safety filters."
@@ -299,18 +303,26 @@ def generate_video_from_gcsuri_image(
     print(f"Config for image-to-video generation: {config}")
 
     print("Sending request to Veo API for image-to-video generation")
-    operation = client.models.generate_videos(
-        model=model,
-        image=Image(gcs_uri=gcsuri, mime_type=image_format),
-        prompt=prompt,
-        config=config,
-    )
+    try:
+        operation = client.models.generate_videos(
+            model=model,
+            image=Image(gcs_uri=gcsuri, mime_type=image_format),
+            prompt=prompt,
+            config=config,
+        )
+    except Exception as e:
+        print(f"An unexpected error occurred during video generation: {e}")
+        raise exceptions.APICallError(f"Video generation failed: {e}") from e
     print(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
     while not operation.done:
         time.sleep(20)
-        operation = client.operations.get(operation)
+        try:
+            operation = client.operations.get(operation)
+        except Exception as e:
+            print(f"An unexpected error occurred while polling for video generation status: {e}")
+            raise exceptions.APICallError(f"Polling for video generation status failed: {e}") from e
         operation_count += 1
         print(f"Polling operation (attempt {operation_count})...")
 
@@ -452,18 +464,26 @@ def generate_video_from_image(
         f"Sending request to Veo API for image-to-video generation with prompt: '{prompt[:80]}...'"
     )
 
-    operation = client.models.generate_videos(
-        model=model,
-        image=Image(image_bytes=veo_image_input_str, mime_type=mime_type),
-        prompt=prompt,
-        config=config,
-    )
+    try:
+        operation = client.models.generate_videos(
+            model=model,
+            image=Image(image_bytes=veo_image_input_str, mime_type=mime_type),
+            prompt=prompt,
+            config=config,
+        )
+    except Exception as e:
+        print(f"An unexpected error occurred during video generation: {e}")
+        raise exceptions.APICallError(f"Video generation failed: {e}") from e
     print(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
     while not operation.done:
         time.sleep(20)
-        operation = client.operations.get(operation)
+        try:
+            operation = client.operations.get(operation)
+        except Exception as e:
+            print(f"An unexpected error occurred while polling for video generation status: {e}")
+            raise exceptions.APICallError(f"Polling for video generation status failed: {e}") from e
         operation_count += 1
         print(f"Polling operation (attempt {operation_count})...")
 
@@ -563,13 +583,21 @@ def generate_video_from_text(
     print(f"Config for text-to-video generation: {config}")
 
     print("Sending request to Veo API for text-to-video generation...")
-    operation = client.models.generate_videos(model=model, prompt=prompt, config=config)
+    try:
+        operation = client.models.generate_videos(model=model, prompt=prompt, config=config)
+    except Exception as e:
+        print(f"An unexpected error occurred during video generation: {e}")
+        raise exceptions.APICallError(f"Video generation failed: {e}") from e
     print(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
     while not operation.done:
         time.sleep(20)  # Polling interval
-        operation = client.operations.get(operation)
+        try:
+            operation = client.operations.get(operation)
+        except Exception as e:
+            print(f"An unexpected error occurred while polling for video generation status: {e}")
+            raise exceptions.APICallError(f"Polling for video generation status failed: {e}") from e
         operation_count += 1
         print(f"Polling operation (attempt {operation_count})...")
 

@@ -54,12 +54,17 @@ class Imagen4API:
         http_options = genai.types.HttpOptions(
             headers={"user-agent": IMAGEN4_USER_AGENT}
         )
-        self.client = genai.Client(
-            vertexai=True,
-            project=self.project_id,
-            location=self.region,
-            http_options=http_options,
-        )
+        try:
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.project_id,
+                location=self.region,
+                http_options=http_options,
+            )
+        except Exception as e:
+            raise exceptions.APIInitializationError(
+                f"Failed to initialize genai.Client for Vertex AI: {e}"
+            ) from e
 
     def generate_image_from_text(
         self,
@@ -109,6 +114,9 @@ class Imagen4API:
             raise exceptions.ConfigurationError(
                 "Seed is not supported when add_watermark is enabled."
             )
+
+        if not output_image_type:
+            raise exceptions.ConfigurationError("Output image type cannot be empty.")
 
         output_image_type = output_image_type.upper()
         if output_image_type == "PNG":

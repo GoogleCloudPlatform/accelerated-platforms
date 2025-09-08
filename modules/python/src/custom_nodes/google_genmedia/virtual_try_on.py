@@ -265,11 +265,14 @@ class VirtualTryOn:
                 "Image generation failed for all product images in the batch."
             )
 
-        final_batch_tensor = torch.cat(all_generated_tensors, 0)
-        print(
-            f"Successfully generated {final_batch_tensor.shape[0]} image(s) in total."
-        )
-        return (final_batch_tensor,)
+        try:
+            final_batch_tensor = torch.cat(all_generated_tensors, 0)
+            print(
+                f"Successfully generated {final_batch_tensor.shape[0]} image(s) in total."
+            )
+            return (final_batch_tensor,)
+        except Exception as e:
+            raise RuntimeError(f"Failed to concatenate generated images into a batch: {e}")
 
 
 NODE_CLASS_MAPPINGS = {"VirtualTryOn": VirtualTryOn}

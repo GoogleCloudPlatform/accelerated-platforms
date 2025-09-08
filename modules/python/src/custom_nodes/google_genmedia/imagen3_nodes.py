@@ -181,18 +181,20 @@ class Imagen3TextToImageNode:
             raise RuntimeError(
                 "Imagen API failed to generate images or generated no valid images."
             )
+        try:
+            output_tensors: List[torch.Tensor] = []
+            for img in pil_images:
+                img = img.convert("RGB")
+                img_np = np.array(img).astype(np.float32) / 255.0
+                img_tensor = torch.from_numpy(img_np)[
+                    None,
+                ]
+                output_tensors.append(img_tensor)
 
-        output_tensors: List[torch.Tensor] = []
-        for img in pil_images:
-            img = img.convert("RGB")
-            img_np = np.array(img).astype(np.float32) / 255.0
-            img_tensor = torch.from_numpy(img_np)[
-                None,
-            ]
-            output_tensors.append(img_tensor)
-
-        batched_images_tensor = torch.cat(output_tensors, dim=0)
-        return (batched_images_tensor,)
+            batched_images_tensor = torch.cat(output_tensors, dim=0)
+            return (batched_images_tensor,)
+        except Exception as e:
+            raise RuntimeError(f"Failed to process and convert generated images: {e}")
 
 
 NODE_CLASS_MAPPINGS = {"Imagen3TextToImageNode": Imagen3TextToImageNode}

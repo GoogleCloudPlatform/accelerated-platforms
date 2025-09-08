@@ -55,12 +55,17 @@ class Veo3API:
         print(f"Project is {self.project_id}, region is {self.region}")
 
         http_options = genai.types.HttpOptions(headers={"user-agent": VEO3_USER_AGENT})
-        self.client = genai.Client(
-            vertexai=True,
-            project=self.project_id,
-            location=self.region,
-            http_options=http_options,
-        )
+        try:
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.project_id,
+                location=self.region,
+                http_options=http_options,
+            )
+        except Exception as e:
+            raise exceptions.APIInitializationError(
+                f"Failed to initialize genai.Client for Vertex AI: {e}"
+            ) from e
 
     def generate_video_from_text(
         self,
@@ -315,6 +320,8 @@ class Veo3API:
         else:
             raise exceptions.ConfigurationError(validation_message)
 
+        if not image_format:
+            raise exceptions.ConfigurationError("Image format cannot be empty.")
         input_image_format_upper = image_format.upper()
         mime_type: str
         if input_image_format_upper == "PNG":
@@ -333,7 +340,7 @@ class Veo3API:
             client=self.client,
             model=model,
             gcsuri=gcsuri,
-            image_format=image_format,
+            image_format=mime_type,
             prompt=prompt,
             aspect_ratio=aspect_ratio,
             compression_quality=compression_quality,

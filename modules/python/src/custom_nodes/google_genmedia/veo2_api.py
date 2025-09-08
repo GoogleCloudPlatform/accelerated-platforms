@@ -60,12 +60,17 @@ class Veo2API:
             raise exceptions.APIInitializationError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
         http_options = genai.types.HttpOptions(headers={"user-agent": VEO2_USER_AGENT})
-        self.client = genai.Client(
-            vertexai=True,
-            project=self.project_id,
-            location=self.region,
-            http_options=http_options,
-        )
+        try:
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.project_id,
+                location=self.region,
+                http_options=http_options,
+            )
+        except Exception as e:
+            raise exceptions.APIInitializationError(
+                f"Failed to initialize genai.Client for Vertex AI: {e}"
+            ) from e
 
     def generate_video_from_text(
         self,
@@ -290,6 +295,8 @@ class Veo2API:
                     f"last frame gcs uri is not valid {validation_message}"
                 )
 
+        if not image_format:
+            raise exceptions.ConfigurationError("Image format cannot be empty.")
         input_image_format_upper = image_format.upper()
         mime_type: str
         if input_image_format_upper == "PNG":

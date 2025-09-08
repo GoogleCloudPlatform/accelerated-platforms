@@ -49,7 +49,7 @@ pathlib
 pgvector
 pipreqs
 pmap
-PRNG
+prng
 pycache
 pydantic
 pyenv

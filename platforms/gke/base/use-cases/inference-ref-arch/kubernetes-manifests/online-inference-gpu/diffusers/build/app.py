@@ -65,4 +65,4 @@ async def generate_image(request: InferenceRequest):
 
     # Return the image as a StreamingResponse
     return StreamingResponse(byte_stream, media_type="image/png")
-    
+

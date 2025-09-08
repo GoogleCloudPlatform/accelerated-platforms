@@ -1,0 +1,120 @@
+{
+  "10": {
+    "inputs": {
+      "autoplay": true,
+      "mute": true,
+      "loop": false,
+      "save_video": false,
+      "save_video_file_prefix": "veo_video",
+      "video_paths": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "VeoVideoSaveAndPreview",
+    "_meta": {
+      "title": "Preview/Save video"
+    }
+  },
+  "5": {
+    "inputs": {
+      "model": "VEO_3_PREVIEW",
+      "image_format": "PNG",
+      "prompt": "Zoom towards bed with Jazz music playing in the background",
+      "aspect_ratio": "16:9",
+      "output_resolution": "720p",
+      "compression_quality": "optimized",
+      "person_generation": "allow_adult",
+      "duration_seconds": 8,
+      "generate_audio": true,
+      "enhance_prompt": true,
+      "sample_count": 1,
+      "negative_prompt": "",
+      "seed": 1394449548,
+      "image": [
+        "1",
+        0
+      ],
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Veo3ImageToVideoNode",
+    "_meta": {
+      "title": "Veo3 Image To Video"
+    }
+  },
+  "9": {
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "1": {
+    "inputs": {
+      "model": "GEMINI_25_FLASH_IMAGE_PREVIEW",
+      "prompt": "Place the objects from image 1 in the environment of image 2",
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "temperature": 0.7,
+      "top_p": 1,
+      "top_k": 32,
+      "image": [
+        "11",
+        0
+      ],
+      "gcp_project_id": "",
+      "gcp_region": "global",
+      "system_instruction": ""
+    },
+    "class_type": "Gemini25FlashImage",
+    "_meta": {
+      "title": "Gemini25 Flash"
+    }
+  },
+  "11": {
+    "inputs": {
+      "image1": [
+        "13",
+        0
+      ],
+      "image2": [
+        "14",
+        0
+      ]
+    },
+    "class_type": "ImageBatch",
+    "_meta": {
+      "title": "Image Batch"
+    }
+  },
+  "13": {
+    "inputs": {
+      "image": "input/nano-banana/objects.png",
+      "custom_width": 0,
+      "custom_height": 0
+    },
+    "class_type": "VHS_LoadImagePath",
+    "_meta": {
+      "title": "Load Image Path (VHS)"
+    }
+  },
+  "14": {
+    "inputs": {
+      "image": "input/nano-banana/room.png",
+      "custom_width": 0,
+      "custom_height": 0
+    },
+    "class_type": "VHS_LoadImagePath",
+    "_meta": {
+      "title": "Load Image Path (VHS)"
+    }
+  }
+}

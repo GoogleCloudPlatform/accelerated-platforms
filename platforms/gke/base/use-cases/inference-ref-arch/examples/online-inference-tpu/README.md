@@ -58,6 +58,11 @@ This example is built on top of the
     export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
+  - **Stable Diffusion XL**:
+    ```shell
+      export HF_MODEL_ID="stabilityai/stable-diffusion-xl-base-1.0"
+    ```
+
 - Source the environment configuration.
 
   ```shell
@@ -124,11 +129,12 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model          | v5e | v6e |
-    | -------------- | --- | --- |
-    | gemma-3-1b-it  | ✅  | ❌  |
-    | gemma-3-4b-it  | ✅  | ❌  |
-    | gemma-3-27b-it | ✅  | ✅  |
+    | Model                        | v5e | v6e |
+    | ---------------------------- | --- | --- |
+    | gemma-3-1b-it                | ✅  | ❌  |
+    | gemma-3-4b-it                | ✅  | ❌  |
+    | gemma-3-27b-it               | ✅  | ✅  |
+    | stable-diffusion-xl-base-1.0 | ✅  | ✅  |
 
     - **v5e**:
 
@@ -146,14 +152,14 @@ This example is built on top of the
     accelerator type. For more information, see about viewing TPU quotas, see
     [Ensure that you have TPU quota](https://cloud.google.com/kubernetes-engine/docs/how-to/tpus#ensure-quota).
 
-- Deploy the online inference workload.
+### Deploy the LLM online inference workload
 
-  ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-  ```
+```shell
+kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+```
 
-  The Kubernetes manifests are based on the
-  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+The Kubernetes manifests are based on the
+[Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
 
 - Watch the deployment until it is ready.
 
@@ -201,6 +207,58 @@ This example is built on top of the
 
   ```shell
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  ```
+
+### Deploy the Stable Diffusion XL online inference workload
+
+```shell
+kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/maxdiffusion/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+```
+
+The Kubernetes manifests are based on the
+[Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+
+- Watch the deployment until it is ready.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get deployment/maxdiffusion-${ACCELERATOR_TYPE}-sdxl | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs deployment/maxdiffusion-${ACCELERATOR_TYPE}-sdxl --all-containers --tail 10"
+  ```
+
+  When the deployment is ready, you will see the following:
+
+  ```text
+  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+  maxdiffusion-${ACCELERATOR_TYPE}-sdxl     1/1     1            1           ###
+  ```
+
+  You can press `CTRL`+`c` to terminate the watch.
+
+- Send a test request.
+
+  ```shell
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} port-forward service/maxdiffusion-${ACCELERATOR_TYPE}-sdxl 8000:8000 >/dev/null &
+  PF_PID=$!
+  while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
+    sleep 0.1
+  done
+  echo "/generate:"
+  curl http://127.0.0.1:8000/generate \
+    --request POST \
+    --header "Content-Type: application/json" \
+    --data '{
+        "prompt": "a high resolution image of a red panda wearing a tiny hat, photorealistic, 4k"
+      }' \
+    --output generated_image.png
+    kill -9 ${PF_PID}
+  ```
+
+- Delete the workload.
+
+  ```shell
+  kubectl delete --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/maxdiffusion/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
 ## Clean up

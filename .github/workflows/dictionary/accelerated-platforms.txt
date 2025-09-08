@@ -32,7 +32,7 @@ gbps
 gpul
 hyperparameter
 hyperparameters
-Inceoglu
+inceoglu
 inferencing
 joonix
 jupytext
@@ -59,7 +59,7 @@ safetensors
 scann
 sched
 schedulable
-Schnell
+schnell
 tunables
 unconfigure
 usecs

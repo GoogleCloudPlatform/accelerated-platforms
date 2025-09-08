@@ -15,6 +15,7 @@
 import base64
 from diffusers import FluxPipeline
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 import io
 import os
 from pydantic import BaseModel
@@ -27,12 +28,17 @@ app = FastAPI()
 MODEL_DIR = os.environ.get("MODEL_ID")
 print(f"MODEL_DIR: {MODEL_DIR}")
 
-pipeline = FluxPipeline.from_pretrained(
-    f"/gcs/{MODEL_DIR}",
-    torch_dtype=torch.float16,
-    local_files_only=True, 
-)
-pipeline.enable_model_cpu_offload()
+# Load the pipeline from the local GCS mount with local_files_only=True
+try:
+    pipeline = FluxPipeline.from_pretrained(
+        f"/gcs/{MODEL_DIR}",
+        torch_dtype=torch.float16,
+        local_files_only=True,
+    )
+    pipeline.enable_model_cpu_offload()
+except Exception as e:
+    print(f"Error loading pipeline: {e}")
+    raise e
 
 class InferenceRequest(BaseModel):
     prompt: str
@@ -48,20 +54,15 @@ async def generate_image(request: InferenceRequest):
         width=request.width,
         num_inference_steps=request.num_inference_steps,
     ).images
-    
-    # Convert the first image to a base64 string or save to a file
-    generated_images[0].save("generated_image.png")
+
     # Take the first image
     image = generated_images[0]
 
-    # Save the image to a byte buffer
+    # Save the image to an in-memory byte buffer
     byte_stream = io.BytesIO()
     image.save(byte_stream, format="PNG")
     byte_stream.seek(0)
 
-    # Encode the image bytes to a Base64 string
-    base64_image = base64.b64encode(byte_stream.read()).decode("utf-8")
-
-    # Return the Base64 string in a JSON response
-    return {"message": "Image generation complete.", "image": base64_image}
+    # Return the image as a StreamingResponse
+    return StreamingResponse(byte_stream, media_type="image/png")
     

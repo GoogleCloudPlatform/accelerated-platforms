@@ -28,6 +28,12 @@ This example is built on top of the
       - [**meta-llama/Llama-4-Scout-17B-16E-Instruct**](https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct)
       - [**meta-llama/Llama-3.3-70B-Instruct**](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct)
 
+  - For FLUX.1-schnell:
+
+    - Accept the conditions to access its files and content on the Hugging Face model page.
+    - [**black-forest-labs/FLUX.1-schnell**](https://huggingface.co/black-forest-labs/FLUX.1-schnell)
+
+
 ## Create and configure Google Cloud resources
 
 - Deploy the online GPU resources.

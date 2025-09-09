@@ -40,11 +40,13 @@ except Exception as e:
     print(f"Error loading pipeline: {e}")
     raise e
 
+
 class InferenceRequest(BaseModel):
     prompt: str
     height: int = 1024
     width: int = 1024
     num_inference_steps: int = 4
+
 
 @app.post("/generate")
 async def generate_image(request: InferenceRequest):
@@ -65,4 +67,3 @@ async def generate_image(request: InferenceRequest):
 
     # Return the image as a StreamingResponse
     return StreamingResponse(byte_stream, media_type="image/png")
-

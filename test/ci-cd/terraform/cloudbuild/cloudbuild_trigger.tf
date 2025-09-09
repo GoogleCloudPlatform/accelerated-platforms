@@ -936,6 +936,7 @@ locals {
   platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_ignore = [
   ]
   platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_include = [
+    "modules/python/src/custom_nodes/**",
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/custom_compute_class/**",
@@ -952,6 +953,7 @@ locals {
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-comfyui.sh",
+    "test/ci-cd/scripts/comfyui/**",
     local.platforms_gke_base_uc_inference_ref_arch_comfyui_scripts_cb_yaml,
   ]
 }

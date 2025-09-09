@@ -6,7 +6,7 @@
   source "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Add NGC API key secret version using **one** of the following:
+- Add a NGC API key secret version using **one** of the following:
 
   - [Generate an API key](https://org.ngc.nvidia.com/setup) with permissions for
     **NGC Catalog**.

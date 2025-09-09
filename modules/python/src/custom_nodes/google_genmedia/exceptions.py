@@ -1,4 +1,3 @@
-
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +22,7 @@ class GoogleGenMediaException(Exception):
 
     def __init__(self, *args):
         super().__init__(*args)
-        full_error_str = ' '.join(str(a) for a in args)
+        full_error_str = " ".join(str(a) for a in args)
 
         match = re.search(r"'message': '(.*?)', 'status'", full_error_str)
 

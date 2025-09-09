@@ -11,6 +11,7 @@ fastapi
 fillna
 fromarray
 fsspec
+functools
 gapic
 gcsuri
 getattr
@@ -53,6 +54,7 @@ qualname
 removesuffix
 rerank
 reranked
+retryable
 rsplit
 setdefaulttimeout
 shutil

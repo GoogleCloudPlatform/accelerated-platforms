@@ -17,7 +17,7 @@ resource "google_container_node_pool" "fl_container_node_pool" {
 
   cluster            = data.google_container_cluster.cluster.name
   initial_node_count = 1
-  location           = var.cluster_region
+  location           = local.cluster_region
   name               = each.value.tenant_nodepool_name
   project            = data.google_project.cluster.project_id
 

@@ -19,7 +19,7 @@ locals {
 
 data "google_compute_zones" "region" {
   project = data.google_project.cluster.project_id
-  region  = var.cluster_region
+  region  = local.cluster_region
 }
 
 resource "google_container_cluster" "cluster" {
@@ -32,7 +32,7 @@ resource "google_container_cluster" "cluster" {
   datapath_provider        = "ADVANCED_DATAPATH"
   deletion_protection      = false
   enable_shielded_nodes    = true
-  location                 = var.cluster_region
+  location                 = local.cluster_region
   name                     = local.cluster_name
   network                  = local.network_name
   node_locations           = data.google_compute_zones.region.names
@@ -263,7 +263,7 @@ resource "google_container_node_pool" "system" {
   # Variables
   cluster            = google_container_cluster.cluster.name
   initial_node_count = 1
-  location           = var.cluster_region
+  location           = local.cluster_region
   name               = "system"
   project            = google_container_cluster.cluster.project
 

@@ -21,7 +21,7 @@ locals {
   nvidia_ncg_api_key_secret_manager_project_id  = var.nvidia_ncg_api_key_secret_manager_project_id != null ? var.nvidia_ncg_api_key_secret_manager_project_id : local.cluster_project_id
   nvidia_ncg_api_key_secret_manager_secret_name = var.nvidia_ncg_api_key_secret_manager_secret_name != null ? var.nvidia_ncg_api_key_secret_manager_secret_name : "${local.unique_identifier_prefix}-nvidia-ncg-api-key"
 
-  nvidia_nim_model_store_bucket_location   = var.nvidia_nim_model_store_bucket_location != null ? var.nvidia_nim_model_store_bucket_location : var.cluster_region
+  nvidia_nim_model_store_bucket_location   = var.nvidia_nim_model_store_bucket_location != null ? var.nvidia_nim_model_store_bucket_location : local.cluster_region
   nvidia_nim_model_store_bucket_name       = var.nvidia_nim_model_store_bucket_name != null ? var.nvidia_nim_model_store_bucket_name : "${local.unique_identifier_prefix}-nvidia-nim-models-${local.nvidia_nim_model_store_bucket_project_id}"
   nvidia_nim_model_store_bucket_project_id = var.nvidia_nim_model_store_bucket_project_id != null ? var.nvidia_nim_model_store_bucket_project_id : local.cluster_project_id
 }

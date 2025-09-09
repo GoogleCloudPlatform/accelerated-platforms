@@ -69,7 +69,7 @@ output "cluster_project_id" {
 }
 
 output "cluster_region" {
-  value = var.cluster_region
+  value = local.cluster_region
 }
 
 output "huggingface_hub_access_token_read_secret_manager_secret_name" {

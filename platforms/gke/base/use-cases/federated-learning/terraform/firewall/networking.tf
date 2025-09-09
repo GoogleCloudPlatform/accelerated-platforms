@@ -20,7 +20,7 @@ data "google_compute_network" "main_vpc_network" {
 data "google_compute_subnetwork" "region" {
   name    = local.subnetwork_name
   project = data.google_project.cluster.project_id
-  region  = var.cluster_region
+  region  = local.cluster_region
 }
 
 locals {

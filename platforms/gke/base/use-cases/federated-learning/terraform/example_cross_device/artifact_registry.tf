@@ -15,7 +15,7 @@
 data "google_artifact_registry_repository" "federated_learning_repository" {
   project       = google_project_service.artifactregistry_googleapis_com.project
   repository_id = local.federated_learning_repository_id
-  location      = var.cluster_region
+  location      = local.cluster_region
 }
 
 data "google_artifact_registry_docker_image" "workload_image" {

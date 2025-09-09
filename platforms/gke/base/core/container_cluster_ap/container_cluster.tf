@@ -20,7 +20,7 @@ locals {
 
 data "google_compute_zones" "region" {
   project = data.google_project.cluster.project_id
-  region  = var.cluster_region
+  region  = local.cluster_region
 }
 
 resource "google_container_cluster" "cluster" {
@@ -31,7 +31,7 @@ resource "google_container_cluster" "cluster" {
   datapath_provider   = "ADVANCED_DATAPATH"
   deletion_protection = false
   enable_autopilot    = true
-  location            = var.cluster_region
+  location            = local.cluster_region
   name                = local.cluster_name
   network             = local.network_name
   node_locations      = data.google_compute_zones.region.names

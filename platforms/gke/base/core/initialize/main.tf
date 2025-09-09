@@ -15,17 +15,17 @@
 locals {
   container_node_pool_folder = "${path.module}/../container_node_pool"
 
-  cpu_container_node_pools_directory = "${local.container_node_pool_folder}/cpu/region/${var.cluster_region}"
+  cpu_container_node_pools_directory = "${local.container_node_pool_folder}/cpu/region/${local.cluster_region}"
   cpu_container_node_pool_files      = var.initialize_container_node_pools_cpu ? flatten([for _, file in flatten(fileset("${local.cpu_container_node_pools_directory}", "*.tf")) : "${local.cpu_container_node_pools_directory}/${file}"]) : []
 
-  gpu_container_node_pools_directory = "${local.container_node_pool_folder}/gpu/region/${var.cluster_region}"
+  gpu_container_node_pools_directory = "${local.container_node_pool_folder}/gpu/region/${local.cluster_region}"
 
   rtx_filename_string = "_rtx"
 
   gpu_without_rtx_container_node_pool_files = var.initialize_container_node_pools_gpu && var.initialize_container_node_pools_gpu_without_rtx ? flatten([for _, file in flatten(fileset("${local.gpu_container_node_pools_directory}", "*.tf")) : "${local.gpu_container_node_pools_directory}/${file}" if !strcontains(file, local.rtx_filename_string)]) : []
   gpu_with_rtx_container_node_pool_files    = var.initialize_container_node_pools_gpu && var.initialize_container_node_pools_gpu_with_rtx ? flatten([for _, file in flatten(fileset("${local.gpu_container_node_pools_directory}", "*.tf")) : "${local.gpu_container_node_pools_directory}/${file}" if strcontains(file, local.rtx_filename_string)]) : []
 
-  tpu_container_node_pools_directory = "${local.container_node_pool_folder}/tpu/region/${var.cluster_region}"
+  tpu_container_node_pools_directory = "${local.container_node_pool_folder}/tpu/region/${local.cluster_region}"
   tpu_container_node_pool_files      = var.initialize_container_node_pools_tpu ? flatten([for _, file in flatten(fileset("${local.tpu_container_node_pools_directory}", "*.tf")) : "${local.tpu_container_node_pools_directory}/${file}"]) : []
 
   container_node_pool_files = compact(flatten(concat(
@@ -41,7 +41,7 @@ resource "google_storage_bucket" "terraform" {
   for_each = toset(var.create_terraform_bucket ? ["create"] : [])
 
   force_destroy               = false
-  location                    = var.cluster_region
+  location                    = local.cluster_region
   name                        = local.terraform_bucket_name
   project                     = data.google_project.terraform.project_id
   uniform_bucket_level_access = true

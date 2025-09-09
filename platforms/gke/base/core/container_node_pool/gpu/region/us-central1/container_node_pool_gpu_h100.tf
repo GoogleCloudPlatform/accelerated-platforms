@@ -24,7 +24,7 @@
 resource "google_container_node_pool" "gpu_h100x8_a3h8" {
   # Variables
   cluster  = data.google_container_cluster.cluster.name
-  location = var.cluster_region
+  location = local.cluster_region
   name     = "gpu-h100x8-a3h8"
   node_locations = [
     "us-central1-a",
@@ -112,7 +112,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8" {
 resource "google_container_node_pool" "gpu_h100x8_a3h8_dws" {
   # Variables
   cluster  = data.google_container_cluster.cluster.name
-  location = var.cluster_region
+  location = local.cluster_region
   name     = "gpu-h100x8-a3h8-dws"
   node_locations = [
     "us-central1-a",
@@ -204,7 +204,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_dws" {
 resource "google_container_node_pool" "gpu_h100x8_a3h8_res" {
   # Variables
   cluster  = data.google_container_cluster.cluster.name
-  location = var.cluster_region
+  location = local.cluster_region
   name     = "gpu-h100x8-a3h8-res"
   node_locations = [
     "us-central1-a",
@@ -292,7 +292,7 @@ resource "google_container_node_pool" "gpu_h100x8_a3h8_res" {
 resource "google_container_node_pool" "gpu_h100x8_a3h8_spot" {
   # Variables
   cluster  = data.google_container_cluster.cluster.name
-  location = var.cluster_region
+  location = local.cluster_region
   name     = "gpu-h100x8-a3h8-spot"
   node_locations = [
     "us-central1-a",

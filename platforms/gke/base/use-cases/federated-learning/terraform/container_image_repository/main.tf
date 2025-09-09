@@ -15,7 +15,7 @@
 resource "google_artifact_registry_repository" "container_image_repository" {
   description   = "Federated Learning container image repository"
   format        = "DOCKER"
-  location      = var.cluster_region
+  location      = local.cluster_region
   project       = google_project_service.artifactregistry_googleapis_com.project
   repository_id = local.federated_learning_repository_id
 

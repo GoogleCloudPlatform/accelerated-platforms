@@ -91,6 +91,8 @@ resource "terraform_data" "check" {
     module.kubectl_wait
   ]
 
+  for_each = toset(var.cluster_check_custom_compute_classes_healthy ? ["enabled"] : [])
+
   provisioner "local-exec" {
     command = <<EOT
 kubectl get computeclass -o jsonpath='{range .items[*]}{.metadata.name}{": "}{.status.conditions[*].message}{"\n"}{end}' && 

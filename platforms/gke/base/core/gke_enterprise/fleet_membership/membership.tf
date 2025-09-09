@@ -17,7 +17,7 @@ resource "terraform_data" "wait_for_cluster_operations" {
     query = jsonencode(
       {
         cluster_name   = local.cluster_name
-        cluster_region = var.cluster_region
+        cluster_region = local.cluster_region
         project_id     = local.cluster_project_id
         timeout        = "60"
       }
@@ -61,7 +61,7 @@ resource "terraform_data" "wait_for_cluster_operations_destroy" {
     query = jsonencode(
       {
         cluster_name   = local.cluster_name
-        cluster_region = var.cluster_region
+        cluster_region = local.cluster_region
         project_id     = local.cluster_project_id
         timeout        = "600"
       }

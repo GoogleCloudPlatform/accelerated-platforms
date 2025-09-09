@@ -36,7 +36,7 @@ resource "google_compute_subnetwork" "region" {
   network                  = data.google_compute_network.vpc.id
   private_ip_google_access = true
   project                  = google_project_service.compute_googleapis_com.project
-  region                   = var.cluster_region
+  region                   = local.cluster_region
 }
 
 data "google_compute_subnetwork" "region" {
@@ -46,7 +46,7 @@ data "google_compute_subnetwork" "region" {
 
   name    = local.subnetwork_name
   project = google_project_service.compute_googleapis_com.project
-  region  = var.cluster_region
+  region  = local.cluster_region
 }
 
 resource "google_compute_router" "router" {
@@ -55,7 +55,7 @@ resource "google_compute_router" "router" {
   name    = local.router_name
   network = data.google_compute_network.vpc.name
   project = google_project_service.compute_googleapis_com.project
-  region  = var.cluster_region
+  region  = local.cluster_region
 }
 
 data "google_compute_router" "router" {
@@ -66,7 +66,7 @@ data "google_compute_router" "router" {
   name    = local.router_name
   network = data.google_compute_network.vpc.name
   project = google_project_service.compute_googleapis_com.project
-  region  = var.cluster_region
+  region  = local.cluster_region
 }
 
 resource "google_compute_router_nat" "nat_gateway" {
@@ -75,7 +75,7 @@ resource "google_compute_router_nat" "nat_gateway" {
   name                               = local.nat_gateway_name
   nat_ip_allocate_option             = "AUTO_ONLY"
   project                            = google_project_service.compute_googleapis_com.project
-  region                             = var.cluster_region
+  region                             = local.cluster_region
   router                             = data.google_compute_router.router.name
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 
@@ -92,7 +92,7 @@ data "google_compute_router_nat" "nat_gateway" {
 
   name    = local.nat_gateway_name
   project = google_project_service.compute_googleapis_com.project
-  region  = var.cluster_region
+  region  = local.cluster_region
   router  = data.google_compute_router.router.name
 }
 

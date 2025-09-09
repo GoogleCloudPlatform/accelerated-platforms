@@ -51,6 +51,12 @@ variable "platform_default_project_id" {
   }
 }
 
+variable "platform_default_region" {
+  default     = "us-central1"
+  description = "Default region to create resources in if a more specific region is not specified."
+  type        = string
+}
+
 variable "platform_name" {
   default     = "dev"
   description = "Name of the environment"

@@ -26,6 +26,7 @@ steps:
 
   - args:
       - DEBUG=${_DEBUG}
+      - TF_VAR_cluster_check_custom_compute_classes_healthy="true"
       - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
       - TF_VAR_platform_name="ch${SHORT_SHA}"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"

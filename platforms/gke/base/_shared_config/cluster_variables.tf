@@ -18,7 +18,7 @@
 #
 
 locals {
-  cluster_credentials_command_gke  = "gcloud container clusters get-credentials ${local.cluster_name} --dns-endpoint --location ${var.cluster_region} --project ${local.cluster_project_id}"
+  cluster_credentials_command_gke  = "gcloud container clusters get-credentials ${local.cluster_name} --dns-endpoint --location ${local.cluster_region} --project ${local.cluster_project_id}"
   cluster_credentials_command_gkee = "gcloud container fleet memberships get-credentials ${local.cluster_name} --project ${local.cluster_project_id}"
   cluster_credentials_command      = var.cluster_use_connect_gateway ? local.cluster_credentials_command_gkee : local.cluster_credentials_command_gke
 
@@ -35,6 +35,7 @@ locals {
   cluster_node_pool_service_account_project_id = var.cluster_node_pool_default_service_account_project_id != null ? var.cluster_node_pool_default_service_account_project_id : local.cluster_project_id
 
   cluster_project_id = var.cluster_project_id != null ? var.cluster_project_id : var.platform_default_project_id
+  cluster_region     = var.cluster_region != null ? var.cluster_region : var.platform_default_region
 
   # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
   cluster_sa_roles = [
@@ -88,6 +89,12 @@ variable "cluster_binary_authorization_evaluation_mode" {
     )
     error_message = "'cluster_binary_authorization_evaluation_mode' value is invalid"
   }
+}
+
+variable "cluster_check_custom_compute_classes_healthy" {
+  default     = false
+  description = "Whether to check if the Custom Compute Classes are healthy."
+  type        = bool
 }
 
 variable "cluster_confidential_nodes_enabled" {
@@ -232,20 +239,9 @@ variable "cluster_project_id" {
 }
 
 variable "cluster_region" {
-  default     = "us-central1"
+  default     = null
   description = "Region where cluster resources will be created."
   type        = string
-
-  validation {
-    condition = contains(
-      [
-        "us-central1",
-        "us-east4",
-        "us-east5",
-      ],
-    var.cluster_region)
-    error_message = "'cluster_region' must be one of ['us-central1', 'us-east4', 'us-east5']"
-  }
 }
 
 variable "cluster_system_node_pool_machine_type" {

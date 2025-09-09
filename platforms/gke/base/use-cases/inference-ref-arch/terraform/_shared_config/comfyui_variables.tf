@@ -28,7 +28,7 @@ locals {
   comfyui_cloudbuild_source_bucket_name     = var.comfyui_cloudbuild_source_bucket_name != null ? var.comfyui_cloudbuild_source_bucket_name : local.cloudbuild_source_bucket_name
 
   comfyui_cloud_storage_input_bucket_name    = var.comfyui_cloud_storage_input_bucket_name != null ? var.comfyui_cloud_storage_input_bucket_name : "${local.comfyui_cloud_storage_project_id}-${local.unique_identifier_prefix}-${local.comfyui_default_name}-input"
-  comfyui_cloud_storage_location             = var.comfyui_cloud_storage_location != null ? var.comfyui_cloud_storage_location : var.cluster_region
+  comfyui_cloud_storage_location             = var.comfyui_cloud_storage_location != null ? var.comfyui_cloud_storage_location : local.cluster_region
   comfyui_cloud_storage_model_bucket_name    = var.comfyui_cloud_storage_model_bucket_name != null ? var.comfyui_cloud_storage_model_bucket_name : "${local.comfyui_cloud_storage_project_id}-${local.unique_identifier_prefix}-${local.comfyui_default_name}-models"
   comfyui_cloud_storage_output_bucket_name   = var.comfyui_cloud_storage_output_bucket_name != null ? var.comfyui_cloud_storage_output_bucket_name : "${local.comfyui_cloud_storage_project_id}-${local.unique_identifier_prefix}-${local.comfyui_default_name}-output"
   comfyui_cloud_storage_project_id           = var.comfyui_cloud_storage_project_id != null ? var.comfyui_cloud_storage_project_id : var.platform_default_project_id

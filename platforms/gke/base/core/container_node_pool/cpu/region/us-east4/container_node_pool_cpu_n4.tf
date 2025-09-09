@@ -25,7 +25,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
   # Variables
   cluster            = google_container_cluster.mlp.name
   initial_node_count = 1
-  location           = var.cluster_region
+  location           = local.cluster_region
   name               = "cpu-n4s8"
   node_locations = [
     "us-east4-a",
@@ -94,7 +94,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
 resource "google_container_node_pool" "cpu_n4s8_spot" {
   # Variables
   cluster  = google_container_cluster.mlp.name
-  location = var.cluster_region
+  location = local.cluster_region
   name     = "cpu-n4s8-spot"
   node_locations = [
     "us-east4-a",

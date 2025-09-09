@@ -17,7 +17,7 @@ locals {
 }
 
 resource "google_artifact_registry_repository_iam_member" "cloudbuild_artifactregistry_write" {
-  location   = var.cluster_region
+  location   = local.cluster_region
   member     = data.google_service_account.cloudbuild.member
   project    = data.google_project.cluster.project_id
   repository = google_artifact_registry_repository.comfyui_container_images.repository_id

@@ -41,7 +41,6 @@ def retry_on_api_error(
                     return func(*args, **kwargs)
                 except (
                     api_core_exceptions.ResourceExhausted,
-                    genai_errors.ResourceExhaustedError,
                     api_core_exceptions.ServiceUnavailable,
                     genai_errors.ServerError,
                     genai_errors.InternalServerError,

@@ -21,7 +21,7 @@ from PIL import Image
 
 from . import exceptions, utils
 from .config import get_gcp_metadata
-from .constants import IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT
+from .constants import IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT, IMAGEN3_MAX_IMAGES
 
 
 class Imagen3API:
@@ -99,9 +99,9 @@ class Imagen3API:
         """
         if not prompt or not prompt.strip():
             raise exceptions.ConfigurationError("Prompt cannot be empty.")
-        if not 1 <= number_of_images <= 4:
+        if not 1 <= number_of_images <= IMAGEN3_MAX_IMAGES:
             raise exceptions.ConfigurationError(
-                "Number of images must be between 1 and 4."
+                f"Number of images {number_of_images} must be between 1 and {IMAGEN3_MAX_IMAGES}."
             )
         if seed and add_watermark:
             raise exceptions.ConfigurationError(

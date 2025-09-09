@@ -1,7 +1,8 @@
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
+# you may not use this file except in compliance with the License.f
 # You may obtain a copy of the License at
 #
 #      http://www.apache.org/licenses/LICENSE-2.0
@@ -14,32 +15,55 @@
 
 """Custom exceptions for Google GenMedia custom nodes."""
 
+import re
+
 
 class GoogleGenMediaException(Exception):
     """Base exception for the Google GenMedia custom nodes."""
 
-    pass
+    def __init__(self, *args):
+        super().__init__(*args)
+        full_error_str = ' '.join(str(a) for a in args)
+
+        match = re.search(r"'message': '(.*?)', 'status'", full_error_str)
+
+        if match:
+            print(f"ERROR: {match.group(1)}")
+        else:
+            # Fallback logic
+            message_parts = []
+            for arg in args:
+                arg_str = str(arg)
+                dict_start = arg_str.find("{'error':")
+                if dict_start != -1:
+                    arg_str = arg_str[:dict_start].strip()
+                message_parts.append(arg_str)
+            print(f"ERROR: {' '.join(message_parts)}")
 
 
 class APIInitializationError(GoogleGenMediaException):
     """Raised when an API client fails to initialize."""
 
-    pass
+    def __init__(self, *args):
+        super().__init__(*args)
 
 
 class APICallError(GoogleGenMediaException):
     """Raised when an API call fails."""
 
-    pass
+    def __init__(self, *args):
+        super().__init__(*args)
 
 
 class ConfigurationError(GoogleGenMediaException):
     """Raised for configuration-related errors."""
 
-    pass
+    def __init__(self, *args):
+        super().__init__(*args)
 
 
 class FileProcessingError(GoogleGenMediaException):
     """Raised for errors during file processing."""
 
-    pass
+    def __init__(self, *args):
+        super().__init__(*args)

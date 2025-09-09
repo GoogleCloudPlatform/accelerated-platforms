@@ -26,6 +26,7 @@ from .constants import (
     VEO2_MODEL_ID,
     VEO2_OUTPUT_RESOLUTION,
     VEO2_USER_AGENT,
+    VEO2_MAX_VIDEOS
 )
 from .utils import validate_gcs_uri_and_image
 
@@ -115,9 +116,9 @@ class Veo2API:
             raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 5 and 8, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if not (1 <= sample_count <= VEO2_MAX_VIDEOS):
             raise exceptions.ConfigurationError(
-                f"sample_count must be between 1 and 4, but got {sample_count}."
+                f"sample_count must be between 1 and {VEO2_MAX_VIDEOS}, but got {sample_count}."
             )
         return utils.generate_video_from_text(
             client=self.client,
@@ -186,7 +187,7 @@ class Veo2API:
             raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 1 and 8, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if not (1 <= sample_count <= VEO2_MAX_VIDEOS):
             raise exceptions.ConfigurationError(
                 f"sample_count must be between 1 and 4, but got {sample_count}."
             )
@@ -271,7 +272,7 @@ class Veo2API:
             raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 1 and 8, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if not (1 <= sample_count <= VEO2_MAX_VIDEOS):
             raise exceptions.ConfigurationError(
                 f"sample_count must be between 1 and 4, but got {sample_count}."
             )

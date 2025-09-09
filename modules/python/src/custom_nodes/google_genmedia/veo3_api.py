@@ -21,7 +21,7 @@ from google import genai
 
 from . import exceptions, utils
 from .config import get_gcp_metadata
-from .constants import OUTPUT_RESOLUTION, VEO3_USER_AGENT, Veo3Model
+from .constants import OUTPUT_RESOLUTION, VEO3_USER_AGENT, VEO3_MAX_VIDEOS, Veo3Model
 
 
 class Veo3API:
@@ -116,9 +116,9 @@ class Veo3API:
             raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 2):
+        if not (1 <= sample_count <= VEO3_MAX_VIDEOS):
             raise exceptions.ConfigurationError(
-                f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
+                f"sample_count must be between 1 and {VEO3_MAX_VIDEOS} for Veo3, but got {sample_count}."
             )
         if aspect_ratio != "16:9":
             raise exceptions.ConfigurationError(
@@ -202,9 +202,9 @@ class Veo3API:
             raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 2):
+        if not (1 <= sample_count <= VEO3_MAX_VIDEOS):
             raise exceptions.ConfigurationError(
-                f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
+                f"sample_count must be between 1 and {VEO3_MAX_VIDEOS} for Veo3, but got {sample_count}."
             )
 
         if image is None:
@@ -301,9 +301,9 @@ class Veo3API:
             raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 2):
+        if not (1 <= sample_count <= VEO3_MAX_VIDEOS):
             raise exceptions.ConfigurationError(
-                f"sample_count must be between 1 and 2, but got {sample_count}."
+                f"sample_count must be between 1 and {VEO3_MAX_VIDEOS}, but got {sample_count}."
             )
         if aspect_ratio != "16:9":
             raise exceptions.ConfigurationError(

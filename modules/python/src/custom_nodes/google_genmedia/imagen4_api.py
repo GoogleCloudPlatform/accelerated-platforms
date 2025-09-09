@@ -21,7 +21,7 @@ from PIL import Image
 
 from . import exceptions, utils
 from .config import get_gcp_metadata
-from .constants import IMAGEN4_USER_AGENT, Imagen4Model
+from .constants import IMAGEN4_USER_AGENT, Imagen4Model, IMAGEN4_MAX_IMAGES
 
 
 class Imagen4API:
@@ -106,9 +106,9 @@ class Imagen4API:
         """
         if not prompt or not prompt.strip():
             raise exceptions.ConfigurationError("Prompt cannot be empty.")
-        if not (1 <= number_of_images <= 4):
+        if not (1 <= number_of_images <= IMAGEN4_MAX_IMAGES):
             raise exceptions.ConfigurationError(
-                f"number_of_images must be between 1 and 4, but got {number_of_images}."
+                f"number_of_images must be between 1 and {IMAGEN4_MAX_IMAGES}, but got {number_of_images}."
             )
         if seed and add_watermark:
             raise exceptions.ConfigurationError(
@@ -129,9 +129,9 @@ class Imagen4API:
             )
 
         model = Imagen4Model[model]
-        if model == Imagen4Model.IMAGEN_4_ULTRA_PREVIEW.value and number_of_images > 1:
+        if model == Imagen4Model.IMAGEN_4_ULTRA_PREVIEW.value and number_of_images > IMAGEN4_MAX_IMAGES:
             raise exceptions.ConfigurationError(
-                "Ultra model only generates one image at a time."
+                f"Ultra model only generates {IMAGEN4_MAX_IMAGES} image at a time."
             )
 
         return utils.generate_image_from_text(

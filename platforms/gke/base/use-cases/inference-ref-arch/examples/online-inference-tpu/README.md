@@ -211,7 +211,7 @@ The Kubernetes manifests are based on the
 
 ### Deploy the Stable Diffusion XL online inference workload
 
-- Create Artifact Registry repository 
+- Create Artifact Registry repository
 
   ```shell
     cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/maxdiffusion/build" \

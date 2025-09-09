@@ -33,7 +33,6 @@ This example is built on top of the
     - Accept the conditions to access its files and content on the Hugging Face model page.
     - [**black-forest-labs/FLUX.1-schnell**](https://huggingface.co/black-forest-labs/FLUX.1-schnell)
 
-
 ## Create and configure Google Cloud resources
 
 - Deploy the online GPU resources.
@@ -79,7 +78,7 @@ This example is built on top of the
     ```shell
     export HF_MODEL_ID="qwen/qwen3-32b"
     ```
-  
+
   - **FLUX.1-Schnell**:
 
     ```shell
@@ -161,7 +160,6 @@ This example is built on top of the
     | qwen3-32b                      | ✅  | ✅   | ✅   |
     | flux.1-schnell                 | ✅  | ✅   | ❌   |
 
-
     - **NVIDIA Tesla L4 24GB**:
 
       ```shell
@@ -186,12 +184,12 @@ This example is built on top of the
 
 ### Deploy the LLM online inference workload.
 
-  ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-  ```
+```shell
+kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+```
 
-  The Kubernetes manifests are based on the
-  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+The Kubernetes manifests are based on the
+[Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
 
 - Watch the deployment until it is ready.
 
@@ -243,7 +241,7 @@ This example is built on top of the
 
 ### Deploy the Image models online inference workload.
 
-- Create Artifact Registry repository 
+- Create Artifact Registry repository
 
   ```shell
     cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/build" \
@@ -317,6 +315,7 @@ This example is built on top of the
   ```shell
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
+
 ## Troubleshooting
 
 If you experience any issue while deploying the workload, see the

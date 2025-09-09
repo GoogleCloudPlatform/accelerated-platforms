@@ -6,6 +6,9 @@
 
 ## Before you begin
 
+This guide is a reference implementation of the
+[GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
+
 ### Permissions
 
 You can choose between Project Owner access or granular access to implement a
@@ -239,6 +242,14 @@ For more information about providing values for Terraform input variables, see
 
   - Hugging Face Hub read token
   - Hugging Face Hub write token
+
+## Example
+
+This reference implementation is designed to support various inference patterns.
+Some example patterns provided are:
+
+- [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
+- [Online inference with TPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-tpu/README.md)
 
 ## Clean up
 

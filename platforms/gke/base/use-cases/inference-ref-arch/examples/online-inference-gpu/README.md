@@ -30,7 +30,8 @@ This example is built on top of the
 
   - For FLUX.1-schnell:
 
-    - Accept the conditions to access its files and content on the Hugging Face model page.
+    - Accept the conditions to access its files and content on the Hugging Face
+      model page.
     - [**black-forest-labs/FLUX.1-schnell**](https://huggingface.co/black-forest-labs/FLUX.1-schnell)
 
 ## Create and configure Google Cloud resources

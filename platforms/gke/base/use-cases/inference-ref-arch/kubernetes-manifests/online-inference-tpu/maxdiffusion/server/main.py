@@ -52,7 +52,7 @@ LOGGING_CONFIG = {
     },
     "loggers": {
         "": {  # root logger
-            "level": ROOT_LEVEL, #"INFO",
+            "level": ROOT_LEVEL,  # "INFO",
             "handlers": ["default"],
             "propagate": False,
         },
@@ -82,23 +82,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/health")
 async def health() -> Response:
     """Health check."""
     return Response(status_code=200)
 
+
 # Let's cache the model compilation, so that it doesn't take as long the next time around.
 cc.initialize_cache("~/jax_cache")
 
 NUM_DEVICES = jax.device_count()
-if(NUM_DEVICES>0):
-   LOG.info("TPU Devices Detected:")
+if NUM_DEVICES > 0:
+    LOG.info("TPU Devices Detected:")
 
 # Load the Stable Diffusion model
 # 1. Let's start by downloading the model and loading it into our pipeline class
 # Adhering to JAX's functional approach, the model's parameters are returned separately and
 # will have to be passed to the pipeline during inference
-pipeline, params = FlaxStableDiffusionXLPipeline.from_pretrained(MODEL_DIR, revision="refs/pr/95", split_head_dim=True)
+pipeline, params = FlaxStableDiffusionXLPipeline.from_pretrained(
+    MODEL_DIR, revision="refs/pr/95", split_head_dim=True
+)
 LOG.info("parameters preparation")
 # 2. We cast all parameters to bfloat16 EXCEPT the scheduler which we leave in
 # float32 to keep maximal precision
@@ -179,6 +183,7 @@ def aot_compile(
         .compile()
     )
 
+
 LOG.info("start initialized compiling")
 start = time.time()
 LOG.info("Compiling ...")
@@ -194,7 +199,9 @@ async def generate(request: Request):
     prompt = data["prompt"]
     LOG.info(prompt)
     prompt_ids, neg_prompt_ids = tokenize_prompt(prompt, default_neg_prompt)
-    prompt_ids, neg_prompt_ids, rng = replicate_all(prompt_ids, neg_prompt_ids, default_seed)
+    prompt_ids, neg_prompt_ids, rng = replicate_all(
+        prompt_ids, neg_prompt_ids, default_seed
+    )
     g = jnp.array([default_guidance_scale] * prompt_ids.shape[0], dtype=jnp.float32)
     g = g[:, None]
     LOG.info("call p_generate")
@@ -202,16 +209,16 @@ async def generate(request: Request):
 
     # convert the images to PIL
     images = images.reshape((images.shape[0] * images.shape[1],) + images.shape[-3:])
-    images=pipeline.numpy_to_pil(np.array(images))
+    images = pipeline.numpy_to_pil(np.array(images))
     buffer = io.BytesIO()
     LOG.info("Save image")
     for i, image in enumerate(images):
-        if i==0:
-          image.save(buffer, format="PNG")
+        if i == 0:
+            image.save(buffer, format="PNG")
 
     # Return the image as a response
     return Response(content=buffer.getvalue(), media_type="image/png")
 
-if __name__ == "__main__":
-   uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, log_level="debug")
 
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000, reload=False, log_level="debug")

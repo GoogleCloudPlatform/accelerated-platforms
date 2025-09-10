@@ -41,6 +41,7 @@ locals {
   cluster_sa_roles = [
     "roles/artifactregistry.reader",
     "roles/autoscaling.metricsWriter",
+    "roles/container.defaultNodeServiceAccount",
     "roles/logging.logWriter",
     "roles/monitoring.metricWriter",
     "roles/monitoring.viewer",

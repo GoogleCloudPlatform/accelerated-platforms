@@ -124,7 +124,8 @@ kubectl cp "${TEST_WORKFLOW_DIR}/comfyui-workflow-tester.sh" "${comfyui_kubernet
 kubectl cp "${TEMP_DIR}" "${comfyui_kubernetes_namespace}/${POD_NAME}:/tmp/workflows"
 kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- chmod +x /tmp/comfyui-workflow-tester.sh
 rm -rf "${TEMP_DIR}"
-
+kubectl get all -n ${comfyui_kubernetes_namespace}
+printenv
 # ------------------------------------------------------------
 # Execute tests inside pod
 # ------------------------------------------------------------

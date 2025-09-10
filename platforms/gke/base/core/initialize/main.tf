@@ -38,7 +38,7 @@ locals {
 }
 
 resource "google_storage_bucket" "terraform" {
-  for_each = toset(var.create_terraform_bucket ? ["create"] : [])
+  for_each = toset(var.terraform_bucket_name == null ? ["create"] : [])
 
   force_destroy               = false
   location                    = local.cluster_region

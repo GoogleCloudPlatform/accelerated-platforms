@@ -44,7 +44,12 @@ resource "terraform_data" "unique_timestamps" {
 }
 
 resource "local_file" "core_backend_tf" {
+  depends_on = [
+    data.google_storage_bucket.terraform,
+  ]
+
   for_each = local.core_backend_directories
+
   content = templatefile(
     local.backend_template,
     {
@@ -229,9 +234,9 @@ resource "local_file" "shared_config_terraform_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
-      create_terraform_bucket = var.create_terraform_bucket
-      terraform_project_id    = var.terraform_project_id
-      terraform_write_tfvars  = var.terraform_write_tfvars
+      terraform_bucket_name  = var.terraform_bucket_name
+      terraform_project_id   = var.terraform_project_id
+      terraform_write_tfvars = var.terraform_write_tfvars
     }
   )
   file_permission = "0644"
@@ -255,7 +260,12 @@ resource "local_file" "shared_config_workloads_auto_tfvars" {
 }
 
 resource "local_file" "use_case_backend_tf" {
+  depends_on = [
+    data.google_storage_bucket.terraform,
+  ]
+
   for_each = local.use_case_backend_directories
+
   content = templatefile(
     local.backend_template,
     {

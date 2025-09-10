@@ -158,10 +158,12 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
       (
         TEST_LOG=$(mktemp)
         
-        if main "${f}"; then
+        # This line redirects stdout and stderr from main() into the TEST_LOG file
+        if main "${f}" > "${TEST_LOG}" 2>&1; then
           echo "[PASS] filename: $(basename "$f")"
         else
           echo "[FAIL] filename: $(basename "$f") - See full log below:" >&2
+          # Now this cat command will correctly display the captured error log
           cat "${TEST_LOG}" >&2
           basename "${f}" >> "${FAILURES_FILE}"
         fi

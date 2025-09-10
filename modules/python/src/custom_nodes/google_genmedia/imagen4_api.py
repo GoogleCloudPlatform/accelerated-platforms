@@ -21,7 +21,7 @@ from PIL import Image
 
 from . import exceptions, utils
 from .config import get_gcp_metadata
-from .constants import IMAGEN4_USER_AGENT, Imagen4Model, IMAGEN4_MAX_IMAGES
+from .constants import IMAGEN4_MAX_IMAGES, IMAGEN4_USER_AGENT, Imagen4Model
 
 
 class Imagen4API:

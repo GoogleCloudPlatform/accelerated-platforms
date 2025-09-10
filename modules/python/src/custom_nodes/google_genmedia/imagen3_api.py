@@ -21,7 +21,7 @@ from PIL import Image
 
 from . import exceptions, utils
 from .config import get_gcp_metadata
-from .constants import IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT, IMAGEN3_MAX_IMAGES
+from .constants import IMAGEN3_MAX_IMAGES, IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT
 
 
 class Imagen3API:

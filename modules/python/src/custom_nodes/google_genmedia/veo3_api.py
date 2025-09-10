@@ -21,7 +21,7 @@ from google import genai
 
 from . import exceptions, utils
 from .config import get_gcp_metadata
-from .constants import OUTPUT_RESOLUTION, VEO3_USER_AGENT, VEO3_MAX_VIDEOS, Veo3Model
+from .constants import OUTPUT_RESOLUTION, VEO3_MAX_VIDEOS, VEO3_USER_AGENT, Veo3Model
 
 
 class Veo3API:

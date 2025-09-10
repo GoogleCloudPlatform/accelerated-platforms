@@ -23,10 +23,10 @@ from . import exceptions, utils
 from .config import get_gcp_metadata
 from .constants import (
     VEO2_GENERATE_AUDIO_FLAG,
+    VEO2_MAX_VIDEOS,
     VEO2_MODEL_ID,
     VEO2_OUTPUT_RESOLUTION,
     VEO2_USER_AGENT,
-    VEO2_MAX_VIDEOS
 )
 from .utils import validate_gcs_uri_and_image
 

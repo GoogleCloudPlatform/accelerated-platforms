@@ -27,8 +27,9 @@ export ERROR_FILE="/workspace/build-failed.lock"
 export TEST_WORKFLOW_DIR="${TEST_WORKFLOW_DIR:-test/ci-cd/scripts/comfyui}"
 export COMFYUI_BUCKET="${cluster_project_id}-${unique_identifier_prefix}-${comfyui_app_name}"
 export COMFYUI_SERVICE="${comfyui_app_name}-${comfyui_accelerator_type}:8188"
+export COMFYUI_DEPLOYMENT=${comfyui_app_name}-${comfyui_accelerator_type}
 
-MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-180}"
+MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-1200}"
 STEP_ID=${1:-build-ci}
 
 # --- Helpers ---
@@ -89,6 +90,9 @@ info "Fetching credentials for project '${cluster_project_id}'"
 ${cluster_credentials_command}
 kubectl get deployment -n ${comfyui_kubernetes_namespace}
 
+step "Wait for ComfyUI deployment to be Available"
+kubectl wait --for=condition=Available deployment/${comfyui_app_name}-${comfyui_accelerator_type} -n ${comfyui_kubernetes_namespace} --timeout=${MAX_WAIT_SECONDS}s
+
 # ------------------------------------------------------------
 # Start client pod
 # ------------------------------------------------------------
@@ -104,7 +108,7 @@ kubectl run "${POD_NAME}" \
   --command -- sh -c "apk add --no-cache bash curl jq && echo 'Pod is ready. Waiting...' && sleep 3600"
 
 step "Wait for pod to be Ready"
-kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=3600s
+kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=${MAX_WAIT_SECONDS}s
 
 # ------------------------------------------------------------
 # Copy test assets
@@ -189,7 +193,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
 
 if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
   echo "Failed Workflows:" >"${ERROR_FILE}"
-  sed -n 's/.*\[FAIL\].*FAILED: \(.*\) - See full log below:$/\1/p' "${POD_RUN_LOG}" >>"${ERROR_FILE}"
+  sed -n 's/.*\[FAIL\].*filename: \(.*\) - See full log below:$/\1/p' "${POD_RUN_LOG}" >>"${ERROR_FILE}"
   warn "One or more in-pod tests failed. See details in ${ERROR_FILE}."
 else
   info "All in-pod tests completed successfully."

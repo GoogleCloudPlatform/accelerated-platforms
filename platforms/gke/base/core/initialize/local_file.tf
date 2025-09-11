@@ -61,6 +61,9 @@ resource "local_file" "shared_config_cloudbuild_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
+      cloudbuild_ar_image_repository_name                             = var.cloudbuild_ar_image_repository_name
+      cloudbuild_ar_location                                          = var.cloudbuild_ar_location
+      cloudbuild_ar_project_id                                        = var.cloudbuild_ar_project_id
       cloudbuild_github_access_token_read_secret_manager_secret_name  = var.cloudbuild_github_access_token_read_secret_manager_secret_name
       cloudbuild_github_access_token_write_secret_manager_secret_name = var.cloudbuild_github_access_token_write_secret_manager_secret_name
       cloudbuild_location                                             = var.cloudbuild_location

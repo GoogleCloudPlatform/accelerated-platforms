@@ -14,13 +14,12 @@
 # limitations under the License.
 # ComfyUI workflow tester (runs INSIDE pod)
 
-
 # --- 1) Submit a workflow; print {"prompt_id":"..."} to stdout (compact JSON) ---
 execute_workflow() {
   local test_file=$1
   local filename; filename=$(basename "$test_file")
 
-  echo "execute_workflow: wrapping '${filename}'"
+  echo "execute_workflow: wrapping '${filename}'" >&2
   local wrapped_file
   wrapped_file=$(mktemp)
   jq '{prompt: .}' < "$test_file" > "$wrapped_file"
@@ -34,7 +33,8 @@ execute_workflow() {
   http_code="${resp##*HTTPSTATUS:}"
   body="${resp%HTTPSTATUS:*}"
 
-  echo "execute_workflows: POST ${COMFYUI_URL}/prompt http=${http_code}"
+  echo "execute_workflows: POST ${COMFYUI_URL}/prompt http=${http_code}" >&2
+
   if [[ "${http_code}" != "200" ]]; then
     echo "Error in execute_workflow for file '${filename}': HTTP ${http_code} response ${body}" >&2
     return 1
@@ -59,9 +59,10 @@ get_history() {
   while true; do
     local resp http_code body
     # Use a robust method to separate the HTTP body from the status code
-    resp=$(curl -sS --connect-timeout 10 --max-time 20 \
+    resp=$(curl -sS --connect-timeout 10 \
              -o - -w "HTTPSTATUS:%{http_code}" \
              "${COMFYUI_URL}/history/${prompt_id}")
+
     http_code="${resp##*HTTPSTATUS:}"
     body="${resp%HTTPSTATUS:*}"
 
@@ -85,7 +86,9 @@ get_history() {
       ' | head -n 1)
 
       if [[ -n "${json_output}" && "${json_output}" != "null" ]]; then
-        echo "get_history: success for id=${prompt_id} ${json_output}"
+        echo "get_history: success for id=${prompt_id}" >&2
+
+        echo "${json_output}"
         return 0
       fi
     fi
@@ -114,14 +117,11 @@ get_image_metadata() {
   size_in_bytes=$(curl -sI --connect-timeout 5 --max-time 20 "${url}" \
     | awk 'tolower($1)=="content-length:"{print $2}' \
     | tr -d "\r")
-  echo "get_image_metadata: Image size ${size_in_bytes}"
   if ! [[ "${size_in_bytes:-}" =~ ^[0-9]+$ ]]; then
     echo "Error in get_image_metadata: content-length not numeric (got '${size_in_bytes:-unknown}')" >&2
-    return 1
+    size_in_bytes=0
   fi
-
-  # stdout: compact JSON ONLY
-  jq -c --null-input --argjson n "${size_in_bytes}" '{"size_in_bytes":$n}'
+  echo "${size_in_bytes}"
 }
 
 # --- 4) Orchestration for one workflow file; 
@@ -151,13 +151,12 @@ main() {
 
   # 4.2 Poll
   echo "main: get_history id=${prompt_id}"
-  local hist_json;
+  local hist_json out_fn subfolder ftype;
   hist_json=$(get_history "${prompt_id}")
-  echo "main: hist_json=${hist_json}"
-  local out_fn subfolder ftype
-  out_fn=$(printf '%s' "${hist_json}" | jq -r '.filename')
-  subfolder=$(printf '%s' "${hist_json}" | jq -r '.subfolder')
-  ftype=$(printf '%s' "${hist_json}" | jq -r '.type')
+
+  out_fn=$(printf '%s' "${hist_json}" | jq -r '.filename' 2>/dev/null)
+  subfolder=$(printf '%s' "${hist_json}" | jq -r '.subfolder' 2>/dev/null)
+  ftype=$(printf '%s' "${hist_json}" | jq -r '.type' 2>/dev/null)
   if [ -z "${out_fn}" ] || [ "${out_fn}" = "null" ]; then
     echo "Error: missing filename from history" >&2
     return 1
@@ -165,11 +164,10 @@ main() {
 
   # 4.3 Metadata
   echo "main: get_image_metadata file='${out_fn}'"
-  local meta_json;
-  meta_json=$(get_image_metadata "${out_fn}" "${subfolder}" "${ftype}")
-  echo "main: meta_json=${meta_json}"
-  local size_in_bytes;
-  size_in_bytes=$(printf '%s' "${meta_json}" | jq -r '.size_in_bytes')
+  local size_in_bytes;  
+  size_in_bytes=$(get_image_metadata "${out_fn}" "${subfolder}" "${ftype}")
+  echo "main: size_in_bytes=${size_in_bytes}"
+
   if ! [[ "${size_in_bytes}" =~ ^[0-9]+$ ]]; then
     echo "Error: size_in_bytes invalid from meta_json" >&2
     return 1
@@ -186,5 +184,6 @@ main() {
   echo "main: success '${test_file}' (file='${out_fn}', bytes=${size_in_bytes})"
   return 0
 }
+
 
 

@@ -91,7 +91,7 @@ ${cluster_credentials_command}
 kubectl get deployment -n ${comfyui_kubernetes_namespace}
 
 step "Wait for ComfyUI deployment to be Available"
-kubectl wait --for=condition=Available deployment/${comfyui_app_name}-${comfyui_accelerator_type} -n ${comfyui_kubernetes_namespace} --timeout=${MAX_WAIT_SECONDS}s
+kubectl wait --for=condition=Available deployment/${COMFYUI_DEPLOYMENT} -n ${comfyui_kubernetes_namespace} --timeout=${MAX_WAIT_SECONDS}s
 
 # ------------------------------------------------------------
 # Start client pod

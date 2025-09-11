@@ -18,7 +18,8 @@ locals {
 
 resource "google_project_iam_member" "custom_metrics_stackdriver_adapter" {
   for_each = toset([
-    "roles/monitoring.metricWriter"
+    "roles/monitoring.metricWriter",
+    "roles/monitoring.viewer"
   ])
 
   member  = "${local.wi_principal_prefix}/ns/custom-metrics/sa/custom-metrics-stackdriver-adapter"

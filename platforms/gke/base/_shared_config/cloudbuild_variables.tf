@@ -19,14 +19,42 @@
 #
 
 locals {
+  cloudbuild_ar_image_repository_name = var.cloudbuild_ar_image_repository_name != null ? var.cloudbuild_ar_image_repository_name : "${local.unique_identifier_prefix}"
+  cloudbuild_ar_image_repository_url  = "${local.cloudbuild_ar_location}.docker.pkg.dev/${local.cloudbuild_ar_project_id}/${local.cloudbuild_ar_image_repository_name}"
+
+  cloudbuild_ar_location   = var.cloudbuild_ar_location != null ? var.cloudbuild_ar_location : local.cloudbuild_location
+  cloudbuild_ar_project_id = var.cloudbuild_ar_project_id != null ? var.cloudbuild_ar_project_id : local.cloudbuild_project_id
+
   cloudbuild_github_access_token_read_secret_manager_secret_name  = var.cloudbuild_github_access_token_read_secret_manager_secret_name != null ? var.cloudbuild_github_access_token_read_secret_manager_secret_name : "${local.unique_identifier_prefix}-github-access-token-read"
   cloudbuild_github_access_token_write_secret_manager_secret_name = var.cloudbuild_github_access_token_write_secret_manager_secret_name != null ? var.cloudbuild_github_access_token_write_secret_manager_secret_name : "${local.unique_identifier_prefix}-github-access-token-write"
-  cloudbuild_location                                             = var.cloudbuild_location != null ? var.cloudbuild_location : var.platform_default_region
-  cloudbuild_project_id                                           = var.cloudbuild_project_id != null ? var.cloudbuild_project_id : var.platform_default_project_id
-  cloudbuild_service_account_email                                = "${local.cloudbuild_service_account_name}@${local.cloudbuild_project_id}.iam.gserviceaccount.com"
-  cloudbuild_service_account_id                                   = "projects/${local.cloudbuild_project_id}/serviceAccounts/${local.cloudbuild_service_account_email}"
-  cloudbuild_service_account_name                                 = var.cloudbuild_service_account_name != null ? var.cloudbuild_service_account_name : "${local.unique_identifier_prefix}-cloudbuild"
-  cloudbuild_source_bucket_name                                   = var.cloudbuild_source_bucket_name != null ? var.cloudbuild_source_bucket_name : "${local.unique_identifier_prefix}-gcb-src-${local.cloudbuild_project_id}"
+
+  cloudbuild_location   = var.cloudbuild_location != null ? var.cloudbuild_location : var.platform_default_region
+  cloudbuild_project_id = var.cloudbuild_project_id != null ? var.cloudbuild_project_id : var.platform_default_project_id
+
+  cloudbuild_service_account_email  = "${local.cloudbuild_service_account_name}@${local.cloudbuild_project_id}.iam.gserviceaccount.com"
+  cloudbuild_service_account_id     = "projects/${local.cloudbuild_project_id}/serviceAccounts/${local.cloudbuild_service_account_email}"
+  cloudbuild_service_account_member = "serviceAccount:${local.cloudbuild_service_account_email}"
+  cloudbuild_service_account_name   = var.cloudbuild_service_account_name != null ? var.cloudbuild_service_account_name : "${local.unique_identifier_prefix}-cloudbuild"
+
+  cloudbuild_source_bucket_name = var.cloudbuild_source_bucket_name != null ? var.cloudbuild_source_bucket_name : "${local.unique_identifier_prefix}-gcb-src-${local.cloudbuild_project_id}"
+}
+
+variable "cloudbuild_ar_image_repository_name" {
+  default     = null
+  description = "The name of the Artifact Registry image repository."
+  type        = string
+}
+
+variable "cloudbuild_ar_location" {
+  default     = null
+  description = "The location of the Artifact Registry repositories."
+  type        = string
+}
+
+variable "cloudbuild_ar_project_id" {
+  default     = null
+  description = "The project ID of the Artifact Registry repositories."
+  type        = string
 }
 
 variable "cloudbuild_github_access_token_read_secret_manager_secret_name" {

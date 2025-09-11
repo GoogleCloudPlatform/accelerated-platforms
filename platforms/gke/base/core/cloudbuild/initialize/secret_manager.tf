@@ -19,7 +19,7 @@ resource "google_secret_manager_secret" "github_access_token_read" {
 
   for_each = toset(var.cloudbuild_github_access_token_read_secret_manager_secret_name == null ? ["managed"] : [])
 
-  project   = google_project_service.secretmanager_googleapis_com.project
+  project   = google_project_service.cloudbuild["secretmanager.googleapis.com"].project
   secret_id = local.cloudbuild_github_access_token_read_secret_manager_secret_name
 
   replication {
@@ -32,7 +32,7 @@ data "google_secret_manager_secret" "github_access_token_read" {
     google_secret_manager_secret.github_access_token_read,
   ]
 
-  project   = google_project_service.secretmanager_googleapis_com.project
+  project   = google_project_service.cloudbuild["secretmanager.googleapis.com"].project
   secret_id = local.cloudbuild_github_access_token_read_secret_manager_secret_name
 }
 
@@ -43,7 +43,7 @@ resource "google_secret_manager_secret" "github_access_token_write" {
 
   for_each = toset(var.cloudbuild_github_access_token_write_secret_manager_secret_name == null ? ["managed"] : [])
 
-  project   = google_project_service.secretmanager_googleapis_com.project
+  project   = google_project_service.cloudbuild["secretmanager.googleapis.com"].project
   secret_id = local.cloudbuild_github_access_token_write_secret_manager_secret_name
 
   replication {
@@ -56,6 +56,28 @@ data "google_secret_manager_secret" "github_access_token_write" {
     google_secret_manager_secret.github_access_token_write,
   ]
 
-  project   = google_project_service.secretmanager_googleapis_com.project
+  project   = google_project_service.cloudbuild["secretmanager.googleapis.com"].project
   secret_id = local.cloudbuild_github_access_token_write_secret_manager_secret_name
+}
+
+resource "google_secret_manager_secret_iam_member" "github_access_token_read_cloudbuild" {
+  depends_on = [
+    terraform_data.wait_for_secretmanager_api,
+  ]
+
+  member    = data.google_service_account.cloudbuild.member
+  project   = data.google_secret_manager_secret.github_access_token_read.project
+  role      = "roles/secretmanager.secretAccessor"
+  secret_id = data.google_secret_manager_secret.github_access_token_read.secret_id
+}
+
+resource "google_secret_manager_secret_iam_member" "github_access_token_write_cloudbuild" {
+  depends_on = [
+    terraform_data.wait_for_secretmanager_api,
+  ]
+
+  member    = data.google_service_account.cloudbuild.member
+  project   = data.google_secret_manager_secret.github_access_token_write.project
+  role      = "roles/secretmanager.secretAccessor"
+  secret_id = data.google_secret_manager_secret.github_access_token_write.secret_id
 }

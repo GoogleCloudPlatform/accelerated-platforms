@@ -37,6 +37,7 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "networking"
   "container_cluster"
   "workloads/cluster_credentials"
+  "cloudbuild/initialize"
   "huggingface/initialize"
   "huggingface/hub_downloader"
   "custom_compute_class"

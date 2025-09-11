@@ -193,13 +193,10 @@ The `deploy-comfyui.sh` script will perform the following steps:
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Source GKE cluster credentials
+- Get cluster credentials
 
   ```
-  gcloud container clusters get-credentials ${cluster_name} \
-  --dns-endpoint \
-  --location="${cluster_region}" \
-  --project="${cluster_project_id}"
+  ${cluster_credentials_command}
   ```
 
 - Check the ComfyUI deployment

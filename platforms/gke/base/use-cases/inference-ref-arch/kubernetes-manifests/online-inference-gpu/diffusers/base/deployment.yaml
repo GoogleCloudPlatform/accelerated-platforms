@@ -77,7 +77,7 @@ spec:
           # This reference architecture uses the same vLLM container image
           # version for all models. When updating this version, ensure to
           # test if all supported models still work.
-          image: us-central1-docker.pkg.dev/accelerated-platforms-dev/online-inference-gpu/flux:latest
+          image: replaced-by-kustomize
           imagePullPolicy: Always
           name: inference-server
           resources: {}

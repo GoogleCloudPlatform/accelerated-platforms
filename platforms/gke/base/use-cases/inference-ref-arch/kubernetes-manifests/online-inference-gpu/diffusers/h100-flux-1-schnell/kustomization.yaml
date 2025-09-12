@@ -110,6 +110,15 @@ replacements:
           - spec.selector.app
         select:
           kind: Service
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: diffusers
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=inference-server].image
+        select:
+          kind: Deployment
 
 resources:
   - ../base

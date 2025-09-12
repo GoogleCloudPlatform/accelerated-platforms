@@ -44,8 +44,12 @@ resource "google_project_service" "cloudbuild" {
 }
 
 resource "google_project_iam_member" "cloudbuild_cloudbuild_builds_builder" {
+  depends_on = [
+    data.google_service_account.cloudbuild,
+  ]
+
   for_each = toset([
-    local.cloudbuild_service_account_member
+    local.cloudbuild_service_account_member,
   ])
 
   member  = each.key

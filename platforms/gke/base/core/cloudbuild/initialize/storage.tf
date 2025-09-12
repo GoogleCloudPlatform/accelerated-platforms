@@ -32,3 +32,17 @@ data "google_storage_bucket" "source" {
   name    = local.cloudbuild_source_bucket_name
   project = local.cloudbuild_project_id
 }
+
+resource "google_storage_bucket_iam_member" "cloudbuild_source_storage_admin" {
+  depends_on = [
+    data.google_service_account.cloudbuild
+  ]
+
+  for_each = toset([
+    local.cloudbuild_service_account_member,
+  ])
+
+  bucket = data.google_storage_bucket.source.name
+  member = each.key
+  role   = "roles/storage.admin"
+}

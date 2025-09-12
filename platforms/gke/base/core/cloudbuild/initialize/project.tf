@@ -12,27 +12,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+data "google_project" "artifact_registry" {
+  project_id = local.cloudbuild_ar_project_id
+}
+
 data "google_project" "cloudbuild" {
   project_id = local.cloudbuild_project_id
 }
 
-resource "google_project_service" "cloudbuild_googleapis_com" {
+resource "google_project_service" "artifact_registry" {
+  for_each = toset([
+    "artifactregistry.googleapis.com",
+  ])
+
   disable_dependent_services = false
   disable_on_destroy         = false
-  project                    = data.google_project.cloudbuild.project_id
-  service                    = "cloudbuild.googleapis.com"
+  project                    = data.google_project.artifact_registry.project_id
+  service                    = each.key
 }
 
-resource "google_project_service" "secretmanager_googleapis_com" {
+resource "google_project_service" "cloudbuild" {
+  for_each = toset([
+    "cloudbuild.googleapis.com",
+    "secretmanager.googleapis.com",
+  ])
+
   disable_dependent_services = false
   disable_on_destroy         = false
   project                    = data.google_project.cloudbuild.project_id
-  service                    = "secretmanager.googleapis.com"
+  service                    = each.key
+}
+
+resource "google_project_iam_member" "cloudbuild_cloudbuild_builds_builder" {
+  for_each = toset([
+    local.cloudbuild_service_account_member
+  ])
+
+  member  = each.key
+  project = google_project_service.cloudbuild["cloudbuild.googleapis.com"].project
+  role    = "roles/cloudbuild.builds.builder"
 }
 
 resource "terraform_data" "wait_for_cloudbuild_api" {
   input = {
-    project = google_project_service.cloudbuild_googleapis_com.project
+    project = google_project_service.cloudbuild["cloudbuild.googleapis.com"].project
   }
 
   provisioner "local-exec" {
@@ -53,13 +76,13 @@ EOT
   }
 
   triggers_replace = {
-    project = google_project_service.cloudbuild_googleapis_com.project
+    project = google_project_service.cloudbuild["cloudbuild.googleapis.com"].project
   }
 }
 
 resource "terraform_data" "wait_for_secretmanager_api" {
   input = {
-    project = google_project_service.secretmanager_googleapis_com.project
+    project = google_project_service.cloudbuild["secretmanager.googleapis.com"].project
   }
 
   provisioner "local-exec" {
@@ -80,6 +103,6 @@ EOT
   }
 
   triggers_replace = {
-    project = google_project_service.secretmanager_googleapis_com.project
+    project = google_project_service.cloudbuild["secretmanager.googleapis.com"].project
   }
 }

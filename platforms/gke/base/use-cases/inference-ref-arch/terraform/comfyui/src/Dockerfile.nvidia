@@ -1,3 +1,5 @@
+# syntax=docker.io/docker/dockerfile:1.17.1
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,7 +64,7 @@ RUN comfy --skip-prompt --workspace=${COMFY_DIR} tracking disable \
   && comfy --skip-prompt --workspace=${COMFY_HOME} install --cuda-version=${CUDA_VERSION} --nvidia --version=${COMFY_VERSION} \
   && comfy --skip-prompt set-default ${COMFY_HOME}
 
-COPY --chown=${USER}:${GROUP} --chmod=700 entrypoint.sh ./
+COPY --chown=${USER}:${GROUP} --chmod=700 --from=comfyui entrypoint.sh ./
 
 ENV BASE ""
 ENV INPUT_DIR "${COMFY_HOME}/input"
@@ -75,7 +77,7 @@ ENV COMFYUI_PORT "8188"
 
 ARG COMFYUI_CUSTOM_NODE_PATH="${COMFY_HOME}/custom_nodes"
 
-COPY --chown=${USER}:${GROUP} --chmod=700 custom-nodes/google-genmedia ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia 
+COPY --chown=${USER}:${GROUP} --chmod=700 --from=custom_nodes ./google_genmedia ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia 
 
 RUN pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia/requirements.txt
 

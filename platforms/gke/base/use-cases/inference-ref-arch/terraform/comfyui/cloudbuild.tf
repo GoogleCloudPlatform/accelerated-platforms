@@ -20,9 +20,8 @@ locals {
 resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
     command     = <<-EOT
-cd src && \
 gcloud builds submit \
---config="cloudbuild.yaml" \
+--config="platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src/cloudbuild.yaml" \
 --gcs-source-staging-dir="${data.google_storage_bucket.cloudbuild_source.url}/source" \
 --project="${data.google_project.cluster.project_id}" \
 --quiet \
@@ -30,10 +29,11 @@ gcloud builds submit \
 --substitutions=_DESTINATION="${local.image_destination}"
 EOT
     interpreter = ["bash", "-c"]
-    working_dir = path.module
+    working_dir = local.acp_root
   }
 
   triggers_replace = {
+    custom_nodes           = sha256(join("", [for file in fileset("${local.acp_root}/modules/python/src/custom_nodes", "**") : filesha256("${local.acp_root}/modules/python/src/custom_nodes/${file}")]))
     custom_sa_email        = data.google_service_account.cloudbuild.email
     hash_cloudbuild_config = filebase64sha256("${path.module}/src/cloudbuild.yaml")
     hash_dockerfile        = filebase64sha256("${path.module}/src/Dockerfile.nvidia")

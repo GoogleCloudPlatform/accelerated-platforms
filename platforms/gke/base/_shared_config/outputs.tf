@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "cloudbuild_ar_image_repository_url" {
+  value = local.cloudbuild_ar_image_repository_url
+}
+
 output "cloudbuild_github_access_token_read_secret_manager_secret_name" {
   value = local.cloudbuild_github_access_token_read_secret_manager_secret_name
 }

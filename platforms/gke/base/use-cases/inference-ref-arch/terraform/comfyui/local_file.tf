@@ -12,20 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-images:
-  - ${_DESTINATION}
-
-options:
-  logging: CLOUD_LOGGING_ONLY
-
-steps:
-  - args:
-      - build
-      - --build-context=comfyui=platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src
-      - --build-context=custom_nodes=modules/python/src/custom_nodes
-      - --tag=${_DESTINATION}
-      - --file=platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src/Dockerfile.nvidia
-      - .
-    id: "Build ComfyUI NVIDIA image"
-    name: "docker.io/docker:28.3.3-dind-alpine3.22"
-    waitFor: ["-"]
+locals {
+  acp_root = "${path.module}/../../../../../../.."
+}

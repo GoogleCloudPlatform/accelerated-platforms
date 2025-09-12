@@ -13,8 +13,8 @@
 # limitations under the License.
 
 locals {
-  acp_root                 = "${path.module}/../../../../../../../../.."
-  image_destination        = local.ira_online_gpu_diffusers_flux_image_url
+  acp_root          = "${path.module}/../../../../../../../../.."
+  image_destination = local.ira_online_gpu_diffusers_flux_image_url
 }
 
 resource "terraform_data" "submit_docker_build" {

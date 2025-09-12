@@ -25,9 +25,10 @@ from google.cloud import aiplatform
 from google.genai import types
 from PIL import Image
 
-from . import utils
+from . import exceptions, utils
 from .config import get_gcp_metadata
 from .constants import MAX_SEED, VTO_MODEL, VTO_USER_AGENT
+from .retry import retry_on_api_error
 
 
 class VirtualTryOn:
@@ -46,7 +47,7 @@ class VirtualTryOn:
             gcp_region: The GCP region. If provided, overrides metadata lookup.
 
         Raises:
-            ValueError: If GCP Project or region cannot be determined.
+            exceptions.APIInitializationError: If GCP Project or region cannot be determined.
         """
         self.project_id = gcp_project_id
         self.region = gcp_region
@@ -54,14 +55,18 @@ class VirtualTryOn:
         if not self.project_id:
             self.project_id = get_gcp_metadata("project/project-id")
         if not self.region:
-            self.region = "-".join(
-                get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-            )
+            zone = get_gcp_metadata("instance/zone")
+            if zone:
+                self.region = "-".join(zone.split("/")[-1].split("-")[:-1])
 
         if not self.project_id:
-            raise ValueError("GCP Project is required and could not be determined.")
+            raise exceptions.APIInitializationError(
+                "GCP Project is required and could not be determined."
+            )
         if not self.region:
-            raise ValueError("GCP region is required and could not be determined.")
+            raise exceptions.APIInitializationError(
+                "GCP region is required and could not be determined."
+            )
 
         print(f"Project is {self.project_id}, region is {self.region}")
         try:
@@ -77,7 +82,7 @@ class VirtualTryOn:
                 f"Prediction client initiated on project : {self.project_id}, location: {self.region}"
             )
         except Exception as e:
-            raise RuntimeError(
+            raise exceptions.APIInitializationError(
                 f"Failed to initialize Prediction client for Vertex AI: {e}"
             )
 
@@ -143,6 +148,14 @@ class VirtualTryOn:
     FUNCTION = "generate_and_return_image"
     CATEGORY = "Google AI/Use-cases"
 
+    @retry_on_api_error()
+    def _predict(self, endpoint, instances, parameters):
+        return self.client.predict(
+            endpoint=endpoint,
+            instances=instances,
+            parameters=parameters,
+        )
+
     def generate_and_return_image(
         self,
         person_image: torch.Tensor,
@@ -191,12 +204,12 @@ class VirtualTryOn:
             init_project_id = gcp_project_id if gcp_project_id else None
             init_region = gcp_region if gcp_region else None
             self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
             raise RuntimeError(f"Error re-initializing client: {e}")
 
         # Validate that the input tensors contain data
         if not (person_image.numel() > 0 and product_image.numel() > 0):
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 "Both person_image and product_image must be valid, non-empty images."
             )
         seed_for_api = seed if seed != 0 else None
@@ -233,7 +246,7 @@ class VirtualTryOn:
                 "safety_filter_level": safety_filter_level,
             }
             try:
-                response = self.client.predict(
+                response = self._predict(
                     endpoint=self.model_endpoint,
                     instances=instances,
                     parameters=parameters,
@@ -242,21 +255,26 @@ class VirtualTryOn:
                     base64_image_string = prediction["bytesBase64Encoded"]
                     tensor = utils.base64_to_pil_to_tensor(base64_image_string)
                     all_generated_tensors.append(tensor)
-            except Exception as e:
+            except (exceptions.APICallError, exceptions.ConfigurationError) as e:
                 print(f"Could not generate image for product {i+1}. Error: {e}")
                 continue
 
         # After the loop, check if we got any results at all
         if not all_generated_tensors:
-            raise RuntimeError(
+            raise exceptions.APICallError(
                 "Image generation failed for all product images in the batch."
             )
 
-        final_batch_tensor = torch.cat(all_generated_tensors, 0)
-        print(
-            f"Successfully generated {final_batch_tensor.shape[0]} image(s) in total."
-        )
-        return (final_batch_tensor,)
+        try:
+            final_batch_tensor = torch.cat(all_generated_tensors, 0)
+            print(
+                f"Successfully generated {final_batch_tensor.shape[0]} image(s) in total."
+            )
+            return (final_batch_tensor,)
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to concatenate generated images into a batch: {e}"
+            )
 
 
 NODE_CLASS_MAPPINGS = {"VirtualTryOn": VirtualTryOn}

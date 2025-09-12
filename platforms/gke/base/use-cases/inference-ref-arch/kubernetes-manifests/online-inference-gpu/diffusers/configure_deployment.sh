@@ -1,27 +1,27 @@
-# Copyright 2025 Google LLC
+#!/usr/bin/env bash
 
+# Copyright 2025 Google LLC
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# https://www.apache.org/licenses/LICENSE-2.0
-
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+set -o errexit
+set -o nounset
+set -o pipefail
 
-configMapGenerator:
-  - envs:
-      - diffusers.env
-    name: diffusers
-    namespace: replaced-by-kustomize
-    
-resources:
-  - ../../base
-  - deployment.yaml
-  - service.yaml
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
+
+source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
+
+envsubst < "${MY_PATH}/base/templates/diffusers.tpl.env" | sponge "${MY_PATH}/base/diffusers.env"

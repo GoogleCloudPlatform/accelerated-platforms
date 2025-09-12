@@ -19,18 +19,18 @@
 
 locals {
   terraform_project_id  = var.terraform_project_id != null ? var.terraform_project_id : var.platform_default_project_id
-  terraform_bucket_name = "${local.terraform_project_id}-${local.unique_identifier_prefix}-terraform"
+  terraform_bucket_name = var.terraform_bucket_name != null ? var.terraform_bucket_name : "${local.terraform_project_id}-${local.unique_identifier_prefix}-terraform"
 }
 
-variable "create_terraform_bucket" {
-  default     = true
-  description = "Create the Google Cloud Storage Terraform bucket."
+variable "terraform_bucket_name" {
+  default     = null
+  description = "The name of the Cloud Storage Terraform bucket."
   type        = string
 }
 
 variable "terraform_project_id" {
   default     = null
-  description = "The GCP project where terraform will be run"
+  description = "The GCP project where terraform will be run."
   type        = string
 }
 

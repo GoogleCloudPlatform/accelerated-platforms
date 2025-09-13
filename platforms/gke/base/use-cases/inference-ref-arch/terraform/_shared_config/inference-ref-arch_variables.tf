@@ -54,9 +54,3 @@ variable "ira_online_tpu_kubernetes_service_account_name" {
   description = "The Kubernetes service account for the online TPU inference workloads."
   type        = string
 }
-
-variable "ira_online_gpu_diffusers_flux_image_url" {
-  default     = null
-  description = ""
-  type        = string
-}

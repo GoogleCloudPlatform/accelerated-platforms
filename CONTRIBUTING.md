@@ -65,7 +65,14 @@ To setup a development environment you need:
 - An OCI-compatible container runtime. Tested with Docker for Linux 20.10.21
 - An IDE or text editor
 
-> A Visual Studio Code Dev Container is included in the repository.
+> A Visual Studio Code dev container is included in the repository.
+>
+> The Visual Studio Code Dev Containers extension is only available for
+> Microsoft Visual Studio Code in the Visual Studio Code Marketplace. Currently
+> the extension is not available for Code - OSS in the Open VSX Registry.
+>
+> Recommended extensions and configuration are listed in the
+> [Code OSS](#code-oss) section below.
 
 ### Dev container configuration
 
@@ -95,3 +102,17 @@ If you don't have a container runtime engine on your local host, but you have
 one available on a remote host, you can connect to the remote host and use that
 container runtime. For more information, refer to
 [Develop on a remote Docker host](https://code.visualstudio.com/remote/advancedcontainers/develop-remote-host).
+
+### Code OSS
+
+For Visual Studio Code - Open Source ("Code - OSS"), the following extensions
+from the Open VSX Registry are recommend:
+
+- Black Formatter (`ms-python.black-formatter`)
+- Code Spell Checker (`streetsidesoftware.code-spell-checker`)
+- HashiCorp Terraform (`hashicorp.terraform`)
+- isort (`ms-python.isort`)
+- Prettier - Code formatter (`esbenp.prettier-vscode`)
+
+The settings in the [devcontainer.json](/.devcontainer/devcontainer.json#L9) are
+also recommended.

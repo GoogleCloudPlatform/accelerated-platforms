@@ -35,6 +35,7 @@ data "google_artifact_registry_repository" "cloudbuild" {
 resource "google_artifact_registry_repository_iam_member" "cloudbuild_artifactregistry_writer" {
   depends_on = [
     data.google_artifact_registry_repository.cloudbuild,
+    data.google_service_account.cloudbuild,
   ]
 
   for_each = toset([

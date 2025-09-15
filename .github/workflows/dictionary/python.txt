@@ -30,6 +30,7 @@ isfile
 isin
 isinstance
 isna
+isort
 iterrows
 jsonify
 jsonpickle

@@ -35,7 +35,7 @@ data "google_storage_bucket" "source" {
 
 resource "google_storage_bucket_iam_member" "cloudbuild_source_storage_admin" {
   depends_on = [
-    data.google_service_account.cloudbuild
+    data.google_service_account.cloudbuild,
   ]
 
   for_each = toset([

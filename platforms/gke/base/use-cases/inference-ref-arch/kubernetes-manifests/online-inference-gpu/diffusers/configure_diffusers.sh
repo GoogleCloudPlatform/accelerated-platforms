@@ -24,4 +24,6 @@ MY_PATH="$(
 
 source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
+"${MY_PATH}/../configure_deployment.sh"
+
 envsubst < "${MY_PATH}/base/templates/diffusers.tpl.env" | sponge "${MY_PATH}/base/diffusers.env"

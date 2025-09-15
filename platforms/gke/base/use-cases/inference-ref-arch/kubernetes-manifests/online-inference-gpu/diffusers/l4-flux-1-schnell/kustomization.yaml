@@ -24,10 +24,33 @@ configMapGenerator:
 nameSuffix: -l4-flux-1-schnell
 
 patches:
-  - path: set-l4-24gb-compute-class.yaml
+  - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
 
 replacements:
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: diffusers
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=inference-server].image
+        select:
+          kind: Deployment
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
       kind: ConfigMap
@@ -94,20 +117,6 @@ replacements:
           index: 2
         select:
           kind: Deployment
-  - source:
-      fieldPath: data.APP_LABEL
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.selector.matchLabels.app
-          - spec.template.metadata.labels.app
-        select:
-          kind: Deployment
-      - fieldPaths:
-          - spec.selector.app
-        select:
-          kind: Service
 
 resources:
   - ../base

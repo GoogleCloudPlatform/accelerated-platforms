@@ -24,10 +24,33 @@ configMapGenerator:
 nameSuffix: -h100-flux-1-schnell
 
 patches:
-  - path: set-h100-80gb-high-compute-class.yaml
+  - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
 
 replacements:
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: diffusers
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=inference-server].image
+        select:
+          kind: Deployment
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
       kind: ConfigMap
@@ -92,31 +115,6 @@ replacements:
         options:
           delimiter: /
           index: 2
-        select:
-          kind: Deployment
-  - source:
-      fieldPath: data.APP_LABEL
-      kind: ConfigMap
-      name: runtime
-    # sourceValue is not available to 1.34
-    # sourceValue: "diffusers-h100-flux-1-schnell"
-    targets:
-      - fieldPaths:
-          - spec.selector.matchLabels.app
-          - spec.template.metadata.labels.app
-        select:
-          kind: Deployment
-      - fieldPaths:
-          - spec.selector.app
-        select:
-          kind: Service
-  - source:
-      fieldPath: data.CONTAINER_IMAGE_URL
-      kind: ConfigMap
-      name: diffusers
-    targets:
-      - fieldPaths:
-          - spec.template.spec.containers.[name=inference-server].image
         select:
           kind: Deployment
 

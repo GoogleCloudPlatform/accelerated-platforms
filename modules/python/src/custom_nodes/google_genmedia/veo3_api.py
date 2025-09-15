@@ -314,7 +314,7 @@ class Veo3API:
                 f"sample_count must be between 1 and 2, but got {sample_count}."
             )
 
-       valid_ratios = ("16:9", "9:16")
+        valid_ratios = ("16:9", "9:16")
 
         if aspect_ratio not in valid_ratios:
             raise ValueError(

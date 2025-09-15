@@ -35,7 +35,7 @@ class Veo3TextToVideoNode:
                     {"default": Veo3Model.VEO_3_PREVIEW.name},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9"], {"default": "16:9"}),
+                "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
                 "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
@@ -46,7 +46,7 @@ class Veo3TextToVideoNode:
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    [8],
+                    [4, 6, 8],
                     {"default": 8},
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
@@ -190,7 +190,7 @@ class Veo3GcsUriImageToVideoNode:
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9"], {"default": "16:9"}),
+                "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
                 "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
@@ -201,7 +201,7 @@ class Veo3GcsUriImageToVideoNode:
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    [8],
+                    [4, 6, 8],
                     {"default": 8},
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
@@ -347,7 +347,7 @@ class Veo3ImageToVideoNode:
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9"], {"default": "16:9"}),
+                "aspect_ratio": (["16:9", "9:16"], {"default": "16:9"}),
                 "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
@@ -358,7 +358,7 @@ class Veo3ImageToVideoNode:
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    [8],
+                    [4, 6, 8],
                     {"default": 8},
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),

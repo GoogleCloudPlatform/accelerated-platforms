@@ -13,6 +13,10 @@
 # limitations under the License.
 
 resource "google_artifact_registry_repository" "cloudbuild" {
+  depends_on = [
+    terraform_data.wait_for_artifactregistry_api,
+  ]
+
   for_each = toset(var.cloudbuild_ar_image_repository_name == null ? ["managed"] : [])
 
   description   = "Cloud Build image repository for ${local.unique_identifier_prefix}"

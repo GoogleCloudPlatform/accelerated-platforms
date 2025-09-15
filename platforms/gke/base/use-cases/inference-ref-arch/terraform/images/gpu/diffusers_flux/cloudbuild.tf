@@ -13,28 +13,35 @@
 # limitations under the License.
 
 locals {
-  acp_root          = "${path.module}/../../../../../../../../.."
   image_destination = local.ira_online_gpu_diffusers_flux_image_url
 }
 
 resource "terraform_data" "submit_docker_build" {
+  input = {
+    acp_root                      = local.acp_root
+    cloudbuild_project_id         = local.cloudbuild_project_id
+    cloudbuild_service_account_id = local.cloudbuild_service_account_id
+    cloudbuild_source_bucket_name = local.cloudbuild_source_bucket_name
+    image_destination             = local.image_destination
+  }
+
   provisioner "local-exec" {
     command     = <<-EOT
 gcloud builds submit \
 --config="projects/diffusers-flux/cloudbuild.yaml" \
---gcs-source-staging-dir="gs://${local.cloudbuild_source_bucket_name}/source" \
---project="${local.cloudbuild_project_id}" \
+--gcs-source-staging-dir="gs://${self.input.cloudbuild_source_bucket_name}/source" \
+--project="${self.input.cloudbuild_project_id}" \
 --quiet \
---service-account="${local.cloudbuild_service_account_id}" \
---substitutions=_DESTINATION="${local.image_destination}"
+--service-account="${self.input.cloudbuild_service_account_id}" \
+--substitutions=_DESTINATION="${self.input.image_destination}"
 EOT
     interpreter = ["bash", "-c"]
-    working_dir = local.acp_root
+    working_dir = self.input.acp_root
   }
 
   triggers_replace = {
-    source                 = sha256(join("", [for file in fileset("${local.acp_root}/projects/diffusers-flux/src", "**") : filesha256("${local.acp_root}/projects/diffusers-flux/src/${file}")]))
-    hash_cloudbuild_config = filebase64sha256("${local.acp_root}/projects/diffusers-flux/cloudbuild.yaml")
-    hash_dockerfile        = filebase64sha256("${local.acp_root}/projects/diffusers-flux/Dockerfile")
+    cloudbuild_yaml_hash = filebase64sha256("${local.acp_root}/projects/diffusers-flux/cloudbuild.yaml")
+    dockerfile_hash      = filebase64sha256("${local.acp_root}/projects/diffusers-flux/Dockerfile")
+    source_hash          = sha256(join("", [for file in fileset("${local.acp_root}/projects/diffusers-flux/src", "**") : filesha256("${local.acp_root}/projects/diffusers-flux/src/${file}")]))
   }
 }

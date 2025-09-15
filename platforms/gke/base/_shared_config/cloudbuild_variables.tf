@@ -20,7 +20,7 @@
 
 locals {
   cloudbuild_ar_image_repository_name = var.cloudbuild_ar_image_repository_name != null ? var.cloudbuild_ar_image_repository_name : "${local.unique_identifier_prefix}"
-  cloudbuild_ar_image_repository_url  = "${local.cloudbuild_ar_location}.docker.pkg.dev/${local.cloudbuild_ar_project_id}/${local.cloudbuild_ar_image_repository_name}"
+  cloudbuild_ar_image_repository_url  = "${local.cloudbuild_ar_location}-docker.pkg.dev/${local.cloudbuild_ar_project_id}/${local.cloudbuild_ar_image_repository_name}"
 
   cloudbuild_ar_location   = var.cloudbuild_ar_location != null ? var.cloudbuild_ar_location : local.cloudbuild_location
   cloudbuild_ar_project_id = var.cloudbuild_ar_project_id != null ? var.cloudbuild_ar_project_id : local.cloudbuild_project_id

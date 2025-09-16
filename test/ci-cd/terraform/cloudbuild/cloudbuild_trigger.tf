@@ -604,6 +604,152 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_tutorials_hf_gpu_model_
 ###################################################################################################
 
 locals {
+  platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/tutorials/hf-tpu-model/scripts-ap.yaml"
+  platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_ignore = [
+  ]
+  platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_include = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster_ap/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/huggingface/hub_downloader/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/tutorials/hf-tpu-model/deploy-ap.sh",
+    "platforms/gke/base/tutorials/hf-tpu-model/teardown-ap.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu/**",
+    local.platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_cb_yaml,
+  ]
+  platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_name = "platforms-gke-base-tutorials-hf-tpu-model-scripts-ap"
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_tutorials_hf_tpu_model_scripts_ap" {
+  filename        = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_cb_yaml
+  ignored_files   = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_ignore
+  included_files  = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_include
+  location        = var.build_location
+  name            = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_name
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_push" {
+  filename        = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_cb_yaml
+  ignored_files   = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_ignore
+  included_files  = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_include
+  location        = var.build_location
+  name            = "${local.platforms_gke_base_tutorials_hf_tpu_model_scripts_ap_name}-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+###################################################################################################
+
+locals {
+  platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/tutorials/hf-tpu-model/scripts-standard.yaml"
+  platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_ignore = [
+  ]
+  platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_include = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/huggingface/hub_downloader/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/auto_monitoring/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/tutorials/hf-tpu-model/deploy-standard.sh",
+    "platforms/gke/base/tutorials/hf-tpu-model/teardown-standard.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu/**",
+    local.platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_cb_yaml,
+  ]
+  platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_name = "platforms-gke-base-tutorials-hf-tpu-model-scripts-standard"
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_tutorials_hf_tpu_model_scripts_standard" {
+  filename        = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_cb_yaml
+  ignored_files   = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_ignore
+  included_files  = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_include
+  location        = var.build_location
+  name            = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_name
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_push" {
+  filename        = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_cb_yaml
+  ignored_files   = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_ignore
+  included_files  = local.platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_include
+  location        = var.build_location
+  name            = "${local.platforms_gke_base_tutorials_hf_tpu_model_scripts_standard_name}-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+###################################################################################################
+
+locals {
   platforms_gke_base_core_workloads_terraform_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/core/workloads.yaml"
   platforms_gke_base_core_workloads_terraform_ignore = [
   ]

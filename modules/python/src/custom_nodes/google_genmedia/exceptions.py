@@ -21,15 +21,13 @@ class GoogleGenMediaException(Exception):
     """Base exception for the Google GenMedia custom nodes."""
 
     def __init__(self, *args):
-        super().__init__(*args)
+        # This logic is to extract a clean error message from the
+        # exceptions raised by the Google GenAI API.
         full_error_str = " ".join(str(a) for a in args)
-
         match = re.search(r"'message': '(.*?)', 'status'", full_error_str)
-
         if match:
-            print(f"ERROR: {match.group(1)}")
+            message = match.group(1)
         else:
-            # Fallback logic
             message_parts = []
             for arg in args:
                 arg_str = str(arg)
@@ -37,7 +35,8 @@ class GoogleGenMediaException(Exception):
                 if dict_start != -1:
                     arg_str = arg_str[:dict_start].strip()
                 message_parts.append(arg_str)
-            print(f"ERROR: {' '.join(message_parts)}")
+            message = " ".join(message_parts)
+        super().__init__(message)
 
 
 class APIInitializationError(GoogleGenMediaException):

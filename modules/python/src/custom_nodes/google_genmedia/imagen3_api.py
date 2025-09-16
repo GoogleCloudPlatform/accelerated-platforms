@@ -50,7 +50,6 @@ class Imagen3API:
             raise exceptions.APIInitializationError("GCP Project is required")
         if not self.region:
             raise exceptions.APIInitializationError("GCP region is required")
-        print(f"Project is {self.project_id}, region is {self.region}")
         http_options = genai.types.HttpOptions(
             headers={"user-agent": IMAGEN3_USER_AGENT}
         )

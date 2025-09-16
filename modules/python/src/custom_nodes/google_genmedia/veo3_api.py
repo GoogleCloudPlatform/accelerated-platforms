@@ -122,7 +122,7 @@ class Veo3API:
             )
         if aspect_ratio not in VEO3_VALID_RATIOS:
             raise ValueError(
-                f"Veo3 can only generate videos of aspect ratio 16:9 or 9:16. You passed aspect ratio {aspect_ratio}."
+                f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
             raise ValueError(
@@ -212,7 +212,7 @@ class Veo3API:
             raise ValueError("Image input (torch.Tensor) cannot be None.")
         if aspect_ratio not in VEO3_VALID_RATIOS:
             raise ValueError(
-                f"Veo3 can only generate videos of aspect ratio 16:9 or 9:16. You passed aspect ratio {aspect_ratio}."
+                f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
             raise ValueError(
@@ -306,7 +306,7 @@ class Veo3API:
             )
         if aspect_ratio not in VEO3_VALID_RATIOS:
             raise ValueError(
-                f"Veo3 can only generate videos of aspect ratio 16:9 or 9:16. You passed aspect ratio {aspect_ratio}."
+                f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
             raise ValueError(

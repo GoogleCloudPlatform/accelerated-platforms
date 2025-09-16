@@ -49,6 +49,26 @@ data "google_compute_subnetwork" "region" {
   region  = local.cluster_region
 }
 
+resource "google_compute_subnetwork" "region_proxy" {
+  ip_cidr_range = var.network_cluster_subnet_proxy_ip_cidr_range[]
+  name          = local.network_cluster_subnet_proxy_name
+  network       = data.google_compute_network.vpc.name
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  region        = data.google_compute_subnetwork.region.region
+  role          = "ACTIVE"
+}
+
+
+data "google_compute_subnetwork" "region_proxy" {
+  depends_on = [
+    google_compute_subnetwork.region_proxy,
+  ]
+
+  name          = local.network_cluster_subnet_proxy_name
+  network       = data.google_compute_network.vpc.name
+  region        = data.google_compute_subnetwork.region.region
+}
+
 resource "google_compute_router" "router" {
   for_each = toset(var.router_name == null ? ["managed"] : [])
 

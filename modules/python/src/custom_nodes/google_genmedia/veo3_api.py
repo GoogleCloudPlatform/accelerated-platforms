@@ -24,8 +24,8 @@ from .config import get_gcp_metadata
 from .constants import (
     OUTPUT_RESOLUTION,
     VEO3_USER_AGENT,
-    VEO3_VALID_RATIOS,
-    VEO3_VALID_DURATIONS,
+    VEO3_VALID_ASPECT_RATIOS,
+    VEO3_VALID_DURATION_SECONDS,
     Veo3Model,
 )
 

@@ -20,18 +20,17 @@ data "google_project" "comfyui_iap_oath_branding" {
   project_id = local.comfyui_iap_oath_branding_project_id
 }
 
-resource "google_project_service" "aiplatform_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "aiplatform.googleapis.com"
-}
+resource "google_project_service" "cluster" {
+  for_each = toset([
+    "aiplatform.googleapis.com",
+    "cloudbuild.googleapis.com",
+    "iap.googleapis.com",
+  ])
 
-resource "google_project_service" "cloudbuild_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
   project                    = data.google_project.cluster.project_id
-  service                    = "cloudbuild.googleapis.com"
+  service                    = each.key
 }
 
 # Create all project-level aiplatform.googleapis.com service agents

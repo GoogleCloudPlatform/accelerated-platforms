@@ -1,4 +1,3 @@
-
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +31,7 @@ steps:
       - DEBUG=${_DEBUG}
       - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
       - TF_VAR_platform_name="ch${SHORT_SHA}"
-      - IAP_PROJECT_ID="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+      - TF_VAR_comfyui_iap_oath_branding_project_id="accelerated-platforms-iap"
       - TF_VAR_comfyui_iap_domain="accelerated-platforms.joonix.net"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"
     env:
@@ -45,12 +44,6 @@ steps:
     waitFor:
       - "Check triggers"
 
-  - entrypoint: "test/ci-cd/scripts/cloudbuild/create_iap_brand.sh"
-    id: "Create the IAP Brand"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Configure the build environment"
-
   - args:
       - "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
       - "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh"
@@ -58,7 +51,7 @@ steps:
     id: "Deploy platforms/gke/base/use-cases/inference-ref-arch/comfyui"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Create the IAP Brand"
+      - "Configure the build environment"
 
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
@@ -76,7 +69,7 @@ steps:
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Apply inference-ref-arch Terraservice 'workflow_api'"
-  
+
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
       - workflow_api

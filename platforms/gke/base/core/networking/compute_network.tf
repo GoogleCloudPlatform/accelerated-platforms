@@ -52,12 +52,13 @@ data "google_compute_subnetwork" "region" {
 resource "google_compute_subnetwork" "region_proxy" {
   for_each = toset(var.network_cluster_subnet_proxy_name == null ? ["managed"] : [])
 
-  ip_cidr_range            = var.network_cluster_subnet_proxy_ip_cidr_range
-  name                     = local.network_cluster_subnet_proxy_name
-  network                  = data.google_compute_network.vpc.id
-  private_ip_google_access = true
-  project                  = google_project_service.compute_googleapis_com.project
-  region                   = local.cluster_region
+  ip_cidr_range = var.network_cluster_subnet_proxy_ip_cidr_range
+  name          = local.network_cluster_subnet_proxy_name
+  network       = data.google_compute_network.vpc.id
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  project       = google_project_service.compute_googleapis_com.project
+  region        = local.cluster_region
+  role          = "ACTIVE"
 }
 
 data "google_compute_subnetwork" "region_proxy" {

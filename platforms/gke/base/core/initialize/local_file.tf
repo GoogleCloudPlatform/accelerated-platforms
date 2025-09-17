@@ -250,11 +250,12 @@ resource "local_file" "shared_config_workloads_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
-      custom_metrics_adapter_version = var.custom_metrics_adapter_version
-      inference_gateway_version      = var.inference_gateway_version
-      jobset_version                 = var.jobset_version
-      kueue_version                  = var.kueue_version
-      lws_version                    = var.lws_version
+      custom_metrics_adapter_version         = var.custom_metrics_adapter_version
+      inference_gateway_kubernetes_namespace = var.inference_gateway_kubernetes_namespace
+      inference_gateway_version              = var.inference_gateway_version
+      jobset_version                         = var.jobset_version
+      kueue_version                          = var.kueue_version
+      lws_version                            = var.lws_version
     }
   )
   file_permission = "0644"

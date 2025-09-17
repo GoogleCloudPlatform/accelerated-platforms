@@ -31,7 +31,7 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-r
 
 # Set use-case specific values
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
-export TF_VAR_resource_name_prefix="inf"
+export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
 declare -a CORE_TERRASERVICES_APPLY=(
   "networking"
@@ -56,6 +56,7 @@ declare -a use_case_terraservices=(
 for terraservice in "${use_case_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
     echo "Current directory: $(pwd)" &&
+    rm -rf .terraform/ &&
     terraform init &&
     terraform plan -input=false -out=tfplan &&
     terraform apply -input=false tfplan || exit 1

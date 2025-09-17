@@ -15,6 +15,7 @@
 # This is a preview version of Google GenAI custom nodes
 
 import hashlib
+import logging
 import mimetypes
 import os
 import shutil
@@ -274,8 +275,13 @@ class VeoVideoSaveAndPreview:
                 }
             }
 
+        except (FileNotFoundError, ValueError) as e:
+            logging.error(f"An error occurred in VeoVideoSaveAndPreview: {e}")
+            return {"ui": {"video": [], "error": str(e)}}
         except Exception as e:
-            print(f"An error occurred in VeoVideoSaveAndPreview: {str(e)}")
+            logging.error(
+                f"An unexpected error occurred in VeoVideoSaveAndPreview: {e}"
+            )
             return {"ui": {"video": [], "error": str(e)}}
 
 

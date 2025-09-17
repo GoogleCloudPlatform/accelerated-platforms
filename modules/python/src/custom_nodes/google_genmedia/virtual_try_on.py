@@ -16,11 +16,15 @@
 
 import base64
 import io
+import logging
+from google.auth import exceptions as auth_exceptions
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+from google.api_core import exceptions as api_core_exceptions
 from google.api_core.gapic_v1.client_info import ClientInfo
+from google.auth import exceptions as auth_exceptions
 from google.cloud import aiplatform
 from google.genai import types
 from PIL import Image
@@ -76,10 +80,12 @@ class VirtualTryOn:
             print(
                 f"Prediction client initiated on project : {self.project_id}, location: {self.region}"
             )
+        except auth_exceptions.DefaultCredentialsError as e:
+            raise e
         except Exception as e:
             raise RuntimeError(
                 f"Failed to initialize Prediction client for Vertex AI: {e}"
-            )
+            ) from e
 
     @classmethod
     def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:

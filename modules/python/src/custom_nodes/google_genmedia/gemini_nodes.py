@@ -13,9 +13,9 @@
 # limitations under the License.
 
 # This is a preview version of gemini custom node
-
+import logging
 from typing import Optional
-
+from google.auth import exceptions as api_core_exceptions
 from google import genai
 from google.genai import types
 
@@ -361,8 +361,8 @@ class GeminiNode25:
 
             return (generated_text,)
 
-        except Exception as e:
-            print(f"An error occurred in calling Gemini API: {e}")
+        except (ValueError, api_core_exceptions.GoogleAPICallError) as e:
+            logging.error(f"An error occurred in calling Gemini API: {e}")
             return (f"Error: {e}",)
 
 

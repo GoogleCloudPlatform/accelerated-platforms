@@ -18,7 +18,9 @@ from io import BytesIO
 from typing import List, Optional
 
 import torch
+from google import genai
 from google.genai import types
+from google.genai import errors as genai_errors
 from PIL import Image
 
 from . import utils
@@ -136,9 +138,12 @@ class GeminiFlashImageAPI:
                     types.Part.from_bytes(data=image_to_b64, mime_type="image/png")
                 )
 
-        response = self.client.models.generate_content(
-            model=model, contents=contents, config=generate_content_config
-        )
+        try:
+            response = self.client.models.generate_content(
+                model=model, contents=contents, config=generate_content_config
+            )
+        except genai_errors.GoogleAPICallError as e:
+            raise RuntimeError(f"Google API call failed: {e}") from e
 
         for part in response.candidates[0].content.parts:
             if part.text is not None:

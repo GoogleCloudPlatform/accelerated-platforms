@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+from google.api_core import exceptions as api_core_exceptions
 
 from .constants import GeminiFlashImageModel, ThresholdOptions
 from .gemini_flash_image_api import GeminiFlashImageAPI
@@ -186,7 +187,7 @@ class Gemini25FlashImage:
                 system_instruction,
                 image,
             )
-        except Exception as e:
+        except (ValueError, RuntimeError, api_core_exceptions.GoogleAPICallError) as e:
             raise RuntimeError(f"Error occurred during image generation: {e}")
 
         if not pil_images:

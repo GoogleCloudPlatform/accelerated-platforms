@@ -14,6 +14,7 @@
 
 # This is a preview version of Google GenAI custom nodes
 
+import logging
 import requests
 
 
@@ -29,5 +30,7 @@ def get_gcp_metadata(path):
         response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
         return response.text.strip()
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching metadata from {path}: {e}")
+        logging.warning(
+            f"Could not fetch GCP metadata from {path}: {e}. This is expected if not running on GCP."
+        )
         return None

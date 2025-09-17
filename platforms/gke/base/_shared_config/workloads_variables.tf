@@ -22,6 +22,12 @@ variable "custom_metrics_adapter_version" {
   type        = string
 }
 
+variable "inference_gateway_kubernetes_namespace" {
+  default     = "inference-gateway"
+  description = "The Kubernetes namespace where inference gateway resources will be deployed."
+  type        = string
+}
+
 variable "inference_gateway_version" {
   default     = "1.0.0"
   description = "Version of Gateway API Inference Extension (https://github.com/kubernetes-sigs/gateway-api-inference-extension) to install."

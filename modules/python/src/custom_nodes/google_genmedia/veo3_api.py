@@ -19,7 +19,6 @@ from typing import List, Optional
 import torch
 
 from . import utils
-
 from .constants import OUTPUT_RESOLUTION, VEO3_USER_AGENT, Veo3Model
 
 
@@ -38,9 +37,7 @@ class Veo3API:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
         """
-        self.client = utils.get_genai_client(
-            project_id, region, VEO3_USER_AGENT
-        )
+        self.client = utils.get_genai_client(project_id, region, VEO3_USER_AGENT)
         self.retry_count = 3
         self.retry_delay = 5
 

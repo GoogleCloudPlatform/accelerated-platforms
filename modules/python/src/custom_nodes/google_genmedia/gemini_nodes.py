@@ -20,7 +20,6 @@ from google import genai
 from google.genai import types
 
 from . import utils
-
 from .constants import (
     AUDIO_MIME_TYPES,
     GEMINI_USER_AGENT,
@@ -241,9 +240,7 @@ class GeminiNode25:
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
             raise ValueError("Prompt cannot be empty for content generation.")
-        client = utils.get_genai_client(
-            gcp_project_id, gcp_region, GEMINI_USER_AGENT
-        )
+        client = utils.get_genai_client(gcp_project_id, gcp_region, GEMINI_USER_AGENT)
 
         try:
             # Prepare GenerationConfig

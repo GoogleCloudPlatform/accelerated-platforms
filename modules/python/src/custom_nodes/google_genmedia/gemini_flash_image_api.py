@@ -14,17 +14,15 @@
 
 # This is a preview version of Gemini 2.5 Flash Image custom node
 
+from io import BytesIO
 from typing import List, Optional
 
+import torch
 from google.genai import types
 from PIL import Image
-from io import BytesIO
-import torch
 
 from . import utils
-
-
-from .constants import GeminiFlashImageModel, GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN
+from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
 
 
 class GeminiFlashImageAPI:

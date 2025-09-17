@@ -19,7 +19,6 @@ from typing import List, Optional
 from PIL import Image
 
 from . import utils
-
 from .constants import IMAGEN4_USER_AGENT, Imagen4Model
 
 
@@ -36,9 +35,7 @@ class Imagen4API:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
         """
-        self.client = utils.get_genai_client(
-            project_id, region, IMAGEN4_USER_AGENT
-        )
+        self.client = utils.get_genai_client(project_id, region, IMAGEN4_USER_AGENT)
         self.retry_count = 3
         self.retry_delay = 5
 

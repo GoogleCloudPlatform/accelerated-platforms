@@ -19,7 +19,6 @@ from typing import List, Optional
 import torch
 
 from . import utils
-
 from .constants import (
     VEO2_GENERATE_AUDIO_FLAG,
     VEO2_MODEL_ID,
@@ -44,9 +43,7 @@ class Veo2API:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
         """
-        self.client = utils.get_genai_client(
-            project_id, region, VEO2_USER_AGENT
-        )
+        self.client = utils.get_genai_client(project_id, region, VEO2_USER_AGENT)
         self.retry_count = 3
         self.retry_delay = 5
 

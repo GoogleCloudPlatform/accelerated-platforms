@@ -21,7 +21,13 @@ from google import genai
 
 from . import utils
 from .config import get_gcp_metadata
-from .constants import OUTPUT_RESOLUTION, VEO3_USER_AGENT, Veo3Model
+from .constants import (
+    OUTPUT_RESOLUTION,
+    VEO3_USER_AGENT,
+    VEO3_VALID_ASPECT_RATIOS,
+    VEO3_VALID_DURATION_SECONDS,
+    Veo3Model,
+)
 
 
 class Veo3API:
@@ -106,17 +112,17 @@ class Veo3API:
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
             raise ValueError("Prompt cannot be empty for text-to-video generation.")
-        if duration_seconds != 8:
+        if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
             raise ValueError(
-                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
+                f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if not (1 <= sample_count <= 2):
             raise ValueError(
                 f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
             )
-        if aspect_ratio != "16:9":
+        if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise ValueError(
-                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+                f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_ASPECT_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
             raise ValueError(
@@ -193,10 +199,9 @@ class Veo3API:
             print(
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
-
-        if duration_seconds != 8:
+        if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
             raise ValueError(
-                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
+                f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if not (1 <= sample_count <= 2):
             raise ValueError(
@@ -205,10 +210,9 @@ class Veo3API:
 
         if image is None:
             raise ValueError("Image input (torch.Tensor) cannot be None.")
-
-        if aspect_ratio != "16:9":
+        if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise ValueError(
-                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+                f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_ASPECT_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
             raise ValueError(
@@ -292,18 +296,17 @@ class Veo3API:
             print(
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
-
-        if duration_seconds != 8:
+        if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
             raise ValueError(
-                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
+                f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if not (1 <= sample_count <= 2):
             raise ValueError(
                 f"sample_count must be between 1 and 2, but got {sample_count}."
             )
-        if aspect_ratio != "16:9":
+        if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise ValueError(
-                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+                f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_ASPECT_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
             raise ValueError(

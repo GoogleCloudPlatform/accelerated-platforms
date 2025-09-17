@@ -27,6 +27,7 @@ from .constants import (
     Veo3Model,
 )
 
+
 class Veo3API:
     """
     A client for interacting with the Google Veo 3.0 API for video generation.

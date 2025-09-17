@@ -17,10 +17,9 @@
 from typing import List, Optional
 
 import torch
-from google import genai
 
 from . import utils
-from .config import get_gcp_metadata
+
 from .constants import OUTPUT_RESOLUTION, VEO3_USER_AGENT, Veo3Model
 
 
@@ -38,30 +37,12 @@ class Veo3API:
         Args:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
-
-        Raises:
-            ValueError: If GCP Project or Zone cannot be determined.
         """
-        self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
+        self.client = utils.get_genai_client(
+            project_id, region, VEO3_USER_AGENT
         )
-        if not self.project_id:
-            raise ValueError("GCP Project is required")
-        if not self.region:
-            raise ValueError("GCP region is required")
-        print(f"Project is {self.project_id}, region is {self.region}")
-
-        http_options = genai.types.HttpOptions(headers={"user-agent": VEO3_USER_AGENT})
-        self.client = genai.Client(
-            vertexai=True,
-            project=self.project_id,
-            location=self.region,
-            http_options=http_options,
-        )
-
-        self.retry_count = 3  # Number of retries for transient errors
-        self.retry_delay = 5  # Initial delay between retries (seconds)
+        self.retry_count = 3
+        self.retry_delay = 5
 
     def generate_video_from_text(
         self,
@@ -289,9 +270,7 @@ class Veo3API:
                 "GCS URI for the image cannot be None for image-to-video generation."
             )
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            print(
-                "Prompt is empty for image-to-video. Veo might use default interpretation of image."
-            )
+            raise ValueError("Prompt cannot be empty for image-to-video generation.")
 
         if duration_seconds != 8:
             raise ValueError(

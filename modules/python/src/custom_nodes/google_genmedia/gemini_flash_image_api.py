@@ -16,7 +16,6 @@
 
 from typing import List, Optional
 
-from google import genai
 from google.genai import types
 from PIL import Image
 from io import BytesIO
@@ -24,7 +23,7 @@ import torch
 
 from . import utils
 
-from .config import get_gcp_metadata
+
 from .constants import GeminiFlashImageModel, GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN
 
 
@@ -41,23 +40,8 @@ class GeminiFlashImageAPI:
               provided, it will be inferred from the environment. Defaults to None.
             region (Optional[str], optional): The GCP region. If not provided, it
               will be inferred from the environment. Defaults to None.
-
-        Raises:
-            ValueError: If GCP Project or region cannot be determined.
         """
-        self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-        )
-        if not self.project_id:
-            raise ValueError("GCP Project is required")
-        if not self.region:
-            raise ValueError("GCP region is required")
-
-        self.client = genai.Client(
-            vertexai=True, project=self.project_id, location=self.region
-        )
-
+        self.client = utils.get_genai_client(project_id, region)
         self.retry_count = 3
         self.retry_delay = 5
 
@@ -95,6 +79,8 @@ class GeminiFlashImageAPI:
         Returns:
             A list of generated PIL images.
         """
+        if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
+            raise ValueError("Prompt cannot be empty for text-to-image generation.")
         model = GeminiFlashImageModel[model]
 
         generated_pil_images: List[Image.Image] = []

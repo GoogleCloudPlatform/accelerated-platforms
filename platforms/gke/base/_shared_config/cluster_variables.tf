@@ -176,12 +176,6 @@ variable "cluster_master_global_access_enabled" {
   type        = bool
 }
 
-variable "cluster_master_ipv4_cidr_block" {
-  default     = "172.16.0.32/28"
-  description = "The IP range in CIDR notation to use for the hosted master network."
-  type        = string
-}
-
 variable "cluster_node_auto_provisioning_enabled" {
   default     = true
   description = "Enable node auto-provisioning on the cluster."

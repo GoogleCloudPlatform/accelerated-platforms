@@ -97,7 +97,6 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
       cluster_gateway_api_config_channel                   = var.cluster_gateway_api_config_channel
       cluster_gpu_driver_version                           = var.cluster_gpu_driver_version
       cluster_master_global_access_enabled                 = var.cluster_master_global_access_enabled
-      cluster_master_ipv4_cidr_block                       = var.cluster_master_ipv4_cidr_block
       cluster_node_auto_provisioning_enabled               = var.cluster_node_auto_provisioning_enabled
       cluster_node_auto_provisioning_resource_limits       = var.cluster_node_auto_provisioning_resource_limits
       cluster_node_pool_default_service_account_id         = var.cluster_node_pool_default_service_account_id
@@ -185,12 +184,15 @@ resource "local_file" "shared_config_networking_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
-      dynamic_routing_mode = var.dynamic_routing_mode
-      nat_gateway_name     = var.nat_gateway_name
-      network_name         = var.network_name
-      router_name          = var.router_name
-      subnet_cidr_range    = var.subnet_cidr_range
-      subnetwork_name      = var.subnetwork_name
+      network_cluster_network_dynamic_routing_mode  = var.network_cluster_network_dynamic_routing_mode
+      network_cluster_network_name                  = var.network_cluster_network_name
+      network_cluster_network_nat_gateway_name      = var.network_cluster_network_nat_gateway_name
+      network_cluster_network_router_name           = var.network_cluster_network_router_name
+      network_cluster_subnet_master_ipv4_cidr_block = var.network_cluster_subnet_master_ipv4_cidr_block
+      network_cluster_subnet_node_ip_cidr_range     = var.network_cluster_subnet_node_ip_cidr_range
+      network_cluster_subnet_node_name              = var.network_cluster_subnet_node_name
+      network_cluster_subnet_proxy_ip_cidr_range    = var.network_cluster_subnet_proxy_ip_cidr_range
+      network_cluster_subnet_proxy_name             = var.network_cluster_subnet_proxy_name
     }
   )
   file_permission = "0644"

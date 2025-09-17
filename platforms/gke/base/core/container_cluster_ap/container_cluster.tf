@@ -33,10 +33,10 @@ resource "google_container_cluster" "cluster" {
   enable_autopilot    = true
   location            = local.cluster_region
   name                = local.cluster_name
-  network             = local.network_name
+  network             = local.network_cluster_network_name
   node_locations      = data.google_compute_zones.region.names
   project             = google_project_service.container_googleapis_com.project
-  subnetwork          = local.subnetwork_name
+  subnetwork          = local.network_cluster_subnet_node_name
 
   addons_config {
     gcp_filestore_csi_driver_config {
@@ -134,7 +134,7 @@ resource "google_container_cluster" "cluster" {
   master_authorized_networks_config {
     gcp_public_cidrs_access_enabled = !var.cluster_enable_private_endpoint
     cidr_blocks {
-      cidr_block   = var.subnet_cidr_range
+      cidr_block   = var.network_cluster_subnet_node_ip_cidr_range
       display_name = "vpc-cidr"
     }
   }
@@ -178,7 +178,7 @@ resource "google_container_cluster" "cluster" {
   private_cluster_config {
     enable_private_nodes        = true
     enable_private_endpoint     = var.cluster_enable_private_endpoint
-    master_ipv4_cidr_block      = var.cluster_master_ipv4_cidr_block
+    master_ipv4_cidr_block      = var.network_cluster_subnet_master_ipv4_cidr_block
     private_endpoint_subnetwork = var.cluster_private_endpoint_subnetwork
 
     master_global_access_config {

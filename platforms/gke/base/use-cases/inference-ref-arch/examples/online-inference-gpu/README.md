@@ -28,12 +28,6 @@ This example is built on top of the
       - [**meta-llama/Llama-4-Scout-17B-16E-Instruct**](https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct)
       - [**meta-llama/Llama-3.3-70B-Instruct**](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct)
 
-  - For FLUX.1-schnell:
-
-    - Accept the conditions to access its files and content on the Hugging Face
-      model page.
-    - [**black-forest-labs/FLUX.1-schnell**](https://huggingface.co/black-forest-labs/FLUX.1-schnell)
-
 ## Create and configure Google Cloud resources
 
 - Deploy the online GPU resources.
@@ -78,12 +72,6 @@ This example is built on top of the
 
     ```shell
     export HF_MODEL_ID="qwen/qwen3-32b"
-    ```
-
-  - **FLUX.1-Schnell**:
-
-    ```shell
-    export HF_MODEL_ID="black-forest-labs/flux.1-schnell"
     ```
 
 - Source the environment configuration.
@@ -159,7 +147,6 @@ This example is built on top of the
     | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   |
     | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   |
     | qwen3-32b                      | ✅  | ✅   | ✅   |
-    | flux.1-schnell                 | ✅  | ✅   | ❌   |
 
     - **NVIDIA Tesla L4 24GB**:
 
@@ -183,14 +170,14 @@ This example is built on top of the
     accelerator type. For more information, see about viewing GPU quotas, see
     [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
-### Deploy the LLM online inference workload.
+- Deploy the online inference workload.
 
-```shell
-kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-```
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  ```
 
-The Kubernetes manifests are based on the
-[Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+  The Kubernetes manifests are based on the
+  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
 
 - Watch the deployment until it is ready.
 
@@ -238,83 +225,6 @@ The Kubernetes manifests are based on the
 
   ```shell
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-  ```
-
-### Deploy the Image models online inference workload.
-
-- Create Artifact Registry repository
-
-  ```shell
-    cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/build" \
-
-    export PROJECT_ID=<YOUR_PROJECT_ID> \
-
-    gcloud artifacts repositories create online-inference-gpu \
-        --repository-format=docker \
-        --location=us-central1 \
-        --description="Docker repository for online GPU inference service." \
-  ```
-
-- Build the image for the Diffusers online inference web server
-
-  ```shell
-  gcloud builds submit .
-  ```
-
-- Deploy the model Flux.1-Schnell with Diffusers library
-
-  ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-  ```
-
-  The Kubernetes manifests are based on the
-  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
-
-- Watch the deployment until it is ready.
-
-  ```shell
-  watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
-  ```
-
-  When the deployment is ready, you will see the following:
-
-  ```text
-  NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
-  diffusers-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1      1            1           ###
-  ```
-
-  You can press `CTRL`+`c` to terminate the watch.
-
-- Send a test request.
-
-  ```shell
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
-  PF_PID=$!
-  while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
-    sleep 0.1
-  done
-  echo "/generate:"
-  curl http://localhost:8000/generate \
-  --data '{
-    "prompt": "A photo of a dog playing fetch in a park.",
-    "height": 512,
-    "width": 512,
-    "num_inference_steps": 4
-    }' \
-  --header "Content-Type: application/json" \
-  --request POST \
-  --show-error \
-  --silent | jq
-  kill -9 ${PF_PID}
-  ```
-
-- Delete the workload.
-
-  ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
 ## Troubleshooting

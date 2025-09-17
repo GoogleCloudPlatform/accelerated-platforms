@@ -23,7 +23,7 @@ variable "custom_metrics_adapter_version" {
 }
 
 variable "inference_gateway_kubernetes_namespace" {
-  default     = "inference-gateway"
+  default     = "gke-gateway"
   description = "The Kubernetes namespace where inference gateway resources will be deployed."
   type        = string
 }

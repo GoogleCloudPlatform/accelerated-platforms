@@ -19,7 +19,8 @@ locals {
   crd_manifests_directory     = "${local.manifests_directory_root}/cluster/crds/gateway-api-inference-extension"
   gmp_kubernetes_namespace    = var.cluster_autopilot_enabled ? "gke-gmp-system" : "gmp-system"
   kubernetes_namespace        = var.inference_gateway_kubernetes_namespace
-  manifests_directory         = "${local.manifests_directory_root}/namespace/${local.kubernetes_namespace}"
+  manifests_directory         = "${local.namespace_directory}/${local.kubernetes_namespace}"
+  default_namespace_directory = "${local.namespace_directory}/default"
   namespace_directory         = "${local.manifests_directory_root}/namespace"
   version_manifests_directory = "${path.module}/manifests/gateway-api-inference-extension-${var.inference_gateway_version}"
 }
@@ -73,61 +74,49 @@ module "kubectl_apply_crd_manifests" {
 
 # Namespace
 ###############################################################################
-resource "local_file" "namespace_yaml" {
-  content = templatefile(
-    "${path.module}/templates/namespace.yaml",
-    {
-      kubernetes_namespace = local.kubernetes_namespace
-    }
-  )
-  file_permission = "0644"
-  filename        = "${local.namespace_directory}/namespace-${local.kubernetes_namespace}.yaml"
-}
+# resource "local_file" "namespace_yaml" {
+#   content = templatefile(
+#     "${path.module}/templates/namespace.yaml",
+#     {
+#       kubernetes_namespace = local.kubernetes_namespace
+#     }
+#   )
+#   file_permission = "0644"
+#   filename        = "${local.namespace_directory}/namespace-${local.kubernetes_namespace}.yaml"
+# }
 
-module "kubectl_apply_namespace" {
-  depends_on = [
-    local_file.namespace_yaml,
-  ]
+# module "kubectl_apply_namespace" {
+#   depends_on = [
+#     local_file.namespace_yaml,
+#   ]
 
-  source = "../../../modules/kubectl_apply"
+#   source = "../../../modules/kubectl_apply"
 
-  delete_timeout              = "60s"
-  error_on_delete_failure     = false
-  kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = "${local.namespace_directory}/namespace-${local.kubernetes_namespace}.yaml"
-  manifest_includes_namespace = true
-}
+#   delete_timeout              = "60s"
+#   error_on_delete_failure     = false
+#   kubeconfig_file             = data.local_file.kubeconfig.filename
+#   manifest                    = "${local.namespace_directory}/namespace-${local.kubernetes_namespace}.yaml"
+#   manifest_includes_namespace = true
+# }
 
 
 
 # Manifests
 ###############################################################################
-resource "local_file" "kustomization_yaml" {
-  content = templatefile(
-    "${path.module}/templates/workload/kustomization.yaml",
-    {
-    }
-  )
-  file_permission = "0644"
-  filename        = "${local.manifests_directory}/kustomization.yaml"
-}
-
 resource "local_file" "metrics_yaml" {
   content = templatefile(
     "${path.module}/templates/workload/metrics.yaml",
     {
       gmp_kubernetes_namespace = local.gmp_kubernetes_namespace
-      kubernetes_namespace     = local.kubernetes_namespace
+      kubernetes_namespace     = "default"
     }
   )
   file_permission = "0644"
-  filename        = "${local.manifests_directory}/metrics.yaml"
+  filename        = "${local.default_namespace_directory}/inference-gateway-gmp-metrics.yaml"
 }
 
 module "kubectl_apply_manifests" {
   depends_on = [
-    module.kubectl_apply_namespace,
-    local_file.kustomization_yaml,
     local_file.metrics_yaml,
   ]
 
@@ -135,8 +124,6 @@ module "kubectl_apply_manifests" {
 
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = local.manifests_directory
-  manifest_includes_namespace = false
-  namespace                   = local.kubernetes_namespace
-  use_kustomize               = true
+  manifest                    = "${local.default_namespace_directory}/inference-gateway-gmp-metrics.yaml"
+  manifest_includes_namespace = true
 }

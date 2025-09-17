@@ -36,7 +36,7 @@ resource "google_container_cluster" "cluster" {
   name                     = local.cluster_name
   network                  = local.network_cluster_network_name
   node_locations           = data.google_compute_zones.region.names
-  project                  = google_project_service.container_googleapis_com.project
+  project                  = google_project_service.cluster["container.googleapis.com"].project
   remove_default_node_pool = true
   subnetwork               = local.network_cluster_subnet_node_name
 

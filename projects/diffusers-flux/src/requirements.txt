@@ -5,5 +5,5 @@ pillow==11.3.0
 protobuf==6.32.0
 sentencepiece==0.2.1
 transformers==4.40.0
-torch==2.4.0
+torch>=2.5.0
 uvicorn==0.35.0

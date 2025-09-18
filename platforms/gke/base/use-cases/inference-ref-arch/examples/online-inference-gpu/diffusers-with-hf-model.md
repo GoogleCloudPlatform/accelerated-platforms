@@ -84,23 +84,7 @@ This example is built on top of the
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
 
-## Deploy the online inference workload
-
-- Build the container image for the Diffusers online inference web server.
-
-```shell
- cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
-  terraform init && \
-  terraform plan -input=false -out=tfplan && \
-  terraform apply -input=false tfplan && \
-  rm tfplan
-```
-
-- Configure the deployment.
-
-  ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
-  ```
+### Deploy the Image models online inference workload.
 
 - Set the environment variables for the workload.
 
@@ -132,16 +116,20 @@ This example is built on top of the
     accelerator type. For more information, see about viewing GPU quotas, see
     [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
-### Deploy the Image models online inference workload.
-
-- Build the image for the Diffusers online inference web server
+- Build the container image for the Diffusers online inference web server.
 
   ```shell
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux/ && \
-  terraform init && \
-  terraform plan -input=false -out=tfplan && \
-  terraform apply -input=false tfplan && \
-  rm tfplan
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
+    terraform init && \
+    terraform plan -input=false -out=tfplan && \
+    terraform apply -input=false tfplan && \
+    rm tfplan
+  ```
+
+- Configure the deployment.
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
   ```
 
 - Deploy the model Flux.1-Schnell with Diffusers library
@@ -162,7 +150,7 @@ This example is built on top of the
   When the deployment is ready, you will see the following:
 
   ```text
-  NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+  NAME                                           READY   UP-TO-DATE   AVAILABLE   AGE
   diffusers-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1      1            1           ###
   ```
 
@@ -172,30 +160,18 @@ This example is built on top of the
 
   ```shell
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
-  PF_PID=$!
-  while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
-    sleep 0.1
-  done
-  echo "/generate:"
-  curl http://localhost:8000/generate \
-  --data '{
-    "prompt": "A photo of a dog playing fetch in a park.",
-    "height": 512,
-    "width": 512,
-    "num_inference_steps": 4
-    }' \
-  --header "Content-Type: application/json" \
-  --request POST \
-  --show-error \
-  --silent | jq
-  kill -9 ${PF_PID}
+  curl -X POST http://localhost:8000/generate \
+    -H "Content-Type: application/json" \
+    -d '{ "prompt": "A photo of a dog playing fetch in a park.", "height": 512,
+    "width": 512, "num_inference_steps": 4 }’ \
+    --output generated_image.png
   ```
 
 - Delete the workload.
 
-  ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-  ```
+```shell
+kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+```
 
 ## Troubleshooting
 

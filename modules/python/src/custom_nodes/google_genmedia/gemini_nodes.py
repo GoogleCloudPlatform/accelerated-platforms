@@ -13,14 +13,13 @@
 # limitations under the License.
 
 # This is a preview version of gemini custom node
-
+import logging
 from typing import Optional
-
+from google.auth import exceptions as api_core_exceptions
 from google import genai
 from google.genai import types
 
 from . import utils
-from .config import get_gcp_metadata
 from .constants import (
     AUDIO_MIME_TYPES,
     GEMINI_USER_AGENT,
@@ -32,50 +31,8 @@ from .constants import (
 
 
 class GeminiNode25:
-    def __init__(
-        self, gcp_project_id: Optional[str] = None, gcp_region: Optional[str] = None
-    ):
-        """
-        Initializes the Gemini client.
-
-        Args:
-            gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
-            gcp_region: The GCP region. If provided, overrides metadata lookup.
-
-        Raises:
-            ValueError: If GCP Project or region cannot be determined.
-        """
-        self.project_id = gcp_project_id
-        self.region = gcp_region
-
-        if not self.project_id:
-            self.project_id = get_gcp_metadata("project/project-id")
-        if not self.region:
-            self.region = "-".join(
-                get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-            )
-
-        if not self.project_id:
-            raise ValueError("GCP Project is required and could not be determined.")
-        if not self.region:
-            raise ValueError("GCP region is required and could not be determined.")
-
-        print(f"Project is {self.project_id}, region is {self.region}")
-        http_options = genai.types.HttpOptions(
-            headers={"user-agent": GEMINI_USER_AGENT}
-        )
-        try:
-            self.client = genai.Client(
-                vertexai=True,
-                project=self.project_id,
-                location=self.region,
-                http_options=http_options,
-            )
-            print(
-                f"genai.Client initialized for Vertex AI project: {self.project_id}, location: {self.region}"
-            )
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize genai.Client for Vertex AI: {e}")
+    def __init__(self):
+        pass
 
     @classmethod
     def INPUT_TYPES(s):
@@ -281,16 +238,9 @@ class GeminiNode25:
                    is blocked, it will contain a message indicating the reason and safety
                    ratings. If an error occurs, it will contain an error message.
         """
-        # Re-initialize the client to avoid re-launching the node when the customers
-        # provide gcp_project_id and gcp_region first and then remove them to use the defaults.
-        try:
-            init_project_id = gcp_project_id if gcp_project_id else None
-            init_region = gcp_region if gcp_region else None
-            self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
-        except Exception as e:
-            return (
-                f"Error re-initializing Gemini client with provided GCP credentials: {e}",
-            )
+        if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
+            raise ValueError("Prompt cannot be empty for content generation.")
+        client = utils.get_genai_client(gcp_project_id, gcp_region, GEMINI_USER_AGENT)
 
         try:
             # Prepare GenerationConfig
@@ -388,7 +338,8 @@ class GeminiNode25:
             print(
                 f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
             )
-            response = self.client.models.generate_content(
+
+            response = client.models.generate_content(
                 model=GeminiModel[model],
                 contents=contents,
                 config=gen_config_obj,
@@ -410,11 +361,12 @@ class GeminiNode25:
 
             return (generated_text,)
 
-        except Exception as e:
-            print(f"An error occurred in calling Gemini API: {e}")
+        except (ValueError, api_core_exceptions.GoogleAPICallError) as e:
+            logging.error(f"An error occurred in calling Gemini API: {e}")
             return (f"Error: {e}",)
 
 
 NODE_CLASS_MAPPINGS = {"GeminiNode25": GeminiNode25}
 
 NODE_DISPLAY_NAME_MAPPINGS = {"GeminiNode25": "Gemini 2.5"}
+

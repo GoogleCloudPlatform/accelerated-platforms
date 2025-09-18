@@ -148,9 +148,7 @@ class Imagen3TextToImageNode:
         try:
             imagen_api = Imagen3API(project_id=gcp_project_id, region=gcp_region)
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to initialize Imagen API client for node execution: {e}"
-            )
+            raise e
 
         p_gen_enum = getattr(types.PersonGeneration, person_generation)
 
@@ -170,7 +168,7 @@ class Imagen3TextToImageNode:
                 safety_filter_level=safety_filter_level,
             )
         except Exception as e:
-            raise RuntimeError(f"Error occurred during image generation: {e}")
+            raise e
             # return (torch.empty(0, 640, 640, 3),)
 
         if not pil_images:

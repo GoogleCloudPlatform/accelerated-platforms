@@ -510,3 +510,4 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "Veo3GcsUriImageToVideoNode": "Veo3 Image To Video (GcsUriImage)",
     "Veo3ImageToVideoNode": "Veo3 Image To Video",
 }
+

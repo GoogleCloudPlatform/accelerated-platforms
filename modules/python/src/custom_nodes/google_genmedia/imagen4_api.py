@@ -16,11 +16,9 @@
 
 from typing import List, Optional
 
-from google import genai
 from PIL import Image
 
 from . import utils
-from .config import get_gcp_metadata
 from .constants import IMAGEN4_USER_AGENT, Imagen4Model
 
 
@@ -36,31 +34,10 @@ class Imagen4API:
         Args:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
-
-        Raises:
-            ValueError: If GCP Project or region cannot be determined.
         """
-        self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-        )
-        if not self.project_id:
-            raise ValueError("GCP Project is required")
-        if not self.region:
-            raise ValueError("GCP region is required")
-        print(f"Project is {self.project_id}, region is {self.region}")
-        http_options = genai.types.HttpOptions(
-            headers={"user-agent": IMAGEN4_USER_AGENT}
-        )
-        self.client = genai.Client(
-            vertexai=True,
-            project=self.project_id,
-            location=self.region,
-            http_options=http_options,
-        )
-
-        self.retry_count = 3  # Number of retries for quota errors
-        self.retry_delay = 5  # Delay between retries (seconds)
+        self.client = utils.get_genai_client(project_id, region, IMAGEN4_USER_AGENT)
+        self.retry_count = 3
+        self.retry_delay = 5
 
     def generate_image_from_text(
         self,
@@ -100,6 +77,9 @@ class Imagen4API:
                         if `seed` is provided with `add_watermark` enabled,
                         or if `output_image_type` is unsupported.
         """
+        if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
+            raise ValueError("Prompt cannot be empty for text-to-image generation.")
+
         if not (1 <= number_of_images <= 4):
             raise ValueError(
                 f"number_of_images must be between 1 and 4, but got {number_of_images}."

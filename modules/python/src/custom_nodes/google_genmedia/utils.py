@@ -14,6 +14,7 @@
 
 import base64
 import io
+import logging
 import mimetypes
 import os
 import random
@@ -28,6 +29,7 @@ import torch
 from google import genai
 from google.api_core import exceptions as api_core_exceptions
 from google.api_core.client_info import ClientInfo
+from google.auth import exceptions as auth_exceptions
 from google.cloud import storage
 from google.genai import errors as genai_errors
 from google.genai import types
@@ -35,7 +37,74 @@ from google.genai.types import GenerateVideosConfig, Image
 from grpc import StatusCode
 from PIL import Image as PIL_Image
 
+from .config import get_gcp_metadata
 from .constants import STORAGE_USER_AGENT
+
+
+def get_genai_client(
+    project_id: Optional[str] = None,
+    region: Optional[str] = None,
+    user_agent: Optional[str] = None,
+) -> genai.Client:
+    """
+    Initializes and returns a genai.Client for Vertex AI.
+    If initialization fails, an error is logged and the exception is re-raised.
+
+    Args:
+        project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
+        region: The GCP region. If None, it will be retrieved from GCP metadata.
+        user_agent: The user agent string to use for the client.
+
+    Returns:
+        An initialized genai.Client instance.
+
+    Raises:
+        ValueError: If GCP Project or region cannot be determined.
+        google.auth.exceptions.DefaultCredentialsError: If authentication fails.
+        google.api_core.exceptions.GoogleAPICallError: If the API call fails.
+    """
+    try:
+        project_id = project_id or get_gcp_metadata("project/project-id")
+        region = region or "-".join(
+            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
+        )
+
+        if not project_id:
+            raise ValueError("GCP Project is required and could not be determined.")
+        if not region:
+            raise ValueError("GCP region is required and could not be determined.")
+
+        logging.info(
+            f"Initializing genai.Client for project: {project_id}, region: {region}"
+        )
+
+        http_options = None
+        if user_agent:
+            http_options = genai.types.HttpOptions(headers={"user-agent": user_agent})
+
+        client = genai.Client(
+            vertexai=True,
+            project=project_id,
+            location=region,
+            http_options=http_options,
+        )
+        return client
+    except auth_exceptions.DefaultCredentialsError as e:
+        logging.error(
+            "Authentication failed. Please configure your GCP credentials. "
+            "See https://cloud.google.com/docs/authentication/provide-credentials-adc for more information."
+        )
+        raise e
+    except api_core_exceptions.GoogleAPICallError as e:
+        logging.error(
+            f"Google API call failed during client initialization: {e.message}"
+        )
+        raise e
+    except Exception as e:
+        logging.error(
+            f"An unexpected error occurred during genai.Client initialization: {e}"
+        )
+        raise e
 
 
 def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
@@ -107,8 +176,24 @@ def download_gcsuri(gcsuri: str, destination: str) -> bool:
         print(f"Successfully downloaded '{gcsuri}' to '{destination}'")
         return True
 
+    except auth_exceptions.DefaultCredentialsError as e:
+        raise RuntimeError(
+            "Authentication failed for Google Cloud Storage. Please configure your GCP credentials."
+        ) from e
+    except api_core_exceptions.NotFound as e:
+        raise RuntimeError(f"GCS object not found at '{gcsuri}': {e}") from e
+    except api_core_exceptions.Forbidden as e:
+        raise RuntimeError(
+            f"Permission denied to access GCS object at '{gcsuri}': {e}"
+        ) from e
+    except api_core_exceptions.GoogleAPICallError as e:
+        raise RuntimeError(
+            f"A Google Cloud API error occurred while downloading from GCS at '{gcsuri}': {e}"
+        ) from e
     except Exception as e:
-        raise RuntimeError("Error downloading '{gcsuri}': {e}")
+        raise RuntimeError(
+            f"An unexpected error occurred during GCS download of '{gcsuri}': {e}"
+        ) from e
 
 
 def generate_image_from_text(
@@ -1146,4 +1231,4 @@ def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
         return image_base64
     except Exception as e:
         print(f"Cant convert the image to base64 {e}")
-        print(f"Cant convert the image to base64 {e}")
+        return None

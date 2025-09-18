@@ -180,7 +180,7 @@ class Imagen4TextToImageNode:
             # return (torch.empty(0, 640, 640, 3),)
 
         if not pil_images:
-            raise FileNotFoundError(
+            raise RuntimeError(
                 "Imagen API failed to generate images or generated no valid images."
             )
 

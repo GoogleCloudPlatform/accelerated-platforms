@@ -86,16 +86,20 @@ This example is built on top of the
 
 ## Deploy the online inference workload
 
-- Source the environment configuration.
+- Build the container image for the Diffusers online inference web server.
 
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
+```shell
+ cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
+```
 
 - Configure the deployment.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/configure_deployment.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
   ```
 
 - Set the environment variables for the workload.

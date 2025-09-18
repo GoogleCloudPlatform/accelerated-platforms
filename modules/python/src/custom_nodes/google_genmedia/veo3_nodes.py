@@ -487,14 +487,12 @@ class Veo3ImageToVideoNode:
                     seed=seed_for_api,
                 )
                 all_generated_video_paths.extend(video_paths)
-            except ValueError as e:
-                raise RuntimeError(f"Video generation configuration error: {e}")
-            except RuntimeError as e:
-                raise RuntimeError(f"Video generation API error: {e}")
             except Exception as e:
-                raise RuntimeError(
-                    f"An unexpected error occurred during video generation: {e}"
-                )
+                print(f"Warning: Failed to generate video for image {i+1}. Error: {e}")
+                continue
+
+        if not all_generated_video_paths:
+            raise RuntimeError("Video generation failed for ALL images in the batch.")
 
         return (all_generated_video_paths,)
 

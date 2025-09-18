@@ -17,6 +17,8 @@
 from typing import List, Optional
 
 import torch
+from google.api_core import exceptions as api_core_exceptions
+from google.auth import exceptions as auth_exceptions
 
 from . import utils
 from .constants import (
@@ -43,9 +45,19 @@ class Veo2API:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
         """
-        self.client = utils.get_genai_client(project_id, region, VEO2_USER_AGENT)
-        self.retry_count = 3
-        self.retry_delay = 5
+        try:
+            self.client = utils.get_genai_client(project_id, region, VEO2_USER_AGENT)
+            self.retry_count = 3
+            self.retry_delay = 5
+
+        except (
+            auth_exceptions.DefaultCredentialsError,
+            api_core_exceptions.PermissionDenied,
+        ) as e:
+            raise ConnectionError(f"Authentication or Permission Error: {e}") from e
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize client: {e}") from e
 
     def generate_video_from_text(
         self,
@@ -83,7 +95,7 @@ class Veo2API:
             RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty for text-to-video generation.")
+            raise ValueError("Prompt cannot be empty.")
         if not (5 <= duration_seconds <= 8):
             raise ValueError(
                 f"duration_seconds must be between 5 and 8, but got {duration_seconds}."
@@ -236,10 +248,7 @@ class Veo2API:
                 "GCS URI for the image cannot be None for image-to-video generation."
             )
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            print(
-                "Prompt is empty for image-to-video. Veo might use default interpretation of image."
-            )
-
+            raise ValueError("Prompt cannot be empty.")
         if not (1 <= duration_seconds <= 8):
             raise ValueError(
                 f"duration_seconds must be between 1 and 8, but got {duration_seconds}."

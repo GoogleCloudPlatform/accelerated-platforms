@@ -17,6 +17,8 @@
 from typing import List, Optional
 
 import torch
+from google.api_core import exceptions as api_core_exceptions
+from google.auth import exceptions as auth_exceptions
 
 from . import utils
 from .constants import (
@@ -43,9 +45,19 @@ class Veo3API:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
         """
-        self.client = utils.get_genai_client(project_id, region, VEO3_USER_AGENT)
-        self.retry_count = 3
-        self.retry_delay = 5
+        try:
+            self.client = utils.get_genai_client(project_id, region, VEO3_USER_AGENT)
+            self.retry_count = 3
+            self.retry_delay = 5
+
+        except (
+            auth_exceptions.DefaultCredentialsError,
+            api_core_exceptions.PermissionDenied,
+        ) as e:
+            raise ConnectionError(f"Authentication or Permission Error: {e}") from e
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize client: {e}") from e
 
     def generate_video_from_text(
         self,
@@ -89,7 +101,7 @@ class Veo3API:
             RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty for text-to-video generation.")
+            raise ValueError("Prompt cannot be empty.")
         if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
             raise ValueError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
@@ -174,9 +186,7 @@ class Veo3API:
             RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            print(
-                "Prompt is empty for image-to-video. Veo might use default interpretation of image."
-            )
+            raise ValueError("Prompt cannot be empty.")
         if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
             raise ValueError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
@@ -266,13 +276,11 @@ class Veo3API:
                         invalid GCS URI, or if the GCS object is not a valid image).
             RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
+        if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
+            raise ValueError("Prompt cannot be empty.")
         if gcsuri is None:
             raise ValueError(
                 "GCS URI for the image cannot be None for image-to-video generation."
-            )
-        if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            print(
-                "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
         if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
             raise ValueError(
@@ -313,7 +321,7 @@ class Veo3API:
             client=self.client,
             model=model,
             gcsuri=gcsuri,
-            image_format=image_format,
+            image_format=mime_type,
             prompt=prompt,
             aspect_ratio=aspect_ratio,
             compression_quality=compression_quality,

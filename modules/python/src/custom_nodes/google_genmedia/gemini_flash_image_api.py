@@ -18,13 +18,18 @@ from io import BytesIO
 from typing import List, Optional
 
 import torch
-from google import genai
-from google.genai import types
+from google.api_core import exceptions as api_core_exceptions
+from google.auth import exceptions as auth_exceptions
 from google.genai import errors as genai_errors
+from google.genai import types
 from PIL import Image
 
 from . import utils
-from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
+from .constants import (
+    GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN,
+    GEMINI_25_FLASH_IMAGE_USER_AGENT,
+    GeminiFlashImageModel,
+)
 
 
 class GeminiFlashImageAPI:
@@ -41,9 +46,21 @@ class GeminiFlashImageAPI:
             region (Optional[str], optional): The GCP region. If not provided, it
               will be inferred from the environment. Defaults to None.
         """
-        self.client = utils.get_genai_client(project_id, region)
-        self.retry_count = 3
-        self.retry_delay = 5
+        try:
+            self.client = utils.get_genai_client(
+                project_id, region, GEMINI_25_FLASH_IMAGE_USER_AGENT
+            )
+            self.retry_count = 3
+            self.retry_delay = 5
+
+        except (
+            auth_exceptions.DefaultCredentialsError,
+            api_core_exceptions.PermissionDenied,
+        ) as e:
+            raise ConnectionError(f"Authentication or Permission Error: {e}") from e
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize client: {e}") from e
 
     def generate_image(
         self,
@@ -80,7 +97,7 @@ class GeminiFlashImageAPI:
             A list of generated PIL images.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty for text-to-image generation.")
+            raise ValueError("Prompt cannot be empty.")
         model = GeminiFlashImageModel[model]
 
         generated_pil_images: List[Image.Image] = []

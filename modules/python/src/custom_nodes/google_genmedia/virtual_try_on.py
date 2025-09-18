@@ -17,7 +17,6 @@
 import base64
 import io
 import logging
-from google.auth import exceptions as auth_exceptions
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np

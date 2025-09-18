@@ -268,4 +268,3 @@ class VirtualTryOn:
 NODE_CLASS_MAPPINGS = {"VirtualTryOn": VirtualTryOn}
 
 NODE_DISPLAY_NAME_MAPPINGS = {"VirtualTryOn": "Virtual try-on"}
-

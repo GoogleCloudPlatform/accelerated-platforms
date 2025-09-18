@@ -148,7 +148,9 @@ class Imagen3TextToImageNode:
         try:
             imagen_api = Imagen3API(project_id=gcp_project_id, region=gcp_region)
         except Exception as e:
-            raise e
+            raise RuntimeError(
+                f"Failed to initialize Imagen API client for node execution: {e}"
+            )
 
         p_gen_enum = getattr(types.PersonGeneration, person_generation)
 

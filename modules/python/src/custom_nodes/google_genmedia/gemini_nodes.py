@@ -369,4 +369,3 @@ class GeminiNode25:
 NODE_CLASS_MAPPINGS = {"GeminiNode25": GeminiNode25}
 
 NODE_DISPLAY_NAME_MAPPINGS = {"GeminiNode25": "Gemini 2.5"}
-

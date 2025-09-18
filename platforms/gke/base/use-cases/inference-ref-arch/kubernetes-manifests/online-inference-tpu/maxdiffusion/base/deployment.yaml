@@ -1,0 +1,115 @@
+# Copyright 2025 Google LLC
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+# https://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maxdiffusion
+  namespace: replaced-by-kustomize
+spec:
+  selector:
+    matchLabels:
+      app: maxdiffusion
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/volumes: "true"
+      labels:
+        app: maxdiffusion
+    spec:
+      containers:
+        - args:
+            - |
+              echo "########### $(date) - Starting parallel-fetch-safetensors for model: ${MODEL_ID}"
+              ls -alR /gcs
+              find /gcs/${MODEL_ID}/*safetensors -type f | xargs -I {} -P 15 sh -c 'echo "########### $(date) - Fetching: {}"; dd if={} of=/dev/null'
+              echo "########### $(date) - Finished parallel-fetch-safetensors"
+              sleep infinity
+          command: ["/bin/sh", "-c"]
+          env:
+            - name: MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_ID
+                  name: runtime
+          image: busybox
+          name: fetch-safetensors
+          volumeMounts:
+            - mountPath: /gcs
+              name: huggingface-hub-model-bucket
+              readOnly: true
+        - args: []
+          command: []
+          env:
+            - name: GPU_MEMORY_UTILIZATION
+              valueFrom:
+                configMapKeyRef:
+                  key: GPU_MEMORY_UTILIZATION
+                  name: runtime
+            - name: MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_ID
+                  name: runtime
+            - name: TENSOR_PARALLEL_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  key: TENSOR_PARALLEL_SIZE
+                  name: runtime
+          image: us-docker.pkg.dev/accelerated-platforms-dev/online-inference-tpu/sdxl/server:latest
+          imagePullPolicy: Always
+          name: inference-server
+          readinessProbe:
+            failureThreshold: 6000
+            httpGet:
+              path: /health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources: {}
+          volumeMounts:
+            - mountPath: /dev/shm
+              name: dev-shm
+            - mountPath: /gcs
+              name: huggingface-hub-model-bucket
+              readOnly: true
+      serviceAccountName: replaced-by-kustomize
+      volumes:
+        - emptyDir:
+            medium: Memory
+          name: dev-shm
+        - csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: cloud-storage-bucket-name
+              mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replaced-by-kustomize
+              skipCSIBucketAccessCheck: "true"
+          name: huggingface-hub-model-bucket
+        - emptyDir:
+            medium: Memory
+          name: gke-gcsfuse-cache
+        - emptyDir:
+            medium: Memory
+          name: gke-gcsfuse-tmp
+        - emptyDir:
+            medium: Memory
+          name: gke-gcsfuse-buffer

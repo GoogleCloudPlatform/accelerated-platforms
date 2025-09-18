@@ -161,6 +161,8 @@ class Gemini25FlashImage:
             A tuple containing a PyTorch tensor of the generated images,
             formatted as (batch_size, height, width, channels).
         """
+        if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
+            raise ValueError("Prompt cannot be empty.")
         try:
             gemini_flash_image_api = GeminiFlashImageAPI(
                 project_id=gcp_project_id, region=gcp_region

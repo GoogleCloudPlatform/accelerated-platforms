@@ -16,6 +16,8 @@
 
 from typing import List, Optional
 
+from google.api_core import exceptions as api_core_exceptions
+from google.auth import exceptions as auth_exceptions
 from PIL import Image
 
 from . import utils
@@ -35,9 +37,19 @@ class Imagen4API:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
         """
-        self.client = utils.get_genai_client(project_id, region, IMAGEN4_USER_AGENT)
-        self.retry_count = 3
-        self.retry_delay = 5
+        try:
+            self.client = utils.get_genai_client(project_id, region, IMAGEN4_USER_AGENT)
+            self.retry_count = 3
+            self.retry_delay = 5
+
+        except (
+            auth_exceptions.DefaultCredentialsError,
+            api_core_exceptions.PermissionDenied,
+        ) as e:
+            raise ConnectionError(f"Authentication or Permission Error: {e}") from e
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize client: {e}") from e
 
     def generate_image_from_text(
         self,
@@ -78,8 +90,7 @@ class Imagen4API:
                         or if `output_image_type` is unsupported.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty for text-to-image generation.")
-
+            raise ValueError("Prompt cannot be empty.")
         if not (1 <= number_of_images <= 4):
             raise ValueError(
                 f"number_of_images must be between 1 and 4, but got {number_of_images}."

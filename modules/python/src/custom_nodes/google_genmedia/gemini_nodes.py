@@ -15,8 +15,9 @@
 # This is a preview version of gemini custom node
 import logging
 from typing import Optional
-from google.auth import exceptions as api_core_exceptions
+
 from google import genai
+from google.auth import exceptions as api_core_exceptions
 from google.genai import types
 
 from . import utils

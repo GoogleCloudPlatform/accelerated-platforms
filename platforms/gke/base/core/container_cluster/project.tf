@@ -20,58 +20,22 @@ data "google_project_ancestry" "cluster" {
   project = local.cluster_project_id
 }
 
-resource "google_project_service" "cloudresourcemanager_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "cloudresourcemanager.googleapis.com"
-}
+resource "google_project_service" "cluster" {
+  for_each = toset([
+    "cloudresourcemanager.googleapis.com",
+    "compute.googleapis.com",
+    "container.googleapis.com",
+    "containerfilesystem.googleapis.com",
+    "dns.googleapis.com",
+    "gkerecommender.googleapis.com",
+    "iam.googleapis.com",
+    "modelarmor.googleapis.com",
+    "networkservices.googleapis.com",
+    "serviceusage.googleapis.com",
+  ])
 
-resource "google_project_service" "compute_googleapis_com" {
   disable_dependent_services = false
   disable_on_destroy         = false
   project                    = data.google_project.cluster.project_id
-  service                    = "compute.googleapis.com"
-}
-
-resource "google_project_service" "container_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "container.googleapis.com"
-}
-
-resource "google_project_service" "containerfilesystem_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "containerfilesystem.googleapis.com"
-}
-
-resource "google_project_service" "dns_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "dns.googleapis.com"
-}
-
-resource "google_project_service" "gkerecommender_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "gkerecommender.googleapis.com"
-}
-
-resource "google_project_service" "iam_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "iam.googleapis.com"
-}
-
-resource "google_project_service" "serviceusage_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "serviceusage.googleapis.com"
+  service                    = each.key
 }

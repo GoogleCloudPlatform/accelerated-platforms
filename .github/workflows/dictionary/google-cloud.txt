@@ -73,6 +73,7 @@ krmapihosting
 lssd
 megagpu
 meshconfig
+modelarmor
 negs
 nodepool
 nodepools

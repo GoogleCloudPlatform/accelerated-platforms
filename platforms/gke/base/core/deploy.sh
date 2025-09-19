@@ -84,6 +84,7 @@ cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
   fi
 
 cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
+  rm -rf .terraform/ &&
   terraform init &&
   terraform plan -input=false -out=tfplan &&
   terraform apply -input=false tfplan || exit 1
@@ -98,6 +99,7 @@ fi
 for terraservice in "${terraservices[@]}"; do
   cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
     echo "Current directory: $(pwd)" &&
+    rm -rf .terraform/ &&
     terraform init &&
     terraform plan -input=false -out=tfplan &&
     terraform apply -input=false tfplan || exit 1

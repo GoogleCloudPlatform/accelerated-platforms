@@ -47,6 +47,7 @@ cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
   echo "Current directory: $(pwd)" &&
   sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
   cp backend.tf.bucket backend.tf &&
+  rm -rf .terraform/ &&
   terraform init &&
   terraform plan -input=false -out=tfplan &&
   terraform apply -input=false tfplan || exit 1
@@ -56,6 +57,7 @@ for terraservice in "${terraservices[@]}"; do
   if [[ "${terraservice}" != "initialize" ]]; then
     cd "${ACP_PLATFORM_CORE_DIR}/${terraservice}" &&
       echo "Current directory: $(pwd)" &&
+      rm -rf .terraform/ &&
       terraform init &&
       terraform destroy -auto-approve || exit 1
     rm -rf .terraform/ manifests/

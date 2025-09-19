@@ -31,7 +31,7 @@ data "google_netblock_ip_ranges" "private_google_access_netblock_ip_range" {
 }
 
 data "google_compute_network" "main_vpc_network" {
-  name    = local.network_name
+  name    = local.network_cluster_network_name
   project = google_project_service.dns_googleapis_com.project
 }
 

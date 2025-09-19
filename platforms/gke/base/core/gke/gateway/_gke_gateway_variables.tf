@@ -1,0 +1,1 @@
+../../../_shared_config/gke_gateway_variables.tf

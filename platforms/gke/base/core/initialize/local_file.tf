@@ -86,6 +86,7 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
+      cluster_additive_vpc_scope_dns_domain                = var.cluster_additive_vpc_scope_dns_domain
       cluster_auto_monitoring_config_scope                 = var.cluster_auto_monitoring_config_scope
       cluster_autopilot_enabled                            = var.cluster_autopilot_enabled
       cluster_binary_authorization_evaluation_mode         = var.cluster_binary_authorization_evaluation_mode

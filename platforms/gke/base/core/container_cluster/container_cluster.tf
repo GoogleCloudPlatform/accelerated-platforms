@@ -131,8 +131,9 @@ resource "google_container_cluster" "cluster" {
   }
 
   dns_config {
-    cluster_dns       = "CLOUD_DNS"
-    cluster_dns_scope = "CLUSTER_SCOPE"
+    additive_vpc_scope_dns_domain = local.cluster_additive_vpc_scope_dns_domain
+    cluster_dns                   = "CLOUD_DNS"
+    cluster_dns_scope             = "CLUSTER_SCOPE"
   }
 
   gateway_api_config {

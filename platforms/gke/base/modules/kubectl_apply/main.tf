@@ -26,7 +26,7 @@ locals {
   kubectl_apply_command  = "kubectl ${local.kubectl_namespace}apply ${local.kubectl_apply_server_side}${local.kubectl_manifest_option}${var.manifest}${local.kubectl_recursive}"
   kubectl_delete_command = var.manifest_can_be_updated ? "exit 0" : "kubectl ${local.kubectl_namespace}delete ${local.kubectl_manifest_option}${var.manifest}${local.kubectl_delete_ignore_not_found}${local.kubectl_recursive}${local.kubectl_delete_timeout}${local.kubectl_delete_error_on_failure}"
 
-  manifest_is_directory = try(provider::local::direxists(var.manifest), false)
+  source_content_hash = var.source_content_hash != null ? var.source_content_hash : try(provider::local::direxists(var.manifest), false) ? sha512(join("", [for f in fileset(var.manifest, "**") : filesha512("${var.manifest}/${f}")])) : filesha512("${var.manifest}")
 }
 
 data "local_file" "kubeconfig" {

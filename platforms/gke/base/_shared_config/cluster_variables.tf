@@ -18,6 +18,8 @@
 #
 
 locals {
+  cluster_additive_vpc_scope_dns_domain = var.cluster_additive_vpc_scope_dns_domain != null ? var.cluster_additive_vpc_scope_dns_domain : "${local.cluster_region}.${local.unique_identifier_prefix}.${local.cluster_project_id}"
+
   cluster_credentials_command_gke  = "gcloud container clusters get-credentials ${local.cluster_name} --dns-endpoint --location ${local.cluster_region} --project ${local.cluster_project_id}"
   cluster_credentials_command_gkee = "gcloud container fleet memberships get-credentials ${local.cluster_name} --project ${local.cluster_project_id}"
   cluster_credentials_command      = var.cluster_use_connect_gateway ? local.cluster_credentials_command_gkee : local.cluster_credentials_command_gke
@@ -50,6 +52,12 @@ locals {
   ]
 
   kubeconfig_file_name = "${local.cluster_project_id}-${local.cluster_name}"
+}
+
+variable "cluster_additive_vpc_scope_dns_domain" {
+  default     = null
+  description = "The additive VPC scope domain. You must ensure this name is unique within the VPC because GKE does not confirm this value. You cannot change this value after it is set. You must not use a domain that ends in '.local', or you might experience DNS resolution failures."
+  type        = string
 }
 
 variable "cluster_auto_monitoring_config_scope" {

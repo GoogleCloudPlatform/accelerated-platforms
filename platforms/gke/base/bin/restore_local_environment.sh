@@ -25,6 +25,7 @@ if [[ ! -v TF_VAR_terraform_bucket_name ]]; then
   echo "TF_VAR_terraform_bucket_name environment variable must be set, exiting!"
   exit 1
 fi
+
 echo
 echo "The following TF_VAR_ environment variables are set"
 echo "--------------------------------------------------------------------------------"
@@ -48,6 +49,7 @@ done
 echo
 echo
 echo
+
 echo "Restoring shared configuration .auto.tfvars files..."
 cd "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"
 git restore *.auto.tfvars
@@ -56,6 +58,10 @@ echo
 echo "Reconfiguring the repository..."
 cd "${ACP_REPO_DIR}/platforms/gke/base/core/initialize"
 rm -rf .terraform backend.tf
+git restore backend.tf.bucket
+sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${TF_VAR_terraform_bucket_name}\"/" "backend.tf.bucket"
+unset TF_VAR_terraform_bucket_name
+cp backend.tf.bucket backend.tf
 terraform init
 terraform apply -auto-approve
 

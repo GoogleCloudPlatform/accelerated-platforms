@@ -77,7 +77,7 @@ variable "recursive" {
 }
 
 variable "source_content_hash" {
-  default     = ""
+  default     = null
   description = "Hash of the contents of the source files. Can be used to trigger a new kubectl apply whenever the source contents change."
   type        = string
 }

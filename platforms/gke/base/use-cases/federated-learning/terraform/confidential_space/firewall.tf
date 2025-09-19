@@ -18,7 +18,7 @@ data "google_compute_lb_ip_ranges" "google" {
 resource "google_compute_firewall" "workloads" {
   name        = join("-", [local.unique_identifier_prefix, "workloads"])
   description = "Allow connections to workloads from internal load balancer"
-  network     = local.network_name
+  network     = local.network_cluster_network_name
   project     = google_project_service.confidentialcomputing_googleapis_com.project
 
   # Workloads in confidential space are listening to port 8082
@@ -33,7 +33,7 @@ resource "google_compute_firewall" "ssh" {
   count       = var.federated_learning_cross_device_example_confidential_space_debug ? 1 : 0
   name        = join("-", [local.unique_identifier_prefix, "ssh"])
   description = "Allow SSH connections to confidential space VM for debugging purpose"
-  network     = local.network_name
+  network     = local.network_cluster_network_name
   project     = google_project_service.confidentialcomputing_googleapis_com.project
 
   # Opening SSH port for debugging purpose

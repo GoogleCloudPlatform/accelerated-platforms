@@ -52,8 +52,8 @@ resource "google_compute_instance_template" "instance_template" {
       network_tier = "PREMIUM"
     }
 
-    network            = local.network_name
-    subnetwork         = local.subnetwork_name
+    network            = local.network_cluster_network_name
+    subnetwork         = local.network_cluster_subnet_node_name
     subnetwork_project = google_project_service.confidentialcomputing_googleapis_com.project
   }
 

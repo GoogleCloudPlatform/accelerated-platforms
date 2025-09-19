@@ -13,12 +13,12 @@
 # limitations under the License.
 
 data "google_compute_network" "main_vpc_network" {
-  name    = local.network_name
+  name    = local.network_cluster_network_name
   project = google_project_service.compute_googleapis_com.project
 }
 
 data "google_compute_subnetwork" "region" {
-  name    = local.subnetwork_name
+  name    = local.network_cluster_subnet_node_name
   project = data.google_project.cluster.project_id
   region  = local.cluster_region
 }

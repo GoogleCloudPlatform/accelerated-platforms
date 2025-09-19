@@ -13,26 +13,26 @@
 # limitations under the License.
 
 resource "google_compute_network" "vpc" {
-  for_each = toset(var.network_name == null ? ["managed"] : [])
+  for_each = toset(var.network_cluster_network_name == null ? ["managed"] : [])
 
   auto_create_subnetworks = false
-  name                    = local.network_name
+  name                    = local.network_cluster_network_name
   project                 = google_project_service.compute_googleapis_com.project
-  routing_mode            = var.dynamic_routing_mode
+  routing_mode            = var.network_cluster_network_dynamic_routing_mode
 }
 
 data "google_compute_network" "vpc" {
   depends_on = [google_compute_network.vpc]
 
-  name    = local.network_name
+  name    = local.network_cluster_network_name
   project = google_project_service.compute_googleapis_com.project
 }
 
 resource "google_compute_subnetwork" "region" {
-  for_each = toset(var.subnetwork_name == null ? ["managed"] : [])
+  for_each = toset(var.network_cluster_subnet_node_name == null ? ["managed"] : [])
 
-  ip_cidr_range            = var.subnet_cidr_range
-  name                     = local.subnetwork_name
+  ip_cidr_range            = var.network_cluster_subnet_node_ip_cidr_range
+  name                     = local.network_cluster_subnet_node_name
   network                  = data.google_compute_network.vpc.id
   private_ip_google_access = true
   project                  = google_project_service.compute_googleapis_com.project
@@ -44,15 +44,37 @@ data "google_compute_subnetwork" "region" {
     google_compute_subnetwork.region,
   ]
 
-  name    = local.subnetwork_name
+  name    = local.network_cluster_subnet_node_name
+  project = google_project_service.compute_googleapis_com.project
+  region  = local.cluster_region
+}
+
+resource "google_compute_subnetwork" "region_proxy" {
+  for_each = toset(var.network_cluster_subnet_proxy_name == null ? ["managed"] : [])
+
+  ip_cidr_range = var.network_cluster_subnet_proxy_ip_cidr_range
+  name          = local.network_cluster_subnet_proxy_name
+  network       = data.google_compute_network.vpc.id
+  purpose       = "REGIONAL_MANAGED_PROXY"
+  project       = google_project_service.compute_googleapis_com.project
+  region        = local.cluster_region
+  role          = "ACTIVE"
+}
+
+data "google_compute_subnetwork" "region_proxy" {
+  depends_on = [
+    google_compute_subnetwork.region_proxy,
+  ]
+
+  name    = local.network_cluster_subnet_proxy_name
   project = google_project_service.compute_googleapis_com.project
   region  = local.cluster_region
 }
 
 resource "google_compute_router" "router" {
-  for_each = toset(var.router_name == null ? ["managed"] : [])
+  for_each = toset(var.network_cluster_network_router_name == null ? ["managed"] : [])
 
-  name    = local.router_name
+  name    = local.network_cluster_network_router_name
   network = data.google_compute_network.vpc.name
   project = google_project_service.compute_googleapis_com.project
   region  = local.cluster_region
@@ -63,16 +85,16 @@ data "google_compute_router" "router" {
     google_compute_router.router,
   ]
 
-  name    = local.router_name
+  name    = local.network_cluster_network_router_name
   network = data.google_compute_network.vpc.name
   project = google_project_service.compute_googleapis_com.project
   region  = local.cluster_region
 }
 
 resource "google_compute_router_nat" "nat_gateway" {
-  for_each = toset(var.nat_gateway_name == null ? ["managed"] : [])
+  for_each = toset(var.network_cluster_network_nat_gateway_name == null ? ["managed"] : [])
 
-  name                               = local.nat_gateway_name
+  name                               = local.network_cluster_network_nat_gateway_name
   nat_ip_allocate_option             = "AUTO_ONLY"
   project                            = google_project_service.compute_googleapis_com.project
   region                             = local.cluster_region
@@ -90,7 +112,7 @@ data "google_compute_router_nat" "nat_gateway" {
     google_compute_router_nat.nat_gateway,
   ]
 
-  name    = local.nat_gateway_name
+  name    = local.network_cluster_network_nat_gateway_name
   project = google_project_service.compute_googleapis_com.project
   region  = local.cluster_region
   router  = data.google_compute_router.router.name
@@ -102,7 +124,7 @@ resource "terraform_data" "instance_cleanup" {
     google_compute_subnetwork.region,
   ]
 
-  for_each = toset(var.network_name == null ? ["run-on-destroy"] : [])
+  for_each = toset(var.network_cluster_network_name == null ? ["run-on-destroy"] : [])
 
   input = {
     network_self_link = data.google_compute_network.vpc.self_link
@@ -136,7 +158,7 @@ resource "terraform_data" "neg_cleanup" {
     google_compute_subnetwork.region,
   ]
 
-  for_each = toset(var.network_name == null ? ["run-on-destroy"] : [])
+  for_each = toset(var.network_cluster_network_name == null ? ["run-on-destroy"] : [])
 
   input = {
     network_self_link = data.google_compute_network.vpc.self_link

@@ -14,8 +14,11 @@
 
 # This is a preview version of Google GenAI custom nodes
 
+import base64
+import io
 from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 import torch
 from google.api_core.gapic_v1.client_info import ClientInfo
 from google.cloud import aiplatform

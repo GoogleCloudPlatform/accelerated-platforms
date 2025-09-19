@@ -17,6 +17,7 @@
 from typing import List, Optional
 
 import torch
+from google import genai
 
 from . import exceptions, utils
 from .base_api import GoogleGenAIBaseAPI

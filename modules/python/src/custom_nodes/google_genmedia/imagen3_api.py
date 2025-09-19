@@ -16,6 +16,7 @@
 
 from typing import List, Optional
 
+from google import genai
 from PIL import Image
 
 from . import exceptions, utils

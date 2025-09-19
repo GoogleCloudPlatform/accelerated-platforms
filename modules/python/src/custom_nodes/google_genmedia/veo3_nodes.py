@@ -18,12 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 
 from . import exceptions
-from .constants import (
-    MAX_SEED,
-    SUPPORTED_VIDEO_EXTENSIONS,
-    VEO3_VALID_ASPECT_RATIOS,
-    Veo3Model,
-)
+from .constants import MAX_SEED, SUPPORTED_VIDEO_EXTENSIONS, Veo3Model
 from .veo3_api import Veo3API
 
 
@@ -41,7 +36,7 @@ class Veo3TextToVideoNode:
                     {"default": Veo3Model.VEO_3_PREVIEW.name},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (VEO3_VALID_ASPECT_RATIOS, {"default": "16:9"}),
+                "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
@@ -52,8 +47,8 @@ class Veo3TextToVideoNode:
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    "INT",
-                    {"default": 8, "min": 4, "max": 8, "step": 2},
+                    [8],
+                    {"default": 8},
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
@@ -194,7 +189,7 @@ class Veo3GcsUriImageToVideoNode:
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (VEO3_VALID_ASPECT_RATIOS, {"default": "16:9"}),
+                "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
@@ -205,8 +200,8 @@ class Veo3GcsUriImageToVideoNode:
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    "INT",
-                    {"default": 8, "min": 4, "max": 8, "step": 2},
+                    [8],
+                    {"default": 8},
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
@@ -349,7 +344,7 @@ class Veo3ImageToVideoNode:
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (VEO3_VALID_ASPECT_RATIOS, {"default": "16:9"}),
+                "aspect_ratio": (["16:9"], {"default": "16:9"}),
                 "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
@@ -360,8 +355,8 @@ class Veo3ImageToVideoNode:
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    "INT",
-                    {"default": 8, "min": 4, "max": 8, "step": 2},
+                    [8],
+                    {"default": 8},
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),

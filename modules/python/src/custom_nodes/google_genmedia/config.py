@@ -15,6 +15,7 @@
 # This is a preview version of Google GenAI custom nodes
 
 import requests
+from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
 
 # Fetch GCP project ID and zone required to authenticate with Vertex AI APIs
@@ -28,6 +29,9 @@ def get_gcp_metadata(path):
         )
         response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
         return response.text.strip()
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching metadata from {path}: {e}")
+    except (HTTPError, Timeout, ConnectionError) as e:
+        print(f"Error fetching metadata from {path} due to network issue: {e}")
+        return None
+    except RequestException as e:
+        print(f"An unexpected error occurred while fetching metadata from {path}: {e}")
         return None

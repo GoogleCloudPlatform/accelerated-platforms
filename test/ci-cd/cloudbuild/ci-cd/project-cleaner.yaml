@@ -36,7 +36,7 @@ steps:
         timestamp=$(printf "%(%Y-%m-%dT%H:%M:%S%z)T" $(( $(printf "%(%s)T") - (60 * 60 * ${_HOURS}) )))
         builds=$(
           gcloud builds list \
-          --filter="(status=\"FAILURE\" OR status=\"CANCELLED\") AND create_time>\"${timestamp}\"" \
+          --filter="(status=\"CANCELLED\" OR status=\"FAILURE\" OR status=\"TIMEOUT\") AND create_time>\"${timestamp}\"" \
           --format="value(format(\"{0},{1}\", id, substitutions.SHORT_SHA))" \
           --project=${PROJECT_ID} \
           --region=${LOCATION}

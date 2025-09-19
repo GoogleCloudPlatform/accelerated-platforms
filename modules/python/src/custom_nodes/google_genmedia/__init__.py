@@ -16,6 +16,12 @@
 
 import os
 
+from .gemini_flash_image_node import (
+    NODE_CLASS_MAPPINGS as GEMINI_FLASH_25_IMAGE_NODE_CLASS_MAPPINGS,
+)
+from .gemini_flash_image_node import (
+    NODE_DISPLAY_NAME_MAPPINGS as GEMINI_FLASH_25_IMAGE_NODE_DISPLAY_NAME_MAPPINGS,
+)
 from .gemini_nodes import NODE_CLASS_MAPPINGS as GEMINI_NODE_CLASS_MAPPINGS
 from .gemini_nodes import (
     NODE_DISPLAY_NAME_MAPPINGS as GEMINI_NODE_DISPLAY_NAME_MAPPINGS,
@@ -38,13 +44,6 @@ from .veo3_nodes import NODE_CLASS_MAPPINGS as VEO3_NODE_CLASS_MAPPINGS
 from .veo3_nodes import NODE_DISPLAY_NAME_MAPPINGS as VEO3_NODE_DISPLAY_NAME_MAPPINGS
 from .virtual_try_on import NODE_CLASS_MAPPINGS as VTO_NODE_CLASS_MAPPINGS
 from .virtual_try_on import NODE_DISPLAY_NAME_MAPPINGS as VTO_NODE_DISPLAY_NAME_MAPPINGS
-from .gemini_flash_image_node import (
-    NODE_CLASS_MAPPINGS as GEMINI_FLASH_25_IMAGE_NODE_CLASS_MAPPINGS,
-)
-from .gemini_flash_image_node import (
-    NODE_DISPLAY_NAME_MAPPINGS as GEMINI_FLASH_25_IMAGE_NODE_DISPLAY_NAME_MAPPINGS,
-)
-
 
 # Combine all node class mappings
 NODE_CLASS_MAPPINGS = {

@@ -20,6 +20,7 @@ import numpy as np
 import torch
 from google.genai import types
 
+from . import exceptions
 from .constants import MAX_SEED
 from .imagen3_api import Imagen3API
 
@@ -146,17 +147,14 @@ class Imagen3TextToImageNode:
             formatted as (batch_size, height, width, channels).
         """
         try:
+            if prompt is None or not str(prompt).strip():
+                raise exceptions.ConfigurationError("Prompt cannot be empty.")
+
             imagen_api = Imagen3API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to initialize Imagen API client for node execution: {e}"
-            )
 
-        p_gen_enum = getattr(types.PersonGeneration, person_generation)
+            p_gen_enum = getattr(types.PersonGeneration, person_generation)
+            seed_for_api = seed if seed != 0 else None
 
-        seed_for_api = seed if seed != 0 else None
-
-        try:
             pil_images = imagen_api.generate_image_from_text(
                 prompt=prompt,
                 person_generation=p_gen_enum,
@@ -169,26 +167,33 @@ class Imagen3TextToImageNode:
                 output_image_type=output_image_type,
                 safety_filter_level=safety_filter_level,
             )
+
+            if not pil_images:
+                raise RuntimeError(
+                    "Imagen API failed to generate images or generated no valid images."
+                )
+
+            output_tensors: List[torch.Tensor] = []
+            for img in pil_images:
+                img = img.convert("RGB")
+                img_np = np.array(img).astype(np.float32) / 255.0
+                img_tensor = torch.from_numpy(img_np)[
+                    None,
+                ]
+                output_tensors.append(img_tensor)
+
+            batched_images_tensor = torch.cat(output_tensors, dim=0)
+            return (batched_images_tensor,)
+        except (
+            exceptions.APICallError,
+            exceptions.ConfigurationError,
+            exceptions.APIInitializationError,
+        ):
+            raise
         except Exception as e:
-            raise RuntimeError(f"Error occurred during image generation: {e}")
-            # return (torch.empty(0, 640, 640, 3),)
-
-        if not pil_images:
             raise RuntimeError(
-                "Imagen API failed to generate images or generated no valid images."
+                f"An unexpected error occurred during image generation: {e}"
             )
-
-        output_tensors: List[torch.Tensor] = []
-        for img in pil_images:
-            img = img.convert("RGB")
-            img_np = np.array(img).astype(np.float32) / 255.0
-            img_tensor = torch.from_numpy(img_np)[
-                None,
-            ]
-            output_tensors.append(img_tensor)
-
-        batched_images_tensor = torch.cat(output_tensors, dim=0)
-        return (batched_images_tensor,)
 
 
 NODE_CLASS_MAPPINGS = {"Imagen3TextToImageNode": Imagen3TextToImageNode}

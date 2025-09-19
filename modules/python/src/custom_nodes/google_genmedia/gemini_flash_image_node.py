@@ -18,7 +18,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from google.api_core import exceptions as api_core_exceptions
 
 from .constants import GeminiFlashImageModel, ThresholdOptions
 from .gemini_flash_image_api import GeminiFlashImageAPI
@@ -161,8 +160,6 @@ class Gemini25FlashImage:
             A tuple containing a PyTorch tensor of the generated images,
             formatted as (batch_size, height, width, channels).
         """
-        if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty.")
         try:
             gemini_flash_image_api = GeminiFlashImageAPI(
                 project_id=gcp_project_id, region=gcp_region
@@ -189,7 +186,7 @@ class Gemini25FlashImage:
                 system_instruction,
                 image,
             )
-        except (ValueError, RuntimeError, api_core_exceptions.GoogleAPICallError) as e:
+        except Exception as e:
             raise RuntimeError(f"Error occurred during image generation: {e}")
 
         if not pil_images:

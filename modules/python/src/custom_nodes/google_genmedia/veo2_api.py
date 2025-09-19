@@ -17,12 +17,12 @@
 from typing import List, Optional
 
 import torch
-from google.api_core import exceptions as api_core_exceptions
-from google.auth import exceptions as auth_exceptions
 
-from . import utils
+from . import exceptions, utils
+from .base_api import GoogleGenAIBaseAPI
 from .constants import (
     VEO2_GENERATE_AUDIO_FLAG,
+    VEO2_MAX_VIDEOS,
     VEO2_MODEL_ID,
     VEO2_OUTPUT_RESOLUTION,
     VEO2_USER_AGENT,
@@ -30,7 +30,7 @@ from .constants import (
 from .utils import validate_gcs_uri_and_image
 
 
-class Veo2API:
+class Veo2API(GoogleGenAIBaseAPI):
     """
     A client for interacting with the Google Veo 2.0 API for video generation.
     """
@@ -44,20 +44,11 @@ class Veo2API:
         Args:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
+
+        Raises:
+            exceptions.APIInitializationError: If GCP Project or Zone cannot be determined.
         """
-        try:
-            self.client = utils.get_genai_client(project_id, region, VEO2_USER_AGENT)
-            self.retry_count = 3
-            self.retry_delay = 5
-
-        except (
-            auth_exceptions.DefaultCredentialsError,
-            api_core_exceptions.PermissionDenied,
-        ) as e:
-            raise ConnectionError(f"Authentication or Permission Error: {e}") from e
-
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize client: {e}") from e
+        super().__init__(project_id, region, VEO2_USER_AGENT)
 
     def generate_video_from_text(
         self,
@@ -91,18 +82,20 @@ class Veo2API:
             A list of file paths to the generated videos.
 
         Raises:
-            ValueError: If input parameters are invalid (e.g., empty prompt, out-of-range duration/sample_count).
-            RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+            exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, out-of-range duration/sample_count).
+            exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty.")
+            raise exceptions.ConfigurationError(
+                "Prompt cannot be empty for text-to-video generation."
+            )
         if not (5 <= duration_seconds <= 8):
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 5 and 8, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
-            raise ValueError(
-                f"sample_count must be between 1 and 4, but got {sample_count}."
+        if not (1 <= sample_count <= VEO2_MAX_VIDEOS):
+            raise exceptions.ConfigurationError(
+                f"sample_count must be between 1 and {VEO2_MAX_VIDEOS}, but got {sample_count}."
             )
         return utils.generate_video_from_text(
             client=self.client,
@@ -119,8 +112,6 @@ class Veo2API:
             output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )
 
     def generate_video_from_image(
@@ -161,23 +152,27 @@ class Veo2API:
             A list of file paths to the generated videos.
 
         Raises:
-            ValueError: If input parameters are invalid (e.g., empty prompt, unsupported image format, out-of-range duration/sample_count).
-            RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+            exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, unsupported image format, out-of-range duration/sample_count).
+            exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty for image-to-video generation.")
+            print(
+                "Prompt is empty for image-to-video. Veo might use default interpretation of image."
+            )
 
         if not (1 <= duration_seconds <= 8):
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 1 and 8, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
-            raise ValueError(
+        if not (1 <= sample_count <= VEO2_MAX_VIDEOS):
+            raise exceptions.ConfigurationError(
                 f"sample_count must be between 1 and 4, but got {sample_count}."
             )
 
         if image is None:
-            raise ValueError("Image input (torch.Tensor) cannot be None.")
+            raise exceptions.ConfigurationError(
+                "Image input (torch.Tensor) cannot be None."
+            )
 
         return utils.generate_video_from_image(
             client=self.client,
@@ -197,8 +192,6 @@ class Veo2API:
             output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )
 
     def generate_video_from_gcsuri_image(
@@ -239,22 +232,25 @@ class Veo2API:
             A list of file paths to the generated videos.
 
         Raises:
-            ValueError: If input parameters are invalid (e.g., empty prompt, unsupported image format,
+            exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, unsupported image format,
                         invalid GCS URI, or if the GCS object is not a valid image).
-            RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+            exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if gcsuri is None:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 "GCS URI for the image cannot be None for image-to-video generation."
             )
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty.")
+            print(
+                "Prompt is empty for image-to-video. Veo might use default interpretation of image."
+            )
+
         if not (1 <= duration_seconds <= 8):
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"duration_seconds must be between 1 and 8, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
-            raise ValueError(
+        if not (1 <= sample_count <= VEO2_MAX_VIDEOS):
+            raise exceptions.ConfigurationError(
                 f"sample_count must be between 1 and 4, but got {sample_count}."
             )
 
@@ -262,7 +258,7 @@ class Veo2API:
         if valid_bucket:
             print(f"gcsuri of the input image is valid {validation_message}")
         else:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"gcsuri of the input image is not valid {validation_message}"
             )
 
@@ -273,10 +269,12 @@ class Veo2API:
             if valid_bucket:
                 print(f"last frame gcsuri is valid {validation_message}")
             else:
-                raise ValueError(
+                raise exceptions.ConfigurationError(
                     f"last frame gcs uri is not valid {validation_message}"
                 )
 
+        if not image_format:
+            raise exceptions.ConfigurationError("Image format cannot be empty.")
         input_image_format_upper = image_format.upper()
         mime_type: str
         if input_image_format_upper == "PNG":
@@ -286,7 +284,9 @@ class Veo2API:
         elif input_image_format_upper == "MP4":
             mime_type = "image/mp4"
         else:
-            raise ValueError(f"Unsupported image format: {image_format}")
+            raise exceptions.ConfigurationError(
+                f"Unsupported image format: {image_format}"
+            )
 
         return utils.generate_video_from_gcsuri_image(
             client=self.client,
@@ -306,6 +306,4 @@ class Veo2API:
             output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )

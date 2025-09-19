@@ -19,20 +19,17 @@ from typing import List, Optional
 
 import torch
 from google.api_core import exceptions as api_core_exceptions
-from google.auth import exceptions as auth_exceptions
-from google.genai import errors as genai_errors
 from google.genai import types
+from google.genai import errors as genai_errors
 from PIL import Image
 
+from . import exceptions
 from . import utils
-from .constants import (
-    GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN,
-    GEMINI_25_FLASH_IMAGE_USER_AGENT,
-    GeminiFlashImageModel,
-)
+from .base_api import GoogleGenAIBaseAPI
+from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
 
 
-class GeminiFlashImageAPI:
+class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
     """
     A class to interact with the Gemini Flash Image Preview model.
     """
@@ -45,22 +42,12 @@ class GeminiFlashImageAPI:
               provided, it will be inferred from the environment. Defaults to None.
             region (Optional[str], optional): The GCP region. If not provided, it
               will be inferred from the environment. Defaults to None.
+
+        Raises:
+            ValueError: If GCP Project or region cannot be determined.
         """
-        try:
-            self.client = utils.get_genai_client(
-                project_id, region, GEMINI_25_FLASH_IMAGE_USER_AGENT
-            )
-            self.retry_count = 3
-            self.retry_delay = 5
-
-        except (
-            auth_exceptions.DefaultCredentialsError,
-            api_core_exceptions.PermissionDenied,
-        ) as e:
-            raise ConnectionError(f"Authentication or Permission Error: {e}") from e
-
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize client: {e}") from e
+        super().__init__(project_id, region)
+        print(f"GeminiFlashImageAPI initialized for {self.project_id} in {self.region}")
 
     def generate_image(
         self,
@@ -96,8 +83,6 @@ class GeminiFlashImageAPI:
         Returns:
             A list of generated PIL images.
         """
-        if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty.")
         model = GeminiFlashImageModel[model]
 
         generated_pil_images: List[Image.Image] = []
@@ -159,8 +144,9 @@ class GeminiFlashImageAPI:
             response = self.client.models.generate_content(
                 model=model, contents=contents, config=generate_content_config
             )
-        except genai_errors.GoogleAPICallError as e:
-            raise RuntimeError(f"Google API call failed: {e}") from e
+        except (genai_errors.APIError, api_core_exceptions.GoogleAPICallError) as e:
+            print(f"A GenAI API error occurred during image generation: {e}")
+            raise exceptions.APICallError(f"Image generation failed: {e}") from e
 
         for part in response.candidates[0].content.parts:
             if part.text is not None:

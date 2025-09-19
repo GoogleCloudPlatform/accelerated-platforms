@@ -16,15 +16,14 @@
 
 from typing import List, Optional
 
-from google.api_core import exceptions as api_core_exceptions
-from google.auth import exceptions as auth_exceptions
 from PIL import Image
 
-from . import utils
-from .constants import IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT
+from . import exceptions, utils
+from .base_api import GoogleGenAIBaseAPI
+from .constants import IMAGEN3_MAX_IMAGES, IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT
 
 
-class Imagen3API:
+class Imagen3API(GoogleGenAIBaseAPI):
     """
     A class to interact with the Imagen API for image generation.
     """
@@ -36,20 +35,11 @@ class Imagen3API:
         Args:
             project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
             region: The GCP region. If None, it will be retrieved from GCP metadata.
+
+        Raises:
+            exceptions.APIInitializationError: If GCP Project or region cannot be determined.
         """
-        try:
-            self.client = utils.get_genai_client(project_id, region, IMAGEN3_USER_AGENT)
-            self.retry_count = 3
-            self.retry_delay = 5
-
-        except (
-            auth_exceptions.DefaultCredentialsError,
-            api_core_exceptions.PermissionDenied,
-        ) as e:
-            raise ConnectionError(f"Authentication or Permission Error: {e}") from e
-
-        except Exception as e:
-            raise RuntimeError(f"Failed to initialize client: {e}") from e
+        super().__init__(project_id, region, IMAGEN3_USER_AGENT)
 
     def generate_image_from_text(
         self,
@@ -83,28 +73,32 @@ class Imagen3API:
             A list of PIL Image objects. Returns an empty list on failure.
 
         Raises:
-            ValueError: If `number_of_images` is not between 1 and 4,
+            exceptions.ConfigurationError: If `number_of_images` is not between 1 and 4,
                         if `seed` is provided with `add_watermark` enabled,
                         or if `output_image_type` is unsupported.
         """
-
-        if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty.")
-
-        if not (1 <= number_of_images <= 4):
-            raise ValueError(
-                f"number_of_images must be between 1 and 4, but got {number_of_images}."
+        if not prompt or not prompt.strip():
+            raise exceptions.ConfigurationError("Prompt cannot be empty.")
+        if not 1 <= number_of_images <= IMAGEN3_MAX_IMAGES:
+            raise exceptions.ConfigurationError(
+                f"Number of images {number_of_images} must be between 1 and {IMAGEN3_MAX_IMAGES}."
             )
         if seed and add_watermark:
-            raise ValueError("Seed is not supported when add_watermark is enabled.")
+            raise exceptions.ConfigurationError(
+                "Seed is not supported when add_watermark is enabled."
+            )
 
+        if not output_image_type:
+            raise exceptions.ConfigurationError("Output image type cannot be empty.")
         output_image_type = output_image_type.upper()
         if output_image_type == "PNG":
             output_mime_type = "image/png"
         elif output_image_type == "JPEG":
             output_mime_type = "image/jpeg"
         else:
-            raise ValueError(f"Unsupported image format: {output_image_type}")
+            raise exceptions.ConfigurationError(
+                f"Unsupported image format: {output_image_type}"
+            )
 
         return utils.generate_image_from_text(
             client=self.client,
@@ -119,6 +113,4 @@ class Imagen3API:
             add_watermark=add_watermark,
             output_image_type=output_mime_type,
             safety_filter_level=safety_filter_level,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )

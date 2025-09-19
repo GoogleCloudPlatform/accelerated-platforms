@@ -14,7 +14,6 @@
 
 import base64
 import io
-import logging
 import mimetypes
 import os
 import random
@@ -29,7 +28,6 @@ import torch
 from google import genai
 from google.api_core import exceptions as api_core_exceptions
 from google.api_core.client_info import ClientInfo
-from google.auth import exceptions as auth_exceptions
 from google.cloud import storage
 from google.genai import errors as genai_errors
 from google.genai import types
@@ -37,74 +35,8 @@ from google.genai.types import GenerateVideosConfig, Image
 from grpc import StatusCode
 from PIL import Image as PIL_Image
 
-from .config import get_gcp_metadata
+from . import exceptions
 from .constants import STORAGE_USER_AGENT
-
-
-def get_genai_client(
-    project_id: Optional[str] = None,
-    region: Optional[str] = None,
-    user_agent: Optional[str] = None,
-) -> genai.Client:
-    """
-    Initializes and returns a genai.Client for Vertex AI.
-    If initialization fails, an error is logged and the exception is re-raised.
-
-    Args:
-        project_id: The GCP project ID. If None, it will be retrieved from GCP metadata.
-        region: The GCP region. If None, it will be retrieved from GCP metadata.
-        user_agent: The user agent string to use for the client.
-
-    Returns:
-        An initialized genai.Client instance.
-
-    Raises:
-        ValueError: If GCP Project or region cannot be determined.
-        google.auth.exceptions.DefaultCredentialsError: If authentication fails.
-        google.api_core.exceptions.GoogleAPICallError: If the API call fails.
-    """
-    try:
-        project_id = project_id or get_gcp_metadata("project/project-id")
-        region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-        )
-
-        if not project_id:
-            raise ValueError("GCP Project is required and could not be determined.")
-        if not region:
-            raise ValueError("GCP region is required and could not be determined.")
-
-        logging.info(
-            f"Initializing genai.Client for project: {project_id}, region: {region}"
-        )
-
-        http_options = None
-        if user_agent:
-            http_options = genai.types.HttpOptions(headers={"user-agent": user_agent})
-
-        client = genai.Client(
-            vertexai=True,
-            project=project_id,
-            location=region,
-            http_options=http_options,
-        )
-        return client
-    except auth_exceptions.DefaultCredentialsError as e:
-        logging.error(
-            "Authentication failed. Please configure your GCP credentials. "
-            "See https://cloud.google.com/docs/authentication/provide-credentials-adc for more information."
-        )
-        raise e
-    except api_core_exceptions.GoogleAPICallError as e:
-        logging.error(
-            f"Google API call failed during client initialization: {e.message}"
-        )
-        raise e
-    except Exception as e:
-        logging.error(
-            f"An unexpected error occurred during genai.Client initialization: {e}"
-        )
-        raise e
 
 
 def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
@@ -118,14 +50,31 @@ def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
         A PyTorch tensor of the image, formatted as (1, height, width, channels)
         with float values in the [0, 1] range.
     """
-    image_data = base64.b64decode(base64_string)
-    pil_image = PIL_Image.open(io.BytesIO(image_data)).convert("RGBA")
-    image_array = np.array(pil_image, dtype=np.float32) / 255.0
-    tensor = torch.from_numpy(image_array)[
-        None,
-    ]
+    try:
+        image_data = base64.b64decode(base64_string)
+        pil_image = PIL_Image.open(io.BytesIO(image_data)).convert("RGBA")
+        image_array = np.array(pil_image, dtype=np.float32) / 255.0
+        tensor = torch.from_numpy(image_array)[
+            None,
+        ]
+        return tensor
+    except Exception as e:
+        raise exceptions.FileProcessingError(
+            f"Failed to decode and convert base64 image: {e}"
+        )
 
-    return tensor
+
+def pil_images_to_batched_tensor(pil_images: List[PIL_Image.Image]) -> torch.Tensor:
+    """Converts a list of PIL images to a batched PyTorch tensor."""
+    output_tensors: List[torch.Tensor] = []
+    for img in pil_images:
+        img = img.convert("RGB")
+        img_np = np.array(img).astype(np.float32) / 255.0
+        img_tensor = torch.from_numpy(img_np)[
+            None,
+        ]
+        output_tensors.append(img_tensor)
+    return torch.cat(output_tensors, dim=0)
 
 
 def download_gcsuri(gcsuri: str, destination: str) -> bool:
@@ -144,20 +93,20 @@ def download_gcsuri(gcsuri: str, destination: str) -> bool:
         bool: True if the download was successful.
 
     Raises:
-        ValueError: If the provided `gcsuri` is not in a valid GCS URI format
+        exceptions.ConfigurationError: If the provided `gcsuri` is not in a valid GCS URI format
                     (e.g., doesn't start with 'gs://' or is missing an object path).
-        RuntimeError: If an error occurs during the GCS download operation
+        exceptions.FileProcessingError: If an error occurs during the GCS download operation
                       (e.g., bucket/object not found, permission denied, network issues).
     """
 
     if not gcsuri.startswith("gs://"):
-        raise ValueError(
+        raise exceptions.ConfigurationError(
             "Invalid GCS URI format returned by Veo. Must start with 'gs://'"
         )
 
     path_parts = gcsuri[len("gs://") :].split("/", 1)
     if len(path_parts) < 2:
-        raise ValueError(
+        raise exceptions.ConfigurationError(
             "Invalid GCS URI: No object path specified in the URL returned by Veo."
         )
 
@@ -176,26 +125,92 @@ def download_gcsuri(gcsuri: str, destination: str) -> bool:
         print(f"Successfully downloaded '{gcsuri}' to '{destination}'")
         return True
 
-    except auth_exceptions.DefaultCredentialsError as e:
-        raise RuntimeError(
-            "Authentication failed for Google Cloud Storage. Please configure your GCP credentials."
-        ) from e
-    except api_core_exceptions.NotFound as e:
-        raise RuntimeError(f"GCS object not found at '{gcsuri}': {e}") from e
-    except api_core_exceptions.Forbidden as e:
-        raise RuntimeError(
-            f"Permission denied to access GCS object at '{gcsuri}': {e}"
-        ) from e
     except api_core_exceptions.GoogleAPICallError as e:
-        raise RuntimeError(
-            f"A Google Cloud API error occurred while downloading from GCS at '{gcsuri}': {e}"
-        ) from e
+        if e.code == StatusCode.NOT_FOUND:
+            raise exceptions.FileProcessingError(
+                f"GCS object not found: {blob_name}"
+            ) from e
+        elif e.code == StatusCode.PERMISSION_DENIED:
+            raise exceptions.APICallError(
+                f"Permission denied for GCS object: {blob_name}"
+            ) from e
+        else:
+            raise exceptions.APICallError(f"A GCS API error occurred: {e}") from e
     except Exception as e:
-        raise RuntimeError(
-            f"An unexpected error occurred during GCS download of '{gcsuri}': {e}"
-        ) from e
+        raise exceptions.FileProcessingError(
+            f"An unexpected error occurred downloading '{gcsuri}': {e}"
+        )
 
 
+from .retry import retry_on_api_error
+
+
+def _build_video_config(
+    model: str,
+    aspect_ratio: str,
+    output_resolution: Optional[str],
+    compression_quality: Optional[str],
+    person_generation: str,
+    duration_seconds: int,
+    generate_audio: Optional[bool],
+    enhance_prompt: bool,
+    sample_count: int,
+    output_gcs_uri: Optional[str],
+    negative_prompt: Optional[str],
+    seed: Optional[int],
+    last_frame: Optional[Image] = None,
+) -> GenerateVideosConfig:
+    """Builds the GenerateVideosConfig object from the given parameters."""
+    if compression_quality == "lossless" and not output_gcs_uri:
+        raise exceptions.ConfigurationError(
+            "output_gcs_uri must be passed for lossless video generation."
+        )
+
+    if compression_quality == "lossless":
+        compression_quality_type = types.VideoCompressionQuality.LOSSLESS
+    elif compression_quality == "optimized":
+        compression_quality_type = types.VideoCompressionQuality.OPTIMIZED
+    else:
+        raise exceptions.ConfigurationError(
+            f"Incorrect compression_quality type {compression_quality}"
+        )
+
+    temp_config = {
+        "aspect_ratio": aspect_ratio,
+        "person_generation": person_generation,
+        "compression_quality": compression_quality_type,
+        "duration_seconds": duration_seconds,
+        "enhance_prompt": enhance_prompt,
+        "number_of_videos": sample_count,
+        "negative_prompt": negative_prompt,
+        "seed": seed,
+    }
+
+    if output_gcs_uri:
+        valid_bucket, validation_message = validate_gcs_uri_and_image(
+            output_gcs_uri, False
+        )
+        if not valid_bucket:
+            raise exceptions.ConfigurationError(validation_message)
+        temp_config["output_gcs_uri"] = output_gcs_uri
+
+    if re.search(
+        r"veo-3\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
+        if generate_audio:
+            temp_config["generate_audio"] = generate_audio
+        else:
+            temp_config["generate_audio"] = False
+        temp_config["resolution"] = output_resolution
+
+    if last_frame:
+        temp_config["last_frame"] = last_frame
+
+    return GenerateVideosConfig(**temp_config)
+
+
+@retry_on_api_error()
 def generate_image_from_text(
     client: genai.Client,
     model: str,
@@ -209,11 +224,9 @@ def generate_image_from_text(
     add_watermark: bool,
     output_image_type: str,
     safety_filter_level: str,
-    retry_count: int,
-    retry_delay: int,
 ) -> List[PIL_Image.Image]:
     """
-    Generate image from text prompt using Imagen3.
+    Generate image from text prompt using Imagen.
 
     Args:
         client: genai.Client
@@ -228,16 +241,15 @@ def generate_image_from_text(
         add_watermark: Whether to add a watermark to the generated images.
         output_image_type: The desired output image format (PNG or JPEG).
         safety_filter_level: The safety filter strictness.
-        retry_count: number of retries
-        retry_delay: time between each retry_count
 
     Returns:
         A list of PIL Image objects. Returns an empty list on failure.
 
     Raises:
-        ValueError: If `number_of_images` is not between 1 and 4,
+        exceptions.ConfigurationError: If `number_of_images` is not between 1 and 4,
                     if `seed` is provided with `add_watermark` enabled,
                     or if `output_image_type` is unsupported.
+        exceptions.APICallError: If image generation fails or was blocked by safety filters.
     """
     config = types.GenerateImagesConfig(
         number_of_images=number_of_images,
@@ -251,333 +263,76 @@ def generate_image_from_text(
         safety_filter_level=safety_filter_level,
     )
 
-    retries = 0
     generated_pil_images: List[PIL_Image.Image] = []
-    while retries <= retry_count:
-        try:
-            print("Sending request to Imagen API for text-to-image generation...")
-            response = client.models.generate_images(
-                model=model, prompt=prompt, config=config
-            )
+    print("Sending request to Imagen API for text-to-image generation...")
+    try:
+        response = client.models.generate_images(
+            model=model, prompt=prompt, config=config
+        )
+    except (genai_errors.APIError, api_core_exceptions.GoogleAPICallError) as e:
+        print(f"A GenAI API error occurred during image generation: {e}")
+        raise exceptions.APICallError(f"Image generation failed: {e}") from e
 
-            if not response.generated_images:
-                error_message = (
-                    "Image generation failed or was blocked by safety filters."
-                )
-                raise RuntimeError(error_message)
+    if not response.generated_images:
+        error_message = "Image generation failed or was blocked by safety filters."
+        raise exceptions.APICallError(error_message)
 
-            for i, generated_image in enumerate(response.generated_images):
-                if generated_image.image:
-                    image_bytes = generated_image.image.image_bytes
-                    pil_image = PIL_Image.open(BytesIO(image_bytes))
-                    generated_pil_images.append(pil_image)
-                elif generated_image.error:
-                    print(f"Error generating image {i+1}: {generated_image.error}")
+    for i, generated_image in enumerate(response.generated_images):
+        if generated_image.image:
+            image_bytes = generated_image.image.image_bytes
+            pil_image = PIL_Image.open(BytesIO(image_bytes))
+            generated_pil_images.append(pil_image)
+        elif generated_image.error:
+            print(f"Error generating image {i+1}: {generated_image.error}")
 
-            return generated_pil_images
-        except genai_errors.ClientError as e:
-            if e.code == StatusCode.RESOURCE_EXHAUSTED:
-                retries += 1
-                if retries <= retry_count:
-                    retry_wait = retry_delay
-                    print(
-                        f"API Quota/Resource Exhausted (attempt {retries}/{retry_count}) - "
-                        f"Code: {e.code.name}. Waiting {retry_wait:.1f} seconds before retry. Error: {e.details}"
-                    )
-                    time.sleep(retry_wait)
-                else:
-                    raise RuntimeError(
-                        f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
-                    )
-            elif e.code == StatusCode.INVALID_ARGUMENT:
-                raise ValueError(
-                    f"Invalid API argument supplied. Check your prompt and parameters. Error: {e.details}"
-                )
-            elif (
-                e.code == StatusCode.PERMISSION_DENIED
-                or e.code == StatusCode.UNAUTHENTICATED
-                or e.code == StatusCode.FORBIDDEN
-            ):
-                raise RuntimeError(
-                    f"Permission denied. Check your GCP service account permissions for Veo API. Error: {e.details}"
-                )
-            else:
-                # Catch any other ClientError that's not specifically handled (e.g., Bad Request, Conflict)
-                raise RuntimeError(
-                    f"Unexpected Veo API Client Error (Code: {e.code.name}). Error: {e.details}"
-                )
-
-        except genai_errors.ServerError as e:
-            if e.code == StatusCode.UNAVAILABLE:
-                retries += 1
-                if retries <= retry_count:
-                    retry_wait = retry_delay
-                    print(
-                        f"API Service Unavailable (attempt {retries}/{retry_count}) - "
-                        f"Code: {e.code.name}. Waiting {retry_wait:.1f} seconds before retry. Error: {e.details}"
-                    )
-                    time.sleep(retry_wait)
-                else:
-                    raise RuntimeError(
-                        f"API Service Unavailable after {retries} attempts. Giving up. Last error: {e.details}"
-                    )
-            elif e.code == StatusCode.DEADLINE_EXCEEDED:
-                raise RuntimeError(
-                    f"API request timed out (Deadline Exceeded). Error: {e.details}"
-                )
-            else:
-                # Catch any other ServerError types
-                raise RuntimeError(
-                    f"Unexpected Veo API Server Error (Code: {e.code}). Error: {e.details}"
-                )
-
-    return []
+    return generated_pil_images
 
 
+@retry_on_api_error()
 def generate_video_from_gcsuri_image(
     client: genai.Client,
     model: str,
     gcsuri: str,
     image_format: str,
     prompt: str,
-    aspect_ratio: str,
-    output_resolution: Optional[str],
-    compression_quality: Optional[str],
-    person_generation: str,
-    duration_seconds: int,
-    generate_audio: Optional[bool],
-    enhance_prompt: bool,
-    sample_count: int,
-    last_frame_gcsuri: Optional[str],
-    output_gcs_uri: Optional[str],
-    negative_prompt: Optional[str],
-    seed: Optional[int],
-    retry_count: int,
-    retry_delay: int,
+    **kwargs,
 ) -> List[str]:
     """
-    Generates video from a Google Cloud Storage (GCS) image URI using the Veo 2 API.
-
-    Args:
-        client: genai.Client
-        model: model to be used
-        gcsuri: The GCS URI of the input image (e.g., "gs://my-bucket/path/to/image.jpg").
-        image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
-        prompt: The text prompt for video generation.
-        aspect_ratio: The desired aspect ratio of the video.
-        output_resolution: The resolution of the generated video.
-        compression_quality: Compression quality i.e optimized vs lossless.
-        person_generation: Controls whether the model can generate people.
-        duration_seconds: The desired duration of the video in seconds.
-        generate_audio: Flag to generate audio. Only allowed in Veo3.
-        enhance_prompt: Whether to enhance the prompt automatically.
-        sample_count: The number of video samples to generate.
-        last_frame_gcsuri: gcsuri of the last frame image for interpolation.
-        output_gcs_uri: output gcs url to store the video. Required with lossless output.
-        negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-        seed: An optional seed for reproducible video generation.
-        retry_count: number of retries
-        retry_delay: time between each retry_count
-
-    Returns:
-        A list of file paths to the generated videos.
-
-    Raises:
-        ValueError: If input parameters are invalid (e.g., empty prompt, unsupported image format,
-                        invalid GCS URI, or if the GCS object is not a valid image).
-        RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+    Generates video from a Google Cloud Storage (GCS) image URI using the Veo API.
     """
-    if compression_quality == "lossless" and not output_gcs_uri:
-        raise RuntimeError(
-            "output_gcs_uri must be passed for lossless video generation."
-        )
+    last_frame = None
+    if kwargs.get("last_frame_gcsuri"):
+        last_frame = Image(gcs_uri=kwargs["last_frame_gcsuri"], mime_type=image_format)
 
-    if compression_quality == "lossless":
-        compression_quality_type = types.VideoCompressionQuality.LOSSLESS
-    elif compression_quality == "optimized":
-        compression_quality_type = types.VideoCompressionQuality.OPTIMIZED
-    else:
-        raise ValueError(f"Incorrect compression_quality type {compression_quality}")
-
-    temp_config = {
-        "aspect_ratio": aspect_ratio,
-        "person_generation": person_generation,
-        "compression_quality": compression_quality_type,
-        "duration_seconds": duration_seconds,
-        "enhance_prompt": enhance_prompt,
-        "number_of_videos": sample_count,
-        "negative_prompt": negative_prompt,
-        "seed": seed,
-    }
-
-    if output_gcs_uri:
-        valid_bucket, validation_message = validate_gcs_uri_and_image(
-            output_gcs_uri, False
-        )
-        if valid_bucket:
-            print(validation_message)
-        else:
-            raise ValueError(validation_message)
-        temp_config["output_gcs_uri"] = output_gcs_uri
-
-    if re.search(
-        r"veo-3\.0",
-        model.value if isinstance(model, object) and hasattr(model, "value") else model,
-    ):
-        if generate_audio:
-            temp_config["generate_audio"] = generate_audio
-        else:
-            temp_config["generate_audio"] = False
-        temp_config["resolution"] = output_resolution
-
-    if re.search(
-        r"veo-2\.0",
-        model.value if isinstance(model, object) and hasattr(model, "value") else model,
-    ):
-        if last_frame_gcsuri:
-            temp_config["last_frame"] = Image(
-                gcs_uri=last_frame_gcsuri, mime_type=image_format
-            )
-
-    config = GenerateVideosConfig(**temp_config)
+    config = _build_video_config(model=model, last_frame=last_frame, **kwargs)
     print(f"Config for image-to-video generation: {config}")
-    retries = 0
-    while retries <= retry_count:
-        try:
-            print("Sending request to Veo API for image-to-video generation")
-            operation = client.models.generate_videos(
-                model=model,
-                image=Image(gcs_uri=gcsuri, mime_type=image_format),
-                prompt=prompt,
-                config=config,
-            )
-            print(f"Initial operation response object type: {type(operation)}")
 
-            operation_count = 0
-            while not operation.done:
-                time.sleep(20)
-                operation = client.operations.get(operation)
-                operation_count += 1
-                print(f"Polling operation (attempt {operation_count})...")
+    print("Sending request to Veo API for image-to-video generation")
+    try:
+        operation = client.models.generate_videos(
+            model=model,
+            image=Image(gcs_uri=gcsuri, mime_type=image_format),
+            prompt=prompt,
+            config=config,
+        )
+    except Exception as e:
+        print(f"An unexpected error occurred during video generation: {e}")
+        raise exceptions.APICallError(f"Video generation failed: {e}") from e
 
-            print(f"Operation completed with status: {operation.done}")
-
-            # return self._process_video_response(operation)
-            return process_video_response(operation)
-        except genai_errors.ClientError as e:
-            if e.code == StatusCode.RESOURCE_EXHAUSTED:
-                retries += 1
-                if retries <= retry_count:
-                    retry_wait = retry_delay
-                    print(
-                        f"API Quota/Resource Exhausted (attempt {retries}/{retry_count}) - "
-                        f"Code: {e.code.name}. Waiting {retry_wait:.1f} seconds before retry. Error: {e.details}"
-                    )
-                    time.sleep(retry_wait)
-                else:
-                    raise RuntimeError(
-                        f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
-                    )
-            elif e.code == StatusCode.INVALID_ARGUMENT:
-                raise ValueError(
-                    f"Invalid API argument supplied. Check your prompt and parameters. Error: {e.details}"
-                )
-            elif (
-                e.code == StatusCode.PERMISSION_DENIED
-                or e.code == StatusCode.UNAUTHENTICATED
-                or e.code == StatusCode.FORBIDDEN
-            ):
-                raise RuntimeError(
-                    f"Permission denied. Check your GCP service account permissions for Veo API. Error: {e.details}"
-                )
-            else:
-                # Catch any other ClientError that's not specifically handled (e.g., Bad Request, Conflict)
-                raise RuntimeError(
-                    f"Unexpected Veo API Client Error (Code: {e.code.name}). Error: {e.details}"
-                )
-
-        except genai_errors.ServerError as e:
-            if e.code == StatusCode.UNAVAILABLE:
-                retries += 1
-                if retries <= retry_count:
-                    retry_wait = retry_delay
-                    print(
-                        f"API Service Unavailable (attempt {retries}/{retry_count}) - "
-                        f"Code: {e.code.name}. Waiting {retry_wait:.1f} seconds before retry. Error: {e.details}"
-                    )
-                    time.sleep(retry_wait)
-                else:
-                    raise RuntimeError(
-                        f"API Service Unavailable after {retries} attempts. Giving up. Last error: {e.details}"
-                    )
-            elif e.code == StatusCode.DEADLINE_EXCEEDED:
-                raise RuntimeError(
-                    f"API request timed out (Deadline Exceeded). Error: {e.details}"
-                )
-            else:
-                # Catch any other ServerError types
-                raise RuntimeError(
-                    f"Unexpected Veo API Server Error (Code: {e.code.name}). Error: {e.details}"
-                )
-
-        except Exception as e:
-            # Catch any other unexpected non-API specific errors.
-            raise RuntimeError(
-                f"An unexpected non-API error occurred during video generation: {e}"
-            )
+    return _poll_for_video_completion(client, operation)
 
 
+@retry_on_api_error()
 def generate_video_from_image(
     client: genai.Client,
     model: str,
     image: torch.Tensor,
     image_format: str,
     prompt: str,
-    aspect_ratio: str,
-    output_resolution: Optional[str],
-    compression_quality: Optional[str],
-    person_generation: str,
-    duration_seconds: int,
-    generate_audio: Optional[bool],
-    enhance_prompt: bool,
-    sample_count: int,
-    last_frame: torch.Tensor,
-    output_gcs_uri: Optional[str],
-    negative_prompt: Optional[str],
-    seed: Optional[int],
-    retry_count: int,
-    retry_delay: int,
+    **kwargs,
 ) -> List[str]:
     """
-    Generates video from an image input (as a torch.Tensor) using the Veo 2 API.
-
-    Args:
-        client: genai.Client
-        model: model to be used
-        image: The input image as a torch.Tensor (ComfyUI format).
-        image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
-        prompt: The text prompt for video generation.
-        aspect_ratio: The desired aspect ratio of the video.
-        output_resolution: The resolution of the generated video.
-        compression_quality: Compression quality i.e optimized vs lossless.
-        person_generation: Controls whether the model can generate people.
-        duration_seconds: The desired duration of the video in seconds.
-        generate_audio: Flag to generate audio. Only allowed in Veo3.
-        enhance_prompt: Whether to enhance the prompt automatically.
-        sample_count: The number of video samples to generate.
-        last_frame: last frame for interpolation.
-        output_gcs_uri: output gcs url to store the video. Required with lossless output.
-        negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-        seed: An optional seed for reproducible video generation.
-        retry_count: number of retries
-        retry_delay: time between each retry_count
-
-    Returns:
-        A list of file paths to the generated videos.
-
-    Raises:
-        ValueError: If input parameters are invalid (e.g., empty prompt, unsupported image format, out-of-range duration/sample_count).
-        RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+    Generates video from an image input (as a torch.Tensor) using the Veo API.
     """
     input_image_format_upper = image_format.upper()
     mime_type: str
@@ -589,334 +344,84 @@ def generate_video_from_image(
     elif input_image_format_upper == "MP4":
         mime_type = "image/mp4"
     else:
-        raise ValueError(
+        raise exceptions.ConfigurationError(
             f"Unsupported image format for Base64 encoding: {image_format}"
         )
 
     veo_image_input_str = tensor_to_pil_to_base64(image, input_image_format_upper)
     if not veo_image_input_str:
-        raise RuntimeError(
+        raise exceptions.FileProcessingError(
             "Failed to prepare image input bytes for Veo API. Bytes are empty."
         )
 
-    if compression_quality == "lossless" and not output_gcs_uri:
-        raise RuntimeError(
-            "output_gcs_uri must be passed for lossless video generation."
+    last_frame = None
+    if kwargs.get("last_frame") is not None:
+        last_frame_str = tensor_to_pil_to_base64(
+            kwargs["last_frame"], input_image_format_upper
         )
+        last_frame = Image(image_bytes=last_frame_str, mime_type=mime_type)
 
-    if compression_quality == "lossless":
-        compression_quality_type = types.VideoCompressionQuality.LOSSLESS
-    elif compression_quality == "optimized":
-        compression_quality_type = types.VideoCompressionQuality.OPTIMIZED
-    else:
-        raise ValueError(f"Incorrect compression_quality type {compression_quality}")
-
-    temp_config = {
-        "aspect_ratio": aspect_ratio,
-        "person_generation": person_generation,
-        "compression_quality": compression_quality_type,
-        "duration_seconds": duration_seconds,
-        "enhance_prompt": enhance_prompt,
-        "number_of_videos": sample_count,
-        "negative_prompt": negative_prompt,
-        "seed": seed,
-    }
-
-    if output_gcs_uri:
-        valid_bucket, validation_message = validate_gcs_uri_and_image(
-            output_gcs_uri, False
-        )
-        if valid_bucket:
-            print(validation_message)
-        else:
-            raise ValueError(validation_message)
-        temp_config["output_gcs_uri"] = output_gcs_uri
-
-    if re.search(
-        r"veo-3\.0",
-        model.value if isinstance(model, object) and hasattr(model, "value") else model,
-    ):
-        if generate_audio:
-            temp_config["generate_audio"] = generate_audio
-        else:
-            temp_config["generate_audio"] = False
-        temp_config["resolution"] = output_resolution
-
-    if re.search(
-        r"veo-2\.0",
-        model.value if isinstance(model, object) and hasattr(model, "value") else model,
-    ):
-        if last_frame is not None:
-            last_frame_str = tensor_to_pil_to_base64(
-                last_frame, input_image_format_upper
-            )
-            temp_config["last_frame"] = Image(
-                image_bytes=last_frame_str, mime_type=mime_type
-            )
-
-    config = GenerateVideosConfig(**temp_config)
+    config = _build_video_config(model=model, last_frame=last_frame, **kwargs)
     print(f"Config for image-to-video generation: {config}")
-    retries = 0
-    while retries <= retry_count:
-        try:
-            print(
-                f"Sending request to Veo API for image-to-video generation with prompt: '{prompt[:80]}...'"
-            )
 
-            operation = client.models.generate_videos(
-                model=model,
-                image=Image(image_bytes=veo_image_input_str, mime_type=mime_type),
-                prompt=prompt,
-                config=config,
-            )
-            print(f"Initial operation response object type: {type(operation)}")
+    print(
+        f"Sending request to Veo API for image-to-video generation with prompt: '{prompt[:80]}...'"
+    )
 
-            operation_count = 0
-            while not operation.done:
-                time.sleep(20)
-                operation = client.operations.get(operation)
-                operation_count += 1
-                print(f"Polling operation (attempt {operation_count})...")
+    try:
+        operation = client.models.generate_videos(
+            model=model,
+            image=Image(image_bytes=veo_image_input_str, mime_type=mime_type),
+            prompt=prompt,
+            config=config,
+        )
+    except Exception as e:
+        print(f"An unexpected error occurred during video generation: {e}")
+        raise exceptions.APICallError(f"Video generation failed: {e}") from e
 
-            print(f"Operation completed with status: {operation.done}")
-            return process_video_response(operation)
-
-        except genai_errors.ClientError as e:
-            if e.code == StatusCode.RESOURCE_EXHAUSTED:
-                retries += 1
-                if retries <= retry_count:
-                    retry_wait = retry_delay
-                    print(
-                        f"API Quota/Resource Exhausted (attempt {retries}/{retry_count}) - "
-                        f"Code: {e.code.name}. Waiting {retry_wait:.1f} seconds before retry. Error: {e.details}"
-                    )
-                    time.sleep(retry_wait)
-                else:
-                    raise RuntimeError(
-                        f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
-                    )
-            elif e.code == StatusCode.INVALID_ARGUMENT:
-                raise ValueError(
-                    f"Invalid API argument supplied. Check your prompt and parameters. Error: {e.details}"
-                )
-            elif (
-                e.code == StatusCode.PERMISSION_DENIED
-                or e.code == StatusCode.UNAUTHENTICATED
-                or e.code == StatusCode.FORBIDDEN
-            ):
-                raise RuntimeError(
-                    f"Permission denied. Check your GCP service account permissions for Veo API. Error: {e.details}"
-                )
-            else:
-                # Catch any other ClientError that's not specifically handled (e.g., Bad Request, Conflict)
-                raise RuntimeError(
-                    f"Unexpected Veo API Client Error (Code: {e.code.name}). Error: {e.details}"
-                )
-
-        except genai_errors.ServerError as e:
-            if e.code == StatusCode.UNAVAILABLE:
-                retries += 1
-                if retries <= retry_count:
-                    retry_wait = retry_delay
-                    print(
-                        f"API Service Unavailable (attempt {retries}/{retry_count}) - "
-                        f"Code: {e.code.name}. Waiting {retry_wait:.1f} seconds before retry. Error: {e.details}"
-                    )
-                    time.sleep(retry_wait)
-                else:
-                    raise RuntimeError(
-                        f"API Service Unavailable after {retries} attempts. Giving up. Last error: {e.details}"
-                    )
-            elif e.code == StatusCode.DEADLINE_EXCEEDED:
-                raise RuntimeError(
-                    f"API request timed out (Deadline Exceeded). Error: {e.details}"
-                )
-            else:
-                # Catch any other ServerError types
-                raise RuntimeError(
-                    f"Unexpected Veo API Server Error (Code: {e.code.name}). Error: {e.details}"
-                )
-
-        except Exception as e:
-            # Catch any other unexpected non-API specific errors.
-            raise RuntimeError(
-                f"An unexpected non-API error occurred during video generation: {e}"
-            )
-    raise RuntimeError("Video generation failed with an unknown error path.")
+    return _poll_for_video_completion(client, operation)
 
 
+@retry_on_api_error()
 def generate_video_from_text(
-    client: genai.Client,
-    model: str,
-    prompt: str,
-    aspect_ratio: str,
-    output_resolution: Optional[str],
-    compression_quality: Optional[str],
-    person_generation: str,
-    duration_seconds: int,
-    generate_audio: Optional[bool],
-    enhance_prompt: bool,
-    sample_count: int,
-    output_gcs_uri: Optional[str],
-    negative_prompt: Optional[str],
-    seed: Optional[int],
-    retry_count: int,
-    retry_delay: int,
+    client: genai.Client, model: str, prompt: str, **kwargs
 ) -> List[str]:
-    """
-    Generates video from a text prompt using the Veo API.
-
-    Args:
-        client: genai.Client
-        model: model to be used
-        prompt: The text prompt for video generation.
-        aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
-        output_resolution: The resolution of the generated video.
-        compression_quality: Compression quality i.e optimized vs lossless.
-        person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
-        duration_seconds: The desired duration of the video in seconds.
-        generate_audio: Flag to generate audio. Only allowed in Veo3.
-        enhance_prompt: Whether to enhance the prompt automatically.
-        sample_count: The number of video samples to generate.
-        output_gcs_uri: output gcs url to store the video. Required with lossless output.
-        negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-        seed: An optional seed for reproducible video generation.
-        retry_count: number of retries
-        retry_delay: time between each retry_count
-
-    Returns:
-        A list of file paths to the generated videos.
-
-    Raises:
-        ValueError: If input parameters are invalid (e.g., empty prompt, out-of-range duration/sample_count).
-        RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
-    """
-    if compression_quality == "lossless" and not output_gcs_uri:
-        raise RuntimeError(
-            "output_gcs_uri must be passed for lossless video generation."
-        )
-
-    if compression_quality == "lossless":
-        compression_quality_type = types.VideoCompressionQuality.LOSSLESS
-    elif compression_quality == "optimized":
-        compression_quality_type = types.VideoCompressionQuality.OPTIMIZED
-    else:
-        raise ValueError(f"Incorrect compression_quality type {compression_quality}")
-
-    temp_config = {
-        "aspect_ratio": aspect_ratio,
-        "person_generation": person_generation,
-        "compression_quality": compression_quality_type,
-        "duration_seconds": duration_seconds,
-        "enhance_prompt": enhance_prompt,
-        "number_of_videos": sample_count,
-        "negative_prompt": negative_prompt,
-        "seed": seed,
-    }
-
-    if output_gcs_uri:
-        valid_bucket, validation_message = validate_gcs_uri_and_image(
-            output_gcs_uri, False
-        )
-        if valid_bucket:
-            print(validation_message)
-        else:
-            raise ValueError(validation_message)
-        temp_config["output_gcs_uri"] = output_gcs_uri
-
-    if re.search(
-        r"veo-3\.0",
-        model.value if isinstance(model, object) and hasattr(model, "value") else model,
-    ):
-        if generate_audio:
-            temp_config["generate_audio"] = generate_audio
-        else:
-            temp_config["generate_audio"] = False
-        temp_config["resolution"] = output_resolution
-
-    config = GenerateVideosConfig(**temp_config)
+    """Generates video from a text prompt using the Veo API."""
+    config = _build_video_config(model=model, **kwargs)
     print(f"Config for text-to-video generation: {config}")
 
-    retries = 0
-    while retries <= retry_count:
+    print("Sending request to Veo API for text-to-video generation...")
+    try:
+        operation = client.models.generate_videos(
+            model=model, prompt=prompt, config=config
+        )
+    except Exception as e:
+        print(f"An unexpected error occurred during video generation: {e}")
+        raise exceptions.APICallError(f"Video generation failed: {e}") from e
+
+    return _poll_for_video_completion(client, operation)
+
+
+def _poll_for_video_completion(client: genai.Client, operation: Any) -> List[str]:
+    """Polls the video generation operation until completion."""
+    print(f"Initial operation response object type: {type(operation)}")
+    operation_count = 0
+    while not operation.done:
+        time.sleep(20)  # Polling interval
         try:
-            print("Sending request to Veo API for text-to-video generation...")
-            operation = client.models.generate_videos(
-                model=model, prompt=prompt, config=config
-            )
-            print(f"Initial operation response object type: {type(operation)}")
-
-            operation_count = 0
-            while not operation.done:
-                time.sleep(20)  # Polling interval
-                operation = client.operations.get(operation)
-                operation_count += 1
-                print(f"Polling operation (attempt {operation_count})...")
-
-            print(f"Operation completed with status: {operation.done}")
-            return process_video_response(operation)
-
-        except genai_errors.ClientError as e:
-            if e.code == StatusCode.RESOURCE_EXHAUSTED:
-                retries += 1
-                if retries <= retry_count:
-                    retry_wait = retry_delay
-                    print(
-                        f"API Quota/Resource Exhausted (attempt {retries}/{retry_count}) - "
-                        f"Code: {e.code.name}. Waiting {retry_wait:.1f} seconds before retry. Error: {e.details}"
-                    )
-                    time.sleep(retry_wait)
-                else:
-                    raise RuntimeError(
-                        f"API Quota/Resource Exhausted after {retries} attempts for {model} (Code: {e.code.name}). "
-                    )
-            elif e.code == StatusCode.INVALID_ARGUMENT:
-                raise ValueError(
-                    f"Invalid API argument supplied. Check your prompt and parameters. Error: {e.details}"
-                )
-            elif (
-                e.code == StatusCode.PERMISSION_DENIED
-                or e.code == StatusCode.UNAUTHENTICATED
-                or e.code == StatusCode.FORBIDDEN
-            ):
-                raise RuntimeError(
-                    f"Permission denied. Check your GCP service account permissions for Veo API. Error: {e.details}"
-                )
-            else:
-                # Catch any other ClientError that's not specifically handled (e.g., Bad Request, Conflict)
-                raise RuntimeError(
-                    f"Unexpected Veo API Client Error (Code: {e.code.name}). Error: {e.details}"
-                )
-
-        except genai_errors.ServerError as e:
-            if e.code == StatusCode.UNAVAILABLE:
-                retries += 1
-                if retries <= retry_count:
-                    retry_wait = retry_delay
-                    print(
-                        f"API Service Unavailable (attempt {retries}/{retry_count}) - "
-                        f"Code: {e.code.name}. Waiting {retry_wait:.1f} seconds before retry. Error: {e.details}"
-                    )
-                    time.sleep(retry_wait)
-                else:
-                    raise RuntimeError(
-                        f"API Service Unavailable after {retries} attempts. Giving up. Last error: {e.details}"
-                    )
-            elif e.code == StatusCode.DEADLINE_EXCEEDED:
-                raise RuntimeError(
-                    f"API request timed out (Deadline Exceeded). Error: {e.details}"
-                )
-            else:
-                # Catch any other ServerError types
-                raise RuntimeError(
-                    f"Unexpected Veo API Server Error (Code: {e.code.name}). Error: {e.details}"
-                )
-
+            operation = client.operations.get(operation)
         except Exception as e:
-            # Catch any other unexpected non-API specific errors.
-            raise RuntimeError(
-                f"An unexpected non-API error occurred during video generation: {e}"
+            print(
+                f"An unexpected error occurred while polling for video generation status: {e}"
             )
+            raise exceptions.APICallError(
+                f"Polling for video generation status failed: {e}"
+            ) from e
+        operation_count += 1
+        print(f"Polling operation (attempt {operation_count})...")
+
+    print(f"Operation completed with status: {operation.done}")
+    return process_video_response(operation)
 
 
 def media_file_to_genai_part(file_path: str, mime_type: str) -> types.Part:
@@ -936,7 +441,7 @@ def media_file_to_genai_part(file_path: str, mime_type: str) -> types.Part:
 
     Raises:
         FileNotFoundError: If the specified `file_path` does not exist.
-        IOError: If an error occurs during the file reading or conversion process.
+        exceptions.FileProcessingError: If an error occurs during the file reading or conversion process.
     """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Media file not found: {file_path}")
@@ -948,7 +453,7 @@ def media_file_to_genai_part(file_path: str, mime_type: str) -> types.Part:
         return types.Part.from_bytes(data=media_bytes, mime_type=mime_type)
     except Exception as e:
         # Pass the original exception up, but with more context
-        raise IOError(
+        raise exceptions.FileProcessingError(
             f"Error converting media file {file_path} (MIME: {mime_type}) to genai.types.Part: {e}"
         )
 
@@ -991,7 +496,7 @@ def process_video_response(operation: Any) -> List[str]:
         A list of file paths to the saved video files.
 
     Raises:
-        RuntimeError: If no video data is found in the API response or if saving fails.
+        exceptions.APICallError: If no video data is found in the API response or if saving fails.
     """
     # store the output in temp directory. The video will be previewed using Preview custom node custom node and saved in output dir if needed
     output_dir = folder_paths.get_temp_directory()
@@ -1041,7 +546,7 @@ def process_video_response(operation: Any) -> List[str]:
                         f"Found single video object via path: {getattr(get_data_func, '__qualname__', 'lambda')}"
                     )
                     break
-        except AttributeError:
+        except (AttributeError, KeyError, IndexError, TypeError):
             pass
         except Exception as e:
             print(
@@ -1055,7 +560,7 @@ def process_video_response(operation: Any) -> List[str]:
         )
         print(error_msg)
         print(f"Full operation object at time of video extraction failure: {operation}")
-        raise RuntimeError(error_msg)
+        raise exceptions.APICallError(error_msg)
 
     print(f"Found {len(videos_data)} videos to process.")
     for n, video_item in enumerate(videos_data):
@@ -1095,7 +600,7 @@ def process_video_response(operation: Any) -> List[str]:
             print(f"Error saving video {n} to {video_path}: {e}")
 
     if not video_paths:
-        raise RuntimeError(
+        raise exceptions.APICallError(
             "Failed to save any videos despite successful generation response."
         )
 
@@ -1196,7 +701,7 @@ def validate_gcs_uri_and_image(
         return False, f"An unexpected error occurred during GCS validation: {e}"
 
 
-def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
+def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> str:
     """Converts a PyTorch tensor or PIL Image into PNG-encoded bytes.
 
     This function processes an input image, which can be either a PyTorch tensor
@@ -1230,5 +735,6 @@ def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
         image_base64 = base64.b64encode(image_input_bytes).decode("utf-8")
         return image_base64
     except Exception as e:
-        print(f"Cant convert the image to base64 {e}")
-        return None
+        raise exceptions.FileProcessingError(
+            f"Failed to convert tensor to base64 image: {e}"
+        )

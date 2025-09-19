@@ -19,12 +19,11 @@ from typing import List, Optional
 
 import torch
 from google.api_core import exceptions as api_core_exceptions
-from google.genai import types
 from google.genai import errors as genai_errors
+from google.genai import types
 from PIL import Image
 
-from . import exceptions
-from . import utils
+from . import exceptions, utils
 from .base_api import GoogleGenAIBaseAPI
 from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
 
@@ -139,7 +138,6 @@ class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
                 contents.append(
                     types.Part.from_bytes(data=image_to_b64, mime_type="image/png")
                 )
-
         try:
             response = self.client.models.generate_content(
                 model=model, contents=contents, config=generate_content_config
@@ -147,7 +145,6 @@ class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
         except (genai_errors.APIError, api_core_exceptions.GoogleAPICallError) as e:
             print(f"A GenAI API error occurred during image generation: {e}")
             raise exceptions.APICallError(f"Image generation failed: {e}") from e
-
         for part in response.candidates[0].content.parts:
             if part.text is not None:
                 print(part.text)

@@ -64,19 +64,6 @@ def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
         )
 
 
-def pil_images_to_batched_tensor(pil_images: List[PIL_Image.Image]) -> torch.Tensor:
-    """Converts a list of PIL images to a batched PyTorch tensor."""
-    output_tensors: List[torch.Tensor] = []
-    for img in pil_images:
-        img = img.convert("RGB")
-        img_np = np.array(img).astype(np.float32) / 255.0
-        img_tensor = torch.from_numpy(img_np)[
-            None,
-        ]
-        output_tensors.append(img_tensor)
-    return torch.cat(output_tensors, dim=0)
-
-
 def download_gcsuri(gcsuri: str, destination: str) -> bool:
     """
     Downloads a file from a Google Cloud Storage (GCS) URI to a specified local destination path.
@@ -125,89 +112,11 @@ def download_gcsuri(gcsuri: str, destination: str) -> bool:
         print(f"Successfully downloaded '{gcsuri}' to '{destination}'")
         return True
 
-    except api_core_exceptions.GoogleAPICallError as e:
-        if e.code == StatusCode.NOT_FOUND:
-            raise exceptions.FileProcessingError(
-                f"GCS object not found: {blob_name}"
-            ) from e
-        elif e.code == StatusCode.PERMISSION_DENIED:
-            raise exceptions.APICallError(
-                f"Permission denied for GCS object: {blob_name}"
-            ) from e
-        else:
-            raise exceptions.APICallError(f"A GCS API error occurred: {e}") from e
     except Exception as e:
-        raise exceptions.FileProcessingError(
-            f"An unexpected error occurred downloading '{gcsuri}': {e}"
-        )
+        raise exceptions.FileProcessingError(f"Error downloading '{gcsuri}': {e}")
 
 
 from .retry import retry_on_api_error
-
-
-def _build_video_config(
-    model: str,
-    aspect_ratio: str,
-    output_resolution: Optional[str],
-    compression_quality: Optional[str],
-    person_generation: str,
-    duration_seconds: int,
-    generate_audio: Optional[bool],
-    enhance_prompt: bool,
-    sample_count: int,
-    output_gcs_uri: Optional[str],
-    negative_prompt: Optional[str],
-    seed: Optional[int],
-    last_frame: Optional[Image] = None,
-) -> GenerateVideosConfig:
-    """Builds the GenerateVideosConfig object from the given parameters."""
-    if compression_quality == "lossless" and not output_gcs_uri:
-        raise exceptions.ConfigurationError(
-            "output_gcs_uri must be passed for lossless video generation."
-        )
-
-    if compression_quality == "lossless":
-        compression_quality_type = types.VideoCompressionQuality.LOSSLESS
-    elif compression_quality == "optimized":
-        compression_quality_type = types.VideoCompressionQuality.OPTIMIZED
-    else:
-        raise exceptions.ConfigurationError(
-            f"Incorrect compression_quality type {compression_quality}"
-        )
-
-    temp_config = {
-        "aspect_ratio": aspect_ratio,
-        "person_generation": person_generation,
-        "compression_quality": compression_quality_type,
-        "duration_seconds": duration_seconds,
-        "enhance_prompt": enhance_prompt,
-        "number_of_videos": sample_count,
-        "negative_prompt": negative_prompt,
-        "seed": seed,
-    }
-
-    if output_gcs_uri:
-        valid_bucket, validation_message = validate_gcs_uri_and_image(
-            output_gcs_uri, False
-        )
-        if not valid_bucket:
-            raise exceptions.ConfigurationError(validation_message)
-        temp_config["output_gcs_uri"] = output_gcs_uri
-
-    if re.search(
-        r"veo-3\.0",
-        model.value if isinstance(model, object) and hasattr(model, "value") else model,
-    ):
-        if generate_audio:
-            temp_config["generate_audio"] = generate_audio
-        else:
-            temp_config["generate_audio"] = False
-        temp_config["resolution"] = output_resolution
-
-    if last_frame:
-        temp_config["last_frame"] = last_frame
-
-    return GenerateVideosConfig(**temp_config)
 
 
 @retry_on_api_error()
@@ -269,8 +178,8 @@ def generate_image_from_text(
         response = client.models.generate_images(
             model=model, prompt=prompt, config=config
         )
-    except (genai_errors.APIError, api_core_exceptions.GoogleAPICallError) as e:
-        print(f"A GenAI API error occurred during image generation: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred during image generation: {e}")
         raise exceptions.APICallError(f"Image generation failed: {e}") from e
 
     if not response.generated_images:
@@ -295,16 +204,104 @@ def generate_video_from_gcsuri_image(
     gcsuri: str,
     image_format: str,
     prompt: str,
-    **kwargs,
+    aspect_ratio: str,
+    output_resolution: Optional[str],
+    compression_quality: Optional[str],
+    person_generation: str,
+    duration_seconds: int,
+    generate_audio: Optional[bool],
+    enhance_prompt: bool,
+    sample_count: int,
+    last_frame_gcsuri: Optional[str],
+    output_gcs_uri: Optional[str],
+    negative_prompt: Optional[str],
+    seed: Optional[int],
 ) -> List[str]:
     """
-    Generates video from a Google Cloud Storage (GCS) image URI using the Veo API.
-    """
-    last_frame = None
-    if kwargs.get("last_frame_gcsuri"):
-        last_frame = Image(gcs_uri=kwargs["last_frame_gcsuri"], mime_type=image_format)
+    Generates video from a Google Cloud Storage (GCS) image URI using the Veo 2 API.
 
-    config = _build_video_config(model=model, last_frame=last_frame, **kwargs)
+    Args:
+        client: genai.Client
+        model: model to be used
+        gcsuri: The GCS URI of the input image (e.g., "gs://my-bucket/path/to/image.jpg").
+        image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
+        prompt: The text prompt for video generation.
+        aspect_ratio: The desired aspect ratio of the video.
+        output_resolution: The resolution of the generated video.
+        compression_quality: Compression quality i.e optimized vs lossless.
+        person_generation: Controls whether the model can generate people.
+        duration_seconds: The desired duration of the video in seconds.
+        generate_audio: Flag to generate audio. Only allowed in Veo3.
+        enhance_prompt: Whether to enhance the prompt automatically.
+        sample_count: The number of video samples to generate.
+        last_frame_gcsuri: gcsuri of the last frame image for interpolation.
+        output_gcs_uri: output gcs url to store the video. Required with lossless output.
+        negative_prompt: An optional prompt to guide the model to avoid generating certain things.
+        seed: An optional seed for reproducible video generation.
+
+    Returns:
+        A list of file paths to the generated videos.
+
+    Raises:
+        exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, unsupported image format,
+                        invalid GCS URI, or if the GCS object is not a valid image).
+        exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
+    """
+    if compression_quality == "lossless" and not output_gcs_uri:
+        raise exceptions.ConfigurationError(
+            "output_gcs_uri must be passed for lossless video generation."
+        )
+
+    if compression_quality == "lossless":
+        compression_quality_type = types.VideoCompressionQuality.LOSSLESS
+    elif compression_quality == "optimized":
+        compression_quality_type = types.VideoCompressionQuality.OPTIMIZED
+    else:
+        raise exceptions.ConfigurationError(
+            f"Incorrect compression_quality type {compression_quality}"
+        )
+
+    temp_config = {
+        "aspect_ratio": aspect_ratio,
+        "person_generation": person_generation,
+        "compression_quality": compression_quality_type,
+        "duration_seconds": duration_seconds,
+        "enhance_prompt": enhance_prompt,
+        "number_of_videos": sample_count,
+        "negative_prompt": negative_prompt,
+        "seed": seed,
+    }
+
+    if output_gcs_uri:
+        valid_bucket, validation_message = validate_gcs_uri_and_image(
+            output_gcs_uri, False
+        )
+        if valid_bucket:
+            print(validation_message)
+        else:
+            raise exceptions.ConfigurationError(validation_message)
+        temp_config["output_gcs_uri"] = output_gcs_uri
+
+    if re.search(
+        r"veo-3\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
+        if generate_audio:
+            temp_config["generate_audio"] = generate_audio
+        else:
+            temp_config["generate_audio"] = False
+        temp_config["resolution"] = output_resolution
+
+    if re.search(
+        r"veo-2\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
+        if last_frame_gcsuri:
+            temp_config["last_frame"] = Image(
+                gcs_uri=last_frame_gcsuri, mime_type=image_format
+            )
+
+    config = GenerateVideosConfig(**temp_config)
     print(f"Config for image-to-video generation: {config}")
 
     print("Sending request to Veo API for image-to-video generation")
@@ -318,8 +315,26 @@ def generate_video_from_gcsuri_image(
     except Exception as e:
         print(f"An unexpected error occurred during video generation: {e}")
         raise exceptions.APICallError(f"Video generation failed: {e}") from e
+    print(f"Initial operation response object type: {type(operation)}")
 
-    return _poll_for_video_completion(client, operation)
+    operation_count = 0
+    while not operation.done:
+        time.sleep(20)
+        try:
+            operation = client.operations.get(operation)
+        except Exception as e:
+            print(
+                f"An unexpected error occurred while polling for video generation status: {e}"
+            )
+            raise exceptions.APICallError(
+                f"Polling for video generation status failed: {e}"
+            ) from e
+        operation_count += 1
+        print(f"Polling operation (attempt {operation_count})...")
+
+    print(f"Operation completed with status: {operation.done}")
+
+    return process_video_response(operation)
 
 
 @retry_on_api_error()
@@ -329,10 +344,47 @@ def generate_video_from_image(
     image: torch.Tensor,
     image_format: str,
     prompt: str,
-    **kwargs,
+    aspect_ratio: str,
+    output_resolution: Optional[str],
+    compression_quality: Optional[str],
+    person_generation: str,
+    duration_seconds: int,
+    generate_audio: Optional[bool],
+    enhance_prompt: bool,
+    sample_count: int,
+    last_frame: torch.Tensor,
+    output_gcs_uri: Optional[str],
+    negative_prompt: Optional[str],
+    seed: Optional[int],
 ) -> List[str]:
     """
-    Generates video from an image input (as a torch.Tensor) using the Veo API.
+    Generates video from an image input (as a torch.Tensor) using the Veo 2 API.
+
+    Args:
+        client: genai.Client
+        model: model to be used
+        image: The input image as a torch.Tensor (ComfyUI format).
+        image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
+        prompt: The text prompt for video generation.
+        aspect_ratio: The desired aspect ratio of the video.
+        output_resolution: The resolution of the generated video.
+        compression_quality: Compression quality i.e optimized vs lossless.
+        person_generation: Controls whether the model can generate people.
+        duration_seconds: The desired duration of the video in seconds.
+        generate_audio: Flag to generate audio. Only allowed in Veo3.
+        enhance_prompt: Whether to enhance the prompt automatically.
+        sample_count: The number of video samples to generate.
+        last_frame: last frame for interpolation.
+        output_gcs_uri: output gcs url to store the video. Required with lossless output.
+        negative_prompt: An optional prompt to guide the model to avoid generating certain things.
+        seed: An optional seed for reproducible video generation.
+
+    Returns:
+        A list of file paths to the generated videos.
+
+    Raises:
+        exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, unsupported image format, out-of-range duration/sample_count).
+        exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
     """
     input_image_format_upper = image_format.upper()
     mime_type: str
@@ -354,14 +406,64 @@ def generate_video_from_image(
             "Failed to prepare image input bytes for Veo API. Bytes are empty."
         )
 
-    last_frame = None
-    if kwargs.get("last_frame") is not None:
-        last_frame_str = tensor_to_pil_to_base64(
-            kwargs["last_frame"], input_image_format_upper
+    if compression_quality == "lossless" and not output_gcs_uri:
+        raise exceptions.ConfigurationError(
+            "output_gcs_uri must be passed for lossless video generation."
         )
-        last_frame = Image(image_bytes=last_frame_str, mime_type=mime_type)
 
-    config = _build_video_config(model=model, last_frame=last_frame, **kwargs)
+    if compression_quality == "lossless":
+        compression_quality_type = types.VideoCompressionQuality.LOSSLESS
+    elif compression_quality == "optimized":
+        compression_quality_type = types.VideoCompressionQuality.OPTIMIZED
+    else:
+        raise exceptions.ConfigurationError(
+            f"Incorrect compression_quality type {compression_quality}"
+        )
+
+    temp_config = {
+        "aspect_ratio": aspect_ratio,
+        "person_generation": person_generation,
+        "compression_quality": compression_quality_type,
+        "duration_seconds": duration_seconds,
+        "enhance_prompt": enhance_prompt,
+        "number_of_videos": sample_count,
+        "negative_prompt": negative_prompt,
+        "seed": seed,
+    }
+
+    if output_gcs_uri:
+        valid_bucket, validation_message = validate_gcs_uri_and_image(
+            output_gcs_uri, False
+        )
+        if valid_bucket:
+            print(validation_message)
+        else:
+            raise exceptions.ConfigurationError(validation_message)
+        temp_config["output_gcs_uri"] = output_gcs_uri
+
+    if re.search(
+        r"veo-3\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
+        if generate_audio:
+            temp_config["generate_audio"] = generate_audio
+        else:
+            temp_config["generate_audio"] = False
+        temp_config["resolution"] = output_resolution
+
+    if re.search(
+        r"veo-2\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
+        if last_frame is not None:
+            last_frame_str = tensor_to_pil_to_base64(
+                last_frame, input_image_format_upper
+            )
+            temp_config["last_frame"] = Image(
+                image_bytes=last_frame_str, mime_type=mime_type
+            )
+
+    config = GenerateVideosConfig(**temp_config)
     print(f"Config for image-to-video generation: {config}")
 
     print(
@@ -378,16 +480,116 @@ def generate_video_from_image(
     except Exception as e:
         print(f"An unexpected error occurred during video generation: {e}")
         raise exceptions.APICallError(f"Video generation failed: {e}") from e
+    print(f"Initial operation response object type: {type(operation)}")
 
-    return _poll_for_video_completion(client, operation)
+    operation_count = 0
+    while not operation.done:
+        time.sleep(20)
+        try:
+            operation = client.operations.get(operation)
+        except Exception as e:
+            print(
+                f"An unexpected error occurred while polling for video generation status: {e}"
+            )
+            raise exceptions.APICallError(
+                f"Polling for video generation status failed: {e}"
+            ) from e
+        operation_count += 1
+        print(f"Polling operation (attempt {operation_count})...")
+
+    print(f"Operation completed with status: {operation.done}")
+    return process_video_response(operation)
 
 
 @retry_on_api_error()
 def generate_video_from_text(
-    client: genai.Client, model: str, prompt: str, **kwargs
+    client: genai.Client,
+    model: str,
+    prompt: str,
+    aspect_ratio: str,
+    output_resolution: Optional[str],
+    compression_quality: Optional[str],
+    person_generation: str,
+    duration_seconds: int,
+    generate_audio: Optional[bool],
+    enhance_prompt: bool,
+    sample_count: int,
+    output_gcs_uri: Optional[str],
+    negative_prompt: Optional[str],
+    seed: Optional[int],
 ) -> List[str]:
-    """Generates video from a text prompt using the Veo API."""
-    config = _build_video_config(model=model, **kwargs)
+    """
+    Generates video from a text prompt using the Veo API.
+
+    Args:
+        client: genai.Client
+        model: model to be used
+        prompt: The text prompt for video generation.
+        aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
+        output_resolution: The resolution of the generated video.
+        compression_quality: Compression quality i.e optimized vs lossless.
+        person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
+        duration_seconds: The desired duration of the video in seconds.
+        generate_audio: Flag to generate audio. Only allowed in Veo3.
+        enhance_prompt: Whether to enhance the prompt automatically.
+        sample_count: The number of video samples to generate.
+        output_gcs_uri: output gcs url to store the video. Required with lossless output.
+        negative_prompt: An optional prompt to guide the model to avoid generating certain things.
+        seed: An optional seed for reproducible video generation.
+
+    Returns:
+        A list of file paths to the generated videos.
+
+    Raises:
+        exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, out-of-range duration/sample_count).
+        exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
+    """
+    if compression_quality == "lossless" and not output_gcs_uri:
+        raise exceptions.ConfigurationError(
+            "output_gcs_uri must be passed for lossless video generation."
+        )
+
+    if compression_quality == "lossless":
+        compression_quality_type = types.VideoCompressionQuality.LOSSLESS
+    elif compression_quality == "optimized":
+        compression_quality_type = types.VideoCompressionQuality.OPTIMIZED
+    else:
+        raise exceptions.ConfigurationError(
+            f"Incorrect compression_quality type {compression_quality}"
+        )
+
+    temp_config = {
+        "aspect_ratio": aspect_ratio,
+        "person_generation": person_generation,
+        "compression_quality": compression_quality_type,
+        "duration_seconds": duration_seconds,
+        "enhance_prompt": enhance_prompt,
+        "number_of_videos": sample_count,
+        "negative_prompt": negative_prompt,
+        "seed": seed,
+    }
+
+    if output_gcs_uri:
+        valid_bucket, validation_message = validate_gcs_uri_and_image(
+            output_gcs_uri, False
+        )
+        if valid_bucket:
+            print(validation_message)
+        else:
+            raise exceptions.ConfigurationError(validation_message)
+        temp_config["output_gcs_uri"] = output_gcs_uri
+
+    if re.search(
+        r"veo-3\.0",
+        model.value if isinstance(model, object) and hasattr(model, "value") else model,
+    ):
+        if generate_audio:
+            temp_config["generate_audio"] = generate_audio
+        else:
+            temp_config["generate_audio"] = False
+        temp_config["resolution"] = output_resolution
+
+    config = GenerateVideosConfig(**temp_config)
     print(f"Config for text-to-video generation: {config}")
 
     print("Sending request to Veo API for text-to-video generation...")
@@ -398,13 +600,8 @@ def generate_video_from_text(
     except Exception as e:
         print(f"An unexpected error occurred during video generation: {e}")
         raise exceptions.APICallError(f"Video generation failed: {e}") from e
-
-    return _poll_for_video_completion(client, operation)
-
-
-def _poll_for_video_completion(client: genai.Client, operation: Any) -> List[str]:
-    """Polls the video generation operation until completion."""
     print(f"Initial operation response object type: {type(operation)}")
+
     operation_count = 0
     while not operation.done:
         time.sleep(20)  # Polling interval
@@ -546,7 +743,7 @@ def process_video_response(operation: Any) -> List[str]:
                         f"Found single video object via path: {getattr(get_data_func, '__qualname__', 'lambda')}"
                     )
                     break
-        except (AttributeError, KeyError, IndexError, TypeError):
+        except AttributeError:
             pass
         except Exception as e:
             print(
@@ -701,7 +898,7 @@ def validate_gcs_uri_and_image(
         return False, f"An unexpected error occurred during GCS validation: {e}"
 
 
-def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> str:
+def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
     """Converts a PyTorch tensor or PIL Image into PNG-encoded bytes.
 
     This function processes an input image, which can be either a PyTorch tensor

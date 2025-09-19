@@ -20,7 +20,7 @@ import numpy as np
 import torch
 from google.genai import types
 
-from . import exceptions, utils
+from . import exceptions
 from .constants import MAX_SEED
 from .imagen3_api import Imagen3API
 
@@ -173,7 +173,17 @@ class Imagen3TextToImageNode:
                     "Imagen API failed to generate images or generated no valid images."
                 )
 
-            return (utils.pil_images_to_batched_tensor(pil_images),)
+            output_tensors: List[torch.Tensor] = []
+            for img in pil_images:
+                img = img.convert("RGB")
+                img_np = np.array(img).astype(np.float32) / 255.0
+                img_tensor = torch.from_numpy(img_np)[
+                    None,
+                ]
+                output_tensors.append(img_tensor)
+
+            batched_images_tensor = torch.cat(output_tensors, dim=0)
+            return (batched_images_tensor,)
         except (
             exceptions.APICallError,
             exceptions.ConfigurationError,

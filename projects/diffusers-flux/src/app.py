@@ -34,6 +34,7 @@ try:
         f"/gcs/{MODEL_DIR}",
         torch_dtype=torch.float16,
         local_files_only=True,
+        device_map="auto"
     )
     pipeline.enable_model_cpu_offload()
 except Exception as e:
@@ -50,12 +51,15 @@ class InferenceRequest(BaseModel):
 
 @app.post("/generate")
 async def generate_image(request: InferenceRequest):
-    generated_images = pipeline(
-        prompt=request.prompt,
-        height=request.height,
-        width=request.width,
-        num_inference_steps=request.num_inference_steps,
-    ).images
+    # This ensures that PyTorch doesn't build a computation graph during inference,
+    # which can save memory and speed up the process.
+    with torch.no_grad():
+        generated_images = pipeline(
+            prompt=request.prompt,
+            height=request.height,
+            width=request.width,
+            num_inference_steps=request.num_inference_steps,
+        ).images
 
     # Take the first image
     image = generated_images[0]

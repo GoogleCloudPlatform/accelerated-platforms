@@ -36,7 +36,6 @@ def retry_on_api_error(
             print("--- DEBUGGING RETRY DECORATOR ---")
             print(f"ResourceExhausted: {type(api_core_exceptions.ResourceExhausted)}")
             print(f"ServiceUnavailable: {type(api_core_exceptions.ServiceUnavailable)}")
-            print(f"ServerError: {type(genai_errors.ServerError)}")
             print(f"InvalidArgument: {type(api_core_exceptions.InvalidArgument)}")
             print(f"PermissionDenied: {type(api_core_exceptions.PermissionDenied)}")
             print(f"DeadlineExceeded: {type(api_core_exceptions.DeadlineExceeded)}")
@@ -50,8 +49,7 @@ def retry_on_api_error(
                     return func(*args, **kwargs)
                 except (
                     api_core_exceptions.ResourceExhausted,
-                    api_core_exceptions.ServiceUnavailable,
-                    genai_errors.ServerError,
+                    api_core_exceptions.ServiceUnavailable
                 ) as e:
                     if retries == 0:
                         raise exceptions.APICallError(

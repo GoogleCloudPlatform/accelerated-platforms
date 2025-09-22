@@ -28,8 +28,7 @@ print("python root:", {python_root})
 if python_root not in sys.path:
     sys.path.insert(0, python_root)
 
-# Mock google.api_core.exceptions and its exceptions
-api_core_exceptions_mock = MagicMock()
+api_core_exceptions_mock = types.ModuleType("google.api_core.exceptions")
 api_core_exceptions_mock.GoogleAPICallError = type(
     "GoogleAPICallError", (Exception,), {}
 )

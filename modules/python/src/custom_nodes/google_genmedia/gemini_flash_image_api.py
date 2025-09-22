@@ -14,21 +14,21 @@
 
 # This is a preview version of Gemini 2.5 Flash Image custom node
 
+from io import BytesIO
 from typing import List, Optional
 
-from google import genai
+import torch
+from google.api_core import exceptions as api_core_exceptions
+from google.genai import errors as genai_errors
 from google.genai import types
 from PIL import Image
-from io import BytesIO
-import torch
 
-from . import utils
-
-from .config import get_gcp_metadata
-from .constants import GeminiFlashImageModel, GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN
+from . import exceptions, utils
+from .base_api import GoogleGenAIBaseAPI
+from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
 
 
-class GeminiFlashImageAPI:
+class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
     """
     A class to interact with the Gemini Flash Image Preview model.
     """
@@ -45,21 +45,8 @@ class GeminiFlashImageAPI:
         Raises:
             ValueError: If GCP Project or region cannot be determined.
         """
-        self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-        )
-        if not self.project_id:
-            raise ValueError("GCP Project is required")
-        if not self.region:
-            raise ValueError("GCP region is required")
-
-        self.client = genai.Client(
-            vertexai=True, project=self.project_id, location=self.region
-        )
-
-        self.retry_count = 3
-        self.retry_delay = 5
+        super().__init__(project_id, region)
+        print(f"GeminiFlashImageAPI initialized for {self.project_id} in {self.region}")
 
     def generate_image(
         self,
@@ -151,11 +138,13 @@ class GeminiFlashImageAPI:
                 contents.append(
                     types.Part.from_bytes(data=image_to_b64, mime_type="image/png")
                 )
-
-        response = self.client.models.generate_content(
-            model=model, contents=contents, config=generate_content_config
-        )
-
+        try:
+            response = self.client.models.generate_content(
+                model=model, contents=contents, config=generate_content_config
+            )
+        except (genai_errors.APIError, api_core_exceptions.GoogleAPICallError) as e:
+            print(f"A GenAI API error occurred during image generation: {e}")
+            raise exceptions.APICallError(f"Image generation failed: {e}") from e
         for part in response.candidates[0].content.parts:
             if part.text is not None:
                 print(part.text)

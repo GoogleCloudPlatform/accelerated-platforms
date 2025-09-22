@@ -19,7 +19,7 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
-from . import utils
+from . import exceptions, utils
 from .config import get_gcp_metadata
 from .constants import (
     AUDIO_MIME_TYPES,
@@ -29,11 +29,14 @@ from .constants import (
     GeminiModel,
     ThresholdOptions,
 )
+from .retry import retry_on_api_error
 
 
 class GeminiNode25:
     def __init__(
-        self, gcp_project_id: Optional[str] = None, gcp_region: Optional[str] = None
+        self,
+        gcp_project_id: Optional[str] = None,
+        gcp_region: Optional[str] = None,
     ):
         """
         Initializes the Gemini client.
@@ -43,7 +46,7 @@ class GeminiNode25:
             gcp_region: The GCP region. If provided, overrides metadata lookup.
 
         Raises:
-            ValueError: If GCP Project or region cannot be determined.
+            exceptions.APIInitializationError: If GCP Project or region cannot be determined.
         """
         self.project_id = gcp_project_id
         self.region = gcp_region
@@ -51,14 +54,18 @@ class GeminiNode25:
         if not self.project_id:
             self.project_id = get_gcp_metadata("project/project-id")
         if not self.region:
-            self.region = "-".join(
-                get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-            )
+            zone = get_gcp_metadata("instance/zone")
+            if zone:
+                self.region = "-".join(zone.split("/")[-1].split("-")[:-1])
 
         if not self.project_id:
-            raise ValueError("GCP Project is required and could not be determined.")
+            raise exceptions.APIInitializationError(
+                "GCP Project is required and could not be determined."
+            )
         if not self.region:
-            raise ValueError("GCP region is required and could not be determined.")
+            raise exceptions.APIInitializationError(
+                "GCP region is required and could not be determined."
+            )
 
         print(f"Project is {self.project_id}, region is {self.region}")
         http_options = genai.types.HttpOptions(
@@ -75,11 +82,12 @@ class GeminiNode25:
                 f"genai.Client initialized for Vertex AI project: {self.project_id}, location: {self.region}"
             )
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize genai.Client for Vertex AI: {e}")
+            raise exceptions.APIInitializationError(
+                f"Failed to initialize genai.Client for Vertex AI: {e}"
+            )
 
     @classmethod
     def INPUT_TYPES(s):
-
         return {
             "required": {
                 "prompt": (
@@ -202,6 +210,17 @@ class GeminiNode25:
     FUNCTION = "generate_content"
     CATEGORY = "Google AI/Gemini"
 
+    @retry_on_api_error()
+    def _generate_content(self, model, contents, config):
+        print(
+            f"Making Gemini API call with the following Model : {model} , config {config}"
+        )
+        return self.client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=config,
+        )
+
     def generate_content(
         self,
         prompt: str,
@@ -281,13 +300,16 @@ class GeminiNode25:
                    is blocked, it will contain a message indicating the reason and safety
                    ratings. If an error occurs, it will contain an error message.
         """
+        if not prompt or not prompt.strip():
+            return ("Error: Prompt cannot be empty.",)
+
         # Re-initialize the client to avoid re-launching the node when the customers
         # provide gcp_project_id and gcp_region first and then remove them to use the defaults.
         try:
             init_project_id = gcp_project_id if gcp_project_id else None
             init_region = gcp_region if gcp_region else None
             self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
             return (
                 f"Error re-initializing Gemini client with provided GCP credentials: {e}",
             )
@@ -385,11 +407,8 @@ class GeminiNode25:
                 system_instruction_parts if system_instruction_parts else None
             )
             # Make the API call
-            print(
-                f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
-            )
-            response = self.client.models.generate_content(
-                model=GeminiModel[model],
+            response = self._generate_content(
+                model=GeminiModel[model].value,
                 contents=contents,
                 config=gen_config_obj,
             )
@@ -397,21 +416,36 @@ class GeminiNode25:
             # Extract and return the generated text
             generated_text = ""
             if response.candidates:
-                generated_text = response.candidates[0].content.parts[0].text
-
-            else:
-                if response.prompt_feedback and response.prompt_feedback.block_reason:
-                    generated_text = f"Content blocked by safety filter: {response.prompt_feedback.block_reason}"
-                    if response.prompt_feedback.safety_ratings:
-                        for rating in response.prompt_feedback.safety_ratings:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts:
+                    generated_text = candidate.content.parts[0].text
+                elif (
+                    hasattr(candidate, "finish_reason")
+                    and candidate.finish_reason.name == "SAFETY"
+                ):
+                    generated_text = f"Content generation stopped due to safety filters. Finish reason: {candidate.finish_reason.name}"
+                    if candidate.safety_ratings:
+                        for rating in candidate.safety_ratings:
                             generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
-                else:
-                    generated_text = "No content generated."
+                elif hasattr(candidate, "finish_reason"):
+                    generated_text = f"No content generated. Finish reason: {candidate.finish_reason.name}"
+
+            elif response.prompt_feedback and response.prompt_feedback.block_reason:
+                generated_text = f"Content blocked due to safety filters on the prompt. Reason: {response.prompt_feedback.block_reason}"
+                if response.prompt_feedback.safety_ratings:
+                    for rating in response.prompt_feedback.safety_ratings:
+                        generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
+            else:
+                generated_text = "No content generated. The response was empty."
 
             return (generated_text,)
 
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            error_message = str(e)
+            print(error_message)
+            return (f"Error: {error_message}",)
         except Exception as e:
-            print(f"An error occurred in calling Gemini API: {e}")
+            print(f"An unexpected error occurred in calling Gemini API: {e}")
             return (f"Error: {e}",)
 
 

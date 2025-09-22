@@ -31,7 +31,10 @@ class TestVirtualTryOn(unittest.TestCase):
         "src.custom_nodes.google_genmedia.virtual_try_on.aiplatform.gapic.PredictionServiceClient"
     )
     def setUp(
-        self, mock_prediction_service_client, mock_aiplatform_init, mock_get_gcp_metadata
+        self,
+        mock_prediction_service_client,
+        mock_aiplatform_init,
+        mock_get_gcp_metadata,
     ):
         """Set up test fixtures."""
         mock_get_gcp_metadata.side_effect = [
@@ -46,9 +49,14 @@ class TestVirtualTryOn(unittest.TestCase):
         self.assertIsNotNone(self.node)
 
     @patch("src.custom_nodes.google_genmedia.virtual_try_on.get_gcp_metadata")
-    @patch("src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64", return_value="base64_string")
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64",
+        return_value="base64_string",
+    )
     @patch("src.custom_nodes.google_genmedia.utils.base64_to_pil_to_tensor")
-    def test_generate_and_return_image_success(self, mock_base64_to_tensor, mock_tensor_to_base64, mock_get_gcp_metadata):
+    def test_generate_and_return_image_success(
+        self, mock_base64_to_tensor, mock_tensor_to_base64, mock_get_gcp_metadata
+    ):
         """Test a successful run of generate_and_return_image."""
         mock_get_gcp_metadata.side_effect = [
             "test-project",
@@ -73,7 +81,10 @@ class TestVirtualTryOn(unittest.TestCase):
         self.assertIsInstance(result, tuple)
         self.assertIsInstance(result[0], torch.Tensor)
 
-    @patch("src.custom_nodes.google_genmedia.virtual_try_on.VirtualTryOn.__init__", side_effect=exceptions.APIInitializationError("Test Error"))
+    @patch(
+        "src.custom_nodes.google_genmedia.virtual_try_on.VirtualTryOn.__init__",
+        side_effect=exceptions.APIInitializationError("Test Error"),
+    )
     def test_generate_and_return_image_reinitialization_error(self, mock_init):
         """Test generate_and_return_image with a re-initialization error."""
         person_image = torch.zeros(1, 64, 64, 3)
@@ -145,8 +156,13 @@ class TestVirtualTryOn(unittest.TestCase):
             )
 
     @patch("src.custom_nodes.google_genmedia.virtual_try_on.get_gcp_metadata")
-    @patch("src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64", return_value="base64_string")
-    def test_generate_and_return_image_api_error(self, mock_tensor_to_base64, mock_get_gcp_metadata):
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64",
+        return_value="base64_string",
+    )
+    def test_generate_and_return_image_api_error(
+        self, mock_tensor_to_base64, mock_get_gcp_metadata
+    ):
         """Test generate_and_return_image with an API call error."""
         mock_get_gcp_metadata.side_effect = [
             "test-project",
@@ -165,8 +181,13 @@ class TestVirtualTryOn(unittest.TestCase):
             )
 
     @patch("src.custom_nodes.google_genmedia.virtual_try_on.get_gcp_metadata")
-    @patch("src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64", return_value="base64_string")
-    def test_generate_and_return_image_no_predictions(self, mock_tensor_to_base64, mock_get_gcp_metadata):
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64",
+        return_value="base64_string",
+    )
+    def test_generate_and_return_image_no_predictions(
+        self, mock_tensor_to_base64, mock_get_gcp_metadata
+    ):
         """Test generate_and_return_image with no predictions."""
         mock_get_gcp_metadata.side_effect = [
             "test-project",

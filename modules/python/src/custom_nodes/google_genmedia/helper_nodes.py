@@ -24,7 +24,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
-from moviepy.editor import VideoFileClip
+from moviepy import VideoFileClip
 
 from . import exceptions
 from .constants import SUPPORTED_VIDEO_EXTENSIONS

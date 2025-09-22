@@ -38,6 +38,12 @@ genai_mock.__spec__ = MagicMock()
 sys.modules["google.genai"] = genai_mock
 sys.modules["google.genai.types"] = MagicMock(__spec__=MagicMock())
 
+# Mock google.genai.errors and its APIError exception
+genai_errors_mock = MagicMock()
+genai_errors_mock.APIError = type("APIError", (Exception,), {})
+sys.modules["google.genai.errors"] = genai_errors_mock
+
+
 cloud_mock = MagicMock()
 cloud_mock.__path__ = []
 cloud_mock.__spec__ = MagicMock()
@@ -47,6 +53,7 @@ storage_mock = MagicMock()
 storage_mock.__path__ = []
 storage_mock.__spec__ = MagicMock()
 sys.modules["google.cloud.storage"] = storage_mock
+
 
 # Mock sub-modules of google.api_core
 api_core_client_info_mock = MagicMock(__spec__=MagicMock())
@@ -67,6 +74,9 @@ sys.modules["google.api_core.client_options"] = client_options_mock
 cv2_mock = MagicMock()
 cv2_mock.__spec__ = MagicMock()
 sys.modules["cv2"] = cv2_mock
+
+moviepy_mock = MagicMock()
+sys.modules["moviepy"] = moviepy_mock
 
 folder_paths_mock = MagicMock()
 folder_paths_mock.__spec__ = MagicMock()

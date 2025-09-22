@@ -55,6 +55,17 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(result)
         mock_blob.download_to_filename.assert_called_once_with("/tmp/path")
 
+    @patch("src.custom_nodes.google_genmedia.utils.storage.Client")
+    def test_download_gcsuri_exception(self, mock_storage_client):
+        """Test download_gcsuri function with an exception during download."""
+        mock_blob = Mock()
+        mock_blob.download_to_filename.side_effect = Exception("Download failed")
+        mock_bucket = Mock()
+        mock_bucket.blob.return_value = mock_blob
+        mock_storage_client.return_value.bucket.return_value = mock_bucket
+        with self.assertRaises(FileProcessingError):
+            utils.download_gcsuri("gs://bucket/path", "/tmp/path")
+
     def test_download_gcsuri_invalid_uri(self):
         """Test download_gcsuri function with invalid URI."""
         with self.assertRaises(utils.exceptions.ConfigurationError):
@@ -215,6 +226,37 @@ class TestUtils(unittest.TestCase):
             enhance_prompt=False,
             sample_count=1,
             output_gcs_uri=None,
+            negative_prompt="",
+            seed=123,
+        )
+        self.assertEqual(len(videos), 1)
+
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.process_video_response",
+        return_value=["/tmp/video.mp4"],
+    )
+    @patch("time.sleep", return_value=None)
+    @patch("src.custom_nodes.google_genmedia.utils.retry_on_api_error", lambda x: x)
+    def test_generate_video_from_text_with_gcs_output(self, mock_process_video, mock_sleep):
+        """Test generate_video_from_text function with GCS output."""
+        mock_client = Mock()
+        mock_operation = MagicMock()
+        mock_operation.done = True
+        mock_client.models.generate_videos.return_value = mock_operation
+        mock_client.operations.get.return_value = mock_operation
+        videos = utils.generate_video_from_text(
+            client=mock_client,
+            model="test-model",
+            prompt="a cat",
+            aspect_ratio="16:9",
+            output_resolution="720p",
+            compression_quality="optimized",
+            person_generation="allow",
+            duration_seconds=5,
+            generate_audio=False,
+            enhance_prompt=False,
+            sample_count=1,
+            output_gcs_uri="gs://bucket/path",
             negative_prompt="",
             seed=123,
         )

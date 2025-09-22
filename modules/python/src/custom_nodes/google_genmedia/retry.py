@@ -33,6 +33,15 @@ def retry_on_api_error(
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            print("--- DEBUGGING RETRY DECORATOR ---")
+            print(f"ResourceExhausted: {type(api_core_exceptions.ResourceExhausted)}")
+            print(f"ServiceUnavailable: {type(api_core_exceptions.ServiceUnavailable)}")
+            print(f"ServerError: {type(genai_errors.ServerError)}")
+            print(f"InvalidArgument: {type(api_core_exceptions.InvalidArgument)}")
+            print(f"PermissionDenied: {type(api_core_exceptions.PermissionDenied)}")
+            print(f"DeadlineExceeded: {type(api_core_exceptions.DeadlineExceeded)}")
+            print(f"GoogleAPICallError: {type(api_core_exceptions.GoogleAPICallError)}")
+            print("---------------------------------")
             delay = initial_delay
             retries = max_retries
 

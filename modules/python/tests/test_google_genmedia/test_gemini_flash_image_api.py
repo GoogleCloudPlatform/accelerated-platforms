@@ -19,13 +19,19 @@ import unittest
 from unittest.mock import MagicMock, Mock, patch
 
 import google.genai.errors as genai_errors_mock
+from google.api_core import exceptions as api_core_exceptions_mock
 
 
 class MockAPIError(Exception):
     pass
 
 
+class MockGoogleAPICallError(Exception):
+    pass
+
+
 genai_errors_mock.APIError = MockAPIError
+api_core_exceptions_mock.GoogleAPICallError = MockGoogleAPICallError
 
 
 from src.custom_nodes.google_genmedia.exceptions import APICallError

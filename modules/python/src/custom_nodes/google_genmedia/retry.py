@@ -78,6 +78,8 @@ def retry_on_api_error(
                     raise exceptions.APICallError(
                         f"An unexpected API error occurred: {e}"
                     ) from e
+                except Exception as e:
+                    raise e
 
         return wrapper
 

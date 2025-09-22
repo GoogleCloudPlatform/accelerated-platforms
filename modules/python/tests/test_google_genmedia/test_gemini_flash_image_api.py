@@ -76,13 +76,19 @@ class TestGeminiFlashImageAPI(unittest.TestCase):
             mock_open.assert_called_once()
             self.assertEqual(len(result), 1)
 
-    @patch('src.custom_nodes.google_genmedia.gemini_flash_image_api.api_core_exceptions')
-    @patch('src.custom_nodes.google_genmedia.gemini_flash_image_api.genai_errors')
-    def test_generate_image_api_error(self, mock_genai_errors, mock_api_core_exceptions):
+    @patch(
+        "src.custom_nodes.google_genmedia.gemini_flash_image_api.api_core_exceptions"
+    )
+    @patch("src.custom_nodes.google_genmedia.gemini_flash_image_api.genai_errors")
+    def test_generate_image_api_error(
+        self, mock_genai_errors, mock_api_core_exceptions
+    ):
         """Test that an API error raises an APICallError."""
         # Create real exception classes for the mocks
-        mock_genai_errors.APIError = type('APIError', (Exception,), {})
-        mock_api_core_exceptions.GoogleAPICallError = type('GoogleAPICallError', (Exception,), {})
+        mock_genai_errors.APIError = type("APIError", (Exception,), {})
+        mock_api_core_exceptions.GoogleAPICallError = type(
+            "GoogleAPICallError", (Exception,), {}
+        )
 
         self.api.client.models.generate_content.side_effect = (
             mock_genai_errors.APIError("API error")

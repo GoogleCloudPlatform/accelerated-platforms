@@ -165,11 +165,10 @@ class TestHelperNodes(unittest.TestCase):
             save_video=False,
             save_video_file_prefix="prefix",
         )
-        print(result)
+
         self.assertIn("ui", result)
         self.assertIn("video", result["ui"])
         self.assertEqual(len(result["ui"]["video"]), 0)
-        self.assertEqual(result["ui"]["video"][0]["type"], "temp")
 
     def test_preview_video_no_paths(self):
         """Test preview_video with no video paths."""

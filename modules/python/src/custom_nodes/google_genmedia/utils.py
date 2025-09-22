@@ -274,7 +274,7 @@ def generate_video_from_gcsuri_image(
 
     if output_gcs_uri:
         valid_bucket, validation_message = validate_gcs_uri_and_image(
-            output_gcs_uri, False
+            output_gcs_uri, True
         )
         if valid_bucket:
             print(validation_message)
@@ -433,7 +433,7 @@ def generate_video_from_image(
 
     if output_gcs_uri:
         valid_bucket, validation_message = validate_gcs_uri_and_image(
-            output_gcs_uri, False
+            output_gcs_uri, True
         )
         if valid_bucket:
             print(validation_message)

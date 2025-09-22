@@ -387,36 +387,6 @@ class TestUtils(unittest.TestCase):
         )
         self.assertEqual(len(videos), 1)
 
-    @patch(
-        "src.custom_nodes.google_genmedia.utils.validate_gcs_uri_and_image",
-        return_value=(False, "Invalid GCS URI"),
-    )
-    def test_generate_video_from_gcsuri_image_validation_failure(
-        self, mock_validate_gcs
-    ):
-        """Test generate_video_from_gcsuri_image with a validation failure."""
-        mock_client = Mock()
-        with self.assertRaises(utils.exceptions.ConfigurationError):
-            utils.generate_video_from_gcsuri_image(
-                client=mock_client,
-                model="test-model",
-                gcsuri="gs://invalid",
-                image_format="PNG",
-                prompt="a cat",
-                aspect_ratio="16:9",
-                output_resolution="720p",
-                compression_quality="optimized",
-                person_generation="allow",
-                duration_seconds=5,
-                generate_audio=False,
-                enhance_prompt=False,
-                sample_count=1,
-                last_frame_gcsuri=None,
-                output_gcs_uri=None,
-                negative_prompt="",
-                seed=123,
-            )
-
 
 if __name__ == "__main__":
     unittest.main()

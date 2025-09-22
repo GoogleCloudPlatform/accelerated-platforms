@@ -27,6 +27,28 @@ print("python root:", {python_root})
 if python_root not in sys.path:
     sys.path.insert(0, python_root)
 
+# Mock google.api_core.exceptions and its exceptions
+api_core_exceptions_mock = MagicMock()
+api_core_exceptions_mock.GoogleAPICallError = type(
+    "GoogleAPICallError", (Exception,), {}
+)
+api_core_exceptions_mock.ResourceExhausted = type(
+    "ResourceExhausted", (api_core_exceptions_mock.GoogleAPICallError,), {}
+)
+api_core_exceptions_mock.ServiceUnavailable = type(
+    "ServiceUnavailable", (api_core_exceptions_mock.GoogleAPICallError,), {}
+)
+api_core_exceptions_mock.InvalidArgument = type(
+    "InvalidArgument", (api_core_exceptions_mock.GoogleAPICallError,), {}
+)
+api_core_exceptions_mock.PermissionDenied = type(
+    "PermissionDenied", (api_core_exceptions_mock.GoogleAPICallError,), {}
+)
+api_core_exceptions_mock.DeadlineExceeded = type(
+    "DeadlineExceeded", (api_core_exceptions_mock.GoogleAPICallError,), {}
+)
+sys.modules["google.api_core.exceptions"] = api_core_exceptions_mock
+
 google_mock = MagicMock()
 google_mock.__path__ = []
 google_mock.__spec__ = MagicMock()
@@ -38,9 +60,10 @@ genai_mock.__spec__ = MagicMock()
 sys.modules["google.genai"] = genai_mock
 sys.modules["google.genai.types"] = MagicMock(__spec__=MagicMock())
 
-# Mock google.genai.errors and its APIError exception
+# Mock google.genai.errors and its APIError and ServerError exception
 genai_errors_mock = MagicMock()
 genai_errors_mock.APIError = type("APIError", (Exception,), {})
+genai_errors_mock.ServerError = type("ServerError", (Exception,), {})
 sys.modules["google.genai.errors"] = genai_errors_mock
 
 
@@ -72,7 +95,7 @@ sys.modules["google.api_core.client_options"] = client_options_mock
 # --- END OF NEW BLOCK ---
 
 cv2_mock = MagicMock()
-cv2_mock.__spec__ = MagicMock()
+
 sys.modules["cv2"] = cv2_mock
 
 moviepy_mock = MagicMock()

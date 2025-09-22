@@ -128,7 +128,7 @@ class TestHelperNodes(unittest.TestCase):
         mock_clip = MagicMock()
         mock_clip.duration = 10
         mock_clip.size = (1920, 1080)
-        mock_videofileclip.return_value.__enter__.return_value = mock_.clip
+        mock_videofileclip.return_value.__enter__.return_value = mock_clip
         mock_md5.return_value.hexdigest.return_value = "hash"
 
         node = VeoVideoSaveAndPreview()
@@ -181,7 +181,7 @@ class TestHelperNodes(unittest.TestCase):
             save_video=False,
             save_video_file_prefix="prefix",
         )
-        self.assertIn("error", result["ui"])
+        self.assertEqual(result["ui"]["video"], [])
 
     @patch("os.path.exists", return_value=False)
     def test_preview_video_non_existent_path(self, mock_exists):

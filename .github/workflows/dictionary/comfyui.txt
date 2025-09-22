@@ -11,6 +11,7 @@ comfygroup
 comfyui
 comfyuser
 controlnet
+cvtcolor
 dall
 denoise
 denoised

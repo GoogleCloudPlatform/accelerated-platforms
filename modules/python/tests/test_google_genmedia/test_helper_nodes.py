@@ -165,6 +165,7 @@ class TestHelperNodes(unittest.TestCase):
             save_video=False,
             save_video_file_prefix="prefix",
         )
+        print(result)
         self.assertIn("ui", result)
         self.assertIn("video", result["ui"])
         self.assertEqual(len(result["ui"]["video"]), 0)

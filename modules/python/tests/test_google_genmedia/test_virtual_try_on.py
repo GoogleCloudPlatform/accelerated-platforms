@@ -29,7 +29,10 @@ class TestVirtualTryOn(unittest.TestCase):
         "src.custom_nodes.google_genmedia.virtual_try_on.aiplatform.gapic.PredictionServiceClient"
     )
     def test_initialization(
-        self, mock_prediction_service_client, mock_aiplatform_init, mock_get_gcp_metadata
+        self,
+        mock_prediction_service_client,
+        mock_aiplatform_init,
+        mock_get_gcp_metadata,
     ):
         """Test that the node can be initialized."""
         mock_get_gcp_metadata.side_effect = [

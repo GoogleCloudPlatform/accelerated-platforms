@@ -34,7 +34,7 @@ try:
         f"/gcs/{MODEL_DIR}",
         torch_dtype=torch.float16,
         local_files_only=True,
-        device_map="balanced"
+        device_map="balanced",
     )
 
 except Exception as e:

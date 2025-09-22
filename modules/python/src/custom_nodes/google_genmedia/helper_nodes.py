@@ -24,7 +24,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
-from moviepy import VideoFileClip
+from moviepy.editor import VideoFileClip
 
 from . import exceptions
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
@@ -64,10 +64,10 @@ class VeoVideoToVHSNode:
         """
         all_preview_frames = []  # List to accumulate frames from ALL videos
         no_of_frames = 120
+        dummy_image = torch.zeros(1, 512, 512, 3)
         if not video_paths:
             print("Error: No video paths provided.")
-            dummy_image = torch.zeros(1, 512, 512, 3)
-            return dummy_image
+            return (dummy_image,)
 
         print(f"Received {len(video_paths)} video path(s).")
         total_extracted_frames = 0

@@ -37,7 +37,6 @@ genai_mock.__path__ = []
 genai_mock.__spec__ = MagicMock()
 sys.modules["google.genai"] = genai_mock
 sys.modules["google.genai.types"] = MagicMock(__spec__=MagicMock())
-sys.modules["google.genai.errors"] = MagicMock(__spec__=MagicMock())
 
 cloud_mock = MagicMock()
 cloud_mock.__path__ = []
@@ -49,18 +48,11 @@ storage_mock.__path__ = []
 storage_mock.__spec__ = MagicMock()
 sys.modules["google.cloud.storage"] = storage_mock
 
-api_core_mock = MagicMock()
-api_core_mock.__path__ = []
-api_core_mock.__spec__ = MagicMock()
-sys.modules["google.api_core"] = api_core_mock
-
 # Mock sub-modules of google.api_core
 api_core_client_info_mock = MagicMock(__spec__=MagicMock())
-api_core_mock.client_info = api_core_client_info_mock
 sys.modules["google.api_core.client_info"] = api_core_client_info_mock
 
 gapic_v1_mock = MagicMock(__path__=[], __spec__=MagicMock())
-api_core_mock.gapic_v1 = gapic_v1_mock
 sys.modules["google.api_core.gapic_v1"] = gapic_v1_mock
 
 gapic_client_info_mock = MagicMock(__spec__=MagicMock())
@@ -69,7 +61,6 @@ sys.modules["google.api_core.gapic_v1.client_info"] = gapic_client_info_mock
 
 # --- ADD THIS BLOCK FOR THE NEW ERROR ---
 client_options_mock = MagicMock(__spec__=MagicMock())
-api_core_mock.client_options = client_options_mock
 sys.modules["google.api_core.client_options"] = client_options_mock
 # --- END OF NEW BLOCK ---
 

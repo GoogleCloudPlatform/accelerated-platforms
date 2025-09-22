@@ -187,7 +187,7 @@ class TestUtils(unittest.TestCase):
         mock_video = MagicMock()
         mock_video.video.uri = "gs://bucket/path"
         mock_operation.response.generated_videos = [mock_video]
-        with self.assertRaises(FileProcessingError):
+        with self.assertRaises(utils.exceptions.APICallError):
             utils.process_video_response(mock_operation)
 
     @patch("src.custom_nodes.google_genmedia.utils.retry_on_api_error", lambda x: x)
@@ -224,21 +224,21 @@ class TestUtils(unittest.TestCase):
         mock_response = MagicMock()
         mock_response.generated_images = []
         mock_client.models.generate_images.return_value = mock_response
-        images = utils.generate_image_from_text(
-            client=mock_client,
-            model="test-model",
-            prompt="a cat",
-            person_generation="allow",
-            aspect_ratio="1:1",
-            number_of_images=1,
-            negative_prompt="",
-            seed=123,
-            enhance_prompt=False,
-            add_watermark=False,
-            output_image_type="PNG",
-            safety_filter_level="block_most",
-        )
-        self.assertEqual(len(images), 0)
+        with self.assertRaises(utils.exceptions.APICallError):
+            utils.generate_image_from_text(
+                client=mock_client,
+                model="test-model",
+                prompt="a cat",
+                person_generation="allow",
+                aspect_ratio="1:1",
+                number_of_images=1,
+                negative_prompt="",
+                seed=123,
+                enhance_prompt=False,
+                add_watermark=False,
+                output_image_type="PNG",
+                safety_filter_level="block_most",
+            )
 
     @patch(
         "src.custom_nodes.google_genmedia.utils.process_video_response",

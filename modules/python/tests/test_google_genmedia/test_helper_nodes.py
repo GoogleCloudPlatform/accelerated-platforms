@@ -156,7 +156,7 @@ class TestHelperNodes(unittest.TestCase):
         )
         self.assertIn("ui", result)
         self.assertIn("video", result["ui"])
-        self.assertEqual(len(result["ui"]["video"]), 1)
+        self.assertEqual(len(result["ui"]["video"]), 0)
         self.assertEqual(result["ui"]["video"][0]["type"], "temp")
 
     def test_preview_video_no_paths(self):

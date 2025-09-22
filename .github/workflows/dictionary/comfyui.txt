@@ -50,6 +50,8 @@ veo2
 veo3
 veopreview
 vertexai
+videocapture
+videofileclip
 videohelpersuite
 videopreview
 vto

@@ -49,7 +49,7 @@ def retry_on_api_error(
                     return func(*args, **kwargs)
                 except (
                     api_core_exceptions.ResourceExhausted,
-                    api_core_exceptions.ServiceUnavailable
+                    api_core_exceptions.ServiceUnavailable,
                 ) as e:
                     if retries == 0:
                         raise exceptions.APICallError(

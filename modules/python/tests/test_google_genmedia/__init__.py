@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import types
 import os
 import sys
 from unittest.mock import MagicMock
@@ -61,8 +62,9 @@ sys.modules["google.genai"] = genai_mock
 sys.modules["google.genai.types"] = MagicMock(__spec__=MagicMock())
 
 # Mock google.genai.errors and its APIError and ServerError exception
-genai_errors_mock = MagicMock()
+genai_errors_mock = types.ModuleType("google.genai.errors")
 genai_errors_mock.APIError = type("APIError", (Exception,), {})
+genai_errors_mock.ServerError = type("ServerError", (Exception,), {})
 sys.modules["google.genai.errors"] = genai_errors_mock
 
 

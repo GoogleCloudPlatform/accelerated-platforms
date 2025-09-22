@@ -55,7 +55,7 @@ class TestGeminiFlashImageAPI(unittest.TestCase):
         mock_response.candidates[0].content.parts = [part]
         self.api.client.models.generate_content.return_value = mock_response
         with patch("PIL.Image.open") as mock_open:
-            self.api.generate_image(
+            result = self.api.generate_image(
                 model="GEMINI_25_FLASH_IMAGE_PREVIEW",
                 prompt="a cat",
                 temperature=0.5,
@@ -68,6 +68,7 @@ class TestGeminiFlashImageAPI(unittest.TestCase):
                 system_instruction="",
             )
             mock_open.assert_called_once()
+            self.assertEqual(len(result), 1)
 
     def test_generate_image_api_error(self):
         """Test that an API error raises an APICallError."""
@@ -89,45 +90,45 @@ class TestGeminiFlashImageAPI(unittest.TestCase):
             )
 
     def test_generate_image_no_image_data(self):
-        """Test that no image data in the response raises an APICallError."""
+        """Test that no image data in the response returns an empty list."""
         mock_response = MagicMock()
         mock_response.candidates[0].content.parts = []
         self.api.client.models.generate_content.return_value = mock_response
-        with self.assertRaises(APICallError):
-            self.api.generate_image(
-                model="GEMINI_25_FLASH_IMAGE_PREVIEW",
-                prompt="a cat",
-                temperature=0.5,
-                top_p=0.5,
-                top_k=20,
-                hate_speech_threshold="BLOCK_NONE",
-                harassment_threshold="BLOCK_NONE",
-                sexually_explicit_threshold="BLOCK_NONE",
-                dangerous_content_threshold="BLOCK_NONE",
-                system_instruction="",
-            )
+        result = self.api.generate_image(
+            model="GEMINI_25_FLASH_IMAGE_PREVIEW",
+            prompt="a cat",
+            temperature=0.5,
+            top_p=0.5,
+            top_k=20,
+            hate_speech_threshold="BLOCK_NONE",
+            harassment_threshold="BLOCK_NONE",
+            sexually_explicit_threshold="BLOCK_NONE",
+            dangerous_content_threshold="BLOCK_NONE",
+            system_instruction="",
+        )
+        self.assertEqual(result, [])
 
     def test_generate_image_text_instead_of_image(self):
-        """Test that text in the response instead of an image raises an APICallError."""
+        """Test that text in the response instead of an image returns an empty list."""
         mock_response = MagicMock()
         part = MagicMock()
         part.inline_data.data = None
         part.text = "some text"
         mock_response.candidates[0].content.parts = [part]
         self.api.client.models.generate_content.return_value = mock_response
-        with self.assertRaises(APICallError):
-            self.api.generate_image(
-                model="GEMINI_25_FLASH_IMAGE_PREVIEW",
-                prompt="a cat",
-                temperature=0.5,
-                top_p=0.5,
-                top_k=20,
-                hate_speech_threshold="BLOCK_NONE",
-                harassment_threshold="BLOCK_NONE",
-                sexually_explicit_threshold="BLOCK_NONE",
-                dangerous_content_threshold="BLOCK_NONE",
-                system_instruction="",
-            )
+        result = self.api.generate_image(
+            model="GEMINI_25_FLASH_IMAGE_PREVIEW",
+            prompt="a cat",
+            temperature=0.5,
+            top_p=0.5,
+            top_k=20,
+            hate_speech_threshold="BLOCK_NONE",
+            harassment_threshold="BLOCK_NONE",
+            sexually_explicit_threshold="BLOCK_NONE",
+            dangerous_content_threshold="BLOCK_NONE",
+            system_instruction="",
+        )
+        self.assertEqual(result, [])
 
 
 if __name__ == "__main__":

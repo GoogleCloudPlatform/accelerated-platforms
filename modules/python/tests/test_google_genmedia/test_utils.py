@@ -237,7 +237,9 @@ class TestUtils(unittest.TestCase):
     )
     @patch("time.sleep", return_value=None)
     @patch("src.custom_nodes.google_genmedia.utils.retry_on_api_error", lambda x: x)
-    def test_generate_video_from_text_with_gcs_output(self, mock_process_video, mock_sleep):
+    def test_generate_video_from_text_with_gcs_output(
+        self, mock_process_video, mock_sleep
+    ):
         """Test generate_video_from_text function with GCS output."""
         mock_client = Mock()
         mock_operation = MagicMock()

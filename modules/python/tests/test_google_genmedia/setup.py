@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
 import os
+import sys
 from unittest.mock import MagicMock
 
 print("--- Running test_google_genmedia __init__.py ---")

@@ -142,14 +142,14 @@ class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
             response = self.client.models.generate_content(
                 model=model, contents=contents, config=generate_content_config
             )
-        except (genai_errors.APIError, api_core_exceptions.GoogleAPICallError) as e:
-            print(f"A GenAI API error occurred during image generation: {e}")
+            for part in response.candidates[0].content.parts:
+                if part.text is not None:
+                    print(part.text)
+                elif part.inline_data is not None:
+                    image = Image.open(BytesIO(part.inline_data.data))
+                    generated_pil_images.append(image)
+        except Exception as e:
+            print(f"An error occurred during image generation: {e}")
             raise exceptions.APICallError(f"Image generation failed: {e}") from e
-        for part in response.candidates[0].content.parts:
-            if part.text is not None:
-                print(part.text)
-            elif part.inline_data is not None:
-                image = Image.open(BytesIO(part.inline_data.data))
-                generated_pil_images.append(image)
 
         return generated_pil_images

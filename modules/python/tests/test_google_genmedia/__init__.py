@@ -35,7 +35,7 @@ api_core_exceptions_mock.ServiceUnavailable = Exception
 api_core_exceptions_mock.InvalidArgument = Exception
 api_core_exceptions_mock.PermissionDenied = Exception
 api_core_exceptions_mock.DeadlineExceeded = Exception
-sys.modules['google.api_core.exceptions'] = api_core_exceptions_mock
+sys.modules["google.api_core.exceptions"] = api_core_exceptions_mock
 
 google_mock = MagicMock()
 google_mock.__path__ = []
@@ -52,7 +52,7 @@ sys.modules["google.genai.types"] = MagicMock(__spec__=MagicMock())
 genai_errors_mock = MagicMock()
 genai_errors_mock.APIError = Exception
 genai_errors_mock.ServerError = Exception
-sys.modules['google.genai.errors'] = genai_errors_mock
+sys.modules["google.genai.errors"] = genai_errors_mock
 
 
 cloud_mock = MagicMock()

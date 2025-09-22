@@ -16,8 +16,10 @@
 
 import unittest
 from unittest.mock import patch, MagicMock
+import torch
 
 from src.custom_nodes.google_genmedia.virtual_try_on import VirtualTryOn
+from src.custom_nodes.google_genmedia import exceptions
 
 
 class TestVirtualTryOn(unittest.TestCase):
@@ -28,19 +30,148 @@ class TestVirtualTryOn(unittest.TestCase):
     @patch(
         "src.custom_nodes.google_genmedia.virtual_try_on.aiplatform.gapic.PredictionServiceClient"
     )
-    def test_initialization(
+    def setUp(
         self,
         mock_prediction_service_client,
         mock_aiplatform_init,
         mock_get_gcp_metadata,
     ):
-        """Test that the node can be initialized."""
+        """Set up test fixtures."""
         mock_get_gcp_metadata.side_effect = [
             "test-project",
             "us-central1-a",
         ]
-        node = VirtualTryOn()
-        self.assertIsNotNone(node)
+        self.node = VirtualTryOn()
+        self.node.client = mock_prediction_service_client
+
+    def test_initialization(self):
+        """Test that the node can be initialized."""
+        self.assertIsNotNone(self.node)
+
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64",
+        return_value="base64_string",
+    )
+    @patch("src.custom_nodes.google_genmedia.utils.base64_to_pil_to_tensor")
+    def test_generate_and_return_image_success(
+        self, mock_base64_to_tensor, mock_tensor_to_base64
+    ):
+        """Test a successful run of generate_and_return_image."""
+        mock_response = MagicMock()
+        mock_prediction = MagicMock()
+        mock_prediction.__getitem__.return_value = "base64_image_string"
+        mock_response.predictions = [mock_prediction]
+        self.node._predict = MagicMock(return_value=mock_response)
+        mock_base64_to_tensor.return_value = torch.zeros(1, 64, 64, 3)
+
+        person_image = torch.zeros(1, 64, 64, 3)
+        product_image = torch.zeros(1, 64, 64, 3)
+        result = self.node.generate_and_return_image(
+            person_image=person_image,
+            product_image=product_image,
+            base_steps=32,
+            person_generation="ALLOW_ADULT",
+            number_of_images=1,
+        )
+        self.assertIsInstance(result, tuple)
+        self.assertIsInstance(result[0], torch.Tensor)
+
+    @patch(
+        "src.custom_nodes.google_genmedia.virtual_try_on.VirtualTryOn.__init__",
+        side_effect=exceptions.APIInitializationError("Test Error"),
+    )
+    def test_generate_and_return_image_reinitialization_error(self, mock_init):
+        """Test generate_and_return_image with a re-initialization error."""
+        person_image = torch.zeros(1, 64, 64, 3)
+        product_image = torch.zeros(1, 64, 64, 3)
+        with self.assertRaisesRegex(RuntimeError, "Error re-initializing client"):
+            self.node.generate_and_return_image(
+                person_image=person_image,
+                product_image=product_image,
+                base_steps=32,
+                person_generation="ALLOW_ADULT",
+                number_of_images=1,
+                gcp_project_id="new_project",
+            )
+
+    def test_generate_and_return_image_empty_person_image(self):
+        """Test generate_and_return_image with an empty person image."""
+        person_image = torch.zeros(0)
+        product_image = torch.zeros(1, 64, 64, 3)
+        with self.assertRaises(exceptions.ConfigurationError):
+            self.node.generate_and_return_image(
+                person_image=person_image,
+                product_image=product_image,
+                base_steps=32,
+                person_generation="ALLOW_ADULT",
+                number_of_images=1,
+            )
+
+    def test_generate_and_return_image_empty_product_image(self):
+        """Test generate_and_return_image with an empty product image."""
+        person_image = torch.zeros(1, 64, 64, 3)
+        product_image = torch.zeros(0)
+        with self.assertRaises(exceptions.ConfigurationError):
+            self.node.generate_and_return_image(
+                person_image=person_image,
+                product_image=product_image,
+                base_steps=32,
+                person_generation="ALLOW_ADULT",
+                number_of_images=1,
+            )
+
+    def test_generate_and_return_image_seed_with_watermark(self):
+        """Test generate_and_return_image with seed and watermark."""
+        person_image = torch.zeros(1, 64, 64, 3)
+        product_image = torch.zeros(1, 64, 64, 3)
+        with self.assertRaises(ValueError):
+            self.node.generate_and_return_image(
+                person_image=person_image,
+                product_image=product_image,
+                base_steps=32,
+                person_generation="ALLOW_ADULT",
+                number_of_images=1,
+                seed=123,
+                add_watermark=True,
+            )
+
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64",
+        return_value="base64_string",
+    )
+    def test_generate_and_return_image_api_error(self, mock_tensor_to_base64):
+        """Test generate_and_return_image with an API call error."""
+        self.node._predict = MagicMock(side_effect=exceptions.APICallError("API Error"))
+        person_image = torch.zeros(1, 64, 64, 3)
+        product_image = torch.zeros(1, 64, 64, 3)
+        with self.assertRaises(exceptions.APICallError):
+            self.node.generate_and_return_image(
+                person_image=person_image,
+                product_image=product_image,
+                base_steps=32,
+                person_generation="ALLOW_ADULT",
+                number_of_images=1,
+            )
+
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64",
+        return_value="base64_string",
+    )
+    def test_generate_and_return_image_no_predictions(self, mock_tensor_to_base64):
+        """Test generate_and_return_image with no predictions."""
+        mock_response = MagicMock()
+        mock_response.predictions = []
+        self.node._predict = MagicMock(return_value=mock_response)
+        person_image = torch.zeros(1, 64, 64, 3)
+        product_image = torch.zeros(1, 64, 64, 3)
+        with self.assertRaises(exceptions.APICallError):
+            self.node.generate_and_return_image(
+                person_image=person_image,
+                product_image=product_image,
+                base_steps=32,
+                person_generation="ALLOW_ADULT",
+                number_of_images=1,
+            )
 
 
 if __name__ == "__main__":

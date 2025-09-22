@@ -173,6 +173,23 @@ class TestUtils(unittest.TestCase):
         with self.assertRaises(utils.exceptions.APICallError):
             utils.process_video_response(mock_operation)
 
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.download_gcsuri",
+        side_effect=FileProcessingError("Download failed"),
+    )
+    @patch("os.makedirs")
+    @patch("folder_paths.get_temp_directory", return_value="/tmp")
+    def test_process_video_response_download_failure(
+        self, mock_get_temp_directory, mock_makedirs, mock_download
+    ):
+        """Test process_video_response function with a download failure."""
+        mock_operation = MagicMock()
+        mock_video = MagicMock()
+        mock_video.video.uri = "gs://bucket/path"
+        mock_operation.response.generated_videos = [mock_video]
+        with self.assertRaises(FileProcessingError):
+            utils.process_video_response(mock_operation)
+
     @patch("src.custom_nodes.google_genmedia.utils.retry_on_api_error", lambda x: x)
     def test_generate_image_from_text_success(self):
         """Test generate_image_from_text function success."""
@@ -199,6 +216,29 @@ class TestUtils(unittest.TestCase):
             )
             self.assertEqual(len(images), 1)
             mock_open.assert_called_once()
+
+    @patch("src.custom_nodes.google_genmedia.utils.retry_on_api_error", lambda x: x)
+    def test_generate_image_from_text_no_images(self):
+        """Test generate_image_from_text with no generated images."""
+        mock_client = Mock()
+        mock_response = MagicMock()
+        mock_response.generated_images = []
+        mock_client.models.generate_images.return_value = mock_response
+        images = utils.generate_image_from_text(
+            client=mock_client,
+            model="test-model",
+            prompt="a cat",
+            person_generation="allow",
+            aspect_ratio="1:1",
+            number_of_images=1,
+            negative_prompt="",
+            seed=123,
+            enhance_prompt=False,
+            add_watermark=False,
+            output_image_type="PNG",
+            safety_filter_level="block_most",
+        )
+        self.assertEqual(len(images), 0)
 
     @patch(
         "src.custom_nodes.google_genmedia.utils.process_video_response",
@@ -237,15 +277,17 @@ class TestUtils(unittest.TestCase):
     )
     @patch("time.sleep", return_value=None)
     @patch("src.custom_nodes.google_genmedia.utils.retry_on_api_error", lambda x: x)
-    def test_generate_video_from_text_with_gcs_output(
+    def test_generate_video_from_text_long_running(
         self, mock_process_video, mock_sleep
     ):
-        """Test generate_video_from_text function with GCS output."""
+        """Test generate_video_from_text with a long-running operation."""
         mock_client = Mock()
-        mock_operation = MagicMock()
-        mock_operation.done = True
-        mock_client.models.generate_videos.return_value = mock_operation
-        mock_client.operations.get.return_value = mock_operation
+        mock_operation_running = MagicMock()
+        mock_operation_running.done = False
+        mock_operation_done = MagicMock()
+        mock_operation_done.done = True
+        mock_client.models.generate_videos.return_value = mock_operation_running
+        mock_client.operations.get.return_value = mock_operation_done
         videos = utils.generate_video_from_text(
             client=mock_client,
             model="test-model",
@@ -258,11 +300,12 @@ class TestUtils(unittest.TestCase):
             generate_audio=False,
             enhance_prompt=False,
             sample_count=1,
-            output_gcs_uri="gs://bucket/path",
+            output_gcs_uri=None,
             negative_prompt="",
             seed=123,
         )
         self.assertEqual(len(videos), 1)
+        mock_sleep.assert_called()
 
     @patch(
         "src.custom_nodes.google_genmedia.utils.tensor_to_pil_to_base64",
@@ -274,10 +317,10 @@ class TestUtils(unittest.TestCase):
     )
     @patch("time.sleep", return_value=None)
     @patch("src.custom_nodes.google_genmedia.utils.retry_on_api_error", lambda x: x)
-    def test_generate_video_from_image_success(
+    def test_generate_video_from_image_with_last_frame(
         self, mock_tensor_to_base64, mock_process_video, mock_sleep
     ):
-        """Test generate_video_from_image function success."""
+        """Test generate_video_from_image with a last_frame."""
         mock_client = Mock()
         mock_operation = MagicMock()
         mock_operation.done = True
@@ -297,7 +340,7 @@ class TestUtils(unittest.TestCase):
             generate_audio=False,
             enhance_prompt=False,
             sample_count=1,
-            last_frame=None,
+            last_frame=torch.rand(1, 10, 10, 3),
             output_gcs_uri=None,
             negative_prompt="",
             seed=123,
@@ -314,10 +357,10 @@ class TestUtils(unittest.TestCase):
     )
     @patch("time.sleep", return_value=None)
     @patch("src.custom_nodes.google_genmedia.utils.retry_on_api_error", lambda x: x)
-    def test_generate_video_from_gcsuri_image_success(
+    def test_generate_video_from_gcsuri_image_with_last_frame(
         self, mock_validate_gcs, mock_process_video, mock_sleep
     ):
-        """Test generate_video_from_gcsuri_image function success."""
+        """Test generate_video_from_gcsuri_image with a last_frame_gcsuri."""
         mock_client = Mock()
         mock_operation = MagicMock()
         mock_operation.done = True
@@ -337,12 +380,42 @@ class TestUtils(unittest.TestCase):
             generate_audio=False,
             enhance_prompt=False,
             sample_count=1,
-            last_frame_gcsuri=None,
+            last_frame_gcsuri="gs://bucket/last_frame.png",
             output_gcs_uri=None,
             negative_prompt="",
             seed=123,
         )
         self.assertEqual(len(videos), 1)
+
+    @patch(
+        "src.custom_nodes.google_genmedia.utils.validate_gcs_uri_and_image",
+        return_value=(False, "Invalid GCS URI"),
+    )
+    def test_generate_video_from_gcsuri_image_validation_failure(
+        self, mock_validate_gcs
+    ):
+        """Test generate_video_from_gcsuri_image with a validation failure."""
+        mock_client = Mock()
+        with self.assertRaises(utils.exceptions.ConfigurationError):
+            utils.generate_video_from_gcsuri_image(
+                client=mock_client,
+                model="test-model",
+                gcsuri="gs://invalid",
+                image_format="PNG",
+                prompt="a cat",
+                aspect_ratio="16:9",
+                output_resolution="720p",
+                compression_quality="optimized",
+                person_generation="allow",
+                duration_seconds=5,
+                generate_audio=False,
+                enhance_prompt=False,
+                sample_count=1,
+                last_frame_gcsuri=None,
+                output_gcs_uri=None,
+                negative_prompt="",
+                seed=123,
+            )
 
 
 if __name__ == "__main__":

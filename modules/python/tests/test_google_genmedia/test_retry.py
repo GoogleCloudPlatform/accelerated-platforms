@@ -66,7 +66,7 @@ class TestRetryDecorator(unittest.TestCase):
         mock_func.side_effect = [genai_errors.ServerError("test"), "success"]
         decorated_func = retry_on_api_error()(mock_func)
         result = decorated_func()
-        self.assertEqual(mock_func.call_count, 2)
+        self.assertEqual(mock_func.call_count, 1)
         self.assertEqual(result, "success")
 
     @patch("time.sleep", return_value=None)

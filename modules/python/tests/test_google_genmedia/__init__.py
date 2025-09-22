@@ -73,6 +73,10 @@ api_core_mock.client_options = client_options_mock
 sys.modules["google.api_core.client_options"] = client_options_mock
 # --- END OF NEW BLOCK ---
 
+cv2_mock = MagicMock()
+cv2_mock.__spec__ = MagicMock()
+sys.modules["cv2"] = cv2_mock
+
 folder_paths_mock = MagicMock()
 folder_paths_mock.__spec__ = MagicMock()
 sys.modules["folder_paths"] = folder_paths_mock

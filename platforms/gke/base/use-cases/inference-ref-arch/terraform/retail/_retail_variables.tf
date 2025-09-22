@@ -1,0 +1,1 @@
+../_shared_config/retail_variables.tf

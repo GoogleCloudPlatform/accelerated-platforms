@@ -19,7 +19,6 @@ google-cloud-storage==2.19.0
 grpcio==1.75.0
 jsonpickle==4.0.1
 moviepy==2.2.1
-numpy>=2.2.0
 pandas==2.2.3
 pillow==11.3.0
 requests==2.32.5

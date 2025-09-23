@@ -158,7 +158,12 @@ class Imagen4TextToImageNode:
             raise RuntimeError(
                 f"Failed to initialize Imagen API client for node execution: {e}"
             )
-        p_gen_enum = getattr(types.PersonGeneration, person_generation.upper())
+        try:
+            p_gen_enum = getattr(types.PersonGeneration, person_generation.upper())
+        except AttributeError:
+            raise RuntimeError(
+                f"Invalid person_generation option: '{person_generation}'."
+            )
 
         seed_for_api = seed if seed != 0 else None
 
@@ -176,16 +181,15 @@ class Imagen4TextToImageNode:
                 output_image_type=output_image_type,
                 safety_filter_level=safety_filter_level,
             )
+            if not pil_images:
+                raise exceptions.APICallError(
+                    "Imagen API failed to generate images or generated no valid images."
+                )
         except (exceptions.APICallError, exceptions.ConfigurationError) as e:
             raise RuntimeError(f"Error occurred during image generation: {e}")
         except Exception as e:
             raise RuntimeError(
                 f"An unexpected error occurred during image generation: {e}"
-            )
-
-        if not pil_images:
-            raise RuntimeError(
-                "Imagen API failed to generate images or generated no valid images."
             )
         try:
             output_tensors: List[torch.Tensor] = []

@@ -28,7 +28,6 @@ from .constants import (
     VEO2_OUTPUT_RESOLUTION,
     VEO2_USER_AGENT,
 )
-from .utils import validate_gcs_uri_and_image
 
 
 class Veo2API(GoogleGenAIBaseAPI):
@@ -255,24 +254,12 @@ class Veo2API(GoogleGenAIBaseAPI):
                 f"sample_count must be between 1 and 4, but got {sample_count}."
             )
 
-        valid_bucket, validation_message = validate_gcs_uri_and_image(gcsuri)
-        if valid_bucket:
-            print(f"gcsuri of the input image is valid {validation_message}")
-        else:
-            raise exceptions.ConfigurationError(
-                f"gcsuri of the input image is not valid {validation_message}"
-            )
+        utils.validate_gcs_uri_and_image(gcsuri)
+        print(f"GCS URI '{gcsuri}' is valid.")
 
         if last_frame_gcsuri:
-            valid_bucket, validation_message = validate_gcs_uri_and_image(
-                last_frame_gcsuri
-            )
-            if valid_bucket:
-                print(f"last frame gcsuri is valid {validation_message}")
-            else:
-                raise exceptions.ConfigurationError(
-                    f"last frame gcs uri is not valid {validation_message}"
-                )
+            utils.validate_gcs_uri_and_image(last_frame_gcsuri)
+            print(f"Last frame GCS URI '{last_frame_gcsuri}' is valid.")
 
         if not image_format:
             raise exceptions.ConfigurationError("Image format cannot be empty.")

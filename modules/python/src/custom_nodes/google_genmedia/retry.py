@@ -17,6 +17,7 @@
 import functools
 import time
 
+import requests
 from google.api_core import exceptions as api_core_exceptions
 from google.genai import errors as genai_errors
 
@@ -34,9 +35,9 @@ def retry_on_api_error(
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             delay = initial_delay
-            retries = max_retries
+            last_exception = None
 
-            while True:
+            for attempt in range(max_retries):
                 try:
                     return func(*args, **kwargs)
                 except (
@@ -44,17 +45,12 @@ def retry_on_api_error(
                     api_core_exceptions.ServiceUnavailable,
                     genai_errors.ServerError,
                 ) as e:
-                    if retries == 0:
-                        raise exceptions.APICallError(
-                            f"API call failed after {max_retries} retries: {e}"
-                        ) from e
-
+                    last_exception = e
                     print(
-                        f"API call failed with a retryable error: {e}. Retrying in {delay:.2f} seconds..."
+                        f"API call failed with a retryable error: {e}. Retrying in {delay:.2f} seconds... (Attempt {attempt + 1}/{max_retries})"
                     )
                     time.sleep(delay)
                     delay *= backoff
-                    retries -= 1
                 except (api_core_exceptions.InvalidArgument,) as e:
                     raise exceptions.ConfigurationError(
                         f"Invalid argument or configuration: {e}"
@@ -69,6 +65,13 @@ def retry_on_api_error(
                     raise exceptions.APICallError(
                         f"An unexpected API error occurred: {e}"
                     ) from e
+                except requests.exception.RequestException as e:
+                    raise exceptions.APICallError(f"Network request failed: {e}") from e
+
+            # If the loop completes, all retries have failed.
+            raise exceptions.APICallError(
+                f"API call failed after {max_retries} retries: {last_exception}"
+            ) from last_exception
 
         return wrapper
 

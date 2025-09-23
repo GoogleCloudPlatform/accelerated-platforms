@@ -37,6 +37,7 @@ from PIL import Image as PIL_Image
 
 from . import exceptions
 from .constants import STORAGE_USER_AGENT
+from .retry import retry_on_api_error
 
 
 def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
@@ -114,9 +115,6 @@ def download_gcsuri(gcsuri: str, destination: str) -> bool:
 
     except Exception as e:
         raise exceptions.FileProcessingError(f"Error downloading '{gcsuri}': {e}")
-
-
-from .retry import retry_on_api_error
 
 
 @retry_on_api_error()
@@ -273,13 +271,7 @@ def generate_video_from_gcsuri_image(
     }
 
     if output_gcs_uri:
-        valid_bucket, validation_message = validate_gcs_uri_and_image(
-            output_gcs_uri, False
-        )
-        if valid_bucket:
-            print(validation_message)
-        else:
-            raise exceptions.ConfigurationError(validation_message)
+        validate_gcs_uri_and_image(output_gcs_uri, False)
         temp_config["output_gcs_uri"] = output_gcs_uri
 
     if re.search(
@@ -432,13 +424,7 @@ def generate_video_from_image(
     }
 
     if output_gcs_uri:
-        valid_bucket, validation_message = validate_gcs_uri_and_image(
-            output_gcs_uri, False
-        )
-        if valid_bucket:
-            print(validation_message)
-        else:
-            raise exceptions.ConfigurationError(validation_message)
+        validate_gcs_uri_and_image(output_gcs_uri, False)
         temp_config["output_gcs_uri"] = output_gcs_uri
 
     if re.search(
@@ -570,13 +556,7 @@ def generate_video_from_text(
     }
 
     if output_gcs_uri:
-        valid_bucket, validation_message = validate_gcs_uri_and_image(
-            output_gcs_uri, False
-        )
-        if valid_bucket:
-            print(validation_message)
-        else:
-            raise exceptions.ConfigurationError(validation_message)
+        validate_gcs_uri_and_image(output_gcs_uri, False)
         temp_config["output_gcs_uri"] = output_gcs_uri
 
     if re.search(
@@ -805,29 +785,26 @@ def process_video_response(operation: Any) -> List[str]:
     return video_paths
 
 
-def validate_gcs_uri_and_image(
-    gcs_uri: str, check_object: bool = True
-) -> Tuple[bool, str]:
+@retry_on_api_error()
+def validate_gcs_uri_and_image(gcs_uri: str, check_object: bool = True) -> None:
     """
-    Validates if a given string is a valid GCS URI and if the object it points to
-    exists and is identified as an image.
+    Validates if a given string is a valid GCS URI and if the object it points to exists.
 
     Args:
-        gcs_uri: The Google Cloud Storage URI (e.g., "gs://my-bucket/path/to/image.jpg").
+        gcs_uri: The GCS URI to validate.
+        check_object: Whether to check for the object's existence or just the bucket.
 
-    Returns:
-        A tuple where the first element is True if valid and an image,
-        False otherwise. The second element is a message indicating
-        the validation status or error.
+    Raises:
+        exceptions.ConfigurationError: For any validation failure (bad format, not found, permissions).
+        exceptions.APICallError: For transient, retry-able API errors (from the decorator).
     """
     GCS_URI_PATTERN = re.compile(
         r"^gs://(?P<bucket>[a-z0-9][a-z0-9._-]{1,61}[a-z0-9])(?:/(?P<object_path>.*))?$"
     )
     match = GCS_URI_PATTERN.match(gcs_uri)
     if not match:
-        return (
-            False,
-            f"Invalid GCS URI format: '{gcs_uri}'. Does not match 'gs://bucket/object' pattern.",
+        raise exceptions.ConfigurationError(
+            f"Invalid GCS URI format: '{gcs_uri}'. Does not match 'gs://bucket/object' pattern."
         )
 
     bucket_name = match.group("bucket")
@@ -840,62 +817,38 @@ def validate_gcs_uri_and_image(
         bucket = storage_client.bucket(bucket_name)
 
         if not bucket.exists():
-            return (
-                False,
-                f"GCS bucket '{bucket_name}' does not exist or is inaccessible.",
+            raise exceptions.ConfigurationError(
+                f"GCS bucket '{bucket_name}' does not exist or is inaccessible."
             )
-        # Exit with True status if the check was only for the GCS URI and not the object.
+
         if not check_object:
-            return (True, f"GCS URI is valid.")
+            return  # Bucket exists, we are done.
+
+        if not object_path:
+            raise exceptions.ConfigurationError(
+                f"GCS URI '{gcs_uri}' points to a bucket, but an object path is required."
+            )
+
         blob = bucket.blob(object_path)
-
         if not blob.exists():
-            return (
-                False,
-                f"GCS object '{object_path}' not found in bucket '{bucket_name}'.",
+            raise exceptions.ConfigurationError(
+                f"GCS object '{object_path}' not found in bucket '{bucket_name}'."
             )
 
-        blob.reload()
-        content_type = blob.content_type
-        if content_type is None:
-            inferred_type, _ = mimetypes.guess_type(object_path)
-            if inferred_type:
-                content_type = inferred_type
-            else:
-                return (
-                    False,
-                    f"GCS object '{object_path}' has no content type set and cannot be inferred as an image.",
-                )
-
-        if not content_type.startswith("image/"):
-            return (
-                False,
-                f"GCS object '{object_path}' is not an image. Content-Type: {content_type}",
-            )
-
-        return (
-            True,
-            f"GCS URI is valid and object '{object_path}' is a valid image (Content-Type: {content_type}).",
-        )
-
+    except api_core_exceptions.PermissionDenied as e:
+        raise exceptions.ConfigurationError(
+            f"Permission denied to access GCS resource: {gcs_uri}. Check your credentials and permissions."
+        ) from e
     except api_core_exceptions.GoogleAPICallError as e:
-        if e.code == StatusCode.NOT_FOUND:
-            return False, f"GCS resource not found: {e.details}"
-        elif (
-            e.code == StatusCode.PERMISSION_DENIED
-            or e.code == StatusCode.UNAUTHENTICATED
-        ):
-            return (
-                False,
-                f"Permission denied to access GCS resource: {e.details}. Check your credentials and bucket/object permissions.",
-            )
-        else:
-            return (
-                False,
-                f"An unexpected GCS API error occurred: {e.details} (Code: {e.code.name})",
-            )
+        # Let retryable errors be handled by the decorator, but wrap other API errors.
+        raise exceptions.APICallError(
+            f"An unexpected GCS API error occurred during validation: {e}"
+        ) from e
     except Exception as e:
-        return False, f"An unexpected error occurred during GCS validation: {e}"
+        # Catch any other unexpected errors.
+        raise exceptions.FileProcessingError(
+            f"An unexpected error occurred during GCS validation: {e}"
+        ) from e
 
 
 def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:

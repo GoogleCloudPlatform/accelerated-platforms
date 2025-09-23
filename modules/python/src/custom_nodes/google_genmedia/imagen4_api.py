@@ -64,7 +64,7 @@ class Imagen4API(GoogleGenAIBaseAPI):
             prompt: The text prompt for image generation.
             person_generation: Controls whether the model can generate people.
             aspect_ratio: The desired aspect ratio of the images.
-            number_of_images: The number of images to generate (1-4).
+            number_of_images: The number of images to generate (1-IMAGEN4_MAX_IMAGES).
             negative_prompt: A prompt to guide the model to avoid generating certain things.
             seed: Optional. A seed for reproducible image generation.
             enhance_prompt: Whether to enhance the prompt automatically.
@@ -76,7 +76,7 @@ class Imagen4API(GoogleGenAIBaseAPI):
             A list of PIL Image objects. Returns an empty list on failure.
 
         Raises:
-            exceptions.ConfigurationError: If `number_of_images` is not between 1 and 4,
+            exceptions.ConfigurationError: If `number_of_images` is not between 1 and IMAGEN4_MAX_IMAGES,
                         if `seed` is provided with `add_watermark` enabled,
                         or if `output_image_type` is unsupported.
         """

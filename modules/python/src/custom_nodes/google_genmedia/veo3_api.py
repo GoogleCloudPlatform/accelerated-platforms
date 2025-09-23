@@ -21,7 +21,14 @@ from google import genai
 
 from . import exceptions, utils
 from .base_api import GoogleGenAIBaseAPI
-from .constants import OUTPUT_RESOLUTION, VEO3_MAX_VIDEOS, VEO3_USER_AGENT, Veo3Model
+from .constants import (
+    OUTPUT_RESOLUTION,
+    VEO3_MAX_VIDEOS,
+    VEO3_USER_AGENT,
+    VEO3_VALID_ASPECT_RATIOS,
+    VEO3_VALID_DURATION_SECONDS,
+    Veo3Model,
+)
 
 
 class Veo3API(GoogleGenAIBaseAPI):
@@ -89,17 +96,17 @@ class Veo3API(GoogleGenAIBaseAPI):
             raise exceptions.ConfigurationError(
                 "Prompt cannot be empty for text-to-video generation."
             )
-        if duration_seconds != 8:
+        if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
             raise exceptions.ConfigurationError(
-                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
+                f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if not (1 <= sample_count <= VEO3_MAX_VIDEOS):
             raise exceptions.ConfigurationError(
                 f"sample_count must be between 1 and {VEO3_MAX_VIDEOS} for Veo3, but got {sample_count}."
             )
-        if aspect_ratio != "16:9":
+        if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise exceptions.ConfigurationError(
-                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+                f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_ASPECT_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
             raise exceptions.ConfigurationError(
@@ -175,9 +182,9 @@ class Veo3API(GoogleGenAIBaseAPI):
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
 
-        if duration_seconds != 8:
+        if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
             raise exceptions.ConfigurationError(
-                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
+                f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if not (1 <= sample_count <= VEO3_MAX_VIDEOS):
             raise exceptions.ConfigurationError(
@@ -189,9 +196,9 @@ class Veo3API(GoogleGenAIBaseAPI):
                 "Image input (torch.Tensor) cannot be None."
             )
 
-        if aspect_ratio != "16:9":
+        if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise exceptions.ConfigurationError(
-                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+                f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_ASPECT_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
             raise exceptions.ConfigurationError(
@@ -274,28 +281,25 @@ class Veo3API(GoogleGenAIBaseAPI):
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
 
-        if duration_seconds != 8:
+        if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
             raise exceptions.ConfigurationError(
-                f"duration_seconds must be between 8 seconds for veo3, but got {duration_seconds}."
+                f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if not (1 <= sample_count <= VEO3_MAX_VIDEOS):
             raise exceptions.ConfigurationError(
                 f"sample_count must be between 1 and {VEO3_MAX_VIDEOS}, but got {sample_count}."
             )
-        if aspect_ratio != "16:9":
+        if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise exceptions.ConfigurationError(
-                f"Veo3 can only generate videos of aspect ratio 16:9. You passed aspect ratio {aspect_ratio}."
+                f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_ASPECT_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
             raise exceptions.ConfigurationError(
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
 
-        valid_bucket, validation_message = utils.validate_gcs_uri_and_image(gcsuri)
-        if valid_bucket:
-            print(validation_message)
-        else:
-            raise exceptions.ConfigurationError(validation_message)
+        utils.validate_gcs_uri_and_image(gcsuri)
+        print(f"GCS URI '{gcsuri}' is valid.")
 
         if not image_format:
             raise exceptions.ConfigurationError("Image format cannot be empty.")

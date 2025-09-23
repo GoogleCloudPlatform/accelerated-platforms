@@ -14,69 +14,29 @@
 
 # This is a preview version of Google GenAI custom nodes
 
-import base64
-import io
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-import numpy as np
 import torch
-from google.api_core.gapic_v1.client_info import ClientInfo
-from google.cloud import aiplatform
-from google.genai import types
-from PIL import Image
 
 from . import exceptions, utils
-from .config import get_gcp_metadata
+from .base_api import GoogleGenAIBaseAPI
 from .constants import MAX_SEED, VTO_MODEL, VTO_USER_AGENT
 from .retry import retry_on_api_error
 
 
-class VirtualTryOn:
-    """
-    A ComfyUI node for virtual try on.
-    """
+class VirtualTryOnAPI(GoogleGenAIBaseAPI):
+    """API client for the Virtual Try-On model."""
 
     def __init__(
         self, gcp_project_id: Optional[str] = None, gcp_region: Optional[str] = None
     ):
-        """
-        Initializes the Gemini client.
-
-        Args:
-            gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
-            gcp_region: The GCP region. If provided, overrides metadata lookup.
-
-        Raises:
-            exceptions.APIInitializationError: If GCP Project or region cannot be determined.
-        """
-        self.project_id = gcp_project_id
-        self.region = gcp_region
-
-        if not self.project_id:
-            self.project_id = get_gcp_metadata("project/project-id")
-        if not self.region:
-            zone = get_gcp_metadata("instance/zone")
-            if zone:
-                self.region = "-".join(zone.split("/")[-1].split("-")[:-1])
-
-        if not self.project_id:
-            raise exceptions.APIInitializationError(
-                "GCP Project is required and could not be determined."
-            )
-        if not self.region:
-            raise exceptions.APIInitializationError(
-                "GCP region is required and could not be determined."
-            )
-
-        print(f"Project is {self.project_id}, region is {self.region}")
+        super().__init__(
+            gcp_project_id=gcp_project_id,
+            gcp_region=gcp_region,
+            user_agent_suffix=VTO_USER_AGENT,
+        )
         try:
-            aiplatform.init(project=self.project_id, location=self.region)
-            self.api_regional_endpoint = f"{self.region}-aiplatform.googleapis.com"
-            self.client_options = {"api_endpoint": self.api_regional_endpoint}
-            self.client_info = ClientInfo(user_agent=VTO_USER_AGENT)
-            self.client = aiplatform.gapic.PredictionServiceClient(
-                client_options=self.client_options, client_info=self.client_info
-            )
+            self.client = self.get_prediction_client()
             self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/{VTO_MODEL}"
             print(
                 f"Prediction client initiated on project : {self.project_id}, location: {self.region}"
@@ -85,6 +45,23 @@ class VirtualTryOn:
             raise exceptions.APIInitializationError(
                 f"Failed to initialize Prediction client for Vertex AI: {e}"
             )
+
+    @retry_on_api_error()
+    def predict(self, instances, parameters):
+        return self.client.predict(
+            endpoint=self.model_endpoint,
+            instances=instances,
+            parameters=parameters,
+        )
+
+
+class VirtualTryOn:
+    """
+    A ComfyUI node for virtual try on.
+    """
+
+    def __init__(self):
+        pass
 
     @classmethod
     def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
@@ -148,14 +125,6 @@ class VirtualTryOn:
     FUNCTION = "generate_and_return_image"
     CATEGORY = "Google AI/Use-cases"
 
-    @retry_on_api_error()
-    def _predict(self, endpoint, instances, parameters):
-        return self.client.predict(
-            endpoint=endpoint,
-            instances=instances,
-            parameters=parameters,
-        )
-
     def generate_and_return_image(
         self,
         person_image: torch.Tensor,
@@ -200,12 +169,11 @@ class VirtualTryOn:
                         when `add_watermark` is enabled.
         """
         try:
-            # Re-initialize the client if needed
-            init_project_id = gcp_project_id if gcp_project_id else None
-            init_region = gcp_region if gcp_region else None
-            self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
+            vto_api = VirtualTryOnAPI(
+                gcp_project_id=gcp_project_id, gcp_region=gcp_region
+            )
         except exceptions.APIInitializationError as e:
-            raise RuntimeError(f"Error re-initializing client: {e}")
+            raise RuntimeError(f"Error initializing client: {e}")
 
         # Validate that the input tensors contain data
         if not (person_image.numel() > 0 and product_image.numel() > 0):
@@ -246,8 +214,7 @@ class VirtualTryOn:
                 "safety_filter_level": safety_filter_level,
             }
             try:
-                response = self._predict(
-                    endpoint=self.model_endpoint,
+                response = vto_api.predict(
                     instances=instances,
                     parameters=parameters,
                 )

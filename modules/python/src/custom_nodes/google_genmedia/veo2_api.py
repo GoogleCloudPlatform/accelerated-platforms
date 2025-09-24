@@ -20,7 +20,7 @@ import torch
 from google import genai
 
 from . import exceptions, utils
-from .base_api import GoogleGenAIBaseAPI
+from .config import GoogleGenAIBaseAPI
 from .constants import (
     VEO2_GENERATE_AUDIO_FLAG,
     VEO2_MAX_VIDEOS,

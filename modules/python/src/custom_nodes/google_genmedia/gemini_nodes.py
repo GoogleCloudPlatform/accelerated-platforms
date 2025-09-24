@@ -20,7 +20,7 @@ from google import genai
 from google.genai import types
 
 from . import exceptions, utils
-from .base_api import GoogleGenAIBaseAPI
+from .config import GoogleGenAIBaseAPI
 from .config import get_gcp_metadata
 from .constants import (
     AUDIO_MIME_TYPES,

@@ -23,8 +23,8 @@ from google.genai import errors as genai_errors
 from google.genai import types
 from PIL import Image
 
-from . import exceptions, utils
-from .base_api import GoogleGenAIBaseAPI
+from . import utils
+from .config import GoogleGenAIBaseAPI
 from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
 from .retry import retry_on_api_error
 

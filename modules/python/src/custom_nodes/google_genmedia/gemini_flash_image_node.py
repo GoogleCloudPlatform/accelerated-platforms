@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 
+from . import exceptions
 from .constants import GeminiFlashImageModel, ThresholdOptions
 from .gemini_flash_image_api import GeminiFlashImageAPI
 
@@ -164,9 +165,13 @@ class Gemini25FlashImage:
             gemini_flash_image_api = GeminiFlashImageAPI(
                 project_id=gcp_project_id, region=gcp_region
             )
+        except exceptions.APIInitializationError as e:
+            raise RuntimeError(
+                f"Failed to initialize Gemini Flash Image API client: {e}"
+            )
         except Exception as e:
             raise RuntimeError(
-                f"Failed to initialize Imagen API client for node execution: {e}"
+                f"An unexpected error occurred during client initialization: {e}"
             )
 
         if image != None:
@@ -188,8 +193,10 @@ class Gemini25FlashImage:
             )
             if not pil_images:
                 raise exceptions.APICallError("API returned no valid images.")
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            raise RuntimeError(f"Image generation failed: {e}")
         except Exception as e:
-            raise RuntimeError(f"Error occurred during image generation: {e}")
+            raise RuntimeError(f"An unexpected error occurred during image generation: {e}")
 
         try:
             output_tensors: List[torch.Tensor] = []

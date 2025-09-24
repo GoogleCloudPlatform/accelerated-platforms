@@ -158,6 +158,10 @@ class Imagen4TextToImageNode:
             raise RuntimeError(
                 f"Failed to initialize Imagen API client for node execution: {e}"
             )
+        except Exception as e:
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
         try:
             p_gen_enum = getattr(types.PersonGeneration, person_generation.upper())
         except AttributeError:

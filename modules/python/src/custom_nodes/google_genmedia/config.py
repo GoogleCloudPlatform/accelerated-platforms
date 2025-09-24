@@ -14,11 +14,11 @@
 
 # This is a preview version of Google GenAI custom nodes
 from typing import Optional
-import requests
-from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
+import requests
 from google import genai
 from google.api_core import exceptions as api_core_exceptions
+from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
 from . import exceptions
 

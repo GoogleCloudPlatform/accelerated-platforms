@@ -20,8 +20,7 @@ from google import genai
 from google.genai import types
 
 from . import exceptions, utils
-from .config import GoogleGenAIBaseAPI
-from .config import get_gcp_metadata
+from .config import GoogleGenAIBaseAPI, get_gcp_metadata
 from .constants import (
     AUDIO_MIME_TYPES,
     GEMINI_USER_AGENT,
@@ -228,7 +227,9 @@ class GeminiNode25(GoogleGenAIBaseAPI):
             raise RuntimeError(f"Failed to initialize Gemini client: {e}")
         except Exception as e:
             print(f"An unexpected error occurred during client initialization: {e}")
-            raise RuntimeError(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
 
         # Stage 2: Prepare Request Payload
         try:

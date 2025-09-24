@@ -65,7 +65,7 @@ def retry_on_api_error(
                     raise exceptions.APICallError(
                         f"An unexpected API error occurred: {e}"
                     ) from e
-                except requests.exception.RequestException as e:
+                except requests.exceptions.RequestException as e:
                     raise exceptions.APICallError(f"Network request failed: {e}") from e
 
             # If the loop completes, all retries have failed.

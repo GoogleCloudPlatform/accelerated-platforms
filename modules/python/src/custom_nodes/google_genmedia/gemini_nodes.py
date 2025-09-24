@@ -223,8 +223,10 @@ class GeminiNode25(GoogleGenAIBaseAPI):
             init_project_id = gcp_project_id if gcp_project_id else None
             init_region = gcp_region if gcp_region else None
             self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
             raise RuntimeError(f"Failed to initialize Gemini client: {e}")
+        except Exception as e:
+            raise RuntimeError(f"An unexpected error occurred during client initialization: {e}")
 
         # Stage 2: Prepare Request Payload
         try:

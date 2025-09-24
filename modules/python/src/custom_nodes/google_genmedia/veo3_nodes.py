@@ -140,8 +140,9 @@ class Veo3TextToVideoNode:
         try:
             api = Veo3API(project_id=gcp_project_id, region=gcp_region)
         except exceptions.APIInitializationError as e:
-            # Catch any exception from Veo3API.__init__ (ValueError, RuntimeError)
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
+        except Exception as e:
+            raise RuntimeError(f"An unexpected error occurred during client initialization: {e}")
 
         seed_for_api = seed if seed != 0 else None
 
@@ -298,6 +299,8 @@ class Veo3GcsUriImageToVideoNode:
             api = Veo3API(project_id=gcp_project_id, region=gcp_region)
         except exceptions.APIInitializationError as e:
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
+        except Exception as e:
+            raise RuntimeError(f"An unexpected error occurred during client initialization: {e}")
 
         seed_for_api = seed if seed != 0 else None
 
@@ -453,6 +456,8 @@ class Veo3ImageToVideoNode:
             api = Veo3API(project_id=gcp_project_id, region=gcp_region)
         except exceptions.APIInitializationError as e:
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
+        except Exception as e:
+            raise RuntimeError(f"An unexpected error occurred during client initialization: {e}")
 
         seed_for_api = seed if seed != 0 else None
 

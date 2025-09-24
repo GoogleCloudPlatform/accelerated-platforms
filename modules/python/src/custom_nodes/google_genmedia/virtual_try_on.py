@@ -174,6 +174,8 @@ class VirtualTryOn:
             )
         except exceptions.APIInitializationError as e:
             raise RuntimeError(f"Error initializing client: {e}")
+        except Exception as e:
+            raise RuntimeError(f"An unexpected error occurred during client initialization: {e}")
 
         # Validate that the input tensors contain data
         if not (person_image.numel() > 0 and product_image.numel() > 0):
@@ -224,6 +226,9 @@ class VirtualTryOn:
                     all_generated_tensors.append(tensor)
             except (exceptions.APICallError, exceptions.ConfigurationError) as e:
                 print(f"Could not generate image for product {i+1}. Error: {e}")
+                continue
+            except Exception as e:
+                print(f"An unexpected error occurred for product {i+1}. Error: {e}")
                 continue
 
         # After the loop, check if we got any results at all

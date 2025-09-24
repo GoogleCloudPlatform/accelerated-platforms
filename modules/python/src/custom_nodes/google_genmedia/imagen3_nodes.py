@@ -149,8 +149,10 @@ class Imagen3TextToImageNode:
         try:
             imagen_api = Imagen3API(project_id=gcp_project_id, region=gcp_region)
         except exceptions.APIInitializationError as e:
+            print(f"Failed to initialize Imagen API client: {e}")
             raise RuntimeError(f"Failed to initialize Imagen API client: {e}")
         except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
             raise RuntimeError(
                 f"An unexpected error occurred during client initialization: {e}"
             )
@@ -163,6 +165,7 @@ class Imagen3TextToImageNode:
                 f"Invalid person_generation option: '{person_generation}'."
             )
         except Exception as e:
+            print(f"Failed to prepare parameters: {e}")
             raise RuntimeError(f"Failed to prepare parameters: {e}")
 
         try:
@@ -181,8 +184,10 @@ class Imagen3TextToImageNode:
             if not pil_images:
                 raise exceptions.APICallError("API returned no valid images.")
         except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            print(f"Image generation failed: {e}")
             raise RuntimeError(f"Image generation failed: {e}")
         except Exception as e:
+            print(f"An unexpected error occurred during image generation: {e}")
             raise RuntimeError(
                 f"An unexpected error occurred during image generation: {e}"
             )
@@ -200,6 +205,7 @@ class Imagen3TextToImageNode:
             batched_images_tensor = torch.cat(output_tensors, dim=0)
             return (batched_images_tensor,)
         except Exception as e:
+            print(f"Failed to process and convert generated images: {e}")
             raise RuntimeError(f"Failed to process and convert generated images: {e}")
 
 

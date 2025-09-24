@@ -18,6 +18,7 @@ import requests
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
 from google import genai
+from google.api_core import exceptions as api_core_exceptions
 
 from . import exceptions
 
@@ -67,9 +68,17 @@ class GoogleGenAIBaseAPI:
                 location=self.region,
                 http_options=http_options,
             )
-        except Exception as e:
+        except api_core_exceptions.InvalidArgument as e:
+            message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
+            print(f"Error initializing client with region {self.region}: {message}")
             raise exceptions.APIInitializationError(
-                f"Failed to initialize genai.Client for Vertex AI: {e}"
+                f"Failed to initialize client, your region {self.region} might be wrong. Please pass `global` if you are not sure. Full error: {message}"
+            ) from e
+        except Exception as e:
+            message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
+            print(f"Failed to initialize genai.Client for Vertex AI: {message}")
+            raise exceptions.APIInitializationError(
+                f"Failed to initialize genai.Client for Vertex AI: {message}"
             ) from e
 
 

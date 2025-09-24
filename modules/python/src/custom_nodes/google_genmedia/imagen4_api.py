@@ -20,7 +20,7 @@ from google import genai
 from PIL import Image
 
 from . import exceptions, utils
-from .base_api import GoogleGenAIBaseAPI
+from .config import GoogleGenAIBaseAPI
 from .constants import IMAGEN4_MAX_IMAGES, IMAGEN4_USER_AGENT, Imagen4Model
 
 

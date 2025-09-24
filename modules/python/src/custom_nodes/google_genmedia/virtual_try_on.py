@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional, Tuple
 import torch
 
 from . import exceptions, utils
-from .base_api import GoogleGenAIBaseAPI
+from .config import GoogleGenAIBaseAPI
 from .constants import MAX_SEED, VTO_MODEL, VTO_USER_AGENT
 from .retry import retry_on_api_error
 

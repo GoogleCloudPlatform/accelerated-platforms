@@ -13,9 +13,64 @@
 # limitations under the License.
 
 # This is a preview version of Google GenAI custom nodes
-
+from typing import Optional
 import requests
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
+
+from google import genai
+
+from . import exceptions
+
+
+class GoogleGenAIBaseAPI:
+    """Base class for Google GenAI API clients."""
+
+    def __init__(
+        self,
+        project_id: Optional[str] = None,
+        region: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ):
+        """
+        Initializes the API client.
+
+        Args:
+            project_id: The GCP project ID.
+            region: The GCP region.
+            user_agent: The user agent to use for the API client.
+
+        Raises:
+            exceptions.APIInitializationError: If the API client cannot be initialized.
+        """
+        self.project_id = project_id or get_gcp_metadata("project/project-id")
+        self.region = region
+        if not self.region:
+            zone = get_gcp_metadata("instance/zone")
+            if zone:
+                self.region = "-".join(zone.split("/")[-1].split("-")[:-1])
+
+        if not self.project_id:
+            raise exceptions.APIInitializationError("GCP Project is required")
+        if not self.region:
+            raise exceptions.APIInitializationError("GCP region is required")
+
+        print(f"Project is {self.project_id}, region is {self.region}")
+
+        http_options = None
+        if user_agent:
+            http_options = genai.types.HttpOptions(headers={"user-agent": user_agent})
+
+        try:
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.project_id,
+                location=self.region,
+                http_options=http_options,
+            )
+        except Exception as e:
+            raise exceptions.APIInitializationError(
+                f"Failed to initialize genai.Client for Vertex AI: {e}"
+            ) from e
 
 
 # Fetch GCP project ID and zone required to authenticate with Vertex AI APIs

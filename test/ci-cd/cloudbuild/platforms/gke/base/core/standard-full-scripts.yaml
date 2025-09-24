@@ -49,28 +49,28 @@ steps:
     waitFor:
       - "Configure the build environment"
 
-  - args:
-      - "Teardown platforms/gke/base/core full with Standard"
-      - "test/ci-cd/scripts/platforms/gke/base/core/standard-full-teardown.sh"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
-    id: "Teardown platforms/gke/base/core full with Standard"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Deploy platforms/gke/base/core full with Standard"
+  # - args:
+  #     - "Teardown platforms/gke/base/core full with Standard"
+  #     - "test/ci-cd/scripts/platforms/gke/base/core/standard-full-teardown.sh"
+  #   entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
+  #   id: "Teardown platforms/gke/base/core full with Standard"
+  #   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  #   waitFor:
+  #     - "Deploy platforms/gke/base/core full with Standard"
 
-  - args:
-      - "Cleanup the build environment"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/cleanup_build_environment.sh"
-    id: "Cleanup the build environment"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Teardown platforms/gke/base/core full with Standard"
+  # - args:
+  #     - "Cleanup the build environment"
+  #   entrypoint: "test/ci-cd/scripts/platforms/gke/base/cleanup_build_environment.sh"
+  #   id: "Cleanup the build environment"
+  #   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  #   waitFor:
+  #     - "Teardown platforms/gke/base/core full with Standard"
 
-  - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
-    id: "Set the build status"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Cleanup the build environment"
+  # - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
+  #   id: "Set the build status"
+  #   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  #   waitFor:
+  #     - "Cleanup the build environment"
 
 substitutions:
   _DEBUG: "false"

@@ -224,8 +224,10 @@ class GeminiNode25(GoogleGenAIBaseAPI):
             init_region = gcp_region if gcp_region else None
             self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
         except exceptions.APIInitializationError as e:
+            print(f"Failed to initialize Gemini client: {e}")
             raise RuntimeError(f"Failed to initialize Gemini client: {e}")
         except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
             raise RuntimeError(f"An unexpected error occurred during client initialization: {e}")
 
         # Stage 2: Prepare Request Payload
@@ -294,6 +296,7 @@ class GeminiNode25(GoogleGenAIBaseAPI):
                 ]
 
         except Exception as e:
+            print(f"Failed to prepare API request payload: {e}")
             raise RuntimeError(f"Failed to prepare API request payload: {e}")
 
         # Stage 3: Make API call
@@ -304,6 +307,7 @@ class GeminiNode25(GoogleGenAIBaseAPI):
                 config=gen_config_obj,
             )
         except Exception as e:
+            print(f"Gemini API call failed: {e}")
             raise RuntimeError(f"Gemini API call failed: {e}")
 
         # Stage 4: Process response
@@ -336,6 +340,7 @@ class GeminiNode25(GoogleGenAIBaseAPI):
 
             return (generated_text,)
         except Exception as e:
+            print(f"Failed to process API response: {e}")
             raise RuntimeError(f"Failed to process API response: {e}")
 
 

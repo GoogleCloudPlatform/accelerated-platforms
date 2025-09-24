@@ -173,8 +173,10 @@ class VirtualTryOn:
                 gcp_project_id=gcp_project_id, gcp_region=gcp_region
             )
         except exceptions.APIInitializationError as e:
+            print(f"Error initializing client: {e}")
             raise RuntimeError(f"Error initializing client: {e}")
         except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
             raise RuntimeError(f"An unexpected error occurred during client initialization: {e}")
 
         # Validate that the input tensors contain data
@@ -244,6 +246,7 @@ class VirtualTryOn:
             )
             return (final_batch_tensor,)
         except Exception as e:
+            print(f"Failed to concatenate generated images into a batch: {e}")
             raise RuntimeError(
                 f"Failed to concatenate generated images into a batch: {e}"
             )

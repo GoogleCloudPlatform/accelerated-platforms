@@ -46,27 +46,41 @@ def retry_on_api_error(
                     genai_errors.ServerError,
                 ) as e:
                     last_exception = e
+                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
+                    print(f"A retryable error occurred: {message}")
                     print(
-                        f"API call failed with a retryable error: {e}. Retrying in {delay:.2f} seconds... (Attempt {attempt + 1}/{max_retries})"
+                        f"API call failed with a retryable error: {message}. Retrying in {delay:.2f} seconds... (Attempt {attempt + 1}/{max_retries})"
                     )
                     time.sleep(delay)
                     delay *= backoff
                 except (api_core_exceptions.InvalidArgument,) as e:
+                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
+                    print(f"Invalid argument or configuration: {message}")
                     raise exceptions.ConfigurationError(
-                        f"Invalid argument or configuration: {e}"
+                        f"Invalid argument or configuration: {message}"
                     ) from e
                 except (api_core_exceptions.PermissionDenied,) as e:
+                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
+                    print(
+                        f"Permission denied. Check your credentials and permissions. Error: {message}"
+                    )
                     raise exceptions.APICallError(
-                        f"Permission denied. Check your credentials and permissions. Error: {e}"
+                        f"Permission denied. Check your credentials and permissions. Error: {message}"
                     ) from e
                 except (api_core_exceptions.DeadlineExceeded,) as e:
-                    raise exceptions.APICallError(f"API request timed out: {e}") from e
+                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
+                    print(f"API request timed out: {message}")
+                    raise exceptions.APICallError(f"API request timed out: {message}") from e
                 except (api_core_exceptions.GoogleAPICallError,) as e:
+                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
+                    print(f"An unexpected API error occurred: {message}")
                     raise exceptions.APICallError(
-                        f"An unexpected API error occurred: {e}"
+                        f"An unexpected API error occurred: {message}"
                     ) from e
                 except requests.exceptions.RequestException as e:
-                    raise exceptions.APICallError(f"Network request failed: {e}") from e
+                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
+                    print(f"Network request failed: {message}")
+                    raise exceptions.APICallError(f"Network request failed: {message}") from e
 
             # If the loop completes, all retries have failed.
             raise exceptions.APICallError(

@@ -74,6 +74,7 @@ trap cleanup_on_exit EXIT
 #  Copy checkpoint file
 # ------------------------------------------------------------
 step "Copy checkpoint files"
+: << 'END_COMMENT'
 gcloud builds submit \
 --config="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/copy-checkpoints/cloudbuild.yaml" \
 --gcs-source-staging-dir="gs://${comfyui_cloudbuild_source_bucket_name}/source" \
@@ -81,7 +82,7 @@ gcloud builds submit \
 --project="${cluster_project_id}" \
 --service-account="${comfyui_cloudbuild_service_account_id}" \
 --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
-
+END_COMMENT
 # ------------------------------------------------------------
 # Get GKE credentials
 # ------------------------------------------------------------

@@ -200,7 +200,9 @@ class Gemini25FlashImage:
             raise RuntimeError(f"Image generation failed: {e}")
         except Exception as e:
             print(f"An unexpected error occurred during image generation: {e}")
-            raise RuntimeError(f"An unexpected error occurred during image generation: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during image generation: {e}"
+            )
 
         try:
             output_tensors: List[torch.Tensor] = []

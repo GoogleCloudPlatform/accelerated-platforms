@@ -70,7 +70,9 @@ def retry_on_api_error(
                 except (api_core_exceptions.DeadlineExceeded,) as e:
                     message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
                     print(f"API request timed out: {message}")
-                    raise exceptions.APICallError(f"API request timed out: {message}") from e
+                    raise exceptions.APICallError(
+                        f"API request timed out: {message}"
+                    ) from e
                 except (api_core_exceptions.GoogleAPICallError,) as e:
                     message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
                     print(f"An unexpected API error occurred: {message}")
@@ -80,7 +82,9 @@ def retry_on_api_error(
                 except requests.exceptions.RequestException as e:
                     message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
                     print(f"Network request failed: {message}")
-                    raise exceptions.APICallError(f"Network request failed: {message}") from e
+                    raise exceptions.APICallError(
+                        f"Network request failed: {message}"
+                    ) from e
 
             # If the loop completes, all retries have failed.
             raise exceptions.APICallError(

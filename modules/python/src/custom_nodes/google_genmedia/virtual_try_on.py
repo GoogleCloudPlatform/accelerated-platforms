@@ -177,7 +177,9 @@ class VirtualTryOn:
             raise RuntimeError(f"Error initializing client: {e}")
         except Exception as e:
             print(f"An unexpected error occurred during client initialization: {e}")
-            raise RuntimeError(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
 
         # Validate that the input tensors contain data
         if not (person_image.numel() > 0 and product_image.numel() > 0):

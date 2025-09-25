@@ -81,6 +81,7 @@ gcloud builds submit \
 --project="${cluster_project_id}" \
 --service-account="${comfyui_cloudbuild_service_account_id}" \
 --substitutions="_BUCKET_NAME=${comfyui_cloud_storage_model_bucket_name}"
+
 # ------------------------------------------------------------
 # Get GKE credentials
 # ------------------------------------------------------------

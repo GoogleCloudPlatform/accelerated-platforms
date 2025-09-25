@@ -107,7 +107,6 @@ kubectl logs -n ${comfyui_kubernetes_namespace} deployment/${COMFYUI_DEPLOYMENT}
 # Start client pod
 # ------------------------------------------------------------
 step "Create client pod '${POD_NAME}' in '${comfyui_kubernetes_namespace}'"
-# Correctly gets only ONE service account name
 export SA_NAME=$(kubectl get serviceaccount -n ${comfyui_kubernetes_namespace} -o custom-columns=NAME:.metadata.name --no-headers | grep -v "^default$" | head -n 1)
 
 kubectl run "${POD_NAME}" \

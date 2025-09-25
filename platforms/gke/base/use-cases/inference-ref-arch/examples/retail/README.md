@@ -1,0 +1,1 @@
+# Retail use case based on the ComfyUI reference implementation

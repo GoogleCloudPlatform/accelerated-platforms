@@ -19,6 +19,9 @@ source /workspace/build.env 2>/dev/null || true
 if [ -n "${ACP_PLATFORM_BASE_DIR:-}" ]; then
   # shellcheck disable=SC1091
   source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh" 2>/dev/null || true
+else  
+  # Corrected line: Print the variable's name, not its empty value.
+  echo "Warning: Variable ACP_PLATFORM_BASE_DIR is not set." >&2
 fi
 
 # --- Vars (preserved defaults) ---
@@ -70,6 +73,7 @@ cleanup_on_exit() {
 }
 trap cleanup_on_exit EXIT
 
+sleep 120
 # ------------------------------------------------------------
 #  Copy checkpoint file
 # ------------------------------------------------------------
@@ -93,11 +97,20 @@ kubectl get deployment -n ${comfyui_kubernetes_namespace}
 step "Wait for ComfyUI deployment to be Available"
 kubectl wait --for=condition=Available deployment/${COMFYUI_DEPLOYMENT} -n ${comfyui_kubernetes_namespace} --timeout=${MAX_WAIT_SECONDS}s
 
+step "Check ComfyUI service and endpoints"
+info "Getting services in namespace '${comfyui_kubernetes_namespace}'"
+kubectl get svc -n ${comfyui_kubernetes_namespace}
+info "Getting endpoints in namespace '${comfyui_kubernetes_namespace}'"
+kubectl get endpoints -n ${comfyui_kubernetes_namespace}
+
+step "Show recent logs from ComfyUI deployment"
+info "Getting logs for deployment '${COMFYUI_DEPLOYMENT}' in namespace '${comfyui_kubernetes_namespace}'"
+kubectl logs -n ${comfyui_kubernetes_namespace} deployment/${COMFYUI_DEPLOYMENT} --tail=50 || warn "Could not retrieve logs for deployment '${COMFYUI_DEPLOYMENT}'. This may be expected if pods are not yet running."
+
 # ------------------------------------------------------------
 # Start client pod
 # ------------------------------------------------------------
 step "Create client pod '${POD_NAME}' in '${comfyui_kubernetes_namespace}'"
-# Correctly gets only ONE service account name
 export SA_NAME=$(kubectl get serviceaccount -n ${comfyui_kubernetes_namespace} -o custom-columns=NAME:.metadata.name --no-headers | grep -v "^default$" | head -n 1)
 
 kubectl run "${POD_NAME}" \
@@ -105,7 +118,7 @@ kubectl run "${POD_NAME}" \
   --restart=Never \
   -n "${comfyui_kubernetes_namespace}" \
   --overrides="{ \"spec\": { \"serviceAccountName\": \"${SA_NAME}\" } }" \
-  --command -- sh -c "apk add --no-cache bash curl jq && echo 'Pod is ready. Waiting...' && sleep 3600"
+  --command -- sh -c "apk add --no-cache bash curl jq nmap-ncat bind-tools && echo 'Pod is ready. Waiting...' && sleep 3600"
 
 step "Wait for pod to be Ready"
 kubectl wait --for=condition=Ready "pod/${POD_NAME}" -n "${comfyui_kubernetes_namespace}" --timeout=${MAX_WAIT_SECONDS}s
@@ -146,6 +159,18 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
   /bin/bash -lc '
     echo ">> Sourcing test functions..."
     . /tmp/comfyui-workflow-tester.sh
+
+    echo ">> [DEBUG] Running network diagnostics..."
+    echo ">> [DEBUG] COMFYUI_URL=${COMFYUI_URL}"
+    HOSTNAME=$(echo "${COMFYUI_URL}" | cut -d/ -f3 | cut -d: -f1)
+    PORT=$(echo "${COMFYUI_URL}" | cut -d/ -f3 | cut -d: -f2)
+    echo ">> [DEBUG] Service Hostname: ${HOSTNAME}"
+    echo ">> [DEBUG] Service Port: ${PORT}"
+    echo ">> [DEBUG] DNS lookup for service..."
+    nslookup "${HOSTNAME}"
+    echo ">> [DEBUG] Checking port connectivity..."
+    nc -zv "${HOSTNAME}" "${PORT}"
+    echo ">> [DEBUG] Network diagnostics complete."
 
     echo ">> Begin workflow tests..."
     FAILURES_FILE=$(mktemp)

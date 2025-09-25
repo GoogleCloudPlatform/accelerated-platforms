@@ -19,6 +19,9 @@ source /workspace/build.env 2>/dev/null || true
 if [ -n "${ACP_PLATFORM_BASE_DIR:-}" ]; then
   # shellcheck disable=SC1091
   source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh" 2>/dev/null || true
+else  
+  # Corrected line: Print the variable's name, not its empty value.
+  echo "Warning: Variable ACP_PLATFORM_BASE_DIR is not set." >&2
 fi
 
 # --- Vars (preserved defaults) ---
@@ -70,6 +73,7 @@ cleanup_on_exit() {
 }
 trap cleanup_on_exit EXIT
 
+sleep 120
 # ------------------------------------------------------------
 #  Copy checkpoint file
 # ------------------------------------------------------------

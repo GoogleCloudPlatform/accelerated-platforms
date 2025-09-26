@@ -56,7 +56,7 @@ class Veo3TextToVideoNode:
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
-                "sample_count": ("INT", {"default": 1, "min": 1, "max": 2, "step": 1}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
                 "output_gcs_uri": ("STRING", {"default": ""}),
@@ -211,7 +211,7 @@ class Veo3GcsUriImageToVideoNode:
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
-                "sample_count": ("INT", {"default": 1, "min": 1, "max": 2, "step": 1}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
                 "output_gcs_uri": ("STRING", {"default": ""}),
@@ -368,7 +368,7 @@ class Veo3ImageToVideoNode:
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
-                "sample_count": ("INT", {"default": 1, "min": 1, "max": 2, "step": 1}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
                 "output_gcs_uri": ("STRING", {"default": ""}),

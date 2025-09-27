@@ -26,6 +26,7 @@ from .constants import (
     VEO3_USER_AGENT,
     VEO3_VALID_ASPECT_RATIOS,
     VEO3_VALID_DURATION_SECONDS,
+    VEO3_VALID_SAMPLE_COUNT,
     Veo3Model,
 )
 
@@ -116,9 +117,9 @@ class Veo3API:
             raise ValueError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 2):
+        if not (1 <= sample_count <= 4):
             raise ValueError(
-                f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
+                f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
         if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise ValueError(
@@ -203,9 +204,9 @@ class Veo3API:
             raise ValueError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 2):
+        if not (1 <= sample_count <= 4):
             raise ValueError(
-                f"sample_count must be between 1 and 2 for Veo3, but got {sample_count}."
+                f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
 
         if image is None:
@@ -300,9 +301,9 @@ class Veo3API:
             raise ValueError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 2):
+        if not (1 <= sample_count <= 4):
             raise ValueError(
-                f"sample_count must be between 1 and 2, but got {sample_count}."
+                f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
         if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise ValueError(

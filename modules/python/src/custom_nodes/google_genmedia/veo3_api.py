@@ -117,7 +117,7 @@ class Veo3API:
             raise ValueError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= 4):
+        if sample_count not in VEO3_VALID_SAMPLE_COUNT:
             raise ValueError(
                 f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )

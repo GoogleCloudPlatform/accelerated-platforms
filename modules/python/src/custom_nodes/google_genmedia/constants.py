@@ -35,6 +35,7 @@ VEO3_MAX_VIDEOS = 4
 MAX_SEED = 0xFFFFFFFF
 OUTPUT_RESOLUTION = ["720p", "1080p"]
 STORAGE_USER_AGENT = "cloud-solutions/comfyui-gcs-custom-node-v1"
+STORYCRAFT_USER_AGENT = "cloud-solutions/storycraft-custom-node-v1"
 SUPPORTED_VIDEO_EXTENSIONS = {".mp4", ".webm", ".ogg", ".mov", ".mkv"}
 VEO2_GENERATE_AUDIO_FLAG = False
 VEO2_OUTPUT_RESOLUTION = "720p"

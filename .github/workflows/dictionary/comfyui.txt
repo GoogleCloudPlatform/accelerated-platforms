@@ -35,12 +35,16 @@ latentpreviewrate
 lightricks
 loras
 ltxv
+lyria
 mimetypes
 mucha
 photomaker
 pingpong
 pysssss
+rostova
 sdxl
+segenai
+storycraft
 tolower
 torchaudio
 torchvision
@@ -51,6 +55,7 @@ veo3
 veopreview
 vertexai
 videohelpersuite
+voiceovers
 videopreview
 vto
 webp

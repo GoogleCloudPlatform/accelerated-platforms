@@ -21,18 +21,12 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
-from . import exceptions, utils, storycraft_prompts
+from . import exceptions,  storycraft_prompt
 from .config import GoogleGenAIBaseAPI
 from .constants import (
-    AUDIO_MIME_TYPES,
     STORYCRAFT_USER_AGENT,
-    IMAGE_MIME_TYPES,
-    VIDEO_MIME_TYPES,
     GeminiModel,
-    ThresholdOptions,
-    MAX_SEED,
     Imagen4Model,
-    VEO3_VALID_ASPECT_RATIOS,
     Veo3Model,
 )
 from .retry import retry_on_api_error
@@ -144,8 +138,8 @@ class StoryCraft(GoogleGenAIBaseAPI):
         try:
             GoogleGenAIBaseAPI.__init__(
                 self,
-                gcp_project_id=gcp_project_id,  # You'll need to add gcp_project_id and gcp_region to the method signature
-                region=gcp_region,
+                project_id=gcp_project_id or None,
+                region=gcp_region or None,
                 user_agent=STORYCRAFT_USER_AGENT,
             )
         except exceptions.APIInitializationError as e:
@@ -259,10 +253,10 @@ class StoryCraft(GoogleGenAIBaseAPI):
         top_k: int,
     ):
         print(f"Generating scenario blueprint with model: {model_name}...")
-        prompt = storycraft_prompts.get_scenario_prompt(
+        prompt = storycraft_prompt.get_scenario_prompt(
             pitch, num_scenes, style, language
         )
-
+        print(prompt)
         gen_config = types.GenerateContentConfig(
             temperature=temperature,
             max_output_tokens=max_output_tokens,
@@ -273,17 +267,20 @@ class StoryCraft(GoogleGenAIBaseAPI):
 
         print(f"Generating text with model: {model_name}...")
         try:
-            # model = segenai.GenerativeModel(model_name)
             response = self.client.models.generate_content(
-                contents=prompt, generation_config=gen_config
+                model=model_name,
+                contents=prompt,
+                generation_config=gen_config,
             )
-            print(response)
-            return response.text
+
+            if response and response.text:
+                print(response.text)
+                return response.text
+            else:
+                raise exceptions.APICallError("API call for scenario generation returned no text.")
 
         except Exception as e:
-            print(
-                f"API call for scenario generation returned no text.API call for scenario generation returned no text.: {e}"
-            )
+            print(f"An unexpected error occurred during text generation: {e}")
             raise exceptions.APICallError(f"Text generation failed: {e}") from e
 
     def _generate_character_sheets(
@@ -350,7 +347,7 @@ class StoryCraft(GoogleGenAIBaseAPI):
         except json.JSONDecodeError:
             return json.dumps({"error": "Invalid JSON input"})
 
-        prompt = storycraft_prompts.get_scenes_prompt(scenario_data, num_scenes, style)
+        prompt = storycraft_prompt.get_scenes_prompt(scenario_data, num_scenes, style)
         # This is a placeholder for a real API call
         mock_response_text = """
         {

@@ -148,9 +148,8 @@ class StoryCraft(GoogleGenAIBaseAPI):
 
         try:
             # 1. Generate Scenario Blueprint
-            print("Generate scan")
+            print("Generate scenario blueprint")
             scenario_blueprint_str = self._generate_scenario(
-                self=self,
                 pitch=pitch,
                 num_scenes=num_scenes,
                 style=style,
@@ -241,7 +240,7 @@ class StoryCraft(GoogleGenAIBaseAPI):
             print(f"An error occurred during the pipeline: {e}")
             # return (f"{gcs_bucket_uri}/error.mp4",)
 
-    #@retry_on_api_error()
+    # @retry_on_api_error()
     def _generate_scenario(
         self,
         pitch: str,
@@ -283,7 +282,8 @@ class StoryCraft(GoogleGenAIBaseAPI):
 
         except Exception as e:
             print(f"An unexpected error occurred during text generation: {e}")
-            raise exceptions.APICallError(f"Text generation failed: {e}") from e
+            return ("",)
+            #raise exceptions.APICallError(f"Text generation failed: {e}") from e
 
     def _generate_character_sheets(
         self, SCENARIO_BLUEPRINT: str, gcs_bucket_uri: str, model_name: str

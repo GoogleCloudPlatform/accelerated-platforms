@@ -148,16 +148,18 @@ class StoryCraft(GoogleGenAIBaseAPI):
 
         try:
             # 1. Generate Scenario Blueprint
+            print("Generate scan")
             scenario_blueprint_str = self._generate_scenario(
-                pitch,
-                num_scenes,
-                style,
-                language,
-                generation_model,
-                temperature,
-                max_output_tokens,
-                top_p,
-                top_k,
+                self=self,
+                pitch=pitch,
+                num_scenes=num_scenes,
+                style=style,
+                language=language,
+                model_name=generation_model,
+                temperature=temperature,
+                max_output_tokens=max_output_tokens,
+                top_p=top_p,
+                top_k=top_k,
             )
             return scenario_blueprint_str
             """
@@ -239,7 +241,7 @@ class StoryCraft(GoogleGenAIBaseAPI):
             print(f"An error occurred during the pipeline: {e}")
             # return (f"{gcs_bucket_uri}/error.mp4",)
 
-    @retry_on_api_error
+    #@retry_on_api_error()
     def _generate_scenario(
         self,
         pitch: str,
@@ -264,8 +266,8 @@ class StoryCraft(GoogleGenAIBaseAPI):
             top_k=top_k,
             response_mime_type="application/json",
         )
-
-        print(f"Generating text with model: {model_name}...")
+        print(gen_config)
+        print(f"Generating text with model: {model_name}")
         try:
             response = self.client.models.generate_content(
                 model=model_name,

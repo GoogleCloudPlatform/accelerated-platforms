@@ -33,7 +33,7 @@ case ${exit_code} in
         print_and_execute "go install github.com/google/go-containerregistry/cmd/crane@latest && \
         crane version"
     else
-        VERSION="v0.20.2"
+        VERSION="v0.20.6"
         OS="Linux"
         ARCH="x86_64"
 

@@ -1,8 +1,8 @@
-ARG CRANE_VERSION="0.20.2"
+ARG CRANE_VERSION="0.20.6"
 # When updating GCLOUD_VERSION, update DOCKER_VERSION and KUSTOMIZE_VERSION 
 # to match the docker and kustomize versions that are installed in Cloud Shell.
-ARG DOCKER_VERSION="28.3.3"
-ARG GCLOUD_VERSION="534.0.0"
+ARG DOCKER_VERSION="28.4.0"
+ARG GCLOUD_VERSION="539.0.0"
 ARG KUSTOMIZE_VERSION="5.7.1"
 # When updating the Terraform version, ensure that you also updated the
 # required_version in Terraform modules and services across the repository.

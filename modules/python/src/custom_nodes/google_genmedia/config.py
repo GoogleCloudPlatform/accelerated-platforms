@@ -24,6 +24,8 @@ import requests
 from google import genai
 from google.api_core.gapic_v1.client_info import ClientInfo
 from google.cloud import aiplatform
+from google.cloud import compute_v1
+from google.api_core import exceptions as google_exceptions
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
 # Assuming a local exceptions file
@@ -186,11 +188,31 @@ class GoogleGenAIBaseAPI:
                 f"{project_id_requirements}"
             )
 
-    @staticmethod
-    def _validate_region(region: str):
-        """Performs a basic format validation for the GCP region string."""
-        # This is a simple format check, not a dynamic validation of existence.
-        if not re.match(r"^[a-z0-9]+(-[a-z0-9]+)*$", region):
+    def _validate_region(self, region: str):
+        """Performs format and dynamic validation for the GCP region string."""
+        if not re.match(r"^[a-z]+-[a-z]+[0-9]+$", region):
             raise exceptions.APIInitializationError(
                 f"Invalid region format: '{region}'. Expected format like 'us-central1."
             )
+        try:
+            regions_client = compute_v1.RegionsClient()
+            request = compute_v1.ListRegionsRequest(project=self.project_id)
+            available_regions = {r.name for r in regions_client.list(request=request)}
+
+            if region not in available_regions:
+                raise exceptions.APIInitializationError(
+                    f"Region '{region}' is not a valid or available GCP region for project '{self.project_id}'."
+                )
+        except google_exceptions.NotFound:
+            raise exceptions.APIInitializationError(
+                f"Could not verify region '{region}'."
+            )
+        except google_exceptions.PermissionDenied:
+            raise exceptions.APIInitializationError(
+                f"Could not verify region '{region}'. Permission denied to access resources for project "
+                f"'{self.project_id}'. Please check your authentication credentials."
+            )
+        except Exception as e:
+            raise exceptions.APIInitializationError(
+                f"An unexpected error occurred while validating region '{region}': {e}"
+            ) from e

@@ -37,16 +37,6 @@ _DEFAULT_REQUEST_TIMEOUT_SECONDS = 30
 
 logger = logging.getLogger(__name__)
 
-project_id_requirements = """
-A project ID has the following requirements:
-- Must be 6 to 30 characters in length.
-- Can only contain lowercase letters, numbers, and hyphens.
-- Must start with a letter.
-- Cannot end with a hyphen.
-- Cannot be in use or previously used; this includes deleted projects.
-- Cannot contain restricted strings such as 'google' and 'ssl'.
-"""
-
 
 def get_gcp_metadata(path: str) -> Optional[str]:
     """Fetches instance metadata from the GCP metadata server."""
@@ -178,6 +168,15 @@ class GoogleGenAIBaseAPI:
     @staticmethod
     def _validate_project_id(project_id: str):
         """Performs validation of the GCP project ID format."""
+        project_id_requirements = """
+        A project ID has the following requirements:
+        - Must be 6 to 30 characters in length.
+        - Can only contain lowercase letters, numbers, and hyphens.
+        - Must start with a letter.
+        - Cannot end with a hyphen.
+        - Cannot be in use or previously used; this includes deleted projects.
+        - Cannot contain restricted strings such as 'google' and 'ssl'.
+        """
         if not 6 <= len(project_id) <= 30:
             raise exceptions.APIInitializationError(
                 f"Invalid Project ID '{project_id}': Must be 6 to 30 characters."
@@ -190,29 +189,54 @@ class GoogleGenAIBaseAPI:
 
     def _validate_region(self, region: str):
         """Performs format and dynamic validation for the GCP region string."""
+        vertex_regions = {
+            "africa-south1",
+            "asia-east1",
+            "asia-east2",
+            "asia-northeast1",
+            "asia-northeast2",
+            "asia-northeast3",
+            "asia-south1",
+            "asia-south2",
+            "asia-southeast1",
+            "asia-southeast2",
+            "australia-southeast1",
+            "australia-southeast2",
+            "europe-central2",
+            "europe-north1",
+            "europe-southwest1",
+            "europe-west1",
+            "europe-west2",
+            "europe-west3",
+            "europe-west4",
+            "europe-west6",
+            "europe-west8",
+            "europe-west9",
+            "europe-west12",
+            "me-central1",
+            "me-central2",
+            "me-west1",
+            "northamerica-northeast1",
+            "northamerica-northeast2",
+            "southamerica-east1",
+            "southamerica-west1",
+            "us-central1",
+            "us-east1",
+            "us-east4",
+            "us-east5",
+            "us-west1",
+            "us-west2",
+            "us-west3",
+            "us-west4",
+            "us-south1",
+        }
+        if region == "global":
+            return
         if not re.match(r"^[a-z]+-[a-z]+[0-9]+$", region):
             raise exceptions.APIInitializationError(
-                f"Invalid region format: '{region}'. Expected format like 'us-central1."
+                f"Invalid region format: '{region}'. Expected format like 'us-central1' or 'global'"
             )
-        try:
-            regions_client = compute_v1.RegionsClient()
-            request = compute_v1.ListRegionsRequest(project=self.project_id)
-            available_regions = {r.name for r in regions_client.list(request=request)}
-
-            if region not in available_regions:
-                raise exceptions.APIInitializationError(
-                    f"Region '{region}' is not a valid or available GCP region for project '{self.project_id}'."
-                )
-        except google_exceptions.NotFound:
+        if region not in vertex_regions:
             raise exceptions.APIInitializationError(
-                f"Could not verify region '{region}'."
+                f"Validation failed: Region '{region}' is not a known GCP region."
             )
-        except google_exceptions.PermissionDenied:
-            raise exceptions.APIInitializationError(
-                f"Could not verify region '{region}'. Permission denied to access resources for project "
-                f"'{self.project_id}'. Please check your authentication credentials."
-            )
-        except Exception as e:
-            raise exceptions.APIInitializationError(
-                f"An unexpected error occurred while validating region '{region}': {e}"
-            ) from e

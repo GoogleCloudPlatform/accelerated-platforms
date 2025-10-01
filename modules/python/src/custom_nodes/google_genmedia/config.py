@@ -35,6 +35,16 @@ _DEFAULT_REQUEST_TIMEOUT_SECONDS = 30
 
 logger = logging.getLogger(__name__)
 
+project_id_requirements = """
+A project ID has the following requirements:
+- Must be 6 to 30 characters in length.
+- Can only contain lowercase letters, numbers, and hyphens.
+- Must start with a letter.
+- Cannot end with a hyphen.
+- Cannot be in use or previously used; this includes deleted projects.
+- Cannot contain restricted strings such as 'google' and 'ssl'.
+"""
+
 
 def get_gcp_metadata(path: str) -> Optional[str]:
     """Fetches instance metadata from the GCP metadata server."""
@@ -173,6 +183,7 @@ class GoogleGenAIBaseAPI:
         if not re.match(r"^[a-z]([a-z0-9-]{4,28}[a-z0-9])?$", project_id):
             raise exceptions.APIInitializationError(
                 f"Invalid Project ID '{project_id}': Does not meet GCP format requirements."
+                f"{project_id_requirements}"
             )
 
     @staticmethod

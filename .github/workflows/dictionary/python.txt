@@ -62,6 +62,7 @@ shutil
 spacy
 splitlines
 sqlalchemy
+staticmethod
 thejsonlogger
 tqdm
 urllib

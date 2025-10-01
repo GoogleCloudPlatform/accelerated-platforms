@@ -147,14 +147,28 @@ class Imagen3TextToImageNode:
             formatted as (batch_size, height, width, channels).
         """
         try:
-            if prompt is None or not str(prompt).strip():
-                raise exceptions.ConfigurationError("Prompt cannot be empty.")
-
             imagen_api = Imagen3API(project_id=gcp_project_id, region=gcp_region)
+        except exceptions.APIInitializationError as e:
+            print(f"Failed to initialize Imagen API client: {e}")
+            raise RuntimeError(f"Failed to initialize Imagen API client: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
 
+        try:
             p_gen_enum = getattr(types.PersonGeneration, person_generation)
             seed_for_api = seed if seed != 0 else None
+        except AttributeError:
+            raise RuntimeError(
+                f"Invalid person_generation option: '{person_generation}'."
+            )
+        except Exception as e:
+            print(f"Failed to prepare parameters: {e}")
+            raise RuntimeError(f"Failed to prepare parameters: {e}")
 
+        try:
             pil_images = imagen_api.generate_image_from_text(
                 prompt=prompt,
                 person_generation=p_gen_enum,
@@ -167,12 +181,18 @@ class Imagen3TextToImageNode:
                 output_image_type=output_image_type,
                 safety_filter_level=safety_filter_level,
             )
-
             if not pil_images:
-                raise RuntimeError(
-                    "Imagen API failed to generate images or generated no valid images."
-                )
+                raise exceptions.APICallError("API returned no valid images.")
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            print(f"Image generation failed: {e}")
+            raise RuntimeError(f"Image generation failed: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during image generation: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during image generation: {e}"
+            )
 
+        try:
             output_tensors: List[torch.Tensor] = []
             for img in pil_images:
                 img = img.convert("RGB")
@@ -184,16 +204,9 @@ class Imagen3TextToImageNode:
 
             batched_images_tensor = torch.cat(output_tensors, dim=0)
             return (batched_images_tensor,)
-        except (
-            exceptions.APICallError,
-            exceptions.ConfigurationError,
-            exceptions.APIInitializationError,
-        ):
-            raise
         except Exception as e:
-            raise RuntimeError(
-                f"An unexpected error occurred during image generation: {e}"
-            )
+            print(f"Failed to process and convert generated images: {e}")
+            raise RuntimeError(f"Failed to process and convert generated images: {e}")
 
 
 NODE_CLASS_MAPPINGS = {"Imagen3TextToImageNode": Imagen3TextToImageNode}

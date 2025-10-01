@@ -62,9 +62,11 @@ shutil
 spacy
 splitlines
 sqlalchemy
+staticmethod
 thejsonlogger
 tqdm
 urllib
 urlretrieve
 uvicorn
 venv
+

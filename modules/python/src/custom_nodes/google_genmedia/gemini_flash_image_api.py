@@ -23,9 +23,10 @@ from google.genai import errors as genai_errors
 from google.genai import types
 from PIL import Image
 
-from . import exceptions, utils
-from .base_api import GoogleGenAIBaseAPI
+from . import utils
+from .config import GoogleGenAIBaseAPI
 from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
+from .retry import retry_on_api_error
 
 
 class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
@@ -48,6 +49,7 @@ class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
         super().__init__(project_id, region)
         print(f"GeminiFlashImageAPI initialized for {self.project_id} in {self.region}")
 
+    @retry_on_api_error()
     def generate_image(
         self,
         model: str,
@@ -138,13 +140,11 @@ class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
                 contents.append(
                     types.Part.from_bytes(data=image_to_b64, mime_type="image/png")
                 )
-        try:
-            response = self.client.models.generate_content(
-                model=model, contents=contents, config=generate_content_config
-            )
-        except (genai_errors.APIError, api_core_exceptions.GoogleAPICallError) as e:
-            print(f"A GenAI API error occurred during image generation: {e}")
-            raise exceptions.APICallError(f"Image generation failed: {e}") from e
+
+        response = self.client.models.generate_content(
+            model=model, contents=contents, config=generate_content_config
+        )
+
         for part in response.candidates[0].content.parts:
             if part.text is not None:
                 print(part.text)

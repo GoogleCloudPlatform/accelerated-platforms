@@ -18,7 +18,12 @@ from typing import Any, Dict, List, Optional, Tuple
 import torch
 
 from . import exceptions
-from .constants import MAX_SEED, SUPPORTED_VIDEO_EXTENSIONS, Veo3Model
+from .constants import (
+    MAX_SEED,
+    SUPPORTED_VIDEO_EXTENSIONS,
+    VEO3_VALID_ASPECT_RATIOS,
+    Veo3Model,
+)
 from .veo3_api import Veo3API
 
 
@@ -36,7 +41,7 @@ class Veo3TextToVideoNode:
                     {"default": Veo3Model.VEO_3_PREVIEW.name},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9"], {"default": "16:9"}),
+                "aspect_ratio": (VEO3_VALID_ASPECT_RATIOS, {"default": "16:9"}),
                 "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
@@ -47,8 +52,8 @@ class Veo3TextToVideoNode:
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    [8],
-                    {"default": 8},
+                    "INT",
+                    {"default": 8, "min": 4, "max": 8, "step": 2},
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
@@ -135,8 +140,13 @@ class Veo3TextToVideoNode:
         try:
             api = Veo3API(project_id=gcp_project_id, region=gcp_region)
         except exceptions.APIInitializationError as e:
-            # Catch any exception from Veo3API.__init__ (ValueError, RuntimeError)
+            print(f"Failed to initialize Veo API: {e}")
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
 
         seed_for_api = seed if seed != 0 else None
 
@@ -157,8 +167,10 @@ class Veo3TextToVideoNode:
                 seed=seed_for_api,
             )
         except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            print(f"Video generation error: {e}")
             raise RuntimeError(f"Video generation error: {e}")
         except Exception as e:
+            print(f"An unexpected error occurred during video generation: {e}")
             raise RuntimeError(
                 f"An unexpected error occurred during video generation: {e}"
             )
@@ -189,7 +201,7 @@ class Veo3GcsUriImageToVideoNode:
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9"], {"default": "16:9"}),
+                "aspect_ratio": (VEO3_VALID_ASPECT_RATIOS, {"default": "16:9"}),
                 "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
@@ -200,8 +212,8 @@ class Veo3GcsUriImageToVideoNode:
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    [8],
-                    {"default": 8},
+                    "INT",
+                    {"default": 8, "min": 4, "max": 8, "step": 2},
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
@@ -292,7 +304,13 @@ class Veo3GcsUriImageToVideoNode:
         try:
             api = Veo3API(project_id=gcp_project_id, region=gcp_region)
         except exceptions.APIInitializationError as e:
+            print(f"Failed to initialize Veo API: {e}")
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
 
         seed_for_api = seed if seed != 0 else None
 
@@ -315,8 +333,10 @@ class Veo3GcsUriImageToVideoNode:
                 seed=seed_for_api,
             )
         except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            print(f"Video generation API error: {e}")
             raise RuntimeError(f"Video generation API error: {e}")
         except Exception as e:
+            print(f"An unexpected error occurred during video generation: {e}")
             raise RuntimeError(
                 f"An unexpected error occurred during video generation: {e}"
             )
@@ -344,7 +364,7 @@ class Veo3ImageToVideoNode:
                     {"default": "PNG", "tooltip": "mime type of the image"},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
-                "aspect_ratio": (["16:9"], {"default": "16:9"}),
+                "aspect_ratio": (VEO3_VALID_ASPECT_RATIOS, {"default": "16:9"}),
                 "output_resolution": (["720p", "1080p"], {"default": "720p"}),
                 "compression_quality": (
                     ["optimized", "lossless"],
@@ -355,8 +375,8 @@ class Veo3ImageToVideoNode:
                     {"default": "allow_adult"},
                 ),
                 "duration_seconds": (
-                    [8],
-                    {"default": 8},
+                    "INT",
+                    {"default": 8, "min": 4, "max": 8, "step": 2},
                 ),
                 "generate_audio": ("BOOLEAN", {"default": True}),
                 "enhance_prompt": ("BOOLEAN", {"default": True}),
@@ -447,7 +467,13 @@ class Veo3ImageToVideoNode:
         try:
             api = Veo3API(project_id=gcp_project_id, region=gcp_region)
         except exceptions.APIInitializationError as e:
+            print(f"Failed to initialize Veo API: {e}")
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
 
         seed_for_api = seed if seed != 0 else None
 
@@ -480,8 +506,12 @@ class Veo3ImageToVideoNode:
                 )
                 all_generated_video_paths.extend(video_paths)
             except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+                print(f"Video generation error for image {i+1}: {e}")
                 raise RuntimeError(f"Video generation error for image {i+1}: {e}")
             except Exception as e:
+                print(
+                    f"An unexpected error occurred during video generation for image {i+1}: {e}"
+                )
                 raise RuntimeError(
                     f"An unexpected error occurred during video generation for image {i+1}: {e}"
                 )

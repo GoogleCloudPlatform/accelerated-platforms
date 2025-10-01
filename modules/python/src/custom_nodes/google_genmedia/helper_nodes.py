@@ -66,11 +66,9 @@ class VeoVideoToVHSNode:
         no_of_frames = 120
         dummy_image = torch.zeros(1, 512, 512, 3)
         if not video_paths:
-            print("Error: No video paths provided.")
-            return (dummy_image,)
+            raise ValueError("Input video_paths list cannot be empty.")
 
         print(f"Received {len(video_paths)} video path(s).")
-        total_extracted_frames = 0
         try:
             for video_path in video_paths:
                 print(f"--- Processing video: {video_path} ---")
@@ -92,9 +90,6 @@ class VeoVideoToVHSNode:
                 if total_frames == 0:
                     print(f"Warning: Zero frames found in {video_path}")
                     continue
-
-                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
                 # Intelligent sampling , skipping directly to the frame instead of reading sequentially
                 frame_step = max(1, total_frames // no_of_frames)
@@ -124,15 +119,13 @@ class VeoVideoToVHSNode:
                 f"An unexpected error occurred during frame extraction: {str(e)}"
             )
 
-        if all_preview_frames:
-            final_output_frames = torch.stack(all_preview_frames, dim=0)
-
-            return (final_output_frames,)
-        else:
-            print(
-                "No frames were extracted from any video. Check paths or frame_interval."
+        if not all_preview_frames:
+            raise exceptions.FileProcessingError(
+                "Failed to extract any frames from the provided video(s)."
             )
-            return (dummy_image,)
+
+        final_output_frames = torch.stack(all_preview_frames, dim=0)
+        return (final_output_frames,)
 
 
 class VeoVideoSaveAndPreview:

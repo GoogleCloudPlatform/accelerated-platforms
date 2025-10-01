@@ -20,7 +20,7 @@ from google import genai
 from google.genai import types
 
 from . import exceptions, utils
-from .config import get_gcp_metadata
+from .config import GoogleGenAIBaseAPI, get_gcp_metadata
 from .constants import (
     AUDIO_MIME_TYPES,
     GEMINI_USER_AGENT,
@@ -32,7 +32,7 @@ from .constants import (
 from .retry import retry_on_api_error
 
 
-class GeminiNode25:
+class GeminiNode25(GoogleGenAIBaseAPI):
     def __init__(
         self,
         gcp_project_id: Optional[str] = None,
@@ -44,47 +44,8 @@ class GeminiNode25:
         Args:
             gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
             gcp_region: The GCP region. If provided, overrides metadata lookup.
-
-        Raises:
-            exceptions.APIInitializationError: If GCP Project or region cannot be determined.
         """
-        self.project_id = gcp_project_id
-        self.region = gcp_region
-
-        if not self.project_id:
-            self.project_id = get_gcp_metadata("project/project-id")
-        if not self.region:
-            zone = get_gcp_metadata("instance/zone")
-            if zone:
-                self.region = "-".join(zone.split("/")[-1].split("-")[:-1])
-
-        if not self.project_id:
-            raise exceptions.APIInitializationError(
-                "GCP Project is required and could not be determined."
-            )
-        if not self.region:
-            raise exceptions.APIInitializationError(
-                "GCP region is required and could not be determined."
-            )
-
-        print(f"Project is {self.project_id}, region is {self.region}")
-        http_options = genai.types.HttpOptions(
-            headers={"user-agent": GEMINI_USER_AGENT}
-        )
-        try:
-            self.client = genai.Client(
-                vertexai=True,
-                project=self.project_id,
-                location=self.region,
-                http_options=http_options,
-            )
-            print(
-                f"genai.Client initialized for Vertex AI project: {self.project_id}, location: {self.region}"
-            )
-        except Exception as e:
-            raise exceptions.APIInitializationError(
-                f"Failed to initialize genai.Client for Vertex AI: {e}"
-            )
+        super().__init__(gcp_project_id, gcp_region, GEMINI_USER_AGENT)
 
     @classmethod
     def INPUT_TYPES(s):
@@ -252,68 +213,25 @@ class GeminiNode25:
         optional multimedia content (images, videos, audio). It configures
         generation parameters such as temperature, token limits, and safety
         settings to control the output.
-
-        Args:
-            prompt (str): The main text prompt for the model.
-            model (str): The name of the Gemini model to use (e.g., "gemini-pro").
-            temperature (float): Controls the randomness of the output. Higher values
-                                  (e.g., 0.8) make the output more random, while lower
-                                  values (e.g., 0.2) make it more focused and deterministic.
-                                  Typically ranges from 0.0 to 1.0.
-            max_output_tokens (int): The maximum number of tokens to generate in the response.
-            top_p (float): The maximum cumulative probability of tokens to consider.
-                           Tokens are sorted by probability, and only the most likely
-                           tokens whose cumulative probability does not exceed `top_p` are
-                           considered. Typically ranges from 0.0 to 1.0.
-            top_k (int): The maximum number of tokens to consider when generating the next token.
-                         The model selects from the `top_k` most probable tokens.
-            candidate_count (int): The number of alternative responses to generate.
-                                   The API will return `candidate_count` responses,
-                                   from which you can choose the best one.
-            stop_sequences (str): A comma-separated string of sequences at which to stop
-                                   the generation. The model will stop generating content
-                                   once it encounters any of these sequences.
-            response_mime_type (str): The desired MIME type of the response, e.g., "text/plain"
-                                      or "application/json".
-            harassment_threshold (str): Safety threshold for harassment content.
-                                        Expected values depend on `ThresholdOptions` enum
-                                        (e.g., "BLOCK_NONE", "BLOCK_LOW_AND_ABOVE").
-            hate_speech_threshold (str): Safety threshold for hate speech content.
-            sexually_explicit_threshold (str): Safety threshold for sexually explicit content.
-            dangerous_content_threshold (str): Safety threshold for dangerous content.
-            system_instruction (str, optional): An optional system instruction to guide the
-                                                model's behavior or style. Defaults to "".
-            image_file_path (str, optional): Path to an image file to include in the prompt.
-                                             Defaults to "".
-            image_mime_type (str, optional): MIME type of the image file. Defaults to "image/png".
-            video_file_path (str, optional): Path to a video file to include in the prompt.
-                                             Defaults to "".
-            video_mime_type (str, optional): MIME type of the video file. Defaults to "video/mp4".
-            audio_file_path (str, optional): Path to an audio file to include in the prompt.
-                                             Defaults to "".
-            audio_mime_type (str, optional): MIME type of the audio file. Defaults to "audio/mp3".
-            gcp_project_id (str, optional): GCP project ID to use for Vertex AI. Defaults to "".
-            gcp_region (str, optional): GCP region to use for Vertex AI. Defaults to "".
-
-        Returns:
-            tuple: A tuple containing the generated text as the first element. If content
-                   is blocked, it will contain a message indicating the reason and safety
-                   ratings. If an error occurs, it will contain an error message.
         """
         if not prompt or not prompt.strip():
-            return ("Error: Prompt cannot be empty.",)
+            raise ValueError("Prompt cannot be empty.")
 
-        # Re-initialize the client to avoid re-launching the node when the customers
-        # provide gcp_project_id and gcp_region first and then remove them to use the defaults.
+        # Stage 1: Client Initialization
         try:
             init_project_id = gcp_project_id if gcp_project_id else None
             init_region = gcp_region if gcp_region else None
             self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
         except exceptions.APIInitializationError as e:
-            return (
-                f"Error re-initializing Gemini client with provided GCP credentials: {e}",
+            print(f"Failed to initialize Gemini client: {e}")
+            raise RuntimeError(f"Failed to initialize Gemini client: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
             )
 
+        # Stage 2: Prepare Request Payload
         try:
             # Prepare GenerationConfig
             gen_config_obj = types.GenerateContentConfig(
@@ -327,95 +245,84 @@ class GeminiNode25:
                 gen_config_obj.stop_sequences = [
                     s.strip() for s in stop_sequences.split(",") if s.strip()
                 ]
-
             if response_mime_type != "text/plain":
                 gen_config_obj.response_mime_type = response_mime_type
 
             # Prepare Safety Settings
-            safety_settings = []
-            safety_settings.append(
+            safety_settings = [
                 types.SafetySetting(
                     category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
                     threshold=ThresholdOptions[harassment_threshold].value,
-                )
-            )
-            safety_settings.append(
+                ),
                 types.SafetySetting(
                     category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
                     threshold=ThresholdOptions[hate_speech_threshold].value,
-                )
-            )
-            safety_settings.append(
+                ),
                 types.SafetySetting(
                     category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
                     threshold=ThresholdOptions[sexually_explicit_threshold].value,
-                )
-            )
-            safety_settings.append(
+                ),
                 types.SafetySetting(
                     category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
                     threshold=ThresholdOptions[dangerous_content_threshold].value,
-                )
-            )
-
+                ),
+            ]
             gen_config_obj.safety_settings = safety_settings
+
             # Prepare contents (prompt, text, image, video, audio)
             contents = [types.Part.from_text(text=prompt)]
-            image_content = (
-                utils.prep_for_media_conversion(image_file_path, image_mime_type)
-                if image_file_path
-                else print(f"No image provided")
-            )
-            if image_content:
-                contents.append(image_content)
-            else:
-                print(
-                    f"Image path '{image_file_path}' provided but content not retrieved or file not found."
+            if image_file_path:
+                image_content = utils.prep_for_media_conversion(
+                    image_file_path, image_mime_type
                 )
+                if image_content:
+                    contents.append(image_content)
+            if video_file_path:
+                video_content = utils.prep_for_media_conversion(
+                    video_file_path, video_mime_type
+                )
+                if video_content:
+                    contents.append(video_content)
+            if audio_file_path:
+                audio_content = utils.prep_for_media_conversion(
+                    audio_file_path, audio_mime_type
+                )
+                if audio_content:
+                    contents.append(audio_content)
 
-            video_content = (
-                utils.prep_for_media_conversion(video_file_path, video_mime_type)
-                if video_file_path
-                else print(f"No video provided")
-            )
-            if video_content:
-                contents.append(video_content)
-            else:
-                print(
-                    f"Video path '{video_file_path}' provided but content not retrieved or file not found."
-                )
-
-            audio_content = (
-                utils.prep_for_media_conversion(audio_file_path, audio_mime_type)
-                if audio_file_path
-                else print(f"No audio provided")
-            )
-            if audio_content:
-                contents.append(audio_content)
-            else:
-                print(
-                    f"Audio path '{audio_file_path}' provided but content not retrieved or file not found."
-                )
             # Prepare system instruction
-            system_instruction_parts = []
             if system_instruction:
-                system_instruction_parts.append(
+                gen_config_obj.system_instruction = [
                     types.Part.from_text(text=system_instruction)
-                )
+                ]
 
-            gen_config_obj.system_instruction = (
-                system_instruction_parts if system_instruction_parts else None
-            )
-            # Make the API call
+        except Exception as e:
+            print(f"Failed to prepare API request payload: {e}")
+            raise RuntimeError(f"Failed to prepare API request payload: {e}")
+
+        # Stage 3: Make API call
+        try:
             response = self._generate_content(
                 model=GeminiModel[model].value,
                 contents=contents,
                 config=gen_config_obj,
             )
+        except Exception as e:
+            print(f"Gemini API call failed: {e}")
+            raise RuntimeError(f"Gemini API call failed: {e}")
 
-            # Extract and return the generated text
+        # Stage 4: Process response
+        try:
             generated_text = ""
-            if response.candidates:
+            if not response.candidates:
+                if response.prompt_feedback and response.prompt_feedback.block_reason:
+                    generated_text = f"Content blocked due to safety filters on the prompt. Reason: {response.prompt_feedback.block_reason}"
+                    if response.prompt_feedback.safety_ratings:
+                        for rating in response.prompt_feedback.safety_ratings:
+                            generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
+                else:
+                    generated_text = "No content generated. The response was empty."
+            else:  # We have candidates
                 candidate = response.candidates[0]
                 if candidate.content and candidate.content.parts:
                     generated_text = candidate.content.parts[0].text
@@ -429,24 +336,13 @@ class GeminiNode25:
                             generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
                 elif hasattr(candidate, "finish_reason"):
                     generated_text = f"No content generated. Finish reason: {candidate.finish_reason.name}"
-
-            elif response.prompt_feedback and response.prompt_feedback.block_reason:
-                generated_text = f"Content blocked due to safety filters on the prompt. Reason: {response.prompt_feedback.block_reason}"
-                if response.prompt_feedback.safety_ratings:
-                    for rating in response.prompt_feedback.safety_ratings:
-                        generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
-            else:
-                generated_text = "No content generated. The response was empty."
+                else:
+                    generated_text = "No content generated. Candidate was empty."
 
             return (generated_text,)
-
-        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
-            error_message = str(e)
-            print(error_message)
-            return (f"Error: {error_message}",)
         except Exception as e:
-            print(f"An unexpected error occurred in calling Gemini API: {e}")
-            return (f"Error: {e}",)
+            print(f"Failed to process API response: {e}")
+            raise RuntimeError(f"Failed to process API response: {e}")
 
 
 NODE_CLASS_MAPPINGS = {"GeminiNode25": GeminiNode25}

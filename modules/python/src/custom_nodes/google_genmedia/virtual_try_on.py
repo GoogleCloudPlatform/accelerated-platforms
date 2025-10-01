@@ -31,12 +31,12 @@ class VirtualTryOnAPI(GoogleGenAIBaseAPI):
         self, gcp_project_id: Optional[str] = None, gcp_region: Optional[str] = None
     ):
         super().__init__(
-            gcp_project_id=gcp_project_id,
-            gcp_region=gcp_region,
-            user_agent_suffix=VTO_USER_AGENT,
+            project_id=gcp_project_id,
+            region=gcp_region,
+            user_agent=VTO_USER_AGENT,
+            client_type="prediction",
         )
         try:
-            self.client = self.get_prediction_client()
             self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/{VTO_MODEL}"
             print(
                 f"Prediction client initiated on project : {self.project_id}, location: {self.region}"

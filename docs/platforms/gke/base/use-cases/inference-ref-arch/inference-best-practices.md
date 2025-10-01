@@ -45,8 +45,8 @@ to autoscale nodes to closely meet the requirements of specific workloads.
 The GKE Inference reference architecture includes CCCs that implement
 [profiles to maximize accelerators obtainability](/platforms/gke/base/core/custom_compute_class/templates/manifests).
 
-<!-- For more information about GKE Inference reference architecture CCCs, see
-[Optimizing GKE Workloads with Custom Compute Classes](LINK HERE) -->
+For more information about optimizing workloads with custom compute classes, see
+[Optimizing GKE Workloads with Custom Compute Classes](/docs/guides/optimizing-gke-workloads-with-custom-compute-classes/README.md)
 
 ### Model Downloader and storage backend selection
 

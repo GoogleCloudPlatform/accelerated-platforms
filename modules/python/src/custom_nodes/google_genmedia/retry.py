@@ -15,7 +15,9 @@
 """A retry decorator for handling transient API errors."""
 
 import functools
+import logging
 import time
+from typing import Any, Callable, TypeVar
 
 import requests
 from google.api_core import exceptions as api_core_exceptions
@@ -23,15 +25,63 @@ from google.genai import errors as genai_errors
 
 from . import exceptions
 
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Type variable for generic function signatures
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def _extract_error_message(error: Exception) -> str:
+    """Extract a formatted error message from an exception.
+
+    Args:
+        error: The exception to extract message from
+
+    Returns:
+        Formatted error message string
+    """
+    code = getattr(error, "code", "N/A")
+    status = getattr(error, "status", "N/A")
+    message = getattr(error, "message", str(error))
+    return f"code: {code} status: {status} message: {message}"
+
 
 def retry_on_api_error(
     initial_delay: float = 5,
     max_retries: int = 3,
     backoff: float = 2,
-):
-    """A decorator to retry a function call on specific API errors."""
+) -> Callable[[F], F]:
+    """A decorator to retry a function call on specific transient API errors.
 
-    def decorator(func):
+    This decorator will retry the wrapped function when it encounters specific
+    transient errors (resource exhausted, service unavailable, server errors).
+    It uses exponential backoff for retries.
+
+    Non-retryable errors (invalid arguments, permission denied, timeouts) are
+    immediately raised as appropriate custom exceptions.
+
+    Args:
+        initial_delay: Initial delay in seconds before first retry (default: 5)
+        max_retries: Maximum number of retry attempts (default: 3)
+        backoff: Multiplier for exponential backoff (default: 2)
+
+    Returns:
+        Decorated function that will retry on transient errors
+
+    Example:
+        @retry_on_api_error(initial_delay=2, max_retries=5)
+        def call_api():
+            return api.some_method()
+    """
+    # Define which exceptions should trigger retries
+    RETRYABLE_EXCEPTIONS = (
+        api_core_exceptions.ResourceExhausted,
+        api_core_exceptions.ServiceUnavailable,
+        genai_errors.ServerError,
+    )
+
+    def decorator(func: F) -> F:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             delay = initial_delay
@@ -40,55 +90,61 @@ def retry_on_api_error(
             for attempt in range(max_retries):
                 try:
                     return func(*args, **kwargs)
-                except (
-                    api_core_exceptions.ResourceExhausted,
-                    api_core_exceptions.ServiceUnavailable,
-                    genai_errors.ServerError,
-                ) as e:
+
+                except RETRYABLE_EXCEPTIONS as e:
                     last_exception = e
-                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
-                    print(f"A retryable error occurred: {message}")
-                    print(
-                        f"API call failed with a retryable error: {message}. Retrying in {delay:.2f} seconds... (Attempt {attempt + 1}/{max_retries})"
+                    error_msg = _extract_error_message(e)
+                    logger.warning(
+                        f"Retryable API error (attempt {attempt + 1}/{max_retries}): {error_msg}. "
+                        f"Retrying in {delay:.2f} seconds..."
                     )
-                    time.sleep(delay)
-                    delay *= backoff
-                except (api_core_exceptions.InvalidArgument,) as e:
-                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
-                    print(f"Invalid argument or configuration: {message}")
+
+                    if attempt < max_retries - 1:  # Don't sleep after last attempt
+                        time.sleep(delay)
+                        delay *= backoff
+
+                except api_core_exceptions.InvalidArgument as e:
+                    error_msg = _extract_error_message(e)
+                    logger.error(f"Invalid argument or configuration: {error_msg}")
                     raise exceptions.ConfigurationError(
-                        f"Invalid argument or configuration: {message}"
-                    ) from e
-                except (api_core_exceptions.PermissionDenied,) as e:
-                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
-                    print(
-                        f"Permission denied. Check your credentials and permissions. Error: {message}"
-                    )
-                    raise exceptions.APICallError(
-                        f"Permission denied. Check your credentials and permissions. Error: {message}"
-                    ) from e
-                except (api_core_exceptions.DeadlineExceeded,) as e:
-                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
-                    print(f"API request timed out: {message}")
-                    raise exceptions.APICallError(
-                        f"API request timed out: {message}"
-                    ) from e
-                except (api_core_exceptions.GoogleAPICallError,) as e:
-                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
-                    print(f"An unexpected API error occurred: {message}")
-                    raise exceptions.APICallError(
-                        f"An unexpected API error occurred: {message}"
-                    ) from e
-                except requests.exceptions.RequestException as e:
-                    message = f"code: {getattr(e, 'code', 'N/A')} status: {getattr(e, 'status', 'N/A')} message: {getattr(e, 'message', e)}"
-                    print(f"Network request failed: {message}")
-                    raise exceptions.APICallError(
-                        f"Network request failed: {message}"
+                        f"Invalid argument or configuration: {error_msg}"
                     ) from e
 
-            # If the loop completes, all retries have failed.
+                except api_core_exceptions.PermissionDenied as e:
+                    error_msg = _extract_error_message(e)
+                    logger.error(f"Permission denied: {error_msg}")
+                    raise exceptions.APICallError(
+                        f"Permission denied. Check your credentials and permissions. Error: {error_msg}"
+                    ) from e
+
+                except api_core_exceptions.DeadlineExceeded as e:
+                    error_msg = _extract_error_message(e)
+                    logger.error(f"API request timed out: {error_msg}")
+                    raise exceptions.APICallError(
+                        f"API request timed out: {error_msg}"
+                    ) from e
+
+                except api_core_exceptions.GoogleAPICallError as e:
+                    error_msg = _extract_error_message(e)
+                    logger.error(f"Unexpected API error: {error_msg}")
+                    raise exceptions.APICallError(
+                        f"An unexpected API error occurred: {error_msg}"
+                    ) from e
+
+                except requests.exceptions.RequestException as e:
+                    error_msg = _extract_error_message(e)
+                    logger.error(f"Network request failed: {error_msg}")
+                    raise exceptions.APICallError(
+                        f"Network request failed: {error_msg}"
+                    ) from e
+
+            # If all retries exhausted
+            error_msg = _extract_error_message(last_exception)
+            logger.error(
+                f"API call failed after {max_retries} retries. Last error: {error_msg}"
+            )
             raise exceptions.APICallError(
-                f"API call failed after {max_retries} retries: {last_exception}"
+                f"API call failed after {max_retries} retries: {error_msg}"
             ) from last_exception
 
         return wrapper

@@ -36,6 +36,7 @@ jsonify
 jsonpickle
 lstrip
 makedirs
+maxsize
 moviepy
 nbconvert
 numpy

@@ -47,7 +47,7 @@ class Gemini25FlashImage:
                 "model": (
                     [model.name for model in GeminiFlashImageModel],
                     {
-                        "default": GeminiFlashImageModel.GEMINI_25_FLASH_IMAGE_PREVIEW.name
+                        "default": GeminiFlashImageModel.GEMINI_25_FLASH_IMAGE.name
                     },
                 ),
                 "prompt": (

@@ -46,9 +46,7 @@ class Gemini25FlashImage:
             "required": {
                 "model": (
                     [model.name for model in GeminiFlashImageModel],
-                    {
-                        "default": GeminiFlashImageModel.GEMINI_25_FLASH_IMAGE.name
-                    },
+                    {"default": GeminiFlashImageModel.GEMINI_25_FLASH_IMAGE.name},
                 ),
                 "prompt": (
                     "STRING",

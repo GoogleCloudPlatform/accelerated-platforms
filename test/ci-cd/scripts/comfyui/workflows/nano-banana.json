@@ -57,7 +57,7 @@
   },
   "1": {
     "inputs": {
-      "model": "GEMINI_25_FLASH_IMAGE_PREVIEW",
+      "model": "GEMINI_25_FLASH_IMAGE",
       "prompt": "Place the objects from image 1 in the environment of image 2",
       "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
       "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",

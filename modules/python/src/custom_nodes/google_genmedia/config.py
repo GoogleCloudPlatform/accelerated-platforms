@@ -24,7 +24,6 @@ import requests
 from google import genai
 from google.api_core.gapic_v1.client_info import ClientInfo
 from google.cloud import aiplatform
-from google.cloud import compute_v1
 from google.api_core import exceptions as google_exceptions
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
@@ -75,6 +74,7 @@ class GoogleGenAIBaseAPI:
         - If a value is provided, it is validated.
         - If a value is not provided, it is discovered from the environment.
         """
+        self.user_agent = user_agent
         # --- Project ID Handling ---
         if project_id:
             self._validate_project_id(project_id)
@@ -118,6 +118,12 @@ class GoogleGenAIBaseAPI:
                     location=self.region,
                     http_options=http_options,
                 )
+            except google_exceptions.NotFound as e:
+                message = self._format_api_error(e)
+                raise exceptions.APIInitializationError(
+                    f"Invalid region '{self.region}' for project '{self.project_id}'. "
+                    f"Please check the region and try again. Full error: {message}"
+                ) from e
             except Exception as e:
                 message = self._format_api_error(e)
                 raise exceptions.APIInitializationError(
@@ -138,6 +144,12 @@ class GoogleGenAIBaseAPI:
                 self.client = aiplatform.gapic.PredictionServiceClient(
                     client_options=self.client_options, client_info=self.client_info
                 )
+            except google_exceptions.NotFound as e:
+                message = self._format_api_error(e)
+                raise exceptions.APIInitializationError(
+                    f"Invalid region '{self.region}' for project '{self.project_id}'. "
+                    f"Please check the region and try again. Full error: {message}"
+                ) from e
             except Exception as e:
                 message = self._format_api_error(e)
                 raise exceptions.APIInitializationError(
@@ -189,54 +201,9 @@ class GoogleGenAIBaseAPI:
 
     def _validate_region(self, region: str):
         """Performs format and dynamic validation for the GCP region string."""
-        vertex_regions = {
-            "africa-south1",
-            "asia-east1",
-            "asia-east2",
-            "asia-northeast1",
-            "asia-northeast2",
-            "asia-northeast3",
-            "asia-south1",
-            "asia-south2",
-            "asia-southeast1",
-            "asia-southeast2",
-            "australia-southeast1",
-            "australia-southeast2",
-            "europe-central2",
-            "europe-north1",
-            "europe-southwest1",
-            "europe-west1",
-            "europe-west2",
-            "europe-west3",
-            "europe-west4",
-            "europe-west6",
-            "europe-west8",
-            "europe-west9",
-            "europe-west12",
-            "me-central1",
-            "me-central2",
-            "me-west1",
-            "northamerica-northeast1",
-            "northamerica-northeast2",
-            "southamerica-east1",
-            "southamerica-west1",
-            "us-central1",
-            "us-east1",
-            "us-east4",
-            "us-east5",
-            "us-west1",
-            "us-west2",
-            "us-west3",
-            "us-west4",
-            "us-south1",
-        }
         if region == "global":
             return
         if not re.match(r"^[a-z]+-[a-z]+[0-9]+$", region):
             raise exceptions.APIInitializationError(
                 f"Invalid region format: '{region}'. Expected format like 'us-central1' or 'global'"
-            )
-        if region not in vertex_regions:
-            raise exceptions.APIInitializationError(
-                f"Validation failed: Region '{region}' is not a known GCP region."
             )

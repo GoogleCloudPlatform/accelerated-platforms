@@ -107,8 +107,8 @@ class GoogleGenAIBaseAPI:
                 self.region,
             )
             http_options = (
-                genai.types.HttpOptions(headers={"user-agent": user_agent})
-                if user_agent
+                genai.types.HttpOptions(headers={"user-agent": self.user_agent})
+                if self.user_agent
                 else None
             )
             try:
@@ -134,7 +134,7 @@ class GoogleGenAIBaseAPI:
                 aiplatform.init(project=self.project_id, location=self.region)
                 self.api_regional_endpoint = f"{self.region}-aiplatform.googleapis.com"
                 self.client_options = {"api_endpoint": self.api_regional_endpoint}
-                self.client_info = ClientInfo(user_agent=user_agent)
+                self.client_info = ClientInfo(user_agent=self.user_agent)
                 self.client = aiplatform.gapic.PredictionServiceClient(
                     client_options=self.client_options, client_info=self.client_info
                 )

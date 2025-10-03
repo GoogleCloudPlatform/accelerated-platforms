@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
+from . import exceptions
 from .constants import MAX_SEED, SUPPORTED_VIDEO_EXTENSIONS
 from .veo2_api import Veo2API
 
@@ -122,9 +123,14 @@ class Veo2TextToVideoNode:
         """
         try:
             api = Veo2API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
-            # Catch any exception from Veo2API.__init__ (ValueError, RuntimeError)
+        except exceptions.APIInitializationError as e:
+            print(f"Failed to initialize Veo API: {e}")
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
 
         seed_for_api = seed if seed != 0 else None
 
@@ -141,11 +147,11 @@ class Veo2TextToVideoNode:
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
-        except ValueError as e:
-            raise RuntimeError(f"Video generation configuration error: {e}")
-        except RuntimeError as e:
-            raise RuntimeError(f"Veo API error: {e}")
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            print(f"Video generation error: {e}")
+            raise RuntimeError(f"Video generation error: {e}")
         except Exception as e:
+            print(f"An unexpected error occurred during video generation: {e}")
             raise RuntimeError(
                 f"An unexpected error occurred during video generation: {e}"
             )
@@ -272,8 +278,14 @@ class Veo2GcsUriImageToVideoNode:
         """
         try:
             api = Veo2API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
+            print(f"Failed to initialize Veo API: {e}")
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
 
         seed_for_api = seed if seed != 0 else None
 
@@ -293,11 +305,11 @@ class Veo2GcsUriImageToVideoNode:
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
             )
-        except ValueError as e:
-            raise RuntimeError(f"Video generation configuration error: {e}")
-        except RuntimeError as e:
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            print(f"Video generation API error: {e}")
             raise RuntimeError(f"Video generation API error: {e}")
         except Exception as e:
+            print(f"An unexpected error occurred during video generation: {e}")
             raise RuntimeError(
                 f"An unexpected error occurred during video generation: {e}"
             )
@@ -418,8 +430,14 @@ class Veo2ImageToVideoNode:
         """
         try:
             api = Veo2API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
+            print(f"Failed to initialize Veo API: {e}")
             raise RuntimeError(f"Failed to initialize Veo API: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
 
         seed_for_api = seed if seed != 0 else None
 
@@ -449,13 +467,15 @@ class Veo2ImageToVideoNode:
                     seed=seed_for_api,
                 )
                 all_generated_video_paths.extend(video_paths)
-            except ValueError as e:
-                raise RuntimeError(f"Video generation configuration error: {e}")
-            except RuntimeError as e:
-                raise RuntimeError(f"Video generation API error: {e}")
+            except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+                print(f"Video generation error for image {i+1}: {e}")
+                raise RuntimeError(f"Video generation error for image {i+1}: {e}")
             except Exception as e:
+                print(
+                    f"An unexpected error occurred during video generation for image {i+1}: {e}"
+                )
                 raise RuntimeError(
-                    f"An unexpected error occurred during video generation: {e}"
+                    f"An unexpected error occurred during video generation for image {i+1}: {e}"
                 )
 
         return (all_generated_video_paths,)

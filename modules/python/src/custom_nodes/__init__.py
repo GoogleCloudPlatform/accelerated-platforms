@@ -11,14 +11,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# This is a preview version of Google GenAI custom nodes
-
-google-api-core==2.24.2
-google-cloud-aiplatform==1.111.0
-google-cloud-storage==2.19.0
-google-genai==1.32.0
-google-generativeai==0.8.5
-moviepy==2.2.1
-opencv-python-headless==4.11.0.86
-google-cloud-compute==1.38.0

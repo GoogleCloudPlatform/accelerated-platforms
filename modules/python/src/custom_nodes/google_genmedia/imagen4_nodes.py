@@ -20,6 +20,7 @@ import numpy as np
 import torch
 from google.genai import types
 
+from . import exceptions
 from .constants import MAX_SEED, Imagen4Model
 from .imagen4_api import Imagen4API
 
@@ -153,11 +154,22 @@ class Imagen4TextToImageNode:
         """
         try:
             imagen_api = Imagen4API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
+        except exceptions.APIInitializationError as e:
+            print(f"Failed to initialize Imagen API client for node execution: {e}")
             raise RuntimeError(
                 f"Failed to initialize Imagen API client for node execution: {e}"
             )
-        p_gen_enum = getattr(types.PersonGeneration, person_generation.upper())
+        except Exception as e:
+            print(f"An unexpected error occurred during client initialization: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            )
+        try:
+            p_gen_enum = getattr(types.PersonGeneration, person_generation.upper())
+        except AttributeError:
+            raise RuntimeError(
+                f"Invalid person_generation option: '{person_generation}'."
+            )
 
         seed_for_api = seed if seed != 0 else None
 
@@ -175,26 +187,33 @@ class Imagen4TextToImageNode:
                 output_image_type=output_image_type,
                 safety_filter_level=safety_filter_level,
             )
-        except Exception as e:
+            if not pil_images:
+                raise exceptions.APICallError(
+                    "Imagen API failed to generate images or generated no valid images."
+                )
+        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
+            print(f"Error occurred during image generation: {e}")
             raise RuntimeError(f"Error occurred during image generation: {e}")
-            # return (torch.empty(0, 640, 640, 3),)
-
-        if not pil_images:
+        except Exception as e:
+            print(f"An unexpected error occurred during image generation: {e}")
             raise RuntimeError(
-                "Imagen API failed to generate images or generated no valid images."
+                f"An unexpected error occurred during image generation: {e}"
             )
+        try:
+            output_tensors: List[torch.Tensor] = []
+            for img in pil_images:
+                img = img.convert("RGB")
+                img_np = np.array(img).astype(np.float32) / 255.0
+                img_tensor = torch.from_numpy(img_np)[
+                    None,
+                ]
+                output_tensors.append(img_tensor)
 
-        output_tensors: List[torch.Tensor] = []
-        for img in pil_images:
-            img = img.convert("RGB")
-            img_np = np.array(img).astype(np.float32) / 255.0
-            img_tensor = torch.from_numpy(img_np)[
-                None,
-            ]
-            output_tensors.append(img_tensor)
-
-        batched_images_tensor = torch.cat(output_tensors, dim=0)
-        return (batched_images_tensor,)
+            batched_images_tensor = torch.cat(output_tensors, dim=0)
+            return (batched_images_tensor,)
+        except Exception as e:
+            print(f"Failed to process and convert generated images: {e}")
+            raise RuntimeError(f"Failed to process and convert generated images: {e}")
 
 
 NODE_CLASS_MAPPINGS = {"Imagen4TextToImageNode": Imagen4TextToImageNode}

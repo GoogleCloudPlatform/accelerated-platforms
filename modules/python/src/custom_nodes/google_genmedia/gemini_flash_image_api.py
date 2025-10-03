@@ -14,21 +14,22 @@
 
 # This is a preview version of Gemini 2.5 Flash Image custom node
 
+from io import BytesIO
 from typing import List, Optional
 
-from google import genai
+import torch
+from google.api_core import exceptions as api_core_exceptions
+from google.genai import errors as genai_errors
 from google.genai import types
 from PIL import Image
-from io import BytesIO
-import torch
 
 from . import utils
+from .config import GoogleGenAIBaseAPI
+from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
+from .retry import retry_on_api_error
 
-from .config import get_gcp_metadata
-from .constants import GeminiFlashImageModel, GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN
 
-
-class GeminiFlashImageAPI:
+class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
     """
     A class to interact with the Gemini Flash Image Preview model.
     """
@@ -45,22 +46,10 @@ class GeminiFlashImageAPI:
         Raises:
             ValueError: If GCP Project or region cannot be determined.
         """
-        self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-        )
-        if not self.project_id:
-            raise ValueError("GCP Project is required")
-        if not self.region:
-            raise ValueError("GCP region is required")
+        super().__init__(project_id, region)
+        print(f"GeminiFlashImageAPI initialized for {self.project_id} in {self.region}")
 
-        self.client = genai.Client(
-            vertexai=True, project=self.project_id, location=self.region
-        )
-
-        self.retry_count = 3
-        self.retry_delay = 5
-
+    @retry_on_api_error()
     def generate_image(
         self,
         model: str,

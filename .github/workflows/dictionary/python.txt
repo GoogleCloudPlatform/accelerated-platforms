@@ -11,6 +11,7 @@ fastapi
 fillna
 fromarray
 fsspec
+functools
 gapic
 gcsuri
 getattr
@@ -35,6 +36,7 @@ jsonify
 jsonpickle
 lstrip
 makedirs
+maxsize
 moviepy
 nbconvert
 numpy
@@ -54,15 +56,18 @@ qualname
 removesuffix
 rerank
 reranked
+retryable
 rsplit
 setdefaulttimeout
 shutil
 spacy
 splitlines
 sqlalchemy
+staticmethod
 thejsonlogger
 tqdm
 urllib
 urlretrieve
 uvicorn
 venv
+

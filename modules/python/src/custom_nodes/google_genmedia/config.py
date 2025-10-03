@@ -146,10 +146,6 @@ class GCPRegionValidator:
                 "Expected format like 'us-central1', 'europe-west1', or 'global'"
             )
 
-        # Note: We don't validate against a hardcoded list because:
-        # 1. Google adds new regions regularly
-        # 2. The API will fail with a clear error if the region doesn't exist
-        # 3. Maintaining a hardcoded list creates maintenance burden
         logger.debug(
             "Region '%s' has valid format. Actual availability will be verified by API.",
             region,
@@ -186,7 +182,6 @@ class GoogleGenAIBaseAPI:
             exceptions.APIInitializationError: If initialization fails or required parameters cannot be determined.
             exceptions.ConfigurationError: If provided parameters are invalid.
         """
-        # Store user_agent first (fixes the bug!)
         self.user_agent = user_agent
 
         # --- Project ID Handling ---
@@ -270,9 +265,7 @@ class GoogleGenAIBaseAPI:
 
             self.api_regional_endpoint = f"{self.region}-aiplatform.googleapis.com"
             self.client_options = {"api_endpoint": self.api_regional_endpoint}
-            self.client_info = ClientInfo(
-                user_agent=self.user_agent or "google-genai-client"
-            )
+            self.client_info = ClientInfo(user_agent=self.user_agent)
 
             self.client = aiplatform.gapic.PredictionServiceClient(
                 client_options=self.client_options, client_info=self.client_info
@@ -333,10 +326,8 @@ class GoogleGenAIBaseAPI:
             return None
 
         try:
-            # Zone format: "projects/PROJECT_NUM/zones/us-central1-a"
-            # We want: "us-central1"
-            zone_name = zone.split("/")[-1]  # "us-central1-a"
-            region = "-".join(zone_name.split("-")[:-1])  # "us-central1"
+            zone_name = zone.split("/")[-1]
+            region = "-".join(zone_name.split("-")[:-1])
 
             if region:
                 logger.debug("Discovered region from zone %s: %s", zone, region)
@@ -347,30 +338,3 @@ class GoogleGenAIBaseAPI:
         except (IndexError, AttributeError) as e:
             logger.warning("Error parsing zone '%s': %s", zone, e)
             return None
-
-
-# Convenience function for backward compatibility
-def initialize_client(
-    project_id: Optional[str] = None,
-    region: Optional[str] = None,
-    user_agent: Optional[str] = None,
-    client_type: str = "genai",
-) -> GoogleGenAIBaseAPI:
-    """
-    Convenience function to initialize a Google GenAI client.
-
-    Args:
-        project_id: GCP Project ID
-        region: GCP region
-        user_agent: Optional user agent string
-        client_type: Type of client ('genai' or 'prediction')
-
-    Returns:
-        Initialized GoogleGenAIBaseAPI instance
-    """
-    return GoogleGenAIBaseAPI(
-        project_id=project_id,
-        region=region,
-        user_agent=user_agent,
-        client_type=client_type,
-    )

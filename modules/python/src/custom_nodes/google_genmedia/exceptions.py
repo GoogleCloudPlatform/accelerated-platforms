@@ -36,15 +36,6 @@ class GoogleGenMediaException(Exception):
     Args:
         message: Human-readable error message describing what went wrong
         original_error: The underlying exception that caused this error (optional)
-
-    Example:
-        try:
-            api_client.initialize()
-        except ValueError as e:
-            raise APIInitializationError(
-                f"Invalid API configuration: {e}",
-                original_error=e
-            ) from e
     """
 
     def __init__(self, message: str, original_error: Optional[Exception] = None):
@@ -60,11 +51,6 @@ class APIInitializationError(GoogleGenMediaException):
     - Invalid project ID or region
     - Network connectivity to Google Cloud
     - Missing required dependencies
-
-    Example:
-        raise APIInitializationError(
-            "Failed to initialize GenAI client: invalid project ID 'test123'"
-        )
     """
 
     pass
@@ -79,12 +65,6 @@ class APICallError(GoogleGenMediaException):
     - Permission denied errors
     - Invalid request parameters
     - Network errors
-
-    Example:
-        raise APICallError(
-            "Image generation failed: rate limit exceeded",
-            original_error=api_exception
-        )
     """
 
     pass
@@ -98,11 +78,6 @@ class ConfigurationError(GoogleGenMediaException):
     - Invalid enum choices
     - Missing required parameters
     - Conflicting settings
-
-    Example:
-        raise ConfigurationError(
-            "temperature must be between 0.0 and 1.0, got 1.5"
-        )
     """
 
     pass
@@ -117,11 +92,6 @@ class FileProcessingError(GoogleGenMediaException):
     - Corrupted or invalid file data
     - File I/O errors
     - Base64 encoding/decoding failures
-
-    Example:
-        raise FileProcessingError(
-            f"Failed to read image file '{path}': file not found"
-        )
     """
 
     pass

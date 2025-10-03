@@ -68,11 +68,6 @@ def retry_on_api_error(
 
     Returns:
         Decorated function that will retry on transient errors
-
-    Example:
-        @retry_on_api_error(initial_delay=2, max_retries=5)
-        def call_api():
-            return api.some_method()
     """
     # Define which exceptions should trigger retries
     RETRYABLE_EXCEPTIONS = (
@@ -122,6 +117,13 @@ def retry_on_api_error(
                     logger.error(f"API request timed out: {error_msg}")
                     raise exceptions.APICallError(
                         f"API request timed out: {error_msg}"
+                    ) from e
+
+                except api_core_exceptions.NotFound as e:
+                    error_msg = _extract_error_message(e)
+                    logger.error(f"API endpoint not found: {error_msg}")
+                    raise exceptions.ConfigurationError(
+                        "The provided region may be invalid or the API may not be available in that region."
                     ) from e
 
                 except api_core_exceptions.GoogleAPICallError as e:

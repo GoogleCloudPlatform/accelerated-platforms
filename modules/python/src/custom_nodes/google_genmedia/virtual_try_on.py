@@ -36,15 +36,8 @@ class VirtualTryOnAPI(GoogleGenAIBaseAPI):
             user_agent=VTO_USER_AGENT,
             client_type="prediction",
         )
-        try:
-            self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/{VTO_MODEL}"
-            print(
-                f"Prediction client initiated on project : {self.project_id}, location: {self.region}"
-            )
-        except Exception as e:
-            raise exceptions.APIInitializationError(
-                f"Failed to initialize Prediction client for Vertex AI: {e}"
-            )
+
+        self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/{VTO_MODEL}"
 
     @retry_on_api_error()
     def predict(self, instances, parameters):

@@ -41,16 +41,6 @@ from .retry import retry_on_api_error
 
 
 def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
-    """
-    Decodes a base64 string and converts the resulting image to a PyTorch tensor.
-
-    Args:
-        base64_string: The base64 encoded string of an image.
-
-    Returns:
-        A PyTorch tensor of the image, formatted as (1, height, width, channels)
-        with float values in the [0, 1] range.
-    """
     try:
         image_data = base64.b64decode(base64_string)
         pil_image = PIL_Image.open(io.BytesIO(image_data)).convert("RGBA")
@@ -66,27 +56,6 @@ def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
 
 
 def download_gcsuri(gcsuri: str, destination: str) -> bool:
-    """
-    Downloads a file from a Google Cloud Storage (GCS) URI to a specified local destination path.
-
-    This function validates the GCS URI format, extracts the bucket and blob names,
-    and then attempts to download the GCS object. It raises a ValueError for
-    invalid URI formats and a RuntimeError for issues during the download process.
-
-    Args:
-        gcsuri: The Google Cloud Storage URI of the video file to download (e.g., "gs://your-bucket/path/to/file.mp4").
-        destination: The full local file path where the downloaded GCS object will be saved.
-
-    Returns:
-        bool: True if the download was successful.
-
-    Raises:
-        exceptions.ConfigurationError: If the provided `gcsuri` is not in a valid GCS URI format
-                    (e.g., doesn't start with 'gs://' or is missing an object path).
-        exceptions.FileProcessingError: If an error occurs during the GCS download operation
-                      (e.g., bucket/object not found, permission denied, network issues).
-    """
-
     if not gcsuri.startswith("gs://"):
         raise exceptions.ConfigurationError(
             "Invalid GCS URI format returned by Veo. Must start with 'gs://'"
@@ -107,8 +76,6 @@ def download_gcsuri(gcsuri: str, destination: str) -> bool:
         )
         bucket = storage_client.bucket(bucket_name)
         blob = bucket.blob(blob_name)
-
-        # Download the blob to the specified local file path
         blob.download_to_filename(destination)
         print(f"Successfully downloaded '{gcsuri}' to '{destination}'")
         return True
@@ -132,32 +99,6 @@ def generate_image_from_text(
     output_image_type: str,
     safety_filter_level: str,
 ) -> List[PIL_Image.Image]:
-    """
-    Generate image from text prompt using Imagen.
-
-    Args:
-        client: genai.Client
-        mode: model to be used
-        prompt: The text prompt for image generation.
-        person_generation: Controls whether the model can generate people.
-        aspect_ratio: The desired aspect ratio of the images.
-        number_of_images: The number of images to generate (1-4).
-        negative_prompt: A prompt to guide the model to avoid generating certain things.
-        seed: Optional. A seed for reproducible image generation.
-        enhance_prompt: Whether to enhance the prompt automatically.
-        add_watermark: Whether to add a watermark to the generated images.
-        output_image_type: The desired output image format (PNG or JPEG).
-        safety_filter_level: The safety filter strictness.
-
-    Returns:
-        A list of PIL Image objects. Returns an empty list on failure.
-
-    Raises:
-        exceptions.ConfigurationError: If `number_of_images` is not between 1 and 4,
-                    if `seed` is provided with `add_watermark` enabled,
-                    or if `output_image_type` is unsupported.
-        exceptions.APICallError: If image generation fails or was blocked by safety filters.
-    """
     config = types.GenerateImagesConfig(
         number_of_images=number_of_images,
         aspect_ratio=aspect_ratio,
@@ -176,6 +117,12 @@ def generate_image_from_text(
         response = client.models.generate_images(
             model=model, prompt=prompt, config=config
         )
+    except genai_errors.ClientError as e:
+        error_message = (
+            "A client error occurred. Please check the Project ID and region."
+        )
+        print(f"{error_message} Original error: {e.message}")
+        raise exceptions.APICallError(error_message) from e
     except Exception as e:
         print(f"An unexpected error occurred during image generation: {e}")
         raise exceptions.APICallError(f"Image generation failed: {e}") from e
@@ -215,36 +162,6 @@ def generate_video_from_gcsuri_image(
     negative_prompt: Optional[str],
     seed: Optional[int],
 ) -> List[str]:
-    """
-    Generates video from a Google Cloud Storage (GCS) image URI using the Veo 2 API.
-
-    Args:
-        client: genai.Client
-        model: model to be used
-        gcsuri: The GCS URI of the input image (e.g., "gs://my-bucket/path/to/image.jpg").
-        image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
-        prompt: The text prompt for video generation.
-        aspect_ratio: The desired aspect ratio of the video.
-        output_resolution: The resolution of the generated video.
-        compression_quality: Compression quality i.e optimized vs lossless.
-        person_generation: Controls whether the model can generate people.
-        duration_seconds: The desired duration of the video in seconds.
-        generate_audio: Flag to generate audio. Only allowed in Veo3.
-        enhance_prompt: Whether to enhance the prompt automatically.
-        sample_count: The number of video samples to generate.
-        last_frame_gcsuri: gcsuri of the last frame image for interpolation.
-        output_gcs_uri: output gcs url to store the video. Required with lossless output.
-        negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-        seed: An optional seed for reproducible video generation.
-
-    Returns:
-        A list of file paths to the generated videos.
-
-    Raises:
-        exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, unsupported image format,
-                        invalid GCS URI, or if the GCS object is not a valid image).
-        exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
-    """
     if compression_quality == "lossless" and not output_gcs_uri:
         raise exceptions.ConfigurationError(
             "output_gcs_uri must be passed for lossless video generation."
@@ -300,8 +217,6 @@ def generate_video_from_gcsuri_image(
             )
 
     config = GenerateVideosConfig(**temp_config)
-    print(f"Config for image-to-video generation: {config}")
-
     print("Sending request to Veo API for image-to-video generation")
     try:
         operation = client.models.generate_videos(
@@ -310,9 +225,16 @@ def generate_video_from_gcsuri_image(
             prompt=prompt,
             config=config,
         )
+    except genai_errors.ClientError as e:
+        error_message = (
+            "A client error occurred. Please check the Project ID and region."
+        )
+        print(f"{error_message} Original error: {e.message}")
+        raise exceptions.APICallError(error_message) from e
     except Exception as e:
         print(f"An unexpected error occurred during video generation: {e}")
         raise exceptions.APICallError(f"Video generation failed: {e}") from e
+
     print(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
@@ -320,6 +242,10 @@ def generate_video_from_gcsuri_image(
         time.sleep(20)
         try:
             operation = client.operations.get(operation)
+        except genai_errors.ClientError as e:
+            error_message = "A client error occurred while polling. Please check the Project ID and region."
+            print(f"{error_message} Original error: {e.message}")
+            raise exceptions.APICallError(error_message) from e
         except Exception as e:
             print(
                 f"An unexpected error occurred while polling for video generation status: {e}"
@@ -331,7 +257,6 @@ def generate_video_from_gcsuri_image(
         print(f"Polling operation (attempt {operation_count})...")
 
     print(f"Operation completed with status: {operation.done}")
-
     return process_video_response(operation)
 
 
@@ -355,35 +280,6 @@ def generate_video_from_image(
     negative_prompt: Optional[str],
     seed: Optional[int],
 ) -> List[str]:
-    """
-    Generates video from an image input (as a torch.Tensor) using the Veo 2 API.
-
-    Args:
-        client: genai.Client
-        model: model to be used
-        image: The input image as a torch.Tensor (ComfyUI format).
-        image_format: The format of the input image (e.g., "PNG", "JPEG", "MP4").
-        prompt: The text prompt for video generation.
-        aspect_ratio: The desired aspect ratio of the video.
-        output_resolution: The resolution of the generated video.
-        compression_quality: Compression quality i.e optimized vs lossless.
-        person_generation: Controls whether the model can generate people.
-        duration_seconds: The desired duration of the video in seconds.
-        generate_audio: Flag to generate audio. Only allowed in Veo3.
-        enhance_prompt: Whether to enhance the prompt automatically.
-        sample_count: The number of video samples to generate.
-        last_frame: last frame for interpolation.
-        output_gcs_uri: output gcs url to store the video. Required with lossless output.
-        negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-        seed: An optional seed for reproducible video generation.
-
-    Returns:
-        A list of file paths to the generated videos.
-
-    Raises:
-        exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, unsupported image format, out-of-range duration/sample_count).
-        exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
-    """
     input_image_format_upper = image_format.upper()
     mime_type: str
 
@@ -462,8 +358,6 @@ def generate_video_from_image(
             )
 
     config = GenerateVideosConfig(**temp_config)
-    print(f"Config for image-to-video generation: {config}")
-
     print(
         f"Sending request to Veo API for image-to-video generation with prompt: '{prompt[:80]}...'"
     )
@@ -475,9 +369,16 @@ def generate_video_from_image(
             prompt=prompt,
             config=config,
         )
+    except genai_errors.ClientError as e:
+        error_message = (
+            "A client error occurred. Please check the Project ID and region."
+        )
+        print(f"{error_message} Original error: {e.message}")
+        raise exceptions.APICallError(error_message) from e
     except Exception as e:
         print(f"An unexpected error occurred during video generation: {e}")
         raise exceptions.APICallError(f"Video generation failed: {e}") from e
+
     print(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
@@ -485,6 +386,10 @@ def generate_video_from_image(
         time.sleep(20)
         try:
             operation = client.operations.get(operation)
+        except genai_errors.ClientError as e:
+            error_message = "A client error occurred while polling. Please check the Project ID and region."
+            print(f"{error_message} Original error: {e.message}")
+            raise exceptions.APICallError(error_message) from e
         except Exception as e:
             print(
                 f"An unexpected error occurred while polling for video generation status: {e}"
@@ -516,32 +421,6 @@ def generate_video_from_text(
     negative_prompt: Optional[str],
     seed: Optional[int],
 ) -> List[str]:
-    """
-    Generates video from a text prompt using the Veo API.
-
-    Args:
-        client: genai.Client
-        model: model to be used
-        prompt: The text prompt for video generation.
-        aspect_ratio: The desired aspect ratio of the video (e.g., "16:9", "1:1").
-        output_resolution: The resolution of the generated video.
-        compression_quality: Compression quality i.e optimized vs lossless.
-        person_generation: Controls whether the model can generate people ("allow" or "dont_allow").
-        duration_seconds: The desired duration of the video in seconds.
-        generate_audio: Flag to generate audio. Only allowed in Veo3.
-        enhance_prompt: Whether to enhance the prompt automatically.
-        sample_count: The number of video samples to generate.
-        output_gcs_uri: output gcs url to store the video. Required with lossless output.
-        negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-        seed: An optional seed for reproducible video generation.
-
-    Returns:
-        A list of file paths to the generated videos.
-
-    Raises:
-        exceptions.ConfigurationError: If input parameters are invalid (e.g., empty prompt, out-of-range duration/sample_count).
-        exceptions.APICallError: If video generation fails after retries, due to API errors, or unexpected issues.
-    """
     if compression_quality == "lossless" and not output_gcs_uri:
         raise exceptions.ConfigurationError(
             "output_gcs_uri must be passed for lossless video generation."
@@ -588,16 +467,21 @@ def generate_video_from_text(
         temp_config["resolution"] = output_resolution
 
     config = GenerateVideosConfig(**temp_config)
-    print(f"Config for text-to-video generation: {config}")
-
     print("Sending request to Veo API for text-to-video generation...")
     try:
         operation = client.models.generate_videos(
             model=model, prompt=prompt, config=config
         )
+    except genai_errors.ClientError as e:
+        error_message = (
+            "A client error occurred. Please check the Project ID and region."
+        )
+        print(f"{error_message} Original error: {e.message}")
+        raise exceptions.APICallError(error_message) from e
     except Exception as e:
         print(f"An unexpected error occurred during video generation: {e}")
         raise exceptions.APICallError(f"Video generation failed: {e}") from e
+
     print(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
@@ -605,6 +489,10 @@ def generate_video_from_text(
         time.sleep(20)  # Polling interval
         try:
             operation = client.operations.get(operation)
+        except genai_errors.ClientError as e:
+            error_message = "A client error occurred while polling. Please check the Project ID and region."
+            print(f"{error_message} Original error: {e.message}")
+            raise exceptions.APICallError(error_message) from e
         except Exception as e:
             print(
                 f"An unexpected error occurred while polling for video generation status: {e}"
@@ -620,24 +508,6 @@ def generate_video_from_text(
 
 
 def media_file_to_genai_part(file_path: str, mime_type: str) -> types.Part:
-    """Reads a media file (image, audio, or video) and converts it to a genai.types.Part.
-
-    This function is designed to prepare the raw bytes of a media file for input to
-    the Gemini API. It reads the file in binary mode and encapsulates the content
-    along with its specified MIME type into a `genai.types.Part` object.
-
-    Args:
-        file_path (str): The absolute or relative path to the media file.
-        mime_type (str): The MIME type of the media file (e.g., 'image/png', 'audio/wav', 'video/mp4').
-
-    Returns:
-        types.Part: A `genai.types.Part` object containing the media file's bytes
-                    and MIME type, ready for API input.
-
-    Raises:
-        FileNotFoundError: If the specified `file_path` does not exist.
-        exceptions.FileProcessingError: If an error occurs during the file reading or conversion process.
-    """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Media file not found: {file_path}")
 
@@ -647,60 +517,31 @@ def media_file_to_genai_part(file_path: str, mime_type: str) -> types.Part:
         print(f"Read the file {file_path}")
         return types.Part.from_bytes(data=media_bytes, mime_type=mime_type)
     except Exception as e:
-        # Pass the original exception up, but with more context
         raise exceptions.FileProcessingError(
             f"Error converting media file {file_path} (MIME: {mime_type}) to genai.types.Part: {e}"
         )
 
 
 def prep_for_media_conversion(file_path: str, mime_type: str) -> Optional[types.Part]:
-    """Attempts to prepare a media file into a genai.types.Part for input to the model.
-
-    This function checks if the specified file exists and, if so, attempts to convert it
-    into a format suitable for the `genai` model. It handles potential errors during
-    the conversion process.
-
-    Args:
-        file_path (str): The absolute or relative path to the media file.
-        mime_type (str): The MIME type of the media file (e.g., 'image/jpeg', 'video/mp4').
-
-    Returns:
-        Optional[types.Part]: A `genai.types.Part` object if the file is successfully
-                              loaded and converted, otherwise `None`.
-    """
     if os.path.exists(file_path):
         print(f"Attempting to load media from: {file_path}")
         try:
             return media_file_to_genai_part(file_path, mime_type)
         except Exception as e:
             print(f"Warning: Could not add media file {file_path}: {e}")
-            return None  # Return None on failure
+            return None
     else:
         print(f"The file path {file_path} does not exist. Skipping.")
-        return None  # Return None if file not found
+        return None
 
 
 def process_video_response(operation: Any) -> List[str]:
-    """
-    Processes the video generation operation response and saves generated videos.
-
-    Args:
-        operation: The completed LRO (Long Running Operation) object from the Veo API.
-
-    Returns:
-        A list of file paths to the saved video files.
-
-    Raises:
-        exceptions.APICallError: If no video data is found in the API response or if saving fails.
-    """
-    # store the output in temp directory. The video will be previewed using Preview custom node custom node and saved in output dir if needed
     output_dir = folder_paths.get_temp_directory()
     os.makedirs(output_dir, exist_ok=True)
 
     video_paths: List[str] = []
     videos_data: List[Any] = []
 
-    # Define a list of possible paths to 'generated_videos' within the operation response
     possible_paths = [
         lambda op: getattr(op.response, "generated_videos", None),
         lambda op: getattr(op.result, "generated_videos", None),
@@ -805,17 +646,6 @@ def process_video_response(operation: Any) -> List[str]:
 
 @retry_on_api_error()
 def validate_gcs_uri_and_image(gcs_uri: str, check_object: bool = True) -> None:
-    """
-    Validates if a given string is a valid GCS URI and if the object it points to exists.
-
-    Args:
-        gcs_uri: The GCS URI to validate.
-        check_object: Whether to check for the object's existence or just the bucket.
-
-    Raises:
-        exceptions.ConfigurationError: For any validation failure (bad format, not found, permissions).
-        exceptions.APICallError: For transient, retry-able API errors (from the decorator).
-    """
     GCS_URI_PATTERN = re.compile(
         r"^gs://(?P<bucket>[a-z0-9][a-z0-9._-]{1,61}[a-z0-9])(?:/(?P<object_path>.*))?$"
     )
@@ -840,7 +670,7 @@ def validate_gcs_uri_and_image(gcs_uri: str, check_object: bool = True) -> None:
             )
 
         if not check_object:
-            return  # Bucket exists, we are done.
+            return
 
         if not object_path:
             raise exceptions.ConfigurationError(
@@ -858,34 +688,16 @@ def validate_gcs_uri_and_image(gcs_uri: str, check_object: bool = True) -> None:
             f"Permission denied to access GCS resource: {gcs_uri}. Check your credentials and permissions."
         ) from e
     except api_core_exceptions.GoogleAPICallError as e:
-        # Let retryable errors be handled by the decorator, but wrap other API errors.
         raise exceptions.APICallError(
             f"An unexpected GCS API error occurred during validation: {e}"
         ) from e
     except Exception as e:
-        # Catch any other unexpected errors.
         raise exceptions.FileProcessingError(
             f"An unexpected error occurred during GCS validation: {e}"
         ) from e
 
 
 def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
-    """Converts a PyTorch tensor or PIL Image into PNG-encoded bytes.
-
-    This function processes an input image, which can be either a PyTorch tensor
-    or a PIL Image object. If the input is a tensor, it is first converted to a
-    PIL Image. The function then saves the final PIL Image as a PNG into an
-    in-memory buffer and returns its raw byte content.
-
-    Args:
-        image (torch.Tensor | PIL.Image.Image): The input image. If it's a
-            PyTorch tensor, it is expected to have a shape like (1, H, W, C)
-            and float values in the [0, 1] range.
-
-    Returns:
-        bytes: The raw bytes of the image, encoded in PNG format.
-    """
-
     pil_image: PIL_Image.Image
     image_input_bytes: bytes
     try:

@@ -78,7 +78,6 @@ modelarmor
 negs
 nodepool
 nodepools
-northamerica
 obtainability
 ondemand
 parallelstore
@@ -97,7 +96,6 @@ servicemanagement
 servicemesh
 servicenetworking
 serviceusage
-southamerica
 stackdriver
 statefulset
 subnetwork

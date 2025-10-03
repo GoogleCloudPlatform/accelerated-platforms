@@ -1,7 +1,7 @@
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.f
+# you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
 #      http://www.apache.org/licenses/LICENSE-2.0
@@ -12,56 +12,86 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Custom exceptions for Google GenMedia custom nodes."""
+"""Custom exceptions for Google GenMedia custom nodes.
 
-import re
+This module provides a hierarchy of exceptions for different failure scenarios:
+- APIInitializationError: Client setup failures
+- APICallError: Runtime API call failures
+- ConfigurationError: Invalid parameters or settings
+- FileProcessingError: File I/O or format issues
+
+All exceptions inherit from GoogleGenMediaException and support exception chaining
+to preserve the original error context.
+"""
+
+from typing import Optional
 
 
 class GoogleGenMediaException(Exception):
-    """Base exception for the Google GenMedia custom nodes."""
+    """Base exception for the Google GenMedia custom nodes.
 
-    def __init__(self, *args):
-        # This logic is to extract a clean error message from the
-        # exceptions raised by the Google GenAI API.
-        full_error_str = " ".join(str(a) for a in args)
-        match = re.search(r"'message': '(.*?)', 'status'", full_error_str)
-        if match:
-            message = match.group(1)
-        else:
-            message_parts = []
-            for arg in args:
-                arg_str = str(arg)
-                dict_start = arg_str.find("{'error':")
-                if dict_start != -1:
-                    arg_str = arg_str[:dict_start].strip()
-                message_parts.append(arg_str)
-            message = " ".join(message_parts)
+    This base class provides a simple interface for custom exceptions with
+    optional chaining to preserve the original error that caused the failure.
+
+    Args:
+        message: Human-readable error message describing what went wrong
+        original_error: The underlying exception that caused this error (optional)
+    """
+
+    def __init__(self, message: str, original_error: Optional[Exception] = None):
         super().__init__(message)
+        self.original_error = original_error
 
 
 class APIInitializationError(GoogleGenMediaException):
-    """Raised when an API client fails to initialize."""
+    """Raised when an API client fails to initialize.
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    This typically indicates problems with:
+    - Invalid or missing credentials
+    - Invalid project ID or region
+    - Network connectivity to Google Cloud
+    - Missing required dependencies
+    """
+
+    pass
 
 
 class APICallError(GoogleGenMediaException):
-    """Raised when an API call fails."""
+    """Raised when an API call fails during execution.
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    This covers runtime failures such as:
+    - Rate limiting / quota exhausted
+    - Service unavailability / timeouts
+    - Permission denied errors
+    - Invalid request parameters
+    - Network errors
+    """
+
+    pass
 
 
 class ConfigurationError(GoogleGenMediaException):
-    """Raised for configuration-related errors."""
+    """Raised for configuration-related errors.
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    This indicates invalid or incompatible parameter combinations:
+    - Out of range numeric values
+    - Invalid enum choices
+    - Missing required parameters
+    - Conflicting settings
+    """
+
+    pass
 
 
 class FileProcessingError(GoogleGenMediaException):
-    """Raised for errors during file processing."""
+    """Raised for errors during file processing.
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    This covers file-related operations:
+    - File not found
+    - Unsupported file formats
+    - Corrupted or invalid file data
+    - File I/O errors
+    - Base64 encoding/decoding failures
+    """
+
+    pass

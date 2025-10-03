@@ -23,7 +23,9 @@ from typing import Optional
 
 import requests
 from google import genai
+from google.genai import errors as genai_errors
 from google.api_core.gapic_v1.client_info import ClientInfo
+from google.api_core import exceptions as core_exceptions
 from google.cloud import aiplatform
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
@@ -243,12 +245,29 @@ class GoogleGenAIBaseAPI:
                 location=self.region,
                 http_options=http_options,
             )
-            logger.info("GenAI client initialized successfully")
-        except Exception as e:
+        except genai_errors.ClientError as e:
             error_msg = self._format_api_error(e)
             raise exceptions.APIInitializationError(
                 f"Failed to initialize GenAI client for project '{self.project_id}' "
                 f"in region '{self.region}'. The region may not support this API. "
+                f"Error: {error_msg}"
+            ) from e
+        except (
+            genai_errors.ClientError,
+            core_exceptions.NotFound,
+            core_exceptions.PermissionDenied,
+        ) as e:
+            error_msg = self._format_api_error(e)
+            raise exceptions.APIInitializationError(
+                f"Failed to initialize GenAI client. The project ID '{self.project_id}' "
+                f"or region '{self.region}' may be incorrect, or the Vertex AI API "
+                f"is disabled. Please verify your configuration. Details: {error_msg}"
+            ) from e
+
+        except Exception as e:
+            error_msg = self._format_api_error(e)
+            raise exceptions.APIInitializationError(
+                f"An unexpected error occurred while initializing the GenAI client. "
                 f"Error: {error_msg}"
             ) from e
 
@@ -270,12 +289,19 @@ class GoogleGenAIBaseAPI:
             self.client = aiplatform.gapic.PredictionServiceClient(
                 client_options=self.client_options, client_info=self.client_info
             )
-            logger.info("Prediction client initialized successfully")
-        except Exception as e:
+        except core_exceptions.GoogleAPICallError as e:
             error_msg = self._format_api_error(e)
             raise exceptions.APIInitializationError(
                 f"Failed to initialize Prediction client for project '{self.project_id}' "
-                f"in region '{self.region}'. Error: {error_msg}"
+                f"in region '{self.region}'. Please check permissions and configuration. "
+                f"Error: {error_msg}"
+            ) from e
+
+        except Exception as e:
+            error_msg = self._format_api_error(e)
+            raise exceptions.APIInitializationError(
+                f"An unexpected error occurred while initializing the Prediction client. "
+                f"Error: {error_msg}"
             ) from e
 
     @staticmethod

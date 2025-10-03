@@ -98,35 +98,38 @@ def retry_on_api_error(
                         time.sleep(delay)
                         delay *= backoff
 
-                except api_core_exceptions.InvalidArgument as e:
+                except (api_core_exceptions.InvalidArgument) as e:
                     error_msg = _extract_error_message(e)
                     logger.error(f"Invalid argument or configuration: {error_msg}")
                     raise exceptions.ConfigurationError(
                         f"Invalid argument or configuration: {error_msg}"
                     ) from e
 
-                except api_core_exceptions.PermissionDenied as e:
+                except (api_core_exceptions.PermissionDenied) as e:
                     error_msg = _extract_error_message(e)
                     logger.error(f"Permission denied: {error_msg}")
                     raise exceptions.APICallError(
                         f"Permission denied. Check your credentials and permissions. Error: {error_msg}"
                     ) from e
 
-                except api_core_exceptions.DeadlineExceeded as e:
+                except (api_core_exceptions.DeadlineExceeded) as e:
                     error_msg = _extract_error_message(e)
                     logger.error(f"API request timed out: {error_msg}")
                     raise exceptions.APICallError(
                         f"API request timed out: {error_msg}"
                     ) from e
 
-                except api_core_exceptions.NotFound as e:
+                except (api_core_exceptions.NotFound) as e:
                     error_msg = _extract_error_message(e)
                     logger.error(f"API endpoint not found: {error_msg}")
                     raise exceptions.ConfigurationError(
                         "The provided region may be invalid or the API may not be available in that region."
                     ) from e
 
-                except api_core_exceptions.GoogleAPICallError as e:
+                except (
+                    api_core_exceptions.GoogleAPICallError,
+                    genai_errors.APIError,
+                ) as e:
                     error_msg = _extract_error_message(e)
                     logger.error(f"Unexpected API error: {error_msg}")
                     raise exceptions.APICallError(
@@ -138,6 +141,13 @@ def retry_on_api_error(
                     logger.error(f"Network request failed: {error_msg}")
                     raise exceptions.APICallError(
                         f"Network request failed: {error_msg}"
+                    ) from e
+                except genai_errors.APIError as e:
+                    error_msg = self._format_api_error(e)
+                    raise exceptions.APIInitializationError(
+                        f"Failed to initialize GenAI client. The project ID '{self.project_id}' "
+                        f"or region '{self.region}' may be incorrect, or the Vertex AI API "
+                        f"is disabled. Details: {error_msg}"
                     ) from e
 
             # If all retries exhausted

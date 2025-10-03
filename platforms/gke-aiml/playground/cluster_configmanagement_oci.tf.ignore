@@ -31,7 +31,8 @@ resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
   project    = data.google_project.environment.project_id
 
   configmanagement {
-    version = var.config_management_version
+    management = "MANAGEMENT_MANUAL"
+    version    = var.config_management_version
 
     config_sync {
       enabled       = true
@@ -43,11 +44,40 @@ resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
         policy_dir  = "manifests/clusters"
       }
     }
+  }
+}
 
-    policy_controller {
-      enabled                    = true
-      referential_rules_enabled  = true
-      template_library_installed = true
+resource "google_gke_hub_feature_membership" "cluster_policycontroller" {
+  depends_on = [
+    google_compute_router_nat.default,
+    google_container_cluster.mlp,
+    #google_gke_hub_feature" "configmanagement,
+    google_project_service.anthos_googleapis_com,
+    google_project_service.anthosconfigmanagement_googleapis_com,
+    google_project_service.gkeconnect_googleapis_com,
+    google_project_service.gkehub_googleapis_com,
+    module.configsync_repository,
+    null_resource.gke_hub_feature_configmanagement
+  ]
+
+  feature    = "policycontroller"
+  location   = "global"
+  membership = google_gke_hub_membership.cluster.membership_id
+  project    = data.google_project.environment.project_id
+
+  policycontroller {
+    policy_controller_hub_config {
+      policy_content {
+        template_library {
+          installation = "ALL"
+        }
+      }
+      audit_interval_seconds    = 60
+      install_spec              = "INSTALL_SPEC_ENABLED"
+      log_denies_enabled        = true
+      mutation_enabled          = true
+      referential_rules_enabled = true
     }
   }
 }
+

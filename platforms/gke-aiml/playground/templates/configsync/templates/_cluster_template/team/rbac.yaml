@@ -18,18 +18,18 @@ metadata:
   name: NAMESPACE-FullAccess
   namespace: NAMESPACE
 rules:
-- apiGroups:
-  - '*'
-  resources:
-  - '*'
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
+  - apiGroups:
+      - "*"
+    resources:
+      - "*"
+    verbs:
+      - get
+      - list
+      - watch
+      - create
+      - update
+      - patch
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -41,8 +41,8 @@ roleRef:
   kind: Role
   name: NAMESPACE-FullAccess
 subjects:
-- kind: User
-  name: USERNAME1
+  - kind: User
+    name: USERNAME1
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -54,6 +54,6 @@ roleRef:
   kind: Role
   name: NAMESPACE-FullAccess
 subjects:
-- kind: ServiceAccount
-  name: kuberay-operator
-  namespace: default
+  - kind: ServiceAccount
+    name: kuberay-operator
+    namespace: default

@@ -39,9 +39,9 @@ metadata:
     configmanagement.gke.io/cluster-selector: ENV
     configsync.gke.io/deletion-propagation-policy: Foreground
 subjects:
-- kind: ServiceAccount
-  name: ns-reconciler-NAMESPACE-ENV-NAMESPACE-<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>
-  namespace: config-management-system
+  - kind: ServiceAccount
+    name: ns-reconciler-NAMESPACE-ENV-NAMESPACE-<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>
+    namespace: config-management-system
 roleRef:
   kind: ClusterRole
   name: cluster-admin
@@ -77,9 +77,9 @@ metadata:
   annotations:
     configmanagement.gke.io/cluster-selector: dev
 subjects:
-- kind: ServiceAccount
-  name: ns-reconciler-NAMESPACE-dev-NAMESPACE-<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>
-  namespace: config-management-system
+  - kind: ServiceAccount
+    name: ns-reconciler-NAMESPACE-dev-NAMESPACE-<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>
+    namespace: config-management-system
 roleRef:
   kind: ClusterRole
   name: cluster-admin
@@ -115,15 +115,14 @@ metadata:
   annotations:
     configmanagement.gke.io/cluster-selector: staging
 subjects:
-- kind: ServiceAccount
-  name: ns-reconciler-NAMESPACE-staging-NAMESPACE-<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>
-  namespace: config-management-system
+  - kind: ServiceAccount
+    name: ns-reconciler-NAMESPACE-staging-NAMESPACE-<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>
+    namespace: config-management-system
 roleRef:
   kind: ClusterRole
   name: cluster-admin
   apiGroup: rbac.authorization.k8s.io
 ---
-
 #ROOT_SOURCE/namespaces/NAMESPACE/repo-sync.yaml
 apiVersion: configsync.gke.io/v1beta1
 kind: RepoSync
@@ -154,9 +153,9 @@ metadata:
   annotations:
     configmanagement.gke.io/cluster-selector: prod
 subjects:
-- kind: ServiceAccount
-  name: ns-reconciler-NAMESPACE-prod-NAMESPACE-<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>
-  namespace: config-management-system
+  - kind: ServiceAccount
+    name: ns-reconciler-NAMESPACE-prod-NAMESPACE-<NUMBER_OF_CHARACTERS_IN_REPOSYNC_NAME>
+    namespace: config-management-system
 roleRef:
   kind: ClusterRole
   name: cluster-admin

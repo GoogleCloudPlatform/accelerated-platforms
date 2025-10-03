@@ -12,22 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+images:
+  - ${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/uc-mftp-ft-pytorch-build:${SHORT_SHA}
+
 options:
+  automapSubstitutions: true
   logging: CLOUD_LOGGING_ONLY
   machineType: E2_HIGHCPU_8
 
 steps:
   - args:
-      - --cache=true
-      - --cache-ttl=48h
-      - --context=dir://use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/src
-      - --destination=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/uc-mftp-ft-pytorch-build:${SHORT_SHA}
-      - --dockerfile=use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/src/Dockerfile
-      - --log-format=text
-      - --log-timestamp=false
-      - --verbosity=info
+      - build
+      - --tag=${_AR_REPO_LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/uc-mftp-ft-pytorch-build:${SHORT_SHA}
+      - --file=Dockerfile
+      - .
+    dir: "use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/src"
     id: "Build use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/src image"
-    name: "gcr.io/kaniko-project/executor:latest"
+    name: "docker.io/docker:28.4.0-dind-alpine3.22"
     waitFor: ["-"]
 
 substitutions:

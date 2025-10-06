@@ -78,7 +78,6 @@
         "allow_adult",
         8,
         true,
-        true,
         1,
         "${output_bucket_uri}",
         "",

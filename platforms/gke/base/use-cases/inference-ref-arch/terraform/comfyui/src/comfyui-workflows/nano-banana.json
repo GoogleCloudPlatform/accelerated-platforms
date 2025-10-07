@@ -155,7 +155,7 @@
         "Node name for S&R": "Gemini25FlashImage"
       },
       "widgets_values": [
-        "GEMINI_25_FLASH_IMAGE_PREVIEW",
+        "GEMINI_25_FLASH_IMAGE",
         "Place the objects from image 1 in the environment of image 2",
         0.7,
         1,

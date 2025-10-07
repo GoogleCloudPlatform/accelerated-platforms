@@ -37,7 +37,6 @@
       "number_of_images": 1,
       "negative_prompt": "",
       "seed": 0,
-      "enhance_prompt": true,
       "add_watermark": false,
       "output_image_type": "PNG",
       "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",

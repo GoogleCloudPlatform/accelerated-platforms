@@ -105,14 +105,10 @@ class Imagen4API(GoogleGenAIBaseAPI):
             )
 
         model = Imagen4Model[model]
-        if (
-            model == Imagen4Model.IMAGEN_4_ULTRA_PREVIEW.value
-            and number_of_images > IMAGEN4_MAX_IMAGES
-        ):
+        if model == Imagen4Model.IMAGEN_4_ULTRA_PREVIEW.value:
             raise exceptions.ConfigurationError(
                 f"Ultra model only generates {IMAGEN4_MAX_IMAGES} image at a time."
             )
-
         return utils.generate_image_from_text(
             client=self.client,
             model=model,

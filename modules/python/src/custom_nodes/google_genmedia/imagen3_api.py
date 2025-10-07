@@ -21,7 +21,7 @@ from PIL import Image
 
 from . import exceptions, utils
 from .config import GoogleGenAIBaseAPI
-from .constants import IMAGEN3_MAX_IMAGES, IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT
+from .constants import IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT, IMAGEN3_MAX_IMAGES
 
 
 class Imagen3API(GoogleGenAIBaseAPI):
@@ -74,15 +74,15 @@ class Imagen3API(GoogleGenAIBaseAPI):
             A list of PIL Image objects. Returns an empty list on failure.
 
         Raises:
-            exceptions.ConfigurationError: If `number_of_images` is not between 1 and 4,
+            ValueError: If `number_of_images` is not between 1 and 4,
                         if `seed` is provided with `add_watermark` enabled,
                         or if `output_image_type` is unsupported.
         """
         if not prompt or not prompt.strip():
             raise exceptions.ConfigurationError("Prompt cannot be empty.")
-        if not 1 <= number_of_images <= IMAGEN3_MAX_IMAGES:
+        if not (1 <= number_of_images <= IMAGEN3_MAX_IMAGES):
             raise exceptions.ConfigurationError(
-                f"Number of images {number_of_images} must be between 1 and {IMAGEN3_MAX_IMAGES}."
+                f"number_of_images must be between 1 and {IMAGEN3_MAX_IMAGES}, but got {number_of_images}."
             )
         if seed and add_watermark:
             raise exceptions.ConfigurationError(
@@ -91,6 +91,7 @@ class Imagen3API(GoogleGenAIBaseAPI):
 
         if not output_image_type:
             raise exceptions.ConfigurationError("Output image type cannot be empty.")
+
         output_image_type = output_image_type.upper()
         if output_image_type == "PNG":
             output_mime_type = "image/png"

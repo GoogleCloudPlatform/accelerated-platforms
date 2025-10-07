@@ -172,13 +172,8 @@ def generate_image_from_text(
 
     generated_pil_images: List[PIL_Image.Image] = []
     print("Sending request to Imagen API for text-to-image generation...")
-    try:
-        response = client.models.generate_images(
-            model=model, prompt=prompt, config=config
-        )
-    except Exception as e:
-        print(f"An unexpected error occurred during image generation: {e}")
-        raise exceptions.APICallError(f"Image generation failed: {e}") from e
+
+    response = client.models.generate_images(model=model, prompt=prompt, config=config)
 
     if not response.generated_images:
         error_message = "Image generation failed or was blocked by safety filters."
@@ -297,17 +292,13 @@ def generate_video_from_gcsuri_image(
     print(f"Config for image-to-video generation: {config}")
 
     print("Sending request to Veo API for image-to-video generation")
-    try:
-        operation = client.models.generate_videos(
-            model=model,
-            image=Image(gcs_uri=gcsuri, mime_type=image_format),
-            prompt=prompt,
-            config=config,
-        )
-    except Exception as e:
-        print(f"An unexpected error occurred during video generation: {e}")
-        raise exceptions.APICallError(f"Video generation failed: {e}") from e
-    print(f"Initial operation response object type: {type(operation)}")
+
+    operation = client.models.generate_videos(
+        model=model,
+        image=Image(gcs_uri=gcsuri, mime_type=image_format),
+        prompt=prompt,
+        config=config,
+    )
 
     operation_count = 0
     while not operation.done:
@@ -455,19 +446,12 @@ def generate_video_from_image(
     print(
         f"Sending request to Veo API for image-to-video generation with prompt: '{prompt[:80]}...'"
     )
-
-    try:
-        operation = client.models.generate_videos(
-            model=model,
-            image=Image(image_bytes=veo_image_input_str, mime_type=mime_type),
-            prompt=prompt,
-            config=config,
-        )
-    except Exception as e:
-        print(f"An unexpected error occurred during video generation: {e}")
-        raise exceptions.APICallError(f"Video generation failed: {e}") from e
-    print(f"Initial operation response object type: {type(operation)}")
-
+    operation = client.models.generate_videos(
+        model=model,
+        image=Image(image_bytes=veo_image_input_str, mime_type=mime_type),
+        prompt=prompt,
+        config=config,
+    )
     operation_count = 0
     while not operation.done:
         time.sleep(20)
@@ -573,15 +557,7 @@ def generate_video_from_text(
     print(f"Config for text-to-video generation: {config}")
 
     print("Sending request to Veo API for text-to-video generation...")
-    try:
-        operation = client.models.generate_videos(
-            model=model, prompt=prompt, config=config
-        )
-    except Exception as e:
-        print(f"An unexpected error occurred during video generation: {e}")
-        raise exceptions.APICallError(f"Video generation failed: {e}") from e
-    print(f"Initial operation response object type: {type(operation)}")
-
+    operation = client.models.generate_videos(model=model, prompt=prompt, config=config)
     operation_count = 0
     while not operation.done:
         time.sleep(20)  # Polling interval
@@ -810,45 +786,29 @@ def validate_gcs_uri_and_image(gcs_uri: str, check_object: bool = True) -> None:
     bucket_name = match.group("bucket")
     object_path = match.group("object_path")
 
-    try:
-        storage_client = storage.Client(
-            client_info=ClientInfo(user_agent=STORAGE_USER_AGENT)
-        )
-        bucket = storage_client.bucket(bucket_name)
+    storage_client = storage.Client(
+        client_info=ClientInfo(user_agent=STORAGE_USER_AGENT)
+    )
+    bucket = storage_client.bucket(bucket_name)
 
-        if not bucket.exists():
-            raise exceptions.ConfigurationError(
-                f"GCS bucket '{bucket_name}' does not exist or is inaccessible."
-            )
-
-        if not check_object:
-            return  # Bucket exists, we are done.
-
-        if not object_path:
-            raise exceptions.ConfigurationError(
-                f"GCS URI '{gcs_uri}' points to a bucket, but an object path is required."
-            )
-
-        blob = bucket.blob(object_path)
-        if not blob.exists():
-            raise exceptions.ConfigurationError(
-                f"GCS object '{object_path}' not found in bucket '{bucket_name}'."
-            )
-
-    except api_core_exceptions.PermissionDenied as e:
+    if not bucket.exists():
         raise exceptions.ConfigurationError(
-            f"Permission denied to access GCS resource: {gcs_uri}. Check your credentials and permissions."
-        ) from e
-    except api_core_exceptions.GoogleAPICallError as e:
-        # Let retryable errors be handled by the decorator, but wrap other API errors.
-        raise exceptions.APICallError(
-            f"An unexpected GCS API error occurred during validation: {e}"
-        ) from e
-    except Exception as e:
-        # Catch any other unexpected errors.
-        raise exceptions.FileProcessingError(
-            f"An unexpected error occurred during GCS validation: {e}"
-        ) from e
+            f"GCS bucket '{bucket_name}' does not exist or is inaccessible."
+        )
+
+    if not check_object:
+        return  # Bucket exists, we are done.
+
+    if not object_path:
+        raise exceptions.ConfigurationError(
+            f"GCS URI '{gcs_uri}' points to a bucket, but an object path is required."
+        )
+
+    blob = bucket.blob(object_path)
+    if not blob.exists():
+        raise exceptions.ConfigurationError(
+            f"GCS object '{object_path}' not found in bucket '{bucket_name}'."
+        )
 
 
 def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:

@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 
-from . import exceptions
 from .constants import GeminiFlashImageModel, ThresholdOptions
 from .gemini_flash_image_api import GeminiFlashImageAPI
 
@@ -165,15 +164,9 @@ class Gemini25FlashImage:
             gemini_flash_image_api = GeminiFlashImageAPI(
                 project_id=gcp_project_id, region=gcp_region
             )
-        except exceptions.APIInitializationError as e:
-            print(f"Failed to initialize Gemini Flash Image API client: {e}")
-            raise RuntimeError(
-                f"Failed to initialize Gemini Flash Image API client: {e}"
-            )
         except Exception as e:
-            print(f"An unexpected error occurred during client initialization: {e}")
             raise RuntimeError(
-                f"An unexpected error occurred during client initialization: {e}"
+                f"Failed to initialize Imagen API client for node execution: {e}"
             )
 
         if image != None:
@@ -193,32 +186,25 @@ class Gemini25FlashImage:
                 system_instruction,
                 image,
             )
-            if not pil_images:
-                raise exceptions.APICallError("API returned no valid images.")
-        except (exceptions.APICallError, exceptions.ConfigurationError) as e:
-            print(f"Image generation failed: {e}")
-            raise RuntimeError(f"Image generation failed: {e}")
         except Exception as e:
-            print(f"An unexpected error occurred during image generation: {e}")
+            raise RuntimeError(f"Error occurred during image generation: {e}")
+
+        if not pil_images:
             raise RuntimeError(
-                f"An unexpected error occurred during image generation: {e}"
+                "Imagen API failed to generate images or generated no valid images."
             )
 
-        try:
-            output_tensors: List[torch.Tensor] = []
-            for img in pil_images:
-                img = img.convert("RGB")
-                img_np = np.array(img).astype(np.float32) / 255.0
-                img_tensor = torch.from_numpy(img_np)[
-                    None,
-                ]
-                output_tensors.append(img_tensor)
+        output_tensors: List[torch.Tensor] = []
+        for img in pil_images:
+            img = img.convert("RGB")
+            img_np = np.array(img).astype(np.float32) / 255.0
+            img_tensor = torch.from_numpy(img_np)[
+                None,
+            ]
+            output_tensors.append(img_tensor)
 
-            batched_images_tensor = torch.cat(output_tensors, dim=0)
-            return (batched_images_tensor,)
-        except Exception as e:
-            print(f"Failed to process and convert generated images: {e}")
-            raise RuntimeError(f"Failed to process and convert generated images: {e}")
+        batched_images_tensor = torch.cat(output_tensors, dim=0)
+        return (batched_images_tensor,)
 
 
 NODE_CLASS_MAPPINGS = {"Gemini25FlashImage": Gemini25FlashImage}

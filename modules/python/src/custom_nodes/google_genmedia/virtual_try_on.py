@@ -14,9 +14,16 @@
 
 # This is a preview version of Google GenAI custom nodes
 
-from typing import Any, Dict, Optional, Tuple
+import base64
+import io
+from typing import Any, Dict, List, Optional, Tuple
 
+import numpy as np
 import torch
+from google.api_core.gapic_v1.client_info import ClientInfo
+from google.cloud import aiplatform
+from google.genai import types
+from PIL import Image
 
 from . import exceptions, utils
 from .config import GoogleGenAIBaseAPI
@@ -25,11 +32,23 @@ from .retry import retry_on_api_error
 
 
 class VirtualTryOnAPI(GoogleGenAIBaseAPI):
-    """API client for the Virtual Try-On model."""
+    """
+    A ComfyUI node for virtual try on.
+    """
 
     def __init__(
         self, gcp_project_id: Optional[str] = None, gcp_region: Optional[str] = None
     ):
+        """
+        Initializes the Gemini client.
+
+        Args:
+            gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
+            gcp_region: The GCP region. If provided, overrides metadata lookup.
+
+        Raises:
+            ValueError: If GCP Project or region cannot be determined.
+        """
         super().__init__(
             project_id=gcp_project_id,
             region=gcp_region,
@@ -165,18 +184,12 @@ class VirtualTryOn:
             vto_api = VirtualTryOnAPI(
                 gcp_project_id=gcp_project_id, gcp_region=gcp_region
             )
-        except exceptions.APIInitializationError as e:
-            print(f"Error initializing client: {e}")
-            raise RuntimeError(f"Error initializing client: {e}")
         except Exception as e:
-            print(f"An unexpected error occurred during client initialization: {e}")
-            raise RuntimeError(
-                f"An unexpected error occurred during client initialization: {e}"
-            )
+            raise RuntimeError(f"Error re-initializing client: {e}")
 
         # Validate that the input tensors contain data
         if not (person_image.numel() > 0 and product_image.numel() > 0):
-            raise exceptions.ConfigurationError(
+            raise ValueError(
                 "Both person_image and product_image must be valid, non-empty images."
             )
         seed_for_api = seed if seed != 0 else None
@@ -221,30 +234,21 @@ class VirtualTryOn:
                     base64_image_string = prediction["bytesBase64Encoded"]
                     tensor = utils.base64_to_pil_to_tensor(base64_image_string)
                     all_generated_tensors.append(tensor)
-            except (exceptions.APICallError, exceptions.ConfigurationError) as e:
-                print(f"Could not generate image for product {i+1}. Error: {e}")
-                continue
             except Exception as e:
-                print(f"An unexpected error occurred for product {i+1}. Error: {e}")
+                print(f"Could not generate image for product {i+1}. Error: {e}")
                 continue
 
         # After the loop, check if we got any results at all
         if not all_generated_tensors:
-            raise exceptions.APICallError(
+            raise RuntimeError(
                 "Image generation failed for all product images in the batch."
             )
 
-        try:
-            final_batch_tensor = torch.cat(all_generated_tensors, 0)
-            print(
-                f"Successfully generated {final_batch_tensor.shape[0]} image(s) in total."
-            )
-            return (final_batch_tensor,)
-        except Exception as e:
-            print(f"Failed to concatenate generated images into a batch: {e}")
-            raise RuntimeError(
-                f"Failed to concatenate generated images into a batch: {e}"
-            )
+        final_batch_tensor = torch.cat(all_generated_tensors, 0)
+        print(
+            f"Successfully generated {final_batch_tensor.shape[0]} image(s) in total."
+        )
+        return (final_batch_tensor,)
 
 
 NODE_CLASS_MAPPINGS = {"VirtualTryOn": VirtualTryOn}

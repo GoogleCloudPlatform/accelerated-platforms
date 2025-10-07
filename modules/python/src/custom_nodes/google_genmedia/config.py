@@ -24,15 +24,10 @@ import requests
 from google import genai
 from google.api_core.gapic_v1.client_info import ClientInfo
 from google.cloud import aiplatform
-from google.api_core import exceptions as google_exceptions
+from google.api_core import exceptions as api_core_exceptions
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
 
-# Assuming a local exceptions file
 from . import exceptions
-
-# --- Module Level Constants ---
-METADATA_URL_BASE = "http://metadata.google.internal/computeMetadata/v1/"
-_DEFAULT_REQUEST_TIMEOUT_SECONDS = 30
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +37,9 @@ def get_gcp_metadata(path: str) -> Optional[str]:
     headers = {"Metadata-Flavor": "Google"}
     try:
         response = requests.get(
-            f"{METADATA_URL_BASE}{path}",
+            f"http://metadata.google.internal/computeMetadata/v1/{path}",
             headers=headers,
-            timeout=_DEFAULT_REQUEST_TIMEOUT_SECONDS,
+            timeout=30,
         )
         response.raise_for_status()
         return response.text.strip()
@@ -118,17 +113,22 @@ class GoogleGenAIBaseAPI:
                     location=self.region,
                     http_options=http_options,
                 )
-            except google_exceptions.NotFound as e:
-                message = self._format_api_error(e)
+            except api_core_exceptions.NotFound as e:  # Specific block is now first
                 raise exceptions.APIInitializationError(
-                    f"Invalid region '{self.region}' for project '{self.project_id}'. "
-                    f"Please check the region and try again. Full error: {message}"
+                    f"Invalid project or region. The combination of project '{self.project_id}' "
+                    f"and region '{self.region}' was not found."
                 ) from e
-            except Exception as e:
-                message = self._format_api_error(e)
+            except api_core_exceptions.PermissionDenied as e:  # Another specific client error
                 raise exceptions.APIInitializationError(
-                    f"Failed to initialize client for project '{self.project_id}' "
-                    f"in region '{self.region}'. The region may be invalid. Full error: {message}"
+                    f"Permission denied for project '{self.project_id}'. Please check your API key and permissions."
+                ) from e
+            except api_core_exceptions.ClientError as e:  # General client error is the fallback
+                raise exceptions.APIInitializationError(
+                    f"A client-side error occurred during initialization: {e.message}"
+                ) from e
+            except Exception as e:  # Catch any other unexpected error
+                raise exceptions.APIInitializationError(
+                    f"An unexpected error occurred during client initialization for project '{self.project_id}'."
                 ) from e
         elif client_type == "prediction":
             logger.info(
@@ -144,7 +144,7 @@ class GoogleGenAIBaseAPI:
                 self.client = aiplatform.gapic.PredictionServiceClient(
                     client_options=self.client_options, client_info=self.client_info
                 )
-            except google_exceptions.NotFound as e:
+            except api_core_exceptions.NotFound as e:
                 message = self._format_api_error(e)
                 raise exceptions.APIInitializationError(
                     f"Invalid region '{self.region}' for project '{self.project_id}'. "
@@ -175,6 +175,8 @@ class GoogleGenAIBaseAPI:
     def _discover_region() -> Optional[str]:
         """Discovers the region from the instance's zone."""
         zone = get_gcp_metadata("instance/zone")
+        if not zone:
+            return None
         return "-".join(zone.split("/")[-1].split("-")[:-1])
 
     @staticmethod

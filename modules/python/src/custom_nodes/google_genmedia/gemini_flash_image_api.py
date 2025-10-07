@@ -25,7 +25,11 @@ from PIL import Image
 
 from . import utils
 from .config import GoogleGenAIBaseAPI
-from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
+from .constants import (
+    GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN,
+    GeminiFlashImageModel,
+    GEMINI_25_FLASH_IMAGE_USER_AGENT,
+)
 from .retry import retry_on_api_error
 
 
@@ -46,7 +50,7 @@ class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
         Raises:
             ValueError: If GCP Project or region cannot be determined.
         """
-        super().__init__(project_id, region)
+        super().__init__(project_id, region, GEMINI_25_FLASH_IMAGE_USER_AGENT)
         print(f"GeminiFlashImageAPI initialized for {self.project_id} in {self.region}")
 
     @retry_on_api_error()

@@ -14,54 +14,32 @@
 
 """Custom exceptions for Google GenMedia custom nodes."""
 
-import re
-
 
 class GoogleGenMediaException(Exception):
     """Base exception for the Google GenMedia custom nodes."""
 
-    def __init__(self, *args):
-        # This logic is to extract a clean error message from the
-        # exceptions raised by the Google GenAI API.
-        full_error_str = " ".join(str(a) for a in args)
-        match = re.search(r"'message': '(.*?)', 'status'", full_error_str)
-        if match:
-            message = match.group(1)
-        else:
-            message_parts = []
-            for arg in args:
-                arg_str = str(arg)
-                dict_start = arg_str.find("{'error':")
-                if dict_start != -1:
-                    arg_str = arg_str[:dict_start].strip()
-                message_parts.append(arg_str)
-            message = " ".join(message_parts)
-        super().__init__(message)
+    pass
 
 
 class APIInitializationError(GoogleGenMediaException):
     """Raised when an API client fails to initialize."""
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    pass
 
 
 class APICallError(GoogleGenMediaException):
     """Raised when an API call fails."""
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    pass
 
 
 class ConfigurationError(GoogleGenMediaException):
     """Raised for configuration-related errors."""
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    pass
 
 
 class FileProcessingError(GoogleGenMediaException):
     """Raised for errors during file processing."""
 
-    def __init__(self, *args):
-        super().__init__(*args)
+    pass

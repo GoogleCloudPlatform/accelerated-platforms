@@ -26,7 +26,6 @@ import numpy as np
 import torch
 from moviepy import VideoFileClip
 
-from . import exceptions
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
 
 
@@ -65,9 +64,12 @@ class VeoVideoToVHSNode:
         all_preview_frames = []  # List to accumulate frames from ALL videos
         no_of_frames = 120
         if not video_paths:
-            raise ValueError("Input video_paths list cannot be empty.")
+            print("Error: No video paths provided.")
+            dummy_image = torch.zeros(1, 512, 512, 3)
+            return dummy_image
 
         print(f"Received {len(video_paths)} video path(s).")
+        total_extracted_frames = 0
         try:
             for video_path in video_paths:
                 print(f"--- Processing video: {video_path} ---")
@@ -89,6 +91,9 @@ class VeoVideoToVHSNode:
                 if total_frames == 0:
                     print(f"Warning: Zero frames found in {video_path}")
                     continue
+
+                width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 
                 # Intelligent sampling , skipping directly to the frame instead of reading sequentially
                 frame_step = max(1, total_frames // no_of_frames)
@@ -114,17 +119,17 @@ class VeoVideoToVHSNode:
                 print(f"Finished processing '{video_path}'.")
 
         except Exception as e:
-            raise exceptions.FileProcessingError(
-                f"An unexpected error occurred during frame extraction: {str(e)}"
-            )
+            print(f"An unexpected error occurred during frame extraction: {str(e)}")
 
-        if not all_preview_frames:
-            raise exceptions.FileProcessingError(
-                "Failed to extract any frames from the provided video(s)."
-            )
+        if all_preview_frames:
+            final_output_frames = torch.stack(all_preview_frames, dim=0)
 
-        final_output_frames = torch.stack(all_preview_frames, dim=0)
-        return (final_output_frames,)
+            return (final_output_frames,)
+        else:
+            print(
+                "No frames were extracted from any video. Check paths or frame_interval."
+            )
+            return (dummy_image,)
 
 
 class VeoVideoSaveAndPreview:
@@ -170,13 +175,13 @@ class VeoVideoSaveAndPreview:
                     )  # Use absolute path for moviepy
 
                     if not os.path.exists(video_path_abs):
-                        raise exceptions.FileProcessingError(
+                        raise FileNotFoundError(
                             f"Video file not found: {video_path_abs}"
                         )
 
                     ext = Path(video_path_abs).suffix.lower()
                     if ext not in SUPPORTED_VIDEO_EXTENSIONS:
-                        raise exceptions.ConfigurationError(
+                        raise ValueError(
                             f"Unsupported video format: {ext}. Supported formats: {', '.join(SUPPORTED_VIDEO_EXTENSIONS)}"
                         )
 
@@ -246,9 +251,7 @@ class VeoVideoSaveAndPreview:
                     }
                     videos_output_for_ui.append(video_item_for_ui)
                 else:
-                    raise exceptions.ConfigurationError(
-                        "'video_paths' must be provided and not empty."
-                    )
+                    raise ValueError("'video_paths' must be provided and not empty.")
 
             return {
                 "ui": {
@@ -271,11 +274,8 @@ class VeoVideoSaveAndPreview:
                 }
             }
 
-        except (exceptions.FileProcessingError, exceptions.ConfigurationError) as e:
-            print(f"An error occurred in VeoVideoSaveAndPreview: {str(e)}")
-            return {"ui": {"video": [], "error": str(e)}}
         except Exception as e:
-            print(f"An unexpected error occurred in VeoVideoSaveAndPreview: {str(e)}")
+            print(f"An error occurred in VeoVideoSaveAndPreview: {str(e)}")
             return {"ui": {"video": [], "error": str(e)}}
 
 

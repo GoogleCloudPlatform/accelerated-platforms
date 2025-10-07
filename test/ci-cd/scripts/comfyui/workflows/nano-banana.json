@@ -27,7 +27,6 @@
       "person_generation": "allow_adult",
       "duration_seconds": 8,
       "generate_audio": true,
-      "enhance_prompt": true,
       "sample_count": 1,
       "negative_prompt": "",
       "seed": 1394449548,

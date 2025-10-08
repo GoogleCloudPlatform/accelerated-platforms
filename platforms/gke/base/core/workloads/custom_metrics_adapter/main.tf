@@ -51,7 +51,8 @@ module "kubectl_apply_namespace" {
 
   source = "../../../modules/kubectl_apply"
 
-  delete_timeout              = "60s"
+  apply_server_side           = true
+  delete_timeout              = "300s"
   error_on_delete_failure     = false
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = "${local.namespace_directory}/namespace-custom-metrics.yaml"

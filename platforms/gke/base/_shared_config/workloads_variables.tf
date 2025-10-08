@@ -41,7 +41,7 @@ variable "jobset_version" {
 }
 
 variable "kueue_version" {
-  default     = "0.13.2"
+  default     = "0.14.1"
   description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
   type        = string
 }

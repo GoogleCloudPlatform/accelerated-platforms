@@ -31,7 +31,7 @@ steps:
           set -o xtrace
         fi
 
-        projects=$(gcloud projects list --filter='name~accelerated-platforms- AND name!=accelerated-platforms-dev' --format='value(project_id)')
+        projects=$(gcloud projects list --filter='name~accelerated-platforms- AND name!=accelerated-platforms-dev AND name!=accelerated-platforms-iap' --format='value(project_id)')
 
         timestamp=$(printf "%(%Y-%m-%dT%H:%M:%S%z)T" $(( $(printf "%(%s)T") - (60 * 60 * ${_HOURS}) )))
         builds=$(
@@ -58,7 +58,6 @@ steps:
           )
           for endpoint in ${endpoints}; do
             echo "    Deleting endpoint '${endpoint}'"
-            
             gcloud endpoints services delete ${endpoint} \
             --project=${project_id} \
             --quiet
@@ -70,6 +69,7 @@ steps:
         done
 
         exit 0
+
 substitutions:
   _DEBUG: "false"
   _HOURS: "1"

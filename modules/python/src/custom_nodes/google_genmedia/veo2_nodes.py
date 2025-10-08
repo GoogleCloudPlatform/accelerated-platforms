@@ -354,7 +354,7 @@ class Veo2ImageToVideoNode:
                     "STRING",
                     {
                         "default": "",
-                        "tooltip": "GCP project id where Vertex AI API will query Veo",
+                        "tooltip": "GCP project id where Vertex AI API will query Imagen",
                     },
                 ),
                 "gcp_region": (

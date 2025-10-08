@@ -289,7 +289,10 @@ def generate_video_from_gcsuri_image(
             )
 
     config = GenerateVideosConfig(**temp_config)
-    print("Sending request to Veo API for image-to-video generation")
+    print(
+        f"Config for image-to-video generation: {config}\n"
+        "Sending request to Veo API for image-to-video generation"
+    )
 
     operation = client.models.generate_videos(
         model=model,
@@ -297,6 +300,7 @@ def generate_video_from_gcsuri_image(
         prompt=prompt,
         config=config,
     )
+    print(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
     while not operation.done:
@@ -450,6 +454,7 @@ def generate_video_from_image(
 
     config = GenerateVideosConfig(**temp_config)
     print(
+        f"Config for image-to-video generation: {config}\n"
         f"Sending request to Veo API for image-to-video generation with prompt: '{prompt[:80]}...'"
     )
     operation = client.models.generate_videos(
@@ -570,13 +575,20 @@ def generate_video_from_text(
         temp_config["resolution"] = output_resolution
 
     config = GenerateVideosConfig(**temp_config)
-    print("Sending request to Veo API for text-to-video generation...")
+
+    print(
+        f"Config for text-to-video generation: {config}\n"
+        "Sending request to Veo API for text-to-video generation..."
+    )
+
     operation = client.models.generate_videos(model=model, prompt=prompt, config=config)
+
     operation_count = 0
     while not operation.done:
         time.sleep(20)  # Polling interval
         try:
             operation = client.operations.get(operation)
+            print(f"Initial operation response object type: {type(operation)}")
         except genai_errors.ClientError as e:
             error_message = "A client error occurred while polling. Please check the Project ID and region."
             print(f"{error_message} Original error: {e.message}")

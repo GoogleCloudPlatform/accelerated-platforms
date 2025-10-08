@@ -256,15 +256,28 @@ class Veo2API(GoogleGenAIBaseAPI):
                 f"sample_count must be between 1 and 4, but got {sample_count}."
             )
 
-        utils.validate_gcs_uri_and_image(gcsuri)
-        print(f"GCS URI '{gcsuri}' is valid.")
+        valid_bucket, validation_message = utils.validate_gcs_uri_and_image(gcsuri)
+        if valid_bucket:
+            print(f"gcsuri of the input image is valid {validation_message}")
+        else:
+            raise exceptions.ConfigurationError(
+                f"gcsuri of the input image is not valid {validation_message}"
+            )
 
         if last_frame_gcsuri:
-            utils.validate_gcs_uri_and_image(last_frame_gcsuri)
-            print(f"Last frame GCS URI '{last_frame_gcsuri}' is valid.")
+            valid_bucket, validation_message = utils.validate_gcs_uri_and_image(
+                last_frame_gcsuri
+            )
+            if valid_bucket:
+                print(f"last frame gcsuri is valid {validation_message}")
+            else:
+                raise exceptions.ConfigurationError(
+                    f"last frame gcs uri is not valid {validation_message}"
+                )
 
         if not image_format:
             raise exceptions.ConfigurationError("Image format cannot be empty.")
+
         input_image_format_upper = image_format.upper()
         mime_type: str
         if input_image_format_upper == "PNG":

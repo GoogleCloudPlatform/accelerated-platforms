@@ -104,7 +104,7 @@ class Veo3API(GoogleGenAIBaseAPI):
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if sample_count not in VEO3_VALID_SAMPLE_COUNT:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
         if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
@@ -190,7 +190,7 @@ class Veo3API(GoogleGenAIBaseAPI):
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if sample_count not in VEO3_VALID_SAMPLE_COUNT:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
 
@@ -289,7 +289,7 @@ class Veo3API(GoogleGenAIBaseAPI):
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if sample_count not in VEO3_VALID_SAMPLE_COUNT:
-            raise ValueError(
+            raise exceptions.ConfigurationError(
                 f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
         if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
@@ -301,8 +301,11 @@ class Veo3API(GoogleGenAIBaseAPI):
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
 
-        utils.validate_gcs_uri_and_image(gcsuri)
-        print(f"GCS URI '{gcsuri}' is valid.")
+        valid_bucket, validation_message = utils.validate_gcs_uri_and_image(gcsuri)
+        if valid_bucket:
+            print(validation_message)
+        else:
+            raise exceptions.ConfigurationError(validation_message)
 
         if not image_format:
             raise exceptions.ConfigurationError("Image format cannot be empty.")

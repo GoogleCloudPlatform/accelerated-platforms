@@ -51,6 +51,9 @@ module "kubectl_apply_namespace" {
 
   source = "../../../modules/kubectl_apply"
 
+  apply_server_side           = true
+  delete_timeout              = "300s"
+  error_on_delete_failure     = false
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = "${local.namespace_directory}/namespace-kueue-system.yaml"
   manifest_includes_namespace = true
@@ -138,7 +141,7 @@ module "kubectl_wait" {
   namespace       = "kueue-system"
   resource        = "pod"
   selector        = "control-plane=controller-manager"
-  timeout         = "300s"
+  timeout         = "600s"
   wait_for_create = true
 }
 

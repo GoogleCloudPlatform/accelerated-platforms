@@ -235,35 +235,47 @@ resource "google_project_service" "iap_googleapis_com" {
   service                    = "iap.googleapis.com"
 }
 
-data "kubernetes_resources" "gateway" {
+resource "google_iap_web_iam_member" "domain_iap_https_resource_accessor" {
   depends_on = [
-    null_resource.gateway_manifests,
+    google_project_service.iap_googleapis_com,
+    null_resource.gateway_manifests
   ]
 
-  api_version    = "gateway.networking.k8s.io/v1"
-  kind           = "Gateway"
-  field_selector = "metadata.name==${local.gateway_name}"
-  namespace      = var.namespace
-}
-
-resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {
-  for_each = toset([
-    "${local.gradio_service_name}-${local.gradio_port}",
-    "${local.locust_service_name}-${local.locust_port}",
-    "${local.mlflow_tracking_service_name}-${local.mlflow_tracking_port}",
-    "${local.rag_frontend_service_name}-${local.rag_frontend_port}",
-    "${local.ray_head_service_name}-${local.ray_dashboard_port}",
-  ])
-
-  member  = "domain:${local.iap_domain}"
   project = data.google_project.environment.project_id
+  member  = "domain:${local.iap_domain}"
   role    = "roles/iap.httpsResourceAccessor"
-  web_backend_service = basename(
-    one(
-      [
-        for backend in split(", ", data.kubernetes_resources.gateway.objects[0].metadata.annotations["networking.gke.io/backend-services"]) : backend
-        if can(regex(".*${var.namespace}-${each.value}-.*", backend))
-      ]
-    )
-  )
 }
+
+# TODO: Requires that all of the backend services be deployed
+# data "kubernetes_resources" "gateway" {
+#   depends_on = [
+#     null_resource.gateway_manifests,
+#   ]
+
+#   api_version    = "gateway.networking.k8s.io/v1"
+#   kind           = "Gateway"
+#   field_selector = "metadata.name==${local.gateway_name}"
+#   namespace      = var.namespace
+# }
+
+# resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {
+#   for_each = toset([
+#     "${local.gradio_service_name}-${local.gradio_port}",
+#     "${local.locust_service_name}-${local.locust_port}",
+#     "${local.mlflow_tracking_service_name}-${local.mlflow_tracking_port}",
+#     "${local.rag_frontend_service_name}-${local.rag_frontend_port}",
+#     "${local.ray_head_service_name}-${local.ray_dashboard_port}",
+#   ])
+
+#   member  = "domain:${local.iap_domain}"
+#   project = data.google_project.environment.project_id
+#   role    = "roles/iap.httpsResourceAccessor"
+#   web_backend_service = basename(
+#     one(
+#       [
+#         for backend in split(", ", data.kubernetes_resources.gateway.objects[0].metadata.annotations["networking.gke.io/backend-services"]) : backend
+#         if can(regex(".*${var.namespace}-${each.value}-.*", backend))
+#       ]
+#     )
+#   )
+# }

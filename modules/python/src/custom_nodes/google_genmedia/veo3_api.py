@@ -27,6 +27,7 @@ from .constants import (
     VEO3_USER_AGENT,
     VEO3_VALID_ASPECT_RATIOS,
     VEO3_VALID_DURATION_SECONDS,
+    VEO3_VALID_SAMPLE_COUNT,
     Veo3Model,
 )
 
@@ -100,9 +101,9 @@ class Veo3API(GoogleGenAIBaseAPI):
             raise exceptions.ConfigurationError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= VEO3_MAX_VIDEOS):
-            raise exceptions.ConfigurationError(
-                f"sample_count must be between 1 and {VEO3_MAX_VIDEOS} for Veo3, but got {sample_count}."
+        if sample_count not in VEO3_VALID_SAMPLE_COUNT:
+            raise ValueError(
+                f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
         if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise exceptions.ConfigurationError(
@@ -186,9 +187,9 @@ class Veo3API(GoogleGenAIBaseAPI):
             raise exceptions.ConfigurationError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= VEO3_MAX_VIDEOS):
-            raise exceptions.ConfigurationError(
-                f"sample_count must be between 1 and {VEO3_MAX_VIDEOS} for Veo3, but got {sample_count}."
+        if sample_count not in VEO3_VALID_SAMPLE_COUNT:
+            raise ValueError(
+                f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
 
         if image is None:
@@ -285,9 +286,9 @@ class Veo3API(GoogleGenAIBaseAPI):
             raise exceptions.ConfigurationError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
-        if not (1 <= sample_count <= VEO3_MAX_VIDEOS):
-            raise exceptions.ConfigurationError(
-                f"sample_count must be between 1 and {VEO3_MAX_VIDEOS}, but got {sample_count}."
+        if sample_count not in VEO3_VALID_SAMPLE_COUNT:
+            raise ValueError(
+                f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
         if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
             raise exceptions.ConfigurationError(

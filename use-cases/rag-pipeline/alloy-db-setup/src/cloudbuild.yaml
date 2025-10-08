@@ -16,11 +16,11 @@ images:
   - ${_DESTINATION}
 options:
   logging: CLOUD_LOGGING_ONLY
-serviceAccount: 
+serviceAccount:
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args:
-  - build
-  - -t
-  - ${_DESTINATION}
-  - .
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - build
+      - -t
+      - ${_DESTINATION}
+      - .

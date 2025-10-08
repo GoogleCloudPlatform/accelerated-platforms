@@ -6,10 +6,7 @@
       "loop": true,
       "save_video": true,
       "save_video_file_prefix": "veo_video",
-      "video_paths": [
-        "5",
-        0
-      ]
+      "video_paths": ["5", 0]
     },
     "class_type": "VeoVideoSaveAndPreview",
     "_meta": {

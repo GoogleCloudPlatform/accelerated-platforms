@@ -13,7 +13,7 @@
 # limitations under the License.
 
 variable "config_management_version" {
-  default     = "1.19.0"
+  default     = "1.22.1"
   description = "Version of Config Management to enable"
   type        = string
 }

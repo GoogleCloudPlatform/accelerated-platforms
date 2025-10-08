@@ -15,12 +15,35 @@
 """A retry decorator for handling transient API errors."""
 
 import functools
+import logging
 import time
+from typing import Any, Callable, TypeVar
 
 from google.api_core import exceptions as api_core_exceptions
 from google.genai import errors as genai_errors
 
 from . import exceptions
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+# Type variable for generic function signatures
+F = TypeVar("F", bound=Callable[..., Any])
+
+
+def _extract_error_message(error: Exception) -> str:
+    """Extract a formatted error message from an exception.
+
+    Args:
+        error: The exception to extract message from
+
+    Returns:
+        Formatted error message string
+    """
+    code = getattr(error, "code", "N/A")
+    status = getattr(error, "status", "N/A")
+    message = getattr(error, "message", str(error))
+    return f"code: {code} status: {status} message: {message}"
 
 
 def retry_on_api_error(

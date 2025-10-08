@@ -34,20 +34,20 @@ metadata:
   name: kueue-secret-reader
   namespace: kueue-system
 rules:
-- resources:
-  - secrets
-  apiGroups: [""]
-  verbs: ["get", "list", "watch"]
-  resourceNames: ["kueue-metrics-reader-token"]
+  - resources:
+      - secrets
+    apiGroups: [""]
+    verbs: ["get", "list", "watch"]
+    resourceNames: ["kueue-metrics-reader-token"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: kueue-metrics-reader
 subjects:
-- kind: ServiceAccount
-  name: kueue-metrics-reader
-  namespace: kueue-system
+  - kind: ServiceAccount
+    name: kueue-metrics-reader
+    namespace: kueue-system
 roleRef:
   kind: ClusterRole
   name: kueue-metrics-reader
@@ -63,18 +63,18 @@ spec:
     matchLabels:
       control-plane: controller-manager
   endpoints:
-  - port: https
-    interval: 30s
-    path: /metrics
-    scheme: https
-    tls:
-      insecureSkipVerify: true
-    authorization:
-      type: Bearer 
-      credentials:
-        secret: 
-          name: kueue-metrics-reader-token
-          key: token
+    - port: https
+      interval: 30s
+      path: /metrics
+      scheme: https
+      tls:
+        insecureSkipVerify: true
+      authorization:
+        type: Bearer
+        credentials:
+          secret:
+            name: kueue-metrics-reader-token
+            key: token
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -86,6 +86,6 @@ roleRef:
   kind: Role
   apiGroup: rbac.authorization.k8s.io
 subjects:
-- name: collector
-  namespace: gmp-system
-  kind: ServiceAccount
+  - name: collector
+    namespace: gmp-system
+    kind: ServiceAccount

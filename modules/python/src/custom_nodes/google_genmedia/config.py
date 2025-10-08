@@ -18,11 +18,14 @@ This module provides a base class for initializing Google GenAI clients.
 
 import logging
 import re
+from functools import lru_cache
 from typing import Optional
 
 import requests
 from google import genai
+from google.genai import errors as genai_errors
 from google.api_core.gapic_v1.client_info import ClientInfo
+from google.api_core import exceptions as core_exceptions
 from google.cloud import aiplatform
 from google.api_core import exceptions as api_core_exceptions
 from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
@@ -32,9 +35,20 @@ from . import exceptions
 logger = logging.getLogger(__name__)
 
 
+@lru_cache(maxsize=8)
 def get_gcp_metadata(path: str) -> Optional[str]:
-    """Fetches instance metadata from the GCP metadata server."""
+    """
+    Fetches instance metadata from the GCP metadata server with caching.
+
+    Args:
+        path: The metadata path to fetch (e.g., 'project/project-id')
+
+    Returns:
+        The metadata value as a string, or None if unavailable
+    """
     headers = {"Metadata-Flavor": "Google"}
+    url = f"{METADATA_URL_BASE}{path}"
+
     try:
         response = requests.get(
             f"http://metadata.google.internal/computeMetadata/v1/{path}",
@@ -43,16 +57,108 @@ def get_gcp_metadata(path: str) -> Optional[str]:
         )
         response.raise_for_status()
         return response.text.strip()
-    except (HTTPError, Timeout, ConnectionError):
+    except (HTTPError, Timeout, ConnectionError) as e:
+        logger.debug("Could not fetch GCP metadata from %s: %s", url, e)
         return None
     except RequestException as e:
-        logger.warning("Unexpected network error fetching GCP metadata: %s", e)
+        logger.warning(
+            "Unexpected network error fetching GCP metadata from %s: %s", url, e
+        )
         return None
+
+
+class GCPProjectValidator:
+    """Validates GCP project IDs according to Google Cloud requirements."""
+
+    PROJECT_ID_PATTERN = re.compile(r"^[a-z]([a-z0-9-]{4,28}[a-z0-9])?$")
+    MIN_LENGTH = 6
+    MAX_LENGTH = 30
+
+    RESTRICTED_STRINGS = {"google", "ssl", "www", "goog"}
+
+    @classmethod
+    def validate(cls, project_id: str) -> None:
+        """
+        Validates a GCP project ID.
+
+        Args:
+            project_id: The project ID to validate
+
+        Raises:
+            exceptions.ConfigurationError: If the project ID is invalid
+        """
+        if not project_id:
+            raise exceptions.ConfigurationError("Project ID cannot be empty")
+
+        # Length check
+        if not cls.MIN_LENGTH <= len(project_id) <= cls.MAX_LENGTH:
+            raise exceptions.ConfigurationError(
+                f"Invalid Project ID '{project_id}': Must be {cls.MIN_LENGTH} to {cls.MAX_LENGTH} characters. "
+                f"Current length: {len(project_id)}"
+            )
+
+        # Format check
+        if not cls.PROJECT_ID_PATTERN.match(project_id):
+            raise exceptions.ConfigurationError(
+                f"Invalid Project ID '{project_id}': Must start with a lowercase letter, "
+                "contain only lowercase letters, numbers, and hyphens, "
+                "and cannot end with a hyphen."
+            )
+
+        # Check for restricted strings
+        project_id_lower = project_id.lower()
+        for restricted in cls.RESTRICTED_STRINGS:
+            if restricted in project_id_lower:
+                raise exceptions.ConfigurationError(
+                    f"Invalid Project ID '{project_id}': Cannot contain restricted string '{restricted}'"
+                )
+
+
+class GCPRegionValidator:
+    """Validates GCP regions."""
+
+    REGION_PATTERN = re.compile(r"^[a-z]+-[a-z]+[0-9]+$")
+    SPECIAL_REGIONS = {"global", "us", "eu", "asia"}
+
+    @classmethod
+    def validate(cls, region: str) -> None:
+        """
+        Validates a GCP region format.
+
+        Args:
+            region: The region to validate
+
+        Raises:
+            exceptions.ConfigurationError: If the region format is invalid
+        """
+        if not region:
+            raise exceptions.ConfigurationError("Region cannot be empty")
+
+        # Allow special regions
+        if region in cls.SPECIAL_REGIONS:
+            return
+
+        # Validate format (e.g., 'us-central1')
+        if not cls.REGION_PATTERN.match(region):
+            raise exceptions.ConfigurationError(
+                f"Invalid region format: '{region}'. "
+                "Expected format like 'us-central1', 'europe-west1', or 'global'"
+            )
+
+        logger.debug(
+            "Region '%s' has valid format. Actual availability will be verified by API.",
+            region,
+        )
 
 
 class GoogleGenAIBaseAPI:
     """
     Base class for Google GenAI API clients that handles initialization logic.
+
+    This class handles:
+    - Project ID and region discovery and validation
+    - Client initialization for both GenAI and Prediction clients
+    - Proper error handling and reporting
     """
 
     def __init__(
@@ -65,46 +171,68 @@ class GoogleGenAIBaseAPI:
         """
         Initializes the client.
 
-        For both project_id and region:
-        - If a value is provided, it is validated.
-        - If a value is not provided, it is discovered from the environment.
+        Args:
+            project_id: GCP Project ID. If not provided, will attempt to discover from environment.
+            region: GCP region. If not provided, will attempt to discover from environment.
+            user_agent: Optional user agent string for API requests.
+            client_type: Type of client to initialize ('genai' or 'prediction').
+
+        Raises:
+            exceptions.APIInitializationError: If initialization fails or required parameters cannot be determined.
+            exceptions.ConfigurationError: If provided parameters are invalid.
         """
         self.user_agent = user_agent
+
         # --- Project ID Handling ---
         if project_id:
-            self._validate_project_id(project_id)
+            GCPProjectValidator.validate(project_id)
             self.project_id = project_id
         else:
             self.project_id = self._discover_project_id()
 
         if not self.project_id:
             raise exceptions.APIInitializationError(
-                "GCP Project ID is required and could not be determined automatically."
+                "GCP Project ID is required but could not be determined automatically. "
+                "Please provide a project_id or ensure you're running on GCP with metadata server access."
             )
 
         # --- Region Handling ---
         if region:
-            self._validate_region(region)
+            GCPRegionValidator.validate(region)
             self.region = region
         else:
             self.region = self._discover_region()
 
         if not self.region:
             raise exceptions.APIInitializationError(
-                "GCP region is required and could not be determined automatically."
+                "GCP region is required but could not be determined automatically. "
+                "Please provide a region or ensure you're running on a GCP instance."
             )
 
         # --- Client Initialization ---
+        self.client = None
+
         if client_type == "genai":
-            logger.info(
-                "Initializing GenAI client for project '%s' in region '%s'",
-                self.project_id,
-                self.region,
+            self._initialize_genai_client()
+        elif client_type == "prediction":
+            self._initialize_prediction_client()
+        else:
+            raise exceptions.ConfigurationError(
+                f"Invalid client_type: '{client_type}'. Must be 'genai' or 'prediction'."
             )
-            http_options = (
-                genai.types.HttpOptions(headers={"user-agent": self.user_agent})
-                if self.user_agent
-                else None
+
+    def _initialize_genai_client(self) -> None:
+        """Initializes the GenAI client."""
+        logger.info(
+            "Initializing GenAI client for project '%s' in region '%s'",
+            self.project_id,
+            self.region,
+        )
+
+        http_options = None
+        if self.user_agent:
+            http_options = genai.types.HttpOptions(
+                headers={"user-agent": self.user_agent}
             )
             try:
                 self.client = genai.Client(
@@ -161,19 +289,45 @@ class GoogleGenAIBaseAPI:
 
     @staticmethod
     def _format_api_error(e: Exception) -> str:
-        """Creates a consistent, readable error message from an API exception."""
-        code = getattr(e, "code", "N/A")
+        """
+        Creates a consistent, readable error message from an API exception.
+
+        Args:
+            e: The exception to format
+
+        Returns:
+            Formatted error message
+        """
+        code = getattr(e, "code", None)
         message = getattr(e, "message", str(e))
-        return f"Code: {code}, Message: {message}"
+
+        if code:
+            return f"[{code}] {message}"
+        return message
 
     @staticmethod
     def _discover_project_id() -> Optional[str]:
-        """Discovers the project ID from the GCP metadata server."""
-        return get_gcp_metadata("project/project-id")
+        """
+        Discovers the project ID from the GCP metadata server.
+
+        Returns:
+            Project ID if available, None otherwise
+        """
+        project_id = get_gcp_metadata("project/project-id")
+        if project_id:
+            logger.debug("Discovered project ID from metadata: %s", project_id)
+        else:
+            logger.debug("Could not discover project ID from metadata server")
+        return project_id
 
     @staticmethod
     def _discover_region() -> Optional[str]:
-        """Discovers the region from the instance's zone."""
+        """
+        Discovers the region from the instance's zone.
+
+        Returns:
+            Region if available, None otherwise
+        """
         zone = get_gcp_metadata("instance/zone")
         if not zone:
             return None

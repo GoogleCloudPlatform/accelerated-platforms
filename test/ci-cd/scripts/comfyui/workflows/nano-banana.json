@@ -27,7 +27,6 @@
       "person_generation": "allow_adult",
       "duration_seconds": 8,
       "generate_audio": true,
-      "enhance_prompt": true,
       "sample_count": 1,
       "negative_prompt": "",
       "seed": 1394449548,
@@ -57,7 +56,7 @@
   },
   "1": {
     "inputs": {
-      "model": "GEMINI_25_FLASH_IMAGE_PREVIEW",
+      "model": "GEMINI_25_FLASH_IMAGE",
       "prompt": "Place the objects from image 1 in the environment of image 2",
       "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
       "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",

@@ -110,6 +110,7 @@ from the Open VSX Registry are recommend:
 
 - Black Formatter (`ms-python.black-formatter`)
 - Code Spell Checker (`streetsidesoftware.code-spell-checker`)
+- EditorConfig for VS Code (`editorconfig.editorconfig`)
 - HashiCorp Terraform (`hashicorp.terraform`)
 - isort (`ms-python.isort`)
 - Prettier - Code formatter (`esbenp.prettier-vscode`)

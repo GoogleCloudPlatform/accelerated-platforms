@@ -15,7 +15,7 @@
 # This is a preview version of Google GenAI custom nodes
 
 from enum import Enum
-
+import re
 from google.genai import types
 
 AUDIO_MIME_TYPES = ["audio/mp3", "audio/wav", "audio/mpeg"]
@@ -47,6 +47,16 @@ VEO3_VALID_SAMPLE_COUNT = (1, 2, 3, 4)
 VIDEO_MIME_TYPES = ["video/mp4", "video/mpeg"]
 VTO_MODEL = "virtual-try-on-preview-08-04"
 VTO_USER_AGENT = "cloud-solutions/virtual-try-on-custom-node-v1"
+
+# --- Constants for Project ID Validation ---
+PROJECT_ID_PATTERN = re.compile(r"^[a-z]([a-z0-9-]{4,28}[a-z0-9])?$")
+PROJECT_ID_MIN_LENGTH = 6
+PROJECT_ID_MAX_LENGTH = 30
+PROJECT_ID_RESTRICTED_STRINGS = {"google", "ssl", "www", "goog"}
+
+# --- Constants for Region Validation ---
+REGION_PATTERN = re.compile(r"^[a-z]+-[a-z]+[0-9]+$")
+SPECIAL_REGIONS = {"global"}
 
 
 class GeminiFlashImageModel(Enum):

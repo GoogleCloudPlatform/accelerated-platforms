@@ -40,7 +40,9 @@ class Imagen4API(GoogleGenAIBaseAPI):
         Raises:
             exceptions.APIInitializationError: If GCP Project or region cannot be determined.
         """
-        super().__init__(project_id, region, IMAGEN4_USER_AGENT)
+        super().__init__(
+            user_agent=IMAGEN4_USER_AGENT, project_id=project_id, region=region
+        )
 
     def generate_image_from_text(
         self,
@@ -105,9 +107,9 @@ class Imagen4API(GoogleGenAIBaseAPI):
             )
 
         model = Imagen4Model[model]
-        if model == Imagen4Model.IMAGEN_4_ULTRA_PREVIEW.value:
+        if model == Imagen4Model.IMAGEN_4_ULTRA_PREVIEW.value and number_of_images > 1:
             raise exceptions.ConfigurationError(
-                f"Ultra model only generates {IMAGEN4_MAX_IMAGES} image at a time."
+                f"Ultra model only generates one image at a time."
             )
         return utils.generate_image_from_text(
             client=self.client,

@@ -48,7 +48,9 @@ class Veo2API(GoogleGenAIBaseAPI):
         Raises:
             exceptions.APIInitializationError: If GCP Project or Zone cannot be determined.
         """
-        super().__init__(project_id, region, VEO2_USER_AGENT)
+        super().__init__(
+            user_agent=VEO2_USER_AGENT, project_id=project_id, region=region
+        )
 
     def generate_video_from_text(
         self,

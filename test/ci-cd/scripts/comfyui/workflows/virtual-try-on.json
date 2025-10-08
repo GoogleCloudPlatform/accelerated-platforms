@@ -103,7 +103,7 @@
   },
   "24": {
     "inputs": {
-      "model": "GEMINI_25_FLASH_IMAGE_PREVIEW",
+      "model": "GEMINI_25_FLASH_IMAGE",
       "prompt": "Generate a orange designer dress with strips ",
       "temperature": 0.7,
       "top_p": 1,
@@ -122,4 +122,3 @@
     }
   }
 }
-

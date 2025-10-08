@@ -50,7 +50,11 @@ class GeminiFlashImageAPI(GoogleGenAIBaseAPI):
         Raises:
             ValueError: If GCP Project or region cannot be determined.
         """
-        super().__init__(project_id, region, GEMINI_25_FLASH_IMAGE_USER_AGENT)
+        super().__init__(
+            user_agent=GEMINI_25_FLASH_IMAGE_USER_AGENT,
+            project_id=project_id,
+            region=region,
+        )
         print(f"GeminiFlashImageAPI initialized for {self.project_id} in {self.region}")
 
     @retry_on_api_error()

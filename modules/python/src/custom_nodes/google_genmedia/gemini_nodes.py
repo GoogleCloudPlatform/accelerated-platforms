@@ -46,7 +46,9 @@ class GeminiNode25(GoogleGenAIBaseAPI):
         Raises:
             exceptions.APIInitializationError: If GCP Project or region cannot be determined.
         """
-        super().__init__(gcp_project_id, gcp_region, GEMINI_USER_AGENT, "genai")
+        super().__init__(
+            user_agent=GEMINI_USER_AGENT, project_id=gcp_project_id, region=gcp_region
+        )
 
     @classmethod
     def INPUT_TYPES(s):

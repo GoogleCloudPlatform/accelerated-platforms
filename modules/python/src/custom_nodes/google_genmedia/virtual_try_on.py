@@ -50,9 +50,9 @@ class VirtualTryOnAPI(GoogleGenAIBaseAPI):
             ValueError: If GCP Project or region cannot be determined.
         """
         super().__init__(
+            user_agent=VTO_USER_AGENT,
             project_id=gcp_project_id,
             region=gcp_region,
-            user_agent=VTO_USER_AGENT,
             client_type="prediction",
         )
 

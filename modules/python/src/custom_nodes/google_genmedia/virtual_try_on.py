@@ -28,6 +28,7 @@ from PIL import Image
 from . import utils
 from .config import get_gcp_metadata
 from .constants import MAX_SEED, VTO_MODEL, VTO_USER_AGENT
+from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 
 
 class VirtualTryOn:
@@ -46,7 +47,7 @@ class VirtualTryOn:
             gcp_region: The GCP region. If provided, overrides metadata lookup.
 
         Raises:
-            ValueError: If GCP Project or region cannot be determined.
+            ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
         self.project_id = gcp_project_id
         self.region = gcp_region
@@ -59,9 +60,13 @@ class VirtualTryOn:
             )
 
         if not self.project_id:
-            raise ValueError("GCP Project is required and could not be determined.")
+            raise ConfigurationError(
+                "GCP Project is required and could not be determined."
+            )
         if not self.region:
-            raise ValueError("GCP region is required and could not be determined.")
+            raise ConfigurationError(
+                "GCP region is required and could not be determined."
+            )
 
         print(f"Project is {self.project_id}, region is {self.region}")
         try:
@@ -77,7 +82,7 @@ class VirtualTryOn:
                 f"Prediction client initiated on project : {self.project_id}, location: {self.region}"
             )
         except Exception as e:
-            raise RuntimeError(
+            raise ConfigurationError(
                 f"Failed to initialize Prediction client for Vertex AI: {e}"
             )
 
@@ -181,76 +186,97 @@ class VirtualTryOn:
             A tuple containing a concatenated PyTorch tensor of all generated images.
 
         Raises:
-            RuntimeError: If the client fails to initialize or if image generation fails for
-                        all products in the batch.
-            ValueError: If `person_image` or `product_image` are empty, or if `seed` is used
-                        when `add_watermark` is enabled.
+            RuntimeError: If API configuration fails, or if image generation encounters an API error.
         """
         try:
             # Re-initialize the client if needed
             init_project_id = gcp_project_id if gcp_project_id else None
             init_region = gcp_region if gcp_region else None
             self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
-        except Exception as e:
-            raise RuntimeError(f"Error re-initializing client: {e}")
+        except ConfigurationError as e:
+            raise RuntimeError(f"Virtual Try-On API Configuration Error: {e}") from e
 
-        # Validate that the input tensors contain data
-        if not (person_image.numel() > 0 and product_image.numel() > 0):
-            raise ValueError(
-                "Both person_image and product_image must be valid, non-empty images."
-            )
-        seed_for_api = seed if seed != 0 else None
-        if seed_for_api and add_watermark:
-            raise ValueError("Seed is not supported when add_watermark is enabled.")
-
-        person_image_base64 = utils.tensor_to_pil_to_base64(person_image)
-
-        all_generated_tensors = []
-
-        # We will loop through each product image and make an API call with the same personImage and different productImages
-        print(f"Beginning batch job for {product_image.shape[0]} product image(s).")
-        for i in range(product_image.shape[0]):
-            single_product_tensor = product_image[i : i + 1]
-            print(f"Processing image {i+1} of {product_image.shape[0]}...")
-            product_image_base64 = utils.tensor_to_pil_to_base64(single_product_tensor)
-            instances = [
-                {
-                    "personImage": {
-                        "image": {"bytesBase64Encoded": person_image_base64}
-                    },
-                    "productImages": [
-                        {"image": {"bytesBase64Encoded": product_image_base64}}
-                    ],
-                }
-            ]
-            parameters = {
-                "sampleCount": number_of_images,
-                "baseSteps": base_steps,
-                "safetySetting": safety_filter_level,
-                "personGeneration": person_generation,
-                "seed": seed_for_api,
-                "addWatermark": add_watermark,
-                "safety_filter_level": safety_filter_level,
-            }
-            try:
-                response = self.client.predict(
-                    endpoint=self.model_endpoint,
-                    instances=instances,
-                    parameters=parameters,
+        try:
+            # Validate that the input tensors contain data
+            if not (person_image.numel() > 0 and product_image.numel() > 0):
+                raise APIInputError(
+                    "Both person_image and product_image must be valid, non-empty images."
                 )
-                for prediction in response.predictions:
-                    base64_image_string = prediction["bytesBase64Encoded"]
-                    tensor = utils.base64_to_pil_to_tensor(base64_image_string)
-                    all_generated_tensors.append(tensor)
-            except Exception as e:
-                print(f"Could not generate image for product {i+1}. Error: {e}")
-                continue
+            seed_for_api = seed if seed != 0 else None
+            if seed_for_api and add_watermark:
+                raise APIInputError(
+                    "Seed is not supported when add_watermark is enabled."
+                )
 
-        # After the loop, check if we got any results at all
-        if not all_generated_tensors:
+            person_image_base64 = utils.tensor_to_pil_to_base64(person_image)
+
+            all_generated_tensors = []
+
+            # We will loop through each product image and make an API call with the same personImage and different productImages
+            print(f"Beginning batch job for {product_image.shape[0]} product image(s).")
+            for i in range(product_image.shape[0]):
+                single_product_tensor = product_image[i : i + 1]
+                print(f"Processing image {i+1} of {product_image.shape[0]}...")
+                product_image_base64 = utils.tensor_to_pil_to_base64(
+                    single_product_tensor
+                )
+                instances = [
+                    {
+                        "personImage": {
+                            "image": {"bytesBase64Encoded": person_image_base64}
+                        },
+                        "productImages": [
+                            {"image": {"bytesBase64Encoded": product_image_base64}}
+                        ],
+                    }
+                ]
+                parameters = {
+                    "sampleCount": number_of_images,
+                    "baseSteps": base_steps,
+                    "safetySetting": safety_filter_level,
+                    "personGeneration": person_generation,
+                    "seed": seed_for_api,
+                    "addWatermark": add_watermark,
+                    "safety_filter_level": safety_filter_level,
+                }
+                try:
+                    response = self.client.predict(
+                        endpoint=self.model_endpoint,
+                        instances=instances,
+                        parameters=parameters,
+                    )
+                    for prediction in response.predictions:
+                        base64_image_string = prediction["bytesBase64Encoded"]
+                        tensor = utils.base64_to_pil_to_tensor(base64_image_string)
+                        all_generated_tensors.append(tensor)
+                except Exception as e:
+                    # Catch all exceptions for the Vertex AI Prediction call and re-raise if no results were generated.
+                    error_message = (
+                        f"Could not generate image for product {i+1}. Error: {e}"
+                    )
+                    print(error_message)
+
+                    if i == product_image.shape[0] - 1 and not all_generated_tensors:
+                        raise APIExecutionError(
+                            f"Image generation failed for final product in batch: {e}"
+                        ) from e
+
+                    continue
+
+            # After the loop, check if we got any results at all
+            if not all_generated_tensors:
+                raise APIExecutionError(
+                    "Image generation failed for all product images in the batch."
+                )
+
+        except APIInputError as e:
+            raise RuntimeError(f"Virtual Try-On API Input Error: {e}") from e
+        except APIExecutionError as e:
+            raise RuntimeError(f"Virtual Try-On API Execution Error: {e}") from e
+        except Exception as e:
             raise RuntimeError(
-                "Image generation failed for all product images in the batch."
-            )
+                f"An unexpected error occurred during image generation: {e}"
+            ) from e
 
         final_batch_tensor = torch.cat(all_generated_tensors, 0)
         print(

@@ -11,6 +11,7 @@ fastapi
 fillna
 fromarray
 fsspec
+functools
 gapic
 gcsuri
 getattr

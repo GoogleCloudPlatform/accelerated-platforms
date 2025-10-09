@@ -29,6 +29,7 @@ from .constants import (
     GeminiModel,
     ThresholdOptions,
 )
+from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 
 
 class GeminiNode25:
@@ -43,7 +44,7 @@ class GeminiNode25:
             gcp_region: The GCP region. If provided, overrides metadata lookup.
 
         Raises:
-            ValueError: If GCP Project or region cannot be determined.
+            ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
         self.project_id = gcp_project_id
         self.region = gcp_region
@@ -56,9 +57,13 @@ class GeminiNode25:
             )
 
         if not self.project_id:
-            raise ValueError("GCP Project is required and could not be determined.")
+            raise ConfigurationError(
+                "GCP Project is required and could not be determined."
+            )
         if not self.region:
-            raise ValueError("GCP region is required and could not be determined.")
+            raise ConfigurationError(
+                "GCP region is required and could not be determined."
+            )
 
         print(f"Project is {self.project_id}, region is {self.region}")
         http_options = genai.types.HttpOptions(
@@ -75,7 +80,9 @@ class GeminiNode25:
                 f"genai.Client initialized for Vertex AI project: {self.project_id}, location: {self.region}"
             )
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize genai.Client for Vertex AI: {e}")
+            raise ConfigurationError(
+                f"Failed to initialize genai.Client for Vertex AI: {e}"
+            )
 
     @classmethod
     def INPUT_TYPES(s):
@@ -226,7 +233,7 @@ class GeminiNode25:
         audio_mime_type: str = "audio/mp3",
         gcp_project_id: str = "",
         gcp_region: str = "",
-    ):
+    ) -> Tuple[str,]:
         """Generates content using the Gemini API based on the provided prompt and parameters.
 
         This method constructs a request to the Gemini API, including text and
@@ -280,14 +287,16 @@ class GeminiNode25:
             tuple: A tuple containing the generated text as the first element. If content
                    is blocked, it will contain a message indicating the reason and safety
                    ratings. If an error occurs, it will contain an error message.
+
+        Raises:
+            RuntimeError: If API configuration fails, or if content generation encounters an API error.
         """
-        # Re-initialize the client to avoid re-launching the node when the customers
-        # provide gcp_project_id and gcp_region first and then remove them to use the defaults.
+        # Re-initialize the client to handle optional credential changes in the node
         try:
             init_project_id = gcp_project_id if gcp_project_id else None
             init_region = gcp_region if gcp_region else None
             self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
-        except Exception as e:
+        except ConfigurationError as e:
             return (
                 f"Error re-initializing Gemini client with provided GCP credentials: {e}",
             )
@@ -339,41 +348,32 @@ class GeminiNode25:
             gen_config_obj.safety_settings = safety_settings
             # Prepare contents (prompt, text, image, video, audio)
             contents = [types.Part.from_text(text=prompt)]
+
+            # Using prep_for_media_conversion to handle file loading, which propagates APIInputError if file not found
             image_content = (
                 utils.prep_for_media_conversion(image_file_path, image_mime_type)
                 if image_file_path
-                else print(f"No image provided")
+                else None
             )
             if image_content:
                 contents.append(image_content)
-            else:
-                print(
-                    f"Image path '{image_file_path}' provided but content not retrieved or file not found."
-                )
 
             video_content = (
                 utils.prep_for_media_conversion(video_file_path, video_mime_type)
                 if video_file_path
-                else print(f"No video provided")
+                else None
             )
             if video_content:
                 contents.append(video_content)
-            else:
-                print(
-                    f"Video path '{video_file_path}' provided but content not retrieved or file not found."
-                )
 
             audio_content = (
                 utils.prep_for_media_conversion(audio_file_path, audio_mime_type)
                 if audio_file_path
-                else print(f"No audio provided")
+                else None
             )
             if audio_content:
                 contents.append(audio_content)
-            else:
-                print(
-                    f"Audio path '{audio_file_path}' provided but content not retrieved or file not found."
-                )
+
             # Prepare system instruction
             system_instruction_parts = []
             if system_instruction:
@@ -384,6 +384,7 @@ class GeminiNode25:
             gen_config_obj.system_instruction = (
                 system_instruction_parts if system_instruction_parts else None
             )
+
             # Make the API call
             print(
                 f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
@@ -410,6 +411,10 @@ class GeminiNode25:
 
             return (generated_text,)
 
+        except APIInputError as e:
+            raise RuntimeError(f"Gemini API Input Error: {e}") from e
+        except APIExecutionError as e:
+            raise RuntimeError(f"Gemini API Execution Error: {e}") from e
         except Exception as e:
             print(f"An error occurred in calling Gemini API: {e}")
             return (f"Error: {e}",)

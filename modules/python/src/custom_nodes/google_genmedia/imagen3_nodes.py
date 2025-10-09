@@ -21,6 +21,7 @@ import torch
 from google.genai import types
 
 from .constants import MAX_SEED
+from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .imagen3_api import Imagen3API
 
 
@@ -144,13 +145,14 @@ class Imagen3TextToImageNode:
         Returns:
             A tuple containing a PyTorch tensor of the generated images,
             formatted as (batch_size, height, width, channels).
+
+        Raises:
+            RuntimeError: If API configuration fails, or if image generation encounters an API error.
         """
         try:
             imagen_api = Imagen3API(project_id=gcp_project_id, region=gcp_region)
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to initialize Imagen API client for node execution: {e}"
-            )
+        except ConfigurationError as e:
+            raise RuntimeError(f"Imagen API Configuration Error: {e}") from e
 
         p_gen_enum = getattr(types.PersonGeneration, person_generation)
 
@@ -169,9 +171,14 @@ class Imagen3TextToImageNode:
                 output_image_type=output_image_type,
                 safety_filter_level=safety_filter_level,
             )
+        except APIInputError as e:
+            raise RuntimeError(f"Imagen API Input Error: {e}") from e
+        except APIExecutionError as e:
+            raise RuntimeError(f"Imagen API Execution Error: {e}") from e
         except Exception as e:
-            raise RuntimeError(f"Error occurred during image generation: {e}")
-            # return (torch.empty(0, 640, 640, 3),)
+            raise RuntimeError(
+                f"An unexpected error occurred during image generation: {e}"
+            ) from e
 
         if not pil_images:
             raise RuntimeError(
@@ -182,9 +189,7 @@ class Imagen3TextToImageNode:
         for img in pil_images:
             img = img.convert("RGB")
             img_np = np.array(img).astype(np.float32) / 255.0
-            img_tensor = torch.from_numpy(img_np)[
-                None,
-            ]
+            img_tensor = torch.from_numpy(img_np)[None,]
             output_tensors.append(img_tensor)
 
         batched_images_tensor = torch.cat(output_tensors, dim=0)

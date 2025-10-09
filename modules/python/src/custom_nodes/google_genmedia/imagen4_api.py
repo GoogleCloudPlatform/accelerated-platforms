@@ -22,6 +22,7 @@ from PIL import Image
 from . import utils
 from .config import get_gcp_metadata
 from .constants import IMAGEN4_USER_AGENT, Imagen4Model
+from .custom_exceptions import APIInputError, ConfigurationError
 
 
 class Imagen4API:
@@ -38,26 +39,29 @@ class Imagen4API:
             region: The GCP region. If None, it will be retrieved from GCP metadata.
 
         Raises:
-            ValueError: If GCP Project or region cannot be determined.
+            ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
         self.project_id = project_id or get_gcp_metadata("project/project-id")
         self.region = region or "-".join(
             get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
         )
         if not self.project_id:
-            raise ValueError("GCP Project is required")
+            raise ConfigurationError("GCP Project is required")
         if not self.region:
-            raise ValueError("GCP region is required")
+            raise ConfigurationError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
         http_options = genai.types.HttpOptions(
             headers={"user-agent": IMAGEN4_USER_AGENT}
         )
-        self.client = genai.Client(
-            vertexai=True,
-            project=self.project_id,
-            location=self.region,
-            http_options=http_options,
-        )
+        try:
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.project_id,
+                location=self.region,
+                http_options=http_options,
+            )
+        except Exception as e:
+            raise ConfigurationError(f"Failed to initialize Imagen API client: {e}")
 
         self.retry_count = 3  # Number of retries for quota errors
         self.retry_delay = 5  # Delay between retries (seconds)
@@ -96,16 +100,14 @@ class Imagen4API:
             A list of PIL Image objects. Returns an empty list on failure.
 
         Raises:
-            ValueError: If `number_of_images` is not between 1 and 4,
-                        if `seed` is provided with `add_watermark` enabled,
-                        or if `output_image_type` is unsupported.
+            APIInputError: If parameters are invalid.
         """
         if not (1 <= number_of_images <= 4):
-            raise ValueError(
+            raise APIInputError(
                 f"number_of_images must be between 1 and 4, but got {number_of_images}."
             )
         if seed and add_watermark:
-            raise ValueError("Seed is not supported when add_watermark is enabled.")
+            raise APIInputError("Seed is not supported when add_watermark is enabled.")
 
         output_image_type = output_image_type.upper()
         if output_image_type == "PNG":
@@ -113,11 +115,11 @@ class Imagen4API:
         elif output_image_type == "JPEG":
             output_mime_type = "image/jpeg"
         else:
-            raise ValueError(f"Unsupported image format: {output_image_type}")
+            raise APIInputError(f"Unsupported image format: {output_image_type}")
 
         model = Imagen4Model[model]
         if model == Imagen4Model.IMAGEN_4_ULTRA_PREVIEW.value and number_of_images > 1:
-            raise ValueError("Ultra model only generates one image at a time.")
+            raise APIInputError("Ultra model only generates one image at a time.")
 
         return utils.generate_image_from_text(
             client=self.client,

@@ -29,6 +29,7 @@ steps:
 
   - args:
       - DEBUG=${_DEBUG}
+      - RESERVATIONS="gpu-l4-24gb-s32-x1-us-central1-a gpu-l4-24gb-s32-x1-us-central1-c"
       - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
       - TF_VAR_platform_name="ch${SHORT_SHA}"
       - TF_VAR_comfyui_iap_oath_branding_project_id="accelerated-platforms-iap"
@@ -36,8 +37,8 @@ steps:
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"
     env:
       - ACP_PLATFORM_DIR="$${ACP_REPO_DIR}/platforms/gke/base"
-      - BUILD_ID=${BUILD_ID}
       - DEBUG=${_DEBUG}
+      - BUILD_ID=${BUILD_ID}
       - PROJECT_ID=${PROJECT_ID}
       - SHORT_SHA=${SHORT_SHA}
     id: "Configure the build environment"

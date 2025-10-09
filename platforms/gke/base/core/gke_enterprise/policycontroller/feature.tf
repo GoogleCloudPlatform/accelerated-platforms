@@ -32,45 +32,40 @@ data "local_file" "kubeconfig" {
 }
 
 resource "google_gke_hub_feature" "policycontroller" {
-  provider = google-beta
-
   location = "global"
   name     = "policycontroller"
   project  = google_project_service.anthospolicycontroller_googleapis_com.project
 }
 
 resource "google_gke_hub_feature_membership" "cluster_policycontroller" {
-  provider = google-beta
-
   feature    = google_gke_hub_feature.policycontroller.name
   location   = google_gke_hub_feature.policycontroller.location
   membership = data.google_container_cluster.cluster.name
   project    = google_gke_hub_feature.policycontroller.project
 
   policycontroller {
+    version = var.policycontroller_version
+
     policy_controller_hub_config {
+      audit_interval_seconds    = 60
+      install_spec              = "INSTALL_SPEC_ENABLED"
+      log_denies_enabled        = true
+      mutation_enabled          = true
+      referential_rules_enabled = true
+
       policy_content {
-        template_library {
-          installation = "ALL"
-        }
         dynamic "bundles" {
           for_each = var.policycontroller_bundles
           content {
             bundle_name = each.value
           }
         }
+        template_library {
+          installation = "ALL"
+        }
       }
-      audit_interval_seconds    = 60
-      install_spec              = "INSTALL_SPEC_ENABLED"
-      log_denies_enabled        = true
-      mutation_enabled          = true
-      referential_rules_enabled = true
     }
   }
-}
-
-locals {
-
 }
 
 resource "google_project_iam_member" "gatekeeper" {

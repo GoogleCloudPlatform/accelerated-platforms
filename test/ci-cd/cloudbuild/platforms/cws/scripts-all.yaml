@@ -139,4 +139,4 @@ substitutions:
   _DEBUG: "false"
   _DEFAULT_LOCATION: "us-central1"
 
-timeout: 90m
+timeout: 120m

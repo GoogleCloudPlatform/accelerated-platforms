@@ -33,12 +33,13 @@ EOT
   }
 
   triggers_replace = {
-    custom_nodes           = sha256(join("", [for file in fileset("${local.acp_root}/modules/python/src/custom_nodes", "**") : filesha256("${local.acp_root}/modules/python/src/custom_nodes/${file}")]))
-    custom_sa_email        = data.google_service_account.cloudbuild.email
-    hash_cloudbuild_config = filebase64sha256("${path.module}/src/cloudbuild.yaml")
-    hash_dockerfile        = filebase64sha256("${path.module}/src/Dockerfile.nvidia")
-    hash_entrypoint        = filebase64sha256("${path.module}/src/entrypoint.sh")
-    image_tag              = var.comfyui_image_tag
-    repository_id          = google_artifact_registry_repository.comfyui_container_images.id
+    custom_nodes                 = sha256(join("", [for file in fileset("${local.acp_root}/modules/python/src/custom_nodes", "**") : filesha256("${local.acp_root}/modules/python/src/custom_nodes/${file}")]))
+    custom_sa_email              = data.google_service_account.cloudbuild.email
+    hash_cloudbuild_config       = filebase64sha256("${path.module}/src/cloudbuild.yaml")
+    hash_dockerfile_no_manager   = filebase64sha256("${path.module}/src/Dockerfile.nvidia-no-manager")
+    hash_dockerfile_with_manager = filebase64sha256("${path.module}/src/Dockerfile.nvidia-with-manager")
+    hash_entrypoint              = filebase64sha256("${path.module}/src/entrypoint.sh")
+    image_tag                    = var.comfyui_image_tag
+    repository_id                = google_artifact_registry_repository.comfyui_container_images.id
   }
 }

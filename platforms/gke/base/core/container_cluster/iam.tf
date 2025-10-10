@@ -37,7 +37,7 @@ resource "google_project_iam_custom_role" "gcs_fuse_user" {
     "storage.objects.restore",
     "storage.objects.update",
   ]
-  project = data.google_project.cluster.project_id
+  project = google_project_service.cluster["iam.googleapis.com"].project
   role_id = local.cluster_gcsfuse_user_role_name
   title   = "${local.unique_identifier_prefix} GCS FUSE User"
 }
@@ -53,7 +53,7 @@ resource "google_project_iam_custom_role" "gcs_fuse_viewer" {
     "storage.objects.get",
     "storage.objects.list",
   ]
-  project = data.google_project.cluster.project_id
+  project = google_project_service.cluster["iam.googleapis.com"].project
   role_id = local.cluster_gcsfuse_viewer_role_name
   title   = "${local.unique_identifier_prefix} GCS FUSE Viewer"
 }

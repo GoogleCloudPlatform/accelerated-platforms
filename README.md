@@ -14,6 +14,20 @@ rendering. By offloading demanding workloads from traditional CPUs to dedicated
 hardware accelerators, which are capable of much faster parallel calculations,
 the platform optimizes high-performance computing.
 
+## Cloud Workstations (CWS)
+
+> [!NOTE]  
+> The Cloud Workstations (CWS) Platform is currently in beta and is still being
+> actively developed.
+
+The [Cloud Workstations (CWS) Platform](/docs/platforms/cws/README.md) is a
+core, best practices, fully managed workstation environments built to meet the
+needs of security-sensitive enterprises. It enhances the security of workstation
+environments while accelerating onboarding and productivity.
+
+- [Cloud Workstations reference architecture](/docs/platforms/cws/reference-architecture.md)
+  - [Cloud Workstations reference implementation](/platforms/cws/README.md)
+
 ## Google Kubernetes Engine (GKE)
 
 ### GKE Base Platform

@@ -31,18 +31,24 @@ steps:
           set -o xtrace
         fi
 
-        projects=$(gcloud projects list --filter='name~accelerated-platforms- AND name!=accelerated-platforms-dev' --format='value(project_id)')
+        projects=$(gcloud projects list --filter='name~accelerated-platforms- AND name!=accelerated-platforms-dev AND name!=accelerated-platforms-iap' --format='value(project_id)')
+        num_projects=$(echo "${projects}" | wc -w)
+        echo "${num_projects} project(s) found"
 
         timestamp=$(printf "%(%Y-%m-%dT%H:%M:%S%z)T" $(( $(printf "%(%s)T") - (60 * 60 * ${_HOURS}) )))
         builds=$(
           gcloud builds list \
           --filter="(status=\"CANCELLED\" OR status=\"FAILURE\" OR status=\"TIMEOUT\") AND create_time>\"${timestamp}\"" \
           --format="value(format(\"{0},{1}\", id, substitutions.SHORT_SHA))" \
+          --limit=10240 \
+          --page-size=10240 \
           --project=${PROJECT_ID} \
           --region=${LOCATION}
         )
-        for build in ${builds}; do
+        num_builds=$(echo "${builds}" | wc -w)
+        echo "${num_builds} build(S) with status CANCELLED, FAILURE, or TIMEOUT since ${timestamp}"
 
+        for build in ${builds}; do
           echo "Processing build '${build}'"
 
           build_id="${build%,*}"
@@ -58,7 +64,6 @@ steps:
           )
           for endpoint in ${endpoints}; do
             echo "    Deleting endpoint '${endpoint}'"
-            
             gcloud endpoints services delete ${endpoint} \
             --project=${project_id} \
             --quiet
@@ -70,6 +75,7 @@ steps:
         done
 
         exit 0
+
 substitutions:
   _DEBUG: "false"
   _HOURS: "1"

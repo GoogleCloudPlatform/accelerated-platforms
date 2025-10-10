@@ -19,7 +19,11 @@ locals {
 }
 
 module "configsync_repository" {
-  source = "../../../terraform/modules/github_repository"
+  source = "../../../terraform/modules/github/repository"
+
+  providers = {
+    github = github
+  }
 
   branches = {
     default = "main"

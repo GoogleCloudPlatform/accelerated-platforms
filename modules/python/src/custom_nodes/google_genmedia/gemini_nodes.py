@@ -32,6 +32,7 @@ from .constants import (
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .retry import api_error_retry
 
+
 class GeminiNode25:
     def __init__(
         self, gcp_project_id: Optional[str] = None, gcp_region: Optional[str] = None

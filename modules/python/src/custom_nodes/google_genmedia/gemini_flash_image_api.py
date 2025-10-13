@@ -26,8 +26,9 @@ from PIL import Image
 from . import utils
 from .config import get_gcp_metadata
 from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
-from .custom_exceptions import  ConfigurationError
+from .custom_exceptions import ConfigurationError
 from .retry import api_error_retry
+
 
 class GeminiFlashImageAPI:
     """
@@ -64,7 +65,6 @@ class GeminiFlashImageAPI:
                 f"Failed to initialize Gemini Flash Image API client: "
                 f"Check your project ID: '{self.project_id}' and region: '{self.region}'"
             )
-
 
     @api_error_retry
     def generate_image(

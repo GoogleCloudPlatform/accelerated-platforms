@@ -55,6 +55,7 @@ qualname
 removesuffix
 rerank
 reranked
+retryable
 rsplit
 setdefaulttimeout
 shutil

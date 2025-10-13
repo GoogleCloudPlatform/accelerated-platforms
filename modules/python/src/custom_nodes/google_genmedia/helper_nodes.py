@@ -58,7 +58,9 @@ class VeoVideoToVHSNode:
 
     CATEGORY = "Google AI/Utils"
 
-    def convert_videos(self, video_paths: List[str]) -> Tuple[torch.Tensor,]:
+    def convert_videos(
+        self, video_paths: List[str]
+    ) -> Tuple[torch.Tensor,]:
         """
         Loads multiple videos from newline-separated paths, extracts frames,
         and returns them as a single IMAGE batch.

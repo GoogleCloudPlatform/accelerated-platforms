@@ -29,6 +29,7 @@ from . import utils
 from .config import get_gcp_metadata
 from .constants import MAX_SEED, VTO_MODEL, VTO_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .retry import api_error_retry
 
 
 class VirtualTryOn:
@@ -148,6 +149,29 @@ class VirtualTryOn:
     FUNCTION = "generate_and_return_image"
     CATEGORY = "Google AI/Use-cases"
 
+    @api_error_retry
+    def _predict(self, **kwargs) -> Any:
+        """
+        Makes a prediction using the Vertex AI PredictionServiceClient.
+
+        This method is decorated with `@api_error_retry` to handle API errors
+        and implement retry logic.
+
+        Args:
+            **kwargs: Keyword arguments passed to the prediction client,
+                      including 'instances' and 'parameters'.
+
+        Returns:
+            The prediction response from the API.
+        """
+        instances = kwargs.get("instances")
+        parameters = kwargs.get("parameters")
+        return self.client.predict(
+            endpoint=self.model_endpoint,
+            instances=instances,
+            parameters=parameters,
+        )
+
     def generate_and_return_image(
         self,
         person_image: torch.Tensor,
@@ -240,16 +264,16 @@ class VirtualTryOn:
                     "safety_filter_level": safety_filter_level,
                 }
                 try:
-                    response = self.client.predict(
-                        endpoint=self.model_endpoint,
+                    response = self._predict(
                         instances=instances,
                         parameters=parameters,
+                        model=VTO_MODEL,
                     )
                     for prediction in response.predictions:
                         base64_image_string = prediction["bytesBase64Encoded"]
                         tensor = utils.base64_to_pil_to_tensor(base64_image_string)
                         all_generated_tensors.append(tensor)
-                except Exception as e:
+                except (APIExecutionError, APIInputError) as e:
                     # Catch all exceptions for the Vertex AI Prediction call and re-raise if no results were generated.
                     error_message = (
                         f"Could not generate image for product {i+1}. Error: {e}"

@@ -63,9 +63,6 @@ class Imagen3API:
         except Exception as e:
             raise ConfigurationError(f"Failed to initialize Imagen API client: {e}")
 
-        self.retry_count = 3  # Number of retries for quota errors
-        self.retry_delay = 5  # Delay between retries (seconds)
-
     def generate_image_from_text(
         self,
         prompt: str,
@@ -130,6 +127,4 @@ class Imagen3API:
             add_watermark=add_watermark,
             output_image_type=output_mime_type,
             safety_filter_level=safety_filter_level,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )

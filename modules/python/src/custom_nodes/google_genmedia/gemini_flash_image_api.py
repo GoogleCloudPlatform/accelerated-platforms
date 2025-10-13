@@ -26,8 +26,8 @@ from PIL import Image
 from . import utils
 from .config import get_gcp_metadata
 from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
-from .custom_exceptions import APIExecutionError, ConfigurationError
-
+from .custom_exceptions import  ConfigurationError
+from .retry import api_error_retry
 
 class GeminiFlashImageAPI:
     """
@@ -61,12 +61,12 @@ class GeminiFlashImageAPI:
             )
         except Exception as e:
             raise ConfigurationError(
-                f"Failed to initialize Gemini Flash Image API client: {e}"
+                f"Failed to initialize Gemini Flash Image API client: "
+                f"Check your project ID: '{self.project_id}' and region: '{self.region}'"
             )
 
-        self.retry_count = 3
-        self.retry_delay = 5
 
+    @api_error_retry
     def generate_image(
         self,
         model: str,
@@ -158,13 +158,9 @@ class GeminiFlashImageAPI:
                     types.Part.from_bytes(data=image_to_b64, mime_type="image/png")
                 )
 
-        try:
-            response = self.client.models.generate_content(
-                model=model, contents=contents, config=generate_content_config
-            )
-        except Exception as e:
-            # Catch unexpected API errors from the client call itself
-            raise APIExecutionError(f"Gemini API call failed: {e}") from e
+        response = self.client.models.generate_content(
+            model=model, contents=contents, config=generate_content_config
+        )
 
         for part in response.candidates[0].content.parts:
             if part.text is not None:

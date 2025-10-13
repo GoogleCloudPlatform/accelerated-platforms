@@ -136,8 +136,6 @@ def generate_image_from_text(
     add_watermark: bool,
     output_image_type: str,
     safety_filter_level: str,
-    retry_count: int,
-    retry_delay: int,
 ) -> List[PIL_Image.Image]:
     """
     Generate image from text prompt using Imagen.
@@ -155,8 +153,6 @@ def generate_image_from_text(
         add_watermark: Whether to add a watermark to the generated images.
         output_image_type: The desired output image format (PNG or JPEG).
         safety_filter_level: The safety filter strictness.
-        retry_count: number of retries
-        retry_delay: time between each retry_count
 
     Returns:
         A list of PIL Image objects. Returns an empty list on failure.
@@ -215,8 +211,6 @@ def generate_video_from_gcsuri_image(
     output_gcs_uri: Optional[str],
     negative_prompt: Optional[str],
     seed: Optional[int],
-    retry_count: int,
-    retry_delay: int,
 ) -> List[str]:
     """
     Generates video from a Google Cloud Storage (GCS) image URI using the Veo API.
@@ -239,8 +233,6 @@ def generate_video_from_gcsuri_image(
         output_gcs_uri: output gcs url to store the video. Required with lossless output.
         negative_prompt: An optional prompt to guide the model to avoid generating certain things.
         seed: An optional seed for reproducible video generation.
-        retry_count: number of retries
-        retry_delay: time between each retry_count
 
     Returns:
         A list of file paths to the generated videos.
@@ -350,8 +342,6 @@ def generate_video_from_image(
     output_gcs_uri: Optional[str],
     negative_prompt: Optional[str],
     seed: Optional[int],
-    retry_count: int,
-    retry_delay: int,
 ) -> List[str]:
     """
     Generates video from an image input (as a torch.Tensor) using the Veo API.
@@ -374,8 +364,6 @@ def generate_video_from_image(
         output_gcs_uri: output gcs url to store the video. Required with lossless output.
         negative_prompt: An optional prompt to guide the model to avoid generating certain things.
         seed: An optional seed for reproducible video generation.
-        retry_count: number of retries
-        retry_delay: time between each retry_count
 
     Returns:
         A list of file paths to the generated videos.
@@ -507,8 +495,6 @@ def generate_video_from_text(
     output_gcs_uri: Optional[str],
     negative_prompt: Optional[str],
     seed: Optional[int],
-    retry_count: int,
-    retry_delay: int,
 ) -> List[str]:
     """
     Generates video from a text prompt using the Veo API.
@@ -528,8 +514,6 @@ def generate_video_from_text(
         output_gcs_uri: output gcs url to store the video. Required with lossless output.
         negative_prompt: An optional prompt to guide the model to avoid generating certain things.
         seed: An optional seed for reproducible video generation.
-        retry_count: number of retries
-        retry_delay: time between each retry_count
 
     Returns:
         A list of file paths to the generated videos.

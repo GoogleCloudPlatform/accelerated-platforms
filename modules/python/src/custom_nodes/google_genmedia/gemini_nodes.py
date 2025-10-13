@@ -14,7 +14,7 @@
 
 # This is a preview version of gemini custom node
 
-from typing import Optional
+from typing import Optional, Tuple
 
 from google import genai
 from google.genai import types
@@ -30,7 +30,7 @@ from .constants import (
     ThresholdOptions,
 )
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
-
+from .retry import api_error_retry
 
 class GeminiNode25:
     def __init__(
@@ -209,6 +209,7 @@ class GeminiNode25:
     FUNCTION = "generate_content"
     CATEGORY = "Google AI/Gemini"
 
+    @api_error_retry
     def generate_content(
         self,
         prompt: str,
@@ -301,123 +302,114 @@ class GeminiNode25:
                 f"Error re-initializing Gemini client with provided GCP credentials: {e}",
             )
 
-        try:
-            # Prepare GenerationConfig
-            gen_config_obj = types.GenerateContentConfig(
-                temperature=temperature,
-                max_output_tokens=max_output_tokens,
-                top_p=top_p,
-                top_k=top_k,
-                candidate_count=candidate_count,
-            )
-            if stop_sequences:
-                gen_config_obj.stop_sequences = [
-                    s.strip() for s in stop_sequences.split(",") if s.strip()
-                ]
+        # Prepare GenerationConfig
+        gen_config_obj = types.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            top_p=top_p,
+            top_k=top_k,
+            candidate_count=candidate_count,
+        )
+        if stop_sequences:
+            gen_config_obj.stop_sequences = [
+                s.strip() for s in stop_sequences.split(",") if s.strip()
+            ]
 
-            if response_mime_type != "text/plain":
-                gen_config_obj.response_mime_type = response_mime_type
+        if response_mime_type != "text/plain":
+            gen_config_obj.response_mime_type = response_mime_type
 
-            # Prepare Safety Settings
-            safety_settings = []
-            safety_settings.append(
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-                    threshold=ThresholdOptions[harassment_threshold].value,
-                )
+        # Prepare Safety Settings
+        safety_settings = []
+        safety_settings.append(
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
+                threshold=ThresholdOptions[harassment_threshold].value,
             )
-            safety_settings.append(
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-                    threshold=ThresholdOptions[hate_speech_threshold].value,
-                )
+        )
+        safety_settings.append(
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                threshold=ThresholdOptions[hate_speech_threshold].value,
             )
-            safety_settings.append(
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-                    threshold=ThresholdOptions[sexually_explicit_threshold].value,
-                )
+        )
+        safety_settings.append(
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold=ThresholdOptions[sexually_explicit_threshold].value,
             )
-            safety_settings.append(
-                types.SafetySetting(
-                    category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-                    threshold=ThresholdOptions[dangerous_content_threshold].value,
-                )
+        )
+        safety_settings.append(
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold=ThresholdOptions[dangerous_content_threshold].value,
             )
+        )
 
-            gen_config_obj.safety_settings = safety_settings
-            # Prepare contents (prompt, text, image, video, audio)
-            contents = [types.Part.from_text(text=prompt)]
+        gen_config_obj.safety_settings = safety_settings
+        # Prepare contents (prompt, text, image, video, audio)
+        contents = [types.Part.from_text(text=prompt)]
 
-            # Using prep_for_media_conversion to handle file loading, which propagates APIInputError if file not found
-            image_content = (
-                utils.prep_for_media_conversion(image_file_path, image_mime_type)
-                if image_file_path
-                else None
-            )
-            if image_content:
-                contents.append(image_content)
+        # Using prep_for_media_conversion to handle file loading, which propagates APIInputError if file not found
+        image_content = (
+            utils.prep_for_media_conversion(image_file_path, image_mime_type)
+            if image_file_path
+            else None
+        )
+        if image_content:
+            contents.append(image_content)
 
-            video_content = (
-                utils.prep_for_media_conversion(video_file_path, video_mime_type)
-                if video_file_path
-                else None
-            )
-            if video_content:
-                contents.append(video_content)
+        video_content = (
+            utils.prep_for_media_conversion(video_file_path, video_mime_type)
+            if video_file_path
+            else None
+        )
+        if video_content:
+            contents.append(video_content)
 
-            audio_content = (
-                utils.prep_for_media_conversion(audio_file_path, audio_mime_type)
-                if audio_file_path
-                else None
-            )
-            if audio_content:
-                contents.append(audio_content)
+        audio_content = (
+            utils.prep_for_media_conversion(audio_file_path, audio_mime_type)
+            if audio_file_path
+            else None
+        )
+        if audio_content:
+            contents.append(audio_content)
 
-            # Prepare system instruction
-            system_instruction_parts = []
-            if system_instruction:
-                system_instruction_parts.append(
-                    types.Part.from_text(text=system_instruction)
-                )
-
-            gen_config_obj.system_instruction = (
-                system_instruction_parts if system_instruction_parts else None
+        # Prepare system instruction
+        system_instruction_parts = []
+        if system_instruction:
+            system_instruction_parts.append(
+                types.Part.from_text(text=system_instruction)
             )
 
-            # Make the API call
-            print(
-                f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
-            )
-            response = self.client.models.generate_content(
-                model=GeminiModel[model],
-                contents=contents,
-                config=gen_config_obj,
-            )
+        gen_config_obj.system_instruction = (
+            system_instruction_parts if system_instruction_parts else None
+        )
 
-            # Extract and return the generated text
-            generated_text = ""
-            if response.candidates:
-                generated_text = response.candidates[0].content.parts[0].text
+        # Make the API call
+        print(
+            f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
+        )
+        response = self.client.models.generate_content(
+            model=GeminiModel[model],
+            contents=contents,
+            config=gen_config_obj,
+        )
 
+        # Extract and return the generated text
+        generated_text = ""
+        if response.candidates:
+            generated_text = response.candidates[0].content.parts[0].text
+
+        else:
+            if response.prompt_feedback and response.prompt_feedback.block_reason:
+                generated_text = f"Content blocked by safety filter: {response.prompt_feedback.block_reason}"
+                if response.prompt_feedback.safety_ratings:
+                    for rating in response.prompt_feedback.safety_ratings:
+                        generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
             else:
-                if response.prompt_feedback and response.prompt_feedback.block_reason:
-                    generated_text = f"Content blocked by safety filter: {response.prompt_feedback.block_reason}"
-                    if response.prompt_feedback.safety_ratings:
-                        for rating in response.prompt_feedback.safety_ratings:
-                            generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
-                else:
-                    generated_text = "No content generated."
+                generated_text = "No content generated."
 
-            return (generated_text,)
-
-        except APIInputError as e:
-            raise RuntimeError(f"Gemini API Input Error: {e}") from e
-        except APIExecutionError as e:
-            raise RuntimeError(f"Gemini API Execution Error: {e}") from e
-        except Exception as e:
-            print(f"An error occurred in calling Gemini API: {e}")
-            return (f"Error: {e}",)
+        return (generated_text,)
 
 
 NODE_CLASS_MAPPINGS = {"GeminiNode25": GeminiNode25}

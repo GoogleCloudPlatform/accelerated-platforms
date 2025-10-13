@@ -19,7 +19,7 @@ import time
 
 from google.api_core import exceptions as api_core_exceptions
 from google.genai import errors as genai_errors
-from grpc import StatusCode
+
 
 from .custom_exceptions import APIExecutionError, APIInputError
 
@@ -53,8 +53,8 @@ def api_error_retry(func):
                 api_core_exceptions.GoogleAPICallError,
             ) as e:
                 # Standardize error handling to gRPC status codes
-                status_code = getattr(e, "code", None)
-                details = getattr(e, "details", str(e))
+                status_code = e.code
+                details = e.message
 
                 if status_code is None:
                     # If no status code, it's a generic unexpected error
@@ -63,20 +63,17 @@ def api_error_retry(func):
                     ) from e
 
                 # Handle retryable errors (RESOURCE_EXHAUSTED and UNAVAILABLE)
-                if status_code in (
-                    StatusCode.RESOURCE_EXHAUSTED,
-                    StatusCode.UNAVAILABLE,
-                ):
+                if status_code in (429, 503):
                     if retries < retry_count:
                         retry_wait = retry_delay
                         error_type = (
                             "Quota/Resource Exhausted"
-                            if status_code == StatusCode.RESOURCE_EXHAUSTED
+                            if status_code == 429
                             else "Service Unavailable"
                         )
                         print(
                             f"API {error_type} (attempt {retries+1}/{retry_count}) - "
-                            f"Code: {status_code.name}. Waiting {retry_wait:.1f} seconds before retry. Error: {details}"
+                            f"Code: {status_code}. Waiting {retry_wait:.1f} seconds before retry. Error: {details}"
                         )
                         time.sleep(retry_wait)
                         retries += 1  # Increment retry attempt counter
@@ -84,40 +81,36 @@ def api_error_retry(func):
                     else:
                         error_type = (
                             "Quota/Resource Exhausted"
-                            if status_code == StatusCode.RESOURCE_EXHAUSTED
+                            if status_code == 429
                             else "Service Unavailable"
                         )
                         raise APIExecutionError(
-                            f"API {error_type} after {retry_count} attempts for {model} (Code: {status_code.name}). Last error: {details}"
+                            f"API {error_type} after {retry_count} attempts for {model} (Code: {status_code}). Last error: {details}"
                         ) from e
 
                 # Handle fatal non-retryable errors
-                if status_code == StatusCode.INVALID_ARGUMENT:
-                    raise APIInputError(
-                        f"Invalid API argument supplied. Check your prompt and parameters. Error: {details}"
-                    ) from e
-                elif status_code in (
-                    StatusCode.PERMISSION_DENIED,
-                    StatusCode.UNAUTHENTICATED,
-                    StatusCode.FORBIDDEN,
-                ):
+                if status_code == 400:
+                    raise APIInputError(f"{e.status} - {e.message}") from e
+                elif status_code == 404:
+                    project_id = args[0].project_id
+                    region = args[0].region
                     raise APIExecutionError(
-                        f"Permission denied. Check your GCP service account permissions for API. Error: {details}"
+                        f"Check your project ID: '{project_id}' and region: '{region}'."
                     ) from e
-                elif status_code == StatusCode.DEADLINE_EXCEEDED:
+                elif status_code in (403, 401):
+                    project_id = args[0].project_id
                     raise APIExecutionError(
-                        f"API request timed out (Deadline Exceeded). Error: {details}"
+                        f"The project ID '{project_id}' either doesn't exist or you don't have permissions to access it."
                     ) from e
+                elif status_code == 504:
+                    raise APIExecutionError(f"{e.status} - {e.message}") from e
                 else:
-                    # Catch any other unexpected Client/Server Error
-                    raise APIExecutionError(
-                        f"Unexpected API Error (Code: {status_code.name}). Error: {details}"
-                    ) from e
+                    raise APIExecutionError(f"{e.status} - {e.message}") from e
 
             except Exception as e:
                 # Catch any other unexpected non-API specific errors.
                 raise APIExecutionError(
-                    f"An unexpected non-API error occurred during API execution: {e}"
+                    f"An unexpected non-API error occurred: {e}"
                 ) from e
 
         # Should only be reached if the while loop somehow finished without returning or raising.

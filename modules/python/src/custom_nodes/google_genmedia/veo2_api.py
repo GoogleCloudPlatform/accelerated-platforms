@@ -69,9 +69,6 @@ class Veo2API:
         except Exception as e:
             raise ConfigurationError(f"Failed to initialize Veo API client: {e}")
 
-        self.retry_count = 3  # Number of retries for transient errors
-        self.retry_delay = 5  # Initial delay between retries (seconds)
-
     def generate_video_from_text(
         self,
         prompt: str,
@@ -132,8 +129,6 @@ class Veo2API:
             output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )
 
     def generate_video_from_image(
@@ -212,8 +207,6 @@ class Veo2API:
             output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )
 
     def generate_video_from_gcsuri_image(
@@ -341,6 +334,4 @@ class Veo2API:
             output_resolution=VEO2_OUTPUT_RESOLUTION,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )

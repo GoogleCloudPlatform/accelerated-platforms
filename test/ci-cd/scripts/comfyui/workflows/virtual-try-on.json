@@ -1,0 +1,125 @@
+{
+  "12": {
+    "inputs": {
+      "model": "IMAGEN_4_PREVIEW",
+      "prompt": "A full-length, photorealistic, high-fashion shot of a professional model walking with a powerful and elegant stride down a modern, minimalist runway. The model is illuminated by a single, sharp spotlight that creates a dramatic and focused circle of light around her, making her and the dress the undeniable center of attention. The background is a seamless, deep, non-reflective black, which makes the white dress pop.\n\nThe model is wearing a stunning, floor-length, couture white dress made of a flowing, slightly iridescent silk charmeuse. The dress should have a simple yet elegant silhouette, perhaps with a high slit to allow for movement and to showcase the drape of the fabric. The spotlight should highlight the subtle sheen of the silk, the delicate texture of the fabric, and the way it moves with her body.\n\nThe model's expression is confident and serene, with a neutral yet captivating gaze directed forward. Her hair is styled in a sleek, pulled-back chignon to keep the focus on the dress and her face.\n\nThe overall image should have the clean, crisp, and luxurious feel of a high-end fashion magazine editorial, with tack-sharp focus on the model and the dress, and every detail rendered with pristine clarity. The lighting should be the hero, sculpting the model's form and revealing the intricate details of the white dress.",
+      "person_generation": "allow_adult",
+      "aspect_ratio": "16:9",
+      "number_of_images": 1,
+      "negative_prompt": "",
+      "seed": 3578009779,
+      "enhance_prompt": true,
+      "add_watermark": false,
+      "output_image_type": "PNG",
+      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Imagen4TextToImageNode",
+    "_meta": {
+      "title": "Imagen4 Text To Image"
+    }
+  },
+  "13": {
+    "inputs": {
+      "images": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "15": {
+    "inputs": {
+      "model": "VEO_3_PREVIEW",
+      "image_format": "PNG",
+      "prompt": "make the models do ramp walk with upbeat music in the background",
+      "aspect_ratio": "16:9",
+      "output_resolution": "720p",
+      "compression_quality": "optimized",
+      "person_generation": "allow_adult",
+      "duration_seconds": 8,
+      "generate_audio": true,
+      "enhance_prompt": true,
+      "sample_count": 1,
+      "output_gcs_uri": "",
+      "negative_prompt": "",
+      "seed": 1012553172,
+      "gcp_project_id": "",
+      "gcp_region": "",
+      "image": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "Veo3ImageToVideoNode",
+    "_meta": {
+      "title": "Veo3 Image To Video"
+    }
+  },
+  "22": {
+    "inputs": {
+      "autoplay": true,
+      "mute": true,
+      "loop": true,
+      "save_video": true,
+      "save_video_file_prefix": "veo_video",
+      "video_paths": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "VeoVideoSaveAndPreview",
+    "_meta": {
+      "title": "Preview/Save video"
+    }
+  },
+  "23": {
+    "inputs": {
+      "base_steps": 32,
+      "person_generation": "ALLOW_ADULT",
+      "number_of_images": 1,
+      "seed": 54879415,
+      "add_watermark": false,
+      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "gcp_project_id": "",
+      "gcp_region": "",
+      "person_image": [
+        "12",
+        0
+      ],
+      "product_image": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "VirtualTryOn",
+    "_meta": {
+      "title": "Virtual try-on"
+    }
+  },
+  "24": {
+    "inputs": {
+      "model": "GEMINI_25_FLASH_IMAGE",
+      "prompt": "Generate a orange designer dress with strips ",
+      "temperature": 0.7,
+      "top_p": 1,
+      "top_k": 32,
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "system_instruction": "",
+      "gcp_project_id": "",
+      "gcp_region": "global"
+    },
+    "class_type": "Gemini25FlashImage",
+    "_meta": {
+      "title": "Gemini 2.5 Flash Image (🍌)"
+    }
+  }
+}
+

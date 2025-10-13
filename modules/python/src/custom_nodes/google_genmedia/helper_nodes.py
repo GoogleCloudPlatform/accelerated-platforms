@@ -325,5 +325,10 @@ class VeoVideoSaveAndPreview:
 
 NODE_CLASS_MAPPINGS = {
     "VeoVideoToVHSNode": VeoVideoToVHSNode,
-    "VeoVideoSaveAndPreview": VeoVideo,
+    "VeoVideoSaveAndPreview": VeoVideoSaveAndPreview,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "VeoVideoToVHSNode": "Video to VHS",
+    "VeoVideoSaveAndPreview": "Preview/Save video",
 }

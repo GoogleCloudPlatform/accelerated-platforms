@@ -268,7 +268,7 @@ class VeoVideoSaveAndPreview:
                     video_subfolder = "veo"
                     file_type = "output"
                 else:
-                    # If not saving, use the original temp path relative to the COMIFY_TEMP_DIR
+                    # If not saving, use the original temp path relative to the COMFY_TEMP_DIR
                     # This path manipulation ensures the ComfyUI API can find the file in the temp directory.
                     temp_dir_name = os.path.normpath(folder_paths.get_temp_directory())
                     if os.path.normpath(video_path_abs).startswith(temp_dir_name):

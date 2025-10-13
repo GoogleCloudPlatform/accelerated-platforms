@@ -72,30 +72,3 @@ class Veo3Model(str, Enum):
     VEO_3_PREVIEW = "veo-3.0-generate-preview"
     VEO_3_FAST_PREVIEW = "veo-3.0-fast-generate-preview"
 
-
-# --- Custom Exception Classes for Streamlined Error Handling ---
-class ComfyUINodeError(Exception):
-    """Base exception for all Google GenAI ComfyUI node errors."""
-
-    pass
-
-
-class ConfigurationError(ComfyUINodeError):
-    """Raised when the client fails to initialize due to missing config,
-    GCP project ID/region issues, or authentication problems."""
-
-    pass
-
-
-class APIInputError(ComfyUINodeError):
-    """Raised when a user-provided input parameter or prompt violates
-    API constraints (e.g., invalid aspect ratio, bad prompt, local file not found)."""
-
-    pass
-
-
-class APIExecutionError(ComfyUINodeError):
-    """Raised for transient or service-related failures during an API call
-    (e.g., quota exceeded, permission denied, internal server error)."""
-
-    pass

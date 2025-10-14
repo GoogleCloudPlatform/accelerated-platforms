@@ -324,52 +324,84 @@ class GeminiNode25:
                 gen_config_obj.response_mime_type = response_mime_type
 
             # Prepare Safety Settings
-            safety_settings = [
+            safety_settings = []
+            safety_settings.append(
                 types.SafetySetting(
                     category=types.HarmCategory.HARM_CATEGORY_HARASSMENT,
                     threshold=ThresholdOptions[harassment_threshold].value,
-                ),
+                )
+            )
+            safety_settings.append(
                 types.SafetySetting(
                     category=types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
                     threshold=ThresholdOptions[hate_speech_threshold].value,
-                ),
+                )
+            )
+            safety_settings.append(
                 types.SafetySetting(
                     category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
                     threshold=ThresholdOptions[sexually_explicit_threshold].value,
-                ),
+                )
+            )
+            safety_settings.append(
                 types.SafetySetting(
                     category=types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
                     threshold=ThresholdOptions[dangerous_content_threshold].value,
-                ),
-            ]
-            gen_config_obj.safety_settings = safety_settings
+                )
+            )
 
+            gen_config_obj.safety_settings = safety_settings
             # Prepare contents (prompt, text, image, video, audio)
             contents = [types.Part.from_text(text=prompt)]
-
-            # Using prep_for_media_conversion to handle file loading, which propagates APIInputError if file not found
-            if image_file_path:
-                contents.append(
-                    utils.prep_for_media_conversion(image_file_path, image_mime_type)
-                )
-            if video_file_path:
-                contents.append(
-                    utils.prep_for_media_conversion(video_file_path, video_mime_type)
-                )
-            if audio_file_path:
-                contents.append(
-                    utils.prep_for_media_conversion(audio_file_path, audio_mime_type)
+            image_content = (
+                utils.prep_for_media_conversion(image_file_path, image_mime_type)
+                if image_file_path
+                else print(f"No image provided")
+            )
+            if image_content:
+                contents.append(image_content)
+            else:
+                print(
+                    f"Image path '{image_file_path}' provided but content not retrieved or file not found."
                 )
 
+            video_content = (
+                utils.prep_for_media_conversion(video_file_path, video_mime_type)
+                if video_file_path
+                else print(f"No video provided")
+            )
+            if video_content:
+                contents.append(video_content)
+            else:
+                print(
+                    f"Video path '{video_file_path}' provided but content not retrieved or file not found."
+                )
+
+            audio_content = (
+                utils.prep_for_media_conversion(audio_file_path, audio_mime_type)
+                if audio_file_path
+                else print(f"No audio provided")
+            )
+            if audio_content:
+                contents.append(audio_content)
+            else:
+                print(
+                    f"Audio path '{audio_file_path}' provided but content not retrieved or file not found."
+                )
             # Prepare system instruction
             system_instruction_parts = []
             if system_instruction:
                 system_instruction_parts.append(
                     types.Part.from_text(text=system_instruction)
                 )
+
             gen_config_obj.system_instruction = (
                 system_instruction_parts if system_instruction_parts else None
             )
+            # Make the API call
+            print(
+                f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
+            )  # Prepare Safety Settings
 
         except (KeyError, FileNotFoundError) as e:
             raise RuntimeError(f"Invalid input provided: {e}") from e

@@ -171,7 +171,7 @@ class Gemini25FlashImage:
                 f"Gemini Flash Image API Configuration Error: {e}"
             ) from e
 
-        if image is not None:
+        if image != None:
             print(type(image))
 
         try:

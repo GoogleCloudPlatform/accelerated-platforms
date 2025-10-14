@@ -431,22 +431,19 @@ class GeminiNode25:
 
         # Process the response
         try:
+            # Extract and return the generated text
             generated_text = ""
             if response.candidates:
-                if (
-                    response.candidates[0].content
-                    and response.candidates[0].content.parts
-                ):
-                    generated_text = response.candidates[0].content.parts[0].text
-                else:
-                    generated_text = "Received a candidate with no content."
-            elif response.prompt_feedback and response.prompt_feedback.block_reason:
-                generated_text = f"Content blocked by safety filter: {response.prompt_feedback.block_reason}"
-                if response.prompt_feedback.safety_ratings:
-                    for rating in response.prompt_feedback.safety_ratings:
-                        generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
+                generated_text = response.candidates[0].content.parts[0].text
+
             else:
-                generated_text = "No content generated."
+                if response.prompt_feedback and response.prompt_feedback.block_reason:
+                    generated_text = f"Content blocked by safety filter: {response.prompt_feedback.block_reason}"
+                    if response.prompt_feedback.safety_ratings:
+                        for rating in response.prompt_feedback.safety_ratings:
+                            generated_text += f"\n  - Category: {rating.category.name}, Probability: {rating.probability.name}"
+                else:
+                    generated_text = "No content generated."
 
             return (generated_text,)
         except (AttributeError, IndexError) as e:

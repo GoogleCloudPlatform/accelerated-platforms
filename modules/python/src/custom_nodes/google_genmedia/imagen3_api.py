@@ -98,6 +98,7 @@ class Imagen3API:
             APIInputError: If `number_of_images` is not between 1 and 4,
                         if `seed` is provided with `add_watermark` enabled,
                         or if `output_image_type` is unsupported.
+            APIExecutionError: If the API call fails due to quota, permissions, or server issues.
         """
         if not (1 <= number_of_images <= 4):
             raise APIInputError(

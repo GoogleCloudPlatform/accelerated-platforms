@@ -150,7 +150,7 @@ class VirtualTryOn:
     CATEGORY = "Google AI/Use-cases"
 
     @api_error_retry
-    def _predict(self, **kwargs) -> Any:
+    def _predict(self, instances: List[Dict], parameters: Dict, model: str) -> Any:
         """
         Makes a prediction using the Vertex AI PredictionServiceClient.
 
@@ -158,14 +158,17 @@ class VirtualTryOn:
         and implement retry logic.
 
         Args:
-            **kwargs: Keyword arguments passed to the prediction client,
-                      including 'instances' and 'parameters'.
+            instances: A list of instances to send to the prediction endpoint.
+            parameters: A dictionary of parameters to send to the prediction endpoint.
+            model: The name of the model, used for logging by the retry decorator.
 
         Returns:
             The prediction response from the API.
+
+        Raises:
+            APIInputError: If input parameters are invalid.
+            APIExecutionError: If the API call fails due to quota, permissions, or server issues.
         """
-        instances = kwargs.get("instances")
-        parameters = kwargs.get("parameters")
         return self.client.predict(
             endpoint=self.model_endpoint,
             instances=instances,

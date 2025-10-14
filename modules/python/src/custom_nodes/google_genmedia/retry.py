@@ -20,7 +20,6 @@ import time
 from google.api_core import exceptions as api_core_exceptions
 from google.genai import errors as genai_errors
 
-
 from .custom_exceptions import APIExecutionError, APIInputError
 
 
@@ -35,7 +34,7 @@ def api_error_retry(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        retry_count = kwargs.get("retry_count", 0)
+        retry_count = kwargs.get("retry_count", 3)
         retry_delay = kwargs.get("retry_delay", 5)
         model = kwargs.get(
             "model", "unknown_model"

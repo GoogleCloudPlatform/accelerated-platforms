@@ -98,6 +98,7 @@ class Imagen4API:
 
         Raises:
             APIInputError: If parameters are invalid.
+            APIExecutionError: If the API call fails due to quota, permissions, or server issues.
         """
         if not (1 <= number_of_images <= 4):
             raise APIInputError(

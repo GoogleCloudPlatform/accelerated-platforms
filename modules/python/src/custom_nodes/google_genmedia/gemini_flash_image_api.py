@@ -100,6 +100,10 @@ class GeminiFlashImageAPI:
 
         Returns:
             A list of generated PIL images.
+
+        Raises:
+            APIInputError: If input parameters are invalid.
+            APIExecutionError: If the API call fails due to quota, permissions, or server issues.
         """
         model = GeminiFlashImageModel[model]
 

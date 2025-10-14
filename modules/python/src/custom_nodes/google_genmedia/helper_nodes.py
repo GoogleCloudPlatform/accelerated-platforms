@@ -26,9 +26,8 @@ import numpy as np
 import torch
 from moviepy import VideoFileClip
 
-from .custom_exceptions import APIInputError, ConfigurationError
-
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
+from .custom_exceptions import APIInputError, ConfigurationError
 
 
 class VeoVideoToVHSNode:

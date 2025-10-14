@@ -14,7 +14,7 @@
 
 # This is a preview version of gemini custom node
 
-from typing import Optional
+from typing import Optional, Tuple
 
 from google import genai
 from google.genai import types
@@ -29,6 +29,8 @@ from .constants import (
     GeminiModel,
     ThresholdOptions,
 )
+from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .retry import api_error_retry
 
 
 class GeminiNode25:
@@ -43,7 +45,7 @@ class GeminiNode25:
             gcp_region: The GCP region. If provided, overrides metadata lookup.
 
         Raises:
-            ValueError: If GCP Project or region cannot be determined.
+            ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
         self.project_id = gcp_project_id
         self.region = gcp_region
@@ -56,9 +58,13 @@ class GeminiNode25:
             )
 
         if not self.project_id:
-            raise ValueError("GCP Project is required and could not be determined.")
+            raise ConfigurationError(
+                "GCP Project is required and could not be determined."
+            )
         if not self.region:
-            raise ValueError("GCP region is required and could not be determined.")
+            raise ConfigurationError(
+                "GCP region is required and could not be determined."
+            )
 
         print(f"Project is {self.project_id}, region is {self.region}")
         http_options = genai.types.HttpOptions(
@@ -75,7 +81,9 @@ class GeminiNode25:
                 f"genai.Client initialized for Vertex AI project: {self.project_id}, location: {self.region}"
             )
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize genai.Client for Vertex AI: {e}")
+            raise ConfigurationError(
+                f"Failed to initialize genai.Client for Vertex AI: {e}"
+            )
 
     @classmethod
     def INPUT_TYPES(s):
@@ -202,6 +210,7 @@ class GeminiNode25:
     FUNCTION = "generate_content"
     CATEGORY = "Google AI/Gemini"
 
+    @api_error_retry
     def generate_content(
         self,
         prompt: str,
@@ -226,7 +235,7 @@ class GeminiNode25:
         audio_mime_type: str = "audio/mp3",
         gcp_project_id: str = "",
         gcp_region: str = "",
-    ):
+    ) -> Tuple[str,]:
         """Generates content using the Gemini API based on the provided prompt and parameters.
 
         This method constructs a request to the Gemini API, including text and
@@ -280,18 +289,23 @@ class GeminiNode25:
             tuple: A tuple containing the generated text as the first element. If content
                    is blocked, it will contain a message indicating the reason and safety
                    ratings. If an error occurs, it will contain an error message.
+
+        Raises:
+            RuntimeError: If API configuration fails, or if content generation encounters an API error.
         """
-        # Re-initialize the client to avoid re-launching the node when the customers
-        # provide gcp_project_id and gcp_region first and then remove them to use the defaults.
+        # Re-initialize the client to handle optional credential changes in the node
         try:
             init_project_id = gcp_project_id if gcp_project_id else None
             init_region = gcp_region if gcp_region else None
             self.__init__(gcp_project_id=init_project_id, gcp_region=init_region)
+        except ConfigurationError as e:
+            raise RuntimeError(f"Gemini API Error: {e}") from e
         except Exception as e:
-            return (
-                f"Error re-initializing Gemini client with provided GCP credentials: {e}",
-            )
+            raise RuntimeError(
+                f"An unexpected error occurred during client initialization: {e}"
+            ) from e
 
+        # Prepare the request payload
         try:
             # Prepare GenerationConfig
             gen_config_obj = types.GenerateContentConfig(
@@ -387,13 +401,36 @@ class GeminiNode25:
             # Make the API call
             print(
                 f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
+            )  # Prepare Safety Settings
+
+        except (KeyError, FileNotFoundError) as e:
+            raise RuntimeError(f"Invalid input provided: {e}") from e
+        except APIInputError as e:
+            raise RuntimeError(f"Gemini API Error: {e}") from e
+        except Exception as e:
+            raise RuntimeError(
+                f"An unexpected error occurred during request preparation: {e}"
+            ) from e
+
+        # Make the API call
+        try:
+            print(
+                f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
             )
             response = self.client.models.generate_content(
                 model=GeminiModel[model],
                 contents=contents,
                 config=gen_config_obj,
             )
+        except APIExecutionError as e:
+            raise RuntimeError(f"Gemini API Error: {e}") from e
+        except Exception as e:
+            raise RuntimeError(
+                f"An unexpected error occurred during Gemini API call: {e}"
+            ) from e
 
+        # Process the response
+        try:
             # Extract and return the generated text
             generated_text = ""
             if response.candidates:
@@ -409,10 +446,14 @@ class GeminiNode25:
                     generated_text = "No content generated."
 
             return (generated_text,)
-
+        except (AttributeError, IndexError) as e:
+            raise RuntimeError(
+                f"Failed to parse API response, unexpected structure: {e}"
+            ) from e
         except Exception as e:
-            print(f"An error occurred in calling Gemini API: {e}")
-            return (f"Error: {e}",)
+            raise RuntimeError(
+                f"An unexpected error occurred during response processing: {e}"
+            ) from e
 
 
 NODE_CLASS_MAPPINGS = {"GeminiNode25": GeminiNode25}

@@ -20,6 +20,7 @@ import numpy as np
 import torch
 
 from .constants import GeminiFlashImageModel, ThresholdOptions
+from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .gemini_flash_image_api import GeminiFlashImageAPI
 
 
@@ -157,15 +158,18 @@ class Gemini25FlashImage:
         Returns:
             A tuple containing a PyTorch tensor of the generated images,
             formatted as (batch_size, height, width, channels).
+
+        Raises:
+            RuntimeError: If API configuration fails, or if image generation encounters an API error.
         """
         try:
             gemini_flash_image_api = GeminiFlashImageAPI(
                 project_id=gcp_project_id, region=gcp_region
             )
-        except Exception as e:
+        except ConfigurationError as e:
             raise RuntimeError(
-                f"Failed to initialize Imagen API client for node execution: {e}"
-            )
+                f"Gemini Flash Image API Configuration Error: {e}"
+            ) from e
 
         if image != None:
             print(type(image))
@@ -184,8 +188,14 @@ class Gemini25FlashImage:
                 system_instruction,
                 image,
             )
+        except APIInputError as e:
+            raise RuntimeError(f"Image generation input error: {e}") from e
+        except APIExecutionError as e:
+            raise RuntimeError(f"Image generation API error: {e}") from e
         except Exception as e:
-            raise RuntimeError(f"Error occurred during image generation: {e}")
+            raise RuntimeError(
+                f"An unexpected error occurred during image generation: {e}"
+            ) from e
 
         if not pil_images:
             raise RuntimeError(

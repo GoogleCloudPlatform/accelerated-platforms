@@ -14,18 +14,20 @@
 
 # This is a preview version of Gemini 2.5 Flash Image custom node
 
+from io import BytesIO
 from typing import List, Optional
 
+import torch
 from google import genai
+from google.api_core import exceptions as api_core_exceptions
 from google.genai import types
 from PIL import Image
-from io import BytesIO
-import torch
 
 from . import utils
-
 from .config import get_gcp_metadata
-from .constants import GeminiFlashImageModel, GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN
+from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
+from .custom_exceptions import ConfigurationError
+from .retry import api_error_retry
 
 
 class GeminiFlashImageAPI:
@@ -43,24 +45,28 @@ class GeminiFlashImageAPI:
               will be inferred from the environment. Defaults to None.
 
         Raises:
-            ValueError: If GCP Project or region cannot be determined.
+            ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
         self.project_id = project_id or get_gcp_metadata("project/project-id")
         self.region = region or "-".join(
             get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
         )
         if not self.project_id:
-            raise ValueError("GCP Project is required")
+            raise ConfigurationError("GCP Project is required")
         if not self.region:
-            raise ValueError("GCP region is required")
+            raise ConfigurationError("GCP region is required")
 
-        self.client = genai.Client(
-            vertexai=True, project=self.project_id, location=self.region
-        )
+        try:
+            self.client = genai.Client(
+                vertexai=True, project=self.project_id, location=self.region
+            )
+        except Exception as e:
+            raise ConfigurationError(
+                f"Failed to initialize Gemini Flash Image API client: "
+                f"Check your project ID: '{self.project_id}' and region: '{self.region}'"
+            )
 
-        self.retry_count = 3
-        self.retry_delay = 5
-
+    @api_error_retry
     def generate_image(
         self,
         model: str,
@@ -94,6 +100,10 @@ class GeminiFlashImageAPI:
 
         Returns:
             A list of generated PIL images.
+
+        Raises:
+            APIInputError: If input parameters are invalid.
+            APIExecutionError: If the API call fails due to quota, permissions, or server issues.
         """
         model = GeminiFlashImageModel[model]
 

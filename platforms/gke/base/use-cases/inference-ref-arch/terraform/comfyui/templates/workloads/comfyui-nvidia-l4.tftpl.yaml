@@ -38,6 +38,12 @@ spec:
           name: ${deployment_name}
           ports:
             - containerPort: ${port}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8188
+            initialDelaySeconds: 60
+            periodSeconds: 15
           resources:
             limits:
               cpu: "30"

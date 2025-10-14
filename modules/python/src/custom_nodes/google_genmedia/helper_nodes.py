@@ -26,6 +26,7 @@ import cv2
 import numpy as np
 import torch
 from moviepy import VideoFileClip
+from folder_paths import folder_paths
 
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
 from .custom_exceptions import APIExecutionError, APIInputError
@@ -328,9 +329,4 @@ class VeoVideoSaveAndPreview:
 NODE_CLASS_MAPPINGS = {
     "VeoVideoToVHSNode": VeoVideoToVHSNode,
     "VeoVideoSaveAndPreview": VeoVideoSaveAndPreview,
-}
-
-NODE_DISPLAY_NAME_MAPPINGS = {
-    "VeoVideoToVHSNode": "Video to VHS",
-    "VeoVideoSaveAndPreview": "Preview/Save video",
 }

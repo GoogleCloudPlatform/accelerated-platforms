@@ -29,6 +29,7 @@ from .constants import (
     VEO3_VALID_SAMPLE_COUNT,
     Veo3Model,
 )
+from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 
 
 class Veo3API:
@@ -47,28 +48,28 @@ class Veo3API:
             region: The GCP region. If None, it will be retrieved from GCP metadata.
 
         Raises:
-            ValueError: If GCP Project or Zone cannot be determined.
+            ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
         self.project_id = project_id or get_gcp_metadata("project/project-id")
         self.region = region or "-".join(
             get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
         )
         if not self.project_id:
-            raise ValueError("GCP Project is required")
+            raise ConfigurationError("GCP Project is required")
         if not self.region:
-            raise ValueError("GCP region is required")
+            raise ConfigurationError("GCP region is required")
         print(f"Project is {self.project_id}, region is {self.region}")
 
         http_options = genai.types.HttpOptions(headers={"user-agent": VEO3_USER_AGENT})
-        self.client = genai.Client(
-            vertexai=True,
-            project=self.project_id,
-            location=self.region,
-            http_options=http_options,
-        )
-
-        self.retry_count = 3  # Number of retries for transient errors
-        self.retry_delay = 5  # Initial delay between retries (seconds)
+        try:
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.project_id,
+                location=self.region,
+                http_options=http_options,
+            )
+        except Exception as e:
+            raise ConfigurationError(f"Failed to initialize Veo API client: {e}")
 
     def generate_video_from_text(
         self,
@@ -108,25 +109,25 @@ class Veo3API:
             A list of file paths to the generated videos.
 
         Raises:
-            ValueError: If input parameters are invalid (e.g., empty prompt, out-of-range duration/sample_count).
-            RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+            APIInputError: If input parameters are invalid.
+            APIExecutionError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            raise ValueError("Prompt cannot be empty for text-to-video generation.")
+            raise APIInputError("Prompt cannot be empty for text-to-video generation.")
         if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
-            raise ValueError(
+            raise APIInputError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if sample_count not in VEO3_VALID_SAMPLE_COUNT:
-            raise ValueError(
+            raise APIInputError(
                 f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
         if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
-            raise ValueError(
+            raise APIInputError(
                 f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_ASPECT_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
-            raise ValueError(
+            raise APIInputError(
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
 
@@ -147,8 +148,6 @@ class Veo3API:
             output_resolution=output_resolution,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )
 
     def generate_video_from_image(
@@ -193,30 +192,30 @@ class Veo3API:
             A list of file paths to the generated videos.
 
         Raises:
-            ValueError: If input parameters are invalid (e.g., empty prompt, unsupported image format, out-of-range duration/sample_count).
-            RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+            APIInputError: If input parameters are invalid.
+            APIExecutionError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
             print(
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
         if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
-            raise ValueError(
+            raise APIInputError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if sample_count not in VEO3_VALID_SAMPLE_COUNT:
-            raise ValueError(
+            raise APIInputError(
                 f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
 
         if image is None:
-            raise ValueError("Image input (torch.Tensor) cannot be None.")
+            raise APIInputError("Image input (torch.Tensor) cannot be None.")
         if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
-            raise ValueError(
+            raise APIInputError(
                 f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_ASPECT_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
-            raise ValueError(
+            raise APIInputError(
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
         last_frame = None  # this is because veo3 doesn't support last frame yet and both veo2 and veo3 share the same code base for making API calls.
@@ -239,8 +238,6 @@ class Veo3API:
             output_resolution=output_resolution,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )
 
     def generate_video_from_gcsuri_image(
@@ -285,12 +282,11 @@ class Veo3API:
             A list of file paths to the generated videos.
 
         Raises:
-            ValueError: If input parameters are invalid (e.g., empty prompt, unsupported image format,
-                        invalid GCS URI, or if the GCS object is not a valid image).
-            RuntimeError: If video generation fails after retries, due to API errors, or unexpected issues.
+            APIInputError: If input parameters are invalid.
+            APIExecutionError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if gcsuri is None:
-            raise ValueError(
+            raise APIInputError(
                 "GCS URI for the image cannot be None for image-to-video generation."
             )
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
@@ -298,27 +294,33 @@ class Veo3API:
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
         if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
-            raise ValueError(
+            raise APIInputError(
                 f"duration_seconds must be one of {VEO3_VALID_DURATION_SECONDS}, but got {duration_seconds}."
             )
         if sample_count not in VEO3_VALID_SAMPLE_COUNT:
-            raise ValueError(
+            raise APIInputError(
                 f"sample_count must be one of {VEO3_VALID_SAMPLE_COUNT} for Veo3, but got {sample_count}."
             )
         if aspect_ratio not in VEO3_VALID_ASPECT_RATIOS:
-            raise ValueError(
+            raise APIInputError(
                 f"Veo3 can only generate videos of aspect ratios {VEO3_VALID_ASPECT_RATIOS}. You passed aspect ratio {aspect_ratio}."
             )
         if output_resolution not in OUTPUT_RESOLUTION:
-            raise ValueError(
+            raise APIInputError(
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
 
         valid_bucket, validation_message = utils.validate_gcs_uri_and_image(gcsuri)
-        if valid_bucket:
-            print(validation_message)
-        else:
-            raise ValueError(validation_message)
+        if not valid_bucket:
+            # Re-raise as APIExecutionError if the failure is due to GCS API/resource lookup
+            if (
+                "not exist or is inaccessible" in validation_message
+                or "resource not found" in validation_message
+            ):
+                raise APIExecutionError(validation_message)
+            else:
+                raise APIInputError(validation_message)
+        print(validation_message)
 
         input_image_format_upper = image_format.upper()
         mime_type: str
@@ -329,7 +331,7 @@ class Veo3API:
         elif input_image_format_upper == "MP4":
             mime_type = "image/mp4"
         else:
-            raise ValueError(f"Unsupported image format: {image_format}")
+            raise APIInputError(f"Unsupported image format: {image_format}")
         last_frame_gcsuri = None  # this is because veo3 doesn't support last frame yet and both veo2 and veo3 share the same code base for making API calls.
         model = Veo3Model[model]
         return utils.generate_video_from_gcsuri_image(
@@ -350,6 +352,4 @@ class Veo3API:
             output_resolution=output_resolution,
             negative_prompt=negative_prompt,
             seed=seed,
-            retry_count=self.retry_count,
-            retry_delay=self.retry_delay,
         )

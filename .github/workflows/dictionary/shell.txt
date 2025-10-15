@@ -8,8 +8,11 @@ libexec
 libgl
 libglib
 moreutils
+ncat
+nmap
 noninteractive
 nounset
+nslookup
 pipefail
 pkill
 syscall

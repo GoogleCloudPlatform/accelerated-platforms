@@ -27,6 +27,7 @@ import torch
 from moviepy import VideoFileClip
 
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
+from .custom_exceptions import APIInputError, ConfigurationError
 
 
 class VeoVideoToVHSNode:
@@ -175,13 +176,11 @@ class VeoVideoSaveAndPreview:
                     )  # Use absolute path for moviepy
 
                     if not os.path.exists(video_path_abs):
-                        raise FileNotFoundError(
-                            f"Video file not found: {video_path_abs}"
-                        )
+                        raise APIInputError(f"Video file not found: {video_path_abs}")
 
                     ext = Path(video_path_abs).suffix.lower()
                     if ext not in SUPPORTED_VIDEO_EXTENSIONS:
-                        raise ValueError(
+                        raise APIInputError(
                             f"Unsupported video format: {ext}. Supported formats: {', '.join(SUPPORTED_VIDEO_EXTENSIONS)}"
                         )
 
@@ -251,7 +250,7 @@ class VeoVideoSaveAndPreview:
                     }
                     videos_output_for_ui.append(video_item_for_ui)
                 else:
-                    raise ValueError("'video_paths' must be provided and not empty.")
+                    raise APIInputError("'video_paths' must be provided and not empty.")
 
             return {
                 "ui": {
@@ -274,8 +273,11 @@ class VeoVideoSaveAndPreview:
                 }
             }
 
-        except Exception as e:
+        except (APIInputError, ConfigurationError) as e:
             print(f"An error occurred in VeoVideoSaveAndPreview: {str(e)}")
+            return {"ui": {"video": [], "error": str(e)}}
+        except Exception as e:
+            print(f"An unexpected error occurred in VeoVideoSaveAndPreview: {str(e)}")
             return {"ui": {"video": [], "error": str(e)}}
 
 

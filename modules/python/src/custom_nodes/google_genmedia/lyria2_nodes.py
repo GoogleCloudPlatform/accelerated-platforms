@@ -72,10 +72,13 @@ class Lyria2TextToMusicNode:
                     {"default": "", "placeholder": "your-gcp-project-id"},
                 ),
                 "gcp_region": ("STRING", {"default": "", "placeholder": "us-central1"}),
+<<<<<<< HEAD
                 "file_format": (
                     ["wav", "mp3"],
                     {"default": "wav"},
                 ),
+=======
+>>>>>>> fac2c68 (initial commit of lyria node)
             },
         }
 
@@ -92,7 +95,6 @@ class Lyria2TextToMusicNode:
         sample_count: int = 1,
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
-        file_format: Optional[str] = "wav",
     ) -> Tuple[List[str],]:
         """
         Generates music from a text prompt using the Lyria 2 API.
@@ -104,8 +106,6 @@ class Lyria2TextToMusicNode:
             sample_count: The number of music samples to generate.
             gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
             gcp_region: The GCP region. If provided, overrides metadata lookup.
-            file_format: The desired audio file format. Supported formats: "wav", "mp3".
-
 
         Returns:
             A tuple containing a list of file paths to the generated music.
@@ -135,7 +135,6 @@ class Lyria2TextToMusicNode:
                 negative_prompt=negative_prompt,
                 seed=seed,
                 sample_count=sample_count,
-                file_format=file_format,
             )
         except APIInputError as e:
             raise RuntimeError(f"Input Error: {e}") from e

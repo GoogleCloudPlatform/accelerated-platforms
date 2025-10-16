@@ -911,13 +911,20 @@ def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
         print(f"Cant convert the image to base64 {e}")
 
 
+<<<<<<< HEAD
 def process_audio_response(response: Any, file_format: str = "wav") -> List[str]:
+=======
+def process_audio_response(response: Any) -> List[str]:
+>>>>>>> fac2c68 (initial commit of lyria node)
     """
     Processes the audio generation response and saves generated audio files.
 
     Args:
         response: The completed response object from the Lyria API.
+<<<<<<< HEAD
         file_format: The desired audio file format. Supported formats: "wav", "mp3".
+=======
+>>>>>>> fac2c68 (initial commit of lyria node)
 
     Returns:
         A list of file paths to the saved audio files.
@@ -939,13 +946,22 @@ def process_audio_response(response: Any, file_format: str = "wav") -> List[str]
 
         timestamp = int(time.time())
         unique_id = random.randint(1000, 99999)
+<<<<<<< HEAD
         audio_filename = f"lyria_{timestamp}_{unique_id}_{n}.{file_format}"
+=======
+        audio_filename = f"lyria_{timestamp}_{unique_id}_{n}.wav"
+>>>>>>> fac2c68 (initial commit of lyria node)
         audio_path = os.path.join(output_dir, audio_filename)
 
         try:
             audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
+<<<<<<< HEAD
             audio_segment = AudioSegment.from_file(io.BytesIO(audio_bytes))
             audio_segment.export(audio_path, format=file_format)
+=======
+            with open(audio_path, "wb") as f:
+                f.write(audio_bytes)
+>>>>>>> fac2c68 (initial commit of lyria node)
             audio_paths.append(audio_path)
             print(f"Saved audio {n} from base64 to {audio_path}")
         except Exception as e:

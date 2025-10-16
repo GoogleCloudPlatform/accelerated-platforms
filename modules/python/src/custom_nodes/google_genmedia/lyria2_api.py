@@ -78,7 +78,6 @@ class Lyria2API:
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = 0,
         sample_count: int = 1,
-        file_format: Optional[str] = "wav",
     ) -> List[str]:
         """
         Generates music from a text prompt using the Lyria 2 API.
@@ -87,7 +86,6 @@ class Lyria2API:
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible music generation.
             sample_count: The number of music samples to generate.
-            file_format: The desired audio file format. Supported formats: "wav", "mp3".
         Returns:
             A list of file paths to the generated music.
         Raises:
@@ -111,9 +109,5 @@ class Lyria2API:
             f"Lyria Node: Response received from model: {response.model_display_name}"
         )
 
-<<<<<<< HEAD
         return utils.process_audio_response(response)
 
-=======
-        return utils.process_audio_response(response, file_format)
->>>>>>> 33e3b6b (update script)

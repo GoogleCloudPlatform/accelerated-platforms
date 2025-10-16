@@ -24,7 +24,7 @@ MY_PATH="$(
   pwd -P
 )"
 
-declare -a CORE_TERRASERVICES_DESTROY_APPLY=(
+declare -a CORE_TERRASERVICES_DESTROY_ARRAY=(
   "workloads/kueue"
   "workloads/auto_monitoring"
   "custom_compute_class"
@@ -35,7 +35,7 @@ declare -a CORE_TERRASERVICES_DESTROY_APPLY=(
   "networking"
   "initialize"
 )
-export CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY_APPLY[*]}"
+export CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY_ARRAY[*]}"
 
 "${MY_PATH}/teardown.sh"
 

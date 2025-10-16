@@ -31,7 +31,7 @@ TERRASERVICE_DIR="${1}"
 TERRASERVICE_FOLDER="${2}"
 
 set --
-source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
+source "${ACP_PLATFORM_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 STATE_MIGRATED="false"
 if gcloud storage ls "gs://${terraform_bucket_name}/terraform" &>/dev/null; then

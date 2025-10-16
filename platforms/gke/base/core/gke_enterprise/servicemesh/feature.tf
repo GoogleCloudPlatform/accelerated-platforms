@@ -13,11 +13,9 @@
 # limitations under the License.
 
 resource "google_gke_hub_feature" "servicemesh" {
-  provider = google-beta
-
   location = "global"
   name     = "servicemesh"
-  project  = google_project_service.mesh_googleapis_com.project
+  project  = google_project_service.cluster["mesh.googleapis.com"].project
 
   fleet_default_member_config {
     mesh {
@@ -27,12 +25,10 @@ resource "google_gke_hub_feature" "servicemesh" {
 }
 
 resource "google_gke_hub_feature_membership" "cluster_servicemesh" {
-  provider = google-beta
-
   feature    = google_gke_hub_feature.servicemesh.name
   location   = google_gke_hub_feature.servicemesh.location
   membership = data.google_container_cluster.cluster.name
-  project    = google_project_service.mesh_googleapis_com.project
+  project    = google_gke_hub_feature.servicemesh.project
 
   mesh {
     management = "MANAGEMENT_AUTOMATIC"

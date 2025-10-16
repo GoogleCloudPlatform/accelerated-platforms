@@ -28,6 +28,16 @@ This folder contains the IaC for the CI/CD environment of this repository.
   cd ..
   ```
 
+- Create a GitHub personal access token (classic) with the following
+  permissions:
+
+  | Scope       |
+  | ----------- |
+  | repo        |
+  | read:user   |
+  | read:org    |
+  | delete_repo |
+
 - Add the GitHub token as a new version to the `github-token` secret.
 
 - Apply Terraform

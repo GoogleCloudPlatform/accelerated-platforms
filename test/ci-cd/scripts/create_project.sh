@@ -43,3 +43,14 @@ echo "Linking billing account to project '${NEW_PROJECT_ID}'..."
 gcloud billing projects link "${NEW_PROJECT_ID}" \
   --billing-account="${PROJECT_CREATOR_BILLING_ACCOUNT}" \
   --impersonate-service-account="${PROJECT_CREATOR_SA}" 2>&1 | grep -v -E 'billingAccountName|impersonation'
+
+if [[ -v RESERVATIONS ]]; then
+  for reservation in ${RESERVATIONS}; do
+    zone=$(echo "${reservation}" | awk -F'-' '{print $(NF-2) "-" $(NF-1) "-" $NF}')
+
+    echo "Adding project '${NEW_PROJECT_ID}' to shared reservation '${reservation}' in '${zone}'"
+    gcloud compute reservations update "${reservation}" \
+      --add-share-with="${NEW_PROJECT_ID}" \
+      --zone="${zone}"
+  done
+fi

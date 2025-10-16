@@ -13,6 +13,10 @@
 # limitations under the License.
 
 resource "google_compute_network" "default" {
+  depends_on = [
+    google_project_service.compute_googleapis_com,
+  ]
+
   auto_create_subnetworks = false
   name                    = local.unique_identifier_prefix
   project                 = data.google_project.environment.project_id

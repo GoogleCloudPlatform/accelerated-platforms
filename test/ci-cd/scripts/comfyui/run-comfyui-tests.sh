@@ -93,8 +93,21 @@ info "Fetching credentials for project '${cluster_project_id}'"
 ${cluster_credentials_command}
 kubectl get deployment -n ${comfyui_kubernetes_namespace}
 
-step "Wait for ComfyUI deployment to be Available"
-kubectl wait --for=condition=Available deployment/${COMFYUI_DEPLOYMENT} -n ${comfyui_kubernetes_namespace} --timeout=${MAX_WAIT_SECONDS}s
+step "Wait for ComfyUI pod to be created"
+kubectl wait --for=create pod -l app=comfyui-nvidia-l4 -n ${comfyui_kubernetes_namespace} --timeout=${MAX_WAIT_SECONDS}s
+
+step "Wait for ComfyUI pod to be ready"
+kubectl wait --for=condition=Ready pod -l app=comfyui-nvidia-l4 -n ${comfyui_kubernetes_namespace} --timeout=${MAX_WAIT_SECONDS}s
+
+step "Check ComfyUI service and endpoints"
+info "Getting services in namespace '${comfyui_kubernetes_namespace}'"
+kubectl get svc -n ${comfyui_kubernetes_namespace}
+info "Getting endpoints in namespace '${comfyui_kubernetes_namespace}'"
+kubectl get endpoints -n ${comfyui_kubernetes_namespace}
+
+step "Show recent logs from ComfyUI deployment"
+info "Getting logs for deployment '${COMFYUI_DEPLOYMENT}' in namespace '${comfyui_kubernetes_namespace}'"
+kubectl logs -n ${comfyui_kubernetes_namespace} deployment/${COMFYUI_DEPLOYMENT} --tail=50 || warn "Could not retrieve logs for deployment '${COMFYUI_DEPLOYMENT}'. This may be expected if pods are not yet running."
 
 step "Check ComfyUI service and endpoints"
 info "Getting services in namespace '${comfyui_kubernetes_namespace}'"
@@ -181,7 +194,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     for f in "${test_files[@]}"; do
       (
         TEST_LOG=$(mktemp)
-        
+
         if main "${f}"; then
           echo "[PASS] filename: $(basename "$f")"
         else
@@ -190,7 +203,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
           basename "${f}" >> "${FAILURES_FILE}"
         fi
         rm -f "${TEST_LOG}"
-      ) 
+      )
     done
 
     wait

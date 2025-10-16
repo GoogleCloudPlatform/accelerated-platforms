@@ -906,3 +906,51 @@ def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
     except Exception as e:
         print(f"Cant convert the image to base64 {e}")
         print(f"Cant convert the image to base64 {e}")
+
+
+def process_audio_response(response: Any) -> List[str]:
+    """
+    Processes the audio generation response and saves generated audio files.
+
+    Args:
+        response: The completed response object from the Lyria API.
+
+    Returns:
+        A list of file paths to the saved audio files.
+
+    Raises:
+        APIExecutionError: If no audio data is found or if saving fails.
+    """
+    output_dir = folder_paths.get_temp_directory()
+    os.makedirs(output_dir, exist_ok=True)
+
+    audio_paths: List[str] = []
+
+    if not response.predictions:
+        raise APIExecutionError("No predictions found in the API response.")
+
+    print(f"Found {len(response.predictions)} audio clips to process.")
+    for n, prediction in enumerate(response.predictions):
+        prediction_dict = dict(prediction)
+
+        timestamp = int(time.time())
+        unique_id = random.randint(1000, 99999)
+        audio_filename = f"lyria_{timestamp}_{unique_id}_{n}.wav"
+        audio_path = os.path.join(output_dir, audio_filename)
+
+        try:
+            audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
+            with open(audio_path, "wb") as f:
+                f.write(audio_bytes)
+            audio_paths.append(audio_path)
+            print(f"Saved audio {n} from base64 to {audio_path}")
+        except Exception as e:
+            print(f"Error saving audio {n} to {audio_path}: {e}")
+
+    if not audio_paths:
+        raise APIExecutionError(
+            "Failed to save any audio despite successful generation response."
+        )
+
+    print(f"Successfully processed and saved {len(audio_paths)} audio files.")
+    return audio_paths

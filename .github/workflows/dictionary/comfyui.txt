@@ -35,6 +35,9 @@ latentpreviewrate
 lightricks
 loras
 ltxv
+lyria
+lyria2
+lyria2preview
 mimetypes
 mucha
 photomaker

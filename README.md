@@ -26,7 +26,7 @@ needs of security-sensitive enterprises. It enhances the security of workstation
 environments while accelerating onboarding and productivity.
 
 - [Cloud Workstations reference architecture](/docs/platforms/cws/reference-architecture.md)
-  - [Cloud Workstations reference implementation](/platforms/cws/README.md)
+  - [Cloud Workstations reference implementation](/docs/platforms/cws/reference-implementation.md)
 
 ## Google Kubernetes Engine (GKE)
 

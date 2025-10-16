@@ -52,6 +52,24 @@ resource "google_cloud_scheduler_job" "acp_ci_cd_runner_image_daily" {
   }
 }
 
+resource "google_cloud_scheduler_job" "platforms_cws_scripts_all" {
+  name      = "${local.platforms_cws_scripts_all_name}-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_cws_scripts_all_push.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
 resource "google_cloud_scheduler_job" "platforms_gke_base_core_ap_full_scripts" {
   name      = "platforms-gke-base-core-ap-full-scripts-schedule"
   project   = data.google_project.build.project_id

@@ -1,0 +1,1 @@
+../platform.auto.tfvars

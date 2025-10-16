@@ -20,6 +20,9 @@ steps:
   - args:
       - "${_WAIT_FOR_TRIGGER}"
     entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
+    env:
+      - "LOCATION=${LOCATION}"
+      - "PROJECT_ID=${PROJECT_ID}"
     id: "Check triggers"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor: ["-"]
@@ -30,6 +33,7 @@ steps:
       - TF_VAR_platform_name="ch${SHORT_SHA}"
     entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"
     env:
+      - ACP_PLATFORM_DIR="$${ACP_REPO_DIR}/platforms/gke/base"
       - BUILD_ID=${BUILD_ID}
       - DEBUG=${_DEBUG}
       - PROJECT_ID=${PROJECT_ID}

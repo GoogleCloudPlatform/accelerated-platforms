@@ -135,6 +135,7 @@ resource "local_file" "shared_config_policycontroller_auto_tfvars" {
   content = provider::terraform::encode_tfvars(
     {
       policycontroller_bundles = var.policycontroller_bundles
+      policycontroller_version = var.policycontroller_version
     }
   )
   file_permission = "0644"

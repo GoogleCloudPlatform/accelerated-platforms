@@ -19,7 +19,7 @@ source /workspace/build.env 2>/dev/null || true
 if [ -n "${ACP_PLATFORM_BASE_DIR:-}" ]; then
   # shellcheck disable=SC1091
   source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh" 2>/dev/null || true
-else
+else  
   # Corrected line: Print the variable's name, not its empty value.
   echo "Warning: Variable ACP_PLATFORM_BASE_DIR is not set." >&2
 fi
@@ -98,6 +98,16 @@ kubectl wait --for=create pod -l app=comfyui-nvidia-l4 -n ${comfyui_kubernetes_n
 
 step "Wait for ComfyUI pod to be ready"
 kubectl wait --for=condition=Ready pod -l app=comfyui-nvidia-l4 -n ${comfyui_kubernetes_namespace} --timeout=${MAX_WAIT_SECONDS}s
+
+step "Check ComfyUI service and endpoints"
+info "Getting services in namespace '${comfyui_kubernetes_namespace}'"
+kubectl get svc -n ${comfyui_kubernetes_namespace}
+info "Getting endpoints in namespace '${comfyui_kubernetes_namespace}'"
+kubectl get endpoints -n ${comfyui_kubernetes_namespace}
+
+step "Show recent logs from ComfyUI deployment"
+info "Getting logs for deployment '${COMFYUI_DEPLOYMENT}' in namespace '${comfyui_kubernetes_namespace}'"
+kubectl logs -n ${comfyui_kubernetes_namespace} deployment/${COMFYUI_DEPLOYMENT} --tail=50 || warn "Could not retrieve logs for deployment '${COMFYUI_DEPLOYMENT}'. This may be expected if pods are not yet running."
 
 step "Check ComfyUI service and endpoints"
 info "Getting services in namespace '${comfyui_kubernetes_namespace}'"

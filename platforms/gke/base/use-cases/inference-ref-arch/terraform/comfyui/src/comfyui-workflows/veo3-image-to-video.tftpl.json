@@ -43,7 +43,7 @@
         8,
         true,
         1,
-        "${output_bucket_uri}",
+        "",
         "",
         3041877000,
         "randomize",

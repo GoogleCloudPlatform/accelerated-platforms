@@ -1,0 +1,34 @@
+{
+  "1": {
+    "inputs": {
+      "prompt": "An energetic electronic dance track.",
+      "sample_count": 1,
+      "negative_prompt": "",
+      "seed": 2824425730,
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "Lyria2TextToMusicNode",
+    "_meta": {
+      "title": "Lyria 2 Text To Music"
+    }
+  },
+  "2": {
+    "inputs": {
+      "autoplay": true,
+      "mute": false,
+      "loop": false,
+      "save_audio": false,
+      "save_audio_file_prefix": "lyria_audio",
+      "audio_paths": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "LyriaAudioSaveAndPreview",
+    "_meta": {
+      "title": "Preview/Save audio"
+    }
+  }
+}
+

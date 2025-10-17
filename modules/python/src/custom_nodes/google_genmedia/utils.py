@@ -55,9 +55,7 @@ def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
     image_data = base64.b64decode(base64_string)
     pil_image = PIL_Image.open(io.BytesIO(image_data)).convert("RGBA")
     image_array = np.array(pil_image, dtype=np.float32) / 255.0
-    tensor = torch.from_numpy(image_array)[
-        None,
-    ]
+    tensor = torch.from_numpy(image_array)[None,]
 
     return tensor
 
@@ -293,7 +291,7 @@ def generate_video_from_gcsuri_image(
         temp_config["resolution"] = output_resolution
 
     if re.search(
-        r"veo-2\.0",
+        r"veo-(2\.0|3\.1)",
         model.value if isinstance(model, object) and hasattr(model, "value") else model,
     ):
         if last_frame_gcsuri:
@@ -444,7 +442,7 @@ def generate_video_from_image(
         temp_config["resolution"] = output_resolution
 
     if re.search(
-        r"veo-2\.0",
+        r"veo-(2\.0|3\.1)",
         model.value if isinstance(model, object) and hasattr(model, "value") else model,
     ):
         if last_frame is not None:

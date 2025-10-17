@@ -33,7 +33,7 @@ class Veo3TextToVideoNode:
             "required": {
                 "model": (
                     [model.name for model in Veo3Model],
-                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                    {"default": Veo3Model.VEO_3_1_PREVIEW.name},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (VEO3_VALID_ASPECT_RATIOS, {"default": "16:9"}),
@@ -89,7 +89,7 @@ class Veo3TextToVideoNode:
 
     def generate(
         self,
-        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        model: str = Veo3Model.VEO_3_1_PREVIEW.name,
         prompt: str = "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn.",
         aspect_ratio: str = "16:9",
         output_resolution: str = "720p",
@@ -178,7 +178,7 @@ class Veo3GcsUriImageToVideoNode:
             "required": {
                 "model": (
                     [model.name for model in Veo3Model],
-                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                    {"default": Veo3Model.VEO_3_1_PREVIEW.name},
                 ),
                 "gcsuri": (
                     "STRING",
@@ -242,7 +242,7 @@ class Veo3GcsUriImageToVideoNode:
 
     def generate(
         self,
-        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        model: str = Veo3Model.VEO_3_1_PREVIEW.name,
         gcsuri: str = "",
         image_format: str = "PNG",
         prompt: str = "",
@@ -337,7 +337,7 @@ class Veo3ImageToVideoNode:
             "required": {
                 "model": (
                     [model.name for model in Veo3Model],
-                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                    {"default": Veo3Model.VEO_3_1_PREVIEW.name},
                 ),
                 "image": ("IMAGE",),
                 "image_format": (
@@ -398,7 +398,7 @@ class Veo3ImageToVideoNode:
 
     def generate(
         self,
-        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        model: str = Veo3Model.VEO_3_1_PREVIEW.name,
         image: torch.Tensor = None,
         image_format: str = "PNG",
         prompt: str = "",

@@ -73,6 +73,7 @@ get_history() {
     # --- Check status and handle errors ---
     if [[ "${http_code}" == "200" && -n "${body}" && "${body}" != "{}" ]]; then
       local status_str
+      echo ${body}
       status_str=$(printf '%s' "${body}" \
         | jq -r --arg id "${prompt_id}" '.[$id].status.status_str // empty' 2>/dev/null || true)
 

@@ -310,6 +310,10 @@ class Veo3API:
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
 
+        if last_frame_gcsuri:
+            valid_bucket, validation_message = validate_gcs_uri_and_image(
+                last_frame_gcsuri
+            )
         valid_bucket, validation_message = utils.validate_gcs_uri_and_image(gcsuri)
         if not valid_bucket:
             # Re-raise as APIExecutionError if the failure is due to GCS API/resource lookup

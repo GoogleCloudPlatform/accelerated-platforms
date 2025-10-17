@@ -150,7 +150,7 @@
         "Node name for S&R": "Veo3ImageToVideoNode"
       },
       "widgets_values": [
-        "VEO_3_PREVIEW",
+        "VEO_3_1_PREVIEW",
         "PNG",
         "make leaves and branches sway in the wind.",
         "16:9",
@@ -160,6 +160,7 @@
         8,
         true,
         1,
+        "",
         "${output_bucket_uri}",
         "",
         0,

@@ -85,7 +85,7 @@ class Veo3TextToVideoNode:
     RETURN_TYPES = ("VEO_VIDEO",)
     RETURN_NAMES = ("video_paths",)
     FUNCTION = "generate"
-    CATEGORY = "Google AI/Veo3"
+    CATEGORY = "Google AI/Veo3.1"
 
     def generate(
         self,
@@ -242,7 +242,7 @@ class Veo3GcsUriImageToVideoNode:
     RETURN_TYPES = ("VEO_VIDEO",)
     RETURN_NAMES = ("video_paths",)
     FUNCTION = "generate"
-    CATEGORY = "Google AI/Veo3"
+    CATEGORY = "Google AI/Veo3.1"
 
     def generate(
         self,
@@ -402,7 +402,7 @@ class Veo3ImageToVideoNode:
     RETURN_TYPES = ("VEO_VIDEO",)
     RETURN_NAMES = ("video_paths",)
     FUNCTION = "generate"
-    CATEGORY = "Google AI/Veo3"
+    CATEGORY = "Google AI/Veo3.1"
 
     def generate(
         self,
@@ -508,7 +508,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Veo3TextToVideoNode": "Veo3 Text To Video",
-    "Veo3GcsUriImageToVideoNode": "Veo3 Image To Video (GcsUriImage)",
-    "Veo3ImageToVideoNode": "Veo3 Image To Video",
+    "Veo3TextToVideoNode": "Veo3.1 Text To Video",
+    "Veo3GcsUriImageToVideoNode": "Veo3.1 Image To Video (GcsUriImage)",
+    "Veo3ImageToVideoNode": "Veo3.1 Image To Video",
 }

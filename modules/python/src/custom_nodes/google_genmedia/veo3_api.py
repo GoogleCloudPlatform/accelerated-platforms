@@ -220,7 +220,6 @@ class Veo3API:
             raise APIInputError(
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
-        # last_frame = None  # this is because veo3 doesn't support last frame yet and both veo2 and veo3 share the same code base for making API calls.
         model = Veo3Model[model]
         return utils.generate_video_from_image(
             client=self.client,
@@ -255,6 +254,7 @@ class Veo3API:
         generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
+        last_frame_gcsuri: str,
         output_gcs_uri: str,
         output_resolution: str,
         negative_prompt: Optional[str],
@@ -275,6 +275,7 @@ class Veo3API:
             generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            last_frame_gcsuri: GCS URL of the last frame for interpolation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
             output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
@@ -338,7 +339,6 @@ class Veo3API:
             mime_type = "image/mp4"
         else:
             raise APIInputError(f"Unsupported image format: {image_format}")
-        last_frame_gcsuri = None  # this is because veo3 doesn't support last frame yet and both veo2 and veo3 share the same code base for making API calls.
         model = Veo3Model[model]
         return utils.generate_video_from_gcsuri_image(
             client=self.client,

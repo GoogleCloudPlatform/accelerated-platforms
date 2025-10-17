@@ -64,7 +64,7 @@
     },
     {
       "id": 1,
-      "type": "Veo2ImageToVideoNode",
+      "type": "Veo3ImageToVideoNode",
       "pos": [
         1359.7755126953125,
         186.53414916992188
@@ -99,12 +99,14 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "Veo2ImageToVideoNode"
+        "Node name for S&R": "Veo3ImageToVideoNode"
       },
       "widgets_values": [
+        "VEO_3_1_PREVIEW",
         "PNG",
         "a hand reaches in and places a glass of milk next to the plate of cookies",
         "16:9",
+        "720p",
         "optimized",
         "allow_adult",
         8,

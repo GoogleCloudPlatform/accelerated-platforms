@@ -125,7 +125,7 @@
         "Node name for S&R": "Veo3ImageToVideoNode"
       },
       "widgets_values": [
-        "VEO_3_PREVIEW",
+        "VEO_3_1_PREVIEW",
         "PNG",
         "make the models do ramp walk with upbeat music in the background",
         "16:9",
@@ -135,6 +135,7 @@
         8,
         true,
         1,
+        "",
         "",
         "",
         154782474,

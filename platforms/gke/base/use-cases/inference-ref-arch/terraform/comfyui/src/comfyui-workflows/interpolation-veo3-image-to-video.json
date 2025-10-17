@@ -1,8 +1,8 @@
 {
   "id": "2bf6e6f1-c606-4913-9be4-9028a4dc4d3b",
   "revision": 0,
-  "last_node_id": 7,
-  "last_link_id": 3,
+  "last_node_id": 8,
+  "last_link_id": 4,
   "nodes": [
     {
       "id": 3,
@@ -63,64 +63,6 @@
       }
     },
     {
-      "id": 1,
-      "type": "Veo3ImageToVideoNode",
-      "pos": [
-        1359.7755126953125,
-        186.53414916992188
-      ],
-      "size": [
-        400,
-        450
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 1
-        },
-        {
-          "name": "last_frame",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 2
-        }
-      ],
-      "outputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "links": [
-            3
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Veo3ImageToVideoNode"
-      },
-      "widgets_values": [
-        "VEO_3_1_PREVIEW",
-        "PNG",
-        "a hand reaches in and places a glass of milk next to the plate of cookies",
-        "16:9",
-        "720p",
-        "optimized",
-        "allow_adult",
-        8,
-        true,
-        1,
-        "",
-        "",
-        0,
-        "randomize",
-        "",
-        ""
-      ]
-    },
-    {
       "id": 6,
       "type": "VHS_LoadImagePath",
       "pos": [
@@ -179,11 +121,11 @@
       }
     },
     {
-      "id": 7,
+      "id": 8,
       "type": "VeoVideoSaveAndPreview",
       "pos": [
-        1826.4747314453125,
-        262.6329345703125
+        1898.4326171875,
+        239.1903076171875
       ],
       "size": [
         282.740234375,
@@ -196,7 +138,7 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 3
+          "link": 4
         }
       ],
       "outputs": [],
@@ -206,9 +148,67 @@
       "widgets_values": [
         true,
         true,
-        true,
-        true,
+        false,
+        false,
         "veo_video"
+      ]
+    },
+    {
+      "id": 1,
+      "type": "Veo3ImageToVideoNode",
+      "pos": [
+        1359.7755126953125,
+        186.53414916992188
+      ],
+      "size": [
+        400,
+        498
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Veo3ImageToVideoNode"
+      },
+      "widgets_values": [
+        "VEO_3_1_PREVIEW",
+        "PNG",
+        "a hand reaches in and places a glass of milk next to the plate of cookies",
+        "16:9",
+        "720p",
+        "optimized",
+        "allow_adult",
+        8,
+        true,
+        1,
+        "",
+        "",
+        3070835629,
+        "randomize",
+        "",
+        ""
       ]
     }
   ],
@@ -230,10 +230,10 @@
       "IMAGE"
     ],
     [
-      3,
+      4,
       1,
       0,
-      7,
+      8,
       0,
       "VEO_VIDEO"
     ]
@@ -248,7 +248,7 @@
         -104.15173643369593
       ]
     },
-    "frontendVersion": "1.23.4",
+    "frontendVersion": "1.26.13",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

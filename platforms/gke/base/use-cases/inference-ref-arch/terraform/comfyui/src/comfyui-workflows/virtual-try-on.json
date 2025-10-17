@@ -1,8 +1,8 @@
 {
   "id": "17f0d127-0d4d-4da0-8327-a65598eac49a",
   "revision": 0,
-  "last_node_id": 23,
-  "last_link_id": 30,
+  "last_node_id": 24,
+  "last_link_id": 32,
   "nodes": [
     {
       "id": 14,
@@ -16,7 +16,7 @@
         421.3843078613281
       ],
       "flags": {},
-      "order": 2,
+      "order": 3,
       "mode": 0,
       "inputs": [
         {
@@ -45,7 +45,7 @@
         409.5345764160156
       ],
       "flags": {},
-      "order": 3,
+      "order": 2,
       "mode": 0,
       "inputs": [
         {
@@ -92,142 +92,6 @@
       "widgets_values": []
     },
     {
-      "id": 15,
-      "type": "Veo3ImageToVideoNode",
-      "pos": [
-        1018.2672729492188,
-        229.465087890625
-      ],
-      "size": [
-        400,
-        502
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 28
-        }
-      ],
-      "outputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "links": [
-            24
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Veo3ImageToVideoNode"
-      },
-      "widgets_values": [
-        "VEO_3_1_PREVIEW",
-        "PNG",
-        "make the models do ramp walk with upbeat music in the background",
-        "16:9",
-        "720p",
-        "optimized",
-        "allow_adult",
-        8,
-        true,
-        1,
-        "",
-        "",
-        "",
-        154782474,
-        "randomize",
-        "",
-        ""
-      ]
-    },
-    {
-      "id": 22,
-      "type": "VeoVideoSaveAndPreview",
-      "pos": [
-        1542.7208251953125,
-        240.6404266357422
-      ],
-      "size": [
-        643.5447387695312,
-        558.743896484375
-      ],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 24
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "VeoVideoSaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        true,
-        true,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
-      ]
-    },
-    {
-      "id": 12,
-      "type": "Imagen4TextToImageNode",
-      "pos": [
-        -328.51904296875,
-        -280.6464538574219
-      ],
-      "size": [
-        400,
-        430
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "Generated Image",
-          "type": "IMAGE",
-          "links": [
-            9,
-            29
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Imagen4TextToImageNode"
-      },
-      "widgets_values": [
-        "IMAGEN_4_PREVIEW",
-        "A full-length, photorealistic, high-fashion shot of a professional model walking with a powerful and elegant stride down a modern, minimalist runway. The model is illuminated by a single, sharp spotlight that creates a dramatic and focused circle of light around her, making her and the dress the undeniable center of attention. The background is a seamless, deep, non-reflective black, which makes the white dress pop.\n\nThe model is wearing a stunning, floor-length, couture white dress made of a flowing, slightly iridescent silk charmeuse. The dress should have a simple yet elegant silhouette, perhaps with a high slit to allow for movement and to showcase the drape of the fabric. The spotlight should highlight the subtle sheen of the silk, the delicate texture of the fabric, and the way it moves with her body.\n\nThe model's expression is confident and serene, with a neutral yet captivating gaze directed forward. Her hair is styled in a sleek, pulled-back chignon to keep the focus on the dress and her face.\n\nThe overall image should have the clean, crisp, and luxurious feel of a high-end fashion magazine editorial, with tack-sharp focus on the model and the dress, and every detail rendered with pristine clarity. The lighting should be the hero, sculpting the model's form and revealing the intricate details of the white dress.",
-        "allow_adult",
-        "16:9",
-        1,
-        "",
-        1437451227,
-        "randomize",
-        true,
-        false,
-        "PNG",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "",
-        ""
-      ]
-    },
-    {
       "id": 17,
       "type": "VHS_LoadImagesPath",
       "pos": [
@@ -239,7 +103,7 @@
         520.6581420898438
       ],
       "flags": {},
-      "order": 1,
+      "order": 0,
       "mode": 0,
       "inputs": [
         {
@@ -325,7 +189,7 @@
           "type": "IMAGE",
           "links": [
             27,
-            28
+            31
           ]
         }
       ],
@@ -336,10 +200,151 @@
         32,
         "ALLOW_ADULT",
         1,
-        0,
+        1083011979,
         "randomize",
         false,
         "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 22,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        1700.021240234375,
+        181.5886993408203
+      ],
+      "size": [
+        643.5447387695312,
+        558.743896484375
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 32
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "Imagen4TextToImageNode",
+      "pos": [
+        -328.51904296875,
+        -280.6464538574219
+      ],
+      "size": [
+        587.5960693359375,
+        511.94781494140625
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            9,
+            29
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Imagen4TextToImageNode"
+      },
+      "widgets_values": [
+        "IMAGEN_4_PREVIEW",
+        "A full-length, photorealistic, high-fashion shot of a professional model walking with a powerful and elegant stride down a modern, minimalist runway. The model is illuminated by a single, sharp spotlight that creates a dramatic and focused circle of light around her, making her and the dress the undeniable center of attention. The background is a seamless, deep, non-reflective black, which makes the white dress pop.\n\nThe model is wearing a stunning, floor-length, couture white dress made of a flowing, slightly iridescent silk charmeuse. The dress should have a simple yet elegant silhouette, perhaps with a high slit to allow for movement and to showcase the drape of the fabric. The spotlight should highlight the subtle sheen of the silk, the delicate texture of the fabric, and the way it moves with her body.\n\nThe model's expression is confident and serene, with a neutral yet captivating gaze directed forward. Her hair is styled in a sleek, pulled-back chignon to keep the focus on the dress and her face.\n\nThe overall image should have the clean, crisp, and luxurious feel of a high-end fashion magazine editorial, with tack-sharp focus on the model and the dress, and every detail rendered with pristine clarity. The lighting should be the hero, sculpting the model's form and revealing the intricate details of the white dress.",
+        "allow_adult",
+        "16:9",
+        1,
+        "",
+        309454805,
+        "randomize",
+        true,
+        false,
+        "PNG",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 24,
+      "type": "Veo3ImageToVideoNode",
+      "pos": [
+        991.64013671875,
+        184.5477752685547
+      ],
+      "size": [
+        558.5807495117188,
+        565.22021484375
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 31
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "links": [
+            32
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Veo3ImageToVideoNode"
+      },
+      "widgets_values": [
+        "VEO_3_1_PREVIEW",
+        "PNG",
+        "make the models do ramp walk with upbeat music in the background",
+        "16:9",
+        "720p",
+        "optimized",
+        "allow_adult",
+        8,
+        true,
+        1,
+        "",
+        "",
+        3087774325,
+        "randomize",
         "",
         ""
       ]
@@ -363,26 +368,10 @@
       "IMAGE"
     ],
     [
-      24,
-      15,
-      0,
-      22,
-      0,
-      "VEO_VIDEO"
-    ],
-    [
       27,
       23,
       0,
       13,
-      0,
-      "IMAGE"
-    ],
-    [
-      28,
-      23,
-      0,
-      15,
       0,
       "IMAGE"
     ],
@@ -401,6 +390,22 @@
       23,
       1,
       "IMAGE"
+    ],
+    [
+      31,
+      23,
+      0,
+      24,
+      0,
+      "IMAGE"
+    ],
+    [
+      32,
+      24,
+      0,
+      22,
+      0,
+      "VEO_VIDEO"
     ]
   ],
   "groups": [],
@@ -409,11 +414,11 @@
     "ds": {
       "scale": 0.7150000000000016,
       "offset": [
-        351.034135670037,
-        359.9304573003501
+        337.61186458175035,
+        379.9539579696024
       ]
     },
-    "frontendVersion": "1.23.4",
+    "frontendVersion": "1.26.13",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

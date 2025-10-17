@@ -151,8 +151,8 @@ resource "google_storage_bucket_object" "workflow_imagen4_veo3_itv" {
 
 resource "google_storage_bucket_object" "workflow_intpl_veo2_itv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
-  name       = "interpolation-veo2-image-to-video.json"
-  source     = "src/comfyui-workflows/interpolation-veo2-image-to-video.json"
+  name       = "interpolation-veo3-image-to-video.json"
+  source     = "src/comfyui-workflows/interpolation-veo3-image-to-video.json"
   depends_on = [google_storage_bucket_object.intpl_gcsimage]
 }
 

@@ -218,7 +218,7 @@ class Veo3API:
             raise APIInputError(
                 f"Veo3 can only generate videos of resolution {OUTPUT_RESOLUTION}. You passed aspect ratio {output_resolution}."
             )
-        last_frame = None  # this is because veo3 doesn't support last frame yet and both veo2 and veo3 share the same code base for making API calls.
+        # last_frame = None  # this is because veo3 doesn't support last frame yet and both veo2 and veo3 share the same code base for making API calls.
         model = Veo3Model[model]
         return utils.generate_video_from_image(
             client=self.client,

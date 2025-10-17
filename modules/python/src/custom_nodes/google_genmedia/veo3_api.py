@@ -259,7 +259,7 @@ class Veo3API:
         seed: Optional[int],
     ) -> List[str]:
         """
-        Generates video from a Google Cloud Storage (GCS) image URI using the Veo 3.0 API.
+        Generates video from a Google Cloud Storage (GCS) image URI using the Veo 3.1 API.
 
         Args:
             model: Veo3 model.

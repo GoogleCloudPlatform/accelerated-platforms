@@ -163,6 +163,7 @@ class Veo3API:
         generate_audio: bool,
         enhance_prompt: bool,
         sample_count: int,
+        last_frame: torch.Tensor,
         output_gcs_uri: str,
         output_resolution: str,
         negative_prompt: Optional[str],
@@ -183,6 +184,7 @@ class Veo3API:
             generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            last_frame: last frame for interpolation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
             output_resolution: The resolution of the generated video.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.

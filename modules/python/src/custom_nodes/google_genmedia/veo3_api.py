@@ -34,7 +34,7 @@ from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationEr
 
 class Veo3API:
     """
-    A client for interacting with the Google Veo 3.0 API for video generation.
+    A client for interacting with the Google Veo 3.1 API for video generation.
     """
 
     def __init__(
@@ -88,7 +88,7 @@ class Veo3API:
         seed: Optional[int],
     ) -> List[str]:
         """
-        Generates video from a text prompt using the Veo 3.0 API.
+        Generates video from a text prompt using the Veo 3.1 API.
 
         Args:
             model: Veo3 model.
@@ -169,7 +169,7 @@ class Veo3API:
         seed: Optional[int],
     ) -> List[str]:
         """
-        Generates video from an image input (as a torch.Tensor) using the Veo 3.0 API.
+        Generates video from an image input (as a torch.Tensor) using the Veo 3.1 API.
 
         Args:
             model: Veo3 model.

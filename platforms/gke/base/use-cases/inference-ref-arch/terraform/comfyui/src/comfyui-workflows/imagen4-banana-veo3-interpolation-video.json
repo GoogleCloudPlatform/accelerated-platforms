@@ -113,8 +113,8 @@
         false,
         "PNG",
         "BLOCK_MEDIUM_AND_ABOVE",
-        "veo-testing",
-        "us-central1"
+        "",
+        ""
       ]
     },
     {
@@ -171,8 +171,8 @@
         "",
         2642103899,
         "randomize",
-        "veo-testing",
-        "us-central1"
+        "",
+        ""
       ]
     },
     {
@@ -250,8 +250,8 @@
         "BLOCK_MEDIUM_AND_ABOVE",
         "BLOCK_MEDIUM_AND_ABOVE",
         "",
-        "veo-testing",
-        "global"
+        "",
+        ""
       ]
     }
   ],

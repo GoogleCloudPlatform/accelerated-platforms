@@ -110,6 +110,18 @@ resource "google_storage_bucket_object" "veo3_gcsimage" {
   source = "src/comfyui-workflows/input-images/jellyfish.png"
 }
 
+resource "google_storage_bucket_object" "veo3_gcsimage" {
+  bucket = google_storage_bucket.comfyui_input.name
+  name   = "singer_start_frame.png"
+  source = "src/comfyui-workflows/input-images/singer_start_frame.png"
+}
+
+resource "google_storage_bucket_object" "veo3_gcsimage" {
+  bucket = google_storage_bucket.comfyui_input.name
+  name   = "singer_end_frame.png"
+  source = "src/comfyui-workflows/input-images/singer_end_frame.png"
+}
+
 resource "google_storage_bucket_object" "vto_gcsimage" {
   for_each = local.vto_files_to_upload
   bucket   = google_storage_bucket.comfyui_input.name

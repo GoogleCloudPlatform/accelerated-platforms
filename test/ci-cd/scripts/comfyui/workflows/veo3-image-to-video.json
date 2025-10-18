@@ -12,6 +12,7 @@
       "duration_seconds": 8,
       "generate_audio": true,
       "sample_count": 1,
+      "last_frame_gcsuri": "",
       "output_gcs_uri": "gs://${COMFYUI_BUCKET}-output",
       "negative_prompt": "",
       "seed": 933745934,

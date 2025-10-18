@@ -1,8 +1,8 @@
 {
   "id": "a466bac6-78d9-49f4-8fde-3f8af8774e14",
   "revision": 0,
-  "last_node_id": 10,
-  "last_link_id": 12,
+  "last_node_id": 11,
+  "last_link_id": 14,
   "nodes": [
     {
       "id": 4,
@@ -37,8 +37,8 @@
       "id": 5,
       "type": "VeoVideoSaveAndPreview",
       "pos": [
-        2732.32666015625,
-        -254.74876403808594
+        2906.392333984375,
+        -271.73162841796875
       ],
       "size": [
         282.740234375,
@@ -51,7 +51,7 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 12
+          "link": 14
         }
       ],
       "outputs": [],
@@ -63,12 +63,7 @@
         true,
         true,
         true,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
+        "veo_video"
       ]
     },
     {
@@ -92,7 +87,7 @@
           "type": "IMAGE",
           "links": [
             7,
-            11
+            13
           ]
         }
       ],
@@ -106,7 +101,7 @@
         "16:9",
         1,
         "",
-        0,
+        3173018965,
         "randomize",
         true,
         false,
@@ -117,15 +112,15 @@
       ]
     },
     {
-      "id": 10,
+      "id": 11,
       "type": "Veo3ImageToVideoNode",
       "pos": [
-        2280.68212890625,
-        -315.12908935546875
+        2381.345703125,
+        -327.53216552734375
       ],
       "size": [
         400,
-        502
+        498
       ],
       "flags": {},
       "order": 2,
@@ -134,7 +129,13 @@
         {
           "name": "image",
           "type": "IMAGE",
-          "link": 11
+          "link": 13
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
         }
       ],
       "outputs": [
@@ -142,7 +143,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            12
+            14
           ]
         }
       ],
@@ -150,7 +151,7 @@
         "Node name for S&R": "Veo3ImageToVideoNode"
       },
       "widgets_values": [
-        "VEO_3_PREVIEW",
+        "VEO_3_1_PREVIEW",
         "PNG",
         "make leaves and branches sway in the wind.",
         "16:9",
@@ -179,16 +180,16 @@
       "IMAGE"
     ],
     [
-      11,
+      13,
       8,
       0,
-      10,
+      11,
       0,
       "IMAGE"
     ],
     [
-      12,
-      10,
+      14,
+      11,
       0,
       5,
       0,
@@ -205,7 +206,7 @@
         422.6527287364829
       ]
     },
-    "frontendVersion": "1.23.4",
+    "frontendVersion": "1.26.13",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

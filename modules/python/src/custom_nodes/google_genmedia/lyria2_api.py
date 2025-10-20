@@ -87,7 +87,7 @@ class Lyria2API:
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible music generation.
             sample_count: The number of music samples to generate.
-            file_format: The desired audio file format. Supported formats: "wav", "mp3", "flac".
+            file_format: The desired audio file format. Supported formats: "wav", "mp3".
         Returns:
             A list of file paths to the generated music.
         Raises:

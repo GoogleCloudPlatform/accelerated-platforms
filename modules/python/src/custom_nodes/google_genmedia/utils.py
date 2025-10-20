@@ -35,6 +35,7 @@ from google.genai import types
 from google.genai.types import GenerateVideosConfig, Image
 from grpc import StatusCode
 from PIL import Image as PIL_Image
+from pydub import AudioSegment
 
 from .constants import STORAGE_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError
@@ -908,12 +909,13 @@ def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
         print(f"Cant convert the image to base64 {e}")
 
 
-def process_audio_response(response: Any) -> List[str]:
+def process_audio_response(response: Any, file_format: str = "wav") -> List[str]:
     """
     Processes the audio generation response and saves generated audio files.
 
     Args:
         response: The completed response object from the Lyria API.
+        file_format: The desired audio file format. Supported formats: "wav", "mp3", "flac".
 
     Returns:
         A list of file paths to the saved audio files.
@@ -935,13 +937,13 @@ def process_audio_response(response: Any) -> List[str]:
 
         timestamp = int(time.time())
         unique_id = random.randint(1000, 99999)
-        audio_filename = f"lyria_{timestamp}_{unique_id}_{n}.wav"
+        audio_filename = f"lyria_{timestamp}_{unique_id}_{n}.{file_format}"
         audio_path = os.path.join(output_dir, audio_filename)
 
         try:
             audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
-            with open(audio_path, "wb") as f:
-                f.write(audio_bytes)
+            audio_segment = AudioSegment.from_file(io.BytesIO(audio_bytes))
+            audio_segment.export(audio_path, format=file_format)
             audio_paths.append(audio_path)
             print(f"Saved audio {n} from base64 to {audio_path}")
         except Exception as e:

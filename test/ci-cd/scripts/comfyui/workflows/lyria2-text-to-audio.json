@@ -1,10 +1,10 @@
 {
   "1": {
     "inputs": {
-      "prompt": "An energetic electronic dance track.",
+      "prompt": "Generate a summer tune",
       "sample_count": 1,
       "negative_prompt": "",
-      "seed": 2824425730,
+      "seed": 0,
       "gcp_project_id": "",
       "gcp_region": ""
     },
@@ -16,9 +16,9 @@
   "2": {
     "inputs": {
       "autoplay": true,
-      "mute": false,
-      "loop": false,
-      "save_audio": false,
+      "mute": true,
+      "loop": true,
+      "save_audio": true,
       "save_audio_file_prefix": "lyria_audio",
       "audio_paths": [
         "1",

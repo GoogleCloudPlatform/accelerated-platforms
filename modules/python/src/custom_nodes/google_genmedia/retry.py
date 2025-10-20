@@ -89,7 +89,11 @@ def api_error_retry(func):
 
                 # Handle fatal non-retryable errors
                 if status_code == 400:
+<<<<<<< HEAD
                     raise APIInputError(details) from e
+=======
+                    raise APIInputError(e.message) from e
+>>>>>>> 33e3b6b (update script)
                 elif status_code == 404:
                     raise APIExecutionError(
                         f"Unable to find the requested resource; please confirm that your project ID and region are valid."
@@ -99,9 +103,15 @@ def api_error_retry(func):
                         f"The project ID either doesn't exist or you don't have permissions to access it."
                     ) from e
                 elif status_code == 504:
+<<<<<<< HEAD
                     raise APIExecutionError(details) from e
                 else:
                     raise APIExecutionError(details) from e
+=======
+                    raise APIExecutionError(e.message) from e
+                else:
+                    raise APIExecutionError(e.message) from e
+>>>>>>> 33e3b6b (update script)
 
             except Exception as e:
                 # Catch any other unexpected non-API specific errors.

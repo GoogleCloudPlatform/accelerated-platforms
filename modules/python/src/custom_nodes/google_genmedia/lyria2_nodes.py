@@ -72,20 +72,6 @@ class Lyria2TextToMusicNode:
                     {"default": "", "placeholder": "your-gcp-project-id"},
                 ),
                 "gcp_region": ("STRING", {"default": "", "placeholder": "us-central1"}),
-<<<<<<< HEAD
-<<<<<<< HEAD
-                "file_format": (
-                    ["wav", "mp3"],
-                    {"default": "wav"},
-                ),
-=======
->>>>>>> fac2c68 (initial commit of lyria node)
-=======
-                "file_format": (
-                    ["wav", "mp3", "flac"],
-                    {"default": "wav"},
-                ),
->>>>>>> 33e3b6b (update script)
             },
         }
 
@@ -114,7 +100,7 @@ class Lyria2TextToMusicNode:
             sample_count: The number of music samples to generate.
             gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
             gcp_region: The GCP region. If provided, overrides metadata lookup.
-            file_format: The desired audio file format. Supported formats: "wav", "mp3", "flac".
+            file_format: The desired audio file format. Supported formats: "wav", "mp3".
 
 
         Returns:

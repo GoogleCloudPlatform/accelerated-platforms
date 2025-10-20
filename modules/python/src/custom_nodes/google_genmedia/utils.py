@@ -56,7 +56,11 @@ def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
     image_data = base64.b64decode(base64_string)
     pil_image = PIL_Image.open(io.BytesIO(image_data)).convert("RGBA")
     image_array = np.array(pil_image, dtype=np.float32) / 255.0
+<<<<<<< HEAD
     tensor = torch.from_numpy(image_array)[None]
+=======
+    tensor = torch.from_numpy(image_array)[None,]
+>>>>>>> e1c7909 (added converter mp3 or wav)
 
     return tensor
 
@@ -921,6 +925,10 @@ def process_audio_response(response: Any) -> dict:
 
     Args:
         response: The completed response object from the Lyria API.
+<<<<<<< HEAD
+=======
+        file_format: The desired audio file format. Supported formats: "wav", "mp3".
+>>>>>>> e1c7909 (added converter mp3 or wav)
 
     Returns:
         A dictionary containing the audio waveform as a torch.Tensor

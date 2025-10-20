@@ -35,7 +35,7 @@ from google.genai import types
 from google.genai.types import GenerateVideosConfig, Image
 from grpc import StatusCode
 from PIL import Image as PIL_Image
-
+from pydub import AudioSegment
 
 from .constants import STORAGE_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError
@@ -56,11 +56,7 @@ def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
     image_data = base64.b64decode(base64_string)
     pil_image = PIL_Image.open(io.BytesIO(image_data)).convert("RGBA")
     image_array = np.array(pil_image, dtype=np.float32) / 255.0
-<<<<<<< HEAD
-    tensor = torch.from_numpy(image_array)[None]
-=======
     tensor = torch.from_numpy(image_array)[None,]
->>>>>>> e1c7909 (added converter mp3 or wav)
 
     return tensor
 
@@ -913,15 +909,9 @@ def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
         print(f"Cant convert the image to base64 {e}")
 
 
-import wave
-
-
-def process_audio_response(response: Any) -> dict:
+def process_audio_response(response: Any, file_format: str = "wav") -> List[str]:
     """
-    Processes the audio generation response, loads the audio into a tensor,
-    and returns it in the format expected by ComfyUI's AUDIO output.
-    This implementation uses the standard `wave` module to avoid dependency on ffmpeg.
-    It assumes the audio from the API is in WAV format.
+    Processes the audio generation response and saves generated audio files.
 
     Args:
         response: The completed response object from the Lyria API.

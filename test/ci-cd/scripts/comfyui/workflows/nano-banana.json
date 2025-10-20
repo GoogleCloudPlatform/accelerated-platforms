@@ -18,7 +18,7 @@
   },
   "5": {
     "inputs": {
-      "model": "VEO_3_PREVIEW",
+      "model": "VEO_3_1_PREVIEW",
       "image_format": "PNG",
       "prompt": "Zoom towards bed with Jazz music playing in the background",
       "aspect_ratio": "16:9",

@@ -1,7 +1,7 @@
 {
   "3": {
     "inputs": {
-      "model": "VEO_3_PREVIEW",
+      "model": "VEO_3_1_PREVIEW",
       "gcsuri": "gs://${COMFYUI_BUCKET}-input/jellyfish.png",
       "image_format": "PNG",
       "prompt": "Animate this image",
@@ -12,6 +12,7 @@
       "duration_seconds": 8,
       "generate_audio": true,
       "sample_count": 1,
+      "last_frame_gcsuri": "",
       "output_gcs_uri": "gs://${COMFYUI_BUCKET}-output",
       "negative_prompt": "",
       "seed": 933745934,

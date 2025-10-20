@@ -110,18 +110,6 @@ resource "google_storage_bucket_object" "veo3_gcsimage" {
   source = "src/comfyui-workflows/input-images/jellyfish.png"
 }
 
-resource "google_storage_bucket_object" "veo3_gcsimage_end_int" {
-  bucket = google_storage_bucket.comfyui_input.name
-  name   = "singer_end_frame.png"
-  source = "src/comfyui-workflows/input-images/interpolation/singer_end_frame.png"
-}
-
-resource "google_storage_bucket_object" "veo3_gcsimage_start_int" {
-  bucket = google_storage_bucket.comfyui_input.name
-  name   = "singer_start_frame.png"
-  source = "src/comfyui-workflows/input-images/interpolation/singer_start_frame.png"
-}
-
 resource "google_storage_bucket_object" "vto_gcsimage" {
   for_each = local.vto_files_to_upload
   bucket   = google_storage_bucket.comfyui_input.name
@@ -167,7 +155,7 @@ resource "google_storage_bucket_object" "workflow_imagen4_veo3_itv" {
   depends_on = [local_file.workflow_imagen4_veo3_itv]
 }
 
-resource "google_storage_bucket_object" "workflow_intpl_veo2_itv" {
+resource "google_storage_bucket_object" "workflow_intpl_veo3_itv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
   name       = "interpolation-veo3-image-to-video.json"
   source     = "src/comfyui-workflows/interpolation-veo3-image-to-video.json"

@@ -1,0 +1,108 @@
+{
+  "8": {
+    "class_type": "Imagen4TextToImageNode",
+    "inputs": {
+      "model_name": "IMAGEN_4_ULTRA_PREVIEW",
+      "positive_prompt": "Cinematic Over-the-Shoulder Shot of a detective interrogating a rubber duck in a dark interview room,",
+      "safety_setting": "allow_adult",
+      "aspect_ratio": "16:9",
+      "image_count": 1,
+      "negative_prompt": "",
+      "seed": 23740096,
+      "seed_behavior": "randomize",
+      "gen_watermark": true,
+      "use_experimental": false,
+      "image_format": "PNG",
+      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "logo_position_x": "",
+      "logo_position_y": ""
+    }
+  },
+  "11": {
+    "class_type": "Gemini25FlashImage",
+    "inputs": {
+      "image": [
+        "8",
+        0
+      ],
+      "model_name": "GEMINI_25_FLASH_IMAGE",
+      "prompt": "close up of the detective's face looking at the duck",
+      "strength": 0.7,
+      "image_count": 1,
+      "steps": 32,
+      "safety_setting_harmful": "BLOCK_MEDIUM_AND_ABOVE",
+      "safety_setting_harassment": "BLOCK_MEDIUM_AND_ABOVE",
+      "safety_setting_hate": "BLOCK_MEDIUM_AND_ABOVE",
+      "safety_setting_sexually_explicit": "BLOCK_MEDIUM_AND_ABOVE",
+      "negative_prompt": "",
+      "logo_position_x": "",
+      "logo_position_y": ""
+    }
+  },
+  "10": {
+    "class_type": "Veo3ImageToVideoNode",
+    "inputs": {
+      "image": [
+        "8",
+        0
+      ],
+      "last_frame": [
+        "11",
+        0
+      ],
+      "model_name": "VEO_3_1_PREVIEW",
+      "image_format": "PNG",
+      "prompt": "a ticking clock audible, as the detective sternly asks, \"Where were you last night?\"",
+      "aspect_ratio": "16:9",
+      "resolution": "720p",
+      "quality": "optimized",
+      "safety_setting": "allow_adult",
+      "fps": 8,
+      "gen_watermark": true,
+      "video_count": 1,
+      "negative_prompt": "",
+      "motion_prompt": "",
+      "seed": 2642103899,
+      "seed_behavior": "randomize",
+      "logo_position_x": "",
+      "logo_position_y": ""
+    }
+  },
+  "4": {
+    "class_type": "PreviewImage",
+    "inputs": {
+      "images": [
+        "8",
+        0
+      ]
+    }
+  },
+  "12": {
+    "class_type": "PreviewImage",
+    "inputs": {
+      "images": [
+        "11",
+        0
+      ]
+    }
+  },
+  "5": {
+    "class_type": "VeoVideoSaveAndPreview",
+    "inputs": {
+      "video_paths": [
+        "10",
+        0
+      ],
+      "save_output": true,
+      "save_preview": true,
+      "overwrite_existing": true,
+      "embed_workflow": true,
+      "filename_prefix": "veo_video",
+      "extra_data": {
+        "hidden": false,
+        "paused": false,
+        "parameters": {}
+      }
+    }
+  }
+}

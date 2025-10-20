@@ -417,9 +417,9 @@ class GeminiNode25:
             f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
         )
         response = self.client.models.generate_content(
-            model=GeminiModel[model],
-            contents=contents,
             config=gen_config_obj,
+            contents=contents,
+            model=GeminiModel[model],
         )
 
         # Process the response

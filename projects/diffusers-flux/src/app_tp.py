@@ -14,14 +14,15 @@
 
 import io
 import os
+
 import torch
 import uvicorn
+from accelerate import Accelerator
 from diffusers import FluxPipeline
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from PIL import Image
-from accelerate import Accelerator 
+from pydantic import BaseModel
 
 # It's crucial to instantiate the Accelerator object before any
 # other library-specific code is run.

@@ -33,7 +33,8 @@ rm --force --recursive \
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface/secretproviderclass-huggingface-tokens.yaml" \
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/base/deployment.env" \
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/deployment.env" \
-  $(find "${ACP_REPO_DIR}/platforms/gke/base/" -name backend.tf -printf '"%p" \\\n')
+
+find "${ACP_REPO_DIR}/platforms/gke/base/" -name backend.tf -delete
 
 git restore \
   "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"/*.auto.tfvars \

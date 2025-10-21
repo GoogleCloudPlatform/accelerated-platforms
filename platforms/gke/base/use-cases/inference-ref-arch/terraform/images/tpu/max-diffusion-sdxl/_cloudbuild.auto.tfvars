@@ -1,9 +1,0 @@
-cloudbuild_ar_image_repository_name                             = null
-cloudbuild_ar_location                                          = null
-cloudbuild_ar_project_id                                        = null
-cloudbuild_github_access_token_read_secret_manager_secret_name  = null
-cloudbuild_github_access_token_write_secret_manager_secret_name = null
-cloudbuild_location                                             = null
-cloudbuild_project_id                                           = null
-cloudbuild_service_account_name                                 = null
-cloudbuild_source_bucket_name                                   = null

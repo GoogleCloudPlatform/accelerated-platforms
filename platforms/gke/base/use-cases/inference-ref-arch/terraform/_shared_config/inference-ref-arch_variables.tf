@@ -21,13 +21,17 @@ locals {
   ira_online_gpu_diffusers_flux_image_url        = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
   ira_online_gpu_kubernetes_namespace_name       = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_kubernetes_service_account_name = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
+  ira_online_gpu_vllm_image_url                  = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
+
   ira_online_tpu_kubernetes_namespace_name       = var.ira_online_tpu_kubernetes_namespace_name != null ? var.ira_online_tpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-tpu"
   ira_online_tpu_kubernetes_service_account_name = var.ira_online_tpu_kubernetes_service_account_name != null ? var.ira_online_tpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-tpu"
+  ira_online_tpu_max_diffusion_sdxl_image_url    = var.ira_online_tpu_max_diffusion_sdxl_image_url != null ? var.ira_online_tpu_max_diffusion_sdxl_image_url : "${local.cloudbuild_ar_image_repository_url}/tpu-max-diffusion/sdxl:latest"
+  ira_online_tpu_vllm_image_url                  = var.ira_online_tpu_vllm_image_url != null ? var.ira_online_tpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/tpu:latest"
 }
 
 variable "ira_online_gpu_diffusers_flux_image_url" {
   default     = null
-  description = "The URL for the Diffusers Flux container image."
+  description = "The URL for the GPU Diffusers Flux container image."
   type        = string
 }
 
@@ -43,6 +47,12 @@ variable "ira_online_gpu_kubernetes_service_account_name" {
   type        = string
 }
 
+variable "ira_online_gpu_vllm_image_url" {
+  default     = "docker.io/vllm/vllm-openai:v0.10.1.1"
+  description = "The URL for the GPU vLLM container image."
+  type        = string
+}
+
 variable "ira_online_tpu_kubernetes_namespace_name" {
   default     = null
   description = "The Kubernetes namespace for the online TPU inference workloads."
@@ -52,5 +62,17 @@ variable "ira_online_tpu_kubernetes_namespace_name" {
 variable "ira_online_tpu_kubernetes_service_account_name" {
   default     = null
   description = "The Kubernetes service account for the online TPU inference workloads."
+  type        = string
+}
+
+variable "ira_online_tpu_max_diffusion_sdxl_image_url" {
+  default     = null
+  description = "The URL for the TPU MaxDiffusion SDXL container image."
+  type        = string
+}
+
+variable "ira_online_tpu_vllm_image_url" {
+  default     = "docker.io/vllm/vllm-tpu:4c409cabc2c1c432ba670029990bd59e6bbf1479"
+  description = "The URL for the TPU vLLM container image."
   type        = string
 }

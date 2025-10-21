@@ -28,7 +28,7 @@ resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
     command     = <<-EOT
 gcloud builds submit \
---config="projects/diffusers-flux/cloudbuild.yaml" \
+--config="container-images/gpu/diffusers-flux/cloudbuild.yaml" \
 --gcs-source-staging-dir="gs://${self.input.cloudbuild_source_bucket_name}/source" \
 --project="${self.input.cloudbuild_project_id}" \
 --quiet \
@@ -40,8 +40,8 @@ EOT
   }
 
   triggers_replace = {
-    cloudbuild_yaml_hash = filebase64sha256("${local.acp_root}/projects/diffusers-flux/cloudbuild.yaml")
-    dockerfile_hash      = filebase64sha256("${local.acp_root}/projects/diffusers-flux/Dockerfile")
-    source_hash          = sha256(join("", [for file in fileset("${local.acp_root}/projects/diffusers-flux/src", "**") : filesha256("${local.acp_root}/projects/diffusers-flux/src/${file}")]))
+    cloudbuild_yaml_hash = filebase64sha256("${local.acp_root}/container-images/gpu/diffusers-flux/cloudbuild.yaml")
+    dockerfile_hash      = filebase64sha256("${local.acp_root}/container-images/gpu/diffusers-flux/Dockerfile")
+    source_hash          = sha256(join("", [for file in fileset("${local.acp_root}/container-images/gpu/diffusers-flux/src", "**") : filesha256("${local.acp_root}/container-images/gpu/diffusers-flux/src/${file}")]))
   }
 }

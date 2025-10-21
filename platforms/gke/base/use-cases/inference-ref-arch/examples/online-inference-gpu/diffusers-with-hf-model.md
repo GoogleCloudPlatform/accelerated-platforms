@@ -1,4 +1,4 @@
-# Image generation model Online inference with GPUs on Google Kubernetes Engine (GKE)
+# Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)
 
 This example implements online inference using GPUs on Google Kubernetes Engine
 (GKE)
@@ -18,14 +18,19 @@ This example is built on top of the
 
     - Accept the conditions to access its files and content on the Hugging Face
       model page.
-    - [**black-forest-labs/FLUX.1-schnell**](https://huggingface.co/black-forest-labs/FLUX.1-schnell)
+      - [**black-forest-labs/FLUX.1-schnell**](https://huggingface.co/black-forest-labs/FLUX.1-schnell)
 
-## Create and configure Google Cloud resources
+- Ensure your
+  [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
+  has been added to Secret Manager.
+
+## Create and configure the Google Cloud resources
 
 - Deploy the online GPU resources.
 
   ```shell
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
+  rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
   terraform apply -input=false tfplan && \
@@ -65,7 +70,7 @@ This example is built on top of the
   ```shell
   watch --color --interval 5 --no-title \
   "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-hf-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
-  echo -e '\nLogs(last 10 lines):'
+  echo '\nLogs(last 10 lines):'
   kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --all-containers --tail 10"
   ```
 
@@ -84,7 +89,13 @@ This example is built on top of the
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
 
-### Deploy the Image models online inference workload.
+## Deploy the online inference workload
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
 
 - Set the environment variables for the workload.
 
@@ -116,14 +127,15 @@ This example is built on top of the
     accelerator type. For more information, see about viewing GPU quotas, see
     [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
-- Build the container image for the Diffusers online inference web server.
+- Build the container image for the Diffusers inference server.
 
   ```shell
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
-    terraform init && \
-    terraform plan -input=false -out=tfplan && \
-    terraform apply -input=false tfplan && \
-    rm tfplan
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
   ```
 
 - Configure the deployment.
@@ -151,7 +163,7 @@ This example is built on top of the
 
   ```text
   NAME                                           READY   UP-TO-DATE   AVAILABLE   AGE
-  diffusers-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1      1            1           ###
+  diffusers-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1     1            1           ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -160,31 +172,48 @@ This example is built on top of the
 
   ```shell
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
-  curl -X POST http://localhost:8000/generate \
-    -H "Content-Type: application/json" \
-    -d '{ "prompt": "A photo of a dog playing fetch in a park.", "height": 512,
-    "width": 512, "num_inference_steps": 4 }’ \
-    --output generated_image.png
+  PF_PID=$!
+  while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
+    sleep 0.1
+  done
+  curl http://localhost:8000/generate \
+  --data '{
+    "height": 512,
+    "num_inference_steps": 4,
+    "prompt": "A photo of a dog playing fetch in a park.",
+    "width": 512
+  }' \
+  --header "Content-Type: application/json" \
+  --output generated_image.png \
+  --request POST \
+  --show-error \
+  --silent
+  ls -alh generated_image.png
+  kill -9 ${PF_PID}
   ```
 
 - Delete the workload.
 
-```shell
-kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-```
-
-## Troubleshooting
-
-If you experience any issue while deploying the workload, see the
-[Online inference with GPUs Troubleshooting](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/troubleshooting.md)
-guide.
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  ```
 
 ## Clean up
+
+- Destroy the Diffusers container image.
+
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init &&
+  terraform destroy -auto-approve
+  ```
 
 - Destroy the online GPU resources.
 
   ```shell
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
+  rm -rf .terraform/ terraform.tfstate* && \
   terraform init &&
   terraform destroy -auto-approve
   ```

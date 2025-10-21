@@ -1,5 +1,0 @@
-platform_custom_role_unique_suffix = "1757708261"
-platform_default_project_id        = "accelerated-platforms-dev"
-platform_default_region            = "us-central1"
-platform_name                      = "kr-ar"
-resource_name_prefix               = "inf"

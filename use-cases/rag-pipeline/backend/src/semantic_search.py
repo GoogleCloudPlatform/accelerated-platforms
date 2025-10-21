@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import generate_embeddings
 import json
 import logging
 import logging.config
 import os
+
+import generate_embeddings
 import pandas as pd
-from sqlalchemy import text
 from google.cloud.alloydb.connector import Connector
+from sqlalchemy import text
 
 # Configure logging
 logging.config.fileConfig("logging.conf")

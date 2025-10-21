@@ -14,24 +14,24 @@
 #
 
 import asyncio
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import Response
-from fastapi.middleware.cors import CORSMiddleware
 import io
 import logging
 import logging.config
 import os
-from PIL import Image
 import time
-import uvicorn
 
 import jax
 import jax.numpy as jnp
 import numpy as np
+import uvicorn
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from flax.jax_utils import replicate
 from jax import pmap
 from jax.experimental.compilation_cache import compilation_cache as cc
 from maxdiffusion import FlaxStableDiffusionXLPipeline
+from PIL import Image
 
 ROOT_LEVEL = "INFO"
 MODEL_DIR = os.environ.get("MODEL_ID")

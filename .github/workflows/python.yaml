@@ -28,7 +28,7 @@ jobs:
         with:
           options: "--check --diff --verbose"
           src: "./"
-          version: "~= 22.0"
+          version: "~= 25.9"
 
   # https://pycqa.github.io/isort/docs/configuration/github_action.html
   isort:
@@ -36,5 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: isort --check-only --diff
+      - name: isort --check-only --diff --profile black
         uses: isort/isort-action@v1
+        with:
+          configuration: --check-only --diff --profile black .

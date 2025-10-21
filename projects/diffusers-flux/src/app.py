@@ -13,14 +13,15 @@
 # limitations under the License.
 
 import base64
+import io
+import os
+
+import torch
 from diffusers import FluxPipeline
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
-import io
-import os
-from pydantic import BaseModel
 from PIL import Image
-import torch
+from pydantic import BaseModel
 
 app = FastAPI()
 

@@ -16,12 +16,12 @@ import json
 import logging
 import logging.config
 import os
-import pandas as pd
 import re
-import requests
 import signal
 import sys
 
+import pandas as pd
+import requests
 from datasets import load_from_disk
 from google.cloud import storage
 

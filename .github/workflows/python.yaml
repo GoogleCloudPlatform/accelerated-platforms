@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# https://black.readthedocs.io/en/stable/integrations/github_actions.html
-name: Python formatter
+name: Python
 on:
   - push
   - pull_request
 jobs:
-  black:
+  # https://black.readthedocs.io/en/stable/integrations/github_actions.html
+  black-formatter:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,3 +29,12 @@ jobs:
           options: "--check --diff --verbose"
           src: "./"
           version: "~= 22.0"
+
+  # https://pycqa.github.io/isort/docs/configuration/github_action.html
+  isort:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: isort --check-only --diff
+        uses: isort/isort-action@v1

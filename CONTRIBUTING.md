@@ -36,8 +36,10 @@ information on using pull requests.
 
 #### Python
 
-The repository requires that files use the [Black](https://github.com/psf/black)
-code formatter and style.
+The repository requires that Python files:
+
+- Use the [Black](https://github.com/psf/black) code formatter and style.
+- Use the [isort](https://github.com/PyCQA/isort) to organize imports.
 
 #### Markdown
 

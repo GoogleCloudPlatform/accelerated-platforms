@@ -413,21 +413,14 @@ class GeminiNode25:
             ) from e
 
         # Make the API call
-        try:
-            print(
-                f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
-            )
-            response = self.client.models.generate_content(
-                model=GeminiModel[model],
-                contents=contents,
-                config=gen_config_obj,
-            )
-        except APIExecutionError as e:
-            raise RuntimeError(f"Gemini API Error: {e}") from e
-        except Exception as e:
-            raise RuntimeError(
-                f"An unexpected error occurred during Gemini API call: {e}"
-            ) from e
+        print(
+            f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
+        )
+        response = self.client.models.generate_content(
+            config=gen_config_obj,
+            contents=contents,
+            model=GeminiModel[model],
+        )
 
         # Process the response
         try:

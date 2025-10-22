@@ -69,5 +69,5 @@ class ThresholdOptions(Enum):
 
 
 class Veo3Model(str, Enum):
-    VEO_3_PREVIEW = "veo-3.0-generate-preview"
-    VEO_3_FAST_PREVIEW = "veo-3.0-fast-generate-preview"
+    VEO_3_1_PREVIEW = "veo-3.1-generate-preview"
+    VEO_3_1_FAST_PREVIEW = "veo-3.1-fast-generate-preview"

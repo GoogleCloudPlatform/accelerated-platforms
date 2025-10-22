@@ -136,6 +136,12 @@ resource "google_storage_bucket_object" "workflow_imagen3_veo2_itv" {
   depends_on = [local_file.workflow_imagen3_veo2_itv]
 }
 
+resource "google_storage_bucket_object" "workflow_imagen4_banana_veo3_interpolation_video" {
+  bucket = google_storage_bucket.comfyui_workflow.name
+  name   = "imagen4-banana-veo3-interpolation-video.json"
+  source = "src/comfyui-workflows/imagen4-banana-veo3-interpolation-video.json"
+}
+
 resource "google_storage_bucket_object" "workflow_imagen4_tti" {
   bucket = google_storage_bucket.comfyui_workflow.name
   name   = "imagen4-text-to-image.json"
@@ -149,10 +155,10 @@ resource "google_storage_bucket_object" "workflow_imagen4_veo3_itv" {
   depends_on = [local_file.workflow_imagen4_veo3_itv]
 }
 
-resource "google_storage_bucket_object" "workflow_intpl_veo2_itv" {
+resource "google_storage_bucket_object" "workflow_intpl_veo3_itv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
-  name       = "interpolation-veo2-image-to-video.json"
-  source     = "src/comfyui-workflows/interpolation-veo2-image-to-video.json"
+  name       = "interpolation-veo3-image-to-video.json"
+  source     = "src/comfyui-workflows/interpolation-veo3-image-to-video.json"
   depends_on = [google_storage_bucket_object.intpl_gcsimage]
 }
 

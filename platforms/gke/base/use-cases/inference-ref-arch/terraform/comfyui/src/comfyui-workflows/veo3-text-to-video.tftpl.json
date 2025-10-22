@@ -1,15 +1,15 @@
 {
   "id": "84b5eff9-dee6-47b8-9bf8-83a4b4ec04f9",
   "revision": 0,
-  "last_node_id": 6,
-  "last_link_id": 5,
+  "last_node_id": 8,
+  "last_link_id": 7,
   "nodes": [
     {
-      "id": 3,
+      "id": 8,
       "type": "VeoVideoSaveAndPreview",
       "pos": [
-        1630.414794921875,
-        249.49887084960938
+        1769.044189453125,
+        251.32626342773438
       ],
       "size": [
         282.740234375,
@@ -22,7 +22,7 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 5
+          "link": 7
         }
       ],
       "outputs": [],
@@ -34,24 +34,19 @@
         true,
         true,
         true,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
+        "veo_video"
       ]
     },
     {
-      "id": 6,
+      "id": 7,
       "type": "Veo3TextToVideoNode",
       "pos": [
-        1016.4773559570312,
-        181.23043823242188
+        990.219970703125,
+        174.81886291503906
       ],
       "size": [
-        400,
-        478
+        570.1547241210938,
+        577.1671142578125
       ],
       "flags": {},
       "order": 0,
@@ -62,7 +57,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            5
+            7
           ]
         }
       ],
@@ -70,7 +65,7 @@
         "Node name for S&R": "Veo3TextToVideoNode"
       },
       "widgets_values": [
-        "VEO_3_PREVIEW",
+        "VEO_3_1_PREVIEW",
         "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn. As it progresses, the mist slowly dissipates, revealing colossal, glowing crystal formations emerging from the ground. Fauna, never-before-seen, begins to stir – iridescent birds with long tails take flight, and massive, gentle creatures with bioluminescent markings graze among the crystals. The light subtly shifts from dawn's muted tones to vibrant daylight, illuminating new details with each passing second. The camera eventually ascends above the canopy, revealing a breathtaking vista of the entire crystal forest.",
         "16:9",
         "720p",
@@ -90,10 +85,10 @@
   ],
   "links": [
     [
-      5,
-      6,
+      7,
+      7,
       0,
-      3,
+      8,
       0,
       "VEO_VIDEO"
     ]
@@ -108,7 +103,7 @@
         -104.15173643369593
       ]
     },
-    "frontendVersion": "1.23.4",
+    "frontendVersion": "1.26.13",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

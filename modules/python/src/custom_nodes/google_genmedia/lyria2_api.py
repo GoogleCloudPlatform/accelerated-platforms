@@ -111,9 +111,5 @@ class Lyria2API:
             f"Lyria Node: Response received from model: {response.model_display_name}"
         )
 
-<<<<<<< HEAD
-        return utils.process_audio_response(response)
-
-=======
         return utils.process_audio_response(response, file_format)
->>>>>>> 33e3b6b (update script)
+

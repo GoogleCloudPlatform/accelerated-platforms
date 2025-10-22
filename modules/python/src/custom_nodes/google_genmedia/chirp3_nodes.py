@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from .constants import LYRIA2_MAX_SAMPLES, MAX_SEED
+from .constants import CHIRP3_MAX_SAMPLES, MAX_SEED
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
-from .lyria2_api import Lyria2API
+from .chirp3_api import Chirp3API
 
 
-class Lyria2TextToMusicNode:
-    """A ComfyUI node for generating music from text prompts using the Google Lyria 2 API."""
+class Chirp3TextToAudioNode:
+    """A ComfyUI node for generating audio from text prompts using the Google Chirp 3 API."""
 
     def __init__(self) -> None:
         pass
@@ -34,7 +34,7 @@ class Lyria2TextToMusicNode:
                     {
                         "multiline": True,
                         "default": "An energetic electronic dance track.",
-                        "placeholder": "Describe the music you want to generate...",
+                        "placeholder": "Describe the audio you want to generate...",
                     },
                 ),
                 "sample_count": (
@@ -76,10 +76,10 @@ class Lyria2TextToMusicNode:
 
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
-    FUNCTION = "generate_music"
-    CATEGORY = "Google AI/Lyria2"
+    FUNCTION = "generate_audio"
+    CATEGORY = "Google AI/Chirp3"
 
-    def generate_music(
+    def generate_audio(
         self,
         prompt: str,
         gcp_project_id: Optional[str] = None,
@@ -89,15 +89,15 @@ class Lyria2TextToMusicNode:
         seed: Optional[int] = None,
     ) -> Tuple[dict,]:
         """
-        Generates music from a text prompt using the Lyria 2 API.
+        Generates audio from a text prompt using the Chirp 3 API.
 
         Args:
-            prompt: The text prompt for music generation.
+            prompt: The text prompt for audio generation.
             gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
             gcp_region: The GCP region. If provided, overrides metadata lookup.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-            sample_count: The number of music samples to generate.
-            seed: An optional seed for reproducible music generation.
+            sample_count: The number of audio samples to generate.
+            seed: An optional seed for reproducible audio generation.
 
 
         Returns:
@@ -105,7 +105,7 @@ class Lyria2TextToMusicNode:
 
         Raises:
             ConfigurationError: If input parameters are invalid or GCP configuration is missing.
-            RuntimeError: If music generation fails due to API errors or unexpected issues.
+            RuntimeError: If audio generation fails due to API errors or unexpected issues.
         """
 
         if not prompt or not isinstance(prompt, str) or not prompt.strip():
@@ -116,14 +116,14 @@ class Lyria2TextToMusicNode:
                 "Cannot use a specific 'seed' and 'sample_count' > 1 in the same request."
             )
 
-        if not (1 <= sample_count <= LYRIA2_MAX_SAMPLES):
+        if not (1 <= sample_count <= CHIRP3_MAX_SAMPLES):
             raise ConfigurationError(
-                f"sample_count must be between 1 and {LYRIA2_MAX_SAMPLES}."
+                f"sample_count must be between 1 and {CHIRP3_MAX_SAMPLES}."
             )
 
         try:
-            lyria2_api = Lyria2API(project_id=gcp_project_id, region=gcp_region)
-            audio_data = lyria2_api.generate_music_from_text(
+            chirp3_api = Chirp3API(project_id=gcp_project_id, region=gcp_region)
+            audio_data = chirp3_api.generate_audio_from_text(
                 negative_prompt=negative_prompt,
                 prompt=prompt,
                 sample_count=sample_count,
@@ -137,13 +137,13 @@ class Lyria2TextToMusicNode:
             raise RuntimeError(f"Configuration Error: {e}") from e
         except Exception as e:
             raise RuntimeError(
-                f"An unexpected error occurred during music generation: {e}"
+                f"An unexpected error occurred during audio generation: {e}"
             ) from e
         if not audio_data:
-            raise RuntimeError("Lyria API failed to generate any audio files.")
+            raise RuntimeError("Chirp3 API failed to generate any audio files.")
 
         return (audio_data,)
 
 
-NODE_CLASS_MAPPINGS = {"Lyria2TextToMusicNode": Lyria2TextToMusicNode}
-NODE_DISPLAY_NAME_MAPPINGS = {"Lyria2TextToMusicNode": "Lyria 2 Text To Music"}
+NODE_CLASS_MAPPINGS = {"Chirp3TextToAudioNode": Chirp3TextToAudioNode}
+NODE_DISPLAY_NAME_MAPPINGS = {"Chirp3TextToAudioNode": "Chirp 3 Text To Audio"}

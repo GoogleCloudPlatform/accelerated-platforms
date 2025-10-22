@@ -35,7 +35,7 @@ from google.genai import types
 from google.genai.types import GenerateVideosConfig, Image
 from grpc import StatusCode
 from PIL import Image as PIL_Image
-from pydub import AudioSegment
+
 
 from .constants import STORAGE_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError
@@ -908,51 +908,68 @@ def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
         print(f"Cant convert the image to base64 {e}")
         print(f"Cant convert the image to base64 {e}")
 
-
-def process_audio_response(response: Any, file_format: str = "wav") -> List[str]:
+def process_audio_response(response: Any) -> dict:
     """
-    Processes the audio generation response and saves generated audio files.
+    Processes the audio generation response, loads the audio into a tensor,
+    and returns it in the format expected by ComfyUI's AUDIO output.
 
     Args:
         response: The completed response object from the Lyria API.
-        file_format: The desired audio file format. Supported formats: "wav", "mp3".
 
     Returns:
-        A list of file paths to the saved audio files.
+        A dictionary containing the audio waveform as a torch.Tensor
+        and the sample rate.
 
     Raises:
-        APIExecutionError: If no audio data is found or if saving fails.
+        APIExecutionError: If no audio data is found or if loading fails.
     """
-    output_dir = folder_paths.get_temp_directory()
-    os.makedirs(output_dir, exist_ok=True)
-
-    audio_paths: List[str] = []
+    try:
+        import torchaudio
+        import torch
+    except ImportError as e:
+        raise APIExecutionError(
+            f"{e.name} is required to process audio but is not installed. "
+            "Please ensure you are running in an environment with all necessary dependencies."
+        )
 
     if not response.predictions:
         raise APIExecutionError("No predictions found in the API response.")
 
+    waveforms = []
+    sample_rate = None
+
     print(f"Found {len(response.predictions)} audio clips to process.")
     for n, prediction in enumerate(response.predictions):
         prediction_dict = dict(prediction)
-
-        timestamp = int(time.time())
-        unique_id = random.randint(1000, 99999)
-        audio_filename = f"lyria_{timestamp}_{unique_id}_{n}.{file_format}"
-        audio_path = os.path.join(output_dir, audio_filename)
-
+        audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
+        
+        buffer = io.BytesIO(audio_bytes)
+        
         try:
-            audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
-            audio_segment = AudioSegment.from_file(io.BytesIO(audio_bytes))
-            audio_segment.export(audio_path, format=file_format)
-            audio_paths.append(audio_path)
-            print(f"Saved audio {n} from base64 to {audio_path}")
+            waveform, sr = torchaudio.load(buffer)
+            waveforms.append(waveform)
+            if sample_rate is None:
+                sample_rate = sr
+            elif sample_rate != sr:
+                print(f"Warning: Mismatch in sample rates. Expected {sample_rate}, got {sr}. Using the first sample rate.")
         except Exception as e:
-            print(f"Error saving audio {n} to {audio_path}: {e}")
+            print(f"Error loading audio from API response for sample {n}: {e}")
+            raise APIExecutionError(f"Failed to load audio for sample {n}. Check if ffmpeg backend for torchaudio is installed and configured correctly.") from e
 
-    if not audio_paths:
-        raise APIExecutionError(
-            "Failed to save any audio despite successful generation response."
-        )
+    if not waveforms:
+        raise APIExecutionError("Failed to load any audio waveforms from the API response.")
 
-    print(f"Successfully processed and saved {len(audio_paths)} audio files.")
-    return audio_paths
+    # Pad to max length if necessary
+    max_len = max(w.shape[1] for w in waveforms)
+    padded_waveforms = []
+    for w in waveforms:
+        if w.shape[1] < max_len:
+            padding = max_len - w.shape[1]
+            padded_w = torch.nn.functional.pad(w, (0, padding))
+            padded_waveforms.append(padded_w)
+        else:
+            padded_waveforms.append(w)
+            
+    batched_waveform = torch.stack(padded_waveforms)
+
+    return {"waveform": batched_waveform, "sample_rate": sample_rate}

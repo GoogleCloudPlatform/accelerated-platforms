@@ -12,25 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of veo2 custom node
-# Copyright 2025 Google LLC
-# (license header)
-
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from google.api_core.gapic_v1.client_info import ClientInfo
 from google.cloud import aiplatform
 
 from . import utils
 from .config import get_gcp_metadata
-from .constants import LYRIA2_MODEL, LYRIA2_USER_AGENT
+from .constants import CHIRP3_MODEL, CHIRP3_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .retry import api_error_retry
 
 
-class Lyria2API:
+class Chirp3API:
     """
-    A class to interact with the Imagen API for image generation.
+    A class to interact with the Chirp-3 API for audio generation.
     """
 
     def __init__(self, project_id: Optional[str] = None, region: Optional[str] = None):
@@ -58,11 +54,11 @@ class Lyria2API:
             aiplatform.init(project=self.project_id, location=self.region)
             self.api_regional_endpoint = f"{self.region}-aiplatform.googleapis.com"
             self.client_options = {"api_endpoint": self.api_regional_endpoint}
-            self.client_info = ClientInfo(user_agent=LYRIA2_USER_AGENT)
+            self.client_info = ClientInfo(user_agent=CHIRP3_USER_AGENT)
             self.client = aiplatform.gapic.PredictionServiceClient(
                 client_options=self.client_options, client_info=self.client_info
             )
-            self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/{LYRIA2_MODEL}"
+            self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/{CHIRP3_MODEL}"
             print(
                 f"Prediction client initiated on project : {self.project_id}, location: {self.region}"
             )
@@ -72,7 +68,7 @@ class Lyria2API:
             )
 
     @api_error_retry
-    def generate_music_from_text(
+    def generate_audio_from_text(
         self,
         prompt: str,
         negative_prompt: Optional[str] = None,
@@ -80,33 +76,33 @@ class Lyria2API:
         seed: Optional[int] = 0,
     ) -> dict:
         """
-        Generates music from a text prompt using the Lyria 2 API.
+        Generates audio from a text prompt using the Chirp 3 API.
         Args:
-            prompt: The text prompt for music generation.
+            prompt: The text prompt for audio generation.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-            sample_count: The number of music samples to generate.
-            seed: An optional seed for reproducible music generation.
+            sample_count: The number of audio samples to generate.
+            seed: An optional seed for reproducible audio generation.
         Returns:
-            A list of file paths to the generated music.
+            A dictionary containing the audio waveform and sample rate.
         Raises:
             APIInputError: If input parameters are invalid.
-            APIExecutionError: If music generation fails due to API or unexpected issues.
+            APIExecutionError: If audio generation fails due to API or unexpected issues.
         """
         instance = {"prompt": str(prompt)}
         if negative_prompt:
             instance["negative_prompt"] = str(negative_prompt)
         if seed > 0:
             instance["seed"] = seed
-            print(f"Lyria Node: Using seed: {seed}")
+            print(f"Chirp3 Node: Using seed: {seed}")
         else:
             instance["sample_count"] = sample_count
-            print(f"Lyria Node: Using sample_count: {sample_count}")
-        print(f"Lyria Node: Instance: {instance}")
+            print(f"Chirp3 Node: Using sample_count: {sample_count}")
+        print(f"Chirp3 Node: Instance: {instance}")
         response = self.client.predict(
             endpoint=self.model_endpoint, instances=[instance]
         )
         print(
-            f"Lyria Node: Response received from model: {response.model_display_name}"
+            f"Chirp3 Node: Response received from model: {response.model_display_name}"
         )
 
         return utils.process_audio_response(response)

@@ -33,7 +33,7 @@ class Veo3TextToVideoNode:
             "required": {
                 "model": (
                     [model.name for model in Veo3Model],
-                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                    {"default": Veo3Model.VEO_3_1_PREVIEW.name},
                 ),
                 "prompt": ("STRING", {"multiline": True}),
                 "aspect_ratio": (VEO3_VALID_ASPECT_RATIOS, {"default": "16:9"}),
@@ -85,11 +85,11 @@ class Veo3TextToVideoNode:
     RETURN_TYPES = ("VEO_VIDEO",)
     RETURN_NAMES = ("video_paths",)
     FUNCTION = "generate"
-    CATEGORY = "Google AI/Veo3"
+    CATEGORY = "Google AI/Veo3.1"
 
     def generate(
         self,
-        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        model: str = Veo3Model.VEO_3_1_PREVIEW.name,
         prompt: str = "A drone shot smoothly flies through an ancient, mist-shrouded jungle at dawn.",
         aspect_ratio: str = "16:9",
         output_resolution: str = "720p",
@@ -178,7 +178,7 @@ class Veo3GcsUriImageToVideoNode:
             "required": {
                 "model": (
                     [model.name for model in Veo3Model],
-                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                    {"default": Veo3Model.VEO_3_1_PREVIEW.name},
                 ),
                 "gcsuri": (
                     "STRING",
@@ -207,6 +207,10 @@ class Veo3GcsUriImageToVideoNode:
                 "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
+                "last_frame_gcsuri": (
+                    "STRING",
+                    {"default": "", "tooltip": "GCS URI for the last frame image"},
+                ),
                 "output_gcs_uri": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
@@ -238,11 +242,11 @@ class Veo3GcsUriImageToVideoNode:
     RETURN_TYPES = ("VEO_VIDEO",)
     RETURN_NAMES = ("video_paths",)
     FUNCTION = "generate"
-    CATEGORY = "Google AI/Veo3"
+    CATEGORY = "Google AI/Veo3.1"
 
     def generate(
         self,
-        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        model: str = Veo3Model.VEO_3_1_PREVIEW.name,
         gcsuri: str = "",
         image_format: str = "PNG",
         prompt: str = "",
@@ -254,6 +258,7 @@ class Veo3GcsUriImageToVideoNode:
         generate_audio: bool = True,
         enhance_prompt: bool = True,
         sample_count: int = 1,
+        last_frame_gcsuri: str = "",
         output_gcs_uri: str = "",
         negative_prompt: Optional[str] = None,
         seed: Optional[int] = None,
@@ -276,6 +281,7 @@ class Veo3GcsUriImageToVideoNode:
             generate_audio: Flag to generate audio.
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
+            last_frame_gcsuri: gcsuri of the last_frame image for interpolation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             seed: An optional seed for reproducible video generation.
@@ -309,6 +315,7 @@ class Veo3GcsUriImageToVideoNode:
                 generate_audio=generate_audio,
                 enhance_prompt=enhance_prompt,
                 sample_count=sample_count,
+                last_frame_gcsuri=last_frame_gcsuri,
                 output_gcs_uri=output_gcs_uri,
                 negative_prompt=negative_prompt,
                 seed=seed_for_api,
@@ -337,7 +344,7 @@ class Veo3ImageToVideoNode:
             "required": {
                 "model": (
                     [model.name for model in Veo3Model],
-                    {"default": Veo3Model.VEO_3_PREVIEW.name},
+                    {"default": Veo3Model.VEO_3_1_PREVIEW.name},
                 ),
                 "image": ("IMAGE",),
                 "image_format": (
@@ -363,6 +370,7 @@ class Veo3ImageToVideoNode:
                 "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
             },
             "optional": {
+                "last_frame": ("IMAGE",),
                 "output_gcs_uri": ("STRING", {"default": ""}),
                 "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
                 "seed": (
@@ -394,11 +402,11 @@ class Veo3ImageToVideoNode:
     RETURN_TYPES = ("VEO_VIDEO",)
     RETURN_NAMES = ("video_paths",)
     FUNCTION = "generate"
-    CATEGORY = "Google AI/Veo3"
+    CATEGORY = "Google AI/Veo3.1"
 
     def generate(
         self,
-        model: str = Veo3Model.VEO_3_PREVIEW.name,
+        model: str = Veo3Model.VEO_3_1_PREVIEW.name,
         image: torch.Tensor = None,
         image_format: str = "PNG",
         prompt: str = "",
@@ -411,6 +419,7 @@ class Veo3ImageToVideoNode:
         enhance_prompt: bool = True,
         sample_count: int = 1,
         seed: Optional[int] = None,
+        last_frame: Optional[torch.Tensor] = None,
         output_gcs_uri: str = "",
         negative_prompt: Optional[str] = None,
         gcp_project_id: Optional[str] = None,
@@ -433,6 +442,7 @@ class Veo3ImageToVideoNode:
             enhance_prompt: Whether to enhance the prompt automatically.
             sample_count: The number of video samples to generate.
             seed: An optional seed for reproducible video generation.
+            last_frame: last frame for interpolation.
             output_gcs_uri: output gcs url to store the video. Required with lossless output.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
             gcp_project_id: GCP project ID where the Veo will be queried via Vertex AI APIs
@@ -473,6 +483,7 @@ class Veo3ImageToVideoNode:
                     generate_audio=generate_audio,
                     enhance_prompt=enhance_prompt,
                     sample_count=sample_count,
+                    last_frame=last_frame,
                     output_gcs_uri=output_gcs_uri,
                     negative_prompt=negative_prompt,
                     seed=seed_for_api,
@@ -497,7 +508,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Veo3TextToVideoNode": "Veo3 Text To Video",
-    "Veo3GcsUriImageToVideoNode": "Veo3 Image To Video (GcsUriImage)",
-    "Veo3ImageToVideoNode": "Veo3 Image To Video",
+    "Veo3TextToVideoNode": "Veo3.1 Text To Video",
+    "Veo3GcsUriImageToVideoNode": "Veo3.1 Image To Video (GcsUriImage)",
+    "Veo3ImageToVideoNode": "Veo3.1 Image To Video",
 }

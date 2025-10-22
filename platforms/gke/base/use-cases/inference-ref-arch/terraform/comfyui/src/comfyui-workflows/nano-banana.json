@@ -34,183 +34,6 @@
       "widgets_values": []
     },
     {
-      "id": 5,
-      "type": "Veo3ImageToVideoNode",
-      "pos": [
-        935.61865234375,
-        -164.45321655273438
-      ],
-      "size": [
-        400,
-        502
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 4
-        }
-      ],
-      "outputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "links": [
-            9
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Veo3ImageToVideoNode"
-      },
-      "widgets_values": [
-        "VEO_3_PREVIEW",
-        "PNG",
-        "Zoom towards bed with Jazz music playing in the background",
-        "16:9",
-        "720p",
-        "optimized",
-        "allow_adult",
-        8,
-        true,
-        1,
-        "",
-        "",
-        1394449548,
-        "randomize",
-        "",
-        ""
-      ]
-    },
-    {
-      "id": 10,
-      "type": "VeoVideoSaveAndPreview",
-      "pos": [
-        1458.3560791015625,
-        -58.51436233520508
-      ],
-      "size": [
-        282.740234375,
-        154
-      ],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 9
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "VeoVideoSaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        false,
-        false,
-        "veo_video"
-      ]
-    },
-    {
-      "id": 1,
-      "type": "Gemini25FlashImage",
-      "pos": [
-        226.14772033691406,
-        58.14377975463867
-      ],
-      "size": [
-        661.1953735351562,
-        494.5100402832031
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 13
-        }
-      ],
-      "outputs": [
-        {
-          "name": "Generated Image",
-          "type": "IMAGE",
-          "links": [
-            4,
-            8
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Gemini25FlashImage"
-      },
-      "widgets_values": [
-        "GEMINI_25_FLASH_IMAGE",
-        "Place the objects from image 1 in the environment of image 2",
-        0.7,
-        1,
-        32,
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "",
-        "",
-        "global"
-      ]
-    },
-    {
-      "id": 11,
-      "type": "ImageBatch",
-      "pos": [
-        208.60009765625,
-        -203.18365478515625
-      ],
-      "size": [
-        140,
-        46
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image1",
-          "type": "IMAGE",
-          "link": 14
-        },
-        {
-          "name": "image2",
-          "type": "IMAGE",
-          "link": 15
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            13
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.45",
-        "Node name for S&R": "ImageBatch"
-      },
-      "widgets_values": []
-    },
-    {
       "id": 13,
       "type": "VHS_LoadImagePath",
       "pos": [
@@ -218,8 +41,8 @@
         -210.37315368652344
       ],
       "size": [
-        239.3153533935547,
-        358.31390380859375
+        239.84765625,
+        358.8437805175781
       ],
       "flags": {},
       "order": 0,
@@ -269,15 +92,73 @@
       }
     },
     {
+      "id": 5,
+      "type": "Veo3ImageToVideoNode",
+      "pos": [
+        935.61865234375,
+        -164.45321655273438
+      ],
+      "size": [
+        400,
+        502
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 4
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Veo3ImageToVideoNode"
+      },
+      "widgets_values": [
+        "VEO_3_1_PREVIEW",
+        "PNG",
+        "Zoom towards bed with Jazz music playing in the background",
+        "16:9",
+        "720p",
+        "optimized",
+        "allow_adult",
+        8,
+        true,
+        1,
+        "",
+        "",
+        995992679,
+        "randomize",
+        "",
+        ""
+      ]
+    },
+    {
       "id": 14,
       "type": "VHS_LoadImagePath",
       "pos": [
-        -274.3890380859375,
-        282.3928527832031
+        -257.6912536621094,
+        206.86288452148438
       ],
       "size": [
-        239.3153533935547,
-        358.31390380859375
+        239.84765625,
+        358.8437805175781
       ],
       "flags": {},
       "order": 1,
@@ -325,6 +206,136 @@
           }
         }
       }
+    },
+    {
+      "id": 10,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        1393.6055908203125,
+        -164.26145935058594
+      ],
+      "size": [
+        282.740234375,
+        355.7913818359375
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        false,
+        false,
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "type": "Gemini25FlashImage",
+      "pos": [
+        178.28086853027344,
+        -60.26088333129883
+      ],
+      "size": [
+        661.1953735351562,
+        494.5100402832031
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            4,
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Gemini25FlashImage"
+      },
+      "widgets_values": [
+        "GEMINI_25_FLASH_IMAGE",
+        "Place the objects from image 1 in the environment of image 2. There are two tables and lamps. Lamps are centered on the table.",
+        0.7,
+        1,
+        32,
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        "",
+        "global"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "ImageBatch",
+      "pos": [
+        14.910828590393066,
+        -208.8512420654297
+      ],
+      "size": [
+        140,
+        46
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 14
+        },
+        {
+          "name": "image2",
+          "type": "IMAGE",
+          "link": 15
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.45",
+        "Node name for S&R": "ImageBatch"
+      },
+      "widgets_values": []
     }
   ],
   "links": [
@@ -381,13 +392,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.8509532461930749,
+      "scale": 0.8292003709562554,
       "offset": [
-        458.4857081865853,
-        280.74811843891223
+        308.4119495912762,
+        288.1988318006892
       ]
     },
-    "frontendVersion": "1.23.4",
+    "frontendVersion": "1.26.13",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,
@@ -395,3 +406,4 @@
   },
   "version": 0.4
 }
+

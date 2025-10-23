@@ -97,10 +97,10 @@ class Lyria2API:
             instance["negative_prompt"] = str(negative_prompt)
         if seed > 0:
             instance["seed"] = seed
-            print(f"Lyria Node: Using seed: {seed}")
+            instance["sample_count"] = 1
         else:
+            instance["seed"] = 0
             instance["sample_count"] = sample_count
-            print(f"Lyria Node: Using sample_count: {sample_count}")
         print(f"Lyria Node: Instance: {instance}")
         response = self.client.predict(
             endpoint=self.model_endpoint, instances=[instance]

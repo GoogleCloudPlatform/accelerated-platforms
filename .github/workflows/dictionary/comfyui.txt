@@ -17,6 +17,7 @@ denoised
 dont
 dont_allow
 filebase
+flac
 ftype
 gcsimage
 genai

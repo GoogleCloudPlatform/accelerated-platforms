@@ -7,6 +7,10 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
+      "name": "asciinema",
+      "path": ".github/workflows/dictionary/asciinema.txt"
+    },
+    {
       "name": "comfyui",
       "path": ".github/workflows/dictionary/comfyui.txt"
     },
@@ -85,6 +89,7 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "asciinema",
     "comfyui",
     "docker",
     "flipkart",
@@ -107,6 +112,8 @@
   "ignorePaths": [
     "**/go.mod",
     "**/go.sum",
+    "**/*.cast",
+    "**/*.svg",
     "node_modules",
     "use-cases/inferencing/batch-inference/example_predictions.txt",
     "use-cases/model-fine-tuning-pipeline/model-eval/examples/"

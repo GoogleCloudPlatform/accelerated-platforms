@@ -137,6 +137,8 @@ For more information about providing values for Terraform input variables, see
   ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-ap.sh
   ```
 
+  [![asciicast](https://asciinema.org/a/Z0LY8l6aVueU5nPPnTHqRh4Cx.svg)](https://asciinema.org/a/Z0LY8l6aVueU5nPPnTHqRh4Cx)
+
   > The `deploy-ap.sh` script usually takes 15 to 20 minutes.
 
   **GKE Standard**
@@ -144,6 +146,8 @@ For more information about providing values for Terraform input variables, see
   ```shell
   ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-standard.sh
   ```
+
+  [![asciicast](https://asciinema.org/a/UdveeFE1A8KTliHgbMO7ycLT9.svg)](https://asciinema.org/a/UdveeFE1A8KTliHgbMO7ycLT9)
 
   > The `deploy-standard.sh` script usually takes 15 to 20 minutes.
 
@@ -176,7 +180,7 @@ For more information about providing values for Terraform input variables, see
   - Custom Compute Classes
 
     - <details>
-        <summary>        
+        <summary>
           <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/cpu">CPU</a>
         </summary>
         <ul>
@@ -184,7 +188,7 @@ For more information about providing values for Terraform input variables, see
         <ul>
       </details>
     - <details>
-        <summary>        
+        <summary>
           <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/gpu">GPU</a>
         </summary>
         <ul>
@@ -207,7 +211,7 @@ For more information about providing values for Terraform input variables, see
         <ul>
       </details>
     - <details>
-        <summary>        
+        <summary>
           <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/tpu">TPU</a>
         </summary>
         <ul>
@@ -265,6 +269,8 @@ Some example patterns provided are:
   ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-ap.sh
   ```
 
+  [![asciicast](https://asciinema.org/a/mZJKP15nMhbcNn9uIpGaZL697.svg)](https://asciinema.org/a/mZJKP15nMhbcNn9uIpGaZL697)
+
   > The `teardown-ap.sh` script usually takes 10 to 15 minutes.
 
   **GKE Standard**
@@ -272,5 +278,7 @@ Some example patterns provided are:
   ```shell
   ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-standard.sh
   ```
+
+  [![asciicast](https://asciinema.org/a/NdqTXbQFUbBu7mNFpy7PEHUEA.svg)](https://asciinema.org/a/NdqTXbQFUbBu7mNFpy7PEHUEA)
 
   > The `teardown-standard.sh` script usually takes 10 to 15 minutes.

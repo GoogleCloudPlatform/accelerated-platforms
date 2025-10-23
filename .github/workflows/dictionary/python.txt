@@ -52,13 +52,13 @@ pydantic
 pyenv
 pylint
 pynvml
+pythondontwritebytecode
 pythonpath
 pythonunbuffered
-pythondontwritebytecode
 qualname
+removesuffix
 rerank
 reranked
-removesuffix
 retryable
 rsplit
 sampwidth

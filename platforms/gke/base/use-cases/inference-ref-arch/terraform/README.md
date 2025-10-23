@@ -145,6 +145,8 @@ For more information about providing values for Terraform input variables, see
   ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-standard.sh
   ```
 
+  ![Inference reference implementation 25x deployment speed](/docs/platforms/gke/base/use-cases/inference-ref-arch/images/inference-reference-implementation-deploy-standard-25x.svg)
+
   > The `deploy-standard.sh` script usually takes 15 to 20 minutes.
 
 - Configure the platform.
@@ -176,7 +178,7 @@ For more information about providing values for Terraform input variables, see
   - Custom Compute Classes
 
     - <details>
-        <summary>        
+        <summary>
           <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/cpu">CPU</a>
         </summary>
         <ul>
@@ -184,7 +186,7 @@ For more information about providing values for Terraform input variables, see
         <ul>
       </details>
     - <details>
-        <summary>        
+        <summary>
           <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/gpu">GPU</a>
         </summary>
         <ul>
@@ -207,7 +209,7 @@ For more information about providing values for Terraform input variables, see
         <ul>
       </details>
     - <details>
-        <summary>        
+        <summary>
           <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/tpu">TPU</a>
         </summary>
         <ul>

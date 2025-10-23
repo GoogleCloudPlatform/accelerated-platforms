@@ -16,19 +16,19 @@
 # Copyright 2025 Google LLC
 # (license header)
 
-from typing import Dict, List, Optional
+from typing import Optional
 
 from google.api_core.gapic_v1.client_info import ClientInfo
 from google.cloud import aiplatform
 
 from . import utils
-from .config import get_gcp_metadata
+from .base import VertexAIClient
 from .constants import LYRIA2_MODEL, LYRIA2_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .retry import api_error_retry
 
 
-class Lyria2API:
+class Lyria2API(VertexAIClient):
     """
     A class to interact with the Imagen API for image generation.
     """
@@ -38,22 +38,16 @@ class Lyria2API:
         Initializes the client.
 
         Args:
-            gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
-            gcp_region: The GCP region. If provided, overrides metadata lookup.
+            project_id: The GCP project ID. If provided, overrides metadata lookup.
+            region: The GCP region. If provided, overrides metadata lookup.
 
         Raises:
             ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
-        self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
+        super().__init__(
+            gcp_project_id=project_id, gcp_region=region, user_agent=LYRIA2_USER_AGENT
         )
-        if not self.project_id:
-            raise ConfigurationError("GCP Project is required")
-        if not self.region:
-            raise ConfigurationError("GCP region is required")
 
-        print(f"Project is {self.project_id}, region is {self.region}")
         try:
             aiplatform.init(project=self.project_id, location=self.region)
             self.api_regional_endpoint = f"{self.region}-aiplatform.googleapis.com"
@@ -98,8 +92,8 @@ class Lyria2API:
         if seed > 0:
             instance["seed"] = seed
             instance["sample_count"] = 1
+            print("Lyria Node: Seed is greater than 0, setting sample_count to 1.")
         else:
-            instance["seed"] = 0
             instance["sample_count"] = sample_count
         print(f"Lyria Node: Instance: {instance}")
         response = self.client.predict(

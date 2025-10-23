@@ -1,24 +1,10 @@
 {
-  "2": {
+  "1": {
     "inputs": {
-      "filename_prefix": "lyria_audio",
-      "audioUI": "",
-      "audio": [
-        "3",
-        0
-      ]
-    },
-    "class_type": "SaveAudio",
-    "_meta": {
-      "title": "SaveAudio"
-    }
-  },
-  "3": {
-    "inputs": {
-      "prompt": "generate light drum music",
+      "prompt": "Generate a unique song",
       "sample_count": 1,
       "negative_prompt": "",
-      "seed": 0,
+      "seed": 1,
       "gcp_project_id": "",
       "gcp_region": ""
     },
@@ -26,6 +12,19 @@
     "_meta": {
       "title": "Lyria 2 Text To Music"
     }
+  },
+  "2": {
+    "inputs": {
+      "filename_prefix": "lyria_audio",
+      "audioUI": "",
+      "audio": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "SaveAudio",
+    "_meta": {
+      "title": "Save Audio (FLAC)"
+    }
   }
 }
-

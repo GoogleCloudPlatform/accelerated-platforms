@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from .constants import LYRIA2_MAX_SAMPLES, MAX_SEED
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
@@ -33,7 +33,7 @@ class Lyria2TextToMusicNode:
                     "STRING",
                     {
                         "multiline": True,
-                        "default": "An energetic electronic dance track.",
+                        "default": "Generate a light bass summer tune",
                         "placeholder": "Describe the music you want to generate...",
                     },
                 ),
@@ -63,7 +63,8 @@ class Lyria2TextToMusicNode:
                         "default": 0,
                         "min": 0,
                         "max": MAX_SEED,
-                        "tooltip": "Seed for reproducibility. Set to 0 to let the API handle randomness, which is required for sample_count > 1.",
+                        "tooltip": "Seed for reproducibility. Must be greater than 0.",
+                        "control_after_generate": False,
                     },
                 ),
                 "gcp_project_id": (

@@ -56,6 +56,7 @@ pythondontwritebytecode
 pythonpath
 pythonunbuffered
 qualname
+readframes
 removesuffix
 rerank
 reranked

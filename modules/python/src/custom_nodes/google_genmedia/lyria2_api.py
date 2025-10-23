@@ -16,14 +16,14 @@
 # Copyright 2025 Google LLC
 # (license header)
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from google.api_core.gapic_v1.client_info import ClientInfo
 from google.cloud import aiplatform
+
 from . import utils
 from .config import get_gcp_metadata
 from .constants import LYRIA2_MODEL, LYRIA2_USER_AGENT
-
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .retry import api_error_retry
 
@@ -76,18 +76,16 @@ class Lyria2API:
         self,
         prompt: str,
         negative_prompt: Optional[str] = None,
-        seed: Optional[int] = 0,
         sample_count: int = 1,
-        file_format: Optional[str] = "wav",
-    ) -> List[str]:
+        seed: int = 0,
+    ) -> dict:
         """
         Generates music from a text prompt using the Lyria 2 API.
         Args:
             prompt: The text prompt for music generation.
             negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-            seed: An optional seed for reproducible music generation.
             sample_count: The number of music samples to generate.
-            file_format: The desired audio file format. Supported formats: "wav", "mp3".
+            seed: An optional seed for reproducible music generation.
         Returns:
             A list of file paths to the generated music.
         Raises:
@@ -111,4 +109,4 @@ class Lyria2API:
             f"Lyria Node: Response received from model: {response.model_display_name}"
         )
 
-        return utils.process_audio_response(response, file_format)
+        return utils.process_audio_response(response)

@@ -36,8 +36,6 @@ lightricks
 loras
 ltxv
 lyria
-lyria2
-lyriapreview
 mimetypes
 mucha
 photomaker

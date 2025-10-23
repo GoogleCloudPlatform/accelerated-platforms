@@ -45,7 +45,6 @@ pgvector
 pipreqs
 pycache
 pydantic
-pydub
 pyenv
 pylint
 pynvml

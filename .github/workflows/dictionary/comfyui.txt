@@ -36,11 +36,6 @@ lightricks
 loras
 ltxv
 lyria
-lyria2
-<<<<<<< HEAD
-=======
-lyriapreview
->>>>>>> 6d3e4f6 (format python)
 mimetypes
 mucha
 photomaker

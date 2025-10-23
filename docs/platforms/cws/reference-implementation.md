@@ -209,8 +209,8 @@ The following tools are required:
     ```
 
 > [!NOTE]  
-> If the Google Cloud Build GitHub App is already configured you can skip to the
-> to the
+> If the Google Cloud Build GitHub App is already configured, you found an
+> `<installation-id>` in the steps above, you can skip to the to the
 > [Initialize the Cloud Workstation repository](#initialize-the-cloud-workstation-repository)
 > section.
 
@@ -315,9 +315,9 @@ document.
 > Before applying the `image_pipeline` terrastack, ensure:
 >
 > - Your Git namespace is set:  
->   `grep cloudbuild_cws_image_pipeline_git_namespace "${ACP_REPO_DIR}/platforms/cws/_shared_config/build_variables.tf"`
+>   `grep cloudbuild_cws_image_pipeline_git_namespace "${ACP_REPO_DIR}/platforms/cws/_shared_config/build.auto.tfvars"`
 > - Your Git repository name is set:  
->   `grep cloudbuild_cws_image_pipeline_git_repository_name "${ACP_REPO_DIR}/platforms/cws/_shared_config/build_variables.tf"`
+>   `grep cloudbuild_cws_image_pipeline_git_repository_name "${ACP_REPO_DIR}/platforms/cws/_shared_config/build.auto.tfvars"`
 > - Your Git token has been added to the token file:  
 >   `cat "${ACP_REPO_DIR}/platforms/cws/_shared_config/secrets/cloudbuild_cws_image_git_token"`
 

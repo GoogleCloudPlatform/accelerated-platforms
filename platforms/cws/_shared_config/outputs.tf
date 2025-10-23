@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "cloudbuild_cws_image_pipeline_connection_name" {
+  value = local.cloudbuild_cws_image_pipeline_connection_name
+}
+
 output "cloudbuild_cws_image_pipeline_git_namespace" {
   value = var.cloudbuild_cws_image_pipeline_git_namespace
 }
@@ -22,6 +26,14 @@ output "cloudbuild_cws_image_registry_name" {
 
 output "cloudbuild_cws_image_registry_upstream_name" {
   value = local.cloudbuild_cws_image_registry_upstream_name
+}
+
+output "cloudbuild_location" {
+  value = local.cloudbuild_location
+}
+
+output "cloudbuild_project_id" {
+  value = local.cloudbuild_project_id
 }
 
 output "platform_default_project_id" {

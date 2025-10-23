@@ -158,7 +158,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
   /bin/bash -lc '
     echo ">> Sourcing test functions..."
     . /tmp/comfyui-workflow-tester.sh
-
+    echo ">> [DEBUG] apk info:"
     echo ">> [DEBUG] Running network diagnostics..."
     echo ">> [DEBUG] COMFYUI_URL=${COMFYUI_URL}"
     HOSTNAME=$(echo "${COMFYUI_URL}" | cut -d/ -f3 | cut -d: -f1)
@@ -222,4 +222,3 @@ if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
 else
   info "All in-pod tests completed successfully."
 fi
-

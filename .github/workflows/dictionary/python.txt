@@ -10,6 +10,7 @@ einops
 fastapi
 fillna
 fromarray
+frombuffer
 fsspec
 functools
 gapic
@@ -17,6 +18,9 @@ gcsuri
 getattr
 getconn
 getenv
+getframerate
+getnchannels
+getsampwidth
 gunicorn
 hasattr
 hashlib
@@ -58,6 +62,7 @@ reranked
 retryable
 rsplit
 setdefaulttimeout
+sampwidth
 shutil
 spacy
 splitlines

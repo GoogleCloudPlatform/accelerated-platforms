@@ -110,4 +110,3 @@ class Lyria2API:
         )
 
         return utils.process_audio_response(response)
-

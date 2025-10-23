@@ -20,12 +20,12 @@ from google import genai
 from PIL import Image
 
 from . import utils
-from .config import get_gcp_metadata
+from .base import VertexAIClient
 from .constants import IMAGEN4_USER_AGENT, Imagen4Model
 from .custom_exceptions import APIInputError, ConfigurationError
 
 
-class Imagen4API:
+class Imagen4API(VertexAIClient):
     """
     A class to interact with the Imagen API for image generation.
     """
@@ -41,27 +41,9 @@ class Imagen4API:
         Raises:
             ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
-        self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
+        super().__init__(
+            gcp_project_id=project_id, gcp_region=region, user_agent=IMAGEN4_USER_AGENT
         )
-        if not self.project_id:
-            raise ConfigurationError("GCP Project is required")
-        if not self.region:
-            raise ConfigurationError("GCP region is required")
-        print(f"Project is {self.project_id}, region is {self.region}")
-        http_options = genai.types.HttpOptions(
-            headers={"user-agent": IMAGEN4_USER_AGENT}
-        )
-        try:
-            self.client = genai.Client(
-                vertexai=True,
-                project=self.project_id,
-                location=self.region,
-                http_options=http_options,
-            )
-        except Exception as e:
-            raise ConfigurationError(f"Failed to initialize Imagen API client: {e}")
 
     def generate_image_from_text(
         self,

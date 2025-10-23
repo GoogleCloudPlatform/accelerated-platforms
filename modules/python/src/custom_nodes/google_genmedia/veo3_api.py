@@ -20,7 +20,7 @@ import torch
 from google import genai
 
 from . import utils
-from .config import get_gcp_metadata
+from .base import VertexAIClient
 from .constants import (
     OUTPUT_RESOLUTION,
     VEO3_USER_AGENT,
@@ -32,7 +32,7 @@ from .constants import (
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 
 
-class Veo3API:
+class Veo3API(VertexAIClient):
     """
     A client for interacting with the Google Veo 3.1 API for video generation.
     """
@@ -50,26 +50,9 @@ class Veo3API:
         Raises:
             ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
-        self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
+        super().__init__(
+            gcp_project_id=project_id, gcp_region=region, user_agent=VEO3_USER_AGENT
         )
-        if not self.project_id:
-            raise ConfigurationError("GCP Project is required")
-        if not self.region:
-            raise ConfigurationError("GCP region is required")
-        print(f"Project is {self.project_id}, region is {self.region}")
-
-        http_options = genai.types.HttpOptions(headers={"user-agent": VEO3_USER_AGENT})
-        try:
-            self.client = genai.Client(
-                vertexai=True,
-                project=self.project_id,
-                location=self.region,
-                http_options=http_options,
-            )
-        except Exception as e:
-            raise ConfigurationError(f"Failed to initialize Veo API client: {e}")
 
     def generate_video_from_text(
         self,

@@ -24,47 +24,34 @@ from google.genai import types
 from PIL import Image
 
 from . import utils
-from .config import get_gcp_metadata
-from .constants import GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN, GeminiFlashImageModel
+from .base import VertexAIClient
+from .constants import (
+    GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN,
+    GEMINI_25_FLASH_IMAGE_USER_AGENT,
+    GeminiFlashImageModel,
+)
 from .custom_exceptions import ConfigurationError
 from .retry import api_error_retry
 
 
-class GeminiFlashImageAPI:
+class GeminiFlashImageAPI(VertexAIClient):
     """
     A class to interact with the Gemini Flash Image Preview model.
     """
 
     def __init__(self, project_id: Optional[str] = None, region: Optional[str] = None):
         """Initializes the Gemini 2.5 Flash Image Preview client.
-
         Args:
-            project_id (Optional[str], optional): The GCP project ID. If not
-              provided, it will be inferred from the environment. Defaults to None.
-            region (Optional[str], optional): The GCP region. If not provided, it
-              will be inferred from the environment. Defaults to None.
-
+            project_id (Optional[str], optional): The GCP project ID. If not provided, it will be inferred from the environment. Defaults to None.
+            region (Optional[str], optional): The GCP region. If not provided, it will be inferred from the environment. Defaults to None.
         Raises:
             ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
-        self.project_id = project_id or get_gcp_metadata("project/project-id")
-        self.region = region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
+        super().__init__(
+            gcp_project_id=project_id,
+            gcp_region=region,
+            user_agent=GEMINI_25_FLASH_IMAGE_USER_AGENT,
         )
-        if not self.project_id:
-            raise ConfigurationError("GCP Project is required")
-        if not self.region:
-            raise ConfigurationError("GCP region is required")
-
-        try:
-            self.client = genai.Client(
-                vertexai=True, project=self.project_id, location=self.region
-            )
-        except Exception as e:
-            raise ConfigurationError(
-                f"Failed to initialize Gemini Flash Image API client: "
-                f"Check your project ID: '{self.project_id}' and region: '{self.region}'"
-            )
 
     @api_error_retry
     def generate_image(

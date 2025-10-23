@@ -59,7 +59,7 @@ spec:
             - mountPath: /home/comfyuser/comfy/ComfyUI/user/default/workflows
               name: comfyui-workflows
       nodeSelector:
-        cloud.google.com/compute-class: gpu-l4-24gb-s32-x1
+        cloud.google.com/compute-class: gpu-h100-80gb-high-x1
       securityContext:
         fsGroup: 10000
         runAsGroup: 10000

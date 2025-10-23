@@ -281,113 +281,12 @@ class VeoVideoSaveAndPreview:
             return {"ui": {"video": [], "error": str(e)}}
 
 
-class LyriaAudioSaveAndPreview:
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "audio_paths": ("LYRIA_AUDIO",),
-                "autoplay": ("BOOLEAN", {"default": True}),
-                "mute": ("BOOLEAN", {"default": True}),
-                "loop": ("BOOLEAN", {"default": False}),
-                "save_audio": ("BOOLEAN", {"default": False}),
-                "save_audio_file_prefix": ("STRING", {"default": "lyria_audio"}),
-            },
-        }
-
-    RETURN_TYPES = ()
-    FUNCTION = "preview_audio"
-    CATEGORY = "Google AI/Utils"
-    OUTPUT_NODE = True
-
-    def preview_audio(
-        self, audio_paths, autoplay, mute, loop, save_audio, save_audio_file_prefix
-    ):
-        try:
-            dest_dir = os.path.join("output", "lyria")
-            os.makedirs(dest_dir, exist_ok=True)
-
-            preview_dir = "temp"
-            os.makedirs(preview_dir, exist_ok=True)
-
-            audios_output_for_ui = []
-
-            for audio_path in audio_paths:
-                if audio_path and isinstance(audio_path, str) and audio_path.strip():
-                    audio_path_abs = os.path.abspath(audio_path)
-
-                    if not os.path.exists(audio_path_abs):
-                        raise APIInputError(f"Audio file not found: {audio_path_abs}")
-
-                    ext = Path(audio_path_abs).suffix.lower()
-                    audio_file_basename = os.path.basename(audio_path_abs)
-                    audio_subfolder = ""
-
-                    mime_type, _ = mimetypes.guess_type(audio_file_basename)
-                    audio_format = (
-                        mime_type
-                        if mime_type and mime_type.startswith("audio/")
-                        else "audio/wav"
-                    )
-
-                    if save_audio:
-                        file_hash = hashlib.md5(
-                            open(audio_path_abs, "rb").read()
-                        ).hexdigest()[:8]
-                        timestamp = int(time.time())
-                        dest_name = (
-                            f"{save_audio_file_prefix}_{timestamp}_{file_hash}{ext}"
-                        )
-                        dest_path = os.path.join(dest_dir, dest_name)
-
-                        shutil.copy2(audio_path_abs, dest_path)
-                        print(f"Audio copied to: {dest_path}")
-                        audio_subfolder = "lyria"
-                    else:
-                        dest_path = os.path.join(
-                            os.path.normpath("temp"),
-                            os.path.normpath(audio_path_abs)
-                            .rsplit(os.path.normpath("temp"), 1)[1]
-                            .lstrip(os.path.sep),
-                        )
-
-                    audio_item_for_ui = {
-                        "filename": dest_path,
-                        "subfolder": audio_subfolder,
-                        "type": "output" if save_audio else "temp",
-                        "format": audio_format,
-                    }
-                    audios_output_for_ui.append(audio_item_for_ui)
-                else:
-                    raise APIInputError("'audio_paths' must be provided and not empty.")
-
-            return {
-                "ui": {
-                    "audio": audios_output_for_ui,
-                    "metadata": {
-                        "autoplay": autoplay,
-                        "mute": mute,
-                        "loop": loop,
-                    },
-                }
-            }
-
-        except (APIInputError, ConfigurationError) as e:
-            print(f"An error occurred in LyriaAudioSaveAndPreview: {str(e)}")
-            return {"ui": {"audio": [], "error": str(e)}}
-        except Exception as e:
-            print(f"An unexpected error occurred in LyriaAudioSaveAndPreview: {str(e)}")
-            return {"ui": {"audio": [], "error": str(e)}}
-
-
 NODE_CLASS_MAPPINGS = {
     "VeoVideoToVHSNode": VeoVideoToVHSNode,
     "VeoVideoSaveAndPreview": VeoVideoSaveAndPreview,
-    "LyriaAudioSaveAndPreview": LyriaAudioSaveAndPreview,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "VeoVideoToVHSNode": "Video to VHS",
     "VeoVideoSaveAndPreview": "Preview/Save video",
-    "LyriaAudioSaveAndPreview": "Preview/Save audio",
 }

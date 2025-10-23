@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any, Dict, Optional, Tuple, List
-
+from typing import Any, Dict, List, Optional, Tuple
 
 from .constants import LYRIA2_MAX_SAMPLES, MAX_SEED
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
@@ -75,36 +74,34 @@ class Lyria2TextToMusicNode:
             },
         }
 
-    RETURN_TYPES = ("LYRIA_AUDIO",)
-    RETURN_NAMES = ("audio_paths",)
+    RETURN_TYPES = ("AUDIO",)
+    RETURN_NAMES = ("audio",)
     FUNCTION = "generate_music"
     CATEGORY = "Google AI/Lyria2"
 
     def generate_music(
         self,
         prompt: str,
-        negative_prompt: Optional[str] = None,
-        seed: Optional[int] = None,
-        sample_count: int = 1,
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
-        file_format: Optional[str] = "wav",
-    ) -> Tuple[List[str],]:
+        negative_prompt: Optional[str] = None,
+        sample_count: int = 1,
+        seed: int = 0,
+    ) -> Tuple[dict,]:
         """
         Generates music from a text prompt using the Lyria 2 API.
 
         Args:
             prompt: The text prompt for music generation.
-            negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-            seed: An optional seed for reproducible music generation.
-            sample_count: The number of music samples to generate.
             gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
             gcp_region: The GCP region. If provided, overrides metadata lookup.
-            file_format: The desired audio file format. Supported formats: "wav", "mp3".
+            negative_prompt: An optional prompt to guide the model to avoid generating certain things.
+            sample_count: The number of music samples to generate.
+            seed: An optional seed for reproducible music generation.
 
 
         Returns:
-            A tuple containing a list of file paths to the generated music.
+            A tuple containing a dictionary with the audio waveform and sample rate.
 
         Raises:
             ConfigurationError: If input parameters are invalid or GCP configuration is missing.
@@ -126,12 +123,11 @@ class Lyria2TextToMusicNode:
 
         try:
             lyria2_api = Lyria2API(project_id=gcp_project_id, region=gcp_region)
-            audio_paths = lyria2_api.generate_music_from_text(
-                prompt=prompt,
+            audio_data = lyria2_api.generate_music_from_text(
                 negative_prompt=negative_prompt,
-                seed=seed,
+                prompt=prompt,
                 sample_count=sample_count,
-                file_format=file_format,
+                seed=seed,
             )
         except APIInputError as e:
             raise RuntimeError(f"Input Error: {e}") from e
@@ -143,10 +139,10 @@ class Lyria2TextToMusicNode:
             raise RuntimeError(
                 f"An unexpected error occurred during music generation: {e}"
             ) from e
-        if not audio_paths:
+        if not audio_data:
             raise RuntimeError("Lyria API failed to generate any audio files.")
 
-        return (audio_paths,)
+        return (audio_data,)
 
 
 NODE_CLASS_MAPPINGS = {"Lyria2TextToMusicNode": Lyria2TextToMusicNode}

@@ -923,7 +923,6 @@ def process_audio_response(response: Any) -> dict:
 
     Args:
         response: The completed response object from the Lyria API.
-        file_format: The desired audio file format. Supported formats: "wav", "mp3".
 
     Returns:
         A dictionary containing the audio waveform as a torch.Tensor

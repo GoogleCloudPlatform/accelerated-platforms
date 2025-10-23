@@ -1,71 +1,116 @@
-# Copyright 2025 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# -*- coding: utf-8 -*-
+"""
+This script creates a ComfyUI custom node to generate audio using
+Google Cloud Text-to-Speech Chirp 3 HD voices.
 
-from typing import Any, Dict, Optional, Tuple
+It imports the `Chirp3API` class from `chirp3_api.py`
+and correctly parses its dictionary output.
 
-from .constants import CHIRP3_MAX_SAMPLES, MAX_SEED
-from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
-from .chirp3_api import Chirp3API
+Refactored to follow the design pattern of Lyria2TextToMusicNode.
+"""
 
+import torch
+import numpy as np
+import base64
+from typing import Optional, Tuple
 
-class Chirp3TextToAudioNode:
-    """A ComfyUI node for generating audio from text prompts using the Google Chirp 3 API."""
+# --- Import the API wrapper ---
+# This assumes chirp3_api.py is in the same directory
+try:
+    from .chirp3_api import Chirp3API, ConfigurationError, APIExecutionError
+except ImportError:
+    print("Error: Could not import Chirp3API or custom exceptions from chirp3_api.py.")
+    print("Please make sure `chirp3_api.py` is in the same directory.")
+    Chirp3API = None
 
-    def __init__(self) -> None:
+    # Define dummy exceptions if import fails so the file can load
+    class ConfigurationError(Exception):
         pass
 
+    class APIExecutionError(Exception):
+        pass
+
+
+# --- Import ComfyUI specific modules ---
+try:
+    import folder_paths
+except ImportError:
+    print(
+        "Could not import folder_paths. Make sure this file is in ComfyUI/custom_nodes/"
+    )
+
+# --- Lists for ComfyUI dropdowns ---
+
+CHIRP_VOICE_LIST = [
+    "Aoede",
+    "Puck",
+    "Charon",
+    "Kore",
+    "Fenrir",
+    "Leda",
+    "Orus",
+    "Zephyr",
+]
+
+CHIRP_LANGUAGE_LIST = [
+    "en-US",
+    "de-DE",
+    "en-AU",
+    "en-GB",
+    "en-IN",
+    "fr-FR",
+    "hi-IN",
+    "pt-BR",
+    "ar-XA",
+    "es-ES",
+    "fr-CA",
+    "id-ID",
+    "it-IT",
+    "ja-JP",
+    "tr-TR",
+    "vi-VN",
+    "bn-IN",
+    "gu-IN",
+    "kn-IN",
+    "ml-IN",
+    "mr-IN",
+    "ta-IN",
+    "te-IN",
+    "nl-NL",
+    "ko-KR",
+    "cmn-CN",
+    "pl-PL",
+    "ru-RU",
+    "th-TH",
+]
+
+# --- ComfyUI Node Class ---
+
+
+class GoogleTTSChirpNode:
+    """
+    A ComfyUI node to generate speech using Google Cloud's Chirp 3 HD voices.
+    Outputs an audio tensor and sample rate.
+    """
+
+    def __init__(self):
+        pass  # Client is initialized in the function call
+
     @classmethod
-    def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
+    def INPUT_TYPES(cls):
+        """
+        Defines the inputs for the node in the ComfyUI interface.
+        """
         return {
             "required": {
-                "prompt": (
+                "text": (
                     "STRING",
-                    {
-                        "multiline": True,
-                        "default": "An energetic electronic dance track.",
-                        "placeholder": "Describe the audio you want to generate...",
-                    },
+                    {"multiline": True, "default": "Hello world! I am Chirp 3."},
                 ),
-                "sample_count": (
-                    "INT",
-                    {
-                        "default": 1,
-                        "min": 1,
-                        "max": MAX_SEED,
-                        "step": 1,
-                        "display": "number",
-                    },
-                ),
+                "voice_name": (CHIRP_VOICE_LIST,),
+                "language_code": (CHIRP_LANGUAGE_LIST,),
             },
             "optional": {
-                "negative_prompt": (
-                    "STRING",
-                    {
-                        "multiline": True,
-                        "default": "",
-                        "placeholder": "Elements to avoid (e.g., drums, vocals)...",
-                    },
-                ),
-                "seed": (
-                    "INT",
-                    {
-                        "default": 0,
-                        "min": 0,
-                        "max": MAX_SEED,
-                        "tooltip": "Seed for reproducibility. Set to 0 to let the API handle randomness, which is required for sample_count > 1.",
-                    },
-                ),
                 "gcp_project_id": (
                     "STRING",
                     {"default": "", "placeholder": "your-gcp-project-id"},
@@ -74,76 +119,89 @@ class Chirp3TextToAudioNode:
             },
         }
 
+    # Define the output types
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
-    FUNCTION = "generate_audio"
-    CATEGORY = "Google AI/Chirp3"
 
-    def generate_audio(
+    # Define the function name that will be executed
+    FUNCTION = "generate_audio_tensor"
+
+    # Define the category for the node
+    CATEGORY = "Audio/TTS"
+
+    def generate_audio_tensor(
         self,
-        prompt: str,
+        text: str,
+        voice_name: str,
+        language_code: str,
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
-        negative_prompt: Optional[str] = None,
-        sample_count: int = 1,
-        seed: Optional[int] = None,
     ) -> Tuple[dict,]:
         """
-        Generates audio from a text prompt using the Chirp 3 API.
-
-        Args:
-            prompt: The text prompt for audio generation.
-            gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
-            gcp_region: The GCP region. If provided, overrides metadata lookup.
-            negative_prompt: An optional prompt to guide the model to avoid generating certain things.
-            sample_count: The number of audio samples to generate.
-            seed: An optional seed for reproducible audio generation.
-
-
-        Returns:
-            A tuple containing a dictionary with the audio waveform and sample rate.
-
-        Raises:
-            ConfigurationError: If input parameters are invalid or GCP configuration is missing.
-            RuntimeError: If audio generation fails due to API errors or unexpected issues.
+        The main execution function of the node.
         """
+        if not text or not text.strip():
+            raise ConfigurationError("Text prompt cannot be empty.")
 
-        if not prompt or not isinstance(prompt, str) or not prompt.strip():
-            raise ConfigurationError("Prompt cannot be empty.")
+        if not Chirp3API:
+            raise RuntimeError("Chirp3API is not loaded. Check import errors.")
 
-        if seed != 0 and sample_count > 1:
-            raise ConfigurationError(
-                "Cannot use a specific 'seed' and 'sample_count' > 1 in the same request."
-            )
+        # Chirp HD native sample rate
+        sample_rate = 24000
+        empty_audio_return = ({"waveform": torch.empty(0), "sample_rate": 0},)
 
-        if not (1 <= sample_count <= CHIRP3_MAX_SAMPLES):
-            raise ConfigurationError(
-                f"sample_count must be between 1 and {CHIRP3_MAX_SAMPLES}."
-            )
-
+        # Call the core TTS function from the API wrapper
         try:
-            chirp3_api = Chirp3API(project_id=gcp_project_id, region=gcp_region)
-            audio_data = chirp3_api.generate_audio_from_text(
-                negative_prompt=negative_prompt,
-                prompt=prompt,
-                sample_count=sample_count,
-                seed=seed,
+            # 1. Initialize client dynamically
+            api_client = Chirp3API(project_id=gcp_project_id, region=gcp_region)
+
+            # 2. Get the dictionary response from your API
+            response_dict = api_client.generate_audio(
+                text=text,
+                voice_name=voice_name,
+                language_code=language_code,
+                sample_rate_hertz=sample_rate,
             )
-        except APIInputError as e:
-            raise RuntimeError(f"Input Error: {e}") from e
-        except APIExecutionError as e:
-            raise RuntimeError(f"API Error: {e}") from e
-        except ConfigurationError as e:
-            raise RuntimeError(f"Configuration Error: {e}") from e
+
+            # 3. Parse the dictionary and decode the base64 string
+            audio_base64 = response_dict["predictions"][0]["bytesBase64Encoded"]
+            audio_bytes = base64.b64decode(audio_base64)
+
+        except (ConfigurationError, APIExecutionError) as e:
+            print(f"Error during TTS generation or parsing: {e}")
+            return empty_audio_return
         except Exception as e:
-            raise RuntimeError(
-                f"An unexpected error occurred during audio generation: {e}"
-            ) from e
-        if not audio_data:
-            raise RuntimeError("Chirp3 API failed to generate any audio files.")
+            print(f"An unexpected error occurred: {e}")
+            return empty_audio_return
 
-        return (audio_data,)
+        if not audio_bytes:
+            print("TTS generation returned no data.")
+            return empty_audio_return
+
+        # 4. Convert raw PCM16 (int16) bytes to a NumPy array
+        #    .copy() fixes the "not writable" warning
+        audio_np = np.frombuffer(audio_bytes, dtype=np.int16).copy()
+
+        # 5. Convert NumPy array to a PyTorch tensor
+        # Normalize from int16 range [-32768, 32767] to float range [-1.0, 1.0]
+        audio_tensor = torch.from_numpy(audio_np).float() / 32768.0
+
+        # 6. Add channel and batch dimensions to match ComfyUI's AUDIO format
+        #    Shape becomes: [batch_size, num_channels, num_samples]
+        audio_tensor = audio_tensor.unsqueeze(0).unsqueeze(0)
+
+        # 7. Return the audio in the correct dictionary format, inside a tuple
+        return ({"waveform": audio_tensor, "sample_rate": sample_rate},)
 
 
-NODE_CLASS_MAPPINGS = {"Chirp3TextToAudioNode": Chirp3TextToAudioNode}
-NODE_DISPLAY_NAME_MAPPINGS = {"Chirp3TextToAudioNode": "Chirp 3 Text To Audio"}
+# --- ComfyUI Node Mappings ---
+
+# A dictionary that maps class names to display names
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "GoogleTTSChirpNode": "Google TTS (Chirp)",
+}
+
+# A dictionary that maps class names to Python classes
+NODE_CLASS_MAPPINGS = {
+    "GoogleTTSChirpNode": GoogleTTSChirpNode,
+}

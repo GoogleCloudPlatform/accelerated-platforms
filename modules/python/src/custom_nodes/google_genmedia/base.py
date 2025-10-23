@@ -47,9 +47,13 @@ class VertexAIClient:
         )
 
         if not self.project_id:
-            raise ConfigurationError("GCP Project is required and could not be determined.")
+            raise ConfigurationError(
+                "GCP Project is required and could not be determined."
+            )
         if not self.region:
-            raise ConfigurationError("GCP region is required and could not be determined.")
+            raise ConfigurationError(
+                "GCP region is required and could not be determined."
+            )
 
         print(f"Project is {self.project_id}, region is {self.region}")
 

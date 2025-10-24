@@ -1,22 +1,34 @@
-# -*- coding: utf-8 -*-
-"""
-This script creates a ComfyUI custom node to generate audio using
-Google Cloud Text-to-Speech Chirp 3 HD voices.
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-It imports the `Chirp3API` class from `chirp3_api.py`
-and correctly parses its dictionary output.
-
-Refactored to follow the design pattern of Lyria2TextToMusicNode.
-"""
+from typing import Optional, Tuple
 
 import torch
-from typing import Optional, Tuple
+
+# --- Import ComfyUI specific modules ---
+try:
+    import folder_paths
+except ImportError:
+    print(
+        "Could not import folder_paths. Make sure this file is in ComfyUI/custom_nodes/"
+    )
 
 # --- Import the API wrapper ---
 # This assumes chirp3_api.py is in the same directory
 try:
-    from .chirp3_api import Chirp3API, ConfigurationError, APIExecutionError
     from . import utils
+    from .chirp3_api import APIExecutionError, Chirp3API, ConfigurationError
 except ImportError:
     print("Error: Could not import Chirp3API or custom exceptions from chirp3_api.py.")
     print("Please make sure `chirp3_api.py` is in the same directory.")
@@ -30,26 +42,7 @@ except ImportError:
         pass
 
 
-# --- Import ComfyUI specific modules ---
-try:
-    import folder_paths
-except ImportError:
-    print(
-        "Could not import folder_paths. Make sure this file is in ComfyUI/custom_nodes/"
-    )
-
 # --- Lists for ComfyUI dropdowns ---
-
-CHIRP_VOICE_LIST = [
-    "Aoede",
-    "Puck",
-    "Charon",
-    "Kore",
-    "Fenrir",
-    "Leda",
-    "Orus",
-    "Zephyr",
-]
 
 CHIRP_LANGUAGE_LIST = [
     "en-US",
@@ -83,6 +76,18 @@ CHIRP_LANGUAGE_LIST = [
     "th-TH",
 ]
 
+CHIRP_VOICE_LIST = [
+    "Aoede",
+    "Puck",
+    "Charon",
+    "Kore",
+    "Fenrir",
+    "Leda",
+    "Orus",
+    "Zephyr",
+]
+
+
 # --- ComfyUI Node Class ---
 
 
@@ -102,12 +107,12 @@ class GoogleTTSChirpNode:
         """
         return {
             "required": {
+                "language_code": (CHIRP_LANGUAGE_LIST,),
                 "text": (
                     "STRING",
                     {"multiline": True, "default": "Hello world! I am Chirp 3."},
                 ),
                 "voice_name": (CHIRP_VOICE_LIST,),
-                "language_code": (CHIRP_LANGUAGE_LIST,),
             },
             "optional": {
                 "gcp_project_id": (
@@ -130,9 +135,9 @@ class GoogleTTSChirpNode:
 
     def generate_audio_tensor(
         self,
+        language_code: str,
         text: str,
         voice_name: str,
-        language_code: str,
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
     ) -> Tuple[dict,]:
@@ -151,7 +156,9 @@ class GoogleTTSChirpNode:
         try:
             # 1. Initialize client dynamically
             if self.api_client is None:
-                self.api_client = Chirp3API(project_id=gcp_project_id, region=gcp_region)
+                self.api_client = Chirp3API(
+                    project_id=gcp_project_id, region=gcp_region
+                )
 
             # 2. Get the dictionary response from your API
             chirp_output = self.api_client.generate_audio(

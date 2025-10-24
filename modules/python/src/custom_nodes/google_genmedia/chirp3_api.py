@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,15 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-API wrapper for Google Cloud Text-to-Speech with Chirp 3 HD voices.
-"""
-import base64
 from collections import namedtuple
 from typing import Optional
+
 from google.api_core.client_options import ClientOptions
-from google.cloud import texttospeech
 from google.api_core.gapic_v1.client_info import ClientInfo
+from google.cloud import texttospeech
 
 # Import the custom exceptions
 from .base import VertexAIClient
@@ -108,7 +104,9 @@ class Chirp3API(VertexAIClient):
                 audio_config=audio_config,
             )
 
-            return {"audio_content": response.audio_content, "sample_rate": sample_rate_hertz}
+            return {
+                "audio_content": response.audio_content,
+                "sample_rate": sample_rate_hertz,
+            }
         except Exception as e:
             raise APIExecutionError(f"Failed to generate audio: {e}")
-

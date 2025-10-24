@@ -7,6 +7,7 @@ alphafold
 anthos
 anthosconfigmanagement
 anthospolicycontroller
+aoede
 apiserver
 artifactregistry
 automap
@@ -68,6 +69,7 @@ k8sserviceaccount
 kaniko
 keepalive
 keyrings
+kore
 krmapihost
 krmapihosting
 lssd
@@ -79,6 +81,7 @@ nodepool
 nodepools
 obtainability
 ondemand
+orus
 parallelstore
 pgaudit
 podslice
@@ -100,6 +103,7 @@ statefulset
 subnetwork
 subnetworks
 superblocks
+texttospeech
 timepicker
 uefi
 ultragpu

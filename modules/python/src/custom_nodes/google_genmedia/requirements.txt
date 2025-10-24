@@ -22,4 +22,3 @@ google-generativeai==0.8.5
 google-cloud-texttospeech==2.16.2
 moviepy==2.32.0
 opencv-python-headless==4.11.0.86
-

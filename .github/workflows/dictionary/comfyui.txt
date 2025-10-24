@@ -17,6 +17,7 @@ denoised
 dont
 dont_allow
 filebase
+flac
 ftype
 gcsimage
 genai
@@ -36,8 +37,6 @@ lightricks
 loras
 ltxv
 lyria
-lyria2
-lyriapreview
 mimetypes
 mucha
 photomaker

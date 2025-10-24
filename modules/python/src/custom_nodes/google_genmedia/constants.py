@@ -19,6 +19,9 @@ from enum import Enum
 from google.genai import types
 
 AUDIO_MIME_TYPES = ["audio/mp3", "audio/wav", "audio/mpeg"]
+CHIRP3_USER_AGENT = "cloud-solutions/comfyui-chirp3-custom-node-v1"
+CHIRP3_MODEL = "chirp-3"
+CHIRP3_MAX_SAMPLES = 4
 GEMINI_USER_AGENT = "cloud-solutions/comfyui-gemini-custom-node-v1"
 GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN = 32768
 GEMINI_25_FLASH_IMAGE_USER_AGENT = (
@@ -28,9 +31,6 @@ IMAGE_MIME_TYPES = ["image/png", "image/jpeg"]
 IMAGEN3_MODEL_ID = "imagen-3.0-generate-002"
 IMAGEN3_USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
 IMAGEN4_USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"
-CHIRP3_USER_AGENT = "cloud-solutions/comfyui-chirp3-custom-node-v1"
-CHIRP3_MODEL = "chirp-3"
-CHIRP3_MAX_SAMPLES = 4
 LYRIA2_USER_AGENT = "cloud-solutions/comfyui-lyria-custom-node-v1"
 LYRIA2_MAX_SAMPLES = 4
 LYRIA2_MODEL = "lyria-002"

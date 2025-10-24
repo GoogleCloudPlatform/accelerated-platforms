@@ -1,10 +1,10 @@
 {
   "1": {
     "inputs": {
-      "prompt": "Generate a summer tune",
+      "prompt": "Generate a unique song",
       "sample_count": 1,
       "negative_prompt": "",
-      "seed": 0,
+      "seed": 1,
       "gcp_project_id": "",
       "gcp_region": ""
     },
@@ -15,20 +15,16 @@
   },
   "2": {
     "inputs": {
-      "autoplay": true,
-      "mute": true,
-      "loop": true,
-      "save_audio": true,
-      "save_audio_file_prefix": "lyria_audio",
-      "audio_paths": [
+      "filename_prefix": "lyria_audio",
+      "audioUI": "",
+      "audio": [
         "1",
         0
       ]
     },
-    "class_type": "LyriaAudioSaveAndPreview",
+    "class_type": "SaveAudio",
     "_meta": {
-      "title": "Preview/Save audio"
+      "title": "Save Audio (FLAC)"
     }
   }
 }
-

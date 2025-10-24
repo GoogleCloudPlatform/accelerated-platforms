@@ -10,14 +10,13 @@ Refactored to follow the design pattern of Lyria2TextToMusicNode.
 """
 
 import torch
-import numpy as np
-import base64
 from typing import Optional, Tuple
 
 # --- Import the API wrapper ---
 # This assumes chirp3_api.py is in the same directory
 try:
     from .chirp3_api import Chirp3API, ConfigurationError, APIExecutionError
+    from . import utils
 except ImportError:
     print("Error: Could not import Chirp3API or custom exceptions from chirp3_api.py.")
     print("Please make sure `chirp3_api.py` is in the same directory.")
@@ -94,7 +93,7 @@ class GoogleTTSChirpNode:
     """
 
     def __init__(self):
-        pass  # Client is initialized in the function call
+        self.api_client = None
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -148,50 +147,32 @@ class GoogleTTSChirpNode:
 
         # Chirp HD native sample rate
         sample_rate = 24000
-        empty_audio_return = ({"waveform": torch.empty(0), "sample_rate": 0},)
 
-        # Call the core TTS function from the API wrapper
         try:
             # 1. Initialize client dynamically
-            api_client = Chirp3API(project_id=gcp_project_id, region=gcp_region)
+            if self.api_client is None:
+                self.api_client = Chirp3API(project_id=gcp_project_id, region=gcp_region)
 
             # 2. Get the dictionary response from your API
-            response_dict = api_client.generate_audio(
+            chirp_output = self.api_client.generate_audio(
                 text=text,
                 voice_name=voice_name,
                 language_code=language_code,
                 sample_rate_hertz=sample_rate,
             )
 
-            # 3. Parse the dictionary and decode the base64 string
-            audio_base64 = response_dict["predictions"][0]["bytesBase64Encoded"]
-            audio_bytes = base64.b64decode(audio_base64)
+            # 3. Process the response using the new dedicated function
+            final_audio = utils.process_speech_response(chirp_output)
+
+            return (final_audio,)
 
         except (ConfigurationError, APIExecutionError) as e:
             print(f"Error during TTS generation or parsing: {e}")
-            return empty_audio_return
+            # Return a dummy audio tensor on error
+            return ({"waveform": torch.empty(0), "sample_rate": 0},)
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
-            return empty_audio_return
-
-        if not audio_bytes:
-            print("TTS generation returned no data.")
-            return empty_audio_return
-
-        # 4. Convert raw PCM16 (int16) bytes to a NumPy array
-        #    .copy() fixes the "not writable" warning
-        audio_np = np.frombuffer(audio_bytes, dtype=np.int16).copy()
-
-        # 5. Convert NumPy array to a PyTorch tensor
-        # Normalize from int16 range [-32768, 32767] to float range [-1.0, 1.0]
-        audio_tensor = torch.from_numpy(audio_np).float() / 32768.0
-
-        # 6. Add channel and batch dimensions to match ComfyUI's AUDIO format
-        #    Shape becomes: [batch_size, num_channels, num_samples]
-        audio_tensor = audio_tensor.unsqueeze(0).unsqueeze(0)
-
-        # 7. Return the audio in the correct dictionary format, inside a tuple
-        return ({"waveform": audio_tensor, "sample_rate": sample_rate},)
+            return ({"waveform": torch.empty(0), "sample_rate": 0},)
 
 
 # --- ComfyUI Node Mappings ---

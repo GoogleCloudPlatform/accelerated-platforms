@@ -17,20 +17,21 @@
 API wrapper for Google Cloud Text-to-Speech with Chirp 3 HD voices.
 """
 import base64
-import os
+from collections import namedtuple
 from typing import Optional
 from google.api_core.client_options import ClientOptions
 from google.cloud import texttospeech
 from google.api_core.gapic_v1.client_info import ClientInfo
 
 # Import the custom exceptions
+from .base import VertexAIClient
 from .custom_exceptions import APIExecutionError, ConfigurationError
 
 # Define a user agent for requests
 CHIRP3_USER_AGENT = "comfyui-google-genmedia-node"
 
 
-class Chirp3API:
+class Chirp3API(VertexAIClient):
     """
     A class to interact with the Google Cloud Text-to-Speech API for Chirp 3 voices.
     """
@@ -45,14 +46,9 @@ class Chirp3API:
             project_id: The GCP project ID. If None, tries to find it in env vars.
             region: The GCP region for the TTS API endpoint. Defaults to "global".
         """
-        self.project_id = project_id or os.environ.get("GOOGLE_CLOUD_PROJECT")
-        self.region = region or "global"
-
-        if not self.project_id:
-            raise ConfigurationError(
-                "GCP Project ID not found. Please set it in the node or "
-                "via the GOOGLE_CLOUD_PROJECT environment variable."
-            )
+        super().__init__(
+            gcp_project_id=project_id, gcp_region=region, user_agent=CHIRP3_USER_AGENT
+        )
 
         try:
             api_endpoint = (
@@ -85,7 +81,7 @@ class Chirp3API:
             sample_rate_hertz: The sample rate of the audio. Chirp's native rate is 24000.
 
         Returns:
-            A dictionary containing the base64 encoded audio bytes.
+            A dictionary containing the raw audio content and sample rate.
 
         Raises:
             APIExecutionError: If the API call fails.
@@ -93,35 +89,26 @@ class Chirp3API:
         if not self.client:
             raise ConfigurationError("Text-to-Speech client is not initialized.")
 
-        voice_name = f"en-US-Chirp3-HD-Puck"
-        voice = texttospeech.VoiceSelectionParams(
-            name=voice_name,
-            language_code="en-US"
-        )
+        try:
+            input_text = texttospeech.SynthesisInput(text=text)
 
-        text = "Hello there."
-        client = texttospeech.TextToSpeechClient()
+            voice = texttospeech.VoiceSelectionParams(
+                language_code=language_code,
+                name=voice_name,
+            )
 
-        input_text = texttospeech.SynthesisInput(text=text)
+            audio_config = texttospeech.AudioConfig(
+                audio_encoding=texttospeech.AudioEncoding.LINEAR16,
+                sample_rate_hertz=sample_rate_hertz,
+            )
 
-        # Note: the voice can also be specified by name.
-        # Names of voices can be retrieved with client.list_voices().
-        voice = texttospeech.VoiceSelectionParams(
-            language_code="en-US",
-            name="en-US-Chirp3-HD-Charon",
-        )
+            response = self.client.synthesize_speech(
+                input=input_text,
+                voice=voice,
+                audio_config=audio_config,
+            )
 
-        audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.MP3
-        )
+            return {"audio_content": response.audio_content, "sample_rate": sample_rate_hertz}
+        except Exception as e:
+            raise APIExecutionError(f"Failed to generate audio: {e}")
 
-        response = client.synthesize_speech(
-            input=input_text,
-            voice=voice,
-            audio_config=audio_config,
-        )
-
-        # The response's audio_content is binary.
-        with open("chirp3.mp3", "wb") as out:
-            out.write(response.audio_content)
-            print('Audio content written to file "output.mp3"')

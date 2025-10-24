@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -74,12 +74,19 @@ spec:
                 configMapKeyRef:
                   key: TENSOR_PARALLEL_SIZE
                   name: runtime
-          # This reference architecture uses the same vLLM container image
-          # version for all models. When updating this version, ensure to
-          # test if all supported models still work.
           image: replaced-by-kustomize
           imagePullPolicy: Always
           name: inference-server
+          readinessProbe:
+            failureThreshold: 6000
+            httpGet:
+              path: /health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
           resources: {}
           volumeMounts:
             - mountPath: /dev/shm

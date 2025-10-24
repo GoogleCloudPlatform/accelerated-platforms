@@ -1,11 +1,11 @@
 # Copyright 2025 Google LLC
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# https://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,8 +22,6 @@ from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from PIL import Image
 from pydantic import BaseModel
-
-app = FastAPI()
 
 # The model path is the local path mounted from GCS
 MODEL_DIR = os.environ.get("MODEL_ID")
@@ -48,6 +46,14 @@ class InferenceRequest(BaseModel):
     height: int = 1024
     width: int = 1024
     num_inference_steps: int = 4
+
+
+app = FastAPI()
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 
 @app.post("/generate")

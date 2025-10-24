@@ -81,7 +81,34 @@ This example is built on top of the
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
 
-### Deploy the inference workload.
+## Build the container image
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Build the container image for the MaxDiffusion inference server.
+
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/tpu/max_diffusion_sdxl && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
+  ```
+
+  > The build usually takes 15 to 20 minutes.
+
+## Deploy the inference workload
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
 
 - Set the environment variables for the workload.
 
@@ -90,6 +117,13 @@ This example is built on top of the
     ```shell
     echo "HF_MODEL_NAME=${HF_MODEL_NAME}"
     ```
+
+    > If the `HF_MODEL_NAME` variable is not set, ensure that `HF_MODEL_ID` is
+    > set and source the `set_environment_variables.sh` script:
+    >
+    > ```shell
+    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"`
+    > ```
 
   - Select an accelerator.
 
@@ -112,17 +146,6 @@ This example is built on top of the
     Ensure that you have enough quota in your project to provision the selected
     accelerator type. For more information, see about viewing TPU quotas, see
     [Ensure that you have TPU quota](https://cloud.google.com/kubernetes-engine/docs/how-to/tpus#ensure-quota).
-
-- Build the container image for the MaxDiffusion inference server.
-
-  ```shell
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/tpu/max_diffusion_sdxl && \
-  rm -rf .terraform/ terraform.tfstate* && \
-  terraform init && \
-  terraform plan -input=false -out=tfplan && \
-  terraform apply -input=false tfplan && \
-  rm tfplan
-  ```
 
 - Configure the deployment.
 
@@ -170,11 +193,11 @@ This example is built on top of the
     "width": 512
   }' \
   --header "Content-Type: application/json" \
-  --output generated_image.png \
+  --output ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_image.png \
   --request POST \
   --show-error \
   --silent
-  ls -alh generated_image.png
+  ls -alh ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_image.png
   kill -9 ${PF_PID}
   ```
 

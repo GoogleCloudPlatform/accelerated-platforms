@@ -1,4 +1,4 @@
-# Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)
+# Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)
 
 This example implements online inference using GPUs on Google Kubernetes Engine
 (GKE)
@@ -14,16 +14,11 @@ This example is built on top of the
 
 - Get access to the models.
 
-  - For Gemma:
+  - For FLUX.1-schnell:
 
-    - Consented to the license on [Kaggle](https://www.kaggle.com/) using a
-      Hugging Face account.
-      - [**google/gemma**](https://www.kaggle.com/models/google/gemma).
-
-  - For Llama:
-    - Accept the terms of the license on the Hugging Face model page.
-      - [**meta-llama/Llama-4-Scout-17B-16E-Instruct**](https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct)
-      - [**meta-llama/Llama-3.3-70B-Instruct**](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct)
+    - Accept the conditions to access its files and content on the Hugging Face
+      model page.
+      - [**black-forest-labs/FLUX.1-schnell**](https://huggingface.co/black-forest-labs/FLUX.1-schnell)
 
 - Ensure your
   [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
@@ -46,34 +41,10 @@ This example is built on top of the
 
 - Choose the model.
 
-  - **Gemma 3 27B Instruction-Tuned**:
+  - **FLUX.1-Schnell**:
 
     ```shell
-    export HF_MODEL_ID="google/gemma-3-27b-it"
-    ```
-
-  - **gpt-oss-120b**
-
-    ```shell
-    export HF_MODEL_ID="openai/gpt-oss-20b"
-    ```
-
-  - **Llama 4 Scout 17B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="meta-llama/llama-4-scout-17b-16e-instruct"
-    ```
-
-  - **Llama 3.3 70B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="meta-llama/llama-3.3-70b-instruct"
-    ```
-
-  - **Qwen3-32B**:
-
-    ```shell
-    export HF_MODEL_ID="qwen/qwen3-32b"
+    export HF_MODEL_ID="black-forest-labs/flux.1-schnell"
     ```
 
 - Source the environment configuration.
@@ -118,7 +89,7 @@ This example is built on top of the
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
 
-## Deploy the online inference workload
+## Build the container image
 
 - Source the environment configuration.
 
@@ -126,10 +97,25 @@ This example is built on top of the
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Configure the deployment.
+- Build the container image for the Diffusers inference server.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/configure_vllm.sh"
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
+  ```
+
+  > The build usually takes 10 to 15 minutes.
+
+## Deploy the inference workload
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Set the environment variables for the workload.
@@ -140,15 +126,18 @@ This example is built on top of the
     echo "HF_MODEL_NAME=${HF_MODEL_NAME}"
     ```
 
+    > If the `HF_MODEL_NAME` variable is not set, ensure that `HF_MODEL_ID` is
+    > set and source the `set_environment_variables.sh` script:
+    >
+    > ```shell
+    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"`
+    > ```
+
   - Select an accelerator.
 
-    | Model                          | l4  | h100 | h200 |
-    | ------------------------------ | --- | ---- | ---- |
-    | gemma-3-27b-it                 | ✅  | ✅   | ✅   |
-    | gpt-oss-20b                    | ✅  | ✅   | ✅   |
-    | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   |
-    | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   |
-    | qwen3-32b                      | ✅  | ✅   | ✅   |
+    | Model          | l4  | h100 |
+    | -------------- | --- | ---- |
+    | flux.1-schnell | ✅  | ✅   |
 
     - **NVIDIA Tesla L4 24GB**:
 
@@ -162,39 +151,36 @@ This example is built on top of the
       export ACCELERATOR_TYPE="h100"
       ```
 
-    - **NVIDIA H200 141GB**:
-
-      ```shell
-      export ACCELERATOR_TYPE="h200"
-      ```
-
     Ensure that you have enough quota in your project to provision the selected
     accelerator type. For more information, see about viewing GPU quotas, see
     [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
-- Deploy the online inference workload.
+- Configure the deployment.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
   ```
 
-  The Kubernetes manifests are based on the
-  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+- Deploy the inference workload.
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  ```
 
 - Watch the deployment until it is ready.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
   ```
 
   When the deployment is ready, you will see the following:
 
   ```text
-  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1     1            1           ###
+  NAME                                           READY   UP-TO-DATE   AVAILABLE   AGE
+  diffusers-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1     1            1           ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -202,40 +188,43 @@ This example is built on top of the
 - Send a test request.
 
   ```shell
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/diffusers-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
   PF_PID=$!
   while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
     sleep 0.1
   done
-  echo "/v1/models:"
-  curl --request GET --show-error --silent http:/127.0.0.1:8000/v1/models | jq
-  sleep 1
-  echo "/v1/chat/completions:"
-  curl http://127.0.0.1:8000/v1/chat/completions \
+  curl http://localhost:8000/generate \
   --data '{
-    "model": "/gcs/'${HF_MODEL_ID}'",
-    "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
-    }' \
+    "height": 512,
+    "num_inference_steps": 4,
+    "prompt": "A photo of a dog playing fetch in a park.",
+    "width": 512
+  }' \
   --header "Content-Type: application/json" \
+  --output ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_image.png \
   --request POST \
   --show-error \
-  --silent | jq
+  --silent
+  ls -alh ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_image.png
   kill -9 ${PF_PID}
   ```
 
 - Delete the workload.
 
   ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
-## Troubleshooting
-
-If you experience any issue while deploying the workload, see the
-[Online inference with GPUs Troubleshooting](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/troubleshooting.md)
-guide.
-
 ## Clean up
+
+- Destroy the container image.
+
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init &&
+  terraform destroy -auto-approve
+  ```
 
 - Destroy the online GPU resources.
 

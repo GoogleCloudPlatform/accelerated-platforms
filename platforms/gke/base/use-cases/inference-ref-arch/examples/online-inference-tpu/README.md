@@ -1,6 +1,6 @@
 # Online inference with TPUs on Google Kubernetes Engine (GKE)
 
-These examples implements online inference with TPUs on Google Kubernetes Engine
+These examples implement online inference with TPUs on Google Kubernetes Engine
 (GKE) using the
 [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
 

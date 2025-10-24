@@ -1,15 +1,15 @@
 {
   "id": "84b5eff9-dee6-47b8-9bf8-83a4b4ec04f9",
   "revision": 0,
-  "last_node_id": 8,
-  "last_link_id": 7,
+  "last_node_id": 9,
+  "last_link_id": 8,
   "nodes": [
     {
-      "id": 8,
+      "id": 9,
       "type": "VeoVideoSaveAndPreview",
       "pos": [
-        1769.044189453125,
-        251.32626342773438
+        1817.1077867437702,
+        258.77555994420294
       ],
       "size": [
         282.740234375,
@@ -22,7 +22,7 @@
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 7
+          "link": 8
         }
       ],
       "outputs": [],
@@ -57,7 +57,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            7
+            8
           ]
         }
       ],
@@ -85,10 +85,10 @@
   ],
   "links": [
     [
-      7,
+      8,
       7,
       0,
-      8,
+      9,
       0,
       "VEO_VIDEO"
     ]
@@ -97,13 +97,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 1.2666661150000031,
+      "scale": 1.0468315000000026,
       "offset": [
-        -661.5596169425305,
-        -104.15173643369593
+        -730.0663490816468,
+        -77.64489923137613
       ]
     },
-    "frontendVersion": "1.26.13",
+    "frontendVersion": "1.28.7",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

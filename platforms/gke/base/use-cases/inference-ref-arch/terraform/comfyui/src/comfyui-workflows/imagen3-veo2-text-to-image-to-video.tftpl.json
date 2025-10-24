@@ -1,8 +1,8 @@
 {
   "id": "91a98122-0f28-4d82-8cb3-11d8d24553aa",
   "revision": 0,
-  "last_node_id": 10,
-  "last_link_id": 8,
+  "last_node_id": 11,
+  "last_link_id": 9,
   "nodes": [
     {
       "id": 3,
@@ -32,44 +32,6 @@
         "Node name for S&R": "PreviewImage"
       },
       "widgets_values": []
-    },
-    {
-      "id": 8,
-      "type": "VeoVideoSaveAndPreview",
-      "pos": [
-        1842.9622802734375,
-        297.44244384765625
-      ],
-      "size": [
-        282.740234375,
-        355.7913818359375
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 8
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "VeoVideoSaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        true,
-        true,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
-      ]
     },
     {
       "id": 5,
@@ -105,7 +67,7 @@
         "16:9",
         1,
         "",
-        3812661032,
+        3460779063,
         "randomize",
         true,
         false,
@@ -147,7 +109,7 @@
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            8
+            9
           ]
         }
       ],
@@ -165,10 +127,43 @@
         1,
         "${output_bucket_uri}",
         "",
-        3718933726,
+        2437927188,
         "randomize",
         "",
         ""
+      ]
+    },
+    {
+      "id": 11,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        1882.6335393886611,
+        166.85786174653683
+      ],
+      "size": [
+        282.740234375,
+        154
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 9
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video"
       ]
     }
   ],
@@ -190,10 +185,10 @@
       "IMAGE"
     ],
     [
-      8,
+      9,
       10,
       0,
-      8,
+      11,
       0,
       "VEO_VIDEO"
     ]
@@ -202,13 +197,13 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 1.2666661150000031,
+      "scale": 0.715000000000002,
       "offset": [
-        -661.5596169425305,
-        -104.1447976971213
+        -435.867805122931,
+        276.1545945471683
       ]
     },
-    "frontendVersion": "1.23.4",
+    "frontendVersion": "1.28.7",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

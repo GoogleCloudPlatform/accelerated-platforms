@@ -23,7 +23,7 @@ MY_PATH="$(
 )"
 
 if [[ ! -v HF_MODEL_ID ]]; then
-  echo "HF_MODE_ID is not set, exiting!"
+  echo "HF_MODEL_ID is not set, exiting!"
   exit 1
 fi
 

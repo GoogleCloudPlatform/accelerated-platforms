@@ -95,6 +95,9 @@ get_history() {
               | select(.video)
               | {filename: .video[0].filename, subfolder: .video[0].subfolder, type: .video[0].type}) //
             (.[$id].outputs | to_entries[] | .value
+              | select(.audio)
+              | {filename: .audio[0].filename, subfolder: .audio[0].subfolder, type: .audio[0].type}) //
+            (.[$id].outputs | to_entries[] | .value
               | select(.images)
               | {filename: .images[0].filename, subfolder: .images[0].subfolder, type: .images[0].type})
           ')
@@ -194,5 +197,4 @@ main() {
   log "main: success '${test_file}' (file='${out_fn}', bytes=${size_in_bytes})"
   return 0
 }
-
 

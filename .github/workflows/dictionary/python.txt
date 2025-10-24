@@ -13,6 +13,7 @@ einops
 fastapi
 fillna
 fromarray
+frombuffer
 fsspec
 ftfy
 functools
@@ -21,6 +22,10 @@ gcsuri
 getattr
 getconn
 getenv
+getframerate
+getnchannels
+getnframes
+getsampwidth
 gunicorn
 hasattr
 hashlib
@@ -61,11 +66,13 @@ pythondontwritebytecode
 pythonpath
 pythonunbuffered
 qualname
+readframes
 removesuffix
 rerank
 reranked
 retryable
 rsplit
+sampwidth
 scikit
 sentencepiece
 setdefaulttimeout

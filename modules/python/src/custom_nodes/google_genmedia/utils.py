@@ -20,6 +20,7 @@ import os
 import random
 import re
 import time
+import wave
 from io import BytesIO
 from typing import Any, List, Optional, Tuple
 
@@ -55,7 +56,7 @@ def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
     image_data = base64.b64decode(base64_string)
     pil_image = PIL_Image.open(io.BytesIO(image_data)).convert("RGBA")
     image_array = np.array(pil_image, dtype=np.float32) / 255.0
-    tensor = torch.from_numpy(image_array)[None]
+    tensor = torch.from_numpy(image_array)[None,]
 
     return tensor
 
@@ -648,6 +649,107 @@ def prep_for_media_conversion(file_path: str, mime_type: str) -> Optional[types.
     else:
         print(f"The file path {file_path} does not exist. Skipping.")
         return None  # Return None if file not found
+
+
+def process_audio_response(response: Any) -> dict:
+    """
+    Processes the audio generation response, loads the audio into a tensor,
+    and returns it in the format expected by ComfyUI's AUDIO output.
+    This implementation uses the standard `wave` module to avoid dependency on ffmpeg.
+    It assumes the audio from the API is in WAV format.
+
+    Args:
+        response: The completed response object from the Lyria API.
+
+    Returns:
+        A dictionary containing the audio waveform as a torch.Tensor
+        and the sample rate.
+
+    Raises:
+        APIExecutionError: If no audio data is found or if loading fails.
+    """
+    if not response.predictions:
+        raise APIExecutionError("No predictions found in the API response.")
+
+    waveforms = []
+    sample_rate = None
+
+    print(f"Found {len(response.predictions)} audio clips to process.")
+    for n, prediction in enumerate(response.predictions):
+        prediction_dict = dict(prediction)
+        audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
+
+        buffer = io.BytesIO(audio_bytes)
+
+        try:
+            with wave.open(buffer, "rb") as wf:
+                if sample_rate is None:
+                    sample_rate = wf.getframerate()
+                elif sample_rate != wf.getframerate():
+                    print(
+                        f"Warning: Mismatch in sample rates. Expected {sample_rate}, got {wf.getframerate()}. Using the first sample rate."
+                    )
+
+                n_channels = wf.getnchannels()
+                sampwidth = wf.getsampwidth()
+                n_frames = wf.getnframes()
+
+                frames = wf.readframes(n_frames)
+
+                if sampwidth == 2:
+                    dtype = np.int16
+                elif sampwidth == 1:
+                    dtype = np.uint8  # 8-bit is usually unsigned
+                else:
+                    raise APIExecutionError(
+                        f"Unsupported sample width for WAV: {sampwidth} bytes. Only 8-bit and 16-bit are supported by this implementation."
+                    )
+
+                waveform_np = np.frombuffer(frames, dtype=dtype)
+
+                # Normalize
+                if dtype == np.int16:
+                    waveform_np = waveform_np.astype(np.float32) / 32768.0
+                elif dtype == np.uint8:
+                    waveform_np = (waveform_np.astype(np.float32) - 128.0) / 128.0
+
+                # Reshape to (T, C) and then convert to tensor
+                waveform_tensor = torch.from_numpy(waveform_np)
+                waveform_tensor = waveform_tensor.reshape(-1, n_channels)
+
+                # Transpose to (C, T)
+                waveform_tensor = waveform_tensor.transpose(0, 1)
+
+                waveforms.append(waveform_tensor)
+
+        except wave.Error as e:
+            raise APIExecutionError(
+                "Failed to read audio data as WAV file. The API might have returned a different format, which requires ffmpeg."
+            ) from e
+        except Exception as e:
+            raise APIExecutionError(
+                f"An unexpected error occurred while processing audio sample {n}: {e}"
+            ) from e
+
+    if not waveforms:
+        raise APIExecutionError(
+            "Failed to process any audio waveforms from the API response."
+        )
+
+    # Pad to max length if necessary
+    max_len = max(w.shape[1] for w in waveforms)
+    padded_waveforms = []
+    for w in waveforms:
+        if w.shape[1] < max_len:
+            padding = max_len - w.shape[1]
+            padded_w = torch.nn.functional.pad(w, (0, padding))
+            padded_waveforms.append(padded_w)
+        else:
+            padded_waveforms.append(w)
+
+    batched_waveform = torch.stack(padded_waveforms)
+
+    return {"waveform": batched_waveform, "sample_rate": sample_rate}
 
 
 def process_video_response(operation: Any) -> List[str]:

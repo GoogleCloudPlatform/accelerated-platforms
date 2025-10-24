@@ -17,6 +17,7 @@ denoised
 dont
 dont_allow
 filebase
+flac
 ftype
 gcsimage
 genai
@@ -35,6 +36,7 @@ latentpreviewrate
 lightricks
 loras
 ltxv
+lyria
 mimetypes
 mucha
 photomaker

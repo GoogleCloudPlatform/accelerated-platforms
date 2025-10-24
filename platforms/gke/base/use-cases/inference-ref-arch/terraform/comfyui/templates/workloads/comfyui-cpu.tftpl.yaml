@@ -44,11 +44,6 @@ spec:
               port: 8188
             initialDelaySeconds: 60
             periodSeconds: 15
-          resources:
-            limits:
-              nvidia.com/gpu: "1"
-            requests:
-              nvidia.com/gpu: "1"
           volumeMounts:
             - mountPath: /home/comfyuser/comfy/ComfyUI/models
               name: comfyui-model
@@ -59,7 +54,7 @@ spec:
             - mountPath: /home/comfyuser/comfy/ComfyUI/user/default/workflows
               name: comfyui-workflows
       nodeSelector:
-        cloud.google.com/compute-class: gpu-l4-24gb-s32-x1
+        cloud.google.com/compute-class: cpu-n4-s-8
       securityContext:
         fsGroup: 10000
         runAsGroup: 10000

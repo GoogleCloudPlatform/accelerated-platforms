@@ -68,9 +68,11 @@ precedence over earlier ones:
 
   Valid values for `ACCELERATOR` are:
 
+  - `cpu`
+  - `nvidia-a100-80gb`
   - `nvidia-h100-80gb`
+  - `nvidia-l4` **(default)**
   - `nvidia-tesla-a100`
-  - `nvidia-l4(default)`
 
 ## Configure Identity-Aware Proxy (IAP)
 

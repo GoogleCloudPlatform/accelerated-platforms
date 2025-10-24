@@ -5,3 +5,4 @@ libncursesw
 libreadline
 libsqlite
 libz
+trixie

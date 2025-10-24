@@ -36,6 +36,9 @@ locals {
 
   comfyui_default_name = "comfyui"
 
+  comfyui_accelerator = lower(var.comfyui_accelerator_type) == "cpu" ? "cpu" : "nvidia"
+  comfyui_dockerfile  = var.comfyui_dockerfile != null ? var.comfyui_dockerfile : lower(var.comfyui_accelerator_type) == "cpu" ? "Dockerfile.cpu" : "Dockerfile.nvidia-with-manager"
+
   comfyui_endpoints_hostname             = var.comfyui_endpoints_hostname != null ? var.comfyui_endpoints_hostname : "comfyui.${var.comfyui_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
   comfyui_endpoints_ssl_certificate_name = "${local.unique_identifier_prefix}-${var.comfyui_kubernetes_namespace}-external-gateway"
 
@@ -48,6 +51,20 @@ locals {
 variable "comfyui_accelerator_type" {
   default = "nvidia-l4"
   type    = string
+
+  validation {
+    condition = contains(
+      [
+        "cpu",
+        "nvidia-a100-80gb",
+        "nvidia-h100-80gb",
+        "nvidia-l4",
+        "nvidia-tesla-a100",
+      ],
+      var.comfyui_accelerator_type
+    )
+    error_message = "'comfyui_accelerator_type' value is invalid"
+  }
 }
 
 variable "comfyui_app_name" {
@@ -106,6 +123,11 @@ variable "comfyui_cloud_storage_project_id" {
 }
 
 variable "comfyui_cloud_storage_workflow_bucket_name" {
+  default = null
+  type    = string
+}
+
+variable "comfyui_dockerfile" {
   default = null
   type    = string
 }

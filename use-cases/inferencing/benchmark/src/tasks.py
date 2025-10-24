@@ -14,12 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from locust import FastHttpUser, task, between
 import logging
 import logging.config
 import os
 import signal
+
 import requests
+from locust import FastHttpUser, between, task
 
 
 def graceful_shutdown(signal_number, stack_frame):

@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datasets
+import glob
 import logging
 import logging.config
-import glob
 import os
+import random
 import signal
 import sys
-import torch
-import transformers
-import random
 
+import datasets
+import torch
+import torch.distributed as dist
+import transformers
 from accelerate import Accelerator
 from datasets import Dataset, load_dataset, load_from_disk
 from peft import LoraConfig, PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from trl import DataCollatorForCompletionOnlyLM, SFTConfig, SFTTrainer
-import torch.distributed as dist
 
 
 def graceful_shutdown(signal_number, stack_frame):

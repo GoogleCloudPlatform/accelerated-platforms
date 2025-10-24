@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import gradio as gr
-import re
-import requests
-import os
 import logging
 import logging.config
+import os
+import re
+
+import gradio as gr
+import requests
 
 # Configure logging
 logging.config.fileConfig("logging.conf")

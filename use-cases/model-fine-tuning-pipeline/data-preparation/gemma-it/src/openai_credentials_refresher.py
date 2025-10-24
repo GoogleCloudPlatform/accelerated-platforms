@@ -12,16 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
+import os
 from typing import Any
 
 import google.auth
 import google.auth.transport.requests
-import logging
 import openai
-import os
 import tenacity
-
-
 from tenacity import retry, stop_after_attempt, wait_random
 
 

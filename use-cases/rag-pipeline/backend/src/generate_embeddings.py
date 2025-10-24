@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 import logging.config
 import os
+
 import requests
-import json
 
 # Define the API Endpoints for deployment
 TEXT_API_ENDPOINT = os.environ.get("TEXT_EMBEDDING_ENDPOINT")

@@ -1,47 +1,9 @@
 {
   "id": "5d360432-c954-4d6d-8ead-3d2f5ef8e031",
   "revision": 0,
-  "last_node_id": 12,
-  "last_link_id": 18,
+  "last_node_id": 13,
+  "last_link_id": 19,
   "nodes": [
-    {
-      "id": 5,
-      "type": "VeoVideoSaveAndPreview",
-      "pos": [
-        3090.656494140625,
-        -271.0433044433594
-      ],
-      "size": [
-        282.740234375,
-        355.7913818359375
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 12
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "VeoVideoSaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        true,
-        true,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
-      ]
-    },
     {
       "id": 4,
       "type": "PreviewImage",
@@ -107,70 +69,12 @@
         "16:9",
         1,
         "",
-        23740096,
+        4938394,
         "randomize",
         true,
         false,
         "PNG",
         "BLOCK_MEDIUM_AND_ABOVE",
-        "",
-        ""
-      ]
-    },
-    {
-      "id": 10,
-      "type": "Veo3ImageToVideoNode",
-      "pos": [
-        2639.011962890625,
-        -331.42364501953125
-      ],
-      "size": [
-        400,
-        502
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 17
-        },
-        {
-          "name": "last_frame",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 18
-        }
-      ],
-      "outputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "links": [
-            12
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Veo3ImageToVideoNode"
-      },
-      "widgets_values": [
-        "VEO_3_1_PREVIEW",
-        "PNG",
-        "a ticking clock audible, as the detective sternly asks, \"Where were you last night?\"",
-        "16:9",
-        "720p",
-        "optimized",
-        "allow_adult",
-        8,
-        true,
-        1,
-        "",
-        "",
-        2642103899,
-        "randomize",
         "",
         ""
       ]
@@ -253,6 +157,102 @@
         "",
         ""
       ]
+    },
+    {
+      "id": 13,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        3161.177865222051,
+        -331.60407487958156
+      ],
+      "size": [
+        282.740234375,
+        355.7913818359375
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 19
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        false,
+        false,
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "Veo3ImageToVideoNode",
+      "pos": [
+        2639.011962890625,
+        -331.42364501953125
+      ],
+      "size": [
+        400,
+        502
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 17
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Veo3ImageToVideoNode"
+      },
+      "widgets_values": [
+        "VEO_3_1_PREVIEW",
+        "PNG",
+        "a ticking clock audible, as the detective sternly asks, \"Where were you last night?\"",
+        "16:9",
+        "720p",
+        "optimized",
+        "allow_adult",
+        8,
+        true,
+        1,
+        "",
+        "",
+        535752232,
+        "randomize",
+        "",
+        ""
+      ]
     }
   ],
   "links": [
@@ -263,14 +263,6 @@
       4,
       0,
       "IMAGE"
-    ],
-    [
-      12,
-      10,
-      0,
-      5,
-      0,
-      "VEO_VIDEO"
     ],
     [
       13,
@@ -303,6 +295,14 @@
       10,
       1,
       "IMAGE"
+    ],
+    [
+      19,
+      10,
+      0,
+      13,
+      0,
+      "VEO_VIDEO"
     ]
   ],
   "groups": [],
@@ -311,11 +311,11 @@
     "ds": {
       "scale": 0.7828187543205342,
       "offset": [
-        -1528.8356174828282,
-        427.69612151851425
+        -2094.519720675223,
+        620.6386917704212
       ]
     },
-    "frontendVersion": "1.17.11",
+    "frontendVersion": "1.28.7",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

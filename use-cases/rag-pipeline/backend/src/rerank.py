@@ -15,6 +15,7 @@
 import logging
 import logging.config
 import os
+
 import requests
 
 # Configure logging

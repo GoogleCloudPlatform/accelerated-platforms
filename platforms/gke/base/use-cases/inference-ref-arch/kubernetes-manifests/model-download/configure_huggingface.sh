@@ -22,7 +22,15 @@ MY_PATH="$(
   pwd -P
 )"
 
+if [[ ! -v HF_MODEL_ID ]]; then
+  echo "HF_MODE_ID is not set, exiting!"
+  exit 1
+fi
+
 source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
+
+gcloud secrets versions list "${huggingface_hub_access_token_read_secret_manager_secret_name}" \
+--project="${huggingface_secret_manager_project_id}" >/dev/null
 
 envsubst < "${MY_PATH}/huggingface/templates/downloader.tpl.env" | sponge "${MY_PATH}/huggingface/downloader.env"
 

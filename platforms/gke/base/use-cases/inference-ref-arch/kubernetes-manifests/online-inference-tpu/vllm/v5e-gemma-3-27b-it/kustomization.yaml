@@ -24,10 +24,24 @@ configMapGenerator:
 nameSuffix: -v5e-gemma-3-27b-it
 
 patches:
-  - path: set-v5e-2x4-compute-class.yaml
-  - path: set-vllm-gemma3-27b-resources-limits.yaml
+  - path: patch-nodeselector.yaml
+  - path: patch-resources.yaml
 
 replacements:
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
       kind: ConfigMap

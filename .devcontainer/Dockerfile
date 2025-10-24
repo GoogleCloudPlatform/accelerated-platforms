@@ -52,6 +52,7 @@ ENV PATH="${PATH}:/node_modules/.bin"
 
 # Quick smoke test
 RUN \
+  isort --version-number \
   shellcheck --version \
   && shfmt --version \
   && CHECKPOINT_DISABLE="not needed for version checks" terraform --version

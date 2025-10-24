@@ -15,6 +15,7 @@
 from typing import Optional
 
 from google import genai
+
 from .config import get_gcp_metadata
 from .custom_exceptions import ConfigurationError
 

@@ -870,6 +870,34 @@ def validate_gcs_uri_and_image(
         return False, f"An unexpected error occurred during GCS validation: {e}"
 
 
+def tensor_to_pil_to_bytes(image: torch.tensor, format="PNG") -> bytes:
+    """Converts a PyTorch tensor or PIL Image into PNG-encoded bytes.
+
+    This function processes an input image, which can be either a PyTorch tensor
+    or a PIL Image object. If the input is a tensor, it is first converted to a
+    PIL Image. The function then saves the final PIL Image as a PNG into an
+    in-memory buffer and returns its raw byte content.
+
+    Args:
+        image (torch.Tensor | PIL.Image.Image): The input image. If it's a
+            PyTorch tensor, it is expected to have a shape like (1, H, W, C)
+            and float values in the [0, 1] range.
+
+    Returns:
+        bytes: The raw bytes of the image, encoded in PNG format.
+    """
+    pil_image: PIL_Image.Image
+    if isinstance(image, torch.Tensor):
+        image_np = (image.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
+        pil_image = PIL_Image.fromarray(image_np)
+    else:
+        pil_image = image
+
+    buffered = io.BytesIO()
+    pil_image.save(buffered, format=format)
+    return buffered.getvalue()
+
+
 def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
     """Converts a PyTorch tensor or PIL Image into PNG-encoded bytes.
 
@@ -888,21 +916,6 @@ def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
     """
 
     pil_image: PIL_Image.Image
-    image_input_bytes: bytes
-    try:
-        if isinstance(image, torch.Tensor):
-            image_np = (image.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
-            pil_image = PIL_Image.fromarray(image_np)
-            print("Converted input image tensor to PIL Image for Base64 encoding.")
-        else:
-            pil_image = image
-            print(f"Using input image as is for Base64 (type: {type(image)}).")
-
-        buffered = io.BytesIO()
-        pil_image.save(buffered, format=format)
-        image_input_bytes = buffered.getvalue()
-        image_base64 = base64.b64encode(image_input_bytes).decode("utf-8")
-        return image_base64
-    except Exception as e:
-        print(f"Cant convert the image to base64 {e}")
-        print(f"Cant convert the image to base64 {e}")
+    image_input_bytes = tensor_to_pil_to_bytes(image, format)
+    image_base64 = base64.b64encode(image_input_bytes).decode("utf-8")
+    return image_base64

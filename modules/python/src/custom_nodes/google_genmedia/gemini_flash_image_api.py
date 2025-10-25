@@ -57,6 +57,7 @@ class GeminiFlashImageAPI(VertexAIClient):
     def generate_image(
         self,
         model: str,
+        aspect_ratio: str,
         prompt: str,
         temperature: float,
         top_p: float,
@@ -66,12 +67,15 @@ class GeminiFlashImageAPI(VertexAIClient):
         sexually_explicit_threshold: str,
         dangerous_content_threshold: str,
         system_instruction: str,
-        image: Optional[torch.Tensor] = None,
+        image1: torch.Tensor,
+        image2: Optional[torch.Tensor] = None,
+        image3: Optional[torch.Tensor] = None,
     ) -> List[Image.Image]:
         """Generates an image using the Gemini Flash Image model.
 
         Args:
             model: The name of the Gemini model to use. default: gemini-2.5-flash-image-preview
+            aspect_ratio: The desired aspect ratio of the output image.
             prompt: The text prompt for image generation.
             temperature: Controls randomness in token generation.
             top_p: The cumulative probability of tokens to consider for sampling.
@@ -82,8 +86,9 @@ class GeminiFlashImageAPI(VertexAIClient):
               content.
             dangerous_content_threshold: Safety threshold for dangerous content.
             system_instruction: System-level instructions for the model.
-            image: An optional input image tensor for image-to-image tasks.
-              Defaults to None.
+            image1: The primary input image tensor for image-to-image tasks.
+            image2: An optional second input image tensor. Defaults to None.
+            image3: An optional third input image tensor. Defaults to None.
 
         Returns:
             A list of generated PIL images.
@@ -102,6 +107,9 @@ class GeminiFlashImageAPI(VertexAIClient):
             top_k=top_k,
             max_output_tokens=GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN,
             response_modalities=["TEXT", "IMAGE"],
+            image_config=types.ImageConfig(
+                aspect_ratio=aspect_ratio,
+            ),
             system_instruction=system_instruction,
             safety_settings=[
                 types.SafetySetting(
@@ -139,15 +147,15 @@ class GeminiFlashImageAPI(VertexAIClient):
 
         contents = [types.Part.from_text(text=prompt)]
 
-        if image != None:
-            num_images = image.shape[0]
-            print(f"Number of Images {num_images}")
-            for i in range(num_images):
-                image_tensor = image[i].unsqueeze(0)
-                image_to_b64 = utils.tensor_to_pil_to_base64(image_tensor)
-                contents.append(
-                    types.Part.from_bytes(data=image_to_b64, mime_type="image/png")
-                )
+        for i, image_tensor in enumerate([image1, image2, image3]):
+            if image_tensor is not None:
+                for j in range(image_tensor.shape[0]):
+                    single_image = image_tensor[j].unsqueeze(0)
+                    image_bytes = utils.tensor_to_pil_to_bytes(single_image)
+                    contents.append(
+                        types.Part.from_bytes(data=image_bytes, mime_type="image/png")
+                    )
+                    print(f"Appended image {i+1}, part {j+1} to contents.")
 
         response = self.client.models.generate_content(
             model=model, contents=contents, config=generate_content_config

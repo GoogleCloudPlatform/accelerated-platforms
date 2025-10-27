@@ -222,4 +222,3 @@ if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
 else
   info "All in-pod tests completed successfully."
 fi
-

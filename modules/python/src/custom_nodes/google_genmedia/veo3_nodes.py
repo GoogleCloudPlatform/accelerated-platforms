@@ -501,14 +501,156 @@ class Veo3ImageToVideoNode:
         return (all_generated_video_paths,)
 
 
+class Veo3ReferenceToVideo:
+    """
+    A ComfyUI node for generating videos from multiple reference images
+    by uploading them to GCS and using the Google Veo 3.1 API.
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls) -> Dict[str, Dict[str, Any]]:
+        """
+        Defines the input types for the Veo3ReferenceToVideo node.
+        """
+        return {
+            "required": {
+                "model": (
+                    [model.name for model in Veo3Model],
+                    {"default": Veo3Model.VEO_3_1_PREVIEW.name},
+                ),
+                "bucket_name": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "tooltip": "GCS bucket name to temporarily store reference images.",
+                    },
+                ),
+                "image1": ("IMAGE",),
+                "image_format": (
+                    ["PNG", "JPEG"],
+                    {"default": "PNG", "tooltip": "MIME type of the image"},
+                ),
+                "prompt": ("STRING", {"multiline": True}),
+                "aspect_ratio": (VEO3_VALID_ASPECT_RATIOS, {"default": "16:9"}),
+                "output_resolution": (["720p", "1080p"], {"default": "720p"}),
+                "compression_quality": (
+                    ["optimized", "lossless"],
+                    {"default": "optimized"},
+                ),
+                "person_generation": (
+                    ["dont_allow", "allow_adult"],
+                    {"default": "allow_adult"},
+                ),
+                "duration_seconds": (
+                    "INT",
+                    {"default": 8, "min": 4, "max": 8, "step": 2},
+                ),
+                "generate_audio": ("BOOLEAN", {"default": True}),
+                "sample_count": ("INT", {"default": 1, "min": 1, "max": 4, "step": 1}),
+            },
+            "optional": {
+                "image2": ("IMAGE",),
+                "image3": ("IMAGE",),
+                "output_gcs_uri": ("STRING", {"default": ""}),
+                "negative_prompt": ("STRING", {"multiline": True, "default": ""}),
+                "seed": (
+                    "INT",
+                    {
+                        "default": 0,
+                        "min": 0,
+                        "max": MAX_SEED,
+                        "tooltip": "0 seed let's Veo API handle randomness.",
+                    },
+                ),
+                "gcp_project_id": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "tooltip": "GCP project id where Vertex AI API will query Veo",
+                    },
+                ),
+                "gcp_region": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "tooltip": "GCP region for Vertex AI API",
+                    },
+                ),
+            },
+        }
+
+    RETURN_TYPES = ("VEO_VIDEO",)
+    RETURN_NAMES = ("video_paths",)
+    FUNCTION = "generate_from_references"
+    CATEGORY = "Google AI/Veo3.1"
+
+    def generate_from_references(
+        self,
+        model: str,
+        bucket_name: str,
+        image1: torch.Tensor,
+        image_format: str,
+        prompt: str,
+        aspect_ratio: str,
+        output_resolution: str,
+        compression_quality: str,
+        person_generation: str,
+        duration_seconds: int,
+        generate_audio: bool,
+        enhance_prompt: bool = True,
+        sample_count: int = 1,
+        image2: Optional[torch.Tensor] = None,
+        image3: Optional[torch.Tensor] = None,
+        output_gcs_uri: str = "",
+        negative_prompt: Optional[str] = None,
+        seed: Optional[int] = None,
+        gcp_project_id: Optional[str] = None,
+        gcp_region: Optional[str] = None,
+    ) -> Tuple[List[str],]:
+        try:
+            api = Veo3API(project_id=gcp_project_id, region=gcp_region)
+        except ConfigurationError as e:
+            raise RuntimeError(f"Veo API Configuration Error: {e}") from e
+
+        seed_for_api = seed if seed != 0 else None
+
+        try:
+            video_paths = api.generate_video_from_references(
+                model=model,
+                prompt=prompt,
+                bucket_name=bucket_name,
+                image1=image1,
+                image2=image2,
+                image3=image3,
+                image_format=image_format,
+                aspect_ratio=aspect_ratio,
+                output_resolution=output_resolution,
+                compression_quality=compression_quality,
+                person_generation=person_generation,
+                duration_seconds=duration_seconds,
+                generate_audio=generate_audio,
+                enhance_prompt=enhance_prompt,
+                sample_count=sample_count,
+                output_gcs_uri=output_gcs_uri,
+                negative_prompt=negative_prompt,
+                seed=seed_for_api,
+            )
+        except (APIInputError, APIExecutionError) as e:
+            raise RuntimeError(f"Video generation failed: {e}") from e
+
+        return (video_paths,)
+
+
 NODE_CLASS_MAPPINGS = {
     "Veo3TextToVideoNode": Veo3TextToVideoNode,
     "Veo3GcsUriImageToVideoNode": Veo3GcsUriImageToVideoNode,
     "Veo3ImageToVideoNode": Veo3ImageToVideoNode,
+    "Veo3ReferenceToVideo": Veo3ReferenceToVideo,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "Veo3TextToVideoNode": "Veo3.1 Text To Video",
     "Veo3GcsUriImageToVideoNode": "Veo3.1 Image To Video (GcsUriImage)",
     "Veo3ImageToVideoNode": "Veo3.1 Image To Video",
+    "Veo3ReferenceToVideo": "Veo3.1 Reference To Video",
 }

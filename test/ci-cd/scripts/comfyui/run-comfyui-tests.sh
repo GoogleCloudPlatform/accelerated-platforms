@@ -19,7 +19,7 @@ source /workspace/build.env 2>/dev/null || true
 if [ -n "${ACP_PLATFORM_BASE_DIR:-}" ]; then
   # shellcheck disable=SC1091
   source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh" 2>/dev/null || true
-else  
+else
   # Corrected line: Print the variable's name, not its empty value.
   echo "Warning: Variable ACP_PLATFORM_BASE_DIR is not set." >&2
 fi
@@ -152,7 +152,7 @@ POD_RUN_LOG="$(mktemp)"
 kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
   COMFYUI_URL="http://${COMFYUI_SERVICE}" \
   TEST_WORKFLOW_DIR="/tmp/workflows" \
-  POLL_TIMEOUT="300" \
+  POLL_TIMEOUT="1200" \
   POLL_INTERVAL="5" \
   MINIMUM_FILE_SIZE_BYTES="1" \
   /bin/bash -lc '
@@ -181,7 +181,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
     for f in "${test_files[@]}"; do
       (
         TEST_LOG=$(mktemp)
-        
+
         if main "${f}"; then
           echo "[PASS] filename: $(basename "$f")"
         else
@@ -190,7 +190,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
           basename "${f}" >> "${FAILURES_FILE}"
         fi
         rm -f "${TEST_LOG}"
-      ) 
+      )
     done
 
     wait

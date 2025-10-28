@@ -20,6 +20,18 @@ from google.genai import types
 
 AUDIO_MIME_TYPES = ["audio/mp3", "audio/wav", "audio/mpeg"]
 GEMINI_USER_AGENT = "cloud-solutions/comfyui-gemini-custom-node-v1"
+GEMINI_25_FLASH_IMAGE_ASPECT_RATIO = [
+    "1:1",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:3",
+    "4:5",
+    "5:4",
+    "9:16",
+    "16:9",
+    "21:9",
+]
 GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN = 32768
 GEMINI_25_FLASH_IMAGE_USER_AGENT = (
     "cloud-solutions/comfyui-gemini-25-flash-image-custom-node-v1"

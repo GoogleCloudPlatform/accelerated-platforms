@@ -53,13 +53,21 @@ steps:
       - "Configure the build environment"
 
   - args:
+      - "Populate platforms/gke/base/use-cases/inference-ref-arch Hugging Face token secrets"
+    entrypoint: "test/ci-cd/scripts/platforms/gke/base/use-cases/inference-ref-arch/populate_huggingface_token_secrets.sh"
+    id: "Populate platforms/gke/base/use-cases/inference-ref-arch Hugging Face token secrets"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Deploy platforms/gke/base/use-cases/inference-ref-arch Standard"
+
+  - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
       - online_gpu
     entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
     id: "Apply inference-ref-arch Terraservice 'online_gpu'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch Standard"
+      - "Populate platforms/gke/base/use-cases/inference-ref-arch Hugging Face token secrets"
 
   - args:
       - platforms/gke/base/use-cases/inference-ref-arch/terraform
@@ -68,7 +76,7 @@ steps:
     id: "Apply inference-ref-arch Terraservice 'online_tpu'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Deploy platforms/gke/base/use-cases/inference-ref-arch Standard"
+      - "Populate platforms/gke/base/use-cases/inference-ref-arch Hugging Face token secrets"
 
   - args:
       - "Validate Kustomize"

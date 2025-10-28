@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# https://www.apache.org/licenses/LICENSE-2.0
+#     https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,9 +35,6 @@ NUM_GPUS = int(os.environ.get("TENSOR_PARALLEL_SIZE", 1))
 print(f"MODEL_DIR: {MODEL_DIR}")
 print(f"Number of GPUs: {NUM_GPUS}")
 
-# Define the FastAPI app globally.
-app = FastAPI()
-
 # Initialize pipeline object globally. It will only be loaded on the main process.
 pipeline = None
 
@@ -65,6 +62,15 @@ class InferenceRequest(BaseModel):
     height: int = 1024
     width: int = 1024
     num_inference_steps: int = 4
+
+
+# Define the FastAPI app globally.
+app = FastAPI()
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
 
 
 @app.post("/generate")

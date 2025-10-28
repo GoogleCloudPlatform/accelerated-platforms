@@ -100,7 +100,7 @@ This example is built on top of the
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
 
-## Deploy the online inference workload
+## Deploy the inference workload
 
 - Source the environment configuration.
 
@@ -121,6 +121,13 @@ This example is built on top of the
     ```shell
     echo "HF_MODEL_NAME=${HF_MODEL_NAME}"
     ```
+
+    > If the `HF_MODEL_NAME` variable is not set, ensure that `HF_MODEL_ID` is
+    > set and source the `set_environment_variables.sh` script:
+    >
+    > ```shell
+    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"`
+    > ```
 
   - Select an accelerator.
 
@@ -146,7 +153,7 @@ This example is built on top of the
     accelerator type. For more information, see about viewing TPU quotas, see
     [Ensure that you have TPU quota](https://cloud.google.com/kubernetes-engine/docs/how-to/tpus#ensure-quota).
 
-- Deploy the online inference workload.
+- Deploy the inference workload.
 
 ```shell
 kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"

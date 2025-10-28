@@ -5,6 +5,9 @@ platforms/cws/image_pipeline/repositories/*
 # GKE
 gke_gcloud_auth_plugin_cache
 
+# GKE Inference
+platforms/gke/base/use-cases/inference-ref-arch/images/*
+
 # IDEs
 .vscode/
 *.code-workspace
@@ -35,3 +38,4 @@ terraform.tfstate*
 # Test
 test/log/*.log
 test/scripts/environment_files/*
+

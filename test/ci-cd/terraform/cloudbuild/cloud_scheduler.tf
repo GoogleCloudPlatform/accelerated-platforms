@@ -16,6 +16,24 @@ locals {
   cloudbuild_trigger_url_prefix = "https://cloudbuild.googleapis.com/v1/projects/${data.google_project.build.project_id}/locations/${var.build_location}/triggers"
 }
 
+resource "google_cloud_scheduler_job" "acp_ci_cd_docker_builder_daily" {
+  name      = "acp-ci-cd-docker-builder-image-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 5  * * *"
+  time_zone = "America/Los_Angeles"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.acp_ci_cd_docker_builder_image.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
 resource "google_cloud_scheduler_job" "acp_ci_cd_project_cleaner_hourly" {
   name      = "acp-ci-cd-project-cleaner-schedule"
   project   = data.google_project.build.project_id

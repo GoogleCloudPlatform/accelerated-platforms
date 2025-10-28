@@ -13,6 +13,7 @@
 # limitations under the License.
 
 resource "google_artifact_registry_repository" "ci_cd" {
+  description   = "CI/CD image repository"
   format        = "DOCKER"
   location      = var.build_location
   project       = data.google_project.build.project_id
@@ -35,5 +36,21 @@ resource "google_artifact_registry_repository" "ci_cd" {
     ignore_changes = [
       labels
     ]
+  }
+}
+
+resource "google_artifact_registry_repository" "docker_hub_remote" {
+  description   = "Remote Docker Hub repository"
+  format        = "DOCKER"
+  location      = var.build_location
+  mode          = "REMOTE_REPOSITORY"
+  project       = data.google_project.build.project_id
+  repository_id = local.build_ar_docker_hub_remote_repository_name
+
+  remote_repository_config {
+    description = "Docker Hub"
+    docker_repository {
+      public_repository = "DOCKER_HUB"
+    }
   }
 }

@@ -12,6 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "google_cloudbuild_trigger" "acp_ci_cd_docker_builder_image" {
+  filename = "test/ci-cd/cloudbuild/ci-cd/docker-builder-image.yaml"
+  included_files = [
+    "test/ci-cd/cloudbuild/ci-cd/docker-builder-image.yaml",
+    "test/ci-cd/container_images/docker-builder/**",
+  ]
+  location        = var.build_location
+  name            = "acp-ci-cd-docker-builder-image"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+}
+
 resource "google_cloudbuild_trigger" "acp_ci_cd_project_cleaner" {
   location        = var.build_location
   name            = "acp-ci-cd-project-cleaner"
@@ -41,7 +62,7 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_runner_image" {
   filename = "test/ci-cd/cloudbuild/ci-cd/runner-image.yaml"
   included_files = [
     "test/ci-cd/cloudbuild/ci-cd/runner-image.yaml",
-    "test/ci-cd/container_images/dockerfile.runner",
+    "test/ci-cd/container_images/runner/**",
   ]
   location        = var.build_location
   name            = "acp-ci-cd-runner-image"

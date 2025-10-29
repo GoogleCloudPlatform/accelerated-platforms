@@ -48,9 +48,9 @@ fi
 
 for SHARED_CONFIG_PATH in "${SHARED_CONFIG_PATHS[@]}"; do
   [[ -v DEBUG ]] && echo "Loading shared configuration(${SHARED_CONFIG_PATH})"
-  [[ ${display_variables} == 1 ]] && echo "-------------------------------------------------------------------------" 
+  [[ ${display_variables} == 1 ]] && echo "-------------------------------------------------------------------------"
   terraform -chdir="${SHARED_CONFIG_PATH}" init >/dev/null
-  terraform -chdir="${SHARED_CONFIG_PATH}" apply -auto-approve -input=false >/dev/null
+  terraform -chdir="${SHARED_CONFIG_PATH}" apply -auto-approve -input=false -lock=false >/dev/null
   [[ ${display_variables} == 1 ]] && terraform -chdir="${SHARED_CONFIG_PATH}" output
   [[ ${display_variables} == 1 ]] && echo -e "-------------------------------------------------------------------------\n"
   set -o allexport

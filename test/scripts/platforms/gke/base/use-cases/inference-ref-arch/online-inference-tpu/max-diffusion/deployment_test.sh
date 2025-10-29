@@ -57,25 +57,24 @@ for model in "${hf_tpu_max_diffusion_models[@]}"; do
       break
     fi
 
-    echo "Sending GET request to '/v1/models'"
+    echo "Sending POST request to '/generate'"
     echo "----------------------------------------------------------------------------------"
-    curl --request GET --show-error --silent http:/127.0.0.1:${forwarding_port}/v1/models | jq
-    sleep 1
-    echo "----------------------------------------------------------------------------------"
-    echo
-
-    echo "Sending POST request to '/v1/chat/completions'"
-    echo "----------------------------------------------------------------------------------"
-    curl http://127.0.0.1:${forwarding_port}/v1/chat/completions \
+    curl http://127.0.0.1:${forwarding_port}/generate \
     --data '{
-      "model": "/gcs/'${HF_MODEL_ID}'",
-      "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
-      }' \
+      "height": 512,
+      "num_inference_steps": 4,
+      "prompt": "A photo of a dog playing fetch in a park.",
+      "width": 512
+    }' \
     --header "Content-Type: application/json" \
+    --output ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png \
     --request POST \
     --show-error \
-    --silent | jq
+    --silent
+    sleep 1
+    ls -alh ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png
     echo "----------------------------------------------------------------------------------"
+    echo
 
     kill -9 ${PF_PID}
     wait ${PF_PID} 2>/dev/null

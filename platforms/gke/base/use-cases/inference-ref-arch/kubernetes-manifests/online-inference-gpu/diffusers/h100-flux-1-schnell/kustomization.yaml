@@ -117,6 +117,15 @@ replacements:
           index: 2
         select:
           kind: Deployment
+  - source:
+      fieldPath: data.MODEL_NAME
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.template.metadata.labels.[ai.gke.io/model]
+        select:
+          kind: Deployment
 
 resources:
   - ../base

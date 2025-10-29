@@ -29,6 +29,29 @@ patches:
 
 replacements:
   - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: vllm
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=inference-server].image
+        select:
+          kind: Deployment
+  - source:
       fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
       kind: ConfigMap
       name: deployment
@@ -103,22 +126,6 @@ replacements:
           - spec.template.metadata.labels.[ai.gke.io/model]
         select:
           kind: Deployment
-  - source:
-      fieldPath: data.APP_LABEL
-      kind: ConfigMap
-      name: runtime
-    # sourceValue is not available to 1.34
-    # sourceValue: "vllm-h100-gemma-3-27b-it"
-    targets:
-      - fieldPaths:
-          - spec.selector.matchLabels.app
-          - spec.template.metadata.labels.app
-        select:
-          kind: Deployment
-      - fieldPaths:
-          - spec.selector.app
-        select:
-          kind: Service
 
 resources:
   - ../base

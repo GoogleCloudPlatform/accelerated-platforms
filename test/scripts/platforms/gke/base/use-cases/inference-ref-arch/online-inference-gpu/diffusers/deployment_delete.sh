@@ -27,15 +27,12 @@ if [[ ! -v ACCELERATOR_TYPE ]]; then
   exit 1
 fi
 
-echo "Deleting model(s) on ${ACCELERATOR_TYPE}"
-echo
-
 for model in "${hf_gpu_diffusers_models[@]}"; do
   export HF_MODEL_ID=${model}
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
   if [[ -d "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}" ]]; then
-    echo "Deleting '${HF_MODEL_ID}' model resources..."
+    echo "Deleting '${HF_MODEL_ID}' model resources on '${ACCELERATOR_TYPE}'"
     echo "--------------------------------------------------------------------------------------------"
     "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
     kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"

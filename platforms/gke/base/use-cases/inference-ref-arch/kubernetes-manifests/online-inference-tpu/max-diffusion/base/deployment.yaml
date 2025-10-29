@@ -31,6 +31,7 @@ spec:
         gke-gcsfuse/memory-limit: "0"
         gke-gcsfuse/volumes: "true"
       labels:
+        ai.gke.io/inference-server: max-diffusion
         ai.gke.io/model: replaced-by-kustomize
         app: max-diffusion
     spec:

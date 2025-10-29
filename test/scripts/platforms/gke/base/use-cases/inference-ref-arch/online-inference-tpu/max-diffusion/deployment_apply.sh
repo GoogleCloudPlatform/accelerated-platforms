@@ -27,15 +27,12 @@ if [[ ! -v ACCELERATOR_TYPE ]]; then
   exit 1
 fi
 
-echo "Deploying model(s) on ${ACCELERATOR_TYPE}"
-echo
-
 for model in "${hf_tpu_max_diffusion_models[@]}"; do
   export HF_MODEL_ID=${model}
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
   if [[ -d "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}" ]]; then
-    echo "Deploying '${HF_MODEL_ID}' model resources..."
+    echo "Deploying '${HF_MODEL_ID}' model resources on '${ACCELERATOR_TYPE}'"
     echo "--------------------------------------------------------------------------------------------"
     "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/configure_max_diffusion.sh"
     kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"

@@ -31,7 +31,7 @@ kubectl_wait(){
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
   echo "Waiting for '${HF_MODEL_ID}'(${HF_MODEL_ID_HASH}) download" | ts "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]"
-  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} wait job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --for=condition=complete --timeout=14400s  | ts "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]" &
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} wait job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --for=condition=complete --timeout=14400s | ts "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]" &
   kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} wait job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --for=condition=failed --timeout=14400s | ts "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]" && exit 1 &
   wait -n && \
   pkill -f "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} wait job/${HF_MODEL_ID_HASH}-hf-model-to-gcs" || true

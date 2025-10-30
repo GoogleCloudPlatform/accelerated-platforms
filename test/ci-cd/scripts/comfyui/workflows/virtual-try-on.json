@@ -7,7 +7,7 @@
       "aspect_ratio": "16:9",
       "number_of_images": 1,
       "negative_prompt": "",
-      "seed": 3578009779,
+      "seed": 3070757,
       "enhance_prompt": true,
       "add_watermark": false,
       "output_image_type": "PNG",
@@ -32,31 +32,40 @@
       "title": "Preview Image"
     }
   },
-  "15": {
+  "14": {
     "inputs": {
-      "model": "VEO_3_PREVIEW",
-      "image_format": "PNG",
-      "prompt": "make the models do ramp walk with upbeat music in the background",
-      "aspect_ratio": "16:9",
-      "output_resolution": "720p",
-      "compression_quality": "optimized",
-      "person_generation": "allow_adult",
-      "duration_seconds": 8,
-      "generate_audio": true,
-      "sample_count": 1,
-      "output_gcs_uri": "",
-      "negative_prompt": "",
-      "seed": 1012553172,
-      "gcp_project_id": "",
-      "gcp_region": "",
-      "image": [
-        "23",
+      "images": [
+        "12",
         0
       ]
     },
-    "class_type": "Veo3ImageToVideoNode",
+    "class_type": "PreviewImage",
     "_meta": {
-      "title": "Veo3 Image To Video"
+      "title": "Preview Image"
+    }
+  },
+  "17": {
+    "inputs": {
+      "directory": "input/virtual-try-on/",
+      "image_load_cap": 0,
+      "skip_first_images": 0,
+      "select_every_nth": 1
+    },
+    "class_type": "VHS_LoadImagesPath",
+    "_meta": {
+      "title": "Load Images (Path) 🎥🅥🅗🅢"
+    }
+  },
+  "21": {
+    "inputs": {
+      "images": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
     }
   },
   "22": {
@@ -67,7 +76,7 @@
       "save_video": true,
       "save_video_file_prefix": "veo_video",
       "video_paths": [
-        "15",
+        "24",
         0
       ]
     },
@@ -81,7 +90,7 @@
       "base_steps": 32,
       "person_generation": "ALLOW_ADULT",
       "number_of_images": 1,
-      "seed": 54879415,
+      "seed": 2544985629,
       "add_watermark": false,
       "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
       "gcp_project_id": "",
@@ -91,7 +100,7 @@
         0
       ],
       "product_image": [
-        "24",
+        "17",
         0
       ]
     },
@@ -102,22 +111,29 @@
   },
   "24": {
     "inputs": {
-      "model": "GEMINI_25_FLASH_IMAGE",
-      "prompt": "Generate a orange designer dress with strips ",
-      "temperature": 0.7,
-      "top_p": 1,
-      "top_k": 32,
-      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
-      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
-      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
-      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
-      "system_instruction": "",
+      "model": "VEO_3_1_PREVIEW",
+      "image_format": "PNG",
+      "prompt": "make the models do ramp walk with upbeat music in the background",
+      "aspect_ratio": "16:9",
+      "output_resolution": "720p",
+      "compression_quality": "optimized",
+      "person_generation": "allow_adult",
+      "duration_seconds": 8,
+      "generate_audio": true,
+      "sample_count": 1,
+      "output_gcs_uri": "",
+      "negative_prompt": "",
+      "seed": 1698354148,
       "gcp_project_id": "",
-      "gcp_region": "global"
+      "gcp_region": "",
+      "image": [
+        "23",
+        0
+      ]
     },
-    "class_type": "Gemini25FlashImage",
+    "class_type": "Veo3ImageToVideoNode",
     "_meta": {
-      "title": "Gemini 2.5 Flash Image (🍌)"
+      "title": "Veo3.1 Image To Video"
     }
   }
 }

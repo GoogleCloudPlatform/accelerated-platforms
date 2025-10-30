@@ -1,0 +1,264 @@
+{
+  "id": "2bf6e6f1-c606-4913-9be4-9028a4dc4d3b",
+  "revision": 0,
+  "last_node_id": 8,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 3,
+      "type": "VHS_LoadImagePath",
+      "pos": [
+        751.6030883789062,
+        174.91986083984375
+      ],
+      "size": [
+        239.84765625,
+        126
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "8e4d79471bf1952154768e8435a9300077b534fa",
+        "Node name for S&R": "VHS_LoadImagePath"
+      },
+      "widgets_values": {
+        "image": "input/interpolation/singer_start_frame.png",
+        "custom_width": 0,
+        "custom_height": 0,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "custom_width": 0,
+            "custom_height": 0,
+            "filename": "input/interpolation/singer_start_frame.png",
+            "type": "path",
+            "format": "video/png"
+          }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        1726.6839599609375,
+        177.72991943359375
+      ],
+      "size": [
+        282.740234375,
+        355.7913818359375
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 4
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        false,
+        false,
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "VHS_LoadImagePath",
+      "pos": [
+        1025.93212890625,
+        261.69598388671875
+      ],
+      "size": [
+        239.84765625,
+        126
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "8e4d79471bf1952154768e8435a9300077b534fa",
+        "Node name for S&R": "VHS_LoadImagePath"
+      },
+      "widgets_values": {
+        "image": "input/interpolation/singer_end_frame.png",
+        "custom_width": 0,
+        "custom_height": 0,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "custom_width": 0,
+            "custom_height": 0,
+            "filename": "input/interpolation/singer_end_frame.png",
+            "type": "path",
+            "format": "video/png"
+          }
+        }
+      }
+    },
+    {
+      "id": 1,
+      "type": "Veo3ImageToVideoNode",
+      "pos": [
+        1299.4630126953125,
+        178.54306030273438
+      ],
+      "size": [
+        400,
+        498
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Veo3ImageToVideoNode"
+      },
+      "widgets_values": [
+        "VEO_3_1_PREVIEW",
+        "PNG",
+        "The camera performs a smooth continuous 180-degree arc shot, starting with the front-facing view of the singer and circling around her to seamlessly end on the POV shot from behind her on stage. The singer sings “when you look me in the eyes, I can see a million stars.”",
+        "16:9",
+        "720p",
+        "optimized",
+        "allow_adult",
+        8,
+        true,
+        1,
+        "",
+        "",
+        591757346,
+        "randomize",
+        "",
+        ""
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      3,
+      0,
+      1,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      6,
+      0,
+      1,
+      1,
+      "IMAGE"
+    ],
+    [
+      4,
+      1,
+      0,
+      8,
+      0,
+      "VEO_VIDEO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.3513057093103966,
+      "offset": [
+        -723.2287600440173,
+        -100.81345335390921
+      ]
+    },
+    "frontendVersion": "1.26.13",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
+

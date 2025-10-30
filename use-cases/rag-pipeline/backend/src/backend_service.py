@@ -12,29 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
-import os
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-import uvicorn
-import semantic_search  # Assuming this module is implemented
-import alloydb_connect
 import logging
 import logging.config
-from google.cloud.alloydb.connector import Connector
-import prompt_helper
-import rerank
 import os
 import traceback
+from typing import Optional
 
+import alloydb_connect
+import prompt_helper
+import rerank
+import semantic_search  # Assuming this module is implemented
+import uvicorn
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import JSONResponse
+from google.cloud.alloydb.connector import Connector
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
-from opentelemetry.sdk.resources import get_aggregated_resources, Resource
+from opentelemetry.sdk.resources import Resource, get_aggregated_resources
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from pydantic import BaseModel, Field
 
 
 def configure_cloud_trace(app):

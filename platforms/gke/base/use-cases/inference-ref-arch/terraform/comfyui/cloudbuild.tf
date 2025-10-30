@@ -14,7 +14,7 @@
 
 locals {
   final_artifact_repo_name = split("/", google_artifact_registry_repository.comfyui_container_images.id)[5]
-  image_destination        = "${local.cluster_region}-docker.pkg.dev/${data.google_project.cluster.project_id}/${local.final_artifact_repo_name}/${var.comfyui_image_name}:${var.comfyui_image_tag}"
+  image_destination        = "${local.cluster_region}-docker.pkg.dev/${data.google_project.cluster.project_id}/${local.final_artifact_repo_name}/${var.comfyui_image_name}:${var.comfyui_image_tag}-${local.comfyui_accelerator}"
 }
 
 resource "terraform_data" "submit_docker_build" {
@@ -26,7 +26,7 @@ gcloud builds submit \
 --project="${data.google_project.cluster.project_id}" \
 --quiet \
 --service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${data.google_service_account.cloudbuild.email}" \
---substitutions=_DESTINATION="${local.image_destination}"
+--substitutions=_DOCKERFILE="${local.comfyui_dockerfile}",_DESTINATION="${local.image_destination}"
 EOT
     interpreter = ["bash", "-c"]
     working_dir = local.acp_root

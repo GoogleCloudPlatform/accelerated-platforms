@@ -16,6 +16,18 @@
 set -o errexit
 set -o nounset
 
+if [[ -v RESERVATIONS ]]; then
+  DELETE_PROJECT_NUMBER=$(gcloud projects describe "${DELETE_PROJECT_ID}" --format="value(projectNumber)")
+  for reservation in ${RESERVATIONS}; do
+    zone=$(echo "${reservation}" | awk -F'-' '{print $(NF-2) "-" $(NF-1) "-" $NF}')
+
+    echo "Deleting project '${DELETE_PROJECT_ID}(${DELETE_PROJECT_NUMBER})' from shared reservation '${reservation}' in '${zone}'"
+    gcloud compute reservations update "${reservation}" \
+      --remove-share-with="${DELETE_PROJECT_NUMBER}" \
+      --zone="${zone}"
+  done
+fi
+
 echo "Deleting project '${DELETE_PROJECT_ID}'..."
 gcloud projects delete "${DELETE_PROJECT_ID}" \
   --quiet

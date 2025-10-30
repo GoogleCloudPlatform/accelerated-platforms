@@ -39,7 +39,11 @@
           "editor.wordWrap": "off"
         },
         "[python]": {
-          "editor.defaultFormatter": "ms-python.black-formatter"
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          },
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true
         },
         "[scss]": {
           "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -73,6 +77,7 @@
         "mkhl.shfmt",
         "ms-azuretools.vscode-containers",
         "ms-python.black-formatter",
+        "ms-python.isort",
         "streetsidesoftware.code-spell-checker",
         "timonwong.shellcheck"
       ]

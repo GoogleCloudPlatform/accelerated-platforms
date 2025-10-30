@@ -1,0 +1,111 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${deployment_name}
+  namespace: ${namespace}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${deployment_name}
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/volumes: "true"
+      labels:
+        app: ${deployment_name}
+    spec:
+      containers:
+        - image: ${image}
+          imagePullPolicy: Always
+          name: ${deployment_name}
+          ports:
+            - containerPort: ${port}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8188
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          resources:
+            limits:
+              nvidia.com/gpu: "1"
+            requests:
+              nvidia.com/gpu: "1"
+          volumeMounts:
+            - mountPath: /home/comfyuser/comfy/ComfyUI/models
+              name: comfyui-model
+            - mountPath: /home/comfyuser/comfy/ComfyUI/input
+              name: comfyui-input
+            - mountPath: /home/comfyuser/comfy/ComfyUI/output
+              name: comfyui-output
+            - mountPath: /home/comfyuser/comfy/ComfyUI/user/default/workflows
+              name: comfyui-workflows
+      nodeSelector:
+        cloud.google.com/compute-class: gpu-h100-80gb-high-x1
+      securityContext:
+        fsGroup: 10000
+        runAsGroup: 10000
+        runAsUser: 10000
+      serviceAccountName: ${serviceaccount}
+      volumes:
+        - emptyDir:
+            medium: Memory
+          name: dshm
+        - csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: ${input_bucket}
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:60,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:60,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
+          name: comfyui-input
+        - csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: ${output_bucket}
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:60,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:60,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
+          name: comfyui-output
+        - csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: ${model_buckets}
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:60,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:60,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
+          name: comfyui-model
+        - csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: ${workflow_bucket}
+              mountOptions: file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-system:kernel-list-cache-ttl-secs:60,gcs-connection:client-protocol:grpc,implicit-dirs,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:ttl-secs:60,metadata-cache:type-cache-max-size-mb:-1,o:allow_other,uid=10000,gid=10000,file-mode=775,dir-mode=775
+          name: comfyui-workflows
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ${deployment_name}
+  name: ${service_name}
+  namespace: ${namespace}
+spec:
+  ports:
+    - port: ${port}
+      protocol: TCP
+      targetPort: ${port}
+  selector:
+    app: ${deployment_name}
+  type: ClusterIP

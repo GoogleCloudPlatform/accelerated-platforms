@@ -165,7 +165,7 @@ POD_RUN_LOG="$(mktemp)"
 kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
   COMFYUI_URL="http://${COMFYUI_SERVICE}" \
   TEST_WORKFLOW_DIR="/tmp/workflows" \
-  POLL_TIMEOUT="300" \
+  POLL_TIMEOUT="1200" \
   POLL_INTERVAL="5" \
   MINIMUM_FILE_SIZE_BYTES="1" \
   /bin/bash -lc '
@@ -235,4 +235,3 @@ if grep -q "__WORKFLOW_TESTS_FAILED__" "${POD_RUN_LOG}"; then
 else
   info "All in-pod tests completed successfully."
 fi
-

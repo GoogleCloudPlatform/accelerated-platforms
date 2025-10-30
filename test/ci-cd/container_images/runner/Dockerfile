@@ -1,0 +1,61 @@
+# syntax=docker.io/docker/dockerfile:1.17.1
+
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+ARG CRANE_VERSION="0.20.6"
+# When updating GCLOUD_VERSION, update DOCKER_VERSION and KUSTOMIZE_VERSION
+# to match the docker and kustomize versions that are installed in Cloud Shell.
+ARG DOCKER_VERSION="28.4.0"
+ARG GCLOUD_VERSION="541.0.0"
+ARG KUSTOMIZE_VERSION="5.7.1"
+# When updating the Terraform version, ensure that you also updated the
+# required_version in Terraform modules and services across the repository.
+ARG TERRAFORM_VERSION="1.8.0"
+
+FROM alpine/crane:${CRANE_VERSION} AS crane-image
+FROM docker:${DOCKER_VERSION} AS docker-image
+FROM registry.k8s.io/kustomize/kustomize:v${KUSTOMIZE_VERSION} AS kustomize-image
+FROM hashicorp/terraform:${TERRAFORM_VERSION} AS terraform-image
+
+FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:${GCLOUD_VERSION}-alpine
+
+ARG KUBECTL_VALIDATE_VERSION="v0.0.4"
+
+RUN echo "Installing Alpine packages" && \
+  apk --no-cache add \
+  coreutils \
+  envsubst \
+  github-cli \
+  go \
+  jq \
+  moreutils \
+  ncurses && \
+  echo "Installing gcloud components" && \
+  gcloud components install beta kubectl --quiet && \
+  rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && \
+  rm -rf /google-cloud-sdk/.install/.backup && \
+  echo "Installing kubectl validate" && \
+  go install sigs.k8s.io/kubectl-validate@${KUBECTL_VALIDATE_VERSION}
+
+COPY --from=crane-image /usr/bin/crane /usr/bin/crane
+
+COPY --from=docker-image /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker-image /usr/local/libexec/docker/cli-plugins/docker-buildx /usr/local/libexec/docker/cli-plugins/docker-buildx
+
+COPY --from=kustomize-image /app/kustomize /usr/local/bin/kustomize
+
+COPY --from=terraform-image /bin/terraform /usr/bin/terraform
+
+ENV PATH="${PATH}:/root/go/bin"

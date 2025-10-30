@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import logging
 import logging.config
-import io
 import os
-import torch
 
-from flask import Flask, request, jsonify
+import torch
+from flask import Flask, jsonify, request
 from google.cloud import storage
 from google.cloud.storage.blob import Blob
 from lavis.models import load_model_and_preprocess

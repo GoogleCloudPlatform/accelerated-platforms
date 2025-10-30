@@ -16,16 +16,15 @@ data "google_project" "cluster" {
   project_id = local.cluster_project_id
 }
 
-resource "google_project_service" "mesh_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = true
-  project                    = google_project_service.meshconfig_googleapis_com.project
-  service                    = "mesh.googleapis.com"
-}
+resource "google_project_service" "cluster" {
+  for_each = toset(
+    [
+      "mesh.googleapis.com",
+    ]
+  )
 
-resource "google_project_service" "meshconfig_googleapis_com" {
   disable_dependent_services = false
-  disable_on_destroy         = true
+  disable_on_destroy         = false
   project                    = data.google_project.cluster.project_id
-  service                    = "meshconfig.googleapis.com"
+  service                    = each.value
 }

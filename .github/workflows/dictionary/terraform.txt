@@ -20,6 +20,8 @@ strcontains
 templatefile
 terraservice
 terraservices
+terrastack
+terrastacks
 tfstate
 tfswitch
 tftpl

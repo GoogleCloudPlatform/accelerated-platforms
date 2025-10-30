@@ -1,0 +1,142 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# yaml-language-server: $schema=https://www.schemastore.org/cloudbuild.json
+---
+availableSecrets:
+  secretManager:
+    - versionName: projects/accelerated-platforms/secrets/github-token/versions/latest
+      env: "GH_TOKEN"
+
+options:
+  automapSubstitutions: true
+  logging: CLOUD_LOGGING_ONLY
+
+steps:
+  - args:
+      - "${_WAIT_FOR_TRIGGER}"
+    entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
+    env:
+      - "LOCATION=${LOCATION}"
+      - "PROJECT_ID=${PROJECT_ID}"
+    id: "Check triggers"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor: ["-"]
+
+  - args:
+      - ACP_PLATFORM_DIR="$${ACP_REPO_DIR}/platforms/cws"
+      - DEBUG=${_DEBUG}
+      - NEW_PROJECT_ID="${PROJECT_ID}-$${SHORT_BUILD_ID}"
+      - TF_VAR_cloudbuild_cws_image_pipeline_gh_app_installation_id="88475363"
+      - TF_VAR_cloudbuild_cws_image_pipeline_git_namespace="accelerated-platforms-ci"
+      - TF_VAR_cloudbuild_cws_image_pipeline_git_repository_name="acp-ch${SHORT_SHA}-$${SHORT_BUILD_ID}-cws-image-pipeline"
+      - TF_VAR_cloudbuild_cws_image_pipeline_git_token_project_id="accelerated-platforms"
+      - TF_VAR_cloudbuild_cws_image_pipeline_git_token_secret_id="github-token"
+      - TF_VAR_platform_default_location="${_DEFAULT_LOCATION}"
+      - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${SHORT_BUILD_ID}"
+      - TF_VAR_platform_name="ch${SHORT_SHA}"
+    entrypoint: "test/ci-cd/scripts/platforms/configure_build_environment.sh"
+    env:
+      - BUILD_ID=${BUILD_ID}
+      - DEBUG=${_DEBUG}
+      - PROJECT_ID=${PROJECT_ID}
+      - SHORT_SHA=${SHORT_SHA}
+    id: "Configure the build environment"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Check triggers"
+
+  - entrypoint: "test/ci-cd/scripts/github/create_repository.sh"
+    env:
+      - NAMESPACE="$${TF_VAR_cloudbuild_cws_image_pipeline_git_namespace}"
+      - REPOSITORY="$${TF_VAR_cloudbuild_cws_image_pipeline_git_repository_name}"
+    id: "Create a GitHub repository"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    secretEnv: ["GH_TOKEN"]
+    waitFor:
+      - "Configure the build environment"
+
+  - args:
+      - "platforms/cws/_shared_config"
+      - "initialize"
+    entrypoint: "test/ci-cd/scripts/terraservice/apply_initialize.sh"
+    id: "Initialize platforms/cws"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Create a GitHub repository"
+
+  - args:
+      - "platforms/cws/_shared_config"
+    entrypoint: "test/ci-cd/scripts/terraservice/verify_configs.sh"
+    id: "Verify shared configurations"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Initialize platforms/cws"
+
+  - args:
+      - "platforms/cws/bin/cws_all_apply.sh"
+      - "Apply platforms/cws all"
+    entrypoint: "test/ci-cd/scripts/platforms/run_script.sh"
+    id: "Apply platforms/cws all"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    secretEnv: ["GH_TOKEN"]
+    waitFor:
+      - "Verify shared configurations"
+
+  - entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_builds.sh"
+    env:
+      - BUILD_LOCATION="$${TF_VAR_platform_default_location}"
+      - BUILD_PROJECT_ID="$${TF_VAR_platform_default_project_id}"
+    id: "Check project builds"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Apply platforms/cws all"
+
+  - args:
+      - "platforms/cws/bin/cws_all_destroy.sh"
+      - "Destroy platforms/cws all"
+    entrypoint: "test/ci-cd/scripts/platforms/run_script.sh"
+    id: "Destroy platforms/cws all"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    secretEnv: ["GH_TOKEN"]
+    waitFor:
+      - "Check project builds"
+
+  - entrypoint: "test/ci-cd/scripts/github/delete_repository.sh"
+    env:
+      - NAMESPACE="$${TF_VAR_cloudbuild_cws_image_pipeline_git_namespace}"
+      - REPOSITORY="$${TF_VAR_cloudbuild_cws_image_pipeline_git_repository_name}"
+    id: "Delete GitHub repository"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    secretEnv: ["GH_TOKEN"]
+    waitFor:
+      - "Destroy platforms/cws all"
+
+  - entrypoint: "test/ci-cd/scripts/platforms/cleanup_build_environment.sh"
+    id: "Cleanup the build environment"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Delete GitHub repository"
+
+  - entrypoint: "test/ci-cd/scripts/platforms/set_build_status.sh"
+    id: "Set the build status"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Cleanup the build environment"
+
+substitutions:
+  _DEBUG: "false"
+  _DEFAULT_LOCATION: "us-central1"
+
+timeout: 120m

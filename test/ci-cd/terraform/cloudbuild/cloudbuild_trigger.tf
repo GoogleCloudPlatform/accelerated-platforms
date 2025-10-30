@@ -12,6 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "google_cloudbuild_trigger" "acp_ci_cd_docker_builder_image" {
+  filename = "test/ci-cd/cloudbuild/ci-cd/docker-builder-image.yaml"
+  included_files = [
+    "test/ci-cd/cloudbuild/ci-cd/docker-builder-image.yaml",
+    "test/ci-cd/container_images/docker-builder/**",
+  ]
+  location        = var.build_location
+  name            = "acp-ci-cd-docker-builder-image"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+}
+
 resource "google_cloudbuild_trigger" "acp_ci_cd_project_cleaner" {
   location        = var.build_location
   name            = "acp-ci-cd-project-cleaner"
@@ -41,7 +62,7 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_runner_image" {
   filename = "test/ci-cd/cloudbuild/ci-cd/runner-image.yaml"
   included_files = [
     "test/ci-cd/cloudbuild/ci-cd/runner-image.yaml",
-    "test/ci-cd/container_images/dockerfile.runner",
+    "test/ci-cd/container_images/runner/**",
   ]
   location        = var.build_location
   name            = "acp-ci-cd-runner-image"
@@ -71,6 +92,67 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
   ]
   location        = var.build_location
   name            = "acp-ci-cd-terraform"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+###################################################################################################
+
+locals {
+  platforms_cws_scripts_all_cb_yaml = "test/ci-cd/cloudbuild/platforms/cws/scripts-all.yaml"
+  platforms_cws_scripts_all_ignore = [
+    "platforms/cws/README.md",
+  ]
+  platforms_cws_scripts_all_include = [
+    "platforms/cws/**",
+    local.platforms_cws_scripts_all_cb_yaml,
+  ]
+  platforms_cws_scripts_all_name = "platforms-cws-scripts-all"
+}
+
+resource "google_cloudbuild_trigger" "platforms_cws_scripts_all" {
+  filename        = local.platforms_cws_scripts_all_cb_yaml
+  ignored_files   = local.platforms_cws_scripts_all_ignore
+  included_files  = local.platforms_cws_scripts_all_include
+  location        = var.build_location
+  name            = local.platforms_cws_scripts_all_name
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_cws_scripts_all_push" {
+  filename        = local.platforms_cws_scripts_all_cb_yaml
+  ignored_files   = local.platforms_cws_scripts_all_ignore
+  included_files  = local.platforms_cws_scripts_all_include
+  location        = var.build_location
+  name            = "${local.platforms_cws_scripts_all_name}-push"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 

@@ -12,31 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datasets
 import json
 import logging
 import logging.config
-import numpy as np
-import openai
 import os
-import pandas as pd
 import re
 import signal
 import sys
-import tenacity
 import time
 
-
+import datasets
+import numpy as np
+import openai
+import pandas as pd
+import tenacity
 from datasets import Dataset, DatasetDict
 from google.api_core.exceptions import InternalServerError, ResourceExhausted
+from openai_credentials_refresher import OpenAICredentialsRefresher
 from tenacity import (
     retry,
     retry_if_exception_type,
     stop_after_attempt,
     wait_random_exponential,
 )
-
-from openai_credentials_refresher import OpenAICredentialsRefresher
 
 PROJECT_ID = os.environ.get("PROJECT_ID")
 # The bucket which contains the preprocessed data

@@ -20,6 +20,18 @@ from google.genai import types
 
 AUDIO_MIME_TYPES = ["audio/mp3", "audio/wav", "audio/mpeg"]
 GEMINI_USER_AGENT = "cloud-solutions/comfyui-gemini-custom-node-v1"
+GEMINI_25_FLASH_IMAGE_ASPECT_RATIO = [
+    "1:1",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:3",
+    "4:5",
+    "5:4",
+    "9:16",
+    "16:9",
+    "21:9",
+]
 GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN = 32768
 GEMINI_25_FLASH_IMAGE_USER_AGENT = (
     "cloud-solutions/comfyui-gemini-25-flash-image-custom-node-v1"
@@ -28,6 +40,9 @@ IMAGE_MIME_TYPES = ["image/png", "image/jpeg"]
 IMAGEN3_MODEL_ID = "imagen-3.0-generate-002"
 IMAGEN3_USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
 IMAGEN4_USER_AGENT = "cloud-solutions/comfyui-imagen4-custom-node-v1"
+LYRIA2_USER_AGENT = "cloud-solutions/comfyui-lyria-custom-node-v1"
+LYRIA2_MAX_SAMPLES = 4
+LYRIA2_MODEL = "lyria-002"
 MAX_SEED = 0xFFFFFFFF
 OUTPUT_RESOLUTION = ["720p", "1080p"]
 STORAGE_USER_AGENT = "cloud-solutions/comfyui-gcs-custom-node-v1"
@@ -69,5 +84,5 @@ class ThresholdOptions(Enum):
 
 
 class Veo3Model(str, Enum):
-    VEO_3_PREVIEW = "veo-3.0-generate-preview"
-    VEO_3_FAST_PREVIEW = "veo-3.0-fast-generate-preview"
+    VEO_3_1_PREVIEW = "veo-3.1-generate-preview"
+    VEO_3_1_FAST_PREVIEW = "veo-3.1-fast-generate-preview"

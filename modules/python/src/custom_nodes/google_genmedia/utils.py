@@ -20,6 +20,7 @@ import os
 import random
 import re
 import time
+import wave
 from io import BytesIO
 from typing import Any, List, Optional, Tuple
 
@@ -55,9 +56,7 @@ def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
     image_data = base64.b64decode(base64_string)
     pil_image = PIL_Image.open(io.BytesIO(image_data)).convert("RGBA")
     image_array = np.array(pil_image, dtype=np.float32) / 255.0
-    tensor = torch.from_numpy(image_array)[
-        None,
-    ]
+    tensor = torch.from_numpy(image_array)[None,]
 
     return tensor
 
@@ -293,7 +292,7 @@ def generate_video_from_gcsuri_image(
         temp_config["resolution"] = output_resolution
 
     if re.search(
-        r"veo-2\.0",
+        r"veo-(2\.0|3\.1)",
         model.value if isinstance(model, object) and hasattr(model, "value") else model,
     ):
         if last_frame_gcsuri:
@@ -444,7 +443,7 @@ def generate_video_from_image(
         temp_config["resolution"] = output_resolution
 
     if re.search(
-        r"veo-2\.0",
+        r"veo-(2\.0|3\.1)",
         model.value if isinstance(model, object) and hasattr(model, "value") else model,
     ):
         if last_frame is not None:
@@ -650,6 +649,107 @@ def prep_for_media_conversion(file_path: str, mime_type: str) -> Optional[types.
     else:
         print(f"The file path {file_path} does not exist. Skipping.")
         return None  # Return None if file not found
+
+
+def process_audio_response(response: Any) -> dict:
+    """
+    Processes the audio generation response, loads the audio into a tensor,
+    and returns it in the format expected by ComfyUI's AUDIO output.
+    This implementation uses the standard `wave` module to avoid dependency on ffmpeg.
+    It assumes the audio from the API is in WAV format.
+
+    Args:
+        response: The completed response object from the Lyria API.
+
+    Returns:
+        A dictionary containing the audio waveform as a torch.Tensor
+        and the sample rate.
+
+    Raises:
+        APIExecutionError: If no audio data is found or if loading fails.
+    """
+    if not response.predictions:
+        raise APIExecutionError("No predictions found in the API response.")
+
+    waveforms = []
+    sample_rate = None
+
+    print(f"Found {len(response.predictions)} audio clips to process.")
+    for n, prediction in enumerate(response.predictions):
+        prediction_dict = dict(prediction)
+        audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
+
+        buffer = io.BytesIO(audio_bytes)
+
+        try:
+            with wave.open(buffer, "rb") as wf:
+                if sample_rate is None:
+                    sample_rate = wf.getframerate()
+                elif sample_rate != wf.getframerate():
+                    print(
+                        f"Warning: Mismatch in sample rates. Expected {sample_rate}, got {wf.getframerate()}. Using the first sample rate."
+                    )
+
+                n_channels = wf.getnchannels()
+                sampwidth = wf.getsampwidth()
+                n_frames = wf.getnframes()
+
+                frames = wf.readframes(n_frames)
+
+                if sampwidth == 2:
+                    dtype = np.int16
+                elif sampwidth == 1:
+                    dtype = np.uint8  # 8-bit is usually unsigned
+                else:
+                    raise APIExecutionError(
+                        f"Unsupported sample width for WAV: {sampwidth} bytes. Only 8-bit and 16-bit are supported by this implementation."
+                    )
+
+                waveform_np = np.frombuffer(frames, dtype=dtype)
+
+                # Normalize
+                if dtype == np.int16:
+                    waveform_np = waveform_np.astype(np.float32) / 32768.0
+                elif dtype == np.uint8:
+                    waveform_np = (waveform_np.astype(np.float32) - 128.0) / 128.0
+
+                # Reshape to (T, C) and then convert to tensor
+                waveform_tensor = torch.from_numpy(waveform_np)
+                waveform_tensor = waveform_tensor.reshape(-1, n_channels)
+
+                # Transpose to (C, T)
+                waveform_tensor = waveform_tensor.transpose(0, 1)
+
+                waveforms.append(waveform_tensor)
+
+        except wave.Error as e:
+            raise APIExecutionError(
+                "Failed to read audio data as WAV file. The API might have returned a different format, which requires ffmpeg."
+            ) from e
+        except Exception as e:
+            raise APIExecutionError(
+                f"An unexpected error occurred while processing audio sample {n}: {e}"
+            ) from e
+
+    if not waveforms:
+        raise APIExecutionError(
+            "Failed to process any audio waveforms from the API response."
+        )
+
+    # Pad to max length if necessary
+    max_len = max(w.shape[1] for w in waveforms)
+    padded_waveforms = []
+    for w in waveforms:
+        if w.shape[1] < max_len:
+            padding = max_len - w.shape[1]
+            padded_w = torch.nn.functional.pad(w, (0, padding))
+            padded_waveforms.append(padded_w)
+        else:
+            padded_waveforms.append(w)
+
+    batched_waveform = torch.stack(padded_waveforms)
+
+    return {"waveform": batched_waveform, "sample_rate": sample_rate}
 
 
 def process_video_response(operation: Any) -> List[str]:
@@ -872,6 +972,34 @@ def validate_gcs_uri_and_image(
         return False, f"An unexpected error occurred during GCS validation: {e}"
 
 
+def tensor_to_pil_to_bytes(image: torch.tensor, format="PNG") -> bytes:
+    """Converts a PyTorch tensor or PIL Image into PNG-encoded bytes.
+
+    This function processes an input image, which can be either a PyTorch tensor
+    or a PIL Image object. If the input is a tensor, it is first converted to a
+    PIL Image. The function then saves the final PIL Image as a PNG into an
+    in-memory buffer and returns its raw byte content.
+
+    Args:
+        image (torch.Tensor | PIL.Image.Image): The input image. If it's a
+            PyTorch tensor, it is expected to have a shape like (1, H, W, C)
+            and float values in the [0, 1] range.
+
+    Returns:
+        bytes: The raw bytes of the image, encoded in PNG format.
+    """
+    pil_image: PIL_Image.Image
+    if isinstance(image, torch.Tensor):
+        image_np = (image.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
+        pil_image = PIL_Image.fromarray(image_np)
+    else:
+        pil_image = image
+
+    buffered = io.BytesIO()
+    pil_image.save(buffered, format=format)
+    return buffered.getvalue()
+
+
 def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
     """Converts a PyTorch tensor or PIL Image into PNG-encoded bytes.
 
@@ -890,21 +1018,6 @@ def tensor_to_pil_to_base64(image: torch.tensor, format="PNG") -> bytes:
     """
 
     pil_image: PIL_Image.Image
-    image_input_bytes: bytes
-    try:
-        if isinstance(image, torch.Tensor):
-            image_np = (image.squeeze(0).cpu().numpy() * 255).astype(np.uint8)
-            pil_image = PIL_Image.fromarray(image_np)
-            print("Converted input image tensor to PIL Image for Base64 encoding.")
-        else:
-            pil_image = image
-            print(f"Using input image as is for Base64 (type: {type(image)}).")
-
-        buffered = io.BytesIO()
-        pil_image.save(buffered, format=format)
-        image_input_bytes = buffered.getvalue()
-        image_base64 = base64.b64encode(image_input_bytes).decode("utf-8")
-        return image_base64
-    except Exception as e:
-        print(f"Cant convert the image to base64 {e}")
-        print(f"Cant convert the image to base64 {e}")
+    image_input_bytes = tensor_to_pil_to_bytes(image, format)
+    image_base64 = base64.b64encode(image_input_bytes).decode("utf-8")
+    return image_base64

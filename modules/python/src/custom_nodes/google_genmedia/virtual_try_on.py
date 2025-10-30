@@ -26,13 +26,13 @@ from google.genai import types
 from PIL import Image
 
 from . import utils
-from .config import get_gcp_metadata
+from .base import VertexAIClient
 from .constants import MAX_SEED, VTO_MODEL, VTO_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .retry import api_error_retry
 
 
-class VirtualTryOn:
+class VirtualTryOn(VertexAIClient):
     """
     A ComfyUI node for virtual try on.
     """
@@ -50,26 +50,7 @@ class VirtualTryOn:
         Raises:
             ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
         """
-        self.project_id = gcp_project_id
-        self.region = gcp_region
-
-        if not self.project_id:
-            self.project_id = get_gcp_metadata("project/project-id")
-        if not self.region:
-            self.region = "-".join(
-                get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-            )
-
-        if not self.project_id:
-            raise ConfigurationError(
-                "GCP Project is required and could not be determined."
-            )
-        if not self.region:
-            raise ConfigurationError(
-                "GCP region is required and could not be determined."
-            )
-
-        print(f"Project is {self.project_id}, region is {self.region}")
+        super().__init__(gcp_project_id, gcp_region)
         try:
             aiplatform.init(project=self.project_id, location=self.region)
             self.api_regional_endpoint = f"{self.region}-aiplatform.googleapis.com"

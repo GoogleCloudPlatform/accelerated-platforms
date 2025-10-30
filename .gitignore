@@ -1,5 +1,12 @@
+# CWS
+platforms/cws/_shared_config/secrets/cloudbuild_cws_image_git_token
+platforms/cws/image_pipeline/repositories/*
+
 # GKE
 gke_gcloud_auth_plugin_cache
+
+# GKE Inference
+platforms/gke/base/use-cases/inference-ref-arch/images/*
 
 # IDEs
 .vscode/
@@ -31,3 +38,4 @@ terraform.tfstate*
 # Test
 test/log/*.log
 test/scripts/environment_files/*
+

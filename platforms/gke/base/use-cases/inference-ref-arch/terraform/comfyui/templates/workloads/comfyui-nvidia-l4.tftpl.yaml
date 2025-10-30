@@ -46,12 +46,8 @@ spec:
             periodSeconds: 15
           resources:
             limits:
-              cpu: "30"
-              memory: 120G
               nvidia.com/gpu: "1"
             requests:
-              cpu: "16"
-              memory: 80G
               nvidia.com/gpu: "1"
           volumeMounts:
             - mountPath: /home/comfyuser/comfy/ComfyUI/models
@@ -63,24 +59,12 @@ spec:
             - mountPath: /home/comfyuser/comfy/ComfyUI/user/default/workflows
               name: comfyui-workflows
       nodeSelector:
-        cloud.google.com/gke-accelerator: ${accelerator}
+        cloud.google.com/compute-class: gpu-l4-24gb-s32-x1
       securityContext:
         fsGroup: 10000
         runAsGroup: 10000
         runAsUser: 10000
       serviceAccountName: ${serviceaccount}
-      tolerations:
-        - effect: NoSchedule
-          key: nvidia.com/gpu
-          operator: Exists
-        - effect: NoSchedule
-          key: on-demand
-          operator: Equal
-          value: "true"
-        - effect: NoSchedule
-          key: reservation
-          operator: Equal
-          value: "true"
       volumes:
         - emptyDir:
             medium: Memory

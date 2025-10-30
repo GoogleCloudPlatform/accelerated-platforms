@@ -23,21 +23,37 @@ MY_PATH="$(
 
 ACP_REPO_DIR=$(realpath "${MY_PATH}/../../")
 
-terraform_version_files=$(find "${ACP_REPO_DIR}/platforms/gke/base" -name "versions.tf" -printf "\"%p\"\n" | sort)
+declare -a search_directories=(
+  "${ACP_REPO_DIR}/platforms/cws"
+  "${ACP_REPO_DIR}/platforms/gke"
+  "${ACP_REPO_DIR}/terraform/modules/git"
+  "${ACP_REPO_DIR}/test"
+)
 
-echo "Found the following providers and versions:"
-terraform_providers=$(grep --no-filename 'source' $(find "${ACP_REPO_DIR}/platforms/gke/base" -name "versions.tf") | awk '{print $3}' | sort -u)
-for provider in ${terraform_providers}; do
-  echo "  ${provider}"
-  grep --after-context=1 --no-filename ${provider} $(find "${ACP_REPO_DIR}/platforms/gke/base" -name "versions.tf") | grep 'version' | sort -u
-done
-echo
+for directory in "${search_directories[@]}"; do
+  echo "Checking files in '${directory}'"
+  echo "----------------------------------------------------------------------------------"
+  terraform_version_files=$(find "${directory}" -name "versions.tf" -printf "\"%p\"\n" | sort)
 
-for version_file in ${terraform_version_files}; do
-  directory=$(dirname "${version_file//\"/}")
-  echo "Updating '${directory}'..."
-  cd "${directory}"
-  rm -f .terraform.lock.hcl
-  terraform init >/dev/null
-  git add .terraform.lock.hcl versions.tf 
+  echo "Found the following providers and versions:"
+  terraform_providers=$(grep --no-filename 'source' $(find "${directory}" -name "versions.tf") | awk '{print $3}' | sort -u)
+  for provider in ${terraform_providers}; do
+    echo "  ${provider}"
+    grep --after-context=1 --no-filename "${provider}" $(find "${directory}" -name "versions.tf") | grep 'version' | sort -u
+  done
+  echo
+
+  for version_file in ${terraform_version_files}; do
+    directory=$(dirname "${version_file//\"/}")
+    echo "Updating '${directory}'..."
+    cd "${directory}"
+    rm -rf .terraform/ .terraform.lock.hcl
+    terraform init >/dev/null
+    git add .terraform.lock.hcl versions.tf
+    rm -rf .terraform/
+  done
+  echo "----------------------------------------------------------------------------------"
+  echo
+  echo
+  echo
 done

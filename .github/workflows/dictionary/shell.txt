@@ -15,6 +15,7 @@ nounset
 nslookup
 pipefail
 pkill
+shuf
 syscall
 xtrace
 zxvf

@@ -1,11 +1,11 @@
 # Copyright 2025 Google LLC
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# https://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,6 +31,7 @@ spec:
         gke-gcsfuse/memory-limit: "0"
         gke-gcsfuse/volumes: "true"
       labels:
+        ai.gke.io/model: replaced-by-kustomize
         app: vllm
     spec:
       containers:
@@ -64,7 +65,7 @@ spec:
           command:
             - python3
             - -m
-            - vllm.entrypoints.openai.api_server  
+            - vllm.entrypoints.openai.api_server
           env:
             - name: GPU_MEMORY_UTILIZATION
               valueFrom:
@@ -88,7 +89,7 @@ spec:
                   name: runtime
             - name: VLLM_XLA_CACHE_PATH
               value: /data
-          image: docker.io/vllm/vllm-tpu:4c409cabc2c1c432ba670029990bd59e6bbf1479
+          image: replaced-by-kustomize
           imagePullPolicy: Always
           name: inference-server
           ports:

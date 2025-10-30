@@ -19,7 +19,11 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 
-from .constants import GeminiFlashImageModel, ThresholdOptions
+from .constants import (
+    GEMINI_25_FLASH_IMAGE_ASPECT_RATIO,
+    GeminiFlashImageModel,
+    ThresholdOptions,
+)
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .gemini_flash_image_api import GeminiFlashImageAPI
 
@@ -56,6 +60,22 @@ class Gemini25FlashImage:
                         "default": "A vivid landscape painting of a futuristic city",
                     },
                 ),
+                "image1": ("IMAGE",),
+                "aspect_ratio": (
+                    [
+                        "1:1",
+                        "2:3",
+                        "3:2",
+                        "3:4",
+                        "4:3",
+                        "4:5",
+                        "5:4",
+                        "9:16",
+                        "16:9",
+                        "21:9",
+                    ],
+                    {"default": "16:9"},
+                ),
                 "temperature": (
                     "FLOAT",
                     {"default": 0.7, "min": 0.0, "max": 1.0, "step": 0.01},
@@ -67,7 +87,8 @@ class Gemini25FlashImage:
                 "top_k": ("INT", {"default": 32, "min": 1, "max": 64}),
             },
             "optional": {
-                "image": ("IMAGE",),
+                "image2": ("IMAGE",),
+                "image3": ("IMAGE",),
                 # Safety Settings
                 "harassment_threshold": (
                     [threshold_option.name for threshold_option in ThresholdOptions],
@@ -119,16 +140,19 @@ class Gemini25FlashImage:
     def generate_and_return_image(
         self,
         model: str,
+        aspect_ratio: str,
         prompt: str,
         temperature: float,
         top_p: float,
         top_k: int,
+        image1: torch.Tensor,
         hate_speech_threshold: str,
         harassment_threshold: str,
         sexually_explicit_threshold: str,
         dangerous_content_threshold: str,
         system_instruction: str,
-        image: Optional[torch.Tensor] = None,
+        image2: Optional[torch.Tensor] = None,
+        image3: Optional[torch.Tensor] = None,
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
     ) -> Tuple[torch.Tensor,]:
@@ -140,6 +164,7 @@ class Gemini25FlashImage:
 
         Args:
             model: The Gemini Flash Image model to use. default: gemini-2.5-flash-image-preview
+            aspect_ratio: The desired aspect ratio of the output image.
             prompt: The text prompt for image generation.
             temperature: Controls randomness in token generation.
             top_p: The cumulative probability of tokens to consider for sampling.
@@ -150,8 +175,9 @@ class Gemini25FlashImage:
               content.
             dangerous_content_threshold: Safety threshold for dangerous content.
             system_instruction: System-level instructions for the model.
-            image: An optional input image tensor for image editing tasks.
-              Defaults to None.
+            image1: The primary input image tensor for image editing tasks.
+            image2: An optional second input image tensor. Defaults to None.
+            image3: An optional third input image tensor. Defaults to None.
             gcp_project_id: The GCP project ID.
             gcp_region: The GCP region.
 
@@ -170,23 +196,27 @@ class Gemini25FlashImage:
             raise RuntimeError(
                 f"Gemini Flash Image API Configuration Error: {e}"
             ) from e
-
-        if image != None:
-            print(type(image))
+        if aspect_ratio not in GEMINI_25_FLASH_IMAGE_ASPECT_RATIO:
+            raise RuntimeError(
+                f"Invalid aspect ratio: {aspect_ratio}. Valid aspect ratios are: {GEMINI_25_FLASH_IMAGE_ASPECT_RATIO}."
+            )
 
         try:
             pil_images = gemini_flash_image_api.generate_image(
-                model,
-                prompt,
-                temperature,
-                top_p,
-                top_k,
-                hate_speech_threshold,
-                harassment_threshold,
-                sexually_explicit_threshold,
-                dangerous_content_threshold,
-                system_instruction,
-                image,
+                model=model,
+                aspect_ratio=aspect_ratio,
+                prompt=prompt,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                hate_speech_threshold=hate_speech_threshold,
+                harassment_threshold=harassment_threshold,
+                sexually_explicit_threshold=sexually_explicit_threshold,
+                dangerous_content_threshold=dangerous_content_threshold,
+                system_instruction=system_instruction,
+                image1=image1,
+                image2=image2,
+                image3=image3,
             )
         except APIInputError as e:
             raise RuntimeError(f"Image generation input error: {e}") from e
@@ -206,9 +236,7 @@ class Gemini25FlashImage:
         for img in pil_images:
             img = img.convert("RGB")
             img_np = np.array(img).astype(np.float32) / 255.0
-            img_tensor = torch.from_numpy(img_np)[
-                None,
-            ]
+            img_tensor = torch.from_numpy(img_np)[None,]
             output_tensors.append(img_tensor)
 
         batched_images_tensor = torch.cat(output_tensors, dim=0)

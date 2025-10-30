@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "build_ar_docker_hub_remote_repository_url" {
+  value = local.build_ar_docker_hub_remote_repository_url
+}
+
 output "build_location" {
   value = var.build_location
 }

@@ -20,7 +20,7 @@ from google import genai
 from google.genai import types
 
 from . import utils
-from .config import get_gcp_metadata
+from .base import VertexAIClient
 from .constants import (
     AUDIO_MIME_TYPES,
     GEMINI_USER_AGENT,
@@ -33,57 +33,27 @@ from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationEr
 from .retry import api_error_retry
 
 
-class GeminiNode25:
+class GeminiNode25(VertexAIClient):
     def __init__(
         self, gcp_project_id: Optional[str] = None, gcp_region: Optional[str] = None
     ):
         """
         Initializes the Gemini client.
-
         Args:
             gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
             gcp_region: The GCP region. If provided, overrides metadata lookup.
 
         Raises:
-            ConfigurationError: If GCP Project or region cannot be determined or client initialization fails.
+            ConfigurationError: If client initialization fails.
         """
-        self.project_id = gcp_project_id
-        self.region = gcp_region
-
-        if not self.project_id:
-            self.project_id = get_gcp_metadata("project/project-id")
-        if not self.region:
-            self.region = "-".join(
-                get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-            )
-
-        if not self.project_id:
-            raise ConfigurationError(
-                "GCP Project is required and could not be determined."
-            )
-        if not self.region:
-            raise ConfigurationError(
-                "GCP region is required and could not be determined."
-            )
-
-        print(f"Project is {self.project_id}, region is {self.region}")
-        http_options = genai.types.HttpOptions(
-            headers={"user-agent": GEMINI_USER_AGENT}
+        super().__init__(
+            gcp_project_id=gcp_project_id,
+            gcp_region=gcp_region,
+            user_agent=GEMINI_USER_AGENT,
         )
-        try:
-            self.client = genai.Client(
-                vertexai=True,
-                project=self.project_id,
-                location=self.region,
-                http_options=http_options,
-            )
-            print(
-                f"genai.Client initialized for Vertex AI project: {self.project_id}, location: {self.region}"
-            )
-        except Exception as e:
-            raise ConfigurationError(
-                f"Failed to initialize genai.Client for Vertex AI: {e}"
-            )
+        print(
+            f"genai.Client initialized for Vertex AI project: {self.project_id}, location: {self.region}"
+        )
 
     @classmethod
     def INPUT_TYPES(s):
@@ -413,21 +383,14 @@ class GeminiNode25:
             ) from e
 
         # Make the API call
-        try:
-            print(
-                f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
-            )
-            response = self.client.models.generate_content(
-                model=GeminiModel[model],
-                contents=contents,
-                config=gen_config_obj,
-            )
-        except APIExecutionError as e:
-            raise RuntimeError(f"Gemini API Error: {e}") from e
-        except Exception as e:
-            raise RuntimeError(
-                f"An unexpected error occurred during Gemini API call: {e}"
-            ) from e
+        print(
+            f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
+        )
+        response = self.client.models.generate_content(
+            config=gen_config_obj,
+            contents=contents,
+            model=GeminiModel[model],
+        )
 
         # Process the response
         try:

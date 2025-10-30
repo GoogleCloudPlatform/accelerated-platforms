@@ -14,6 +14,12 @@
 
 variable "policycontroller_bundles" {
   default     = []
-  description = "Lit of policy bundles to install when deploying Policy Controller"
+  description = "List of policy bundles to install when deploying Policy Controller"
   type        = list(string)
+}
+
+variable "policycontroller_version" {
+  default     = "1.21.0"
+  description = "Version of Policy Controller to install, null will install the latest version."
+  type        = string
 }

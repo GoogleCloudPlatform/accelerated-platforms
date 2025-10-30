@@ -68,9 +68,11 @@ precedence over earlier ones:
 
   Valid values for `ACCELERATOR` are:
 
+  - `cpu`
+  - `nvidia-a100-80gb`
   - `nvidia-h100-80gb`
+  - `nvidia-l4` **(default)**
   - `nvidia-tesla-a100`
-  - `nvidia-l4(default)`
 
 ## Configure Identity-Aware Proxy (IAP)
 
@@ -334,6 +336,7 @@ the output bucket.
 
   ```shell
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+  rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
   terraform apply -input=false tfplan && \
@@ -436,6 +439,7 @@ the output bucket.
 
   ```shell
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
+  rm -rf .terraform/ terraform.tfstate* && \
   terraform init &&
   terraform destroy -auto-approve
   ```

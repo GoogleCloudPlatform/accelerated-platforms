@@ -14,6 +14,20 @@ rendering. By offloading demanding workloads from traditional CPUs to dedicated
 hardware accelerators, which are capable of much faster parallel calculations,
 the platform optimizes high-performance computing.
 
+## Cloud Workstations (CWS)
+
+> [!NOTE]  
+> The Cloud Workstations (CWS) Platform is currently in beta and is still being
+> actively developed.
+
+The [Cloud Workstations (CWS) Platform](/docs/platforms/cws/README.md) is a
+core, best practices, fully managed workstation environments built to meet the
+needs of security-sensitive enterprises. It enhances the security of workstation
+environments while accelerating onboarding and productivity.
+
+- [Cloud Workstations reference architecture](/docs/platforms/cws/reference-architecture.md)
+  - [Cloud Workstations reference implementation](/docs/platforms/cws/reference-implementation.md)
+
 ## Google Kubernetes Engine (GKE)
 
 ### GKE Base Platform
@@ -30,8 +44,12 @@ the primary runtime.
 - [Federated learning](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
 - [Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
   - [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
-    - [Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
-    - [Online inference with TPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-tpu/README.md)
+    - [Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
+      - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)
+      - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
+    - [Online inference with TPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/README.md)
+      - [Online inference using MaxDiffusion with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/max-diffusion-with-hf-model.md)
+      - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
 
 ### Guides
 

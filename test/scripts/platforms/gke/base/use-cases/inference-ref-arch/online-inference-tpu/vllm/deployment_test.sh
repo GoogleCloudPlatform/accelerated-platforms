@@ -38,7 +38,7 @@ for model in "${hf_tpu_vllm_models[@]}"; do
     echo "Setting up port forwarding..."
     port_forwarding_failed=0
     forwarding_port=$(shuf -i 49152-65535 -n 1)
-    kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} ${forwarding_port}:8000 >/dev/null &
+    kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} ${forwarding_port}:8000 >/dev/null &
     PF_PID=$!
 
     echo "Waiting for port forwarding..."

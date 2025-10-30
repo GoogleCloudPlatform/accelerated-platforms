@@ -16,6 +16,7 @@ locals {
   kubectl_wait_filename  = var.filename != null ? " --filename=${var.filename}" : ""
   kubectl_wait_namespace = var.namespace != null ? " --namespace=${var.namespace}" : " --all-namespaces"
   kubectl_wait_resource  = var.resource != null ? " ${var.resource}" : ""
+  kubectl_wait_retry     = var.retry_on_failure
   kubectl_wait_selector  = var.selector != null ? " --selector=${var.selector}" : ""
 
   kubectl_wait_command            = "kubectl wait --for='${var.for}'${local.kubectl_wait_namespace} --timeout=${var.timeout}${local.kubectl_wait_resource}${local.kubectl_wait_selector}${local.kubectl_wait_filename}"
@@ -29,6 +30,7 @@ data "local_file" "kubeconfig" {
 resource "terraform_data" "manifest" {
   input = {
     kubeconfig_file                 = data.local_file.kubeconfig.filename
+    kubectl_wait_retry              = local.kubectl_wait_retry
     kubectl_wait_command            = local.kubectl_wait_command
     kubectl_wait_for_create_command = local.kubectl_wait_for_create_command
   }
@@ -37,6 +39,13 @@ resource "terraform_data" "manifest" {
     command = <<EOT
 ${self.input.kubectl_wait_for_create_command} &&
 ${self.input.kubectl_wait_command}
+return_code=$?
+if ${self.input.kubectl_wait_retry} && [[ $${return_code} != 0 ]]; then
+  sleep 1
+  echo "Retrying..."
+  ${self.input.kubectl_wait_for_create_command} &&
+  ${self.input.kubectl_wait_command}
+fi
 EOT
     environment = {
       KUBECONFIG = self.input.kubeconfig_file

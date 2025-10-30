@@ -83,13 +83,14 @@ module "kubectl_wait_gatekeeper_controller" {
 
   source = "../../../modules/kubectl_wait"
 
-  for             = "condition=ready"
-  kubeconfig_file = data.local_file.kubeconfig.filename
-  namespace       = local.policy_controller_kubernetes_namespace
-  resource        = "pod"
-  selector        = "control-plane=controller-manager"
-  timeout         = "600s"
-  wait_for_create = true
+  for              = "condition=ready"
+  kubeconfig_file  = data.local_file.kubeconfig.filename
+  namespace        = local.policy_controller_kubernetes_namespace
+  resource         = "pod"
+  retry_on_failure = true
+  selector         = "control-plane=controller-manager"
+  timeout          = "300s"
+  wait_for_create  = true
 }
 
 # module "kubectl_wait_gatekeeper_mutation" {

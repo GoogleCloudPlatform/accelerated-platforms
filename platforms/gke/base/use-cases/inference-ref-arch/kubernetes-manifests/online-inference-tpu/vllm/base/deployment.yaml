@@ -89,7 +89,7 @@ spec:
                   name: runtime
             - name: VLLM_XLA_CACHE_PATH
               value: /data
-          image: docker.io/vllm/vllm-tpu:4c409cabc2c1c432ba670029990bd59e6bbf1479
+          image: replaced-by-kustomize
           imagePullPolicy: Always
           name: inference-server
           ports:

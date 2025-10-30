@@ -29,4 +29,5 @@ declare -a git_assume_unchanged_files=(
   "platforms/gke/base/_shared_config/terraform.auto.tfvars"
   "platforms/gke/base/_shared_config/workloads.auto.tfvars"
   "platforms/gke/base/core/initialize/backend.tf.bucket"
+  "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface/kustomization.yaml"
 )

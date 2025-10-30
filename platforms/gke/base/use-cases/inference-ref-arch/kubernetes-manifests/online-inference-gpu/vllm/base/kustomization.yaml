@@ -15,6 +15,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+configMapGenerator:
+  - envs:
+      - vllm.env
+    name: vllm
+    namespace: replaced-by-kustomize
+
 resources:
   - ../../base
   - deployment.yaml

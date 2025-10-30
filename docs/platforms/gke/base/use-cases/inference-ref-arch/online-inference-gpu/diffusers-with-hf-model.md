@@ -201,11 +201,11 @@ This example is built on top of the
     "width": 512
   }' \
   --header "Content-Type: application/json" \
-  --output ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_image.png \
+  --output ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png \
   --request POST \
   --show-error \
   --silent
-  ls -alh ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_image.png
+  ls -alh ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png
   kill -9 ${PF_PID}
   ```
 

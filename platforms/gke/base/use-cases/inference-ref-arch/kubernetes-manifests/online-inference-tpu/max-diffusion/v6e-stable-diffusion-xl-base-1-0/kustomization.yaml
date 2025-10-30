@@ -43,6 +43,15 @@ replacements:
         select:
           kind: Service
   - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: max-diffusion
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=inference-server].image
+        select:
+          kind: Deployment
+  - source:
       fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
       kind: ConfigMap
       name: deployment
@@ -106,6 +115,15 @@ replacements:
         options:
           delimiter: /
           index: 2
+        select:
+          kind: Deployment
+  - source:
+      fieldPath: data.MODEL_NAME
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.template.metadata.labels.[ai.gke.io/model]
         select:
           kind: Deployment
 

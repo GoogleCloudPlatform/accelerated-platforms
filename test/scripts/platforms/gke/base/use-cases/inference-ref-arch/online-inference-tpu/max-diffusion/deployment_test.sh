@@ -27,44 +27,55 @@ if [[ ! -v ACCELERATOR_TYPE ]]; then
   exit 1
 fi
 
-echo "Model(s) deployed on ${ACCELERATOR_TYPE}"
-echo
-
 for model in "${hf_tpu_max_diffusion_models[@]}"; do
   export HF_MODEL_ID=${model}
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
   if [[ -d "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}" ]]; then
-    echo "Testing '${HF_MODEL_ID}' model deployment..."
+    echo "Testing '${HF_MODEL_ID}' model deployment on '${ACCELERATOR_TYPE}'"
     echo "--------------------------------------------------------------------------------------------"
-    echo "Sourcing environment configuration..."
-    source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-    echo "Configuring the deployment..."
-    "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/configure_max_diffusion.sh"
+
     echo "Setting up port forwarding..."
-    kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} port-forward service/max-diffusion-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null &
+    port_forwarding_failed=0
+    forwarding_port=$(shuf -i 49152-65535 -n 1)
+    kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} port-forward service/max-diffusion-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} ${forwarding_port}:8000 >/dev/null &
     PF_PID=$!
-    while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
+
+    echo "Waiting for port forwarding..."
+    while ! echo -e '\x1dclose\x0d' | telnet localhost ${forwarding_port} >/dev/null 2>&1; do
+      if ! ps | grep " $PF_PID " >/dev/null; then
+        port_forwarding_failed=1
+        echo "Port forwarding process exited!"
+        echo
+        break
+      fi
+
       sleep 0.1
     done
-    echo "Sending GET request to '/v1/models'"
+
+    if [[ ${port_forwarding_failed} == 1 ]] ; then
+      break
+    fi
+
+    echo "Sending POST request to '/generate'"
     echo "----------------------------------------------------------------------------------"
-    curl --request GET --show-error --silent http:/127.0.0.1:8000/v1/models | jq
-    sleep 1
-    echo "----------------------------------------------------------------------------------"
-    echo
-    echo "Sending POST request to '/v1/chat/completions'"
-    echo "----------------------------------------------------------------------------------"
-    curl http://127.0.0.1:8000/v1/chat/completions \
+    curl http://127.0.0.1:${forwarding_port}/generate \
     --data '{
-      "model": "/gcs/'${HF_MODEL_ID}'",
-      "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
-      }' \
+      "height": 512,
+      "num_inference_steps": 4,
+      "prompt": "A photo of a dog playing fetch in a park.",
+      "width": 512
+    }' \
     --header "Content-Type: application/json" \
+    --output ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png \
     --request POST \
     --show-error \
-    --silent | jq
+    --silent
+    sleep 1
+    ls -alh ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/images/${HF_MODEL_NAME}_${ACCELERATOR_TYPE}_image.png
     echo "----------------------------------------------------------------------------------"
+    echo
+
     kill -9 ${PF_PID}
     wait ${PF_PID} 2>/dev/null
     echo

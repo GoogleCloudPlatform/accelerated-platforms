@@ -31,6 +31,8 @@ spec:
         gke-gcsfuse/memory-limit: "0"
         gke-gcsfuse/volumes: "true"
       labels:
+        ai.gke.io/inference-server: max-diffusion
+        ai.gke.io/model: replaced-by-kustomize
         app: max-diffusion
     spec:
       containers:
@@ -72,7 +74,7 @@ spec:
                 configMapKeyRef:
                   key: TENSOR_PARALLEL_SIZE
                   name: runtime
-          image: us-docker.pkg.dev/accelerated-platforms-dev/online-inference-tpu/sdxl/server:latest
+          image: replaced-by-kustomize
           imagePullPolicy: Always
           name: inference-server
           readinessProbe:

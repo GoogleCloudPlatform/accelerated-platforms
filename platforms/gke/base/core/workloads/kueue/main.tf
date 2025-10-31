@@ -136,13 +136,14 @@ module "kubectl_wait" {
 
   source = "../../../modules/kubectl_wait"
 
-  for             = "condition=ready"
-  kubeconfig_file = data.local_file.kubeconfig.filename
-  namespace       = "kueue-system"
-  resource        = "pod"
-  selector        = "control-plane=controller-manager"
-  timeout         = "600s"
-  wait_for_create = true
+  for              = "condition=ready"
+  kubeconfig_file  = data.local_file.kubeconfig.filename
+  namespace        = "kueue-system"
+  resource         = "pod"
+  retry_on_failure = true
+  selector         = "control-plane=controller-manager"
+  timeout          = "300s"
+  wait_for_create  = true
 }
 
 resource "google_monitoring_dashboard" "kueue_monitoring_dashboard" {

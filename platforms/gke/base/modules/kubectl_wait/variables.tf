@@ -40,6 +40,12 @@ variable "resource" {
   type        = string
 }
 
+variable "retry_on_failure" {
+  default     = false
+  description = "Retry on failure or timeout."
+  type        = bool
+}
+
 variable "selector" {
   default     = null
   description = "Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2)"

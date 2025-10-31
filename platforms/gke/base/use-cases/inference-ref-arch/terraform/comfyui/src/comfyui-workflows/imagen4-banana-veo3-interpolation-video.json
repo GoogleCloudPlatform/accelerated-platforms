@@ -2,14 +2,247 @@
   "id": "5d360432-c954-4d6d-8ead-3d2f5ef8e031",
   "revision": 0,
   "last_node_id": 13,
-  "last_link_id": 19,
+  "last_link_id": 23,
   "nodes": [
+    {
+      "id": 5,
+      "type": "VeoVideoSaveAndPreview",
+      "pos": [
+        3420.2504489067073,
+        -266.7548063961547
+      ],
+      "size": [
+        282.740234375,
+        355.7913818359375
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "link": 12
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "VeoVideoSaveAndPreview"
+      },
+      "widgets_values": [
+        true,
+        true,
+        true,
+        true,
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "Veo3ImageToVideoNode",
+      "pos": [
+        2960.7698556375776,
+        -309.74317561574316
+      ],
+      "size": [
+        400,
+        502
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 17
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "video_paths",
+          "type": "VEO_VIDEO",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Veo3ImageToVideoNode"
+      },
+      "widgets_values": [
+        "VEO_3_1_PREVIEW",
+        "PNG",
+        "a ticking clock audible, as the detective sternly asks, \"Where were you last night?\"",
+        "16:9",
+        "720p",
+        "optimized",
+        "allow_adult",
+        8,
+        true,
+        1,
+        "",
+        "",
+        1116266218,
+        "randomize",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 12,
+      "type": "PreviewImage",
+      "pos": [
+        2736.2110695343326,
+        166.56644545757334
+      ],
+      "size": [
+        140,
+        246
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 22
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.3.39",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 8,
+      "type": "Imagen4TextToImageNode",
+      "pos": [
+        1750.4946343266672,
+        -355.2666217160527
+      ],
+      "size": [
+        400,
+        430
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            7,
+            17,
+            23
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Imagen4TextToImageNode"
+      },
+      "widgets_values": [
+        "IMAGEN_4_ULTRA_PREVIEW",
+        "Cinematic Over-the-Shoulder Shot of a detective interrogating a rubber duck in a dark interview room,",
+        "allow_adult",
+        "16:9",
+        1,
+        "",
+        877651165,
+        "randomize",
+        true,
+        false,
+        "PNG",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        ""
+      ]
+    },
+    {
+      "id": 13,
+      "type": "Gemini25FlashImage",
+      "pos": [
+        2277.172060212628,
+        -244.21502133239065
+      ],
+      "size": [
+        400,
+        446
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image1",
+          "type": "IMAGE",
+          "link": 23
+        },
+        {
+          "name": "image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            21,
+            22
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Gemini25FlashImage"
+      },
+      "widgets_values": [
+        "GEMINI_25_FLASH_IMAGE",
+        "close up of the detective's face looking at the duck",
+        "16:9",
+        0.7,
+        1,
+        32,
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        "",
+        "global"
+      ]
+    },
     {
       "id": 4,
       "type": "PreviewImage",
       "pos": [
-        1747.0860595703125,
-        186.6931915283203
+        1897.946081031669,
+        196.6758806084403
       ],
       "size": [
         140,
@@ -32,227 +265,6 @@
         "Node name for S&R": "PreviewImage"
       },
       "widgets_values": []
-    },
-    {
-      "id": 8,
-      "type": "Imagen4TextToImageNode",
-      "pos": [
-        1563.253662109375,
-        -333.6663818359375
-      ],
-      "size": [
-        400,
-        430
-      ],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "Generated Image",
-          "type": "IMAGE",
-          "links": [
-            7,
-            13,
-            17
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Imagen4TextToImageNode"
-      },
-      "widgets_values": [
-        "IMAGEN_4_ULTRA_PREVIEW",
-        "Cinematic Over-the-Shoulder Shot of a detective interrogating a rubber duck in a dark interview room,",
-        "allow_adult",
-        "16:9",
-        1,
-        "",
-        4938394,
-        "randomize",
-        true,
-        false,
-        "PNG",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "",
-        ""
-      ]
-    },
-    {
-      "id": 12,
-      "type": "PreviewImage",
-      "pos": [
-        2353.8427734375,
-        197.41107177734375
-      ],
-      "size": [
-        140,
-        246
-      ],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "type": "IMAGE",
-          "link": 15
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.3.39",
-        "Node name for S&R": "PreviewImage"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 11,
-      "type": "Gemini25FlashImage",
-      "pos": [
-        2011.772705078125,
-        -256.45794677734375
-      ],
-      "size": [
-        544.199951171875,
-        382
-      ],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 13
-        }
-      ],
-      "outputs": [
-        {
-          "name": "Generated Image",
-          "type": "IMAGE",
-          "links": [
-            15,
-            18
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Gemini25FlashImage"
-      },
-      "widgets_values": [
-        "GEMINI_25_FLASH_IMAGE",
-        "close up of the detective's face looking at the duck",
-        0.7,
-        1,
-        32,
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "BLOCK_MEDIUM_AND_ABOVE",
-        "",
-        "",
-        ""
-      ]
-    },
-    {
-      "id": 13,
-      "type": "VeoVideoSaveAndPreview",
-      "pos": [
-        3161.177865222051,
-        -331.60407487958156
-      ],
-      "size": [
-        282.740234375,
-        355.7913818359375
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "link": 19
-        }
-      ],
-      "outputs": [],
-      "properties": {
-        "Node name for S&R": "VeoVideoSaveAndPreview"
-      },
-      "widgets_values": [
-        true,
-        true,
-        false,
-        false,
-        "veo_video",
-        {
-          "hidden": false,
-          "paused": false,
-          "parameters": {}
-        }
-      ]
-    },
-    {
-      "id": 10,
-      "type": "Veo3ImageToVideoNode",
-      "pos": [
-        2639.011962890625,
-        -331.42364501953125
-      ],
-      "size": [
-        400,
-        502
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 17
-        },
-        {
-          "name": "last_frame",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 18
-        }
-      ],
-      "outputs": [
-        {
-          "name": "video_paths",
-          "type": "VEO_VIDEO",
-          "links": [
-            19
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "Veo3ImageToVideoNode"
-      },
-      "widgets_values": [
-        "VEO_3_1_PREVIEW",
-        "PNG",
-        "a ticking clock audible, as the detective sternly asks, \"Where were you last night?\"",
-        "16:9",
-        "720p",
-        "optimized",
-        "allow_adult",
-        8,
-        true,
-        1,
-        "",
-        "",
-        535752232,
-        "randomize",
-        "",
-        ""
-      ]
     }
   ],
   "links": [
@@ -265,20 +277,12 @@
       "IMAGE"
     ],
     [
-      13,
-      8,
-      0,
-      11,
-      0,
-      "IMAGE"
-    ],
-    [
-      15,
-      11,
-      0,
       12,
+      10,
       0,
-      "IMAGE"
+      5,
+      0,
+      "VEO_VIDEO"
     ],
     [
       17,
@@ -289,20 +293,28 @@
       "IMAGE"
     ],
     [
-      18,
-      11,
+      21,
+      13,
       0,
       10,
       1,
       "IMAGE"
     ],
     [
-      19,
-      10,
+      22,
+      13,
+      0,
+      12,
+      0,
+      "IMAGE"
+    ],
+    [
+      23,
+      8,
       0,
       13,
       0,
-      "VEO_VIDEO"
+      "IMAGE"
     ]
   ],
   "groups": [],
@@ -311,8 +323,8 @@
     "ds": {
       "scale": 0.7828187543205342,
       "offset": [
-        -2094.519720675223,
-        620.6386917704212
+        -1612.3008313717537,
+        420.3674586079185
       ]
     },
     "frontendVersion": "1.28.7",

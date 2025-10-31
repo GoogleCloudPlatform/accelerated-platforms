@@ -33,7 +33,7 @@
       },
       "widgets_values": [
         "VEO_3_1_PREVIEW",
-        "${input_bucket_uri}/jellyfish.png",
+        "${input_bucket_uri}/veo/jellyfish.png",
         "PNG",
         "",
         "16:9",

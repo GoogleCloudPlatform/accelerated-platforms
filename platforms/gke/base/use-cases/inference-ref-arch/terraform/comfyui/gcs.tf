@@ -19,8 +19,8 @@ locals {
   interpolation_files_to_upload = fileset(local.interpolation_source_path, "**/*.png")
   nano_banana_source_path       = "${path.module}/src/comfyui-workflows/input-images/nano-banana"
   nano_banana_files_to_upload   = fileset(local.nano_banana_source_path, "**/*.png")
-  veo_source_path       = "${path.module}/src/comfyui-workflows/input-images/veo"
-  veo_files_to_upload   = fileset(local.veo_source_path, "**/*.png")
+  veo_source_path               = "${path.module}/src/comfyui-workflows/input-images/veo"
+  veo_files_to_upload           = fileset(local.veo_source_path, "**/*.png")
 }
 
 resource "google_storage_bucket" "comfyui_input" {

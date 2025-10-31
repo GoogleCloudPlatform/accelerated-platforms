@@ -224,6 +224,92 @@ class Veo3API(VertexAIClient):
             seed=seed,
         )
 
+    def generate_video_from_references(
+        self,
+        model: str,
+        prompt: str,
+        bucket_name: str,
+        image1: torch.Tensor,
+        image_format: str,
+        aspect_ratio: str,
+        compression_quality: str,
+        person_generation: str,
+        duration_seconds: int,
+        generate_audio: bool,
+        enhance_prompt: bool,
+        sample_count: int,
+        output_gcs_uri: str,
+        output_resolution: str,
+        image2: Optional[torch.Tensor],
+        image3: Optional[torch.Tensor],
+        negative_prompt: Optional[str],
+        seed: Optional[int],
+    ) -> List[str]:
+        """
+        Uploads reference images to GCS and then generates a video.
+
+        Args:
+            model: Veo3 model.
+            prompt: The text prompt for video generation.
+            bucket_name: The GCS bucket to upload reference images to.
+            image1: The first reference image as a torch.Tensor.
+            image_format: The format of the input images.
+            aspect_ratio: The desired aspect ratio of the video.
+            compression_quality: Compression quality (optimized or lossless).
+            person_generation: Controls whether the model can generate people.
+            duration_seconds: The desired duration of the video in seconds.
+            enhance_prompt: Whether to enhance the prompt automatically.
+            generate_audio: Flag to generate audio.
+            sample_count: The number of video samples to generate.
+            output_gcs_uri: GCS URL to store the final video.
+            output_resolution: The resolution of the generated video.
+            image2: The second optional reference image.
+            image3: The third optional reference image.
+            negative_prompt: An optional prompt to guide the model.
+            seed: An optional seed for reproducible video generation.
+
+        Returns:
+            A list of file paths to the generated videos.
+        """
+        if image1 is None:
+            raise APIInputError(
+                "Image1 is required. At least reference image must be provided."
+            )
+        if not bucket_name:
+            raise APIInputError(
+                "bucket_name is required for uploading reference images."
+            )
+
+        gcs_uris = utils.upload_images_to_gcs(
+            images=[image1, image2, image3],
+            bucket_name=bucket_name,
+            image_format=image_format,
+        )
+
+        if not gcs_uris:
+            raise APIExecutionError("Failed to upload any reference images to GCS.")
+
+        model_enum = Veo3Model[model]
+
+        return utils.generate_video_from_gcs_references(
+            client=self.client,
+            model=model_enum,
+            prompt=prompt,
+            gcs_uris=gcs_uris,
+            image_format=image_format,
+            aspect_ratio=aspect_ratio,
+            output_resolution=output_resolution,
+            compression_quality=compression_quality,
+            person_generation=person_generation,
+            duration_seconds=duration_seconds,
+            generate_audio=generate_audio,
+            enhance_prompt=enhance_prompt,
+            sample_count=sample_count,
+            output_gcs_uri=output_gcs_uri,
+            negative_prompt=negative_prompt,
+            seed=seed,
+        )
+
     def generate_video_from_gcsuri_image(
         self,
         model: str,

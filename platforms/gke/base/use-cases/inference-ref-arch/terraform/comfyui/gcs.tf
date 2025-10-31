@@ -19,6 +19,8 @@ locals {
   interpolation_files_to_upload = fileset(local.interpolation_source_path, "**/*.png")
   nano_banana_source_path       = "${path.module}/src/comfyui-workflows/input-images/nano-banana"
   nano_banana_files_to_upload   = fileset(local.nano_banana_source_path, "**/*.png")
+  veo_source_path       = "${path.module}/src/comfyui-workflows/input-images/veo"
+  veo_files_to_upload   = fileset(local.veo_source_path, "**/*.png")
 }
 
 resource "google_storage_bucket" "comfyui_input" {
@@ -104,10 +106,11 @@ resource "google_storage_bucket_object" "nano_banana_gcsimage" {
   source   = "${local.nano_banana_source_path}/${each.key}"
 }
 
-resource "google_storage_bucket_object" "veo3_gcsimage" {
-  bucket = google_storage_bucket.comfyui_input.name
-  name   = "jellyfish.png"
-  source = "src/comfyui-workflows/input-images/jellyfish.png"
+resource "google_storage_bucket_object" "veo_gcsimage" {
+  for_each = local.veo_files_to_upload
+  bucket   = google_storage_bucket.comfyui_input.name
+  name     = "veo/${each.key}"
+  source   = "${local.veo_source_path}/${each.key}"
 }
 
 resource "google_storage_bucket_object" "vto_gcsimage" {
@@ -195,6 +198,13 @@ resource "google_storage_bucket_object" "workflow_veo3_itv" {
   depends_on = [local_file.workflow_veo3_itv]
 }
 
+resource "google_storage_bucket_object" "workflow_veo3_r2v" {
+  bucket     = google_storage_bucket.comfyui_workflow.name
+  name       = "veo3-reference-to-video.json"
+  source     = "src/comfyui-workflows/veo3-reference-to-video.json"
+  depends_on = [local_file.workflow_veo2_ttv]
+}
+
 resource "google_storage_bucket_object" "workflow_veo3_ttv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
   name       = "veo3-text-to-video.json"
@@ -259,4 +269,14 @@ resource "local_file" "workflow_veo3_ttv" {
     }
   )
   filename = "${path.module}/src/comfyui-workflows/veo3-text-to-video.json"
+}
+
+resource "local_file" "workflow_veo3_r2v" {
+  content = templatefile(
+    "${path.module}/src/comfyui-workflows/veo3-reference-to-video.tftpl.json",
+    {
+      output_bucket_uri = google_storage_bucket.comfyui_output.url
+    }
+  )
+  filename = "${path.module}/src/comfyui-workflows/veo3-reference-to-video.json"
 }

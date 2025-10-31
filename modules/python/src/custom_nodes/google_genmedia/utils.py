@@ -970,6 +970,10 @@ def upload_images_to_gcs(
     Returns:
         A list of GCS URIs for the uploaded images.
     """
+    prefix = "gs://"
+    if bucket_name.startswith(prefix):
+        bucket_name = bucket_name[len(prefix) :]
+
     gcs_uris = []
     storage_client = storage.Client(
         client_info=ClientInfo(user_agent=STORAGE_USER_AGENT)

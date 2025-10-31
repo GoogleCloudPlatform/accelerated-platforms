@@ -277,7 +277,7 @@ class Veo3API(VertexAIClient):
             )
         if not bucket_name:
             raise APIInputError(
-                "GCS bucket_name is required for uploading reference images."
+                "bucket_name is required for uploading reference images."
             )
 
         gcs_uris = utils.upload_images_to_gcs(

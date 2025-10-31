@@ -146,7 +146,7 @@ that you consider the following:
 ## Online inference with GPUs design choices
 
 This section focuses on the design choices that apply to the
-[Online inference with GPUs](/platforms/gke/base/use-cases/inference-ref-arch/examples/online-inference-gpu/README.md)
+[Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
 use case. The Online inference with GPUs use case builds on top of the GKE
 Inference reference architecture. The design choices described in this section
 apply to the Online inference with GPUs use case, in addition to the

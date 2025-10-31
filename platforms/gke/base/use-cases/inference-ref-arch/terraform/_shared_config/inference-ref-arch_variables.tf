@@ -48,7 +48,7 @@ variable "ira_online_gpu_kubernetes_service_account_name" {
 }
 
 variable "ira_online_gpu_vllm_image_url" {
-  default     = "docker.io/vllm/vllm-openai:v0.10.1.1"
+  default     = "docker.io/vllm/vllm-openai:v0.11.0"
   description = "The URL for the GPU vLLM container image."
   type        = string
 }
@@ -72,7 +72,7 @@ variable "ira_online_tpu_max_diffusion_sdxl_image_url" {
 }
 
 variable "ira_online_tpu_vllm_image_url" {
-  default     = "docker.io/vllm/vllm-tpu:4c409cabc2c1c432ba670029990bd59e6bbf1479"
+  default     = "docker.io/vllm/vllm-tpu:v0.11.1"
   description = "The URL for the TPU vLLM container image."
   type        = string
 }

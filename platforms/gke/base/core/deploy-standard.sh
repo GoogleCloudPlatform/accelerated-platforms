@@ -27,7 +27,8 @@ MY_PATH="$(
 declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   "networking"
   "container_cluster"
-  "container_node_pool"
+  # Disabled due to gke version role out
+  #"container_node_pool"
   "gke_enterprise/fleet_membership"
   "workloads/cluster_credentials"
   "custom_compute_class"

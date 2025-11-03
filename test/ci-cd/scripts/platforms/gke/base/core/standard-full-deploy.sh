@@ -32,7 +32,8 @@ ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   "networking"
   "container_cluster"
-  "container_node_pool"
+  # Disabled due to gke version role out
+  #"container_node_pool"
   "cloudbuild/initialize"
   "gke_enterprise/fleet_membership"
   "gke_enterprise/configmanagement/oci"

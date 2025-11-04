@@ -16,12 +16,6 @@
 
 import os
 
-from .google_tts_node import (
-    NODE_CLASS_MAPPINGS as GOOGLE_TTS_NODE_CLASS_MAPPINGS,
-)
-from .google_tts_node import (
-    NODE_DISPLAY_NAME_MAPPINGS as GOOGLE_TTS_NODE_DISPLAY_NAME_MAPPINGS,
-)
 from .gemini_flash_image_node import (
     NODE_CLASS_MAPPINGS as GEMINI_FLASH_25_IMAGE_NODE_CLASS_MAPPINGS,
 )
@@ -31,6 +25,10 @@ from .gemini_flash_image_node import (
 from .gemini_nodes import NODE_CLASS_MAPPINGS as GEMINI_NODE_CLASS_MAPPINGS
 from .gemini_nodes import (
     NODE_DISPLAY_NAME_MAPPINGS as GEMINI_NODE_DISPLAY_NAME_MAPPINGS,
+)
+from .google_tts_node import NODE_CLASS_MAPPINGS as GOOGLE_TTS_NODE_CLASS_MAPPINGS
+from .google_tts_node import (
+    NODE_DISPLAY_NAME_MAPPINGS as GOOGLE_TTS_NODE_DISPLAY_NAME_MAPPINGS,
 )
 from .helper_nodes import NODE_CLASS_MAPPINGS as HELPER_NODE_CLASS_MAPPINGS
 from .helper_nodes import (

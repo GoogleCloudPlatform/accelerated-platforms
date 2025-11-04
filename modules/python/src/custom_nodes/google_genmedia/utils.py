@@ -481,6 +481,84 @@ def generate_video_from_image(
 
 
 @api_error_retry
+def generate_video_from_gcs_references(
+    client: genai.Client,
+    model: str,
+    prompt: str,
+    gcs_uris: List[str],
+    image_format: str,
+    aspect_ratio: str,
+    output_resolution: Optional[str],
+    compression_quality: Optional[str],
+    person_generation: str,
+    duration_seconds: int,
+    enhance_prompt: bool,
+    generate_audio: Optional[bool],
+    sample_count: int,
+    output_gcs_uri: Optional[str],
+    negative_prompt: Optional[str],
+    seed: Optional[int],
+) -> List[str]:
+    """
+    Generates video from GCS reference image URIs using the Veo API.
+    """
+    mime_type = f"image/{image_format.lower()}"
+
+    if compression_quality == "lossless" and not output_gcs_uri:
+        raise APIInputError(
+            "output_gcs_uri must be passed for lossless video generation."
+        )
+
+    compression_quality_type = (
+        types.VideoCompressionQuality.LOSSLESS
+        if compression_quality == "lossless"
+        else types.VideoCompressionQuality.OPTIMIZED
+    )
+
+    temp_config = {
+        "aspect_ratio": aspect_ratio,
+        "person_generation": person_generation,
+        "compression_quality": compression_quality_type,
+        "duration_seconds": duration_seconds,
+        "enhance_prompt": enhance_prompt,
+        "number_of_videos": sample_count,
+        "negative_prompt": negative_prompt,
+        "seed": seed,
+        "resolution": output_resolution,
+        "generate_audio": generate_audio if generate_audio is not None else False,
+    }
+
+    if output_gcs_uri:
+        temp_config["output_gcs_uri"] = output_gcs_uri
+
+    reference_images = []
+    for uri in gcs_uris:
+        image_part = Image(gcs_uri=uri, mime_type=mime_type)
+        reference_image = types.VideoGenerationReferenceImage(
+            image=image_part, reference_type="asset"
+        )
+        reference_images.append(reference_image)
+
+    temp_config["reference_images"] = reference_images
+
+    config = GenerateVideosConfig(**temp_config)
+    print(f"Config for reference-to-video generation: {config}")
+
+    operation = client.models.generate_videos(model=model, prompt=prompt, config=config)
+    print(f"Initial operation response object type: {type(operation)}")
+
+    operation_count = 0
+    while not operation.done:
+        time.sleep(20)  # Polling interval
+        operation = client.operations.get(operation)
+        operation_count += 1
+        print(f"Polling operation (attempt {operation_count})...")
+
+    print(f"Operation completed with status: {operation.done}")
+    return process_video_response(operation)
+
+
+@api_error_retry
 def generate_video_from_text(
     client: genai.Client,
     model: str,
@@ -876,6 +954,64 @@ def process_video_response(operation: Any) -> List[str]:
 
     print(f"Successfully processed and saved {len(video_paths)} videos.")
     return video_paths
+
+
+def upload_images_to_gcs(
+    images: List[Optional[torch.Tensor]], bucket_name: str, image_format: str
+) -> List[str]:
+    """
+    Uploads a list of image tensors to a GCS bucket.
+
+    Args:
+        images: A list of torch.Tensor images, which can contain None.
+        bucket_name: The name of the GCS bucket.
+        image_format: The format of the images (e.g., "PNG", "JPEG").
+
+    Returns:
+        A list of GCS URIs for the uploaded images.
+    """
+    prefix = "gs://"
+    if bucket_name.startswith(prefix):
+        bucket_name = bucket_name[len(prefix) :]
+
+    gcs_uris = []
+    storage_client = storage.Client(
+        client_info=ClientInfo(user_agent=STORAGE_USER_AGENT)
+    )
+    bucket = storage_client.bucket(bucket_name)
+
+    if not bucket.exists():
+        raise APIInputError(
+            f"GCS bucket '{bucket_name}' does not exist or is inaccessible."
+        )
+
+    for i, image_tensor in enumerate(images):
+        if image_tensor is not None:
+            try:
+                timestamp = int(time.time())
+                unique_id = random.randint(1000, 9999)
+                object_name = f"temporary-reference-images/ref_{timestamp}_{i+1}_{unique_id}.{image_format.lower()}"
+                blob = bucket.blob(object_name)
+
+                # VEO expects single images, not batches. Take the first from any potential batch.
+                single_image_tensor = image_tensor[0].unsqueeze(0)
+                image_bytes = tensor_to_pil_to_bytes(
+                    single_image_tensor, format=image_format.upper()
+                )
+
+                blob.upload_from_string(
+                    image_bytes, content_type=f"image/{image_format.lower()}"
+                )
+
+                gcs_uri = f"gs://{bucket_name}/{object_name}"
+                gcs_uris.append(gcs_uri)
+                print(f"Successfully uploaded reference image {i+1} to {gcs_uri}")
+            except Exception as e:
+                raise APIExecutionError(
+                    f"Failed to upload image {i+1} to GCS: {e}"
+                ) from e
+
+    return gcs_uris
 
 
 def validate_gcs_uri_and_image(

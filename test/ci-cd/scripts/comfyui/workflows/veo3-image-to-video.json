@@ -2,7 +2,7 @@
   "3": {
     "inputs": {
       "model": "VEO_3_1_PREVIEW",
-      "gcsuri": "gs://${COMFYUI_BUCKET}-input/jellyfish.png",
+      "gcsuri": "gs://${COMFYUI_BUCKET}-input/veo/jellyfish.png",
       "image_format": "PNG",
       "prompt": "Animate this image",
       "aspect_ratio": "16:9",

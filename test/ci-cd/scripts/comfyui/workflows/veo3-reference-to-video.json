@@ -1,0 +1,88 @@
+{
+  "1": {
+    "inputs": {
+      "model": "VEO_3_1_PREVIEW",
+      "bucket_name": "gs://${COMFYUI_BUCKET}-output",
+      "image_format": "PNG",
+      "prompt": "The video opens with a medium, eye-level shot of a beautiful woman with dark hair and warm brown eyes. She wears a magnificent, high-fashion flamingo dress with layers of pink and fuchsia feathers, complemented by whimsical pink, heart-shaped sunglasses. She walks with serene confidence through the crystal-clear, shallow turquoise water of a sun-drenched lagoon. The camera slowly pulls back to a medium-wide shot, revealing the breathtaking scene as the dress's long train glides and floats gracefully on the water's surface behind her. The cinematic, dreamlike atmosphere is enhanced by the vibrant colors of the dress against the serene, minimalist landscape, capturing a moment of pure elegance and high-fashion fantasy.",
+      "aspect_ratio": "16:9",
+      "output_resolution": "720p",
+      "compression_quality": "optimized",
+      "person_generation": "allow_adult",
+      "duration_seconds": 8,
+      "generate_audio": true,
+      "sample_count": 1,
+      "output_gcs_uri": "",
+      "negative_prompt": "",
+      "seed": 103092426,
+      "gcp_project_id": "",
+      "gcp_region": "",
+      "image1": [
+        "7",
+        0
+      ],
+      "image2": [
+        "9",
+        0
+      ],
+      "image3": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "Veo3ReferenceToVideo",
+    "_meta": {
+      "title": "Veo3.1 Reference To Video"
+    }
+  },
+  "2": {
+    "inputs": {
+      "autoplay": true,
+      "mute": true,
+      "loop": false,
+      "save_video": false,
+      "save_video_file_prefix": "veo_video",
+      "video_paths": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "VeoVideoSaveAndPreview",
+    "_meta": {
+      "title": "Preview/Save video"
+    }
+  },
+  "7": {
+    "inputs": {
+      "image": "input/veo/flamingo.png",
+      "custom_width": 0,
+      "custom_height": 0
+    },
+    "class_type": "VHS_LoadImagePath",
+    "_meta": {
+      "title": "Load Image (Path) 🎥🅥🅗🅢"
+    }
+  },
+  "8": {
+    "inputs": {
+      "image": "input/veo/flamingo_glasses.png",
+      "custom_width": 0,
+      "custom_height": 0
+    },
+    "class_type": "VHS_LoadImagePath",
+    "_meta": {
+      "title": "Load Image (Path) 🎥🅥🅗🅢"
+    }
+  },
+  "9": {
+    "inputs": {
+      "image": "input/veo/flamingo_woman.png",
+      "custom_width": 0,
+      "custom_height": 0
+    },
+    "class_type": "VHS_LoadImagePath",
+    "_meta": {
+      "title": "Load Image (Path) 🎥🅥🅗🅢"
+    }
+  }
+}

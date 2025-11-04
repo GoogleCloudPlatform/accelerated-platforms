@@ -20,7 +20,7 @@ from google.cloud import texttospeech
 
 from .base import GoogleCloudClientBase
 from .constants import GOOGLE_GOOGLE_TTS_USER_AGENT, GoogleTTSModel
-from .custom_exceptions import APIInputError, APIExecutionError, ConfigurationError
+from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .retry import api_error_retry
 
 

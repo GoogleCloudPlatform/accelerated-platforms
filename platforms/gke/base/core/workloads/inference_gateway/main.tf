@@ -42,7 +42,7 @@ resource "terraform_data" "crd_manifests" {
     command     = <<EOT
 mkdir -p ${self.input.version_manifests_dir} && \
 mkdir -p ${self.input.manifests_dir} && \
-wget https://github.com/kubernetes-sigs/gateway-api-inference-extension/releases/download/v${self.input.version}/manifests.yaml -O ${self.input.version_manifests_dir}/manifests.yaml && \
+wget https://github.com/kubernetes-sigs/gateway-api-inference-extension/raw/v${self.input.version}/config/crd/bases/inference.networking.x-k8s.io_inferenceobjectives.yaml -O ${self.input.version_manifests_dir}/inference.networking.x-k8s.io_inferenceobjectives.yaml && \
 cp -r ${self.input.version_manifests_dir}/* ${self.input.manifests_dir}/
 EOT
     interpreter = ["bash", "-c"]

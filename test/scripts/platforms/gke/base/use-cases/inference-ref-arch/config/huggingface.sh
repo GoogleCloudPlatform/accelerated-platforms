@@ -31,6 +31,8 @@ declare -a hf_gpu_diffusers_models=(
 )
 
 declare -a hf_gpu_vllm_models=(
+  "google/gemma-3-1b-it"
+  "google/gemma-3-4b-it"
   "google/gemma-3-27b-it"
   "meta-llama/llama-3.3-70b-instruct"
   "meta-llama/llama-4-scout-17b-16e-instruct"

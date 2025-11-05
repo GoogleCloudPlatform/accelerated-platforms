@@ -25,14 +25,20 @@ rm --force --recursive \
   "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/.terraform/" \
   "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"/terraform.tfstate* \
   "${ACP_REPO_DIR}/platforms/gke/base/core/container_node_pool/"container_node_pool_* \
+  "${ACP_REPO_DIR}/platforms/gke/base/core/custom_compute_class/manifests" \
   "${ACP_REPO_DIR}/platforms/gke/base/core/initialize/.terraform/" \
   "${ACP_REPO_DIR}/platforms/gke/base/core/initialize"/terraform.tfstate* \
+  "${ACP_REPO_DIR}/platforms/gke/base/core/workloads/"**/manifests \
   "${ACP_REPO_DIR}/platforms/gke/base/kubernetes/kubeconfig" \
   "${ACP_REPO_DIR}/platforms/gke/base/kubernetes/manifests" \
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface/downloader.env" \
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface/secretproviderclass-huggingface-tokens.yaml" \
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/base/deployment.env" \
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/base/diffusers.env" \
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/base/vllm.env" \
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/deployment.env" \
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/base/max-diffusion.env" \
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/base/vllm.env"
 
 find "${ACP_REPO_DIR}/platforms/gke/base/" -name backend.tf -delete
 
@@ -40,4 +46,5 @@ git restore \
   "${ACP_REPO_DIR}/platforms/gke/base/_shared_config"/*.auto.tfvars \
   "${ACP_REPO_DIR}/platforms/gke/base/core/initialize/backend.tf.bucket" \
   "${ACP_REPO_DIR}/platforms/gke/base/kubernetes/kubeconfig/.gitkeep" \
-  "${ACP_REPO_DIR}/platforms/gke/base/kubernetes/manifests/.gitkeep"
+  "${ACP_REPO_DIR}/platforms/gke/base/kubernetes/manifests/.gitkeep" \
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface/kustomization.yaml"

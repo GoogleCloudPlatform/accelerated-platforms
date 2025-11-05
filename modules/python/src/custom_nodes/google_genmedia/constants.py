@@ -36,6 +36,7 @@ GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN = 32768
 GEMINI_25_FLASH_IMAGE_USER_AGENT = (
     "cloud-solutions/comfyui-gemini-25-flash-image-custom-node-v1"
 )
+GOOGLE_GOOGLE_TTS_USER_AGENT = "cloud-solutions/comfyui-tts-custom-node-v1"
 IMAGE_MIME_TYPES = ["image/png", "image/jpeg"]
 IMAGEN3_MODEL_ID = "imagen-3.0-generate-002"
 IMAGEN3_USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
@@ -68,6 +69,12 @@ class GeminiModel(Enum):
     GEMINI_PRO = "gemini-2.5-pro"
     GEMINI_FLASH = "gemini-2.5-flash"
     GEMINI_FLASH_LITE = "gemini-2.5-flash-lite-preview-06-17"
+
+
+class GoogleTTSModel(Enum):
+    GEMINI_PRO_TTS = "gemini-2.5-pro-tts"
+    GEMINI_FLASH_TTS = "gemini-2.5-flash-tts"
+    CHIRP3_HD_TTS = "Chirp3-HD"
 
 
 class Imagen4Model(str, Enum):

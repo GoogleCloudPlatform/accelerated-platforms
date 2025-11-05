@@ -15,32 +15,22 @@
 from typing import Optional
 
 from google import genai
-
 from .config import get_gcp_metadata
 from .custom_exceptions import ConfigurationError
 
 
-class VertexAIClient:
+class GoogleCloudClientBase:
     """
-    A base class for initializing Vertex AI clients.
+    A base class that *only* handles discovering the GCP project and region.
     """
 
     def __init__(
         self,
         gcp_project_id: Optional[str] = None,
         gcp_region: Optional[str] = None,
-        user_agent: Optional[str] = None,
     ):
         """
-        Initializes the Vertex AI client.
-
-        Args:
-            gcp_project_id: The GCP project ID. If provided, overrides metadata lookup.
-            gcp_region: The GCP region. If provided, overrides metadata lookup.
-            user_agent: The user agent string for the client.
-
-        Raises:
-            ConfigurationError: If GCP Project or region cannot be determined.
+        Initializes the base client, discovering project and region.
         """
         self.project_id = gcp_project_id or get_gcp_metadata("project/project-id")
         self.region = gcp_region or "-".join(
@@ -56,18 +46,43 @@ class VertexAIClient:
                 "GCP region is required and could not be determined."
             )
 
-        print(f"Project is {self.project_id}, region is {self.region}")
+        print(
+            f"[GoogleCloudClientBase] Project: {self.project_id}, Region: {self.region}"
+        )
 
-        if user_agent:
-            http_options = genai.types.HttpOptions(headers={"user-agent": user_agent})
-            try:
-                self.client = genai.Client(
-                    vertexai=True,
-                    project=self.project_id,
-                    location=self.region,
-                    http_options=http_options,
+
+class VertexAIClient(GoogleCloudClientBase):  # Now inherits from the new base
+    """
+    A base class for initializing Vertex AI *Generative AI* (genai) clients.
+    """
+
+    def __init__(
+        self,
+        gcp_project_id: Optional[str] = None,
+        gcp_region: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ):
+        """
+        Initializes the Vertex AI genai.Client.
+        """
+        # Call the new base class to set self.project_id and self.region
+        super().__init__(gcp_project_id=gcp_project_id, gcp_region=gcp_region)
+
+        # Now, do the part specific to *this* client
+        try:
+            http_options = None
+            if user_agent:
+                http_options = genai.types.HttpOptions(
+                    headers={"user-agent": user_agent}
                 )
-            except Exception as e:
-                raise ConfigurationError(
-                    f"Failed to initialize genai.Client for Vertex AI: {e}"
-                )
+
+            self.client = genai.Client(
+                vertexai=True,
+                project=self.project_id,
+                location=self.region,
+                http_options=http_options,
+            )
+        except Exception as e:
+            raise ConfigurationError(
+                f"Failed to initialize genai.Client for Vertex AI: {e}"
+            )

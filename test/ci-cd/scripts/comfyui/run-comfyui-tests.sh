@@ -203,6 +203,7 @@ kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
           basename "${f}" >> "${FAILURES_FILE}"
         fi
         rm -f "${TEST_LOG}"
+        sleep 5
       )
     done
 

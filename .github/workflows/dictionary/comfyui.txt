@@ -46,6 +46,7 @@ sdxl
 tolower
 torchaudio
 torchvision
+ttsapi
 unet
 veo
 veo2

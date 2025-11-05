@@ -17,7 +17,7 @@
 google-api-core==2.24.2
 google-cloud-aiplatform==1.111.0
 google-cloud-storage==2.19.0
-google-genai==1.32.0
+google-genai==1.46.0
 google-generativeai==0.8.5
 google-cloud-texttospeech==2.31.0
 moviepy

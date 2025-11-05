@@ -38,7 +38,7 @@ class GoogleCloudClientBase:
             gcp_region: The GCP region. If provided, overrides metadata lookup.
 
         Raises:
-            ConfigurationError: If GCP Project or region cannot be determined..
+            ConfigurationError: If GCP Project or region cannot be determined.
         """
         self.project_id = gcp_project_id or get_gcp_metadata("project/project-id")
         self.region = gcp_region or "-".join(

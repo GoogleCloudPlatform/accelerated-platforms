@@ -1,0 +1,33 @@
+{
+  "1": {
+    "inputs": {
+      "text": "Hello! I am a generative voice, designed by Google.",
+      "model_name": "GEMINI_FLASH_TTS",
+      "language_code": "en-US",
+      "voice_name": "Charon",
+      "sample_rate": 24000,
+      "speed": 1,
+      "volume_gain_db": 0,
+      "prompt": "",
+      "gcp_project_id": "",
+      "gcp_region": ""
+    },
+    "class_type": "GoogleTTS",
+    "_meta": {
+      "title": "Google Text-to-Speech"
+    }
+  },
+  "2": {
+    "inputs": {
+      "audioUI": "",
+      "audio": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "PreviewAudio",
+    "_meta": {
+      "title": "PreviewAudio"
+    }
+  }
+}

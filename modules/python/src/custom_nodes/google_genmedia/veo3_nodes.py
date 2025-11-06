@@ -13,6 +13,8 @@
 # limitations under the License.
 
 # This is a preview version of veo3 custom node
+
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
@@ -20,6 +22,8 @@ import torch
 from .constants import MAX_SEED, VEO3_VALID_ASPECT_RATIOS, Veo3Model
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .veo3_api import Veo3API
+
+logger = logging.getLogger(__name__)
 
 
 class Veo3TextToVideoNode:
@@ -463,10 +467,12 @@ class Veo3ImageToVideoNode:
 
         all_generated_video_paths: List[str] = []
         num_input_images = image.shape[0]
-        print(f"Received {num_input_images} input image(s) for video generation.")
+        logging.info(
+            f"Received {num_input_images} input image(s) for video generation."
+        )
         for i in range(num_input_images):
             single_image_tensor = image[i].unsqueeze(0)
-            print(
+            logging.info(
                 f"Processing image {i+1}/{num_input_images} (shape: {single_image_tensor.shape})..."
             )
             try:

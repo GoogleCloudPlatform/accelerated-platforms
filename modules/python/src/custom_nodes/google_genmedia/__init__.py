@@ -14,7 +14,24 @@
 
 # This is a preview version of Google GenAI custom nodes
 
+import logging
 import os
+
+# update root logging handler provided by ComfyUI
+CUSTOM_FORMAT = "%(asctime)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+formatter = logging.Formatter(CUSTOM_FORMAT)
+root_logger = logging.getLogger()
+if root_logger.hasHandlers():
+    # Iterate through all existing handlers on the root logger
+    for handler in root_logger.handlers:
+        if isinstance(handler, logging.StreamHandler):
+            handler.setFormatter(formatter)
+    logging.info("Successfully updated root logger format for ComfyUI custom nodes.")
+else:
+    logging.warning(
+        "Root logger has no existing handlers. Format change may not take effect."
+    )
+
 
 from .gemini_flash_image_node import (
     NODE_CLASS_MAPPINGS as GEMINI_FLASH_25_IMAGE_NODE_CLASS_MAPPINGS,

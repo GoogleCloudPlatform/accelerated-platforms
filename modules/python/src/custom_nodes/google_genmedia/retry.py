@@ -15,12 +15,15 @@
 # This is a preview version of Google GenAI custom nodes
 
 import functools
+import logging
 import time
 
 from google.api_core import exceptions as api_core_exceptions
 from google.genai import errors as genai_errors
 
 from .custom_exceptions import APIExecutionError, APIInputError
+
+logger = logging.getLogger(__name__)
 
 
 def api_error_retry(func):
@@ -70,7 +73,7 @@ def api_error_retry(func):
                             if status_code == 429
                             else "Service Unavailable"
                         )
-                        print(
+                        logger.warning(
                             f"API {error_type} (attempt {retries+1}/{retry_count}) - "
                             f"Code: {status_code}. Waiting {retry_wait:.1f} seconds before retry. Error: {details}"
                         )

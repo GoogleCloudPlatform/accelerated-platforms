@@ -14,6 +14,7 @@
 
 # This is a preview version of gemini custom node
 
+import logging
 from typing import Optional, Tuple
 
 from google import genai
@@ -31,6 +32,8 @@ from .constants import (
 )
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .retry import api_error_retry
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiNode25(VertexAIClient):
@@ -51,7 +54,7 @@ class GeminiNode25(VertexAIClient):
             gcp_region=gcp_region,
             user_agent=GEMINI_USER_AGENT,
         )
-        print(
+        logger.info(
             f"genai.Client initialized for Vertex AI project: {self.project_id}, location: {self.region}"
         )
 
@@ -326,36 +329,36 @@ class GeminiNode25(VertexAIClient):
             image_content = (
                 utils.prep_for_media_conversion(image_file_path, image_mime_type)
                 if image_file_path
-                else print(f"No image provided")
+                else logger.info(f"No image provided")
             )
             if image_content:
                 contents.append(image_content)
             else:
-                print(
+                logger.info(
                     f"Image path '{image_file_path}' provided but content not retrieved or file not found."
                 )
 
             video_content = (
                 utils.prep_for_media_conversion(video_file_path, video_mime_type)
                 if video_file_path
-                else print(f"No video provided")
+                else logger.info(f"No video provided")
             )
             if video_content:
                 contents.append(video_content)
             else:
-                print(
+                logger.info(
                     f"Video path '{video_file_path}' provided but content not retrieved or file not found."
                 )
 
             audio_content = (
                 utils.prep_for_media_conversion(audio_file_path, audio_mime_type)
                 if audio_file_path
-                else print(f"No audio provided")
+                else logger.info(f"No audio provided")
             )
             if audio_content:
                 contents.append(audio_content)
             else:
-                print(
+                logger.info(
                     f"Audio path '{audio_file_path}' provided but content not retrieved or file not found."
                 )
             # Prepare system instruction
@@ -369,7 +372,7 @@ class GeminiNode25(VertexAIClient):
                 system_instruction_parts if system_instruction_parts else None
             )
             # Make the API call
-            print(
+            logger.info(
                 f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
             )  # Prepare Safety Settings
 
@@ -383,7 +386,7 @@ class GeminiNode25(VertexAIClient):
             ) from e
 
         # Make the API call
-        print(
+        logger.info(
             f"Making Gemini API call with the following Model : {GeminiModel[model]} , config {gen_config_obj}"
         )
         response = self.client.models.generate_content(

@@ -14,6 +14,7 @@
 
 #  This is a preview version of Google GenAI custom nodes
 
+import logging
 from typing import List, Optional
 
 from google import genai
@@ -23,6 +24,8 @@ from . import utils
 from .base import VertexAIClient
 from .constants import IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT
 from .custom_exceptions import APIInputError, ConfigurationError
+
+logger = logging.getLogger(__name__)
 
 
 class Imagen3API(VertexAIClient):

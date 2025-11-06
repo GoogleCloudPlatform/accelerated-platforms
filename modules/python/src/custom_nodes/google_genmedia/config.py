@@ -14,7 +14,11 @@
 
 # This is a preview version of Google GenAI custom nodes
 
+import logging
+
 import requests
+
+logger = logging.getLogger(__name__)
 
 
 # Fetch GCP project ID and zone required to authenticate with Vertex AI APIs
@@ -29,5 +33,5 @@ def get_gcp_metadata(path):
         response.raise_for_status()  # Raise an HTTPError for bad responses (4xx or 5xx)
         return response.text.strip()
     except requests.exceptions.RequestException as e:
-        print(f"Error fetching metadata from {path}: {e}")
+        logger.error(f"Error fetching metadata from {path}: {e}")
         return None

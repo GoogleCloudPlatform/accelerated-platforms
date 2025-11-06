@@ -14,6 +14,7 @@
 
 # This is a preview version of veo2 custom node
 
+import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
@@ -21,6 +22,8 @@ import torch
 from .constants import MAX_SEED
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
 from .veo2_api import Veo2API
+
+logger = logging.getLogger(__name__)
 
 
 class Veo2TextToVideoNode:
@@ -425,10 +428,10 @@ class Veo2ImageToVideoNode:
 
         all_generated_video_paths: List[str] = []
         num_input_images = image.shape[0]
-        print(f"Received {num_input_images} input image(s) for video generation.")
+        logger.info(f"Received {num_input_images} input image(s) for video generation.")
         for i in range(num_input_images):
             single_image_tensor = image[i].unsqueeze(0)
-            print(
+            logger.info(
                 f"Processing image {i+1}/{num_input_images} (shape: {single_image_tensor.shape})..."
             )
             try:

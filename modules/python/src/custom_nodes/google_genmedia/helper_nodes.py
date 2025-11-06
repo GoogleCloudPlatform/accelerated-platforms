@@ -15,6 +15,7 @@
 # This is a preview version of Google GenAI custom nodes
 
 import hashlib
+import logging
 import mimetypes
 import os
 import shutil
@@ -28,6 +29,8 @@ from moviepy import VideoFileClip
 
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
 from .custom_exceptions import APIInputError, ConfigurationError
+
+logger = logging.getLogger(__name__)
 
 
 class VeoVideoToVHSNode:
@@ -65,32 +68,32 @@ class VeoVideoToVHSNode:
         all_preview_frames = []  # List to accumulate frames from ALL videos
         no_of_frames = 120
         if not video_paths:
-            print("Error: No video paths provided.")
+            logger.error("Error: No video paths provided.")
             dummy_image = torch.zeros(1, 512, 512, 3)
             return dummy_image
 
-        print(f"Received {len(video_paths)} video path(s).")
+        logger.info(f"Received {len(video_paths)} video path(s).")
         total_extracted_frames = 0
         try:
             for video_path in video_paths:
-                print(f"--- Processing video: {video_path} ---")
+                logger.info(f"--- Processing video: {video_path} ---")
 
                 if not os.path.exists(video_path):
-                    print(f"Error: Video file not found at '{video_path}'")
+                    logger.error(f"Error: Video file not found at '{video_path}'")
                     continue  # Skip to the next video
 
                 if not os.path.isfile(video_path):
-                    print(f"Error: Path '{video_path}' is not a file.")
+                    logger.error(f"Error: Path '{video_path}' is not a file.")
                     continue  # Skip to the next video
 
                 cap = cv2.VideoCapture(video_path)
                 if not cap.isOpened():
-                    print(f"Error: Could not open video file '{video_path}'")
+                    logger.error(f"Error: Could not open video file '{video_path}'")
                     continue
 
                 total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
                 if total_frames == 0:
-                    print(f"Warning: Zero frames found in {video_path}")
+                    logger.warning(f"Warning: Zero frames found in {video_path}")
                     continue
 
                 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -117,17 +120,19 @@ class VeoVideoToVHSNode:
 
                     all_preview_frames.append(frame_tensor)
                 cap.release()
-                print(f"Finished processing '{video_path}'.")
+                logger.info(f"Finished processing '{video_path}'.")
 
         except Exception as e:
-            print(f"An unexpected error occurred during frame extraction: {str(e)}")
+            logger.error(
+                f"An unexpected error occurred during frame extraction: {str(e)}"
+            )
 
         if all_preview_frames:
             final_output_frames = torch.stack(all_preview_frames, dim=0)
 
             return (final_output_frames,)
         else:
-            print(
+            logger.warning(
                 "No frames were extracted from any video. Check paths or frame_interval."
             )
             return (dummy_image,)
@@ -205,8 +210,8 @@ class VeoVideoSaveAndPreview:
                                 else "video/mp4"
                             )
                     except Exception as moviepy_e:
-                        print(
-                            f"Warning: Could not get video metadata for {video_file_basename} using moviepy: {moviepy_e}"
+                        logger.warning(
+                            f"Could not get video metadata for {video_file_basename} using moviepy: {moviepy_e}"
                         )
                         # Fallback for format if moviepy fails. In this case the default will not be mp4 since moviepy failed to process it.
                         mime_type, _ = mimetypes.guess_type(video_file_basename)
@@ -227,7 +232,7 @@ class VeoVideoSaveAndPreview:
                         dest_path = os.path.join(dest_dir, dest_name)
 
                         shutil.copy2(video_path_abs, dest_path)
-                        print(f"Video copied to: {dest_path}")
+                        logger.info(f"Video copied to: {dest_path}")
                         video_subfolder = "veo"
                     else:
                         # if it is just for preview, strip the filename and build the path starting temp directory
@@ -274,10 +279,12 @@ class VeoVideoSaveAndPreview:
             }
 
         except (APIInputError, ConfigurationError) as e:
-            print(f"An error occurred in VeoVideoSaveAndPreview: {str(e)}")
+            logger.error(f"An error occurred in VeoVideoSaveAndPreview: {str(e)}")
             return {"ui": {"video": [], "error": str(e)}}
         except Exception as e:
-            print(f"An unexpected error occurred in VeoVideoSaveAndPreview: {str(e)}")
+            logger.error(
+                f"An unexpected error occurred in VeoVideoSaveAndPreview: {str(e)}"
+            )
             return {"ui": {"video": [], "error": str(e)}}
 
 

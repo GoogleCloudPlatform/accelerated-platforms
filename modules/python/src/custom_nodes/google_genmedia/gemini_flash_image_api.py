@@ -14,6 +14,7 @@
 
 # This is a preview version of Gemini 2.5 Flash Image custom node
 
+import logging
 from io import BytesIO
 from typing import List, Optional
 
@@ -32,6 +33,8 @@ from .constants import (
 )
 from .custom_exceptions import ConfigurationError
 from .retry import api_error_retry
+
+logger = logging.getLogger(__name__)
 
 
 class GeminiFlashImageAPI(VertexAIClient):
@@ -155,7 +158,7 @@ class GeminiFlashImageAPI(VertexAIClient):
                     contents.append(
                         types.Part.from_bytes(data=image_bytes, mime_type="image/png")
                     )
-                    print(f"Appended image {i+1}, part {j+1} to contents.")
+                    logger.info(f"Appended image {i+1}, part {j+1} to contents.")
 
         response = self.client.models.generate_content(
             model=model, contents=contents, config=generate_content_config
@@ -163,7 +166,7 @@ class GeminiFlashImageAPI(VertexAIClient):
 
         for part in response.candidates[0].content.parts:
             if part.text is not None:
-                print(part.text)
+                logger.info(f"response is {part.text}")
             elif part.inline_data is not None:
                 image = Image.open(BytesIO(part.inline_data.data))
                 generated_pil_images.append(image)

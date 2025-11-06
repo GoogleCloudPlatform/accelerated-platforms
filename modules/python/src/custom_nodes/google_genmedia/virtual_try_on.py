@@ -14,8 +14,6 @@
 
 # This is a preview version of Google GenAI custom nodes
 
-import base64
-import io
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -29,7 +27,10 @@ from . import utils
 from .base import VertexAIClient
 from .constants import MAX_SEED, VTO_MODEL, VTO_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .logger import get_node_logger
 from .retry import api_error_retry
+
+logger = get_node_logger(__name__)
 
 
 class VirtualTryOn(VertexAIClient):
@@ -60,7 +61,7 @@ class VirtualTryOn(VertexAIClient):
                 client_options=self.client_options, client_info=self.client_info
             )
             self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/{VTO_MODEL}"
-            print(
+            logger.info(
                 f"Prediction client initiated on project : {self.project_id}, location: {self.region}"
             )
         except Exception as e:
@@ -221,10 +222,12 @@ class VirtualTryOn(VertexAIClient):
             all_generated_tensors = []
 
             # We will loop through each product image and make an API call with the same personImage and different productImages
-            print(f"Beginning batch job for {product_image.shape[0]} product image(s).")
+            logger.info(
+                f"Beginning batch job for {product_image.shape[0]} product image(s)."
+            )
             for i in range(product_image.shape[0]):
                 single_product_tensor = product_image[i : i + 1]
-                print(f"Processing image {i+1} of {product_image.shape[0]}...")
+                logger.info(f"Processing image {i+1} of {product_image.shape[0]}...")
                 product_image_base64 = utils.tensor_to_pil_to_base64(
                     single_product_tensor
                 )
@@ -262,7 +265,7 @@ class VirtualTryOn(VertexAIClient):
                     error_message = (
                         f"Could not generate image for product {i+1}. Error: {e}"
                     )
-                    print(error_message)
+                    logger.error(error_message)
 
                     if i == product_image.shape[0] - 1 and not all_generated_tensors:
                         raise APIExecutionError(
@@ -287,7 +290,7 @@ class VirtualTryOn(VertexAIClient):
             ) from e
 
         final_batch_tensor = torch.cat(all_generated_tensors, 0)
-        print(
+        logger.info(
             f"Successfully generated {final_batch_tensor.shape[0]} image(s) in total."
         )
         return (final_batch_tensor,)

@@ -28,7 +28,10 @@ from .constants import (
     VEO2_USER_AGENT,
 )
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .logger import get_node_logger
 from .utils import validate_gcs_uri_and_image
+
+logger = get_node_logger(__name__)
 
 
 class Veo2API(VertexAIClient):
@@ -157,7 +160,7 @@ class Veo2API(VertexAIClient):
             APIExecutionError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            print(
+            logger.warning(
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
 
@@ -239,7 +242,7 @@ class Veo2API(VertexAIClient):
                 "GCS URI for the image cannot be None for image-to-video generation."
             )
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            print(
+            logger.warning(
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
 
@@ -254,7 +257,7 @@ class Veo2API(VertexAIClient):
 
         valid_bucket, validation_message = validate_gcs_uri_and_image(gcsuri)
         if valid_bucket:
-            print(f"gcsuri of the input image is valid {validation_message}")
+            logger.info(f"gcsuri of the input image is valid {validation_message}")
         else:
             # Re-raise as APIExecutionError if the failure is due to GCS API/resource lookup
             if (
@@ -274,7 +277,7 @@ class Veo2API(VertexAIClient):
                 last_frame_gcsuri
             )
             if valid_bucket:
-                print(f"last frame gcsuri is valid {validation_message}")
+                logger.info(f"last frame gcsuri is valid {validation_message}")
             else:
                 # Re-raise as APIExecutionError if the failure is due to GCS API/resource lookup
                 if (

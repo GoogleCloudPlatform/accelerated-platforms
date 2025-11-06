@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import base64
-import functools  # Added for decorator
 import io
 import mimetypes
 import os
@@ -39,7 +38,10 @@ from PIL import Image as PIL_Image
 
 from .constants import STORAGE_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError
+from .logger import get_node_logger
 from .retry import api_error_retry
+
+logger = get_node_logger(__name__)
 
 
 def base64_to_pil_to_tensor(base64_string: str) -> torch.Tensor:
@@ -99,7 +101,7 @@ def download_gcsuri(gcsuri: str, destination: str) -> bool:
 
         # Download the blob to the specified local file path
         blob.download_to_filename(destination)
-        print(f"Successfully downloaded '{gcsuri}' to '{destination}'")
+        logger.info(f"Successfully downloaded '{gcsuri}' to '{destination}'")
         return True
 
     except api_core_exceptions.GoogleAPICallError as e:
@@ -174,7 +176,7 @@ def generate_image_from_text(
         safety_filter_level=safety_filter_level,
     )
 
-    print("Sending request to Imagen API for text-to-image generation...")
+    logger.info("Sending request to Imagen API for text-to-image generation...")
     response = client.models.generate_images(model=model, prompt=prompt, config=config)
 
     if not response.generated_images:
@@ -188,7 +190,7 @@ def generate_image_from_text(
             pil_image = PIL_Image.open(BytesIO(image_bytes))
             generated_pil_images.append(pil_image)
         elif generated_image.error:
-            print(f"Error generating image {i+1}: {generated_image.error}")
+            logger.error(f"Error generating image {i+1}: {generated_image.error}")
 
     return generated_pil_images
 
@@ -270,7 +272,7 @@ def generate_video_from_gcsuri_image(
             output_gcs_uri, False
         )
         if valid_bucket:
-            print(validation_message)
+            logger.info(validation_message)
         else:
             if (
                 "not exist or is inaccessible" in validation_message
@@ -301,25 +303,25 @@ def generate_video_from_gcsuri_image(
             )
 
     config = GenerateVideosConfig(**temp_config)
-    print(f"Config for image-to-video generation: {config}")
+    logger.info(f"Config for image-to-video generation: {config}")
 
-    print("Sending request to Veo API for image-to-video generation")
+    logger.info("Sending request to Veo API for image-to-video generation")
     operation = client.models.generate_videos(
         model=model,
         image=Image(gcs_uri=gcsuri, mime_type=image_format),
         prompt=prompt,
         config=config,
     )
-    print(f"Initial operation response object type: {type(operation)}")
+    logger.info(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
     while not operation.done:
         time.sleep(20)
         operation = client.operations.get(operation)
         operation_count += 1
-        print(f"Polling operation (attempt {operation_count})...")
+        logger.info(f"Polling operation (attempt {operation_count})...")
 
-    print(f"Operation completed with status: {operation.done}")
+    logger.info(f"Operation completed with status: {operation.done}")
 
     return process_video_response(operation)
 
@@ -421,7 +423,7 @@ def generate_video_from_image(
             output_gcs_uri, False
         )
         if valid_bucket:
-            print(validation_message)
+            logger.info(validation_message)
         else:
             if (
                 "not exist or is inaccessible" in validation_message
@@ -455,9 +457,9 @@ def generate_video_from_image(
             )
 
     config = GenerateVideosConfig(**temp_config)
-    print(f"Config for image-to-video generation: {config}")
+    logger.info(f"Config for image-to-video generation: {config}")
 
-    print(
+    logger.info(
         f"Sending request to Veo API for image-to-video generation with prompt: '{prompt[:80]}...'"
     )
 
@@ -467,16 +469,16 @@ def generate_video_from_image(
         prompt=prompt,
         config=config,
     )
-    print(f"Initial operation response object type: {type(operation)}")
+    logger.info(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
     while not operation.done:
         time.sleep(20)
         operation = client.operations.get(operation)
         operation_count += 1
-        print(f"Polling operation (attempt {operation_count})...")
+        logger.info(f"Polling operation (attempt {operation_count})...")
 
-    print(f"Operation completed with status: {operation.done}")
+    logger.info(f"Operation completed with status: {operation.done}")
     return process_video_response(operation)
 
 
@@ -542,19 +544,19 @@ def generate_video_from_gcs_references(
     temp_config["reference_images"] = reference_images
 
     config = GenerateVideosConfig(**temp_config)
-    print(f"Config for reference-to-video generation: {config}")
+    logger.info(f"Config for reference-to-video generation: {config}")
 
     operation = client.models.generate_videos(model=model, prompt=prompt, config=config)
-    print(f"Initial operation response object type: {type(operation)}")
+    logger.info(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
     while not operation.done:
         time.sleep(20)  # Polling interval
         operation = client.operations.get(operation)
         operation_count += 1
-        print(f"Polling operation (attempt {operation_count})...")
+        logger.info(f"Polling operation (attempt {operation_count})...")
 
-    print(f"Operation completed with status: {operation.done}")
+    logger.info(f"Operation completed with status: {operation.done}")
     return process_video_response(operation)
 
 
@@ -629,7 +631,7 @@ def generate_video_from_text(
             output_gcs_uri, False
         )
         if valid_bucket:
-            print(validation_message)
+            logger.info(validation_message)
         else:
             if (
                 "not exist or is inaccessible" in validation_message
@@ -651,20 +653,20 @@ def generate_video_from_text(
         temp_config["resolution"] = output_resolution
 
     config = GenerateVideosConfig(**temp_config)
-    print(f"Config for text-to-video generation: {config}")
+    logger.info(f"Config for text-to-video generation: {config}")
 
-    print("Sending request to Veo API for text-to-video generation...")
+    logger.info("Sending request to Veo API for text-to-video generation...")
     operation = client.models.generate_videos(model=model, prompt=prompt, config=config)
-    print(f"Initial operation response object type: {type(operation)}")
+    logger.info(f"Initial operation response object type: {type(operation)}")
 
     operation_count = 0
     while not operation.done:
         time.sleep(20)  # Polling interval
         operation = client.operations.get(operation)
         operation_count += 1
-        print(f"Polling operation (attempt {operation_count})...")
+        logger.info(f"Polling operation (attempt {operation_count})...")
 
-    print(f"Operation completed with status: {operation.done}")
+    logger.info(f"Operation completed with status: {operation.done}")
     return process_video_response(operation)
 
 
@@ -693,7 +695,7 @@ def media_file_to_genai_part(file_path: str, mime_type: str) -> types.Part:
     try:
         with open(file_path, "rb") as f:
             media_bytes = f.read()
-        print(f"Read the file {file_path}")
+        logger.info(f"Read the file {file_path}")
         return types.Part.from_bytes(data=media_bytes, mime_type=mime_type)
     except Exception as e:
         # Pass the original exception up, but with more context
@@ -718,14 +720,14 @@ def prep_for_media_conversion(file_path: str, mime_type: str) -> Optional[types.
                               loaded and converted, otherwise `None`.
     """
     if os.path.exists(file_path):
-        print(f"Attempting to load media from: {file_path}")
+        logger.info(f"Attempting to load media from: {file_path}")
         try:
             return media_file_to_genai_part(file_path, mime_type)
         except Exception as e:
-            print(f"Warning: Could not add media file {file_path}: {e}")
+            logger.warning(f"Could not add media file {file_path}: {e}")
             return None  # Return None on failure
     else:
-        print(f"The file path {file_path} does not exist. Skipping.")
+        logger.info(f"The file path {file_path} does not exist. Skipping.")
         return None  # Return None if file not found
 
 
@@ -752,7 +754,7 @@ def process_audio_response(response: Any) -> dict:
     waveforms = []
     sample_rate = None
 
-    print(f"Found {len(response.predictions)} audio clips to process.")
+    logger.info(f"Found {len(response.predictions)} audio clips to process.")
     for n, prediction in enumerate(response.predictions):
         prediction_dict = dict(prediction)
         audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
@@ -764,8 +766,8 @@ def process_audio_response(response: Any) -> dict:
                 if sample_rate is None:
                     sample_rate = wf.getframerate()
                 elif sample_rate != wf.getframerate():
-                    print(
-                        f"Warning: Mismatch in sample rates. Expected {sample_rate}, got {wf.getframerate()}. Using the first sample rate."
+                    logger.warning(
+                        f"Mismatch in sample rates. Expected {sample_rate}, got {wf.getframerate()}. Using the first sample rate."
                     )
 
                 n_channels = wf.getnchannels()
@@ -881,20 +883,20 @@ def process_video_response(operation: Any) -> List[str]:
             if temp_data is not None:
                 if isinstance(temp_data, list) and temp_data:
                     videos_data = temp_data
-                    print(
+                    logger.info(
                         f"Found videos data via path: {getattr(get_data_func, '__qualname__', 'lambda')}"
                     )
                     break
                 elif hasattr(temp_data, "video"):
                     videos_data = [temp_data]
-                    print(
+                    logger.info(
                         f"Found single video object via path: {getattr(get_data_func, '__qualname__', 'lambda')}"
                     )
                     break
         except AttributeError:
             pass
         except Exception as e:
-            print(
+            logger.error(
                 f"Error trying video data extraction path ({getattr(get_data_func, '__qualname__', 'lambda')}): {e}"
             )
 
@@ -903,11 +905,13 @@ def process_video_response(operation: Any) -> List[str]:
             "No video data found in the API response after trying all known structures. "
             "This might indicate an unexpected API response format or a failed generation without explicit error."
         )
-        print(error_msg)
-        print(f"Full operation object at time of video extraction failure: {operation}")
+        logger.error(error_msg)
+        logger.error(
+            f"Full operation object at time of video extraction failure: {operation}"
+        )
         raise APIExecutionError(error_msg)
 
-    print(f"Found {len(videos_data)} videos to process.")
+    logger.info(f"Found {len(videos_data)} videos to process.")
     for n, video_item in enumerate(videos_data):
         timestamp = int(time.time())
         unique_id = random.randint(1000, 99999)
@@ -921,7 +925,9 @@ def process_video_response(operation: Any) -> List[str]:
             ):
                 video_item.video.save(video_path)
                 video_paths.append(video_path)
-                print(f"Saved video {n} using video_item.video.save() to {video_path}")
+                logger.info(
+                    f"Saved video {n} using video_item.video.save() to {video_path}"
+                )
             elif (
                 hasattr(video_item, "video")
                 and hasattr(video_item.video, "uri")
@@ -933,26 +939,30 @@ def process_video_response(operation: Any) -> List[str]:
                 with open(video_path, "wb") as f:
                     f.write(video_item.video_bytes)
                 video_paths.append(video_path)
-                print(f"Saved video {n} using video_item.video_bytes to {video_path}")
+                logger.info(
+                    f"Saved video {n} using video_item.video_bytes to {video_path}"
+                )
             else:
-                print(
+                logger.warning(
                     f"Video {n} could not be saved: Neither 'video.save()' nor 'video_bytes' found on video_item. "
                     f"Skipping this video. Item type: {type(video_item)}"
                 )
-                print(f"Problematic video item structure for video {n}: {video_item}")
+                logger.warning(
+                    f"Problematic video item structure for video {n}: {video_item}"
+                )
 
         except Exception as e:
             # We catch all here as download_gcsuri already raises an APIExecutionError.
             if isinstance(e, APIExecutionError):
                 raise
-            print(f"Error saving video {n} to {video_path}: {e}")
+            logger.error(f"Error saving video {n} to {video_path}: {e}")
 
     if not video_paths:
         raise APIExecutionError(
             "Failed to save any videos despite successful generation response."
         )
 
-    print(f"Successfully processed and saved {len(video_paths)} videos.")
+    logger.info(f"Successfully processed and saved {len(video_paths)} videos.")
     return video_paths
 
 
@@ -1005,7 +1015,7 @@ def upload_images_to_gcs(
 
                 gcs_uri = f"gs://{bucket_name}/{object_name}"
                 gcs_uris.append(gcs_uri)
-                print(f"Successfully uploaded reference image {i+1} to {gcs_uri}")
+                logger.info(f"Successfully uploaded reference image {i+1} to {gcs_uri}")
             except Exception as e:
                 raise APIExecutionError(
                     f"Failed to upload image {i+1} to GCS: {e}"

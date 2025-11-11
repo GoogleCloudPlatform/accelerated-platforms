@@ -23,6 +23,7 @@ MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
+MY_NAME=$(basename "${0}" .sh)
 
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 
@@ -46,4 +47,4 @@ ${cluster_credentials_command}
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "Total runtime (tutorials/hf-gpu-model): $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "Total runtime (${MY_NAME}): $(date -d@${total_runtime_value} -u +%H:%M:%S)"

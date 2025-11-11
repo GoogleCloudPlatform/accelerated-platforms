@@ -23,6 +23,7 @@ MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
+MY_NAME=$(basename "${0}" .sh)
 
 declare -a CORE_TERRASERVICES_DESTROY_APPLY=(
   "../use-cases/inference-ref-arch/terraform/online_tpu"
@@ -41,4 +42,4 @@ export CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY_APPLY[*]}"
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "Total runtime (tutorials/hf-gpu-model): $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "Total runtime (${MY_NAME}): $(date -d@${total_runtime_value} -u +%H:%M:%S)"

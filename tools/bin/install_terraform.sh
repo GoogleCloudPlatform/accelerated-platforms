@@ -32,7 +32,7 @@ eval set -- "$OPTIONS"
 
 while true; do
   case "${1}" in
-    --modify-rc-file) 
+    --modify-rc-file)
       MODIFY_RC_FILE=true
       shift
       ;;
@@ -40,7 +40,7 @@ while true; do
       shift
       break
       ;;
-    *) 
+    *)
       echo "Invalid option: ${1}" >&2
       exit 1
       ;;
@@ -68,7 +68,7 @@ if [[ -v MODIFY_RC_FILE ]] || { [[ -v USER_EMAIL ]] && [[ "${USER_EMAIL}" == *@q
   echo "NOTE: '\${HOME}/bin' and '\${HOME}/.local/bin' have been added to your PATH in '\${HOME}/.bashrc'"
   echo
   echo "Restart your shell or update the PATH of your current shell with the following command:"
-  echo " export PATH=\${HOME}/bin:\${HOME}/.local/bin:\${PATH}"
+  echo "  export PATH=\${HOME}/bin:\${HOME}/.local/bin:\${PATH}"
   echo
 else
   echo "NOTE: Ensure that '\${HOME}/bin' and '\${HOME}/.local/bin' are on your PATH."

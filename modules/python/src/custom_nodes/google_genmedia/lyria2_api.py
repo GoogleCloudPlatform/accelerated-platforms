@@ -25,7 +25,10 @@ from . import utils
 from .base import VertexAIClient
 from .constants import LYRIA2_MODEL, LYRIA2_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .logger import get_node_logger
 from .retry import api_error_retry
+
+logger = get_node_logger(__name__)
 
 
 class Lyria2API(VertexAIClient):
@@ -57,7 +60,7 @@ class Lyria2API(VertexAIClient):
                 client_options=self.client_options, client_info=self.client_info
             )
             self.model_endpoint = f"projects/{self.project_id}/locations/{self.region}/publishers/google/models/{LYRIA2_MODEL}"
-            print(
+            logger.info(
                 f"Prediction client initiated on project : {self.project_id}, location: {self.region}"
             )
         except Exception as e:
@@ -92,15 +95,13 @@ class Lyria2API(VertexAIClient):
         if seed > 0:
             instance["seed"] = seed
             instance["sample_count"] = 1
-            print("Lyria Node: Seed is greater than 0, setting sample_count to 1.")
+            logger.info("Seed is greater than 0, setting sample_count to 1.")
         else:
             instance["sample_count"] = sample_count
-        print(f"Lyria Node: Instance: {instance}")
+        logger.info(f"Instance: {instance}")
         response = self.client.predict(
             endpoint=self.model_endpoint, instances=[instance]
         )
-        print(
-            f"Lyria Node: Response received from model: {response.model_display_name}"
-        )
+        logger.info(f"Response received from model: {response.model_display_name}")
 
         return utils.process_audio_response(response)

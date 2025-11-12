@@ -18,6 +18,9 @@ from google import genai
 
 from .config import get_gcp_metadata
 from .custom_exceptions import ConfigurationError
+from .logger import get_node_logger
+
+logger = get_node_logger(__name__)
 
 
 class VertexAIClient:
@@ -43,9 +46,21 @@ class VertexAIClient:
             ConfigurationError: If GCP Project or region cannot be determined.
         """
         self.project_id = gcp_project_id or get_gcp_metadata("project/project-id")
-        self.region = gcp_region or "-".join(
-            get_gcp_metadata("instance/zone").split("/")[-1].split("-")[:-1]
-        )
+        if gcp_region:
+            self.region = gcp_region
+        else:
+            zone_metadata = get_gcp_metadata("instance/zone")
+            if zone_metadata:
+                try:
+                    zone_name = zone_metadata.split("/")[-1]
+                    self.region = "-".join(zone_name.split("-")[:-1])
+                except Exception as e:
+                    logger.error(
+                        f"Failed to parse region from zone metadata '{zone_metadata}': {e}"
+                    )
+                    self.region = None
+            else:
+                self.region = None
 
         if not self.project_id:
             raise ConfigurationError(
@@ -56,7 +71,7 @@ class VertexAIClient:
                 "GCP region is required and could not be determined."
             )
 
-        print(f"Project is {self.project_id}, region is {self.region}")
+        logger.info(f"Project is {self.project_id}, region is {self.region}")
 
         if user_agent:
             http_options = genai.types.HttpOptions(headers={"user-agent": user_agent})

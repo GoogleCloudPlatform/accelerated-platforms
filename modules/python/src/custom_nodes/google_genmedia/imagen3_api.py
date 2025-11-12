@@ -23,6 +23,9 @@ from . import utils
 from .base import VertexAIClient
 from .constants import IMAGEN3_MODEL_ID, IMAGEN3_USER_AGENT
 from .custom_exceptions import APIInputError, ConfigurationError
+from .logger import get_node_logger
+
+logger = get_node_logger(__name__)
 
 
 class Imagen3API(VertexAIClient):

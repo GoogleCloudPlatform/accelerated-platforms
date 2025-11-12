@@ -30,6 +30,9 @@ from .constants import (
     Veo3Model,
 )
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .logger import get_node_logger
+
+logger = get_node_logger(__name__)
 
 
 class Veo3API(VertexAIClient):
@@ -181,7 +184,7 @@ class Veo3API(VertexAIClient):
             APIExecutionError: If video generation fails after retries, due to API errors, or unexpected issues.
         """
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            print(
+            logger.warning(
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
         if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
@@ -362,7 +365,7 @@ class Veo3API(VertexAIClient):
                 "GCS URI for the image cannot be None for image-to-video generation."
             )
         if not prompt or not isinstance(prompt, str) or len(prompt.strip()) == 0:
-            print(
+            logger.warning(
                 "Prompt is empty for image-to-video. Veo might use default interpretation of image."
             )
         if duration_seconds not in VEO3_VALID_DURATION_SECONDS:
@@ -396,7 +399,7 @@ class Veo3API(VertexAIClient):
                 raise APIExecutionError(validation_message)
             else:
                 raise APIInputError(validation_message)
-        print(validation_message)
+        logger.info(validation_message)
 
         input_image_format_upper = image_format.upper()
         mime_type: str

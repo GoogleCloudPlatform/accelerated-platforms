@@ -743,8 +743,28 @@ def get_tts_voices_and_languages(
     all_voices = get_tts_voices_and_languages.all_voices
 
     if not all_voices:
-        return ["Error"], ["en-US"], {"Error": "en-US-Standard-A"}
+        return ["(No voices found)"], ["en-US"], {}
 
+    # Explicitly filter the voices first
+    if model_to_include:
+        # If a model is specified, include only voices for that model.
+        filtered_voices = [
+            voice for voice in all_voices if model_to_include in voice.name
+        ]
+        filter_log = f"including '{CHIRP3_HD_MODEL}'"
+    else:
+        # Otherwise, exclude the Chirp3 HD voices by default.
+        filtered_voices = [
+            voice for voice in all_voices if CHIRP3_HD_MODEL not in voice.name
+        ]
+        filter_log = f"excluding '{CHIRP3_HD_MODEL}'"
+
+    # Handle case where filter results in an empty list
+    if not filtered_voices:
+        logger.warning(f"TTS voice filter ({filter_log}) resulted in an empty list.")
+        return ["(No voices found)"], ["en-US"], {}
+
+    # Process the filtered list to create the final outputs
     voice_map = {}
     lang_set = set()
     gender_map = {
@@ -753,32 +773,17 @@ def get_tts_voices_and_languages(
         texttospeech.SsmlVoiceGender.NEUTRAL: "Neutral",
     }
 
-    filter_log = (
-        f"including '{model_to_include}'"
-        if model_to_include
-        else f"excluding '{CHIRP3_HD_MODEL}'"
-    )
+    for voice in filtered_voices:
+        gender_raw = getattr(voice, "ssml_gender", texttospeech.SsmlVoiceGender.NEUTRAL)
+        gender = gender_map.get(gender_raw, "Neutral")
 
-    for voice in all_voices:
         if model_to_include:
-            if model_to_include not in voice.name:
-                continue
+            # For included models (like Chirp), use a short name.
             short_name = voice.name.split("-")[-1]
-            gender_raw = getattr(
-                voice, "ssml_gender", texttospeech.SsmlVoiceGender.NEUTRAL
-            )
-            gender = gender_map.get(gender_raw, "Neutral")
             display_name = f"{short_name} ({gender})"
             voice_map[display_name] = short_name
-        else:  # Otherwise, exclude Chirp and use the full name
-            if CHIRP3_HD_MODEL in voice.name:
-                continue
-            # For Gemini, use the full name and map to the full name.
-            # e.g., "gemini... (Female)" -> "gemini..."
-            gender_raw = getattr(
-                voice, "ssml_gender", texttospeech.SsmlVoiceGender.NEUTRAL
-            )
-            gender = gender_map.get(gender_raw, "Neutral")
+        else:
+            # For other voices, use the full name.
             display_name = f"{voice.name} ({gender})"
             voice_map[display_name] = voice.name
 
@@ -786,11 +791,6 @@ def get_tts_voices_and_languages(
 
     voice_list = sorted(list(voice_map.keys()))
     lang_list = sorted(list(lang_set))
-
-    # Handle case where filter results in an empty list
-    if not voice_list:
-        logger.warning(f"TTS voice filter ({filter_log}) resulted in an empty list.")
-        return ["(No voices found)"], ["en-US"], {}
 
     logger.info(
         f"Filtered to {len(voice_list)} voices and {len(lang_list)} languages ({filter_log})."

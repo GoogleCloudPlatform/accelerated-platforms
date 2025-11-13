@@ -87,9 +87,7 @@ def setup_custom_package_logger():
 
 
 setup_custom_package_logger()
-from .chirp3hd_node import (
-    NODE_CLASS_MAPPINGS as CHIRP3_HD_NODE_CLASS_MAPPINGS,
-)
+from .chirp3hd_node import NODE_CLASS_MAPPINGS as CHIRP3_HD_NODE_CLASS_MAPPINGS
 from .chirp3hd_node import (
     NODE_DISPLAY_NAME_MAPPINGS as CHIRP3_HD_NODE_DISPLAY_NAME_MAPPINGS,
 )

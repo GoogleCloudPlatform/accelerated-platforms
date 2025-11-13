@@ -100,7 +100,7 @@ class Chirp3Node:
     RETURN_TYPES = ("AUDIO",)
     RETURN_NAMES = ("audio",)
     FUNCTION = "execute_synthesis"
-    CATEGORY = "Google AI/Text-to-Speech"
+    CATEGORY = "Google AI/Chirp3"
 
     def execute_synthesis(
         self,

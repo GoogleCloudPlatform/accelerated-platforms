@@ -28,6 +28,7 @@ This example is built on top of the
 - Deploy the online TPU resources.
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
@@ -215,6 +216,7 @@ The Kubernetes manifests are based on the
 - Destroy the online TPU resources.
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init &&

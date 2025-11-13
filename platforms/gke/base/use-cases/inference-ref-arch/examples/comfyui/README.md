@@ -335,6 +335,7 @@ the output bucket.
 - Deploy Workflow API resources:
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
@@ -438,6 +439,7 @@ the output bucket.
 - Destroy the Workflow API resources.
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/workflow_api && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init &&

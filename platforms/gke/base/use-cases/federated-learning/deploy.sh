@@ -34,6 +34,9 @@ echo "ACP_REPO_DIR: ${ACP_REPO_DIR}"
 echo "ACP_PLATFORM_BASE_DIR: ${ACP_PLATFORM_BASE_DIR}"
 echo "ACP_PLATFORM_CORE_DIR: ${ACP_PLATFORM_CORE_DIR}"
 
+# Enable Terraform plugin caching and specifies location of the plugin cache directory
+export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/federated-learning/common.sh"
 

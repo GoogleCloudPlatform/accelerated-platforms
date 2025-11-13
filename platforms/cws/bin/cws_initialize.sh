@@ -29,6 +29,9 @@ start_timestamp["${MY_NAME}"]=$(date +%s)
 ACP_REPO_DIR="$(realpath "${MY_PATH}/../../../")"
 ACP_PLATFORM_DIR="${ACP_REPO_DIR}/platforms/cws"
 
+# Enable Terraform plugin caching and specifies location of the plugin cache directory
+export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+
 # shellcheck source=/dev/null
 source "${ACP_PLATFORM_DIR}/_shared_config/scripts/set_environment_variables.sh"
 

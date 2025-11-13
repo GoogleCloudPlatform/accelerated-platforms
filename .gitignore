@@ -33,6 +33,7 @@ monitoring-dashboard-samples/
 **/.terraform.tfstate.lock.info
 *.terraform/
 *.terraform-*/
+.terraform.d/
 terraform.tfstate*
 
 # Test

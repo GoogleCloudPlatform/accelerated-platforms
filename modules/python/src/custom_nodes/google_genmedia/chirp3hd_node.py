@@ -58,7 +58,7 @@ class Chirp3Node:
                     dynamic_langs,
                     {
                         "default": (
-                            dynamic_langs[16] if len(dynamic_langs) > 16 else "en-US"
+                            dynamic_langs[0] if len(dynamic_langs) > 16 else "en-US"
                         )
                     },
                 ),
@@ -68,7 +68,7 @@ class Chirp3Node:
                         "default": (
                             dynamic_voices[0]
                             if dynamic_voices
-                            else "en-US-Chirp3-HD-Charon"
+                            else "Charon"
                         )
                     },
                 ),

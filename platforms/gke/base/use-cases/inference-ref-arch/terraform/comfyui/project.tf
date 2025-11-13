@@ -25,6 +25,7 @@ resource "google_project_service" "cluster" {
     "aiplatform.googleapis.com",
     "cloudbuild.googleapis.com",
     "iap.googleapis.com",
+    "texttospeech.googleapis.com",
   ])
 
   disable_dependent_services = false

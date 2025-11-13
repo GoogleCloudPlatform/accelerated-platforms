@@ -21,7 +21,7 @@ import re
 import time
 import wave
 from io import BytesIO
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import folder_paths
 import numpy as np
@@ -29,14 +29,14 @@ import torch
 from google import genai
 from google.api_core import exceptions as api_core_exceptions
 from google.api_core.client_info import ClientInfo
-from google.cloud import storage
+from google.cloud import storage, texttospeech
 from google.genai import errors as genai_errors
 from google.genai import types
 from google.genai.types import GenerateVideosConfig, Image
 from grpc import StatusCode
 from PIL import Image as PIL_Image
 
-from .constants import STORAGE_USER_AGENT
+from .constants import CHIRP3_HD_MODEL, STORAGE_USER_AGENT
 from .custom_exceptions import APIExecutionError, APIInputError
 from .logger import get_node_logger
 from .retry import api_error_retry
@@ -193,6 +193,51 @@ def generate_image_from_text(
             logger.error(f"Error generating image {i+1}: {generated_image.error}")
 
     return generated_pil_images
+
+
+@api_error_retry
+def generate_speech_from_text(
+    client: texttospeech.TextToSpeechClient,
+    sample_rate: int,
+    speed: float,
+    synthesis_input_params: dict,
+    voice_params: dict,
+    volume_gain_db: float,
+) -> tuple[bytes, int]:
+    """
+    Synthesizes speech and returns the raw audio binary content and sample rate.
+
+    Args:
+        client: The TextToSpeechClient instance.
+        language_code: The language code for the voice.
+        sample_rate: The desired sample rate of the audio.
+        speed: The speaking rate of the synthesized speech.
+        synthesize: Synthesis input.
+        voice_params: Voice selection params.
+        volume_gain_db: The volume gain in dB.
+
+    Returns:
+        A tuple containing the raw audio content (bytes) and the sample rate (int).
+
+    Raises:
+        APIInputError: If the specified `file_path` does not exist.
+        APIExecutionError: If an error occurs during the file reading or conversion process.
+    """
+    synthesis_input = texttospeech.SynthesisInput(**synthesis_input_params)
+    voice = texttospeech.VoiceSelectionParams(**voice_params)
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.LINEAR16,
+        sample_rate_hertz=sample_rate,
+        speaking_rate=speed,
+        volume_gain_db=volume_gain_db,
+    )
+    print(f"  - Audio Config: {audio_config}")
+
+    response = client.synthesize_speech(
+        input=synthesis_input, voice=voice, audio_config=audio_config
+    )
+    print(f"  - Received audio content of length: {len(response.audio_content)} bytes")
+    return response.audio_content, sample_rate
 
 
 @api_error_retry
@@ -670,6 +715,153 @@ def generate_video_from_text(
     return process_video_response(operation)
 
 
+def get_tts_voices_and_languages(
+    model_to_include: Optional[str] = None,
+) -> Tuple[List[str], List[str], Dict[str, str]]:
+    """
+    Fetches and filters Google TTS voices, caching the master list in memory
+    to ensure the API is only called once per session.
+
+    Args:
+        model_to_include: If provided, only voices containing this string will be returned.
+                          If None, voices containing CHIRP3_HD_MODEL will be excluded.
+
+    Returns:
+        A tuple of (voice_display_names, language_codes, voice_id_map).
+    """
+    if not hasattr(get_tts_voices_and_languages, "all_voices"):
+        try:
+            logger.info("Fetching all TTS voices from Google API for caching...")
+            client = texttospeech.TextToSpeechClient()
+            response = client.list_voices()
+            get_tts_voices_and_languages.all_voices = response.voices
+            logger.info(f"Successfully cached {len(response.voices)} voices from API.")
+        except Exception as e:
+            logger.warning(f"Failed to fetch TTS lists from API (likely no auth): {e}")
+            get_tts_voices_and_languages.all_voices = []  # Cache empty list on failure
+
+    all_voices = get_tts_voices_and_languages.all_voices
+
+    if not all_voices:
+        return ["Error"], ["en-US"], {"Error": "en-US-Standard-A"}
+
+    voice_map = {}
+    lang_set = set()
+    gender_map = {
+        texttospeech.SsmlVoiceGender.MALE: "Male",
+        texttospeech.SsmlVoiceGender.FEMALE: "Female",
+        texttospeech.SsmlVoiceGender.NEUTRAL: "Neutral",
+    }
+
+    filter_log = (
+        f"including '{model_to_include}'"
+        if model_to_include
+        else f"excluding '{CHIRP3_HD_MODEL}'"
+    )
+
+    for voice in all_voices:
+        if model_to_include:
+            if model_to_include not in voice.name:
+                continue
+            short_name = voice.name.split("-")[-1]
+            gender_raw = getattr(
+                voice, "ssml_gender", texttospeech.SsmlVoiceGender.NEUTRAL
+            )
+            gender = gender_map.get(gender_raw, "Neutral")
+            display_name = f"{short_name} ({gender})"
+            voice_map[display_name] = short_name
+        else:  # Otherwise, exclude Chirp and use the full name
+            if CHIRP3_HD_MODEL in voice.name:
+                continue
+            # For Gemini, use the full name and map to the full name.
+            # e.g., "gemini... (Female)" -> "gemini..."
+            gender_raw = getattr(
+                voice, "ssml_gender", texttospeech.SsmlVoiceGender.NEUTRAL
+            )
+            gender = gender_map.get(gender_raw, "Neutral")
+            display_name = f"{voice.name} ({gender})"
+            voice_map[display_name] = voice.name
+
+        lang_set.update(voice.language_codes)
+
+    voice_list = sorted(list(voice_map.keys()))
+    lang_list = sorted(list(lang_set))
+
+    # Handle case where filter results in an empty list
+    if not voice_list:
+        logger.warning(f"TTS voice filter ({filter_log}) resulted in an empty list.")
+        return ["(No voices found)"], ["en-US"], {}
+
+    logger.info(
+        f"Filtered to {len(voice_list)} voices and {len(lang_list)} languages ({filter_log})."
+    )
+    return voice_list, lang_list, voice_map
+
+
+def load_audio_from_bytes(audio_bytes: bytes) -> Tuple[torch.Tensor, int]:
+    """
+    Loads audio from WAV-formatted bytes into a normalized torch tensor.
+    Supports 8-bit (unsigned) and 16-bit (signed) WAV data.
+
+    Args:
+        audio_bytes: The raw audio data in WAV format.
+
+    Returns:
+        A tuple containing:
+            - waveform (torch.Tensor): Audio data with shape (Channels, Time).
+            - sample_rate (int): The sample rate of the audio.
+
+    Raises:
+        APIExecutionError: If the audio data cannot be read or has an unsupported format.
+    """
+    buffer = io.BytesIO(audio_bytes)
+
+    try:
+        with wave.open(buffer, "rb") as wf:
+            sample_rate = wf.getframerate()
+            n_channels = wf.getnchannels()
+            sampwidth = wf.getsampwidth()
+            n_frames = wf.getnframes()
+
+            frames = wf.readframes(n_frames)
+
+            if sampwidth == 2:
+                dtype = np.int16
+            elif sampwidth == 1:
+                dtype = np.uint8  # 8-bit WAV is typically unsigned
+            else:
+                raise APIExecutionError(
+                    f"Unsupported sample width for WAV: {sampwidth} bytes. Only 8-bit and 16-bit are supported by this implementation."
+                )
+
+            waveform_np = np.frombuffer(frames, dtype=dtype)
+
+            if dtype == np.int16:
+                waveform_np = waveform_np.astype(np.float32) / 32768.0
+            elif dtype == np.uint8:
+                waveform_np = (waveform_np.astype(np.float32) - 128.0) / 128.0
+
+            waveform_tensor = torch.from_numpy(waveform_np)
+
+            if n_channels > 1:
+                waveform_tensor = waveform_tensor.reshape(-1, n_channels).transpose(
+                    0, 1
+                )
+            else:
+                waveform_tensor = waveform_tensor.reshape(1, -1)
+
+            return waveform_tensor, sample_rate
+
+    except wave.Error as e:
+        raise APIExecutionError(
+            "Failed to read audio data as WAV. The data might be in a different format."
+        ) from e
+    except Exception as e:
+        raise APIExecutionError(
+            f"An unexpected error occurred while loading audio bytes: {e}"
+        ) from e
+
+
 def media_file_to_genai_part(file_path: str, mime_type: str) -> types.Part:
     """Reads a media file (image, audio, or video) and converts it to a genai.types.Part.
 
@@ -731,7 +923,7 @@ def prep_for_media_conversion(file_path: str, mime_type: str) -> Optional[types.
         return None  # Return None if file not found
 
 
-def process_audio_response(response: Any) -> dict:
+def process_audio_response(waveforms: Any, sample_rate: int) -> dict:
     """
     Processes the audio generation response, loads the audio into a tensor,
     and returns it in the format expected by ComfyUI's AUDIO output.
@@ -739,7 +931,8 @@ def process_audio_response(response: Any) -> dict:
     It assumes the audio from the API is in WAV format.
 
     Args:
-        response: The completed response object from the Lyria API.
+        waveforms: The completed response object from the Lyria API.
+        sample_rate: The sample rate of the audio.
 
     Returns:
         A dictionary containing the audio waveform as a torch.Tensor
@@ -748,68 +941,6 @@ def process_audio_response(response: Any) -> dict:
     Raises:
         APIExecutionError: If no audio data is found or if loading fails.
     """
-    if not response.predictions:
-        raise APIExecutionError("No predictions found in the API response.")
-
-    waveforms = []
-    sample_rate = None
-
-    logger.info(f"Found {len(response.predictions)} audio clips to process.")
-    for n, prediction in enumerate(response.predictions):
-        prediction_dict = dict(prediction)
-        audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
-
-        buffer = io.BytesIO(audio_bytes)
-
-        try:
-            with wave.open(buffer, "rb") as wf:
-                if sample_rate is None:
-                    sample_rate = wf.getframerate()
-                elif sample_rate != wf.getframerate():
-                    logger.warning(
-                        f"Mismatch in sample rates. Expected {sample_rate}, got {wf.getframerate()}. Using the first sample rate."
-                    )
-
-                n_channels = wf.getnchannels()
-                sampwidth = wf.getsampwidth()
-                n_frames = wf.getnframes()
-
-                frames = wf.readframes(n_frames)
-
-                if sampwidth == 2:
-                    dtype = np.int16
-                elif sampwidth == 1:
-                    dtype = np.uint8  # 8-bit is usually unsigned
-                else:
-                    raise APIExecutionError(
-                        f"Unsupported sample width for WAV: {sampwidth} bytes. Only 8-bit and 16-bit are supported by this implementation."
-                    )
-
-                waveform_np = np.frombuffer(frames, dtype=dtype)
-
-                # Normalize
-                if dtype == np.int16:
-                    waveform_np = waveform_np.astype(np.float32) / 32768.0
-                elif dtype == np.uint8:
-                    waveform_np = (waveform_np.astype(np.float32) - 128.0) / 128.0
-
-                # Reshape to (T, C) and then convert to tensor
-                waveform_tensor = torch.from_numpy(waveform_np)
-                waveform_tensor = waveform_tensor.reshape(-1, n_channels)
-
-                # Transpose to (C, T)
-                waveform_tensor = waveform_tensor.transpose(0, 1)
-
-                waveforms.append(waveform_tensor)
-
-        except wave.Error as e:
-            raise APIExecutionError(
-                "Failed to read audio data as WAV file. The API might have returned a different format, which requires ffmpeg."
-            ) from e
-        except Exception as e:
-            raise APIExecutionError(
-                f"An unexpected error occurred while processing audio sample {n}: {e}"
-            ) from e
 
     if not waveforms:
         raise APIExecutionError(

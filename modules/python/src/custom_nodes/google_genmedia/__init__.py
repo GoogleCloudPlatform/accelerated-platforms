@@ -87,7 +87,12 @@ def setup_custom_package_logger():
 
 
 setup_custom_package_logger()
-
+from .chirp3hd_node import (
+    NODE_CLASS_MAPPINGS as CHIRP3_HD_NODE_CLASS_MAPPINGS,
+)
+from .chirp3hd_node import (
+    NODE_DISPLAY_NAME_MAPPINGS as CHIRP3_HD_NODE_DISPLAY_NAME_MAPPINGS,
+)
 from .gemini_flash_image_node import (
     NODE_CLASS_MAPPINGS as GEMINI_FLASH_25_IMAGE_NODE_CLASS_MAPPINGS,
 )
@@ -123,6 +128,7 @@ from .virtual_try_on import NODE_DISPLAY_NAME_MAPPINGS as VTO_NODE_DISPLAY_NAME_
 
 # Combine all node class mappings
 NODE_CLASS_MAPPINGS = {
+    **CHIRP3_HD_NODE_CLASS_MAPPINGS,
     **IMAGEN3_NODE_CLASS_MAPPINGS,
     **IMAGEN4_NODE_CLASS_MAPPINGS,
     **LYRIA2_NODE_CLASS_MAPPINGS,
@@ -136,6 +142,7 @@ NODE_CLASS_MAPPINGS = {
 
 # Combine all node display name mappings
 NODE_DISPLAY_NAME_MAPPINGS = {
+    **CHIRP3_HD_NODE_DISPLAY_NAME_MAPPINGS,
     **IMAGEN3_NODE_DISPLAY_NAME_MAPPINGS,
     **IMAGEN4_NODE_DISPLAY_NAME_MAPPINGS,
     **LYRIA2_NODE_DISPLAY_NAME_MAPPINGS,

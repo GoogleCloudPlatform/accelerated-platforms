@@ -231,7 +231,6 @@ class Veo3API(VertexAIClient):
         self,
         model: str,
         prompt: str,
-        bucket_name: str,
         image1: torch.Tensor,
         image_format: str,
         aspect_ratio: str,
@@ -249,12 +248,11 @@ class Veo3API(VertexAIClient):
         seed: Optional[int],
     ) -> List[str]:
         """
-        Uploads reference images to GCS and then generates a video.
+        Generates a video from the references.
 
         Args:
             model: Veo3 model.
             prompt: The text prompt for video generation.
-            bucket_name: The GCS bucket to upload reference images to.
             image1: The first reference image as a torch.Tensor.
             image_format: The format of the input images.
             aspect_ratio: The desired aspect ratio of the video.
@@ -278,27 +276,15 @@ class Veo3API(VertexAIClient):
             raise APIInputError(
                 "Image1 is required. At least reference image must be provided."
             )
-        if not bucket_name:
-            raise APIInputError(
-                "bucket_name is required for uploading reference images."
-            )
-
-        gcs_uris = utils.upload_images_to_gcs(
-            images=[image1, image2, image3],
-            bucket_name=bucket_name,
-            image_format=image_format,
-        )
-
-        if not gcs_uris:
-            raise APIExecutionError("Failed to upload any reference images to GCS.")
-
         model_enum = Veo3Model[model]
 
-        return utils.generate_video_from_gcs_references(
+        return utils.generate_video_from_references(
             client=self.client,
             model=model_enum,
             prompt=prompt,
-            gcs_uris=gcs_uris,
+            image1=image1,
+            image2=image2,
+            image3=image3,
             image_format=image_format,
             aspect_ratio=aspect_ratio,
             output_resolution=output_resolution,

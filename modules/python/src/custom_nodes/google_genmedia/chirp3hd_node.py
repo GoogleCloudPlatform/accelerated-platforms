@@ -64,13 +64,7 @@ class Chirp3Node:
                 ),
                 "voice_name": (
                     dynamic_voices,
-                    {
-                        "default": (
-                            dynamic_voices[0]
-                            if dynamic_voices
-                            else "Charon"
-                        )
-                    },
+                    {"default": (dynamic_voices[0] if dynamic_voices else "Charon")},
                 ),
                 "sample_rate": (
                     "INT",

@@ -95,11 +95,13 @@ servicemanagement
 servicemesh
 servicenetworking
 serviceusage
+ssml
 stackdriver
 statefulset
 subnetwork
 subnetworks
 superblocks
+texttospeech
 timepicker
 uefi
 ultragpu

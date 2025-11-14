@@ -19,6 +19,8 @@ from enum import Enum
 from google.genai import types
 
 AUDIO_MIME_TYPES = ["audio/mp3", "audio/wav", "audio/mpeg"]
+CHIRP3_HD_MODEL = "Chirp3-HD"
+CHIRP3_USER_AGENT = "cloud-solutions/comfyui-chirp3-custom-node-v1"
 GEMINI_USER_AGENT = "cloud-solutions/comfyui-gemini-custom-node-v1"
 GEMINI_25_FLASH_IMAGE_ASPECT_RATIO = [
     "1:1",

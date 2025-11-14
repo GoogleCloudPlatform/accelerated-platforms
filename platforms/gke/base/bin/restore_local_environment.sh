@@ -21,6 +21,9 @@ MY_PATH="$(
 
 ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../)"
 
+# Enable Terraform plugin caching and specifies location of the plugin cache directory
+export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+
 if [[ ! -v TF_VAR_terraform_bucket_name ]]; then
   echo "TF_VAR_terraform_bucket_name environment variable must be set, exiting!"
   exit 1

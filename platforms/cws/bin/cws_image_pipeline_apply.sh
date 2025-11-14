@@ -30,6 +30,9 @@ ACP_REPO_DIR="$(realpath "${MY_PATH}/../../../")"
 ACP_PLATFORM_DIR="${ACP_REPO_DIR}/platforms/cws"
 ACP_PLATFORM_STACK_DIR="${ACP_PLATFORM_DIR}/image_pipeline"
 
+# Enable Terraform plugin caching and specifies location of the plugin cache directory
+export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+
 # shellcheck source=/dev/null
 source "${ACP_PLATFORM_STACK_DIR}/_shared_config/scripts/set_environment_variables.sh"
 

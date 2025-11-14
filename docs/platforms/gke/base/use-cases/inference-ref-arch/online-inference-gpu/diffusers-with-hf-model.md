@@ -29,6 +29,7 @@ This example is built on top of the
 - Deploy the online GPU resources.
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
@@ -100,6 +101,7 @@ This example is built on top of the
 - Build the container image for the Diffusers inference server.
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
@@ -220,6 +222,7 @@ This example is built on top of the
 - Destroy the container image.
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/diffusers_flux && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init &&
@@ -229,6 +232,7 @@ This example is built on top of the
 - Destroy the online GPU resources.
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init &&

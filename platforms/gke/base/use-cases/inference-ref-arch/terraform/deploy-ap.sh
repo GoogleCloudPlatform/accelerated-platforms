@@ -29,6 +29,9 @@ export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
 
+# Enable Terraform plugin caching and specifies location of the plugin cache directory
+export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+
 # Set use-case specific values
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"

@@ -29,8 +29,10 @@ start_timestamp["${MY_NAME}"]=$(date +%s)
 ACP_REPO_DIR="$(realpath "${MY_PATH}/../../../")"
 ACP_PLATFORM_DIR="${ACP_REPO_DIR}/platforms/cws"
 
-source "${ACP_PLATFORM_DIR}/_shared_config/scripts/set_environment_variables.sh"
+# Enable Terraform plugin caching and specifies location of the plugin cache directory
+export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 
+source "${ACP_PLATFORM_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 cd "${ACP_PLATFORM_DIR}/_shared_config/initialize" &&
   echo "Current directory: $(pwd)" &&
@@ -62,7 +64,7 @@ rm --force --recursive \
 
 git restore \
   "${ACP_PLATFORM_DIR}/_shared_config/"
-  
+
 declare -A end_timestamp["${MY_NAME}"]
 end_timestamp["${MY_NAME}"]=$(date +%s)
 total_runtime_value=$((end_timestamp["${MY_NAME}"] - start_timestamp["${MY_NAME}"]))

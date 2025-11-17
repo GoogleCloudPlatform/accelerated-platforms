@@ -39,4 +39,3 @@ terraform.tfstate*
 # Test
 test/log/*.log
 test/scripts/environment_files/*
-

@@ -19,6 +19,9 @@ metadata:
 spec:
   activeMigration:
     optimizeRulePriority: true
+  nodePoolConfig:
+    imageStreaming:
+      enabled: true
   nodePoolAutoCreation:
     enabled: true
   priorities:

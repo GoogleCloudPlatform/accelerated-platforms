@@ -54,7 +54,7 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_project_cleaner" {
 
   substitutions = {
     _DEBUG = "false"
-    _HOURS = "1"
+    _HOURS = "6"
   }
 }
 

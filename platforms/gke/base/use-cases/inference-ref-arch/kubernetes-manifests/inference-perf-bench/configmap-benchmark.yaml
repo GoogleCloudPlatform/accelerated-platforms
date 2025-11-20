@@ -1,0 +1,60 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+load:
+  type: constant
+  stages:
+  - rate: 1
+    duration: 30
+api: 
+  type: completion 
+  streaming: true
+server:
+  type: vllm
+  model_name: /gcs/replaced-by-kustomize
+  base_url: http://$APP-LABEL.replaced-by-kustomize.svc.cluster.local:8000
+  ignore_eos: true
+tokenizer:
+  pretrained_model_name_or_path: replaced-by-kustomize
+data:
+  type: random
+  input_distribution:
+      min: 10             # min length of the synthetic prompts
+      max: 100            # max length of the synthetic prompts
+      mean: 50            # mean length of the synthetic prompts
+      std: 10             # standard deviation of the length of the synthetic prompts
+  output_distribution:
+      min: 10             # min length of the output to be generated
+      max: 100            # max length of the output to be generated
+      mean: 50            # mean length of the output to be generated
+      std: 10             # standard deviation of the length of the output to be generated
+metrics:
+  type: prometheus
+  prometheus:
+      scrape_interval: 15
+      google_managed: true         # Whether using Google Managed Prometheus
+      filters: [] 
+report:
+  request_lifecycle:
+    summary: true
+    per_stage: true
+    per_request: false
+  prometheus:
+    summary: true
+    per_stage: false
+storage:
+  google_cloud_storage:               # Optional GCS configuration
+    bucket_name: "replaced-by-kustomize"   # Required GCS bucket
+    report_file_prefix: null          # Optional filename prefix
+

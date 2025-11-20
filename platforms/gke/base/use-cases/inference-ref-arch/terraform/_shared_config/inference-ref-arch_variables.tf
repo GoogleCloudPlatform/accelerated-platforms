@@ -33,7 +33,12 @@ variable "ira_online_gpu_diffusers_flux_image_url" {
   default     = null
   description = "The URL for the GPU Diffusers Flux container image."
   type        = string
+  ira_inference_perf_bench_kubernetes_namespace_name       = var.ira_inference_perf_bench_kubernetes_namespace_name != null ? var.ira_inference_perf_bench_kubernetes_namespace_name : "${local.unique_identifier_prefix}-inference_perf_bench"
+  ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference_perf_bench"
+  hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench_results"
+  hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench_dataset"
 }
+
 
 variable "ira_online_gpu_kubernetes_namespace_name" {
   default     = null
@@ -76,3 +81,27 @@ variable "ira_online_tpu_vllm_image_url" {
   description = "The URL for the TPU vLLM container image."
   type        = string
 }
+variable "ira_inference_perf_bench_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace for the inference-perf benchmarking job."
+  type        = string
+}
+
+variable "ira_inference_perf_bench_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account for the inference-perf benchmarking job."
+  type        = string
+}
+
+variable "hub_models_bucket_bench_results_name" {
+  default     = null
+  description = "The GCS bucket name for storage of inference-perf results."
+  type        = string
+}
+
+variable "hub_models_bucket_bench_dataset_name" {
+  default     = null
+  description = "The GCS bucket name for storage of inference-perf dataset."
+  type        = string
+}
+

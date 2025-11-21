@@ -39,6 +39,12 @@ variable "ira_online_gpu_diffusers_flux_image_url" {
   hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench_dataset"
 }
 
+  ira_inference_perf_bench_kubernetes_namespace_name       = var.ira_inference_perf_bench_kubernetes_namespace_name != null ? var.ira_inference_perf_bench_kubernetes_namespace_name : "${local.unique_identifier_prefix}-inference_perf_bench"
+  ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference_perf_bench"
+  hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench_results"
+  hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench_dataset"
+}
+
 
 variable "ira_online_gpu_kubernetes_namespace_name" {
   default     = null

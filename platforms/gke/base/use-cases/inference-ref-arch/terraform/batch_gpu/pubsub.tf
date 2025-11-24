@@ -13,19 +13,19 @@
 # limitations under the License.
 
 resource "google_pubsub_topic" "prompt_messages_topic" {
-  project = google_project_service.pubsub_api.project
+  project = data.google_project.cluster.project_id
 
   name = "prompt-messages-topic"
 }
 
 resource "google_pubsub_topic" "prompt_messages_topic_dead_letter" {
-  project = google_project_service.pubsub_api.project
+  project = data.google_project.cluster.project_id
 
   name = "prompt-messages-topic-dead-letter"
 }
 
 resource "google_pubsub_subscription" "prompt_messages_subscription" {
-  project = google_project_service.pubsub_api.project
+  project = data.google_project.cluster.project_id
 
   name  = "prompt-messages-subscription"
   topic = google_pubsub_topic.prompt_messages_topic.id
@@ -51,7 +51,7 @@ resource "google_pubsub_subscription" "prompt_messages_subscription" {
 }
 
 resource "google_pubsub_subscription" "prompt_messages_dead_letter_subscription" {
-  project = google_project_service.pubsub_api.project
+  project = data.google_project.cluster.project_id
 
   name  = "prompt-messages-dead-letter-subscription"
   topic = google_pubsub_topic.prompt_messages_topic_dead_letter.id

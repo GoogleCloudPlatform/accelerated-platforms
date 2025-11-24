@@ -27,22 +27,18 @@ locals {
   ira_online_tpu_kubernetes_service_account_name = var.ira_online_tpu_kubernetes_service_account_name != null ? var.ira_online_tpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-tpu"
   ira_online_tpu_max_diffusion_sdxl_image_url    = var.ira_online_tpu_max_diffusion_sdxl_image_url != null ? var.ira_online_tpu_max_diffusion_sdxl_image_url : "${local.cloudbuild_ar_image_repository_url}/tpu-max-diffusion/sdxl:latest"
   ira_online_tpu_vllm_image_url                  = var.ira_online_tpu_vllm_image_url != null ? var.ira_online_tpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/tpu:latest"
+  
+  ira_inference_perf_ksa_project_roles_list       = ["roles/logging.viewer", "roles/monitoring.viewer", "roles/storage.objectUser"]
+  ira_inference_perf_bench_kubernetes_namespace_name       = var.ira_inference_perf_bench_kubernetes_namespace_name != null ? var.ira_inference_perf_bench_kubernetes_namespace_name : "${local.unique_identifier_prefix}-inference_perf_bench"
+  ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference_perf_bench"
+  hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench_results"
+  hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench_dataset"
 }
 
 variable "ira_online_gpu_diffusers_flux_image_url" {
   default     = null
   description = "The URL for the GPU Diffusers Flux container image."
   type        = string
-  ira_inference_perf_bench_kubernetes_namespace_name       = var.ira_inference_perf_bench_kubernetes_namespace_name != null ? var.ira_inference_perf_bench_kubernetes_namespace_name : "${local.unique_identifier_prefix}-inference_perf_bench"
-  ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference_perf_bench"
-  hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench_results"
-  hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench_dataset"
-}
-
-  ira_inference_perf_bench_kubernetes_namespace_name       = var.ira_inference_perf_bench_kubernetes_namespace_name != null ? var.ira_inference_perf_bench_kubernetes_namespace_name : "${local.unique_identifier_prefix}-inference_perf_bench"
-  ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference_perf_bench"
-  hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench_results"
-  hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench_dataset"
 }
 
 

@@ -23,10 +23,9 @@ resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench
   role   =  "roles/storage.objectUser" 
 }
 
-resource "google_project_iam_member" "hub_models_ira_inference_perf_bench_ksa" {
+resource "google_project_iam_member" "hub_models_ira_inference_perf_bench_ksa_roles" {
   project = var.platform_default_project_id
-  member = local.ira_inference_perf_bench_ksa_member
-  for_each = local.ksa_project_roles
-  role    = each.value[0] 
-  #role   =  "roles/storage.objectUser" # Add IAM permissions for log read and metric reader
+  member  = local.ira_inference_perf_bench_ksa_member
+  for_each = toset(local.ira_inference_perf_ksa_project_roles_list)
+  role     = each.value
 }

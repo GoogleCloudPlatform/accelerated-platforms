@@ -12,17 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-### GCS bucket for storage of results ###
 
-data "google_storage_bucket" "bench_results" {
-  name    = local.hub_models_bucket_bench_results_name
+data "google_storage_bucket" "hub_models" {
+  name    = local.huggingface_hub_models_bucket_name
+  project = local.huggingface_hub_models_bucket_project_id
+}
+
+### GCS bucket for storage of benchmark results ###
+
+resource "google_storage_bucket" "bench_results" {
+  name          = local.hub_models_bucket_bench_results_name
+  location      = "US-CENTRAL1"
+  storage_class = "STANDARD"
+  force_destroy = false 
   project = var.platform_default_project_id
 }
 
 ### GCS bucket for storage of dataset ###
 
-
-data "google_storage_bucket" "bench_dataset" {
-  name    = local.hub_models_bucket_bench_dataset_name
+resource "google_storage_bucket" "bench_dataset" {
+  name          = local.hub_models_bucket_bench_dataset_name
+  location      = "US-CENTRAL1" 
+  storage_class = "NEARLINE" 
+  force_destroy = false 
   project = var.platform_default_project_id
 }

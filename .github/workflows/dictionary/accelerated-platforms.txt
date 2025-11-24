@@ -51,6 +51,7 @@ overfitting
 packageable
 peft
 prereqs
+pretrained
 psutil
 qwiklabs
 rayutil

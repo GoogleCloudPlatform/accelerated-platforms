@@ -1,1 +1,0 @@
-../../../_shared_config/inference-ref-arch_variables.tf

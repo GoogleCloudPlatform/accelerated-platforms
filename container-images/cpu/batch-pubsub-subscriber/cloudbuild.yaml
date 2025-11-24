@@ -22,8 +22,8 @@ options:
 steps:
   - args:
       - build
-      - --build-context=primary=container-images/cpu/batch-subscriber/src
-      - --file=container-images/cpu/batch-subscriber/Dockerfile
+      - --build-context=primary=container-images/cpu/batch-pubsub-subscriber/src
+      - --file=container-images/cpu/batch-pubsub-subscriber/Dockerfile
       - --tag=${_DESTINATION}
       - .
     id: "Build Batch Subscriber image"

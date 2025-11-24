@@ -28,6 +28,9 @@ locals {
   ira_online_tpu_max_diffusion_sdxl_image_url    = var.ira_online_tpu_max_diffusion_sdxl_image_url != null ? var.ira_online_tpu_max_diffusion_sdxl_image_url : "${local.cloudbuild_ar_image_repository_url}/tpu-max-diffusion/sdxl:latest"
   ira_online_tpu_vllm_image_url                  = var.ira_online_tpu_vllm_image_url != null ? var.ira_online_tpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/tpu:latest"
 
+  ira_online_cpu_batch_load_generator_image_url    = var.ira_online_cpu_batch_load_generator_image_url != null ? var.ira_online_cpu_batch_load_generator_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/batch-load-generator:latest"
+  ira_online_cpu_batch_pubsub_subscriber_image_url = var.ira_online_cpu_batch_pubsub_subscriber_image_url != null ? var.ira_online_cpu_batch_pubsub_subscriber_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/batch-pubsub-subscriber:latest"
+
   ira_batch_gpu_kubernetes_namespace_name                         = var.ira_batch_gpu_kubernetes_namespace_name != null ? var.ira_batch_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-batch-gpu"
   ira_batch_gpu_kubernetes_service_account_name                   = var.ira_batch_gpu_kubernetes_service_account_name != null ? var.ira_batch_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-batch-gpu"
   ira_batch_gpu_pubsub_subscriber_kubernetes_service_account_name = var.ira_batch_gpu_pubsub_subscriber_kubernetes_service_account_name != null ? var.ira_batch_gpu_pubsub_subscriber_kubernetes_service_account_name : "${local.ira_batch_gpu_kubernetes_service_account_name}-pubsub-subscriber"
@@ -103,5 +106,17 @@ variable "ira_batch_gpu_pubsub_subscriber_kubernetes_service_account_name" {
 variable "ira_batch_gpu_vllm_image_url" {
   default     = "docker.io/vllm/vllm-openai:v0.11.2"
   description = "The URL for the batch GPU vLLM container image."
+  type        = string
+}
+
+variable "ira_online_cpu_batch_load_generator_image_url" {
+  default     = null
+  description = "The URL for the CPU batch load generator container image."
+  type        = string
+}
+
+variable "ira_online_cpu_batch_pubsub_subscriber_image_url" {
+  default     = null
+  description = "The URL for the CPU batch pubsub subscriber container image."
   type        = string
 }

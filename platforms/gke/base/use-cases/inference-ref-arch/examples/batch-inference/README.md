@@ -95,3 +95,39 @@ This example is built on top of the
   ```shell
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
+
+## Build the container images
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Build the container image for the CPU batch pubsub subscriber.
+
+  ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/cpu/batch_pubsub_subscriber && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
+  ```
+
+  > The build usually takes 10 to 15 minutes.
+
+- Build the container image for the CPU batch load generator.
+
+  ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/cpu/batch_load_generator && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
+  ```
+
+  > The build usually takes 10 to 15 minutes.

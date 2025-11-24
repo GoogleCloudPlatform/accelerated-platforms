@@ -28,7 +28,7 @@ resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
     command     = <<-EOT
 gcloud builds submit \
---config="container-images/cpu/batch_load_generator/cloudbuild.yaml" \
+--config="container-images/cpu/batch-load-generator/cloudbuild.yaml" \
 --gcs-source-staging-dir="gs://${self.input.cloudbuild_source_bucket_name}/source" \
 --project="${self.input.cloudbuild_project_id}" \
 --quiet \
@@ -40,8 +40,8 @@ EOT
   }
 
   triggers_replace = {
-    cloudbuild_yaml_hash = filebase64sha256("${local.acp_root}/container-images/cpu/batch_load_generator/cloudbuild.yaml")
-    dockerfile_hash      = filebase64sha256("${local.acp_root}/container-images/cpu/batch_load_generator/Dockerfile")
-    source_hash          = sha256(join("", [for file in fileset("${local.acp_root}/container-images/cpu/batch_load_generator/src", "**") : filesha256("${local.acp_root}/container-images/cpu/batch_load_generator/src/${file}")]))
+    cloudbuild_yaml_hash = filebase64sha256("${local.acp_root}/container-images/cpu/batch-load-generator/cloudbuild.yaml")
+    dockerfile_hash      = filebase64sha256("${local.acp_root}/container-images/cpu/batch-load-generator/Dockerfile")
+    source_hash          = sha256(join("", [for file in fileset("${local.acp_root}/container-images/cpu/batch-load-generator/src", "**") : filesha256("${local.acp_root}/container-images/cpu/batch-load-generator/src/${file}")]))
   }
 }

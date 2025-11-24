@@ -13,12 +13,19 @@
 # limitations under the License.
 
 locals {
-  cluster_wi_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
-  ira_batch_gpu_ksa_member    = "${local.cluster_wi_principal_prefix}/ns/${local.ira_batch_gpu_kubernetes_namespace_name}/sa/${local.ira_batch_gpu_kubernetes_service_account_name}"
+  cluster_wi_principal_prefix                = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
+  ira_batch_gpu_ksa_member                   = "${local.cluster_wi_principal_prefix}/ns/${local.ira_batch_gpu_kubernetes_namespace_name}/sa/${local.ira_batch_gpu_kubernetes_service_account_name}"
+  ira_batch_gpu_pubsub_subscriber_ksa_member = "${local.cluster_wi_principal_prefix}/ns/${local.ira_batch_gpu_kubernetes_namespace_name}/sa/${local.ira_batch_gpu_pubsub_subscriber_kubernetes_service_account_name}"
 }
 
 resource "google_storage_bucket_iam_member" "hub_models_ira_batch_gpu_ksa" {
   bucket = data.google_storage_bucket.hub_models.name
   member = local.ira_batch_gpu_ksa_member
   role   = local.cluster_gcsfuse_user_role
+}
+
+resource "google_project_iam_member" "pubsub_subscriber_member_ira_batch_gpu_pubsub_subscriber_ksa" {
+  project = data.google_project.cluster.project_id
+  member  = local.ira_batch_gpu_pubsub_subscriber_ksa_member
+  role    = "roles/pubsub.subscriber"
 }

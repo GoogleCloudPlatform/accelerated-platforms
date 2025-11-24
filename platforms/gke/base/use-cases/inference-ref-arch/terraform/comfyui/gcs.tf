@@ -199,10 +199,9 @@ resource "google_storage_bucket_object" "workflow_veo3_itv" {
 }
 
 resource "google_storage_bucket_object" "workflow_veo3_r2v" {
-  bucket     = google_storage_bucket.comfyui_workflow.name
-  name       = "veo3-reference-to-video.json"
-  source     = "src/comfyui-workflows/veo3-reference-to-video.json"
-  depends_on = [local_file.workflow_veo2_ttv]
+  bucket = google_storage_bucket.comfyui_workflow.name
+  name   = "veo3-reference-to-video.json"
+  source = "src/comfyui-workflows/veo3-reference-to-video.json"
 }
 
 resource "google_storage_bucket_object" "workflow_veo3_ttv" {
@@ -269,14 +268,4 @@ resource "local_file" "workflow_veo3_ttv" {
     }
   )
   filename = "${path.module}/src/comfyui-workflows/veo3-text-to-video.json"
-}
-
-resource "local_file" "workflow_veo3_r2v" {
-  content = templatefile(
-    "${path.module}/src/comfyui-workflows/veo3-reference-to-video.tftpl.json",
-    {
-      output_bucket_uri = google_storage_bucket.comfyui_output.url
-    }
-  )
-  filename = "${path.module}/src/comfyui-workflows/veo3-reference-to-video.json"
 }

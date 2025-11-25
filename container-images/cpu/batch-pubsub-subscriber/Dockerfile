@@ -45,7 +45,7 @@ ENV APP_HOME /usr/src/app
 WORKDIR $APP_HOME
 
 # Copy installed dependencies from the builder stage
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=builder /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy the application script itself

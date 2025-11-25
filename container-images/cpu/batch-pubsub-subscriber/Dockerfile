@@ -27,7 +27,7 @@ ENV APP_HOME /usr/src/app
 WORKDIR $APP_HOME
 
 # Copy only the requirements file first to leverage Docker cache
-COPY requirements.txt .
+COPY src/requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
@@ -49,7 +49,7 @@ COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/pytho
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Copy the application script itself
-COPY app.py .
+COPY src/app.py .
 
 # Command to run the application when the container starts
 CMD ["python", "app.py"]

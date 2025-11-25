@@ -131,3 +131,81 @@ This example is built on top of the
   ```
 
   > The build usually takes 10 to 15 minutes.
+
+## Deploy the inference workload
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Configure the deployment.
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/vllm/configure_vllm.sh"
+  ```
+
+- Set the environment variables for the workload.
+
+  - Check the model name.
+
+    ```shell
+    echo "HF_MODEL_NAME=${HF_MODEL_NAME}"
+    ```
+
+    > If the `HF_MODEL_NAME` variable is not set, ensure that `HF_MODEL_ID` is
+    > set and source the `set_environment_variables.sh` script:
+    >
+    > ```shell
+    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+    > ```
+
+  - Select an accelerator.
+
+    | Model                          | l4  | h100 | h200 |
+    | ------------------------------ | --- | ---- | ---- |
+    | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   |
+
+    - **NVIDIA H100 80GB**:
+
+      ```shell
+      export ACCELERATOR_TYPE="h100"
+      ```
+
+    - **NVIDIA H200 141GB**:
+
+      ```shell
+      export ACCELERATOR_TYPE="h200"
+      ```
+
+    Ensure that you have enough quota in your project to provision the selected
+    accelerator type. For more information, see about viewing GPU quotas, see
+    [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
+
+- Deploy the inference workload.
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  ```
+
+  The Kubernetes manifests are based on the
+  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+
+- Watch the deployment until it is ready.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_batch_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_batch_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+  ```
+
+  When the deployment is ready, you will see the following:
+
+  ```text
+  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+  vllm-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1     1            1           ###
+  ```
+
+  You can press `CTRL`+`c` to terminate the watch.

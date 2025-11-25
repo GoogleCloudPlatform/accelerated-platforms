@@ -16,7 +16,7 @@
 
 # --- STAGE 1: Build Stage ---
 # Use a Python image that includes tools for installing dependencies
-FROM python:3.11-slim as builder
+FROM python:3.14.0-slim-trixie as builder
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -34,7 +34,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # --- STAGE 2: Final Runtime Stage ---
 # Use a minimal runtime image for security and size
-FROM python:3.11-slim
+FROM python:3.14.0-slim-trixie
 
 # Set environment variables for the runtime
 ENV PYTHONDONTWRITEBYTECODE=1

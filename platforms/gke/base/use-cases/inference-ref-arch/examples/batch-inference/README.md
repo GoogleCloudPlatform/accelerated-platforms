@@ -163,9 +163,9 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model                          | l4  | h100 | h200 |
-    | ------------------------------ | --- | ---- | ---- |
-    | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   |
+    | Model                  | l4  | h100 | h200 |
+    | ---------------------- | --- | ---- | ---- |
+    | llama-3.3-70b-instruct | ❌  | ✅   | ✅   |
 
     - **NVIDIA H100 80GB**:
 

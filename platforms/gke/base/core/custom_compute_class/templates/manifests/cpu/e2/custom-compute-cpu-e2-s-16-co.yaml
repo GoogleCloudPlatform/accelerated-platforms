@@ -15,7 +15,7 @@
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
 metadata:
-  name: cpu-n4-s-8
+  name: cpu-e2-s-16-co
 spec:
   activeMigration:
     optimizeRulePriority: true

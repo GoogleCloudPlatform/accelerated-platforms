@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  image_destination = local.ira_online_cpu_batch_pubsub_subscriber_image_url
+  image_destination = local.ira_batch_cpu_pubsub_subscriber_image_url
 }
 
 resource "terraform_data" "submit_docker_build" {

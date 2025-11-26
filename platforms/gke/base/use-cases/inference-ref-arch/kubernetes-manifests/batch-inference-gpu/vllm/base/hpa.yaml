@@ -25,8 +25,8 @@ spec:
   minReplicas: 1
   maxReplicas: 8
   metrics:
-    - type: Pods
-      pods:
+    - type: External
+      external:
         metric:
           name: prometheus.googleapis.com|vllm:num_requests_waiting|gauge
         target:

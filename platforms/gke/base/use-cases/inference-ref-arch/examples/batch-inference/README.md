@@ -234,9 +234,9 @@ This example is built on top of the
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_batch_gpu_kubernetes_namespace_name} get deployment/batch-pubsub-subscriber | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} get deployment/batch-pubsub-subscriber | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_batch_gpu_kubernetes_namespace_name} logs deployment/batch-pubsub-subscriber --all-containers --tail 10"
+  kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} logs deployment/batch-pubsub-subscriber --all-containers --tail 10"
   ```
 
   When the deployment is ready, you will see the following:
@@ -249,3 +249,39 @@ This example is built on top of the
   You can press `CTRL`+`c` to terminate the watch.
 
 ## (Optional) Run the load generator job
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Configure the deployment.
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-load-generator/configure_load_generator.sh"
+  ```
+
+- Deploy the subscriber workload.
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-load-generator/base"
+  ```
+
+- Watch the deployment until it is ready.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} get job/batch-load-generator | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} logs job/batch-load-generator --all-containers --tail 10"
+  ```
+
+  When the deployment is ready, you will see the following:
+
+  ```text
+  NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment/batch-pubsub-subscriber   1/1     1            1           ###
+  ```
+
+  You can press `CTRL`+`c` to terminate the watch.

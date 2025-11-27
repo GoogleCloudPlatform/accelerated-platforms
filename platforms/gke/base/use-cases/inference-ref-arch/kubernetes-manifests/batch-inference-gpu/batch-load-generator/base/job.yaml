@@ -34,27 +34,27 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_ID
-                  name: runtime
+                  name: batch-load-generator
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
                   key: PROJECT_ID
-                  name: runtime
+                  name: batch-load-generator
             - name: TOPIC_ID
               valueFrom:
                 configMapKeyRef:
                   key: TOPIC_ID
-                  name: runtime
+                  name: batch-load-generator
             - name: TOTAL_MESSAGES
               valueFrom:
                 configMapKeyRef:
                   key: TOTAL_MESSAGES
-                  name: runtime
+                  name: batch-load-generator
             - name: PRINT_EVERY
               valueFrom:
                 configMapKeyRef:
                   key: PRINT_EVERY
-                  name: runtime
+                  name: batch-load-generator
           image: replaced-by-kustomize
           imagePullPolicy: Always
           name: batch-load-generator
@@ -72,30 +72,4 @@ spec:
             successThreshold: 1
             timeoutSeconds: 1
           resources: {}
-          volumeMounts:
-            - mountPath: /dev/shm
-              name: dev-shm
-            - mountPath: /gcs
-              name: huggingface-hub-model-bucket
-              readOnly: true
       serviceAccountName: replaced-by-kustomize
-      volumes:
-        - emptyDir:
-            medium: Memory
-          name: dev-shm
-        - csi:
-            driver: gcsfuse.csi.storage.gke.io
-            volumeAttributes:
-              bucketName: cloud-storage-bucket-name
-              mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replaced-by-kustomize
-              skipCSIBucketAccessCheck: "true"
-          name: huggingface-hub-model-bucket
-        - emptyDir:
-            medium: Memory
-          name: gke-gcsfuse-cache
-        - emptyDir:
-            medium: Memory
-          name: gke-gcsfuse-tmp
-        - emptyDir:
-            medium: Memory
-          name: gke-gcsfuse-buffer

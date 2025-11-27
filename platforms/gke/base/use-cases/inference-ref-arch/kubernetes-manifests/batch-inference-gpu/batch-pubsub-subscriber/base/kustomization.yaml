@@ -21,7 +21,47 @@ configMapGenerator:
     name: batch-pubsub-subscriber
     namespace: replaced-by-kustomize
 
+replacements:
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: vllm
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=batch-pubsub-subscriber].image
+        select:
+          kind: Deployment
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: HorizontalPodAutoscaler
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.template.spec.serviceAccountName
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - metadata.name
+        select:
+          kind: ServiceAccount
+
 resources:
-  - ../../base
   - deployment.yaml
   - hpa.yaml

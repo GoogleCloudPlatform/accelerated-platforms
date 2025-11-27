@@ -25,11 +25,6 @@ spec:
     type: Recreate
   template:
     metadata:
-      annotations:
-        gke-gcsfuse/cpu-limit: "0"
-        gke-gcsfuse/ephemeral-storage-limit: "0"
-        gke-gcsfuse/memory-limit: "0"
-        gke-gcsfuse/volumes: "true"
       labels:
         app: batch-pubsub-subscriber
     spec:
@@ -39,22 +34,22 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_ID
-                  name: runtime
+                  name: batch-pubsub-subscriber
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
                   key: PROJECT_ID
-                  name: runtime
+                  name: batch-pubsub-subscriber
             - name: PUBSUB_SUBSCRIPTION_ID
               valueFrom:
                 configMapKeyRef:
                   key: PUBSUB_SUBSCRIPTION_ID
-                  name: runtime
+                  name: batch-pubsub-subscriber
             - name: VLLM_API_ENDPOINT
               valueFrom:
                 configMapKeyRef:
                   key: VLLM_API_ENDPOINT
-                  name: runtime
+                  name: batch-pubsub-subscriber
           image: replaced-by-kustomize
           imagePullPolicy: Always
           name: batch-pubsub-subscriber
@@ -72,30 +67,4 @@ spec:
             successThreshold: 1
             timeoutSeconds: 1
           resources: {}
-          volumeMounts:
-            - mountPath: /dev/shm
-              name: dev-shm
-            - mountPath: /gcs
-              name: huggingface-hub-model-bucket
-              readOnly: true
       serviceAccountName: replaced-by-kustomize
-      volumes:
-        - emptyDir:
-            medium: Memory
-          name: dev-shm
-        - csi:
-            driver: gcsfuse.csi.storage.gke.io
-            volumeAttributes:
-              bucketName: cloud-storage-bucket-name
-              mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replaced-by-kustomize
-              skipCSIBucketAccessCheck: "true"
-          name: huggingface-hub-model-bucket
-        - emptyDir:
-            medium: Memory
-          name: gke-gcsfuse-cache
-        - emptyDir:
-            medium: Memory
-          name: gke-gcsfuse-tmp
-        - emptyDir:
-            medium: Memory
-          name: gke-gcsfuse-buffer

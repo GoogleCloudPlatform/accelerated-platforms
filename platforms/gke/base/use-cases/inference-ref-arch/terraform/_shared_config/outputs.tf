@@ -48,6 +48,14 @@ output "comfyui_ssl_certificate_name" {
   value = local.comfyui_endpoints_ssl_certificate_name
 }
 
+output "ira_batch_cpu_load_generator_image_url" {
+  value = local.ira_batch_cpu_load_generator_image_url
+}
+
+output "ira_batch_cpu_pubsub_subscriber_image_url" {
+  value = local.ira_batch_cpu_pubsub_subscriber_image_url
+}
+
 output "ira_batch_gpu_kubernetes_namespace_name" {
   value = local.ira_batch_gpu_kubernetes_namespace_name
 }

@@ -25,7 +25,7 @@ replacements:
   - source:
       fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
-      name: vllm
+      name: batch-pubsub-subscriber
     targets:
       - fieldPaths:
           - spec.template.spec.containers.[name=batch-pubsub-subscriber].image
@@ -63,5 +63,6 @@ replacements:
           kind: ServiceAccount
 
 resources:
+  - ../../base
   - deployment.yaml
   - hpa.yaml

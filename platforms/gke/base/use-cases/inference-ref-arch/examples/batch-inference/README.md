@@ -227,7 +227,7 @@ This example is built on top of the
 - Deploy the subscriber workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-pubsub-subscriber"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-pubsub-subscriber/base"
   ```
 
 - Watch the deployment until it is ready.

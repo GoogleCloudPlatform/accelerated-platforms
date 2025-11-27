@@ -15,19 +15,19 @@
 resource "google_pubsub_topic" "prompt_messages_topic" {
   project = data.google_project.cluster.project_id
 
-  name = "prompt-messages-topic"
+  name = local.ira_batch_pubsub_prompt_messages_topic_name
 }
 
 resource "google_pubsub_topic" "prompt_messages_topic_dead_letter" {
   project = data.google_project.cluster.project_id
 
-  name = "prompt-messages-topic-dead-letter"
+  name = local.ira_batch_pubsub_prompt_messages_topic_dead_letter_name
 }
 
 resource "google_pubsub_subscription" "prompt_messages_subscription" {
   project = data.google_project.cluster.project_id
 
-  name  = "prompt-messages-subscription"
+  name  = local.ira_batch_pubsub_prompt_messages_subscription_name
   topic = google_pubsub_topic.prompt_messages_topic.id
 
   # 20 minutes
@@ -53,7 +53,7 @@ resource "google_pubsub_subscription" "prompt_messages_subscription" {
 resource "google_pubsub_subscription" "prompt_messages_dead_letter_subscription" {
   project = data.google_project.cluster.project_id
 
-  name  = "prompt-messages-dead-letter-subscription"
+  name  = local.ira_batch_pubsub_prompt_messages_subscription_dead_letter_name
   topic = google_pubsub_topic.prompt_messages_topic_dead_letter.id
 
   # 20 minutes

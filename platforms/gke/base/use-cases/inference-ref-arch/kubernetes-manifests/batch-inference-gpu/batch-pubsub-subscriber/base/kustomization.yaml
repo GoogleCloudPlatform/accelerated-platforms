@@ -32,9 +32,9 @@ replacements:
         select:
           kind: Deployment
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      fieldPath: data.PUBSUB_SUBSCRIBER_KUBERNETES_NAMESPACE
       kind: ConfigMap
-      name: deployment
+      name: batch-pubsub-subscriber
     targets:
       - fieldPaths:
           - metadata.namespace
@@ -49,18 +49,17 @@ replacements:
         select:
           kind: HorizontalPodAutoscaler
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      fieldPath: data.PUBSUB_SUBSCRIBER_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
-      name: deployment
+      name: batch-pubsub-subscriber
     targets:
       - fieldPaths:
           - spec.template.spec.serviceAccountName
         select:
           kind: Deployment
-      - fieldPaths:
-          - metadata.name
-        select:
-          kind: ServiceAccount
+
+patches:
+  - path: patch-nodeselector.yaml
 
 resources:
   - ../../base

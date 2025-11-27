@@ -21,6 +21,42 @@ configMapGenerator:
     name: batch-load-generator
     namespace: replaced-by-kustomize
 
+replacements:
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: batch-load-generator
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=batch-load-generator].image
+        select:
+          kind: Job
+  - source:
+      fieldPath: data.LOAD_GENERATOR_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: batch-load-generator
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Job
+  - source:
+      fieldPath: data.LOAD_GENERATOR_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: batch-load-generator
+    targets:
+      - fieldPaths:
+          - spec.template.spec.serviceAccountName
+        select:
+          kind: Job
+
+patches:
+  - path: patch-nodeselector.yaml
+
 resources:
   - ../../base
   - job.yaml

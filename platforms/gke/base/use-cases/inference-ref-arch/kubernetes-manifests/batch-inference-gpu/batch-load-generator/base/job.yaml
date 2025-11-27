@@ -58,18 +58,5 @@ spec:
           image: replaced-by-kustomize
           imagePullPolicy: Always
           name: batch-load-generator
-          ports:
-            - containerPort: 8000
-              name: metrics
-          readinessProbe:
-            failureThreshold: 6000
-            httpGet:
-              path: /health
-              port: 8000
-              scheme: HTTP
-            initialDelaySeconds: 60
-            periodSeconds: 10
-            successThreshold: 1
-            timeoutSeconds: 1
           resources: {}
       serviceAccountName: replaced-by-kustomize

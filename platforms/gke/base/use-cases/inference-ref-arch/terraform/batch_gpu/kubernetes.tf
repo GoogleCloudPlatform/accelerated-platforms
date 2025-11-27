@@ -16,9 +16,26 @@ locals {
   kubeconfig_directory = "${path.module}/../../../../kubernetes/kubeconfig/"
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
 
-  ira_batch_gpu_manifests_directory = "${local.namespaces_directory}/${local.ira_batch_gpu_kubernetes_namespace_name}"
-  manifests_directory_root          = "${path.module}/../../../../kubernetes/manifests"
-  namespaces_directory              = "${local.manifests_directory_root}/namespace"
+  workloads = {
+    ira_batch_gpu = {
+      directory       = "${local.namespaces_directory}/${local.ira_batch_gpu_kubernetes_namespace_name}"
+      namespace       = local.ira_batch_gpu_kubernetes_namespace_name
+      service_account = local.ira_batch_gpu_kubernetes_service_account_name
+    }
+    ira_batch_cpu_pubsub_subscriber = {
+      directory       = "${local.namespaces_directory}/${local.ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name}"
+      namespace       = local.ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name
+      service_account = local.ira_batch_cpu_pubsub_subscriber_kubernetes_service_account_name
+    }
+    ira_batch_cpu_load_generator = {
+      directory       = "${local.namespaces_directory}/${local.ira_batch_cpu_load_generator_kubernetes_namespace_name}"
+      namespace       = local.ira_batch_cpu_load_generator_kubernetes_namespace_name
+      service_account = local.ira_batch_cpu_load_generator_kubernetes_service_account_name
+    }
+  }
+
+  manifests_directory_root = "${path.module}/../../../../kubernetes/manifests"
+  namespaces_directory     = "${local.manifests_directory_root}/namespace"
 }
 
 data "local_file" "kubeconfig" {
@@ -26,16 +43,18 @@ data "local_file" "kubeconfig" {
 }
 
 resource "local_file" "namespace_yaml" {
+  for_each = local.workloads
   content = templatefile(
     "${path.module}/templates/kubernetes/namespace.tftpl.yaml",
     {
-      name = local.ira_batch_gpu_kubernetes_namespace_name
+      name = each.value.namespace
     }
   )
-  filename = "${local.namespaces_directory}/namespace-${local.ira_batch_gpu_kubernetes_namespace_name}.yaml"
+  filename = "${local.namespaces_directory}/namespace-${each.value.namespace}.yaml"
 }
 
 module "kubectl_apply_namespace" {
+  for_each = local.workloads
   depends_on = [
     local_file.namespace_yaml,
   ]
@@ -46,22 +65,24 @@ module "kubectl_apply_namespace" {
   delete_timeout              = "60s"
   error_on_delete_failure     = false
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = "${local.namespaces_directory}/namespace-${local.ira_batch_gpu_kubernetes_namespace_name}.yaml"
+  manifest                    = "${local.namespaces_directory}/namespace-${each.value.namespace}.yaml"
   manifest_includes_namespace = true
 }
 
 resource "local_file" "serviceaccount_yaml" {
+  for_each = local.workloads
   content = templatefile(
     "${path.module}/templates/kubernetes/serviceaccount.tftpl.yaml",
     {
-      name      = local.ira_batch_gpu_kubernetes_service_account_name
-      namespace = local.ira_batch_gpu_kubernetes_namespace_name
+      name      = each.value.service_account
+      namespace = each.value.namespace
     }
   )
-  filename = "${local.ira_batch_gpu_manifests_directory}/serviceaccount-${local.ira_batch_gpu_kubernetes_service_account_name}.yaml"
+  filename = "${each.value.directory}/serviceaccount-${each.value.service_account}.yaml"
 }
 
 module "kubectl_apply_service_account" {
+  for_each = local.workloads
   depends_on = [
     local_file.serviceaccount_yaml,
     module.kubectl_apply_namespace,
@@ -71,6 +92,6 @@ module "kubectl_apply_service_account" {
 
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = "${local.ira_batch_gpu_manifests_directory}/serviceaccount-${local.ira_batch_gpu_kubernetes_service_account_name}.yaml"
+  manifest                    = "${each.value.directory}/serviceaccount-${each.value.service_account}.yaml"
   manifest_includes_namespace = true
 }

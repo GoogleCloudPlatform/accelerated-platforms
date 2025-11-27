@@ -18,16 +18,12 @@ metadata:
   name: batch-load-generator
   namespace: replaced-by-kustomize
 spec:
-  selector:
-    matchLabels:
-      app: batch-load-generator
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
         app: batch-load-generator
     spec:
+      restartPolicy: OnFailure
       containers:
         - env:
             - name: MODEL_ID

@@ -25,8 +25,8 @@ from google.cloud.pubsub_v1.types import BatchSettings, PublisherOptions
 
 # --- CONFIGURATION ---
 PROJECT_ID = os.getenv("PROJECT_ID")
-MODEL_NAME = os.getenv("MODEL_NAME")
-TOPIC_ID = os.getenv("TOPIC_ID", "prompt-messages-topic")
+MODEL_ID = os.getenv("MODEL_ID")
+TOPIC_ID = os.getenv("TOPIC_ID")
 TOTAL_MESSAGES = int(os.getenv("TOTAL_MESSAGES", "1000000"))
 PRINT_EVERY = int(os.getenv("PRINT_EVERY", "10000"))
 
@@ -38,7 +38,7 @@ class MistralPayloadGenerator:
     """
 
     def __init__(self):
-        self.model_name = MODEL_NAME
+        self.model_id = MODEL_ID
 
         self.system_roles = [
             "You are a helpful AI assistant.",
@@ -75,7 +75,7 @@ class MistralPayloadGenerator:
 
         # Construct the dictionary based on user requirements
         message_dict = {
-            "model": self.model_name,
+            "model": self.model_id,
             "messages": [
                 {"role": "system", "content": sys_role},
                 {"role": "user", "content": user_content},

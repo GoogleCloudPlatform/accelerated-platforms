@@ -26,4 +26,4 @@ source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_var
 
 "${MY_PATH}/../configure_deployment.sh"
 
-envsubst < "${MY_PATH}/base/templates/load_generator.tpl.env" | sponge "${MY_PATH}/base/load_generator.env"
+envsubst < "${MY_PATH}/base/templates/batch-pubsub-subscriber.tpl.env" | sponge "${MY_PATH}/base/batch-pubsub-subscriber.env"

@@ -52,8 +52,24 @@ output "ira_batch_cpu_load_generator_image_url" {
   value = local.ira_batch_cpu_load_generator_image_url
 }
 
+output "ira_batch_cpu_load_generator_kubernetes_namespace_name" {
+  value = local.ira_batch_cpu_load_generator_kubernetes_namespace_name
+}
+
+output "ira_batch_cpu_load_generator_kubernetes_service_account_name" {
+  value = local.ira_batch_cpu_load_generator_kubernetes_service_account_name
+}
+
 output "ira_batch_cpu_pubsub_subscriber_image_url" {
   value = local.ira_batch_cpu_pubsub_subscriber_image_url
+}
+
+output "ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name" {
+  value = local.ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name
+}
+
+output "ira_batch_cpu_pubsub_subscriber_kubernetes_service_account_name" {
+  value = local.ira_batch_cpu_pubsub_subscriber_kubernetes_service_account_name
 }
 
 output "ira_batch_gpu_kubernetes_namespace_name" {

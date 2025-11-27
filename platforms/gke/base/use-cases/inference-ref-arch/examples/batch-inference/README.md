@@ -221,7 +221,7 @@ This example is built on top of the
 - Configure the deployment.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/vllm/configure_pubsub_subscriber.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-pubsub-subscriber/configure_pubsub_subscriber.sh"
   ```
 
 - Deploy the subscriber workload.

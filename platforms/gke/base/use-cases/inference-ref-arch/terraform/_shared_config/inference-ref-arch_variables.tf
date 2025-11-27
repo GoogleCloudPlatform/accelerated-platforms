@@ -35,6 +35,11 @@ locals {
   ira_batch_gpu_kubernetes_service_account_name                   = var.ira_batch_gpu_kubernetes_service_account_name != null ? var.ira_batch_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-batch-gpu"
   ira_batch_gpu_pubsub_subscriber_kubernetes_service_account_name = var.ira_batch_gpu_pubsub_subscriber_kubernetes_service_account_name != null ? var.ira_batch_gpu_pubsub_subscriber_kubernetes_service_account_name : "${local.ira_batch_gpu_kubernetes_service_account_name}-pubsub-subscriber"
   ira_batch_gpu_vllm_image_url                                    = var.ira_batch_gpu_vllm_image_url != null ? var.ira_batch_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/batch-gpu:latest"
+
+  ira_batch_pubsub_prompt_messages_topic_name                    = var.ira_batch_pubsub_prompt_messages_topic_name != null ? var.ira_batch_pubsub_prompt_messages_topic_name : "${local.unique_identifier_prefix}-prompt-messages-topic"
+  ira_batch_pubsub_prompt_messages_topic_dead_letter_name        = var.ira_batch_pubsub_prompt_messages_topic_dead_letter_name != null ? var.ira_batch_pubsub_prompt_messages_topic_dead_letter_name : "${local.unique_identifier_prefix}-prompt-messages-topic-dead-letter"
+  ira_batch_pubsub_prompt_messages_subscription_name             = var.ira_batch_pubsub_prompt_messages_subscription_name != null ? var.ira_batch_pubsub_prompt_messages_subscription_name : "${local.unique_identifier_prefix}-prompt-messages-subscription"
+  ira_batch_pubsub_prompt_messages_subscription_dead_letter_name = var.ira_batch_pubsub_prompt_messages_subscription_dead_letter_name != null ? var.ira_batch_pubsub_prompt_messages_subscription_dead_letter_name : "${local.unique_identifier_prefix}-prompt-messages-subscription-dead-letter"
 }
 
 variable "ira_online_gpu_diffusers_flux_image_url" {
@@ -118,5 +123,29 @@ variable "ira_batch_cpu_load_generator_image_url" {
 variable "ira_batch_cpu_pubsub_subscriber_image_url" {
   default     = null
   description = "The URL for the CPU batch pubsub subscriber container image."
+  type        = string
+}
+
+variable "ira_batch_pubsub_prompt_messages_topic_name" {
+  default     = null
+  description = "The name of the Pub/Sub topic for prompt messages."
+  type        = string
+}
+
+variable "ira_batch_pubsub_prompt_messages_topic_dead_letter_name" {
+  default     = null
+  description = "The name of the dead letter topic for prompt messages."
+  type        = string
+}
+
+variable "ira_batch_pubsub_prompt_messages_subscription_name" {
+  default     = null
+  description = "The name of the Pub/Sub subscription for prompt messages."
+  type        = string
+}
+
+variable "ira_batch_pubsub_prompt_messages_subscription_dead_letter_name" {
+  default     = null
+  description = "The name of the dead letter subscription for prompt messages."
   type        = string
 }

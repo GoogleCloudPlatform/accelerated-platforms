@@ -58,5 +58,4 @@ patches:
   - path: patch-nodeselector.yaml
 
 resources:
-  - ../../base
   - job.yaml

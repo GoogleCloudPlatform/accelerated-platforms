@@ -26,4 +26,7 @@ source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_var
 
 "${MY_PATH}/../configure_deployment.sh"
 
-envsubst < "${MY_PATH}/base/templates/batch-pubsub-subscriber.tpl.env" | sponge "${MY_PATH}/base/batch-pubsub-subscriber.env"
+envsubst <"${MY_PATH}/base/templates/batch-pubsub-subscriber.tpl.env" | sponge "${MY_PATH}/base/batch-pubsub-subscriber.env"
+
+cd "${MY_PATH}/base"
+kustomize edit set nameprefix "${HF_MODEL_ID_HASH}-"

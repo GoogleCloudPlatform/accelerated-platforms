@@ -162,6 +162,7 @@ def process_single_message(received_msg):
 
         if result:
             print(f"✅ Success {msg_id}")
+            print(f"\n✅ Result:\n>> {result}\n{'-'*40}")
             return ack_id, True
         else:
             print(f"🛑 Failed {msg_id} -> DLQ")
@@ -179,7 +180,6 @@ def run_subscriber_sync():
     """
     Main Loop: Synchronous Pull + Parallel Processing
     """
-    # Note: validation is done in __main__ now
     subscription_path = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
     print(f"🚀 Starting Sync Pull on {subscription_path}")
 

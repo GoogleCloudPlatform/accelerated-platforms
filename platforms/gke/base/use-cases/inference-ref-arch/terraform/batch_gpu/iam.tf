@@ -31,7 +31,7 @@ resource "google_project_iam_member" "pubsub_subscriber_member_ira_batch_cpu_pub
   role    = "roles/pubsub.subscriber"
 }
 
-resource "google_project_iam_member" "pubsub_subscriber_member_ira_batch_cpu_pubsub_subscriber_ksa" {
+resource "google_project_iam_member" "pubsub_subscriber_member_ira_batch_cpu_pubsub_publisher_ksa" {
   project = data.google_project.cluster.project_id
   member  = local.ira_batch_cpu_pubsub_subscriber_ksa_member
   role    = "roles/pubsub.publisher"

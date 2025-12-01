@@ -15,7 +15,7 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: vllm
+  name: vllm-hpa
   namespace: replaced-by-kustomize
 spec:
   maxReplicas: 8

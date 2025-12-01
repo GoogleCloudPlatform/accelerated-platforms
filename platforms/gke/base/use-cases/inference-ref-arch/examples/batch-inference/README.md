@@ -246,9 +246,9 @@ This example is built on top of the
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} get deployment/batch-pubsub-subscriber | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} get deployment/${HF_MODEL_ID_HASH}-batch-pubsub-subscriber | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} logs deployment/batch-pubsub-subscriber --all-containers --tail 10"
+  kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} logs deployment/${HF_MODEL_ID_HASH}-batch-pubsub-subscriber --all-containers --tail 10"
   ```
 
   When the deployment is ready, you will see the following:

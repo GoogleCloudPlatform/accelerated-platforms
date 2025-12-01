@@ -99,6 +99,8 @@ def vllm_inference(prompt_text: str) -> str | None:
         return None
 
     for attempt in range(1, MAX_RETRIES + 1):
+        response = None
+
         try:
             response = requests.post(
                 VLLM_API_ENDPOINT, json=payload, headers=headers, timeout=60

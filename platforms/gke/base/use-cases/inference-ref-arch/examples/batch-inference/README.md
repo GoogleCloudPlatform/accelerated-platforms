@@ -14,16 +14,15 @@ This example is built on top of the
 
 - Get access to the models.
 
-  - For Llama-3.3-70B-Instruct:
+  - For Gemma:
 
-    - Accept the conditions to access its files and content on the Hugging Face
-      model page.
+    - Consented to the license on [Kaggle](https://www.kaggle.com/) using a
+      Hugging Face account.
+      - [**google/gemma**](https://www.kaggle.com/models/google/gemma).
+
+  - For Llama:
+    - Accept the terms of the license on the Hugging Face model page.
       - [**meta-llama/Llama-3.3-70B-Instruct**](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct)
-
-  - For Llama-3.2-3B-Instruct:
-
-    - Accept the conditions to access its files and content on the Hugging Face
-      model page.
       - [**meta-llama/Llama-3.2-3B-Instruct**](https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct)
 
 - Ensure your
@@ -47,6 +46,12 @@ This example is built on top of the
 ## Download the model to Cloud Storage
 
 - Choose the model.
+
+  - **Gemma 3 1B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-3-1b-it"
+    ```
 
   - **Llama-3.3-70B-Instruct**:
 
@@ -165,7 +170,14 @@ This example is built on top of the
 
     | Model                  | l4  | h100 | h200 |
     | ---------------------- | --- | ---- | ---- |
+    | gemma-3-1b-it          | ✅  | ❌   | ❌   |
     | llama-3.3-70b-instruct | ❌  | ✅   | ✅   |
+
+    - **NVIDIA Tesla L4 24GB**:
+
+      ```shell
+      export ACCELERATOR_TYPE="l4"
+      ```
 
     - **NVIDIA H100 80GB**:
 

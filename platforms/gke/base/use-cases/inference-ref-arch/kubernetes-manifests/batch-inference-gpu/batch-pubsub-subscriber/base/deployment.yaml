@@ -50,6 +50,21 @@ spec:
                 configMapKeyRef:
                   key: VLLM_API_ENDPOINT
                   name: batch-pubsub-subscriber
+            - name: DLQ_TOPIC_ID
+              valueFrom:
+                configMapKeyRef:
+                  key: DLQ_TOPIC_ID
+                  name: batch-pubsub-subscriber
+            - name: BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  key: BATCH_SIZE
+                  name: batch-pubsub-subscriber
+            - name: MAX_CONCURRENT_REQUESTS
+              valueFrom:
+                configMapKeyRef:
+                  key: MAX_CONCURRENT_REQUESTS
+                  name: batch-pubsub-subscriber
           image: replaced-by-kustomize
           imagePullPolicy: Always
           name: batch-pubsub-subscriber

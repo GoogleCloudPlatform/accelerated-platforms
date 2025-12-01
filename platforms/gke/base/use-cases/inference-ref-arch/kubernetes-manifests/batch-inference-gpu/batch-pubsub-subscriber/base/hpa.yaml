@@ -29,6 +29,9 @@ spec:
       external:
         metric:
           name: pubsub.googleapis.com|subscription|num_undelivered_messages
+          selector:
+            matchLabels:
+              resource.labels.subscription_id: replaced-by-kustomize
         target:
           type: AverageValue
           averageValue: "100"

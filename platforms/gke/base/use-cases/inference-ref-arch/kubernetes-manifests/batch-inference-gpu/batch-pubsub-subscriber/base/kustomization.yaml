@@ -23,6 +23,15 @@ configMapGenerator:
 
 replacements:
   - source:
+      fieldPath: data.PUBSUB_SUBSCRIPTION_ID
+      kind: ConfigMap
+      name: batch-pubsub-subscriber
+    targets:
+      - fieldPaths:
+          - spec.metrics.[type=External].external.metric.selector.matchLabels.[resource.labels.subscription_id]
+        select:
+          kind: HorizontalPodAutoscaler
+  - source:
       fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
       name: batch-pubsub-subscriber

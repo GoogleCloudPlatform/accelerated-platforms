@@ -31,9 +31,14 @@ resource "google_project_iam_member" "pubsub_subscriber_member_ira_batch_cpu_pub
   role    = "roles/pubsub.subscriber"
 }
 
+resource "google_project_iam_member" "pubsub_subscriber_member_ira_batch_cpu_pubsub_subscriber_ksa" {
+  project = data.google_project.cluster.project_id
+  member  = local.ira_batch_cpu_pubsub_subscriber_ksa_member
+  role    = "roles/pubsub.publisher"
+}
+
 resource "google_project_iam_member" "load_generator_member_ira_batch_cpu_load_generator_ksa" {
   project = data.google_project.cluster.project_id
   member  = local.ira_batch_cpu_load_generator_ksa_member
   role    = "roles/pubsub.publisher"
-
 }

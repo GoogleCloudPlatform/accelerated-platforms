@@ -22,7 +22,7 @@ MY_PATH="$(
   pwd -P
 )"
 
-RANDOM_HASH=$(openssl rand -hex 8)
+RANDOM_HASH=$(openssl rand -hex 4)
 
 source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 

@@ -26,6 +26,7 @@ nameSuffix: -h200-llama-3-3-70b-instruct
 patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
+  - patch: patch-hpa.yaml
 
 replacements:
   - source:

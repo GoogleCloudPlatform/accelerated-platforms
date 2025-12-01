@@ -14,135 +14,230 @@
 
 import json
 import os
-from concurrent.futures import TimeoutError
+import random
+import sys
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
+from google.api_core import retry
+from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from google.cloud import pubsub_v1
 
-# --- Configuration ---
+# -------------------------------------------------------------------------
+# Configuration
+# -------------------------------------------------------------------------
 PROJECT_ID = os.getenv("PROJECT_ID")
-SUBSCRIPTION_ID = os.getenv("PUBSUB_SUBSCRIPTION_ID", "prompt-messages-subscription")
+SUBSCRIPTION_ID = os.getenv("PUBSUB_SUBSCRIPTION_ID")
+DLQ_TOPIC_ID = os.getenv("DLQ_TOPIC_ID")
 VLLM_API_ENDPOINT = os.getenv(
     "VLLM_API_ENDPOINT", "http://localhost:8000/v1/chat/completions"
 )
-VLLM_MODEL_NAME = os.getenv("VLLM_MODEL_NAME")
+
+# Batch settings
+BATCH_SIZE = int(os.getenv("BATCH_SIZE", "10"))
+MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "10"))
+
+# Retry settings
+MAX_RETRIES = 5
+BASE_DELAY = 1.0
+MAX_DELAY = 30.0
+
+# Initialize Pub/Sub Clients
+subscriber = pubsub_v1.SubscriberClient()
+publisher = pubsub_v1.PublisherClient()
+
+
+def validate_config():
+    """
+    Validates that all necessary environment variables are set.
+    Exits the application if critical variables are missing.
+    """
+    print("\n🔍 Validating Configuration...")
+
+    missing_vars = []
+
+    # 1. Check Critical Variables (Must not be None or Empty)
+    if not PROJECT_ID:
+        missing_vars.append("PROJECT_ID")
+    if not SUBSCRIPTION_ID:
+        missing_vars.append("PUBSUB_SUBSCRIPTION_ID")
+    if not DLQ_TOPIC_ID:
+        missing_vars.append("DLQ_TOPIC_ID")
+    if not VLLM_API_ENDPOINT:
+        missing_vars.append("VLLM_API_ENDPOINT")
+
+    # 2. Hard Fail if missing
+    if missing_vars:
+        print(f"❌ FATAL ERROR: The following environment variables are missing:")
+        for var in missing_vars:
+            print(f"   - {var}")
+        print("🛑 Exiting application.")
+        sys.exit(1)
+
+    # 3. Print Summary if successful
+    print("✅ Configuration OK:")
+    print(f"   - Project ID:         {PROJECT_ID}")
+    print(f"   - Subscription:       {SUBSCRIPTION_ID}")
+    print(f"   - DLQ Topic:          {DLQ_TOPIC_ID}")
+    print(f"   - vLLM Endpoint:      {VLLM_API_ENDPOINT}")
+    print(f"   - Batch Size:         {BATCH_SIZE}")
+    print(f"   - Concurrent Workers: {MAX_CONCURRENT_REQUESTS}")
+    print("--------------------------------------------------\n")
 
 
 def vllm_inference(prompt_text: str) -> str | None:
     """
-    Sends the prompt to the vLLM server and returns the generated text.
-
-    Args:
-        prompt_text: The text prompt received from Pub/Sub.
-
-    Returns:
-        The generated text from the LLM, or None on failure.
+    Sends the prompt to the vLLM server with Exponential Backoff Retry.
     """
-
-    # Standard header for the OpenAI-compatible API exposed by vLLM
     headers = {"Content-Type": "application/json"}
 
-    print(f"📡 Sending request to vLLM server: {VLLM_API_ENDPOINT}")
-
     try:
-        response = requests.post(
-            VLLM_API_ENDPOINT, json=json.loads(prompt_text), headers=headers, timeout=30
-        )
-        # Raise an exception for bad status codes (4xx or 5xx)
-        response.raise_for_status()
-
-        # Parse the JSON response
-        data = response.json()
-
-        # Extract the completion text
-        completion_text = data["choices"][0]["message"]["content"].strip()
-
-        print(f"✅ LLM Response (Snippet): {completion_text[:50]}...")
-        return completion_text
-
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error calling vLLM server: {e}")
-        # Return None to signal failure for non-acknowledgment in the callback
+        payload = json.loads(prompt_text)
+    except json.JSONDecodeError:
+        print(f"❌ JSON Error: Prompt invalid. Mark as failed.")
         return None
 
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            response = requests.post(
+                VLLM_API_ENDPOINT, json=payload, headers=headers, timeout=60
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"].strip()
 
-def callback(message: pubsub_v1.subscriber.message.Message):
+        except requests.exceptions.RequestException as e:
+            if (
+                response is not None
+                and 400 <= response.status_code < 500
+                and response.status_code != 429
+            ):
+                print(f"❌ Client Error ({response.status_code}). No retry.")
+                return None
+
+            if attempt == MAX_RETRIES:
+                print(f"❌ Max vLLM retries reached.")
+                return None
+
+            delay = min(MAX_DELAY, BASE_DELAY * (2 ** (attempt - 1)))
+            time.sleep(delay + random.uniform(0, 1))
+
+    return None
+
+
+def send_to_dlq(received_msg, error_reason="Max retries exceeded"):
     """
-    This function is executed every time a new message is pulled from Pub/Sub.
+    Publishes the failed message to the Dead Letter Topic manually.
     """
     try:
-        # Decode the message data from bytes to a UTF-8 string (the prompt)
-        prompt_data = message.data.decode("utf-8")
-        print(f"\n--- New Message ---")
-        print(f"📥 Received Pub/Sub message ID: {message.message_id}")
-        print(f"    Prompt Data: {prompt_data}")
+        pubsub_msg = received_msg.message
+        topic_path = publisher.topic_path(PROJECT_ID, DLQ_TOPIC_ID)
 
-        # 1. Call the vLLM server for inference
-        llm_response = vllm_inference(prompt_data)
+        future = publisher.publish(
+            topic_path,
+            pubsub_msg.data,
+            original_message_id=pubsub_msg.message_id,
+            failure_reason=error_reason,
+        )
+        future.result()
+        print(f"💀 Sent {pubsub_msg.message_id} to DLQ.")
+        return True
+    except Exception as e:
+        print(f"CRITICAL: DLQ Publish failed: {e}")
+        return False
 
-        # 2. Acknowledge the message ONLY if the vLLM call was successful
-        if llm_response:
-            message.ack()
-            print(
-                f"✨ Message ID {message.message_id} successfully processed and acknowledged."
-            )
+
+def process_single_message(received_msg):
+    """
+    Processes a single ReceivedMessage wrapper.
+    """
+    ack_id = received_msg.ack_id
+    pubsub_msg = received_msg.message
+    msg_id = pubsub_msg.message_id
+
+    try:
+        prompt_data = pubsub_msg.data.decode("utf-8")
+        result = vllm_inference(prompt_data)
+
+        if result:
+            print(f"✅ Success {msg_id}")
+            return ack_id, True
         else:
-            # If the vLLM call failed (e.g., connection error, 500 status),
-            # we do NOT acknowledge the message. Pub/Sub will redeliver it
-            # after the acknowledgment deadline expires.
-            print(
-                f"⚠️ LLM processing failed. Message ID {message.message_id} not acknowledged, will be redelivered."
-            )
+            print(f"🛑 Failed {msg_id} -> DLQ")
+            if send_to_dlq(received_msg):
+                return ack_id, True
+            return ack_id, False
 
     except Exception as e:
-        print(f"An unexpected error occurred during message processing: {e}")
-        # The message will eventually be redelivered by Pub/Sub
+        print(f"    Error processing {msg_id}: {e}")
+        send_to_dlq(received_msg, error_reason=str(e))
+        return ack_id, True
 
 
-def run_subscriber():
+def run_subscriber_sync():
     """
-    Initializes and runs the streaming Pub/Sub subscriber client.
+    Main Loop: Synchronous Pull + Parallel Processing
     """
-    if (
-        PROJECT_ID == "your-gcp-project-id"
-        or SUBSCRIPTION_ID == "your-pubsub-subscription-id"
-    ):
-        print("FATAL: Please update PROJECT_ID and SUBSCRIPTION_ID placeholders.")
-        return
-
-    # Create a new subscriber client
-    subscriber = pubsub_v1.SubscriberClient()
-    # Format the fully qualified subscription path
+    # Note: validation is done in __main__ now
     subscription_path = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
+    print(f"🚀 Starting Sync Pull on {subscription_path}")
 
-    print(f"🚀 Starting listener on {subscription_path}...")
+    with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_REQUESTS) as executor:
+        while True:
+            try:
+                # 1. Pull Batch
+                response = subscriber.pull(
+                    request={
+                        "subscription": subscription_path,
+                        "max_messages": BATCH_SIZE,
+                    },
+                    timeout=30.0,
+                    retry=retry.Retry(deadline=60),
+                )
 
-    # Start the streaming pull: this method blocks the main thread with a Future
-    # that manages the background thread(s) for pulling messages.
-    streaming_pull_future = subscriber.subscribe(subscription_path, callback=callback)
+                if not response.received_messages:
+                    continue
 
-    # Keep the main thread alive to allow the background thread(s) to run
-    try:
-        # The .result() method will block indefinitely unless an exception occurs
-        streaming_pull_future.result()
-    except TimeoutError:
-        # Graceful shutdown on timeout (optional, but good practice)
-        streaming_pull_future.cancel()
-        streaming_pull_future.result()
-    except KeyboardInterrupt:
-        # Handle Ctrl+C
-        print("\n🛑 Received interrupt, shutting down subscriber...")
-        streaming_pull_future.cancel()
-        streaming_pull_future.result()
-    except Exception as e:
-        print(f"\nAn unhandled exception occurred in the subscriber loop: {e}")
-        streaming_pull_future.cancel()
+                print(f"\n📦 Processing batch of {len(response.received_messages)}...")
 
-    finally:
-        # Close the client connection cleanly
-        subscriber.close()
-        print("Subscriber client closed.")
+                # 2. Process in Parallel
+                future_to_ack_id = {
+                    executor.submit(process_single_message, msg): msg.ack_id
+                    for msg in response.received_messages
+                }
+
+                # 3. Collect Results
+                ack_ids_to_confirm = []
+                for future in as_completed(future_to_ack_id):
+                    ack_id, should_ack = future.result()
+                    if should_ack:
+                        ack_ids_to_confirm.append(ack_id)
+
+                # 4. Batch Acknowledge
+                if ack_ids_to_confirm:
+                    subscriber.acknowledge(
+                        request={
+                            "subscription": subscription_path,
+                            "ack_ids": ack_ids_to_confirm,
+                        }
+                    )
+
+            except (DeadlineExceeded, ServiceUnavailable):
+                continue
+
+            except Exception as e:
+                print(f"⚠️ Unexpected error in main loop: {e}")
+                time.sleep(5)
 
 
 if __name__ == "__main__":
-    run_subscriber()
+    # Perform strict check before anything starts
+    validate_config()
+
+    # Run application
+    try:
+        run_subscriber_sync()
+    except KeyboardInterrupt:
+        print("\n🛑 Application stopped by user.")
+        sys.exit(0)

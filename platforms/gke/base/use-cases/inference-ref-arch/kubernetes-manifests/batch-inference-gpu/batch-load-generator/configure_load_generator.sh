@@ -22,8 +22,13 @@ MY_PATH="$(
   pwd -P
 )"
 
+RANDOM_HASH=$(openssl rand -hex 8)
+
 source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
 "${MY_PATH}/../configure_deployment.sh"
 
-envsubst < "${MY_PATH}/base/templates/batch-load-generator.tpl.env" | sponge "${MY_PATH}/base/batch-load-generator.env"
+envsubst <"${MY_PATH}/base/templates/batch-load-generator.tpl.env" | sponge "${MY_PATH}/base/batch-load-generator.env"
+
+cd "${MY_PATH}/base"
+kustomize edit set nameprefix "${RANDOM_HASH}-"

@@ -35,6 +35,10 @@
       "path": ".github/workflows/dictionary/kubeflow.txt"
     },
     {
+      "name": "kuberay",
+      "path": ".github/workflows/dictionary/kuberay.txt"
+    },
+    {
       "name": "kubernetes",
       "path": ".github/workflows/dictionary/kubernetes.txt"
     },
@@ -92,6 +96,7 @@
     "google-cloud",
     "huggingface",
     "kubeflow",
+    "kuberay",
     "kubernetes",
     "kueue",
     "linux",

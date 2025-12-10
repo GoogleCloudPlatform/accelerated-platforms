@@ -60,7 +60,6 @@ class Gemini25FlashImage:
                         "default": "A vivid landscape painting of a futuristic city",
                     },
                 ),
-                "image1": ("IMAGE",),
                 "aspect_ratio": (
                     [
                         "1:1",
@@ -87,6 +86,7 @@ class Gemini25FlashImage:
                 "top_k": ("INT", {"default": 32, "min": 1, "max": 64}),
             },
             "optional": {
+                "image1": ("IMAGE",),
                 "image2": ("IMAGE",),
                 "image3": ("IMAGE",),
                 # Safety Settings
@@ -145,12 +145,12 @@ class Gemini25FlashImage:
         temperature: float,
         top_p: float,
         top_k: int,
-        image1: torch.Tensor,
         hate_speech_threshold: str,
         harassment_threshold: str,
         sexually_explicit_threshold: str,
         dangerous_content_threshold: str,
         system_instruction: str,
+        image1: Optional[torch.Tensor] = None,
         image2: Optional[torch.Tensor] = None,
         image3: Optional[torch.Tensor] = None,
         gcp_project_id: Optional[str] = None,
@@ -175,7 +175,7 @@ class Gemini25FlashImage:
               content.
             dangerous_content_threshold: Safety threshold for dangerous content.
             system_instruction: System-level instructions for the model.
-            image1: The primary input image tensor for image editing tasks.
+            image1: An optional primary input image tensor for image editing tasks.
             image2: An optional second input image tensor. Defaults to None.
             image3: An optional third input image tensor. Defaults to None.
             gcp_project_id: The GCP project ID.

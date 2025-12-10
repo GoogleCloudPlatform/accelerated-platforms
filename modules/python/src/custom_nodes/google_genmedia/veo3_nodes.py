@@ -522,13 +522,6 @@ class Veo3ReferenceToVideo:
                     [model.name for model in Veo3Model],
                     {"default": Veo3Model.VEO_3_1_PREVIEW.name},
                 ),
-                "bucket_name": (
-                    "STRING",
-                    {
-                        "default": "",
-                        "tooltip": "GCS bucket name to temporarily store reference images.",
-                    },
-                ),
                 "image1": ("IMAGE",),
                 "image_format": (
                     ["PNG", "JPEG"],
@@ -591,7 +584,6 @@ class Veo3ReferenceToVideo:
     def generate_from_references(
         self,
         model: str,
-        bucket_name: str,
         image1: torch.Tensor,
         image_format: str,
         prompt: str,
@@ -622,7 +614,6 @@ class Veo3ReferenceToVideo:
             video_paths = api.generate_video_from_references(
                 model=model,
                 prompt=prompt,
-                bucket_name=bucket_name,
                 image1=image1,
                 image2=image2,
                 image3=image3,

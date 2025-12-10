@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of veo2 custom node
 # Copyright 2025 Google LLC
 # (license header)
-
+import base64
 from typing import Optional
 
 from google.api_core.gapic_v1.client_info import ClientInfo
@@ -24,7 +23,7 @@ from google.cloud import aiplatform
 from . import utils
 from .base import VertexAIClient
 from .constants import LYRIA2_MODEL, LYRIA2_USER_AGENT
-from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .custom_exceptions import APIExecutionError, ConfigurationError
 from .logger import get_node_logger
 from .retry import api_error_retry
 
@@ -89,19 +88,46 @@ class Lyria2API(VertexAIClient):
             APIInputError: If input parameters are invalid.
             APIExecutionError: If music generation fails due to API or unexpected issues.
         """
+        waveforms = []
+        sample_rate = None
         instance = {"prompt": str(prompt)}
         if negative_prompt:
             instance["negative_prompt"] = str(negative_prompt)
         if seed > 0:
             instance["seed"] = seed
             instance["sample_count"] = 1
-            logger.info("Seed is greater than 0, setting sample_count to 1.")
+            logger.info(
+                "Lyria Node: Seed is greater than 0, setting sample_count to 1."
+            )
         else:
             instance["sample_count"] = sample_count
-        logger.info(f"Instance: {instance}")
+        logger.info(f"Lyria Node: Instance: {instance}")
         response = self.client.predict(
             endpoint=self.model_endpoint, instances=[instance]
         )
-        logger.info(f"Response received from model: {response.model_display_name}")
+        logger.info(
+            f"Lyria Node: Response received from model: {response.model_display_name}"
+        )
+        for n, prediction in enumerate(response.predictions):
+            prediction_dict = dict(prediction)
+            audio_bytes = base64.b64decode(prediction_dict["bytesBase64Encoded"])
 
-        return utils.process_audio_response(response)
+            try:
+                waveform, current_sample_rate = utils.load_audio_from_bytes(audio_bytes)
+
+                if sample_rate is None:
+                    sample_rate = current_sample_rate
+                elif sample_rate != current_sample_rate:
+                    logger.warning(
+                        f"Mismatch in sample rates at index {n}. Expected {sample_rate}, got {current_sample_rate}. "
+                        "Proceeding, but this might cause playback issues."
+                    )
+
+                waveforms.append(waveform)
+
+            except Exception as e:
+                raise APIExecutionError(
+                    f"An unexpected error occurred while processing audio sample {n}: {e}"
+                ) from e
+
+        return utils.process_audio_response(waveforms, sample_rate)

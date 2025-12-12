@@ -88,7 +88,7 @@ def setup_custom_package_logger():
 
 setup_custom_package_logger()
 
-from .gemini_flash_image_node import (
+from .gemini_pro_image_node import (
     NODE_CLASS_MAPPINGS as GEMINI_PRO_IMAGE_NODE_CLASS_MAPPINGS,
 )
 from .gemini_pro_image_node import (

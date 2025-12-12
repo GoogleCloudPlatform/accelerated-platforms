@@ -25,7 +25,7 @@ from .constants import (
     ThresholdOptions,
 )
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
-from .gemini_flash_image_api import GeminiFlashImageAPI
+from .gemini_pro_image_api import GeminiProImageAPI
 
 
 class Gemini3ProImage:

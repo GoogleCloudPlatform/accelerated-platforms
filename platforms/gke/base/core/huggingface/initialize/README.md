@@ -58,4 +58,4 @@
 ## Developers
 
 See the
-[Hugging Face initialize developer's guide](platforms/gke/base/core/huggingface/initialize/DEVELOPER.md)
+[Hugging Face initialize developer's guide](/platforms/gke/base/core/huggingface/initialize/DEVELOPER.md)

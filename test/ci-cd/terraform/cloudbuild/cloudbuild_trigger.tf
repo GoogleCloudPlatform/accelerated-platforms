@@ -1249,6 +1249,81 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_inference_ref_arch_c
 
 ###################################################################################################
 
+locals {
+  platforms_gke_base_uc_training_ref_arch_standard_scripts_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/use-cases/training-ref-arch/standard-scripts.yaml"
+  platforms_gke_base_uc_training_ref_arch_standard_scripts_ignore = [
+  ]
+  platforms_gke_base_uc_training_ref_arch_standard_scripts_include = [
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/huggingface/initialize/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/**",
+    "platforms/gke/base/use-cases/training_ref_arch/terraform/initialize/**",
+    "platforms/gke/base/use-cases/training_ref_arch/terraform/model_fine_tuning/**",
+    "platforms/gke/base/use-cases/training_ref_arch/terraform/deploy-standard.sh",
+    "platforms/gke/base/use-cases/training_ref_arch/terraform/teardown-standard.sh",
+    local.platforms_gke_base_uc_training_ref_arch_standard_scripts_cb_yaml,
+  ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_training_ref_arch_standard_scripts" {
+  filename        = local.platforms_gke_base_uc_training_ref_arch_standard_scripts_cb_yaml
+  ignored_files   = local.platforms_gke_base_uc_training_ref_arch_standard_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_training_ref_arch_standard_scripts_include
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-inference-ref-arch-standard-scripts"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _IAP_DOMAIN       = "accelerated-platforms.joonix.net"
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_uc_training_ref_arch_standard_scripts_push" {
+  filename        = local.platforms_gke_base_uc_training_ref_arch_standard_scripts_cb_yaml
+  ignored_files   = local.platforms_gke_base_uc_training_ref_arch_standard_scripts_ignore
+  included_files  = local.platforms_gke_base_uc_training_ref_arch_standard_scripts_include
+  location        = var.build_location
+  name            = "platforms-gke-base-uc-training-ref-arch-standard-scripts-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _IAP_DOMAIN       = "accelerated-platforms.joonix.net"
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+
+###################################################################################################
+
 resource "google_cloudbuild_trigger" "uc_mftp_data_prep_gemma_it_build" {
   filename = "test/ci-cd/cloudbuild/uc-mftp-data-prep-gemma-it-build.yaml"
   included_files = [

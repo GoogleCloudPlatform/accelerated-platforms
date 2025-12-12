@@ -1,0 +1,1 @@
+../../_shared_config/_cluster.auto.tfvars

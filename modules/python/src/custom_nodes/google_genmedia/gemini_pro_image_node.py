@@ -60,7 +60,6 @@ class Gemini3ProImage:
                         "default": "A vivid landscape painting of a futuristic city",
                     },
                 ),
-                "image1": ("IMAGE",),
                 "aspect_ratio": (
                     [
                         "1:1",
@@ -87,6 +86,7 @@ class Gemini3ProImage:
                 "top_k": ("INT", {"default": 32, "min": 1, "max": 64}),
             },
             "optional": {
+                "image1": ("IMAGE",),
                 "image2": ("IMAGE",),
                 "image3": ("IMAGE",),
                 # Safety Settings
@@ -145,12 +145,12 @@ class Gemini3ProImage:
         temperature: float,
         top_p: float,
         top_k: int,
-        image1: torch.Tensor,
         hate_speech_threshold: str,
         harassment_threshold: str,
         sexually_explicit_threshold: str,
         dangerous_content_threshold: str,
         system_instruction: str,
+        image1: Optional[torch.Tensor] = None,
         image2: Optional[torch.Tensor] = None,
         image3: Optional[torch.Tensor] = None,
         gcp_project_id: Optional[str] = None,

@@ -34,7 +34,7 @@ GEMINI_25_FLASH_IMAGE_ASPECT_RATIO = [
 ]
 GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN = 32768
 GEMINI_25_FLASH_IMAGE_USER_AGENT = (
-    "cloud-solutions/comfyui-gemini-3-pro-image-custom-node-v1"
+    "cloud-solutions/comfyui-gemini-25-flash-image-custom-node-v1"
 )
 GEMINI_3_PRO_IMAGE_ASPECT_RATIO = [
     "1:1",

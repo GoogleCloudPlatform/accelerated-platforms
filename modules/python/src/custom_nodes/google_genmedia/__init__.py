@@ -89,6 +89,12 @@ def setup_custom_package_logger():
 setup_custom_package_logger()
 
 from .gemini_flash_image_node import (
+    NODE_CLASS_MAPPINGS as GEMINI_PRO_IMAGE_NODE_CLASS_MAPPINGS,
+)
+from .gemini_pro_image_node import (
+    NODE_DISPLAY_NAME_MAPPINGS as GEMINI_PRO_IMAGE_NODE_DISPLAY_NAME_MAPPINGS,
+)
+from .gemini_flash_image_node import (
     NODE_CLASS_MAPPINGS as GEMINI_FLASH_25_IMAGE_NODE_CLASS_MAPPINGS,
 )
 from .gemini_flash_image_node import (
@@ -132,6 +138,7 @@ NODE_CLASS_MAPPINGS = {
     **HELPER_NODE_CLASS_MAPPINGS,
     **VTO_NODE_CLASS_MAPPINGS,
     **GEMINI_FLASH_25_IMAGE_NODE_CLASS_MAPPINGS,
+    **GEMINI_PRO_IMAGE_NODE_CLASS_MAPPINGS,
 }
 
 # Combine all node display name mappings
@@ -145,6 +152,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **HELPER_NODE_DISPLAY_NAME_MAPPINGS,
     **VTO_NODE_DISPLAY_NAME_MAPPINGS,
     **GEMINI_FLASH_25_IMAGE_NODE_DISPLAY_NAME_MAPPINGS,
+    **GEMINI_PRO_IMAGE_NODE_DISPLAY_NAME_MAPPINGS,
 }
 
 WEB_DIRECTORY = "./web"

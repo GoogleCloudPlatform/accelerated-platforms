@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of Gemini 2.5 Flash Image custom node
+# This is a preview version of Gemini 3 Pro Image custom node
 
 from io import BytesIO
 from typing import List, Optional
@@ -39,7 +39,7 @@ logger = get_node_logger(__name__)
 
 class GeminiProImageAPI(VertexAIClient):
     """
-    A class to interact with the Gemini Flash Image Preview model.
+    A class to interact with the Gemini Pro Image Preview model.
     """
 
     def __init__(self, project_id: Optional[str] = None, region: Optional[str] = None):

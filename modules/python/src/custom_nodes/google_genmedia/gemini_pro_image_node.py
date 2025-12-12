@@ -158,7 +158,7 @@ class Gemini3ProImage:
     ) -> Tuple[torch.Tensor,]:
         """Generates images using the Gemini Pro Image API and returns them.
 
-        This method interfaces with the GeminiFlashImageAPI to generate images
+        This method interfaces with the GeminiProImageAPI to generate images
         based on a prompt and other parameters. It then converts the generated
         PIL images into a PyTorch tensor suitable for use in ComfyUI.
 
@@ -189,7 +189,7 @@ class Gemini3ProImage:
             RuntimeError: If API configuration fails, or if image generation encounters an API error.
         """
         try:
-            gemini_flash_image_api = GeminiFlashImageAPI(
+            gemini_pro_image_api = GeminiProImageAPI(
                 project_id=gcp_project_id, region=gcp_region
             )
         except ConfigurationError as e:
@@ -202,7 +202,7 @@ class Gemini3ProImage:
             )
 
         try:
-            pil_images = gemini_flash_image_api.generate_image(
+            pil_images = gemini_pro_image_api.generate_image(
                 model=model,
                 aspect_ratio=aspect_ratio,
                 prompt=prompt,

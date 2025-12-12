@@ -76,7 +76,7 @@ VTO_MODEL = "virtual-try-on-preview-08-04"
 VTO_USER_AGENT = "cloud-solutions/virtual-try-on-custom-node-v1"
 
 
-class GeminiFlashImageModel(Enum):
+class GeminiImageModel(Enum):
     GEMINI_25_FLASH_IMAGE = "gemini-2.5-flash-image"
     GEMINI_3_PRO_IMAGE = "gemini-3-pro-image-preview"
 

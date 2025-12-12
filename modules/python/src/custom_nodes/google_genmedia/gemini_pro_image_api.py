@@ -28,7 +28,7 @@ from .base import VertexAIClient
 from .constants import (
     GEMINI_3_PRO_IMAGE_MAX_OUTPUT_TOKEN,
     GEMINI_3_PRO_IMAGE_USER_AGENT,
-    GeminiFlashImageModel,
+    GeminiProImageModel,
 )
 from .custom_exceptions import ConfigurationError
 from .logger import get_node_logger
@@ -37,13 +37,13 @@ from .retry import api_error_retry
 logger = get_node_logger(__name__)
 
 
-class GeminiFlashImageAPI(VertexAIClient):
+class GeminiProImageAPI(VertexAIClient):
     """
     A class to interact with the Gemini Flash Image Preview model.
     """
 
     def __init__(self, project_id: Optional[str] = None, region: Optional[str] = None):
-        """Initializes the Gemini 2.5 Flash Image Preview client.
+        """Initializes the Gemini 3 Pro Image Preview client.
         Args:
             project_id (Optional[str], optional): The GCP project ID. If not provided, it will be inferred from the environment. Defaults to None.
             region (Optional[str], optional): The GCP region. If not provided, it will be inferred from the environment. Defaults to None.
@@ -74,7 +74,7 @@ class GeminiFlashImageAPI(VertexAIClient):
         image2: Optional[torch.Tensor] = None,
         image3: Optional[torch.Tensor] = None,
     ) -> List[Image.Image]:
-        """Generates an image using the Gemini Flash Image model.
+        """Generates an image using the Gemini Pro Image model.
 
         Args:
             model: The name of the Gemini model to use. default: gemini-2.5-flash-image-preview
@@ -100,7 +100,7 @@ class GeminiFlashImageAPI(VertexAIClient):
             APIInputError: If input parameters are invalid.
             APIExecutionError: If the API call fails due to quota, permissions, or server issues.
         """
-        model = GeminiFlashImageModel[model]
+        model = GeminiProImageModel[model]
 
         generated_pil_images: List[Image.Image] = []
 

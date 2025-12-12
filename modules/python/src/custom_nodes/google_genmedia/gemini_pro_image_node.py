@@ -21,7 +21,7 @@ import torch
 
 from .constants import (
     GEMINI_3_PRO_IMAGE_ASPECT_RATIO,
-    GeminiFlashImageModel,
+    GeminiProImageModel,
     ThresholdOptions,
 )
 from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
@@ -50,8 +50,8 @@ class Gemini3ProImage:
         return {
             "required": {
                 "model": (
-                    [model.name for model in GeminiFlashImageModel],
-                    {"default": GeminiFlashImageModel.GEMINI_3_PRO_IMAGE.name},
+                    [model.name for model in GeminiProImageModel],
+                    {"default": GeminiProImageModel.GEMINI_3_PRO_IMAGE.name},
                 ),
                 "prompt": (
                     "STRING",

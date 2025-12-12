@@ -76,15 +76,18 @@ VTO_MODEL = "virtual-try-on-preview-08-04"
 VTO_USER_AGENT = "cloud-solutions/virtual-try-on-custom-node-v1"
 
 
-class GeminiImageModel(Enum):
+class GeminiFlashImageModel(Enum):
     GEMINI_25_FLASH_IMAGE = "gemini-2.5-flash-image"
-    GEMINI_3_PRO_IMAGE = "gemini-3-pro-image-preview"
 
 
 class GeminiModel(Enum):
     GEMINI_PRO = "gemini-2.5-pro"
     GEMINI_FLASH = "gemini-2.5-flash"
     GEMINI_FLASH_LITE = "gemini-2.5-flash-lite-preview-06-17"
+
+
+class GeminiProImageModel(Enum):
+    GEMINI_3_PRO_IMAGE = "gemini-3-pro-image-preview"
 
 
 class Imagen4Model(str, Enum):

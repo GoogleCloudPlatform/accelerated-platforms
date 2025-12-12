@@ -77,7 +77,7 @@ class GeminiProImageAPI(VertexAIClient):
         """Generates an image using the Gemini Pro Image model.
 
         Args:
-            model: The name of the Gemini model to use. default: gemini-2.5-flash-image-preview
+            model: The name of the Gemini model to use. default: gemini-3-pro-image-preview
             aspect_ratio: The desired aspect ratio of the output image.
             prompt: The text prompt for image generation.
             temperature: Controls randomness in token generation.

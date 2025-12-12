@@ -135,7 +135,7 @@ class Gemini3ProImage:
     RETURN_NAMES = ("Generated Image",)
 
     FUNCTION = "generate_and_return_image"
-    CATEGORY = "Google AI/GeminiFlashImage"
+    CATEGORY = "Google AI/GeminiProImage"
 
     def generate_and_return_image(
         self,

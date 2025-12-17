@@ -18,7 +18,7 @@ ARG CRANE_VERSION="0.20.6"
 # When updating GCLOUD_VERSION, update DOCKER_VERSION and KUSTOMIZE_VERSION
 # to match the docker and kustomize versions that are installed in Cloud Shell.
 ARG DOCKER_VERSION="28.4.0"
-ARG GCLOUD_VERSION="541.0.0"
+ARG GCLOUD_VERSION="547.0.0"
 ARG KUSTOMIZE_VERSION="5.7.1"
 # When updating the Terraform version, ensure that you also updated the
 # required_version in Terraform modules and services across the repository.
@@ -41,7 +41,8 @@ RUN echo "Installing Alpine packages" && \
   go \
   jq \
   moreutils \
-  ncurses && \
+  ncurses \
+  openssl && \
   echo "Installing gcloud components" && \
   gcloud components install beta kubectl --quiet && \
   rm -rf $(find /google-cloud-sdk/ -regex ".*/__pycache__") && \

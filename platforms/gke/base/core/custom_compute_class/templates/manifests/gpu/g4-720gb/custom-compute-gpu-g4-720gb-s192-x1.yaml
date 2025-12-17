@@ -15,7 +15,7 @@
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
 metadata:
-  name: gpu-g4-360gb-s96-x1
+  name: gpu-g4-720gb-s192-x1
 spec:
   activeMigration:
     optimizeRulePriority: true
@@ -30,7 +30,7 @@ spec:
     #     count: 1
     #     driverVersion: latest
     #     type: nvidia-rtx-pro-6000
-    #   machineType: g4-standard-96
+    #   machineType: g4-standard-192
     #   maxPodsPerNode: 32
     #   reservations:
     #     affinity: Specific
@@ -45,7 +45,7 @@ spec:
         count: 1
         driverVersion: latest
         type: nvidia-rtx-pro-6000
-      machineType: g4-standard-96
+      machineType: g4-standard-192
       maxPodsPerNode: 32
       reservations:
         affinity: AnyBestEffort
@@ -56,7 +56,7 @@ spec:
         count: 1
         driverVersion: latest
         type: nvidia-rtx-pro-6000
-      machineType: g4-standard-96
+      machineType: g4-standard-192
       maxPodsPerNode: 32
       spot: false
     # Use spot
@@ -64,6 +64,6 @@ spec:
         count: 1
         driverVersion: latest
         type: nvidia-rtx-pro-6000
-      machineType: g4-standard-96
+      machineType: g4-standard-192
       maxPodsPerNode: 32
       spot: true

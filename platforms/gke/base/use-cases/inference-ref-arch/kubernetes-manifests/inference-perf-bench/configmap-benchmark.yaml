@@ -12,49 +12,64 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-load:
-  type: constant
-  stages:
-  - rate: 1
-    duration: 30
-api: 
-  type: completion 
-  streaming: true
-server:
-  type: vllm
-  model_name: /gcs/replaced-by-kustomize
-  base_url: http://$APP-LABEL.replaced-by-kustomize.svc.cluster.local:8000
-  ignore_eos: true
-tokenizer:
-  pretrained_model_name_or_path: replaced-by-kustomize
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inference-perf
+  namespace: replaced-by-kustomize
 data:
-  type: random
-  input_distribution:
-      min: 10             # min length of the synthetic prompts
-      max: 100            # max length of the synthetic prompts
-      mean: 50            # mean length of the synthetic prompts
-      std: 10             # standard deviation of the length of the synthetic prompts
-  output_distribution:
-      min: 10             # min length of the output to be generated
-      max: 100            # max length of the output to be generated
-      mean: 50            # mean length of the output to be generated
-      std: 10             # standard deviation of the length of the output to be generated
-metrics:
-  type: prometheus
-  prometheus:
-      scrape_interval: 15
-      google_managed: true         # Whether using Google Managed Prometheus
-      filters: [] 
-report:
-  request_lifecycle:
-    summary: true
-    per_stage: true
-    per_request: false
-  prometheus:
-    summary: true
-    per_stage: false
-storage:
-  google_cloud_storage:               # Optional GCS configuration
-    bucket_name: "replaced-by-kustomize"   # Required GCS bucket
-    report_file_prefix: null          # Optional filename prefix
+  config.yaml: |  
+    load:
+      type: constant
+      interval: 1.0
+      sweep:
+        type: linear
+        timeout: 250
+        num_stages: 7
+        stage_duration: 30
+      num_workers: 20
+      worker_max_concurrency: 15
+      worker_max_tcp_connections: 2500
+    api: 
+      type: completion
+      streaming: true
+    server:
+      type: vllm
+      model_name: /gcs/${MODEL_ID}
+      base_url: http://${APP-LABEL}.${INFERENCE_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
+      ignore_eos: true
+    tokenizer:
+      pretrained_model_name_or_path: ${MODEL_ID}
+    data:
+      type: synthetic
+      input_distribution:                                 # For synthetic/random types
+        min: 10                                           # Minimum prompt length (tokens)
+        max: 100                                          # Maximum prompt length
+        mean: 50                                          # Average length
+        std: 100                                           # Standard deviation
+        total_count: 7000                                  # Total prompts to generate. Choose a large number for sweep so that you don't run out of prompts as the QPS increases to saturation
+      output_distribution:                                # Same structure as input_distribution
+        min: 40
+        max: 400
+        mean: 200
+        std: 100
+        total_count: 7000
+    metrics:
+      type: prometheus
+      prometheus:
+          scrape_interval: 15
+          google_managed: true         # Whether using Google Managed Prometheus
+          filters: [] 
+    report:
+      request_lifecycle:
+        summary: true
+        per_stage: true
+        per_request: true
+      prometheus:
+        summary: true
+        per_stage: true
+    storage:
+      google_cloud_storage:               
+        bucket_name: "${MODEL_BUCKET_NAME}"   # Required GCS bucket
+        report_file_prefix: null          # Optional filename prefix
 

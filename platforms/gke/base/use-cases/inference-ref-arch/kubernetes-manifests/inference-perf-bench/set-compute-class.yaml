@@ -15,10 +15,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hf-model-to-gcs
+  name: inf-perf-benchmarking
   namespace: replaced-by-kustomize
 spec:
   template:
     spec:
       nodeSelector:
-        cloud.google.com/compute-class: model-download
+        cloud.google.com/compute-class: cpu-n4-s-8

@@ -2,6 +2,7 @@ admissionregistration
 apiextensions
 apiregistration
 apiservice
+automount
 clusterregistry
 clusterrole
 clusterrolebinding
@@ -57,3 +58,4 @@ tlsv
 tokenreviews
 tolerations
 validatingwebhookconfigurations
+yunikorn

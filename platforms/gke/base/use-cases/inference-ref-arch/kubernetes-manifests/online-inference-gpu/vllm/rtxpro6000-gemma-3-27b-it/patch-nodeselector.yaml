@@ -21,4 +21,4 @@ spec:
   template:
     spec:
       nodeSelector:
-        cloud.google.com/compute-class: gpu-g4-180gb-s48-x1
+        cloud.google.com/compute-class: gpu-rtxpro6000-96gb-s48-x1

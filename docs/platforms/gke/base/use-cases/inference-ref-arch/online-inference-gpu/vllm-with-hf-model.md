@@ -162,15 +162,15 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model                          | l4  | h100 | h200 | g4  |
-    | ------------------------------ | --- | ---- | ---- | --- |
-    | gemma-3-1b-it                  | ✅  | ❌   | ❌   |     |
-    | gemma-3-4b-it                  | ✅  | ❌   | ❌   |     |
-    | gemma-3-27b-it                 | ✅  | ✅   | ✅   |     |
-    | gpt-oss-20b                    | ✅  | ✅   | ✅   |     |
-    | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   |     |
-    | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   |     |
-    | qwen3-32b                      | ✅  | ✅   | ✅   | ✅  |
+    | Model                          | l4  | h100 | h200 | RTX Pro 6000 |
+    | ------------------------------ | --- | ---- | ---- | ------------ |
+    | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
+    | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
+    | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
+    | gpt-oss-20b                    | ✅  | ✅   | ✅   | ✅           |
+    | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | -            |
+    | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | -            |
+    | qwen3-32b                      | ✅  | ✅   | ✅   | ✅           |
 
     - **NVIDIA Tesla L4 24GB**:
 

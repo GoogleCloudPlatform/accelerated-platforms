@@ -24,12 +24,12 @@ output "comfyui_cloud_storage_model_bucket_name" {
   value = local.comfyui_cloud_storage_model_bucket_name
 }
 
-output "comfyui_cloudbuild_source_bucket_name" {
-  value = local.comfyui_cloudbuild_source_bucket_name
-}
-
 output "comfyui_cloudbuild_service_account_id" {
   value = local.comfyui_cloudbuild_service_account_id
+}
+
+output "comfyui_cloudbuild_source_bucket_name" {
+  value = local.comfyui_cloudbuild_source_bucket_name
 }
 
 output "comfyui_endpoints_hostname" {
@@ -84,16 +84,16 @@ output "ira_batch_gpu_vllm_image_url" {
   value = local.ira_batch_gpu_vllm_image_url
 }
 
-output "ira_batch_pubsub_prompt_messages_topic_name" {
-  value = local.ira_batch_pubsub_prompt_messages_topic_name
-}
-
 output "ira_batch_pubsub_prompt_messages_subscription_name" {
   value = local.ira_batch_pubsub_prompt_messages_subscription_name
 }
 
 output "ira_batch_pubsub_prompt_messages_topic_dead_letter_name" {
   value = local.ira_batch_pubsub_prompt_messages_topic_dead_letter_name
+}
+
+output "ira_batch_pubsub_prompt_messages_topic_name" {
+  value = local.ira_batch_pubsub_prompt_messages_topic_name
 }
 
 output "ira_online_gpu_diffusers_flux_image_url" {

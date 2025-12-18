@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import json
+import logging
+import logging.config
 import os
 import random
 import sys
@@ -24,9 +26,44 @@ from google.api_core import retry
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from google.cloud import pubsub_v1
 
-# -------------------------------------------------------------------------
-# Configuration
-# -------------------------------------------------------------------------
+# --- LOGGING CONFIGURATION ---
+ROOT_LEVEL = "INFO"
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": True,
+    "formatters": {
+        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "default": {
+            "level": "INFO",
+            "formatter": "standard",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",  # Default is stderr
+        },
+    },
+    "loggers": {
+        "": {  # root logger
+            "level": ROOT_LEVEL,  # "INFO",
+            "handlers": ["default"],
+            "propagate": False,
+        },
+        "uvicorn.error": {
+            "level": "DEBUG",
+            "handlers": ["default"],
+        },
+        "uvicorn.access": {
+            "level": "DEBUG",
+            "handlers": ["default"],
+        },
+    },
+}
+
+logging.config.dictConfig(LOGGING_CONFIG)
+
+LOG = logging.getLogger(__name__)
+
+# --- CONFIGURATION ---
 PROJECT_ID = os.getenv("PROJECT_ID")
 SUBSCRIPTION_ID = os.getenv("PUBSUB_SUBSCRIPTION_ID")
 DLQ_TOPIC_ID = os.getenv("DLQ_TOPIC_ID")
@@ -53,7 +90,7 @@ def validate_config():
     Validates that all necessary environment variables are set.
     Exits the application if critical variables are missing.
     """
-    print("\n🔍 Validating Configuration...")
+    LOG.info("\n🔍 Validating Configuration...")
 
     missing_vars = []
 
@@ -69,21 +106,23 @@ def validate_config():
 
     # 2. Hard Fail if missing
     if missing_vars:
-        print(f"❌ FATAL ERROR: The following environment variables are missing:")
+        LOG.error(f"❌ FATAL ERROR: The following environment variables are missing:")
         for var in missing_vars:
-            print(f"   - {var}")
-        print("🛑 Exiting application.")
-        sys.exit(1)
+            LOG.error(f"   - {var}")
+        LOG.error("🛑 Exiting application.")
+        raise ValueError(
+            f"Missing required environment variables: {', '.join(missing_vars)}"
+        )
 
     # 3. Print Summary if successful
-    print("✅ Configuration OK:")
-    print(f"   - Project ID:         {PROJECT_ID}")
-    print(f"   - Subscription:       {SUBSCRIPTION_ID}")
-    print(f"   - DLQ Topic:          {DLQ_TOPIC_ID}")
-    print(f"   - vLLM Endpoint:      {VLLM_API_ENDPOINT}")
-    print(f"   - Batch Size:         {BATCH_SIZE}")
-    print(f"   - Concurrent Workers: {MAX_CONCURRENT_REQUESTS}")
-    print("--------------------------------------------------\n")
+    LOG.info("✅ Configuration OK:")
+    LOG.info(f"   - Project ID:         {PROJECT_ID}")
+    LOG.info(f"   - Subscription:       {SUBSCRIPTION_ID}")
+    LOG.info(f"   - DLQ Topic:          {DLQ_TOPIC_ID}")
+    LOG.info(f"   - vLLM Endpoint:      {VLLM_API_ENDPOINT}")
+    LOG.info(f"   - Batch Size:         {BATCH_SIZE}")
+    LOG.info(f"   - Concurrent Workers: {MAX_CONCURRENT_REQUESTS}")
+    LOG.info("--------------------------------------------------\n")
 
 
 def vllm_inference(prompt_text: str) -> str | None:
@@ -95,7 +134,7 @@ def vllm_inference(prompt_text: str) -> str | None:
     try:
         payload = json.loads(prompt_text)
     except json.JSONDecodeError:
-        print(f"❌ JSON Error: Prompt invalid. Mark as failed.")
+        LOG.error(f"❌ JSON Error: Prompt invalid. Mark as failed.")
         return None
 
     for attempt in range(1, MAX_RETRIES + 1):
@@ -115,11 +154,11 @@ def vllm_inference(prompt_text: str) -> str | None:
                 and 400 <= response.status_code < 500
                 and response.status_code != 429
             ):
-                print(f"❌ Client Error ({response.status_code}). No retry.")
+                LOG.error(f"❌ Client Error ({response.status_code}). No retry.")
                 return None
 
             if attempt == MAX_RETRIES:
-                print(f"❌ Max vLLM retries reached.")
+                LOG.error(f"❌ Max vLLM retries reached.")
                 return None
 
             delay = min(MAX_DELAY, BASE_DELAY * (2 ** (attempt - 1)))
@@ -143,10 +182,10 @@ def send_to_dlq(received_msg, error_reason="Max retries exceeded"):
             failure_reason=error_reason,
         )
         future.result()
-        print(f"💀 Sent {pubsub_msg.message_id} to DLQ.")
+        LOG.info(f"💀 Sent {pubsub_msg.message_id} to DLQ.")
         return True
     except Exception as e:
-        print(f"CRITICAL: DLQ Publish failed: {e}")
+        LOG.error(f"CRITICAL: DLQ Publish failed: {e}")
         return False
 
 
@@ -163,17 +202,17 @@ def process_single_message(received_msg):
         result = vllm_inference(prompt_data)
 
         if result:
-            print(f"✅ Success {msg_id}")
-            print(f"\n✅ Result:\n>> {result}\n{'-'*40}")
+            LOG.info(f"✅ Success {msg_id}")
+            LOG.info(f"\n✅ Result:\n>> {result}\n{'-'*40}")
             return ack_id, True
         else:
-            print(f"🛑 Failed {msg_id} -> DLQ")
+            LOG.error(f"🛑 Failed {msg_id} -> DLQ")
             if send_to_dlq(received_msg):
                 return ack_id, True
             return ack_id, False
 
     except Exception as e:
-        print(f"    Error processing {msg_id}: {e}")
+        LOG.error(f"    Error processing {msg_id}: {e}")
         send_to_dlq(received_msg, error_reason=str(e))
         return ack_id, True
 
@@ -183,7 +222,7 @@ def run_subscriber_sync():
     Main Loop: Synchronous Pull + Parallel Processing
     """
     subscription_path = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
-    print(f"🚀 Starting Sync Pull on {subscription_path}")
+    LOG.info(f"🚀 Starting Sync Pull on {subscription_path}")
 
     with ThreadPoolExecutor(max_workers=MAX_CONCURRENT_REQUESTS) as executor:
         while True:
@@ -201,7 +240,9 @@ def run_subscriber_sync():
                 if not response.received_messages:
                     continue
 
-                print(f"\n📦 Processing batch of {len(response.received_messages)}...")
+                LOG.info(
+                    f"\n📦 Processing batch of {len(response.received_messages)}..."
+                )
 
                 # 2. Process in Parallel
                 future_to_ack_id = {
@@ -229,7 +270,7 @@ def run_subscriber_sync():
                 continue
 
             except Exception as e:
-                print(f"⚠️ Unexpected error in main loop: {e}")
+                LOG.error(f"⚠️ Unexpected error in main loop: {e}")
                 time.sleep(5)
 
 
@@ -241,5 +282,4 @@ if __name__ == "__main__":
     try:
         run_subscriber_sync()
     except KeyboardInterrupt:
-        print("\n🛑 Application stopped by user.")
-        sys.exit(0)
+        LOG.info("\n🛑 Application stopped by user.")

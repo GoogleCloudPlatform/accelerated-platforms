@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import json
+import logging
+import logging.config
 import os
 import random
 import sys
@@ -22,6 +24,43 @@ import time
 from google.api_core import exceptions as google_exceptions
 from google.cloud import pubsub_v1
 from google.cloud.pubsub_v1.types import BatchSettings, PublisherOptions
+
+# --- LOGGING CONFIGURATION ---
+ROOT_LEVEL = "INFO"
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": True,
+    "formatters": {
+        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "default": {
+            "level": "INFO",
+            "formatter": "standard",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",  # Default is stderr
+        },
+    },
+    "loggers": {
+        "": {  # root logger
+            "level": ROOT_LEVEL,  # "INFO",
+            "handlers": ["default"],
+            "propagate": False,
+        },
+        "uvicorn.error": {
+            "level": "DEBUG",
+            "handlers": ["default"],
+        },
+        "uvicorn.access": {
+            "level": "DEBUG",
+            "handlers": ["default"],
+        },
+    },
+}
+
+logging.config.dictConfig(LOGGING_CONFIG)
+
+LOG = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
 PROJECT_ID = os.getenv("PROJECT_ID")
@@ -107,7 +146,6 @@ class PublishStats:
         except Exception as e:
             with self.lock:
                 self.errors += 1
-            # Optional: print(f"Error: {e}")
 
 
 def verify_access(publisher, topic_path, generator):
@@ -115,24 +153,24 @@ def verify_access(publisher, topic_path, generator):
     Sends a single message and WAITS for the result to ensure
     credentials and topic existence are valid.
     """
-    print(f"Performing pre-flight check on: {topic_path}...")
+    LOG.info(f"Performing pre-flight check on: {topic_path}...")
     try:
         # Generate a dummy payload
         data = generator.generate_payload()
         # Publish and force a synchronous wait for the result
         future = publisher.publish(topic_path, data)
         future.result(timeout=10)  # Block until success or exception
-        print("✅ Access verified. Starting bulk generation.\n")
+        LOG.info("✅ Access verified. Starting bulk generation.\n")
         return True
     except google_exceptions.PermissionDenied:
-        print(f"❌ ERROR: Permission Denied on topic '{topic_path}'.")
-        print("   Ensure the Service Account has 'Pub/Sub Publisher' role.")
+        LOG.error(f"❌ ERROR: Permission Denied on topic '{topic_path}'.")
+        LOG.error("   Ensure the Service Account has 'Pub/Sub Publisher' role.")
         return False
     except google_exceptions.NotFound:
-        print(f"❌ ERROR: Topic '{topic_path}' does not exist.")
+        LOG.error(f"❌ ERROR: Topic '{topic_path}' does not exist.")
         return False
     except Exception as e:
-        print(f"❌ ERROR: Pre-flight check failed: {e}")
+        LOG.error(f"❌ ERROR: Pre-flight check failed: {e}")
         return False
 
 
@@ -169,10 +207,10 @@ def main():
     # 4. Verify permissions before looping
     # If this fails, we exit before generating 1M messages.
     if not verify_access(publisher, topic_path, generator):
-        sys.exit(1)
+        raise RuntimeError(f"Pre-flight verification failed for topic: {topic_path}")
 
-    print(f"Starting generation of {TOTAL_MESSAGES} JSON payloads...")
-    print(f"Target: {topic_path}")
+    LOG.info(f"Starting generation of {TOTAL_MESSAGES} JSON payloads...")
+    LOG.info(f"Target: {topic_path}")
 
     try:
         for i in range(TOTAL_MESSAGES):
@@ -192,25 +230,27 @@ def main():
             if stats.published % PRINT_EVERY == 0:
                 elapsed = time.time() - stats.start_time
                 rate = stats.published / elapsed
-                print(f"Sent to Buffer: {stats.published} | Avg Rate: {rate:.0f} msg/s")
+                LOG.info(
+                    f"Sent to Buffer: {stats.published} | Avg Rate: {rate:.0f} msg/s"
+                )
 
-        print("Generation complete. Waiting for pending batches to clear...")
+        LOG.info("Generation complete. Waiting for pending batches to clear...")
 
         # Wait for the 'success' + 'errors' count to match 'published'
         while stats.success + stats.errors < TOTAL_MESSAGES:
             time.sleep(1)
             remaining = TOTAL_MESSAGES - (stats.success + stats.errors)
-            print(f"Remaining in queue: {remaining}...")
+            LOG.info(f"Remaining in queue: {remaining}...")
 
     except KeyboardInterrupt:
-        print("\nStopped by user.")
+        LOG.info("\nStopped by user.")
 
     elapsed = time.time() - stats.start_time
-    print(f"\n--- Summary ---")
-    print(f"Total Generated: {stats.published}")
-    print(f"Acked (Success): {stats.success}")
-    print(f"Failed:          {stats.errors}")
-    print(f"Time Elapsed:    {elapsed:.2f}s")
+    LOG.info(f"\n--- Summary ---")
+    LOG.info(f"Total Generated: {stats.published}")
+    LOG.info(f"Acked (Success): {stats.success}")
+    LOG.info(f"Failed:          {stats.errors}")
+    LOG.info(f"Time Elapsed:    {elapsed:.2f}s")
 
 
 if __name__ == "__main__":

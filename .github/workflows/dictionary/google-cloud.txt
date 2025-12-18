@@ -42,6 +42,7 @@ filestore
 fusermount
 gcfs
 gclbs
+gcloudignore
 gcpbackendpolicy
 gcsfs
 gcsfuse

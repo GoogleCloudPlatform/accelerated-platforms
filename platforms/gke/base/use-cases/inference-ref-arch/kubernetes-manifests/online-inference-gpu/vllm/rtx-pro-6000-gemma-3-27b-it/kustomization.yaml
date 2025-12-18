@@ -21,7 +21,7 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -rtxpro6000-gpt-oss-20b
+nameSuffix: -rtx-pro-6000-gemma-3-27b-it
 
 patches:
   - path: patch-nodeselector.yaml

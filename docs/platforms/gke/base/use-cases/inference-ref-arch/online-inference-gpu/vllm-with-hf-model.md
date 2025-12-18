@@ -193,7 +193,7 @@ This example is built on top of the
     - **NVIDIA RTX 6000 96GB**:
 
       ```shell
-      export ACCELERATOR_TYPE="rtxpro6000"
+      export ACCELERATOR_TYPE="rtx-pro-6000"
       ```
 
     Ensure that you have enough quota in your project to provision the selected

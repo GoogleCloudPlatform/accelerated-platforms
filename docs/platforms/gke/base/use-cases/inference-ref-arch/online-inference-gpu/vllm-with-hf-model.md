@@ -190,10 +190,10 @@ This example is built on top of the
       export ACCELERATOR_TYPE="h200"
       ```
 
-    - **NVIDIA RTX 6000 180GB**:
+    - **NVIDIA RTX 6000 96GB**:
 
       ```shell
-      export ACCELERATOR_TYPE="g4"
+      export ACCELERATOR_TYPE="rtxpro6000"
       ```
 
     Ensure that you have enough quota in your project to provision the selected

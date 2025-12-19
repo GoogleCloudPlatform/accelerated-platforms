@@ -15,7 +15,7 @@
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
 metadata:
-  name: gpu-rtx-pro-6000-96gb-s384-x1
+  name: gpu-rtx-pro-6000-96gb-s384-x8
 spec:
   activeMigration:
     optimizeRulePriority: true

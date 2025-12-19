@@ -19,3 +19,8 @@ platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-infe
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/deployment.env
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/base/max-diffusion.env
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/base/vllm.env
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/benchmarking-local.tpl.env
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/benchmarking.env
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/secretproviderclass-huggingface-tokens.yaml
+
+

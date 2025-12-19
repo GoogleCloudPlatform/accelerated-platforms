@@ -25,37 +25,12 @@ data "local_file" "kubeconfig" {
   filename = local.kubeconfig_file
 }
 
-resource "local_file" "namespace_yaml" {
+resource "local_file" "serviceaccount_gpu_yaml" {
   content = templatefile(
-    "${path.module}/templates/kubernetes/namespace.tftpl.yaml",
-    {
-      name = local.ira_inference_perf_bench_kubernetes_namespace_name
-    }
-  )
-  filename = "${local.namespaces_directory}/namespace-${local.ira_inference_perf_bench_kubernetes_namespace_name}.yaml"
-}
-
-module "kubectl_apply_namespace" {
-  depends_on = [
-    local_file.namespace_yaml,
-  ]
-
-  source = "../../../../modules/kubectl_apply"
-
-  apply_server_side           = true
-  delete_timeout              = "60s"
-  error_on_delete_failure     = false
-  kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = "${local.namespaces_directory}/namespace-${local.ira_inference_perf_bench_kubernetes_namespace_name}.yaml"
-  manifest_includes_namespace = true
-}
-
-resource "local_file" "serviceaccount_yaml" {
-  content = templatefile(
-    "${path.module}/templates/kubernetes/serviceaccount.tftpl.yaml",
+    "${path.module}/templates/kubernetes/serviceaccount_gpu.tftpl.yaml",
     {
       name      = local.ira_inference_perf_bench_kubernetes_service_account_name
-      namespace = local.ira_inference_perf_bench_kubernetes_namespace_name
+      namespace = local.ira_online_gpu_kubernetes_namespace_name
     }
   )
   filename = "${local.ira_inference_perf_bench_manifests_directory}/serviceaccount-${local.ira_inference_perf_bench_kubernetes_service_account_name}.yaml"
@@ -63,7 +38,32 @@ resource "local_file" "serviceaccount_yaml" {
 
 module "kubectl_apply_service_account" {
   depends_on = [
-    local_file.serviceaccount_yaml,
+    local_file.serviceaccount_gpu_yaml,
+    module.kubectl_apply_namespace,
+  ]
+
+  source = "../../../../modules/kubectl_apply"
+
+  apply_server_side           = true
+  kubeconfig_file             = data.local_file.kubeconfig.filename
+  manifest                    = "${local.ira_inference_perf_bench_manifests_directory}/serviceaccount-${local.ira_inference_perf_bench_kubernetes_service_account_name}.yaml"
+  manifest_includes_namespace = true
+}
+
+resource "local_file" "serviceaccount_tpu_yaml" {
+  content = templatefile(
+    "${path.module}/templates/kubernetes/serviceaccount_tpu.tftpl.yaml",
+    {
+      name      = local.ira_inference_perf_bench_kubernetes_service_account_name
+      namespace = local.ira_online_tpu_kubernetes_namespace_name
+    }
+  )
+  filename = "${local.ira_inference_perf_bench_manifests_directory}/serviceaccount-${local.ira_inference_perf_bench_kubernetes_service_account_name}.yaml"
+}
+
+module "kubectl_apply_service_account" {
+  depends_on = [
+    local_file.serviceaccount_tpu_yaml,
     module.kubectl_apply_namespace,
   ]
 

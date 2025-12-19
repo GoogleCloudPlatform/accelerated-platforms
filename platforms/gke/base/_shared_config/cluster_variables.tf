@@ -52,6 +52,12 @@ locals {
   kubeconfig_file_name = "${local.cluster_project_id}-${local.cluster_name}"
 }
 
+variable "cluster_addons_ray_operator_enabled" {
+  default     = true
+  description = "Enable the Ray Operator add-on (https://cloud.google.com/kubernetes-engine/docs/add-on/ray-on-gke/concepts/overview)"
+  type        = bool
+}
+
 variable "cluster_auto_monitoring_config_scope" {
   default     = "ALL"
   description = "Whether or not to enable GKE Auto-Monitoring. Supported values include: ALL, NONE"

@@ -87,8 +87,8 @@ class Gemini25FlashImage:
             },
             "optional": {
                 "image1": ("IMAGE", {"tooltip": "Optional"}),
-                "image2": ("IMAGE",),
-                "image3": ("IMAGE",),
+                "image2": ("IMAGE", {"tooltip": "Optional"}),
+                "image3": ("IMAGE", {"tooltip": "Optional"}),
                 # Safety Settings
                 "harassment_threshold": (
                     [threshold_option.name for threshold_option in ThresholdOptions],

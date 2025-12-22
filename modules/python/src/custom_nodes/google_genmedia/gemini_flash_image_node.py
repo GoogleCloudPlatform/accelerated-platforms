@@ -86,7 +86,7 @@ class Gemini25FlashImage:
                 "top_k": ("INT", {"default": 32, "min": 1, "max": 64}),
             },
             "optional": {
-                "image1": ("IMAGE",),
+                "image1": ("IMAGE", {"tooltip": "Optional"}),
                 "image2": ("IMAGE",),
                 "image3": ("IMAGE",),
                 # Safety Settings

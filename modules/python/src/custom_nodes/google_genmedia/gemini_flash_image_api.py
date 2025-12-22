@@ -89,7 +89,7 @@ class GeminiFlashImageAPI(VertexAIClient):
               content.
             dangerous_content_threshold: Safety threshold for dangerous content.
             system_instruction: System-level instructions for the model.
-            image1: An optional fisrt input image tensor. Defaults to None.
+            image1: An optional first input image tensor. Defaults to None.
             image2: An optional second input image tensor. Defaults to None.
             image3: An optional third input image tensor. Defaults to None.
 

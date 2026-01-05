@@ -51,6 +51,10 @@
       "path": ".github/workflows/dictionary/linux.txt"
     },
     {
+      "name": "llmd",
+      "path": ".github/workflows/dictionary/llmd.txt"
+    },
+    {
       "name": "models",
       "path": ".github/workflows/dictionary/models.txt"
     },
@@ -100,6 +104,7 @@
     "kubernetes",
     "kueue",
     "linux",
+    "llmd",
     "nvidia",
     "python",
     "ray",

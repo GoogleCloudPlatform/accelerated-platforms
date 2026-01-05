@@ -48,4 +48,5 @@ declare -a hf_tpu_vllm_models=(
   "google/gemma-3-1b-it"
   "google/gemma-3-4b-it"
   "google/gemma-3-27b-it"
+  "qwen/qwen3-32b"
 )

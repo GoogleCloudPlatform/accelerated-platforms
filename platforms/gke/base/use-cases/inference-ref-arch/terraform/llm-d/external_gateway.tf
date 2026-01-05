@@ -1,0 +1,137 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#################################################################################
+# This file create resources required for external access of the frontend(gradio)
+# abstracting llm-d inference scheduler
+#################################################################################
+resource "google_project_service" "certificatemanager_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.cluster.project_id
+  service                    = "certificatemanager.googleapis.com"
+}
+
+resource "google_compute_managed_ssl_certificate" "external_gateway" {
+  depends_on = [
+    google_project_service.certificatemanager_googleapis_com,
+  ]
+
+  name    = local.llm-d_endpoints_ssl_certificate_name
+  project = data.google_project.cluster.project_id
+
+  managed {
+    domains = [
+      local.llm-d_endpoint,
+    ]
+  }
+}
+
+resource "google_compute_global_address" "external_gateway_https" {
+  name    = local.llm-d_gateway_address_name
+  project = data.google_project.cluster.project_id
+}
+
+resource "local_file" "gateway_external_https_yaml" {
+  depends_on = [
+    google_compute_global_address.external_gateway_https
+  ]
+
+  content = templatefile(
+    "${path.module}/templates/gateway/gateway-external-https.tftpl.yaml",
+    {
+      address_name         = google_compute_global_address.external_gateway_https.name
+      gateway_name         = var.llm-d_gateway_name_external
+      namespace            = var.llm-d_kubernetes_namespace
+      ssl_certificate_name = google_compute_managed_ssl_certificate.external_gateway.name
+    }
+  )
+  filename = "${local.external_gateway_manifests_directory}/gateway-external-https.yaml"
+}
+
+# ENDPOINTS
+resource "terraform_data" "llm-d_https_endpoint_undelete" {
+  provisioner "local-exec" {
+    command     = "gcloud endpoints services undelete ${local.llm-d_endpoint} --project=${data.google_project.cluster.project_id} --quiet >/dev/null 2>&1 || exit 0"
+    interpreter = ["bash", "-c"]
+    working_dir = path.module
+  }
+}
+
+resource "google_endpoints_service" "llm-d_https" {
+  depends_on = [
+    terraform_data.llm-d_https_endpoint_undelete,
+  ]
+
+  openapi_config = templatefile(
+    "${path.module}/templates/openapi/endpoint.tftpl.yaml",
+    {
+      endpoint   = local.llm-d_endpoint
+      ip_address = google_compute_global_address.external_gateway_https.address
+    }
+  )
+  project      = data.google_project.cluster.project_id
+  service_name = local.llm-d_endpoint
+}
+
+#HTTP route
+resource "local_file" "external_route" {
+  content = templatefile(
+    "${path.module}/templates/gateway/httproute-external.tftpl.yaml",
+    {
+      httproute_name       = var.llm-d_httproute_name_external
+      kubernetes_namespace = var.llm-d_kubernetes_namespace
+      gateway_name         = var.llm-d_gateway_name_external
+      hostname             = local.llm-d_endpoint
+      service_name         = local.gradio_service_name
+      service_port         = local.gradio_service_port
+    }
+  )
+  file_permission = "0644"
+  filename        = "${local.external_gateway_manifests_directory}/httproute-external.yaml"
+}
+
+# IAP Policy
+resource "local_file" "policy_iap_llm-d_yaml" {
+  depends_on = [
+    module.kubectl_apply_namespace,
+  ]
+
+  content = templatefile(
+    "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
+    {
+      policy_name  = "gradio-policy"
+      service_name = local.gradio_service_name
+      namespace    = var.llm-d_kubernetes_namespace
+    }
+  )
+  filename = "${local.external_gateway_manifests_directory}/policy-iap-llm-d.yaml"
+}
+
+# Apply external gateway manifests
+module "kubectl_apply_ext_gateway_res" {
+  depends_on = [
+    google_endpoints_service.llm-d_https,
+    local_file.gateway_external_https_yaml,
+    local_file.policy_iap_llm-d_yaml,
+    local_file.external_route,
+    module.kubectl_apply_namespace,
+  ]
+
+  source = "../../../../modules/kubectl_apply"
+
+  kubeconfig_file             = data.local_file.kubeconfig.filename
+  manifest                    = local.external_gateway_manifests_directory
+  manifest_includes_namespace = true
+}

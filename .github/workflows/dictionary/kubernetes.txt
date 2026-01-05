@@ -47,6 +47,7 @@ provisioningrequest
 provisioningrequests
 replicasets
 replicatedjob
+rilb
 rolebinding
 runtimeclasses
 seccomp

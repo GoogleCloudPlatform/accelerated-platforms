@@ -6,6 +6,7 @@ asgi
 asyncio
 classmethod
 configparser
+coveragerc
 dataframe
 dbapi
 dbcommands
@@ -86,6 +87,7 @@ tensorboard
 tensorboardx
 thejsonlogger
 tqdm
+unittests
 urllib
 urlretrieve
 uvicorn

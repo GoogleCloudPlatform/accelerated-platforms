@@ -86,6 +86,7 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
+      cluster_addons_ray_operator_enabled                  = var.cluster_addons_ray_operator_enabled
       cluster_auto_monitoring_config_scope                 = var.cluster_auto_monitoring_config_scope
       cluster_autopilot_enabled                            = var.cluster_autopilot_enabled
       cluster_binary_authorization_evaluation_mode         = var.cluster_binary_authorization_evaluation_mode
@@ -180,6 +181,26 @@ resource "local_file" "shared_config_initialize_auto_tfvars" {
   filename        = "${local.shared_config_folder}/initialize.auto.tfvars"
 }
 
+resource "local_file" "shared_config_kaggle_auto_tfvars" {
+  for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
+
+  content = provider::terraform::encode_tfvars(
+    {
+      kaggle_api_token_secret_manager_secret_name       = var.kaggle_api_token_secret_manager_secret_name
+      kaggle_bucket_location                            = var.kaggle_bucket_location
+      kaggle_bucket_name                                = var.kaggle_bucket_name
+      kaggle_bucket_project_id                          = var.kaggle_bucket_project_id
+      kaggle_downloader_kubernetes_namespace_name       = var.kaggle_downloader_kubernetes_namespace_name
+      kaggle_downloader_kubernetes_service_account_name = var.kaggle_downloader_kubernetes_service_account_name
+      kaggle_downloader_service_account_name            = var.kaggle_downloader_service_account_name
+      kaggle_downloader_service_account_project_id      = var.kaggle_downloader_service_account_project_id
+      kaggle_secret_manager_project_id                  = var.kaggle_secret_manager_project_id
+    }
+  )
+  file_permission = "0644"
+  filename        = "${local.shared_config_folder}/kaggle.auto.tfvars"
+}
+
 resource "local_file" "shared_config_networking_auto_tfvars" {
   for_each = toset(var.terraform_write_tfvars ? ["write"] : [])
 
@@ -255,6 +276,7 @@ resource "local_file" "shared_config_workloads_auto_tfvars" {
       inference_gateway_kubernetes_namespace = var.inference_gateway_kubernetes_namespace
       inference_gateway_version              = var.inference_gateway_version
       jobset_version                         = var.jobset_version
+      kuberay_version                        = var.kuberay_version
       kueue_version                          = var.kueue_version
       lws_version                            = var.lws_version
     }

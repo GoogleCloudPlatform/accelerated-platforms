@@ -35,6 +35,10 @@
       "path": ".github/workflows/dictionary/kubeflow.txt"
     },
     {
+      "name": "kuberay",
+      "path": ".github/workflows/dictionary/kuberay.txt"
+    },
+    {
       "name": "kubernetes",
       "path": ".github/workflows/dictionary/kubernetes.txt"
     },
@@ -92,6 +96,7 @@
     "google-cloud",
     "huggingface",
     "kubeflow",
+    "kuberay",
     "kubernetes",
     "kueue",
     "linux",
@@ -108,6 +113,7 @@
     "**/go.mod",
     "**/go.sum",
     "node_modules",
+    "platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/model-evaluation/examples/",
     "use-cases/inferencing/batch-inference/example_predictions.txt",
     "use-cases/model-fine-tuning-pipeline/model-eval/examples/"
   ]

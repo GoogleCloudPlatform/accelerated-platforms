@@ -54,6 +54,19 @@ resource "google_container_cluster" "cluster" {
     horizontal_pod_autoscaling {
       disabled = false
     }
+
+    dynamic "ray_operator_config" {
+      for_each = var.cluster_addons_ray_operator_enabled ? ["ray_operator_config"] : []
+      content {
+        enabled = true
+        ray_cluster_logging_config {
+          enabled = true
+        }
+        ray_cluster_monitoring_config {
+          enabled = true
+        }
+      }
+    }
   }
 
   cluster_autoscaling {
@@ -217,7 +230,7 @@ resource "terraform_data" "cluster_credentials" {
   provisioner "local-exec" {
     command     = <<EOT
 mkdir -p $(dirname ${self.input.kubeconfig_file})
-KUBECONFIG=${self.input.kubeconfig_file} ${self.input.cluster_credentials_command} 
+KUBECONFIG=${self.input.kubeconfig_file} ${self.input.cluster_credentials_command}
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module
@@ -242,7 +255,7 @@ resource "terraform_data" "modify_shared_config_cluster_auto_tfvars" {
 
   provisioner "local-exec" {
     command     = <<EOT
-sed -i -E 's/^(cluster_autopilot_enabled[[:blank:]]*=[[:blank:]]*).*/\1true/' ${self.input.filename} 
+sed -i -E 's/^(cluster_autopilot_enabled[[:blank:]]*=[[:blank:]]*).*/\1true/' ${self.input.filename}
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module

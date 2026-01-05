@@ -16,7 +16,7 @@
 
 echo_title "Deleting GCS data buckets content"
 
-print_and_execute_no_check "gcloud storage rm --recursive --continue-on-error gs://${MLP_DATA_BUCKET}/*"
+print_and_execute_no_check "gcloud storage rm --quiet --recursive --continue-on-error gs://${MLP_DATA_BUCKET}/*"
 
 echo_title "Cleaning up local repository changes"
 cd ${MLP_BASE_DIR} &&

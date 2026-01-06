@@ -9,9 +9,9 @@ Language Model (LLM) serving on GKE under simulated production load.
 
 Inference-perf is built from the same framework as GKE Inference Quickstart
 (GIQ), which provides validated, performance-tuned configurations, accelerating
-the deployment of your model server. Inference-perf allows you to independantly
-run your own benchmarks and simulate production traffic and ensure the load
-generation is external to the model server pods, it is recommended to deploy the
+the deployment of your model server. Inference-perf allows you to run your own
+benchmarks and simulate production traffic and ensure the load generation is
+external to the model server pods, it is recommended to deploy the
 inference-perf tool as a Kubernetes Job on your GKE cluster, preferably using
 the provided Helm chart or a Job manifest.
 

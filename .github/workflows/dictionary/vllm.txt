@@ -3,5 +3,6 @@ flashinfer
 perc
 percentunit
 toks
+TPOT
 ttft
 vllm

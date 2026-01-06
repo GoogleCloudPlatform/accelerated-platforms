@@ -19,8 +19,15 @@ platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-infe
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/base/deployment.env
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/base/max-diffusion.env
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/base/vllm.env
+platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/data-preparation/gemma-it/job.yaml
+platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/data-processing/ray/job.yaml
+platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/fine-tuning/pytorch/job-a100.yaml
+platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/fine-tuning/pytorch/job-h100.yaml
+platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/fine-tuning/pytorch/job-l4.yaml
+platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/fine-tuning/pytorch/secretproviderclass-huggingface-tokens.yaml
+platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/model-evaluation/deployment-a100.yaml
+platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/model-evaluation/deployment-l4.yaml
+platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/model-evaluation/job.yaml
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/benchmarking-local.tpl.env
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/benchmarking.env
 platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/secretproviderclass-huggingface-tokens.yaml
-
-

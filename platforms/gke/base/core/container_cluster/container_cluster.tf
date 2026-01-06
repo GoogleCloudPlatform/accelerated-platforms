@@ -57,9 +57,17 @@ resource "google_container_cluster" "cluster" {
       disabled = false
     }
 
-    # Disabled until b/431744489 is fixed.
-    parallelstore_csi_driver_config {
-      enabled = false
+    dynamic "ray_operator_config" {
+      for_each = var.cluster_addons_ray_operator_enabled ? ["ray_operator_config"] : []
+      content {
+        enabled = true
+        ray_cluster_logging_config {
+          enabled = true
+        }
+        ray_cluster_monitoring_config {
+          enabled = true
+        }
+      }
     }
   }
 
@@ -335,7 +343,7 @@ resource "terraform_data" "cluster_credentials" {
   provisioner "local-exec" {
     command     = <<EOT
 mkdir -p $(dirname ${self.input.kubeconfig_file})
-KUBECONFIG=${self.input.kubeconfig_file} ${self.input.cluster_credentials_command} 
+KUBECONFIG=${self.input.kubeconfig_file} ${self.input.cluster_credentials_command}
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module

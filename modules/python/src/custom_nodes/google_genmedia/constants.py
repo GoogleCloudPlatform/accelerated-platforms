@@ -36,6 +36,22 @@ GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN = 32768
 GEMINI_25_FLASH_IMAGE_USER_AGENT = (
     "cloud-solutions/comfyui-gemini-25-flash-image-custom-node-v1"
 )
+GEMINI_3_PRO_IMAGE_ASPECT_RATIO = [
+    "1:1",
+    "2:3",
+    "3:2",
+    "3:4",
+    "4:3",
+    "4:5",
+    "5:4",
+    "9:16",
+    "16:9",
+    "21:9",
+]
+GEMINI_3_PRO_IMAGE_MAX_OUTPUT_TOKEN = 32768
+GEMINI_3_PRO_IMAGE_USER_AGENT = (
+    "cloud-solutions/comfyui-gemini-3-pro-image-custom-node-v1"
+)
 IMAGE_MIME_TYPES = ["image/png", "image/jpeg"]
 IMAGEN3_MODEL_ID = "imagen-3.0-generate-002"
 IMAGEN3_USER_AGENT = "cloud-solutions/comfyui-imagen3-custom-node-v1"
@@ -68,6 +84,10 @@ class GeminiModel(Enum):
     GEMINI_PRO = "gemini-2.5-pro"
     GEMINI_FLASH = "gemini-2.5-flash"
     GEMINI_FLASH_LITE = "gemini-2.5-flash-lite-preview-06-17"
+
+
+class GeminiProImageModel(Enum):
+    GEMINI_3_PRO_IMAGE = "gemini-3-pro-image-preview"
 
 
 class Imagen4Model(str, Enum):

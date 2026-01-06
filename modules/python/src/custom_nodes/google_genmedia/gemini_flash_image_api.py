@@ -70,7 +70,7 @@ class GeminiFlashImageAPI(VertexAIClient):
         sexually_explicit_threshold: str,
         dangerous_content_threshold: str,
         system_instruction: str,
-        image1: torch.Tensor,
+        image1: Optional[torch.Tensor] = None,
         image2: Optional[torch.Tensor] = None,
         image3: Optional[torch.Tensor] = None,
     ) -> List[Image.Image]:
@@ -89,7 +89,7 @@ class GeminiFlashImageAPI(VertexAIClient):
               content.
             dangerous_content_threshold: Safety threshold for dangerous content.
             system_instruction: System-level instructions for the model.
-            image1: The primary input image tensor for image-to-image tasks.
+            image1: An optional first input image tensor. Defaults to None.
             image2: An optional second input image tensor. Defaults to None.
             image3: An optional third input image tensor. Defaults to None.
 

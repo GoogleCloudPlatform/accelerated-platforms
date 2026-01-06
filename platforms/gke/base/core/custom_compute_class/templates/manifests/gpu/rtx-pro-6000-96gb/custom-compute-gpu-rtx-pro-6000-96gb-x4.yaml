@@ -59,14 +59,14 @@ spec:
       machineType: g4-standard-192
       maxPodsPerNode: 32
       spot: false
-    
+
     # Use DWS FlexStart with 7 day limit
     - flexStart:
         enabled: true
         nodeRecycling:
           leadTimeSeconds: 3600
       gpu:
-        count: 1
+        count: 4
         driverVersion: latest
         type: nvidia-rtx-pro-6000
       machineType: g4-standard-192
@@ -79,13 +79,13 @@ spec:
         nodeRecycling:
           leadTimeSeconds: 3600
       gpu:
-        count: 1
+        count: 4
         driverVersion: latest
         type: nvidia-rtx-pro-6000
       machineType: g4-standard-192
       maxPodsPerNode: 32
       maxRunDurationSeconds: 86400
-    
+
     # Use spot
     - gpu:
         count: 4

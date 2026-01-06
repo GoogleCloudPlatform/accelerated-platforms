@@ -168,8 +168,8 @@ This example is built on top of the
     | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
     | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
     | gpt-oss-20b                    | ✅  | ✅   | ✅   | ✅           |
-    | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | -            |
-    | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | -            |
+    | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
+    | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
     | qwen3-32b                      | ✅  | ✅   | ✅   | ✅           |
 
     - **NVIDIA Tesla L4 24GB**:

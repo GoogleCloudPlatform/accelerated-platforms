@@ -20,7 +20,7 @@
 
 resource "google_compute_address" "internal_gateway_ip" {
   name         = "llm-inference-gw-ip"
-  subnetwork   = var.network_cluster_subnet_node_name
+  subnetwork   = local.network_cluster_subnet_node_name
   address_type = "INTERNAL"
   purpose      = "GCE_ENDPOINT"
   region       = var.cluster_region

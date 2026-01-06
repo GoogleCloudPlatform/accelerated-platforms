@@ -27,7 +27,7 @@ data "helm_template" "llm-d_gaie_stack" {
     # 2. GKE Specific Overrides (equivalent to the 'if eq gke' block)
     yamlencode({
       provider = {
-        name = local.infra_values.provider.name # from configuration_values.yaml
+        name = "gke"
       }
       inferencePool = {
         apiVersion = local.gaie_values.inferencePool.apiVersion # from configuration_values.yaml
@@ -57,7 +57,7 @@ resource "local_file" "llm-d_gaie_manifests" {
 
 module "kubectl_apply_llm-d_gaie_manifests" {
   source                      = "../../../../modules/kubectl_apply"
-  depends_on                  = [module.kubectl_apply_namespace, module.kubectl_apply_gateway_res]
+  depends_on                  = [module.kubectl_apply_namespace, module.kubectl_apply_int_gateway_res]
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local_file.llm-d_gaie_manifests.filename

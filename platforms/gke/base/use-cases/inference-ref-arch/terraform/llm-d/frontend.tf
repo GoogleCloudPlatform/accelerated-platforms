@@ -18,7 +18,7 @@ resource "local_file" "gradio" {
     "${path.module}/templates/frontend/gradio.tftpl.yaml",
     {
       namespace           = var.llm-d_kubernetes_namespace
-      internal_gateway_ip = "127.0.0.1"
+      internal_gateway_ip = google_compute_address.internal_gateway_ip.address
       model_id            = var.llm-d_model_name
     }
   )
@@ -41,4 +41,3 @@ module "kubectl_apply_gradio" {
   manifest                    = "${local.namespace_directory}/${var.llm-d_kubernetes_namespace}/frontend/gradio.yaml"
   manifest_includes_namespace = true
 }
-

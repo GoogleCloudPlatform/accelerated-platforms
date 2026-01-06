@@ -112,21 +112,6 @@ variable "llm-d_inferencepool_name" {
   type        = string
 }
 
-variable "llm-d_ms_repo" {
-  description = "Helm repo for llm-d model server."
-  type        = string
-}
-
-variable "llm-d_ms_chart" {
-  description = "Helm chart for llm-d model server."
-  type        = string
-}
-
-variable "llm-d_ms_chart_version" {
-  description = "Version of the Helm chart for llm-d model server."
-  type        = string
-}
-
 variable "llm-d_huggingface_spc" {
   description = "Name of the service provider class to store the huggingface secret"
   type        = string

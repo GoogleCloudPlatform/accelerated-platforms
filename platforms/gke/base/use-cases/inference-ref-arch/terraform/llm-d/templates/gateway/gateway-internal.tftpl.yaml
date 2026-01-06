@@ -22,10 +22,11 @@ metadata:
     app.kubernetes.io/version: "v0.3.0"
     app.kubernetes.io/gateway: ${gateway_name}
     app.kubernetes.io/component: inference-gateway
-  annotations:
-    "networking.gke.io/static-ip": ${internal_ip_address}
 spec:
   gatewayClassName: "gke-l7-rilb"
+  addresses:
+    - type: NamedAddress
+      value: ${internal_ip_address}
   listeners:
     - port: 80
       protocol: HTTP

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# This is a preview version of Gemini 2.5 Flash Image custom node
+# This is a preview version of Gemini 3 Pro Image custom node
 
 from io import BytesIO
 from typing import List, Optional
@@ -26,9 +26,9 @@ from PIL import Image
 from . import utils
 from .base import VertexAIClient
 from .constants import (
-    GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN,
-    GEMINI_25_FLASH_IMAGE_USER_AGENT,
-    GeminiFlashImageModel,
+    GEMINI_3_PRO_IMAGE_MAX_OUTPUT_TOKEN,
+    GEMINI_3_PRO_IMAGE_USER_AGENT,
+    GeminiProImageModel,
 )
 from .custom_exceptions import ConfigurationError
 from .logger import get_node_logger
@@ -37,13 +37,13 @@ from .retry import api_error_retry
 logger = get_node_logger(__name__)
 
 
-class GeminiFlashImageAPI(VertexAIClient):
+class GeminiProImageAPI(VertexAIClient):
     """
-    A class to interact with the Gemini Flash Image Preview model.
+    A class to interact with the Gemini Pro Image Preview model.
     """
 
     def __init__(self, project_id: Optional[str] = None, region: Optional[str] = None):
-        """Initializes the Gemini 2.5 Flash Image Preview client.
+        """Initializes the Gemini 3 Pro Image Preview client.
         Args:
             project_id (Optional[str], optional): The GCP project ID. If not provided, it will be inferred from the environment. Defaults to None.
             region (Optional[str], optional): The GCP region. If not provided, it will be inferred from the environment. Defaults to None.
@@ -53,7 +53,7 @@ class GeminiFlashImageAPI(VertexAIClient):
         super().__init__(
             gcp_project_id=project_id,
             gcp_region=region,
-            user_agent=GEMINI_25_FLASH_IMAGE_USER_AGENT,
+            user_agent=GEMINI_3_PRO_IMAGE_USER_AGENT,
         )
 
     @api_error_retry
@@ -70,14 +70,14 @@ class GeminiFlashImageAPI(VertexAIClient):
         sexually_explicit_threshold: str,
         dangerous_content_threshold: str,
         system_instruction: str,
-        image1: Optional[torch.Tensor] = None,
+        image1: torch.Tensor,
         image2: Optional[torch.Tensor] = None,
         image3: Optional[torch.Tensor] = None,
     ) -> List[Image.Image]:
-        """Generates an image using the Gemini Flash Image model.
+        """Generates an image using the Gemini Pro Image model.
 
         Args:
-            model: The name of the Gemini model to use. default: gemini-2.5-flash-image-preview
+            model: The name of the Gemini model to use. default: gemini-3-pro-image-preview
             aspect_ratio: The desired aspect ratio of the output image.
             prompt: The text prompt for image generation.
             temperature: Controls randomness in token generation.
@@ -89,7 +89,7 @@ class GeminiFlashImageAPI(VertexAIClient):
               content.
             dangerous_content_threshold: Safety threshold for dangerous content.
             system_instruction: System-level instructions for the model.
-            image1: An optional first input image tensor. Defaults to None.
+            image1: An optional input image tensor. Defaults to None.
             image2: An optional second input image tensor. Defaults to None.
             image3: An optional third input image tensor. Defaults to None.
 
@@ -100,7 +100,7 @@ class GeminiFlashImageAPI(VertexAIClient):
             APIInputError: If input parameters are invalid.
             APIExecutionError: If the API call fails due to quota, permissions, or server issues.
         """
-        model = GeminiFlashImageModel[model]
+        model = GeminiProImageModel[model]
 
         generated_pil_images: List[Image.Image] = []
 
@@ -108,7 +108,7 @@ class GeminiFlashImageAPI(VertexAIClient):
             temperature=temperature,
             top_p=top_p,
             top_k=top_k,
-            max_output_tokens=GEMINI_25_FLASH_IMAGE_MAX_OUTPUT_TOKEN,
+            max_output_tokens=GEMINI_3_PRO_IMAGE_MAX_OUTPUT_TOKEN,
             response_modalities=["TEXT", "IMAGE"],
             image_config=types.ImageConfig(
                 aspect_ratio=aspect_ratio,

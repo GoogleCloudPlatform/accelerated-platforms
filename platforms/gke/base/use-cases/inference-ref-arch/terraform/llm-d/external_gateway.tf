@@ -52,7 +52,7 @@ resource "local_file" "gateway_external_https_yaml" {
     "${path.module}/templates/gateway/gateway-external-https.tftpl.yaml",
     {
       address_name         = google_compute_global_address.external_gateway_https.name
-      gateway_name         = var.llm-d_gateway_name_external
+      gateway_name         = local.llm-d_gateway_name_external
       namespace            = var.llm-d_kubernetes_namespace
       ssl_certificate_name = google_compute_managed_ssl_certificate.external_gateway.name
     }
@@ -90,9 +90,9 @@ resource "local_file" "external_route" {
   content = templatefile(
     "${path.module}/templates/gateway/httproute-external.tftpl.yaml",
     {
-      httproute_name       = var.llm-d_httproute_name_external
+      httproute_name       = local.llm-d_httproute_name_external
       kubernetes_namespace = var.llm-d_kubernetes_namespace
-      gateway_name         = var.llm-d_gateway_name_external
+      gateway_name         = local.llm-d_gateway_name_external
       hostname             = local.llm-d_endpoint
       service_name         = local.gradio_service_name
       service_port         = local.gradio_service_port
@@ -134,4 +134,47 @@ module "kubectl_apply_ext_gateway_res" {
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local.external_gateway_manifests_directory
   manifest_includes_namespace = true
+}
+
+# IAP Permissions
+module "kubectl_wait_for_gateway" {
+  depends_on = [
+    module.kubectl_apply_ext_gateway_res,
+    module.kubectl_apply_gradio,
+    module.kubectl_apply_llm-d_ms,
+  ]
+
+  source = "../../../../modules/kubectl_wait"
+
+  for             = "jsonpath={.status.conditions[?(@.type==\"networking.gke.io/GatewayHealthy\")].status}=True"
+  kubeconfig_file = data.local_file.kubeconfig.filename
+  namespace       = var.llm-d_kubernetes_namespace
+  resource        = "gateway/${local.llm-d_gateway_name_external}"
+  timeout         = "300s"
+  wait_for_create = true
+}
+
+data "kubernetes_resources" "gateway" {
+  depends_on = [
+    module.kubectl_wait_for_gateway
+  ]
+
+  api_version    = "gateway.networking.k8s.io/v1"
+  kind           = "Gateway"
+  field_selector = "metadata.name==${local.llm-d_gateway_name_external}"
+  namespace      = var.llm-d_kubernetes_namespace
+}
+
+resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {
+  member  = "domain:${local.iap_domain}"
+  project = local.cluster_project_id
+  role    = "roles/iap.httpsResourceAccessor"
+  web_backend_service = basename(
+    one(
+      [
+        for backend in split(", ", data.kubernetes_resources.gateway.objects[0].metadata.annotations["networking.gke.io/backend-services"]) : backend
+        if can(regex(local.gradio_backend_service_regex, backend))
+      ]
+    )
+  )
 }

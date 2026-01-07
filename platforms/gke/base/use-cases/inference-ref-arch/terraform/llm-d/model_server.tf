@@ -46,7 +46,7 @@ resource "local_file" "llm-d_ms_sa_yaml" {
   content = templatefile(
     "${path.module}/templates/workload/llm-d_model_server_sa.tpl.yaml",
     {
-      serviceaccount-name = var.llm-d_modelserver_sa
+      serviceaccount-name = local.llm-d_modelserver_sa
       namespace           = var.llm-d_kubernetes_namespace
     }
   )
@@ -70,7 +70,7 @@ module "kubectl_apply_llm-d_ms_sa" {
 
 resource "google_project_iam_member" "workload_identity_secret_access" {
   depends_on = [module.kubectl_apply_llm-d_ms_sa]
-  member     = "${local.workload_identity_principal_prefix}/ns/${var.llm-d_kubernetes_namespace}/sa/${var.llm-d_modelserver_sa}"
+  member     = "${local.workload_identity_principal_prefix}/ns/${var.llm-d_kubernetes_namespace}/sa/${local.llm-d_modelserver_sa}"
   project    = data.google_project.cluster.project_id
   role       = "roles/secretmanager.secretAccessor"
 }
@@ -80,10 +80,10 @@ resource "local_file" "llm-d_ms_yaml" {
   content = templatefile(
     "${path.module}/templates/workload/llm-d_model_server_deployment.tpl.yaml",
     {
-      deployment_name       = var.llm-d_ms_deployment_name
+      deployment_name       = local.llm-d_ms_deployment_name
       namespace             = var.llm-d_kubernetes_namespace
       routing_proxy_image   = var.llm-d_ms_proxy_image
-      serviceaccount_name   = var.llm-d_modelserver_sa
+      serviceaccount_name   = local.llm-d_modelserver_sa
       huggingface_token_spc = var.llm-d_huggingface_spc
       cuda_image            = var.llm-d_ms_cuda_image
       model_name            = var.llm-d_model_name

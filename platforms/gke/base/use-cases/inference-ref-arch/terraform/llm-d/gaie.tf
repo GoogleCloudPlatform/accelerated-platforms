@@ -13,7 +13,7 @@
 # limitations under the License.
 
 data "helm_template" "llm-d_gaie_stack" {
-  name         = "gaie-${var.llm-d_release_name}"
+  name         = "gaie-${local.llm-d_release_name}"
   namespace    = var.llm-d_kubernetes_namespace
   kube_version = var.kubernetes_version
   #create_namespace = var.kubernetes_namespace_create

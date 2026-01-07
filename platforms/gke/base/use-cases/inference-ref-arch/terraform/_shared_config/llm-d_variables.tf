@@ -13,22 +13,38 @@
 # limitations under the License.
 
 locals {
+  llm-d_backend_policy_name            = var.llm-d_backend_policy_name != null ? var.llm-d_backend_policy_name : "gaie-${local.llm-d_release_name}"
   llm-d_default_name                   = "llm-d"
-  llm-d_endpoints_ssl_certificate_name = "${local.unique_identifier_prefix}-${var.llm-d_kubernetes_namespace}-external-gateway"
   llm-d_endpoints_hostname             = var.llm-d_endpoints_hostname != null ? var.llm-d_endpoints_hostname : "llmd.${var.llm-d_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
+  llm-d_endpoints_ssl_certificate_name = "${local.unique_identifier_prefix}-${var.llm-d_kubernetes_namespace}-external-gateway"
   llm-d_gateway_address_name           = "${local.unique_identifier_prefix}-${local.llm-d_default_name}-external-gateway-https"
-  llm-d_backend_policy_name            = var.llm-d_backend_policy_name != null ? var.llm-d_backend_policy_name : "gaie-inference-scheduling"
-  llm-d_inferencepool_name             = var.llm-d_inferencepool_name != null ? var.llm-d_inferencepool_name : "gaie-inference-scheduling"
+  llm-d_gateway_name_external          = var.llm-d_gateway_name_external != null ? var.llm-d_gateway_name_external : "${local.llm-d_default_name}-gateway-external"
+  llm-d_gateway_name_internal          = var.llm-d_gateway_name_internal != null ? var.llm-d_gateway_name_internal : "infra-${local.llm-d_release_name}-inference-gateway"
+  llm-d_httproute_name_external        = var.llm-d_httproute_name_external != null ? var.llm-d_httproute_name_external : "${local.llm-d_default_name}-httproute-external"
+  llm-d_httproute_name_internal        = var.llm-d_httproute_name_internal != null ? var.llm-d_httproute_name_internal : "${local.llm-d_default_name}-${local.llm-d_release_name}-internal"
+  llm-d_iap_oath_branding_project_id   = var.llm-d_iap_oath_branding_project_id != null ? var.llm-d_iap_oath_branding_project_id : var.platform_default_project_id
+  llm-d_inferencepool_name             = var.llm-d_inferencepool_name != null ? var.llm-d_inferencepool_name : "gaie-${local.llm-d_release_name}"
+  llm-d_modelserver_sa                 = var.llm-d_modelserver_sa != null ? var.llm-d_modelserver_sa : "ms-${local.llm-d_release_name}-${local.llm-d_default_name}-modelserver-sa"
+  llm-d_ms_deployment_name             = var.llm-d_ms_deployment_name != null ? var.llm-d_ms_deployment_name : "ms-${local.llm-d_release_name}-${local.llm-d_default_name}-modelservice"
+  llm-d_release_name                   = var.llm-d_release_name != null ? llm-d_release_name : "inference-scheduling"
 }
 
-variable "llm-d_endpoints_hostname" {
-  default = null
-  type    = string
-}
-
-variable "llm-d_kubernetes_namespace" {
-  description = "The Kubernetes namespace to deploy the manifests to."
+variable "gaie_chart" {
+  description = "Helm chart for llm-d infra"
   type        = string
+  default     = "oci://registry.k8s.io/gateway-api-inference-extension/charts/inferencepool"
+}
+
+variable "gaie_chart_version" {
+  description = "Version of the Helm chart for llm-d infra"
+  type        = string
+  default     = "v1.2.0-rc.1"
+}
+
+variable "kubernetes_version" {
+  description = "The Kubernetes version to use when templating."
+  type        = string
+  default     = "1.28.0"
 }
 
 variable "llm-d_backend_policy_name" {
@@ -37,63 +53,13 @@ variable "llm-d_backend_policy_name" {
   type        = string
 }
 
-variable "kubernetes_namespace_create" {
-  description = "Create the Kubernetes namespace."
-  type        = bool
+variable "llm-d_endpoints_hostname" {
+  default = null
+  type    = string
 }
 
-variable "kubernetes_version" {
-  description = "The Kubernetes version to use when templating."
-  type        = string
-}
-
-variable "validate_manifests" {
-  description = "Validate the manifests against the Kubernetes cluster."
-  type        = bool
-}
-
-variable "llm-d_release_name" {
-  description = "Unique release name for the helm chart deployment."
-  type        = any
-}
-
-variable "llm-d_infra_repo" {
-  description = "Helm repo for llm-d infra"
-  type        = string
-}
-
-variable "llm-d_infra_chart" {
-  description = "Helm chart for llm-d infra"
-  type        = string
-}
-
-variable "llm-d_infra_chart_version" {
-  description = "Version of the Helm chart for llm-d infra"
-  type        = string
-}
-
-variable "skip_tests" {
-  description = "If set, tests will not be rendered. By default, tests are rendered."
-  type        = bool
-}
-
-variable "gaie_chart" {
-  description = "Helm chart for llm-d infra"
-  type        = string
-}
-
-variable "gaie_chart_version" {
-  description = "Version of the Helm chart for llm-d infra"
-  type        = string
-}
-
-variable "llm-d_httproute_name_internal" {
-  description = "Name of the internal http route."
-  type        = string
-}
-
-variable "llm-d_httproute_name_external" {
-  description = "Name of the external http route for gradio access."
+variable "llm-d_gateway_name_external" {
+  description = "Name of the external gateway for gradio access."
   type        = string
 }
 
@@ -102,9 +68,30 @@ variable "llm-d_gateway_name_internal" {
   type        = string
 }
 
-variable "llm-d_gateway_name_external" {
-  description = "Name of the external gateway for gradio access."
+variable "llm-d_httproute_name_external" {
+  description = "Name of the external http route for gradio access."
   type        = string
+}
+
+variable "llm-d_httproute_name_internal" {
+  description = "Name of the internal http route."
+  type        = string
+}
+
+variable "llm-d_huggingface_spc" {
+  description = "Name of the service provider class to store the huggingface secret"
+  type        = string
+  default     = "huggingface-read-token"
+}
+
+variable "llm-d_iap_domain" {
+  default = null
+  type    = string
+}
+
+variable "llm-d_iap_oath_branding_project_id" {
+  default = null
+  type    = string
 }
 
 variable "llm-d_inferencepool_name" {
@@ -112,14 +99,27 @@ variable "llm-d_inferencepool_name" {
   type        = string
 }
 
-variable "llm-d_huggingface_spc" {
-  description = "Name of the service provider class to store the huggingface secret"
+variable "llm-d_kubernetes_namespace" {
+  description = "The Kubernetes namespace to deploy the manifests to."
   type        = string
+  default     = "llm-d"
+}
+
+variable "llm-d_model_name" {
+  description = "model to server"
+  type        = string
+  default     = "Qwen/Qwen3-0.6B"
 }
 
 variable "llm-d_modelserver_sa" {
   description = "Service Account name for running model server"
   type        = string
+}
+
+variable "llm-d_ms_cuda_image" {
+  description = "CUDA image for model server deployment"
+  type        = string
+  default     = "ghcr.io/llm-d/llm-d-cuda:v0.3.1"
 }
 
 variable "llm-d_ms_deployment_name" {
@@ -130,15 +130,44 @@ variable "llm-d_ms_deployment_name" {
 variable "llm-d_ms_proxy_image" {
   description = "image of the routing proxy in model server"
   type        = string
+  default     = "ghcr.io/llm-d/llm-d-routing-sidecar:v0.4.0-rc.1"
 }
 
-variable "llm-d_ms_cuda_image" {
-  description = "CUDA image for model server deployment"
-  type        = string
+variable "llm-d_release_name" {
+  description = "Unique release name for the helm chart deployment."
+  type        = any
+  #  default = "inference-scheduling"
 }
 
-variable "llm-d_model_name" {
-  description = "model to server"
-  type        = string
-
+variable "skip_tests" {
+  description = "If set, tests will not be rendered. By default, tests are rendered."
+  type        = bool
+  default     = false
 }
+
+variable "validate_manifests" {
+  description = "Validate the manifests against the Kubernetes cluster."
+  type        = bool
+  default     = false
+}
+
+
+# variable "kubernetes_namespace_create" {
+#   description = "Create the Kubernetes namespace."
+#   type        = bool
+# }
+
+# variable "llm-d_infra_repo" {
+#   description = "Helm repo for llm-d infra"
+#   type        = string
+# }
+
+# variable "llm-d_infra_chart" {
+#   description = "Helm chart for llm-d infra"
+#   type        = string
+# }
+
+# variable "llm-d_infra_chart_version" {
+#   description = "Version of the Helm chart for llm-d infra"
+#   type        = string
+# }

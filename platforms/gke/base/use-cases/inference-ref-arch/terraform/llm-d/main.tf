@@ -13,22 +13,27 @@
 # limitations under the License.
 
 locals {
-  gaie_values                          = yamldecode(file("${path.module}/helm_values/gaie_values.yaml"))
   external_gateway_manifests_directory = "${local.manifests_directory}/external-gateway"
+  gaie_values                          = yamldecode(file("${path.module}/helm_values/gaie_values.yaml"))
+  gradio_backend_service_regex         = ".*${var.llm-d_kubernetes_namespace}-${local.gradio_service_name}-${local.gradio_service_port}-.*"
+  gradio_service_name                  = "gradio-svc"
+  gradio_service_port                  = 8080
+  iap_domain                           = var.llm-d_iap_domain != null ? var.llm-d_iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
+  iap_oath_brand                       = "projects/${data.google_project.llm-d_iap_oath_branding.number}/brands/${data.google_project.llm-d_iap_oath_branding.number}"
   internal_gateway_manifests_directory = "${local.manifests_directory}/internal-gateway"
   kubeconfig_directory                 = "${path.module}/../../../../kubernetes/kubeconfig"
   kubeconfig_file                      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
-  manifests_directory                  = "${local.namespace_directory}/${var.llm-d_kubernetes_namespace}"
   llm-d_endpoint                       = local.llm-d_endpoints_hostname
+  manifests_directory                  = "${local.namespace_directory}/${var.llm-d_kubernetes_namespace}"
   manifests_directory_root             = "${path.module}/../../../../kubernetes/manifests"
   namespace_directory                  = "${local.manifests_directory_root}/namespace"
   workload_identity_principal_prefix   = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
-  gradio_service_name                  = "gradio-svc"
-  gradio_service_port                  = 8080
 }
 
+data "google_client_openid_userinfo" "identity" {}
+
 data "google_project" "cluster" {
-  project_id = var.cluster_project_id
+  project_id = local.cluster_project_id
 }
 
 data "local_file" "kubeconfig" {

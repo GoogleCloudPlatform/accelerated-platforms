@@ -30,7 +30,7 @@ resource "local_file" "gateway_internal_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gateway-internal.tftpl.yaml",
     {
-      gateway_name        = var.llm-d_gateway_name_internal
+      gateway_name        = local.llm-d_gateway_name_internal
       namespace           = var.llm-d_kubernetes_namespace
       internal_ip_address = google_compute_address.internal_gateway_ip.name
     }
@@ -42,10 +42,10 @@ resource "local_file" "internal_route" {
   content = templatefile(
     "${path.module}/templates/gateway/httproute-internal.tftpl.yaml",
     {
-      httproute_name       = var.llm-d_httproute_name_internal
+      httproute_name       = local.llm-d_httproute_name_internal
       kubernetes_namespace = var.llm-d_kubernetes_namespace
-      gateway_name         = var.llm-d_gateway_name_internal
-      inferencepool_name   = var.llm-d_inferencepool_name
+      gateway_name         = local.llm-d_gateway_name_internal
+      inferencepool_name   = local.llm-d_inferencepool_name
     }
   )
   file_permission = "0644"

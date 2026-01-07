@@ -30,125 +30,136 @@ locals {
 }
 
 variable "gaie_chart" {
+  default     = "oci://registry.k8s.io/gateway-api-inference-extension/charts/inferencepool"
   description = "Helm chart for llm-d infra"
   type        = string
-  default     = "oci://registry.k8s.io/gateway-api-inference-extension/charts/inferencepool"
 }
 
 variable "gaie_chart_version" {
+  default     = "v1.2.0-rc.1"
   description = "Version of the Helm chart for llm-d infra"
   type        = string
-  default     = "v1.2.0-rc.1"
 }
 
 variable "kubernetes_version" {
+  default     = "1.28.0"
   description = "The Kubernetes version to use when templating."
   type        = string
-  default     = "1.28.0"
 }
 
 variable "llm-d_backend_policy_name" {
-  description = "The name of the backend policy."
   default     = null
+  description = "The name of the backend policy."
   type        = string
 }
 
 variable "llm-d_endpoints_hostname" {
-  default = null
-  type    = string
+  default     = null
+  description = "Endpoint name for external access."
+  type        = string
 }
 
 variable "llm-d_gateway_name_external" {
+  default     = null
   description = "Name of the external gateway for gradio access."
   type        = string
 }
 
 variable "llm-d_gateway_name_internal" {
+  default     = null
   description = "Name of the internal gateway."
   type        = string
 }
 
 variable "llm-d_httproute_name_external" {
+  default     = null
   description = "Name of the external http route for gradio access."
   type        = string
 }
 
 variable "llm-d_httproute_name_internal" {
+  default     = null
   description = "Name of the internal http route."
   type        = string
 }
 
 variable "llm-d_huggingface_spc" {
+  default     = "huggingface-read-token"
   description = "Name of the service provider class to store the huggingface secret"
   type        = string
-  default     = "huggingface-read-token"
 }
 
 variable "llm-d_iap_domain" {
-  default = null
-  type    = string
+  default     = null
+  description = "IAP domain for the app"
+  type        = string
 }
 
 variable "llm-d_iap_oath_branding_project_id" {
-  default = null
-  type    = string
+  default     = null
+  description = "IAP brand for the Google Cloud project id"
+  type        = string
 }
 
 variable "llm-d_inferencepool_name" {
+  default     = null
   description = "Name of the InferencePool that the LB will point to."
   type        = string
 }
 
 variable "llm-d_kubernetes_namespace" {
+  default     = "llm-d"
   description = "The Kubernetes namespace to deploy the manifests to."
   type        = string
-  default     = "llm-d"
 }
 
 variable "llm-d_model_name" {
+  default     = "Qwen/Qwen3-0.6B"
   description = "model to server"
   type        = string
-  default     = "Qwen/Qwen3-0.6B"
 }
 
 variable "llm-d_modelserver_sa" {
+  default     = null
   description = "Service Account name for running model server"
   type        = string
 }
 
 variable "llm-d_ms_cuda_image" {
+  default     = "ghcr.io/llm-d/llm-d-cuda:v0.3.1"
   description = "CUDA image for model server deployment"
   type        = string
-  default     = "ghcr.io/llm-d/llm-d-cuda:v0.3.1"
 }
 
 variable "llm-d_ms_deployment_name" {
+  default     = null
   description = "Model server deployment name"
   type        = string
 }
 
 variable "llm-d_ms_proxy_image" {
+  default     = "ghcr.io/llm-d/llm-d-routing-sidecar:v0.4.0-rc.1"
   description = "image of the routing proxy in model server"
   type        = string
-  default     = "ghcr.io/llm-d/llm-d-routing-sidecar:v0.4.0-rc.1"
 }
 
 variable "llm-d_release_name" {
+  default     = null
   description = "Unique release name for the helm chart deployment."
   type        = any
   #  default = "inference-scheduling"
 }
 
 variable "skip_tests" {
+  default     = false
   description = "If set, tests will not be rendered. By default, tests are rendered."
   type        = bool
-  default     = false
 }
 
 variable "validate_manifests" {
+  default     = false
   description = "Validate the manifests against the Kubernetes cluster."
   type        = bool
-  default     = false
 }
 
 

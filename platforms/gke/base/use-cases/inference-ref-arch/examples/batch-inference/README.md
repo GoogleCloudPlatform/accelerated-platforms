@@ -12,18 +12,11 @@ This example is built on top of the
   [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
   is deployed and configured.
 
-- Get access to the models.
-
-  - For Gemma:
-
-    - Consented to the license on [Kaggle](https://www.kaggle.com/) using a
-      Hugging Face account.
-      - [**google/gemma**](https://www.kaggle.com/models/google/gemma).
+- Get access to the model.
 
   - For Llama:
     - Accept the terms of the license on the Hugging Face model page.
       - [**meta-llama/Llama-3.3-70B-Instruct**](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct)
-      - [**meta-llama/Llama-3.2-3B-Instruct**](https://huggingface.co/meta-llama/Llama-3.2-3B-Instruct)
 
 - Ensure your
   [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
@@ -46,12 +39,6 @@ This example is built on top of the
 ## Download the model to Cloud Storage
 
 - Choose the model.
-
-  - **Gemma 3 1B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="google/gemma-3-1b-it"
-    ```
 
   - **Llama-3.3-70B-Instruct**:
 
@@ -170,14 +157,7 @@ This example is built on top of the
 
     | Model                  | l4  | h100 | h200 |
     | ---------------------- | --- | ---- | ---- |
-    | gemma-3-1b-it          | ✅  | ❌   | ❌   |
     | llama-3.3-70b-instruct | ❌  | ✅   | ✅   |
-
-    - **NVIDIA Tesla L4 24GB**:
-
-      ```shell
-      export ACCELERATOR_TYPE="l4"
-      ```
 
     - **NVIDIA H100 80GB**:
 

@@ -11,14 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  labels:
-    app: gradio
   name: gradio
   namespace: ${namespace}
+  labels:
+    app: gradio
 spec:
   replicas: 1
   selector:
@@ -30,40 +30,27 @@ spec:
         app: gradio
     spec:
       containers:
-      - env:
-        - name: CONTEXT_PATH
-          value: /v1/chat/completions
-        - name: HOST
-          value: "http://${internal_gateway_ip}:80"
-        - name: DISABLE_SYSTEM_MESSAGE
-          value: 'true'
-        - name: LLM_ENGINE
-          value: openai
-        - name: MODEL_ID
-          value: ${model_id}
-        - name: USER_PROMPT
-          value: |
-            <start_of_turn>user
-            prompt<end_of_turn>
-        - name: SYSTEM_PROMPT
-          value: |
-            <start_of_turn>model
-            prompt<end_of_turn>
-        image: us-docker.pkg.dev/google-samples/containers/gke/gradio-app:v1.0.4
-        name: gradio
-        ports:
-        - containerPort: 7860
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 7860
-        resources:
-          limits:
-            cpu: 500m
-            memory: 512Mi
-          requests:
-            cpu: 250m
-            memory: 512Mi
+        - name: gradio
+          # REPLACE THIS with the image URL from Step 2
+          image: ${image_destination}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7860
+          env:
+            # Point this to your existing Gateway's Internal IP or Service URL
+            - name: GATEWAY_URL
+              value: "http://${internal_gateway_ip}:80"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7860
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
 ---
 apiVersion: v1
 kind: Service
@@ -72,8 +59,8 @@ metadata:
   namespace: ${namespace}
 spec:
   ports:
-  - port: 8080
-    protocol: TCP
-    targetPort: 7860
+    - port: 8080
+      protocol: TCP
+      targetPort: 7860
   selector:
     app: gradio

@@ -32,12 +32,21 @@ locals {
 
 data "google_client_openid_userinfo" "identity" {}
 
+data "google_project" "llm-d_iap_oath_branding" {
+  project_id = local.llm-d_iap_oath_branding_project_id
+}
+
 data "google_project" "cluster" {
   project_id = local.cluster_project_id
 }
 
 data "local_file" "kubeconfig" {
   filename = local.kubeconfig_file
+}
+
+data "google_storage_bucket" "cloudbuild_source" {
+  name    = local.gradio_cloudbuild_source_bucket_name
+  project = local.gradio_cloudbuild_project_id
 }
 
 # Create Namespace

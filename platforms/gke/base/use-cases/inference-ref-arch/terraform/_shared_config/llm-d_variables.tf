@@ -13,6 +13,13 @@
 # limitations under the License.
 
 locals {
+  gradio_cloudbuild_project_id             = var.gradio_cloudbuild_project_id != null ? var.gradio_cloudbuild_project_id : local.cloudbuild_project_id
+  gradio_cloudbuild_service_account_email  = "${local.gradio_cloudbuild_service_account_name}@${local.gradio_cloudbuild_project_id}.iam.gserviceaccount.com"
+  gradio_cloudbuild_service_account_id     = "projects/${local.gradio_cloudbuild_project_id}/serviceAccounts/${local.gradio_cloudbuild_service_account_email}"
+  gradio_cloudbuild_service_account_name   = var.gradio_cloudbuild_service_account_name != null ? var.gradio_cloudbuild_service_account_name : local.cloudbuild_service_account_name
+  gradio_cloudbuild_source_bucket_location = var.gradio_cloudbuild_source_bucket_location != null ? var.gradio_cloudbuild_source_bucket_location : local.cloudbuild_location
+  gradio_cloudbuild_source_bucket_name     = var.gradio_cloudbuild_source_bucket_name != null ? var.gradio_cloudbuild_source_bucket_name : local.cloudbuild_source_bucket_name
+
   llm-d_backend_policy_name            = var.llm-d_backend_policy_name != null ? var.llm-d_backend_policy_name : "gaie-${local.llm-d_release_name}"
   llm-d_default_name                   = "llm-d"
   llm-d_endpoints_hostname             = var.llm-d_endpoints_hostname != null ? var.llm-d_endpoints_hostname : "llmd.${var.llm-d_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
@@ -26,7 +33,7 @@ locals {
   llm-d_inferencepool_name             = var.llm-d_inferencepool_name != null ? var.llm-d_inferencepool_name : "gaie-${local.llm-d_release_name}"
   llm-d_modelserver_sa                 = var.llm-d_modelserver_sa != null ? var.llm-d_modelserver_sa : "ms-${local.llm-d_release_name}-${local.llm-d_default_name}-modelserver-sa"
   llm-d_ms_deployment_name             = var.llm-d_ms_deployment_name != null ? var.llm-d_ms_deployment_name : "ms-${local.llm-d_release_name}-${local.llm-d_default_name}-modelservice"
-  llm-d_release_name                   = var.llm-d_release_name != null ? llm-d_release_name : "inference-scheduling"
+  llm-d_release_name                   = var.llm-d_release_name != null ? var.llm-d_release_name : "inference-scheduling"
 }
 
 variable "gaie_chart" {
@@ -39,6 +46,54 @@ variable "gaie_chart_version" {
   default     = "v1.2.0-rc.1"
   description = "Version of the Helm chart for llm-d infra"
   type        = string
+}
+
+variable "gradio_artifact_repo_name" {
+  default = "gradio"
+  type    = string
+}
+
+variable "gradio_cloudbuild_project_id" {
+  default     = null
+  description = "Cloud Build project ID for gradio image builds."
+  type        = string
+
+}
+
+variable "gradio_cloudbuild_service_account_name" {
+  default     = null
+  description = "Cloud Build service account name for gradio image builds."
+  type        = string
+
+}
+
+variable "gradio_cloudbuild_source_bucket_location" {
+  default     = null
+  description = "Cloud Build source bucket location for gradio image builds."
+  type        = string
+
+}
+
+variable "gradio_cloudbuild_source_bucket_name" {
+  default     = null
+  description = "Cloud Build source bucket name for gradio image builds."
+  type        = string
+
+}
+
+variable "gradio_image_name" {
+  default = "gradio"
+  type    = string
+}
+
+variable "gradio_image_staging_bucket" {
+  default = "gradio-image-staging"
+  type    = string
+}
+
+variable "gradio_image_tag" {
+  default = "0.0.1"
+  type    = string
 }
 
 variable "kubernetes_version" {

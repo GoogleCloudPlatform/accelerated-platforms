@@ -78,9 +78,9 @@ resource "google_project_iam_member" "workload_identity_secret_access" {
 #Create Deployment for model server
 resource "local_file" "llm-d_ms_yaml" {
   content = templatefile(
-    "${path.module}/templates/workload/llm-d_model_server_deployment.tpl.yaml",
+    "${path.module}/templates/workload/llm-d_model_server_deployment_${var.llm-d_accelerator_type}.tpl.yaml",
     {
-      deployment_name       = local.llm-d_ms_deployment_name
+      deployment_name       = "${local.llm-d_ms_deployment_name}-${var.llm-d_accelerator_type}"
       namespace             = var.llm-d_kubernetes_namespace
       routing_proxy_image   = var.llm-d_ms_proxy_image
       serviceaccount_name   = local.llm-d_modelserver_sa

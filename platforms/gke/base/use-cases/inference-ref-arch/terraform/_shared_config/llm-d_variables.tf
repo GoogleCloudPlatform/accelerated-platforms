@@ -102,6 +102,24 @@ variable "kubernetes_version" {
   type        = string
 }
 
+variable "llm-d_accelerator_type" {
+  default = "nvidia-l4"
+  type    = string
+
+  validation {
+    condition = contains(
+      [
+        "nvidia-a100-80gb",
+        "nvidia-h100-80gb",
+        "nvidia-l4",
+        "nvidia-tesla-a100",
+      ],
+      var.llm-d_accelerator_type
+    )
+    error_message = "'llm-d_accelerator_type' value is invalid"
+  }
+}
+
 variable "llm-d_backend_policy_name" {
   default     = null
   description = "The name of the backend policy."

@@ -16,7 +16,7 @@ locals {
   external_gateway_manifests_directory = "${local.manifests_directory}/external-gateway"
   gaie_values                          = yamldecode(file("${path.module}/helm_values/gaie_values.yaml"))
   gradio_backend_service_regex         = ".*${var.llm-d_kubernetes_namespace}-${local.gradio_service_name}-${local.gradio_service_port}-.*"
-  gradio_service_name                  = "gradio-svc"
+  gradio_service_name                  = "gradio-svc-${var.llm-d_accelerator_type}"
   gradio_service_port                  = 8080
   iap_domain                           = var.llm-d_iap_domain != null ? var.llm-d_iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
   iap_oath_brand                       = "projects/${data.google_project.llm-d_iap_oath_branding.number}/brands/${data.google_project.llm-d_iap_oath_branding.number}"

@@ -79,6 +79,7 @@ resource "local_file" "gradio" {
       namespace           = var.llm-d_kubernetes_namespace
       internal_gateway_ip = google_compute_address.internal_gateway_ip.address
       image_destination   = local.image_destination
+      service_name        = local.gradio_service_name
     }
   )
   file_permission = "0644"

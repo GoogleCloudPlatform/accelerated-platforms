@@ -13,19 +13,19 @@
 # limitations under the License.
 
 locals {
-  cluster_wi_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
-  ira_inference_perf_bench_ksa_member   = "${local.cluster_wi_principal_prefix}/ns/${local.ira_inference_perf_bench_kubernetes_namespace_name}/sa/${local.ira_inference_perf_bench_kubernetes_service_account_name}"
+  cluster_wi_principal_prefix         = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
+  ira_inference_perf_bench_ksa_member = "${local.cluster_wi_principal_prefix}/ns/${local.ira_inference_perf_bench_kubernetes_namespace_name}/sa/${local.ira_inference_perf_bench_kubernetes_service_account_name}"
 }
 
 resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_ksa" {
   bucket = data.google_storage_bucket.bench_results.name
   member = local.ira_inference_perf_bench_ksa_member
-  role   =  "roles/storage.objectUser" 
+  role   = "roles/storage.objectUser"
 }
 
 resource "google_project_iam_member" "hub_models_ira_inference_perf_bench_ksa_roles" {
-  project = var.platform_default_project_id
-  member  = local.ira_inference_perf_bench_ksa_member
+  project  = var.platform_default_project_id
+  member   = local.ira_inference_perf_bench_ksa_member
   for_each = toset(local.ira_inference_perf_ksa_project_roles_list)
   role     = each.value
 }

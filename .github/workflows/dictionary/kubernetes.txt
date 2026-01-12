@@ -45,6 +45,7 @@ priorityclasses
 prioritylevelconfigurations
 provisioningrequest
 provisioningrequests
+replicaset
 replicasets
 replicatedjob
 rilb

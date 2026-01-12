@@ -237,9 +237,9 @@ The `deploy-llm-d.sh` script will perform the following steps:
   ```
   NAME                                                                  READY   STATUS    RESTARTS   AGE
   pod/gaie-inference-scheduling-epp-7dcffd4498-97l6t                    1/1     Running   0          XXX
-  pod/gradio-6c4d4fdd65-xj5l9                                           1/1     Running   0          XXX
-  pod/ms-inference-scheduling-llm-d-modelservice-nvidia-l4-5b949bm42j   2/2     Running   0          XXX
-  pod/ms-inference-scheduling-llm-d-modelservice-nvidia-l4-5b949gzgn9   2/2     Running   0          XXX
+  pod/gradio-nvidia-l4-XXX                                              1/1     Running   0          XXX
+  pod/ms-inference-scheduling-llm-d-modelservice-nvidia-l4-XXX          2/2     Running   0          XXX
+  pod/ms-inference-scheduling-llm-d-modelservice-nvidia-l4-XXX          2/2     Running   0          XXX
 
   NAME                                             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
   service/gaie-inference-scheduling-epp            ClusterIP   34.118.228.8     <none>        9002/TCP,9090/TCP   XXX

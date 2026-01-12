@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 
 # --- Configuration ---
-URL = "https://llmd.llm-d.inf-llm-d.endpoints.accelerated-platforms-dev.cloud.goog/api/chat"
+URL = "https://ENDPOINT/api/chat"
 TOKEN_FILE = "token.jwt"
 MODEL = "Qwen/Qwen3-0.6B"
 SYSTEM_INSTRUCTION = "[System Note: You are a helpful assistant. Answer directly and concisely. Do not show your reasoning or internal thoughts.]\n\n"

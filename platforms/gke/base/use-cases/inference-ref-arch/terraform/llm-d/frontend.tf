@@ -50,12 +50,13 @@ resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
     command     = <<-EOT
 gcloud builds submit \
---config="src/cloudbuild.yaml" \
+--config="platforms/gke/base/use-cases/inference-ref-arch/terraform/llm-d/src/cloudbuild.yaml" \
 --gcs-source-staging-dir="${data.google_storage_bucket.cloudbuild_source.url}/source" \
 --project="${data.google_project.cluster.project_id}" \
 --quiet \
 --service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${data.google_service_account.cloudbuild.email}" \
---substitutions=_DESTINATION="${local.image_destination}"
+--substitutions=_DESTINATION="${local.image_destination}" \
+platforms/gke/base/use-cases/inference-ref-arch/terraform/llm-d/src
 EOT
     interpreter = ["bash", "-c"]
     working_dir = local.acp_root
@@ -91,6 +92,7 @@ module "kubectl_apply_gradio" {
     local_file.gradio,
     module.kubectl_apply_namespace,
     module.kubectl_apply_ext_gateway_res,
+    terraform_data.submit_docker_build,
   ]
 
   source = "../../../../modules/kubectl_apply"

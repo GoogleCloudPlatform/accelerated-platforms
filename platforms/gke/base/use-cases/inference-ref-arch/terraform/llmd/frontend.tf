@@ -50,13 +50,13 @@ resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
     command     = <<-EOT
 gcloud builds submit \
---config="platforms/gke/base/use-cases/inference-ref-arch/terraform/llm-d/src/cloudbuild.yaml" \
+--config="platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/src/cloudbuild.yaml" \
 --gcs-source-staging-dir="${data.google_storage_bucket.cloudbuild_source.url}/source" \
 --project="${data.google_project.cluster.project_id}" \
 --quiet \
 --service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${data.google_service_account.cloudbuild.email}" \
 --substitutions=_DESTINATION="${local.image_destination}" \
-platforms/gke/base/use-cases/inference-ref-arch/terraform/llm-d/src
+platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/src
 EOT
     interpreter = ["bash", "-c"]
     working_dir = local.acp_root
@@ -77,14 +77,15 @@ resource "local_file" "gradio" {
   content = templatefile(
     "${path.module}/templates/frontend/gradio.tftpl.yaml",
     {
-      namespace           = var.llm-d_kubernetes_namespace
+      namespace           = var.llmd_kubernetes_namespace
       internal_gateway_ip = google_compute_address.internal_gateway_ip.address
       image_destination   = local.image_destination
       service_name        = local.gradio_service_name
+      deployment_name     = local.gradio_deployment_name
     }
   )
   file_permission = "0644"
-  filename        = "${local.namespace_directory}/${var.llm-d_kubernetes_namespace}/frontend/gradio.yaml"
+  filename        = "${local.namespace_directory}/${var.llmd_kubernetes_namespace}/frontend/gradio.yaml"
 }
 
 module "kubectl_apply_gradio" {
@@ -100,6 +101,6 @@ module "kubectl_apply_gradio" {
   delete_timeout              = "60s"
   error_on_delete_failure     = false
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = "${local.namespace_directory}/${var.llm-d_kubernetes_namespace}/frontend/gradio.yaml"
+  manifest                    = "${local.namespace_directory}/${var.llmd_kubernetes_namespace}/frontend/gradio.yaml"
   manifest_includes_namespace = true
 }

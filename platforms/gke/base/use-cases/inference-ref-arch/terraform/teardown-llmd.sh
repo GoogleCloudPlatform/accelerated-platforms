@@ -54,7 +54,7 @@ cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
 rm tfplan
 
 declare -a use_case_terraservices=(
-  "llm-d"
+  "llmd"
   "initialize"
 )
 for terraservice in "${use_case_terraservices[@]}"; do

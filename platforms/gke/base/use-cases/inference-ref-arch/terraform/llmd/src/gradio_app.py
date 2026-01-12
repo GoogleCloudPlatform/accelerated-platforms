@@ -148,7 +148,7 @@ class LLMGradioApp:
     def build_ui(self):
         """Constructs the Gradio UI Blocks."""
         with gr.Blocks(title="LLM Routing Interface") as demo:
-            gr.Markdown("## Intelligent Routing Demo")
+            gr.Markdown("## Your personal chat assistant")
 
             with gr.Row():
                 model_dropdown = gr.Dropdown(

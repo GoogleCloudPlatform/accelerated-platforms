@@ -21,15 +21,15 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      llm-d.ai/inferenceServing: "true"
-      llm-d.ai/model: random_model
-      llm-d.ai/role: decode
+      llmd.ai/inferenceServing: "true"
+      llmd.ai/model: random_model
+      llmd.ai/role: decode
   template:
     metadata:
       labels:
-        llm-d.ai/inferenceServing: "true"
-        llm-d.ai/model: random_model
-        llm-d.ai/role: decode
+        llmd.ai/inferenceServing: "true"
+        llmd.ai/model: random_model
+        llmd.ai/role: decode
     spec:
       initContainers:
         - name: routing-proxy
@@ -67,7 +67,7 @@ spec:
             volumeAttributes:
               secretProviderClass: ${huggingface_token_spc}
       nodeSelector:
-        cloud.google.com/compute-class: gpu-a100-40gb-x1
+        cloud.google.com/compute-class: gpu-h100-80gb-high-x1
       tolerations:
         - key: "components.gke.io/gke-managed-components"
           operator: "Exists"

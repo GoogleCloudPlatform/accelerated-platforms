@@ -14,7 +14,7 @@
 
 ###############################################################################
 # This file create resources required for internal gateway supported by
-# llm-d inference scheduler for intelligent routing
+# llmd inference scheduler for intelligent routing
 ###############################################################################
 
 
@@ -30,8 +30,8 @@ resource "local_file" "gateway_internal_yaml" {
   content = templatefile(
     "${path.module}/templates/gateway/gateway-internal.tftpl.yaml",
     {
-      gateway_name        = local.llm-d_gateway_name_internal
-      namespace           = var.llm-d_kubernetes_namespace
+      gateway_name        = local.llmd_gateway_name_internal
+      namespace           = var.llmd_kubernetes_namespace
       internal_ip_address = google_compute_address.internal_gateway_ip.name
     }
   )
@@ -42,10 +42,10 @@ resource "local_file" "internal_route" {
   content = templatefile(
     "${path.module}/templates/gateway/httproute-internal.tftpl.yaml",
     {
-      httproute_name       = local.llm-d_httproute_name_internal
-      kubernetes_namespace = var.llm-d_kubernetes_namespace
-      gateway_name         = local.llm-d_gateway_name_internal
-      inferencepool_name   = local.llm-d_inferencepool_name
+      httproute_name       = local.llmd_httproute_name_internal
+      kubernetes_namespace = var.llmd_kubernetes_namespace
+      gateway_name         = local.llmd_gateway_name_internal
+      inferencepool_name   = local.llmd_inferencepool_name
     }
   )
   file_permission = "0644"

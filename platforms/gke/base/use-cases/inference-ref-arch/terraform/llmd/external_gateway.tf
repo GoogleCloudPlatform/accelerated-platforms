@@ -14,7 +14,7 @@
 
 #################################################################################
 # This file create resources required for external access of the frontend(gradio)
-# abstracting llm-d inference scheduler
+# abstracting llmd inference scheduler
 #################################################################################
 resource "google_project_service" "certificatemanager_googleapis_com" {
   disable_dependent_services = false
@@ -28,18 +28,18 @@ resource "google_compute_managed_ssl_certificate" "external_gateway" {
     google_project_service.certificatemanager_googleapis_com,
   ]
 
-  name    = local.llm-d_endpoints_ssl_certificate_name
+  name    = local.llmd_endpoints_ssl_certificate_name
   project = data.google_project.cluster.project_id
 
   managed {
     domains = [
-      local.llm-d_endpoint,
+      local.llmd_endpoint,
     ]
   }
 }
 
 resource "google_compute_global_address" "external_gateway_https" {
-  name    = local.llm-d_gateway_address_name
+  name    = local.llmd_gateway_address_name
   project = data.google_project.cluster.project_id
 }
 
@@ -52,8 +52,8 @@ resource "local_file" "gateway_external_https_yaml" {
     "${path.module}/templates/gateway/gateway-external-https.tftpl.yaml",
     {
       address_name         = google_compute_global_address.external_gateway_https.name
-      gateway_name         = local.llm-d_gateway_name_external
-      namespace            = var.llm-d_kubernetes_namespace
+      gateway_name         = local.llmd_gateway_name_external
+      namespace            = var.llmd_kubernetes_namespace
       ssl_certificate_name = google_compute_managed_ssl_certificate.external_gateway.name
     }
   )
@@ -61,28 +61,28 @@ resource "local_file" "gateway_external_https_yaml" {
 }
 
 # ENDPOINTS
-resource "terraform_data" "llm-d_https_endpoint_undelete" {
+resource "terraform_data" "llmd_https_endpoint_undelete" {
   provisioner "local-exec" {
-    command     = "gcloud endpoints services undelete ${local.llm-d_endpoint} --project=${data.google_project.cluster.project_id} --quiet >/dev/null 2>&1 || exit 0"
+    command     = "gcloud endpoints services undelete ${local.llmd_endpoint} --project=${data.google_project.cluster.project_id} --quiet >/dev/null 2>&1 || exit 0"
     interpreter = ["bash", "-c"]
     working_dir = path.module
   }
 }
 
-resource "google_endpoints_service" "llm-d_https" {
+resource "google_endpoints_service" "llmd_https" {
   depends_on = [
-    terraform_data.llm-d_https_endpoint_undelete,
+    terraform_data.llmd_https_endpoint_undelete,
   ]
 
   openapi_config = templatefile(
     "${path.module}/templates/openapi/endpoint.tftpl.yaml",
     {
-      endpoint   = local.llm-d_endpoint
+      endpoint   = local.llmd_endpoint
       ip_address = google_compute_global_address.external_gateway_https.address
     }
   )
   project      = data.google_project.cluster.project_id
-  service_name = local.llm-d_endpoint
+  service_name = local.llmd_endpoint
 }
 
 #HTTP route
@@ -90,10 +90,10 @@ resource "local_file" "external_route" {
   content = templatefile(
     "${path.module}/templates/gateway/httproute-external.tftpl.yaml",
     {
-      httproute_name       = local.llm-d_httproute_name_external
-      kubernetes_namespace = var.llm-d_kubernetes_namespace
-      gateway_name         = local.llm-d_gateway_name_external
-      hostname             = local.llm-d_endpoint
+      httproute_name       = local.llmd_httproute_name_external
+      kubernetes_namespace = var.llmd_kubernetes_namespace
+      gateway_name         = local.llmd_gateway_name_external
+      hostname             = local.llmd_endpoint
       service_name         = local.gradio_service_name
       service_port         = local.gradio_service_port
     }
@@ -103,7 +103,7 @@ resource "local_file" "external_route" {
 }
 
 # IAP Policy
-resource "local_file" "policy_iap_llm-d_yaml" {
+resource "local_file" "policy_iap_llmd_yaml" {
   depends_on = [
     module.kubectl_apply_namespace,
   ]
@@ -113,18 +113,18 @@ resource "local_file" "policy_iap_llm-d_yaml" {
     {
       policy_name  = "gradio-policy"
       service_name = local.gradio_service_name
-      namespace    = var.llm-d_kubernetes_namespace
+      namespace    = var.llmd_kubernetes_namespace
     }
   )
-  filename = "${local.external_gateway_manifests_directory}/policy-iap-llm-d.yaml"
+  filename = "${local.external_gateway_manifests_directory}/policy-iap-llmd.yaml"
 }
 
 # Apply external gateway manifests
 module "kubectl_apply_ext_gateway_res" {
   depends_on = [
-    google_endpoints_service.llm-d_https,
+    google_endpoints_service.llmd_https,
     local_file.gateway_external_https_yaml,
-    local_file.policy_iap_llm-d_yaml,
+    local_file.policy_iap_llmd_yaml,
     local_file.external_route,
     module.kubectl_apply_namespace,
   ]
@@ -141,15 +141,15 @@ module "kubectl_wait_for_gateway" {
   depends_on = [
     module.kubectl_apply_ext_gateway_res,
     module.kubectl_apply_gradio,
-    module.kubectl_apply_llm-d_ms,
+    module.kubectl_apply_llmd_ms,
   ]
 
   source = "../../../../modules/kubectl_wait"
 
   for             = "jsonpath={.status.conditions[?(@.type==\"networking.gke.io/GatewayHealthy\")].status}=True"
   kubeconfig_file = data.local_file.kubeconfig.filename
-  namespace       = var.llm-d_kubernetes_namespace
-  resource        = "gateway/${local.llm-d_gateway_name_external}"
+  namespace       = var.llmd_kubernetes_namespace
+  resource        = "gateway/${local.llmd_gateway_name_external}"
   timeout         = "300s"
   wait_for_create = true
 }
@@ -161,8 +161,8 @@ data "kubernetes_resources" "gateway" {
 
   api_version    = "gateway.networking.k8s.io/v1"
   kind           = "Gateway"
-  field_selector = "metadata.name==${local.llm-d_gateway_name_external}"
-  namespace      = var.llm-d_kubernetes_namespace
+  field_selector = "metadata.name==${local.llmd_gateway_name_external}"
+  namespace      = var.llmd_kubernetes_namespace
 }
 
 resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {

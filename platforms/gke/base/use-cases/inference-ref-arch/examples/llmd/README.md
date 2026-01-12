@@ -147,8 +147,8 @@ IAP application or resources.
   ```
 
   **If the domain of the active `gcloud` user is different from the organization
-  that the `comfyui_iap_oath_branding_project_id` project is in, you will need
-  to manually set `IAP_DOMAIN` environment variable**
+  that the `llm-d_iap_oath_branding_project_id` project is in, you will need to
+  manually set `IAP_DOMAIN` environment variable**
 
   ```
   IAP_DOMAIN="<project_id's organization domain>"
@@ -157,7 +157,7 @@ IAP application or resources.
 - Set the IAP domain in the configuration file
 
   ```
-  sed -i '/^comfyui_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//comfyui_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/comfyui.auto.tfvars
+  sed -i '/^llm-d_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//llm-d_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/llm-d.auto.tfvars
   ```
 
 ### Install Terraform 1.8.0+
@@ -175,19 +175,20 @@ IAP application or resources.
 ## Deploy
 
 ```
-${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-comfyui.sh
+${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-llm-d.sh
 ```
 
 ## Workflow
 
-The `deploy-comfyui.sh` script will perform the following steps:
+The `deploy-llm-d.sh` script will perform the following steps:
 
 - Set up base GKE cluster platform.
-- Create resources required to deploy ComfyUI on the GKE cluster and access it.
-- Deploy ComfyUI on `nvidia-l4` accelerator and make the ComfyUI accessible
-  through Identity-Aware Proxy.
+- Create resources required to deploy llm-d on the GKE cluster and access it.
+- Deploy a model server using vllm for Qwen3-0.6B inference on `nvidia-l4`
+  accelerator and make the model accessible through gradio chat backed by
+  Identity-Aware Proxy.
 
-## Verify ComfyUI deployment is up and running
+## Verify llm-d deployment is up and running
 
 - Set the environment variables
 
@@ -201,11 +202,67 @@ The `deploy-comfyui.sh` script will perform the following steps:
   ${cluster_credentials_command}
   ```
 
-- Check the ComfyUI deployment
+- Check the all the deployments
+
+  ```
+  kubectl get deployments -n llm-d
+  ```
+
+  You should see three deployments
+
+  ```
+  NAME                                                   READY   UP-TO-DATE   AVAILABLE   AGE
+  gaie-inference-scheduling-epp                          1/1     1            1           XXX
+  gradio-nvidia-l4                                       1/1     1            1           XXX
+  ms-inference-scheduling-llm-d-modelservice-nvidia-l4   2/2     2            2           XXX
+  ```
+
+  Note:
+
+  - gaie-inference-scheduling-epp is the Gateway API Inference Extension
+    endpoint picker.
+  - gradio-nvidia-l4 is the front end chat interface abstracting the model
+    server.
+  - ms-inference-scheduling-llm-d-modelservice-nvidia-l4 is the model server
+    running inference of Qwen3-0.6B.
+
+- Check all the resources
+
+  ```
+  kubectl get all  -n llm-d
+  ```
+
+  You should see output similar to the following:
+
+  ```
+  NAME                                                                  READY   STATUS    RESTARTS   AGE
+  pod/gaie-inference-scheduling-epp-7dcffd4498-97l6t                    1/1     Running   0          XXX
+  pod/gradio-6c4d4fdd65-xj5l9                                           1/1     Running   0          XXX
+  pod/ms-inference-scheduling-llm-d-modelservice-nvidia-l4-5b949bm42j   2/2     Running   0          XXX
+  pod/ms-inference-scheduling-llm-d-modelservice-nvidia-l4-5b949gzgn9   2/2     Running   0          XXX
+
+  NAME                                             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+  service/gaie-inference-scheduling-epp            ClusterIP   34.118.228.8     <none>        9002/TCP,9090/TCP   XXX
+  service/gaie-inference-scheduling-ips-18c12339   ClusterIP   None             <none>        54321/TCP           XXX
+  service/gradio-svc-nvidia-l4                     ClusterIP   34.118.237.115   <none>        8080/TCP            XXX
+
+  NAME                                                                   READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment.apps/gaie-inference-scheduling-epp                          1/1     1            1           XXX
+  deployment.apps/gradio                                                 1/1     1            1           XXX
+  deployment.apps/ms-inference-scheduling-llm-d-modelservice-nvidia-l4   2/2     2            2           XXX
+
+  NAME                                                                              DESIRED   CURRENT   READY   AGE
+  replicaset.apps/gaie-inference-scheduling-epp-7dcffd4498                          1         1         1       XXX
+  replicaset.apps/gradio-6c4d4fdd65                                                 1         1         1       XXX
+  replicaset.apps/ms-inference-scheduling-llm-d-modelservice-nvidia-l4-5b949cc64d   2         2         2       XXX
+  ```
+
+- Wait for the model server deployment to be ready before accessing the chat
+  interface.
 
   ```
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${comfyui_kubernetes_namespace} get deployment/${comfyui_app_name}-${comfyui_accelerator_type} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  "kubectl --namespace=${llm-d_kubernetes_namespace} get deployment/${llm-d_app_name}-${llm-d_accelerator_type} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
   ```
 
 - When the deployment is ready, you will output similar to the following

@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "helm_template" "llm-d_gaie_stack" {
-  name         = "gaie-${local.llm-d_release_name}"
-  namespace    = var.llm-d_kubernetes_namespace
+data "helm_template" "llmd_gaie_stack" {
+  name         = "gaie-${local.llmd_release_name}"
+  namespace    = var.llmd_kubernetes_namespace
   kube_version = var.kubernetes_version
   #create_namespace = var.kubernetes_namespace_create
 
-  #  repository = var.llm-d_infra_repo
+  #  repository = var.llmd_infra_repo
   chart   = var.gaie_chart
   version = var.gaie_chart_version
   values = [
@@ -49,18 +49,18 @@ data "helm_template" "llm-d_gaie_stack" {
 }
 
 
-resource "local_file" "llm-d_gaie_manifests" {
-  filename = "${local.namespace_directory}/${var.llm-d_kubernetes_namespace}/gaie/gaie.yaml"
-  content  = data.helm_template.llm-d_gaie_stack.manifest
+resource "local_file" "llmd_gaie_manifests" {
+  filename = "${local.namespace_directory}/${var.llmd_kubernetes_namespace}/gaie/gaie.yaml"
+  content  = data.helm_template.llmd_gaie_stack.manifest
 }
 
 
-module "kubectl_apply_llm-d_gaie_manifests" {
+module "kubectl_apply_llmd_gaie_manifests" {
   source                      = "../../../../modules/kubectl_apply"
   depends_on                  = [module.kubectl_apply_namespace, module.kubectl_apply_int_gateway_res]
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = local_file.llm-d_gaie_manifests.filename
+  manifest                    = local_file.llmd_gaie_manifests.filename
   manifest_includes_namespace = false
-  namespace                   = var.llm-d_kubernetes_namespace
+  namespace                   = var.llmd_kubernetes_namespace
 }

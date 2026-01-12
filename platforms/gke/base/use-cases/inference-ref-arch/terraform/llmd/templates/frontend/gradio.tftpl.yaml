@@ -15,23 +15,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gradio
+  name: ${deployment_name}
   namespace: ${namespace}
   labels:
-    app: gradio
+    app: ${deployment_name}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gradio
+      app: ${deployment_name}
   template:
     metadata:
       labels:
-        app: gradio
+        app: ${deployment_name}
     spec:
       containers:
-        - name: gradio
-          # REPLACE THIS with the image URL from Step 2
+        - name: ${deployment_name}
           image: ${image_destination}
           imagePullPolicy: Always
           ports:
@@ -63,4 +62,4 @@ spec:
       protocol: TCP
       targetPort: 7860
   selector:
-    app: gradio
+    app: ${deployment_name}

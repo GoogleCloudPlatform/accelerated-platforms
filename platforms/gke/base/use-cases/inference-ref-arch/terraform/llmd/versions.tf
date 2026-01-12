@@ -39,7 +39,7 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/llm-d-v1"
+    module_name = "cloud-solutions/llmd-v1"
   }
 }
 

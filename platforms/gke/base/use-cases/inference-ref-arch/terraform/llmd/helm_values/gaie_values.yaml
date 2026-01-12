@@ -46,4 +46,4 @@ inferencePool:
   modelServerType: vllm
   modelServers:
     matchLabels:
-      llm-d.ai/inferenceServing: "true"
+      llmd.ai/inferenceServing: "true"

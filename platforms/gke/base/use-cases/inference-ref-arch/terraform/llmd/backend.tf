@@ -14,7 +14,7 @@
 
 terraform {
   backend "gcs" {
-    bucket = "accelerated-platforms-dev-inf-llm-d-terraform"
-    prefix = "terraform/inference-ref-arch/terraform/llm-d"
+    bucket = "accelerated-platforms-dev-inf-llmd-terraform"
+    prefix = "terraform/inference-ref-arch/terraform/llmd"
   }
 }

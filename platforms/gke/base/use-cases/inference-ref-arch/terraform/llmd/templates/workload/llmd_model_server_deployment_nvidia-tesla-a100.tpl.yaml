@@ -21,15 +21,15 @@ spec:
   replicas: 2
   selector:
     matchLabels:
-      llm-d.ai/inferenceServing: "true"
-      llm-d.ai/model: random_model
-      llm-d.ai/role: decode
+      llmd.ai/inferenceServing: "true"
+      llmd.ai/model: random_model
+      llmd.ai/role: decode
   template:
     metadata:
       labels:
-        llm-d.ai/inferenceServing: "true"
-        llm-d.ai/model: random_model
-        llm-d.ai/role: decode
+        llmd.ai/inferenceServing: "true"
+        llmd.ai/model: random_model
+        llmd.ai/role: decode
     spec:
       initContainers:
         - name: routing-proxy
@@ -67,11 +67,11 @@ spec:
             volumeAttributes:
               secretProviderClass: ${huggingface_token_spc}
       nodeSelector:
-        cloud.google.com/compute-class: gpu-l4-24gb-s32-x1
+        cloud.google.com/compute-class: gpu-a100-40gb-x1
       tolerations:
-      - key: "components.gke.io/gke-managed-components"
-        operator: "Exists"
-        effect: "NoSchedule"
+        - key: "components.gke.io/gke-managed-components"
+          operator: "Exists"
+          effect: "NoSchedule"
       containers:
         - name: vllm
           image: ${cuda_image}
@@ -87,34 +87,34 @@ spec:
             - '{"kv_connector":"NixlConnector", "kv_role":"kv_both"}'
             - --disable-uvicorn-access-log
           env:
-          - name: CUDA_VISIBLE_DEVICES
-            value: "0"
-          - name: UCX_TLS
-            value: cuda_ipc,cuda_copy,tcp
-          - name: VLLM_NIXL_SIDE_CHANNEL_HOST
-            valueFrom:
-              fieldRef:
-                fieldPath: status.podIP
-          - name: VLLM_NIXL_SIDE_CHANNEL_PORT
-            value: "5557"
-          - name: VLLM_LOGGING_LEVEL
-            value: INFO
-          - name: DP_SIZE
-            value: "1"
-          - name: TP_SIZE
-            value: "1"
-          - name: DP_SIZE_LOCAL
-            value: "1"
-          - name: HF_HOME
-            value: /model-cache
-          - name: HF_TOKEN_PATH
-            value: /var/run/secrets/huggingface.co/token
+            - name: CUDA_VISIBLE_DEVICES
+              value: "0"
+            - name: UCX_TLS
+              value: cuda_ipc,cuda_copy,tcp
+            - name: VLLM_NIXL_SIDE_CHANNEL_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: VLLM_NIXL_SIDE_CHANNEL_PORT
+              value: "5557"
+            - name: VLLM_LOGGING_LEVEL
+              value: INFO
+            - name: DP_SIZE
+              value: "1"
+            - name: TP_SIZE
+              value: "1"
+            - name: DP_SIZE_LOCAL
+              value: "1"
+            - name: HF_HOME
+              value: /model-cache
+            - name: HF_TOKEN_PATH
+              value: /var/run/secrets/huggingface.co/token
           ports:
-          - containerPort: 5557
-            protocol: TCP
-          - containerPort: 8200
-            name: metrics
-            protocol: TCP
+            - containerPort: 5557
+              protocol: TCP
+            - containerPort: 8200
+              name: metrics
+              protocol: TCP
           livenessProbe:
             failureThreshold: 3
             httpGet:

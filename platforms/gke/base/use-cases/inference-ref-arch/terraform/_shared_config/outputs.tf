@@ -80,6 +80,26 @@ output "ira_online_tpu_vllm_image_url" {
   value = local.ira_online_tpu_vllm_image_url
 }
 
+output "llmd_accelerator_type" {
+  value = var.llmd_accelerator_type
+}
+
+output "llmd_endpoints_hostname" {
+  value = local.llmd_endpoints_hostname
+}
+
+output "llmd_iap_oath_branding_project_id" {
+  value = local.llmd_iap_oath_branding_project_id
+}
+
+output "llmd_kubernetes_namespace" {
+  value = var.llmd_kubernetes_namespace
+}
+
+output "llmd_ssl_certificate_name" {
+  value = local.llmd_endpoints_ssl_certificate_name
+}
+
 output "use_case" {
   value = "inference-ref-arch"
 }

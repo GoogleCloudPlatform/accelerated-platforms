@@ -1,1 +1,0 @@
-../_shared_config/llm-d_variables.tf

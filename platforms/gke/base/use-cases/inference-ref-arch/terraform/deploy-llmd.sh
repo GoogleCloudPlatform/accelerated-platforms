@@ -56,7 +56,7 @@ source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_enviro
 
 declare -a use_case_terraservices=(
   "initialize"
-  "llm-d"
+  "llmd"
 )
 for terraservice in "${use_case_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&

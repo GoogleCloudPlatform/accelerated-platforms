@@ -41,6 +41,24 @@
   up in `git status` again.
 - Removes the development `.gitignore` file.
 
+#### `update_tag_hf-model-vllm-gpu-tutorial.sh`
+
+- Updates the `hf-model-vllm-gpu-tutorial` on the remote repo with the current
+  commit from your local repo.
+
+#### `update_tag_hf-model-vllm-tpu-tutorial`
+
+- Updates the `hf-model-vllm-tpu-tutorial` on the remote repo with the current
+  commit from your local repo.
+
+#### `update_terraform_lock_files`
+
+- Searches for `version.tf` in the configured `search_directories`.
+- Display the current Terraform providers and versions in all the `version.tf`
+  files.
+- Updates the `.terraform.lock.hcl` for all of the `version.tf` files and stages
+  them for commit.
+
 ### `bin\helpers`
 
 #### `git.sh`

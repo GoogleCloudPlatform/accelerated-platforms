@@ -58,12 +58,13 @@ precedence over earlier ones:
   sed -i '/^platform_name[[:blank:]]*=/{h;s/=.*/= "'"${platform_name}"'"/};${x;/^$/{s//platform_name="'"${platform_name}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
   ```
 
-- Optional : Run the following step if you want to run ComfyUI on an accelerator
-  other than L4 which is the default accelerator for this deployment.
+- Optional : Run the following step if you want to run the model on an
+  accelerator other than L4 which is the default accelerator for this
+  deployment.
 
   ```
-  comfyui_accelerator_type="<ACCELERATOR>"
-  sed -i '/^llmd_accelerator_type[[:blank:]]*=/{h;s/=.*/= "'"${llmd_accelerator_type}"'"/};${x;/^$/{s//llmd_accelerator_type="'"${comfyui_accelerator_type}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/llmd.auto.tfvars
+  llmd_accelerator_type="<ACCELERATOR>"
+  sed -i '/^llmd_accelerator_type[[:blank:]]*=/{h;s/=.*/= "'"${llmd_accelerator_type}"'"/};${x;/^$/{s//llmd_accelerator_type="'"${llmd_accelerator_type}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/llmd.auto.tfvars
   ```
 
   Valid values for `ACCELERATOR` are:
@@ -281,9 +282,9 @@ The `deploy-llm-d.sh` script will perform the following steps:
 - Open the Chat URL in a web browser.
 
 > [!TIP]  
-> If the browser doesn't load ComfyUI, the SSL certificate could still be
-> getting provisioned. Check the status of the certificate by running the
-> following command:
+> If the browser doesn't load the Gradio chat interface, the SSL certificate
+> could still be getting provisioned. Check the status of the certificate by
+> running the following command:
 >
 > `gcloud compute ssl-certificates describe ${llmd_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
 >

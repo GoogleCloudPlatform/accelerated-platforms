@@ -19,21 +19,23 @@ locals {
   gradio_cloudbuild_service_account_name   = var.gradio_cloudbuild_service_account_name != null ? var.gradio_cloudbuild_service_account_name : local.cloudbuild_service_account_name
   gradio_cloudbuild_source_bucket_location = var.gradio_cloudbuild_source_bucket_location != null ? var.gradio_cloudbuild_source_bucket_location : local.cloudbuild_location
   gradio_cloudbuild_source_bucket_name     = var.gradio_cloudbuild_source_bucket_name != null ? var.gradio_cloudbuild_source_bucket_name : local.cloudbuild_source_bucket_name
-
-  llmd_backend_policy_name            = var.llmd_backend_policy_name != null ? var.llmd_backend_policy_name : "gaie-${local.llmd_release_name}"
-  llmd_default_name                   = "llmd"
-  llmd_endpoints_hostname             = var.llmd_endpoints_hostname != null ? var.llmd_endpoints_hostname : "llmd.${var.llmd_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
-  llmd_endpoints_ssl_certificate_name = "${local.unique_identifier_prefix}-${var.llmd_kubernetes_namespace}-external-gateway"
-  llmd_gateway_address_name           = "${local.unique_identifier_prefix}-${local.llmd_default_name}-external-gateway-https"
-  llmd_gateway_name_external          = var.llmd_gateway_name_external != null ? var.llmd_gateway_name_external : "${local.llmd_default_name}-gateway-external"
-  llmd_gateway_name_internal          = var.llmd_gateway_name_internal != null ? var.llmd_gateway_name_internal : "infra-${local.llmd_release_name}-inference-gateway"
-  llmd_httproute_name_external        = var.llmd_httproute_name_external != null ? var.llmd_httproute_name_external : "${local.llmd_default_name}-httproute-external"
-  llmd_httproute_name_internal        = var.llmd_httproute_name_internal != null ? var.llmd_httproute_name_internal : "${local.llmd_default_name}-${local.llmd_release_name}-internal"
-  llmd_iap_oath_branding_project_id   = var.llmd_iap_oath_branding_project_id != null ? var.llmd_iap_oath_branding_project_id : var.platform_default_project_id
-  llmd_inferencepool_name             = var.llmd_inferencepool_name != null ? var.llmd_inferencepool_name : "gaie-${local.llmd_release_name}"
-  llmd_modelserver_sa                 = var.llmd_modelserver_sa != null ? var.llmd_modelserver_sa : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelserver-sa"
-  llmd_ms_deployment_name             = var.llmd_ms_deployment_name != null ? var.llmd_ms_deployment_name : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelservice"
-  llmd_release_name                   = var.llmd_release_name != null ? var.llmd_release_name : "inference-scheduling"
+  llmd_backend_policy_name                 = var.llmd_backend_policy_name != null ? var.llmd_backend_policy_name : "gaie-${local.llmd_release_name}"
+  llmd_default_name                        = "llmd"
+  llmd_endpoints_hostname                  = var.llmd_endpoints_hostname != null ? var.llmd_endpoints_hostname : "llmd.${var.llmd_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
+  llmd_endpoints_ssl_certificate_name      = "${local.unique_identifier_prefix}-${var.llmd_kubernetes_namespace}-external-gateway"
+  llmd_gateway_address_name                = "${local.unique_identifier_prefix}-${local.llmd_default_name}-external-gateway-https"
+  llmd_gateway_name_external               = var.llmd_gateway_name_external != null ? var.llmd_gateway_name_external : "${local.llmd_default_name}-gateway-external"
+  llmd_gateway_name_internal               = var.llmd_gateway_name_internal != null ? var.llmd_gateway_name_internal : "infra-${local.llmd_release_name}-inference-gateway"
+  llmd_httproute_name_external             = var.llmd_httproute_name_external != null ? var.llmd_httproute_name_external : "${local.llmd_default_name}-httproute-external"
+  llmd_httproute_name_internal             = var.llmd_httproute_name_internal != null ? var.llmd_httproute_name_internal : "${local.llmd_default_name}-${local.llmd_release_name}-internal"
+  llmd_iap_oath_branding_project_id        = var.llmd_iap_oath_branding_project_id != null ? var.llmd_iap_oath_branding_project_id : var.platform_default_project_id
+  llmd_inferencepool_name                  = var.llmd_inferencepool_name != null ? var.llmd_inferencepool_name : "gaie-${local.llmd_release_name}"
+  llmd_modelserver_sa                      = var.llmd_modelserver_sa != null ? var.llmd_modelserver_sa : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelserver-sa"
+  llmd_ms_deployment_name                  = var.llmd_ms_deployment_name != null ? var.llmd_ms_deployment_name : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelservice"
+  llmd_release_name                        = var.llmd_release_name != null ? var.llmd_release_name : "inference-scheduling"
+  stress_test_service_account_project_id   = var.stress_test_service_account_project_id != null ? var.stress_test_service_account_project_id : var.platform_default_project_id
+  stress_test_service_account_email        = "${local.stress_test_service_account_name}@${local.stress_test_service_account_project_id}.iam.gserviceaccount.com"
+  stress_test_service_account_name         = "${local.unique_identifier_prefix}-${local.llmd_default_name}"
 }
 
 variable "gaie_chart" {
@@ -221,6 +223,12 @@ variable "llmd_release_name" {
   description = "Unique release name for the helm chart deployment."
   type        = any
   #  default = "inference-scheduling"
+}
+
+variable "stress_test_service_account_project_id" {
+  default     = null
+  description = "Project id where the service account for stress test will be created."
+  type        = string
 }
 
 variable "skip_tests" {

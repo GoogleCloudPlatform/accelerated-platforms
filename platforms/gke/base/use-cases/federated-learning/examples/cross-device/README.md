@@ -12,7 +12,7 @@ and follows the best practices the reference architecture establishes.
 The following diagram shows the deployment of the cross-device example with one
 client connected to the server:
 
-![Cross-device example architecture](/platforms/gke/base/use-cases/federated-learning/examples/cross-device/assets/cross-device.png "Cross-device example architecture")
+![Cross-device example architecture](/platforms/gke/base/use-cases/federated-learning/assets/cross-device.png "Cross-device example architecture")
 
 The private GKE cluster uses confidential nodes as its primary pool to help
 secure the data in use.

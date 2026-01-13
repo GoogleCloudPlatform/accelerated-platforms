@@ -303,9 +303,9 @@ route the request to the model server via llm-d's intelligent scheduling.
   role to the active `gcloud` account.
 
   ```shell
-  gcloud iam service-accounts add-iam-policy-binding ${stresstest_service_account_email} \
+  gcloud iam service-accounts add-iam-policy-binding ${stress_test_service_account_email} \
   --member="user:$(gcloud auth list --filter=status:ACTIVE --format="value(account)")" \
-  --project="${stresstest_service_account_project_id}" \
+  --project="${stress_test_service_account_project_id}" \
   --role="roles/iam.serviceAccountTokenCreator"
   ```
 

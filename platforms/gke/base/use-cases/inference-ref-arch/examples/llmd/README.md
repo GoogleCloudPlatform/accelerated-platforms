@@ -237,7 +237,8 @@ run the following steps add a HuggingFace read token to the secret manager.
   - gradio-nvidia-l4 is the front end chat interface abstracting the model
     server.
   - ms-inference-scheduling-llm-d-modelservice-nvidia-l4 is the model server
-    running inference of Qwen3-0.6B.
+    running inference of Qwen3-0.6B. It way take some time for this deployment
+    to be up completely depending upon the GPU availability
 
 - Check all the resources
 
@@ -331,7 +332,7 @@ route the request to the model server via llm-d's intelligent scheduling.
     {
       "iss": "${stress_test_service_account_email}",
       "sub": "${stress_test_service_account_email}",
-      "aud": "https://${llmd_endpoints_hostname}/api/chat/",
+      "aud": "https://${llmd_endpoints_hostname}/gradio_api/api/sync_chat/",
       "iat": $(date +%s),
       "exp": $((`date +%s` + 3600))
     }
@@ -345,13 +346,19 @@ route the request to the model server via llm-d's intelligent scheduling.
   - Run the script to trigger stress test.
 
     ```shell
-    python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/scripts/stress_test.py
+    export ${llmd_endpoints_hostname} | python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/scripts/stress_test.py
     ```
 
 - The response should look like this:
 
   ```shell
-  {"prompt_id":"XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX","number":##}
+  Starting PARALLEL Stress Test: XX Users, Target XX total requests.
+  Target URL: https://llmd.llmd.inf-dev.endpoints.XXXX.cloud.goog/gradio_api/api/sync_chat
+  [Req 17] User 16 | Latency: 1.83s | Status: 200
+  [Req 9] User 9 | Latency: 2.55s | Status: 200
+  [Req 19] User 18 | Latency: 2.77s | Status: 200
+  [Req 38] User 37 | Latency: 3.08s | Status: 200
+  [Req 4] User 2 | Latency: 3.40s | Status: 200
   ```
 
 ## Teardown

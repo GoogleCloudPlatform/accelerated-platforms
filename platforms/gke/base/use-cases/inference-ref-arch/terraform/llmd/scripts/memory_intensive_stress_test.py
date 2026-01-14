@@ -14,6 +14,7 @@
 
 import csv
 import json
+import os
 import re
 import threading
 import time
@@ -22,7 +23,8 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 
 # --- Configuration ---
-URL = "https://ENDPOINT/api/chat"
+llmd_endpoints_hostname = os.environ.get("llmd_endpoints_hostname", "localhost:7860")
+URL = "https://" + llmd_endpoints_hostname + "/gradio_api/api/sync_chat"
 TOKEN_FILE = "token.jwt"
 MODEL = "Qwen/Qwen3-0.6B"
 

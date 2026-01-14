@@ -181,13 +181,25 @@ ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy
 
 ## Workflow
 
-The `deploy-llm-d.sh` script will perform the following steps:
+The `deploy-llmd.sh` script will perform the following steps:
 
 - Set up base GKE cluster platform.
 - Create resources required to deploy llm-d on the GKE cluster and access it.
 - Deploy a model server using vllm for Qwen3-0.6B inference on `nvidia-l4`
   accelerator and make the model accessible through gradio chat backed by
   Identity-Aware Proxy.
+
+The model server uses Qwen3-0.6B model from HuggingFace which requires the model
+server deployment to have a read token. When the `deploy-llmd.sh` is completed,
+run the following steps add a HuggingFace read token to the secret manager.
+
+- [Generate a Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens)
+  with token type **Read**.
+- Add the toke to the secret manager
+  ```
+  HF_TOKEN_READ=<YOUR_HUGGINGFACE_READ_TOKEN>
+  echo ${HF_TOKEN_READ} | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} --data-file=- --project=${huggingface_secret_manager_project_id}
+  ```
 
 ## Verify llm-d deployment is up and running
 
@@ -206,7 +218,7 @@ The `deploy-llm-d.sh` script will perform the following steps:
 - Check the all the deployments
 
   ```
-  kubectl get deployments -n llmd
+  kubectl get deployments -n ${llmd_kubernetes_namespace}
   ```
 
   You should see three deployments

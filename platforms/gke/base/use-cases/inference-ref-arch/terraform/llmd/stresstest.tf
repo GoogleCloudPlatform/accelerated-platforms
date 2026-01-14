@@ -16,5 +16,20 @@ resource "google_service_account" "llmd_user" {
   account_id   = local.stress_test_service_account_name
   description  = "Terraform-managed service account for ${local.stress_test_service_account_name}"
   display_name = "${local.stress_test_service_account_name} service account"
-  project      = local.stress_test_service_account_name
+  project      = local.stress_test_service_account_project_id
+}
+
+resource "google_iap_web_backend_service_iam_member" "stress_test_sa_iap_https_resource_accessor" {
+  depends_on = [google_iap_web_backend_service_iam_member.service_account_iap_https_resource_accessor]
+  member     = google_service_account.llmd_user.member
+  role       = "roles/iap.httpsResourceAccessor"
+  project    = local.cluster_project_id
+  web_backend_service = basename(
+    one(
+      [
+        for backend in split(", ", data.kubernetes_resources.gateway.objects[0].metadata.annotations["networking.gke.io/backend-services"]) : backend
+        if can(regex(local.gradio_backend_service_regex, backend))
+      ]
+    )
+  )
 }

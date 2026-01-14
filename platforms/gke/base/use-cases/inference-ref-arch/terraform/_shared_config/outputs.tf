@@ -97,7 +97,7 @@ output "llmd_kubernetes_namespace" {
 }
 
 output "llmd_ms_deployment_name" {
-  value = var.llmd_ms_deployment_name
+  value = local.llmd_ms_deployment_name
 }
 
 output "llmd_ssl_certificate_name" {

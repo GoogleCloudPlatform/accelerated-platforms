@@ -13,3 +13,4 @@
 # limitations under the License.
 gradio==6.2.0
 requests==2.32.5
+thejsonlogger==0.0.3

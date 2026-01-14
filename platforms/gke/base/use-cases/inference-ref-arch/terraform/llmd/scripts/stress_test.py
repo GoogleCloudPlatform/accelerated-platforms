@@ -14,6 +14,7 @@
 
 import csv
 import json
+import os
 import re
 import threading
 import time
@@ -22,7 +23,10 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 
 # --- Configuration ---
-URL = "https://ENDPOINT/api/chat"
+# 1. UPDATED: Correct Endpoint for Gradio 6.x Synchronous Backdoor
+llmd_endpoints_hostname = os.environ.get("llmd_endpoints_hostname", "localhost:7860")
+URL = "https://" + llmd_endpoints_hostname + "/gradio_api/api/sync_chat"
+
 TOKEN_FILE = "token.jwt"
 MODEL = "Qwen/Qwen3-0.6B"
 SYSTEM_INSTRUCTION = "[System Note: You are a helpful assistant. Answer directly and concisely. Do not show your reasoning or internal thoughts.]\n\n"
@@ -53,12 +57,13 @@ def get_token():
         with open(TOKEN_FILE, "r") as f:
             return f.read().strip()
     except FileNotFoundError:
-        return None
+        return None  # Or handle error appropriately
 
 
 def clean_response(text):
     if not isinstance(text, str):
         return str(text)
+    # Remove <think> tags if model outputs them
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     return text.strip()
 
@@ -91,21 +96,48 @@ def run_user_session(user_id):
         else:
             current_message = f"Tell me more. (User {user_id}, Turn {len(history)+1})"
 
-        payload = {"data": [current_message, history, MODEL]}
+        # 2. UPDATED: Payload matches [api_msg, api_hist, api_model]
+        # Note: 'history' must be a list (even if empty) to match gr.State([])
+        payload = {
+            "data": [
+                current_message,  # Input 1: api_msg (Textbox)
+                history,  # Input 2: api_hist (State)
+                MODEL,  # Input 3: api_model (Dropdown)
+            ]
+        }
 
         try:
             start_time = time.time()
-            response = requests.post(URL, headers=headers, json=payload)
+            response = requests.post(URL, headers=headers, json=payload, timeout=60)
             duration = time.time() - start_time
 
             status = response.status_code
             clean_len = 0
 
             if status == 200:
-                raw = response.json().get("data", [""])[0]
+                # Gradio 6.x /call/ returns {"event_id": "..."}
+                # Gradio 6.x /api/ (if available) returns data directly
+                # Because we used queue=False, /call/sync_chat SHOULD return data directly.
+                # However, strictly strictly, /gradio_api/call/ returns data inside "data" key list.
+
+                resp_json = response.json()
+
+                # Robust parsing for different Gradio return shapes
+                if "event_id" in resp_json and "data" not in resp_json:
+                    # This catches if the server accidentally went Async
+                    raw = f"ASYNC_EVENT_ID: {resp_json['event_id']}"
+                else:
+                    # Standard Synchronous Return: {"data": ["Response String"]}
+                    raw = resp_json.get("data", [""])[0]
+
                 cleaned = clean_response(raw)
                 clean_len = len(cleaned)
+
+                # Append to history for context in next turn
+                # Gradio expects history as list of lists: [[msg, resp], ...]
                 history.append([current_message, cleaned])
+            else:
+                print(f"Error Status {status}: {response.text}")
 
             # Log to CSV (Thread Safe Append)
             with open(LOG_FILE, mode="a", newline="") as f:
@@ -125,7 +157,7 @@ def run_user_session(user_id):
             )
 
         except Exception as e:
-            print(f"User {user_id} Error: {e}")
+            print(f"User {user_id} Connection Error: {e}")
             time.sleep(1)
 
 
@@ -139,6 +171,7 @@ def main():
     print(
         f"Starting PARALLEL Stress Test: {CONCURRENT_USERS} Users, Target {TOTAL_REQUESTS} total requests."
     )
+    print(f"Target URL: {URL}")
 
     with ThreadPoolExecutor(max_workers=CONCURRENT_USERS) as executor:
         # Launch the users

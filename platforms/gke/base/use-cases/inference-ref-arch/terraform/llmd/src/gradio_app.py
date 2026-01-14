@@ -147,7 +147,7 @@ class LLMGradioApp:
 
     def build_ui(self):
         """Constructs the Gradio UI Blocks."""
-        with gr.Blocks(title="LLM Routing Interface") as demo:
+        with gr.Blocks(title="LLM Routing Interface") as chat_ui:
             gr.Markdown("## Your personal chat assistant")
 
             with gr.Row():
@@ -160,15 +160,31 @@ class LLMGradioApp:
 
             # Pass self.chat bound method
             gr.ChatInterface(fn=self.chat, additional_inputs=[model_dropdown])
-        return demo
+            # ---------------------------------------------------------
+            # Synchronous API for programmatic access
+            # ---------------------------------------------------------
+            api_msg = gr.Textbox(visible=False)
+            api_hist = gr.State(value=[])
+            api_model = gr.Dropdown(choices=list(self.allowed_models), visible=False)
+
+            # We register a hidden button click event.
+            # CRITICAL: queue=False forces the server to wait and return the JSON result.
+            btn = gr.Button(visible=False)
+            btn.click(
+                fn=self.chat,
+                inputs=[api_msg, api_hist, api_model],
+                outputs=[gr.Textbox()],
+                api_name="sync_chat",
+                queue=False,
+            )
+        return chat_ui
 
     def launch(self, server_name="0.0.0.0", server_port=7860):
         """Builds and launches the app."""
-        demo = self.build_ui()
-        demo.launch(server_name=server_name, server_port=server_port)
+        chat_ui = self.build_ui()
+        chat_ui.launch(server_name=server_name, server_port=server_port)
 
 
 if __name__ == "__main__":
-    # Instantiate and run
     app = LLMGradioApp()
     app.launch()

@@ -109,7 +109,7 @@ Google Colab Enterprise. If you are in another environment and it is not
 available, it can be found [here](https://pypi.org/project/nbconvert/)
 
 1. Run the nbconvert command in your notebook. In this example, we are using
-   `gsutil` to copy the notebook to the Colab Enterprise notebook.
+   `gcloud storage` to copy the notebook to the Colab Enterprise notebook.
 
    ```sh
    !jupyter nbconvert --to python Fine-tune-Llama-Google-Colab.ipynb

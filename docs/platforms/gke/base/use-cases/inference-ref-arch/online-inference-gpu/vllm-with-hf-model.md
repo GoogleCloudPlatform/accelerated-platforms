@@ -190,7 +190,7 @@ This example is built on top of the
       export ACCELERATOR_TYPE="h200"
       ```
 
-    - **NVIDIA RTX 6000 96GB**:
+    - **NVIDIA RTX PRO 6000 96GB**:
 
       ```shell
       export ACCELERATOR_TYPE="rtx-pro-6000"

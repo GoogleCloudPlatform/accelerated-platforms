@@ -35,6 +35,9 @@ locals {
   ira_batch_pubsub_prompt_messages_topic_dead_letter_name        = var.ira_batch_pubsub_prompt_messages_topic_dead_letter_name != null ? var.ira_batch_pubsub_prompt_messages_topic_dead_letter_name : "${local.unique_identifier_prefix}-prompt-messages-topic-dead-letter"
   ira_batch_pubsub_prompt_messages_topic_name                    = var.ira_batch_pubsub_prompt_messages_topic_name != null ? var.ira_batch_pubsub_prompt_messages_topic_name : "${local.unique_identifier_prefix}-prompt-messages-topic"
 
+  ira_offline_batch_cpu_dataset_downloader_image_url = var.ira_offline_batch_cpu_dataset_downloader_image_url != null ? var.ira_offline_batch_cpu_dataset_downloader_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/offline-batch-dataset-downloader:latest"
+  ira_offline_batch_cpu_worker_image_url             = var.ira_offline_batch_cpu_worker_image_url != null ? var.ira_offline_batch_cpu_worker_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/offline-batch-worker:latest"
+
   ira_online_gpu_diffusers_flux_image_url        = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
   ira_online_gpu_kubernetes_namespace_name       = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_kubernetes_service_account_name = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
@@ -121,6 +124,18 @@ variable "ira_batch_pubsub_prompt_messages_topic_dead_letter_name" {
 variable "ira_batch_pubsub_prompt_messages_topic_name" {
   default     = null
   description = "The name of the Pub/Sub topic for prompt messages."
+  type        = string
+}
+
+variable "ira_offline_batch_cpu_dataset_downloader_image_url" {
+  default     = null
+  description = "The URL for the CPU offline batch dataset downloader container image."
+  type        = string
+}
+
+variable "ira_offline_batch_cpu_worker_image_url" {
+  default     = null
+  description = "The URL for the CPU offline batch worker container image."
   type        = string
 }
 

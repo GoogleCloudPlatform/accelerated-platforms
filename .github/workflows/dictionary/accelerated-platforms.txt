@@ -55,6 +55,7 @@ pretrained
 psutil
 qwiklabs
 rayutil
+rtxpro
 rueth
 safetensors
 scann

@@ -58,7 +58,7 @@ replacements:
       name: benchmark
     targets:
       - fieldPaths:
-          - spec.template.spec.serviceAccountName
+          - spec.template.spec.
         select:
           kind: Job
           name: inference-perf

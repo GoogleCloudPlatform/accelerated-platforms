@@ -49,15 +49,17 @@ Configure the environment variables
 
 - Select an accelerator.
 
-  | Model                          | l4  | h100 | h200 |
-  | ------------------------------ | --- | ---- | ---- |
-  | gemma-3-1b-it                  | ✅  | ❌   | ❌   |
-  | gemma-3-4b-it                  | ✅  | ❌   | ❌   |
-  | gemma-3-27b-it                 | ✅  | ✅   | ✅   |
-  | gpt-oss-20b                    | ✅  | ✅   | ✅   |
-  | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   |
-  | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   |
-  | qwen3-32b                      | ✅  | ✅   | ✅   |
+- Select an accelerator.
+
+  | Model                          | l4  | h100 | h200 | RTX Pro 6000 |
+  | ------------------------------ | --- | ---- | ---- | ------------ |
+  | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
+  | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
+  | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
+  | gpt-oss-20b                    | ✅  | ✅   | ✅   | ✅           |
+  | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
+  | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
+  | qwen3-32b                      | ✅  | ✅   | ✅   | ✅           |
 
   - **NVIDIA Tesla L4 24GB**:
 
@@ -75,6 +77,12 @@ Configure the environment variables
 
     ```shell
     export ACCELERATOR_TYPE="h200"
+    ```
+
+  - **NVIDIA RTX PRO 6000 96GB**:
+
+    ```shell
+    export ACCELERATOR_TYPE="rtx-pro-6000"
     ```
 
   Ensure that you have enough quota in your project to provision the selected

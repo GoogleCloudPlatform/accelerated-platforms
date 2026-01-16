@@ -54,6 +54,7 @@ prereqs
 psutil
 qwiklabs
 rayutil
+rtxpro
 rueth
 safetensors
 scann

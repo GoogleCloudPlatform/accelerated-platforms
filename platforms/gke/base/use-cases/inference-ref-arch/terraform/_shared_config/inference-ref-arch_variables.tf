@@ -35,10 +35,20 @@ locals {
   ira_batch_pubsub_prompt_messages_topic_dead_letter_name        = var.ira_batch_pubsub_prompt_messages_topic_dead_letter_name != null ? var.ira_batch_pubsub_prompt_messages_topic_dead_letter_name : "${local.unique_identifier_prefix}-prompt-messages-topic-dead-letter"
   ira_batch_pubsub_prompt_messages_topic_name                    = var.ira_batch_pubsub_prompt_messages_topic_name != null ? var.ira_batch_pubsub_prompt_messages_topic_name : "${local.unique_identifier_prefix}-prompt-messages-topic"
 
-  ira_offline_batch_cpu_dataset_downloader_image_url = var.ira_offline_batch_cpu_dataset_downloader_image_url != null ? var.ira_offline_batch_cpu_dataset_downloader_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/offline-batch-dataset-downloader:latest"
-  ira_offline_batch_cpu_worker_image_url             = var.ira_offline_batch_cpu_worker_image_url != null ? var.ira_offline_batch_cpu_worker_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/offline-batch-worker:latest"
-  ira_offline_batch_dataset_bucket_name              = var.ira_offline_batch_dataset_bucket_name != null ? var.ira_offline_batch_dataset_bucket_name : "${local.ira_offline_batch_project_id}-${local.unique_identifier_prefix}-dataset"
-  ira_offline_batch_project_id                       = var.ira_offline_batch_project_id != null ? var.ira_offline_batch_project_id : var.platform_default_project_id
+  ira_offline_batch_cpu_dataset_downloader_image_url                       = var.ira_offline_batch_cpu_dataset_downloader_image_url != null ? var.ira_offline_batch_cpu_dataset_downloader_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/offline-batch-dataset-downloader:latest"
+  ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name       = var.ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name != null ? var.ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name : "${local.unique_identifier_prefix}-offline-batch-dataset-downloader-cpu"
+  ira_offline_batch_cpu_dataset_downloader_kubernetes_service_account_name = var.ira_offline_batch_cpu_dataset_downloader_kubernetes_service_account_name != null ? var.ira_offline_batch_cpu_dataset_downloader_kubernetes_service_account_name : "${local.unique_identifier_prefix}-offline-batch-dataset-downloader-cpu"
+
+  ira_offline_batch_cpu_worker_image_url                       = var.ira_offline_batch_cpu_worker_image_url != null ? var.ira_offline_batch_cpu_worker_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/offline-batch-worker:latest"
+  ira_offline_batch_cpu_worker_kubernetes_namespace_name       = var.ira_offline_batch_cpu_worker_kubernetes_namespace_name != null ? var.ira_offline_batch_cpu_worker_kubernetes_namespace_name : "${local.unique_identifier_prefix}-offline-batch-worker-cpu"
+  ira_offline_batch_cpu_worker_kubernetes_service_account_name = var.ira_offline_batch_cpu_worker_kubernetes_service_account_name != null ? var.ira_offline_batch_cpu_worker_kubernetes_service_account_name : "${local.unique_identifier_prefix}-offline-batch-worker-cpu"
+
+  ira_offline_batch_dataset_bucket_name = var.ira_offline_batch_dataset_bucket_name != null ? var.ira_offline_batch_dataset_bucket_name : "${local.ira_offline_batch_project_id}-${local.unique_identifier_prefix}-dataset"
+
+  ira_offline_batch_gpu_kubernetes_namespace_name       = var.ira_offline_batch_gpu_kubernetes_namespace_name != null ? var.ira_offline_batch_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-offline-batch-gpu"
+  ira_offline_batch_gpu_kubernetes_service_account_name = var.ira_offline_batch_gpu_kubernetes_service_account_name != null ? var.ira_offline_batch_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-offline-batch-gpu"
+
+  ira_offline_batch_project_id = var.ira_offline_batch_project_id != null ? var.ira_offline_batch_project_id : var.platform_default_project_id
 
   ira_online_gpu_diffusers_flux_image_url        = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
   ira_online_gpu_kubernetes_namespace_name       = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
@@ -135,15 +145,51 @@ variable "ira_offline_batch_cpu_dataset_downloader_image_url" {
   type        = string
 }
 
+variable "ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace for the offline batch CPU dataset downloader workloads."
+  type        = string
+}
+
+variable "ira_offline_batch_cpu_dataset_downloader_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account for the offline batch CPU dataset downloader workloads."
+  type        = string
+}
+
 variable "ira_offline_batch_cpu_worker_image_url" {
   default     = null
   description = "The URL for the CPU offline batch worker container image."
   type        = string
 }
 
+variable "ira_offline_batch_cpu_worker_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace for the offline batch CPU worker workloads."
+  type        = string
+}
+
+variable "ira_offline_batch_cpu_worker_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account for the offline batch CPU worker workloads."
+  type        = string
+}
+
 variable "ira_offline_batch_dataset_bucket_name" {
   default     = null
   description = "The name of the Cloud Storage bucket used to store the offline batch dataset."
+  type        = string
+}
+
+variable "ira_offline_batch_gpu_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace for the offline batch GPU inference workloads."
+  type        = string
+}
+
+variable "ira_offline_batch_gpu_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account for the offline batch GPU inference workloads."
   type        = string
 }
 

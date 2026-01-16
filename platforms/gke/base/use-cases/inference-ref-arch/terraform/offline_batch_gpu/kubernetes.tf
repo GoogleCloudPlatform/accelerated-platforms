@@ -17,20 +17,20 @@ locals {
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
 
   workloads = {
-    ira_batch_gpu = {
-      directory       = "${local.namespaces_directory}/${local.ira_batch_gpu_kubernetes_namespace_name}"
-      namespace       = local.ira_batch_gpu_kubernetes_namespace_name
-      service_account = local.ira_batch_gpu_kubernetes_service_account_name
+    ira_offline_batch_gpu = {
+      directory       = "${local.namespaces_directory}/${local.ira_offline_batch_gpu_kubernetes_namespace_name}"
+      namespace       = local.ira_offline_batch_gpu_kubernetes_namespace_name
+      service_account = local.ira_offline_batch_gpu_kubernetes_service_account_name
     }
-    ira_batch_cpu_pubsub_subscriber = {
-      directory       = "${local.namespaces_directory}/${local.ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name}"
-      namespace       = local.ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name
-      service_account = local.ira_batch_cpu_pubsub_subscriber_kubernetes_service_account_name
+    ira__offline_batch_cpu_dataset_downloader = {
+      directory       = "${local.namespaces_directory}/${local.ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name}"
+      namespace       = local.ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name
+      service_account = local.ira_offline_batch_cpu_dataset_downloader_kubernetes_service_account_name
     }
-    ira_batch_cpu_load_generator = {
-      directory       = "${local.namespaces_directory}/${local.ira_batch_cpu_load_generator_kubernetes_namespace_name}"
-      namespace       = local.ira_batch_cpu_load_generator_kubernetes_namespace_name
-      service_account = local.ira_batch_cpu_load_generator_kubernetes_service_account_name
+    ira_offline_batch_cpu_worker = {
+      directory       = "${local.namespaces_directory}/${local.ira_offline_batch_cpu_worker_kubernetes_namespace_name}"
+      namespace       = local.ira_offline_batch_cpu_worker_kubernetes_namespace_name
+      service_account = local.ira_offline_batch_cpu_worker_kubernetes_service_account_name
     }
   }
 

@@ -37,6 +37,8 @@ locals {
 
   ira_offline_batch_cpu_dataset_downloader_image_url = var.ira_offline_batch_cpu_dataset_downloader_image_url != null ? var.ira_offline_batch_cpu_dataset_downloader_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/offline-batch-dataset-downloader:latest"
   ira_offline_batch_cpu_worker_image_url             = var.ira_offline_batch_cpu_worker_image_url != null ? var.ira_offline_batch_cpu_worker_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/offline-batch-worker:latest"
+  ira_offline_batch_dataset_bucket_name              = var.ira_offline_batch_dataset_bucket_name != null ? var.ira_offline_batch_dataset_bucket_name : "${local.ira_offline_batch_project_id}-${local.unique_identifier_prefix}-dataset"
+  ira_offline_batch_project_id                       = var.ira_offline_batch_project_id != null ? var.ira_offline_batch_project_id : var.platform_default_project_id
 
   ira_online_gpu_diffusers_flux_image_url        = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
   ira_online_gpu_kubernetes_namespace_name       = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
@@ -136,6 +138,18 @@ variable "ira_offline_batch_cpu_dataset_downloader_image_url" {
 variable "ira_offline_batch_cpu_worker_image_url" {
   default     = null
   description = "The URL for the CPU offline batch worker container image."
+  type        = string
+}
+
+variable "ira_offline_batch_dataset_bucket_name" {
+  default     = null
+  description = "The name of the Cloud Storage bucket used to store the offline batch dataset."
+  type        = string
+}
+
+variable "ira_offline_batch_project_id" {
+  default     = null
+  description = "The GCP project ID for the offline batch inference workloads."
   type        = string
 }
 

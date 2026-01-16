@@ -17,3 +17,8 @@ data "google_storage_bucket" "hub_models" {
   project = local.huggingface_hub_models_bucket_project_id
 }
 
+resource "google_storage_bucket" "dataset" {
+  name     = local.ira_offline_batch_dataset_bucket_name
+  project  = local.ira_offline_batch_project_id
+  location = local.cluster_region
+}

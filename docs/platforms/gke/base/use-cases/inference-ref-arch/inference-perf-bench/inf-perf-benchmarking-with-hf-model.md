@@ -342,14 +342,15 @@ inference-perf             Complete   1/1           ###        ###
 
 ## Analyze and Interpret Results
 
-The output reports (JSON files) are stored in the <GCS Bucket> contain all the
+The output reports (JSON files) are stored in the
+**_accelerated-platforms-dev-inf-dev-inf-perf-results_** contain all the
 measured metrics for each load stage
 
 Download the report and run inference-perf to create the throughput and latency
 curves
 
 ```shell
-   gsutil -m cp -r gs://${RESULTS_BUCKET}/ .
+   gsutil -m cp -r gs://accelerated-platforms-dev-inf-dev-inf-perf-results/ .
 
    inference-perf --analyze  .
 

@@ -1,4 +1,4 @@
-⚙️ GKE Inference Benchmarking with inference-perf (OSS)
+# GKE Inference Benchmarking with inference-perf
 
 This example sets up a benchmarking job on Google Kubernetes Engine (GKE),
 leveraging the Inference-reference-architecture for model deployment and the
@@ -14,21 +14,159 @@ traffic and ensure the load generation is external to the model server pods.
 This implementation deploys the inference-perf tool as a Kubernetes Job and can
 be alternatively deployed as a Helm Chart as well
 
-📝 Prerequisites
+## Before you begin
 
-Deploy one of the following reference architectures
+- The
+  [GKE Inference reference implementation](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
+  is deployed and configured.
 
-- [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
-- [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
+- Get access to the models.
 
-Cloud CLI (gcloud): Authenticated to your project. kubectl: Configured to access
-your cluster inference-perf: pip install inference-perf in your terminal
+  - For Gemma:
 
-## Run the Inference-perf Terraform
+    - Consented to the license on [Kaggle](https://www.kaggle.com/) using a
+      Hugging Face account.
+      - [**google/gemma**](https://www.kaggle.com/models/google/gemma).
 
-1. Creates the GCS bucket for storing inference-perf results
-2. Create the Kubernetes service account for the inference-perf workload
-3. Grants the required IAM workload identity permissions for KSA
+  - For Llama:
+    - Accept the terms of the license on the Hugging Face model page.
+      - [**meta-llama/Llama-4-Scout-17B-16E-Instruct**](https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct)
+      - [**meta-llama/Llama-3.3-70B-Instruct**](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct)
+
+- Ensure your
+  [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
+  has been added to Secret Manager.
+
+- Deploy one of the following reference architectures for either GPUs or TPUs
+
+  - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
+  - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
+
+### Requirements
+
+This guide was designed to be run from
+[Cloud Shell](https://cloud.google.com/shell) in the Google Cloud console. Cloud
+Shell has the following tools installed:
+
+- [Google Cloud Command Line Interface (`gcloud` CLI)](https://cloud.google.com/cli)
+- `curl`
+- `envsubst`
+- `jq`
+- `kubectl`
+- `sponge`
+- `telnet`
+- `wget`
+- pip install inference-perf
+
+## Workflow
+
+This example will run through the following steps:
+
+1. Apply the inference_perf_bench terraform, which will:
+
+   - Create the GCS bucket for storing inference-perf results
+   - Create the Kubernetes service account for the inference-perf workload
+   - Grant the required IAM workload identity permissions for KSA
+
+2. Create the custom kubernetes manifest for the benchmarking job
+3. Run the benchmarking job for a load test on the vLLM service
+4. Collect the google managed prometheus metrics to generate reports
+5. Push the results from the benchmark run
+6. Use the inference perf library to analyze the results and create performance
+   curves
+
+## Resources Created
+
+- Cloud Storage Buckets
+  - Inference-perf results bucket
+  - Dataset bucket
+- Kubernetes Service Account in the inf-dev-online-gpu / inf-dev-online-tpu
+  namespace
+- IAM Permissions for Kubernetes service account
+  - roles/logging.Viewer
+  - roles/monitoring.Viewer
+  - roles/monitoring.metricsScopesViewer
+  - roles/secretmanager.secretAccessor for Hugging Face token in Secret Manager
+  - roles/storage.bucketViewer for results bucket
+  - roles/storage.objectUser for results bucket
+
+## Pull the source code
+
+- Open [Cloud Shell](https://cloud.google.com/shell).
+
+- Clone the repository and set the repository directory environment variable.
+
+  ```shell
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms && \
+  export ACP_REPO_DIR="$(pwd)"
+  ```
+
+To set the `ACP_REPO_DIR` value for new shell instances, write the value to your
+shell initialization file.
+
+`bash`
+
+```shell
+sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.bashrc
+```
+
+`zsh`
+
+```shell
+sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
+```
+
+## Configuration
+
+Terraform loads variables in the following order, with later sources taking
+precedence over earlier ones:
+
+- Environment variables (`TF_VAR_<variable_name>`)
+- Any `*.auto.tfvars` or files, processed in lexical order of their filenames.
+- Any `-var` and `-var-file` options on the command line, in the order they are
+  provided.
+
+For more information about providing values for Terraform input variables, see
+[Terraform input variables](https://developer.hashicorp.com/terraform/language/values/variables).
+
+- Set the platform default project ID
+
+  ```shell
+  export TF_VAR_platform_default_project_id="<PROJECT_ID>"
+  ```
+
+  **-- OR --**
+
+  ```shell
+  vi ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
+  ```
+
+  ```hcl
+  platform_default_project_id = "<PROJECT_ID>"
+  ```
+
+### Install Terraform 1.8.0+
+
+> [!IMPORTANT]  
+> At the time this guide was written, Cloud Shell had Terraform v1.5.7 installed
+> by default. Terraform version 1.8.0 or later is required for this guide.
+
+- Check the terraform version in your cloud shell
+
+  ```shell
+    'terraform version'
+  ```
+
+- Run the `install_terraform.sh` script to install Terraform 1.8.0.
+
+  ```shell
+  "${ACP_REPO_DIR}/tools/bin/install_terraform.sh"
+  ```
+
+## Deploy
+
+### Run Terraform to create the resources
 
 ```shell
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
@@ -45,9 +183,9 @@ rm tfplan
 The inference-perf tool is configured entirely via the kubernetes manifest to
 create a ConfigMap and job.yaml defining the model, dataset, and load pattern.
 
-Configure the environment variables
+### Configure the environment variables
 
-- Select an accelerator.
+#### For GPUs:
 
 - Select an accelerator.
 
@@ -85,9 +223,32 @@ Configure the environment variables
     export ACCELERATOR_TYPE="rtx-pro-6000"
     ```
 
-  Ensure that you have enough quota in your project to provision the selected
-  accelerator type. For more information, see about viewing GPU quotas, see
-  [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
+#### For TPUs:
+
+- Select an accelerator.
+
+  | Model          | v5e | v6e |
+  | -------------- | --- | --- |
+  | gemma-3-1b-it  | ✅  | ❌  |
+  | gemma-3-4b-it  | ✅  | ❌  |
+  | gemma-3-27b-it | ✅  | ✅  |
+  | qwen3-32b      | ✅  | ✅  |
+
+  - **v5e**:
+
+    ```shell
+    export ACCELERATOR_TYPE="v5e"
+    ```
+
+  - **v56e**:
+
+    ```shell
+    export ACCELERATOR_TYPE="v6e"
+    ```
+
+Ensure that you have enough quota in your project to provision the selected
+accelerator type. For more information, see about viewing GPU quotas, see
+[Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
 - Choose the model.
 
@@ -153,21 +314,30 @@ Configure the environment variables
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/configure_benchmark.sh"
   ```
 
-  OPTIONAL: Customize the load scenario:
+  - OPTIONAL: Customize the load scenario:
 
-  This example is based on a Linear sweep load test of 7 stages \* 30s with a
-  synthetic load. Update the following file with your custom load scenario and
-  data set.
+  > This example is based on a Linear sweep load test of 7 stages \* 30s with a
+  > synthetic load. Update the following file with your custom load scenario and
+  > data set.
 
-  ```shell
-  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/configmap-benchmark.yaml
+  > >
 
-  ```
+  ````shell
+   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/configmap-benchmark.yaml"
+   ```
+  ````
 
 ## Deploy the benchmarking job.
 
 ```shell
 kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench"
+```
+
+When the job is complete, you will see the following:
+
+```text
+NAME                       STATUS     COMPLETIONS   DURATION   AGE
+inference-perf             Complete   1/1           ###        ###
 ```
 
 ## Analyze and Interpret Results
@@ -199,6 +369,18 @@ curves
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
+- Destroy the benchmarking resources.
+
+  > Note: This will destroy your benchmarking results GCS bucket
+
+  ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/inference_perf_bench && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init &&
+  terraform destroy -auto-approve
+  ```
+
 - Destroy the online GPU resources.
 
   ```shell
@@ -221,29 +403,20 @@ curves
 
 ## Key LLM Performance Metrics Metric Description Optimization Focus
 
-Time-to-First-Token (TTFT) Latency from request start to the first output token.
-Crucial for perceived responsiveness in chatbots.
+- **_Time-to-First-Token (TTFT)_**: Latency from request start to the first
+  output token. Crucial for perceived responsiveness in chatbots.
 
-Time-per-Output-Token (TPOT) Average time to generate subsequent tokens. Key
-measure of generation speed and sustained throughput.
+- **_Time-per-Output-Token (TPOT)_**: Average time to generate subsequent
+  tokens. Key measure of generation speed and sustained throughput.
 
-Total Latency (P95/P99) - End-to-end time for the entire response. Represents
-the experience of users with the slowest responses.
+- **_Total Latency (P95/P99)_**: End-to-end time for the entire response.
+  Represents the experience of users with the slowest responses.
 
-Throughput (Tokens/s) Total tokens generated per second under load. Measure of
-infrastructure efficiency and capacity.
+- **_Throughput (Tokens/s)_**: Total tokens generated per second under load.
+  Measure of infrastructure efficiency and capacity.
 
-Analysis Insights: High TTFT: Check your model server's configuration (e.g.,
-prefill settings, batching), network connectivity, or KV cache utilization (if
-using GKE Inference Gateway).
+📚 References
 
-High TPOT / Low Throughput: You may be hitting hardware saturation. Consider a
-more powerful accelerator or scaling up the number of replicas (which should be
-handled by HPA).
-
-📚 Resources Tool Description Official
-
-Reference inference-perf GenAI inference performance benchmarking tool for K8s.
-kubernetes-sigs/inference-perf (GitHub) GKE Inference Quickstart Provides
-verified configurations and benchmarks for deploying models on GKE. GKE AI/ML
-documentation
+- Stay-up to date with the official inference-perf tool to learn more about
+  supported datasets and load scenarios:
+  (https://github.com/kubernetes-sigs/inference-perf)

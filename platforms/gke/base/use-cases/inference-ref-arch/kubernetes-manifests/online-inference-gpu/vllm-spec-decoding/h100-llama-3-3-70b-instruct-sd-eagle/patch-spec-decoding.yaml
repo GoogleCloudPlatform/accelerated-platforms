@@ -12,18 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vllm
-  namespace: replaced-by-kustomize
-spec:
-  template:
-    spec:
-      containers:
-        - name: inference-server
-          resources:
-            limits:
-              nvidia.com/gpu: "2"
-            requests:
-              nvidia.com/gpu: "2"
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: "--speculative-config={\"method\": \"eagle\", \"model\": \"/gcs/yuhuili/eagle-llama3-instruct-8b\", \"num_speculative_tokens\":4, \"draft_tensor_parallel_size\": 1}"

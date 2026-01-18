@@ -12,18 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vllm
-  namespace: replaced-by-kustomize
-spec:
-  template:
-    spec:
-      containers:
-        - name: inference-server
-          resources:
-            limits:
-              nvidia.com/gpu: "2"
-            requests:
-              nvidia.com/gpu: "2"
+- op: add
+  path: /spec/template/spec/containers/0/args/-
+  value: "--speculative-config={\"method\": \"ngram\", \"num_speculative_tokens\":5, \"prompt_lookup_max\": 4}"

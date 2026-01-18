@@ -3,16 +3,32 @@
 This document implements online inference using GPUs on Google Kubernetes Engine
 (GKE) using vLLM with Speculative Decoding enabled.
 
-Speculative decoding is a powerful optimization technique that enhances LLM inference speed without compromising output quality. It utilizes a smaller, faster "draft" model or method to generate candidate tokens, which are then validated by the main, larger "target" model in a single, efficient step. This reduces the computational overhead and improves both throughput and inter-token latency. 
-vLLM supports several speculative decoding methods, each tailored to different use cases and performance requirements. See the [Speculative Decoding guide](https://docs.vllm.ai/en/v0.11.0/features/spec_decode.html) in the official vLLM docs for in depth concepts and examples. This guide will walk you through the implementation of the following Speculative Decoding methods with vLLM on GKE:
+Speculative decoding is a powerful optimization technique that enhances LLM
+inference speed without compromising output quality. It utilizes a smaller,
+faster "draft" model or method to generate candidate tokens, which are then
+validated by the main, larger "target" model in a single, efficient step. This
+reduces the computational overhead and improves both throughput and inter-token
+latency however, the technique potentially requires tuning for your specific use
+case as a low draft acceptance rate reduces the overall throughput (tok/s). vLLM
+supports several speculative decoding methods, each tailored to different use
+cases and performance requirements. See the
+[Speculative Decoding guide](https://docs.vllm.ai/en/stable/features/spec_decode/#speculative-decoding)
+in the official vLLM docs for in depth concepts and examples. This guide will
+walk you through the implementation of the following Speculative Decoding
+methods with vLLM on GKE:
 
-- [N-gram Based Speculative Decoding](https://docs.vllm.ai/en/v0.11.0/features/spec_decode.html#speculating-by-matching-n-grams-in-the-prompt)
+- [N-gram Based Speculative Decoding](https://docs.vllm.ai/en/stable/features/spec_decode/#speculating-by-matching-n-grams-in-the-prompt)
 
-  This method is particularly effective for tasks where the output is likely to contain sequences from the input prompt, such as summarization or question-answering. Instead of a draft model, it uses n-grams from the prompt to generate token proposals.
+  This method is particularly effective for tasks where the output is likely to
+  contain sequences from the input prompt, such as summarization or
+  question-answering. Instead of a draft model, it uses n-grams from the prompt
+  to generate token proposals.
 
-- [EAGLE Based Draft Models](https://docs.vllm.ai/en/v0.11.0/features/spec_decode.html#speculating-using-eagle-based-draft-models)
+- [EAGLE Based Draft Models](https://docs.vllm.ai/en/stable/features/spec_decode.html#speculating-using-eagle-based-draft-models)
 
-  [EAGLE (Extrapolation Algorithm for Greater Language-model Efficiency)](https://arxiv.org/pdf/2401.15077) is a state-of-the-art speculative decoding method that uses a lightweight draft model to generate multiple candidate tokens in parallel.
+  [EAGLE (Extrapolation Algorithm for Greater Language-model Efficiency)](https://arxiv.org/pdf/2401.15077)
+  is a state-of-the-art speculative decoding method that uses a lightweight
+  draft model to generate multiple candidate tokens in parallel.
 
 This example is built on top of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
@@ -142,10 +158,10 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model                  | h100 | h200 |
-    | ---------------------- | ---- | ---- |
-    | gemma-3-27b-it         | ✅   | ✅   |
-    | llama-3.3-70b-instruct | ✅   | ✅   |
+    | Model                  | h100 | rtx-pro-6000 |
+    | ---------------------- | ---- | ------------ |
+    | gemma-3-27b-it         | ✅   | ✅           |
+    | llama-3.3-70b-instruct | ✅   | ✅           |
 
     - **NVIDIA H100 80GB**:
 
@@ -153,17 +169,18 @@ This example is built on top of the
       export ACCELERATOR_TYPE="h100"
       ```
 
-    - **NVIDIA H200 141GB**:
+    - **NVIDIA RTX Pro 6000 96GB**:
 
       ```shell
-      export ACCELERATOR_TYPE="h200"
+      export ACCELERATOR_TYPE="rtx-pro-6000"
       ```
 
     Ensure that you have enough quota in your project to provision the selected
     accelerator type. For more information, see about viewing GPU quotas, see
     [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
-    The Kubernetes manifests invoked below are based on the
+    The Kubernetes manifests invoked below are aligned with the guidance
+    provided in
     [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
 
 ### Speculative Decoding with ngram
@@ -171,18 +188,20 @@ This example is built on top of the
 - Deploy the inference workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/h100-gemma-3-27b-it-sd-ngram"
+  export METHOD=ngram && \
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   ```
 
 - Watch the deployment until it is ready.
 
   ```shell
-  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-h100-gemma-3-27b-it-sd-ngram | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  export METHOD=ngram && \
+  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-h100-gemma-3-27b-it-sd-ngram --all-containers --tail 10"
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} --all-containers --tail 10"
   ```
 
-- When the deployment is ready, you will see the following:
+- When the deployment is ready, you will see output similar to the following:
 
   ```text
   NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
@@ -196,7 +215,8 @@ This example is built on top of the
   Start a port forward to the model service.
 
   ```shell
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-h100-gemma-3-27b-it-sd-ngram 8000:8000 >/dev/null & \
+  export METHOD=ngram && \
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} 8000:8000 >/dev/null & \
   PF_PID=$!
   ```
 
@@ -220,10 +240,13 @@ This example is built on top of the
   kill -9 ${PF_PID}
   ```
 
+- Measuring performance with inference-perf
+
 - Delete the workload.
 
   ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/h100-gemma-3-27b-it-sd-ngram"
+  export METHOD=ngram && \
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   ```
 
 ### Speculative Decoding with Eagle
@@ -231,22 +254,24 @@ This example is built on top of the
 - Deploy the inference workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/h100-llama-3-70b-it-sd-eagle"
+  export METHOD=eagle && \
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   ```
 
 - Watch the deployment until it is ready.
 
   ```shell
-  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-h100-llama-3-70b-it-sd-eagle | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  export METHOD=eagle && \
+  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-h100-llama-3-70b-it-sd-eagle --all-containers --tail 10"
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} --all-containers --tail 10"
   ```
 
-  When the deployment is ready, you will see the following:
+  When the deployment is ready, you will see output similar to the following:
 
   ```text
   NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-h100-llama-3-70b-it-sd-eagle         1/1     1            1           ###
+  vllm-h100-llama-3-3-70b-it-sd-eagle         1/1     1            1           ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -256,7 +281,8 @@ This example is built on top of the
   Start a port forward to the model service.
 
   ```shell
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-h100-llama-3-70b-it-sd-eagle 8000:8000 >/dev/null & \
+  export METHOD=eagle && \
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} 8000:8000 >/dev/null & \
   PF_PID=$!
   ```
 
@@ -283,7 +309,8 @@ This example is built on top of the
 - Delete the workload.
 
   ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/h100-llama-3-70b-it-sd-eagle"
+  export METHOD=eagle && \
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   ```
 
 ## Troubleshooting

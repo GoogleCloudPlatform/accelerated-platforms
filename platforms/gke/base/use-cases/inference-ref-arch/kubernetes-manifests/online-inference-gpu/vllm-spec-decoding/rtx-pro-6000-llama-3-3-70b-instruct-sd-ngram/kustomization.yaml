@@ -21,7 +21,7 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -h100-llama-3-70b-it-sd-eagle
+nameSuffix: -rtx-pro-6000-llama-3-3-70b-instruct-sd-ngram
 
 patches:
   - path: patch-resources.yaml

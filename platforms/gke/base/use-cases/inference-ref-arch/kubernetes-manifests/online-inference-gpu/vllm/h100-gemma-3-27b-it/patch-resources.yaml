@@ -26,8 +26,8 @@ spec:
             limits:
               cpu: "10"
               memory: 128G
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "2"
             requests:
               cpu: "10"
               memory: 128G
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "2"

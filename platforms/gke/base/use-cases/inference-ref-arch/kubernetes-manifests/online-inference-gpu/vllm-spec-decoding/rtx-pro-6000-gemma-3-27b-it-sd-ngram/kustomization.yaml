@@ -23,7 +23,6 @@ configMapGenerator:
 
 nameSuffix: -rtx-pro-6000-gemma-3-27b-it-sd-ngram
 
-
 patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
@@ -31,7 +30,6 @@ patches:
       kind: Deployment
       name: vllm
     path: patch-spec-decoding.yaml
-
 
 replacements:
   - source:

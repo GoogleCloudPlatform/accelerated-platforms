@@ -40,7 +40,6 @@ resource "local_file" "serviceaccount_gpu_yaml" {
 module "kubectl_apply_service_account_gpu" {
   depends_on = [
     local_file.serviceaccount_gpu_yaml,
-    # module.kubectl_apply_namespace,
   ]
 
   source = "../../../../modules/kubectl_apply"
@@ -65,7 +64,6 @@ resource "local_file" "serviceaccount_tpu_yaml" {
 module "kubectl_apply_service_account_tpu" {
   depends_on = [
     local_file.serviceaccount_tpu_yaml,
-    # module.kubectl_apply_namespace,
   ]
 
   source = "../../../../modules/kubectl_apply"

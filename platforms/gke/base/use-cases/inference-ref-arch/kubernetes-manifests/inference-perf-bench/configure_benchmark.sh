@@ -24,9 +24,9 @@ MY_PATH="$(
 
 source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
-envsubst < "${MY_PATH}/inference-perf-bench/templates/benchmarking-local.tpl.env" | sponge "${MY_PATH}/inference-perf-bench/benchmarking.env"
+envsubst < "${MY_PATH}/templates/benchmarking.tpl.env" | sponge "${MY_PATH}/benchmarking.env"
 
-envsubst < "${MY_PATH}/inference-perf-bench/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/inference-perf-bench/secretproviderclass-huggingface-tokens.yaml"
+envsubst < "${MY_PATH}/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/secretproviderclass-huggingface-tokens.yaml"
 
-cd "${MY_PATH}/inference-perf-bench"
+cd "${MY_PATH}"
 kustomize edit set nameprefix "${HF_MODEL_ID_HASH}-"

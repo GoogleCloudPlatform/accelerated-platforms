@@ -296,11 +296,9 @@ accelerator type. For more information, see about viewing GPU quotas, see
 
 - Export the vllm service endpoint
 
-  ````shell
-      export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-      ```
-
-  ````
+  ```shell
+  export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  ```
 
 - Source the environment configuration.
 

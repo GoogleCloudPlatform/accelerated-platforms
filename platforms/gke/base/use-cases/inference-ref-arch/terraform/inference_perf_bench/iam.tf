@@ -18,7 +18,7 @@ locals {
 }
 
 resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_ksa" {
-  bucket = data.google_storage_bucket.bench_results.name
+  bucket = google_storage_bucket.bench_results.name
   member = local.ira_inference_perf_bench_ksa_member
   role   = "roles/storage.objectUser"
 }

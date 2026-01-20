@@ -13,9 +13,8 @@
 # limitations under the License.
 
 locals {
-  kubeconfig_directory = "${path.module}/../../../../kubernetes/kubeconfig/"
+  kubeconfig_directory = "${path.module}/../../../../kubernetes/kubeconfig"
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
-
   ira_inference_perf_bench_directory = "${local.namespaces_directory}/${local.ira_inference_perf_bench_kubernetes_namespace_name}"
   manifests_directory_root           = "${path.module}/../../../../kubernetes/manifests"
   namespaces_directory               = "${local.manifests_directory_root}/namespace"
@@ -36,10 +35,12 @@ resource "local_file" "serviceaccount_gpu_yaml" {
   filename = "${local.ira_inference_perf_bench_manifests_directory}/serviceaccount-${local.ira_inference_perf_bench_kubernetes_service_account_name}.yaml"
 }
 
-module "kubectl_apply_service_account" {
+
+
+module "kubectl_apply_service_account_gpu" {
   depends_on = [
     local_file.serviceaccount_gpu_yaml,
-    module.kubectl_apply_namespace,
+    # module.kubectl_apply_namespace,
   ]
 
   source = "../../../../modules/kubectl_apply"
@@ -61,10 +62,10 @@ resource "local_file" "serviceaccount_tpu_yaml" {
   filename = "${local.ira_inference_perf_bench_manifests_directory}/serviceaccount-${local.ira_inference_perf_bench_kubernetes_service_account_name}.yaml"
 }
 
-module "kubectl_apply_service_account" {
+module "kubectl_apply_service_account_tpu" {
   depends_on = [
     local_file.serviceaccount_tpu_yaml,
-    module.kubectl_apply_namespace,
+    # module.kubectl_apply_namespace,
   ]
 
   source = "../../../../modules/kubectl_apply"

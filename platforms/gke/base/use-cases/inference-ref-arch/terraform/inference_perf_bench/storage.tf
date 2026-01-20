@@ -22,7 +22,7 @@ data "google_storage_bucket" "hub_models" {
 
 resource "google_storage_bucket" "bench_results" {
   name          = local.hub_models_bucket_bench_results_name
-  location      = "US-CENTRAL1"
+  location      = local.cluster_region
   force_destroy = false
   project       = var.platform_default_project_id
 }
@@ -31,7 +31,7 @@ resource "google_storage_bucket" "bench_results" {
 
 resource "google_storage_bucket" "bench_dataset" {
   name          = local.hub_models_bucket_bench_dataset_name
-  location      = "US-CENTRAL1"
+  location      = local.cluster_region
   force_destroy = false
   project       = var.platform_default_project_id
 }

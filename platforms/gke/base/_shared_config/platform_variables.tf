@@ -69,7 +69,7 @@ variable "platform_name" {
 }
 
 variable "resource_name_prefix" {
-  default     = "acp"
+  default     = "inf"
   description = "The prefix to add before each resource's name"
   type        = string
 

@@ -18,6 +18,12 @@
 #
 
 locals {
+  ira_inference_perf_bench_manifests_directory = "${path.module}/../../kubernetes-manifests/inference-perf-bench"
+  # cloudbuild_ar_image_repository_name = var.cloudbuild_ar_image_repository_name != null ? var.cloudbuild_ar_image_repository_name : "${local.unique_identifier_prefix}"
+  # cloudbuild_ar_image_repository_url  = "${local.cloudbuild_ar_location}-docker.pkg.dev/${local.cloudbuild_ar_project_id}/${local.cloudbuild_ar_image_repository_name}"
+  # cloudbuild_ar_location   = local.cluster_region # != null ? var.cloudbuild_ar_location : local.cloudbuild_location
+  # cloudbuild_ar_project_id = local.cluster_project_id # != null ? var.cloudbuild_ar_project_id : local.cloudbuild_project_id
+
   ira_batch_cpu_load_generator_image_url                       = var.ira_batch_cpu_load_generator_image_url != null ? var.ira_batch_cpu_load_generator_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/batch-load-generator:latest"
   ira_batch_cpu_load_generator_kubernetes_namespace_name       = var.ira_batch_cpu_load_generator_kubernetes_namespace_name != null ? var.ira_batch_cpu_load_generator_kubernetes_namespace_name : "${local.unique_identifier_prefix}-batch-load-generator-cpu"
   ira_batch_cpu_load_generator_kubernetes_service_account_name = var.ira_batch_cpu_load_generator_kubernetes_service_account_name != null ? var.ira_batch_cpu_load_generator_kubernetes_service_account_name : "${local.unique_identifier_prefix}-batch-load-generator-cpu"
@@ -46,11 +52,18 @@ locals {
   ira_online_tpu_vllm_image_url                  = var.ira_online_tpu_vllm_image_url != null ? var.ira_online_tpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/tpu:latest"
 
   ira_inference_perf_ksa_project_roles_list                = ["roles/logging.viewer", "roles/monitoring.viewer", "roles/storage.bucketViewer"]
-  ira_inference_perf_bench_kubernetes_namespace_name       = var.ira_inference_perf_bench_kubernetes_namespace_name != null ? var.ira_inference_perf_bench_kubernetes_namespace_name : "${local.unique_identifier_prefix}-inference_perf_bench"
-  ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference_perf_bench"
+  ira_inference_perf_bench_kubernetes_namespace_name       = var.ira_inference_perf_bench_kubernetes_namespace_name != null ? var.ira_inference_perf_bench_kubernetes_namespace_name : "${local.unique_identifier_prefix}-inference-perf-bench"
+  ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference-perf-bench"
   hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench_results"
   hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench_dataset"
 }
+
+# variable "cloudbuild_ar_image_repository_name" {
+#   default     = null
+#   description = "Name for artifact registry repository for container images."
+#   type        = string
+# }
+
 
 variable "ira_batch_cpu_load_generator_image_url" {
   default     = null

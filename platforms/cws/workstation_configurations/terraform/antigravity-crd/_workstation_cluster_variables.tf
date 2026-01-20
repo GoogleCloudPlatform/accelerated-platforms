@@ -1,0 +1,1 @@
+../../_shared_config/_workstation_cluster_variables.tf

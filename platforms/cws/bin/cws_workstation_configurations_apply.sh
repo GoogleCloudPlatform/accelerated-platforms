@@ -38,6 +38,7 @@ source "${ACP_PLATFORM_DIR}/workstation_configurations/_shared_config/scripts/se
 
 declare -a terraservices=(
   "initialize"
+  "antigravity-crd"
   "code-oss"
   "comfyui/cpu"
   "comfyui/nvidia"

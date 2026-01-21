@@ -11,69 +11,74 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 configMapGenerator:
-  - envs:
-      - benchmarking.env
-    name: benchmark
-    namespace: replaced-by-kustomize
+- envs:
+  - benchmarking.env
+  name: benchmark
+  namespace: replaced-by-kustomize
 
 patches:
-  - path: set-compute-class.yaml
+- path: set-compute-class.yaml
 
 replacements:
-  - source:
-      fieldPath: data.BENCHMARKING_KUBERNETES_NAMESPACE
+- source:
+    fieldPath: data.BENCHMARKING_KUBERNETES_NAMESPACE
+    kind: ConfigMap
+    name: benchmark
+  targets:
+  - fieldPaths:
+    - metadata.namespace
+    select:
       kind: ConfigMap
-      name: benchmark
-    targets:
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: ConfigMap
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: Job
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: SecretProviderClass
-  - source:
-      fieldPath: data.BENCHMARKING_KUBERNETES_SERVICE_ACCOUNT
-      kind: ConfigMap
-      name: benchmark
-    targets:
-      - fieldPaths:
-          - spec.template.spec.serviceAccountName
-        select:
-          kind: Job
-          name: inference-perf
-  - source:
-      fieldPath: data.RESULTS_BUCKET_NAME
-      kind: ConfigMap
-      name: benchmark
-    targets:
-      - fieldPaths:
-          - spec.template.spec.
-        select:
-          kind: Job
-          name: inference-perf
-  - source:
+  - fieldPaths:
+    - metadata.namespace
+    select:
+      kind: Job
+  - fieldPaths:
+    - metadata.namespace
+    select:
       kind: SecretProviderClass
-      name: huggingface-token-read
-      fieldPath: metadata.name
-    targets:
-      - select:
-          kind: Job
-          name: inference-perf
-        fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
+  - fieldPaths:
+    - metadata.namespace
+    select:
+      kind: PodMonitoring
+- source:
+    fieldPath: data.BENCHMARKING_KUBERNETES_SERVICE_ACCOUNT
+    kind: ConfigMap
+    name: benchmark
+  targets:
+  - fieldPaths:
+    - spec.template.spec.serviceAccountName
+    select:
+      kind: Job
+      name: inference-perf
+- source:
+    fieldPath: metadata.name
+    kind: SecretProviderClass
+    name: huggingface-token-read
+  targets:
+  - fieldPaths:
+    - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
+    select:
+      kind: Job
+      name: inference-perf
+- source:
+    kind: ConfigMap
+    name: benchmark
+    fieldPath: data.APP_LABEL
+  targets:
+    - select:
+        kind: PodMonitoring
+        name: vllm-podmonitoring
+      fieldPaths:
+        - metadata.labels.app
+        - spec.selector.matchLabels.app
 
 resources:
-  - configmap-benchmark.yaml
-  - job.yaml
-  - secretproviderclass-huggingface-tokens.yaml
+- configmap-benchmark.yaml
+- job.yaml
+- secretproviderclass-huggingface-tokens.yaml
+- pod-monitoring.yaml

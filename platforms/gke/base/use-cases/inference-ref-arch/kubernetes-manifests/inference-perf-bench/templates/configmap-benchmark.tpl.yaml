@@ -16,9 +16,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: inference-perf-config
-  namespace: $(BENCHMARKING_KUBERNETES_NAMESPACE)
+  namespace: ${BENCHMARKING_KUBERNETES_NAMESPACE}
 data:
-  config.yaml: |  
+  config.yaml: |
     load:
       type: constant
       interval: 1.0
@@ -35,11 +35,11 @@ data:
       streaming: true
     server:
       type: vllm
-      model_name: /gcs/$(HF_MODEL_ID)
-      base_url: http://vllm-$(ACCELERATOR_TYPE)-$(HF_MODEL_NAME).$(BENCHMARKING_KUBERNETES_NAMESPACE).svc.cluster.local:8000
+      model_name: /gcs/${HF_MODEL_ID}
+      base_url: http://vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
       ignore_eos: true
     tokenizer:
-      pretrained_model_name_or_path: $(HF_MODEL_ID)
+      pretrained_model_name_or_path:${HF_MODEL_ID}
     data:
       type: synthetic
       input_distribution:                                 # For synthetic/random types
@@ -70,6 +70,5 @@ data:
         per_stage: true
     storage:
       google_cloud_storage:               
-        bucket_name: "$(RESULTS_BUCKET_NAME)"   # Required GCS bucket
+        bucket_name: "${RESULTS_BUCKET_NAME}"   # Required GCS bucket
         report_file_prefix: null          # Optional filename prefix
-

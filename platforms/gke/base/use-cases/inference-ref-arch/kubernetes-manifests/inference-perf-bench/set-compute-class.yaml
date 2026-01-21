@@ -21,4 +21,4 @@ spec:
   template:
     spec:
       nodeSelector:
-        cloud.google.com/compute-class: cpu-n4-s-8
+        cloud.google.com/compute-class: model-download

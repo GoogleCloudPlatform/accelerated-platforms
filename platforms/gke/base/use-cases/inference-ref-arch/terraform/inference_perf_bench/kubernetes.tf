@@ -13,13 +13,13 @@
 # limitations under the License.
 
 locals {
-  kubeconfig_directory               = "${path.module}/../../../../kubernetes/kubeconfig"
-  kubeconfig_file                    = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
+  kubeconfig_directory                          = "${path.module}/../../../../kubernetes/kubeconfig"
+  kubeconfig_file                               = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
   ira_online_gpu_kubernetes_namespace_directory = "${local.namespaces_directory}/${local.ira_online_gpu_kubernetes_namespace_name}"
   ira_online_tpu_kubernetes_namespace_directory = "${local.namespaces_directory}/${local.ira_online_tpu_kubernetes_namespace_name}"
- 
-  manifests_directory_root           = "${path.module}/../../../../kubernetes/manifests"
-  namespaces_directory               = "${local.manifests_directory_root}/namespace"
+
+  manifests_directory_root = "${path.module}/../../../../kubernetes/manifests"
+  namespaces_directory     = "${local.manifests_directory_root}/namespace"
 }
 
 data "local_file" "kubeconfig" {

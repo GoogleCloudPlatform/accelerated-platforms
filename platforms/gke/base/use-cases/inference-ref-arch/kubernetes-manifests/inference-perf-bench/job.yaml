@@ -54,24 +54,3 @@ spec:
             volumeAttributes:
               secretProviderClass: huggingface-token-read
           name: huggingface-token
----
-apiVersion: monitoring.googleapis.com/v1
-kind: PodMonitoring
-metadata:
-  labels:
-    app: vllm-$(ACCELERATOR_TYPE)-$(HF_MODEL_NAME)
-  name: vllm-podmonitoring
-  namespace: replaced-by-kustomize
-spec:
-  endpoints:
-  - interval: 15s
-    path: "/metrics"
-    port: metrics
-  selector:
-    matchLabels:
-      app: replaced-by-kustomize
-  targetLabels:
-    metadata:
-    - pod
-    - container
-    - node

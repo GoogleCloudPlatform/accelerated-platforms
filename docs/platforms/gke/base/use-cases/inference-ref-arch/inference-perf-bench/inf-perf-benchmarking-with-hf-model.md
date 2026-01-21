@@ -312,17 +312,18 @@ accelerator type. For more information, see about viewing GPU quotas, see
   export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
-  [!TIP]
+  ### [!IMPORTANT] Speculative Decoding Benchmarking
 
-  > For Benchmarking with speculative decoding supported models append APP_LABEL
-  > with "-sd-${METHOD}" where METHOD can be "ngram" or "eagle" Example:
+  > For Benchmarking with speculative decoding supported models, append
+  > APP_LABEL with "-sd-${METHOD}" where METHOD can be "ngram" or "eagle"
+  > Example:
   >
   > > ```shell
   > >   export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   > > ```
   > >
   > > Verify the APP_LABEL
-
+  > >
   > > ```shell
   > >   echo $APP_LABEL
   > > ```

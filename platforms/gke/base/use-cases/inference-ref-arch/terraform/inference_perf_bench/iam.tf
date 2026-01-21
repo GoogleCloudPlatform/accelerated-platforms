@@ -20,7 +20,7 @@ locals {
 }
 # Results Bucket object level permissions
 resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_results_ksa" {
-  bucket = data.google_storage_bucket.hub_models_bucket_bench_results_name.name
+  bucket = google_storage_bucket.hub_models_bucket_bench_results_name.name
   for_each = tomap({
     inf_perf_online_gpu_service_account = local.ira_inference_perf_bench_online_gpu_ksa_member
     inf_perf_online_tpu_service_account = local.ira_inference_perf_bench_online_tpu_ksa_member
@@ -31,7 +31,7 @@ resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench
 
 # Dataset Bucket object level permissions
 resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_dataset_ksa" {
-  bucket = data.google_storage_bucket.hub_models_bucket_bench_dataset_name.name
+  bucket = google_storage_bucket.hub_models_bucket_bench_dataset_name.name
   for_each = tomap({
     inf_perf_online_gpu_service_account = local.ira_inference_perf_bench_online_gpu_ksa_member
     inf_perf_online_tpu_service_account = local.ira_inference_perf_bench_online_tpu_ksa_member
@@ -67,4 +67,5 @@ resource "google_secret_manager_secret_iam_member" "hub_ira_inference_perf_bench
   role      = "roles/secretmanager.secretAccessor"
   secret_id = data.google_secret_manager_secret.hub_access_token_read.secret_id
 }
+
 

@@ -312,6 +312,21 @@ accelerator type. For more information, see about viewing GPU quotas, see
   export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
+  [!TIP]
+
+  > For Benchmarking with speculative decoding supported models append APP_LABEL
+  > with "-sd-${METHOD}" where METHOD can be "ngram" or "eagle" Example:
+  >
+  > > ```shell
+  > >   export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
+  > > ```
+  > >
+  > > Verify the APP_LABEL
+
+  > > ```shell
+  > >   echo $APP_LABEL
+  > > ```
+
 - Source the environment configuration.
 
   ```shell
@@ -332,10 +347,10 @@ accelerator type. For more information, see about viewing GPU quotas, see
 
   > >
 
-  ````shell
+  ```shell
    cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/configmap-benchmark.yaml"
-   ```
-  ````
+
+  ```
 
 ## Deploy the benchmarking job.
 

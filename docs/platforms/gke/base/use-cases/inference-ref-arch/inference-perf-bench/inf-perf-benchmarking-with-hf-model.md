@@ -185,6 +185,18 @@ create a ConfigMap and job.yaml defining the model, dataset, and load pattern.
 
 ### Configure the environment variables
 
+Choose between GPU or TPU accelerators:
+
+```shell
+export ACCELERATOR="GPU"
+
+```
+
+```shell
+export ACCELERATOR="TPU"
+
+```
+
 #### For GPUs:
 
 - Select an accelerator.

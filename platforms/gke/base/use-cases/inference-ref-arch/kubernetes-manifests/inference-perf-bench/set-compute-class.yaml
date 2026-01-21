@@ -15,7 +15,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: inf-perf-benchmarking
+  name: inference-perf
   namespace: replaced-by-kustomize
 spec:
   template:

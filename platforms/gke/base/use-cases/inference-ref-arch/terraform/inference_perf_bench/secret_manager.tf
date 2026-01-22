@@ -13,6 +13,6 @@
 # limitations under the License.
 
 data "google_secret_manager_secret" "hub_access_token_read" {
-  project   = data.google_project.huggingface_secret_manager.project_id
+  project   = var.platform_default_project_id
   secret_id = local.huggingface_hub_access_token_read_secret_manager_secret_name
 }

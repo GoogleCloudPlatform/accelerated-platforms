@@ -18,6 +18,8 @@
 #
 
 locals {
+  cloudbuild_cws_ci_cd_registry_name = "${local.cloudbuild_cws_default_name}-ci-cd"
+
   cloudbuild_cws_default_name = "${local.unique_identifier_prefix}-cws"
 
   cloudbuild_cws_image_pipeline_connection_name              = var.cloudbuild_cws_image_pipeline_connection_name != null ? var.cloudbuild_cws_image_pipeline_connection_name : "${local.cloudbuild_cws_default_name}-image-pipeline"

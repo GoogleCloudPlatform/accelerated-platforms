@@ -17,17 +17,17 @@ data "google_service_account" "default" {
   project    = local.workstation_cluster_service_account_project_id
 }
 
-resource "google_workstations_workstation_config" "code_oss_n2s2" {
+resource "google_workstations_workstation_config" "antigravity_crd_n2s2" {
   provider = google-beta
 
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
   workstation_cluster_id = local.workstation_cluster_name
-  workstation_config_id  = "code-oss-n2s2"
+  workstation_config_id  = "antigravity-crd-n2s2"
 
   container {
-    image = "${local.cloudbuild_cws_image_registry_url}/code-oss:latest"
+    image = "${local.cloudbuild_cws_image_registry_url}/antigravity-crd:latest"
   }
 
   host {
@@ -49,24 +49,19 @@ resource "google_workstations_workstation_config" "code_oss_n2s2" {
       reclaim_policy = "RETAIN"
     }
   }
-
-  readiness_checks {
-    path = "/"
-    port = 80
-  }
 }
 
-resource "google_workstations_workstation_config" "code_oss_n2s4" {
+resource "google_workstations_workstation_config" "antigravity_crd_n2s4" {
   provider = google-beta
 
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
   workstation_cluster_id = local.workstation_cluster_name
-  workstation_config_id  = "code-oss-n2s4"
+  workstation_config_id  = "antigravity-crd-n2s4"
 
   container {
-    image = "${local.cloudbuild_cws_image_registry_url}/code-oss:latest"
+    image = "${local.cloudbuild_cws_image_registry_url}/antigravity-crd:latest"
   }
 
   host {
@@ -88,24 +83,19 @@ resource "google_workstations_workstation_config" "code_oss_n2s4" {
       reclaim_policy = "RETAIN"
     }
   }
-
-  readiness_checks {
-    path = "/"
-    port = 80
-  }
 }
 
-resource "google_workstations_workstation_config" "code_oss_n2s8" {
+resource "google_workstations_workstation_config" "antigravity_crd_n2s8" {
   provider = google-beta
 
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
   workstation_cluster_id = local.workstation_cluster_name
-  workstation_config_id  = "code-oss-n2s8"
+  workstation_config_id  = "antigravity-crd-n2s8"
 
   container {
-    image = "${local.cloudbuild_cws_image_registry_url}/code-oss:latest"
+    image = "${local.cloudbuild_cws_image_registry_url}/antigravity-crd:latest"
   }
 
   host {
@@ -126,10 +116,5 @@ resource "google_workstations_workstation_config" "code_oss_n2s8" {
       disk_type      = "pd-standard"
       reclaim_policy = "RETAIN"
     }
-  }
-
-  readiness_checks {
-    path = "/"
-    port = 80
   }
 }

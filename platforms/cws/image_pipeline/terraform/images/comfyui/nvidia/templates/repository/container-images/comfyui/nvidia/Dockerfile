@@ -44,7 +44,7 @@ ENV COMFY_VERSION="0.3.62"
 ENV CUDA_VERSION="12.6"
 ENV PYTORCH_VERSION="2.7.0"
 
-COPY --chmod=700 --from=my_context ./ /
+COPY --chmod=755 --from=my_context ./etc/workstation-startup.d/110_start-comfyui.sh /etc/workstation-startup.d/110_start-comfyui.sh
 
 ENV COMFYUI_DIR_NAME="ComfyUI"
 ENV LD_LIBRARY_PATH="/var/lib/nvidia/lib64"

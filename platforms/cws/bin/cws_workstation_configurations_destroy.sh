@@ -51,6 +51,7 @@ declare -a terraservices=(
   "comfyui/nvidia"
   "comfyui/cpu"
   "code-oss"
+  "antigravity-crd"
   "initialize"
 )
 

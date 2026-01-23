@@ -25,8 +25,10 @@ locals {
 data "local_file" "kubeconfig" {
   filename = local.kubeconfig_file
 }
+# --- GPU KUBERNETES RESOURCES ---
 
 resource "local_file" "serviceaccount_gpu_yaml" {
+  count = var.enable_gpu ? 1 : 0
   content = templatefile(
     "${path.module}/templates/kubernetes/serviceaccount_gpu.tftpl.yaml",
     {
@@ -37,14 +39,13 @@ resource "local_file" "serviceaccount_gpu_yaml" {
   filename = "${local.ira_online_gpu_kubernetes_namespace_directory}/serviceaccount-${local.ira_inference_perf_bench_kubernetes_service_account_name}.yaml"
 }
 
-
-
 module "kubectl_apply_service_account_gpu" {
+  source = "../../../../modules/kubectl_apply"
+  count  = var.enable_gpu ? 1 : 0
+
   depends_on = [
     local_file.serviceaccount_gpu_yaml,
   ]
-
-  source = "../../../../modules/kubectl_apply"
 
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
@@ -52,7 +53,10 @@ module "kubectl_apply_service_account_gpu" {
   manifest_includes_namespace = true
 }
 
+# --- TPU KUBERNETES RESOURCES ---
+
 resource "local_file" "serviceaccount_tpu_yaml" {
+  count = var.enable_tpu ? 1 : 0
   content = templatefile(
     "${path.module}/templates/kubernetes/serviceaccount_tpu.tftpl.yaml",
     {
@@ -64,15 +68,15 @@ resource "local_file" "serviceaccount_tpu_yaml" {
 }
 
 module "kubectl_apply_service_account_tpu" {
+  source = "../../../../modules/kubectl_apply"
+  count  = var.enable_tpu ? 1 : 0
+
   depends_on = [
     local_file.serviceaccount_tpu_yaml,
   ]
-
-  source = "../../../../modules/kubectl_apply"
 
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = "${local.ira_online_tpu_kubernetes_namespace_directory}/serviceaccount-${local.ira_inference_perf_bench_kubernetes_service_account_name}.yaml"
   manifest_includes_namespace = true
 }
-

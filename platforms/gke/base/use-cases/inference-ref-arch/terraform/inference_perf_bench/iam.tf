@@ -18,51 +18,64 @@ locals {
   ira_inference_perf_bench_online_tpu_ksa_member = "${local.cluster_wi_principal_prefix}/ns/${local.ira_online_tpu_kubernetes_namespace_name}/sa/${local.ira_inference_perf_bench_kubernetes_service_account_name}"
 
 }
-# Results Bucket object level permissions
-resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_results_ksa" {
+
+# --- GPU RESOURCES ---
+
+resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_results_gpu_ksa" {
+  count  = var.enable_gpu ? 1 : 0
   bucket = google_storage_bucket.bench_results.name
-  for_each = tomap({
-    inf_perf_online_gpu_service_account = local.ira_inference_perf_bench_online_gpu_ksa_member
-    inf_perf_online_tpu_service_account = local.ira_inference_perf_bench_online_tpu_ksa_member
-  })
-  member = each.value
-  role   = "roles/storage.objectUser"
+  member = local.ira_inference_perf_bench_online_gpu_ksa_member
+  role   = "roles/storage.objectUser" 
 }
 
-# Dataset Bucket object level permissions
-resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_dataset_ksa" {
+resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_dataset_gpu_ksa" {
+  count  = var.enable_gpu ? 1 : 0
   bucket = google_storage_bucket.bench_dataset.name
-  for_each = tomap({
-    inf_perf_online_gpu_service_account = local.ira_inference_perf_bench_online_gpu_ksa_member
-    inf_perf_online_tpu_service_account = local.ira_inference_perf_bench_online_tpu_ksa_member
-  })
-  member = each.value
+  member = local.ira_inference_perf_bench_online_gpu_ksa_member
   role   = "roles/storage.objectUser"
 }
 
-# Project level permissions  Inf-perf GPU KSA
 resource "google_project_iam_member" "hub_models_ira_inference_perf_bench_online_gpu_ksa_roles" {
+  for_each = var.enable_gpu ? toset(local.ira_inference_perf_ksa_project_roles_list) : []
   project  = var.platform_default_project_id
   member   = local.ira_inference_perf_bench_online_gpu_ksa_member
-  for_each = toset(local.ira_inference_perf_ksa_project_roles_list)
   role     = each.value
 }
-# Project level permissions for Inf-perf TPU KSA
+
+resource "google_secret_manager_secret_iam_member" "hub_ira_inference_perf_bench_access_token_gpu_ksa_read" {
+  count     = var.enable_gpu ? 1 : 0
+  member    = local.ira_inference_perf_bench_online_gpu_ksa_member
+  project   = data.google_secret_manager_secret.hub_access_token_read.project
+  role      = "roles/secretmanager.secretAccessor"
+  secret_id = data.google_secret_manager_secret.hub_access_token_read.secret_id
+}
+
+# --- TPU RESOURCES ---
+
+resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_results_tpu_ksa" {
+  count  = var.enable_tpu ? 1 : 0
+  bucket = google_storage_bucket.bench_results.name
+  member = local.ira_inference_perf_bench_online_tpu_ksa_member
+  role   = "roles/storage.objectUser"
+}
+
+resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_dataset_tpu_ksa" {
+  count  = var.enable_tpu ? 1 : 0
+  bucket = google_storage_bucket.bench_dataset.name
+  member = local.ira_inference_perf_bench_online_tpu_ksa_member
+  role   = "roles/storage.objectUser"
+}
+
 resource "google_project_iam_member" "hub_models_ira_inference_perf_bench_online_tpu_ksa_roles" {
+  for_each = var.enable_tpu ? toset(local.ira_inference_perf_ksa_project_roles_list) : []
   project  = var.platform_default_project_id
   member   = local.ira_inference_perf_bench_online_tpu_ksa_member
-  for_each = toset(local.ira_inference_perf_ksa_project_roles_list)
   role     = each.value
 }
 
-# SSM Secret level permissions
-
-resource "google_secret_manager_secret_iam_member" "hub_ira_inference_perf_bench_access_token_read" {
-  for_each = tomap({
-    inf_perf_online_gpu_service_account = local.ira_inference_perf_bench_online_gpu_ksa_member
-    inf_perf_online_tpu_service_account = local.ira_inference_perf_bench_online_tpu_ksa_member
-  })
-  member    = each.value
+resource "google_secret_manager_secret_iam_member" "hub_ira_inference_perf_bench_access_token_tpu_ksa_read" {
+  count     = var.enable_tpu ? 1 : 0
+  member    = local.ira_inference_perf_bench_online_tpu_ksa_member
   project   = data.google_secret_manager_secret.hub_access_token_read.project
   role      = "roles/secretmanager.secretAccessor"
   secret_id = data.google_secret_manager_secret.hub_access_token_read.secret_id

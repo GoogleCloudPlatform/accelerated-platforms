@@ -20,7 +20,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: vllm-sd
+      app: vllm
   strategy:
     type: Recreate
   template:
@@ -32,7 +32,7 @@ spec:
         gke-gcsfuse/volumes: "true"
       labels:
         ai.gke.io/model: replaced-by-kustomize
-        app: vllm-sd
+        app: vllm
     spec:
       containers:
         - args:

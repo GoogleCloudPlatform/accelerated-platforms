@@ -15,7 +15,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: vllm-sd
+  name: vllm
   namespace: replaced-by-kustomize
 spec:
   ports:
@@ -23,5 +23,5 @@ spec:
       protocol: TCP
       targetPort: 8000
   selector:
-    app: vllm-sd
+    app: vllm
   type: ClusterIP

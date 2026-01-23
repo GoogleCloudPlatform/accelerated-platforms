@@ -25,7 +25,7 @@ resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench
   count  = var.enable_gpu ? 1 : 0
   bucket = google_storage_bucket.bench_results.name
   member = local.ira_inference_perf_bench_online_gpu_ksa_member
-  role   = "roles/storage.objectUser" 
+  role   = "roles/storage.objectUser"
 }
 
 resource "google_storage_bucket_iam_member" "hub_models_ira_inference_perf_bench_dataset_gpu_ksa" {

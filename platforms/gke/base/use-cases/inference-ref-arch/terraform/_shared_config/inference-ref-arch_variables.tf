@@ -55,6 +55,7 @@ locals {
   ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference-perf-bench"
   hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench_results"
   hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench_dataset"
+  
 }
 
 # variable "cloudbuild_ar_image_repository_name" {
@@ -207,5 +208,17 @@ variable "hub_models_bucket_bench_dataset_name" {
   default     = null
   description = "The GCS bucket name for storage of inference-perf dataset."
   type        = string
+}
+
+variable "enable_gpu" {
+  default = false
+  description = "Turns on inference-perf resources for GPU cluster"
+  type    = bool
+}
+
+variable "enable_tpu" {
+  default = false
+  description = "Turns on inference-perf resources for TPU cluster"
+  type    = bool
 }
 

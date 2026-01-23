@@ -48,7 +48,7 @@ output "comfyui_ssl_certificate_name" {
   value = local.comfyui_endpoints_ssl_certificate_name
 }
 
-output "hub_models_bucket_bench_results_name " {
+output "hub_models_bucket_bench_results_name" {
   value = local.hub_models_bucket_bench_results_name 
 }
 

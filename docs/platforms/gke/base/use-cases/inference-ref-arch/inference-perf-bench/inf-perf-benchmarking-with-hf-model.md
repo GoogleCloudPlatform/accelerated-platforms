@@ -168,6 +168,15 @@ For more information about providing values for Terraform input variables, see
 
 ### Run Terraform to create the resources
 
+#### Update terraform environment variables depending on the accelerators being used (GPU/TPU/BOTH)
+
+Example
+
+```shell
+export TF_VAR_enable_gpu=true
+export TF_VAR_enable_tpu=false
+```
+
 ```shell
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/inference_perf_bench && \

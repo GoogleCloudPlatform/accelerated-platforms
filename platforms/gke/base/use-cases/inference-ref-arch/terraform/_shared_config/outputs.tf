@@ -49,11 +49,11 @@ output "comfyui_ssl_certificate_name" {
 }
 
 output "hub_models_bucket_bench_results_name" {
-  value = local.hub_models_bucket_bench_results_name 
+  value = local.hub_models_bucket_bench_results_name
 }
 
 output "hub_models_bucket_bench_dataset_name" {
-  value = local.hub_models_bucket_bench_dataset_name 
+  value = local.hub_models_bucket_bench_dataset_name
 }
 
 output "ira_batch_cpu_load_generator_image_url" {

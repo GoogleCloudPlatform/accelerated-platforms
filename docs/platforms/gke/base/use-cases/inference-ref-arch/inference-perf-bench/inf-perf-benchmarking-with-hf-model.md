@@ -384,7 +384,7 @@ kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inferenc
 
 The job can take up an estimated 15 mins to run through all the stages
 
-#### For TPUs:
+#### For GPUs:
 
 ```shell
 kubectl get jobs --namespace=${ira_online_gpu_kubernetes_namespace_name}
@@ -478,7 +478,3 @@ curves
 
 - **_Throughput (Tokens/s)_**: Total tokens generated per second under load.
   Measure of infrastructure efficiency and capacity.
-
-📚 References
-
--

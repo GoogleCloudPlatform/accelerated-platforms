@@ -48,8 +48,8 @@ locals {
 
   ira_inference_perf_ksa_project_roles_list                = ["roles/logging.viewer", "roles/monitoring.viewer", "roles/monitoring.metricsScopesViewer", "roles/storage.bucketViewer"]
   ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference-perf-bench"
-  hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench_results"
-  hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench_dataset"
+  hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench-results"
+  hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench-dataset"
 
 }
 

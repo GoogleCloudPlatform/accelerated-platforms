@@ -12,7 +12,12 @@ Inference-perf allows you to run your own benchmarks and simulate production
 traffic and ensure the load generation is external to the model server pods.
 
 This implementation deploys the inference-perf tool as a Kubernetes Job and can
-be alternatively deployed as a Helm Chart as well
+be customized with different load scenarios and datasets.
+
+Stay-up to date with the official
+[inference-perf tool](https://github.com/kubernetes-sigs/inference-perf) to
+learn more about all the supported features for metrics,load scenarios, and
+datasets.
 
 ## Before you begin
 
@@ -56,7 +61,13 @@ Shell has the following tools installed:
 - `sponge`
 - `telnet`
 - `wget`
-- pip install inference-perf
+
+Optionally install the inference-perf cli to be able to analyze the benchmarking
+results
+
+```shell
+pip install inference-perf
+```
 
 ## Workflow
 
@@ -65,13 +76,14 @@ This example will run through the following steps:
 1. Apply the inference_perf_bench terraform, which will:
 
    - Create the GCS bucket for storing inference-perf results
+   - Create the GCS bucket for storing a custom benchmarking dataset
    - Create the Kubernetes service account for the inference-perf workload
-   - Grant the required IAM workload identity permissions for KSA
+   - Grant the required IAM permissions for workload identity KSA
 
 2. Create the custom kubernetes manifest for the benchmarking job
 3. Run the benchmarking job for a load test on the vLLM service
 4. Collect the google managed prometheus metrics to generate reports
-5. Push the results from the benchmark run
+5. Push the results from the benchmark run to the results GCS bucket
 6. Use the inference perf library to analyze the results and create performance
    curves
 
@@ -352,13 +364,13 @@ accelerator type. For more information, see about viewing GPU quotas, see
   - OPTIONAL: Customize the load scenario:
 
   > This example is based on a Linear sweep load test of 7 stages \* 30s with a
-  > synthetic load. Update the following file with your custom load scenario and
-  > data set.
+  > synthetic load. Update "configmap-benchmark.yaml" file in the following
+  > directory with your custom load scenario and data set.
 
   > >
 
   ```shell
-   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/configmap-benchmark.yaml"
+   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/
 
   ```
 
@@ -368,24 +380,39 @@ accelerator type. For more information, see about viewing GPU quotas, see
 kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench"
 ```
 
+## Check the status of the job
+
+The job can take up an estimated 15 mins to run through all the stages
+
+#### For TPUs:
+
+```shell
+kubectl get jobs --namespace=${ira_online_gpu_kubernetes_namespace_name}
+```
+
+#### For TPUs:
+
+```shell
+kubectl get jobs --namespace=${ira_online_tpu_kubernetes_namespace_name}
+```
+
 When the job is complete, you will see the following:
 
 ```text
 NAME                       STATUS     COMPLETIONS   DURATION   AGE
-inference-perf             Complete   1/1           ###        ###
+######-inference-perf      Complete    1/1           15m       25m
 ```
 
 ## Analyze and Interpret Results
 
-The output reports (JSON files) are stored in the
-**_accelerated-platforms-dev-inf-dev-inf-perf-results_** contain all the
-measured metrics for each load stage
+The output reports (JSON files) can be viewed in benchmarking results bucket
+with metrics for each load stage
 
 Download the report and run inference-perf to create the throughput and latency
 curves
 
 ```shell
-   gsutil -m cp -r gs://accelerated-platforms-dev-inf-dev-inf-perf-results/ .
+   gsutil -m cp -r gs://${hub_models_bucket_bench_results_name}/ .
 
    inference-perf --analyze  .
 
@@ -393,7 +420,7 @@ curves
 
 ## Clean up
 
-- Delete the benchmarking workload.
+- Delete the benchmarking job.
 
   ```shell
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench"
@@ -407,7 +434,8 @@ curves
 
 - Destroy the benchmarking resources.
 
-  > Note: This will destroy your benchmarking results GCS bucket
+  > Note: This will only destroy your benchmarking results GCS bucket if its
+  > empty
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
@@ -453,6 +481,4 @@ curves
 
 📚 References
 
-- Stay-up to date with the official inference-perf tool to learn more about
-  supported datasets and load scenarios:
-  (https://github.com/kubernetes-sigs/inference-perf)
+-

@@ -21,17 +21,19 @@ data "google_storage_bucket" "hub_models" {
 ### GCS bucket for storage of benchmark results ###
 
 resource "google_storage_bucket" "bench_results" {
-  name          = local.hub_models_bucket_bench_results_name
-  location      = local.cluster_region
-  force_destroy = false
-  project       = var.platform_default_project_id
+  name                        = local.hub_models_bucket_bench_results_name
+  location                    = local.cluster_region
+  uniform_bucket_level_access = true
+  force_destroy               = false
+  project                     = var.platform_default_project_id
 }
 
 ### GCS bucket for storage of dataset ###
 
 resource "google_storage_bucket" "bench_dataset" {
-  name          = local.hub_models_bucket_bench_dataset_name
-  location      = local.cluster_region
-  force_destroy = false
-  project       = var.platform_default_project_id
+  name                        = local.hub_models_bucket_bench_dataset_name
+  location                    = local.cluster_region
+  uniform_bucket_level_access = true
+  force_destroy               = false
+  project                     = var.platform_default_project_id
 }

@@ -36,23 +36,23 @@ data:
     server:
       type: vllm
       model_name: /gcs/${HF_MODEL_ID}
-      base_url: http://vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
+      base_url: http://${APP_LABEL}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
       ignore_eos: true
     tokenizer:
-      pretrained_model_name_or_path:${HF_MODEL_ID}
+      pretrained_model_name_or_path: ${HF_MODEL_ID}
     data:
       type: synthetic
       input_distribution:                                 # For synthetic/random types
         min: 10                                           # Minimum prompt length (tokens)
         max: 100                                          # Maximum prompt length
         mean: 50                                          # Average length
-        std: 100                                           # Standard deviation
+        std: 10                                           # Standard deviation
         total_count: 7000                                  # Total prompts to generate. Choose a large number for sweep so that you don't run out of prompts as the QPS increases to saturation
       output_distribution:                                # Same structure as input_distribution
         min: 40
         max: 400
         mean: 200
-        std: 100
+        std: 50
         total_count: 7000
     metrics:
       type: prometheus
@@ -70,5 +70,5 @@ data:
         per_stage: true
     storage:
       google_cloud_storage:               
-        bucket_name: "${RESULTS_BUCKET_NAME}"   # Required GCS bucket
+        bucket_name: ${hub_models_bucket_bench_results_name}   # Required GCS bucket
         report_file_prefix: null          # Optional filename prefix

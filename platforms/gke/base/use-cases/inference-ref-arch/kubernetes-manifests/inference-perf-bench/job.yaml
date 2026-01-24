@@ -28,10 +28,13 @@ spec:
       serviceAccountName: replaced-by-kustomize
       containers:
         - name: inference-perf
+          env:
+            - name: HF_TOKEN_PATH
+              value: /var/run/secrets/huggingface.co/token
           image: quay.io/inference-perf/inference-perf:latest
           imagePullPolicy: Always
           command: ["inference-perf"]
-          args: ["--config_file", "/etc/config/config.yml"]
+          args: ["--config_file", "/etc/config/config.yaml"]
           volumeMounts:
             - name: config-volume
               mountPath: /etc/config
@@ -42,7 +45,7 @@ spec:
             requests:
               cpu: 200m
               ephemeral-storage: 10Gi
-              memory: 50Gi
+              memory: 10Gi
       restartPolicy: Never
       volumes:
         - name: config-volume

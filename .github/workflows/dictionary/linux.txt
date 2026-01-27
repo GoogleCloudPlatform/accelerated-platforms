@@ -1,6 +1,7 @@
 coreutils
 dbus
 dearmor
+dearmour
 dpkg
 gdmsession
 libbz

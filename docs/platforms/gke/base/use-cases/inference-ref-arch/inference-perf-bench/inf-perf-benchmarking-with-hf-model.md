@@ -26,9 +26,7 @@ datasets.
   is deployed and configured.
 
 - Get access to the models.
-
   - For Gemma:
-
     - Consented to the license on [Kaggle](https://www.kaggle.com/) using a
       Hugging Face account.
       - [**google/gemma**](https://www.kaggle.com/models/google/gemma).
@@ -43,7 +41,6 @@ datasets.
   has been added to Secret Manager.
 
 - Deploy one of the following reference architectures for either GPUs or TPUs
-
   - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
   - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
 
@@ -62,11 +59,12 @@ Shell has the following tools installed:
 - `telnet`
 - `wget`
 
-Optionally install the inference-perf cli to be able to analyze the benchmarking
-results
+Optionally install the inference-perf and matplot libraries to be able to create
+throughput vs latency curves
 
 ```shell
 pip install inference-perf
+pip install matplotlib
 ```
 
 ## Workflow
@@ -74,7 +72,6 @@ pip install inference-perf
 This example will run through the following steps:
 
 1. Apply the inference_perf_bench terraform, which will:
-
    - Create the GCS bucket for storing inference-perf results
    - Create the GCS bucket for storing a custom benchmarking dataset
    - Create the Kubernetes service account for the inference-perf workload
@@ -231,7 +228,6 @@ export ACCELERATOR="TPU"
   | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
   | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
   | qwen3-32b                      | ✅  | ✅   | ✅   | ✅           |
-
   - **NVIDIA Tesla L4 24GB**:
 
     ```shell
@@ -252,9 +248,13 @@ export ACCELERATOR="TPU"
 
   - **NVIDIA RTX PRO 6000 96GB**:
 
-    ```shell
-    export ACCELERATOR_TYPE="rtx-pro-6000"
-    ```
+        ```shell
+        export ACCELERATOR_TYPE="rtx-pro-6000"
+        ```
+
+    Ensure that you have enough quota in your project to provision the selected
+    accelerator type. For more information, see about viewing GPU quotas, see
+    [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
 #### For TPUs:
 
@@ -266,7 +266,6 @@ export ACCELERATOR="TPU"
   | gemma-3-4b-it  | ✅  | ❌  |
   | gemma-3-27b-it | ✅  | ✅  |
   | qwen3-32b      | ✅  | ✅  |
-
   - **v5e**:
 
     ```shell
@@ -275,16 +274,15 @@ export ACCELERATOR="TPU"
 
   - **v56e**:
 
-    ```shell
-    export ACCELERATOR_TYPE="v6e"
-    ```
+        ```shell
+        export ACCELERATOR_TYPE="v6e"
+        ```
 
-Ensure that you have enough quota in your project to provision the selected
-accelerator type. For more information, see about viewing GPU quotas, see
-[Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
+    Ensure that you have enough quota in your project to provision the selected
+    accelerator type. For more information, see about viewing TPU quotas, see
+    [Allocation quotas: TPU quota](https://cloud.google.com/compute/resource-usage#tpu_quota).
 
 - Choose the model.
-
   - **Gemma 3 1B Instruction-Tuned**:
 
     ```shell
@@ -327,17 +325,28 @@ accelerator type. For more information, see about viewing GPU quotas, see
     export HF_MODEL_ID="qwen/qwen3-32b"
     ```
 
-- Export the vllm service endpoint
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+  - Check the model name.
+
+    ```shell
+    echo "HF_MODEL_NAME=${HF_MODEL_NAME}"
+    ```
+
+- Export the vLLM service endpoint
 
   ```shell
   export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
-  ### [!IMPORTANT] Speculative Decoding Benchmarking
-
-  > For Benchmarking with speculative decoding supported models, append
-  > APP_LABEL with "-sd-${METHOD}" where METHOD can be "ngram" or "eagle"
-  > Example:
+  > [!IMPORTANT]  
+  > Speculative Decoding Benchmarking For Benchmarking with speculative decoding
+  > supported models, append APP_LABEL with "-sd-${METHOD}" where METHOD can be
+  > "ngram" or "eagle" Example:
   >
   > > ```shell
   > >   export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
@@ -349,12 +358,6 @@ accelerator type. For more information, see about viewing GPU quotas, see
   > >   echo $APP_LABEL
   > > ```
 
-- Source the environment configuration.
-
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
-
 - Configure the benchmarking job.
 
   ```shell
@@ -365,7 +368,9 @@ accelerator type. For more information, see about viewing GPU quotas, see
 
   > This example is based on a Linear sweep load test of 7 stages \* 30s with a
   > synthetic load. Update "configmap-benchmark.yaml" file in the following
-  > directory with your custom load scenario and data set.
+  > directory with your custom load scenario and data set. List of supported
+  > configurations can be found on the official [inference-perf]
+  > [https://github.com/kubernetes-sigs/inference-perf/blob/main/docs/config.md]
 
   > >
 
@@ -387,20 +392,22 @@ The job can take up an estimated 15 mins to run through all the stages
 #### For GPUs:
 
 ```shell
-kubectl get jobs --namespace=${ira_online_gpu_kubernetes_namespace_name}
+watch --color --interval 5 --no-title
+"kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1 1 1'"
 ```
 
 #### For TPUs:
 
 ```shell
-kubectl get jobs --namespace=${ira_online_tpu_kubernetes_namespace_name}
+watch --color --interval 5 --no-title
+"kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1 1 1'"
 ```
 
 When the job is complete, you will see the following:
 
 ```text
 NAME                       STATUS     COMPLETIONS   DURATION   AGE
-######-inference-perf      Complete    1/1           15m       25m
+XXXXXX-inference-perf      Complete    1/1           15m       25m
 ```
 
 ## Analyze and Interpret Results
@@ -413,10 +420,24 @@ curves
 
 ```shell
    gsutil -m cp -r gs://${hub_models_bucket_bench_results_name}/ .
-
+   cd ${hub_models_bucket_bench_results_name}/<report-name>
    inference-perf --analyze  .
 
 ```
+
+## Key LLM Performance Metrics Metric Description Optimization Focus
+
+- **_Time-to-First-Token (TTFT)_**: Latency from request start to the first
+  output token. Crucial for perceived responsiveness in chatbots.
+
+- **_Time-per-Output-Token (TPOT)_**: Average time to generate subsequent
+  tokens. Key measure of generation speed and sustained throughput.
+
+- **_Total Latency (P95/P99)_**: End-to-end time for the entire response.
+  Represents the experience of users with the slowest responses.
+
+- **_Throughput (Tokens/s)_**: Total tokens generated per second under load.
+  Measure of infrastructure efficiency and capacity.
 
 ## Clean up
 
@@ -434,8 +455,8 @@ curves
 
 - Destroy the benchmarking resources.
 
-  > Note: This will only destroy your benchmarking results GCS bucket if its
-  > empty
+  > Note: This will only destroy your benchmarking results GCS bucket only if
+  > its empty
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
@@ -464,17 +485,3 @@ curves
   terraform init &&
   terraform destroy -auto-approve
   ```
-
-## Key LLM Performance Metrics Metric Description Optimization Focus
-
-- **_Time-to-First-Token (TTFT)_**: Latency from request start to the first
-  output token. Crucial for perceived responsiveness in chatbots.
-
-- **_Time-per-Output-Token (TPOT)_**: Average time to generate subsequent
-  tokens. Key measure of generation speed and sustained throughput.
-
-- **_Total Latency (P95/P99)_**: End-to-end time for the entire response.
-  Represents the experience of users with the slowest responses.
-
-- **_Throughput (Tokens/s)_**: Total tokens generated per second under load.
-  Measure of infrastructure efficiency and capacity.

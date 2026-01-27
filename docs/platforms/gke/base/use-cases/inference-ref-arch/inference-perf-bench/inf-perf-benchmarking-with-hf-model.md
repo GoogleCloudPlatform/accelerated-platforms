@@ -272,11 +272,11 @@ export ACCELERATOR="TPU"
     export ACCELERATOR_TYPE="v5e"
     ```
 
-  - **v56e**:
+  - **v6e**:
 
-        ```shell
-        export ACCELERATOR_TYPE="v6e"
-        ```
+    ```shell
+      export ACCELERATOR_TYPE="v6e"
+    ```
 
     Ensure that you have enough quota in your project to provision the selected
     accelerator type. For more information, see about viewing TPU quotas, see

@@ -96,7 +96,7 @@ This example is built on top of the
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Build the container image for the CPU batch pubsub subscriber.
+- Build the container image for the CPU batch dataset downloader.
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
@@ -110,11 +110,11 @@ This example is built on top of the
 
   > The build usually takes 10 to 15 minutes.
 
-- Build the container image for the CPU batch load generator.
+- Build the container image for the CPU batch worker.
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/cpu/batch_load_generator && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/cpu/offline_batch_worker && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \

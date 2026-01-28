@@ -28,7 +28,7 @@ resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
     command     = <<-EOT
 gcloud builds submit \
---config="container-images/cpu/offline_batch_dataset_downloader/cloudbuild.yaml" \
+--config="container-images/cpu/offline-batch-dataset-downloader/cloudbuild.yaml" \
 --gcs-source-staging-dir="gs://${self.input.cloudbuild_source_bucket_name}/source" \
 --project="${self.input.cloudbuild_project_id}" \
 --quiet \
@@ -40,8 +40,8 @@ EOT
   }
 
   triggers_replace = {
-    cloudbuild_yaml_hash = filebase64sha256("${local.acp_root}/container-images/cpu/offline_batch_dataset_downloader/cloudbuild.yaml")
-    dockerfile_hash      = filebase64sha256("${local.acp_root}/container-images/cpu/offline_batch_dataset_downloader/Dockerfile")
-    source_hash          = sha256(join("", [for file in fileset("${local.acp_root}/container-images/cpu/offline_batch_dataset_downloader/src", "**") : filesha256("${local.acp_root}/container-images/cpu/offline_batch_dataset_downloader/src/${file}")]))
+    cloudbuild_yaml_hash = filebase64sha256("${local.acp_root}/container-images/cpu/offline-batch-dataset-downloader/cloudbuild.yaml")
+    dockerfile_hash      = filebase64sha256("${local.acp_root}/container-images/cpu/offline-batch-dataset-downloader/Dockerfile")
+    source_hash          = sha256(join("", [for file in fileset("${local.acp_root}/container-images/cpu/offline-batch-dataset-downloader/src", "**") : filesha256("${local.acp_root}/container-images/cpu/offline-batch-dataset-downloader/src/${file}")]))
   }
 }

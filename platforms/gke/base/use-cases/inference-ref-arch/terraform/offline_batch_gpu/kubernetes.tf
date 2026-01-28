@@ -22,7 +22,7 @@ locals {
       namespace       = local.ira_offline_batch_gpu_kubernetes_namespace_name
       service_account = local.ira_offline_batch_gpu_kubernetes_service_account_name
     }
-    ira__offline_batch_cpu_dataset_downloader = {
+    ira_offline_batch_cpu_dataset_downloader = {
       directory       = "${local.namespaces_directory}/${local.ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name}"
       namespace       = local.ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name
       service_account = local.ira_offline_batch_cpu_dataset_downloader_kubernetes_service_account_name

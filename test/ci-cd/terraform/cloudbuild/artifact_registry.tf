@@ -28,6 +28,15 @@ resource "google_artifact_registry_repository" "ci_cd" {
     }
   }
 
+  cleanup_policies {
+    action = "KEEP"
+    id     = "Keep 7 most recent versions"
+
+    most_recent_versions {
+      keep_count = 7
+    }
+  }
+
   docker_config {
     immutable_tags = false
   }

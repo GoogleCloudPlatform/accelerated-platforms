@@ -17,7 +17,6 @@ import logging
 import logging.config
 import math
 import os
-import sys
 
 from datasets import load_dataset
 from google.cloud import storage

@@ -67,6 +67,10 @@
       "path": ".github/workflows/dictionary/ray.txt"
     },
     {
+      "name": "retail",
+      "path": ".github/workflows/dictionary/retail.txt"
+    },
+    {
       "name": "shell",
       "path": ".github/workflows/dictionary/shell.txt"
     },

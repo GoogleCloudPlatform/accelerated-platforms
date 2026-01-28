@@ -304,6 +304,14 @@ run the following steps add a HuggingFace read token to the secret manager.
 > If the output of the command is `PROVISIONING`, it means the certificate has
 > not been provisioned yet. Wait for the status to change to `ACTIVE`
 
+## Create monitoring dashboard for llm-d
+
+- Run the following command to create a metric dashboard for llm-d in Cloud
+  Monitoring
+  ```sh
+  gcloud monitoring dashboards create --config-from-file=${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/templates/dashboard/llmd_dashboard.json
+  ```
+
 ## Stress test llm-d
 
 In this section you will spawn many requests to the gradio endpoint which will
@@ -349,21 +357,22 @@ route the request to the model server via llm-d's intelligent scheduling.
     python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/scripts/stress_test.py
     ```
 
-    ```shell
-    python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/scripts/memory_intensive_stress_test.py
-    ```
-
 - The response should look like this:
 
   ```shell
-  Starting PARALLEL Stress Test: XX Users, Target XX total requests.
-  Target URL: https://llmd.llmd.inf-dev.endpoints.XXXX.cloud.goog/gradio_api/api/sync_chat
-  [Req 17] User 16 | Latency: 1.83s | Status: 200
-  [Req 9] User 9 | Latency: 2.55s | Status: 200
-  [Req 19] User 18 | Latency: 2.77s | Status: 200
-  [Req 38] User 37 | Latency: 3.08s | Status: 200
-  [Req 4] User 2 | Latency: 3.40s | Status: 200
+  Starting QUEUE FILL Test: XXX Simultaneous Users...
+  Launching requests...
+  [Req XX] User XX | Latency: X.XXs | Status: 200
+  [Req XX] User XX | Latency: X.XXs | Status: 200
   ```
+
+- Let the stress test run and go to
+  [Cloud Monitoring Dashboard page](https://console.cloud.google.com/monitoring/dashboards?pli=1)
+  and search for `llm-d dashboard`. Open the dashboard.
+- You will see the metrics published by `vllm` and `gaie`. Note that for
+  `nvidia-l4` GPUs, some of the network metrics like
+  `Throughput TX Bytes per Pod` will missing as they are not supported by
+  `nvidia-l4` machine type.
 
 ## Teardown
 

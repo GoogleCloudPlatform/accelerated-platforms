@@ -15,15 +15,12 @@
 import json
 import logging
 import logging.config
+import math
 import os
-import random
 import sys
-import threading
-import time
 
-from google.api_core import exceptions as google_exceptions
-from google.cloud import pubsub_v1
-from google.cloud.pubsub_v1.types import BatchSettings, PublisherOptions
+from datasets import load_dataset
+from google.cloud import storage
 
 # --- LOGGING CONFIGURATION ---
 ROOT_LEVEL = "INFO"
@@ -62,196 +59,77 @@ logging.config.dictConfig(LOGGING_CONFIG)
 
 LOG = logging.getLogger(__name__)
 
-# --- CONFIGURATION ---
-PROJECT_ID = os.getenv("PROJECT_ID")
-MODEL_ID = os.getenv("MODEL_ID")
-TOPIC_ID = os.getenv("TOPIC_ID")
-TOTAL_MESSAGES = int(os.getenv("TOTAL_MESSAGES", "1000000"))
-PRINT_EVERY = int(os.getenv("PRINT_EVERY", "10000"))
+# --- Configuration ---
+# Fetch bucket name from environment variable
+BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
+GCS_PREFIX = "alpaca_shards"
+NUM_SHARDS = 10
 
 
-# --- JSON PAYLOAD GENERATOR ---
-class MistralPayloadGenerator:
-    """
-    Generates JSON payloads specific to vLLM/Mistral formatting.
-    """
-
-    def __init__(self):
-        self.model_id = MODEL_ID
-
-        self.system_roles = [
-            "You are a helpful AI assistant.",
-            "You are a cynical senior software engineer.",
-            "You are an expert in medieval history.",
-            "You are a creative writing tutor.",
-            "You are a Python code optimizer.",
-        ]
-
-        self.tasks = [
-            "Explain the significance of",
-            "Write a function to solve",
-            "Summarize the benefits of",
-            "Critique the logic of",
-            "Translate this phrase to Spanish:",
-            "Generate a haiku about",
-        ]
-
-        self.topics = [
-            "asynchronous I/O",
-            "Kubernetes sidecars",
-            "Roman aqueducts",
-            "quantum entanglement",
-            "garbage collection in Java",
-            "Rust ownership model",
-            "Docker multistage builds",
-            "SQL indexing strategies",
-        ]
-
-    def generate_payload(self):
-        # Randomize content to simulate real traffic
-        sys_role = random.choice(self.system_roles)
-        user_content = f"{random.choice(self.tasks)} {random.choice(self.topics)}."
-
-        # Construct the dictionary based on user requirements
-        message_dict = {
-            "model": self.model_id,
-            "messages": [
-                {"role": "system", "content": sys_role},
-                {"role": "user", "content": user_content},
-            ],
-            "max_tokens": 128,
-            "temperature": 0.7,
-        }
-
-        # Return as JSON string encoded to bytes (required for Pub/Sub)
-        return json.dumps(message_dict).encode("utf-8")
+def validate_config():
+    if not BUCKET_NAME:
+        LOG.error("❌ Error: Environment variable 'GCS_BUCKET_NAME' is not set.")
+        raise ValueError("GCS_BUCKET_NAME environment variable is required.")
 
 
-# --- PUBLISHING LOGIC ---
+def prepare_and_upload_shards():
+    validate_config()
 
-
-class PublishStats:
-    def __init__(self):
-        self.published = 0
-        self.success = 0
-        self.errors = 0
-        self.start_time = time.time()
-        self.lock = threading.Lock()
-
-    def callback(self, future):
-        try:
-            future.result()  # Raises exception if publish failed
-            with self.lock:
-                self.success += 1
-        except Exception as e:
-            with self.lock:
-                self.errors += 1
-
-
-def verify_access(publisher, topic_path, generator):
-    """
-    Sends a single message and WAITS for the result to ensure
-    credentials and topic existence are valid.
-    """
-    LOG.info(f"Performing pre-flight check on: {topic_path}...")
+    # 1. Initialize GCS Client
     try:
-        # Generate a dummy payload
-        data = generator.generate_payload()
-        # Publish and force a synchronous wait for the result
-        future = publisher.publish(topic_path, data)
-        future.result(timeout=10)  # Block until success or exception
-        LOG.info("✅ Access verified. Starting bulk generation.\n")
-        return True
-    except google_exceptions.PermissionDenied:
-        LOG.error(f"❌ ERROR: Permission Denied on topic '{topic_path}'.")
-        LOG.error("   Ensure the Service Account has 'Pub/Sub Publisher' role.")
-        return False
-    except google_exceptions.NotFound:
-        LOG.error(f"❌ ERROR: Topic '{topic_path}' does not exist.")
-        return False
+        storage_client = storage.Client()
+        bucket = storage_client.bucket(BUCKET_NAME)
+        # fast check if bucket exists (optional, but good for fail-fast)
+        if not bucket.exists():
+            LOG.error(
+                f"❌ Error: Bucket '{BUCKET_NAME}' does not exist or you lack permissions."
+            )
+            raise ValueError(f"Bucket '{BUCKET_NAME}' is not accessible.")
     except Exception as e:
-        LOG.error(f"❌ ERROR: Pre-flight check failed: {e}")
-        return False
+        LOG.error(f"❌ Error connecting to GCS: {e}")
+        raise e
 
-
-def main():
-    # 1. Batch Settings (Optimize Network)
-    # Group messages to reduce HTTP requests
-    batch_settings = BatchSettings(
-        max_messages=1000,  # Publish 1000 messages per batch
-        max_bytes=1 * 1024 * 1024,  # Or 1 MB per batch
-        max_latency=0.05,  # Wait 50ms max to fill batch
-    )
-
-    # 2. Flow Control (Optimize Memory)
-    # Prevent the loop from creating 1M objects in RAM instantly.
-    # If buffer has 5000 messages or 100MB, the loop will pause (Block).
-    publisher_options = PublisherOptions(
-        enable_message_ordering=False,
-        flow_control=pubsub_v1.types.PublishFlowControl(
-            message_limit=5000,
-            byte_limit=100 * 1024 * 1024,
-            limit_exceeded_behavior=pubsub_v1.types.LimitExceededBehavior.BLOCK,
-        ),
-    )
-
-    # 3. Initialize Publisher
-    publisher = pubsub_v1.PublisherClient(
-        batch_settings=batch_settings, publisher_options=publisher_options
-    )
-    topic_path = publisher.topic_path(PROJECT_ID, TOPIC_ID)
-
-    generator = MistralPayloadGenerator()
-    stats = PublishStats()
-
-    # 4. Verify permissions before looping
-    # If this fails, we exit before generating 1M messages.
-    if not verify_access(publisher, topic_path, generator):
-        raise RuntimeError(f"Pre-flight verification failed for topic: {topic_path}")
-
-    LOG.info(f"Starting generation of {TOTAL_MESSAGES} JSON payloads...")
-    LOG.info(f"Target: {topic_path}")
-
+    # 2. Load Dataset (Alpaca Cleaned)
+    LOG.info("⬇️  Downloading dataset from Hugging Face...")
     try:
-        for i in range(TOTAL_MESSAGES):
-            # Generate JSON bytes
-            data = generator.generate_payload()
+        dataset = load_dataset("yahma/alpaca-cleaned", split="train")
+    except Exception as e:
+        LOG.error(f"❌ Error loading dataset: {e}")
+        raise e
 
-            # Publish (returns a Future)
-            # Note: Because of 'flow_control', this line will BLOCK if the
-            # upload queue is full, keeping RAM usage low.
-            future = publisher.publish(topic_path, data)
+    total_records = len(dataset)
+    shard_size = math.ceil(total_records / NUM_SHARDS)
 
-            # Attach callback
-            future.add_done_callback(stats.callback)
+    LOG.info(f"✅ Dataset loaded. Total records: {total_records}")
+    LOG.info(f"⚡ Splitting into {NUM_SHARDS} shards of ~{shard_size} records each.")
 
-            stats.published += 1
+    # 3. Shard and Upload
+    LOG.info(f"🚀 Uploading to gs://{BUCKET_NAME}/{GCS_PREFIX}/ ...")
 
-            if stats.published % PRINT_EVERY == 0:
-                elapsed = time.time() - stats.start_time
-                rate = stats.published / elapsed
-                LOG.info(
-                    f"Sent to Buffer: {stats.published} | Avg Rate: {rate:.0f} msg/s"
-                )
+    for i in range(NUM_SHARDS):
+        start_idx = i * shard_size
+        end_idx = min((i + 1) * shard_size, total_records)
+        shard_data = dataset[start_idx:end_idx]
 
-        LOG.info("Generation complete. Waiting for pending batches to clear...")
+        # Serialize to JSON
+        json_data = json.dumps(shard_data, indent=2)
 
-        # Wait for the 'success' + 'errors' count to match 'published'
-        while stats.success + stats.errors < TOTAL_MESSAGES:
-            time.sleep(1)
-            remaining = TOTAL_MESSAGES - (stats.success + stats.errors)
-            LOG.info(f"Remaining in queue: {remaining}...")
+        # Define GCS path
+        blob_name = f"{GCS_PREFIX}/input_shard_{i}.json"
+        blob = bucket.blob(blob_name)
 
-    except KeyboardInterrupt:
-        LOG.info("\nStopped by user.")
+        try:
+            # Upload string directly to GCS
+            blob.upload_from_string(data=json_data, content_type="application/json")
+            LOG.info(
+                f"   • Uploaded shard {i}: {blob_name} ({len(shard_data)} records)"
+            )
+        except Exception as e:
+            LOG.error(f"   ❌ Failed to upload shard {i}: {e}")
+            raise e
 
-    elapsed = time.time() - stats.start_time
-    LOG.info(f"\n--- Summary ---")
-    LOG.info(f"Total Generated: {stats.published}")
-    LOG.info(f"Acked (Success): {stats.success}")
-    LOG.info(f"Failed:          {stats.errors}")
-    LOG.info(f"Time Elapsed:    {elapsed:.2f}s")
+    LOG.info("\n✨ All shards uploaded successfully.")
 
 
 if __name__ == "__main__":
-    main()
+    prepare_and_upload_shards()

@@ -1,3 +1,17 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import asyncio
 import os
 import time
@@ -9,10 +23,11 @@ URL = "https://" + llmd_endpoints_hostname + "/gradio_api/api/sync_chat"
 MODEL = "Qwen/Qwen3-0.6B"
 TOKEN_FILE = "token.jwt"
 
-CONCURRENT_USERS = 500   # Exact number of simultaneous requests
-TOTAL_REQUESTS = 5000   # Run until this many total requests finish
-RESET_INTERVAL = 5000      # Reset history rarely to keep context large
+CONCURRENT_USERS = 500  # Exact number of simultaneous requests
+TOTAL_REQUESTS = 5000  # Run until this many total requests finish
+RESET_INTERVAL = 5000  # Reset history rarely to keep context large
 request_counter = 0
+
 
 def get_token():
     try:
@@ -22,11 +37,13 @@ def get_token():
         print(f"The token file '{TOKEN_FILE}' was not found!")
         raise RuntimeError()
 
+
 def generate_long_prompt(user_id):
     """Generates a ~4000 char prompt to ensure heavy processing."""
     base_text = f"User {user_id} is stressing the queue. "
     long_context = base_text * 150
     return f"Here is a large block of text:\n\n{long_context}\n\nTask: Summarize the above text in one sentence."
+
 
 async def run_user_session(session, user_id, semaphore):
     global request_counter
@@ -65,11 +82,14 @@ async def run_user_session(session, user_id, semaphore):
                     status = response.status
                     duration = time.time() - start_time
                     # Print only if we got a non-200 (error) or it took > 5 seconds (queueing happening)
-                    #if duration > 5.0 or status != 200:
-                    print(f"[Req {current_iter}] User {user_id} | Latency: {duration:.2f}s | Status: {status}")
+                    # if duration > 5.0 or status != 200:
+                    print(
+                        f"[Req {current_iter}] User {user_id} | Latency: {duration:.2f}s | Status: {status}"
+                    )
 
             except Exception as e:
                 pass
+
 
 async def main():
     print(f"Starting QUEUE FILL Test: {CONCURRENT_USERS} Simultaneous Users...")
@@ -89,5 +109,6 @@ async def main():
         await asyncio.gather(*tasks)
     print("Test Complete.")
 
+
 if __name__ == "__main__":
-    asyncio.run(main())    asyncio.run(main())
+    asyncio.run(main())

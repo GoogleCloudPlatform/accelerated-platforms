@@ -369,7 +369,7 @@ export ACCELERATOR="TPU"
   > This example is based on a Linear sweep load test of 7 stages \* 30s with a
   > synthetic load. Update "configmap-benchmark.yaml" file in the following
   > directory with your custom load scenario and data set. List of supported
-  > configurations can be found on the official [inference-perf]
+  > configurations can be found on the official [inference-perf] >
   > [https://github.com/kubernetes-sigs/inference-perf/blob/main/docs/config.md]
 
   > >

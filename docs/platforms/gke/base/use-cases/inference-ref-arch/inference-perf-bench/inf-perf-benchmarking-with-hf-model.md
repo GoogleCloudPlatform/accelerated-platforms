@@ -424,8 +424,7 @@ curves
 
 ```shell
    gsutil -m cp -r gs://${hub_models_bucket_bench_results_name}/ .
-   cd ${hub_models_bucket_bench_results_name}/<report-name>
-   inference-perf --analyze  .
+   inference-perf --analyze ${hub_models_bucket_bench_results_name}/*
 
 ```
 

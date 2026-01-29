@@ -351,6 +351,9 @@ route the request to the model server via llm-d's intelligent scheduling.
     gcloud iam service-accounts sign-jwt --iam-account="${stress_test_service_account_email}" jwt-claim.json token.jwt
     ```
 
+    If the command fails, wait for few mins as the IAM permissions could take
+    some time to reflect the changes.
+
   - Run the script to trigger stress test.
 
     ```shell

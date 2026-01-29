@@ -39,12 +39,6 @@ resource "google_artifact_registry_repository_iam_member" "cloudbuild_artifactre
   role       = "roles/artifactregistry.writer"
 }
 
-# resource "google_storage_bucket_iam_member" "cloudbuild_gcsfuse_user" {
-#   bucket = google_storage_bucket.comfyui_model.name
-#   member = data.google_service_account.cloudbuild.member
-#   role   = local.cluster_gcsfuse_user_role
-# }
-
 # Build and submit gradio docker image to Artifact Registry
 resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
@@ -65,7 +59,7 @@ EOT
   triggers_replace = {
     custom_sa_email        = data.google_service_account.cloudbuild.email
     hash_cloudbuild_config = filebase64sha256("${path.module}/src/cloudbuild.yaml")
-    hash_entrypoint        = filebase64sha256("${path.module}/src/app.py")
+    hash_entrypoint        = filebase64sha256("${path.module}/src/gradio_app.py")
     image_tag              = var.gradio_image_tag
     repository_id          = google_artifact_registry_repository.gradio_container_images.id
   }

@@ -21,6 +21,7 @@ locals {
 data "google_compute_zones" "region" {
   project = data.google_project.cluster.project_id
   region  = local.cluster_region
+  status  = "UP"
 }
 
 resource "google_container_cluster" "cluster" {

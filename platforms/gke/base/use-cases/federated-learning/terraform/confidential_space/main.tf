@@ -12,9 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  #This valid_zone checks for any zones with the -ai suffix and excludes them from the node_locations. -ai zones seems to have been added prematurely
+  valid_zones = [
+    for zone in data.google_compute_zones.available.names : zone
+    if !can(regex("-ai", zone))
+  ]
+}
+
 data "google_compute_zones" "available" {
   project = google_project_service.confidentialcomputing_googleapis_com.project
   region  = local.cluster_region
+  status  = "UP"
 }
 
 resource "google_compute_instance_template" "instance_template" {
@@ -101,7 +110,7 @@ resource "google_compute_region_instance_group_manager" "instance_group" {
   }
 
   update_policy {
-    max_surge_fixed = length(data.google_compute_zones.available.names)
+    max_surge_fixed = length(local.valid_zones)
     minimal_action  = "REPLACE"
     type            = "PROACTIVE"
   }

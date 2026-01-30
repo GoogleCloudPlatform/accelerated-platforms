@@ -208,7 +208,7 @@ This example is built on top of the
 
   You can press `CTRL`+`c` to terminate the watch.
 
-## Deploy the subscriber workload
+## Run the dataset downloader job
 
 - Source the environment configuration.
 
@@ -216,28 +216,28 @@ This example is built on top of the
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Configure the deployment.
+- Configure the job.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-pubsub-subscriber/configure_pubsub_subscriber.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-dataset-downloader/configure_dataset_downloader.sh"
   ```
 
-- Deploy the subscriber workload.
+- Deploy the dataset downloader job.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-pubsub-subscriber/base"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-dataset-downloader/base"
   ```
 
 - Watch the deployment until it is ready.
 
   ```shell
-  watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} get deployment/${HF_MODEL_ID_HASH}-batch-pubsub-subscriber | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+   watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-offline-batch-dataset-downloader | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} logs deployment/${HF_MODEL_ID_HASH}-batch-pubsub-subscriber --all-containers --tail 10"
+  kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-offline-batch-dataset-downloader --all-containers --tail 10"
   ```
 
-  When the deployment is ready, you will see the following:
+  When the job is complete, you will see the following:
 
   ```text
   NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
@@ -246,7 +246,7 @@ This example is built on top of the
 
   You can press `CTRL`+`c` to terminate the watch.
 
-## (Optional) Run the load generator job
+## Run the worker jobset
 
 - Source the environment configuration.
 
@@ -257,13 +257,13 @@ This example is built on top of the
 - Configure the deployment.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-load-generator/configure_load_generator.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/batch-load-generator/configure_load_generator.sh"
   ```
 
 - Deploy the subscriber workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-load-generator/base"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/batch-load-generator/base"
   ```
 
 - Watch the deployment until it is ready.
@@ -275,7 +275,7 @@ This example is built on top of the
   kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} logs job/batch-load-generator --all-containers --tail 10"
   ```
 
-  When the deployment is ready, you will see the following:
+  When the job is complete, you will see the following:
 
   ```text
   NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE

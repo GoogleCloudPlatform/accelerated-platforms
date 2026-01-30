@@ -155,9 +155,9 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model                  | l4  | h100 | h200 |
-    | ---------------------- | --- | ---- | ---- |
-    | llama-3.3-70b-instruct | ❌  | ✅   | ✅   |
+    | Model                  | l4  | h100 | h200 | RTX Pro 6000 |
+    | ---------------------- | --- | ---- | ---- | ------------ |
+    | llama-3.3-70b-instruct | ❌  | ✅   | ✅   | ✅           |
 
     - **NVIDIA H100 80GB**:
 
@@ -169,6 +169,12 @@ This example is built on top of the
 
       ```shell
       export ACCELERATOR_TYPE="h200"
+      ```
+
+    - **NVIDIA RTX PRO 6000 96GB**:
+
+      ```shell
+      export ACCELERATOR_TYPE="rtx-pro-6000"
       ```
 
     Ensure that you have enough quota in your project to provision the selected

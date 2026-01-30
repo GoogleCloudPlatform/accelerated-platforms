@@ -21,12 +21,11 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -l4-gemma-3-1b-it
+nameSuffix: -rtx-pro-6000-llama-3-3-70b-instruct
 
 patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
-  - path: patch-hpa.yaml
 
 replacements:
   - source:
@@ -73,10 +72,6 @@ replacements:
           - metadata.namespace
         select:
           kind: ServiceAccount
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: HorizontalPodAutoscaler
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap

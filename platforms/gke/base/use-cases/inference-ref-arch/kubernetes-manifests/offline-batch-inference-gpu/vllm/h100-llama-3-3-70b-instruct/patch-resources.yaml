@@ -20,5 +20,14 @@ metadata:
 spec:
   template:
     spec:
-      nodeSelector:
-        cloud.google.com/compute-class: gpu-l4-24gb-s8-x1-co
+      containers:
+        - name: inference-server
+          resources:
+            limits:
+              cpu: "64"
+              memory: 512G
+              nvidia.com/gpu: "4"
+            requests:
+              cpu: "64"
+              memory: 512G
+              nvidia.com/gpu: "4"

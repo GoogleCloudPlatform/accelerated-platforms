@@ -96,6 +96,14 @@ output "ira_batch_pubsub_prompt_messages_topic_name" {
   value = local.ira_batch_pubsub_prompt_messages_topic_name
 }
 
+output "ira_offline_batch_gpu_kubernetes_namespace_name" {
+  value = local.ira_offline_batch_gpu_kubernetes_namespace_name
+}
+
+output "ira_offline_batch_gpu_kubernetes_service_account_name" {
+  value = local.ira_offline_batch_gpu_kubernetes_service_account_name
+}
+
 output "ira_online_gpu_diffusers_flux_image_url" {
   value = local.ira_online_gpu_diffusers_flux_image_url
 }

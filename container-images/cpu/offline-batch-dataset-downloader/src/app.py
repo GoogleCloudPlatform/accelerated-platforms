@@ -108,7 +108,9 @@ def prepare_and_upload_shards():
     for i in range(NUM_SHARDS):
         start_idx = i * shard_size
         end_idx = min((i + 1) * shard_size, total_records)
-        shard_data = dataset[start_idx:end_idx]
+
+        subset = dataset.select(range(start_idx, end_idx))
+        shard_data = list(subset)
 
         # Serialize to JSON
         json_data = json.dumps(shard_data, indent=2)

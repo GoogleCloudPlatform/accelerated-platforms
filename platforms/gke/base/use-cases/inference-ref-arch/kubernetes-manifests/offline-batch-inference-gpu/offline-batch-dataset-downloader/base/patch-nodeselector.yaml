@@ -15,7 +15,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: batch-load-generator
+  name: offline-batch-dataset-downloader
   namespace: replaced-by-kustomize
 spec:
   template:

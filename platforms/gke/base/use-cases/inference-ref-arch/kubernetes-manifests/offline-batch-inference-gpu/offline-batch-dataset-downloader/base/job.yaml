@@ -15,13 +15,13 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: batch-load-generator
+  name: offline-batch-dataset-downloader
   namespace: replaced-by-kustomize
 spec:
   template:
     metadata:
       labels:
-        app: batch-load-generator
+        app: offline-batch-dataset-downloader
     spec:
       restartPolicy: OnFailure
       containers:
@@ -30,29 +30,29 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_ID
-                  name: batch-load-generator
+                  name: offline-batch-dataset-downloader
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
                   key: PROJECT_ID
-                  name: batch-load-generator
+                  name: offline-batch-dataset-downloader
             - name: TOPIC_ID
               valueFrom:
                 configMapKeyRef:
                   key: TOPIC_ID
-                  name: batch-load-generator
+                  name: offline-batch-dataset-downloader
             - name: TOTAL_MESSAGES
               valueFrom:
                 configMapKeyRef:
                   key: TOTAL_MESSAGES
-                  name: batch-load-generator
+                  name: offline-batch-dataset-downloader
             - name: PRINT_EVERY
               valueFrom:
                 configMapKeyRef:
                   key: PRINT_EVERY
-                  name: batch-load-generator
+                  name: offline-batch-dataset-downloader
           image: replaced-by-kustomize
           imagePullPolicy: Always
-          name: batch-load-generator
+          name: offline-batch-dataset-downloader
           resources: {}
       serviceAccountName: replaced-by-kustomize

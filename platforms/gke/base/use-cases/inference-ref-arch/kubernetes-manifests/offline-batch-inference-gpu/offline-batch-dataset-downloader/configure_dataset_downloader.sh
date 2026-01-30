@@ -28,7 +28,7 @@ source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_var
 
 "${MY_PATH}/../configure_deployment.sh"
 
-envsubst <"${MY_PATH}/base/templates/offline-batch-downloader.tpl.env" | sponge "${MY_PATH}/base/offline-batch-downloader.env"
+envsubst <"${MY_PATH}/base/templates/offline-batch-dataset-downloader.tpl.env" | sponge "${MY_PATH}/base/offline-batch-dataset-downloader.env"
 
 cd "${MY_PATH}/base"
 kustomize edit set nameprefix "${RANDOM_HASH}-"

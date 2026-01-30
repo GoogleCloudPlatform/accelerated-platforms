@@ -17,24 +17,24 @@ kind: Kustomization
 
 configMapGenerator:
   - envs:
-      - batch-load-generator.env
-    name: batch-load-generator
+      - offline-batch-dataset-downloader.env
+    name: offline-batch-dataset-downloader
     namespace: replaced-by-kustomize
 
 replacements:
   - source:
       fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
-      name: batch-load-generator
+      name: offline-batch-dataset-downloader
     targets:
       - fieldPaths:
-          - spec.template.spec.containers.[name=batch-load-generator].image
+          - spec.template.spec.containers.[name=offline-batch-dataset-downloader].image
         select:
           kind: Job
   - source:
-      fieldPath: data.LOAD_GENERATOR_KUBERNETES_NAMESPACE
+      fieldPath: data.DATASET_DOWNLOADER_KUBERNETES_NAMESPACE
       kind: ConfigMap
-      name: batch-load-generator
+      name: offline-batch-dataset-downloader
     targets:
       - fieldPaths:
           - metadata.namespace
@@ -45,9 +45,9 @@ replacements:
         select:
           kind: Job
   - source:
-      fieldPath: data.LOAD_GENERATOR_KUBERNETES_SERVICE_ACCOUNT
+      fieldPath: data.DATASET_DOWNLOADER_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
-      name: batch-load-generator
+      name: offline-batch-dataset-downloader
     targets:
       - fieldPaths:
           - spec.template.spec.serviceAccountName

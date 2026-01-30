@@ -21,10 +21,11 @@ steps:
     args:
       - "-c"
       - |
-        echo "*************************************************************************************"
-        echo "NOTICE: The target repository https://github.com/privacysandbox/odp-federatedcompute/
+        echo "**************************************************************************************"
+        echo "NOTICE: The target repository https://github.com/privacysandbox/odp-federatedcompute/ "
         echo "has been archived."
-        echo "All subsequent build steps have been disabled."
+        echo "All subsequent build steps to test deploying cross device federated learning have been"
+        echo "disabled."
         echo "*************************************************************************************"
   # The following steps have been disabled due to the archiving of the target repository https://github.com/privacysandbox/odp-federatedcompute/
   # python version mismatch with jaxlib.

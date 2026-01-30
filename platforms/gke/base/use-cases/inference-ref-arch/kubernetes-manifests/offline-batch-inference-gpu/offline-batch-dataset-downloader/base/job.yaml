@@ -26,30 +26,10 @@ spec:
       restartPolicy: OnFailure
       containers:
         - env:
-            - name: MODEL_ID
+            - name: GCS_BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
-                  key: MODEL_ID
-                  name: offline-batch-dataset-downloader
-            - name: PROJECT_ID
-              valueFrom:
-                configMapKeyRef:
-                  key: PROJECT_ID
-                  name: offline-batch-dataset-downloader
-            - name: TOPIC_ID
-              valueFrom:
-                configMapKeyRef:
-                  key: TOPIC_ID
-                  name: offline-batch-dataset-downloader
-            - name: TOTAL_MESSAGES
-              valueFrom:
-                configMapKeyRef:
-                  key: TOTAL_MESSAGES
-                  name: offline-batch-dataset-downloader
-            - name: PRINT_EVERY
-              valueFrom:
-                configMapKeyRef:
-                  key: PRINT_EVERY
+                  key: GCS_BUCKET_NAME
                   name: offline-batch-dataset-downloader
           image: replaced-by-kustomize
           imagePullPolicy: Always

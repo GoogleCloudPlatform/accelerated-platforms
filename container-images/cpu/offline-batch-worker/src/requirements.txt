@@ -1,2 +1,2 @@
-google-cloud-pubsub==2.34.0
+google-cloud-storage==3.8.0
 requests==2.32.5

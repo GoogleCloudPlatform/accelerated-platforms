@@ -21,4 +21,6 @@ resource "google_storage_bucket" "dataset" {
   name     = local.ira_offline_batch_dataset_bucket_name
   project  = local.ira_offline_batch_project_id
   location = local.cluster_region
+
+  uniform_bucket_level_access = true
 }

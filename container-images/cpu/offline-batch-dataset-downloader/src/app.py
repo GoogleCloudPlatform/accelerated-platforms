@@ -60,15 +60,15 @@ LOG = logging.getLogger(__name__)
 
 # --- Configuration ---
 # Fetch bucket name from environment variable
-BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
+DATASET_BUCKET_NAME = os.getenv("DATASET_BUCKET_NAME")
 GCS_PREFIX = "alpaca_shards"
 NUM_SHARDS = 10
 
 
 def validate_config():
-    if not BUCKET_NAME:
-        LOG.error("❌ Error: Environment variable 'GCS_BUCKET_NAME' is not set.")
-        raise ValueError("GCS_BUCKET_NAME environment variable is required.")
+    if not DATASET_BUCKET_NAME:
+        LOG.error("❌ Error: Environment variable 'DATASET_BUCKET_NAME' is not set.")
+        raise ValueError("DATASET_BUCKET_NAME environment variable is required.")
 
 
 def prepare_and_upload_shards():
@@ -77,13 +77,13 @@ def prepare_and_upload_shards():
     # 1. Initialize GCS Client
     try:
         storage_client = storage.Client()
-        bucket = storage_client.bucket(BUCKET_NAME)
+        bucket = storage_client.bucket(DATASET_BUCKET_NAME)
         # fast check if bucket exists (optional, but good for fail-fast)
         if not bucket.exists():
             LOG.error(
-                f"❌ Error: Bucket '{BUCKET_NAME}' does not exist or you lack permissions."
+                f"❌ Error: Bucket '{DATASET_BUCKET_NAME}' does not exist or you lack permissions."
             )
-            raise ValueError(f"Bucket '{BUCKET_NAME}' is not accessible.")
+            raise ValueError(f"Bucket '{DATASET_BUCKET_NAME}' is not accessible.")
     except Exception as e:
         LOG.error(f"❌ Error connecting to GCS: {e}")
         raise e
@@ -103,7 +103,7 @@ def prepare_and_upload_shards():
     LOG.info(f"⚡ Splitting into {NUM_SHARDS} shards of ~{shard_size} records each.")
 
     # 3. Shard and Upload
-    LOG.info(f"🚀 Uploading to gs://{BUCKET_NAME}/{GCS_PREFIX}/ ...")
+    LOG.info(f"🚀 Uploading to gs://{DATASET_BUCKET_NAME}/{GCS_PREFIX}/ ...")
 
     for i in range(NUM_SHARDS):
         start_idx = i * shard_size

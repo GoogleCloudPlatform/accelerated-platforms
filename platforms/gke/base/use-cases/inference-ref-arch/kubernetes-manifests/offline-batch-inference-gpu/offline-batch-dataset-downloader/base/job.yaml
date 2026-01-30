@@ -26,10 +26,10 @@ spec:
       restartPolicy: OnFailure
       containers:
         - env:
-            - name: GCS_BUCKET_NAME
+            - name: DATASET_BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
-                  key: GCS_BUCKET_NAME
+                  key: DATASET_BUCKET_NAME
                   name: offline-batch-dataset-downloader
           image: replaced-by-kustomize
           imagePullPolicy: Always

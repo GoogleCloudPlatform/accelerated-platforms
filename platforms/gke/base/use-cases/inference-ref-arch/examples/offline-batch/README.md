@@ -231,7 +231,7 @@ This example is built on top of the
 - Watch the deployment until it is ready.
 
   ```shell
-   watch --color --interval 5 --no-title \
+  watch --color --interval 5 --no-title \
   "kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-offline-batch-dataset-downloader | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
   kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-offline-batch-dataset-downloader --all-containers --tail 10"

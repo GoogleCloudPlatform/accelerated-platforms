@@ -47,6 +47,7 @@ locals {
 
   ira_offline_batch_gpu_kubernetes_namespace_name       = var.ira_offline_batch_gpu_kubernetes_namespace_name != null ? var.ira_offline_batch_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-offline-batch-gpu"
   ira_offline_batch_gpu_kubernetes_service_account_name = var.ira_offline_batch_gpu_kubernetes_service_account_name != null ? var.ira_offline_batch_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-offline-batch-gpu"
+  ira_offline_batch_gpu_vllm_image_url                  = var.ira_offline_batch_gpu_vllm_image_url != null ? var.ira_offline_batch_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/offline-batch-gpu:latest"
 
   ira_offline_batch_project_id = var.ira_offline_batch_project_id != null ? var.ira_offline_batch_project_id : var.platform_default_project_id
 
@@ -190,6 +191,12 @@ variable "ira_offline_batch_gpu_kubernetes_namespace_name" {
 variable "ira_offline_batch_gpu_kubernetes_service_account_name" {
   default     = null
   description = "The Kubernetes service account for the offline batch GPU inference workloads."
+  type        = string
+}
+
+variable "ira_offline_batch_gpu_vllm_image_url" {
+  default     = "docker.io/vllm/vllm-openai:v0.11.2"
+  description = "The URL for the batch GPU vLLM container image."
   type        = string
 }
 

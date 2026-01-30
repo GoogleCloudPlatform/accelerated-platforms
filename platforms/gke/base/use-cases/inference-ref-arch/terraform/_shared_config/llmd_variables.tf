@@ -114,6 +114,7 @@ variable "llmd_accelerator_type" {
         "nvidia-a100-80gb",
         "nvidia-h100-80gb",
         "nvidia-l4",
+        "nvidia-rtx-pro-6000",
         "nvidia-tesla-a100",
       ],
       var.llmd_accelerator_type

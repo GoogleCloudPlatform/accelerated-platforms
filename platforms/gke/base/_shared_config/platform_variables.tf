@@ -16,16 +16,16 @@
 # UNIQUE VALUES
 ##################################################################################
 #
-# Cloud storage bucket names have to be globally unique and have a maximum 
-# length of 63 characters. When creating bucket names, using the following 
+# Cloud storage bucket names have to be globally unique and have a maximum
+# length of 63 characters. When creating bucket names, using the following
 # convention can help ensure they are globally unique:
 #   <unique_identifier_prefix>-<unique_tag>-<project_id>
 #               13      +     1   +  18 +  1  +  30      = 63
-#   
+#
 # - <unique_identifier_prefix> is "<resource_name_prefix>-<platform_name>"
 #     with a maximum of 13 characters.
 # - <project_id> is a maximum of 30.
-# - This leaves a maximum of 20, characters for <unique_tag>. Preferable 
+# - This leaves a maximum of 20, characters for <unique_tag>. Preferable
 #     18 characters with a hyphen before and after.
 #
 ##################################################################################

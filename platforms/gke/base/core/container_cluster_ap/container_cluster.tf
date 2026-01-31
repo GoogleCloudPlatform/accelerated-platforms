@@ -16,6 +16,11 @@ locals {
   kubeconfig_directory = "${path.module}/../../kubernetes/kubeconfig"
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
   shared_config_folder = "${path.module}/../../_shared_config"
+  #This valid_zone checks for any zones with the -ai suffix and excludes them from the node_locations. -ai zones seems to have been added prematurely
+  valid_zones = [
+    for zone in data.google_compute_zones.region.names : zone
+    if !can(regex("-ai", zone))
+  ]
 }
 
 data "google_compute_zones" "region" {
@@ -35,7 +40,7 @@ resource "google_container_cluster" "cluster" {
   location            = local.cluster_region
   name                = local.cluster_name
   network             = local.network_cluster_network_name
-  node_locations      = data.google_compute_zones.region.names
+  node_locations      = local.valid_zones
   project             = google_project_service.cluster["container.googleapis.com"].project
   subnetwork          = local.network_cluster_subnet_node_name
 

@@ -104,6 +104,9 @@ ones that the Federated learning reference architecture provisions.
    "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh"
    ```
 
+   Note: The repo https://github.com/privacysandbox/odp-federatedcompute/ used
+   for building workload image has been archived.
+
 ## Open ports
 
 This architecture requires certain ports to be open. For confidential computing,

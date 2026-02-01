@@ -73,7 +73,7 @@ OUTPUT_BLOB_NAME = f"{PREFIX}/output_shard_{JOB_INDEX}.json"
 
 # 4. Other Configurations
 VLLM_API_ENDPOINT = os.getenv("VLLM_API_ENDPOINT", "http://localhost:8000")
-# Controls how many requests we send to vLLM at once. 
+# Controls how many requests we send to vLLM at once.
 # Too high = OOM. Too low = GPU starvation. 100-200 is usually the sweet spot.
 CONCURRENT_REQUESTS = int(os.getenv("CONCURRENT_REQUESTS", "100"))
 
@@ -142,7 +142,7 @@ async def wait_for_vllm():
     """Blocks until the vLLM sidecar is healthy (Async version)."""
     LOG.info("Waiting for vLLM sidecar...")
     health_url = f"{VLLM_API_ENDPOINT}/health"
-    
+
     async with aiohttp.ClientSession() as session:
         for i in range(120):  # 20 minutes timeout (120 * 10s)
             try:
@@ -152,11 +152,11 @@ async def wait_for_vllm():
                         return
             except aiohttp.ClientConnectorError:
                 pass
-            
+
             if i % 6 == 0:
                 LOG.info(f"   ... waiting for sidecar ({i*10}s)")
             await asyncio.sleep(10)
-            
+
     raise RuntimeError("vLLM sidecar failed to start within timeout.")
 
 
@@ -165,7 +165,7 @@ async def process_single_record(session, sem, record, index, total, url, headers
     Processes a single record asynchronously.
     Uses a semaphore to limit the number of concurrent requests.
     """
-    async with sem: # Wait for a slot to open in the semaphore
+    async with sem:  # Wait for a slot to open in the semaphore
         prompt = (
             f"Instruction: {record['instruction']}\nInput: {record['input']}\nResponse:"
         )
@@ -182,11 +182,11 @@ async def process_single_record(session, sem, record, index, total, url, headers
                 response.raise_for_status()
                 response_json = await response.json()
                 completion = response_json["choices"][0]["text"].strip()
-                
+
                 # Log progress periodically (e.g., every 100 items)
                 if index % 100 == 0:
                     LOG.info(f"   Processed {index}/{total}")
-                
+
                 return {
                     "instruction": record["instruction"],
                     "input": record["input"],
@@ -194,20 +194,20 @@ async def process_single_record(session, sem, record, index, total, url, headers
                 }
         except Exception as e:
             LOG.warning(f"   ⚠️ Error on record {index}: {e}")
-            return None # Return None on failure, filter later
+            return None  # Return None on failure, filter later
 
 
 async def run_batch_inference_async(records):
     total = len(records)
     url = f"{VLLM_API_ENDPOINT}/v1/completions"
     headers = {"Content-Type": "application/json"}
-    
+
     LOG.info(f"Worker {JOB_INDEX}: Starting ASYNC inference on {total} records.")
     LOG.info(f"Worker {JOB_INDEX}: Max concurrent requests: {CONCURRENT_REQUESTS}")
 
     # Create a semaphore to limit concurrency
     sem = asyncio.Semaphore(CONCURRENT_REQUESTS)
-    
+
     # Create the client session once and reuse it for all requests
     async with aiohttp.ClientSession() as session:
         tasks = []
@@ -216,14 +216,16 @@ async def run_batch_inference_async(records):
                 process_single_record(session, sem, record, i, total, url, headers)
             )
             tasks.append(task)
-        
+
         # Wait for all tasks to complete
         results = await asyncio.gather(*tasks)
-    
+
     # Filter out failed requests (None values)
     successful_results = [r for r in results if r is not None]
-    LOG.info(f"Worker {JOB_INDEX}: Finished. Success: {len(successful_results)}/{total}")
-    
+    LOG.info(
+        f"Worker {JOB_INDEX}: Finished. Success: {len(successful_results)}/{total}"
+    )
+
     return successful_results
 
 
@@ -250,7 +252,7 @@ async def main():
     start_time = time.time()
     results = await run_batch_inference_async(data)
     duration = time.time() - start_time
-    
+
     if duration > 0:
         LOG.info(f"⏱️ Speed: {len(results)/duration:.2f} requests/sec")
 

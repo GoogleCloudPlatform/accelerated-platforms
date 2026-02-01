@@ -32,4 +32,4 @@ envsubst <"${MY_PATH}/base/templates/offline-batch-worker.tpl.env" | sponge "${M
 envsubst <"${MY_PATH}/base/templates/vllm.tpl.env" | sponge "${MY_PATH}/base/vllm.env"
 
 cd "${MY_PATH}/base"
-kustomize edit set nameprefix "${RANDOM_HASH}-"
+kustomize edit set nameprefix "js-${RANDOM_HASH}-"

@@ -29,6 +29,7 @@ source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_var
 "${MY_PATH}/../configure_jobset.sh"
 
 envsubst <"${MY_PATH}/base/templates/offline-batch-dataset-downloader.tpl.env" | sponge "${MY_PATH}/base/offline-batch-dataset-downloader.env"
+envsubst <"${MY_PATH}/base/templates/vllm.tpl.env" | sponge "${MY_PATH}/base/vllm.env"
 
 cd "${MY_PATH}/base"
 kustomize edit set nameprefix "${RANDOM_HASH}-"

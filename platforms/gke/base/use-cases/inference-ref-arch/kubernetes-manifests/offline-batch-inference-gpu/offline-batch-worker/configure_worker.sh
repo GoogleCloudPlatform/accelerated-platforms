@@ -26,7 +26,7 @@ RANDOM_HASH=$(openssl rand -hex 4)
 
 source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
-"${MY_PATH}/../configure_deployment.sh"
+"${MY_PATH}/../configure_jobset.sh"
 
 envsubst <"${MY_PATH}/base/templates/offline-batch-dataset-downloader.tpl.env" | sponge "${MY_PATH}/base/offline-batch-dataset-downloader.env"
 

@@ -23,10 +23,6 @@ configMapGenerator:
 
 nameSuffix: -rtx-pro-6000-llama-3-3-70b-instruct
 
-patches:
-  - path: patch-nodeselector.yaml
-  - path: patch-resources.yaml
-
 replacements:
   - source:
       fieldPath: data.APP_LABEL
@@ -52,9 +48,9 @@ replacements:
         select:
           kind: Deployment
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      fieldPath: data.BATCH_WORKER_KUBERNETES_NAMESPACE
       kind: ConfigMap
-      name: deployment
+      name: offline-batch-worker
     targets:
       - fieldPaths:
           - metadata.namespace
@@ -63,73 +59,70 @@ replacements:
       - fieldPaths:
           - metadata.namespace
         select:
-          kind: Deployment
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: Service
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: ServiceAccount
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: HorizontalPodAutoscaler
+          kind: JobSet
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      fieldPath: data.BATCH_WORKER_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
-      name: deployment
+      name: offline-batch-worker
     targets:
       - fieldPaths:
-          - spec.template.spec.serviceAccountName
+          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.serviceAccountName
         select:
-          kind: Deployment
+          kind: JobSet
       - fieldPaths:
           - metadata.name
         select:
           kind: ServiceAccount
   - source:
-      fieldPath: data.MODEL_BUCKET_NAME
+      fieldPath: data.COMPUTE_CLASS
       kind: ConfigMap
-      name: deployment
+      name: runtime
     targets:
       - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
+          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.nodeSelector.[cloud.google.com/compute-class]
+        select:
+          kind: JobSet
+  - source:
+      fieldPath: data.MODEL_BUCKET_NAME
+      kind: ConfigMap
+      name: vllm
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
         options:
           delimiter: .
           index: 0
         select:
-          kind: Deployment
+          kind: JobSet
   - source:
       fieldPath: data.MODEL_ID
       kind: ConfigMap
       name: runtime
     targets:
       - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
+          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
         options:
           delimiter: "only-dir:"
           index: 1
         select:
-          kind: Deployment
+          kind: JobSet
       - fieldPaths:
-          - spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
-          - spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
         options:
           delimiter: /
           index: 2
         select:
-          kind: Deployment
+          kind: JobSet
   - source:
       fieldPath: data.MODEL_NAME
       kind: ConfigMap
       name: runtime
     targets:
       - fieldPaths:
-          - spec.template.metadata.labels.[ai.gke.io/model]
+          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.metadata.labels.[ai.gke.io/model]
         select:
-          kind: Deployment
+          kind: JobSet
 
 resources:
   - ../base

@@ -28,13 +28,40 @@ spec:
         completionMode: Indexed
         backoffLimit: 0
         template:
+          metadata:
+            annotations:
+              gke-gcsfuse/cpu-limit: "0"
+              gke-gcsfuse/ephemeral-storage-limit: "0"
+              gke-gcsfuse/memory-limit: "0"
+              gke-gcsfuse/volumes: "true"
+            labels:
+              ai.gke.io/model: replaced-by-kustomize
+              app: vllm
           spec:
+            nodeSelector:
+              cloud.google.com/compute-class: replaced-by-kustomize
             serviceAccountName: replaced-by-kustomize
-            restartPolicy: Never
+            restartPolicy: OnFailure
             volumes:
-            - name: dshm
-              emptyDir:
-                medium: Memory
+              - emptyDir:
+                  medium: Memory
+                name: dev-shm
+              - csi:
+                  driver: gcsfuse.csi.storage.gke.io
+                  volumeAttributes:
+                    bucketName: cloud-storage-bucket-name
+                    mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replaced-by-kustomize
+                    skipCSIBucketAccessCheck: "true"
+                name: huggingface-hub-model-bucket
+              - emptyDir:
+                  medium: Memory
+                name: gke-gcsfuse-cache
+              - emptyDir:
+                  medium: Memory
+                name: gke-gcsfuse-tmp
+              - emptyDir:
+                  medium: Memory
+                name: gke-gcsfuse-buffer
             containers:
             - env:
               - name: PYTHONUNBUFFERED
@@ -72,8 +99,7 @@ spec:
                       key: MODEL_ID
                       name: runtime
               image: busybox
-              name: tensor-fetcher
-              restartPolicy: Always
+              name: fetch-safetensors
               volumeMounts:
               - name: huggingface-hub-model-bucket
                 mountPath: /gcs
@@ -130,8 +156,15 @@ spec:
                 periodSeconds: 10
                 successThreshold: 1
                 timeoutSeconds: 1
-              resources: {}
-              restartPolicy: Always
+              resources:
+                limits:
+                  cpu: "64"
+                  memory: 320G
+                  nvidia.com/gpu: "2"
+                requests:
+                  cpu: "64"
+                  memory: 320G
+                  nvidia.com/gpu: "2"
               volumeMounts:
                 - mountPath: /dev/shm
                   name: dev-shm

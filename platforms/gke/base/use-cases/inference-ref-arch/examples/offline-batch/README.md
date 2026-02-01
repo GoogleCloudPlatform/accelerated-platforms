@@ -257,29 +257,29 @@ This example is built on top of the
 - Configure the deployment.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/batch-load-generator/configure_load_generator.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/configure_worker.sh"
   ```
 
 - Deploy the subscriber workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/batch-load-generator/base"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
 - Watch the deployment until it is ready.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} get job/batch-load-generator | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} get job/offline-batch-worker | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} logs job/batch-load-generator --all-containers --tail 10"
+  kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} logs job/offline-batch-worker --all-containers --tail 10"
   ```
 
   When the job is complete, you will see the following:
 
   ```text
   NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment/batch-pubsub-subscriber   1/1     1            1           ###
+  deployment/offline-batch-worker   1/1     1            1           ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.

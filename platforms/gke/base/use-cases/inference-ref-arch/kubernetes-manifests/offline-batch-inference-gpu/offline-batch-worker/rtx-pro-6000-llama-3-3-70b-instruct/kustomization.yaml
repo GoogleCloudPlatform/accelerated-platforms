@@ -66,7 +66,7 @@ replacements:
       name: offline-batch-worker
     targets:
       - fieldPaths:
-          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.serviceAccountName
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.serviceAccountName
         select:
           kind: JobSet
       - fieldPaths:
@@ -79,7 +79,7 @@ replacements:
       name: runtime
     targets:
       - fieldPaths:
-          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.nodeSelector.[cloud.google.com/compute-class]
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.nodeSelector.[cloud.google.com/compute-class]
         select:
           kind: JobSet
   - source:
@@ -88,7 +88,7 @@ replacements:
       name: vllm
     targets:
       - fieldPaths:
-          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
         options:
           delimiter: .
           index: 0
@@ -100,15 +100,15 @@ replacements:
       name: runtime
     targets:
       - fieldPaths:
-          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
         options:
           delimiter: "only-dir:"
           index: 1
         select:
           kind: JobSet
       - fieldPaths:
-          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
-          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
         options:
           delimiter: /
           index: 2
@@ -120,7 +120,7 @@ replacements:
       name: runtime
     targets:
       - fieldPaths:
-          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.metadata.labels.[ai.gke.io/model]
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.metadata.labels.[ai.gke.io/model]
         select:
           kind: JobSet
 

@@ -17,24 +17,37 @@ kind: Kustomization
 
 configMapGenerator:
   - envs:
-      - offline-batch-dataset-downloader.env
-    name: offline-batch-dataset-downloader
+      - offline-batch-worker.env
+    name: offline-batch-worker
+    namespace: replaced-by-kustomize
+  - envs:
+      - vllm.env
+    name: vllm
     namespace: replaced-by-kustomize
 
 replacements:
   - source:
       fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
-      name: offline-batch-dataset-downloader
+      name: offline-batch-worker
     targets:
       - fieldPaths:
-          - spec.template.spec.containers.[name=offline-batch-dataset-downloader].image
+          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.containers.[name=worker].image
         select:
-          kind: Job
+          kind: JobSet
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: vllm
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=offline-batch-inference].template.spec.template.spec.containers.[name=inference-server].image
+        select:
+          kind: JobSet
   - source:
       fieldPath: data.DATASET_DOWNLOADER_KUBERNETES_NAMESPACE
       kind: ConfigMap
-      name: offline-batch-dataset-downloader
+      name: offline-batch-worker
     targets:
       - fieldPaths:
           - metadata.namespace
@@ -47,7 +60,7 @@ replacements:
   - source:
       fieldPath: data.DATASET_DOWNLOADER_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
-      name: offline-batch-dataset-downloader
+      name: offline-batch-worker
     targets:
       - fieldPaths:
           - spec.template.spec.serviceAccountName
@@ -58,4 +71,4 @@ patches:
   - path: patch-nodeselector.yaml
 
 resources:
-  - job.yaml
+  - jobset.yaml

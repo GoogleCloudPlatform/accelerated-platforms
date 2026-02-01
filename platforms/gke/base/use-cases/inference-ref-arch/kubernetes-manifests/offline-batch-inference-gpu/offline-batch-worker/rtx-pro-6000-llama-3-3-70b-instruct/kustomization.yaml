@@ -26,7 +26,6 @@ nameSuffix: -rtx-pro-6000-llama-3-3-70b-instruct
 patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
-  - path: patch-hpa.yaml
 
 replacements:
   - source:

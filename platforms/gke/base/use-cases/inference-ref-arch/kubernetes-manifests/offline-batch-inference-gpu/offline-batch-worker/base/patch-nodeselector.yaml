@@ -12,13 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: batch/v1
-kind: Job
+apiVersion: jobset.x-k8s.io/v1alpha2
+kind: JobSet
 metadata:
-  name: offline-batch-dataset-downloader
+  name: offline-batch-worker
   namespace: replaced-by-kustomize
 spec:
-  template:
-    spec:
-      nodeSelector:
-        cloud.google.com/compute-class: cpu-e2-s-16-co
+  replicatedJobs:
+  - name: offline-batch-inference
+    template:
+      spec:
+        template:
+          spec:
+            nodeSelector:
+              cloud.google.com/compute-class: cpu-e2-s-16-co

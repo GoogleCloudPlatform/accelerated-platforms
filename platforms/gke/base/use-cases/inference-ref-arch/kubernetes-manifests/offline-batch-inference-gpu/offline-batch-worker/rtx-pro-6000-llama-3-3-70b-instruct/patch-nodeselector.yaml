@@ -12,22 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: jobset.x-k8s.io/v1alpha2
+kind: JobSet
 metadata:
   name: vllm
   namespace: replaced-by-kustomize
 spec:
   template:
     spec:
-      containers:
-        - name: inference-server
-          resources:
-            limits:
-              cpu: "64"
-              memory: 320G
-              nvidia.com/gpu: "2"
-            requests:
-              cpu: "64"
-              memory: 320G
-              nvidia.com/gpu: "2"
+      nodeSelector:
+        cloud.google.com/compute-class: gpu-rtx-pro-6000-96gb-x2

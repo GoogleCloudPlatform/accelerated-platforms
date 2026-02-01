@@ -13,9 +13,10 @@
 # limitations under the License.
 
 resource "google_gke_hub_feature" "servicemesh" {
-  location = "global"
-  name     = "servicemesh"
-  project  = google_project_service.cluster["mesh.googleapis.com"].project
+  depends_on = [google_project_service.cluster]
+  location   = "global"
+  name       = "servicemesh"
+  project    = google_project_service.cluster["mesh.googleapis.com"].project
 
   fleet_default_member_config {
     mesh {

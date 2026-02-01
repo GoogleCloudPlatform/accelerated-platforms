@@ -25,28 +25,23 @@ nameSuffix: -rtx-llama-3
 
 replacements:
   - source:
-      fieldPath: data.APP_LABEL
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.selector.matchLabels.app
-          - spec.template.metadata.labels.app
-        select:
-          kind: Deployment
-      - fieldPaths:
-          - spec.selector.app
-        select:
-          kind: Service
-  - source:
       fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
       name: vllm
     targets:
       - fieldPaths:
-          - spec.template.spec.containers.[name=inference-server].image
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.containers.[name=inference-server].image
         select:
-          kind: Deployment
+          kind: JobSet
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: offline-batch-worker
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.containers.[name=worker].image
+        select:
+          kind: JobSet
   - source:
       fieldPath: data.BATCH_WORKER_KUBERNETES_NAMESPACE
       kind: ConfigMap
@@ -69,10 +64,6 @@ replacements:
           - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.serviceAccountName
         select:
           kind: JobSet
-      - fieldPaths:
-          - metadata.name
-        select:
-          kind: ServiceAccount
   - source:
       fieldPath: data.COMPUTE_CLASS
       kind: ConfigMap

@@ -18,6 +18,7 @@
 #
 
 locals {
+  ira_inference_perf_bench_manifests_directory                 = "${path.module}/../../kubernetes-manifests/inference-perf-bench"
   ira_batch_cpu_load_generator_image_url                       = var.ira_batch_cpu_load_generator_image_url != null ? var.ira_batch_cpu_load_generator_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/batch-load-generator:latest"
   ira_batch_cpu_load_generator_kubernetes_namespace_name       = var.ira_batch_cpu_load_generator_kubernetes_namespace_name != null ? var.ira_batch_cpu_load_generator_kubernetes_namespace_name : "${local.unique_identifier_prefix}-batch-load-generator-cpu"
   ira_batch_cpu_load_generator_kubernetes_service_account_name = var.ira_batch_cpu_load_generator_kubernetes_service_account_name != null ? var.ira_batch_cpu_load_generator_kubernetes_service_account_name : "${local.unique_identifier_prefix}-batch-load-generator-cpu"
@@ -60,6 +61,12 @@ locals {
   ira_online_tpu_kubernetes_service_account_name = var.ira_online_tpu_kubernetes_service_account_name != null ? var.ira_online_tpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-tpu"
   ira_online_tpu_max_diffusion_sdxl_image_url    = var.ira_online_tpu_max_diffusion_sdxl_image_url != null ? var.ira_online_tpu_max_diffusion_sdxl_image_url : "${local.cloudbuild_ar_image_repository_url}/tpu-max-diffusion/sdxl:latest"
   ira_online_tpu_vllm_image_url                  = var.ira_online_tpu_vllm_image_url != null ? var.ira_online_tpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/tpu:latest"
+
+  ira_inference_perf_ksa_project_roles_list                = ["roles/logging.viewer", "roles/monitoring.viewer", "roles/monitoring.metricsScopesViewer", "roles/storage.bucketViewer"]
+  ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference-perf-bench"
+  hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench-results"
+  hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench-dataset"
+
 }
 
 variable "ira_batch_cpu_load_generator_image_url" {
@@ -212,6 +219,7 @@ variable "ira_online_gpu_diffusers_flux_image_url" {
   type        = string
 }
 
+
 variable "ira_online_gpu_kubernetes_namespace_name" {
   default     = null
   description = "The Kubernetes namespace for the online GPU inference workloads."
@@ -253,3 +261,34 @@ variable "ira_online_tpu_vllm_image_url" {
   description = "The URL for the TPU vLLM container image."
   type        = string
 }
+
+variable "ira_inference_perf_bench_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account for the inference-perf benchmarking job."
+  type        = string
+}
+
+variable "hub_models_bucket_bench_results_name" {
+  default     = null
+  description = "The GCS bucket name for storage of inference-perf results."
+  type        = string
+}
+
+variable "hub_models_bucket_bench_dataset_name" {
+  default     = null
+  description = "The GCS bucket name for storage of inference-perf dataset."
+  type        = string
+}
+
+variable "enable_gpu" {
+  default     = false
+  description = "Turns on inference-perf resources for GPU cluster"
+  type        = bool
+}
+
+variable "enable_tpu" {
+  default     = false
+  description = "Turns on inference-perf resources for TPU cluster"
+  type        = bool
+}
+

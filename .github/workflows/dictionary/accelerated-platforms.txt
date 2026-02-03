@@ -46,14 +46,17 @@ mlflow
 mlops
 mlruns
 multimodal
+ngram
 operationalize
 overfitting
 packageable
 peft
 prereqs
+pretrained
 psutil
 qwiklabs
 rayutil
+rtxpro
 rueth
 safetensors
 scann
@@ -65,3 +68,4 @@ tunables
 unconfigure
 usecs
 virt
+yuhuili

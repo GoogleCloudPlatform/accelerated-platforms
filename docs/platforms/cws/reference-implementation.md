@@ -354,6 +354,20 @@ Now you can create Cloud Workstations from using the workstation configurations.
 
 https://console.cloud.google.com/workstations/list
 
+### Antigravity Chrome Remote Desktop configurations
+
+- Open https://remotedesktop.google.com/u/1/headless in your browser.
+
+- Note the `Debian Linux` command.
+
+- Start your workstations.
+
+- SSH into your workstations.
+
+- Run the `Debian Linux` command on the workstation.
+
+- Connect to the workstation using Chrome Remote Desktop.
+
 ## Destroy the Cloud Workstation terrastacks
 
 > [!IMPORTANT]  

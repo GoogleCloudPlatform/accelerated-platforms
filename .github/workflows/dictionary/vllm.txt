@@ -1,7 +1,11 @@
 dtype
 flashinfer
+matplot
+matplotlib
+ngram
 perc
 percentunit
 toks
+tpot
 ttft
 vllm

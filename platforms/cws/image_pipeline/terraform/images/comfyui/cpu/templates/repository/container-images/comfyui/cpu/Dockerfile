@@ -43,7 +43,7 @@ SHELL ["/bin/bash", "-c"]
 ENV COMFY_VERSION="0.3.62"
 ENV PYTORCH_VERSION="2.7.0"
 
-COPY --chmod=700 --from=my_context ./ /
+COPY --chmod=755 --from=my_context ./etc/workstation-startup.d/110_start-comfyui.sh /etc/workstation-startup.d/110_start-comfyui.sh
 
 ENV COMFYUI_DIR_NAME="ComfyUI"
 ENV USER_HOME_DIR="/home/$${USER}"

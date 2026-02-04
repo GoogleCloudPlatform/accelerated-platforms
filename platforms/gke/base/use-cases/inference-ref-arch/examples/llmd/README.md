@@ -318,6 +318,11 @@ run the following steps add a HuggingFace read token to the secret manager.
 In this section you will spawn many requests to the gradio endpoint which will
 route the request to the model server via llm-d's intelligent scheduling.
 
+Note: The stress test script you will run in this section has been tested on
+machine type `g2-standard-32` with 1 `nvidia-l4` GPU. If you choose a different
+accelerator for the reference architetcure like `nvidia-rtx-pro` , the script
+may not be able to generate enough stress on the deployment.
+
 - In order to send a request to the gradio chat interface fronting llm-d and
   model server, the active `gcloud` account needs to have the
   [Service Account Token Creator](https://cloud.google.com/iam/docs/roles-permissions/iam#iam.serviceAccountTokenCreator)

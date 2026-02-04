@@ -320,7 +320,7 @@ route the request to the model server via llm-d's intelligent scheduling.
 
 Note: The stress test script you will run in this section has been tested on
 machine type `g2-standard-32` with 1 `nvidia-l4` GPU. If you choose a different
-accelerator for the reference architetcure like `nvidia-rtx-pro` , the script
+accelerator for the reference architecture like `nvidia-rtx-pro` , the script
 may not be able to generate enough stress on the deployment.
 
 - In order to send a request to the gradio chat interface fronting llm-d and

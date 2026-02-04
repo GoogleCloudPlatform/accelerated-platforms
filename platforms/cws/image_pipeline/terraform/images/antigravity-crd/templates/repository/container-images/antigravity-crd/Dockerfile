@@ -21,11 +21,6 @@ FROM $${AR_LOCATION}-docker.pkg.dev/$${AR_PROJECT_ID}/${cloudbuild_cws_image_reg
 
 ARG DEBIAN_FRONTEND="noninteractive"
 
-# Temporary workaround until the key is updated in the upstream base image
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmour -o /usr/share/keyrings/yarn-keyring.gpg && \
-  echo "deb [signed-by=/usr/share/keyrings/yarn-keyring.gpg] https://dl.yarnpkg.com/debian stable main" | sudo tee /etc/apt/sources.list.d/yarn.list && \
-  apt-get update
-
 RUN apt-get update && \
   apt-get upgrade -y && \
   apt-get install -y \

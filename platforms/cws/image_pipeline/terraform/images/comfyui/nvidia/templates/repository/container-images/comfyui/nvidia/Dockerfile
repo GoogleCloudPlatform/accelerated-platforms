@@ -24,11 +24,6 @@ WORKDIR $${COMFY_DIR}
 
 ENV DEBIAN_FRONTEND="noninteractive"
 
-# Temporary workaround until the key is updated in the upstream base image
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmour -o /usr/share/keyrings/yarn-keyring.gpg && \
-  echo "deb [signed-by=/usr/share/keyrings/yarn-keyring.gpg] https://dl.yarnpkg.com/debian stable main" | sudo tee /etc/apt/sources.list.d/yarn.list && \
-  apt-get update
-
 RUN  wget -qO - https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/packages.cloud.google.com_apt-key.gpg && \
   echo "deb [signed-by=/usr/share/keyrings/packages.cloud.google.com_apt-key.gpg] https://packages.cloud.google.com/apt gcsfuse-$(lsb_release -c -s) main" > /etc/apt/sources.list.d/gcsfuse.list && \
   apt-get update && \

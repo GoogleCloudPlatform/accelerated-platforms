@@ -19,9 +19,7 @@ locals {
   repository_directory = "${local.repositories_path}/repository-${local.unique_identifier_prefix}"
   local_directory      = "platforms/cws/image_pipeline/terraform/images/comfyui/cpu/repo_files"
 
-  custom_nodes_directory = "${path.module}/../custom_nodes"
-  custom_nodes_files     = fileset(local.custom_nodes_directory, "**")
-  repository_folder      = "${path.module}/../../../../repository-${local.unique_identifier_prefix}"
+  repository_folder = "${path.module}/../../../../repository-${local.unique_identifier_prefix}"
 }
 
 resource "local_file" "cloudbuild_yaml" {
@@ -33,13 +31,6 @@ resource "local_file" "cloudbuild_yaml" {
   )
   file_permission = "0644"
   filename        = "${local.acp_root}/${local.local_directory}/cloudbuild/comfyui-cpu.yaml"
-}
-
-resource "local_file" "custom_nodes" {
-  for_each = local.custom_nodes_files
-
-  content  = file("${local.custom_nodes_directory}/${each.value}")
-  filename = "${local.acp_root}/${local.local_directory}/container-images/comfyui/custom_nodes/${each.value}"
 }
 
 resource "local_file" "dockerfile" {
@@ -62,7 +53,6 @@ resource "local_file" "start_ide" {
 resource "terraform_data" "stage_files" {
   depends_on = [
     local_file.cloudbuild_yaml,
-    local_file.custom_nodes,
     local_file.dockerfile,
     local_file.start_ide,
   ]

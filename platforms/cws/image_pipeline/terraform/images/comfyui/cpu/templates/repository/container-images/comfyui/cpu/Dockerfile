@@ -24,6 +24,11 @@ WORKDIR $${COMFY_DIR}
 
 ENV DEBIAN_FRONTEND="noninteractive"
 
+# Temporary workaround until the key is updated in the upstream base image
+RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | sudo gpg --dearmour -o /usr/share/keyrings/yarn-keyring.gpg && \
+  echo "deb [signed-by=/usr/share/keyrings/yarn-keyring.gpg] https://dl.yarnpkg.com/debian stable main" | sudo tee /etc/apt/sources.list.d/yarn.list && \
+  apt-get update
+
 RUN  wget -qO - https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/packages.cloud.google.com_apt-key.gpg && \
   echo "deb [signed-by=/usr/share/keyrings/packages.cloud.google.com_apt-key.gpg] https://packages.cloud.google.com/apt gcsfuse-$(lsb_release -c -s) main" > /etc/apt/sources.list.d/gcsfuse.list && \
   apt-get update && \
@@ -60,6 +65,7 @@ RUN source $${COMFY_DIR}/.venv/bin/activate && \
   comfy --skip-prompt set-default $${COMFYUI_DIR} && \
   comfy node install comfyui-browser && \
   comfy node install ComfyUI-Custom-Scripts@nightly && \
+  comfy node install comfyui-google-genmedia-custom-nodes && \
   comfy node install ComfyUI-VideoHelperSuite@nightly
 
 ARG COMFYUI_CUSTOM_NODE_DIR="custom_nodes"
@@ -67,8 +73,3 @@ ENV COMFYUI_INPUT_DIR="input"
 ENV COMFYUI_MODELS_DIR="models"
 ENV COMFYUI_OUTPUT_DIR="output"
 ENV COMFYUI_WORKFLOWS_DIR="user/default/workflows"
-
-COPY --chmod=700 --from=custom_nodes ./google_genmedia $${COMFYUI_DIR}/$${COMFYUI_CUSTOM_NODE_DIR}/google_genmedia
-
-RUN source $${COMFY_DIR}/.venv/bin/activate && \
-  uv pip install -r $${COMFYUI_DIR}/$${COMFYUI_CUSTOM_NODE_DIR}/google_genmedia/requirements.txt

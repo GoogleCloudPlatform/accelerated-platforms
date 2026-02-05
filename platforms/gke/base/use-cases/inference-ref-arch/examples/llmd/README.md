@@ -1,5 +1,53 @@
 # Intelligent inference scheduling with llm-d
 
+## Prerequisite
+
+This architecture and workflow assumes that the reader is familiar with the
+following GKE, Google Cloud Networking and llm-d components:
+
+- [Gateway API resources](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/gateway-api#gateway_resources)
+- [GKE Gateway Controller](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/gateway-api#gateway_controller)
+- [Google Cloud Load Balancer through GKE](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/service-load-balancer#load_balancer_types)
+- [Gateway API Inference Extension(GAIE)](https://github.com/kubernetes-sigs/gateway-api-inference-extension/tree/main/docs/proposals/0683-epp-architecture-proposal)
+- [vLLM-Optimized Inference Schedule](https://llm-d.ai/docs/architecture)
+
+## Architecture
+
+![image](images/llm-d.png)
+
+## Workflow
+
+- User securely hits the Cloud Endpoint DNS from a web browser.
+- The DNS resolves to an External IP mapped to a
+  `Global External Load Balancer`.
+- The `Global External Load Balancer` has a `HTTPRoute` that points to the
+  Gradio chat GKE service as the backend. It also has a backend policy
+  specifying that the request to the backend will have
+  `IAP(Identity-aware proxy)` authentication enabled.
+- The `Global External Load Balancer` routes the request via `IAP` to the Gradio
+  chat GKE service backend.
+- Gradio chat GKE service forwards the request to the Gradio GKE Deployment and
+  the user will see the chat interface loading on the browser.
+- When the user sends a request via chat interface, the request reaches the
+  Gradio GKE deployment as explained in previous steps.
+- The Gradio GKE deployment takes the chat message and routes the request to the
+  `Internal Regional Load Balancer` fronting the llm-d deployment.
+- The `Internal Regional Load Balancer` has a `HTTPRoute` attached to it that
+  points to an `InferencePool` as the backend. This `InferencePool` contains the
+  pods running the model server, specifically running the inference of the model
+  of your choice via `vllm`.
+- The `InferencePool` has a reference to the GAIE endpoint picker(`EPP`) which
+  means that the `GKE Gateway Controller` instead of routing the request to the
+  backend in round-robin fashion, will consult the `EPP` to provide it with the
+  backend where the traffic should be routed.
+- The `EPP` has
+  [scheduling profiles](https://github.com/llm-d/llm-d-inference-scheduler/blob/main/docs/architecture.md)
+  that defines how to score the pods in the `InferencePool`. The scoring is done
+  on the metrics coming out of the pods.
+- Once the `EPP` identifies the pod which should be used based on the scores, it
+  returns its IP address to the `GKE Gateway Controller` corresponding to the
+  `Internal Regional Load Balancer` which then routes the request to the pod.
+
 ## Pull the source code
 
 - Open [Cloud Shell](https://cloud.google.com/shell).
@@ -180,7 +228,7 @@ IAP application or resources.
 ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-llmd.sh
 ```
 
-## Workflow
+## Resources created
 
 The `deploy-llmd.sh` script will perform the following steps:
 
@@ -382,7 +430,11 @@ may not be able to generate enough stress on the deployment.
 
 - Let the stress test run and go to
   [Cloud Monitoring Dashboard page](https://console.cloud.google.com/monitoring/dashboards?pli=1)
-  and search for `llm-d dashboard`. Open the dashboard.
+  and search for `llm-d dashboard`. Open the dashboard. You will see something
+  similar to the following pic.
+
+  ![dashboard](images/llmd-dashboard.png)
+
 - You will see the metrics published by `vllm` and `gaie`. Note that for
   `nvidia-l4` GPUs, some of the network metrics like
   `Throughput TX Bytes per Pod` will missing as they are not supported by

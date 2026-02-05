@@ -26,8 +26,7 @@ gcloud builds submit \
 --project="${data.google_project.cluster.project_id}" \
 --quiet \
 --service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${data.google_service_account.cloudbuild.email}" \
---substitutions=_DOCKERFILE="${local.comfyui_dockerfile}",_DESTINATION="${local.image_destination}" \
-platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src
+--substitutions=_DOCKERFILE="${local.comfyui_dockerfile}",_DESTINATION="${local.image_destination}"
 EOT
     interpreter = ["bash", "-c"]
     working_dir = local.acp_root

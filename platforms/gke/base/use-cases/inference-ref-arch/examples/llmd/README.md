@@ -189,6 +189,7 @@ The `deploy-llmd.sh` script will perform the following steps:
 - Deploy a model server using vllm for Qwen3-0.6B inference on `nvidia-l4`
   accelerator and make the model accessible through gradio chat backed by
   Identity-Aware Proxy.
+- Creates a custom Cloud Monitoring dashboard named `llm-d dashboard`
 
 The model server uses Qwen3-0.6B model from HuggingFace which requires the model
 server deployment to have a read token. When the `deploy-llmd.sh` is completed,
@@ -305,14 +306,6 @@ run the following steps add a HuggingFace read token to the secret manager.
 > If the output of the command is `PROVISIONING`, it means the certificate has
 > not been provisioned yet. Wait for the status to change to `ACTIVE`
 
-## Create monitoring dashboard for llm-d
-
-- Run the following command to create a metric dashboard for llm-d in Cloud
-  Monitoring
-  ```sh
-  gcloud monitoring dashboards create --config-from-file=${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/templates/dashboard/llmd_dashboard.json
-  ```
-
 ## Stress test llm-d
 
 In this section you will spawn many requests to the gradio endpoint which will
@@ -326,7 +319,7 @@ may not be able to generate enough stress on the deployment.
 - In order to send a request to the gradio chat interface fronting llm-d and
   model server, the active `gcloud` account needs to have the
   [Service Account Token Creator](https://cloud.google.com/iam/docs/roles-permissions/iam#iam.serviceAccountTokenCreator)
-  role for the Workflow API service account. The following command will add the
+  role for the stress test service account. The following command will add the
   role to the active `gcloud` account.
 
   ```shell
@@ -336,35 +329,47 @@ may not be able to generate enough stress on the deployment.
   --role="roles/iam.serviceAccountTokenCreator"
   ```
 
-- Send a sample workflow to the Workflow API.
+  The stress test service account has the role `roles/iap.httpsResourceAccessor`
+  and can access the gradio chat application secured by Identity-Aware proxy.
 
-  - Generate JSON Web Token (JWT)
+- Generate JSON Web Token (JWT)
 
-    ```shell
-    cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd && \
-    cat > jwt-claim.json << EOF
-    {
-      "iss": "${stress_test_service_account_email}",
-      "sub": "${stress_test_service_account_email}",
-      "aud": "https://${llmd_endpoints_hostname}/gradio_api/api/sync_chat/",
-      "iat": $(date +%s),
-      "exp": $((`date +%s` + 3600))
-    }
-    EOF
-    ```
+  ```shell
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd && \
+  cat > jwt-claim.json << EOF
+  {
+    "iss": "${stress_test_service_account_email}",
+    "sub": "${stress_test_service_account_email}",
+    "aud": "https://${llmd_endpoints_hostname}/gradio_api/api/sync_chat/",
+    "iat": $(date +%s),
+    "exp": $((`date +%s` + 3600))
+  }
+  EOF
+  ```
 
-    ```shell
-    gcloud iam service-accounts sign-jwt --iam-account="${stress_test_service_account_email}" jwt-claim.json token.jwt
-    ```
+  ```shell
+  gcloud iam service-accounts sign-jwt --iam-account="${stress_test_service_account_email}" jwt-claim.json token.jwt
+  ```
 
-    If the command fails, wait for few mins as the IAM permissions could take
-    some time to reflect the changes.
+  If the command fails, wait for few mins as the IAM permissions could take some
+  time to reflect the changes.
 
-  - Run the script to trigger stress test.
+- Set up python virtual environment and install required packages
 
-    ```shell
-    python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/scripts/stress_test.py
-    ```
+  ```
+  python3 -m venv venv &&
+  source venv/bin/activate &&
+  pip install aiohttp
+  ```
+
+- Run the script to trigger stress test.
+
+  ```shell
+  python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/scripts/stress_test.py
+  ```
+
+  The script spawns high volume of requests to the gradio chat service that
+  routes requests to llm-d gateway.
 
 - The response should look like this:
 

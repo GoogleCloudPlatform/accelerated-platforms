@@ -4,28 +4,28 @@
     {
       "filterType": "RESOURCE_LABEL",
       "labelKey": "cluster",
-      "stringValue": "inf-dev",
+      "stringValue": "${cluster_name}",
       "templateVariable": "",
       "valueType": "STRING"
     },
     {
       "filterType": "RESOURCE_LABEL",
       "labelKey": "location",
-      "stringValue": "us-central1",
+      "stringValue": "${location}",
       "templateVariable": "",
       "valueType": "STRING"
     },
     {
       "filterType": "RESOURCE_LABEL",
       "labelKey": "namespace",
-      "stringValue": "llmd",
+      "stringValue": "${namespace}",
       "templateVariable": "",
       "valueType": "STRING"
     },
     {
       "filterType": "USER_METADATA_LABEL",
       "labelKey": "goog-k8s-cluster-name",
-      "stringValue": "inf-dev",
+      "stringValue": "${cluster_name}",
       "templateVariable": "",
       "valueType": "STRING"
     }
@@ -70,7 +70,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by (role, pod) (\n1 / (count by (cluster, pod, node, role) ({\"__name__\"=\"vllm:generation_tokens_total\"}))\n* on (node) group_left(env, zone) (\n    label_replace(\n        sum by (metadata_system_name, zone)(\n            avg_over_time({\"__name__\"=\"compute.googleapis.com/instance/gpu/throughput_tx_bytes\",\"monitored_resource\"=\"gce_instance\"}[${__interval}]) / ${__interval}\n        ),\n        \"node\",\n        \"$1\",\n        \"metadata_system_name\",\n        \"(.+)\"\n    )\n))",
+                  "prometheusQuery": "sum by (role, pod) (\n1 / (count by (cluster, pod, node, role) ({\"__name__\"=\"vllm:generation_tokens_total\"}))\n* on (node) group_left(env, zone) (\n    label_replace(\n        sum by (metadata_system_name, zone)(\n            avg_over_time({\"__name__\"=\"compute.googleapis.com/instance/gpu/throughput_tx_bytes\",\"monitored_resource\"=\"gce_instance\"}[$${__interval}]) / $${__interval}\n        ),\n        \"node\",\n        \"$1\",\n        \"metadata_system_name\",\n        \"(.+)\"\n    )\n))",
                   "unitOverride": "By"
                 }
               }
@@ -107,7 +107,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by (role, pod) (\n1 / (count by (cluster, pod, node, role) ({\"__name__\"=\"vllm:generation_tokens_total\"}))\n* on (node) group_left(env, zone) (\n    label_replace(\n        sum by (metadata_system_name, zone)(\n            avg_over_time({\"__name__\"=\"compute.googleapis.com/instance/gpu/throughput_rx_bytes\",\"monitored_resource\"=\"gce_instance\"}[${__interval}]) / ${__interval}\n        ),\n        \"node\",\n        \"$1\",\n        \"metadata_system_name\",\n        \"(.+)\"\n    )\n))",
+                  "prometheusQuery": "sum by (role, pod) (\n1 / (count by (cluster, pod, node, role) ({\"__name__\"=\"vllm:generation_tokens_total\"}))\n* on (node) group_left(env, zone) (\n    label_replace(\n        sum by (metadata_system_name, zone)(\n            avg_over_time({\"__name__\"=\"compute.googleapis.com/instance/gpu/throughput_rx_bytes\",\"monitored_resource\"=\"gce_instance\"}[$${__interval}]) / $${__interval}\n        ),\n        \"node\",\n        \"$1\",\n        \"metadata_system_name\",\n        \"(.+)\"\n    )\n))",
                   "unitOverride": "By"
                 }
               }
@@ -606,7 +606,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.999, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.999, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -619,7 +619,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -632,7 +632,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -645,7 +645,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -658,7 +658,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_objective_request_duration_seconds_bucket{}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -671,7 +671,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum(rate(inference_objective_request_duration_seconds_sum{}[${__interval}])) / sum(rate(inference_objective_request_duration_seconds_count{}[${__interval}]))",
+                  "prometheusQuery": "sum(rate(inference_objective_request_duration_seconds_sum{}[$${__interval}])) / sum(rate(inference_objective_request_duration_seconds_count{}[$${__interval}]))",
                   "unitOverride": "s"
                 }
               }
@@ -708,7 +708,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by (error_code, model_name, target_model_name) (rate(inference_objective_request_error_total[${__interval}])) or on() vector(0)\n",
+                  "prometheusQuery": "sum by (error_code, model_name, target_model_name) (rate(inference_objective_request_error_total[$${__interval}])) or on() vector(0)\n",
                   "unitOverride": "1/s"
                 }
               }
@@ -745,7 +745,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by(model_name, target_model_name) (rate(inference_objective_request_total{}[${__interval}]))",
+                  "prometheusQuery": "sum by(model_name, target_model_name) (rate(inference_objective_request_total{}[$${__interval}]))",
                   "unitOverride": ""
                 }
               }
@@ -781,7 +781,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_request_sizes_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_request_sizes_bucket{}[$${__interval}])))",
                   "unitOverride": "By"
                 }
               },
@@ -794,7 +794,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_request_sizes_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_request_sizes_bucket{}[$${__interval}])))",
                   "unitOverride": "By"
                 }
               },
@@ -807,7 +807,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_request_sizes_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_request_sizes_bucket{}[$${__interval}])))",
                   "unitOverride": "By"
                 }
               },
@@ -820,7 +820,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.5, sum by(le) (rate(inference_objective_request_sizes_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.5, sum by(le) (rate(inference_objective_request_sizes_bucket{}[$${__interval}])))",
                   "unitOverride": "By"
                 }
               }
@@ -857,7 +857,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_response_sizes_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_response_sizes_bucket{}[$${__interval}])))",
                   "unitOverride": "By"
                 }
               },
@@ -870,7 +870,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_response_sizes_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_response_sizes_bucket{}[$${__interval}])))",
                   "unitOverride": "By"
                 }
               },
@@ -883,7 +883,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_response_sizes_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_response_sizes_bucket{}[$${__interval}])))",
                   "unitOverride": "By"
                 }
               },
@@ -896,7 +896,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.5, sum by(le) (rate(inference_objective_response_sizes_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.5, sum by(le) (rate(inference_objective_response_sizes_bucket{}[$${__interval}])))",
                   "unitOverride": "By"
                 }
               }
@@ -933,7 +933,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_input_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_input_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -946,7 +946,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_input_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_input_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -959,7 +959,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_input_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_input_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -972,7 +972,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_objective_input_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_objective_input_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -985,7 +985,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(1, sum by(le) (rate(inference_objective_input_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(1, sum by(le) (rate(inference_objective_input_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -998,7 +998,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0, sum by(le) (rate(inference_objective_input_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0, sum by(le) (rate(inference_objective_input_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               }
@@ -1030,7 +1030,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_output_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_objective_output_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -1043,7 +1043,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_output_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_objective_output_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -1056,7 +1056,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_output_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_objective_output_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -1069,7 +1069,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.5, sum by(le) (rate(inference_objective_output_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.5, sum by(le) (rate(inference_objective_output_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -1082,7 +1082,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(1, sum by(le) (rate(inference_objective_output_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(1, sum by(le) (rate(inference_objective_output_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               },
@@ -1095,7 +1095,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0, sum by(le) (rate(inference_objective_output_tokens_bucket{}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0, sum by(le) (rate(inference_objective_output_tokens_bucket{}[$${__interval}])))",
                   "unitOverride": ""
                 }
               }
@@ -1128,7 +1128,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by (pod, model_name)(rate(inference_objective_output_tokens_sum{}[${__interval}]))",
+                  "prometheusQuery": "sum by (pod, model_name)(rate(inference_objective_output_tokens_sum{}[$${__interval}]))",
                   "unitOverride": "1/s"
                 }
               }
@@ -1165,7 +1165,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by (pod, model_name)(rate(inference_objective_input_tokens_sum{}[${__interval}]))",
+                  "prometheusQuery": "sum by (pod, model_name)(rate(inference_objective_input_tokens_sum{}[$${__interval}]))",
                   "unitOverride": "1/s"
                 }
               }
@@ -1201,7 +1201,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by (name)(avg_over_time(inference_pool_average_kv_cache_utilization[${__interval}]))",
+                  "prometheusQuery": "sum by (name)(avg_over_time(inference_pool_average_kv_cache_utilization[$${__interval}]))",
                   "unitOverride": "10^2.%"
                 }
               }
@@ -1250,7 +1250,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by (name) (avg_over_time(inference_pool_average_queue_size[${__interval}]))",
+                  "prometheusQuery": "sum by (name) (avg_over_time(inference_pool_average_queue_size[$${__interval}]))",
                   "unitOverride": ""
                 }
               }
@@ -1372,7 +1372,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_extension_prefix_indexer_hit_ratio_bucket[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_extension_prefix_indexer_hit_ratio_bucket[$${__interval}])))",
                   "unitOverride": "10^2.%"
                 }
               },
@@ -1385,7 +1385,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_extension_prefix_indexer_hit_ratio_bucket[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_extension_prefix_indexer_hit_ratio_bucket[$${__interval}])))",
                   "unitOverride": "10^2.%"
                 }
               },
@@ -1398,7 +1398,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_extension_prefix_indexer_hit_ratio_bucket[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_extension_prefix_indexer_hit_ratio_bucket[$${__interval}])))",
                   "unitOverride": "10^2.%"
                 }
               },
@@ -1411,7 +1411,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_extension_prefix_indexer_hit_ratio_bucket[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_extension_prefix_indexer_hit_ratio_bucket[$${__interval}])))",
                   "unitOverride": "10^2.%"
                 }
               }
@@ -1448,7 +1448,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_extension_prefix_indexer_hit_bytes_bucket[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_extension_prefix_indexer_hit_bytes_bucket[$${__interval}])))",
                   "unitOverride": "By"
                 }
               },
@@ -1461,7 +1461,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_extension_prefix_indexer_hit_bytes_bucket[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_extension_prefix_indexer_hit_bytes_bucket[$${__interval}])))",
                   "unitOverride": "By"
                 }
               },
@@ -1474,7 +1474,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_extension_prefix_indexer_hit_bytes_bucket[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_extension_prefix_indexer_hit_bytes_bucket[$${__interval}])))",
                   "unitOverride": "By"
                 }
               },
@@ -1487,7 +1487,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_extension_prefix_indexer_hit_bytes_bucket[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_extension_prefix_indexer_hit_bytes_bucket[$${__interval}])))",
                   "unitOverride": "By"
                 }
               }
@@ -1523,7 +1523,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_extension_scheduler_e2e_duration_seconds_bucket[${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(inference_extension_scheduler_e2e_duration_seconds_bucket[$${__interval}])))\n",
                   "unitOverride": "s"
                 }
               },
@@ -1536,7 +1536,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_extension_scheduler_e2e_duration_seconds_bucket[${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(inference_extension_scheduler_e2e_duration_seconds_bucket[$${__interval}])))\n",
                   "unitOverride": "s"
                 }
               },
@@ -1549,7 +1549,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_extension_scheduler_e2e_duration_seconds_bucket[${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.90, sum by(le) (rate(inference_extension_scheduler_e2e_duration_seconds_bucket[$${__interval}])))\n",
                   "unitOverride": "s"
                 }
               },
@@ -1562,7 +1562,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_extension_scheduler_e2e_duration_seconds_bucket[${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(inference_extension_scheduler_e2e_duration_seconds_bucket[$${__interval}])))\n",
                   "unitOverride": "s"
                 }
               }
@@ -1599,7 +1599,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99,sum by (\"plugin_type\",\"plugin_name\",\"extension_point\",\"le\")(increase({\"__name__\"=\"inference_extension_plugin_duration_seconds_bucket\"}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99,sum by (\"plugin_type\",\"plugin_name\",\"extension_point\",\"le\")(increase({\"__name__\"=\"inference_extension_plugin_duration_seconds_bucket\"}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               }
@@ -1649,7 +1649,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95,sum by (\"plugin_type\",\"plugin_name\",\"extension_point\",\"le\")(increase({\"__name__\"=\"inference_extension_plugin_duration_seconds_bucket\"}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95,sum by (\"plugin_type\",\"plugin_name\",\"extension_point\",\"le\")(increase({\"__name__\"=\"inference_extension_plugin_duration_seconds_bucket\"}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               }
@@ -1686,7 +1686,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50,sum by (\"plugin_type\",\"plugin_name\",\"extension_point\",\"le\")(increase({\"__name__\"=\"inference_extension_plugin_duration_seconds_bucket\"}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.50,sum by (\"plugin_type\",\"plugin_name\",\"extension_point\",\"le\")(increase({\"__name__\"=\"inference_extension_plugin_duration_seconds_bucket\"}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               }
@@ -1861,7 +1861,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by(role) (rate(vllm:generation_tokens_total[${__interval}]))",
+                  "prometheusQuery": "sum by(role) (rate(vllm:generation_tokens_total[$${__interval}]))",
                   "unitOverride": "1/s"
                 }
               }
@@ -1898,7 +1898,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "sum by(role) (rate(vllm:prompt_tokens_total[${__interval}]))",
+                  "prometheusQuery": "sum by(role) (rate(vllm:prompt_tokens_total[$${__interval}]))",
                   "unitOverride": "1/s"
                 }
               }
@@ -2044,7 +2044,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "quantile by (\"role\")(0.99,avg_over_time({\"__name__\"=\"vllm:kv_cache_usage_perc\"}[${__interval}])) * 100",
+                  "prometheusQuery": "quantile by (\"role\")(0.99,avg_over_time({\"__name__\"=\"vllm:kv_cache_usage_perc\"}[$${__interval}])) * 100",
                   "unitOverride": "%"
                 }
               }
@@ -2092,7 +2092,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "quantile by (\"role\")(0.95,avg_over_time({\"__name__\"=\"vllm:kv_cache_usage_perc\"}[${__interval}])) * 100",
+                  "prometheusQuery": "quantile by (\"role\")(0.95,avg_over_time({\"__name__\"=\"vllm:kv_cache_usage_perc\"}[$${__interval}])) * 100",
                   "unitOverride": "%"
                 }
               }
@@ -2128,7 +2128,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "quantile by (\"role\")(0.50,avg_over_time({\"__name__\"=\"vllm:kv_cache_usage_perc\"}[${__interval}])) * 100",
+                  "prometheusQuery": "quantile by (\"role\")(0.50,avg_over_time({\"__name__\"=\"vllm:kv_cache_usage_perc\"}[$${__interval}])) * 100",
                   "unitOverride": "%"
                 }
               }
@@ -2165,7 +2165,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket{role=\"decode\"}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket{role=\"decode\"}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -2178,7 +2178,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket{role=\"decode\"}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket{role=\"decode\"}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -2191,7 +2191,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket{role=\"decode\"}[${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket{role=\"decode\"}[$${__interval}])))",
                   "unitOverride": "s"
                 }
               }
@@ -2228,7 +2228,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by (le) (rate(vllm:time_per_output_token_seconds_bucket{role=\"decode\"}[${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by (le) (rate(vllm:time_per_output_token_seconds_bucket{role=\"decode\"}[$${__interval}])))\n",
                   "unitOverride": "s"
                 }
               },
@@ -2241,7 +2241,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by (le) (rate(vllm:time_per_output_token_seconds_bucket{role=\"decode\"}[${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le) (rate(vllm:time_per_output_token_seconds_bucket{role=\"decode\"}[$${__interval}])))\n",
                   "unitOverride": "s"
                 }
               },
@@ -2254,7 +2254,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50, sum by (le) (rate(vllm:time_per_output_token_seconds_bucket{role=\"decode\"}[${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.50, sum by (le) (rate(vllm:time_per_output_token_seconds_bucket{role=\"decode\"}[$${__interval}])))\n",
                   "unitOverride": "s"
                 }
               }

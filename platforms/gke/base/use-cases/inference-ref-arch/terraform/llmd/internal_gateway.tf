@@ -19,6 +19,7 @@
 
 
 resource "google_compute_address" "internal_gateway_ip" {
+  project      = data.google_project.cluster.project_id
   name         = "llm-inference-gw-ip"
   subnetwork   = local.network_cluster_subnet_node_name
   address_type = "INTERNAL"

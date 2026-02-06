@@ -241,7 +241,7 @@ The `deploy-llmd.sh` script will perform the following steps:
 
 The model server uses Qwen3-0.6B model from HuggingFace which requires the model
 server deployment to have a read token. When the `deploy-llmd.sh` is completed,
-run the following steps add a HuggingFace read token to the secret manager.
+run the following steps to add a HuggingFace read token to the secret manager.
 
 - [Generate a Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens)
   with token type **Read**.
@@ -287,7 +287,7 @@ run the following steps add a HuggingFace read token to the secret manager.
   - gradio-nvidia-l4 is the front end chat interface abstracting the model
     server.
   - ms-inference-scheduling-llm-d-modelservice-nvidia-l4 is the model server
-    running inference of Qwen3-0.6B. It way take some time for this deployment
+    running inference of Qwen3-0.6B. It may take some time for this deployment
     to be up completely depending upon the GPU availability
 
 - Check all the resources
@@ -395,12 +395,12 @@ may not be able to generate enough stress on the deployment.
   EOF
   ```
 
+  Wait for a couple of mins as the IAM permissions could take some time to
+  reflect the changes.
+
   ```shell
   gcloud iam service-accounts sign-jwt --iam-account="${stress_test_service_account_email}" jwt-claim.json token.jwt
   ```
-
-  If the command fails, wait for few mins as the IAM permissions could take some
-  time to reflect the changes.
 
 - Set up python virtual environment and install required packages
 
@@ -435,8 +435,8 @@ may not be able to generate enough stress on the deployment.
 
   ![dashboard](images/llmd-dashboard.png)
 
-- You will see the metrics published by `vllm` and `gaie`. Note that for
-  `nvidia-l4` GPUs, some of the network metrics like
+- You can view the metrics published by `vllm` and `gaie` on the dashboard. Note
+  that for `nvidia-l4` GPUs, some of the network metrics like
   `Throughput TX Bytes per Pod` will missing as they are not supported by
   `nvidia-l4` machine type.
 

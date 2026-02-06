@@ -13,7 +13,7 @@ following GKE, Google Cloud Networking and llm-d components:
 
 ## Architecture
 
-![image](images/llm-d.png)
+![image](../images/llm-d.png)
 
 ## Workflow
 
@@ -433,7 +433,7 @@ may not be able to generate enough stress on the deployment.
   and search for `llm-d dashboard`. Open the dashboard. You will see something
   similar to the following pic.
 
-  ![dashboard](images/llmd-dashboard.png)
+  ![dashboard](../images/llmd-dashboard.png)
 
 - You can view the metrics published by `vllm` and `gaie` on the dashboard. Note
   that for `nvidia-l4` GPUs, some of the network metrics like

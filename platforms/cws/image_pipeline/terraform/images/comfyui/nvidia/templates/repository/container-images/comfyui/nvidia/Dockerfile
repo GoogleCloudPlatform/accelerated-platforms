@@ -62,6 +62,7 @@ RUN source $${COMFY_DIR}/.venv/bin/activate && \
   comfy --skip-prompt set-default $${COMFYUI_DIR} && \
   comfy node install comfyui-browser && \
   comfy node install ComfyUI-Custom-Scripts@nightly && \
+  comfy node install comfyui-google-genmedia-custom-nodes && \
   comfy node install ComfyUI-VideoHelperSuite@nightly
 
 ARG COMFYUI_CUSTOM_NODE_DIR="custom_nodes"
@@ -69,8 +70,3 @@ ENV COMFYUI_INPUT_DIR="input"
 ENV COMFYUI_MODELS_DIR="models"
 ENV COMFYUI_OUTPUT_DIR="output"
 ENV COMFYUI_WORKFLOWS_DIR="user/default/workflows"
-
-COPY --chmod=700 --from=custom_nodes ./google_genmedia $${COMFYUI_DIR}/$${COMFYUI_CUSTOM_NODE_DIR}/google_genmedia
-
-RUN source $${COMFY_DIR}/.venv/bin/activate && \
-  uv pip install -r $${COMFYUI_DIR}/$${COMFYUI_CUSTOM_NODE_DIR}/google_genmedia/requirements.txt

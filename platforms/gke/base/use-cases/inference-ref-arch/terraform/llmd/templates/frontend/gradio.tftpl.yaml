@@ -1,0 +1,65 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${deployment_name}
+  namespace: ${namespace}
+  labels:
+    app: ${deployment_name}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ${deployment_name}
+  template:
+    metadata:
+      labels:
+        app: ${deployment_name}
+    spec:
+      containers:
+        - name: ${deployment_name}
+          image: ${image_destination}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7860
+          env:
+            # Point this to your existing Gateway's Internal IP or Service URL
+            - name: GATEWAY_URL
+              value: "http://${internal_gateway_ip}:80"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7860
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${service_name}
+  namespace: ${namespace}
+spec:
+  ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 7860
+  selector:
+    app: ${deployment_name}

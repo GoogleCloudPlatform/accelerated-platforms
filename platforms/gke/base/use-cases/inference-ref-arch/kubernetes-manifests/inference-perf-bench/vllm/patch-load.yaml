@@ -1,0 +1,11 @@
+load:
+      type: constant
+      interval: 1.0
+      sweep:
+        type: linear
+        timeout: 250
+        num_stages: 7
+        stage_duration: 30
+      num_workers: 20
+      worker_max_concurrency: 15
+      worker_max_tcp_connections: 2500

@@ -1,0 +1,14 @@
+data:
+      type: synthetic
+      input_distribution:                                 # For synthetic/random types
+        min: 10                                           # Minimum prompt length (tokens)
+        max: 100                                          # Maximum prompt length
+        mean: 50                                          # Average length
+        std: 10                                           # Standard deviation
+        total_count: 7000                                  # Total prompts to generate. Choose a large number for sweep so that you don't run out of prompts as the QPS increases to saturation
+      output_distribution:                                # Same structure as input_distribution
+        min: 40
+        max: 400
+        mean: 200
+        std: 50
+        total_count: 7000

@@ -23,6 +23,7 @@ MY_PATH="$(
 )"
 
 RANDOM_HASH=$(openssl rand -hex 4)
+echo "${RANDOM_HASH}" > jobset_random_hash.txt
 
 source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 

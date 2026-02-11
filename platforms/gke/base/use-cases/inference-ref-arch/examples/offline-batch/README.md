@@ -148,9 +148,9 @@ This example is built on top of the
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-offline-batch-dataset-downloader | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  "kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} get job/$(cat jobset_random_hash.txt)-offline-batch-dataset-downloader | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-offline-batch-dataset-downloader --all-containers --tail 10"
+  kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} logs job/$(cat jobset_random_hash.txt)-offline-batch-dataset-downloader --all-containers --tail 10"
   ```
 
   When the job is complete, you will see the following:

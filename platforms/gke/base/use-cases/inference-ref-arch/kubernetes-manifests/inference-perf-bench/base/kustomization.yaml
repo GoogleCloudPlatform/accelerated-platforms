@@ -77,3 +77,4 @@ resources:
 
 generatorOptions:
   disableNameSuffixHash: true
+  

@@ -11,7 +11,36 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inference-perf-config
+  namespace: ${BENCHMARKING_KUBERNETES_NAMESPACE}
 data:
+  config.yaml: |
+    load:
+      type: constant
+      interval: 1.0
+      sweep:
+        type: linear
+        timeout: 250
+        num_stages: 7
+        stage_duration: 30
+      num_workers: 20
+      worker_max_concurrency: 15
+      worker_max_tcp_connections: 2500
+    api: 
+      type: completion
+      streaming: true
+    server:
+      type: vllm
+      model_name: /gcs/${HF_MODEL_ID}
+      base_url: http://${APP_LABEL}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
+      ignore_eos: true
+    tokenizer:
+      pretrained_model_name_or_path: ${HF_MODEL_ID}
+    data:
       type: synthetic
       input_distribution:                                 # For synthetic/random types
         min: 10                                           # Minimum prompt length (tokens)
@@ -25,3 +54,21 @@ data:
         mean: 200
         std: 50
         total_count: 7000
+    metrics:
+      type: prometheus
+      prometheus:
+          scrape_interval: 15
+          google_managed: true         # Whether using Google Managed Prometheus
+          filters: [] 
+    report:
+      request_lifecycle:
+        summary: true
+        per_stage: true
+        per_request: true
+      prometheus:
+        summary: true
+        per_stage: true
+    storage:
+      google_cloud_storage:               
+        bucket_name: ${hub_models_bucket_bench_results_name}   # Required GCS bucket
+        report_file_prefix: null          # Optional filename prefix

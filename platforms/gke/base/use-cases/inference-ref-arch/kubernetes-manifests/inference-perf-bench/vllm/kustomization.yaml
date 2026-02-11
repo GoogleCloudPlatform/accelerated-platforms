@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,40 +16,65 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 configMapGenerator:
-  - name: load-patch-source
+  - name: benchmark
+    envs:
+      - benchmarking.env
+  - name: inference-perf-config
+    namespace: replaced-by-kustomize
+    envs:
+      - benchmarking.env
     files:
-      - content=patch-load.yaml
-  - name: data-patch-source
-    files:
-      - content=patch-data.yaml
+      - config.yaml=configmap-benchmark.yaml
+
+patches:
+  - path: set-compute-class.yaml
 
 replacements:
+  # Metadata & Namespace Sync
   - source:
       kind: ConfigMap
-      name: load-patch-source
-      fieldPath: data.content
+      name: benchmark
+      fieldPath: data.BENCHMARKING_KUBERNETES_NAMESPACE
     targets:
-      - select:
-          kind: ConfigMap
-          name: inference-perf-config
-        fieldPaths:
-          - data.config\\.yaml
-        options:
-          delimiter: "LOAD_BLOCK_HERE"
+      - select: {kind: ConfigMap}
+        fieldPaths: [metadata.namespace]
+      - select: {kind: Job}
+        fieldPaths: [metadata.namespace]
+      - select: {kind: SecretProviderClass}
+        fieldPaths: [metadata.namespace]
+      - select: {kind: PodMonitoring}
+        fieldPaths: [metadata.namespace]
 
-  - source:
-      kind: ConfigMap
-      name: data-patch-source
-      fieldPath: data.content
+  # Config.yaml String Interpolation 
+  - source: {kind: ConfigMap, name: inference-perf-config, fieldPath: data.HF_MODEL_ID}
     targets:
-      - select:
-          kind: ConfigMap
-          name: inference-perf-config
-        fieldPaths:
-          - data.config\\.yaml
-        options:
-          delimiter: "DATA_BLOCK_HERE"
+      - select: {kind: ConfigMap, name: inference-perf-config}
+        fieldPaths: ["data.config\\.yaml"]
+        options: {delimiter: "${HF_MODEL_ID}"}
+        
+  - source: {kind: ConfigMap, name: inference-perf-config, fieldPath: data.APP_LABEL}
+    targets:
+      - select: {kind: ConfigMap, name: inference-perf-config}
+        fieldPaths: ["data.config\\.yaml"]
+        options: {delimiter: "${APP_LABEL}"}
+
+  - source: {kind: ConfigMap, name: inference-perf-config, fieldPath: data.BENCHMARKING_KUBERNETES_NAMESPACE}
+    targets:
+      - select: {kind: ConfigMap, name: inference-perf-config}
+        fieldPaths: ["data.config\\.yaml"]
+        options: {delimiter: "${BENCHMARKING_KUBERNETES_NAMESPACE}"}
+
+  - source: {kind: ConfigMap, name: inference-perf-config, fieldPath: data.hub_models_bucket_bench_results_name}
+    targets:
+      - select: {kind: ConfigMap, name: inference-perf-config}
+        fieldPaths: ["data.config\\.yaml"]
+        options: {delimiter: "${hub_models_bucket_bench_results_name}"}
 
 resources:
-  - ../base
-nameSuffix: -vllm
+  - job.yaml
+  - secretproviderclass-huggingface-tokens.yaml
+  - pod-monitoring.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+  

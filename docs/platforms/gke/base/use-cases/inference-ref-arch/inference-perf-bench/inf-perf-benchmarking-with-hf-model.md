@@ -367,7 +367,7 @@ export ACCELERATOR="TPU"
 - Configure the benchmarking job.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/configure_benchmark.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/configure_benchmark.sh"
   ```
 
   - OPTIONAL: Customize the load scenario:

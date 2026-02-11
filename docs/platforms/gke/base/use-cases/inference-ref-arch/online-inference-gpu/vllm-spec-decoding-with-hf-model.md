@@ -290,16 +290,19 @@ terraform plan -input=false -out=tfplan && \
 terraform apply -input=false tfplan && \
 rm tfplan
 ```
+
 - Source the environment configuration.
 
   ```shell
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
+
 - Export the vLLM service endpoint
 
   ```shell
     export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   ```
+
   > > Verify the APP_LABEL
   > >
   > > ```shell
@@ -308,9 +311,10 @@ rm tfplan
 
 #### Run the benchmarking job.
 
-  ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-${METHOD}/configure_benchmark.sh"
-  ```
+```shell
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-${METHOD}/configure_benchmark.sh"
+```
+
 - Deploy the benchmarking job.
 
 ```shell
@@ -321,13 +325,13 @@ kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inferenc
 
 The job can take up an estimated 15 mins to run through all the stages
 
-
 ```shell
   watch --color --interval 5 --no-title
   "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-inference-perf --all-containers --tail 10"
 ```
+
 When the job is complete, you will see the following:
 
 ```text
@@ -348,6 +352,7 @@ curves
    inference-perf --analyze ${hub_models_bucket_bench_results_name}/*
 
 ```
+
 Clean up
 
 - Delete the benchmarking job.

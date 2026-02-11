@@ -240,7 +240,121 @@ This example is built on top of the
   kill -9 ${PF_PID}
   ```
 
-- Measuring performance with inference-perf
+## Measuring performance with inference-perf
+
+Inference-perf allows you to run your own benchmarks and simulate production
+traffic and ensure the load generation is external to the model server pods.
+
+This implementation deploys the inference-perf tool as a Kubernetes Job and can
+be customized with different load scenarios and datasets.
+
+Stay-up to date with the official
+[inference-perf tool](https://github.com/kubernetes-sigs/inference-perf) to
+learn more about all the supported features for metrics,load scenarios, and
+datasets.
+
+Optional - Install the inference-perf and matplot libraries to be able to create
+throughput vs latency curves
+
+```shell
+pip install inference-perf
+pip install matplotlib
+```
+
+### Workflow
+
+This example will run through the following steps:
+
+1. Apply the inference_perf_bench terraform, which will:
+
+   - Create the GCS bucket for storing inference-perf results
+   - Create the GCS bucket for storing a custom benchmarking dataset
+   - Create the Kubernetes service account for the inference-perf workload
+   - Grant the required IAM permissions for workload identity KSA
+
+2. Create the custom kubernetes manifest for the benchmarking job
+3. Run the benchmarking job for a load test on the vLLM service
+4. Collect the google managed prometheus metrics to generate reports
+5. Push the results from the benchmark run to the results GCS bucket
+
+#### Run the Inference-perf terraform
+
+```shell
+export TF_VAR_enable_gpu=true
+export ACCELERATOR="GPU"
+export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/inference_perf_bench && \
+rm -rf .terraform/ terraform.tfstate* && \
+terraform init && \
+terraform plan -input=false -out=tfplan && \
+terraform apply -input=false tfplan && \
+rm tfplan
+```
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+- Export the vLLM service endpoint
+
+  ```shell
+    export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
+  ```
+  > > Verify the APP_LABEL
+  > >
+  > > ```shell
+  > >   echo $APP_LABEL
+  > > ```
+
+#### Run the benchmarking job.
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-${METHOD}/configure_benchmark.sh"
+  ```
+- Deploy the benchmarking job.
+
+```shell
+kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench"
+```
+
+- Check the status of the job
+
+The job can take up an estimated 15 mins to run through all the stages
+
+
+```shell
+  watch --color --interval 5 --no-title
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-inference-perf --all-containers --tail 10"
+```
+When the job is complete, you will see the following:
+
+```text
+NAME                       STATUS     COMPLETIONS   DURATION   AGE
+XXXXXX-inference-perf      Complete    1/1           15m       25m
+```
+
+#### Analyze and Interpret Results
+
+The output reports (JSON files) can be viewed in benchmarking results bucket
+with metrics for each load stage
+
+Download the report and run inference-perf to create the throughput and latency
+curves
+
+```shell
+   gsutil -m cp -r gs://${hub_models_bucket_bench_results_name}/ .
+   inference-perf --analyze ${hub_models_bucket_bench_results_name}/*
+
+```
+Clean up
+
+- Delete the benchmarking job.
+
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench"
+  ```
 
 - Delete the workload.
 

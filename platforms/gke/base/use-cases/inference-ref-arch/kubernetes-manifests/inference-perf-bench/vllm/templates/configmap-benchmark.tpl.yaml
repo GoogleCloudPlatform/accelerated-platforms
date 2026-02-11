@@ -72,3 +72,4 @@ data:
       google_cloud_storage:               
         bucket_name: ${hub_models_bucket_bench_results_name}   # Required GCS bucket
         report_file_prefix: null          # Optional filename prefix
+        

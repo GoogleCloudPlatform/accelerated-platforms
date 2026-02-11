@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# https://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,40 +16,70 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 configMapGenerator:
-  - name: load-patch-source
-    files:
-      - content=patch-load.yaml
-  - name: data-patch-source
-    files:
-      - content=patch-data.yaml
+- envs:
+  - benchmarking.env
+  name: benchmark
+  namespace: replaced-by-kustomize
+
+patches:
+- path: set-compute-class.yaml
 
 replacements:
-  - source:
+- source:
+    fieldPath: data.BENCHMARKING_KUBERNETES_NAMESPACE
+    kind: ConfigMap
+    name: benchmark
+  targets:
+  - fieldPaths:
+    - metadata.namespace
+    select:
       kind: ConfigMap
-      name: load-patch-source
-      fieldPath: data.content
-    targets:
-      - select:
-          kind: ConfigMap
-          name: inference-perf-config
-        fieldPaths:
-          - data.config\\.yaml
-        options:
-          delimiter: "LOAD_BLOCK_HERE"
-
-  - source:
-      kind: ConfigMap
-      name: data-patch-source
-      fieldPath: data.content
-    targets:
-      - select:
-          kind: ConfigMap
-          name: inference-perf-config
-        fieldPaths:
-          - data.config\\.yaml
-        options:
-          delimiter: "DATA_BLOCK_HERE"
+  - fieldPaths:
+    - metadata.namespace
+    select:
+      kind: Job
+  - fieldPaths:
+    - metadata.namespace
+    select:
+      kind: SecretProviderClass
+  - fieldPaths:
+    - metadata.namespace
+    select:
+      kind: PodMonitoring
+- source:
+    fieldPath: data.BENCHMARKING_KUBERNETES_SERVICE_ACCOUNT
+    kind: ConfigMap
+    name: benchmark
+  targets:
+  - fieldPaths:
+    - spec.template.spec.serviceAccountName
+    select:
+      kind: Job
+      name: inference-perf
+- source:
+    fieldPath: metadata.name
+    kind: SecretProviderClass
+    name: huggingface-token-read
+  targets:
+  - fieldPaths:
+    - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
+    select:
+      kind: Job
+      name: inference-perf
+- source:
+    kind: ConfigMap
+    name: benchmark
+    fieldPath: data.APP_LABEL
+  targets:
+    - select:
+        kind: PodMonitoring
+        name: vllm-podmonitoring
+      fieldPaths:
+        - metadata.labels.app
+        - spec.selector.matchLabels.app
 
 resources:
-  - ../base
-  
+- configmap-benchmark.yaml
+- job.yaml
+- secretproviderclass-huggingface-tokens.yaml
+- pod-monitoring.yaml

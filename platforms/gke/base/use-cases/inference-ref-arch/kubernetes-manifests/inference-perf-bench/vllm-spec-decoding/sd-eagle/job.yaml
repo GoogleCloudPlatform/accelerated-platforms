@@ -58,3 +58,4 @@ spec:
               secretProviderClass: huggingface-token-read
           name: huggingface-token
           
+          

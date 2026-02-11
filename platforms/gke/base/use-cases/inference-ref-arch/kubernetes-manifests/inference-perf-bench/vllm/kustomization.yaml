@@ -16,65 +16,70 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 configMapGenerator:
-  - name: benchmark
-    envs:
-      - benchmarking.env
-  - name: inference-perf-config
-    namespace: replaced-by-kustomize
-    envs:
-      - benchmarking.env
-    files:
-      - config.yaml=configmap-benchmark.yaml
+- envs:
+  - benchmarking.env
+  name: benchmark
+  namespace: replaced-by-kustomize
 
 patches:
-  - path: set-compute-class.yaml
+- path: set-compute-class.yaml
 
 replacements:
-  # Metadata & Namespace Sync
-  - source:
+- source:
+    fieldPath: data.BENCHMARKING_KUBERNETES_NAMESPACE
+    kind: ConfigMap
+    name: benchmark
+  targets:
+  - fieldPaths:
+    - metadata.namespace
+    select:
       kind: ConfigMap
-      name: benchmark
-      fieldPath: data.BENCHMARKING_KUBERNETES_NAMESPACE
-    targets:
-      - select: {kind: ConfigMap}
-        fieldPaths: [metadata.namespace]
-      - select: {kind: Job}
-        fieldPaths: [metadata.namespace]
-      - select: {kind: SecretProviderClass}
-        fieldPaths: [metadata.namespace]
-      - select: {kind: PodMonitoring}
-        fieldPaths: [metadata.namespace]
-
-  # Config.yaml String Interpolation 
-  - source: {kind: ConfigMap, name: inference-perf-config, fieldPath: data.HF_MODEL_ID}
-    targets:
-      - select: {kind: ConfigMap, name: inference-perf-config}
-        fieldPaths: ["data.config\\.yaml"]
-        options: {delimiter: "${HF_MODEL_ID}"}
-        
-  - source: {kind: ConfigMap, name: inference-perf-config, fieldPath: data.APP_LABEL}
-    targets:
-      - select: {kind: ConfigMap, name: inference-perf-config}
-        fieldPaths: ["data.config\\.yaml"]
-        options: {delimiter: "${APP_LABEL}"}
-
-  - source: {kind: ConfigMap, name: inference-perf-config, fieldPath: data.BENCHMARKING_KUBERNETES_NAMESPACE}
-    targets:
-      - select: {kind: ConfigMap, name: inference-perf-config}
-        fieldPaths: ["data.config\\.yaml"]
-        options: {delimiter: "${BENCHMARKING_KUBERNETES_NAMESPACE}"}
-
-  - source: {kind: ConfigMap, name: inference-perf-config, fieldPath: data.hub_models_bucket_bench_results_name}
-    targets:
-      - select: {kind: ConfigMap, name: inference-perf-config}
-        fieldPaths: ["data.config\\.yaml"]
-        options: {delimiter: "${hub_models_bucket_bench_results_name}"}
+  - fieldPaths:
+    - metadata.namespace
+    select:
+      kind: Job
+  - fieldPaths:
+    - metadata.namespace
+    select:
+      kind: SecretProviderClass
+  - fieldPaths:
+    - metadata.namespace
+    select:
+      kind: PodMonitoring
+- source:
+    fieldPath: data.BENCHMARKING_KUBERNETES_SERVICE_ACCOUNT
+    kind: ConfigMap
+    name: benchmark
+  targets:
+  - fieldPaths:
+    - spec.template.spec.serviceAccountName
+    select:
+      kind: Job
+      name: inference-perf
+- source:
+    fieldPath: metadata.name
+    kind: SecretProviderClass
+    name: huggingface-token-read
+  targets:
+  - fieldPaths:
+    - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
+    select:
+      kind: Job
+      name: inference-perf
+- source:
+    kind: ConfigMap
+    name: benchmark
+    fieldPath: data.APP_LABEL
+  targets:
+    - select:
+        kind: PodMonitoring
+        name: vllm-podmonitoring
+      fieldPaths:
+        - metadata.labels.app
+        - spec.selector.matchLabels.app
 
 resources:
-  - job.yaml
-  - secretproviderclass-huggingface-tokens.yaml
-  - pod-monitoring.yaml
-
-generatorOptions:
-  disableNameSuffixHash: true
-  
+- configmap-benchmark.yaml
+- job.yaml
+- secretproviderclass-huggingface-tokens.yaml
+- pod-monitoring.yaml

@@ -49,7 +49,7 @@ source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variab
 
 envsubst < "${MY_PATH}/templates/benchmarking.tpl.env" | sponge "${MY_PATH}/benchmarking.env"
 
-# envsubst < "${MY_PATH}/templates/configmap-benchmark.tpl.yaml" | sponge "${MY_PATH}/configmap-benchmark.yaml"
+envsubst < "${MY_PATH}/templates/configmap-benchmark.tpl.yaml" | sponge "${MY_PATH}/configmap-benchmark.yaml"
 
 envsubst < "${MY_PATH}/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/secretproviderclass-huggingface-tokens.yaml"
 

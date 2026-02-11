@@ -16,15 +16,39 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 configMapGenerator:
-  - envs:
-      - benchmarking-spec.env
-    name: benchmarking-spec
-    namespace: replaced-by-kustomize
+  - name: load-patch-source
+    files:
+      - content=patch-load.yaml
+  - name: data-patch-source
+    files:
+      - content=patch-data.yaml
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: load-patch-source
+      fieldPath: data.content
+    targets:
+      - select:
+          kind: ConfigMap
+          name: inference-perf-config
+        fieldPaths:
+          - data.config\\.yaml
+        options:
+          delimiter: "LOAD_BLOCK_HERE"
+
+  - source:
+      kind: ConfigMap
+      name: data-patch-source
+      fieldPath: data.content
+    targets:
+      - select:
+          kind: ConfigMap
+          name: inference-perf-config
+        fieldPaths:
+          - data.config\\.yaml
+        options:
+          delimiter: "DATA_BLOCK_HERE"
 
 resources:
   - ../base
-nameSuffix: -vllm-sd-eagle
-
-patches:
-  - path: patch-load.yaml
-  - path: patch-data.yaml

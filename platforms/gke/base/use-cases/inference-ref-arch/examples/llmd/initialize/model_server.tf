@@ -32,7 +32,7 @@ module "kubectl_apply_llmd_spc" {
     local_file.llmd_spc_yaml,
     module.kubectl_apply_llmd_gaie_manifests
   ]
-  source = "../../../../modules/kubectl_apply"
+  source = "../../../../../modules/kubectl_apply"
 
   delete_timeout              = "60s"
   error_on_delete_failure     = false
@@ -59,7 +59,7 @@ module "kubectl_apply_llmd_spc" {
 #     local_file.llmd_ms_sa_yaml,
 #     module.kubectl_apply_llmd_spc
 #   ]
-#   source = "../../../../modules/kubectl_apply"
+#   source = "../../../../../modules/kubectl_apply"
 
 #   delete_timeout              = "60s"
 #   error_on_delete_failure     = false
@@ -86,7 +86,7 @@ module "kubectl_apply_llmd_spc" {
 #       serviceaccount_name   = local.llmd_modelserver_sa
 #       huggingface_token_spc = var.llmd_huggingface_spc
 #       cuda_image            = var.llmd_ms_cuda_image
-#       model_name            = var.llmd_model_name
+#       model_name            = var.llmd_model_id
 #     }
 #   )
 #   file_permission = "0644"
@@ -98,7 +98,7 @@ module "kubectl_apply_llmd_spc" {
 #     local_file.llmd_ms_yaml,
 #     module.kubectl_apply_llmd_ms_sa
 #   ]
-#   source = "../../../../modules/kubectl_apply"
+#   source = "../../../../../modules/kubectl_apply"
 
 #   delete_timeout              = "60s"
 #   error_on_delete_failure     = false

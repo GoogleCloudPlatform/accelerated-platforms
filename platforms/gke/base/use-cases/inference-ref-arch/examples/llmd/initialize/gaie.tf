@@ -56,8 +56,8 @@ resource "local_file" "llmd_gaie_manifests" {
 
 
 module "kubectl_apply_llmd_gaie_manifests" {
-  source                      = "../../../../modules/kubectl_apply"
-  depends_on                  = [module.kubectl_apply_namespace, module.kubectl_apply_int_gateway_res]
+  source                      = "../../../../../modules/kubectl_apply"
+  depends_on                  = [module.kubectl_apply_int_gateway_res]
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local_file.llmd_gaie_manifests.filename

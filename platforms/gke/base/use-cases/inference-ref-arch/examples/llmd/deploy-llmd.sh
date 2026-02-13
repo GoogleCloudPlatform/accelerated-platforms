@@ -24,7 +24,7 @@ MY_PATH="$(
 )"
 
 # Set repository values
-export ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../../../)"
+export ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../../)"
 export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
@@ -48,7 +48,6 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "workloads/custom_metrics_adapter"
   "workloads/inference_gateway"
   "workloads/priority_class"
-  "../../terraform/online_gpu"
 )
 CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
@@ -56,6 +55,7 @@ CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_D
 source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 
 declare -a use_case_terraservices=(
+  "../../terraform/online_gpu"
   "initialize"
 )
 for terraservice in "${use_case_terraservices[@]}"; do

@@ -32,7 +32,7 @@ module "kubectl_apply_llmd_spc" {
     local_file.llmd_spc_yaml,
     module.kubectl_apply_llmd_gaie_manifests
   ]
-  source = "../../../../modules/kubectl_apply"
+  source = "../../../../../modules/kubectl_apply"
 
   delete_timeout              = "60s"
   error_on_delete_failure     = false
@@ -59,7 +59,7 @@ module "kubectl_apply_llmd_spc" {
 #     local_file.llmd_ms_sa_yaml,
 #     module.kubectl_apply_llmd_spc
 #   ]
-#   source = "../../../../modules/kubectl_apply"
+#   source = "../../../../../modules/kubectl_apply"
 
 #   delete_timeout              = "60s"
 #   error_on_delete_failure     = false
@@ -98,7 +98,7 @@ module "kubectl_apply_llmd_spc" {
 #     local_file.llmd_ms_yaml,
 #     module.kubectl_apply_llmd_ms_sa
 #   ]
-#   source = "../../../../modules/kubectl_apply"
+#   source = "../../../../../modules/kubectl_apply"
 
 #   delete_timeout              = "60s"
 #   error_on_delete_failure     = false

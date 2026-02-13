@@ -104,10 +104,6 @@ resource "local_file" "external_route" {
 
 # IAP Policy
 resource "local_file" "policy_iap_llmd_yaml" {
-  depends_on = [
-    module.kubectl_apply_namespace,
-  ]
-
   content = templatefile(
     "${path.module}/templates/gateway/gcp-backend-policy-iap-service.tftpl.yaml",
     {
@@ -126,10 +122,9 @@ module "kubectl_apply_ext_gateway_res" {
     local_file.gateway_external_https_yaml,
     local_file.policy_iap_llmd_yaml,
     local_file.external_route,
-    module.kubectl_apply_namespace,
   ]
 
-  source = "../../../../modules/kubectl_apply"
+  source = "../../../../../modules/kubectl_apply"
 
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local.external_gateway_manifests_directory
@@ -141,10 +136,9 @@ module "kubectl_wait_for_gateway" {
   depends_on = [
     module.kubectl_apply_ext_gateway_res,
     module.kubectl_apply_gradio,
-    module.kubectl_apply_llmd_ms,
   ]
 
-  source = "../../../../modules/kubectl_wait"
+  source = "../../../../../modules/kubectl_wait"
 
   for             = "jsonpath={.status.conditions[?(@.type==\"networking.gke.io/GatewayHealthy\")].status}=True"
   kubeconfig_file = data.local_file.kubeconfig.filename

@@ -105,22 +105,8 @@ variable "kubernetes_version" {
 }
 
 variable "llmd_accelerator_type" {
-  default = "nvidia-l4"
+  default = "l4"
   type    = string
-
-  validation {
-    condition = contains(
-      [
-        "nvidia-a100-80gb",
-        "nvidia-h100-80gb",
-        "nvidia-l4",
-        "nvidia-rtx-pro",
-        "nvidia-tesla-a100",
-      ],
-      var.llmd_accelerator_type
-    )
-    error_message = "'llmd_accelerator_type' value is invalid"
-  }
 }
 
 variable "llmd_backend_policy_name" {

@@ -20,9 +20,9 @@ import aiohttp
 
 llmd_endpoints_hostname = os.environ.get("llmd_endpoints_hostname", "localhost:7860")
 URL = "https://" + llmd_endpoints_hostname + "/gradio_api/api/sync_chat"
-MODEL = "Qwen/Qwen3-0.6B"
+MODEL = os.environ.get("HF_MODEL_ID", "qwen/qwen3-32b")
 TOKEN_FILE = "token.jwt"
-
+print(f"Preparing to send the requests to the MODEL {MODEL}")
 CONCURRENT_USERS = 500  # Exact number of simultaneous requests
 TOTAL_REQUESTS = 5000  # Run until this many total requests finish
 RESET_INTERVAL = 5000  # Reset history rarely to keep context large

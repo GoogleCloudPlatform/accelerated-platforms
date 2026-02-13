@@ -56,12 +56,11 @@ resource "local_file" "internal_route" {
 # Apply internal gateway manifests
 module "kubectl_apply_int_gateway_res" {
   depends_on = [
-    module.kubectl_apply_namespace,
     local_file.internal_route,
     local_file.gateway_internal_yaml,
   ]
 
-  source = "../../../../modules/kubectl_apply"
+  source = "../../../../../modules/kubectl_apply"
 
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local.internal_gateway_manifests_directory

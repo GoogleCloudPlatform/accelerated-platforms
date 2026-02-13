@@ -245,7 +245,7 @@ run the following steps to add a HuggingFace read token to the secret manager.
 
 - [Generate a Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens)
   with token type **Read**.
-- Add the toke to the secret manager
+- Add the token to the secret manager
   ```
   HF_TOKEN_READ=<YOUR_HUGGINGFACE_READ_TOKEN>
   echo ${HF_TOKEN_READ} | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} --data-file=- --project=${huggingface_secret_manager_project_id}

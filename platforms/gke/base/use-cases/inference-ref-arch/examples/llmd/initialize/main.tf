@@ -22,7 +22,7 @@ locals {
   iap_domain                           = var.llmd_iap_domain != null ? var.llmd_iap_domain : split("@", trimspace(data.google_client_openid_userinfo.identity.email))[1]
   iap_oath_brand                       = "projects/${data.google_project.llmd_iap_oath_branding.number}/brands/${data.google_project.llmd_iap_oath_branding.number}"
   internal_gateway_manifests_directory = "${local.manifests_directory}/internal-gateway"
-  kubeconfig_directory                 = "${path.module}/../../../../kubernetes/kubeconfig"
+  kubeconfig_directory                 = "${path.module}/../../../../../kubernetes/kubeconfig"
   kubeconfig_file                      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
   llmd_endpoint                        = local.llmd_endpoints_hostname
   manifests_directory                  = "${local.namespace_directory}/${local.ira_online_gpu_kubernetes_namespace_name}"
@@ -59,7 +59,7 @@ data "google_storage_bucket" "cloudbuild_source" {
 #     local_file.namespace_yaml,
 #   ]
 
-#   source = "../../../../modules/kubectl_apply"
+#   source = "../../../../../modules/kubectl_apply"
 
 #   delete_timeout              = "60s"
 #   error_on_delete_failure     = false

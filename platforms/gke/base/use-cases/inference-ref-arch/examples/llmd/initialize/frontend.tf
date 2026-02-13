@@ -44,12 +44,12 @@ resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
     command     = <<-EOT
 gcloud builds submit \
---config="platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/src/cloudbuild.yaml" \
+--config="platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/src/cloudbuild.yaml" \
 --gcs-source-staging-dir="${data.google_storage_bucket.cloudbuild_source.url}/source" \
 --project="${data.google_project.cluster.project_id}" \
 --quiet \
 --service-account="projects/${data.google_project.cluster.project_id}/serviceAccounts/${data.google_service_account.cloudbuild.email}" \
---substitutions=_DESTINATION="${local.image_destination}",_MODEL_NAME="${llmd_model_name}" \
+--substitutions=_DESTINATION="${local.image_destination}",_MODEL_NAME="${var.llmd_model_id}" \
 platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/src
 EOT
     interpreter = ["bash", "-c"]
@@ -85,12 +85,11 @@ resource "local_file" "gradio" {
 module "kubectl_apply_gradio" {
   depends_on = [
     local_file.gradio,
-    module.kubectl_apply_namespace,
     module.kubectl_apply_ext_gateway_res,
     terraform_data.submit_docker_build,
   ]
 
-  source = "../../../../modules/kubectl_apply"
+  source = "../../../../../modules/kubectl_apply"
 
   delete_timeout              = "60s"
   error_on_delete_failure     = false

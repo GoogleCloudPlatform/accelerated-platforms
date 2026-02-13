@@ -34,8 +34,19 @@ class LLMGradioApp:
         """
         self.logger = self._setup_logging(config_path)
         self.gateway_url = os.getenv("GATEWAY_URL", "http://localhost:8000")
-        self.model = os.getenv("MODEL", "Qwen/Qwen3-0.6B")
-        self.allowed_models = {self.model}
+        self.static_model_list = [
+            "google/gemma-3-1b-it",
+            "google/gemma-3-4b-it",
+            "google/gemma-3-27b-it",
+            "openai/gpt-oss-20b",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "meta-llama/llama-3.3-70b-instruct",
+            "qwen/qwen3-32b",
+        ]
+        self.model = os.getenv("MODEL", "qwen/qwen3-32B")
+        if self.model not in self.static_model_list:
+            self.static_model_list.append(self.model)
+        self.allowed_models = set(self.static_model_list)
         self.request_timeout = 30
 
         if self.gateway_url == "http://localhost:8000":
@@ -69,7 +80,7 @@ class LLMGradioApp:
         return messages_payload
 
     # --- 1. ASYNC HANDLER (Recommended by Docs) ---
-    async def chat(self, message, history=[], model_selector="Qwen/Qwen3-0.6B"):
+    async def chat(self, message, history=[], model_selector="Qwen/Qwen3-32B"):
         """
         Core logic handler for the chat interface.
         """

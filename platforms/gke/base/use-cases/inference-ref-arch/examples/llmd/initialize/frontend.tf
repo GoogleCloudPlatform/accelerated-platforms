@@ -44,7 +44,7 @@ resource "terraform_data" "submit_docker_build" {
   provisioner "local-exec" {
     command     = <<-EOT
 gcloud builds submit \
---config="platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/src/cloudbuild.yaml" \
+--config="platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/src/cloudbuild.yaml" \
 --gcs-source-staging-dir="${data.google_storage_bucket.cloudbuild_source.url}/source" \
 --project="${data.google_project.cluster.project_id}" \
 --quiet \

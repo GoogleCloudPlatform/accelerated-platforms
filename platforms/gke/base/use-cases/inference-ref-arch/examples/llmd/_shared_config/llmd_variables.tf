@@ -189,11 +189,11 @@ variable "llmd_inferencepool_name" {
 #   type        = string
 # }
 
-# variable "llmd_model_name" {
-#   default     = "Qwen/Qwen3-0.6B"
-#   description = "model to server"
-#   type        = string
-# }
+variable "llmd_model_name" {
+  default     = "Qwen/Qwen3-0.6B"
+  description = "model to server"
+  type        = string
+}
 
 # variable "llmd_modelserver_sa" {
 #   default     = null

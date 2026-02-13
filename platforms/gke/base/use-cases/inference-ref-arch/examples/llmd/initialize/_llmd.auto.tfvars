@@ -1,1 +1,1 @@
-../../../terraform/_shared_config/llmd.auto.tfvars
+../_shared_config/llmd.auto.tfvars

@@ -1,1 +1,1 @@
-../../../terraform/_shared_config/llmd_variables.tf
+../_shared_config/llmd_variables.tf

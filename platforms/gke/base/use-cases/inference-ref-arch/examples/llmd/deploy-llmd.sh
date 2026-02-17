@@ -24,7 +24,7 @@ MY_PATH="$(
 )"
 
 # Set repository values
-export ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../)"
+export ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../../)"
 export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 export ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"

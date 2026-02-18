@@ -39,12 +39,12 @@ replacements:
         select:
           kind: Deployment
   - source:
-      fieldPath: data.DEPLOYMENT_NAME
+      fieldPath: data.ROUTING_PROXY_IMAGE
       kind: ConfigMap
-      name: runtime
+      name: vllm
     targets:
       - fieldPaths:
-          - metadata.name
+          - spec.template.spec.initContainers.[name=routing-proxy].image
         select:
           kind: Deployment
   - source:

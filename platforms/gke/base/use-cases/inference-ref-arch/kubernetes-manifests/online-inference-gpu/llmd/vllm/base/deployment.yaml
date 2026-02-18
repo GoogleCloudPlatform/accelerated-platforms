@@ -15,7 +15,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: replaced-by-kustomize
+  name: ms-inference-scheduling-llmd-modelservice
   namespace: replaced-by-kustomize
 spec:
   replicas: 2
@@ -24,6 +24,7 @@ spec:
       llmd.ai/inferenceServing: "true"
       llmd.ai/model: random_model
       llmd.ai/role: decode
+      app: replaced-by-kustomize
   template:
     metadata:
       annotations:
@@ -36,6 +37,7 @@ spec:
         llmd.ai/model: random_model
         llmd.ai/role: decode
         ai.gke.io/model: replaced-by-kustomize
+        app: replaced-by-kustomize
     spec:
       initContainers:
         - name: routing-proxy
@@ -65,12 +67,13 @@ spec:
           name: torch-compile-cache
         - emptyDir:
             medium: Memory
+            sizeLimit: 20Gi
           name: dev-shm
         - csi:
             driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
               bucketName: cloud-storage-bucket-name
-              mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replaced-by-kustomize
+              mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replaced-by-kustomize,,uid=2000,gid=2000
               skipCSIBucketAccessCheck: "true"
           name: huggingface-hub-model-bucket
         - emptyDir:
@@ -82,6 +85,7 @@ spec:
         - emptyDir:
             medium: Memory
           name: gke-gcsfuse-buffer
+
       containers:
         - args:
             - |
@@ -104,30 +108,28 @@ spec:
               name: huggingface-hub-model-bucket
               readOnly: true
 
-        - name: vllm
+        - name: inference-server
           image: replaced-by-kustomize
-
           command: ["vllm", "serve"]
           args:
-            - /gcs/${MODEL_ID}
+            - /gcs/$(MODEL_ID)
             - "--port"
             - "8200"
             - "--served-model-name"
-            - "${MODEL_ID}"
+            - "$(MODEL_ID)"
             - "--kv-transfer-config"
             - '{"kv_connector":"NixlConnector", "kv_role":"kv_both"}'
             - "--disable-uvicorn-access-log"
             - "--tensor-parallel-size"
             - "$(TENSOR_PARALLEL_SIZE)"
             - "--gpu-memory-utilization"
-            - "(GPU_MEMORY_UTILIZATION)"
+            - "$(GPU_MEMORY_UTILIZATION)"
             - "--max-model-len"
             - "$(MAX_MODEL_LEN)"
-            - "--trust-remote-code"
-            - "--disable-log-requests"
+              #- "--disable-custom-all-reduce"
           env:
-            - name: CUDA_VISIBLE_DEVICES
-              value: "0"
+            #- name: CUDA_VISIBLE_DEVICES
+            #  value: "0"
             - name: UCX_TLS
               value: cuda_ipc,cuda_copy,tcp
             - name: VLLM_NIXL_SIDE_CHANNEL_HOST
@@ -137,10 +139,11 @@ spec:
             - name: VLLM_NIXL_SIDE_CHANNEL_PORT
               value: "5557"
             - name: VLLM_LOGGING_LEVEL
-              value: INFO
+              value:
+                DEBUG
+                #- name: TP_SIZE
+                #value: "1"
             - name: DP_SIZE
-              value: "1"
-            - name: TP_SIZE
               value: "1"
             - name: DP_SIZE_LOCAL
               value: "1"
@@ -149,8 +152,6 @@ spec:
                 configMapKeyRef:
                   key: GPU_MEMORY_UTILIZATION
                   name: runtime
-            - name: LD_LIBRARY_PATH
-              value: ${LD_LIBRARY_PATH}:/usr/local/nvidia/lib64
             - name: MAX_MODEL_LEN
               valueFrom:
                 configMapKeyRef:
@@ -165,9 +166,10 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: TENSOR_PARALLEL_SIZE
-                  name: runtime
-            - name: VLLM_XLA_CACHE_PATH
-              value: /data
+                  name:
+                    runtime
+                    #- name: VLLM_XLA_CACHE_PATH
+                    #value: /data
           ports:
             - containerPort: 5557
               protocol: TCP

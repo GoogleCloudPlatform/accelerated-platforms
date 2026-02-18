@@ -23,6 +23,6 @@ MY_PATH="$(
 )"
 
 source "${MY_PATH}/../../../../examples/llmd/_shared_config/scripts/set_environment_variables.sh"
-"${MY_PATH}/../configure_deployment.sh"
+"${MY_PATH}/../../configure_deployment.sh"
 
 envsubst <"${MY_PATH}/base/templates/vllm.tpl.env" | sponge "${MY_PATH}/base/vllm.env"

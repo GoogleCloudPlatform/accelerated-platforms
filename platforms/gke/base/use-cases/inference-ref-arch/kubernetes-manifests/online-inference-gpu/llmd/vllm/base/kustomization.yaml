@@ -22,5 +22,5 @@ configMapGenerator:
     namespace: replaced-by-kustomize
 
 resources:
-  - ../../base
+  - ../../../base
   - deployment.yaml

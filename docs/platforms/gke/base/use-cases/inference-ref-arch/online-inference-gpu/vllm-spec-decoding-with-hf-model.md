@@ -240,6 +240,77 @@ This example is built on top of the
   kill -9 ${PF_PID}
   ```
 
+- Delete the workload.
+
+  ```shell
+  export METHOD=ngram && \
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
+  ```
+
+### Speculative Decoding with Eagle
+
+- Deploy the inference workload.
+
+  ```shell
+  export METHOD=eagle && \
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
+  ```
+
+- Watch the deployment until it is ready.
+
+  ```shell
+  export METHOD=eagle && \
+  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} --all-containers --tail 10"
+  ```
+
+  When the deployment is ready, you will see output similar to the following:
+
+  ```text
+  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+  vllm-h100-llama-3-3-70b-it-sd-eagle         1/1     1            1           ###
+  ```
+
+  You can press `CTRL`+`c` to terminate the watch.
+
+- Send a test request to the model.
+
+  Start a port forward to the model service.
+
+  ```shell
+  export METHOD=eagle && \
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} 8000:8000 >/dev/null & \
+  PF_PID=$!
+  ```
+
+  Send a test request.
+
+  ```shell
+  curl http://127.0.0.1:8000/v1/chat/completions \
+  --data '{
+    "model": "/gcs/'${HF_MODEL_ID}'",
+    "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
+    }' \
+  --header "Content-Type: application/json" \
+  --request POST \
+  --show-error \
+  --silent | jq
+  ```
+
+  Stop the port forward.
+
+  ```shell
+  kill -9 ${PF_PID}
+  ```
+
+- Delete the workload.
+
+  ```shell
+  export METHOD=eagle && \
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
+  ```
+
 ## Measuring speculative decoding (ngram/eagle) performance with inference-perf
 
 Inference-perf allows you to run your own benchmarks and simulate production
@@ -356,83 +427,10 @@ curves
 
 ```
 
-Clean up
-
 - Delete the benchmarking job.
 
   ```shell
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-${METHOD}"
-  ```
-
-- Delete the workload.
-
-  ```shell
-  export METHOD=ngram && \
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
-  ```
-
-### Speculative Decoding with Eagle
-
-- Deploy the inference workload.
-
-  ```shell
-  export METHOD=eagle && \
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
-  ```
-
-- Watch the deployment until it is ready.
-
-  ```shell
-  export METHOD=eagle && \
-  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} --all-containers --tail 10"
-  ```
-
-  When the deployment is ready, you will see output similar to the following:
-
-  ```text
-  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-h100-llama-3-3-70b-it-sd-eagle         1/1     1            1           ###
-  ```
-
-  You can press `CTRL`+`c` to terminate the watch.
-
-- Send a test request to the model.
-
-  Start a port forward to the model service.
-
-  ```shell
-  export METHOD=eagle && \
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} 8000:8000 >/dev/null & \
-  PF_PID=$!
-  ```
-
-  Send a test request.
-
-  ```shell
-  curl http://127.0.0.1:8000/v1/chat/completions \
-  --data '{
-    "model": "/gcs/'${HF_MODEL_ID}'",
-    "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
-    }' \
-  --header "Content-Type: application/json" \
-  --request POST \
-  --show-error \
-  --silent | jq
-  ```
-
-  Stop the port forward.
-
-  ```shell
-  kill -9 ${PF_PID}
-  ```
-
-- Delete the workload.
-
-  ```shell
-  export METHOD=eagle && \
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   ```
 
 ## Troubleshooting

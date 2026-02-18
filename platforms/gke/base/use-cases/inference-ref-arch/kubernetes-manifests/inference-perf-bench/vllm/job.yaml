@@ -57,3 +57,5 @@ spec:
             volumeAttributes:
               secretProviderClass: huggingface-token-read
           name: huggingface-token
+          
+          

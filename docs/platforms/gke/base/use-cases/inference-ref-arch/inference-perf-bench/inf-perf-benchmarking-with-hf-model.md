@@ -26,7 +26,9 @@ datasets.
   is deployed and configured.
 
 - Get access to the models.
+
   - For Gemma:
+
     - Consented to the license on [Kaggle](https://www.kaggle.com/) using a
       Hugging Face account.
       - [**google/gemma**](https://www.kaggle.com/models/google/gemma).
@@ -72,6 +74,7 @@ pip install matplotlib
 This example will run through the following steps:
 
 1. Apply the inference_perf_bench terraform, which will:
+
    - Create the GCS bucket for storing inference-perf results
    - Create the GCS bucket for storing a custom benchmarking dataset
    - Create the Kubernetes service account for the inference-perf workload
@@ -228,6 +231,7 @@ export ACCELERATOR="TPU"
   | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
   | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
   | qwen3-32b                      | ✅  | ✅   | ✅   | ✅           |
+
   - **NVIDIA Tesla L4 24GB**:
 
     ```shell
@@ -266,6 +270,7 @@ export ACCELERATOR="TPU"
   | gemma-3-4b-it  | ✅  | ❌  |
   | gemma-3-27b-it | ✅  | ✅  |
   | qwen3-32b      | ✅  | ✅  |
+
   - **v5e**:
 
     ```shell
@@ -283,6 +288,7 @@ export ACCELERATOR="TPU"
     [Allocation quotas: TPU quota](https://cloud.google.com/compute/resource-usage#tpu_quota).
 
 - Choose the model.
+
   - **Gemma 3 1B Instruction-Tuned**:
 
     ```shell

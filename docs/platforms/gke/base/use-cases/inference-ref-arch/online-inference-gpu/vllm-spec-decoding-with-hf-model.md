@@ -327,7 +327,6 @@ kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inferenc
 
 The job can take up an estimated 15 mins to run through all the stages
 
-
 ```shell
 watch --color --interval 5 --no-title "
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${SHORT_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1';

@@ -45,7 +45,7 @@ else
     echo "Variable not found"
 fi
 
-source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
+source "${MY_PATH}/../../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
 envsubst < "${MY_PATH}/templates/benchmarking.tpl.env" | sponge "${MY_PATH}/benchmarking.env"
 
@@ -55,5 +55,6 @@ envsubst < "${MY_PATH}/templates/secretproviderclass-huggingface-tokens.tpl.yaml
 
 
 cd "${MY_PATH}"
-kustomize edit set nameprefix "${HF_MODEL_ID_HASH}-"
+SHORT_HASH=$(echo -n "${APP_LABEL}" | sha256sum | cut -c1-10)
+kustomize edit set nameprefix "${SHORT_HASH}-"
 

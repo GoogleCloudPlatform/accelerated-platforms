@@ -240,7 +240,7 @@ This example is built on top of the
   kill -9 ${PF_PID}
   ```
 
-## Measuring performance with inference-perf
+## Measuring speculative decoding (ngram/eagle) performance with inference-perf
 
 Inference-perf allows you to run your own benchmarks and simulate production
 traffic and ensure the load generation is external to the model server pods.
@@ -300,16 +300,18 @@ rm tfplan
 - Export the vLLM service endpoint
 
   ```shell
-    export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
+  export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   ```
 
   > > Verify the APP_LABEL
   > >
   > > ```shell
-  > >   echo $APP_LABEL
+  > > echo $APP_LABEL
   > > ```
 
 #### Run the benchmarking job.
+
+- Configure the benchmarking job.
 
 ```shell
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-${METHOD}/configure_benchmark.sh"
@@ -318,18 +320,20 @@ rm tfplan
 - Deploy the benchmarking job.
 
 ```shell
-kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench"
+kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-${METHOD}"
 ```
 
 - Check the status of the job
 
 The job can take up an estimated 15 mins to run through all the stages
 
+
 ```shell
-  watch --color --interval 5 --no-title
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-inference-perf --all-containers --tail 10"
+watch --color --interval 5 --no-title "
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${SHORT_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1';
+  echo '\nLogs(last 10 lines):';
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs job/${SHORT_HASH}-inference-perf --all-containers --tail 10
+  "
 ```
 
 When the job is complete, you will see the following:
@@ -358,7 +362,7 @@ Clean up
 - Delete the benchmarking job.
 
   ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench"
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-${METHOD}"
   ```
 
 - Delete the workload.

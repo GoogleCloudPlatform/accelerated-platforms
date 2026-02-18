@@ -381,14 +381,14 @@ export ACCELERATOR="TPU"
   > >
 
   ```shell
-   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/
+   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/
 
   ```
 
 ## Deploy the benchmarking job.
 
 ```shell
-kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench"
+kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm"
 ```
 
 ## Check the status of the job
@@ -398,19 +398,19 @@ The job can take up an estimated 15 mins to run through all the stages
 #### For GPUs:
 
 ```shell
-  watch --color --interval 5 --no-title
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-inference-perf --all-containers --tail 10"
+watch --color --interval 5 --no-title "
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${SHORT_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1';
+  echo '\nLogs(last 10 lines):';
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs job/${SHORT_HASH}-inference-perf --all-containers --tail 10"
 ```
 
 #### For TPUs:
 
 ```shell
-  watch --color --interval 5 --no-title
-  "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-inference-perf --all-containers --tail 10"
+watch --color --interval 5 --no-title "
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get job/${SHORT_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1';
+  echo '\nLogs(last 10 lines):';
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs job/${SHORT_HASH}-inference-perf --all-containers --tail 10"
 ```
 
 When the job is complete, you will see the following:

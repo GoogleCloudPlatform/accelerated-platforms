@@ -15,7 +15,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ms-inference-scheduling-llmd-modelservicell
+  name: ms-inference-scheduling-llmd-modelservice
   namespace: replaced-by-kustomize
 spec:
   template:

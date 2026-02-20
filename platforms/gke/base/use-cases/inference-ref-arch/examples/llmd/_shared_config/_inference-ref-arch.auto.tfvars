@@ -1,1 +1,0 @@
-../../../terraform/_shared_config/inference-ref-arch.auto.tfvars

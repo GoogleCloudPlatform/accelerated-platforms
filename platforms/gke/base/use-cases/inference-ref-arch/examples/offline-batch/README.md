@@ -170,7 +170,7 @@ This example is built on top of the
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Configure the deployment.
+- Configure the jobset.
 
   ```shell
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/configure_worker.sh"
@@ -229,9 +229,9 @@ This example is built on top of the
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} get job/js-$(cat jobset_random_hash.txt)-offline-batch-worker | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} get job/js-$(cat jobset_random_hash.txt)-offline-batch-worker | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} logs job/js-$(cat jobset_random_hash.txt)-offline-batch-worker --all-containers --tail 10"
+  kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} logs job/js-$(cat jobset_random_hash.txt)-offline-batch-worker --all-containers --tail 10"
   ```
 
   When the job is complete, you will see the following:

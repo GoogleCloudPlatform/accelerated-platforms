@@ -219,26 +219,26 @@ This example is built on top of the
     accelerator type. For more information, see about viewing GPU quotas, see
     [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
-- Deploy the subscriber workload.
+- Deploy the jobset workload.
 
   ```shell
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
-- Watch the deployment until it is ready.
+- Watch the jobset until it is ready.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} get job/js-$(cat jobset_random_hash.txt)-offline-batch-worker | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} get jobset/js-$(cat jobset_random_hash.txt)-obi-${ACCELERATOR_TYPE}-${HF_MODEL_ID_HASH} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} logs job/js-$(cat jobset_random_hash.txt)-offline-batch-worker --all-containers --tail 10"
+  kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} logs job/js-$(cat jobset_random_hash.txt)-${ACCELERATOR_TYPE}-${HF_MODEL_ID_HASH}-obi-job-0 --all-containers --tail 10"
   ```
 
-  When the job is complete, you will see the following:
+  When the jobset is complete, you will see the following:
 
   ```text
-  NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment/offline-batch-worker   1/1     1            1           ###
+  NAME                                            TERMINALSTATE   RESTARTS   COMPLETED   SUSPENDED   AGE
+  js-xxxxxx-obi-rtx-pro-6000-bd25a4c7             Completed       0          True                    74m
   ```
 
   You can press `CTRL`+`c` to terminate the watch.

@@ -21,7 +21,7 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -rtx-llama-3
+nameSuffix: -rtx-pro-6000-bd25a4c7
 
 replacements:
   - source:

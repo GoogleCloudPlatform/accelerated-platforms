@@ -21,7 +21,7 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -h100-llama-3-3-70b-instruct
+nameSuffix: -h100-bd25a4c7
 
 patches:
   - path: patch-nodeselector.yaml

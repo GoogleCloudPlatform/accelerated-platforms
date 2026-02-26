@@ -1,0 +1,17 @@
+# namereference.yaml
+nameReference:
+- kind: ConfigMap
+  version: v1
+  fieldSpecs:
+  # For ConfigMaps mounted as Volumes
+  - path: spec/replicatedJobs/template/spec/template/spec/volumes/configMap/name
+    kind: JobSet
+  # For ConfigMaps loaded via envFrom in containers
+  - path: spec/replicatedJobs/template/spec/template/spec/containers/envFrom/configMapRef/name
+    kind: JobSet
+  # For ConfigMaps loaded via envFrom in initContainers
+  - path: spec/replicatedJobs/template/spec/template/spec/initContainers/envFrom/configMapRef/name
+    kind: JobSet
+  # For specific environment variables via valueFrom
+  - path: spec/replicatedJobs/template/spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
+    kind: JobSet

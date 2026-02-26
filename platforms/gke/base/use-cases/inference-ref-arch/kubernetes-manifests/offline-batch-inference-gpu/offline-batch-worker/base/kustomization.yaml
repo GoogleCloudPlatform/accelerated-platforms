@@ -25,8 +25,8 @@ configMapGenerator:
     name: vllm
     namespace: replaced-by-kustomize
 
-generatorOptions:
-  disableNameSuffixHash: true
-
 resources:
   - jobset.yaml
+
+configurations:
+  - namereference.yaml

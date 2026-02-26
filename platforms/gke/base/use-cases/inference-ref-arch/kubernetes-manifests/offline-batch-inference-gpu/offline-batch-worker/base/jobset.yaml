@@ -79,6 +79,7 @@ spec:
                       name: runtime
               image: busybox
               name: fetch-safetensors
+              restartPolicy: Always
               volumeMounts:
               - name: huggingface-hub-model-bucket
                 mountPath: /gcs
@@ -144,6 +145,7 @@ spec:
                   cpu: "64"
                   memory: 320G
                   nvidia.com/gpu: "2"
+              restartPolicy: Always
               volumeMounts:
                 - mountPath: /dev/shm
                   name: dev-shm

@@ -105,8 +105,21 @@ variable "kubernetes_version" {
 }
 
 variable "llmd_accelerator_type" {
-  default = "l4"
+  default = "nvidia-rtx-pro"
   type    = string
+
+  validation {
+    condition = contains(
+      [
+        "l4",
+        "h100",
+        "h200",
+        "nvidia-rtx-pro",
+      ],
+      var.llmd_accelerator_type
+    )
+    error_message = "'llmd_accelerator_type' value is invalid"
+  }
 }
 
 variable "llmd_backend_policy_name" {
@@ -175,10 +188,26 @@ variable "llmd_inferencepool_name" {
 #   type        = string
 # }
 
-variable "llmd_model_name" {
-  default     = "Qwen/Qwen3-0.6B"
+variable "llmd_model_id" {
+  default     = "qwen/qwen3-32b"
   description = "model to server"
   type        = string
+
+  validation {
+    condition = contains(
+      [
+        "google/gemma-3-1b-it",
+        "google/gemma-3-4b-it",
+        "google/gemma-3-27b-it",
+        "openai/gpt-oss-20b",
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "meta-llama/llama-3.3-70b-instruct",
+        "qwen/qwen3-32b",
+      ],
+      var.llmd_model_id
+    )
+    error_message = "'llmd_model_id' value is invalid"
+  }
 }
 
 # variable "llmd_modelserver_sa" {

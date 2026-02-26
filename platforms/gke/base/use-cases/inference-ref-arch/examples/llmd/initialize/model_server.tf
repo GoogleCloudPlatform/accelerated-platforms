@@ -86,7 +86,7 @@ module "kubectl_apply_llmd_spc" {
 #       serviceaccount_name   = local.llmd_modelserver_sa
 #       huggingface_token_spc = var.llmd_huggingface_spc
 #       cuda_image            = var.llmd_ms_cuda_image
-#       model_name            = var.llmd_model_name
+#       model_name            = var.llmd_model_id
 #     }
 #   )
 #   file_permission = "0644"

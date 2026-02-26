@@ -106,23 +106,52 @@ precedence over earlier ones:
   sed -i '/^platform_name[[:blank:]]*=/{h;s/=.*/= "'"${platform_name}"'"/};${x;/^$/{s//platform_name="'"${platform_name}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
   ```
 
+- Optional : Run the following step if you want to run the inference of a model
+  other than `qwen/qwen3-32b` which is the default model for this deployment.
+
+  ```
+  llmd_model_id="<MODEL_ID>"
+  sed -i '/^llmd_model_id[[:blank:]]*=/{h;s/=.*/= "'"${llmd_model_id}"'"/};${x;/^$/{s//llmd_model_id="'"${llmd_model_id}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars
+  ```
+
+  Valid values for `MODEL_ID` are:
+
+  - `google/gemma-3-1b-it`
+  - `google/gemma-3-4b-it`
+  - `google/gemma-3-27b-it`
+  - `openai/gpt-oss-20b`
+  - `meta-llama/llama-4-scout-17b-16e-instruct`
+  - `meta-llama/llama-3.3-70b-instruct`
+  - `qwen/qwen3-32b` **(default)**
+
+- In order to choose an accelerator and for the model you want to run, refer to
+  the following table.
+
+  | Model                          | l4  | h100 | h200 | RTX Pro 6000 |
+  | ------------------------------ | --- | ---- | ---- | ------------ |
+  | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
+  | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
+  | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
+  | gpt-oss-20b                    | ✅  | ✅   | ✅   | ✅           |
+  | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
+  | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
+  | qwen3-32b                      | ✅  | ✅   | ✅   | ✅           |
+
 - Optional : Run the following step if you want to run the model on an
-  accelerator other than L4 which is the default accelerator for this
-  deployment.
+  accelerator other than `nvidia-rtx-pro` which is the default accelerator for
+  this deployment.
 
   ```
   llmd_accelerator_type="<ACCELERATOR>"
-  sed -i '/^llmd_accelerator_type[[:blank:]]*=/{h;s/=.*/= "'"${llmd_accelerator_type}"'"/};${x;/^$/{s//llmd_accelerator_type="'"${llmd_accelerator_type}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/llmd.auto.tfvars
+  sed -i '/^llmd_accelerator_type[[:blank:]]*=/{h;s/=.*/= "'"${llmd_accelerator_type}"'"/};${x;/^$/{s//llmd_accelerator_type="'"${llmd_accelerator_type}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars
   ```
 
   Valid values for `ACCELERATOR` are:
 
-  - `cpu`
-  - `nvidia-a100-80gb`
-  - `nvidia-h100-80gb`
-  - `nvidia-l4` **(default)**
-  - `nvidia-rtx-pro`
-  - `nvidia-tesla-a100`
+  - `l4`
+  - `h100`
+  - `h200`
+  - `nvidia-rtx-pro` **(default)**
 
 ## Configure Identity-Aware Proxy (IAP)
 
@@ -151,7 +180,7 @@ for additional information
 - Set environment variables.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Ensure that IAP is enabled.
@@ -207,7 +236,7 @@ IAP application or resources.
 - Set the IAP domain in the configuration file
 
   ```
-  sed -i '/^llmd_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//llmd_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/llmd.auto.tfvars
+  sed -i '/^llmd_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//llmd_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars
   ```
 
 ### Install Terraform 1.8.0+
@@ -237,68 +266,21 @@ The `deploy-llmd.sh` script will perform the following steps:
 - Deploy a gradio chat frontend backed by Identity-Aware Proxy.
 - Creates a custom Cloud Monitoring dashboard named `llm-d dashboard`
 
-The model server uses Qwen3-0.6B model from HuggingFace which requires the model
-server deployment to have a read token. When the `deploy-llmd.sh` is completed,
-run the following steps to add a HuggingFace read token to the secret manager.
-
-- [Generate a Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens)
-  with token type **Read**.
-- Add the toke to the secret manager
-  ```
-  HF_TOKEN_READ=<YOUR_HUGGINGFACE_READ_TOKEN>
-  echo ${HF_TOKEN_READ} | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} --data-file=- --project=${huggingface_secret_manager_project_id}
-  ```
+At this time, you have all resources shown in the architecture diagram created
+except the model server. In order to run the model server, first download the
+model from hugging face to a GCS bucket as instructed in the next steps. Note
+that we will not be downloading the model directly from HuggingFace as it slows
+down the modelserver startup time. Instead, we will use GCSFuse to download the
+model from the GCS bucket which is faster. For more details on how downloading
+the model from GCS saves time, take a look at
+[Storage optimization guide](../../../../../../use-cases/inferencing/cost-optimization/gcsfuse/README.md)
 
 ## Download the model to Cloud Storage
-
-- Choose the model.
-
-  - **Gemma 3 1B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="google/gemma-3-1b-it"
-    ```
-
-  - **Gemma 3 4B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="google/gemma-3-4b-it"
-    ```
-
-  - **Gemma 3 27B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="google/gemma-3-27b-it"
-    ```
-
-  - **gpt-oss-120b**
-
-    ```shell
-    export HF_MODEL_ID="openai/gpt-oss-20b"
-    ```
-
-  - **Llama 4 Scout 17B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="meta-llama/llama-4-scout-17b-16e-instruct"
-    ```
-
-  - **Llama 3.3 70B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="meta-llama/llama-3.3-70b-instruct"
-    ```
-
-  - **Qwen3-32B**:
-
-    ```shell
-    export HF_MODEL_ID="qwen/qwen3-32b"
-    ```
 
 - Source the environment configuration.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Configure the model download job.
@@ -338,6 +320,24 @@ run the following steps to add a HuggingFace read token to the secret manager.
   ```
 
 ## Deploy the model server
+
+- Deploy the model server
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  ```
+
+  The Kubernetes manifests are based on the
+  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+
+- Watch the deployment until it is ready.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+  ```
 
 ## Verify llm-d deployment is up and running
 

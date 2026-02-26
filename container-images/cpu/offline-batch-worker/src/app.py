@@ -115,7 +115,9 @@ def validate_config():
 
 def download_data():
     """Downloads the assigned shard from GCS to memory."""
-    LOG.info(f"Worker {JOB_INDEX}: Downloading gs://{DATASET_BUCKET_NAME}/{INPUT_BLOB_NAME}...")
+    LOG.info(
+        f"Worker {JOB_INDEX}: Downloading gs://{DATASET_BUCKET_NAME}/{INPUT_BLOB_NAME}..."
+    )
     blob = bucket.blob(INPUT_BLOB_NAME)
 
     if not blob.exists():

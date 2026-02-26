@@ -62,28 +62,7 @@ spec:
               - emptyDir:
                   medium: Memory
                 name: gke-gcsfuse-buffer
-            containers:
-            - env:
-              - name: PYTHONUNBUFFERED
-                value: "1"
-              - name: DATASET_BUCKET_NAME
-                valueFrom:
-                  configMapKeyRef:
-                    key: DATASET_BUCKET_NAME
-                    name: offline-batch-worker
-              - name: VLLM_API_ENDPOINT
-                valueFrom:
-                  configMapKeyRef:
-                    key: VLLM_API_ENDPOINT
-                    name: offline-batch-worker
-              - name: CONCURRENT_REQUESTS
-                valueFrom:
-                  configMapKeyRef:
-                    key: CONCURRENT_REQUESTS
-                    name: offline-batch-worker
-              image: replaced-by-kustomize
-              imagePullPolicy: Always
-              name: worker
+            initContainers:
             - args:
               - |
                 echo "########### $(date) - Starting parallel-fetch-safetensors for model: ${MODEL_ID}"
@@ -171,3 +150,25 @@ spec:
                 - mountPath: /gcs
                   name: huggingface-hub-model-bucket
                   readOnly: true
+            containers:
+            - env:
+              - name: PYTHONUNBUFFERED
+                value: "1"
+              - name: DATASET_BUCKET_NAME
+                valueFrom:
+                  configMapKeyRef:
+                    key: DATASET_BUCKET_NAME
+                    name: offline-batch-worker
+              - name: VLLM_API_ENDPOINT
+                valueFrom:
+                  configMapKeyRef:
+                    key: VLLM_API_ENDPOINT
+                    name: offline-batch-worker
+              - name: CONCURRENT_REQUESTS
+                valueFrom:
+                  configMapKeyRef:
+                    key: CONCURRENT_REQUESTS
+                    name: offline-batch-worker
+              image: replaced-by-kustomize
+              imagePullPolicy: Always
+              name: worker

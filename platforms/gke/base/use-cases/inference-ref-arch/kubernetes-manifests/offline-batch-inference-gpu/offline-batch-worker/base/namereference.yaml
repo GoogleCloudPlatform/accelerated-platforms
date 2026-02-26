@@ -22,9 +22,12 @@ nameReference:
   # For ConfigMaps loaded via envFrom in containers
   - path: spec/replicatedJobs/template/spec/template/spec/containers/envFrom/configMapRef/name
     kind: JobSet
+  # For specific environment variables via valueFrom in containers
+  - path: spec/replicatedJobs/template/spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
+    kind: JobSet
   # For ConfigMaps loaded via envFrom in initContainers
   - path: spec/replicatedJobs/template/spec/template/spec/initContainers/envFrom/configMapRef/name
     kind: JobSet
-  # For specific environment variables via valueFrom
-  - path: spec/replicatedJobs/template/spec/template/spec/containers/env/valueFrom/configMapKeyRef/name
+  # For specific environment variables via valueFrom in initContainers
+  - path: spec/replicatedJobs/template/spec/template/spec/initContainers/env/valueFrom/configMapKeyRef/name
     kind: JobSet

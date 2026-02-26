@@ -30,7 +30,7 @@ replacements:
       name: vllm
     targets:
       - fieldPaths:
-          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.containers.[name=inference-server].image
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.initContainers.[name=inference-server].image
         select:
           kind: JobSet
   - source:
@@ -98,8 +98,8 @@ replacements:
         select:
           kind: JobSet
       - fieldPaths:
-          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
-          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.initContainers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.initContainers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
         options:
           delimiter: /
           index: 2

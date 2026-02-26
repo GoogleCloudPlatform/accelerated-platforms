@@ -231,7 +231,7 @@ This example is built on top of the
   watch --color --interval 5 --no-title \
   "kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} get jobset/js-$(cat jobset_random_hash.txt)-obi-${ACCELERATOR_TYPE}-${HF_MODEL_ID_HASH} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} logs job/js-$(cat jobset_random_hash.txt)-${ACCELERATOR_TYPE}-${HF_MODEL_ID_HASH}-obi-job-0 --all-containers --tail 10"
+  kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} logs job/js-$(cat jobset_random_hash.txt)-obi-${ACCELERATOR_TYPE}-${HF_MODEL_ID_HASH}-obi-job-0 --all-containers --tail 10"
   ```
 
   When the jobset is complete, you will see the following:

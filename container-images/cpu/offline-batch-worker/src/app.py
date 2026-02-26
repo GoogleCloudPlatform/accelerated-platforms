@@ -64,7 +64,7 @@ LOG = logging.getLogger(__name__)
 JOB_INDEX = os.getenv("JOB_COMPLETION_INDEX", "0")
 
 # 2. Get the Bucket Name from Environment Variable
-BUCKET_NAME = os.getenv("GCS_BUCKET_NAME")
+DATASET_BUCKET_NAME = os.getenv("DATASET_BUCKET_NAME")
 
 # 3. Define GCS Paths
 PREFIX = "alpaca_shards"
@@ -80,7 +80,7 @@ CONCURRENT_REQUESTS = int(os.getenv("CONCURRENT_REQUESTS", "100"))
 # --- Setup Clients ---
 # Initialize GCS Client (Sync is fine for load/save)
 storage_client = storage.Client()
-bucket = storage_client.bucket(BUCKET_NAME)
+bucket = storage_client.bucket(DATASET_BUCKET_NAME)
 
 
 def validate_config():
@@ -93,8 +93,8 @@ def validate_config():
     missing_vars = []
 
     # 1. Check Critical Variables (Must not be None or Empty)
-    if not BUCKET_NAME:
-        missing_vars.append("GCS_BUCKET_NAME")
+    if not DATASET_BUCKET_NAME:
+        missing_vars.append("DATASET_BUCKET_NAME")
 
     # 2. Hard Fail if missing
     if missing_vars:
@@ -108,14 +108,14 @@ def validate_config():
 
     # 3. Print Summary if successful
     LOG.info("✅ Configuration OK:")
-    LOG.info(f"   - Bucket Name:         {BUCKET_NAME}")
+    LOG.info(f"   - Bucket Name:         {DATASET_BUCKET_NAME}")
     LOG.info(f"   - Concurrency Level:   {CONCURRENT_REQUESTS}")
     LOG.info("--------------------------------------------------\n")
 
 
 def download_data():
     """Downloads the assigned shard from GCS to memory."""
-    LOG.info(f"Worker {JOB_INDEX}: Downloading gs://{BUCKET_NAME}/{INPUT_BLOB_NAME}...")
+    LOG.info(f"Worker {JOB_INDEX}: Downloading gs://{DATASET_BUCKET_NAME}/{INPUT_BLOB_NAME}...")
     blob = bucket.blob(INPUT_BLOB_NAME)
 
     if not blob.exists():
@@ -128,7 +128,7 @@ def download_data():
 def upload_results(results):
     """Uploads the inference results back to GCS."""
     LOG.info(
-        f"Worker {JOB_INDEX}: Uploading results to gs://{BUCKET_NAME}/{OUTPUT_BLOB_NAME}..."
+        f"Worker {JOB_INDEX}: Uploading results to gs://{DATASET_BUCKET_NAME}/{OUTPUT_BLOB_NAME}..."
     )
     blob = bucket.blob(OUTPUT_BLOB_NAME)
 

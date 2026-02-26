@@ -159,10 +159,12 @@ async def wait_for_vllm():
                     else:
                         LOG.info(f"   ... sidecar returned {resp.status}")
             except Exception as e:
-                # Catch EVERYTHING during the wait phase. 
+                # Catch EVERYTHING during the wait phase.
                 # We don't want the worker to die just because the sidecar isn't awake yet.
                 if i % 6 == 0:
-                    LOG.info(f"   ... waiting for sidecar (Attempt {i}, last error: {type(e).__name__})")
+                    LOG.info(
+                        f"   ... waiting for sidecar (Attempt {i}, last error: {type(e).__name__})"
+                    )
             
             await asyncio.sleep(10)
 

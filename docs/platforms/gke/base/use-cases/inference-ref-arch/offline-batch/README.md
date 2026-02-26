@@ -156,8 +156,8 @@ This example is built on top of the
   When the job is complete, you will see the following:
 
   ```text
-  NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment/batch-pubsub-subscriber   1/1     1            1           ###
+  NAME                                        STATUS    COMPLETIONS   DURATION   AGE
+  xxxxxxxx-offline-batch-dataset-downloader   Complete  1/1           ##s        ##s
   ```
 
   You can press `CTRL`+`c` to terminate the watch.

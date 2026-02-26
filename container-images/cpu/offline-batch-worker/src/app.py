@@ -141,22 +141,29 @@ def upload_results(results):
 
 
 async def wait_for_vllm():
-    """Blocks until the vLLM sidecar is healthy (Async version)."""
-    LOG.info("Waiting for vLLM sidecar...")
+    """Blocks until the vLLM sidecar is healthy."""
     health_url = f"{VLLM_API_ENDPOINT}/health"
+    
+    LOG.info(f"Waiting for vLLM sidecar at {health_url}...")
 
-    async with aiohttp.ClientSession() as session:
-        for i in range(120):  # 20 minutes timeout (120 * 10s)
+    # Python 3.14 / aiohttp tip: Use a dedicated connector to handle fast-failing locals
+    connector = aiohttp.TCPConnector(force_close=True)
+    
+    async with aiohttp.ClientSession(connector=connector) as session:
+        for i in range(120):
             try:
-                async with session.get(health_url) as resp:
+                async with session.get(health_url, timeout=5) as resp:
                     if resp.status == 200:
                         LOG.info("✅ vLLM is ready!")
                         return
-            except aiohttp.ClientConnectorError:
-                pass
-
-            if i % 6 == 0:
-                LOG.info(f"   ... waiting for sidecar ({i*10}s)")
+                    else:
+                        LOG.info(f"   ... sidecar returned {resp.status}")
+            except Exception as e:
+                # Catch EVERYTHING during the wait phase. 
+                # We don't want the worker to die just because the sidecar isn't awake yet.
+                if i % 6 == 0:
+                    LOG.info(f"   ... waiting for sidecar (Attempt {i}, last error: {type(e).__name__})")
+            
             await asyncio.sleep(10)
 
     raise RuntimeError("vLLM sidecar failed to start within timeout.")

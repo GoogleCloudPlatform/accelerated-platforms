@@ -23,39 +23,29 @@ configMapGenerator:
 
 nameSuffix: -h100-bd25a4c7
 
-patches:
-  - path: patch-nodeselector.yaml
-  - path: patch-resources.yaml
-  - path: patch-hpa.yaml
-
 replacements:
-  - source:
-      fieldPath: data.APP_LABEL
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.selector.matchLabels.app
-          - spec.template.metadata.labels.app
-        select:
-          kind: Deployment
-      - fieldPaths:
-          - spec.selector.app
-        select:
-          kind: Service
   - source:
       fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
       name: vllm
     targets:
       - fieldPaths:
-          - spec.template.spec.containers.[name=inference-server].image
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.initContainers.[name=inference-server].image
         select:
-          kind: Deployment
+          kind: JobSet
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
-      name: deployment
+      name: offline-batch-worker
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.containers.[name=worker].image
+        select:
+          kind: JobSet
+  - source:
+      fieldPath: data.BATCH_WORKER_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: offline-batch-worker
     targets:
       - fieldPaths:
           - metadata.namespace
@@ -64,73 +54,66 @@ replacements:
       - fieldPaths:
           - metadata.namespace
         select:
-          kind: Deployment
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: Service
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: ServiceAccount
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: HorizontalPodAutoscaler
+          kind: JobSet
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      fieldPath: data.BATCH_WORKER_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
-      name: deployment
+      name: offline-batch-worker
     targets:
       - fieldPaths:
-          - spec.template.spec.serviceAccountName
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.serviceAccountName
         select:
-          kind: Deployment
+          kind: JobSet
+  - source:
+      fieldPath: data.COMPUTE_CLASS
+      kind: ConfigMap
+      name: runtime
+    targets:
       - fieldPaths:
-          - metadata.name
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.nodeSelector.[cloud.google.com/compute-class]
         select:
-          kind: ServiceAccount
+          kind: JobSet
   - source:
       fieldPath: data.MODEL_BUCKET_NAME
       kind: ConfigMap
-      name: deployment
+      name: vllm
     targets:
       - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
         options:
           delimiter: .
           index: 0
         select:
-          kind: Deployment
+          kind: JobSet
   - source:
       fieldPath: data.MODEL_ID
       kind: ConfigMap
       name: runtime
     targets:
       - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
         options:
           delimiter: "only-dir:"
           index: 1
         select:
-          kind: Deployment
+          kind: JobSet
       - fieldPaths:
-          - spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
-          - spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.initContainers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.initContainers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
         options:
           delimiter: /
           index: 2
         select:
-          kind: Deployment
+          kind: JobSet
   - source:
       fieldPath: data.MODEL_NAME
       kind: ConfigMap
       name: runtime
     targets:
       - fieldPaths:
-          - spec.template.metadata.labels.[ai.gke.io/model]
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.metadata.labels.[ai.gke.io/model]
         select:
-          kind: Deployment
+          kind: JobSet
 
 resources:
   - ../base

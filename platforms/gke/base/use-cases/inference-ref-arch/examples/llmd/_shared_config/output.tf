@@ -116,6 +116,10 @@ output "llmd_iap_oath_branding_project_id" {
   value = local.llmd_iap_oath_branding_project_id
 }
 
+output "llmd_model_id" {
+  value = var.llmd_model_id
+}
+
 output "llmd_ms_deployment_name" {
   value = local.llmd_ms_deployment_name
 }
@@ -133,5 +137,5 @@ output "stress_test_service_account_project_id" {
 }
 
 output "use_case" {
-  value = "inference-ref-arch"
+  value = "inference-ref-arch-llmd"
 }

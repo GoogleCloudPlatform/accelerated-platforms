@@ -114,7 +114,7 @@ variable "llmd_accelerator_type" {
         "l4",
         "h100",
         "h200",
-        "nvidia-rtx-pro",
+        "rtx-pro-6000",
       ],
       var.llmd_accelerator_type
     )

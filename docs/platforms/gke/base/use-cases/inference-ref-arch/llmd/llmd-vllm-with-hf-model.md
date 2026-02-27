@@ -111,7 +111,7 @@ precedence over earlier ones:
 
   ```
   llmd_model_id="<MODEL_ID>"
-  sed -i '/^llmd_model_id[[:blank:]]*=/{h;s/=.*/= "'"${llmd_model_id}"'"/};${x;/^$/{s//llmd_model_id="'"${llmd_model_id}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars
+  sed -i "/^llmd_model_id[[:blank:]]*=/{h;s|=.*|= \"${llmd_model_id}\"|};\${x;/^$/{s|.*|llmd_model_id=\"${llmd_model_id}\"|;H};x}" "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars"
   ```
 
   Valid values for `MODEL_ID` are:
@@ -151,7 +151,7 @@ precedence over earlier ones:
   - `l4`
   - `h100`
   - `h200`
-  - `nvidia-rtx-pro` **(default)**
+  - `rtx-pro-6000` **(default)**
 
 ## Configure Identity-Aware Proxy (IAP)
 
@@ -277,6 +277,15 @@ the model from GCS saves time, take a look at
 
 ## Download the model to Cloud Storage
 
+- [Generate a Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens)
+  with token type **Read**.
+- Add the token to the secret manager
+
+  ```
+  HF_TOKEN_READ=<YOUR_HUGGINGFACE_READ_TOKEN>
+  echo ${HF_TOKEN_READ} | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} --data-file=- --project=${huggingface_secret_manager_project_id}
+  ```
+
 - Source the environment configuration.
 
   ```shell
@@ -320,6 +329,12 @@ the model from GCS saves time, take a look at
   ```
 
 ## Deploy the model server
+
+- Configure the model server
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/configure_vllm.sh"
+  ```
 
 - Deploy the model server
 

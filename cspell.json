@@ -7,6 +7,10 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
+      "name": "batch-inference",
+      "path": ".github/workflows/dictionary/batch-inference.txt"
+    },
+    {
       "name": "comfyui",
       "path": ".github/workflows/dictionary/comfyui.txt"
     },
@@ -93,6 +97,7 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "batch-inference",
     "comfyui",
     "docker",
     "flipkart",

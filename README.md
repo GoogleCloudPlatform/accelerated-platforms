@@ -50,6 +50,8 @@ the primary runtime.
     - [Online inference with TPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/README.md)
       - [Online inference using MaxDiffusion with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/max-diffusion-with-hf-model.md)
       - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
+    - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/batch-inference/README.md)
+    - [Offline batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/offline-batch/README.md)
 - [Training reference architecture](/docs/platforms/gke/base/use-cases/training-ref-arch/README.md)
   - [Model fine tuning](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/README.md)
     - [Data processing](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/data-processing.md)

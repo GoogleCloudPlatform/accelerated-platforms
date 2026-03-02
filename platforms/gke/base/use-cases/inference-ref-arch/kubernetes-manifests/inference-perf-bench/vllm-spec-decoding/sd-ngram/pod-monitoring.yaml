@@ -12,13 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: batch/v1
-kind: Job
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
 metadata:
-  name: inference-perf
+  labels:
+    app: APP_LABEL
+  name: vllm-podmonitoring
   namespace: replaced-by-kustomize
 spec:
-  template:
-    spec:
-      nodeSelector:
-        cloud.google.com/compute-class: model-download
+  endpoints:
+  - interval: 15s
+    path: "/metrics"
+    port: metrics
+  selector:
+    matchLabels:
+      app: APP_LABEL
+  targetLabels:
+    metadata:
+    - pod
+    - container
+    - node
+    

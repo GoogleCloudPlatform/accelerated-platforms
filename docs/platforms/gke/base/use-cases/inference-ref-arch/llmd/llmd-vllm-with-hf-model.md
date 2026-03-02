@@ -374,24 +374,23 @@ the model from GCS saves time, take a look at
   kubectl get deployments -n ${llmd_kubernetes_namespace}
   ```
 
-  You should see three deployments
+  You should see three deployments similar to the following:
 
   ```
-  NAME                                                   READY   UP-TO-DATE   AVAILABLE   AGE
-  gaie-inference-scheduling-epp                          1/1     1            1           XXX
-  gradio-nvidia-l4                                       1/1     1            1           XXX
-  ms-inference-scheduling-llm-d-modelservice-nvidia-l4   2/2     2            2           XXX
+  NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
+  gaie-inference-scheduling-epp   1/1     1            1           XXXX
+  gradio-rtx-pro-6000             1/1     1            1           XXXX
+  vllm-rtx-pro-600-qwen3-32b      1/1     1            1           XXXX
   ```
 
   Note:
 
   - gaie-inference-scheduling-epp is the Gateway API Inference Extension
     endpoint picker.
-  - gradio-nvidia-l4 is the front end chat interface abstracting the model
-    server.
-  - ms-inference-scheduling-llm-d-modelservice-nvidia-l4 is the model server
-    running inference of Qwen3-0.6B. It may take some time for this deployment
-    to be up completely depending upon the GPU availability
+  - gradio-XXXX is the front end chat interface abstracting the model server.
+  - vllm-XXXX is the model server running inference of the model you chose. It
+    may take some time for this deployment to be up completely depending upon
+    the GPU availability
 
 - Check all the resources
 
@@ -402,26 +401,26 @@ the model from GCS saves time, take a look at
   You should see output similar to the following:
 
   ```
-  NAME                                                                   READY    STATUS    RESTARTS    AGE
-  pod/gaie-inference-scheduling-epp-XXXX                                 1/1      Running    0          XX
-  pod/gradio-nvidia-l4-XXXX                                              1/1      Running    0          XX
-  pod/ms-inference-scheduling-llmd-modelservice-nvidia-l4-XXXX           2/2      Running    0          XX
-  pod/ms-inference-scheduling-llmd-modelservice-nvidia-l4-XXXX           2/2      Running    0          XX
+  NAME                                                  READY    STATUS    RESTARTS    AGE
+  pod/gaie-inference-scheduling-epp-XXXX                1/1      Running    0          XX
+  pod/gradio-XXXX                                       1/1      Running    0          XX
+  pod/vllm-XXXX                                         2/2      Running    0          XX
+  pod/vllm-XXXX                                         2/2      Running    0          XX
 
-  NAME                                             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
-  service/gaie-inference-scheduling-epp            ClusterIP   34.118.230.43    <none>        9002/TCP,9090/TCP   XX
-  service/gaie-inference-scheduling-ips-XXXX       ClusterIP   None             <none>        54321/TCP           XX
-  service/gradio-svc-nvidia-l4                     ClusterIP   34.118.232.165   <none>        8080/TCP            XX
+  NAME                                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+  service/gaie-inference-scheduling-epp                 ClusterIP   34.118.230.43    <none>        9002/TCP,9090/TCP   XX
+  service/gaie-inference-scheduling-ips-XXXX            ClusterIP   None             <none>        54321/TCP           XX
+  service/gradio-svc-XXXX                               ClusterIP   34.118.232.165   <none>        8080/TCP            XX
 
-  NAME                                                                  READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment.apps/gaie-inference-scheduling-epp                         1/1     1            1           XX
-  deployment.apps/gradio-nvidia-l4                                      1/1     1            1           XX
-  deployment.apps/ms-inference-scheduling-llmd-modelservice-nvidia-l4   2/2     2            2           XX
+  NAME                                                  READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment.apps/gaie-inference-scheduling-epp         1/1     1            1           XX
+  deployment.apps/gradio-XXXX                           1/1     1            1           XX
+  deployment.apps/vllm-XXXX                             2/2     2            2           XX
 
-  NAME                                                                             DESIRED   CURRENT   READY   AGE
-  replicaset.apps/gaie-inference-scheduling-epp-XXXX                                1         1         1       XX
-  replicaset.apps/gradio-nvidia-l4-XXXX                                             1         1         1       XX
-  replicaset.apps/ms-inference-scheduling-llmd-modelservice-nvidia-l4-XXXX          2         2         2       XX
+  NAME                                                  DESIRED   CURRENT   READY   AGE
+  replicaset.apps/gaie-inference-scheduling-epp-XXXX    1         1         1       XX
+  replicaset.apps/gradio-XXXX                           1         1         1       XX
+  replicaset.apps/vllm-XXXX                             2         2         2       XX
   ```
 
 - Wait for the model server deployment to be ready before accessing the chat

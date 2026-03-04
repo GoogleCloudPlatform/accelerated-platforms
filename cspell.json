@@ -71,6 +71,10 @@
       "path": ".github/workflows/dictionary/ray.txt"
     },
     {
+      "name": "reinforcement-learning",
+      "path": ".github/workflows/dictionary/reinforcement-learning.txt"
+    },
+    {
       "name": "shell",
       "path": ".github/workflows/dictionary/shell.txt"
     },
@@ -108,6 +112,7 @@
     "nvidia",
     "python",
     "ray",
+    "reinforcement-learning",
     "shell",
     "svg",
     "terraform",

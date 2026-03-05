@@ -13,54 +13,59 @@
 # limitations under the License.
 
 import datetime
-    import os
-    import jax
-    import MaxText
-    from huggingface_hub import login
-    from maxtext.trainers.post_train.rl.train_rl import rl_train, setup_configs_and_devices
+import os
 
-    # Environment variables for cleaner logging
-    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
-    os.environ["SKIP_JAX_PRECOMPILE"] = "1"
-    os.environ["VLLM_LOGGING_LEVEL"] = "ERROR"
+import jax
+import MaxText
+from huggingface_hub import login
+from maxtext.trainers.post_train.rl.train_rl import rl_train, setup_configs_and_devices
 
-    HF_TOKEN = os.environ.get("HF_TOKEN", "")
-    if HF_TOKEN:
-        login(token=HF_TOKEN)
+# Environment variables for cleaner logging
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
+os.environ["SKIP_JAX_PRECOMPILE"] = "1"
+os.environ["VLLM_LOGGING_LEVEL"] = "ERROR"
 
-    MAXTEXT_PKG_DIR = os.path.dirname(MaxText.__file__)
-    MAXTEXT_REPO_ROOT = os.sep.join(["maxtext" if p == "MaxText" else p for p in MAXTEXT_PKG_DIR.split(os.sep)])
+HF_TOKEN = os.environ.get("HF_TOKEN", "")
+if HF_TOKEN:
+    login(token=HF_TOKEN)
 
-    MODEL_NAME = "llama3.1-8b"
-    TOKENIZER_PATH = "meta-llama/Llama-3.1-8B-Instruct"
-    RUN_NAME = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-    LOSS_ALGO = "grpo" 
+MAXTEXT_PKG_DIR = os.path.dirname(MaxText.__file__)
+MAXTEXT_REPO_ROOT = os.sep.join(
+    ["maxtext" if p == "MaxText" else p for p in MAXTEXT_PKG_DIR.split(os.sep)]
+)
 
-    CHAT_TEMPLATE_PATH = f"{MAXTEXT_REPO_ROOT}/examples/chat_templates/gsm8k_rl.json"
-    MODEL_CHECKPOINT_PATH = "/workspace/llama_checkpoint"
-    OUTPUT_DIRECTORY = "/workspace/rl_llama3_output"
+MODEL_NAME = "llama3.1-8b"
+TOKENIZER_PATH = "meta-llama/Llama-3.1-8B-Instruct"
+RUN_NAME = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+LOSS_ALGO = "grpo"
 
-    config_argv = [
-        "",
-        f"{MAXTEXT_PKG_DIR}/configs/post_train/rl.yml",
-        f"model_name={MODEL_NAME}",
-        f"tokenizer_path={TOKENIZER_PATH}",
-        f"run_name={RUN_NAME}",
-        f"chat_template_path={CHAT_TEMPLATE_PATH}",
-        f"load_parameters_path={MODEL_CHECKPOINT_PATH}/0/items",
-        f"base_output_directory={OUTPUT_DIRECTORY}",
-        f"hf_access_token={HF_TOKEN}",
-        "debug.rl=False",
-        f"rl.loss_algo={LOSS_ALGO}",
-        "use_pathways=False"
-    ]
+CHAT_TEMPLATE_PATH = f"{MAXTEXT_REPO_ROOT}/examples/chat_templates/gsm8k_rl.json"
+MODEL_CHECKPOINT_PATH = "/workspace/llama_checkpoint"
+OUTPUT_DIRECTORY = "/workspace/rl_llama3_output"
 
-    trainer_config, sampler_config, trainer_devices, sampler_devices = setup_configs_and_devices(config_argv)
+config_argv = [
+    "",
+    f"{MAXTEXT_PKG_DIR}/configs/post_train/rl.yml",
+    f"model_name={MODEL_NAME}",
+    f"tokenizer_path={TOKENIZER_PATH}",
+    f"run_name={RUN_NAME}",
+    f"chat_template_path={CHAT_TEMPLATE_PATH}",
+    f"load_parameters_path={MODEL_CHECKPOINT_PATH}/0/items",
+    f"base_output_directory={OUTPUT_DIRECTORY}",
+    f"hf_access_token={HF_TOKEN}",
+    "debug.rl=False",
+    f"rl.loss_algo={LOSS_ALGO}",
+    "use_pathways=False",
+]
 
-    print(f"🚀 Starting {LOSS_ALGO} Training...")
-    try:
-        rl_train(trainer_config, sampler_config, trainer_devices, sampler_devices)
-        print("✅ Training Completed Successfully!")
-    except Exception as e:
-        print(f"❌ Training Failed: {str(e)}")
-        raise
+trainer_config, sampler_config, trainer_devices, sampler_devices = (
+    setup_configs_and_devices(config_argv)
+)
+
+print(f"🚀 Starting {LOSS_ALGO} Training...")
+try:
+    rl_train(trainer_config, sampler_config, trainer_devices, sampler_devices)
+    print("✅ Training Completed Successfully!")
+except Exception as e:
+    print(f"❌ Training Failed: {str(e)}")
+    raise

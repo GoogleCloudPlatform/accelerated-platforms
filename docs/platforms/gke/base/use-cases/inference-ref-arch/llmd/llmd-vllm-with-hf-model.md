@@ -463,7 +463,7 @@ metrics on the monitoring dashboard. Then, you will run the stress test to spawn
 many requests to build the processing queue. Note that the scripts used in this
 section spawn requests to the gradio endpoint which will route the request to
 the model server via llm-d's intelligent scheduling. This is done to replicate a
-real-wrold scenario where the model server is running behind a front end. Due to
+real-world scenario where the model server is running behind a front end. Due to
 the additional front end layer(in this case, gradio), the metrics will indicate
 a slightly lower performance compared to the scenario where the requests are
 directly sent to the model server via llm-d internal load balancer eliminating

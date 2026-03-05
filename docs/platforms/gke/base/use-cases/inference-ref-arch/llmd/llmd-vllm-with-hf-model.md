@@ -333,13 +333,13 @@ the model from GCS saves time, take a look at
 - Configure the model server
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/configure_vllm.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd/vllm/configure_vllm.sh"
   ```
 
 - Deploy the model server
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
   The Kubernetes manifests are based on the
@@ -349,9 +349,9 @@ the model from GCS saves time, take a look at
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/ms-inference-scheduling-llmd-modelservice-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/ms-inference-scheduling-llmd-modelservice-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
   ```
 
 ## Verify llm-d deployment is up and running
@@ -359,7 +359,7 @@ the model from GCS saves time, take a look at
 - Set the environment variables
 
   ```
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Get cluster credentials
@@ -371,16 +371,16 @@ the model from GCS saves time, take a look at
 - Check the all the deployments
 
   ```
-  kubectl get deployments -n ${llmd_kubernetes_namespace}
+  kubectl get deployments -n ${ira_online_gpu_kubernetes_namespace_name}
   ```
 
   You should see three deployments similar to the following:
 
   ```
-  NAME                            READY   UP-TO-DATE   AVAILABLE   AGE
-  gaie-inference-scheduling-epp   1/1     1            1           XXXX
-  gradio-rtx-pro-6000             1/1     1            1           XXXX
-  vllm-rtx-pro-600-qwen3-32b      1/1     1            1           XXXX
+  NAME                                              READY   UP-TO-DATE   AVAILABLE   AGE
+  gaie-inference-scheduling-epp                     1/1     1            1           XXXX
+  gradio-XXXX                                       1/1     1            1           XXXX
+  ms-inference-scheduling-llmd-modelservice-XXXX    1/1     1            1           XXXX
   ```
 
   Note:
@@ -388,39 +388,39 @@ the model from GCS saves time, take a look at
   - gaie-inference-scheduling-epp is the Gateway API Inference Extension
     endpoint picker.
   - gradio-XXXX is the front end chat interface abstracting the model server.
-  - vllm-XXXX is the model server running inference of the model you chose. It
-    may take some time for this deployment to be up completely depending upon
-    the GPU availability
+  - ms-inference-scheduling-llmd-modelservice-XXXX is the model server running
+    inference of the model you chose. It may take some time for this deployment
+    to be up completely depending upon the GPU availability
 
 - Check all the resources
 
   ```
-  kubectl get all -n ${llmd_kubernetes_namespace}
+  kubectl get all -n ${ira_online_gpu_kubernetes_namespace_name}
   ```
 
   You should see output similar to the following:
 
   ```
-  NAME                                                  READY    STATUS    RESTARTS    AGE
-  pod/gaie-inference-scheduling-epp-XXXX                1/1      Running    0          XX
-  pod/gradio-XXXX                                       1/1      Running    0          XX
-  pod/vllm-XXXX                                         2/2      Running    0          XX
-  pod/vllm-XXXX                                         2/2      Running    0          XX
+  NAME                                                    READY    STATUS    RESTARTS    AGE
+  pod/gaie-inference-scheduling-epp-XXXX                   1/1      Running    0          XX
+  pod/gradio-XXXX                                          1/1      Running    0          XX
+  pod/pod/ms-inference-scheduling-llmd-modelservice-XXXX   2/2      Running    0          XX
+  pod/pod/ms-inference-scheduling-llmd-modelservice-XXXX   2/2      Running    0          XX
 
   NAME                                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
   service/gaie-inference-scheduling-epp                 ClusterIP   34.118.230.43    <none>        9002/TCP,9090/TCP   XX
   service/gaie-inference-scheduling-ips-XXXX            ClusterIP   None             <none>        54321/TCP           XX
   service/gradio-svc-XXXX                               ClusterIP   34.118.232.165   <none>        8080/TCP            XX
 
-  NAME                                                  READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment.apps/gaie-inference-scheduling-epp         1/1     1            1           XX
-  deployment.apps/gradio-XXXX                           1/1     1            1           XX
-  deployment.apps/vllm-XXXX                             2/2     2            2           XX
+  NAME                                                             READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment.apps/gaie-inference-scheduling-epp                    1/1     1            1           XX
+  deployment.apps/gradio-XXXX                                      1/1     1            1           XX
+  deployment.apps/ms-inference-scheduling-llmd-modelservice-XXXX   2/2     2            2           XX
 
-  NAME                                                  DESIRED   CURRENT   READY   AGE
-  replicaset.apps/gaie-inference-scheduling-epp-XXXX    1         1         1       XX
-  replicaset.apps/gradio-XXXX                           1         1         1       XX
-  replicaset.apps/vllm-XXXX                             2         2         2       XX
+  NAME                                                              DESIRED   CURRENT   READY   AGE
+  replicaset.apps/gaie-inference-scheduling-epp-XXXX                1         1         1       XX
+  replicaset.apps/gradio-XXXX                                       1         1         1       XX
+  replicaset.apps/ms-inference-scheduling-llmd-modelservice-XXXX    2         2         2       XX
   ```
 
 - Wait for the model server deployment to be ready before accessing the chat
@@ -428,14 +428,14 @@ the model from GCS saves time, take a look at
 
   ```
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${llmd_kubernetes_namespace} get deployment/${llmd_ms_deployment_name}-${llmd_accelerator_type} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/${llmd_ms_deployment_name}-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
   ```
 
 - When the deployment is ready, you will output similar to the following
 
   ```
-  NAME                                                  READY   UP-TO-DATE   AVAILABLE   AGE
-  ms-inference-scheduling-llmd-modelservice-nvidia-l4   2/2     2            2           XX
+  NAME                                             READY   UP-TO-DATE   AVAILABLE   AGE
+  ms-inference-scheduling-llmd-modelservice-XXXX   2/2     2            2           XX
   ```
 
 - Output the Chat URL.
@@ -456,81 +456,113 @@ the model from GCS saves time, take a look at
 > If the output of the command is `PROVISIONING`, it means the certificate has
 > not been provisioned yet. Wait for the status to change to `ACTIVE`
 
-## Stress test llm-d
+## Generate load on the model server
 
-In this section you will spawn many requests to the gradio endpoint which will
-route the request to the model server via llm-d's intelligent scheduling.
+In this section, you will generate some load on the model server and view the
+metrics on the monitoring dashboard. Then, you will run the stress test to spawn
+many requests to build the processing queue. Note that the scripts used in this
+section spawn requests to the gradio endpoint which will route the request to
+the model server via llm-d's intelligent scheduling. This is done to replicate a
+real-wrold scenario where the model server is running behind a front end. Due to
+the additional front end layer(in this case, gradio), the metrics will indicate
+a slightly lower performance compared to the scenario where the requests are
+directly sent to the model server via llm-d internal load balancer eliminating
+the latency caused by the front end layer.
 
-Note: The stress test script you will run in this section has been tested on
-machine type `g2-standard-32` with 1 `nvidia-l4` GPU. If you choose a different
-accelerator for the reference architecture like `nvidia-rtx-pro` , the script
-may not be able to generate enough stress on the deployment.
+1. In order to send a request to the gradio chat interface fronting llm-d and
+   model server, the active `gcloud` account needs to have the
+   [Service Account Token Creator](https://cloud.google.com/iam/docs/roles-permissions/iam#iam.serviceAccountTokenCreator)
+   role for the stress test service account. The following command will add the
+   role to the active `gcloud` account.
 
-- In order to send a request to the gradio chat interface fronting llm-d and
-  model server, the active `gcloud` account needs to have the
-  [Service Account Token Creator](https://cloud.google.com/iam/docs/roles-permissions/iam#iam.serviceAccountTokenCreator)
-  role for the stress test service account. The following command will add the
-  role to the active `gcloud` account.
+   ```shell
+   gcloud iam service-accounts add-iam-policy-binding ${stress_test_service_account_email} \
+   --member="user:$(gcloud auth list --filter=status:ACTIVE --format="value(account)")" \
+   --project="${stress_test_service_account_project_id}" \
+   --role="roles/iam.serviceAccountTokenCreator"
+   ```
 
-  ```shell
-  gcloud iam service-accounts add-iam-policy-binding ${stress_test_service_account_email} \
-  --member="user:$(gcloud auth list --filter=status:ACTIVE --format="value(account)")" \
-  --project="${stress_test_service_account_project_id}" \
-  --role="roles/iam.serviceAccountTokenCreator"
-  ```
+   The stress test service account has the role
+   `roles/iap.httpsResourceAccessor` and can access the gradio chat application
+   secured by Identity-Aware proxy.
 
-  The stress test service account has the role `roles/iap.httpsResourceAccessor`
-  and can access the gradio chat application secured by Identity-Aware proxy.
+2. Generate JSON Web Token (JWT)
 
-- Generate JSON Web Token (JWT)
-
-  ```shell
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd && \
-  cat > jwt-claim.json << EOF
-  {
+   ```shell
+   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd && \
+   cat > jwt-claim.json << EOF
+   {
     "iss": "${stress_test_service_account_email}",
     "sub": "${stress_test_service_account_email}",
     "aud": "https://${llmd_endpoints_hostname}/gradio_api/api/sync_chat/",
     "iat": $(date +%s),
     "exp": $((`date +%s` + 3600))
-  }
-  EOF
-  ```
+   }
+   EOF
+   ```
 
-  Wait for a couple of mins as the IAM permissions could take some time to
-  reflect the changes.
+   Wait for a couple of mins as the IAM permissions could take some time to
+   reflect the changes.
 
-  ```shell
-  gcloud iam service-accounts sign-jwt --iam-account="${stress_test_service_account_email}" jwt-claim.json token.jwt
-  ```
+   ```shell
+   gcloud iam service-accounts sign-jwt --iam-account="${stress_test_service_account_email}" jwt-claim.json token.jwt
+   ```
 
-- Set up python virtual environment and install required packages
+3. Set up python virtual environment and install required packages
 
-  ```
-  python3 -m venv venv &&
-  source venv/bin/activate &&
-  pip install aiohttp
-  ```
+   ```
+   python3 -m venv venv &&
+   source venv/bin/activate &&
+   pip install aiohttp
+   ```
 
-- Run the script to trigger stress test.
+4. Run the script to trigger generate some load.
 
-  ```shell
-  python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/scripts/stress_test.py
-  ```
+   ```shell
+   python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/scripts/generate_load.py
+   ```
 
-  The script spawns high volume of requests to the gradio chat service that
-  routes requests to llm-d gateway.
+   The response should look like this:
 
-- The response should look like this:
+   ```
+   Preparing to send the requests to the MODEL qwen/qwen3-32b
+   Starting RELAXED Load: 50 concurrent users...
+   User 01 | Status: 200
+   User 02 | Status: 200
+   User 04 | Status: 200
+   User 05 | Status: 200
+   ```
 
-  ```shell
-  Starting QUEUE FILL Test: XXX Simultaneous Users...
-  Launching requests...
-  [Req XXXX] User XXX | Status: 200
-  [Req XXXX] User XXX | Status: 200
-  [Req XXXX] User XXX | Status: 200
-  [Req XXXX] User XXX | Status: 200
-  ```
+5. Go to
+   [Cloud Monitoring Dashboard page](https://console.cloud.google.com/monitoring/dashboards?pli=1)
+   and search for `llm-d dashboard`. Open the dashboard. You will see something
+   various metrics getting populated including TTFT, TPOT, Input Token/s ,
+   Output Token/s etc.
+
+6. Now, run the stress test to build the queue.
+
+   a. Run step 2 to generate jwt token. Additionally, run step3 if you
+   re-started CloudShell after running the load generator script.
+
+   b. Run the stress test script.
+
+   ```shell
+   python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd/scripts/stress_test.py
+   ```
+
+   The stress_test.py script spawns high volume of requests to the gradio chat
+   service that routes requests to llm-d gateway.
+
+   The response should look like this:
+
+   ```shell
+   Starting QUEUE FILL Test: XXX Simultaneous Users...
+   Launching requests...
+   [Req XXXX] User XXX | Status: 200
+   [Req XXXX] User XXX | Status: 200
+   [Req XXXX] User XXX | Status: 200
+   [Req XXXX] User XXX | Status: 200
+   ```
 
 - Let the stress test run and go to
   [Cloud Monitoring Dashboard page](https://console.cloud.google.com/monitoring/dashboards?pli=1)
@@ -540,9 +572,9 @@ may not be able to generate enough stress on the deployment.
   ![dashboard](../images/llmd-dashboard.png)
 
 - You can view the metrics published by `vllm` and `gaie` on the dashboard. Note
-  that for `nvidia-l4` GPUs, some of the network metrics like
+  that for `nvidia-l4` GPUs and the spot VMs, some of the network metrics like
   `Throughput TX Bytes per Pod` will missing as they are not supported by
-  `nvidia-l4` machine type.
+  `nvidia-l4` and spot machine types.
 
 ## Teardown
 

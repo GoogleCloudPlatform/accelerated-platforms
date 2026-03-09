@@ -42,6 +42,7 @@ class MistralPayloadGenerator:
     """
     Generates JSON payloads specific to vLLM/Mistral formatting.
     """
+
     def __init__(self):
         """Initializes the MistralPayloadGenerator object.
         """
@@ -108,6 +109,7 @@ class PublishStats:
     """
     Tracks publishing statistics for Pub/Sub messages.
     """
+    
     def __init__(self):
         """
         Initializes the PublishStats object.

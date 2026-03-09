@@ -26,40 +26,7 @@ from google.cloud import pubsub_v1
 from google.cloud.pubsub_v1.types import BatchSettings, PublisherOptions
 
 # --- LOGGING CONFIGURATION ---
-ROOT_LEVEL = "INFO"
-LOGGING_CONFIG = {
-    "version": 1,
-    "disable_existing_loggers": True,
-    "formatters": {
-        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
-    },
-    "handlers": {
-        "default": {
-            "level": "INFO",
-            "formatter": "standard",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",  # Default is stderr
-        },
-    },
-    "loggers": {
-        "": {  # root logger
-            "level": ROOT_LEVEL,  # "INFO",
-            "handlers": ["default"],
-            "propagate": False,
-        },
-        "uvicorn.error": {
-            "level": "DEBUG",
-            "handlers": ["default"],
-        },
-        "uvicorn.access": {
-            "level": "DEBUG",
-            "handlers": ["default"],
-        },
-    },
-}
-
-logging.config.dictConfig(LOGGING_CONFIG)
-
+logging.config.fileConfig("logging.conf", disable_existing_loggers=True)
 LOG = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
@@ -75,8 +42,9 @@ class MistralPayloadGenerator:
     """
     Generates JSON payloads specific to vLLM/Mistral formatting.
     """
-
     def __init__(self):
+        """Initializes the MistralPayloadGenerator object.
+        """
         self.model_id = MODEL_ID
 
         self.system_roles = [
@@ -108,6 +76,12 @@ class MistralPayloadGenerator:
         ]
 
     def generate_payload(self):
+        """
+        Generates a JSON payload for Pub/Sub.
+
+        Returns:
+            bytes: The JSON payload encoded as bytes.
+        """
         # Randomize content to simulate real traffic
         sys_role = random.choice(self.system_roles)
         user_content = f"{random.choice(self.tasks)} {random.choice(self.topics)}."
@@ -131,7 +105,13 @@ class MistralPayloadGenerator:
 
 
 class PublishStats:
+    """
+    Tracks publishing statistics for Pub/Sub messages.
+    """
     def __init__(self):
+        """
+        Initializes the PublishStats object.
+        """
         self.published = 0
         self.success = 0
         self.errors = 0
@@ -139,6 +119,12 @@ class PublishStats:
         self.lock = threading.Lock()
 
     def callback(self, future):
+        """
+        Callback function for Pub/Sub publish results.
+
+        Args:
+            future (google.api_core.future.Future): The future object representing the publish result.
+        """
         try:
             future.result()  # Raises exception if publish failed
             with self.lock:
@@ -150,8 +136,15 @@ class PublishStats:
 
 def verify_access(publisher, topic_path, generator):
     """
-    Sends a single message and WAITS for the result to ensure
-    credentials and topic existence are valid.
+    Performs a pre-flight check to verify access to the Pub/Sub topic.
+
+    Args:
+        publisher (pubsub_v1.PublisherClient): The Pub/Sub publisher client.
+        topic_path (str): The full path of the Pub/Sub topic.
+        generator (MistralPayloadGenerator): The payload generator instance.
+
+    Returns:
+        bool: True if access is verified, False otherwise.
     """
     LOG.info(f"Performing pre-flight check on: {topic_path}...")
     try:
@@ -175,6 +168,12 @@ def verify_access(publisher, topic_path, generator):
 
 
 def main():
+    """
+    Main function to generate and publish JSON payloads to a Pub/Sub topic.
+
+    Raises:
+        RuntimeError: If pre-flight verification fails.
+    """
     # 1. Batch Settings (Optimize Network)
     # Group messages to reduce HTTP requests
     batch_settings = BatchSettings(

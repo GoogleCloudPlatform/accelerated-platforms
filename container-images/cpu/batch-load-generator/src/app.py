@@ -44,8 +44,7 @@ class MistralPayloadGenerator:
     """
 
     def __init__(self):
-        """Initializes the MistralPayloadGenerator object.
-        """
+        """Initializes the MistralPayloadGenerator object."""
         self.model_id = MODEL_ID
 
         self.system_roles = [
@@ -109,7 +108,7 @@ class PublishStats:
     """
     Tracks publishing statistics for Pub/Sub messages.
     """
-    
+
     def __init__(self):
         """
         Initializes the PublishStats object.

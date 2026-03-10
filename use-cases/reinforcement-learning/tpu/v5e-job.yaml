@@ -12,7 +12,7 @@ spec:
         cloud.google.com/compute-class: "tpu-v5e-2x4" 
       containers:
       - name: grpo-trainer
-        image: us-central1-docker.pkg.dev/accelerated-platforms-dev/ml-repo/maxtext-grpo-fix-2:latest
+        image: us-central1-docker.pkg.dev/accelerated-platforms-dev/ml-repo/maxtext-grpo:latest
         resources:
           limits:
             google.com/tpu: 8 

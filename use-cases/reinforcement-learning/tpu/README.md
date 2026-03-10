@@ -86,7 +86,7 @@ kubectl apply -f v5e-job.yaml
 ### 4. Tail the Logs
 
 ```bash
-kubectl logs -f job/maxtext-grpo-job
+kubectl logs -f job/maxtext-grpo-job-v5e
 
 ```
 

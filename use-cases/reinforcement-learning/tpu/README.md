@@ -14,18 +14,23 @@ Patch._
 
 ## 🚀 Quick Start & Environment Setup
 
-### 1. Connect to the GKE Cluster
+### 1. Provision & Connect to the GKE Cluster
 
-This pipeline is designed to run on the Accelerated Platforms training cluster.
-First, set your project and fetch the cluster credentials:
+This pipeline is designed to run on the Accelerated Platforms training reference
+architecture, which comes pre-configured with CCC and all necessary topology
+routing.
+
+If you do not already have a cluster running, follow the official infrastructure
+provisioning guide to spin up a TPU v5e cluster: 👉
+**[Accelerated Platforms GKE Training Architecture README](https://github.com/GoogleCloudPlatform/accelerated-platforms/blob/kr-rl/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md)**
+
+Once your cluster is up and running, fetch your cluster credentials (replace
+with your actual cluster name and region/zone):
 
 ```bash
-export PROJECT_ID="accelerated-platforms-dev"
+export PROJECT_ID="<YOUR_PROJECT_ID>"
 gcloud config set project $PROJECT_ID
-
-# Replace with the actual cluster name and region/zone
 gcloud container clusters get-credentials <CLUSTER_NAME> --location <LOCATION>
-
 ```
 
 ### 2. Configure the Hugging Face Secret

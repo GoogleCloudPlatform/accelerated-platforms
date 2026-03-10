@@ -79,7 +79,7 @@ docker push your-registry/maxtext-grpo:latest
 ### 3. Submit the GKE Training Job
 
 ```bash
-kubectl apply -f job.yaml
+kubectl apply -f v5e-job.yaml
 
 ```
 

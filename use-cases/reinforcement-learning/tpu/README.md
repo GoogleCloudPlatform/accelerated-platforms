@@ -1,20 +1,51 @@
 # Llama 3.1 8B GRPO Training on GKE (TPU v5e)
 
 This repository contains a production-ready, end-to-end Reinforcement Learning
-(GRPO) pipeline for fine-tuning Llama 3.1 8B on Google Kubernetes Engine (GKE)
-using TPU v5e-8 slices.
+(GRPO) pipeline for a single-node smoke test of Llama 3.1 8B on Google
+Kubernetes Engine (GKE) using a TPU v5e-8 slice.
 
 It integrates **MaxText** (for FSDP model training), **vLLM** (for
 high-throughput rollout generation), and **Tunix** (the RL bridge).
 
-## 🚀 Quick Start & Prerequisites
+_Note: This script is currently configured as a single-batch smoke test. Scaling
+up `rl.num_generations` or `per_device_batch_size` for a full training run
+triggers an upstream Tunix API mismatch that requires a custom vLLM Monkey
+Patch._
 
-1. **Hugging Face Token:** You must have access to the Meta Llama 3.1 weights.
-   Ensure your `HF_TOKEN` environment variable is set in the Kubernetes Secrets.
-2. **Hardware:** This configuration is strictly tuned for a **TPU v5e-8**
-   topology.
-3. **Storage:** The container requires local ephemeral storage (or a mounted
-   SSD) at `/workspace` to handle the 16GB checkpoint conversions.
+## 🚀 Quick Start & Environment Setup
+
+### 1. Connect to the GKE Cluster
+
+This pipeline is designed to run on the Accelerated Platforms training cluster.
+First, set your project and fetch the cluster credentials:
+
+```bash
+export PROJECT_ID="accelerated-platforms-dev"
+gcloud config set project $PROJECT_ID
+
+# Replace with the actual cluster name and region/zone
+gcloud container clusters get-credentials <CLUSTER_NAME> --location <LOCATION>
+
+```
+
+### 2. Configure the Hugging Face Secret
+
+You must have access to the Meta Llama 3.1 weights. The training job securely
+pulls your token from a Kubernetes secret. Create it in your active namespace:
+
+```bash
+kubectl create secret generic hf-secret --from-literal=token="<YOUR_HF_TOKEN>"
+
+```
+
+### 3. Hardware & Storage Prerequisites
+
+- **Hardware:** This configuration is strictly tuned for a **TPU v5e-8**
+  topology.
+- **Storage:** The container requires local ephemeral storage (or a mounted SSD)
+  at `/workspace` to handle the 16GB checkpoint conversions.
+
+---
 
 ## 🛠️ How to Deploy and Run
 
@@ -95,6 +126,38 @@ kubectl port-forward job/maxtext-grpo-job 6006:6006
 
 ```
 
-**_Note:_** This script is configured as a single-batch smoke test. Scaling up
-rl.num_generations or per_device_batch_size for a full training run will trigger
-an upstream Tunix API mismatch that requires a custom vLLM Monkey Patch.
+---
+
+## ⚠️ Critical Architecture Notes & Patches (Do Not Remove)
+
+Because we are bridging experimental research frameworks (MaxText/Tunix) with
+open-source inference (vLLM), several runtime patches are applied in `train.py`
+and the `Dockerfile`. **If you modify this pipeline, keep these constraints in
+mind:**
+
+### 1. The C++ Protobuf Shield
+
+vLLM uses `os.fork()` for its background workers, which fatally crashes the C++
+Protobuf engine loaded by JAX (`SIGABRT`).
+
+- **The Fix:** We force Python protobufs and `spawn` multiprocessing at the
+  absolute top of `train.py`.
+
+### 2. JAX Version Pinning (`0.4.25`)
+
+Newer versions of JAX strictly enforce `with_sharding_constraint` as an
+assertion. Tunix currently violates this when mapping weights to vLLM, causing a
+fatal mesh crash.
+
+- **The Fix:** The `Dockerfile` explicitly pins `jax[tpu]==0.4.25` using the
+  `--prerelease=allow` flag to grab the stable nightly drivers.
+
+### 3. Memory & Mesh Tuning
+
+To prevent vLLM from causing `RESOURCE_EXHAUSTED` (OOM) errors and starving
+MaxText's FSDP optimizer:
+
+- `rollout_tensor_parallelism=8`: Maps vLLM across all 8 chips.
+- `hbm_utilization_vllm=0.4`: Restricts vLLM to 40% of the TPU memory.
+- _Note:_ The `ici_tensor_parallelism` flag is intentionally omitted so MaxText
+  defaults to FSDP for training.

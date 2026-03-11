@@ -126,8 +126,8 @@ uploads to MLflow, you can port-forward TensorBoard directly from the running
 pod:
 
 ```bash
-kubectl exec -it job/maxtext-grpo-job -- tensorboard --logdir /workspace/rl_llama3_output --host 0.0.0.0 --port 6006
-kubectl port-forward job/maxtext-grpo-job 6006:6006
+kubectl exec -it job/maxtext-grpo-job-v5e -- tensorboard --logdir /workspace/rl_llama3_output --host 0.0.0.0 --port 6006
+kubectl port-forward job/maxtext-grpo-job-v5e 6006:6006
 
 ```
 

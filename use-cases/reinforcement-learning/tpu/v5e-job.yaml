@@ -8,7 +8,6 @@ spec:
     spec:
       restartPolicy: Never
       nodeSelector:
-        # Just the CCC is enough!
         cloud.google.com/compute-class: "tpu-v5e-2x4" 
       containers:
       - name: grpo-trainer

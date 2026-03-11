@@ -35,4 +35,4 @@ spec:
       maxPodsPerNode: 8
       spot: false
       storage:
-        localSSDCount: 1
+        localSSDCount: 2

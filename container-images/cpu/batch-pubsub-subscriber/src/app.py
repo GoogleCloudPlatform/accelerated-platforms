@@ -27,40 +27,7 @@ from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from google.cloud import pubsub_v1
 
 # --- LOGGING CONFIGURATION ---
-ROOT_LEVEL = "INFO"
-LOGGING_CONFIG = {
-    "version": 1,
-    "disable_existing_loggers": True,
-    "formatters": {
-        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
-    },
-    "handlers": {
-        "default": {
-            "level": "INFO",
-            "formatter": "standard",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",  # Default is stderr
-        },
-    },
-    "loggers": {
-        "": {  # root logger
-            "level": ROOT_LEVEL,  # "INFO",
-            "handlers": ["default"],
-            "propagate": False,
-        },
-        "uvicorn.error": {
-            "level": "DEBUG",
-            "handlers": ["default"],
-        },
-        "uvicorn.access": {
-            "level": "DEBUG",
-            "handlers": ["default"],
-        },
-    },
-}
-
-logging.config.dictConfig(LOGGING_CONFIG)
-
+logging.config.fileConfig("logging.conf", disable_existing_loggers=True)
 LOG = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
@@ -87,8 +54,10 @@ publisher = pubsub_v1.PublisherClient()
 
 def validate_config():
     """
-    Validates that all necessary environment variables are set.
-    Exits the application if critical variables are missing.
+    Validates the configuration by checking required environment variables.
+
+    Raises:
+        ValueError: If any required environment variable is missing.
     """
     LOG.info("\n🔍 Validating Configuration...")
 
@@ -128,6 +97,12 @@ def validate_config():
 def vllm_inference(prompt_text: str) -> str | None:
     """
     Sends the prompt to the vLLM server with Exponential Backoff Retry.
+
+    Args:
+        prompt_text (str): The prompt text to send to the vLLM server.
+
+    Returns:
+        str | None: The response from the vLLM server, or None if an error occurred.
     """
     headers = {"Content-Type": "application/json"}
 
@@ -170,6 +145,13 @@ def vllm_inference(prompt_text: str) -> str | None:
 def send_to_dlq(received_msg, error_reason="Max retries exceeded"):
     """
     Publishes the failed message to the Dead Letter Topic manually.
+
+    Args:
+        received_msg (pubsub_v1.types.ReceivedMessage): The received message that failed processing.
+        error_reason (str): The reason for the failure.
+
+    Returns:
+        bool: True if the message was successfully sent to the DLQ, False otherwise.
     """
     try:
         pubsub_msg = received_msg.message
@@ -192,6 +174,12 @@ def send_to_dlq(received_msg, error_reason="Max retries exceeded"):
 def process_single_message(received_msg):
     """
     Processes a single ReceivedMessage wrapper.
+
+    Args:
+        received_msg (pubsub_v1.types.ReceivedMessage): The received message to process.
+
+    Returns:
+        tuple: A tuple containing the ack_id and a boolean indicating whether to acknowledge the message.
     """
     ack_id = received_msg.ack_id
     pubsub_msg = received_msg.message
@@ -219,7 +207,10 @@ def process_single_message(received_msg):
 
 def run_subscriber_sync():
     """
-    Main Loop: Synchronous Pull + Parallel Processing
+    Runs the subscriber in synchronous mode with parallel processing.
+
+    This function continuously pulls messages from the subscription, processes them
+    in parallel using a thread pool, and acknowledges them in batches.
     """
     subscription_path = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
     LOG.info(f"🚀 Starting Sync Pull on {subscription_path}")

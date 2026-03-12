@@ -1,7 +1,7 @@
 accelerate==1.10.1
 diffusers==0.35.1
 fastapi[standard]==0.116.0
-pillow==11.3.0
+pillow==12.1.1
 protobuf==6.32.0
 sentencepiece==0.2.1
 transformers==4.53.0

@@ -489,7 +489,7 @@ the latency caused by the front end layer.
 2. Generate JSON Web Token (JWT)
 
    ```shell
-   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/llmd && \
+   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/ && \
    cat > jwt-claim.json << EOF
    {
     "iss": "${stress_test_service_account_email}",

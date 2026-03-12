@@ -46,8 +46,10 @@ priorityclasses
 prioritylevelconfigurations
 provisioningrequest
 provisioningrequests
+replicaset
 replicasets
 replicatedjob
+rilb
 rolebinding
 runtimeclasses
 seccomp

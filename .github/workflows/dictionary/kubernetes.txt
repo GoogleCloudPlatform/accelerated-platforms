@@ -7,6 +7,7 @@ clusterregistry
 clusterrole
 clusterrolebinding
 computeclasses
+configmap
 crd
 crds
 dockerconfigjson
@@ -45,8 +46,10 @@ priorityclasses
 prioritylevelconfigurations
 provisioningrequest
 provisioningrequests
+replicaset
 replicasets
 replicatedjob
+rilb
 rolebinding
 runtimeclasses
 seccomp

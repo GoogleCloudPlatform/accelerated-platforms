@@ -66,7 +66,7 @@ pkill -f 'kubectl wait --namespace=${MLP_KUBERNETES_NAMESPACE}'"
 check_local_error_exit_on_error
 
 echo_title "Checking processed images"
-IMAGES_PROCESS=$(gsutil du gs://${MLP_DATA_BUCKET}/flipkart_images | wc -l)
+IMAGES_PROCESS=$(gcloud storage du gs://${MLP_DATA_BUCKET}/flipkart_images | wc -l)
 echo_bold "Processed ${IMAGES_PROCESS} images."
 
 print_and_execute "((IMAGES_PROCESS > 0))"

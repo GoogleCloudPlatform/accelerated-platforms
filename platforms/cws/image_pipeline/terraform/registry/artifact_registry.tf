@@ -17,7 +17,7 @@ resource "google_artifact_registry_repository" "ci_cd" {
   format        = "DOCKER"
   location      = local.cloudbuild_location
   project       = data.google_project.cloudbuild.project_id
-  repository_id = "ci-cd"
+  repository_id = local.cloudbuild_cws_ci_cd_registry_name
 
   cleanup_policies {
     action = "DELETE"

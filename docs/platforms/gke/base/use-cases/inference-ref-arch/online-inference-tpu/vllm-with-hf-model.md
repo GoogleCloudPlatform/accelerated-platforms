@@ -59,6 +59,12 @@ This example is built on top of the
     export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
+  - **Qwen 3 32B **:
+
+    ```shell
+    export HF_MODEL_ID="qwen/qwen3-32b"
+    ```
+
 - Source the environment configuration.
 
   ```shell
@@ -137,6 +143,7 @@ This example is built on top of the
     | gemma-3-1b-it  | ✅  | ❌  |
     | gemma-3-4b-it  | ✅  | ❌  |
     | gemma-3-27b-it | ✅  | ✅  |
+    | qwen3-32b      | ✅  | ✅  |
 
     - **v5e**:
 

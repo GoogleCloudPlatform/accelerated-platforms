@@ -424,8 +424,10 @@ may not be able to generate enough stress on the deployment.
   ```shell
   Starting QUEUE FILL Test: XXX Simultaneous Users...
   Launching requests...
-  [Req XX] User XX | Latency: X.XXs | Status: 200
-  [Req XX] User XX | Latency: X.XXs | Status: 200
+  [Req XXXX] User XXX | Status: 200
+  [Req XXXX] User XXX | Status: 200
+  [Req XXXX] User XXX | Status: 200
+  [Req XXXX] User XXX | Status: 200
   ```
 
 - Let the stress test run and go to

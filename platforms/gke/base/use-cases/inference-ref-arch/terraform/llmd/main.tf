@@ -33,14 +33,6 @@ locals {
 
 data "google_client_openid_userinfo" "identity" {}
 
-data "google_project" "llmd_iap_oath_branding" {
-  project_id = local.llmd_iap_oath_branding_project_id
-}
-
-data "google_project" "cluster" {
-  project_id = local.cluster_project_id
-}
-
 data "local_file" "kubeconfig" {
   filename = local.kubeconfig_file
 }

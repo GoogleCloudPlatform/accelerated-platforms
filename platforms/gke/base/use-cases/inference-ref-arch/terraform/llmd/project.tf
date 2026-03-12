@@ -1,4 +1,4 @@
-# Copyright 2024 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,9 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-terraform {
-  backend "gcs" {
-    bucket = "accelerated-platforms-dev-inf-llmd-terraform"
-    prefix = "terraform/inference-ref-arch/terraform/llmd"
-  }
+data "google_project" "cluster" {
+  project_id = local.cluster_project_id
+}
+
+data "google_project" "llmd_iap_oath_branding" {
+  project_id = local.llmd_iap_oath_branding_project_id
+}
+
+resource "google_project_service" "cluster" {
+  for_each = toset([
+    "cloudbuild.googleapis.com",
+    "iap.googleapis.com",
+  ])
+
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.cluster.project_id
+  service                    = each.key
 }

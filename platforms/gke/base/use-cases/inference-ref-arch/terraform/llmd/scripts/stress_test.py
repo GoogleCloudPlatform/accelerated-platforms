@@ -76,16 +76,10 @@ async def run_user_session(session, user_id, semaphore):
             payload = {"data": [current_message, history, MODEL]}
 
             try:
-                start_time = time.time()
                 async with session.post(URL, headers=headers, json=payload) as response:
                     await response.text()
                     status = response.status
-                    duration = time.time() - start_time
-                    # Print only if we got a non-200 (error) or it took > 5 seconds (queueing happening)
-                    # if duration > 5.0 or status != 200:
-                    print(
-                        f"[Req {current_iter}] User {user_id} | Latency: {duration:.2f}s | Status: {status}"
-                    )
+                    print(f"[Req {current_iter}] User {user_id} | Status: {status}")
 
             except Exception as e:
                 pass

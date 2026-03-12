@@ -7,6 +7,10 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
+      "name": "batch-inference",
+      "path": ".github/workflows/dictionary/batch-inference.txt"
+    },
+    {
       "name": "comfyui",
       "path": ".github/workflows/dictionary/comfyui.txt"
     },
@@ -35,6 +39,10 @@
       "path": ".github/workflows/dictionary/kubeflow.txt"
     },
     {
+      "name": "kuberay",
+      "path": ".github/workflows/dictionary/kuberay.txt"
+    },
+    {
       "name": "kubernetes",
       "path": ".github/workflows/dictionary/kubernetes.txt"
     },
@@ -45,6 +53,10 @@
     {
       "name": "linux",
       "path": ".github/workflows/dictionary/linux.txt"
+    },
+    {
+      "name": "llmd",
+      "path": ".github/workflows/dictionary/llmd.txt"
     },
     {
       "name": "models",
@@ -85,6 +97,7 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "batch-inference",
     "comfyui",
     "docker",
     "flipkart",
@@ -92,9 +105,11 @@
     "google-cloud",
     "huggingface",
     "kubeflow",
+    "kuberay",
     "kubernetes",
     "kueue",
     "linux",
+    "llmd",
     "nvidia",
     "python",
     "ray",
@@ -108,6 +123,7 @@
     "**/go.mod",
     "**/go.sum",
     "node_modules",
+    "platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/model-evaluation/examples/",
     "use-cases/inferencing/batch-inference/example_predictions.txt",
     "use-cases/model-fine-tuning-pipeline/model-eval/examples/"
   ]

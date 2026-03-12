@@ -26,8 +26,7 @@ locals {
   cluster_gcsfuse_user_role_name   = "${local.unique_identifier_prefix_underscore}.gcsfuse.user.${var.platform_custom_role_unique_suffix}"
   cluster_gcsfuse_viewer_role      = "projects/${local.cluster_project_id}/roles/${local.cluster_gcsfuse_viewer_role_name}"
   cluster_gcsfuse_viewer_role_name = "${local.unique_identifier_prefix_underscore}.gcsfuse.viewer.${var.platform_custom_role_unique_suffix}"
-
-  cluster_name = local.unique_identifier_prefix
+  cluster_name                     = local.unique_identifier_prefix
 
   cluster_node_auto_provisioning_resource_limits = var.cluster_node_auto_provisioning_enabled ? var.cluster_node_auto_provisioning_resource_limits : []
 
@@ -50,6 +49,12 @@ locals {
   ]
 
   kubeconfig_file_name = "${local.cluster_project_id}-${local.cluster_name}"
+}
+
+variable "cluster_addons_ray_operator_enabled" {
+  default     = true
+  description = "Enable the Ray Operator add-on (https://cloud.google.com/kubernetes-engine/docs/add-on/ray-on-gke/concepts/overview)"
+  type        = bool
 }
 
 variable "cluster_auto_monitoring_config_scope" {

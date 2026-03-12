@@ -41,6 +41,6 @@ export TF_VAR_git_token=""
 source ${SCRIPTS_DIR}/helpers/terraform_apply.sh
 
 source ${SCRIPTS_DIR}/helpers/generate_environment_config.sh
-print_and_execute "gsutil cp ${MLP_ENVIRONMENT_FILE} gs://${MLP_STATE_BUCKET}/"
+print_and_execute "gcloud storage cp ${MLP_ENVIRONMENT_FILE} gs://${MLP_STATE_BUCKET}/"
 
 check_local_error_and_exit

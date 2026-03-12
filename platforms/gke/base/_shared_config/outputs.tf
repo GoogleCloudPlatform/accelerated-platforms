@@ -108,6 +108,26 @@ output "huggingface_secret_manager_project_id" {
   value = local.huggingface_secret_manager_project_id
 }
 
+output "kaggle_api_token_secret_manager_secret_name" {
+  value = local.kaggle_api_token_secret_manager_secret_name
+}
+
+output "kaggle_bucket_name" {
+  value = local.kaggle_bucket_name
+}
+
+output "kaggle_downloader_kubernetes_namespace_name" {
+  value = local.kaggle_downloader_kubernetes_namespace_name
+}
+
+output "kaggle_downloader_kubernetes_service_account_name" {
+  value = local.kaggle_downloader_kubernetes_service_account_name
+}
+
+output "kaggle_secret_manager_project_id" {
+  value = local.kaggle_secret_manager_project_id
+}
+
 output "nvidia_ncg_api_key_secret_manager_project_id" {
   value = local.nvidia_ncg_api_key_secret_manager_project_id
 }

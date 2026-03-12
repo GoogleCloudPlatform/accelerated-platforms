@@ -339,3 +339,21 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_uc_inference_ref_arch_
     }
   }
 }
+
+resource "google_cloud_scheduler_job" "platforms_gke_base_uc_training_ref_arch_standard_scripts" {
+  name      = "platforms-gke-base-uc-training-ref-arch-standard-scripts-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_uc_training_ref_arch_standard_scripts_push.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}

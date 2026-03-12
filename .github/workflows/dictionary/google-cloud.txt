@@ -42,6 +42,7 @@ filestore
 fusermount
 gcfs
 gclbs
+gcloudignore
 gcpbackendpolicy
 gcsfs
 gcsfuse
@@ -97,6 +98,7 @@ servicenetworking
 serviceusage
 stackdriver
 statefulset
+subblock
 subnetwork
 subnetworks
 superblocks

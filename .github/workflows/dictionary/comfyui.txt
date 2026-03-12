@@ -16,6 +16,7 @@ denoise
 denoised
 dont
 dont_allow
+elaichi
 filebase
 flac
 ftype

@@ -1,0 +1,35 @@
+{
+  "1": {
+    "inputs": {
+      "model": "GEMINI_3_PRO_IMAGE",
+      "prompt": "Create an info graphic to help understand \"HOW TO MAKE ELAICHI CHAI (CARDAMOM TEA)\"",
+      "aspect_ratio": "16:9",
+      "temperature": 0.7,
+      "top_p": 1,
+      "top_k": 32,
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "system_instruction": "",
+      "gcp_project_id": "",
+      "gcp_region": "global"
+    },
+    "class_type": "Gemini3ProImage",
+    "_meta": {
+      "title": "Gemini 3 Pro Image (🍌)"
+    }
+  },
+  "2": {
+    "inputs": {
+      "images": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  }
+}

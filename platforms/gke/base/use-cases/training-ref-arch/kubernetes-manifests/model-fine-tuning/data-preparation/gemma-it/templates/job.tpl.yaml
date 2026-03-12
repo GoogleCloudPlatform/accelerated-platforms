@@ -1,0 +1,54 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-prep
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: data-prep
+        ml-platform: data-prep
+    spec:
+      containers:
+        - name: job
+          image: ${mft_data_preparation_image_url}
+          imagePullPolicy: Always
+          env:
+            - name: "BUCKET"
+              value: ${mft_data_bucket_name}
+            - name: "DATASET_INPUT_PATH"
+              value: flipkart_preprocessed_dataset
+            - name: "DATASET_INPUT_FILE"
+              value: flipkart.csv
+            - name: "DATASET_OUTPUT_PATH"
+              value: dataset/output
+            - name: "PROJECT_ID"
+              value: ${mft_project_id}
+            - name: "PROMPT_MODEL_ID"
+              value: meta/llama-3.1-70b-instruct-maas
+            - name: "REGION"
+              value: ${mft_region}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 250m
+              memory: 1Gi
+      restartPolicy: Never
+      serviceAccountName: ${mft_data_preparation_service_account_name}

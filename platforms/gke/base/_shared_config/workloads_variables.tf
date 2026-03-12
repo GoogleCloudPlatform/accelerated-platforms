@@ -35,13 +35,19 @@ variable "inference_gateway_version" {
 }
 
 variable "jobset_version" {
-  default     = "0.8.2"
+  default     = "0.10.1"
   description = "Version of JobSet (https://github.com/kubernetes-sigs/jobset/) to install."
   type        = string
 }
 
+variable "kuberay_version" {
+  default     = "1.5.1"
+  description = "Version of KubeRay (https://github.com/ray-project/kuberay) to install."
+  type        = string
+}
+
 variable "kueue_version" {
-  default     = "0.14.1"
+  default     = "0.14.4"
   description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
   type        = string
 }

@@ -16,11 +16,17 @@ locals {
   kubeconfig_directory = "${path.module}/../../kubernetes/kubeconfig"
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
   shared_config_folder = "${path.module}/../../_shared_config"
+  #This valid_zone checks for any zones with the -ai suffix and excludes them from the node_locations. -ai zones seems to have been added prematurely
+  valid_zones = [
+    for zone in data.google_compute_zones.region.names : zone
+    if !can(regex("-ai", zone))
+  ]
 }
 
 data "google_compute_zones" "region" {
   project = data.google_project.cluster.project_id
   region  = local.cluster_region
+  status  = "UP"
 }
 
 resource "google_container_cluster" "cluster" {
@@ -34,7 +40,7 @@ resource "google_container_cluster" "cluster" {
   location            = local.cluster_region
   name                = local.cluster_name
   network             = local.network_cluster_network_name
-  node_locations      = data.google_compute_zones.region.names
+  node_locations      = local.valid_zones
   project             = google_project_service.cluster["container.googleapis.com"].project
   subnetwork          = local.network_cluster_subnet_node_name
 
@@ -53,6 +59,19 @@ resource "google_container_cluster" "cluster" {
 
     horizontal_pod_autoscaling {
       disabled = false
+    }
+
+    dynamic "ray_operator_config" {
+      for_each = var.cluster_addons_ray_operator_enabled ? ["ray_operator_config"] : []
+      content {
+        enabled = true
+        ray_cluster_logging_config {
+          enabled = true
+        }
+        ray_cluster_monitoring_config {
+          enabled = true
+        }
+      }
     }
   }
 
@@ -217,7 +236,7 @@ resource "terraform_data" "cluster_credentials" {
   provisioner "local-exec" {
     command     = <<EOT
 mkdir -p $(dirname ${self.input.kubeconfig_file})
-KUBECONFIG=${self.input.kubeconfig_file} ${self.input.cluster_credentials_command} 
+KUBECONFIG=${self.input.kubeconfig_file} ${self.input.cluster_credentials_command}
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module
@@ -242,7 +261,7 @@ resource "terraform_data" "modify_shared_config_cluster_auto_tfvars" {
 
   provisioner "local-exec" {
     command     = <<EOT
-sed -i -E 's/^(cluster_autopilot_enabled[[:blank:]]*=[[:blank:]]*).*/\1true/' ${self.input.filename} 
+sed -i -E 's/^(cluster_autopilot_enabled[[:blank:]]*=[[:blank:]]*).*/\1true/' ${self.input.filename}
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module

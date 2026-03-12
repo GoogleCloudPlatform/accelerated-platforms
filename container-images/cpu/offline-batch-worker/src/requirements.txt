@@ -1,0 +1,2 @@
+aiohttp==3.13.3
+google-cloud-storage==3.8.0

@@ -88,6 +88,11 @@ resource "google_workstations_workstation_config" "code_oss_n2s4" {
       reclaim_policy = "RETAIN"
     }
   }
+
+  readiness_checks {
+    path = "/"
+    port = 80
+  }
 }
 
 resource "google_workstations_workstation_config" "code_oss_n2s8" {

@@ -41,6 +41,7 @@ declare -a terraservices=(
   "registry"
   "github.com"
   "cloudbuild"
+  "images/antigravity-crd"
   "images/code-oss"
   "images/comfyui/models"
   "images/comfyui/cpu"

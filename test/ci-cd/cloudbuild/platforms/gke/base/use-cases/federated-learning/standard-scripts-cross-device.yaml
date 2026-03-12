@@ -17,63 +17,75 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-  - args:
-      - "${_WAIT_FOR_TRIGGER}"
-    entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
-    env:
-      - "LOCATION=${LOCATION}"
-      - "PROJECT_ID=${PROJECT_ID}"
-    id: "Check triggers"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor: ["-"]
+  - name: "bash"
+    args:
+      - "-c"
+      - |
+        echo "**************************************************************************************"
+        echo "NOTICE: The target repository https://github.com/privacysandbox/odp-federatedcompute/ "
+        echo "has been archived."
+        echo "All subsequent build steps to test deploying cross device federated learning have been"
+        echo "disabled."
+        echo "*************************************************************************************"
+  # The following steps have been disabled due to the archiving of the target repository https://github.com/privacysandbox/odp-federatedcompute/
+  # python version mismatch with jaxlib.
+  # - args:
+  #     - "${_WAIT_FOR_TRIGGER}"
+  #   entrypoint: "test/ci-cd/scripts/cloudbuild/wait_for_trigger.sh"
+  #   env:
+  #     - "LOCATION=${LOCATION}"
+  #     - "PROJECT_ID=${PROJECT_ID}"
+  #   id: "Check triggers"
+  #   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  #   waitFor: ["-"]
 
-  - args:
-      - DEBUG=${_DEBUG}
-      - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
-      - TF_VAR_platform_name="ch${SHORT_SHA}"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"
-    env:
-      - ACP_PLATFORM_DIR="$${ACP_REPO_DIR}/platforms/gke/base"
-      - BUILD_ID=${BUILD_ID}
-      - DEBUG=${_DEBUG}
-      - PROJECT_ID=${PROJECT_ID}
-      - SHORT_SHA=${SHORT_SHA}
-    id: "Configure the build environment"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Check triggers"
+  # - args:
+  #     - DEBUG=${_DEBUG}
+  #     - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
+  #     - TF_VAR_platform_name="ch${SHORT_SHA}"
+  #   entrypoint: "test/ci-cd/scripts/platforms/gke/base/configure_build_environment.sh"
+  #   env:
+  #     - ACP_PLATFORM_DIR="$${ACP_REPO_DIR}/platforms/gke/base"
+  #     - BUILD_ID=${BUILD_ID}
+  #     - DEBUG=${_DEBUG}
+  #     - PROJECT_ID=${PROJECT_ID}
+  #     - SHORT_SHA=${SHORT_SHA}
+  #   id: "Configure the build environment"
+  #   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  #   waitFor:
+  #     - "Check triggers"
 
-  - args:
-      - "Deploy platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
-      - "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
-    id: "Deploy platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Configure the build environment"
+  # - args:
+  #     - "Deploy platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
+  #     - "platforms/gke/base/use-cases/federated-learning/examples/cross-device/deploy.sh"
+  #   entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_deploy_script.sh"
+  #   id: "Deploy platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
+  #   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  #   waitFor:
+  #     - "Configure the build environment"
 
-  - args:
-      - "Teardown platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
-      - "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
-    id: Teardown platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Deploy platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
+  # - args:
+  #     - "Teardown platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
+  #     - "platforms/gke/base/use-cases/federated-learning/examples/cross-device/teardown.sh"
+  #   entrypoint: "test/ci-cd/scripts/platforms/gke/base/run_teardown_script.sh"
+  #   id: Teardown platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard
+  #   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  #   waitFor:
+  #     - "Deploy platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard"
 
-  - args:
-      - "Cleanup the build environment"
-    entrypoint: "test/ci-cd/scripts/platforms/gke/base/cleanup_build_environment.sh"
-    id: "Cleanup the build environment"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - Teardown platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard
+  # - args:
+  #     - "Cleanup the build environment"
+  #   entrypoint: "test/ci-cd/scripts/platforms/gke/base/cleanup_build_environment.sh"
+  #   id: "Cleanup the build environment"
+  #   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  #   waitFor:
+  #     - Teardown platforms/gke/base/use-cases/federated-learning/examples/cross-device Standard
 
-  - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
-    id: "Set the build status"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Cleanup the build environment"
+  # - entrypoint: "test/ci-cd/scripts/platforms/gke/base/set_build_status.sh"
+  #   id: "Set the build status"
+  #   name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+  #   waitFor:
+  #     - "Cleanup the build environment"
 
 substitutions:
   _DEBUG: "false"

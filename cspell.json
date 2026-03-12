@@ -7,6 +7,10 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
+      "name": "batch-inference",
+      "path": ".github/workflows/dictionary/batch-inference.txt"
+    },
+    {
       "name": "comfyui",
       "path": ".github/workflows/dictionary/comfyui.txt"
     },
@@ -51,6 +55,10 @@
       "path": ".github/workflows/dictionary/linux.txt"
     },
     {
+      "name": "llmd",
+      "path": ".github/workflows/dictionary/llmd.txt"
+    },
+    {
       "name": "models",
       "path": ".github/workflows/dictionary/models.txt"
     },
@@ -89,6 +97,7 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "batch-inference",
     "comfyui",
     "docker",
     "flipkart",
@@ -100,6 +109,7 @@
     "kubernetes",
     "kueue",
     "linux",
+    "llmd",
     "nvidia",
     "python",
     "ray",

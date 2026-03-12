@@ -65,7 +65,7 @@ This example is built on top of the
     export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
-  - **gpt-oss-120b**
+  - **gpt-oss-20b**
 
     ```shell
     export HF_MODEL_ID="openai/gpt-oss-20b"

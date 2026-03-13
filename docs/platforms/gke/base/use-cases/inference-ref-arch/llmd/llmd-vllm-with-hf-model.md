@@ -489,7 +489,7 @@ the latency caused by the front end layer.
 2. Generate JSON Web Token (JWT)
 
    ```shell
-   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/ && \
+   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/scripts && \
    cat > jwt-claim.json << EOF
    {
     "iss": "${stress_test_service_account_email}",
@@ -526,7 +526,7 @@ the latency caused by the front end layer.
 
    ```
    Preparing to send the requests to the MODEL qwen/qwen3-32b
-   Starting RELAXED Load: 50 concurrent users...
+   Starting Load: 500 concurrent users...
    User 01 | Status: 200
    User 02 | Status: 200
    User 04 | Status: 200
@@ -535,41 +535,11 @@ the latency caused by the front end layer.
 
 5. Go to
    [Cloud Monitoring Dashboard page](https://console.cloud.google.com/monitoring/dashboards?pli=1)
-   and search for `llm-d dashboard`. Open the dashboard. You will see something
-   various metrics getting populated including TTFT, TPOT, Input Token/s ,
-   Output Token/s etc.
+   and search for `llm-d dashboard`. Open the dashboard. You will see various
+   metrics getting populated including TTFT, TPOT, Input Token/s , Output
+   Token/s etc. You will see something similar to the following pic.
 
-6. Now, run the stress test to build the queue.
-
-   a. Run step 2 to generate jwt token. Additionally, run step3 if you
-   re-started CloudShell after running the load generator script.
-
-   b. Run the stress test script.
-
-   ```shell
-   python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/scripts/stress_test.py
-   ```
-
-   The stress_test.py script spawns high volume of requests to the gradio chat
-   service that routes requests to llm-d gateway.
-
-   The response should look like this:
-
-   ```shell
-   Starting QUEUE FILL Test: XXX Simultaneous Users...
-   Launching requests...
-   [Req XXXX] User XXX | Status: 200
-   [Req XXXX] User XXX | Status: 200
-   [Req XXXX] User XXX | Status: 200
-   [Req XXXX] User XXX | Status: 200
-   ```
-
-- Let the stress test run and go to
-  [Cloud Monitoring Dashboard page](https://console.cloud.google.com/monitoring/dashboards?pli=1)
-  and search for `llm-d dashboard`. Open the dashboard. You will see something
-  similar to the following pic.
-
-  ![dashboard](../images/llmd-dashboard.png)
+![dashboard](../images/llmd-dashboard.png)
 
 - You can view the metrics published by `vllm` and `gaie` on the dashboard. Note
   that some of the network metrics like `Throughput TX Bytes per Pod` are only

@@ -23,8 +23,8 @@ URL = "https://" + llmd_endpoints_hostname + "/gradio_api/api/sync_chat"
 MODEL = os.environ.get("HF_MODEL_ID", "qwen/qwen3-32b")
 TOKEN_FILE = "token.jwt"
 print(f"Preparing to send the requests to the MODEL {MODEL}")
-CONCURRENT_USERS = 50
-TOTAL_REQUESTS = 1000
+CONCURRENT_USERS = 500
+TOTAL_REQUESTS = 10000
 THINK_TIME = 2.0
 RAMP_UP_DELAY = 0.5
 
@@ -83,7 +83,7 @@ request_counter = 0
 
 
 async def main():
-    print(f"Starting RELAXED Load: {CONCURRENT_USERS} concurrent users...")
+    print(f"Starting Load: {CONCURRENT_USERS} concurrent users...")
     token = get_token()
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {token}"}
 

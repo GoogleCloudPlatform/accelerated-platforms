@@ -30,12 +30,12 @@ locals {
   llmd_httproute_name_internal             = var.llmd_httproute_name_internal != null ? var.llmd_httproute_name_internal : "${local.llmd_default_name}-${local.llmd_release_name}-internal"
   llmd_iap_oath_branding_project_id        = var.llmd_iap_oath_branding_project_id != null ? var.llmd_iap_oath_branding_project_id : var.platform_default_project_id
   llmd_inferencepool_name                  = var.llmd_inferencepool_name != null ? var.llmd_inferencepool_name : "gaie-${local.llmd_release_name}"
-  llmd_modelserver_sa                      = var.llmd_modelserver_sa != null ? var.llmd_modelserver_sa : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelserver-sa"
-  llmd_ms_deployment_name                  = var.llmd_ms_deployment_name != null ? var.llmd_ms_deployment_name : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelservice"
-  llmd_release_name                        = var.llmd_release_name != null ? var.llmd_release_name : "inference-scheduling"
-  stress_test_service_account_project_id   = var.stress_test_service_account_project_id != null ? var.stress_test_service_account_project_id : var.platform_default_project_id
-  stress_test_service_account_email        = "${local.stress_test_service_account_name}@${local.stress_test_service_account_project_id}.iam.gserviceaccount.com"
-  stress_test_service_account_name         = "${local.unique_identifier_prefix}-${local.llmd_default_name}"
+  #llmd_modelserver_sa                      = var.llmd_modelserver_sa != null ? var.llmd_modelserver_sa : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelserver-sa"
+  llmd_ms_deployment_name                = var.llmd_ms_deployment_name != null ? var.llmd_ms_deployment_name : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelservice"
+  llmd_release_name                      = var.llmd_release_name != null ? var.llmd_release_name : "inference-scheduling"
+  stress_test_service_account_project_id = var.stress_test_service_account_project_id != null ? var.stress_test_service_account_project_id : var.platform_default_project_id
+  stress_test_service_account_email      = "${local.stress_test_service_account_name}@${local.stress_test_service_account_project_id}.iam.gserviceaccount.com"
+  stress_test_service_account_name       = "${local.unique_identifier_prefix}-${local.llmd_default_name}"
 }
 
 variable "gaie_chart" {
@@ -105,17 +105,16 @@ variable "kubernetes_version" {
 }
 
 variable "llmd_accelerator_type" {
-  default = "nvidia-l4"
+  default = "nvidia-rtx-pro"
   type    = string
 
   validation {
     condition = contains(
       [
-        "nvidia-a100-80gb",
-        "nvidia-h100-80gb",
-        "nvidia-l4",
-        "nvidia-rtx-pro",
-        "nvidia-tesla-a100",
+        "l4",
+        "h100",
+        "h200",
+        "rtx-pro-6000",
       ],
       var.llmd_accelerator_type
     )
@@ -183,23 +182,39 @@ variable "llmd_inferencepool_name" {
   type        = string
 }
 
-variable "llmd_kubernetes_namespace" {
-  default     = "llmd"
-  description = "The Kubernetes namespace to deploy the manifests to."
-  type        = string
-}
+# variable "llmd_kubernetes_namespace" {
+#   default     = "llmd"
+#   description = "The Kubernetes namespace to deploy the manifests to."
+#   type        = string
+# }
 
-variable "llmd_model_name" {
-  default     = "Qwen/Qwen3-0.6B"
+variable "llmd_model_id" {
+  default     = "qwen/qwen3-32b"
   description = "model to server"
   type        = string
+
+  validation {
+    condition = contains(
+      [
+        "google/gemma-3-1b-it",
+        "google/gemma-3-4b-it",
+        "google/gemma-3-27b-it",
+        "openai/gpt-oss-20b",
+        "meta-llama/llama-4-scout-17b-16e-instruct",
+        "meta-llama/llama-3.3-70b-instruct",
+        "qwen/qwen3-32b",
+      ],
+      var.llmd_model_id
+    )
+    error_message = "'llmd_model_id' value is invalid"
+  }
 }
 
-variable "llmd_modelserver_sa" {
-  default     = null
-  description = "Service Account name for running model server"
-  type        = string
-}
+# variable "llmd_modelserver_sa" {
+#   default     = null
+#   description = "Service Account name for running model server"
+#   type        = string
+# }
 
 variable "llmd_ms_cuda_image" {
   default     = "ghcr.io/llm-d/llm-d-cuda:v0.3.1"

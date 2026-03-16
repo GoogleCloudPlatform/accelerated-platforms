@@ -24,3 +24,11 @@ resource "google_storage_bucket" "dataset" {
 
   uniform_bucket_level_access = true
 }
+
+resource "google_storage_bucket" "mlflow_data" {
+  name     = local.rl_mlflow_data_bucket_name
+  project  = local.rl_project_id
+  location = local.cluster_region
+
+  uniform_bucket_level_access = true
+}

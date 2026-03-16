@@ -17,20 +17,21 @@ locals {
   rl_kubernetes_namespace_manifests_directory = "${path.module}/manifests/${local.rl_kubernetes_namespace}"
   rl_kubernetes_namespace                     = var.rl_kubernetes_namespace != null ? var.rl_kubernetes_namespace : "${local.unique_identifier_prefix}-rl"
   rl_kubernetes_service_account_name          = var.rl_kubernetes_service_account_name != null ? var.rl_kubernetes_service_account_name : "${local.unique_identifier_prefix}-rl-sa"
+  rl_mlflow_data_bucket_name                  = var.rl_mlflow_data_bucket_name != null ? var.rl_mlflow_data_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-mlflow-data"
   rl_project_id                               = var.rl_project_id != null ? var.rl_project_id : var.platform_default_project_id
   rl_tpu_rl_on_tpu_image_url                  = var.rl_tpu_rl_on_tpu_image_url != null ? var.rl_tpu_rl_on_tpu_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/rl-on-tpu:latest"
 
   rl_kubernetes_service_accounts = {
     mlflow = {
       automount_service_account_token = false
-      service_account_name            = "${local.unique_identifier_prefix}-mlflow"
+      service_account_name            = "${local.rl_kubernetes_service_account_name}"
     }
   }
 }
 
-variable "rl_tpu_rl_on_tpu_image_url" {
+variable "rl_dataset_bucket_name" {
   default     = null
-  description = "The URL for the RL on TPU container image."
+  description = "The GCP bucket name for the RL dataset."
   type        = string
 }
 
@@ -46,14 +47,20 @@ variable "rl_kubernetes_service_account_name" {
   type        = string
 }
 
+variable "rl_mlflow_data_bucket_name" {
+  default     = null
+  description = "The GCP bucket name for the MLflow data."
+  type        = string
+}
+
 variable "rl_project_id" {
   default     = null
   description = "The GCP project ID for the RL on TPU resources."
   type        = string
 }
 
-variable "rl_dataset_bucket_name" {
+variable "rl_tpu_rl_on_tpu_image_url" {
   default     = null
-  description = "The GCP bucket name for the RL dataset."
+  description = "The URL for the RL on TPU container image."
   type        = string
 }

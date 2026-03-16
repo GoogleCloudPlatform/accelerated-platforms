@@ -13,7 +13,7 @@
 # limitations under the License.
 
 resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_admin" {
-  bucket = google_storage_bucket.data.name
+  bucket = google_storage_bucket.mlflow_data.name
   member = "${local.wi_member_principal_prefix}/${local.rl_kubernetes_service_accounts["mlflow"].service_account_name}"
   role   = "roles/storage.objectAdmin"
 }
@@ -22,7 +22,7 @@ resource "local_file" "mlflow_manifest" {
   content = templatefile(
     "${path.module}/templates/mlflow/manifests.tftpl.yaml",
     {
-      bucket_name          = google_storage_bucket.data.name,
+      bucket_name          = google_storage_bucket.mlflow_data.name,
       service_account_name = local.rl_kubernetes_service_accounts["mlflow"].service_account_name,
     }
   )
@@ -31,7 +31,7 @@ resource "local_file" "mlflow_manifest" {
 
 module "kubectl_apply_mlflow_manifest" {
   depends_on = [
-    module.kubectl_apply_namespace_manifest,
+    module.kubectl_apply_namespace,
   ]
 
   source = "../../../../modules/kubectl_apply"

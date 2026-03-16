@@ -24,9 +24,8 @@ locals {
     }
   }
 
-  manifests_directory_root                    = "${path.module}/../../../../kubernetes/manifests"
-  namespaces_directory                        = "${local.manifests_directory_root}/namespace"
-  rl_kubernetes_namespace_manifests_directory = "${local.namespaces_directory}/${local.rl_kubernetes_namespace}"
+  manifests_directory_root = "${path.module}/../../../../kubernetes/manifests"
+  namespaces_directory     = "${local.manifests_directory_root}/namespace"
 }
 
 data "local_file" "kubeconfig" {

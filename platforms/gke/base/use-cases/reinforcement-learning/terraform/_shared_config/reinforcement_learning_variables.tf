@@ -13,9 +13,11 @@
 # limitations under the License.
 
 locals {
+  rl_dataset_bucket_name                      = var.rl_dataset_bucket_name != null ? var.rl_dataset_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-dataset"
   rl_kubernetes_namespace_manifests_directory = "${path.module}/manifests/${local.rl_kubernetes_namespace}"
   rl_kubernetes_namespace                     = var.rl_kubernetes_namespace != null ? var.rl_kubernetes_namespace : "${local.unique_identifier_prefix}-rl"
   rl_kubernetes_service_account_name          = var.rl_kubernetes_service_account_name != null ? var.rl_kubernetes_service_account_name : "${local.unique_identifier_prefix}-rl-sa"
+  rl_project_id                               = var.rl_project_id != null ? var.rl_project_id : var.platform_default_project_id
   rl_tpu_rl_on_tpu_image_url                  = var.rl_tpu_rl_on_tpu_image_url != null ? var.rl_tpu_rl_on_tpu_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/rl-on-tpu:latest"
 
   rl_kubernetes_service_accounts = {
@@ -41,5 +43,17 @@ variable "rl_kubernetes_namespace" {
 variable "rl_kubernetes_service_account_name" {
   default     = null
   description = "The Kubernetes service account name for the RL on TPU resources."
+  type        = string
+}
+
+variable "rl_project_id" {
+  default     = null
+  description = "The GCP project ID for the RL on TPU resources."
+  type        = string
+}
+
+variable "rl_dataset_bucket_name" {
+  default     = null
+  description = "The GCP bucket name for the RL dataset."
   type        = string
 }

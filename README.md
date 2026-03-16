@@ -43,7 +43,6 @@ the primary runtime.
 - [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
 - [Federated learning](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
 - [Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
-
   - [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
     - [Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
       - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)
@@ -54,13 +53,14 @@ the primary runtime.
     - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/batch-inference/README.md)
     - [Offline batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/offline-batch/README.md)
     - [Intelligent inference scheduling quickstart using llm-d](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/README.md)
-
 - [Training reference architecture](/docs/platforms/gke/base/use-cases/training-ref-arch/README.md)
   - [Model fine tuning](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/README.md)
     - [Data processing](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/data-processing.md)
     - [Data preparation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/data-preparation.md)
     - [Fine tuning](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/fine-tuning.md)
     - [Model evaluation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/model-evaluation.md)
+- [Reinforcement Learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-larning/README.md)
+  - [RL on TPU](/docs/platforms/gke/base/use-cases/reinforcement-larning/rl-on-tpu/README.md)
 
 ### Guides
 

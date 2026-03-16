@@ -40,7 +40,6 @@ pulls your token from a Kubernetes secret. Create it in your active namespace:
 
 ```bash
 kubectl create secret generic hf-secret --from-literal=token="<YOUR_HF_TOKEN>"
-
 ```
 
 ### 3. Hardware & Storage Prerequisites
@@ -61,7 +60,6 @@ training pod has somewhere to send its metrics and artifacts.
 
 ```bash
 kubectl apply -f mlflow.yaml
-
 ```
 
 _(Note: This uses a `ClusterIP` configuration, meaning the dashboard is kept
@@ -73,21 +71,18 @@ automatically discover it at `mlflow-service:5000`)_.
 ```bash
 docker build -t your-registry/maxtext-grpo:latest .
 docker push your-registry/maxtext-grpo:latest
-
 ```
 
 ### 3. Submit the GKE Training Job
 
 ```bash
 kubectl apply -f v5e-job.yaml
-
 ```
 
 ### 4. Tail the Logs
 
 ```bash
 kubectl logs -f job/maxtext-grpo-job-v5e
-
 ```
 
 ---
@@ -108,7 +103,6 @@ it to your local machine to view the dashboard:
 
 ```bash
 kubectl port-forward svc/mlflow-service 5000:5000
-
 ```
 
 2. **Open your Browser:** Navigate to `http://localhost:5000`
@@ -128,7 +122,6 @@ pod:
 ```bash
 kubectl exec -it job/maxtext-grpo-job-v5e -- tensorboard --logdir /workspace/rl_llama3_output --host 0.0.0.0 --port 6006
 kubectl port-forward job/maxtext-grpo-job-v5e 6006:6006
-
 ```
 
 ---

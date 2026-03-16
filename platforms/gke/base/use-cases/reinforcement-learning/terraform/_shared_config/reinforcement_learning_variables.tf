@@ -14,10 +14,17 @@
 
 locals {
   rl_tpu_rl_on_tpu_image_url = var.rl_tpu_rl_on_tpu_image_url != null ? var.rl_tpu_rl_on_tpu_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/rl-on-tpu:latest"
+  rl_kubernetes_namespace    = var.rl_kubernetes_namespace != null ? var.rl_kubernetes_namespace : "${local.unique_identifier_prefix}-rl"
 }
 
 variable "rl_tpu_rl_on_tpu_image_url" {
   default     = null
   description = "The URL for the RL on TPU container image."
+  type        = string
+}
+
+variable "rl_kubernetes_namespace" {
+  default     = null
+  description = "The Kubernetes namespace for the RL on TPU resources."
   type        = string
 }

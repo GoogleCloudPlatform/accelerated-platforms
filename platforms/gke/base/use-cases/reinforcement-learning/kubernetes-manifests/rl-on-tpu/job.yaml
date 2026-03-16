@@ -1,0 +1,26 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maxtext-grpo-job-v5e
+spec:
+  backoffLimit: 0 
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        cloud.google.com/compute-class: "tpu-v5e-2x4" 
+      containers:
+      - name: grpo-trainer
+        image: us-central1-docker.pkg.dev/accelerated-platforms-dev/ml-repo/maxtext-grpo:latest
+        resources:
+          limits:
+            google.com/tpu: 8 
+        env:
+        - name: MLFLOW_TRACKING_URI
+          value: "http://mlflow-service:5000"
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: token
+              

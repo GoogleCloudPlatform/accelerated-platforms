@@ -1,8 +1,11 @@
 epath
+etils
 grpo
+logdir
 logps
 maxtext
 multiproc
 returncode
+sigabrt
 strftime
 tunix

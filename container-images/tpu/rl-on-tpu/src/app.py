@@ -99,8 +99,6 @@ HF_TOKEN = os.environ.get("HF_TOKEN")
 if not HF_TOKEN:
     raise ValueError("HF_TOKEN environment variable not set.")
 login(token=HF_TOKEN)
-# Delete this line:
-# MAXTEXT_PKG_DIR = os.path.dirname(maxtext.__file__)
 
 # Replace it with the hardcoded absolute path where we cloned the repo:
 MAXTEXT_PKG_DIR = "/workspace/maxtext/src/maxtext"

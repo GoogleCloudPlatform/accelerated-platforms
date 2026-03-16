@@ -147,7 +147,7 @@ if not epath.Path(target_checkpoint_items).exists():
     if result.returncode != 0:
         raise RuntimeError("Checkpoint conversion failed! Check the logs above.")
 else:
-    print(f"✅ Found existing Orbax checkpoint at {target_checkpoint_items}")
+    print(f"✅ Found existing checkpoint at {target_checkpoint_items}")
 
 # --- MAXTEXT RL CONFIGURATION ---
 config_argv = [

@@ -28,13 +28,13 @@ RUN pip install --upgrade pip uv
 RUN uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN uv pip install --system "jax[tpu]==0.4.25" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html --prerelease=allow
 
-# 2. THE GOOGLER WAY: Clone the repo
+# 2. Clone the repo
 RUN git clone https://github.com/google/maxtext.git /workspace/maxtext
 
 # Shift Docker's working directory INSIDE the repo
 WORKDIR /workspace/maxtext
 
-# 3. Apply the Googlers' lowest flag (no 'cd' needed anymore!)
+# 3. Apply the lowest flag (no 'cd' needed anymore!)
 RUN uv pip install --system -e ".[tpu-post-train]" --resolution=lowest
 
 # 4. Run the script (it will natively find the 'src' folder now!)
@@ -50,7 +50,7 @@ RUN uv pip install --system mlflow huggingface_hub math_verify
 RUN wget https://raw.githubusercontent.com/google/maxtext/main/src/maxtext/examples/chat_templates/gsm8k_rl.json -O /workspace/gsm8k_rl.json
 
 # Copy our training script
-COPY train.py /workspace/train.py
+COPY train.py /workspace/app.py
 
 # Execute the script
-CMD ["python3", "train.py"]
+CMD ["python3", "app.py"]

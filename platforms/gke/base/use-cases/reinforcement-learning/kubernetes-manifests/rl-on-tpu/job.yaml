@@ -23,4 +23,3 @@ spec:
             secretKeyRef:
               name: hf-secret
               key: token
-              

@@ -16,5 +16,5 @@ locals {
   gsa_build_roles = [
     "roles/logging.logWriter",
   ]
-  wi_member_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject/ns/${local.mft_kubernetes_namespace}/sa"
+  wi_member_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject/ns/${local.rl_kubernetes_namespace}/sa"
 }

@@ -21,8 +21,8 @@ locals {
   gradio_cloudbuild_source_bucket_name     = var.gradio_cloudbuild_source_bucket_name != null ? var.gradio_cloudbuild_source_bucket_name : local.cloudbuild_source_bucket_name
   llmd_backend_policy_name                 = var.llmd_backend_policy_name != null ? var.llmd_backend_policy_name : "gaie-${local.llmd_release_name}"
   llmd_default_name                        = "llmd"
-  llmd_endpoints_hostname                  = var.llmd_endpoints_hostname != null ? var.llmd_endpoints_hostname : "llmd.${local.ira_online_gpu_kubernetes_namespace_name}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
-  llmd_endpoints_ssl_certificate_name      = "${local.unique_identifier_prefix}-${local.ira_online_gpu_kubernetes_namespace_name}-external-gateway"
+  llmd_endpoints_hostname                  = var.llmd_endpoints_hostname != null ? var.llmd_endpoints_hostname : "llmd.${var.llmd_kubernetes_namespace}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
+  llmd_endpoints_ssl_certificate_name      = "${local.unique_identifier_prefix}-${var.llmd_kubernetes_namespace}-external-gateway"
   llmd_gateway_address_name                = "${local.unique_identifier_prefix}-${local.llmd_default_name}-external-gateway-https"
   llmd_gateway_name_external               = var.llmd_gateway_name_external != null ? var.llmd_gateway_name_external : "${local.llmd_default_name}-gateway-external"
   llmd_gateway_name_internal               = var.llmd_gateway_name_internal != null ? var.llmd_gateway_name_internal : "infra-${local.llmd_release_name}-inference-gateway"

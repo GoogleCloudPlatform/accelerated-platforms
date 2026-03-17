@@ -24,6 +24,7 @@ resource "local_file" "mlflow_manifest" {
     {
       bucket_name          = google_storage_bucket.mlflow_data.name,
       service_account_name = local.rl_kubernetes_service_accounts["mlflow"].service_account_name,
+      namespace            = local.rl_kubernetes_namespace,
     }
   )
   filename = "${local.rl_kubernetes_namespace_manifests_directory}/mlflow.yaml"

@@ -22,7 +22,7 @@ spec:
     spec:
       restartPolicy: Never
       nodeSelector:
-        cloud.google.com/compute-class: "tpu-v5e-2x4" 
+        cloud.google.com/compute-class: "tpu-v5e-2x4"
       containers:
       - name: grpo-trainer
         image: us-central1-docker.pkg.dev/accelerated-platforms-dev/ml-repo/maxtext-grpo:latest

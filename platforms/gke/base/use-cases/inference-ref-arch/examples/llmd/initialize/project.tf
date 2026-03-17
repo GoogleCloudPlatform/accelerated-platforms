@@ -24,6 +24,7 @@ resource "google_project_service" "cluster" {
   for_each = toset([
     "cloudbuild.googleapis.com",
     "iap.googleapis.com",
+    "certificatemanager.googleapis.com",
   ])
 
   disable_dependent_services = false

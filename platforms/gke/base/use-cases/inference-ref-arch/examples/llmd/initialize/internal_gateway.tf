@@ -16,8 +16,6 @@
 # This file create resources required for internal gateway supported by
 # llmd inference scheduler for intelligent routing
 ###############################################################################
-
-
 resource "google_compute_address" "internal_gateway_ip" {
   project      = data.google_project.cluster.project_id
   name         = "llm-inference-gw-ip"

@@ -30,12 +30,11 @@ locals {
   llmd_httproute_name_internal             = var.llmd_httproute_name_internal != null ? var.llmd_httproute_name_internal : "${local.llmd_default_name}-${local.llmd_release_name}-internal"
   llmd_iap_oath_branding_project_id        = var.llmd_iap_oath_branding_project_id != null ? var.llmd_iap_oath_branding_project_id : var.platform_default_project_id
   llmd_inferencepool_name                  = var.llmd_inferencepool_name != null ? var.llmd_inferencepool_name : "gaie-${local.llmd_release_name}"
-  #llmd_modelserver_sa                      = var.llmd_modelserver_sa != null ? var.llmd_modelserver_sa : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelserver-sa"
-  llmd_ms_deployment_name                = var.llmd_ms_deployment_name != null ? var.llmd_ms_deployment_name : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelservice"
-  llmd_release_name                      = var.llmd_release_name != null ? var.llmd_release_name : "inference-scheduling"
-  stress_test_service_account_project_id = var.stress_test_service_account_project_id != null ? var.stress_test_service_account_project_id : var.platform_default_project_id
-  stress_test_service_account_email      = "${local.stress_test_service_account_name}@${local.stress_test_service_account_project_id}.iam.gserviceaccount.com"
-  stress_test_service_account_name       = "${local.unique_identifier_prefix}-${local.llmd_default_name}"
+  llmd_ms_deployment_name                  = var.llmd_ms_deployment_name != null ? var.llmd_ms_deployment_name : "ms-${local.llmd_release_name}-${local.llmd_default_name}-modelservice"
+  llmd_release_name                        = var.llmd_release_name != null ? var.llmd_release_name : "inference-scheduling"
+  stress_test_service_account_project_id   = var.stress_test_service_account_project_id != null ? var.stress_test_service_account_project_id : var.platform_default_project_id
+  stress_test_service_account_email        = "${local.stress_test_service_account_name}@${local.stress_test_service_account_project_id}.iam.gserviceaccount.com"
+  stress_test_service_account_name         = "${local.unique_identifier_prefix}-${local.llmd_default_name}"
 }
 
 variable "gaie_chart" {
@@ -51,51 +50,51 @@ variable "gaie_chart_version" {
 }
 
 variable "gradio_artifact_repo_name" {
-  default = "gradio"
-  type    = string
+  default     = "gradio"
+  description = "Artifact Registry to store gradio image."
+  type        = string
 }
 
 variable "gradio_cloudbuild_project_id" {
   default     = null
   description = "Cloud Build project ID for gradio image builds."
   type        = string
-
 }
 
 variable "gradio_cloudbuild_service_account_name" {
   default     = null
   description = "Cloud Build service account name for gradio image builds."
   type        = string
-
 }
 
 variable "gradio_cloudbuild_source_bucket_location" {
   default     = null
   description = "Cloud Build source bucket location for gradio image builds."
   type        = string
-
 }
 
 variable "gradio_cloudbuild_source_bucket_name" {
   default     = null
   description = "Cloud Build source bucket name for gradio image builds."
   type        = string
-
 }
 
 variable "gradio_image_name" {
-  default = "gradio"
-  type    = string
+  default     = "gradio"
+  description = "Name of the gradio image."
+  type        = string
 }
 
 variable "gradio_image_staging_bucket" {
-  default = "gradio-image-staging"
-  type    = string
+  default     = "gradio-image-staging"
+  description = "Staging bucket for gradio image build."
+  type        = string
 }
 
 variable "gradio_image_tag" {
-  default = "0.0.1"
-  type    = string
+  default     = "0.0.1"
+  description = "Image tag for gradio."
+  type        = string
 }
 
 variable "kubernetes_version" {
@@ -105,8 +104,9 @@ variable "kubernetes_version" {
 }
 
 variable "llmd_accelerator_type" {
-  default = "nvidia-rtx-pro"
-  type    = string
+  default     = "rtx-pro-6000"
+  description = "accelerator type to serve the model on."
+  type        = string
 
   validation {
     condition = contains(
@@ -182,15 +182,9 @@ variable "llmd_inferencepool_name" {
   type        = string
 }
 
-# variable "llmd_kubernetes_namespace" {
-#   default     = "llmd"
-#   description = "The Kubernetes namespace to deploy the manifests to."
-#   type        = string
-# }
-
 variable "llmd_model_id" {
   default     = "qwen/qwen3-32b"
-  description = "model to server"
+  description = "Id for the model to serve."
   type        = string
 
   validation {
@@ -210,11 +204,6 @@ variable "llmd_model_id" {
   }
 }
 
-# variable "llmd_modelserver_sa" {
-#   default     = null
-#   description = "Service Account name for running model server"
-#   type        = string
-# }
 
 variable "llmd_ms_cuda_image" {
   default     = "ghcr.io/llm-d/llm-d-cuda:v0.3.1"
@@ -230,7 +219,7 @@ variable "llmd_ms_deployment_name" {
 
 variable "llmd_ms_proxy_image" {
   default     = "ghcr.io/llm-d/llm-d-routing-sidecar:v0.4.0-rc.1"
-  description = "image of the routing proxy in model server"
+  description = "Image of the routing proxy in model server"
   type        = string
 }
 
@@ -238,7 +227,6 @@ variable "llmd_release_name" {
   default     = null
   description = "Unique release name for the helm chart deployment."
   type        = any
-  #  default = "inference-scheduling"
 }
 
 variable "stress_test_service_account_project_id" {
@@ -258,24 +246,3 @@ variable "validate_manifests" {
   description = "Validate the manifests against the Kubernetes cluster."
   type        = bool
 }
-
-
-# variable "kubernetes_namespace_create" {
-#   description = "Create the Kubernetes namespace."
-#   type        = bool
-# }
-
-# variable "llmd_infra_repo" {
-#   description = "Helm repo for llmd infra"
-#   type        = string
-# }
-
-# variable "llmd_infra_chart" {
-#   description = "Helm chart for llmd infra"
-#   type        = string
-# }
-
-# variable "llmd_infra_chart_version" {
-#   description = "Version of the Helm chart for llmd infra"
-#   type        = string
-# }

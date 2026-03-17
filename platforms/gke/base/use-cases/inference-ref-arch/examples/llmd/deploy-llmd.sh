@@ -59,11 +59,10 @@ declare -a use_case_terraservices=(
   "initialize"
 )
 
-# giving a shorter name to online_gpu namespace so the service names dont get redacted
+# Giving a shorter name to online_gpu namespace so the service names dont get redacted
 sed -i '/^ira_online_gpu_kubernetes_namespace_name[[:blank:]]*=/{h;s/=.*/= "'"llmd"'"/};${x;/^$/{s//ira_online_gpu_kubernetes_namespace_name="'"llmd"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/inference-ref-arch.auto.tfvars
 
 for terraservice in "${use_case_terraservices[@]}"; do
-  #cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
   cd "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/${terraservice}" &&
     echo "Current directory: $(pwd)" &&
     rm -rf .terraform/ &&

@@ -41,29 +41,3 @@ data "google_storage_bucket" "cloudbuild_source" {
   name    = local.gradio_cloudbuild_source_bucket_name
   project = local.gradio_cloudbuild_project_id
 }
-
-# Create Namespace
-# resource "local_file" "namespace_yaml" {
-#   content = templatefile(
-#     "${path.module}/templates/namespace/namespace.tftpl.yaml",
-#     {
-#       kubernetes_namespace = local.ira_online_gpu_kubernetes_namespace_name
-#     }
-#   )
-#   file_permission = "0644"
-#   filename        = "${local.namespace_directory}/namespace-${local.ira_online_gpu_kubernetes_namespace_name}.yaml"
-# }
-
-# module "kubectl_apply_namespace" {
-#   depends_on = [
-#     local_file.namespace_yaml,
-#   ]
-
-#   source = "../../../../../modules/kubectl_apply"
-
-#   delete_timeout              = "60s"
-#   error_on_delete_failure     = false
-#   kubeconfig_file             = data.local_file.kubeconfig.filename
-#   manifest                    = "${local.namespace_directory}/namespace-${local.ira_online_gpu_kubernetes_namespace_name}.yaml"
-#   manifest_includes_namespace = true
-# }

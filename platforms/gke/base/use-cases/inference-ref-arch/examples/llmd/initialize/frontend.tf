@@ -65,7 +65,6 @@ EOT
   }
 }
 
-
 # Apply gradio frontend manifests
 resource "local_file" "gradio" {
   content = templatefile(

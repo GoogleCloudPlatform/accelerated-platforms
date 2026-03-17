@@ -48,12 +48,10 @@ data "helm_template" "llmd_gaie_stack" {
   validate   = var.validate_manifests
 }
 
-
 resource "local_file" "llmd_gaie_manifests" {
   filename = "${local.namespace_directory}/${local.ira_online_gpu_kubernetes_namespace_name}/gaie/gaie.yaml"
   content  = data.helm_template.llmd_gaie_stack.manifest
 }
-
 
 module "kubectl_apply_llmd_gaie_manifests" {
   source                      = "../../../../../modules/kubectl_apply"

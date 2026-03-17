@@ -57,9 +57,7 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
-
       serviceAccountName: replaced-by-kustomize
-
       volumes:
         - emptyDir: {}
           name: metrics-volume
@@ -85,7 +83,6 @@ spec:
         - emptyDir:
             medium: Memory
           name: gke-gcsfuse-buffer
-
       containers:
         - args:
             - |
@@ -107,7 +104,6 @@ spec:
             - mountPath: /gcs
               name: huggingface-hub-model-bucket
               readOnly: true
-
         - name: inference-server
           image: replaced-by-kustomize
           command: ["vllm", "serve"]
@@ -126,10 +122,7 @@ spec:
             - "$(GPU_MEMORY_UTILIZATION)"
             - "--max-model-len"
             - "$(MAX_MODEL_LEN)"
-              #- "--disable-custom-all-reduce"
           env:
-            #- name: CUDA_VISIBLE_DEVICES
-            #  value: "0"
             - name: UCX_TLS
               value: cuda_ipc,cuda_copy,tcp
             - name: VLLM_NIXL_SIDE_CHANNEL_HOST
@@ -139,10 +132,7 @@ spec:
             - name: VLLM_NIXL_SIDE_CHANNEL_PORT
               value: "5557"
             - name: VLLM_LOGGING_LEVEL
-              value:
-                DEBUG
-                #- name: TP_SIZE
-                #value: "1"
+              value: DEBUG
             - name: DP_SIZE
               value: "1"
             - name: DP_SIZE_LOCAL
@@ -166,10 +156,7 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: TENSOR_PARALLEL_SIZE
-                  name:
-                    runtime
-                    #- name: VLLM_XLA_CACHE_PATH
-                    #value: /data
+                  name: runtime
           ports:
             - containerPort: 5557
               protocol: TCP
@@ -198,9 +185,7 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 30
             timeoutSeconds: 5
-
           resources: {}
-
           volumeMounts:
             - mountPath: /.config
               name: metrics-volume

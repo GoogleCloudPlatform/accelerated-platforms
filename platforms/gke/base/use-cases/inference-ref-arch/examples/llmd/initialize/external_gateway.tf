@@ -16,16 +16,9 @@
 # This file create resources required for external access of the frontend(gradio)
 # abstracting llmd inference scheduler
 #################################################################################
-resource "google_project_service" "certificatemanager_googleapis_com" {
-  disable_dependent_services = false
-  disable_on_destroy         = false
-  project                    = data.google_project.cluster.project_id
-  service                    = "certificatemanager.googleapis.com"
-}
-
 resource "google_compute_managed_ssl_certificate" "external_gateway" {
   depends_on = [
-    google_project_service.certificatemanager_googleapis_com,
+    google_project_service.cluster["certificatemanager.googleapis.com"],
   ]
 
   name    = local.llmd_endpoints_ssl_certificate_name

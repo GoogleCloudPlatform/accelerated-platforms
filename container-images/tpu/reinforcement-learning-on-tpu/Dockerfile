@@ -50,7 +50,7 @@ RUN uv pip install --system mlflow huggingface_hub math_verify
 RUN wget https://raw.githubusercontent.com/google/maxtext/main/src/maxtext/examples/chat_templates/gsm8k_rl.json -O /workspace/gsm8k_rl.json
 
 # Copy our training script
-COPY train.py /workspace/app.py
+COPY --from=primary app.py .
 
 # Execute the script
 CMD ["python3", "app.py"]

@@ -12,6 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "rl_tpu_rl_on_tpu_image_url" {
-  value = var.rl_tpu_rl_on_tpu_image_url
+output "rl_cpu_reinforcement_learning_dataset_downloader_image_url" {
+  value = var.rl_cpu_reinforcement_learning_dataset_downloader_image_url
+}
+
+output "rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name" {
+  value = var.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name
+}
+
+output "rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name" {
+  value = var.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name
+}
+
+output "rl_kubernetes_namespace" {
+  value = var.rl_kubernetes_namespace
+}
+
+output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
+  value = var.rl_tpu_reinforcement_learning_on_tpu_image_url
 }

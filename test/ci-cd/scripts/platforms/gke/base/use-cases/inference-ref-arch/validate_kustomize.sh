@@ -60,6 +60,7 @@ export ACCELERATOR="GPU"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/configure_benchmark.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/configure_jobset.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-dataset-downloader/configure_dataset_downloader.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/configure_worker.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/configure_vllm_spec_decoding.sh"
 
 # This section deals with validating kustomize for llm deployment. It is slightly different because it exists `examples` directory and not under the `terraform`directory.

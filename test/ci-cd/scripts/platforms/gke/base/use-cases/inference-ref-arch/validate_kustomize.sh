@@ -62,7 +62,7 @@ export ACCELERATOR="GPU"
 
 # Validate offline-batch-inference-gpu kustomize
 export ACCELERATOR_TYPE="rtx-pro-6000"
-export HF_MODEL_ID="meta-llama/llama-3.3-70b-instruct"
+export HF_MODEL_ID="meta-llama/Llama-3.3-70B-Instruct"
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/configure_jobset.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-dataset-downloader/configure_dataset_downloader.sh"

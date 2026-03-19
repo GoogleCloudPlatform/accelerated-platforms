@@ -13,21 +13,17 @@
 # limitations under the License.
 
 output "rl_cpu_reinforcement_learning_dataset_downloader_image_url" {
-  value = var.rl_cpu_reinforcement_learning_dataset_downloader_image_url
+  value = local.rl_cpu_reinforcement_learning_dataset_downloader_image_url
 }
 
 output "rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name" {
-  value = var.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name
+  value = local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name
 }
 
 output "rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name" {
-  value = var.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name
-}
-
-output "rl_kubernetes_namespace" {
-  value = var.rl_kubernetes_namespace
+  value = local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name
 }
 
 output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
-  value = var.rl_tpu_reinforcement_learning_on_tpu_image_url
+  value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
 }

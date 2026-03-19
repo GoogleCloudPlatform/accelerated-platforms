@@ -14,7 +14,7 @@
 
 resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_admin" {
   bucket = google_storage_bucket.mlflow_data.name
-  member = "${local.wi_member_principal_prefix}/${local.rl_kubernetes_service_accounts["mlflow"].service_account_name}"
+  member = local.rl_mlflow_ksa_member
   role   = "roles/storage.objectAdmin"
 }
 
@@ -23,11 +23,11 @@ resource "local_file" "mlflow_manifest" {
     "${path.module}/templates/mlflow/manifests.tftpl.yaml",
     {
       bucket_name          = google_storage_bucket.mlflow_data.name,
-      service_account_name = local.rl_kubernetes_service_accounts["mlflow"].service_account_name,
-      namespace            = local.rl_kubernetes_namespace,
+      service_account_name = local.rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name,
+      namespace            = local.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name,
     }
   )
-  filename = "${local.rl_kubernetes_namespace_manifests_directory}/mlflow.yaml"
+  filename = "${local.namespaces_directory}/mlflow.yaml"
 }
 
 module "kubectl_apply_mlflow_manifest" {
@@ -40,5 +40,5 @@ module "kubectl_apply_mlflow_manifest" {
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local_file.mlflow_manifest.filename
   manifest_includes_namespace = false
-  namespace                   = local.rl_kubernetes_namespace
+  namespace                   = local.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name
 }

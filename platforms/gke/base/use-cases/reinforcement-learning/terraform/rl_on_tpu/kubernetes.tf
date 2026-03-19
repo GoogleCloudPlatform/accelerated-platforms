@@ -17,10 +17,20 @@ locals {
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
 
   workloads = {
+    rl_reinforcement_learning_mlflow = {
+      directory       = "${local.namespaces_directory}/${local.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name}"
+      namespace       = local.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name
+      service_account = local.rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name
+    }
     rl_on_tpu = {
-      directory       = "${local.namespaces_directory}/${local.rl_kubernetes_namespace}"
-      namespace       = local.rl_kubernetes_namespace
-      service_account = local.rl_kubernetes_service_account_name
+      directory       = "${local.namespaces_directory}/${local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name}"
+      namespace       = local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name
+      service_account = local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name
+    }
+    rl_reinforcement_learning_dataset_downloader = {
+      directory       = "${local.namespaces_directory}/${local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name}"
+      namespace       = local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name
+      service_account = local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name
     }
   }
 

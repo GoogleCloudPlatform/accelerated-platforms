@@ -13,25 +13,32 @@
 # limitations under the License.
 
 locals {
+  rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name       = var.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name != null ? var.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name : "${local.unique_identifier_prefix}-rl-mlflow"
+  rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name = var.rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name != null ? var.rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name : "${local.unique_identifier_prefix}-rl-mlflow-sa"
+
   rl_cpu_reinforcement_learning_dataset_downloader_image_url                       = var.rl_cpu_reinforcement_learning_dataset_downloader_image_url != null ? var.rl_cpu_reinforcement_learning_dataset_downloader_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/rl-dataset-downloader:latest"
   rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name       = var.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name != null ? var.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name : "${local.unique_identifier_prefix}-rl-dataset-downloader"
   rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name = var.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name != null ? var.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name : "${local.unique_identifier_prefix}-rl-dataset-downloader-sa"
 
-  rl_dataset_bucket_name                      = var.rl_dataset_bucket_name != null ? var.rl_dataset_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-dataset"
-  rl_kubernetes_namespace_manifests_directory = "${path.module}/manifests/${local.rl_kubernetes_namespace}"
-  rl_kubernetes_namespace                     = var.rl_kubernetes_namespace != null ? var.rl_kubernetes_namespace : "${local.unique_identifier_prefix}-rl"
-  rl_kubernetes_service_account_name          = var.rl_kubernetes_service_account_name != null ? var.rl_kubernetes_service_account_name : "${local.unique_identifier_prefix}-rl-sa"
-  rl_mlflow_data_bucket_name                  = var.rl_mlflow_data_bucket_name != null ? var.rl_mlflow_data_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-mlflow-data"
-  rl_project_id                               = var.rl_project_id != null ? var.rl_project_id : var.platform_default_project_id
+  rl_dataset_bucket_name     = var.rl_dataset_bucket_name != null ? var.rl_dataset_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-dataset"
+  rl_mlflow_data_bucket_name = var.rl_mlflow_data_bucket_name != null ? var.rl_mlflow_data_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-mlflow-data"
+  rl_project_id              = var.rl_project_id != null ? var.rl_project_id : var.platform_default_project_id
 
-  rl_tpu_reinforcement_learning_on_tpu_image_url = var.rl_tpu_reinforcement_learning_on_tpu_image_url != null ? var.rl_tpu_reinforcement_learning_on_tpu_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/rl-on-tpu:latest"
+  rl_tpu_reinforcement_learning_on_tpu_image_url                       = var.rl_tpu_reinforcement_learning_on_tpu_image_url != null ? var.rl_tpu_reinforcement_learning_on_tpu_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/rl-on-tpu:latest"
+  rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name       = var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name != null ? var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-rl-on-tpu"
+  rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name = var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name != null ? var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-rl-on-tpu-sa"
+}
 
-  rl_kubernetes_service_accounts = {
-    mlflow = {
-      automount_service_account_token = false
-      service_account_name            = "${local.rl_kubernetes_service_account_name}"
-    }
-  }
+variable "rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace name for the RL MLflow deployment."
+  type        = string
+}
+
+variable "rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account name for the RL MLflow deployment."
+  type        = string
 }
 
 variable "rl_cpu_reinforcement_learning_dataset_downloader_image_url" {
@@ -58,18 +65,6 @@ variable "rl_dataset_bucket_name" {
   type        = string
 }
 
-variable "rl_kubernetes_namespace" {
-  default     = null
-  description = "The Kubernetes namespace for the RL on TPU resources."
-  type        = string
-}
-
-variable "rl_kubernetes_service_account_name" {
-  default     = null
-  description = "The Kubernetes service account name for the RL on TPU resources."
-  type        = string
-}
-
 variable "rl_mlflow_data_bucket_name" {
   default     = null
   description = "The GCP bucket name for the MLflow data."
@@ -85,5 +80,17 @@ variable "rl_project_id" {
 variable "rl_tpu_reinforcement_learning_on_tpu_image_url" {
   default     = null
   description = "The URL for the RL on TPU container image."
+  type        = string
+}
+
+variable "rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace name for the RL on TPU deployment."
+  type        = string
+}
+
+variable "rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account name for the RL on TPU deployment."
   type        = string
 }

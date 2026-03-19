@@ -13,8 +13,13 @@
 # limitations under the License.
 
 locals {
-  gsa_build_roles = [
-    "roles/logging.logWriter",
-  ]
-  wi_member_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject/ns/${local.rl_kubernetes_namespace}/sa"
+  cluster_wi_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
+  rl_on_tpu_ksa_member        = "${local.cluster_wi_principal_prefix}/ns/${local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name}/sa/${local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name}"
+  rl_mlflow_ksa_member        = "${local.cluster_wi_principal_prefix}/ns/${local.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name}/sa/${local.rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name}"
+}
+
+resource "google_storage_bucket_iam_member" "hub_models_rl_on_tpu_ksa" {
+  bucket = data.google_storage_bucket.hub_models.name
+  member = local.rl_on_tpu_ksa_member
+  role   = local.cluster_gcsfuse_user_role
 }

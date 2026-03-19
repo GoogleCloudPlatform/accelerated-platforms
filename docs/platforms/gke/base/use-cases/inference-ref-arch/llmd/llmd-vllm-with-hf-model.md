@@ -545,6 +545,14 @@ the latency caused by the front end layer.
   that some of the network metrics like `Throughput TX Bytes per Pod` are only
   applicable to non-spot and A3 and higher machine types.
 
+Note : Now, if you want to run different combinations of model and
+accelerator(e.g. openai/gpt-oss-20b on H100), update the Terraform variables
+`llmd_model_id` and `llmd_accelerator_type` in
+`"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars"`
+to the model and accelerator of your choice and run
+[model download](#download-the-model-to-cloud-storage) and
+[model server deployment](#deploy-the-model-server) steps again.
+
 ## Teardown
 
 Teardown the llm-d platform

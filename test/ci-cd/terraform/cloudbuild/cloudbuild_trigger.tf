@@ -1114,6 +1114,8 @@ locals {
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/batch_gpu/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/offline_batch_gpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh",
     local.platforms_gke_base_uc_inference_ref_arch_scripts_cb_yaml,

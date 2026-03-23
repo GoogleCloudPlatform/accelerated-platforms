@@ -87,7 +87,9 @@ def prepare_and_upload_dataset():
     LOG.info(f"✅ Dataset loaded. Total records: {total_records}")
 
     # 3. Convert to List and Upload
-    LOG.info(f"🚀 Uploading to gs://{DATASET_BUCKET_NAME}/{GCS_PREFIX}/{OUTPUT_FILENAME} ...")
+    LOG.info(
+        f"🚀 Uploading to gs://{DATASET_BUCKET_NAME}/{GCS_PREFIX}/{OUTPUT_FILENAME} ..."
+    )
 
     try:
         # Convert the entire dataset to a list of dicts

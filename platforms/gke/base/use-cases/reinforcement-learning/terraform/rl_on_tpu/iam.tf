@@ -25,7 +25,7 @@ resource "google_storage_bucket_iam_member" "hub_models_rl_on_tpu_ksa" {
   role   = local.cluster_gcsfuse_user_role
 }
 
-resource "google_project_iam_member" "gcsfuse_user_member_ira_offline_batch_cpu_dataset_downloader_ksa" {
+resource "google_project_iam_member" "gcsfuse_user_member_rl_cpu_dataset_downloader_ksa" {
   project = data.google_project.cluster.project_id
   member  = local.rl_dataset_downloader_ksa_member
   role    = local.cluster_gcsfuse_user_role

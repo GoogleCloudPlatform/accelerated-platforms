@@ -25,7 +25,7 @@ MY_PATH="$(
 RANDOM_HASH=$(openssl rand -hex 4)
 echo "${RANDOM_HASH}" > job_random_hash.txt
 
-source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
+source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
 envsubst <"${MY_PATH}/base/templates/reinforcement-learning-dataset-downloader.tpl.env" | sponge "${MY_PATH}/base/reinforcement-learning-dataset-downloader.env"
 

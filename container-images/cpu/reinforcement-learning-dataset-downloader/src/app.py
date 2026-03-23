@@ -21,31 +21,7 @@ from datasets import load_dataset
 from google.cloud import storage
 
 # --- LOGGING CONFIGURATION ---
-ROOT_LEVEL = "INFO"
-LOGGING_CONFIG = {
-    "version": 1,
-    "disable_existing_loggers": True,
-    "formatters": {
-        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
-    },
-    "handlers": {
-        "default": {
-            "level": "INFO",
-            "formatter": "standard",
-            "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",
-        },
-    },
-    "loggers": {
-        "": {
-            "level": ROOT_LEVEL,
-            "handlers": ["default"],
-            "propagate": False,
-        },
-    },
-}
-
-logging.config.dictConfig(LOGGING_CONFIG)
+logging.config.fileConfig("logging.conf", disable_existing_loggers=True)
 LOG = logging.getLogger(__name__)
 
 # --- Configuration ---
@@ -54,13 +30,29 @@ GCS_PREFIX = "gsm8k"
 OUTPUT_FILENAME = "gsm8k_full.json"
 
 
-def validate_config():
+def validate_config() -> None:
+    """Validates that required environment variables are set.
+
+    Raises:
+        ValueError: If the DATASET_BUCKET_NAME environment variable is missing or empty.
+    """
     if not DATASET_BUCKET_NAME:
         LOG.error("❌ Error: Environment variable 'DATASET_BUCKET_NAME' is not set.")
         raise ValueError("DATASET_BUCKET_NAME environment variable is required.")
 
 
-def prepare_and_upload_dataset():
+def prepare_and_upload_dataset() -> None:
+    """Downloads the GSM8K dataset from Hugging Face and uploads it to Google Cloud Storage.
+
+    This function initializes a GCS client, attempts to fetch the GSM8K dataset
+    from the Hugging Face hub, converts the records into a single JSON string,
+    and uploads the resulting file to the configured GCS bucket.
+
+    Raises:
+        ValueError: If the specified GCS bucket does not exist or is inaccessible.
+        Exception: If an error occurs during GCS client initialization, dataset
+            download, or the final upload process.
+    """
     validate_config()
 
     # 1. Initialize GCS Client

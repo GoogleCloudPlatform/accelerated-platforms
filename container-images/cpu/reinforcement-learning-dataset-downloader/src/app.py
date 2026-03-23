@@ -15,7 +15,6 @@
 import json
 import logging
 import logging.config
-import math
 import os
 
 from datasets import load_dataset
@@ -34,35 +33,25 @@ LOGGING_CONFIG = {
             "level": "INFO",
             "formatter": "standard",
             "class": "logging.StreamHandler",
-            "stream": "ext://sys.stdout",  # Default is stderr
+            "stream": "ext://sys.stdout",
         },
     },
     "loggers": {
-        "": {  # root logger
-            "level": ROOT_LEVEL,  # "INFO",
+        "": {
+            "level": ROOT_LEVEL,
             "handlers": ["default"],
             "propagate": False,
-        },
-        "uvicorn.error": {
-            "level": "DEBUG",
-            "handlers": ["default"],
-        },
-        "uvicorn.access": {
-            "level": "DEBUG",
-            "handlers": ["default"],
         },
     },
 }
 
 logging.config.dictConfig(LOGGING_CONFIG)
-
 LOG = logging.getLogger(__name__)
 
 # --- Configuration ---
-# Fetch bucket name from environment variable
 DATASET_BUCKET_NAME = os.getenv("DATASET_BUCKET_NAME")
 GCS_PREFIX = "gsm8k"
-NUM_SHARDS = 10
+OUTPUT_FILENAME = "gsm8k_full.json"
 
 
 def validate_config():
@@ -71,66 +60,54 @@ def validate_config():
         raise ValueError("DATASET_BUCKET_NAME environment variable is required.")
 
 
-def prepare_and_upload_shards():
+def prepare_and_upload_dataset():
     validate_config()
 
     # 1. Initialize GCS Client
     try:
         storage_client = storage.Client()
         bucket = storage_client.bucket(DATASET_BUCKET_NAME)
-        # fast check if bucket exists (optional, but good for fail-fast)
         if not bucket.exists():
-            LOG.error(
-                f"❌ Error: Bucket '{DATASET_BUCKET_NAME}' does not exist or you lack permissions."
-            )
+            LOG.error(f"❌ Error: Bucket '{DATASET_BUCKET_NAME}' is not accessible.")
             raise ValueError(f"Bucket '{DATASET_BUCKET_NAME}' is not accessible.")
     except Exception as e:
         LOG.error(f"❌ Error connecting to GCS: {e}")
         raise e
 
-    # 2. Load Dataset (Alpaca Cleaned)
+    # 2. Load Dataset (GSM8K from Hugging Face)
     LOG.info("⬇️  Downloading dataset from Hugging Face...")
     try:
-        dataset = load_dataset("openai/gsm8k", split="train")
+        # Loading the full 'main' split
+        dataset = load_dataset("openai/gsm8k", "main", split="train")
     except Exception as e:
-        LOG.error(f"❌ Error loading dataset: {e}")
-        raise e
+        LOG.info("Attempting alternative split loading...")
+        dataset = load_dataset("openai/gsm8k", split="train")
 
     total_records = len(dataset)
-    shard_size = math.ceil(total_records / NUM_SHARDS)
-
     LOG.info(f"✅ Dataset loaded. Total records: {total_records}")
-    LOG.info(f"⚡ Splitting into {NUM_SHARDS} shards of ~{shard_size} records each.")
 
-    # 3. Shard and Upload
-    LOG.info(f"🚀 Uploading to gs://{DATASET_BUCKET_NAME}/{GCS_PREFIX}/ ...")
+    # 3. Convert to List and Upload
+    LOG.info(f"🚀 Uploading to gs://{DATASET_BUCKET_NAME}/{GCS_PREFIX}/{OUTPUT_FILENAME} ...")
 
-    for i in range(NUM_SHARDS):
-        start_idx = i * shard_size
-        end_idx = min((i + 1) * shard_size, total_records)
-
-        subset = dataset.select(range(start_idx, end_idx))
-        shard_data = list(subset)
+    try:
+        # Convert the entire dataset to a list of dicts
+        dataset_list = list(dataset)
 
         # Serialize to JSON
-        json_data = json.dumps(shard_data, indent=2)
+        json_data = json.dumps(dataset_list, indent=2)
 
         # Define GCS path
-        blob_name = f"{GCS_PREFIX}/input_shard_{i}.json"
+        blob_name = f"{GCS_PREFIX}/{OUTPUT_FILENAME}"
         blob = bucket.blob(blob_name)
 
-        try:
-            # Upload string directly to GCS
-            blob.upload_from_string(data=json_data, content_type="application/json")
-            LOG.info(
-                f"   • Uploaded shard {i}: {blob_name} ({len(shard_data)} records)"
-            )
-        except Exception as e:
-            LOG.error(f"   ❌ Failed to upload shard {i}: {e}")
-            raise e
+        # Upload string directly to GCS
+        blob.upload_from_string(data=json_data, content_type="application/json")
+        LOG.info(f"✨ Successfully uploaded {total_records} records to {blob_name}")
 
-    LOG.info("\n✨ All shards uploaded successfully.")
+    except Exception as e:
+        LOG.error(f"❌ Failed to process or upload dataset: {e}")
+        raise e
 
 
 if __name__ == "__main__":
-    prepare_and_upload_shards()
+    prepare_and_upload_dataset()

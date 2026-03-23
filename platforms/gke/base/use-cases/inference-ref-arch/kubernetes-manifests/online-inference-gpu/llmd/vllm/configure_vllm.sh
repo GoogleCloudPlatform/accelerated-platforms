@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,28 +13,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: cloud.google.com/v1
-kind: ComputeClass
-metadata:
-  name: model-download
-spec:
-  activeMigration:
-    optimizeRulePriority: true
-  nodePoolConfig:
-    imageStreaming:
-      enabled: true
-  nodePoolAutoCreation:
-    enabled: true
-  priorities:
-    - machineType: c4-standard-4-lssd
-      maxPodsPerNode: 32
-      spot: false
-      storage:
-        localSSDCount: 1
+set -o errexit
+set -o nounset
+set -o pipefail
 
-    - machineType: c3-standard-4-lssd
-      maxPodsPerNode: 32
-      spot: false
-      storage:
-        localSSDCount: 1
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
+
+source "${MY_PATH}/../../../../examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+"${MY_PATH}/../../configure_deployment.sh"
+
+envsubst <"${MY_PATH}/base/templates/vllm.tpl.env" | sponge "${MY_PATH}/base/vllm.env"

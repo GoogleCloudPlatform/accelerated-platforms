@@ -1,0 +1,562 @@
+# Intelligent inference scheduling with llm-d
+
+## Prerequisite
+
+This architecture and workflow assumes that the reader is familiar with the
+following GKE, Google Cloud Networking and llm-d components:
+
+- [Gateway API resources](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/gateway-api#gateway_resources)
+- [GKE Gateway Controller](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/gateway-api#gateway_controller)
+- [Google Cloud Load Balancer through GKE](https://docs.cloud.google.com/kubernetes-engine/docs/concepts/service-load-balancer#load_balancer_types)
+- [Gateway API Inference Extension(GAIE)](https://github.com/kubernetes-sigs/gateway-api-inference-extension/tree/main/docs/proposals/0683-epp-architecture-proposal)
+- [vLLM-Optimized Inference Schedule](https://llm-d.ai/docs/architecture)
+
+## Architecture
+
+![image](../images/llm-d.png)
+
+## Workflow
+
+- User securely hits the Cloud Endpoint DNS from a web browser.
+- The DNS resolves to an External IP mapped to a
+  `Global External Load Balancer`.
+- The `Global External Load Balancer` has a `HTTPRoute` that points to the
+  Gradio chat GKE service as the backend. It also has a backend policy
+  specifying that the request to the backend will have
+  `IAP(Identity-aware proxy)` authentication enabled.
+- The `Global External Load Balancer` routes the request via `IAP` to the Gradio
+  chat GKE service backend.
+- Gradio chat GKE service forwards the request to the Gradio GKE Deployment and
+  the user will see the chat interface loading on the browser.
+- When the user sends a request via chat interface, the request reaches the
+  Gradio GKE deployment as explained in previous steps.
+- The Gradio GKE deployment takes the chat message and routes the request to the
+  `Internal Regional Load Balancer` fronting the llm-d deployment.
+- The `Internal Regional Load Balancer` has a `HTTPRoute` attached to it that
+  points to an `InferencePool` as the backend. This `InferencePool` contains the
+  pods running the model server, specifically running the inference of the model
+  of your choice via `vllm`.
+- The `InferencePool` has a reference to the GAIE endpoint picker(`EPP`) which
+  means that the `GKE Gateway Controller` instead of routing the request to the
+  backend in round-robin fashion, will consult the `EPP` to provide it with the
+  backend where the traffic should be routed.
+- The `EPP` has
+  [scheduling profiles](https://github.com/llm-d/llm-d-inference-scheduler/blob/main/docs/architecture.md)
+  that defines how to score the pods in the `InferencePool`. The scoring is done
+  on the metrics coming out of the pods.
+- Once the `EPP` identifies the pod which should be used based on the scores, it
+  returns its IP address to the `GKE Gateway Controller` corresponding to the
+  `Internal Regional Load Balancer` which then routes the request to the pod.
+
+## Pull the source code
+
+- Open [Cloud Shell](https://cloud.google.com/shell).
+
+- Clone the repository and change directory to the guide directory
+
+  ```
+  git clone https://github.com/GoogleCloudPlatform/accelerated-platforms && \
+  cd accelerated-platforms && \
+  export ACP_REPO_DIR="$(pwd)"
+  ```
+
+  To set the `ACP_REPO_DIR` value for new shell instances, write the value to
+  your shell initialization file.
+
+  `bash`
+
+  ```
+  sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.bashrc
+  ```
+
+  `zsh`
+
+  ```
+  sed -n -i -e '/^export ACP_REPO_DIR=/!p' -i -e '$aexport ACP_REPO_DIR="'"${ACP_REPO_DIR}"'"' ${HOME}/.zshrc
+  ```
+
+## Configure
+
+Terraform loads variables in the following order, with later sources taking
+precedence over earlier ones:
+
+- Environment variables (`TF_VAR_<variable_name>`)
+- Any `*.auto.tfvars` or files, processed in lexical order of their filenames.
+- Any `-var` and `-var-file` options on the command line, in the order they are
+  provided.
+
+- Set the platform defaults project ID
+
+  ```
+  export TF_VAR_platform_default_project_id="<PROJECT_ID>"
+  ```
+
+  **-- OR --**
+
+  ```
+  platform_default_project_id="<PROJECT_ID>"
+  sed -i '/^platform_default_project_id[[:blank:]]*=/{h;s/=.*/= "'"${platform_default_project_id}"'"/};${x;/^$/{s//platform_default_project_id = "'"${platform_default_project_id}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
+  ```
+
+- Optional : By default, the platform name is set to `dev`. If you want to
+  change it, set the platform name
+
+  ```
+  platform_name="<PLATFORM_NAME>"
+  sed -i '/^platform_name[[:blank:]]*=/{h;s/=.*/= "'"${platform_name}"'"/};${x;/^$/{s//platform_name="'"${platform_name}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars
+  ```
+
+- Optional : Run the following step if you want to run the inference of a model
+  other than `qwen/qwen3-32b` which is the default model for this deployment.
+
+  ```
+  llmd_model_id="<MODEL_ID>"
+  sed -i "/^llmd_model_id[[:blank:]]*=/{h;s|=.*|= \"${llmd_model_id}\"|};\${x;/^$/{s|.*|llmd_model_id=\"${llmd_model_id}\"|;H};x}" "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars"
+  ```
+
+  Valid values for `MODEL_ID` are:
+
+  - `google/gemma-3-1b-it`
+  - `google/gemma-3-4b-it`
+  - `google/gemma-3-27b-it`
+  - `openai/gpt-oss-20b`
+  - `meta-llama/llama-4-scout-17b-16e-instruct`
+  - `meta-llama/llama-3.3-70b-instruct`
+  - `qwen/qwen3-32b` **(default)**
+
+- In order to choose an accelerator and for the model you want to run, refer to
+  the following table.
+
+  | Model                          | l4  | h100 | h200 | RTX Pro 6000 |
+  | ------------------------------ | --- | ---- | ---- | ------------ |
+  | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
+  | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
+  | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
+  | gpt-oss-20b                    | ✅  | ✅   | ✅   | ✅           |
+  | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
+  | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
+  | qwen3-32b                      | ✅  | ✅   | ✅   | ✅           |
+
+- Optional : Run the following step if you want to run the model on an
+  accelerator other than `nvidia-rtx-pro` which is the default accelerator for
+  this deployment.
+
+  ```
+  llmd_accelerator_type="<ACCELERATOR>"
+  sed -i '/^llmd_accelerator_type[[:blank:]]*=/{h;s/=.*/= "'"${llmd_accelerator_type}"'"/};${x;/^$/{s//llmd_accelerator_type="'"${llmd_accelerator_type}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars
+  ```
+
+  Valid values for `ACCELERATOR` are:
+
+  - `l4`
+  - `h100`
+  - `h200`
+  - `rtx-pro-6000` **(default)**
+
+## Configure Identity-Aware Proxy (IAP)
+
+Identity-Aware Proxy (IAP) lets you establish a central authorization layer for
+applications accessed by HTTPS, so you can use an application-level access
+control model instead of relying on network-level firewalls.
+
+IAP policies scale across your organization. You can define access policies
+centrally and apply them to all of your applications and resources. When you
+assign a dedicated team to create and enforce policies, you protect your project
+from incorrect policy definition or implementation in any application.
+
+For more information on IAP, see the
+[Identity-Aware Proxy documentation](https://cloud.google.com/iap/docs/concepts-overview#gke)
+
+### Configure OAuth consent screen for IAP
+
+For this guide we will configure a generic OAuth consent screen setup for
+internal use. Internal use means that only users within your organization can be
+granted IAM permissions to access the IAP secured applications and resource.
+
+See the
+[Configuring the OAuth consent screen documentation](https://developers.google.com/workspace/guides/configure-oauth-consent)
+for additional information
+
+- Set environment variables.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Ensure that IAP is enabled.
+
+  ```shell
+  gcloud services enable iap.googleapis.com \
+  --project="${llmd_iap_oath_branding_project_id}"
+  ```
+
+- Check if the branding is already configured.
+
+  ```shell
+  gcloud iap oauth-brands list \
+  --project="${llmd_iap_oath_branding_project_id}"
+  ```
+
+  > If an entry is displayed, the branding is already configured.
+
+- Configure the branding.
+
+  ```shell
+  gcloud iap oauth-brands create \
+  --application_title="IAP Secured Application" \
+  --project="${llmd_iap_oath_branding_project_id}" \
+  --support_email="<SUPPORT_EMAIL_ADDRESS>"
+  ```
+
+  Replace `<SUPPORT_EMAIL_ADDRESS>` with a group email address that you are a
+  manager on or your personal email address. The email address should be
+  supplied without the domain.
+
+### Default IAP access
+
+For simplicity, in this guide access to the IAP secured applications will be
+configure to allow all users in the organization. Access can be configured per
+IAP application or resources.
+
+- Set the IAP allow domain
+
+  ```
+  IAP_DOMAIN=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" | awk -F@ '{print $2}')
+  echo "IAP_DOMAIN=${IAP_DOMAIN}"
+  ```
+
+  **If the domain of the active `gcloud` user is different from the organization
+  that the `llmd_iap_oath_branding_project_id` project is in, you will need to
+  manually set `IAP_DOMAIN` environment variable**
+
+  ```
+  IAP_DOMAIN="<project_id's organization domain>"
+  ```
+
+- Set the IAP domain in the configuration file
+
+  ```
+  sed -i '/^llmd_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//llmd_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars
+  ```
+
+### Install Terraform 1.8.0+
+
+> [!IMPORTANT]  
+> At the time this guide was written, Cloud Shell had Terraform v1.5.7 installed
+> by default. Terraform version 1.8.0 or later is required for this guide.
+
+- Run the `install_terraform.sh` script to install Terraform 1.8.0.
+
+  ```shell
+  "${ACP_REPO_DIR}/tools/bin/install_terraform.sh"
+  ```
+
+## Deploy the entire stack except the model server
+
+```
+${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/deploy-llmd.sh
+```
+
+## Resources created
+
+The `deploy-llmd.sh` script will perform the following steps:
+
+- Set up base GKE cluster platform.
+- Create resources required to deploy llm-d on the GKE cluster and access it.
+- Deploy a gradio chat frontend backed by Identity-Aware Proxy.
+- Creates a custom Cloud Monitoring dashboard named `llm-d dashboard`
+
+At this time, you have all resources shown in the architecture diagram created
+except the model server. In order to run the model server, first download the
+model from hugging face to a GCS bucket as instructed in the next steps. Note
+that we will not be downloading the model directly from HuggingFace as it slows
+down the modelserver startup time. Instead, we will use GCSFuse to download the
+model from the GCS bucket which is faster. For more details on how downloading
+the model from GCS saves time, take a look at
+[Storage optimization guide](../../../../../../use-cases/inferencing/cost-optimization/gcsfuse/README.md)
+
+## Download the model to Cloud Storage
+
+- [Generate a Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens)
+  with token type **Read**.
+- Add the token to the secret manager
+
+  ```
+  HF_TOKEN_READ=<YOUR_HUGGINGFACE_READ_TOKEN>
+  echo ${HF_TOKEN_READ} | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} --data-file=- --project=${huggingface_secret_manager_project_id}
+  ```
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Configure the model download job.
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
+  ```
+
+- Deploy the model download job.
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
+  ```
+
+- Watch the model download job until it is complete.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-hf-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --all-containers --tail 10"
+  ```
+
+  When the job is complete, you will see the following:
+
+  ```text
+  NAME                       STATUS     COMPLETIONS   DURATION   AGE
+  XXXXXXXX-hf-model-to-gcs   Complete   1/1           ###        ###
+  ```
+
+  You can press `CTRL`+`c` to terminate the watch.
+
+- Delete the model download job.
+
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
+  ```
+
+## Deploy the model server
+
+- Configure the model server
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd/vllm/configure_vllm.sh"
+  ```
+
+- Deploy the model server
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  ```
+
+  The Kubernetes manifests are based on the
+  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
+
+- Watch the deployment until it is ready.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/ms-inference-scheduling-llmd-modelservice-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/ms-inference-scheduling-llmd-modelservice-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+  ```
+
+## Verify llm-d deployment is up and running
+
+- Set the environment variables
+
+  ```
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Get cluster credentials
+
+  ```
+  ${cluster_credentials_command}
+  ```
+
+- Check the all the deployments
+
+  ```
+  kubectl get deployments -n ${ira_online_gpu_kubernetes_namespace_name}
+  ```
+
+  You should see three deployments similar to the following:
+
+  ```
+  NAME                                              READY   UP-TO-DATE   AVAILABLE   AGE
+  gaie-inference-scheduling-epp                     1/1     1            1           XXXX
+  gradio-XXXX                                       1/1     1            1           XXXX
+  ms-inference-scheduling-llmd-modelservice-XXXX    2/2     1            1           XXXX
+  ```
+
+  Note:
+
+  - gaie-inference-scheduling-epp is the Gateway API Inference Extension
+    endpoint picker.
+  - gradio-XXXX is the front end chat interface abstracting the model server.
+  - ms-inference-scheduling-llmd-modelservice-XXXX is the model server running
+    inference of the model you chose. It may take some time for this deployment
+    to be up completely depending upon the GPU availability
+
+- Check all the resources
+
+  ```
+  kubectl get all -n ${ira_online_gpu_kubernetes_namespace_name}
+  ```
+
+  You should see output similar to the following:
+
+  ```
+  NAME                                                    READY    STATUS    RESTARTS    AGE
+  pod/gaie-inference-scheduling-epp-XXXX                   1/1      Running    0          XX
+  pod/gradio-XXXX                                          1/1      Running    0          XX
+  pod/pod/ms-inference-scheduling-llmd-modelservice-XXXX   4/4      Running    0          XX
+  pod/pod/ms-inference-scheduling-llmd-modelservice-XXXX   4/4      Running    0          XX
+
+  NAME                                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)             AGE
+  service/gaie-inference-scheduling-epp                 ClusterIP   34.118.230.43    <none>        9002/TCP,9090/TCP   XX
+  service/gaie-inference-scheduling-ips-XXXX            ClusterIP   None             <none>        54321/TCP           XX
+  service/gradio-svc-XXXX                               ClusterIP   34.118.232.165   <none>        8080/TCP            XX
+
+  NAME                                                             READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment.apps/gaie-inference-scheduling-epp                    1/1     1            1           XX
+  deployment.apps/gradio-XXXX                                      1/1     1            1           XX
+  deployment.apps/ms-inference-scheduling-llmd-modelservice-XXXX   2/2     2            2           XX
+
+  NAME                                                              DESIRED   CURRENT   READY   AGE
+  replicaset.apps/gaie-inference-scheduling-epp-XXXX                1         1         1       XX
+  replicaset.apps/gradio-XXXX                                       1         1         1       XX
+  replicaset.apps/ms-inference-scheduling-llmd-modelservice-XXXX    2         2         2       XX
+  ```
+
+- Wait for the model server deployment to be ready before accessing the chat
+  interface.
+
+  ```
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/${llmd_ms_deployment_name}-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  ```
+
+- When the deployment is ready, you will output similar to the following
+
+  ```
+  NAME                                             READY   UP-TO-DATE   AVAILABLE   AGE
+  ms-inference-scheduling-llmd-modelservice-XXXX   2/2     2            2           XX
+  ```
+
+- Output the Chat URL.
+
+  ```
+  echo -e "\nChat URL: https://${llmd_endpoints_hostname}\n"
+  ```
+
+- Open the Chat URL in a web browser.
+
+> [!TIP]  
+> If the browser doesn't load the Gradio chat interface, the SSL certificate
+> could still be getting provisioned. Check the status of the certificate by
+> running the following command:
+>
+> `gcloud compute ssl-certificates describe ${llmd_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
+>
+> If the output of the command is `PROVISIONING`, it means the certificate has
+> not been provisioned yet. Wait for the status to change to `ACTIVE`
+
+## Generate load on the model server
+
+In this section, you will generate some load on the model server and view the
+metrics on the monitoring dashboard. Then, you will run the stress test to spawn
+many requests to build the processing queue. Note that the scripts used in this
+section spawn requests to the gradio endpoint which will route the request to
+the model server via llm-d's intelligent scheduling. This is done to replicate a
+real-world scenario where the model server is running behind a front end. Due to
+the additional front end layer(in this case, gradio), the metrics will indicate
+a slightly lower performance compared to the scenario where the requests are
+directly sent to the model server via llm-d internal load balancer eliminating
+the latency caused by the front end layer.
+
+1. In order to send a request to the gradio chat interface fronting llm-d and
+   model server, the active `gcloud` account needs to have the
+   [Service Account Token Creator](https://cloud.google.com/iam/docs/roles-permissions/iam#iam.serviceAccountTokenCreator)
+   role for the stress test service account. The following command will add the
+   role to the active `gcloud` account.
+
+   ```shell
+   gcloud iam service-accounts add-iam-policy-binding ${stress_test_service_account_email} \
+   --member="user:$(gcloud auth list --filter=status:ACTIVE --format="value(account)")" \
+   --project="${stress_test_service_account_project_id}" \
+   --role="roles/iam.serviceAccountTokenCreator"
+   ```
+
+   The stress test service account has the role
+   `roles/iap.httpsResourceAccessor` and can access the gradio chat application
+   secured by Identity-Aware proxy.
+
+2. Generate JSON Web Token (JWT)
+
+   ```shell
+   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/scripts && \
+   cat > jwt-claim.json << EOF
+   {
+    "iss": "${stress_test_service_account_email}",
+    "sub": "${stress_test_service_account_email}",
+    "aud": "https://${llmd_endpoints_hostname}/gradio_api/api/sync_chat/",
+    "iat": $(date +%s),
+    "exp": $((`date +%s` + 3600))
+   }
+   EOF
+   ```
+
+   Wait for a couple of mins as the IAM permissions could take some time to
+   reflect the changes.
+
+   ```shell
+   gcloud iam service-accounts sign-jwt --iam-account="${stress_test_service_account_email}" jwt-claim.json token.jwt
+   ```
+
+3. Set up python virtual environment and install required packages
+
+   ```
+   python3 -m venv venv &&
+   source venv/bin/activate &&
+   pip install aiohttp
+   ```
+
+4. Run the script to trigger generate some load.
+
+   ```shell
+   python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/scripts/generate_load.py
+   ```
+
+   The response should look like this:
+
+   ```
+   Preparing to send the requests to the MODEL qwen/qwen3-32b
+   Starting Load: 500 concurrent users...
+   User 01 | Status: 200
+   User 02 | Status: 200
+   User 04 | Status: 200
+   User 05 | Status: 200
+   ```
+
+5. Go to
+   [Cloud Monitoring Dashboard page](https://console.cloud.google.com/monitoring/dashboards?pli=1)
+   and search for `llm-d dashboard`. Open the dashboard. You will see various
+   metrics getting populated including TTFT, TPOT, Input Token/s , Output
+   Token/s etc. You will see something similar to the following pic.
+
+![dashboard](../images/llmd-dashboard.png)
+
+- You can view the metrics published by `vllm` and `gaie` on the dashboard. Note
+  that some of the network metrics like `Throughput TX Bytes per Pod` are only
+  applicable to non-spot and A3 and higher machine types.
+
+Note : Now, if you want to run different combinations of model and
+accelerator(e.g. openai/gpt-oss-20b on H100), update the Terraform variables
+`llmd_model_id` and `llmd_accelerator_type` in
+`"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars"`
+to the model and accelerator of your choice and run
+[model download](#download-the-model-to-cloud-storage) and
+[model server deployment](#deploy-the-model-server) steps again.
+
+## Teardown
+
+Teardown the llm-d platform
+
+```shell
+${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-llmd.sh
+```

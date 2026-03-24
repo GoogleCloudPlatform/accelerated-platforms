@@ -82,12 +82,12 @@ resource "local_file" "secretproviderclass_yaml" {
     {
       namespace                = local.ira_auto_tuning_vllm_kubernetes_namespace_name
       project_id               = data.google_secret_manager_secret.hub_access_token_read.project
-      secretproviderclass_name = local.ira_auto_tuning_vllm_secretprovider
+      secretproviderclass_name = local.ira_auto_tuning_vllm_secretproviderclass
       secret_name              = local.huggingface_hub_access_token_read_secret_manager_secret_name
 
     }
   )
-  filename = "${local.ira_auto_tuning_vllm_kubernetes_namespace_directory}/secretproviderclass-${local.ira_auto_tuning_vllm_secretprovider}.yaml"
+  filename = "${local.ira_auto_tuning_vllm_kubernetes_namespace_directory}/secretproviderclass-${local.ira_auto_tuning_vllm_secretproviderclass}.yaml"
 }
 
 module "kubectl_apply_secretproviderclass" {
@@ -98,6 +98,6 @@ module "kubectl_apply_secretproviderclass" {
 
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = "${local.ira_auto_tuning_vllm_kubernetes_namespace_directory}/secretproviderclass-${local.ira_auto_tuning_vllm_secretprovider}.yaml"
+  manifest                    = "${local.ira_auto_tuning_vllm_kubernetes_namespace_directory}/secretproviderclass-${local.ira_auto_tuning_vllm_secretproviderclass}.yaml"
   manifest_includes_namespace = true
 }

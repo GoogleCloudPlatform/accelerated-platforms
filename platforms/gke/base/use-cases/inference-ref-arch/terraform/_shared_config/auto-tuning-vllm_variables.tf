@@ -15,7 +15,7 @@ locals {
   ira_auto_tuning_vllm_kubernetes_namespace_name       = var.ira_auto_tuning_vllm_kubernetes_namespace_name != null ? var.ira_auto_tuning_vllm_kubernetes_namespace_name : "${local.unique_identifier_prefix}-auto-tuning-vllm"
   ira_auto_tuning_vllm_kubernetes_service_account_name = var.ira_auto_tuning_vllm_kubernetes_service_account_name != null ? var.ira_auto_tuning_vllm_kubernetes_service_account_name : "${local.unique_identifier_prefix}-auto-tuning-vllm-ksa"
   ira_auto_tuning_vllm_results_bucket                  = var.ira_auto_tuning_vllm_results_bucket != null ? var.ira_auto_tuning_vllm_results_bucket : "${local.unique_identifier_prefix}-auto-tuning-vllm-results"
-  ira_auto_tuning_vllm_secretprovider                  = var.ira_auto_tuning_vllm_secretprovider != null ? var.ira_auto_tuning_vllm_secretprovider : "huggingface-token-read"
+  ira_auto_tuning_vllm_secretproviderclass             = var.ira_auto_tuning_vllm_secretproviderclass != null ? var.ira_auto_tuning_vllm_secretproviderclass : "huggingface-token-read"
 }
 
 variable "ira_auto_tuning_vllm_kubernetes_namespace_name" {
@@ -36,7 +36,7 @@ variable "ira_auto_tuning_vllm_results_bucket" {
   type        = string
 }
 
-variable "ira_auto_tuning_vllm_secretprovider" {
+variable "ira_auto_tuning_vllm_secretproviderclass" {
   default     = null
   description = "The Secretprovider class to access huggingface read token."
   type        = string

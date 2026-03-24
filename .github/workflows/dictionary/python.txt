@@ -71,6 +71,7 @@ pythonunbuffered
 qualname
 readframes
 removesuffix
+relpath
 rerank
 reranked
 retryable

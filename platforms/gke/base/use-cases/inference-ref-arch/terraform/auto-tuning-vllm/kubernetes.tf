@@ -78,7 +78,7 @@ module "kubectl_apply_service_account" {
 
 resource "local_file" "secretproviderclass_yaml" {
   content = templatefile(
-    "${path.module}/templates/kubernetes/secreproviderclass.tftpl.yaml",
+    "${path.module}/templates/kubernetes/secretproviderclass.tftpl.yaml",
     {
       namespace                = local.ira_auto_tuning_vllm_kubernetes_namespace_name
       project_id               = data.google_secret_manager_secret.hub_access_token_read.project
@@ -87,7 +87,7 @@ resource "local_file" "secretproviderclass_yaml" {
 
     }
   )
-  filename = "${local.ira_auto_tuning_vllm_kubernetes_namespace_directory}/secreproviderclass-${local.ira_auto_tuning_vllm_secretprovider}.yaml"
+  filename = "${local.ira_auto_tuning_vllm_kubernetes_namespace_directory}/secretproviderclass-${local.ira_auto_tuning_vllm_secretprovider}.yaml"
 }
 
 module "kubectl_apply_secretproviderclass" {

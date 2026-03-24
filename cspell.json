@@ -101,6 +101,7 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "autotuner",
     "batch-inference",
     "comfyui",
     "docker",

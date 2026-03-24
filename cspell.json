@@ -7,6 +7,10 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
+      "name": "autotuner",
+      "path": ".github/workflows/dictionary/autotuner.txt"
+    },
+    {
       "name": "batch-inference",
       "path": ".github/workflows/dictionary/batch-inference.txt"
     },

@@ -1,0 +1,162 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vllm-auto-tuning
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/volumes: "true"
+      labels:
+        ai.gke.io/model: replaced-by-kustomize
+        app: vllm-auto-tuning
+    spec:
+      serviceAccountName: replaced-by-kustomize
+      containers:
+        - args:
+            - |
+              echo "########### $(date) - Starting parallel-fetch-safetensors for model: ${MODEL_ID}"
+              ls -alR /gcs
+              find /gcs/${MODEL_ID}/*safetensors -type f | xargs -I {} -P 15 sh -c 'echo "########### $(date) - Fetching: {}"; dd if={} of=/dev/null'
+              echo "########### $(date) - Finished parallel-fetch-safetensors"
+              exit 0
+          command: ["/bin/sh", "-c"]
+          env:
+            - name: MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_ID
+                  name: runtime
+          image: busybox
+          name: fetch-safetensors
+          volumeMounts:
+            - mountPath: /gcs
+              name: huggingface-hub-model-bucket
+              readOnly: true
+        - name: autotuner
+          image: replaced-by-kustomize
+          command: ["/bin/bash", "/mnt/scripts/auto-tuner.sh"]
+          env:
+            - name: HF_TOKEN_PATH
+              value: /var/run/secrets/huggingface.co/token
+            - name: VLLM_CACHE_ROOT
+              value: /gcs
+            - name: HF_HOME
+              value: /gcs
+            - name: HF_HUB_OFFLINE
+              value: "1"
+            - name: MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_ID
+                  name: runtime
+            - name: TRANSFORMERS_OFFLINE
+              value: "1"
+            - name: VLLM_AUTO_TUNING_RESULTS_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  key: VLLM_AUTO_TUNING_RESULTS_BUCKET
+                  name: vllm
+          volumeMounts:
+            - name: script-volume
+              mountPath: /mnt/scripts
+            - name: shared-data
+              mountPath: /shared
+            - name: config-volume
+              mountPath: /mnt/config
+            - mountPath: /var/run/secrets/huggingface.co
+              name: huggingface-token
+            - mountPath: /gcs
+              name: huggingface-hub-model-bucket
+            - name: dshm
+              mountPath: /dev/shm
+        - name: dashboard
+          image: python:3.10-slim
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              pip install optuna-dashboard
+              until [ -f /shared/db/tuning.db ]; do sleep 2; done
+              optuna-dashboard sqlite:////shared/db/tuning.db --host 0.0.0.0 --port 8080
+              DASHBOARD_PID=$!
+              echo "Dashboard started (PID: $DASHBOARD_PID). Waiting for completion signal..."
+              until [ -f /shared/db/tuning_complete.signal ]; do
+                sleep 5
+              done
+              echo "Completion signal detected. Shutting down dashboard."
+              kill $DASHBOARD_PID
+              exit 0
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            failureThreshold: 6000
+            httpGet:
+              path: /health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources: {}
+          volumeMounts:
+            - name: shared-data
+              mountPath: /shared
+      volumes:
+        - name: script-volume
+          configMap:
+            name: autotuner-script
+            defaultMode: 0755
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: "16Gi"
+        - name: shared-data
+          emptyDir: {}
+        - name: config-volume
+          configMap:
+            defaultMode: 0744
+            name: vllm-auto-tuning
+        - csi:
+            driver: secrets-store-gke.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: huggingface-token-read
+          name: huggingface-token
+        - csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: accelerated-platforms-dev-inf-sg4-hf-hub-models
+              mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replaced-by-kustomize,uid=2000,gid=2000
+              skipCSIBucketAccessCheck: "true"
+          name: huggingface-hub-model-bucket
+        - emptyDir:
+            medium: Memory
+          name: gke-gcsfuse-cache
+        - emptyDir:
+            medium: Memory
+          name: gke-gcsfuse-tmp
+        - emptyDir:
+            medium: Memory
+          name: gke-gcsfuse-buffer
+      restartPolicy: OnFailure
+      securityContext:
+        fsGroup: 10000

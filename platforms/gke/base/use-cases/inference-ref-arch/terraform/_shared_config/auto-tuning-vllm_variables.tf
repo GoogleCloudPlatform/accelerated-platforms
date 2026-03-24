@@ -38,6 +38,6 @@ variable "ira_auto_tuning_vllm_results_bucket" {
 
 variable "ira_auto_tuning_vllm_secretproviderclass" {
   default     = null
-  description = "The Secretprovider class to access huggingface read token."
+  description = "The Secretproviderclass to access huggingface read token."
   type        = string
 }

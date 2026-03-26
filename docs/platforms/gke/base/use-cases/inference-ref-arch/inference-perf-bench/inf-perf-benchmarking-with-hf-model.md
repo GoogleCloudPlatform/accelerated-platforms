@@ -252,9 +252,9 @@ export ACCELERATOR="TPU"
 
   - **NVIDIA RTX PRO 6000 96GB**:
 
-        ```shell
-        export ACCELERATOR_TYPE="rtx-pro-6000"
-        ```
+    ```shell
+    export ACCELERATOR_TYPE="rtx-pro-6000"
+    ```
 
     Ensure that you have enough quota in your project to provision the selected
     accelerator type. For more information, see about viewing GPU quotas, see
@@ -381,7 +381,7 @@ export ACCELERATOR="TPU"
   > >
 
   ```shell
-   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/
+  cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/
 
   ```
 
@@ -429,8 +429,8 @@ Download the report and run inference-perf to create the throughput and latency
 curves
 
 ```shell
-   gsutil -m cp -r gs://${hub_models_bucket_bench_results_name}/ .
-   inference-perf --analyze ${hub_models_bucket_bench_results_name}/*
+  gsutil -m cp -r gs://${hub_models_bucket_bench_results_name}/ .
+  inference-perf --analyze ${hub_models_bucket_bench_results_name}/*
 
 ```
 

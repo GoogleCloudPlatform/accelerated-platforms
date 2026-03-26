@@ -57,5 +57,3 @@ envsubst < "${MY_PATH}/templates/secretproviderclass-huggingface-tokens.tpl.yaml
 cd "${MY_PATH}"
 SHORT_HASH=$(echo -n "${APP_LABEL}" | sha256sum | cut -c1-10)
 kustomize edit set nameprefix "${SHORT_HASH}-"
-
-

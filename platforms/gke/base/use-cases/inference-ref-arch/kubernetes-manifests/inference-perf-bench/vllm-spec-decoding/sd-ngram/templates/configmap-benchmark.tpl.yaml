@@ -30,7 +30,7 @@ data:
       num_workers: 20
       worker_max_concurrency: 15
       worker_max_tcp_connections: 2500
-    api: 
+    api:
       type: completion
       streaming: true
     server:
@@ -41,25 +41,13 @@ data:
     tokenizer:
       pretrained_model_name_or_path: ${HF_MODEL_ID}
     data:
-      type: synthetic
-      input_distribution:                                 # For synthetic/random types
-        min: 10                                           # Minimum prompt length (tokens)
-        max: 100                                          # Maximum prompt length
-        mean: 50                                          # Average length
-        std: 10                                           # Standard deviation
-        total_count: 7000                                  # Total prompts to generate. Choose a large number for sweep so that you don't run out of prompts as the QPS increases to saturation
-      output_distribution:                                # Same structure as input_distribution
-        min: 40
-        max: 400
-        mean: 200
-        std: 50
-        total_count: 7000
+      type: cnn_dailymail
     metrics:
       type: prometheus
       prometheus:
           scrape_interval: 15
           google_managed: true         # Whether using Google Managed Prometheus
-          filters: [] 
+          filters: []
     report:
       request_lifecycle:
         summary: true
@@ -69,6 +57,8 @@ data:
         summary: true
         per_stage: true
     storage:
-      google_cloud_storage:               
+      google_cloud_storage:
         bucket_name: ${hub_models_bucket_bench_results_name}   # Required GCS bucket
         report_file_prefix: null          # Optional filename prefix
+        
+

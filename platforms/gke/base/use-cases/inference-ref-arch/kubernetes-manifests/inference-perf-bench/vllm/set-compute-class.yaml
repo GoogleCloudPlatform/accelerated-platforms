@@ -22,4 +22,3 @@ spec:
     spec:
       nodeSelector:
         cloud.google.com/compute-class: model-download
-        

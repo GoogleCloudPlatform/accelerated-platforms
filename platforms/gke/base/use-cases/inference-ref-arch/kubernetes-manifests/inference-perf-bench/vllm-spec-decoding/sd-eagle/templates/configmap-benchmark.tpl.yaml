@@ -30,7 +30,7 @@ data:
       num_workers: 20
       worker_max_concurrency: 15
       worker_max_tcp_connections: 2500
-    api: 
+    api:
       type: completion
       streaming: true
     server:
@@ -41,13 +41,13 @@ data:
     tokenizer:
       pretrained_model_name_or_path: ${HF_MODEL_ID}
     data:
-      type: cnn_dailymail
+      type: shareGPT
     metrics:
       type: prometheus
       prometheus:
           scrape_interval: 15
           google_managed: true         # Whether using Google Managed Prometheus
-          filters: [] 
+          filters: []
     report:
       request_lifecycle:
         summary: true
@@ -57,7 +57,8 @@ data:
         summary: true
         per_stage: true
     storage:
-      google_cloud_storage:               
+      google_cloud_storage:
         bucket_name: ${hub_models_bucket_bench_results_name}   # Required GCS bucket
         report_file_prefix: null          # Optional filename prefix
-        
+
+

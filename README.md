@@ -53,7 +53,7 @@ the primary runtime.
       - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
     - [Benchmarking Online inference performance on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench.md)
     - [Async inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/async-inference/README.md)
-    - [Offline batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/offline-batch/README.md)
+    - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/offline-batch/README.md)
     - [Intelligent inference scheduling quickstart using llm-d](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/quickstart.md)
     - [Intelligent inference scheduling using llm-d with GPU on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-vllm-with-hf-model.md)
 

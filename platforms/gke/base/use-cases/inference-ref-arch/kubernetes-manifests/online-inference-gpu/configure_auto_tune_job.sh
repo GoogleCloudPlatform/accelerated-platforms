@@ -33,4 +33,4 @@ else
 
 fi
 
-envsubst <"${MY_PATH}/base-auto-tune-job/templates/job.tpl.env" | sponge "${MY_PATH}/base/job.env"
+envsubst <"${MY_PATH}/base-auto-tune-job/templates/job.tpl.env" | sponge "${MY_PATH}/base-auto-tune-job/job.env"

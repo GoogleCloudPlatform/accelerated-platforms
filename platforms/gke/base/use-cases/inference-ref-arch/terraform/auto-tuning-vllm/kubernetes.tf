@@ -29,13 +29,13 @@ data "local_file" "kubeconfig" {
 # Create Namespace
 resource "local_file" "namespace_yaml" {
   content = templatefile(
-    "${path.module}/templates/namespace/namespace.tftpl.yaml",
+    "${path.module}/templates/kubernetes/namespace.tftpl.yaml",
     {
       kubernetes_namespace = local.ira_auto_tuning_vllm_kubernetes_namespace_name
     }
   )
   file_permission = "0644"
-  filename        = "${local.namespace_directory}/namespace-${local.ira_auto_tuning_vllm_kubernetes_namespace_name}.yaml"
+  filename        = "${local.namespaces_directory}/namespace-${local.ira_auto_tuning_vllm_kubernetes_namespace_name}.yaml"
 }
 
 module "kubectl_apply_namespace" {
@@ -48,7 +48,7 @@ module "kubectl_apply_namespace" {
   delete_timeout              = "60s"
   error_on_delete_failure     = false
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = "${local.namespace_directory}/namespace-${var.llmd_kubernetes_namespace}.yaml"
+  manifest                    = "${local.namespaces_directory}/namespace-${local.ira_auto_tuning_vllm_kubernetes_namespace_name}.yaml"
   manifest_includes_namespace = true
 }
 
@@ -67,7 +67,7 @@ resource "local_file" "serviceaccount_yaml" {
 module "kubectl_apply_service_account" {
   source = "../../../../modules/kubectl_apply"
   depends_on = [
-    local_file.serviceaccount_yaml, kubectl_apply_namespace
+    local_file.serviceaccount_yaml, module.kubectl_apply_namespace
   ]
 
   apply_server_side           = true
@@ -93,7 +93,7 @@ resource "local_file" "secretproviderclass_yaml" {
 module "kubectl_apply_secretproviderclass" {
   source = "../../../../modules/kubectl_apply"
   depends_on = [
-    local_file.secretproviderclass_yaml, kubectl_apply_namespace
+    local_file.secretproviderclass_yaml, module.kubectl_apply_namespace
   ]
 
   apply_server_side           = true

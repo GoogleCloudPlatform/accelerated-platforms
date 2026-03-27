@@ -26,6 +26,6 @@ steps:
       - --file=container-images/cpu/async-load-generator/Dockerfile
       - --tag=${_DESTINATION}
       - .
-    id: "Build Batch Load Generator image"
+    id: "Build Async Load Generator image"
     name: "docker.io/docker:28.3.3-dind-alpine3.22"
     waitFor: ["-"]

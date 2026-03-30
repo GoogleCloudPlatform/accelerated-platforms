@@ -429,7 +429,7 @@ Download the report and run inference-perf to create the throughput and latency
 curves
 
 ```shell
-  gsutil -m cp -r gs://${hub_models_bucket_bench_results_name}/ .
+  gcloud storage cp -r gs://${hub_models_bucket_bench_results_name}/ .
   inference-perf --analyze ${hub_models_bucket_bench_results_name}/*
 
 ```

@@ -26,7 +26,7 @@ benchmark:
   model: "/gcs/${HF_MODEL_ID}"
   max_seconds: 600
   dataset: null  # Use synthetic data
-  prompt_tokens: 4096
+  prompt_tokens: 1024
   output_tokens: 128
 parameters:
   gpu_memory_utilization:

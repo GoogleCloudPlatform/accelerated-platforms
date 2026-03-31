@@ -19,7 +19,6 @@ data "google_storage_bucket" "hub_models" {
 }
 
 ### GCS bucket for storage of auto-tuning-vllm results ###
-
 resource "google_storage_bucket" "auto_tuning_results" {
   name                        = local.ira_auto_tuning_vllm_results_bucket
   location                    = local.cluster_region

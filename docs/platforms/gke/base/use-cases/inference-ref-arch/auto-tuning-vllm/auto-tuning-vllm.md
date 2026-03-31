@@ -10,7 +10,7 @@ accelerator and generating and visualizing the results.
 ## Before you begin
 
 - The
-  [GKE Inference reference implementation](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
+  [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
   is deployed and configured.
 
 - Get access to the models.
@@ -29,9 +29,6 @@ accelerator and generating and visualizing the results.
 - Ensure your
   [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
   has been added to Secret Manager.
-
-- Deploy the following reference architecture for GPUs
-  - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
 
 ## Workflow
 
@@ -53,9 +50,9 @@ This example will run through the following steps:
 
 ## Resources Created
 
-- Cloud Storage Buckets
-  - auto-tuning-vllm-results
-- Kubernetes Service Account in the auto-tuning-vllm" namespace
+- Cloud Storage Bucket
+- Kubernetes namespace
+- Kubernetes Service Account in the namespace
 - IAM Permissions for Kubernetes service account
   - roles/secretmanager.secretAccessor for Hugging Face token in Secret Manager
   - roles/storage.bucketViewer for results bucket
@@ -155,16 +152,16 @@ The goal here is to find the most optimum vLLM settings for serving a model on a
 single chip. This reference architecture provides templated manifests to serve
 the following single accelerator chip and model.
 
-| Model                          | l4  | h100 | h200 | RTX Pro 6000 |
-| ------------------------------ | --- | ---- | ---- | ------------ |
-| gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
-| gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
-| gemma-3-27b-it                 | ❌  | ✅   | ✅   | ✅           |
-| gpt-oss-20b                    | ❌  | ✅   | ✅   | ✅           |
-| llama-3.3-70b-instruct         | ❌  | ❌   | ✅   | ❌           |
-| llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
-| qwen3-32b                      | ❌  | ✅   | ✅   | ✅           |
-| qwen3.5-35B (MoE)              | ❌  | ✅   | ✅   | ✅           |
+    | Model                          | l4  | h100 | h200 | RTX Pro 6000 |
+    | ------------------------------ | --- | ---- | ---- | ------------ |
+    | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
+    | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
+    | gemma-3-27b-it                 | ❌  | ✅   | ✅   | ✅           |
+    | gpt-oss-20b                    | ❌  | ✅   | ✅   | ✅           |
+    | llama-3.3-70b-instruct         | ❌  | ❌   | ✅   | ❌           |
+    | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
+    | qwen3-32b                      | ❌  | ✅   | ✅   | ✅           |
+    | qwen3.5-35B (MoE)              | ❌  | ✅   | ✅   | ✅           |
 
 - Select an accelerator.
 
@@ -189,7 +186,7 @@ the following single accelerator chip and model.
   - **NVIDIA RTX PRO 6000 96GB**:
 
     ```shell
-        export ACCELERATOR_TYPE="rtx-pro-6000"
+    export ACCELERATOR_TYPE="rtx-pro-6000"
     ```
 
     Ensure that you have enough quota in your project to provision the selected
@@ -264,6 +261,8 @@ the following single accelerator chip and model.
   export APP_LABEL="vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
+### Download the model from HuggingFace to GCS bucket
+
 - Configure the model download job.
 
   ```shell
@@ -300,19 +299,29 @@ the following single accelerator chip and model.
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
 
+### Deploy the Auto-Tune vLLM job
+
 - Configure the Auto-Tune vLLM job.
 
   ```shell
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/auto-tuning-vllm/configure_vllm.sh"
   ```
 
-## Deploy the Auto-Tune vLLM job.
+- Deploy the Auto-Tune vLLM job.
 
-```shell
-kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/auto-tuning-vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-```
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/auto-tuning-vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  ```
 
-## Check the status of the job
+  Note: The Auto Tune vLLM job uses an out of the box study.yaml to run the
+  benchmarks. You can update this file at the following location to change the
+  objectives and parameters you want to test against.
+
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/auto-tuning-vllm/base/templates/study.yaml.tpl
+  ```
+
+### Check the status of the job
 
 ```shell
   watch --color --interval 5 --no-title \
@@ -335,9 +344,13 @@ optimization results. While the job is running, you can directly port-forward to
 the Optuna dashboard container and view the results.
 
 ```shell
-   kubectl port-forward --namespace=${ira_auto_tuning_vllm_kubernetes_namespace_name}  pod/$(kubectl --namespace=${ira_auto_tuning_vllm_kubernetes_namespace_name} get pods --selector=job-name=vllm-auto-tuning-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} -o=jsonpath='{.items[0].metadata.name}') 8080:8080
+kubectl port-forward --namespace=${ira_auto_tuning_vllm_kubernetes_namespace_name}  pod/$(kubectl --namespace=${ira_auto_tuning_vllm_kubernetes_namespace_name} get pods --selector=job-name=vllm-auto-tuning-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} -o=jsonpath='{.items[0].metadata.name}') 8080:8080
 
 ```
+
+On `CloudShell`, click the `Web Preview` button and click on
+`Preview on port 8080` , it will open up the Optuna Dashboard which will look
+something like the screenshot:
 
 Note: The Optuna dashboard container ends after the `autotuner` container in the
 job finishes and the results are uploaded to the optimization results bucket.

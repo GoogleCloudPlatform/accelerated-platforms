@@ -14,7 +14,7 @@
 locals {
   ira_auto_tuning_vllm_kubernetes_namespace_name       = var.ira_auto_tuning_vllm_kubernetes_namespace_name != null ? var.ira_auto_tuning_vllm_kubernetes_namespace_name : "${local.unique_identifier_prefix}-auto-tuning-vllm"
   ira_auto_tuning_vllm_kubernetes_service_account_name = var.ira_auto_tuning_vllm_kubernetes_service_account_name != null ? var.ira_auto_tuning_vllm_kubernetes_service_account_name : "${local.unique_identifier_prefix}-auto-tuning-vllm-ksa"
-  ira_auto_tuning_vllm_results_bucket                  = var.ira_auto_tuning_vllm_results_bucket != null ? var.ira_auto_tuning_vllm_results_bucket : "${local.unique_identifier_prefix}-auto-tuning-vllm-results"
+  ira_auto_tuning_vllm_results_bucket                  = var.ira_auto_tuning_vllm_results_bucket != null ? var.ira_auto_tuning_vllm_results_bucket : "${local.cluster_project_id}-${local.unique_identifier_prefix}-auto-tuning-vllm-results"
   ira_auto_tuning_vllm_secretproviderclass             = var.ira_auto_tuning_vllm_secretproviderclass != null ? var.ira_auto_tuning_vllm_secretproviderclass : "huggingface-token-read"
 }
 

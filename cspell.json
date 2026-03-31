@@ -7,16 +7,12 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
-      "name": "autotuner",
-      "path": ".github/workflows/dictionary/autotuner.txt"
-    },
-    {
-      "name": "batch-inference",
-      "path": ".github/workflows/dictionary/batch-inference.txt"
-    },
-    {
       "name": "async-inference",
       "path": ".github/workflows/dictionary/async-inference.txt"
+    },
+    {
+      "name": "autotuner",
+      "path": ".github/workflows/dictionary/autotuner.txt"
     },
     {
       "name": "comfyui",

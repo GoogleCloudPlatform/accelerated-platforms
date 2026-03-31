@@ -61,6 +61,8 @@ export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/configure_benchmark.sh"
 export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-ngram"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-ngram/configure_benchmark.sh"
+export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-eagle"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-eagle/configure_benchmark.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/configure_vllm_spec_decoding.sh"
 
 # Validate offline-batch-inference-gpu kustomize

@@ -7,8 +7,8 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
-      "name": "batch-inference",
-      "path": ".github/workflows/dictionary/batch-inference.txt"
+      "name": "async-inference",
+      "path": ".github/workflows/dictionary/async-inference.txt"
     },
     {
       "name": "comfyui",
@@ -97,7 +97,7 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
-    "batch-inference",
+    "async-inference",
     "comfyui",
     "docker",
     "flipkart",

@@ -56,52 +56,52 @@ output "hub_models_bucket_bench_dataset_name" {
   value = local.hub_models_bucket_bench_dataset_name
 }
 
-output "ira_batch_cpu_load_generator_image_url" {
-  value = local.ira_batch_cpu_load_generator_image_url
+output "ira_async_cpu_load_generator_image_url" {
+  value = local.ira_async_cpu_load_generator_image_url
 }
 
-output "ira_batch_cpu_load_generator_kubernetes_namespace_name" {
-  value = local.ira_batch_cpu_load_generator_kubernetes_namespace_name
+output "ira_async_cpu_load_generator_kubernetes_namespace_name" {
+  value = local.ira_async_cpu_load_generator_kubernetes_namespace_name
 }
 
-output "ira_batch_cpu_load_generator_kubernetes_service_account_name" {
-  value = local.ira_batch_cpu_load_generator_kubernetes_service_account_name
+output "ira_async_cpu_load_generator_kubernetes_service_account_name" {
+  value = local.ira_async_cpu_load_generator_kubernetes_service_account_name
 }
 
-output "ira_batch_cpu_pubsub_subscriber_image_url" {
-  value = local.ira_batch_cpu_pubsub_subscriber_image_url
+output "ira_async_cpu_pubsub_subscriber_image_url" {
+  value = local.ira_async_cpu_pubsub_subscriber_image_url
 }
 
-output "ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name" {
-  value = local.ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name
+output "ira_async_cpu_pubsub_subscriber_kubernetes_namespace_name" {
+  value = local.ira_async_cpu_pubsub_subscriber_kubernetes_namespace_name
 }
 
-output "ira_batch_cpu_pubsub_subscriber_kubernetes_service_account_name" {
-  value = local.ira_batch_cpu_pubsub_subscriber_kubernetes_service_account_name
+output "ira_async_cpu_pubsub_subscriber_kubernetes_service_account_name" {
+  value = local.ira_async_cpu_pubsub_subscriber_kubernetes_service_account_name
 }
 
-output "ira_batch_gpu_kubernetes_namespace_name" {
-  value = local.ira_batch_gpu_kubernetes_namespace_name
+output "ira_async_gpu_kubernetes_namespace_name" {
+  value = local.ira_async_gpu_kubernetes_namespace_name
 }
 
-output "ira_batch_gpu_kubernetes_service_account_name" {
-  value = local.ira_batch_gpu_kubernetes_service_account_name
+output "ira_async_gpu_kubernetes_service_account_name" {
+  value = local.ira_async_gpu_kubernetes_service_account_name
 }
 
-output "ira_batch_gpu_vllm_image_url" {
-  value = local.ira_batch_gpu_vllm_image_url
+output "ira_async_gpu_vllm_image_url" {
+  value = local.ira_async_gpu_vllm_image_url
 }
 
-output "ira_batch_pubsub_prompt_messages_subscription_name" {
-  value = local.ira_batch_pubsub_prompt_messages_subscription_name
+output "ira_async_pubsub_prompt_messages_subscription_name" {
+  value = local.ira_async_pubsub_prompt_messages_subscription_name
 }
 
-output "ira_batch_pubsub_prompt_messages_topic_dead_letter_name" {
-  value = local.ira_batch_pubsub_prompt_messages_topic_dead_letter_name
+output "ira_async_pubsub_prompt_messages_topic_dead_letter_name" {
+  value = local.ira_async_pubsub_prompt_messages_topic_dead_letter_name
 }
 
-output "ira_batch_pubsub_prompt_messages_topic_name" {
-  value = local.ira_batch_pubsub_prompt_messages_topic_name
+output "ira_async_pubsub_prompt_messages_topic_name" {
+  value = local.ira_async_pubsub_prompt_messages_topic_name
 }
 
 output "ira_inference_perf_bench_kubernetes_service_account_name" {

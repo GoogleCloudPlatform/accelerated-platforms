@@ -13,6 +13,8 @@
     {
       "name": "batch-inference",
       "path": ".github/workflows/dictionary/batch-inference.txt"
+      "name": "async-inference",
+      "path": ".github/workflows/dictionary/async-inference.txt"
     },
     {
       "name": "comfyui",
@@ -103,6 +105,7 @@
     "accelerated-platforms",
     "autotuner",
     "batch-inference",
+    "async-inference",
     "comfyui",
     "docker",
     "flipkart",

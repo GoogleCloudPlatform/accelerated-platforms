@@ -1,9 +1,11 @@
 dailymail
 dtype
 flashinfer
+guidellm
 matplot
 matplotlib
 ngram
+optuna
 perc
 percentunit
 toks

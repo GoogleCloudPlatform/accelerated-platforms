@@ -11,6 +11,10 @@
       "path": ".github/workflows/dictionary/async-inference.txt"
     },
     {
+      "name": "autotuner",
+      "path": ".github/workflows/dictionary/autotuner.txt"
+    },
+    {
       "name": "comfyui",
       "path": ".github/workflows/dictionary/comfyui.txt"
     },
@@ -97,6 +101,8 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "autotuner",
+    "batch-inference",
     "async-inference",
     "comfyui",
     "docker",

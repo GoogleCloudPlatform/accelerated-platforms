@@ -32,6 +32,11 @@ locals {
       namespace       = local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name
       service_account = local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name
     }
+    rl_reinforcement_learning_model_converter = {
+      directory       = "${local.namespaces_directory}/${local.rl_cpu_reinforcement_learning_model_converter_kubernetes_namespace_name}"
+      namespace       = local.rl_cpu_reinforcement_learning_model_converter_kubernetes_namespace_name
+      service_account = local.rl_cpu_reinforcement_learning_model_converter_kubernetes_service_account_name
+    }
   }
 
   manifests_directory_root = "${path.module}/../../../../kubernetes/manifests"

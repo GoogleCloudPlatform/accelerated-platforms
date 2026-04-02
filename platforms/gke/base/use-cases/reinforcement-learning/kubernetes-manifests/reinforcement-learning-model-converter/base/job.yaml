@@ -1,10 +1,10 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# https://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,66 +15,68 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hf-model-to-maxtext
+  name: model-converter
   namespace: replaced-by-kustomize
 spec:
-  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
   template:
     metadata:
+      annotations:
+        gke-gcsfuse/cpu-limit: "0"
+        gke-gcsfuse/ephemeral-storage-limit: "0"
+        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/volumes: "true"
       labels:
-        app: hf-model-to-maxtext
+        app: model-converter
     spec:
+      restartPolicy: Never
+      serviceAccountName: replaced-by-kustomize
       containers:
-        - args: ["/scripts/run.sh"]
-          command: ["/bin/sh", "-c"]
+        - name: model-converter
+          image: replaced-by-kustomize # Replace with your pushed model-converter image
+          command:
+            - python
+            - src/maxtext/checkpoint_conversion/to_maxtext.py
+          args:
+            - "--hf_model_path=/gcs/$(MODEL_ID)"
+            - "--lazy_load_tensors=True"
+            # Add output flags based on your specific MaxText version, e.g.,
+            # - "--base_output_directory=/gcs/converted_models/"
           env:
-            - name: HF_TOKEN_PATH
-              value: /var/run/secrets/huggingface.co/token
-            - name: HF_MAX_WORKERS
-              value: "2"
-            - name: HF_XET_CACHE
-              value: /local/hf/xet
-            - name: HF_XET_NUM_CONCURRENT_RANGE_GETS
-              value: "4"
-            - name: HF_XET_HIGH_PERFORMANCE
-              value: "0"
             - name: MODEL_ID
               valueFrom:
                 configMapKeyRef:
                   key: MODEL_ID
-                  name: download
-            - name: MODEL_BUCKET_NAME
-              valueFrom:
-                configMapKeyRef:
-                  key: MODEL_BUCKET_NAME
-                  name: download
-            - name: REPLACE_EXISTING
-              value: "true"
-          image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
-          name: hf-model-to-maxtext
+                  name: reinforcement-learning-model-converter
           resources:
             requests:
-              cpu: 2000m
-              ephemeral-storage: 1Gi
-              memory: 10Gi
+              cpu: "4"
+              memory: "32Gi"
+            limits:
+              cpu: "8"
+              memory: "64Gi"
           volumeMounts:
-            - mountPath: /scripts
-              name: scripts
-            - mountPath: /var/run/secrets/huggingface.co
-              name: huggingface-token
-      restartPolicy: OnFailure
-      securityContext:
-        fsGroup: 10000
-      serviceAccountName: replaced-by-kustomize
-      terminationGracePeriodSeconds: 0
+            - mountPath: /dev/shm
+              name: dev-shm
+            - mountPath: /gcs
+              name: huggingface-hub-model-bucket
       volumes:
-        - configMap:
-            defaultMode: 0744
-            name: hf-model-to-maxtext
-          name: scripts
+        - emptyDir:
+            medium: Memory
+          name: dev-shm
         - csi:
-            driver: secrets-store-gke.csi.k8s.io
-            readOnly: true
+            driver: gcsfuse.csi.storage.gke.io
             volumeAttributes:
-              secretProviderClass: huggingface-token-read
-          name: huggingface-token
+              bucketName: cloud-storage-bucket-name
+              mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replaced-by-kustomize
+              skipCSIBucketAccessCheck: "true"
+          name: huggingface-hub-model-bucket
+        - emptyDir:
+            medium: Memory
+          name: gke-gcsfuse-cache
+        - emptyDir:
+            medium: Memory
+          name: gke-gcsfuse-tmp
+        - emptyDir:
+            medium: Memory
+          name: gke-gcsfuse-buffer

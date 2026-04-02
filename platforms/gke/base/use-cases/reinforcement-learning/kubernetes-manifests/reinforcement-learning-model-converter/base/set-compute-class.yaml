@@ -15,7 +15,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hf-model-to-maxtext
+  name: model-converter
   namespace: replaced-by-kustomize
 spec:
   template:

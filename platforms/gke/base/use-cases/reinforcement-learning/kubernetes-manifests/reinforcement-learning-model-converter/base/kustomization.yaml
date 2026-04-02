@@ -25,15 +25,15 @@ patches:
   - path: set-compute-class.yaml
 
 replacements:
-- source:
-    fieldPath: data.CONTAINER_IMAGE_URL
-    kind: ConfigMap
-    name: reinforcement-learning-model-converter
-  targets:
-  - fieldPaths:
-    - spec.template.spec.containers.[name=reinforcement-learning-model-converter].image
-    select:
-      kind: Job
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: reinforcement-learning-model-converter
+    targets:
+    - fieldPaths:
+      - spec.template.spec.containers.[name=model-converter].image
+      select:
+        kind: Job
   - source:
       fieldPath: data.MODEL_CONVERTER_KUBERNETES_NAMESPACE
       kind: ConfigMap
@@ -42,17 +42,20 @@ replacements:
       - fieldPaths:
           - metadata.namespace
         select:
+          kind: ConfigMap
+      - fieldPaths:
+        - metadata.namespace
+        select:
           kind: Job
   - source:
       fieldPath: data.MODEL_CONVERTER_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
       name: reinforcement-learning-model-converter
     targets:
-      - fieldPaths:
-          - spec.template.spec.serviceAccountName
-        select:
-          kind: Job
-          name: reinforcement-learning-model-converter
+    - fieldPaths:
+      - spec.template.spec.serviceAccountName
+      select:
+        kind: Job
 
 resources:
   - job.yaml

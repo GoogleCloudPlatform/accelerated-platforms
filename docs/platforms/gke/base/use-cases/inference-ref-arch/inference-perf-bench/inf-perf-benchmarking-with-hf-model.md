@@ -252,9 +252,9 @@ export ACCELERATOR="TPU"
 
   - **NVIDIA RTX PRO 6000 96GB**:
 
-        ```shell
-        export ACCELERATOR_TYPE="rtx-pro-6000"
-        ```
+    ```shell
+    export ACCELERATOR_TYPE="rtx-pro-6000"
+    ```
 
     Ensure that you have enough quota in your project to provision the selected
     accelerator type. For more information, see about viewing GPU quotas, see
@@ -367,7 +367,7 @@ export ACCELERATOR="TPU"
 - Configure the benchmarking job.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/configure_benchmark.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/configure_benchmark.sh"
   ```
 
   - OPTIONAL: Customize the load scenario:
@@ -381,14 +381,14 @@ export ACCELERATOR="TPU"
   > >
 
   ```shell
-   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/
+  cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/
 
   ```
 
 ## Deploy the benchmarking job.
 
 ```shell
-kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench"
+kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm"
 ```
 
 ## Check the status of the job
@@ -398,19 +398,19 @@ The job can take up an estimated 15 mins to run through all the stages
 #### For GPUs:
 
 ```shell
-  watch --color --interval 5 --no-title
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-inference-perf --all-containers --tail 10"
+watch --color --interval 5 --no-title "
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get job/${SHORT_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1';
+  echo '\nLogs(last 10 lines):';
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs job/${SHORT_HASH}-inference-perf --all-containers --tail 10"
 ```
 
 #### For TPUs:
 
 ```shell
-  watch --color --interval 5 --no-title
-  "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-inference-perf --all-containers --tail 10"
+watch --color --interval 5 --no-title "
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get job/${SHORT_HASH}-inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1';
+  echo '\nLogs(last 10 lines):';
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs job/${SHORT_HASH}-inference-perf --all-containers --tail 10"
 ```
 
 When the job is complete, you will see the following:
@@ -429,8 +429,8 @@ Download the report and run inference-perf to create the throughput and latency
 curves
 
 ```shell
-   gsutil -m cp -r gs://${hub_models_bucket_bench_results_name}/ .
-   inference-perf --analyze ${hub_models_bucket_bench_results_name}/*
+  gcloud storage cp -r gs://${hub_models_bucket_bench_results_name}/ .
+  inference-perf --analyze ${hub_models_bucket_bench_results_name}/*
 
 ```
 

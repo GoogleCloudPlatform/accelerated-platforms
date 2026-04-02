@@ -1,26 +1,32 @@
+#!/usr/bin/env bash
+
 # Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-# https://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-- op: add
-  path: /spec/template/spec/containers/0/args/-
-  value: "--speculative-config={\"method\": \"eagle3\", \"model\": \"/gcs/yuhuili/eagle3-llama3.3-instruct-70b\", \"num_speculative_tokens\":3, \"draft_tensor_parallel_size\": 1}"
+set -o errexit
+set -o nounset
+set -o pipefail
 
-- op: add
-  path: /spec/template/spec/containers/0/args/-
-  value: "--max-num-seqs=128"
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
 
-- op: add
-  path: /spec/template/spec/containers/0/args/-
-  value: "--max-num-batched-tokens=4096"
+source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
+"${MY_PATH}/../configure_deployment.sh"
+
+envsubst <"${MY_PATH}/base/templates/async-pubsub-subscriber.tpl.env" | sponge "${MY_PATH}/base/async-pubsub-subscriber.env"
+
+cd "${MY_PATH}/base"
+kustomize edit set nameprefix "${HF_MODEL_ID_HASH}-"

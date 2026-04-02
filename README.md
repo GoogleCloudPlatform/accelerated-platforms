@@ -47,14 +47,18 @@ the primary runtime.
     - [Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
       - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)
       - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
+      - [Speculative Decoding using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-spec-decoding-with-hf-model.md)
     - [Online inference with TPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/README.md)
       - [Online inference using MaxDiffusion with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/max-diffusion-with-hf-model.md)
       - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
-    - [Benchmarking Online inference performance on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench.md)
-    - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/batch-inference/README.md)
-    - [Offline batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/offline-batch/README.md)
-    - [Intelligent inference scheduling quickstart using llm-d](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/README.md)
-    - [Intelligent inference scheduling using llm-d with GPU on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-vllm-with-hf-model.md)
+    - Async and Batch Inference
+      - [Async inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/async-inference/README.md)
+      - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/batch-inference/README.md)
+    - llm-d
+      - [Intelligent inference scheduling quickstart using llm-d](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/quickstart.md)
+      - [Intelligent inference scheduling using llm-d with GPU on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-vllm-with-hf-model.md)
+    - Run your own benchmarking
+      - [Benchmarking Online inference performance on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md)
 
 - [Training reference architecture](/docs/platforms/gke/base/use-cases/training-ref-arch/README.md)
   - [Model fine tuning](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/README.md)

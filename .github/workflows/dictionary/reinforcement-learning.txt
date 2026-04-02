@@ -1,6 +1,7 @@
 epath
 etils
 grpo
+highmem
 logdir
 logps
 maxtext

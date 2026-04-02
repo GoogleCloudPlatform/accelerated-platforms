@@ -67,6 +67,8 @@ the primary runtime.
     - [Data preparation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/data-preparation.md)
     - [Fine tuning](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/fine-tuning.md)
     - [Model evaluation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/model-evaluation.md)
+- [Reinforcement Learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-larning/README.md)
+  - [RL on TPU](/docs/platforms/gke/base/use-cases/reinforcement-larning/rl-on-tpu/README.md)
 
 ### Guides
 

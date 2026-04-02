@@ -31,7 +31,7 @@ spec:
       storage:
         localSSDCount: 1
 
-    - machineType: c3-highmem-8-lssd
+    - machineType: c3-highmem-8
       maxPodsPerNode: 32
       spot: false
       storage:

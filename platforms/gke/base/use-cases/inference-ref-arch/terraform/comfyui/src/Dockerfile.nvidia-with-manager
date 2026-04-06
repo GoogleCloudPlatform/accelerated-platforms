@@ -20,9 +20,10 @@ ARG CUDA_VERSION="12.6"
 FROM pytorch/pytorch:${PYTORCH_VERSION}-cuda${CUDA_VERSION}-cudnn9-runtime
 
 ENV CMAKE_BUILD_PARALLEL_LEVEL "8"
-ENV COMFY_VERSION "0.3.66"
+ENV COMFY_VERSION "0.18.5"
 ENV CUDA_VERSION "12.6"
 ENV DEBIAN_FRONTEND "noninteractive"
+ENV LD_LIBRARY_PATH="/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}"
 ENV PIP_PREFER_BINARY "1"
 
 # Set a non-root user and group
@@ -61,7 +62,7 @@ ENV COMFY_HOME "${COMFY_DIR}/ComfyUI"
 ENV PATH "/home/${USER}/.local/bin:${PATH}"
 
 RUN pip install --break-system-packages --no-cache-dir uv \
-  && uv venv
+  && uv venv --system-site-packages
 
 RUN source "${COMFY_DIR}/.venv/bin/activate" \
   && uv pip install --no-cache-dir comfy-cli pip \

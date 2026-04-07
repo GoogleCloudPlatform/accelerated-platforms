@@ -2147,7 +2147,7 @@
         "height": 15,
         "width": 16,
         "widget": {
-          "title": "Decode TTFT (Time To First Token Latency)",
+          "title": "TTFT (Time To First Token Latency)",
           "id": "",
           "xyChart": {
             "chartOptions": {
@@ -2165,7 +2165,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket{role=\"decode\"}[$${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -2178,7 +2178,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket{role=\"decode\"}[$${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -2191,7 +2191,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50, sum by(le) (rate(vllm:time_to_first_token_seconds_bucket{role=\"decode\"}[$${__interval}])))",
+                  "prometheusQuery": "histogram_quantile(0.50, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[$${__interval}])))",
                   "unitOverride": "s"
                 }
               }
@@ -2210,7 +2210,7 @@
         "height": 15,
         "width": 16,
         "widget": {
-          "title": "Decode TPOT(Time Per Output Token)",
+          "title": "TPOT(Time Per Output Token)",
           "id": "",
           "xyChart": {
             "chartOptions": {
@@ -2228,7 +2228,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.99, sum by (le) (rate(vllm:time_per_output_token_seconds_bucket{role=\"decode\"}[$${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.99, sum by (le) (rate(vllm:request_time_per_output_token_seconds_bucket[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -2241,7 +2241,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.95, sum by (le) (rate(vllm:time_per_output_token_seconds_bucket{role=\"decode\"}[$${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le) (rate(vllm:request_time_per_output_token_seconds_bucket[$${__interval}])))",
                   "unitOverride": "s"
                 }
               },
@@ -2254,7 +2254,7 @@
                 "targetAxis": "Y1",
                 "timeSeriesQuery": {
                   "outputFullDuration": false,
-                  "prometheusQuery": "histogram_quantile(0.50, sum by (le) (rate(vllm:time_per_output_token_seconds_bucket{role=\"decode\"}[$${__interval}])))\n",
+                  "prometheusQuery": "histogram_quantile(0.50, sum by (le) (rate(vllm:request_time_per_output_token_seconds_bucket[$${__interval}])))",
                   "unitOverride": "s"
                 }
               }
@@ -2270,3 +2270,4 @@
     ]
   }
 }
+

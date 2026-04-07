@@ -28,7 +28,7 @@ This example is built on top of the
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/batch_gpu && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/offline_batch_gpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -96,11 +96,11 @@ This example is built on top of the
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Build the container image for the CPU batch pubsub subscriber.
+- Build the container image for the CPU batch dataset downloader.
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/cpu/batch_pubsub_subscriber && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/cpu/offline_batch_dataset_downloader && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -110,11 +110,11 @@ This example is built on top of the
 
   > The build usually takes 10 to 15 minutes.
 
-- Build the container image for the CPU batch load generator.
+- Build the container image for the CPU batch worker.
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/cpu/batch_load_generator && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/cpu/offline_batch_worker && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -124,7 +124,7 @@ This example is built on top of the
 
   > The build usually takes 10 to 15 minutes.
 
-## Deploy the inference workload
+## Run the dataset downloader job
 
 - Source the environment configuration.
 
@@ -132,10 +132,48 @@ This example is built on top of the
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Configure the deployment.
+- Configure the job.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/vllm/configure_vllm.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-dataset-downloader/configure_dataset_downloader.sh"
+  ```
+
+- Deploy the dataset downloader job.
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-dataset-downloader/base"
+  ```
+
+- Watch the deployment until it is ready.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} get job/$(cat job_random_hash.txt)-offline-batch-dataset-downloader | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_offline_batch_cpu_dataset_downloader_kubernetes_namespace_name} logs job/$(cat job_random_hash.txt)-offline-batch-dataset-downloader --all-containers --tail 10"
+  ```
+
+  When the job is complete, you will see the following:
+
+  ```text
+  NAME                                        STATUS    COMPLETIONS   DURATION   AGE
+  xxxxxxxx-offline-batch-dataset-downloader   Complete  1/1           ##s        ##s
+  ```
+
+  You can press `CTRL`+`c` to terminate the watch.
+
+## Run the worker jobset
+
+- Source the environment configuration.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Configure the jobset.
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/configure_worker.sh"
   ```
 
 - Set the environment variables for the workload.
@@ -155,9 +193,9 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model                  | l4  | h100 | h200 |
-    | ---------------------- | --- | ---- | ---- |
-    | llama-3.3-70b-instruct | ❌  | ✅   | ✅   |
+    | Model                  | l4  | h100 | h200 | RTX Pro 6000 |
+    | ---------------------- | --- | ---- | ---- | ------------ |
+    | llama-3.3-70b-instruct | ❌  | ✅   | ✅   | ✅           |
 
     - **NVIDIA H100 80GB**:
 
@@ -171,109 +209,36 @@ This example is built on top of the
       export ACCELERATOR_TYPE="h200"
       ```
 
+    - **NVIDIA RTX PRO 6000 96GB**:
+
+      ```shell
+      export ACCELERATOR_TYPE="rtx-pro-6000"
+      ```
+
     Ensure that you have enough quota in your project to provision the selected
     accelerator type. For more information, see about viewing GPU quotas, see
     [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
-- Deploy the inference workload.
+- Deploy the jobset workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
-  The Kubernetes manifests are based on the
-  [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
-
-- Watch the deployment until it is ready.
+- Watch the jobset until it is ready.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_batch_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  "kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} get jobset/js-$(cat jobset_random_hash.txt)-obi-${ACCELERATOR_TYPE}-${HF_MODEL_ID_HASH} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_batch_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+  kubectl --namespace=${ira_offline_batch_cpu_worker_kubernetes_namespace_name} logs job/js-$(cat jobset_random_hash.txt)-obi-${ACCELERATOR_TYPE}-${HF_MODEL_ID_HASH}-obi-job-0 --all-containers --tail 10"
   ```
 
-  When the deployment is ready, you will see the following:
+  When the jobset is complete, you will see the following:
 
   ```text
-  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1     1            1           ###
-  ```
-
-  You can press `CTRL`+`c` to terminate the watch.
-
-## Deploy the subscriber workload
-
-- Source the environment configuration.
-
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
-
-- Configure the deployment.
-
-  ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-pubsub-subscriber/configure_pubsub_subscriber.sh"
-  ```
-
-- Deploy the subscriber workload.
-
-  ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-pubsub-subscriber/base"
-  ```
-
-- Watch the deployment until it is ready.
-
-  ```shell
-  watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} get deployment/${HF_MODEL_ID_HASH}-batch-pubsub-subscriber | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_batch_cpu_pubsub_subscriber_kubernetes_namespace_name} logs deployment/${HF_MODEL_ID_HASH}-batch-pubsub-subscriber --all-containers --tail 10"
-  ```
-
-  When the deployment is ready, you will see the following:
-
-  ```text
-  NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment/batch-pubsub-subscriber   1/1     1            1           ###
-  ```
-
-  You can press `CTRL`+`c` to terminate the watch.
-
-## (Optional) Run the load generator job
-
-- Source the environment configuration.
-
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
-
-- Configure the deployment.
-
-  ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-load-generator/configure_load_generator.sh"
-  ```
-
-- Deploy the subscriber workload.
-
-  ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-load-generator/base"
-  ```
-
-- Watch the deployment until it is ready.
-
-  ```shell
-  watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} get job/batch-load-generator | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_batch_cpu_load_generator_kubernetes_namespace_name} logs job/batch-load-generator --all-containers --tail 10"
-  ```
-
-  When the deployment is ready, you will see the following:
-
-  ```text
-  NAME                                 READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment/batch-pubsub-subscriber   1/1     1            1           ###
+  NAME                                            TERMINALSTATE   RESTARTS   COMPLETED   SUSPENDED   AGE
+  js-xxxxxx-obi-rtx-pro-6000-bd25a4c7             Completed       0          True                    74m
   ```
 
   You can press `CTRL`+`c` to terminate the watch.

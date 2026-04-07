@@ -21,7 +21,16 @@ MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
+ENV_FILE_1="${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
+ENV_FILE_2="${MY_PATH}/../../examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 
-source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
+if [ -f "$ENV_FILE_1" ]; then
+  source "$ENV_FILE_1"
+elif [ -f "$ENV_FILE_2" ]; then
+  source "$ENV_FILE_2"
+else
+  echo "Warning: No environment variable file found."
 
-envsubst < "${MY_PATH}/base/templates/deployment.tpl.env" | sponge "${MY_PATH}/base/deployment.env"
+fi
+
+envsubst <"${MY_PATH}/base/templates/deployment.tpl.env" | sponge "${MY_PATH}/base/deployment.env"

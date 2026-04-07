@@ -1,40 +1,32 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bullseye
 
-WORKDIR /workspace
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y wget curl build-essential git && rm -rf /var/lib/apt/lists/*
-
-# Upgrade pip and install the incredibly fast 'uv' package manager
+# 1. System setup (Matches official Dockerfile)
+RUN apt-get update && apt-get install -y curl gnupg git build-essential wget
 RUN pip install --upgrade pip uv
+ENV UV_SYSTEM_PYTHON=1
 
-# 1. Install standard Torch CPU and specific JAX TPU drivers first (Our safety net!)
-RUN uv pip install --system torch torchvision --index-url https://download.pytorch.org/whl/cpu
-RUN uv pip install --system "jax[tpu]==0.4.25" -f https://storage.googleapis.com/jax-releases/libtpu_releases.html --prerelease=allow
+WORKDIR /deps
 
-# 2. THE GOOGLER WAY: Clone the repo
-RUN git clone https://github.com/google/maxtext.git /workspace/maxtext
+# 2. Clone the repo to get the 'setup.sh' and requirements
+RUN git clone https://github.com/google/maxtext.git .
 
-# Shift Docker's working directory INSIDE the repo
-WORKDIR /workspace/maxtext
+# 3. Run the setup logic for GRPO (matches the official WORKFLOW=post-training)
+# This replaces the complex ARG/ENV logic with the direct command for v5e
+# Combine the install and cleanup to keep the layer small
+RUN uv pip install -e ".[tpu-post-train]" --resolution=lowest && \
+    install_maxtext_tpu_post_train_extra_deps && \
+    uv cache clean && \
+    rm -rf /root/.cache/uv
 
-# 3. Apply the Googlers' lowest flag (no 'cd' needed anymore!)
-RUN uv pip install --system -e ".[tpu-post-train]" --resolution=lowest
+RUN uv pip install mlflow huggingface_hub clu math_verify google-cloud-storage
 
-# 4. Run the script (it will natively find the 'src' folder now!)
-RUN install_maxtext_tpu_post_train_extra_deps
+# 4. Copy your RL training script and chat template
+COPY train_single_node_fix.py /deps/train_single_node_fix.py
+COPY llama3_rl.json /deps/llama3_rl.json
 
-# Shift back to your main workspace for your custom files
-WORKDIR /workspace
+# 5. Official Pathing
+ENV PYTHONPATH="/deps/src"
+ENV PYTHONUNBUFFERED=1
 
-# 5. Install our specific MLOps tracking tools
-RUN uv pip install --system mlflow huggingface_hub math_verify
-
-# 6. Download the chat template directly
-RUN wget https://raw.githubusercontent.com/google/maxtext/main/src/maxtext/examples/chat_templates/gsm8k_rl.json -O /workspace/gsm8k_rl.json
-
-# Copy our training script
-COPY train.py /workspace/train.py
-
-# Execute the script
-CMD ["python3", "train.py"]
+# Start your script
+CMD ["python3", "train_single_node_fix.py"]

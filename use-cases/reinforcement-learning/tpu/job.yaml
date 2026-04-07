@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maxtext-grpo-job-v5e-new
+  namespace: default # Ensure this matches where your KSA/Secret live
+spec:
+  # ✅ FIX 1: Spot Instance Resilience. If the node is preempted, Kubernetes will retry up to 5 times.
+  backoffLimit: 5 
+  template:
+    metadata:
+      annotations:
+        # Keep GCS Fuse enabled for standard text logs and MLflow artifacts
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/memory-limit: "2Gi"
+    spec:
+      serviceAccountName: maxtext-ksa 
+      nodeSelector:
+        cloud.google.com/compute-class: "tpu-v5e-2x4" 
+      restartPolicy: Never
+      containers:
+      - name: grpo-trainer
+        image: us-central1-docker.pkg.dev/accelerated-platforms-dev/ml-repo/maxtext-grpo-new:latest
+        resources:
+          limits:
+            google.com/tpu: 8 
+        env:
+        - name: MLFLOW_TRACKING_URI
+          value: "http://mlflow-service:5000"
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: token
+        # ✅ FIX 2: Explicit Native GCS Path for fast JAX checkpointing (Bypasses Fuse)
+        # The root bucket for all your RL experiments
+        # Sends the checkpoints through the FUSE tunnel
+        - name: GCS_OUTPUT_PATH
+          value: "/logs/rl_experiments"
+        # Forces a fresh start
+        - name: RUN_NAME
+          value: "run-2026-04-03-v1-low-lr"
+        volumeMounts:
+        - name: gcs-report-volume
+          mountPath: /logs
+      volumes:
+      - name: gcs-report-volume
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: accelerated-platforms-dev-trn-rl-gpu-hf-hub-models
+            mountOptions: "implicit-dirs"

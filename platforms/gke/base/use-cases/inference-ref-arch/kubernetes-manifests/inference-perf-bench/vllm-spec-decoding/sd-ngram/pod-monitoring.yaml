@@ -12,15 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-- op: add
-  path: /spec/template/spec/containers/0/args/-
-  value: "--speculative-config={\"method\": \"eagle3\", \"model\": \"/gcs/yuhuili/eagle3-llama3.3-instruct-70b\", \"num_speculative_tokens\":3, \"draft_tensor_parallel_size\": 1}"
-
-- op: add
-  path: /spec/template/spec/containers/0/args/-
-  value: "--max-num-seqs=128"
-
-- op: add
-  path: /spec/template/spec/containers/0/args/-
-  value: "--max-num-batched-tokens=4096"
-
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  labels:
+    app: APP_LABEL
+  name: vllm-podmonitoring
+  namespace: replaced-by-kustomize
+spec:
+  endpoints:
+  - interval: 15s
+    path: "/metrics"
+    port: metrics
+  selector:
+    matchLabels:
+      app: APP_LABEL
+  targetLabels:
+    metadata:
+    - pod
+    - container
+    - node
+    

@@ -22,7 +22,6 @@ steps:
   - args:
       - build
       - --build-context=comfyui=platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src
-      - --build-context=custom_nodes=modules/python/src/custom_nodes
       - --tag=${_DESTINATION}
       - --file=platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src/${_DOCKERFILE}
       - .

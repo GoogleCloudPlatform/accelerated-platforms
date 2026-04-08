@@ -70,6 +70,11 @@ RUN source "${COMFY_DIR}/.venv/bin/activate" \
   && comfy --skip-prompt --workspace="${COMFY_HOME}" install --skip-manager --cuda-version="${CUDA_VERSION}" --fast-deps --nvidia --version="${COMFY_VERSION}" \
   && comfy --skip-prompt set-default "${COMFY_HOME}"
 
+ARG COMFYUI_CUSTOM_NODE_PATH="${COMFY_HOME}/custom_nodes"
+
+RUN git clone https://github.com/GoogleCloudPlatform/comfyui-google-genmedia-custom-nodes ${COMFYUI_CUSTOM_NODE_PATH}/comfyui-google-genmedia-custom-nodes \
+&& uv pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/comfyui-google-genmedia-custom-nodes/requirements.txt
+
 COPY --chown=${USER}:${GROUP} --chmod=700 --from=comfyui entrypoint.sh ./
 
 ENV BASE ""
@@ -80,13 +85,6 @@ ENV WORKFLOWS_DIR "${COMFY_HOME}/user/default/workflows"
 
 ENV COMFYUI_HOST "0.0.0.0"
 ENV COMFYUI_PORT "8188"
-
-ARG COMFYUI_CUSTOM_NODE_PATH="${COMFY_HOME}/custom_nodes"
-
-COPY --chown=${USER}:${GROUP} --chmod=700 --from=custom_nodes ./google_genmedia ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia
-
-RUN source ${COMFY_DIR}/.venv/bin/activate \
-  && uv pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia/requirements.txt
 
 ENTRYPOINT  [ "./entrypoint.sh" ]
 CMD ["--", "--listen=${COMFYUI_HOST}", "--port=${COMFYUI_PORT}"]

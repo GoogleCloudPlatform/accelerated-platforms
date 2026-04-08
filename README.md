@@ -76,7 +76,7 @@ the primary runtime.
 - [LLM Inference Optimization: Achieving faster Pod Startup with Google Cloud Storage](/use-cases/inferencing/cost-optimization/gcsfuse/AchievingFasterPodStartup.md)
 - [Optimizing GKE Workloads with Custom Compute Classes](/docs/guides/optimizing-gke-workloads-with-custom-compute-classes/README.md)
 
-### [Deprecated] Playground AI/ML Platform on GKE
+### \[Deprecated\] Playground AI/ML Platform on GKE
 
 The [Playground AI/ML Platform on GKE](/platforms/gke-aiml/playground/README.md)
 is a quick-start implementation of the platform that can be used to familiarize

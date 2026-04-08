@@ -1,0 +1,55 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maxtext-checkpoint-to-hf-fixed
+  namespace: default
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      serviceAccountName: maxtext-ksa
+      restartPolicy: Never
+      containers:
+      - name: maxtext-to-hf
+        image: us-central1-docker.pkg.dev/accelerated-platforms-dev/ml-repo/maxtext-grpo-new:latest
+        resources:
+          requests:
+            cpu: "16"
+            memory: "64Gi"
+            ephemeral-storage: "20Gi"
+          limits:
+            cpu: "16"
+            memory: "64Gi"
+            ephemeral-storage: "20Gi"
+        env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-token
+              key: HF_TOKEN
+        - name: MAXTEXT_CKPT_PATH
+          value: "gs://accelerated-platforms-dev-trn-rl-gpu-hf-hub-models/my-grpo-checkpoints/rl_llama3_output/2026-03-11-01-28-34/2026-03-11-01-28-34/checkpoints/actor/400/model_params/"
+        - name: HF_EXPORT_BLOATED
+          value: "gs://accelerated-platforms-dev-trn-rl-gpu-hf-hub-models/my-grpo-checkpoints/hf_export_bloated/"
+        - name: HF_EXPORT_FINAL
+          value: "gs://accelerated-platforms-dev-trn-rl-gpu-hf-hub-models/my-grpo-checkpoints/hf_final_llama3/"
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -ex
+          
+          echo "STEP 0: Patching Orbax Metadata"
+          python3 -c "import tensorflow as tf; tf.io.gfile.GFile('${MAXTEXT_CKPT_PATH}_CHECKPOINT_METADATA', 'w').write('{}'); tf.io.gfile.GFile('${MAXTEXT_CKPT_PATH}_COMMIT_SUCCESS', 'w').write('')"
+
+          echo "STEP 1: Extracting to Hugging Face (Bloated)"
+          python3 /deps/src/maxtext/checkpoint_conversion/to_huggingface.py \
+              /deps/src/maxtext/configs/base.yml \
+              model_name=llama3.1-8b \
+              hf_access_token=$HF_TOKEN \
+              load_parameters_path=$MAXTEXT_CKPT_PATH \
+              base_output_directory=$HF_EXPORT_BLOATED \
+              scan_layers=True \
+              use_multimodal=False \
+              hardware=cpu \
+              weight_dtype=bfloat16 \
+              skip_jax_distributed_system=true

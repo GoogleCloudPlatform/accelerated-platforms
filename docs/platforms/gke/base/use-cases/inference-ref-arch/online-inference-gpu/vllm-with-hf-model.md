@@ -65,6 +65,30 @@ This example is built on top of the
     export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
+  - **Gemma 4 E2B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-e2b"
+    ```
+
+  - **Gemma 4 E4B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-e4b"
+    ```
+
+  - **Gemma 4 26B A4B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-26b-a4b"
+    ```
+
+  - **Gemma 4 31B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-31b"
+    ```
+
   - **gpt-oss-20b**
 
     ```shell
@@ -167,6 +191,10 @@ This example is built on top of the
     | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
     | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
     | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
+    | gemma-4-e2b                    | ✅  | ❌   | ❌   | ❌           |
+    | gemma-4-e4b                    | ✅  | ❌   | ❌   | ❌           |
+    | gemma-4-26b-a4b                | ✅  | ✅   | ❌   | ✅           |
+    | gemma-4-31b                    | ✅  | ✅   | ❌   | ✅           |
     | gpt-oss-20b                    | ✅  | ✅   | ✅   | ✅           |
     | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
     | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
@@ -270,6 +298,11 @@ guide.
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init &&
+  terraform destroy -auto-approve
+  ```
+nline_gpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init &&
   terraform destroy -auto-approve

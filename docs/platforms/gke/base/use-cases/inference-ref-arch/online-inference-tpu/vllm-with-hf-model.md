@@ -65,6 +65,30 @@ This example is built on top of the
     export HF_MODEL_ID="qwen/qwen3-32b"
     ```
 
+  - **Gemma 4 E2B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-e2b"
+    ```
+
+  - **Gemma 4 E4B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-e4b"
+    ```
+
+  - **Gemma 4 26B A4B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-26b-a4b"
+    ```
+
+  - **Gemma 4 31B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-31b"
+    ```
+
 - Source the environment configuration.
 
   ```shell
@@ -138,12 +162,16 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model          | v5e | v6e |
-    | -------------- | --- | --- |
-    | gemma-3-1b-it  | ✅  | ❌  |
-    | gemma-3-4b-it  | ✅  | ❌  |
-    | gemma-3-27b-it | ✅  | ✅  |
-    | qwen3-32b      | ✅  | ✅  |
+    | Model           | v5e | v6e |
+    | --------------- | --- | --- |
+    | gemma-3-1b-it   | ✅  | ❌  |
+    | gemma-3-4b-it   | ✅  | ❌  |
+    | gemma-3-27b-it  | ✅  | ✅  |
+    | gemma-4-e2b     | ✅  | ❌  |
+    | gemma-4-e4b     | ✅  | ❌  |
+    | gemma-4-26b-a4b | ❌  | ✅  |
+    | gemma-4-31b     | ❌  | ✅  |
+    | qwen3-32b       | ✅  | ✅  |
 
     - **v5e**:
 
@@ -225,6 +253,11 @@ The Kubernetes manifests are based on the
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init &&
+  terraform destroy -auto-approve
+  ```
+nline_tpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init &&
   terraform destroy -auto-approve

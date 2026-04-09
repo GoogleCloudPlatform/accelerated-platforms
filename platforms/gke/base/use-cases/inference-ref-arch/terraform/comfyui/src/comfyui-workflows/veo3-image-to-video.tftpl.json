@@ -32,7 +32,7 @@
         "Node name for S&R": "Veo3GcsUriImageToVideoNode"
       },
       "widgets_values": [
-        "VEO_3_1_PREVIEW",
+        "VEO_3_1",
         "${input_bucket_uri}/veo/jellyfish.png",
         "PNG",
         "",

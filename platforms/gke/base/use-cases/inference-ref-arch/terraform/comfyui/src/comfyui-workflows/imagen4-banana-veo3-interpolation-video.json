@@ -82,7 +82,7 @@
         "Node name for S&R": "Veo3ImageToVideoNode"
       },
       "widgets_values": [
-        "VEO_3_1_PREVIEW",
+        "VEO_3_1",
         "PNG",
         "a ticking clock audible, as the detective sternly asks, \"Where were you last night?\"",
         "16:9",
@@ -159,7 +159,7 @@
         "Node name for S&R": "Imagen4TextToImageNode"
       },
       "widgets_values": [
-        "IMAGEN_4_ULTRA_PREVIEW",
+        "IMAGEN_4_ULTRA",
         "Cinematic Over-the-Shoulder Shot of a detective interrogating a rubber duck in a dark interview room,",
         "allow_adult",
         "16:9",

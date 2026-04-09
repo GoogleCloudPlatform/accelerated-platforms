@@ -72,7 +72,7 @@ VEO3_VALID_ASPECT_RATIOS = ("16:9", "9:16")
 VEO3_VALID_DURATION_SECONDS = (4, 6, 8)
 VEO3_VALID_SAMPLE_COUNT = (1, 2, 3, 4)
 VIDEO_MIME_TYPES = ["video/mp4", "video/mpeg"]
-VTO_MODEL = "virtual-try-on-preview-08-04"
+VTO_MODEL = "virtual-try-on-001"
 VTO_USER_AGENT = "cloud-solutions/virtual-try-on-custom-node-v1"
 
 
@@ -83,7 +83,7 @@ class GeminiFlashImageModel(Enum):
 class GeminiModel(Enum):
     GEMINI_PRO = "gemini-2.5-pro"
     GEMINI_FLASH = "gemini-2.5-flash"
-    GEMINI_FLASH_LITE = "gemini-2.5-flash-lite-preview-06-17"
+    GEMINI_FLASH_LITE = "gemini-2.5-flash-lite"
 
 
 class GeminiProImageModel(Enum):
@@ -91,9 +91,9 @@ class GeminiProImageModel(Enum):
 
 
 class Imagen4Model(str, Enum):
-    IMAGEN_4_PREVIEW = "imagen-4.0-generate-preview-06-06"
-    IMAGEN_4_FAST_PREVIEW = "imagen-4.0-fast-generate-preview-06-06"
-    IMAGEN_4_ULTRA_PREVIEW = "imagen-4.0-ultra-generate-preview-06-06"
+    IMAGEN_4 = "imagen-4.0-generate-001"
+    IMAGEN_4_FAST = "imagen-4.0-fast-generate-001"
+    IMAGEN_4_ULTRA = "imagen-4.0-ultra-generate-001"
 
 
 class ThresholdOptions(Enum):
@@ -104,5 +104,5 @@ class ThresholdOptions(Enum):
 
 
 class Veo3Model(str, Enum):
-    VEO_3_1_PREVIEW = "veo-3.1-generate-preview"
-    VEO_3_1_FAST_PREVIEW = "veo-3.1-fast-generate-preview"
+    VEO_3_1 = "veo-3.1-generate-001"
+    VEO_3_1_FAST = "veo-3.1-fast-generate-001"

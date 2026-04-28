@@ -24,6 +24,10 @@ configMapGenerator:
 nameSuffix: -l4-gemma-4-e2b
 
 patches:
+  - path: patch-vllm-args.yaml
+    target:
+      kind: Deployment
+      name: vllm
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
 

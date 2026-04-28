@@ -302,8 +302,3 @@ guide.
   terraform init &&
   terraform destroy -auto-approve
   ```
-nline_gpu && \
-  rm -rf .terraform/ terraform.tfstate* && \
-  terraform init &&
-  terraform destroy -auto-approve
-  ```

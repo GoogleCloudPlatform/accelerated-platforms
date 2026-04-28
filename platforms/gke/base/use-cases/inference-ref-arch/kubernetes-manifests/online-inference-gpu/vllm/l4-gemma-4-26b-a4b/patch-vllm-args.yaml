@@ -11,19 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vllm
-  namespace: replaced-by-kustomize
-spec:
-  template:
-    spec:
-      containers:
-        - name: inference-server
-          resources:
-            limits:
-              google.com/tpu: "1"
-            requests:
-              google.com/tpu: "1"
+
+- op: add
+  path: /spec/template/spec/containers/1/args/-
+  value: "--chat-template=/gcs/google/gemma-4-26b-a4b/chat_template.jinja"

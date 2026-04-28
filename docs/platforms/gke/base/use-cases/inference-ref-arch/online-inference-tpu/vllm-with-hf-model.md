@@ -257,8 +257,3 @@ The Kubernetes manifests are based on the
   terraform init &&
   terraform destroy -auto-approve
   ```
-nline_tpu && \
-  rm -rf .terraform/ terraform.tfstate* && \
-  terraform init &&
-  terraform destroy -auto-approve
-  ```

@@ -65,18 +65,6 @@ This example is built on top of the
     export HF_MODEL_ID="qwen/qwen3-32b"
     ```
 
-  - **Gemma 4 E2B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="google/gemma-4-e2b"
-    ```
-
-  - **Gemma 4 E4B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="google/gemma-4-e4b"
-    ```
-
   - **Gemma 4 26B A4B Instruction-Tuned**:
 
     ```shell
@@ -167,8 +155,6 @@ This example is built on top of the
     | gemma-3-1b-it   | ✅  | ❌  |
     | gemma-3-4b-it   | ✅  | ❌  |
     | gemma-3-27b-it  | ✅  | ✅  |
-    | gemma-4-e2b     | ✅  | ❌  |
-    | gemma-4-e4b     | ✅  | ❌  |
     | gemma-4-26b-a4b | ❌  | ✅  |
     | gemma-4-31b     | ❌  | ✅  |
     | qwen3-32b       | ✅  | ✅  |

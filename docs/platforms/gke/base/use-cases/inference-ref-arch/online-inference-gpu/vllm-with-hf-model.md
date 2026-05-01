@@ -47,24 +47,6 @@ This example is built on top of the
 
 - Choose the model.
 
-  - **Gemma 3 1B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="google/gemma-3-1b-it"
-    ```
-
-  - **Gemma 3 4B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="google/gemma-3-4b-it"
-    ```
-
-  - **Gemma 3 27B Instruction-Tuned**:
-
-    ```shell
-    export HF_MODEL_ID="google/gemma-3-27b-it"
-    ```
-
   - **Gemma 4 E2B Instruction-Tuned**:
 
     ```shell
@@ -87,6 +69,24 @@ This example is built on top of the
 
     ```shell
     export HF_MODEL_ID="google/gemma-4-31b"
+    ```
+
+  - **Gemma 3 1B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-3-1b-it"
+    ```
+
+  - **Gemma 3 4B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-3-4b-it"
+    ```
+
+  - **Gemma 3 27B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
   - **gpt-oss-20b**
@@ -188,13 +188,13 @@ This example is built on top of the
 
     | Model                          | l4  | h100 | h200 | RTX Pro 6000 |
     | ------------------------------ | --- | ---- | ---- | ------------ |
-    | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
-    | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
-    | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
     | gemma-4-e2b                    | ✅  | ❌   | ❌   | ❌           |
     | gemma-4-e4b                    | ✅  | ❌   | ❌   | ❌           |
     | gemma-4-26b-a4b                | ✅  | ✅   | ❌   | ✅           |
     | gemma-4-31b                    | ✅  | ✅   | ❌   | ✅           |
+    | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
+    | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
+    | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
     | gpt-oss-20b                    | ✅  | ✅   | ✅   | ✅           |
     | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
     | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |

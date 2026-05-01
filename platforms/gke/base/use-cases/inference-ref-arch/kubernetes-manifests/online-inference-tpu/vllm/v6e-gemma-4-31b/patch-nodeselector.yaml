@@ -21,4 +21,4 @@ spec:
   template:
     spec:
       nodeSelector:
-        cloud.google.com/compute-class: tpu-v6e-2x4
+        cloud.google.com/compute-class: tpu-v6e-2x2

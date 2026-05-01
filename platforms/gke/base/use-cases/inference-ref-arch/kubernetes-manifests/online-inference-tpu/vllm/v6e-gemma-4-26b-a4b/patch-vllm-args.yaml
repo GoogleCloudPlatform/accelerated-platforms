@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+---
 - op: add
   path: /spec/template/spec/containers/1/args/-
   value: "--chat-template=/gcs/google/gemma-4-26b-a4b/chat_template.jinja"

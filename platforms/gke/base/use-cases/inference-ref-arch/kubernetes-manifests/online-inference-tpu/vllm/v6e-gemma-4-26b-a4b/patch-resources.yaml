@@ -24,6 +24,6 @@ spec:
         - name: inference-server
           resources:
             limits:
-              google.com/tpu: "8"
+              google.com/tpu: "4"
             requests:
-              google.com/tpu: "8"
+              google.com/tpu: "4"

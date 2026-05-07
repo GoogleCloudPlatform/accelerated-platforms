@@ -44,9 +44,9 @@ source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
 
 export ACCELERATOR_TYPE="l4"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-load-generator/configure_load_generator.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/batch-pubsub-subscriber/configure_pubsub_subscriber.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/batch-inference-gpu/vllm/configure_vllm.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/async-inference-gpu/async-load-generator/configure_load_generator.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/async-inference-gpu/async-pubsub-subscriber/configure_pubsub_subscriber.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/async-inference-gpu/vllm/configure_vllm.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/configure_vllm.sh"
 
@@ -54,10 +54,15 @@ export ACCELERATOR_TYPE="v5e"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/configure_max_diffusion.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/configure_vllm.sh"
 
-# Validate inference-perf kustomize 
+# Validate inference-perf kustomize
 export ACCELERATOR_TYPE="rtx-pro-6000"
 export ACCELERATOR="GPU"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/configure_benchmark.sh"
+export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/configure_benchmark.sh"
+export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-ngram"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-ngram/configure_benchmark.sh"
+export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-eagle"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-eagle/configure_benchmark.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/configure_vllm_spec_decoding.sh"
 
 # Validate offline-batch-inference-gpu kustomize
@@ -67,6 +72,14 @@ source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terrafor
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/configure_jobset.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-dataset-downloader/configure_dataset_downloader.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/configure_worker.sh"
+
+# This section deals with validating kustomize for llm deployment. It is slightly different because it exists `examples` directory and not under the `terraform`directory.
+# HF_MODEL_ID and ACCELERATOR_TYPE for llmd deployment are derived from llm_model_id and llm_accelerator_type variables respectively when the env variable file is sourced.
+# If we do not set llm_model_id and llm_accelerator_type below, HF_MODEL_ID and ACCELERATOR_TYPE will be set to the default values of these variables respectively.
+export llmd_model_id="google/gemma-3-27b-it"
+export llmd_accelerator_type="l4"
+source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd/vllm/configure_vllm.sh"
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"

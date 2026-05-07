@@ -30,7 +30,7 @@
   },
   "8": {
     "inputs": {
-      "model": "IMAGEN_4_ULTRA_PREVIEW",
+      "model": "IMAGEN_4_ULTRA",
       "prompt": "Cinematic Over-the-Shoulder Shot of a detective interrogating a rubber duck in a dark interview room,",
       "person_generation": "allow_adult",
       "aspect_ratio": "16:9",
@@ -51,7 +51,7 @@
   },
   "10": {
     "inputs": {
-      "model": "VEO_3_1_PREVIEW",
+      "model": "VEO_3_1",
       "image_format": "PNG",
       "prompt": "a ticking clock audible, as the detective sternly asks, \"Where were you last night?\"",
       "aspect_ratio": "16:9",

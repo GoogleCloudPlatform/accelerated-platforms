@@ -1,0 +1,62 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maxtext-rl-job-v5e
+  namespace: default
+spec:
+  backoffLimit: 0 
+  template:
+    metadata:
+      labels:
+        app: maxtext-rl-v5e
+      # 1. Enable the GCS FUSE sidecar injection
+      annotations:
+        gke-gcsfuse/volumes: "true"
+    spec:
+      nodeSelector:
+        cloud.google.com/gke-nodepool: tpu-1
+        cloud.google.com/gke-tpu-accelerator: tpu-v5-lite-podslice
+        cloud.google.com/gke-tpu-topology: 2x4
+      restartPolicy: Never
+      containers:
+      - name: maxtext-trainer
+        image: us-central2-docker.pkg.dev/tpu-vm-gke-testing/maxtext-images/maxtext-post-training:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "Installing custom dependencies..."
+          pip install mlflow google-cloud-storage
+          
+          echo "Starting RL Training via GCS FUSE..."
+          # 2. Run the script directly from the mounted bucket!
+          python3 /gcs-mount/maxtext/scripts/train_v5e.py 
+        env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: HF_TOKEN
+        # 3. Tell MaxText to output to the local mount instead of a gs:// URI
+        - name: GCS_OUTPUT_PATH
+          value: "/gcs-mount/maxtext"
+        - name: MLFLOW_TRACKING_URI
+          value: "http://mlflow-service-v5e.default.svc.cluster.local:5000"
+        - name: RUN_NAME
+          value: "v5e-1epoch-run"
+        resources:
+          limits:
+            google.com/tpu: 8
+        # 4. Mount the FUSE volume to the container
+        volumeMounts:
+        - name: gcs-fuse-vol
+          mountPath: /gcs-mount
+      volumes:
+      # 5. Define the CSI driver and attach your specific bucket
+      - name: gcs-fuse-vol
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          volumeAttributes:
+            bucketName: kenthua-gcs-bucket
+            mountOptions: "implicit-dirs"
+            

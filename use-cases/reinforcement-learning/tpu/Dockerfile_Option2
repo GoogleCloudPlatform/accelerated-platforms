@@ -1,0 +1,31 @@
+FROM python:3.12-slim
+
+# Install Docker CLI, git, and required build tools
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up the virtual environment paths
+ENV VIRTUAL_ENV=/opt/docker_venv
+ENV PATH="${VIRTUAL_ENV}/bin:$PATH"
+
+WORKDIR /workspace
+
+# Clone the MaxText repository (using the latest stable tag or main)
+RUN git clone https://github.com/AI-Hypercomputer/maxtext.git /workspace/maxtext
+
+# Install uv
+RUN pip install uv
+
+# Create the virtual environment
+RUN uv venv --python 3.12 --seed ${VIRTUAL_ENV}
+
+# Install MaxText from the cloned source directory with the [runner] extra
+# This ensures the local build scripts are correctly linked and available
+WORKDIR /workspace/maxtext
+RUN uv pip install --python ${VIRTUAL_ENV} -e .[runner] --resolution=lowest
+
+# Execute the build command natively
+CMD build_maxtext_docker_image WORKFLOW=post-training
+

@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y \
+    docker.io \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Explicitly set the VIRTUAL_ENV variable so uv recognizes it
+ENV VIRTUAL_ENV=/opt/docker_venv
+ENV PATH="${VIRTUAL_ENV}/bin:$PATH"
+
+RUN pip install uv
+
+RUN uv venv --python 3.12 --seed ${VIRTUAL_ENV}
+
+# Force uv to install directly into the virtual environment
+RUN uv pip install --python ${VIRTUAL_ENV} maxtext[runner] --resolution=lowest
+
+WORKDIR /workspace
+
+# Use the shell form so the environment variables are correctly evaluated
+CMD build_maxtext_docker_image WORKFLOW=post-training

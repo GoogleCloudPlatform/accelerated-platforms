@@ -1,0 +1,26 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        apt-get update && apt-get install -y curl git
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        source $$HOME/.local/bin/env
+        uv python install 3.12
+        uv venv --python 3.12 --seed maxtext_venv
+        source maxtext_venv/bin/activate
+        uv pip install maxtext[runner]==0.2.1 --resolution=lowest
+        build_maxtext_docker_image WORKFLOW=post-training
+        docker tag maxtext_base_image ${_GAR_REPO}/maxtext-post-training:latest
+
+images:
+  - '${_GAR_REPO}/maxtext-post-training:latest'
+
+options:
+  machineType: E2_HIGHCPU_32
+  diskSizeGb: 200
+  logging: CLOUD_LOGGING_ONLY
+
+# EXPLICITLY TELL CLOUD BUILD WHICH SERVICE ACCOUNT TO USE
+serviceAccount: 'projects/tpu-vm-gke-testing/serviceAccounts/288446977598-compute@developer.gserviceaccount.com'

@@ -26,11 +26,16 @@ images:
     newName: vllm/vllm-tpu
     newTag: gemma4
 
-nameSuffix: -v6e-gemma-3-27b-it
+nameSuffix: -v6e-gemma-4-31b
 
 patches:
+  - path: patch-vllm-args.yaml
+    target:
+      kind: Deployment
+      name: vllm
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
+
 
 replacements:
   - source:

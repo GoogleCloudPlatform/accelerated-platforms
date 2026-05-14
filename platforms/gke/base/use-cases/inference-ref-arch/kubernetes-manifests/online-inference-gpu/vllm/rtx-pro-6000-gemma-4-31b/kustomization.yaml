@@ -23,12 +23,16 @@ configMapGenerator:
 
 images:
   - name: replaced-by-kustomize
-    newName: vllm/vllm-tpu
+    newName: vllm/vllm-openai
     newTag: gemma4
 
-nameSuffix: -v6e-gemma-3-27b-it
+nameSuffix: -rtx-pro-6000-gemma-4-31b
 
 patches:
+  - path: patch-vllm-args.yaml
+    target:
+      kind: Deployment
+      name: vllm
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
 
@@ -47,15 +51,6 @@ replacements:
           - spec.selector.app
         select:
           kind: Service
-  # - source:
-  #     fieldPath: data.CONTAINER_IMAGE_URL
-  #     kind: ConfigMap
-  #     name: vllm
-  #   targets:
-  #     - fieldPaths:
-  #         - spec.template.spec.containers.[name=inference-server].image
-  #       select:
-  #         kind: Deployment
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
       kind: ConfigMap

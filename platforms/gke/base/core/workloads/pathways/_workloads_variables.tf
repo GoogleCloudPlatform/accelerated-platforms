@@ -17,7 +17,7 @@ locals {
 }
 
 variable "custom_metrics_adapter_version" {
-  default     = "0.16.7"
+  default     = "0.16.5"
   description = "Version of Custom Metrics Adapter (https://github.com/GoogleCloudPlatform/k8s-stackdriver) to install."
   type        = string
 }
@@ -29,26 +29,26 @@ variable "inference_gateway_kubernetes_namespace" {
 }
 
 variable "inference_gateway_version" {
-  default     = "1.5.0"
+  default     = "1.4.0"
   description = "Version of Gateway API Inference Extension (https://github.com/kubernetes-sigs/gateway-api-inference-extension) to install."
   type        = string
 }
 
 variable "jobset_version" {
-  default     = "0.12.0"
+  default     = "0.11.1"
   description = "Version of JobSet (https://github.com/kubernetes-sigs/jobset/) to install."
   type        = string
 }
 
 variable "kuberay_version" {
-  default     = "1.6.1"
+  default     = "1.6.0"
   description = "Version of KubeRay (https://github.com/ray-project/kuberay) to install."
   type        = string
 }
 
 variable "kueue_version" {
-  default     = "0.17.2"
-  description = "Version of Kueue (https://github.com/kubernetes-sigs/kueue) to install."
+  default     = "0.16.4"
+  description = "Version of Kueue (https://kueue.sigs.k8s.io/) to install."
   type        = string
 }
 

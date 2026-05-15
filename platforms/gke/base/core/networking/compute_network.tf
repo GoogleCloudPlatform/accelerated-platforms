@@ -185,3 +185,34 @@ EOT
     working_dir = path.module
   }
 }
+
+resource "terraform_data" "firewall_cleanup" {
+  depends_on = [
+    google_compute_network.vpc,
+    google_compute_subnetwork.region,
+  ]
+
+  for_each = toset(var.network_cluster_network_name == null ? ["run-on-destroy"] : [])
+
+  input = {
+    network_self_link = data.google_compute_network.vpc.self_link
+    project_id        = google_project_service.compute_googleapis_com.project
+  }
+
+  provisioner "local-exec" {
+    command     = <<EOT
+echo "Cleaning up auto-generated CSM firewall rules..."
+rules=$(gcloud compute firewalls list --filter="network=${self.input.network_self_link} AND name~'^gke-csm-'" --format="value(name)" --project=${self.input.project_id})
+
+for rule in $${rules}; do
+  echo "Deleting firewall rule: $${rule}..."
+  gcloud compute firewalls delete $${rule} \
+  --project=${self.input.project_id} \
+  --quiet
+done
+EOT
+    interpreter = ["bash", "-c"]
+    when        = destroy
+    working_dir = path.module
+  }
+}

@@ -187,11 +187,6 @@ EOT
 }
 
 resource "terraform_data" "firewall_cleanup" {
-  depends_on = [
-    google_compute_network.vpc,
-    google_compute_subnetwork.region,
-  ]
-
   for_each = toset(var.network_cluster_network_name == null ? ["run-on-destroy"] : [])
 
   input = {

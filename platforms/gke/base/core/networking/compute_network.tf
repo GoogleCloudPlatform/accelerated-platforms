@@ -202,11 +202,11 @@ resource "terraform_data" "firewall_cleanup" {
   provisioner "local-exec" {
     command     = <<EOT
 echo "Cleaning up auto-generated CSM firewall rules..."
-rules=$(gcloud compute firewalls list --filter="network=${self.input.network_self_link} AND name~'^gke-csm-'" --format="value(name)" --project=${self.input.project_id})
+rules=$(gcloud compute firewall-rules list --filter="network=${self.input.network_self_link} AND name~'^gke-csm-'" --format="value(name)" --project=${self.input.project_id})
 
 for rule in $${rules}; do
   echo "Deleting firewall rule: $${rule}..."
-  gcloud compute firewalls delete $${rule} \
+  gcloud compute firewall-rules delete $${rule} \
   --project=${self.input.project_id} \
   --quiet
 done

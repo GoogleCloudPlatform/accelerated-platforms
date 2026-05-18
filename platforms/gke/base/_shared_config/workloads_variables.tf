@@ -16,6 +16,12 @@ locals {
   manifests_directory_root = "${path.module}/../../../kubernetes/manifests"
 }
 
+variable "agent_sandbox_version" {
+  default     = "0.4.6"
+  description = "Version of Agent Sandbox (https://github.com/kubernetes-sigs/agent-sandbox) to install."
+  type        = string
+}
+
 variable "custom_metrics_adapter_version" {
   default     = "0.16.2"
   description = "Version of Custom Metrics Adapter (https://github.com/GoogleCloudPlatform/k8s-stackdriver) to install."

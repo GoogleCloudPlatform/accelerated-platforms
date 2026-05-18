@@ -51,7 +51,6 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "workloads/lws"
   "workloads/priority_class"
   "workloads/kueue"
-  "workloads/pathways"
 )
 CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 

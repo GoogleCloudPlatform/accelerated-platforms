@@ -19,7 +19,7 @@ ARG python_version=3.13.9
 FROM python:${python_version}-slim-trixie
 
 ENV CMAKE_BUILD_PARALLEL_LEVEL="8"
-ENV COMFY_VERSION="0.3.66"
+ENV COMFY_VERSION="0.18.5"
 ENV DEBIAN_FRONTEND="noninteractive"
 ENV PIP_PREFER_BINARY="1"
 ENV PYTORCH_VERSION="2.7.0"
@@ -78,15 +78,11 @@ ENV WORKFLOWS_DIR="${COMFY_HOME}/user/default/workflows"
 ENV COMFYUI_HOST="0.0.0.0"
 ENV COMFYUI_PORT="8188"
 
-ARG COMFYUI_CUSTOM_NODE_PATH="${COMFY_HOME}/custom_nodes"
-
-COPY --chown=${USER}:${GROUP} --chmod=700 --from=custom_nodes ./google_genmedia ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia
-
 RUN source "${COMFY_DIR}/.venv/bin/activate" \
-  && uv pip install -r ${COMFYUI_CUSTOM_NODE_PATH}/google-genmedia/requirements.txt \
   && comfy node install comfyui-browser \
   && comfy node install ComfyUI-Custom-Scripts@nightly \
-  && comfy node install ComfyUI-VideoHelperSuite@nightly
+  && comfy node install ComfyUI-VideoHelperSuite@nightly \
+  && comfy node install https://github.com/GoogleCloudPlatform/comfyui-google-genmedia-custom-nodes
 
 COPY --chown=${USER}:${GROUP} --chmod=700 --from=comfyui entrypoint.sh ./
 

@@ -41,6 +41,18 @@ This example is built on top of the
 
 - Choose the model ID.
 
+  - **Gemma 4 26B A4B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-26b-a4b"
+    ```
+
+  - **Gemma 4 31B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-31b"
+    ```
+
   - **Gemma 3 1B Instruction-Tuned**:
 
     ```shell
@@ -59,7 +71,7 @@ This example is built on top of the
     export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
-  - **Qwen 3 32B **:
+  - **Qwen 3 32B**:
 
     ```shell
     export HF_MODEL_ID="qwen/qwen3-32b"
@@ -138,12 +150,14 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model          | v5e | v6e |
-    | -------------- | --- | --- |
-    | gemma-3-1b-it  | ✅  | ❌  |
-    | gemma-3-4b-it  | ✅  | ❌  |
-    | gemma-3-27b-it | ✅  | ✅  |
-    | qwen3-32b      | ✅  | ✅  |
+    | Model           | v5e | v6e |
+    | --------------- | --- | --- |
+    | gemma-4-26b-a4b | ❌  | ✅  |
+    | gemma-4-31b     | ❌  | ✅  |
+    | gemma-3-1b-it   | ✅  | ❌  |
+    | gemma-3-4b-it   | ✅  | ❌  |
+    | gemma-3-27b-it  | ✅  | ✅  |
+    | qwen3-32b       | ✅  | ✅  |
 
     - **v5e**:
 

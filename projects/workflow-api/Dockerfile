@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.23-alpine
+FROM golang:1.24-alpine
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN go mod download && go mod verify
 
 COPY . /app/
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o go-api-server ./cmd/server/main.go && \ 
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o go-api-server ./cmd/server/main.go && \
   chmod +x go-api-server
 
 EXPOSE 8080

@@ -98,7 +98,7 @@ class Imagen4API(VertexAIClient):
             raise APIInputError(f"Unsupported image format: {output_image_type}")
 
         model = Imagen4Model[model]
-        if model == Imagen4Model.IMAGEN_4_ULTRA_PREVIEW.value and number_of_images > 1:
+        if model == Imagen4Model.IMAGEN_4_ULTRA.value and number_of_images > 1:
             raise APIInputError("Ultra model only generates one image at a time.")
 
         return utils.generate_image_from_text(

@@ -47,6 +47,30 @@ This example is built on top of the
 
 - Choose the model.
 
+  - **Gemma 4 E2B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-e2b"
+    ```
+
+  - **Gemma 4 E4B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-e4b"
+    ```
+
+  - **Gemma 4 26B A4B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-26b-a4b"
+    ```
+
+  - **Gemma 4 31B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-31b"
+    ```
+
   - **Gemma 3 1B Instruction-Tuned**:
 
     ```shell
@@ -164,6 +188,10 @@ This example is built on top of the
 
     | Model                          | l4  | h100 | h200 | RTX Pro 6000 |
     | ------------------------------ | --- | ---- | ---- | ------------ |
+    | gemma-4-e2b                    | ✅  | ❌   | ❌   | ❌           |
+    | gemma-4-e4b                    | ✅  | ❌   | ❌   | ❌           |
+    | gemma-4-26b-a4b                | ✅  | ✅   | ❌   | ✅           |
+    | gemma-4-31b                    | ✅  | ✅   | ❌   | ✅           |
     | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
     | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
     | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |

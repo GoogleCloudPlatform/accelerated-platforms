@@ -13,8 +13,6 @@
 # limitations under the License.
 
 data "google_container_cluster" "cluster" {
-  provider = google-beta
-
   location = local.cluster_region
   name     = local.cluster_name
   project  = data.google_project.cluster.project_id

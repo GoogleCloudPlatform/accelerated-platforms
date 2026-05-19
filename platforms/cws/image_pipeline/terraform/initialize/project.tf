@@ -56,8 +56,6 @@ resource "google_project_service_identity" "cloudbuild" {
     ]
   )
 
-  provider = google-beta
-
   project = google_project_service.cloudbuild["cloudbuild.googleapis.com"].project
   service = each.value
 }

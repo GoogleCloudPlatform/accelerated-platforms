@@ -62,6 +62,7 @@ the primary runtime.
       - [Benchmarking Online inference performance on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md)
 
 - [Training reference architecture](/docs/platforms/gke/base/use-cases/training-ref-arch/README.md)
+
   - [Model fine tuning](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/README.md)
     - [Data processing](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/data-processing.md)
     - [Data preparation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/data-preparation.md)

@@ -269,7 +269,7 @@ resource "google_container_cluster" "mlp" {
   }
 
   release_channel {
-    channel = "REGULAR"
+    channel = "STABLE"
   }
 
   secret_manager_config {

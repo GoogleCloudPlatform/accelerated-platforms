@@ -15,11 +15,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: hf-model-to-gcs
+  name: inference-perf
   namespace: replaced-by-kustomize
 spec:
   template:
     spec:
       nodeSelector:
-        cloud.google.com/compute-class: model-download
-        iam.gke.io/gke-metadata-server-enabled: "true"
+        cloud.google.com/compute-class: cpu-perf

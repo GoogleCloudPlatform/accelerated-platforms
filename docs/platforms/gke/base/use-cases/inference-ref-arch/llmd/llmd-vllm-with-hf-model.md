@@ -456,102 +456,85 @@ the model from GCS saves time, take a look at
 > If the output of the command is `PROVISIONING`, it means the certificate has
 > not been provisioned yet. Wait for the status to change to `ACTIVE`
 
-## Generate load on the model server
+## Benchmarking with inference-perf
 
-In this section, you will generate some load on the model server and view the
-metrics on the monitoring dashboard. Then, you will run the stress test to spawn
-many requests to build the processing queue. Note that the scripts used in this
-section spawn requests to the gradio endpoint which will route the request to
-the model server via llm-d's intelligent scheduling. This is done to replicate a
-real-world scenario where the model server is running behind a front end. Due to
-the additional front end layer(in this case, gradio), the metrics will indicate
-a slightly lower performance compared to the scenario where the requests are
-directly sent to the model server via llm-d internal load balancer eliminating
-the latency caused by the front end layer.
+In this section, you will use the `inference-perf` tool to generate load and benchmark the model server through the GKE Inference Gateway. This provides a more standardized and detailed performance analysis.
 
-1. In order to send a request to the gradio chat interface fronting llm-d and
-   model server, the active `gcloud` account needs to have the
-   [Service Account Token Creator](https://cloud.google.com/iam/docs/roles-permissions/iam#iam.serviceAccountTokenCreator)
-   role for the stress test service account. The following command will add the
-   role to the active `gcloud` account.
+This implementation uses the custom configuration for multi-turn interactive chat created in the `llmd-chat` directory.
 
-   ```shell
-   gcloud iam service-accounts add-iam-policy-binding ${stress_test_service_account_email} \
-   --member="user:$(gcloud auth list --filter=status:ACTIVE --format="value(account)")" \
-   --project="${stress_test_service_account_project_id}" \
-   --role="roles/iam.serviceAccountTokenCreator"
-   ```
+### Prerequisites
 
-   The stress test service account has the role
-   `roles/iap.httpsResourceAccessor` and can access the gradio chat application
-   secured by Identity-Aware proxy.
+- Ensure you have followed the steps to create the necessary GCS bucket for results and set up IAM permissions.
+- Ensure your Hugging Face token is in Secret Manager.
 
-2. Generate JSON Web Token (JWT)
+### 1. Deploy the Benchmarking Infrastructure (Terraform)
 
-   ```shell
-   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/scripts && \
-   cat > jwt-claim.json << EOF
-   {
-    "iss": "${stress_test_service_account_email}",
-    "sub": "${stress_test_service_account_email}",
-    "aud": "https://${llmd_endpoints_hostname}/gradio_api/api/sync_chat/",
-    "iat": $(date +%s),
-    "exp": $((`date +%s` + 3600))
-   }
-   EOF
-   ```
+Before running the benchmark, you need to provision the GCS bucket for results and set up the IAM permissions for the service account. You can leverage the existing `inference_perf_bench` terraform module for this.
 
-   Wait for a couple of mins as the IAM permissions could take some time to
-   reflect the changes.
+```shell
+export TF_VAR_enable_gpu=true
+export TF_VAR_enable_tpu=false # Set according to your needs
+```
 
-   ```shell
-   gcloud iam service-accounts sign-jwt --iam-account="${stress_test_service_account_email}" jwt-claim.json token.jwt
-   ```
+```shell
+export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/inference_perf_bench && \
+rm -rf .terraform/ terraform.tfstate* && \
+terraform init && \
+terraform plan -input=false -out=tfplan && \
+terraform apply -input=false tfplan && \
+rm tfplan
+```
 
-3. Set up python virtual environment and install required packages
+### 2. Configure the environment variables
 
-   ```
-   python3 -m venv venv &&
-   source venv/bin/activate &&
-   pip install aiohttp
-   ```
+Set the `GATEWAY_URL` to point to your `llm-d` gateway endpoint.
 
-4. Run the script to trigger generate some load.
+```shell
+export ACCELERATOR="GPU" # or "TPU"
+export ACCELERATOR_TYPE="l4" # or h100, v6e, etc.
+export HF_MODEL_ID="qwen/qwen3-32b" # or the model you deployed
+export GATEWAY_URL="http://gateway-service.llm-d-serving.svc.cluster.local:80/qwen3-32b" # Update with your actual gateway URL
+```
 
-   ```shell
-   python ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/initialize/scripts/generate_load.py
-   ```
+Source the environment configuration to resolve other variables:
 
-   The response should look like this:
+```shell
+source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+```
 
-   ```
-   Preparing to send the requests to the MODEL qwen/qwen3-32b
-   Starting Load: 500 concurrent users...
-   User 01 | Status: 200
-   User 02 | Status: 200
-   User 04 | Status: 200
-   User 05 | Status: 200
-   ```
+### 3. Configure the benchmarking job
 
-5. Go to
-   [Cloud Monitoring Dashboard page](https://console.cloud.google.com/monitoring/dashboards?pli=1)
-   and search for `llm-d dashboard`. Open the dashboard. You will see various
-   metrics getting populated including TTFT, TPOT, Input Token/s , Output
-   Token/s etc. You will see something similar to the following pic.
+Navigate to the `llmd-chat` benchmark directory and run the configuration script:
 
-![dashboard](../images/llmd-dashboard.png)
+```shell
+cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/llmd-chat"
+./configure_benchmark.sh
+```
 
-- You can view the metrics published by `vllm` and `gaie` on the dashboard. Note
-  that some of the network metrics like `Throughput TX Bytes per Pod` are only
-  applicable to non-spot and A3 and higher machine types.
+### 4. Deploy the benchmarking job
 
-Note : Now, if you want to run different combinations of model and
-accelerator(e.g. openai/gpt-oss-20b on H100), update the Terraform variables
-`llmd_model_id` and `llmd_accelerator_type` in
-`"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars"`
-to the model and accelerator of your choice and run
-[model download](#download-the-model-to-cloud-storage) and
-[model server deployment](#deploy-the-model-server) steps again.
+```shell
+kubectl apply --kustomize .
+```
+
+### 5. Check the status of the job
+
+```shell
+kubectl get job -l app=inference-perf
+# Follow logs
+kubectl logs -l app=inference-perf -f
+```
+
+### 6. Analyze Results
+
+Once the job is complete, results will be in your GCS bucket (if configured). You can download and analyze them using the `inference-perf` tool:
+
+```shell
+gcloud storage cp -r gs://${hub_models_bucket_bench_results_name}/ .
+inference-perf --analyze ${hub_models_bucket_bench_results_name}/*
+```
+
 
 ## Teardown
 

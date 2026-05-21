@@ -509,6 +509,7 @@ locals {
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
     "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     local.platforms_gke_base_core_ap_scripts_cb_yaml,
   ]
 }
@@ -581,6 +582,7 @@ locals {
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
     "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     local.platforms_gke_base_core_scripts_cb_yaml,
   ]
 }
@@ -649,6 +651,8 @@ locals {
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/tutorials/hf-gpu-model/deploy-ap.sh",
     "platforms/gke/base/tutorials/hf-gpu-model/teardown-ap.sh",
@@ -725,6 +729,8 @@ locals {
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     "platforms/gke/base/tutorials/hf-gpu-model/deploy-standard.sh",
     "platforms/gke/base/tutorials/hf-gpu-model/teardown-standard.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
@@ -800,6 +806,8 @@ locals {
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     "platforms/gke/base/tutorials/hf-tpu-model/deploy-ap.sh",
     "platforms/gke/base/tutorials/hf-tpu-model/teardown-ap.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
@@ -875,6 +883,8 @@ locals {
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     "platforms/gke/base/tutorials/hf-tpu-model/deploy-standard.sh",
     "platforms/gke/base/tutorials/hf-tpu-model/teardown-standard.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",

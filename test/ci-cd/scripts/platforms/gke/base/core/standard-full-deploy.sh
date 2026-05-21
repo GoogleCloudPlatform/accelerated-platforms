@@ -50,6 +50,8 @@ declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   "workloads/kueue"
   "workloads/lws"
   "workloads/agent_sandbox"
+  "workloads/priority_class"
+  "workloads/pathways"
 )
 export CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY_ARRAY[*]}"
 

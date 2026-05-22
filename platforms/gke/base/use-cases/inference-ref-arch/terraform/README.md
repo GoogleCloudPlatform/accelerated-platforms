@@ -181,6 +181,7 @@ For more information about providing values for Terraform input variables, see
         </summary>
         <ul>
           <li>cpu-e2-s-16</li>
+          <li>cpu-n4-8</li>
           <li>cpu-n4-s-8</li>
         <ul>
       </details>

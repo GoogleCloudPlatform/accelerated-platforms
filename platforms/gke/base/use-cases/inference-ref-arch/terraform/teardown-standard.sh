@@ -69,6 +69,7 @@ done
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
   declare -a CORE_TERRASERVICES_DESTROY=(
     "workloads/kueue"
+    "workloads/nri_device_injector"
     "workloads/priority_class"
     "workloads/lws"
     "workloads/jobset"

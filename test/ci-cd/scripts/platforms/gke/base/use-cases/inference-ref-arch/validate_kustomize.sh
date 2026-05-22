@@ -54,6 +54,10 @@ export ACCELERATOR_TYPE="l4"
 export HF_MODEL_ID="black-forest-labs/flux.1-schnell"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
 
+# Validate diffusers kustomize
+export HF_MODEL_ID="black-forest-labs/flux.1-schnell"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
+
 export ACCELERATOR_TYPE="v5e"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/configure_max_diffusion.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/configure_vllm.sh"

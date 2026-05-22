@@ -57,6 +57,8 @@ locals {
   ira_online_gpu_kubernetes_service_account_name = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_vllm_image_url                  = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
 
+  ira_online_gpu_diffusers_sglang_diffusers_image_url = var.ira_online_gpu_sglang_diffusers_image_url != null ? var.ira_online_gpu_sglang_diffusers_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/sglang:latest"
+
   ira_online_tpu_kubernetes_namespace_name       = var.ira_online_tpu_kubernetes_namespace_name != null ? var.ira_online_tpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-tpu"
   ira_online_tpu_kubernetes_service_account_name = var.ira_online_tpu_kubernetes_service_account_name != null ? var.ira_online_tpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-tpu"
   ira_online_tpu_max_diffusion_sdxl_image_url    = var.ira_online_tpu_max_diffusion_sdxl_image_url != null ? var.ira_online_tpu_max_diffusion_sdxl_image_url : "${local.cloudbuild_ar_image_repository_url}/tpu-max-diffusion/sdxl:latest"
@@ -238,6 +240,12 @@ variable "ira_online_gpu_vllm_image_url" {
   type        = string
 }
 
+variable "ira_online_gpu_sglang_diffusers_image_url" {
+  default     = null
+  description = "The URL for the GPU SGLang Diffusers container image."
+  type        = string
+}
+
 variable "ira_online_tpu_kubernetes_namespace_name" {
   default     = null
   description = "The Kubernetes namespace for the online TPU inference workloads."
@@ -291,4 +299,3 @@ variable "enable_tpu" {
   description = "Turns on inference-perf resources for TPU cluster"
   type        = bool
 }
-

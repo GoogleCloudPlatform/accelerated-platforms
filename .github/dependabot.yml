@@ -1,0 +1,251 @@
+version: 2
+
+# Shared YAML Anchors
+x-settings:
+  # NOTE: The 'target-branch' is temporarily set to a fix branch for testing.
+  # Once merged into 'main', Dependabot will read this config and open PRs against this fix branch.
+  # After validation, this will be set to 'main'
+  target-branch: &target-branch "fix-configure-dependabot"
+
+multi-ecosystem-groups:
+  platform:
+    schedule:
+      interval: "weekly"
+    labels: ["platform", "dependencies"]
+
+  federated-learning:
+    schedule:
+      interval: "weekly"
+    labels: ["federated-learning", "dependencies"]
+
+  inference:
+    schedule:
+      interval: "weekly"
+    labels: ["inference", "dependencies"]
+
+  training:
+    schedule:
+      interval: "weekly"
+    labels: ["training", "dependencies"]
+
+  comfyui-workflows:
+    schedule:
+      interval: "weekly"
+    labels: ["comfyui", "workflows", "dependencies"]
+
+  devcontainer:
+    schedule:
+      interval: "weekly"
+    labels: ["devcontainer", "dependencies"]
+
+updates:
+  # =========================================================================
+  # 1. PLATFORM LEVEL
+  # =========================================================================
+
+  # --- GitHub Actions (Platform) ---
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "platform"
+
+  # --- Terraform (Platform) ---
+  - package-ecosystem: "terraform"
+    directories:
+      - "platforms/cws/**"
+      - "platforms/gke/base/core/**"
+      - "platforms/gke/base/features/**"
+      - "platforms/gke/base/modules/**"
+      - "modules/**"
+      - "terraform/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "platform"
+
+  # --- Pip (Platform) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "/"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "platform"
+
+  # --- Docker (Platform) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "platforms/cws/image_pipeline/**"
+      - "test/ci-cd/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "platform"
+
+
+  # =========================================================================
+  # 2. USE CASE: FEDERATED LEARNING
+  # =========================================================================
+
+  # --- Terraform (Federated Learning) ---
+  - package-ecosystem: "terraform"
+    directories:
+      - "platforms/gke/base/use-cases/federated-learning/terraform/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "federated-learning"
+
+  # --- Pip (Federated Learning) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "platforms/gke/base/use-cases/federated-learning/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "federated-learning"
+
+  # --- Docker (Federated Learning) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "platforms/gke/base/use-cases/federated-learning/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "federated-learning"
+
+
+  # =========================================================================
+  # 3. USE CASE: INFERENCE
+  # =========================================================================
+
+  # --- Terraform (Inference) ---
+  - package-ecosystem: "terraform"
+    directories:
+      - "platforms/gke/base/use-cases/inference-ref-arch/terraform/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "inference"
+
+  # --- Pip (Inference) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "platforms/gke/base/use-cases/inference-ref-arch/**"
+      - "use-cases/inferencing/**"
+      - "use-cases/rag-pipeline/**"
+      - "container-images/cpu/async-load-generator/**"
+      - "container-images/cpu/async-pubsub-subscriber/**"
+      - "container-images/cpu/offline-batch-dataset-downloader/**"
+      - "container-images/cpu/offline-batch-worker/**"
+      - "container-images/gpu/diffusers-flux/**"
+      - "container-images/tpu/max-diffusion-sdxl/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "inference"
+
+  # --- Docker (Inference) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "container-images/cpu/async-load-generator/**"
+      - "container-images/cpu/async-pubsub-subscriber/**"
+      - "container-images/cpu/offline-batch-dataset-downloader/**"
+      - "container-images/cpu/offline-batch-worker/**"
+      - "container-images/gpu/diffusers-flux/**"
+      - "container-images/tpu/max-diffusion-sdxl/**"
+      - "platforms/gke/base/use-cases/inference-ref-arch/**"
+      - "use-cases/inferencing/**"
+      - "use-cases/rag-pipeline/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "inference"
+
+
+  # =========================================================================
+  # 4. USE CASE: TRAINING
+  # =========================================================================
+
+  # --- Terraform (Training) ---
+  - package-ecosystem: "terraform"
+    directories:
+      - "platforms/gke/base/use-cases/training-ref-arch/terraform/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "training"
+
+  # --- Pip (Training) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "use-cases/model-fine-tuning-pipeline/**"
+      - "container-images/cpu/mft-data-preparation/**"
+      - "container-images/cpu/mft-data-processing/**"
+      - "container-images/cpu/mft-fine-tuning/**"
+      - "container-images/cpu/mft-model-evaluation/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "training"
+
+  # --- Docker (Training) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "container-images/cpu/mft-data-preparation/**"
+      - "container-images/cpu/mft-data-processing/**"
+      - "container-images/cpu/mft-fine-tuning/**"
+      - "container-images/cpu/mft-model-evaluation/**"
+      - "platforms/gke/base/use-cases/training-ref-arch/**"
+      - "use-cases/model-fine-tuning-pipeline/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "training"
+
+
+  # =========================================================================
+  # 5. USE CASE: COMFYUI & WORKFLOWS
+  # =========================================================================
+
+  # --- Go (Workflow API) ---
+  - package-ecosystem: "gomod"
+    directories:
+      - "projects/workflow-api/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "comfyui-workflows"
+
+  # --- Pip (ComfyUI Custom Nodes) ---
+  - package-ecosystem: "pip"
+    directories:
+      - "modules/python/src/custom_nodes/google_genmedia/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "comfyui-workflows"
+
+  # --- Docker (ComfyUI / Workflow API) ---
+  - package-ecosystem: "docker"
+    directories:
+      - "projects/workflow-api/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "comfyui-workflows"
+
+
+  # =========================================================================
+  # 6. DEVCONTAINER
+  # =========================================================================
+
+  # --- Docker (Devcontainer) ---
+  - package-ecosystem: "docker"
+    directories:
+      - ".devcontainer/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "devcontainer"
+
+  # --- NPM (Devcontainer) ---
+  - package-ecosystem: "npm"
+    directories:
+      - ".devcontainer/dependencies/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "devcontainer"
+
+  # --- Pip (Devcontainer) ---
+  - package-ecosystem: "pip"
+    directories:
+      - ".devcontainer/dependencies/**"
+    target-branch: *target-branch
+    patterns: ["*"]
+    multi-ecosystem-group: "devcontainer"

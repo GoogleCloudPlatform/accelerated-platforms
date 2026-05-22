@@ -199,6 +199,28 @@ resource "google_cloudbuild_trigger" "container_image_mft_model_evaluation_build
   }
 }
 
+resource "google_cloudbuild_trigger" "container_image_sglang_diffusers_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/gpu/sglang-diffusers/cloudbuild.yaml"
+  included_files = [
+    "container-images/gpu/sglang-diffusers/**",
+    "test/ci-cd/cloudbuild/container-images/gpu/sglang-diffusers/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-sglang-diffusers-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
 
 ###################################################################################################
 

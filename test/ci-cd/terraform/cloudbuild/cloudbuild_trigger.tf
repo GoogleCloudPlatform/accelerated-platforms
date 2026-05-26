@@ -111,6 +111,28 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
 
 ###################################################################################################
 
+resource "google_cloudbuild_trigger" "container_image_k6_benchmark_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/cpu/k6-benchmark/cloudbuild.yaml"
+  included_files = [
+    "container-images/cpu/k6-benchmark/**",
+    "test/ci-cd/cloudbuild/container-images/cpu/k6-benchmark/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-k6-benchmark-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
 resource "google_cloudbuild_trigger" "container_image_mft_data_preparation_gemma_it_build" {
   filename = "test/ci-cd/cloudbuild/container-images/cpu/mft-data-preparation/gemma-it/cloudbuild.yaml"
   included_files = [

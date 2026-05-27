@@ -149,10 +149,10 @@ For more information about providing values for Terraform input variables, see
 
 - Configure the platform.
 
-  - [Optional]
+  - \[Optional\]
     [Hugging Face initialization](/platforms/gke/base/core/huggingface/initialize/README.md)
-  - [Optional]
-    [NVIDIA initialization](/platforms/gke/base/core/nvidia/initialize/README.md)
+  - \[Optional\]
+    [NVIDIA NGC initialization](/platforms/gke/base/core/nvidia/initialize/README.md)
 
 ### Resources created
 
@@ -180,6 +180,7 @@ For more information about providing values for Terraform input variables, see
           <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/cpu">CPU</a>
         </summary>
         <ul>
+          <li>cpu-e2-s-16</li>
           <li>cpu-n4-s-8</li>
         <ul>
       </details>
@@ -207,7 +208,7 @@ For more information about providing values for Terraform input variables, see
         <ul>
       </details>
     - <details>
-        <summary>        
+        <summary>
           <a href="/platforms/gke/base/core/custom_compute_class/templates/manifests/tpu">TPU</a>
         </summary>
         <ul>

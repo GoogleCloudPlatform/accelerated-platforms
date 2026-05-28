@@ -79,6 +79,10 @@
       "path": ".github/workflows/dictionary/reinforcement-learning.txt"
     },
     {
+      "name": "sglang",
+      "path": ".github/workflows/dictionary/sglang.txt"
+    },
+    {
       "name": "shell",
       "path": ".github/workflows/dictionary/shell.txt"
     },
@@ -118,6 +122,7 @@
     "python",
     "ray",
     "reinforcement-learning",
+    "sglang",
     "shell",
     "svg",
     "terraform",

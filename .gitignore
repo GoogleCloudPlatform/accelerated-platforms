@@ -39,3 +39,10 @@ terraform.tfstate*
 # Test
 test/log/*.log
 test/scripts/environment_files/*
+
+# Generated outputs
+*.log
+k6-*.txt
+k6-*.csv
+k6-*.jsonl
+k6-report.md

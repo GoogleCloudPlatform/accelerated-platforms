@@ -111,6 +111,141 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
 
 ###################################################################################################
 
+resource "google_cloudbuild_trigger" "container_image_k6_benchmark_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/cpu/k6-benchmark/cloudbuild.yaml"
+  included_files = [
+    "container-images/cpu/k6-benchmark/**",
+    "test/ci-cd/cloudbuild/container-images/cpu/k6-benchmark/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-k6-benchmark-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
+resource "google_cloudbuild_trigger" "container_image_mft_data_preparation_gemma_it_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/cpu/mft-data-preparation/gemma-it/cloudbuild.yaml"
+  included_files = [
+    "container-images/cpu/mft-data-preparation/gemma-it/**",
+    "test/ci-cd/cloudbuild/container-images/cpu/mft-data-preparation/gemma-it/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-mft-data-preparation-gemma-it-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
+resource "google_cloudbuild_trigger" "container_image_mft_data_processing_ray_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/cpu/mft-data-processing/ray/cloudbuild.yaml"
+  included_files = [
+    "container-images/cpu/mft-data-processing/ray/**",
+    "test/ci-cd/cloudbuild/container-images/cpu/mft-data-processing/ray/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-mft-data-processing-ray-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
+resource "google_cloudbuild_trigger" "container_image_mft_fine_tuning_pytorch_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/cpu/mft-fine-tuning/pytorch/cloudbuild.yaml"
+  included_files = [
+    "container-images/cpu/mft-fine-tuning/pytorch/**",
+    "test/ci-cd/cloudbuild/container-images/cpu/mft-fine-tuning/pytorch/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-mft-fine-tuning-pytorch-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
+resource "google_cloudbuild_trigger" "container_image_mft_model_evaluation_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/cpu/mft-model-evaluation/cloudbuild.yaml"
+  included_files = [
+    "container-images/cpu/mft-model-evaluation/**",
+    "test/ci-cd/cloudbuild/container-images/cpu/mft-model-evaluation/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-mft-model-evaluation-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
+resource "google_cloudbuild_trigger" "container_image_sglang_diffusers_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/gpu/sglang-diffusers/cloudbuild.yaml"
+  included_files = [
+    "container-images/gpu/sglang-diffusers/**",
+    "test/ci-cd/cloudbuild/container-images/gpu/sglang-diffusers/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-sglang-diffusers-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
+
+###################################################################################################
+
 locals {
   platforms_cws_scripts_all_cb_yaml = "test/ci-cd/cloudbuild/platforms/cws/scripts-all.yaml"
   platforms_cws_scripts_all_ignore = [
@@ -418,6 +553,7 @@ locals {
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
     "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     local.platforms_gke_base_core_ap_scripts_cb_yaml,
   ]
 }
@@ -490,6 +626,7 @@ locals {
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
     "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     local.platforms_gke_base_core_scripts_cb_yaml,
   ]
 }
@@ -558,6 +695,8 @@ locals {
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/tutorials/hf-gpu-model/deploy-ap.sh",
     "platforms/gke/base/tutorials/hf-gpu-model/teardown-ap.sh",
@@ -634,6 +773,8 @@ locals {
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     "platforms/gke/base/tutorials/hf-gpu-model/deploy-standard.sh",
     "platforms/gke/base/tutorials/hf-gpu-model/teardown-standard.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
@@ -709,6 +850,8 @@ locals {
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     "platforms/gke/base/tutorials/hf-tpu-model/deploy-ap.sh",
     "platforms/gke/base/tutorials/hf-tpu-model/teardown-ap.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
@@ -784,6 +927,8 @@ locals {
     "platforms/gke/base/core/teardown.sh",
     "platforms/gke/base/core/workloads/auto_monitoring/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/core/workloads/kueue/**",
+    "platforms/gke/base/core/workloads/pathways/**",
     "platforms/gke/base/tutorials/hf-tpu-model/deploy-standard.sh",
     "platforms/gke/base/tutorials/hf-tpu-model/teardown-standard.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
@@ -1397,118 +1542,5 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_training_ref_arch_st
   substitutions = {
     _IAP_DOMAIN       = "accelerated-platforms.joonix.net"
     _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
-  }
-}
-
-
-###################################################################################################
-
-resource "google_cloudbuild_trigger" "uc_mftp_data_prep_gemma_it_build" {
-  filename = "test/ci-cd/cloudbuild/uc-mftp-data-prep-gemma-it-build.yaml"
-  included_files = [
-    "test/ci-cd/cloudbuild/uc-mftp-data-prep-gemma-it-build.yaml",
-    "use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/src/**",
-  ]
-  location        = var.build_location
-  name            = "uc-mftp-data-prep-gemma-it-build"
-  project         = data.google_project.build.project_id
-  service_account = google_service_account.integration.id
-
-  repository_event_config {
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-
-    pull_request {
-      branch          = "^main$|^int-"
-      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
-      invert_regex    = false
-    }
-  }
-}
-
-resource "google_cloudbuild_trigger" "uc_mftp_data_proc_ray_build" {
-  filename = "test/ci-cd/cloudbuild/uc-mftp-data-proc-ray-build.yaml"
-  included_files = [
-    "test/ci-cd/cloudbuild/uc-mftp-data-proc-ray-build.yaml",
-    "use-cases/model-fine-tuning-pipeline/data-processing/ray/src/**",
-  ]
-  location        = var.build_location
-  name            = "uc-mftp-data-proc-ray-build"
-  project         = data.google_project.build.project_id
-  service_account = google_service_account.integration.id
-
-  repository_event_config {
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-
-    pull_request {
-      branch          = "^main$|^int-"
-      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
-      invert_regex    = false
-    }
-  }
-}
-
-resource "google_cloudbuild_trigger" "uc_mftp_ft_pytorch_build" {
-  filename = "test/ci-cd/cloudbuild/uc-mftp-ft-pytorch-build.yaml"
-  included_files = [
-    "test/ci-cd/cloudbuild/uc-mftp-ft-pytorch-build.yaml",
-    "use-cases/model-fine-tuning-pipeline/fine-tuning/pytorch/src/**",
-  ]
-  location        = var.build_location
-  name            = "uc-mftp-ft-pytorch-build"
-  project         = data.google_project.build.project_id
-  service_account = google_service_account.integration.id
-
-  repository_event_config {
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-
-    pull_request {
-      branch          = "^main$|^int-"
-      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
-      invert_regex    = false
-    }
-  }
-}
-
-resource "google_cloudbuild_trigger" "uc_mftp_model_eval_build" {
-  filename = "test/ci-cd/cloudbuild/uc-mftp-model-eval-build.yaml"
-  included_files = [
-    "test/ci-cd/cloudbuild/uc-mftp-model-eval-build.yaml",
-    "use-cases/model-fine-tuning-pipeline/model-eval/src/**",
-  ]
-  location        = var.build_location
-  name            = "uc-mftp-model-eval-build"
-  project         = data.google_project.build.project_id
-  service_account = google_service_account.integration.id
-
-  repository_event_config {
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-
-    pull_request {
-      branch          = "^main$|^int-"
-      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
-      invert_regex    = false
-    }
-  }
-}
-
-resource "google_cloudbuild_trigger" "uc_rag_data_proc_ray_build" {
-  filename = "test/ci-cd/cloudbuild/uc-rag-data-proc-ray-build.yaml"
-  included_files = [
-    "test/ci-cd/cloudbuild/uc-rag-data-proc-ray-build.yaml",
-    "use-cases/rag-pipeline/data-preprocessing/src/**",
-  ]
-  location        = var.build_location
-  name            = "uc-rag-data-proc-ray-build"
-  project         = data.google_project.build.project_id
-  service_account = google_service_account.integration.id
-
-  repository_event_config {
-    repository = google_cloudbuildv2_repository.accelerated_platforms.id
-
-    pull_request {
-      branch          = "^main$|^int-"
-      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
-      invert_regex    = false
-    }
   }
 }

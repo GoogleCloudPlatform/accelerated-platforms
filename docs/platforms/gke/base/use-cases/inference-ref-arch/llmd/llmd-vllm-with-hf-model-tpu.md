@@ -107,7 +107,8 @@ precedence over earlier ones:
   ```
 
 - Optional : Run the following step if you want to run the inference of a model
-  other than `google/gemma-4-31b` which is the default model for this deployment.
+  other than `google/gemma-4-31b` which is the default model for this
+  deployment.
 
   ```
   llmd_model_id="<MODEL_ID>"
@@ -126,18 +127,18 @@ precedence over earlier ones:
 - In order to choose an accelerator and for the model you want to run, refer to
   the following table.
 
-  | Model                          | v5e | v6e |
-  | ------------------------------ | --- | --- |
-  | gemma-4-31b                    | ❌  | ✅  |
-  | gemma-4-26b-a4b                | ❌  | ✅  |
-  | gemma-3-27b-it                 | ✅  | ✅  |
-  | gemma-3-4b-it                  | ✅  | ❌  |
-  | gemma-3-1b-it                  | ✅  | ❌  |
-  | qwen3-32b                      | ✅  | ✅  |
+  | Model           | v5e | v6e |
+  | --------------- | --- | --- |
+  | gemma-4-31b     | ❌  | ✅  |
+  | gemma-4-26b-a4b | ❌  | ✅  |
+  | gemma-3-27b-it  | ✅  | ✅  |
+  | gemma-3-4b-it   | ✅  | ❌  |
+  | gemma-3-1b-it   | ✅  | ❌  |
+  | qwen3-32b       | ✅  | ✅  |
 
 - Optional : Run the following step if you want to run the model on an
-  accelerator other than `v6e` which is the default accelerator for
-  this deployment.
+  accelerator other than `v6e` which is the default accelerator for this
+  deployment.
 
   ```
   llmd_accelerator_type="<ACCELERATOR>"

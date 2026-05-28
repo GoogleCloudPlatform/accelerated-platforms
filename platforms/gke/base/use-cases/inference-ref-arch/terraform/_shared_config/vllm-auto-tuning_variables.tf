@@ -41,4 +41,3 @@ variable "ira_auto_tuning_vllm_secretproviderclass" {
   description = "The Secretproviderclass to access huggingface read token."
   type        = string
 }
-

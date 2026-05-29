@@ -112,6 +112,14 @@ output "llmd_endpoints_hostname" {
   value = local.llmd_endpoints_hostname
 }
 
+output "llmd_ob_guide_name" {
+  value = var.llmd_ob_guide_name
+}
+
+output "llmd_ppcr_guide_name" {
+  value = var.llmd_ppcr_guide_name
+}
+
 output "llmd_iap_oath_branding_project_id" {
   value = local.llmd_iap_oath_branding_project_id
 }

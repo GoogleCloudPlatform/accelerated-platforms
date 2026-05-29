@@ -1,0 +1,71 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k6-benchmark
+  namespace: replaced-by-kustomize
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: k6-benchmark
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - args: []
+          command: []
+          image: replaced-by-kustomize
+          imagePullPolicy: Always
+          name: k6-benchmark
+          resources: {}
+          volumeMounts:
+            - mountPath: /output
+              name: k6-benchmark-bucket-results
+              readOnly: false
+          env:
+            - name: TARGET_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: K6_TARGET_URL
+                  name: deployment
+            - name: ACCELERATOR_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: ACCELERATOR_NAME
+                  name: deployment
+            - name: SCENARIOS_JSON
+              valueFrom:
+                configMapKeyRef:
+                  key: K6_SCENARIOS_JSON
+                  name: deployment
+            - name: INFERENCE_SERVER_TYPE
+              valueFrom:
+                configMapKeyRef:
+                  key: INFERENCE_SERVER_TYPE
+                  name: deployment
+      serviceAccountName: replaced-by-kustomize
+      terminationGracePeriodSeconds: 0
+      volumes:
+        - csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: replaced-by-kustomize
+              mountOptions: "implicit-dirs,uid=12345,gid=12345"
+          name: k6-benchmark-bucket-results

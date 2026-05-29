@@ -59,6 +59,8 @@ locals {
 
   ira_online_gpu_diffusers_sglang_diffusers_image_url = var.ira_online_gpu_sglang_diffusers_image_url != null ? var.ira_online_gpu_sglang_diffusers_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/sglang:latest"
 
+  ira_cpu_k6_benchmark_image_url = var.ira_cpu_k6_benchmark_image_url != null ? var.ira_cpu_k6_benchmark_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/k6-benchmark:latest"
+
   ira_online_tpu_kubernetes_namespace_name       = var.ira_online_tpu_kubernetes_namespace_name != null ? var.ira_online_tpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-tpu"
   ira_online_tpu_kubernetes_service_account_name = var.ira_online_tpu_kubernetes_service_account_name != null ? var.ira_online_tpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-tpu"
   ira_online_tpu_max_diffusion_sdxl_image_url    = var.ira_online_tpu_max_diffusion_sdxl_image_url != null ? var.ira_online_tpu_max_diffusion_sdxl_image_url : "${local.cloudbuild_ar_image_repository_url}/tpu-max-diffusion/sdxl:latest"
@@ -221,6 +223,11 @@ variable "ira_online_gpu_diffusers_flux_image_url" {
   type        = string
 }
 
+variable "ira_cpu_k6_benchmark_image_url" {
+  default     = null
+  description = "The URL for the k6 benchmark container image."
+  type        = string
+}
 
 variable "ira_online_gpu_kubernetes_namespace_name" {
   default     = null

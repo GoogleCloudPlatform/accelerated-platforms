@@ -22,10 +22,10 @@ options:
 steps:
   - args:
       - build
-      - --build-context=primary=container-images/tpu/rl-on-tpu/src
-      - --file=container-images/tpu/rl-on-tpu/Dockerfile
+      - --build-context=primary=container-images/tpu/reinforcement-learning-on-tpu/src
+      - --file=container-images/tpu/reinforcement-learning-on-tpu/Dockerfile
       - --tag=${_DESTINATION}
       - .
-    id: "Build RL on TPU image"
+    id: "Build Reinforcement Learning on TPU image"
     name: "docker.io/docker:28.3.3-dind-alpine3.22"
     waitFor: ["-"]

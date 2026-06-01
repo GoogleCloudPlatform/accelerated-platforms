@@ -1,11 +1,13 @@
 epath
 etils
 grpo
+hardlinks
 highmem
 logdir
 logps
 maxtext
 multiproc
+ndarray
 returncode
 sigabrt
 strftime

@@ -31,7 +31,7 @@ os.environ.update({
     "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": "python",
     "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
     "PYTHONUNBUFFERED": "1",
-    "JAX_PLATFORMS": "tpu" 
+    "JAX_PLATFORMS": "tpu"
 })
 
 # --- 2. SETUP PATHS ---
@@ -54,9 +54,9 @@ base_name = os.environ.get("RUN_NAME", datetime.datetime.now().strftime("%Y-%m-%
 RUN_NAME = f"v5e-{base_name}"
 
 # Send the massive converted model and checkpoints directly to the cloud bucket
-MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint" 
+MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint"
 
-# MaxText uses `base_output_directory` as the root. 
+# MaxText uses `base_output_directory` as the root.
 # It will automatically append `RUN_NAME/checkpoints/` to it.
 OUTPUT_DIRECTORY = YOUR_GCS_BUCKET
 
@@ -102,7 +102,7 @@ def patched_write_scalars(self, step: int, scalars: dict):
     try:
         # Pass the entire dictionary at once using the thread-safe client
         mlflow_client.log_metrics(MLFLOW_RUN_ID, mlflow_metrics, step=int(step))
-    except Exception as e: 
+    except Exception as e:
         pass # Silently pass so we don't break the TPU training loop
 clu.metric_writers.MultiWriter.write_scalars = patched_write_scalars
 
@@ -113,24 +113,24 @@ def patched_write_texts(self, step: int, texts: dict):
         # Dynamically find the keys, handling prefixes like "eval/" or "train/"
         prompt_key = next((k for k in texts.keys() if "prompt" in k.lower()), None)
         comp_key = next((k for k in texts.keys() if "completion" in k.lower()), None)
-        
+
         if prompt_key and comp_key:
             # Tag it visually so you know exactly which phase is printing
             phase = "🧪 EVALUATION" if "eval" in prompt_key.lower() else "🧠 TRAINING"
             print(f"\n" + "="*20 + f" {phase} STEP {step} SAMPLE " + "="*20)
-            
-            prompt = texts[prompt_key][0] 
+
+            prompt = texts[prompt_key][0]
             completion = texts[comp_key][0]
-            
+
             import numpy as np
             if isinstance(prompt, np.ndarray):
                 prompt = prompt.item() if prompt.size == 1 else str(prompt)
             if isinstance(completion, np.ndarray):
                 completion = completion.item() if completion.size == 1 else str(completion)
-                
+
             print(f"❓ [{prompt_key.upper()}]:\n{prompt}\n")
             print(f"🤖 [{comp_key.upper()}]:\n{completion}\n")
-            print("="*70 + "\n", flush=True) 
+            print("="*70 + "\n", flush=True)
     except Exception:
         pass
 clu.metric_writers.MultiWriter.write_texts = patched_write_texts
@@ -150,9 +150,9 @@ def apply_universal_patches(TargetClass):
     def patched_logps(self, *args, **kwargs):
         mask = kwargs.pop('completion_mask', None)
         results = orig_logps(self, *args, **kwargs)
-        
-        target_len = mask.shape[-1] if mask is not None else 1792 
-        
+
+        target_len = mask.shape[-1] if mask is not None else 1792
+
         def pad_sequence(seq):
             seq_arr = jnp.array(seq)
             if seq_arr.size == 0: return jnp.zeros(target_len)
@@ -163,7 +163,7 @@ def apply_universal_patches(TargetClass):
         if isinstance(results, list):
             return jnp.stack([pad_sequence(s) for s in results])
         elif isinstance(results, dict):
-            return {k: jnp.stack([pad_sequence(s) for s in v]) if isinstance(v, list) else v 
+            return {k: jnp.stack([pad_sequence(s) for s in v]) if isinstance(v, list) else v
                     for k, v in results.items()}
         return results
 
@@ -172,7 +172,7 @@ def apply_universal_patches(TargetClass):
 apply_universal_patches(MaxText_VllmRollout)
 if Tunix_VllmRollout:
     apply_universal_patches(Tunix_VllmRollout)
-    
+
 # --- 5. TRAINING CONFIGURATION ---
 config_argv = [
     "",
@@ -180,49 +180,49 @@ config_argv = [
     f"model_name={MODEL_NAME}",
     f"tokenizer_path={TOKENIZER_PATH}",
     f"run_name={RUN_NAME}",
-    f"load_parameters_path={LOAD_PATH}", 
+    f"load_parameters_path={LOAD_PATH}",
     f"base_output_directory={OUTPUT_DIRECTORY}",
     f"hf_access_token={HF_TOKEN}",
     f"chat_template_path={CHAT_TEMPLATE_PATH}",
     f"vllm_hf_config_path={TOKENIZER_PATH}",
     "rl.loss_algo=grpo",
-    "use_pathways=False", 
+    "use_pathways=False",
     "debug.rl=True",
-    "rl.rollout_engine=vllm", 
-    "rollout_tensor_parallelism=8", 
-    "rollout_data_parallelism=1",   
-    
+    "rl.rollout_engine=vllm",
+    "rollout_tensor_parallelism=8",
+    "rollout_data_parallelism=1",
+
     "rl.reasoning_start_token='<reasoning>'",
     "rl.reasoning_end_token='</reasoning>'",
     "rl.solution_start_token='<answer>'",
     "rl.solution_end_token='</answer>'",
-    
+
     # --- BATCHING & MEMORY FIXES ---
     "batch_size=2",                # Down from 4 to save memory
-    "rl.num_generations=8", 
+    "rl.num_generations=8",
     "max_target_length=1024",      # Restored to MaxText's default
     "hbm_utilization_vllm=0.37",   # The v5e "Goldilocks" zone we calculated
     "num_batches=150",             # Quick test run
-    
+
     # --- CATASTROPHIC FORGETTING FIXES ---
     "learning_rate=5e-7",          # Much slower than the 3e-6 default
     "rl.grpo_beta=0.25",           # Stronger leash than the 0.08 default
     "rl.penalty_reward=-0.1",      # A gentle nudge instead of a harsh -0.5 punishment
-    
+
     # --- FIXED RL PARAMS ---
-    "rl.num_iterations=1",                  
-    "gradient_clipping_threshold=1.0",    
-    
+    "rl.num_iterations=1",
+    "gradient_clipping_threshold=1.0",
+
     "add_eos=True" ,
     "log_period=10",
     "return_log_prob=True",
 
     "checkpoint_period=25",
     "save_checkpoint_on_completion=True",
-    
+
     # --- EVALUATION ---
-    "num_test_batches=25", 
-    "eval_interval=100", 
+    "num_test_batches=25",
+    "eval_interval=100",
 ]
 
 # --- 6. EXECUTION ---

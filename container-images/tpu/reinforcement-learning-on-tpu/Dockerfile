@@ -16,23 +16,20 @@
 
 FROM astral/uv:python3.12-bookworm-slim
 
-# Tell uv to use copy mode instead of hardlinks across filesystems
+# Use copy mode instead of hardlinks across filesystems
 ENV UV_LINK_MODE=copy
 
-# Combine apt steps, use --no-install-recommends, and clean up apt cache in the same layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+  git \
+  && rm -rf /var/lib/apt/lists/*
 
 # Leverage uv's built-in caching for fast subsequent builds
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system maxtext[tpu-post-train]==0.2.2 --resolution=lowest
+  uv pip install --system maxtext[tpu-post-train]==0.2.2 --resolution=lowest
 
-# Corrected script name for the extra TPU post-training dependencies
+# Script name for the extra TPU post-training dependencies
 RUN install_tpu_post_train_extra_deps
 
-# Copy our training script
 COPY --from=primary app.py .
 
-# Execute the script
 CMD ["python3", "app.py"]

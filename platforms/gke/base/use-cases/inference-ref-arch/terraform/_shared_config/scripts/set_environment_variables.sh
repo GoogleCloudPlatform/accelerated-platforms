@@ -14,7 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 MY_PATH_IRA_ENV="$(
-  cd "$(dirname "${BASH_SOURCE}")" >/dev/null 2>&1
+  SCRIPT_SOURCE="${BASH_SOURCE[0]:-}"
+  if [[ -z "${SCRIPT_SOURCE:-}" ]]; then
+    # Fallback in case BASH_SOURCE is not defined, such as when sourcing this
+    # script from a non-Bash shell
+    SCRIPT_SOURCE="$0"
+  fi
+
+  cd "$(dirname "${SCRIPT_SOURCE}")" >/dev/null 2>&1 || return 1
   pwd -P
 )"
 
@@ -36,6 +43,7 @@ if [[ -v HF_MODEL_ID ]]; then
 
   HF_MODEL_NAME="${HF_MODEL_ID##*/}"
   HF_MODEL_NAME="${HF_MODEL_NAME//./-}"
-  HF_MODEL_NAME="${HF_MODEL_NAME,,}"
+  # Don't use ,, to make this portable across shells
+  HF_MODEL_NAME="$(echo "${HF_MODEL_NAME}" | tr '[:upper:]' '[:lower:]')"
   export HF_MODEL_NAME
 fi

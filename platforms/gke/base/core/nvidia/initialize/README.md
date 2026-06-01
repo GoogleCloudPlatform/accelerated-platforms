@@ -1,4 +1,4 @@
-# NVIDIA initialize
+# NVIDIA NGC initialization
 
 - Set environment variables.
 

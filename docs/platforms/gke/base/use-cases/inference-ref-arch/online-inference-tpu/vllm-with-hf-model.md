@@ -44,13 +44,13 @@ This example is built on top of the
   - **Gemma 4 26B A4B Instruction-Tuned**:
 
     ```shell
-    export HF_MODEL_ID="google/gemma-4-26b-a4b"
+    export HF_MODEL_ID="google/gemma-4-26B-A4B-it"
     ```
 
   - **Gemma 4 31B Instruction-Tuned**:
 
     ```shell
-    export HF_MODEL_ID="google/gemma-4-31b"
+    export HF_MODEL_ID="google/gemma-4-31b-it"
     ```
 
   - **Gemma 3 1B Instruction-Tuned**:
@@ -150,14 +150,14 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model           | v5e | v6e |
-    | --------------- | --- | --- |
-    | gemma-4-26b-a4b | ❌  | ✅  |
-    | gemma-4-31b     | ❌  | ✅  |
-    | gemma-3-1b-it   | ✅  | ❌  |
-    | gemma-3-4b-it   | ✅  | ❌  |
-    | gemma-3-27b-it  | ✅  | ✅  |
-    | qwen3-32b       | ✅  | ✅  |
+    | Model              | v5e | v6e |
+    | ------------------ | --- | --- |
+    | gemma-4-26b-a4b-it | ❌  | ✅  |
+    | gemma-4-31b-it     | ❌  | ✅  |
+    | gemma-3-1b-it      | ✅  | ❌  |
+    | gemma-3-4b-it      | ✅  | ❌  |
+    | gemma-3-27b-it     | ✅  | ✅  |
+    | qwen3-32b          | ✅  | ✅  |
 
     - **v5e**:
 

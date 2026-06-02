@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,24 +36,29 @@ export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 export TF_VAR_initialize_backend_use_case_name="reinforcement-learning/terraform"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-rl}"
 
-declare -a CORE_TERRASERVICES_APPLY=(
-  "networking"
-  "container_cluster"
-  "workloads/cluster_credentials"
-  "cloudbuild/initialize"
-  "huggingface/initialize"
-  "huggingface/hub_downloader"
-  "custom_compute_class"
-  "workloads/auto_monitoring"
-  "workloads/custom_metrics_adapter"
-  "workloads/inference_gateway"
-  "workloads/jobset"
-  "workloads/lws"
-  "workloads/priority_class"
-  "workloads/kueue"
-  "workloads/pathways"
-)
-CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+# Set execution specific values
+export ACP_DEPLOY_CORE_PLATFORM=${ACP_DEPLOY_CORE_PLATFORM:-"true"}
+
+if [ "${ACP_DEPLOY_CORE_PLATFORM}" = "true" ]; then
+  # Deploy core platform with standard services
+  "${ACP_PLATFORM_CORE_DIR}/deploy-standard.sh"
+
+  # Deploy additional core services required by this use case
+  declare -a CORE_TERRASERVICES_APPLY=(
+    "cloudbuild/initialize"
+    "huggingface/initialize"
+    "huggingface/hub_downloader"
+    "workloads/custom_metrics_adapter"
+    "workloads/inference_gateway"
+    "workloads/jobset"
+    "workloads/lws"
+    "workloads/priority_class"
+    "workloads/pathways"
+  )
+  CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+else
+  echo "Skipping core platform deployment."
+fi
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"

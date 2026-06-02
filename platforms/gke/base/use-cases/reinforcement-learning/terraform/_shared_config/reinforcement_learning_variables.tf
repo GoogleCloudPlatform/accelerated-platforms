@@ -11,3 +11,27 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+locals {
+  rl_tpu_reinforcement_learning_on_tpu_image_url                       = var.rl_tpu_reinforcement_learning_on_tpu_image_url != null ? var.rl_tpu_reinforcement_learning_on_tpu_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/rl-on-tpu:latest"
+  rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name       = var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name != null ? var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-rl-on-tpu"
+  rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name = var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name != null ? var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-rl-on-tpu-sa"
+}
+
+variable "rl_tpu_reinforcement_learning_on_tpu_image_url" {
+  default     = null
+  description = "The URL for the RL on TPU container image."
+  type        = string
+}
+
+variable "rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace name for the RL on TPU deployment."
+  type        = string
+}
+
+variable "rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account name for the RL on TPU deployment."
+  type        = string
+}

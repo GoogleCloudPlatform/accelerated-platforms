@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,15 +13,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+set -o errexit
+set -o nounset
+set -o pipefail
 
-configMapGenerator:
-  - envs:
-      - runtime.env
-    name: runtime
-    namespace: replaced-by-kustomize
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
 
-resources:
-  - job.yaml
+source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
+
+envsubst < "${MY_PATH}/base/templates/runtime.tpl.env" > "${MY_PATH}/base/runtime.env"

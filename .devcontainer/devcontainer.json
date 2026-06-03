@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.schema.json",
-  "name": "Cloud Solutions devcontainer",
+  "name": "Accelerated Platforms devcontainer",
   "build": {
     "dockerfile": "Dockerfile"
   },
@@ -13,7 +13,9 @@
         "editor.wordWrap": "off",
         "files.insertFinalNewline": true,
         "files.trimFinalNewlines": true,
+        "geminicodeassist.displayInlineContextHint": false,
         "prettier.resolveGlobalModules": true,
+        "python.defaultInterpreterPath": "/venv/bin/python",
         "redhat.telemetry.enabled": false,
         "telemetry.telemetryLevel": "off",
         "[css]": {
@@ -78,6 +80,7 @@
         "ms-azuretools.vscode-containers",
         "ms-python.black-formatter",
         "ms-python.isort",
+        "ms-python.python",
         "streetsidesoftware.code-spell-checker",
         "timonwong.shellcheck"
       ]

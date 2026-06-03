@@ -21,7 +21,7 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -rtx-pro-600-qwen3-32b
+nameSuffix: -rtx-pro-6000-qwen3-32b
 
 patches:
   - path: patch-nodeselector.yaml

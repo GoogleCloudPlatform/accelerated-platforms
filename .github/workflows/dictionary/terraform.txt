@@ -32,3 +32,5 @@ trimprefix
 trimspace
 trimsuffix
 xdigit
+yamldecode
+yamlencode

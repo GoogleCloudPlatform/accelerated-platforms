@@ -16,6 +16,7 @@ nslookup
 pipefail
 pkill
 shuf
+subshell
 syscall
 xtrace
 zxvf

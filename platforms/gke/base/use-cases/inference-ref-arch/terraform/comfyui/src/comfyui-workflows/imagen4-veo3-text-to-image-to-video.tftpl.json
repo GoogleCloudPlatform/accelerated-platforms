@@ -95,7 +95,7 @@
         "Node name for S&R": "Imagen4TextToImageNode"
       },
       "widgets_values": [
-        "IMAGEN_4_PREVIEW",
+        "IMAGEN_4",
         "A hyperrealistic, macro shot of a bioluminescent forest where every leaf and branch glows with intricate, pulsating patterns. Raindrops suspended mid-air reflect miniature galaxies, and the ground is covered in iridescent, crystalline moss. The lighting is ethereal, creating deep shadows and vibrant highlights, with a soft, misty atmosphere",
         "allow_adult",
         "16:9",
@@ -151,7 +151,7 @@
         "Node name for S&R": "Veo3ImageToVideoNode"
       },
       "widgets_values": [
-        "VEO_3_1_PREVIEW",
+        "VEO_3_1",
         "PNG",
         "make leaves and branches sway in the wind.",
         "16:9",

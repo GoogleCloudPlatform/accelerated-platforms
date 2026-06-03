@@ -1,0 +1,119 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+configMapGenerator:
+  - envs:
+      - runtime.env
+    name: runtime
+    namespace: replaced-by-kustomize
+
+nameSuffix: -h100-bd25a4c7
+
+replacements:
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: vllm
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.initContainers.[name=inference-server].image
+        select:
+          kind: JobSet
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: offline-batch-worker
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.containers.[name=worker].image
+        select:
+          kind: JobSet
+  - source:
+      fieldPath: data.BATCH_WORKER_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: offline-batch-worker
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: JobSet
+  - source:
+      fieldPath: data.BATCH_WORKER_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: offline-batch-worker
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.serviceAccountName
+        select:
+          kind: JobSet
+  - source:
+      fieldPath: data.COMPUTE_CLASS
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.nodeSelector.[cloud.google.com/compute-class]
+        select:
+          kind: JobSet
+  - source:
+      fieldPath: data.MODEL_BUCKET_NAME
+      kind: ConfigMap
+      name: vllm
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
+        options:
+          delimiter: .
+          index: 0
+        select:
+          kind: JobSet
+  - source:
+      fieldPath: data.MODEL_ID
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
+        options:
+          delimiter: "only-dir:"
+          index: 1
+        select:
+          kind: JobSet
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.initContainers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.spec.initContainers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
+        options:
+          delimiter: /
+          index: 2
+        select:
+          kind: JobSet
+  - source:
+      fieldPath: data.MODEL_NAME
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.replicatedJobs.[name=obi-job].template.spec.template.metadata.labels.[ai.gke.io/model]
+        select:
+          kind: JobSet
+
+resources:
+  - ../base

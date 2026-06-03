@@ -31,13 +31,13 @@ spec:
             - name: HF_TOKEN_PATH
               value: /var/run/secrets/huggingface.co/token
             - name: HF_MAX_WORKERS
-              value: "8"
+              value: "2"
             - name: HF_XET_CACHE
               value: /local/hf/xet
             - name: HF_XET_NUM_CONCURRENT_RANGE_GETS
-              value: "16"
+              value: "4"
             - name: HF_XET_HIGH_PERFORMANCE
-              value: "1"
+              value: "0"
             - name: MODEL_ID
               valueFrom:
                 configMapKeyRef:

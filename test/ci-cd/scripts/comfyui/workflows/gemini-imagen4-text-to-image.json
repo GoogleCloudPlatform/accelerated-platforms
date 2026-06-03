@@ -31,7 +31,7 @@
   },
   "4": {
     "inputs": {
-      "model": "IMAGEN_4_PREVIEW",
+      "model": "IMAGEN_4",
       "prompt": [
         "7",
         0

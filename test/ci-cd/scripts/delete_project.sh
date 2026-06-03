@@ -28,6 +28,18 @@ if [[ -v RESERVATIONS ]]; then
   done
 fi
 
+endpoints=$(
+  gcloud endpoints services list \
+  --format="value(serviceName)" \
+  --project=${DELETE_PROJECT_ID} 2>/dev/null
+)
+for endpoint in ${endpoints}; do
+  echo "    Deleting endpoint '${endpoint}'"
+  gcloud endpoints services delete ${endpoint} \
+  --project=${DELETE_PROJECT_ID} \
+  --quiet
+done
+
 echo "Deleting project '${DELETE_PROJECT_ID}'..."
 gcloud projects delete "${DELETE_PROJECT_ID}" \
   --quiet

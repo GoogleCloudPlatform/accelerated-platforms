@@ -7,6 +7,10 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
+      "name": "async-inference",
+      "path": ".github/workflows/dictionary/async-inference.txt"
+    },
+    {
       "name": "comfyui",
       "path": ".github/workflows/dictionary/comfyui.txt"
     },
@@ -51,6 +55,10 @@
       "path": ".github/workflows/dictionary/linux.txt"
     },
     {
+      "name": "llmd",
+      "path": ".github/workflows/dictionary/llmd.txt"
+    },
+    {
       "name": "models",
       "path": ".github/workflows/dictionary/models.txt"
     },
@@ -65,6 +73,14 @@
     {
       "name": "ray",
       "path": ".github/workflows/dictionary/ray.txt"
+    },
+    {
+      "name": "reinforcement-learning",
+      "path": ".github/workflows/dictionary/reinforcement-learning.txt"
+    },
+    {
+      "name": "sglang",
+      "path": ".github/workflows/dictionary/sglang.txt"
     },
     {
       "name": "shell",
@@ -89,6 +105,7 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "async-inference",
     "comfyui",
     "docker",
     "flipkart",
@@ -100,9 +117,12 @@
     "kubernetes",
     "kueue",
     "linux",
+    "llmd",
     "nvidia",
     "python",
     "ray",
+    "reinforcement-learning",
+    "sglang",
     "shell",
     "svg",
     "terraform",

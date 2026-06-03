@@ -104,6 +104,14 @@ output "ira_async_pubsub_prompt_messages_topic_name" {
   value = local.ira_async_pubsub_prompt_messages_topic_name
 }
 
+output "ira_auto_tuning_vllm_kubernetes_namespace_name" {
+  value = local.ira_auto_tuning_vllm_kubernetes_namespace_name
+}
+
+output "ira_auto_tuning_vllm_results_bucket" {
+  value = local.ira_auto_tuning_vllm_results_bucket
+}
+
 output "ira_inference_perf_bench_kubernetes_service_account_name" {
   value = local.ira_inference_perf_bench_kubernetes_service_account_name
 }
@@ -239,4 +247,3 @@ output "workflow_api_service_account_oauth_display_name" {
 output "workflow_api_service_account_project_id" {
   value = local.workflow_api_service_account_project_id
 }
-

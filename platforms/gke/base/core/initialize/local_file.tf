@@ -279,6 +279,7 @@ resource "local_file" "shared_config_workloads_auto_tfvars" {
       kuberay_version                        = var.kuberay_version
       kueue_version                          = var.kueue_version
       lws_version                            = var.lws_version
+      pathways_version                       = var.pathways_version
     }
   )
   file_permission = "0644"

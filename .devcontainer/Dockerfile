@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM hashicorp/terraform:1.5.7 AS terraform
-FROM koalaman/shellcheck:v0.10.0 AS shellcheck
-FROM mvdan/shfmt:v3.10.0 AS shfmt
+FROM hashicorp/terraform:1.14.8 AS terraform
+FROM koalaman/shellcheck:v0.11.0 AS shellcheck
+FROM mvdan/shfmt:v3.13.1 AS shfmt
 
 FROM python:3.13-bookworm AS python-builder
 

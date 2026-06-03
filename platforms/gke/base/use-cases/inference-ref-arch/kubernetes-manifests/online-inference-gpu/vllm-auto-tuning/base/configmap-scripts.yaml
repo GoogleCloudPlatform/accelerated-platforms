@@ -1,0 +1,57 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vllm-auto-tuning-script
+  namespace: replaced-by-kustomize
+data:
+  auto_tune.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    # 1. Install missing system tools
+    apt-get update && apt-get install -y bc git curl
+
+    # 2. Clone the repo to a neutral location
+    mkdir -p /tmp/vllm-source
+    git clone --depth 1 https://github.com/vllm-project/vllm.git /tmp/vllm-source
+
+    # 3. Move only the benchmarks to your working directory
+    # and DELETE the source folder that causes the circular import.
+    mkdir -p /vllm-workspace/benchmarks
+    cp -r /tmp/vllm-source/benchmarks/auto_tune /vllm-workspace/benchmarks/
+    rm -rf /tmp/vllm-source  # Get rid of the conflicting source code
+
+    # 4. Fix permissions and create the empty vllm folder the script expects
+    chmod +x /vllm-workspace/benchmarks/auto_tune/auto_tune.sh
+    mkdir -p /vllm-workspace/vllm  # Script needs this to exist, but keep it empty
+
+    # 5. Set paths
+    export BASE="/vllm-workspace"
+    export SCRIPT_DIR="/vllm-workspace/benchmarks/auto_tune"
+
+    # 6. Run the tuner
+    cd /vllm-workspace
+    sed -i 's|"${common_args_array\[@\]}" > "$vllm_log"|"${common_args_array\[@\]}" "--kv-cache-dtype" "fp8" > "$vllm_log"|'  benchmarks/auto_tune/auto_tune.sh
+    bash benchmarks/auto_tune/auto_tune.sh
+
+    # 7. Results handling
+    LATEST_DIR=$(ls -td auto-benchmark/*/ | head -1 || true)
+    if [ -n "$LATEST_DIR" ]; then
+      cp -r "$LATEST_DIR" /output
+    fi
+
+    echo "Tuning complete."

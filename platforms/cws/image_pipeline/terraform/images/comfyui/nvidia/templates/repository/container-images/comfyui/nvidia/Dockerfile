@@ -40,7 +40,7 @@ ARG USER=user
 # Set Bash as the default shell
 SHELL ["/bin/bash", "-c"]
 
-ENV COMFY_VERSION="0.3.62"
+ENV COMFY_VERSION="0.18.5"
 ENV CUDA_VERSION="12.6"
 ENV PYTORCH_VERSION="2.7.0"
 
@@ -62,8 +62,8 @@ RUN source $${COMFY_DIR}/.venv/bin/activate && \
   comfy --skip-prompt set-default $${COMFYUI_DIR} && \
   comfy node install comfyui-browser && \
   comfy node install ComfyUI-Custom-Scripts@nightly && \
-  comfy node install comfyui-google-genmedia-custom-nodes && \
-  comfy node install ComfyUI-VideoHelperSuite@nightly
+  comfy node install ComfyUI-VideoHelperSuite@nightly && \
+  comfy node install https://github.com/GoogleCloudPlatform/comfyui-google-genmedia-custom-nodes
 
 ARG COMFYUI_CUSTOM_NODE_DIR="custom_nodes"
 ENV COMFYUI_INPUT_DIR="input"

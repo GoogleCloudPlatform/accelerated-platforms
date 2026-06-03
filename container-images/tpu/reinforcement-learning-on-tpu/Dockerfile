@@ -30,6 +30,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Script name for the extra TPU post-training dependencies
 RUN install_tpu_post_train_extra_deps
 
-COPY --from=primary app.py .
+COPY --from=primary train.py .
 
-CMD ["python3", "app.py"]
+CMD ["python3", "train.py"]

@@ -29,103 +29,32 @@ patches:
 
 replacements:
   - source:
-      fieldPath: data.APP_LABEL
+      fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
       name: runtime
     targets:
       - fieldPaths:
-          - spec.selector.matchLabels.app
-          - spec.template.metadata.labels.app
+          - spec.template.spec.containers.[name=grpo-trainer].image
         select:
-          kind: Deployment
-      - fieldPaths:
-          - spec.selector.app
-        select:
-          kind: Service
-  - source:
-      fieldPath: data.CONTAINER_IMAGE_URL
-      kind: ConfigMap
-      name: vllm
-    targets:
-      - fieldPaths:
-          - spec.template.spec.containers.[name=inference-server].image
-        select:
-          kind: Deployment
+          kind: Job
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
       kind: ConfigMap
-      name: deployment
+      name: runtime
     targets:
       - fieldPaths:
           - metadata.namespace
         select:
-          kind: ConfigMap
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: Deployment
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: Service
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: ServiceAccount
+          kind: Job
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
-      name: deployment
+      name: runtime
     targets:
       - fieldPaths:
           - spec.template.spec.serviceAccountName
         select:
-          kind: Deployment
-      - fieldPaths:
-          - metadata.name
-        select:
-          kind: ServiceAccount
-  - source:
-      fieldPath: data.MODEL_BUCKET_NAME
-      kind: ConfigMap
-      name: deployment
-    targets:
-      - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
-        options:
-          delimiter: .
-          index: 0
-        select:
-          kind: Deployment
-  - source:
-      fieldPath: data.MODEL_ID
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
-        options:
-          delimiter: "only-dir:"
-          index: 1
-        select:
-          kind: Deployment
-      - fieldPaths:
-          - spec.template.spec.containers.[name=fetch-safetensors].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
-          - spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
-        options:
-          delimiter: /
-          index: 2
-        select:
-          kind: Deployment
-  - source:
-      fieldPath: data.MODEL_NAME
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.template.metadata.labels.[ai.gke.io/model]
-        select:
-          kind: Deployment
+          kind: Job
 
 resources:
   - ../base

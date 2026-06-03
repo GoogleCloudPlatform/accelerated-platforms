@@ -15,7 +15,14 @@
 # limitations under the License.
 
 BASH_SOURCE_MY_PATH="$(
-  cd "$(dirname "${BASH_SOURCE}")" >/dev/null 2>&1
+  SCRIPT_SOURCE="${BASH_SOURCE[0]:-}"
+  if [[ -z "${SCRIPT_SOURCE:-}" ]]; then
+    # Fallback in case BASH_SOURCE is not defined, such as when sourcing this
+    # script from a non-Bash shell
+    SCRIPT_SOURCE="$0"
+  fi
+
+  cd "$(dirname "${SCRIPT_SOURCE}")" >/dev/null 2>&1 || return 1
   pwd -P
 )"
 

@@ -1,0 +1,23 @@
+{
+  "input_sequence_length": {
+    "min": 10000,
+    "max": 990000,
+    "mean": 160000,
+    "standard_deviation": 233600,
+    "distribution_type": "log_normal"
+  },
+  "output_sequence_length": {
+    "min": 50,
+    "max": 10000,
+    "mean": 425,
+    "standard_deviation": 825,
+    "distribution_type": "log_normal"
+  },
+  "number_of_turns": {
+    "min": 1,
+    "max": 10,
+    "mean": 4,
+    "standard_deviation": 2,
+    "distribution_type": "normal"
+  }
+}

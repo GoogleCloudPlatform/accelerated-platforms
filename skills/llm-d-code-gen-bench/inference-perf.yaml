@@ -1,0 +1,22 @@
+load:
+  type: concurrent
+  num_workers: 8
+  worker_max_concurrency: 1000
+  stages:
+  - num_requests: 100
+    concurrency_level: 5
+  - num_requests: 200
+    concurrency_level: 10
+  - num_requests: 400
+    concurrency_level: 20
+  - num_requests: 600
+    concurrency_level: 30
+  - num_requests: 800
+    concurrency_level: 40
+api:
+  type: completion
+  streaming: true
+server:
+  type: vllm
+  model_name: Qwen/Qwen3-Coder-480B-A35B-Instruct
+  base_url: http://localhost

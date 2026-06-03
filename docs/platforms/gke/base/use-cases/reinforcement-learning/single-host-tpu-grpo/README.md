@@ -1,6 +1,7 @@
 # Reinforcement learning with TPUs on Google Kubernetes Engine (GKE)
 
-This example implements reinforcement learning using Group Relative Policy Optimization (GRPO) and MaxText on TPUs on Google Kubernetes Engine (GKE).
+This example implements reinforcement learning using Group Relative Policy
+Optimization (GRPO) and MaxText on TPUs on Google Kubernetes Engine (GKE).
 
 This example is built on top of the
 [GKE Reinforcement Learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md).

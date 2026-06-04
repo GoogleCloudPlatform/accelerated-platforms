@@ -40,9 +40,23 @@ terraform.tfstate*
 test/log/*.log
 test/scripts/environment_files/*
 
+<<<<<<< HEAD
 # Generated outputs
 *.log
 k6-*.txt
 k6-*.csv
 k6-*.jsonl
 k6-report.md
+=======
+# AI Collaboration
+skills-eval-workspace/
+architecutre.md
+
+
+# Antigravity
+.agents/
+
+#Tools
+tools/*
+
+>>>>>>> 69123712 (update skills evaluation suite)

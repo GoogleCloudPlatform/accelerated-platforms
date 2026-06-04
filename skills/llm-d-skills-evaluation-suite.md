@@ -19,16 +19,13 @@ skills/
 │   ├── evaluate.py              # Test suite runner (Local & CI/CD)
 │   └── run_benchmark.sh         # Consolidated benchmark shell harness
 ├── requirements-eval.txt        # Evaluation python requirements (empty/placeholder)
-├── README.md                    # This document
-├── skill-evaluation-plan.md     # Detailed evaluation design document
-└── walkthrough.md               # Detailed walkthrough of recent modifications
 ```
 
 ---
 
 ## The Evaluation Runner (`evaluate.py`)
 
-The evaluation runner ([evaluate.py](file:///Users/syedaanjum/desktop/repo-backup/accelerated-platforms/skills/scripts/evaluate.py)) automates testing of the repository's shell scripts and configuration validations. It maps test cases defined in each skill's `evals/evals.json` file to programmatic assertions, verifying correctness without modifying your local GCP state.
+The evaluation runner ([evaluate.py](skills/scripts/evaluate.py)) automates testing of the repository's shell scripts and configuration validations. It maps test cases defined in each skill's `evals/evals.json` file to programmatic assertions, verifying correctness without modifying your local GCP state.
 
 ### How Mock Mode Works (`--mock`)
 

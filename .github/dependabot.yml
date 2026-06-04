@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# https://github.com/google/addlicense
-#
 version: 2
 updates:
   # 1. Configuration for Python dependencies
@@ -23,4 +21,5 @@ updates:
       interval: "weekly"
     exclude-paths:
       - "use-cases/model-fine-tuning-pipeline/fine-tuning/**"
+      - "use-cases/model-fine-tuning-pipeline/data-preparation/**"
 

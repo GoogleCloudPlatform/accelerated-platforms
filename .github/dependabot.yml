@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # 1. Configuration for Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    exclude-paths:
+      - "use-cases/model-fine-tuning-pipeline/fine-tuning/**"
+

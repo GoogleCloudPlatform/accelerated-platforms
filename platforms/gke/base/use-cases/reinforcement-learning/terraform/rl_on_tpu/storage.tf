@@ -18,6 +18,7 @@ resource "google_storage_bucket" "dataset" {
   location = local.cluster_region
 
   uniform_bucket_level_access = true
+  force_destroy               = true
 }
 
 resource "google_storage_bucket" "mlflow_data" {
@@ -26,4 +27,5 @@ resource "google_storage_bucket" "mlflow_data" {
   location = local.cluster_region
 
   uniform_bucket_level_access = true
+  force_destroy               = true
 }

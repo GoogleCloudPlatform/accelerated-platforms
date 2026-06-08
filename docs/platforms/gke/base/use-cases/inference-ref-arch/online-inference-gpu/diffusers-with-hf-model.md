@@ -132,7 +132,7 @@ This example is built on top of the
     > set and source the `set_environment_variables.sh` script:
     >
     > ```shell
-    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"`
+    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
     > ```
 
   - Select an accelerator.

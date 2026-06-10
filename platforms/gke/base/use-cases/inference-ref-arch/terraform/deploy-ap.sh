@@ -36,23 +36,28 @@ export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
-declare -a CORE_TERRASERVICES_APPLY=(
-  "networking"
-  "container_cluster_ap"
-  "workloads/cluster_credentials"
-  "cloudbuild/initialize"
-  "huggingface/initialize"
-  "huggingface/hub_downloader"
-  "custom_compute_class"
-  "workloads/auto_monitoring"
-  "workloads/custom_metrics_adapter"
-  "workloads/inference_gateway"
-  "workloads/jobset"
-  "workloads/lws"
-  "workloads/priority_class"
-  "workloads/kueue"
-)
-CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+# Set execution specific values
+export ACP_DEPLOY_CORE_PLATFORM=${ACP_DEPLOY_CORE_PLATFORM:-"true"}
+
+if [ "${ACP_DEPLOY_CORE_PLATFORM}" = "true" ]; then
+  # Deploy core platform with standard services
+  "${ACP_PLATFORM_CORE_DIR}/deploy-ap.sh"
+
+  # Deploy additional core services required by this use case
+  declare -a CORE_TERRASERVICES_APPLY=(
+    "cloudbuild/initialize"
+    "huggingface/initialize"
+    "huggingface/hub_downloader"
+    "workloads/custom_metrics_adapter"
+    "workloads/inference_gateway"
+    "workloads/jobset"
+    "workloads/lws"
+    "workloads/priority_class"
+  )
+  CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+else
+  echo "Skipping core platform deployment."
+fi
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
@@ -67,9 +72,6 @@ for terraservice in "${use_case_terraservices[@]}"; do
     terraform init &&
     terraform plan -input=false -out=tfplan &&
     terraform apply -input=false tfplan || exit 1
-  if [ ${terraservice} == "comfyui" ]; then
-    terraform output -raw environment_configuration >${ACP_REPO_DIR}/env_vars
-  fi
   rm tfplan
 done
 

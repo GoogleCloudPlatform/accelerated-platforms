@@ -25,6 +25,6 @@ spec:
         - name: modelserver
           resources:
             limits:
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "2"
             requests:
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "2"

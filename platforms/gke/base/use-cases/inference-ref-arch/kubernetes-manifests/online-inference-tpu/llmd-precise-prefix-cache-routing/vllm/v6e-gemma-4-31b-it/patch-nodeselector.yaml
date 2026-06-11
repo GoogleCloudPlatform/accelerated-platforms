@@ -21,4 +21,5 @@ spec:
   template:
     spec:
       nodeSelector:
+        $patch: replace
         cloud.google.com/compute-class: tpu-v6e-2x2

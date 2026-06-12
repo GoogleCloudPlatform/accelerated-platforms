@@ -119,6 +119,7 @@ precedence over earlier ones:
 
   - `h100`
   - `rtx-pro-6000` **(default)**
+  - `v6e` (TPU)
 
 ### Install Terraform 1.8.0+
 
@@ -168,7 +169,7 @@ The `deploy-llmd-optimized-baseline.sh` script will perform the following steps:
 
   ```
   HF_TOKEN_READ=<YOUR_HUGGINGFACE_READ_TOKEN>
-  kubectl -n ${ira_online_gpu_kubernetes_namespace_name} create secret generic llm-d-hf-token --from-literal=HF_TOKEN="${HF_TOKEN_READ}"
+  kubectl -n ${llmd_namespace} create secret generic llm-d-hf-token --from-literal=HF_TOKEN="${HF_TOKEN_READ}"
   ```
 
 - Configure the model download job.
@@ -211,27 +212,51 @@ The `deploy-llmd-optimized-baseline.sh` script will perform the following steps:
 
 - Configure the model server
 
-  ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd-optimized-baseline/vllm/configure_vllm.sh"
-  ```
+  - If you are running it on GPU:
+
+    ```shell
+    "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd-optimized-baseline/vllm/configure_vllm.sh"
+    ```
+
+    If you are running it on GPU:
+
+    ```shell
+    "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/llmd-optimized-baseline/vllm/configure_vllm.sh"
+    ```
 
 - Deploy the model server
 
-  ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd-optimized-baseline/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-  ```
+  - If you are running it on a GPU:
+
+    ```shell
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd-optimized-baseline/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+    ```
+
+  - If you are running it on a TPU:
+
+    ```shell
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/llmd-optimized-baseline/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+    ```
 
   The Kubernetes manifests are based on the
   [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
 
 - Watch the deployment until it is ready.
 
-  ```shell
-  watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/optimized-baseline-nvidia-gpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/optimized-baseline-nvidia-gpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
-  ```
+  - If you are running it on GPU:
+    ```shell
+    watch --color --interval 5 --no-title \
+    "kubectl --namespace=${llmd_namespace} get deployment/optimized-baseline-nvidia-gpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+    echo '\nLogs(last 10 lines):'
+    kubectl --namespace=${llmd_namespace} logs deployment/optimized-baseline-nvidia-gpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+    ```
+  - If you are running it on TPU:
+    ```shell
+    watch --color --interval 5 --no-title \
+    "kubectl --namespace=${llmd_namespace} get deployment/optimized-baseline-nvidia-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+    echo '\nLogs(last 10 lines):'
+    kubectl --namespace=${llmd_namespace} logs deployment/optimized-baseline-nvidia-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+    ```
 
 ## Verify llm-d deployment is up and running
 
@@ -250,7 +275,7 @@ The `deploy-llmd-optimized-baseline.sh` script will perform the following steps:
 - Check the all the deployments
 
   ```
-  kubectl get deployments -n ${ira_online_gpu_kubernetes_namespace_name}
+  kubectl get deployments -n ${llmd_namespace}
   ```
 
   You should see three deployments similar to the following:
@@ -272,7 +297,7 @@ The `deploy-llmd-optimized-baseline.sh` script will perform the following steps:
 - Check all the resources
 
   ```
-  kubectl get all -n ${ira_online_gpu_kubernetes_namespace_name}
+  kubectl get all -n ${llmd_namespace}
   ```
 
   You should see output similar to the following:
@@ -300,9 +325,16 @@ The `deploy-llmd-optimized-baseline.sh` script will perform the following steps:
 - Wait for the model server deployment to be ready before accessing the chat
   interface.
 
-  ```
-  watch --color --interval 5 --no-title   "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/optimized-baseline-nvidia-gpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
-  ```
+  - If you are running it on GPU:
+
+    ```
+    watch --color --interval 5 --no-title   "kubectl --namespace=${llmd_namespace} get deployment/optimized-baseline-nvidia-gpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+    ```
+
+  - If you are running it on TPU:
+    ```
+    watch --color --interval 5 --no-title   "kubectl --namespace=${llmd_namespace} get deployment/optimized-baseline-nvidia-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+    ```
 
 - When the deployment is ready, you will output similar to the following
 
@@ -316,7 +348,7 @@ The `deploy-llmd-optimized-baseline.sh` script will perform the following steps:
 - Open [Cloud Shell](https://cloud.google.com/shell).
 - Find the IP address of Gateway
   ```sh
-  export IP=$(kubectl get gateway llm-d-inference-gateway -n ${ira_online_gpu_kubernetes_namespace_name} -o jsonpath='{.status.addresses[0].value}')
+  export IP=$(kubectl get gateway llm-d-inference-gateway -n ${llmd_namespace} -o jsonpath='{.status.addresses[0].value}')
   ```
 - Open a temporary interactive shell inside the cluster:
 
@@ -324,7 +356,7 @@ The `deploy-llmd-optimized-baseline.sh` script will perform the following steps:
   kubectl run curl-debug --rm -it \
       --image=cfmanteiga/alpine-bash-curl-jq \
       --env="IP=$IP" \
-      --env="NAMESPACE=$ira_online_gpu_kubernetes_namespace_name" \
+      --env="NAMESPACE=$llmd_namespace" \
       -- /bin/bash
   ```
 

@@ -16,6 +16,7 @@ locals {
   llmd_ob_gateway_remote_manifest  = "${var.llmd_ob_git_url}/${var.llmd_ob_git_org}/${var.llmd_ob_git_repo}//guides/recipes/gateway/${var.llmd_ob_gateway_type}?ref=${var.llmd_ob_git_branch}"
   llmd_ob_router_base_helm_values  = "${var.llmd_ob_git_raw_url_prefix}/${var.llmd_ob_git_org}/${var.llmd_ob_git_repo}/${var.llmd_ob_git_branch}/guides/recipes/router/base.values.yaml"
   llmd_ob_router_guide_helm_values = "${var.llmd_ob_git_raw_url_prefix}/${var.llmd_ob_git_org}/${var.llmd_ob_git_repo}/${var.llmd_ob_git_branch}/guides/${var.llmd_ob_guide_name}/router/${var.llmd_ob_guide_name}.values.yaml"
+  llmd_namespace                   = local.deploy_on_gpu ? local.ira_online_gpu_kubernetes_namespace_name : (local.deploy_on_tpu ? local.ira_online_tpu_kubernetes_namespace_name : "")
 }
 
 variable "llmd_ob_gateway_provider_name" {

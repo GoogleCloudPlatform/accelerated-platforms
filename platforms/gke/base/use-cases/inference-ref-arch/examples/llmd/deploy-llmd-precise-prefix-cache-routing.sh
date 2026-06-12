@@ -36,6 +36,20 @@ export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/examples/llmd"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
+# needed to source this file earlier to check the exit condition
+source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+inference_terraservice="online_gpu"
+if [[ ${deploy_on_gpu} == "true" ]] ; then
+    echo "online_gpu terraservice will be deployed"
+elif [[ ${deploy_on_tpu} == "true" ]]; then
+    inference_terraservice="online_tpu"
+    echo "online_tpu terraservice will be deployed"
+else
+    echo "A valid GPU or TPU must be matched in deploy_on_gpu and deploy_on_tpu local variables in _shared_config/llmd-shared_variables.tf"
+    exit 0
+fi
+
+
 declare -a CORE_TERRASERVICES_APPLY=(
   "networking"
   "container_cluster"
@@ -55,12 +69,9 @@ CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_D
 source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 
 declare -a use_case_terraservices=(
-  "../../terraform/online_gpu/"
+  "../../terraform/${inference_terraservice}/"
   "precise-prefix-cache-routing"
 )
-
-# Giving a shorter name to online_gpu namespace so the service names dont get redacted
-sed -i '/^ira_online_gpu_kubernetes_namespace_name[[:blank:]]*=/{h;s/=.*/= "'"llmd"'"/};${x;/^$/{s//ira_online_gpu_kubernetes_namespace_name="'"llmd"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/inference-ref-arch.auto.tfvars
 
 for terraservice in "${use_case_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/${terraservice}" &&

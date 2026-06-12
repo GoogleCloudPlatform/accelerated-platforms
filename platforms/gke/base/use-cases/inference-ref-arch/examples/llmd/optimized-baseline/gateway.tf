@@ -18,6 +18,6 @@ module "kubectl_apply_llmd_ob_gateway_manifests" {
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local.llmd_ob_gateway_remote_manifest
   manifest_includes_namespace = false
-  namespace                   = local.ira_online_gpu_kubernetes_namespace_name
+  namespace                   = local.llmd_namespace
   use_kustomize               = true
 }

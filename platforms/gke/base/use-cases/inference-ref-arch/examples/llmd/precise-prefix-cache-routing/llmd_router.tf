@@ -26,7 +26,7 @@ data "http" "llmd_ppcr_router_feature_values" {
 
 data "helm_template" "llmd_ppcr_router" {
   name         = var.llmd_ppcr_guide_name
-  namespace    = local.ira_online_gpu_kubernetes_namespace_name
+  namespace    = local.llmd_namespace
   kube_version = var.llmd_ppcr_kubernetes_version_router_templates
 
   repository = var.llmd_ppcr_router_chart_repo
@@ -48,7 +48,7 @@ data "helm_template" "llmd_ppcr_router" {
 }
 
 resource "local_file" "llmd_ppcr_router_manifests" {
-  filename = "${local.namespace_directory}/${local.ira_online_gpu_kubernetes_namespace_name}/router/llmd_ppcr_router.yaml"
+  filename = "${local.namespace_directory}/${local.llmd_namespace}/router/llmd_ppcr_router.yaml"
   content  = data.helm_template.llmd_ppcr_router.manifest
 }
 
@@ -58,5 +58,5 @@ module "kubectl_apply_llmd_ppcr_router_manifests" {
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local_file.llmd_ppcr_router_manifests.filename
   manifest_includes_namespace = false
-  namespace                   = local.ira_online_gpu_kubernetes_namespace_name
+  namespace                   = local.llmd_namespace
 }

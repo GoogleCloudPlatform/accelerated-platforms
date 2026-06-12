@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  deploy_on_gpu = contains(["l4", "h100", "h200", "rtx-pro-6000"], var.llmd_accelerator_type) ? true : false
+  deploy_on_tpu = contains(["v6e"], var.llmd_accelerator_type) ? true : false
+}
+
 variable "llmd_accelerator_type" {
   default     = "rtx-pro-6000"
   description = "accelerator type to serve the model on."
@@ -24,6 +29,7 @@ variable "llmd_accelerator_type" {
         "h100",
         "h200",
         "rtx-pro-6000",
+        "v6e",
       ],
       var.llmd_accelerator_type
     )

@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "deploy_on_gpu" {
+  value = local.deploy_on_gpu
+}
+
+output "deploy_on_tpu" {
+  value = local.deploy_on_tpu
+}
+
 output "hub_models_bucket_bench_results_name" {
   value = local.hub_models_bucket_bench_results_name
 }

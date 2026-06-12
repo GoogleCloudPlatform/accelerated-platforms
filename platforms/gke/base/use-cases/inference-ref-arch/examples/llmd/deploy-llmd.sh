@@ -36,6 +36,19 @@ export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/examples/llmd"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
+# needed to source this file earlier to check the exit condition
+source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+inference_terraservice="online_gpu"
+if [[ ${deploy_on_gpu} == "true" ]] ; then
+    echo "online_gpu terraservice will be deployed"
+elif [[ ${deploy_on_tpu} == "true" ]]; then
+    echo "This architecture does not support TPU yet"
+    exit 0
+else
+    echo "A valid GPU or TPU must be matched in deploy_on_gpu and deploy_on_tpu local variables in _shared_config/llmd-shared_variables.tf"
+    exit 0
+fi
+
 declare -a CORE_TERRASERVICES_APPLY=(
   "networking"
   "container_cluster"
@@ -55,7 +68,7 @@ CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_D
 source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 
 declare -a use_case_terraservices=(
-  "../../terraform/online_gpu/"
+  "../../terraform/${inference_terraservice}/"
   "initialize"
 )
 

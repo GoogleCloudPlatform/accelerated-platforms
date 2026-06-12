@@ -257,9 +257,9 @@ steps:
   - If you are running it on TPU
     ```shell
     watch --color --interval 5 --no-title \
-    "kubectl --namespace=${llmd_namespace} get deployment/optimized-baseline-nvidia-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+    "kubectl --namespace=${llmd_namespace} get deployment/optimized-baseline-tpu-v6-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
     echo '\nLogs(last 10 lines):'
-    kubectl --namespace=${llmd_namespace} logs deployment/optimized-baseline-nvidia-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+    kubectl --namespace=${llmd_namespace} logs deployment/optimized-baseline-tpu-v6-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
     ```
 
 ## Verify llm-d deployment is up and running
@@ -338,7 +338,7 @@ steps:
   - If you are running it on TPU
 
     ```
-    watch --color --interval 5 --no-title   "kubectl --namespace=${llmd_namespace} get deployment/optimized-baseline-nvidia-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+    watch --color --interval 5 --no-title   "kubectl --namespace=${llmd_namespace} get deployment/optimized-baseline-tpu-v6-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
     ```
 
 - When the deployment is ready, you will output similar to the following

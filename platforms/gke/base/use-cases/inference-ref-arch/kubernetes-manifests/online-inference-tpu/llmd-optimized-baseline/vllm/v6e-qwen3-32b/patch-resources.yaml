@@ -15,7 +15,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: optimized-baseline-nvidia-tpu-vllm-decode
+  name: optimized-baseline-tpu-v6-vllm-decode
   namespace: replaced-by-kustomize
 spec:
   replicas: 2
@@ -28,4 +28,3 @@ spec:
               google.com/tpu: "4"
             requests:
               google.com/tpu: "4"
-

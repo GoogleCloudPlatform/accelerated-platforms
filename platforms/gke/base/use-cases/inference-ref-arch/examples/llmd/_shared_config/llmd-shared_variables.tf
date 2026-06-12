@@ -13,8 +13,9 @@
 # limitations under the License.
 
 locals {
-  deploy_on_gpu = contains(["l4", "h100", "h200", "rtx-pro-6000"], var.llmd_accelerator_type) ? true : false
-  deploy_on_tpu = contains(["v6e"], var.llmd_accelerator_type) ? true : false
+  deploy_on_gpu  = contains(["l4", "h100", "h200", "rtx-pro-6000"], var.llmd_accelerator_type) ? true : false
+  deploy_on_tpu  = contains(["v6e"], var.llmd_accelerator_type) ? true : false
+  llmd_namespace = local.deploy_on_gpu ? local.ira_online_gpu_kubernetes_namespace_name : (local.deploy_on_tpu ? local.ira_online_tpu_kubernetes_namespace_name : "")
 }
 
 variable "llmd_accelerator_type" {

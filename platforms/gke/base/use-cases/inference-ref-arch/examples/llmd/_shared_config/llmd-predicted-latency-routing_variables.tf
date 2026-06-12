@@ -19,7 +19,6 @@ locals {
   llmd_plr_router_guide_helm_values     = "${var.llmd_plr_git_raw_url_prefix}/${var.llmd_plr_git_org}/${var.llmd_plr_git_repo}/${var.llmd_plr_git_branch}/guides/${var.llmd_plr_guide_name}/router/${local.llmd_plr_trimmed_guide_name}.values.yaml"
   llmd_plr_router_guide_slo_helm_values = "${var.llmd_plr_git_raw_url_prefix}/${var.llmd_plr_git_org}/${var.llmd_plr_git_repo}/${var.llmd_plr_git_branch}/guides/${var.llmd_plr_guide_name}/router/${local.llmd_plr_trimmed_guide_name}-slo.values.yaml"
   llmd_plr_trimmed_guide_name           = replace(var.llmd_plr_guide_name, "/-routing$/", "")
-  llmd_namespace                        = local.deploy_on_gpu ? local.ira_online_gpu_kubernetes_namespace_name : (local.deploy_on_tpu ? local.ira_online_tpu_kubernetes_namespace_name : "")
 }
 
 variable "llmd_plr_gateway_provider_name" {

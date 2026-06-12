@@ -28,15 +28,15 @@ patches:
   - path: patch-nodeselector.yaml
     target:
       kind: Deployment
-      name: optimized-baseline-nvidia-tpu-vllm-decode
+      name: optimized-baseline-tpu-v6-vllm-decode
   - path: patch-resources.yaml
     target:
       kind: Deployment
-      name: optimized-baseline-nvidia-tpu-vllm-decode
+      name: optimized-baseline-tpu-v6-vllm-decode
   - path: patch-vllm-args.yaml
     target:
       kind: Deployment
-      name: optimized-baseline-nvidia-tpu-vllm-decode
+      name: optimized-baseline-tpu-v6-vllm-decode
 
 replacements:
   - source:

@@ -15,7 +15,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: optimized-baseline-nvidia-tpu-vllm-decode
+  name: optimized-baseline-tpu-v6-vllm-decode
   namespace: replaced-by-kustomize
 spec:
   template:

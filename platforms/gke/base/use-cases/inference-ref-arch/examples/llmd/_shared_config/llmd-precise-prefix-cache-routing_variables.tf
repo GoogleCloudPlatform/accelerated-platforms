@@ -17,7 +17,6 @@ locals {
   llmd_ppcr_router_base_helm_values    = "${var.llmd_ppcr_git_raw_url_prefix}/${var.llmd_ppcr_git_org}/${var.llmd_ppcr_git_repo}/${var.llmd_ppcr_git_branch}/guides/recipes/router/base.values.yaml"
   llmd_ppcr_router_feature_helm_values = "${var.llmd_ppcr_git_raw_url_prefix}/${var.llmd_ppcr_git_org}/${var.llmd_ppcr_git_repo}/${var.llmd_ppcr_git_branch}/guides/recipes/router/features/httproute-flags.yaml"
   llmd_ppcr_router_guide_helm_values   = "${var.llmd_ppcr_git_raw_url_prefix}/${var.llmd_ppcr_git_org}/${var.llmd_ppcr_git_repo}/${var.llmd_ppcr_git_branch}/guides/${var.llmd_ppcr_guide_name}/router/${var.llmd_ppcr_guide_name}.values.yaml"
-  llmd_namespace                       = local.deploy_on_gpu ? local.ira_online_gpu_kubernetes_namespace_name : (local.deploy_on_tpu ? local.ira_online_tpu_kubernetes_namespace_name : "")
 }
 
 variable "llmd_ppcr_gateway_provider_name" {

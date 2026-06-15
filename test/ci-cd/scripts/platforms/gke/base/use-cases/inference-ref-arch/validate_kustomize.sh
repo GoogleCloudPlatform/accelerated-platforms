@@ -69,6 +69,12 @@ export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-eagle"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-eagle/configure_benchmark.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/configure_vllm_spec_decoding.sh"
 
+# Validate k6-benchmark kustomize
+export ACCELERATOR_TYPE="l4"
+export HF_MODEL_NAME="HF_MODEL_NAME"
+export K6_REQUEST_BATCH_SIZE=1
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/k6-benchmark/configure_deployment.sh"
+
 # Validate offline-batch-inference-gpu kustomize
 export ACCELERATOR_TYPE="rtx-pro-6000"
 export HF_MODEL_ID="meta-llama/Llama-3.3-70B-Instruct"

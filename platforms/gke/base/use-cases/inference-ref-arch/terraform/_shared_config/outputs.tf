@@ -164,6 +164,10 @@ output "ira_online_gpu_diffusers_flux_image_url" {
   value = local.ira_online_gpu_diffusers_flux_image_url
 }
 
+output "ira_online_gpu_diffusers_sglang_diffusers_image_url" {
+  value = local.ira_online_gpu_diffusers_sglang_diffusers_image_url
+}
+
 output "ira_online_gpu_kubernetes_namespace_name" {
   value = local.ira_online_gpu_kubernetes_namespace_name
 }

@@ -67,24 +67,23 @@ for terraservice in "${use_case_terraservices[@]}"; do
 done
 
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
+  # Destroy additional core services required by this use case
   declare -a CORE_TERRASERVICES_DESTROY=(
     "workloads/kueue"
+    "workloads/nri_device_injector"
     "workloads/priority_class"
     "workloads/lws"
     "workloads/jobset"
     "workloads/inference_gateway"
     "workloads/custom_metrics_adapter"
-    "workloads/auto_monitoring"
-    "custom_compute_class"
     "huggingface/hub_downloader"
     "huggingface/initialize"
     "cloudbuild/initialize"
-    "workloads/cluster_credentials"
-    "container_cluster"
-    "networking"
-    "initialize"
   )
   CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY[*]}" "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
+
+  # Destroy core platform with standard services
+  "${ACP_PLATFORM_CORE_DIR}/teardown-standard.sh"
 else
   echo "Skipping core platform teardown."
 fi

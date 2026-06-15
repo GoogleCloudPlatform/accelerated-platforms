@@ -8,6 +8,7 @@ platforms/gke/base/core/workloads/inference_gateway/manifests/*
 platforms/gke/base/core/workloads/jobset/manifests/*
 platforms/gke/base/core/workloads/kueue/manifests/*
 platforms/gke/base/core/workloads/lws/manifests/*
+platforms/gke/base/core/workloads/nri_device_injector/manifests/*
 platforms/gke/base/core/workloads/nvidia_nim/*
 platforms/gke/base/core/workloads/priority_class/manifests/*
 platforms/gke/base/kubernetes/*

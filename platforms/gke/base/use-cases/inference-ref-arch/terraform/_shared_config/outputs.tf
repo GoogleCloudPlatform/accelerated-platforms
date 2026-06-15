@@ -160,8 +160,16 @@ output "ira_offline_batch_project_id" {
   value = local.ira_offline_batch_project_id
 }
 
+output "ira_cpu_k6_benchmark_image_url" {
+  value = local.ira_cpu_k6_benchmark_image_url
+}
+
 output "ira_online_gpu_diffusers_flux_image_url" {
   value = local.ira_online_gpu_diffusers_flux_image_url
+}
+
+output "ira_online_gpu_diffusers_sglang_diffusers_image_url" {
+  value = local.ira_online_gpu_diffusers_sglang_diffusers_image_url
 }
 
 output "ira_online_gpu_kubernetes_namespace_name" {

@@ -26,4 +26,24 @@ source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_var
 
 "${MY_PATH}/../configure_deployment.sh"
 
-envsubst < "${MY_PATH}/base/templates/diffusers.tpl.env" | sponge "${MY_PATH}/base/diffusers.env"
+if [[ "${HF_MODEL_ID}" == "black-forest-labs/flux.1-schnell" ]]; then
+  DIFFUSERS_CONTAINER_IMAGE_URL="${ira_online_gpu_diffusers_flux_image_url}"
+  DIFFUSERS_INFERENCE_SERVER="diffusers"
+else
+  echo "[ERROR] Set a container image URL for model: ${HF_MODEL_ID:-"no model set"}"
+  return 1
+fi
+
+export DIFFUSERS_CONTAINER_IMAGE_URL
+export DIFFUSERS_INFERENCE_SERVER
+
+envsubst <"${MY_PATH}/base/templates/diffusers.tpl.env" | sponge "${MY_PATH}/base/diffusers.env"
+
+echo "Configurations for ${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
+
+echo "Deployment configuration:"
+cat "${MY_PATH}/base/diffusers.env"
+echo
+
+echo "Runtime configuration:"
+cat "${MY_PATH}/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}/runtime.env"

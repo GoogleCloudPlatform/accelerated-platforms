@@ -45,3 +45,31 @@ EOT
     source_hash          = sha256(join("", [for file in fileset("${local.acp_root}/container-images/gpu/diffusers-flux/src", "**") : filesha256("${local.acp_root}/container-images/gpu/diffusers-flux/src/${file}")]))
   }
 }
+
+resource "terraform_data" "submit_sglang_diffusers" {
+  input = {
+    acp_root                      = local.acp_root
+    cloudbuild_project_id         = local.cloudbuild_project_id
+    cloudbuild_service_account_id = local.cloudbuild_service_account_id
+    cloudbuild_source_bucket_name = local.cloudbuild_source_bucket_name
+    image_destination             = local.ira_online_gpu_diffusers_sglang_diffusers_image_url
+  }
+
+  provisioner "local-exec" {
+    command     = <<-EOT
+gcloud builds submit \
+--config="cloudbuild.yaml" \
+--gcs-source-staging-dir="gs://${self.input.cloudbuild_source_bucket_name}/source" \
+--project="${self.input.cloudbuild_project_id}" \
+--quiet \
+--service-account="${self.input.cloudbuild_service_account_id}" \
+--substitutions=_DESTINATION="${self.input.image_destination}"
+EOT
+    interpreter = ["bash", "-c"]
+    working_dir = "${local.acp_root}/container-images/gpu/sglang-diffusers"
+  }
+
+  triggers_replace = {
+    source_hash = sha256(join("", [for file in fileset("${local.acp_root}/container-images/gpu/sglang-diffusers", "**") : filesha256("${local.acp_root}/container-images/gpu/sglang-diffusers/${file}")]))
+  }
+}

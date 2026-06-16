@@ -22,8 +22,8 @@ options:
 steps:
   - args:
       - build
-      - --build-context=primary=container-images/tpu/reinforcement-learning-on-tpu/src
-      - --file=container-images/tpu/reinforcement-learning-on-tpu/Dockerfile
+      - --build-context=primary=container-images/tpu/rl-tpu-maxtext-grpo-single-host/src
+      - --file=container-images/tpu/rl-tpu-maxtext-grpo-single-host/Dockerfile
       - --tag=${_DESTINATION}
       - .
     id: "Build Reinforcement Learning on TPU image"

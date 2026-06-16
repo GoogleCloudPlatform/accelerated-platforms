@@ -22,21 +22,21 @@ configMapGenerator:
       - runtime.env
     name: runtime
 
-nameSuffix: -v6e-gemma-4-31b
+nameSuffix: -v6e-gemma-4-31b-it
 
 patches:
   - path: patch-nodeselector.yaml
     target:
       kind: Deployment
-      name: precise-prefix-cache-routing-tpu-vllm-decode
+      name: precise-prefix-cache-routing-tpu-v6-vllm-decode
   - path: patch-resources.yaml
     target:
       kind: Deployment
-      name: precise-prefix-cache-routing-tpu-vllm-decode
+      name: precise-prefix-cache-routing-tpu-v6-vllm-decode
   - path: patch-vllm-args.yaml
     target:
       kind: Deployment
-      name: precise-prefix-cache-routing-tpu-vllm-decode
+      name: precise-prefix-cache-routing-tpu-v6-vllm-decode
 
 replacements:
   - source:

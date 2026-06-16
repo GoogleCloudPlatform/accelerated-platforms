@@ -326,8 +326,8 @@ steps:
   replicaset.apps/optimized-baseline-nvidia-gpu-vllm-decode-XXXX      2         2         2       XX
   ```
 
-- Wait for the model server deployment to be ready before accessing the chat
-  interface.
+- Wait for the model server deployment to be ready before sending the request to
+  it.
 
   - If you are running it on GPU
 

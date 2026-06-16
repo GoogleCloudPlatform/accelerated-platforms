@@ -257,9 +257,9 @@ following steps:
 
     ```shell
     watch --color --interval 5 --no-title \
-    "kubectl --namespace=${llmd_namespace} get deployment/precise-prefix-cache-routing-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+    "kubectl --namespace=${llmd_namespace} get deployment/precise-prefix-cache-routing-tpu-v6-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
     echo '\nLogs(last 10 lines):'
-    kubectl --namespace=${llmd_namespace} logs deployment/precise-prefix-cache-routing-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+    kubectl --namespace=${llmd_namespace} logs deployment/precise-prefix-cache-routing-tpu-v6-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
     ```
 
 ## Verify llm-d deployment is up and running
@@ -326,8 +326,8 @@ following steps:
   replicaset.apps/precise-prefix-cache-routing-gpu-vllm-decode-XXXX      2         2         2       XX
   ```
 
-- Wait for the model server deployment to be ready before accessing the chat
-  interface.
+- Wait for the model server deployment to be ready before sending the request to
+  it.
 
   - If you are running it on GPU:
 
@@ -338,7 +338,7 @@ following steps:
   - If you are running it on TPU:
 
     ```
-    watch --color --interval 5 --no-title   "kubectl --namespace=${llmd_namespace} get deployment.apps/precise-prefix-cache-routing-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+    watch --color --interval 5 --no-title   "kubectl --namespace=${llmd_namespace} get deployment.apps/precise-prefix-cache-routing-tpu-v6-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
     ```
 
 - When the deployment is ready, you will output similar to the following

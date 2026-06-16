@@ -22,7 +22,7 @@ configMapGenerator:
       - runtime.env
     name: runtime
 
-nameSuffix: -v6e-gemma-4-31b
+nameSuffix: -v6e-gemma-4-31b-it
 
 patches:
   - path: patch-nodeselector.yaml

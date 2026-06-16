@@ -37,17 +37,15 @@ trap exit_handler EXIT
 
 set --
 
-export HF_MODEL_ID="google/gemma-3-27b-it"
+export HF_MODEL_ID="meta-llama/Llama-3.1-8B-Instruct"
 
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 export ACCELERATOR_TYPE="v5e"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/online-inference-tpu/max-diffusion/configure_max_diffusion.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/online-inference-tpu/vllm/configure_vllm.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/configure_job.sh"
 
 export ACCELERATOR_TYPE="v6e"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/online-inference-tpu/max-diffusion/configure_max_diffusion.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/online-inference-tpu/vllm/configure_vllm.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/configure_job.sh"
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/reinforcement-learning/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"

@@ -250,10 +250,10 @@ config_argv = [
     "eval_interval=100",
     
     # --- ML DIAGNOSTICS CONFIGURATION ---
-    "managed_mldiagnostics=True",                 # Enable the managed ML Diagnostics platform
-    "managed_mldiagnostics_run_group=GRPO_RL",    # (Optional) Group multiple runs under this category
-    "profiler=xplane",                            # Enable Google Cloud profiling traces 
-    "upload_all_profiler_results=True",           # Capture and upload multi-host profiles from all TPU hosts
+    "managed_mldiagnostics=True",  # Enable the managed ML Diagnostics platform
+    "managed_mldiagnostics_run_group=GRPO_RL",  # (Optional) Group multiple runs under this category
+    "profiler=xplane",  # Enable Google Cloud profiling traces 
+    "upload_all_profiler_results=True",  # Capture and upload multi-host profiles from all TPU hosts
 ]
 
 # --- 6. EXECUTION ---

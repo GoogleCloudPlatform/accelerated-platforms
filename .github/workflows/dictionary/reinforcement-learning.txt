@@ -6,9 +6,11 @@ highmem
 logdir
 logps
 maxtext
+mldiagnostics
 multiproc
 ndarray
 returncode
 sigabrt
 strftime
 tunix
+xplane

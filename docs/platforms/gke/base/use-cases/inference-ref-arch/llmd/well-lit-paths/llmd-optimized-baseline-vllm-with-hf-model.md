@@ -1,4 +1,4 @@
-# Optmized Baseline
+# Optimized Baseline
 
 This guide implements llm-d optimized baseline well-lit path on GKE using
 [Google Cloud Accelerated Platforms](https://github.com/GoogleCloudPlatform/accelerated-platforms).

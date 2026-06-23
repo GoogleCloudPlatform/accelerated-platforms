@@ -1,4 +1,9 @@
-# Intelligent inference scheduling with llm-d
+# Optmized Baseline
+
+This guide implements llm-d optimized baseline well-lit path on GKE using
+[Google Cloud Accelerated Platforms](https://github.com/GoogleCloudPlatform/accelerated-platforms).
+To learn about optimized baseline, refer to
+[llm-d documentation](https://llm-d.ai/docs/guides/optimized-baseline).
 
 ## Prerequisite
 

@@ -50,7 +50,7 @@ spec:
                   name: download
             - name: REPLACE_EXISTING
               value: "true"
-          image: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+          image: gcr.io/google.com/cloudsdktool/cloud-sdk:570.0.0-slim
           name: hf-model-to-gcs
           resources:
             requests:

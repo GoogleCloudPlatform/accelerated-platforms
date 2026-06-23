@@ -14,10 +14,11 @@
 # limitations under the License.
 
 import argparse
-import os
 import json
-import yaml
+import os
 import sys
+
+import yaml
 
 # Define hardware capacities (in GB)
 GPU_CAPACITIES = {

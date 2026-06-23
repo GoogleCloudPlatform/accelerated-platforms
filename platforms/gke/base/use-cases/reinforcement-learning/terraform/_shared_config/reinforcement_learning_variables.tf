@@ -55,19 +55,19 @@ variable "rl_project_id" {
   type        = string
 }
 
-variable "rl_tpu_reinforcement_learning_on_tpu_image_url" {
+variable "rl_tpu_maxtext_grpo_single_host_image_url" {
   default     = null
   description = "The URL for the RL on TPU container image."
   type        = string
 }
 
-variable "rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name" {
+variable "rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name" {
   default     = null
   description = "The Kubernetes namespace name for the RL on TPU deployment."
   type        = string
 }
 
-variable "rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name" {
+variable "rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name" {
   default     = null
   description = "The Kubernetes service account name for the RL on TPU deployment."
   type        = string

@@ -12,14 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "rl_dataset_bucket_name" {
-  value = local.rl_dataset_bucket_name
-}
+terraform {
+  required_version = ">= 1.5.7"
 
-output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
-  value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
-}
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "6.49.2"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.3"
+    }
+  }
 
-output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
-  value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
+  provider_meta "google" {
+    module_name = "cloud-solutions/acp_rl_images_tpu_rl_on_tpu_deploy-v1"
+  }
 }

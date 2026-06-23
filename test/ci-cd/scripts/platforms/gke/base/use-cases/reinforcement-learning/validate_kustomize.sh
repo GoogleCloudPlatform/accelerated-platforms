@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,36 +37,15 @@ trap exit_handler EXIT
 
 set --
 
-export HF_MODEL_ID="google/gemma-3-27b-it"
+export HF_MODEL_ID="meta-llama/Llama-3.1-8B-Instruct"
 
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh"
 
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/model-download/configure_huggingface.sh"
-
-export ACCELERATOR_TYPE="l4"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/batch-inference-gpu/batch-load-generator/configure_load_generator.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/batch-inference-gpu/batch-pubsub-subscriber/configure_pubsub_subscriber.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/batch-inference-gpu/vllm/configure_vllm.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/online-inference-gpu/vllm/configure_vllm.sh"
-
 export ACCELERATOR_TYPE="v5e"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/online-inference-tpu/max-diffusion/configure_max_diffusion.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/online-inference-tpu/vllm/configure_vllm.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/configure_job.sh"
 
-# Validate inference-perf kustomize 
-export ACCELERATOR_TYPE="rtx-pro-6000"
-export ACCELERATOR="GPU"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/inference-perf-bench/configure_benchmark.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/configure_vllm_spec_decoding.sh"
-
-# Validate offline-batch-inference-gpu kustomize
-export ACCELERATOR_TYPE="rtx-pro-6000"
-export HF_MODEL_ID="meta-llama/Llama-3.3-70B-Instruct"
-source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/offline-batch-inference-gpu/configure_jobset.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-dataset-downloader/configure_dataset_downloader.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/configure_worker.sh"
+export ACCELERATOR_TYPE="v6e"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/configure_job.sh"
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/reinforcement-learning/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"

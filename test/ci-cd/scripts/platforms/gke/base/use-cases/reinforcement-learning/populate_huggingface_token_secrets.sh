@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,5 +40,5 @@ set --
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 echo "HF_TOKEN_READ" | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} \
---data-file=- \
---project=${huggingface_secret_manager_project_id}
+  --data-file=- \
+  --project=${huggingface_secret_manager_project_id}

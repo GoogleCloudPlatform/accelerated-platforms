@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -62,18 +62,9 @@ steps:
 
   - args:
       - platforms/gke/base/use-cases/reinforcement-learning/terraform
-      - online_gpu
+      - reinforcement_learning
     entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
-    id: "Apply reinforcement-learning Terraservice 'online_gpu'"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Populate platforms/gke/base/use-cases/reinforcement-learning Hugging Face token secrets"
-
-  - args:
-      - platforms/gke/base/use-cases/reinforcement-learning/terraform
-      - online_tpu
-    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
-    id: "Apply reinforcement-learning Terraservice 'online_tpu'"
+    id: "Apply reinforcement-learning Terraservice 'reinforcement_learning'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Populate platforms/gke/base/use-cases/reinforcement-learning Hugging Face token secrets"
@@ -84,44 +75,16 @@ steps:
     id: "Validate Kustomize"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Apply reinforcement-learning Terraservice 'online_gpu'"
-      - "Apply reinforcement-learning Terraservice 'online_tpu'"
+      - "Apply reinforcement-learning Terraservice 'reinforcement_learning'"
 
   - args:
       - platforms/gke/base/use-cases/reinforcement-learning/terraform
-      - online_gpu
+      - reinforcement_learning
     entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
-    id: "reinforcement-learning Terraservice 'online_gpu' check for changes"
+    id: "reinforcement-learning Terraservice 'reinforcement_learning' check for changes"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Validate Kustomize"
-
-  - args:
-      - platforms/gke/base/use-cases/reinforcement-learning/terraform
-      - online_tpu
-    entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
-    id: "reinforcement-learning Terraservice 'online_tpu' check for changes"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "Validate Kustomize"
-
-  - args:
-      - platforms/gke/base/use-cases/reinforcement-learning/terraform
-      - online_gpu
-    entrypoint: "test/ci-cd/scripts/terraservice/destroy.sh"
-    id: "Destroy reinforcement-learning Terraservice 'online_gpu'"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "reinforcement-learning Terraservice 'online_gpu' check for changes"
-
-  - args:
-      - platforms/gke/base/use-cases/reinforcement-learning/terraform
-      - online_tpu
-    entrypoint: "test/ci-cd/scripts/terraservice/destroy.sh"
-    id: "Destroy reinforcement-learning Terraservice 'online_tpu'"
-    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
-    waitFor:
-      - "reinforcement-learning Terraservice 'online_tpu' check for changes"
 
   - args:
       - "Teardown platforms/gke/base/use-cases/reinforcement-learning Standard"
@@ -130,8 +93,7 @@ steps:
     id: "Teardown platforms/gke/base/use-cases/reinforcement-learning Standard"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Destroy reinforcement-learning Terraservice 'online_gpu'"
-      - "Destroy reinforcement-learning Terraservice 'online_tpu'"
+      - "Destroy reinforcement-learning Terraservice 'reinforcement_learning'"
 
   - args:
       - "Cleanup the build environment"

@@ -39,16 +39,15 @@ export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 # needed to source this file earlier to check the exit condition
 source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 inference_terraservice="online_gpu"
-if [[ ${deploy_on_gpu} == "true" ]] ; then
-    echo "online_gpu terraservice will be deployed"
+if [[ ${deploy_on_gpu} == "true" ]]; then
+  echo "online_gpu terraservice will be deployed"
 elif [[ ${deploy_on_tpu} == "true" ]]; then
-    inference_terraservice="online_tpu"
-    echo "online_tpu terraservice will be deployed"
+  inference_terraservice="online_tpu"
+  echo "online_tpu terraservice will be deployed"
 else
-    echo "A valid GPU or TPU must be matched in deploy_on_gpu and deploy_on_tpu local variables in _shared_config/llmd-shared_variables.tf"
-    exit 0
+  echo "A valid GPU or TPU must be matched in deploy_on_gpu and deploy_on_tpu local variables in _shared_config/llmd-shared_variables.tf"
+  exit 0
 fi
-
 
 declare -a CORE_TERRASERVICES_APPLY=(
   "networking"
@@ -91,4 +90,4 @@ gcloud container clusters get-credentials "${cluster_name}" \
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "comfyui deploy total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "llm-d precise-prefix-cache deploy total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"

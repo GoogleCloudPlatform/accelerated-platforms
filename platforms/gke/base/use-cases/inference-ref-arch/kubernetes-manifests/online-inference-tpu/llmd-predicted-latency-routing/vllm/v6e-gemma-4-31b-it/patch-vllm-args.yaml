@@ -40,3 +40,4 @@ spec:
             - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
             - "--load-format=runai_streamer"
             - '--model-loader-extra-config={"distributed":true}'
+            - "--max-num-batched-tokens=$(MAX_NUM_BATCHED_TOKENS)" # This is needed to avoid the error  ValueError: Chunked MM input disabled but max_tokens_per_mm_item (2496) is larger than max_num_batched_tokens (2048). Please increase max_num_batched_tokens.

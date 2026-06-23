@@ -39,3 +39,4 @@ spec:
             - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
             - "--load-format=runai_streamer"
             - '--model-loader-extra-config={"distributed":true}'
+            - '--hf-overrides={"rope_scaling":{"rope_type":"yarn","factor":3.2,"original_max_position_embeddings":40960}}'

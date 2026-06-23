@@ -19,7 +19,9 @@ Follow these instructions to run the interactive chat benchmarking scenario.
 To measure configuration improvements, you should run the benchmark twice: first as a **baseline**, and then under a **workload-tuned** configuration.
 
 ### Phase 1: Run Baseline Benchmark
+
 Run the benchmark using the default repository configuration (no tuning applied):
+
 1. **Command**:
    ```bash
    ./skills/scripts/run_benchmark.sh skills/llm-d-interactive-chat/config.json http://vllm-service:8000
@@ -27,6 +29,7 @@ Run the benchmark using the default repository configuration (no tuning applied)
 2. **Result Verification**: Note down the throughput (QPS), Time to First Token (TTFT), and Inter-Token Latency from the generated report (`report_v0.2.json`).
 
 ### Phase 2: Run Workload-Tuned Benchmark
+
 1. **Optimize Parameters:** Run the `llm-d-workload-tuner` skill to calculate and apply optimal model parameters:
    ```bash
    python3 ./skills/llm-d-workload-tuner/scripts/tune_workload.py \
@@ -36,7 +39,7 @@ Run the benchmark using the default repository configuration (no tuning applied)
        --strategy <strategy_name> \
        --apply
    ```
-   *Review the printed parameter diff comparison to confirm changes.*
+   _Review the printed parameter diff comparison to confirm changes._
 2. **Redeploy and Rollout:** Apply the patched overlays to the GKE cluster and wait for pods to restart:
    ```bash
    kubectl rollout restart deployment vllm -n <namespace>
@@ -53,17 +56,19 @@ Ensure you have set `CLUSTER_NAME` and `ZONE` environment variables if you want 
 ## 2. Troubleshooting & Common Failures
 
 If you encounter issues such as:
-* GKE TLS / SSL validation errors
-* Volume multi-attach lock errors (`FailedAttachVolume` / `ReadWriteOnce`)
-* Model served mismatch or gateway connection errors
+
+- GKE TLS / SSL validation errors
+- Volume multi-attach lock errors (`FailedAttachVolume` / `ReadWriteOnce`)
+- Model served mismatch or gateway connection errors
 
 Please consult the central troubleshooting guide: [TROUBLESHOOTING.md](../TROUBLESHOOTING.md).
 
 ## 3. Customizing Workload Distributions
 
 You can configure the sequence length distributions directly inside [config.json](config.json):
-* `input_sequence_length`: Bounds and mean of user prompts (determines KV cache matching pressure).
-* `output_sequence_length`: Bounds and mean of model output tokens (determines decode scheduling load).
+
+- `input_sequence_length`: Bounds and mean of user prompts (determines KV cache matching pressure).
+- `output_sequence_length`: Bounds and mean of model output tokens (determines decode scheduling load).
 
 These are dynamically loaded by `run_benchmark.sh` and override the defaults of the `chatbot_synthetic.yaml` profile.
 

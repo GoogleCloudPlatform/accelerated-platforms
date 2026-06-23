@@ -14,16 +14,16 @@
 load:
   type: concurrent
   stages:
-  - num_requests: 300
-    concurrency_level: 10
-  - num_requests: 300
-    concurrency_level: 20
-  - num_requests: 300
-    concurrency_level: 30
-  - num_requests: 300
-    concurrency_level: 40
-  - num_requests: 300
-    concurrency_level: 50
+    - num_requests: 300
+      concurrency_level: 10
+    - num_requests: 300
+      concurrency_level: 20
+    - num_requests: 300
+      concurrency_level: 30
+    - num_requests: 300
+      concurrency_level: 40
+    - num_requests: 300
+      concurrency_level: 50
   num_workers: 1
 api:
   type: completion

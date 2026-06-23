@@ -21,6 +21,7 @@ Follow these instructions to run the workload optimizer and apply tuned vLLM par
 To compute optimal sizing (Tensor Parallelism size, maximum model length limits, memory margins, chunked prefill, and quantization):
 
 - **Command Format:**
+
   ```bash
   python3 ./skills/llm-d-workload-tuner/scripts/tune_workload.py \
       --config <path_to_config.json> \
@@ -53,6 +54,7 @@ Add the `--apply` flag to commit the calculated tuning configs directly to the G
   ```
 
 When `--apply` is set, the tuner:
+
 1. Updates `runtime.env` inside the GKE overlay directory (e.g., setting `TENSOR_PARALLEL_SIZE`, `MAX_MODEL_LEN`, and `EXTRA_ARGS`).
 2. Patches `patch-nodeselector.yaml` to request matching GPU counts on nodes.
 3. Patches `patch-resources.yaml` to configure container GPU limit settings.
@@ -61,10 +63,11 @@ When `--apply` is set, the tuner:
 ## 4. Verification
 
 After deploying the tuned stack, verify:
-* That the baseline diff output matches the expected transitions.
-* That vLLM deployment specs match the calculated values:
+
+- That the baseline diff output matches the expected transitions.
+- That vLLM deployment specs match the calculated values:
   ```bash
   kubectl get deployment -n $NAMESPACE -l app=vllm -o jsonpath='{.items[0].spec.template.spec.containers[0].args}'
   ```
-* That GCS benchmarking uploads automatically bundle the metadata:
-  * When running `run_benchmark.sh`, a file named `vllm_config.json` is generated on the PVC and uploaded directly to the GCS bucket alongside the performance metrics.
+- That GCS benchmarking uploads automatically bundle the metadata:
+  - When running `run_benchmark.sh`, a file named `vllm_config.json` is generated on the PVC and uploaded directly to the GCS bucket alongside the performance metrics.

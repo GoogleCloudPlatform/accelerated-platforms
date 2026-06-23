@@ -67,7 +67,6 @@ pathlib
 pgvector
 pipreqs
 pmap
-Popen
 popen
 prng
 protos

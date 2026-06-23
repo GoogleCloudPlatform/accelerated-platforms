@@ -59,6 +59,10 @@ resource "google_container_cluster" "cluster" {
       enabled = true
     }
 
+    pod_snapshot_config {
+      enabled = true
+    }
+
     horizontal_pod_autoscaling {
       disabled = false
     }

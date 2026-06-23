@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "google_project_iam_member" "gke_robot_storage_admin" {
+  project = data.google_project.cluster.project_id
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:service-${data.google_project.cluster.number}@container-engine-robot.iam.gserviceaccount.com"
+}
+
 resource "google_project_iam_custom_role" "gcs_fuse_user" {
   description = "GCS FUSE user permissions"
   permissions = [

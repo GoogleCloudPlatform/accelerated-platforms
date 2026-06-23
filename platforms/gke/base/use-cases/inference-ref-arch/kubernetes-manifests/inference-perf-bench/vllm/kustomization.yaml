@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -67,19 +66,20 @@ replacements:
       kind: Job
       name: inference-perf
 - source:
+    fieldPath: data.APP_LABEL
     kind: ConfigMap
     name: benchmark
-    fieldPath: data.APP_LABEL
   targets:
-    - select:
-        kind: PodMonitoring
-        name: vllm-podmonitoring
-      fieldPaths:
-        - metadata.labels.app
-        - spec.selector.matchLabels.app
+  - fieldPaths:
+    - metadata.labels.app
+    - spec.selector.matchLabels.app
+    select:
+      kind: PodMonitoring
+      name: vllm-podmonitoring
 
 resources:
 - configmap-benchmark.yaml
 - job.yaml
 - secretproviderclass-huggingface-tokens.yaml
 - pod-monitoring.yaml
+namePrefix: 87f9e754a3-

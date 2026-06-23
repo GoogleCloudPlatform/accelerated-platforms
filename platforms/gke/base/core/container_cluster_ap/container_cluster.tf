@@ -34,6 +34,8 @@ resource "google_container_cluster" "cluster" {
     google_project_iam_member.cluster_sa
   ]
 
+  provider = google-beta
+
   datapath_provider   = "ADVANCED_DATAPATH"
   deletion_protection = false
   enable_autopilot    = true
@@ -54,6 +56,10 @@ resource "google_container_cluster" "cluster" {
     }
 
     gce_persistent_disk_csi_driver_config {
+      enabled = true
+    }
+
+    pod_snapshot_config {
       enabled = true
     }
 

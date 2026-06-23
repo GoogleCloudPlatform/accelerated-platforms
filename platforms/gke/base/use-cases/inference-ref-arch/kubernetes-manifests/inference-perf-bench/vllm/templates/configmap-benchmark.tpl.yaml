@@ -35,7 +35,7 @@ data:
       streaming: true
     server:
       type: vllm
-      model_name: /gcs/${HF_MODEL_ID}
+      model_name: ${HF_MODEL_ID}
       base_url: http://${APP_LABEL}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
       ignore_eos: true
     tokenizer:

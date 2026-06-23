@@ -1,6 +1,6 @@
 ---
 name: llm-d-interactive-chat
-description: Runs the interactive chat benchmarking scenario on GKE with accelerators.
+description: Runs the interactive chat benchmarking scenario on your deployment of LLM-d well-lit paths on an existing GKE cluster with accelerators. This skill uses the llm-d-benchmark orchestrator with inference-perf as the load harness
 version: 0.2.0
 allowed-tools: kubectl gcloud inference-perf curl cat source
 mcp-servers:
@@ -11,9 +11,8 @@ mcp-servers:
 ---
 
 # Interactive Chat Scenario Skill
-
 Follow these instructions to run the interactive chat benchmarking scenario.
-
+We will use the run_benchmark.sh script to run through the following stages - IAM and Pre-req validation, workspace set up and config parsing, dry-run with llm-d-bench, then deploy's and runs the harness and lastly report generation and GCS upload
 ## 1. Execution Workflow (Baseline vs. Workload-Tuned)
 
 To measure configuration improvements, you should run the benchmark twice: first as a **baseline**, and then under a **workload-tuned** configuration.

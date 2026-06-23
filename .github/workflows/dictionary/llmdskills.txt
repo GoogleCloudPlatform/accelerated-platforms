@@ -1,9 +1,12 @@
 autodiscover
+autodiscovers
 customcomputeclasses
 evals
+findall
 isdigit
 isdir
 llmdbenchmark
+llmdskills
 nodeselector
 pathsep
 rmtree

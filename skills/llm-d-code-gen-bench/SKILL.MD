@@ -1,6 +1,6 @@
 ---
 name: llm-d-code-gen-bench
-description: Runs the code generation benchmarking scenario on GKE with accelerators.
+description: Runs the code generation benchmarking scenario on LLM-d well-lit paths on GKE with accelerators. This skill uses the llm-d-benchmark orchestrator with inference-perf as the load harness
 version: 0.2.0
 allowed-tools: kubectl gcloud inference-perf curl cat source
 mcp-servers:
@@ -12,7 +12,7 @@ mcp-servers:
 
 # Agent Code Gen Bench Scenario Skill
 
-Follow these instructions to run the code generation benchmarking scenario.
+Follow these instructions to run the code generation benchmarking scenario. We will use the run_benchmark.sh script to run through the following stages - IAM and Pre-req validation, workspace set up and config parsing, dry-run with llm-d-bench, then deploy's and runs the harness and lastly report generation and GCS upload
 
 ## 1. Execution Workflow (Baseline vs. Workload-Tuned)
 

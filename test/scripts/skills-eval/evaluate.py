@@ -140,7 +140,13 @@ for i, arg in enumerate(args):
 
 def clean_outputs():
     """Removes any generated output files to prevent cross-contamination."""
-    for file in ["results.json", "report_v0.2.json", "dcgm_metrics.json", "output.csv", "vllm_config.json"]:
+    for file in [
+        "results.json",
+        "report_v0.2.json",
+        "dcgm_metrics.json",
+        "output.csv",
+        "vllm_config.json",
+    ]:
         if os.path.exists(file):
             os.remove(file)
 
@@ -268,17 +274,38 @@ def check_assertion(assertion_str, stdout, stderr):
         if os.path.exists(MOCK_LOG_FILE):
             with open(MOCK_LOG_FILE, "r") as f:
                 calls = f.read()
-            if "gcloud storage cp vllm_config.json" in calls and "gs://llm-d-benchmark/" in calls:
-                return True, "vllm_config.json is uploaded using gcloud storage cp to gs://llm-d-benchmark/"
-        return False, f"vllm_config.json was not uploaded to GCS. Calls: {calls if os.path.exists(MOCK_LOG_FILE) else 'None'}"
+            if (
+                "gcloud storage cp vllm_config.json" in calls
+                and "gs://llm-d-benchmark/" in calls
+            ):
+                return (
+                    True,
+                    "vllm_config.json is uploaded using gcloud storage cp to gs://llm-d-benchmark/",
+                )
+        return (
+            False,
+            f"vllm_config.json was not uploaded to GCS. Calls: {calls if os.path.exists(MOCK_LOG_FILE) else 'None'}",
+        )
 
-    elif "report_v0.2.json is uploaded" in assertion_lower or "report report_v0.2.json is uploaded" in assertion_lower:
+    elif (
+        "report_v0.2.json is uploaded" in assertion_lower
+        or "report report_v0.2.json is uploaded" in assertion_lower
+    ):
         if os.path.exists(MOCK_LOG_FILE):
             with open(MOCK_LOG_FILE, "r") as f:
                 calls = f.read()
-            if "gcloud storage cp report_v0.2.json" in calls and "gs://llm-d-benchmark/" in calls:
-                return True, "The report report_v0.2.json is uploaded using gcloud storage cp to gs://llm-d-benchmark/"
-        return False, f"report_v0.2.json was not uploaded to GCS. Calls: {calls if os.path.exists(MOCK_LOG_FILE) else 'None'}"
+            if (
+                "gcloud storage cp report_v0.2.json" in calls
+                and "gs://llm-d-benchmark/" in calls
+            ):
+                return (
+                    True,
+                    "The report report_v0.2.json is uploaded using gcloud storage cp to gs://llm-d-benchmark/",
+                )
+        return (
+            False,
+            f"report_v0.2.json was not uploaded to GCS. Calls: {calls if os.path.exists(MOCK_LOG_FILE) else 'None'}",
+        )
 
     elif "uploaded using gcloud storage cp" in assertion_lower:
         if os.path.exists(MOCK_LOG_FILE):
@@ -360,7 +387,10 @@ def check_assertion(assertion_str, stdout, stderr):
 
     elif "tune_workload.py script is invoked" in assertion_lower:
         if "Target Model:" in stdout or "Estimated Weights Size:" in stdout:
-            return True, "Verified tune_workload.py invocation arguments structured correctly"
+            return (
+                True,
+                "Verified tune_workload.py invocation arguments structured correctly",
+            )
         return False, f"tune_workload.py did not run correctly. Stdout: {stdout}"
 
     elif "recommended tensor_parallel_size is calculated" in assertion_lower:
@@ -373,22 +403,44 @@ def check_assertion(assertion_str, stdout, stderr):
         env_file = os.path.join(target_dir, "runtime.env")
         res_file = os.path.join(target_dir, "patch-resources.yaml")
         ns_file = os.path.join(target_dir, "patch-nodeselector.yaml")
-        if os.path.exists(env_file) and os.path.exists(res_file) and os.path.exists(ns_file):
-            return True, "The overlay files (runtime.env, patch-resources.yaml, and patch-nodeselector.yaml) are updated under the target overlay directory"
+        if (
+            os.path.exists(env_file)
+            and os.path.exists(res_file)
+            and os.path.exists(ns_file)
+        ):
+            return (
+                True,
+                "The overlay files (runtime.env, patch-resources.yaml, and patch-nodeselector.yaml) are updated under the target overlay directory",
+            )
         return False, f"Overlay files under {target_dir} not found"
 
     elif "falls back to recommending quantization" in assertion_lower:
-        if "Falling back to FP8 Quantization..." in stdout or "Quantization: fp8" in stdout:
-            return True, "The tuner script falls back to recommending quantization (FP8 or FP4)"
+        if (
+            "Falling back to FP8 Quantization..." in stdout
+            or "Quantization: fp8" in stdout
+        ):
+            return (
+                True,
+                "The tuner script falls back to recommending quantization (FP8 or FP4)",
+            )
         return False, f"Quantization fallback not found in output. Stdout: {stdout}"
 
-    elif "tensor_parallel_size limit is kept within the capacity threshold" in assertion_lower:
+    elif (
+        "tensor_parallel_size limit is kept within the capacity threshold"
+        in assertion_lower
+    ):
         match = re.search(r"Recommended TENSOR_PARALLEL_SIZE:\s*(\d+)", stdout)
         if match:
             tp = int(match.group(1))
             if tp <= 3:
-                return True, f"The TENSOR_PARALLEL_SIZE limit ({tp}) is kept within the capacity threshold (<= 3)"
-        return False, f"TENSOR_PARALLEL_SIZE limit verification failed. Stdout: {stdout}"
+                return (
+                    True,
+                    f"The TENSOR_PARALLEL_SIZE limit ({tp}) is kept within the capacity threshold (<= 3)",
+                )
+        return (
+            False,
+            f"TENSOR_PARALLEL_SIZE limit verification failed. Stdout: {stdout}",
+        )
 
     return False, f"Unsupported assertion check: '{assertion_str}'"
 
@@ -482,11 +534,15 @@ def run_test_case(skill_name, case, mock_mode):
                     [
                         "python3",
                         "skills/llm-d-workload-tuner/scripts/tune_workload.py",
-                        "--config", "skills/llm-d-interactive-chat/config.json",
-                        "--perf-yaml", "skills/llm-d-interactive-chat/inference-perf.yaml",
-                        "--gpu-type", "rtx-pro-6000",
-                        "--strategy", "precise-prefix-cache-routing",
-                        "--apply"
+                        "--config",
+                        "skills/llm-d-interactive-chat/config.json",
+                        "--perf-yaml",
+                        "skills/llm-d-interactive-chat/inference-perf.yaml",
+                        "--gpu-type",
+                        "rtx-pro-6000",
+                        "--strategy",
+                        "precise-prefix-cache-routing",
+                        "--apply",
                     ],
                     capture_output=True,
                     text=True,
@@ -494,22 +550,32 @@ def run_test_case(skill_name, case, mock_mode):
                 )
                 stdout, stderr = res.stdout, res.stderr
             elif "Qwen/Qwen3-32B-Instruct" in case["prompt"]:
-                temp_config_path = os.path.join(WORKSPACE_DIR, "temp_concurrency_config.json")
-                temp_perf_path = os.path.join(WORKSPACE_DIR, "temp_concurrency_perf.yaml")
-                
+                temp_config_path = os.path.join(
+                    WORKSPACE_DIR, "temp_concurrency_config.json"
+                )
+                temp_perf_path = os.path.join(
+                    WORKSPACE_DIR, "temp_concurrency_perf.yaml"
+                )
+
                 with open(temp_config_path, "w") as f:
                     json.dump({"output_sequence_length": {"max": 8000}}, f)
                 with open(temp_perf_path, "w") as f:
-                    f.write("server:\n  model_name: Qwen/Qwen3-32B-Instruct\nstages:\n- concurrency_level: 10\n")
-                    
+                    f.write(
+                        "server:\n  model_name: Qwen/Qwen3-32B-Instruct\nstages:\n- concurrency_level: 10\n"
+                    )
+
                 res = subprocess.run(
                     [
                         "python3",
                         "skills/llm-d-workload-tuner/scripts/tune_workload.py",
-                        "--config", temp_config_path,
-                        "--perf-yaml", temp_perf_path,
-                        "--gpu-type", "rtx-pro-6000",
-                        "--strategy", "precise-prefix-cache-routing"
+                        "--config",
+                        temp_config_path,
+                        "--perf-yaml",
+                        temp_perf_path,
+                        "--gpu-type",
+                        "rtx-pro-6000",
+                        "--strategy",
+                        "precise-prefix-cache-routing",
                     ],
                     capture_output=True,
                     text=True,

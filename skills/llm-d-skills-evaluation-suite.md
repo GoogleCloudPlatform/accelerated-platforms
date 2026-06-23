@@ -16,8 +16,15 @@ skills/
 ├── llm-d-interactive-chat/      # Benchmark skill for interactive chat workloads
 │   └── evals/
 │       └── evals.json           # Scenarios for interactive-chat
+├── llm-d-workload-tuner/        # Workload tuning recommendation engine skill
+│   ├── evals/
+│   │   └── evals.json           # Scenarios for workload-tuner
+│   ├── references/
+│   │   └── llm-d-workload-profiles.md
+│   └── scripts/
+│       └── tune_workload.py     # Workload tuner Python entrypoint
 ├── scripts/
-│   ├── evaluate.py              # Test suite runner (Local & CI/CD)
+│   ├── helper-pods/             # Manifests and scripts for helper pods
 │   └── run_benchmark.sh         # Consolidated benchmark shell harness
 ├── requirements-eval.txt        # Evaluation python requirements (empty/placeholder)
 ```
@@ -26,10 +33,11 @@ skills/
 
 ## The Evaluation Runner (`evaluate.py`)
 
-The evaluation runner ([evaluate.py](skills/scripts/evaluate.py)) automates
-testing of the repository's shell scripts and configuration validations. It maps
-test cases defined in each skill's `evals/evals.json` file to programmatic
-assertions, verifying correctness without modifying your local GCP state.
+The evaluation runner ([evaluate.py](test/scripts/skills-eval/evaluate.py))
+automates testing of the repository's shell scripts and configuration
+validations. It maps test cases defined in each skill's `evals/evals.json` file
+to programmatic assertions, verifying correctness without modifying your local
+GCP state.
 
 ### How Mock Mode Works (`--mock`)
 
@@ -59,7 +67,7 @@ The runner requires Python 3.12+ (standard library modules only).
 To run the mock evaluations locally:
 
 ```bash
-python3 skills/scripts/evaluate.py --mock
+python3 test/scripts/skills-eval/evaluate.py --mock
 ```
 
 This will automatically discover and run all test scenarios across all skill
@@ -98,4 +106,5 @@ directory. To add a new test scenario:
     ]
     ```
 3.  Ensure that the assertion string matches a checker pattern in
-    `check_assertion()` inside `evaluate.py`.
+    `check_assertion()` inside
+    [evaluate.py](test/scripts/skills-eval/evaluate.py).

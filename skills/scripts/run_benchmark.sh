@@ -115,39 +115,15 @@ fi
 deploy_data_access_pod() {
   local ns=$1
   echo "Re-deploying data-access pod to namespace $ns..."
-  cat <<EOF | kubectl apply -n "$ns" -f -
-apiVersion: v1
-kind: Pod
-metadata:
-  name: access-to-harness-data-workload-pvc
-  labels:
-    app: llm-d-benchmark-harness
-    role: llm-d-benchmark-data-access
-spec:
-  containers:
-  - name: rsync
-    image: ghcr.io/llm-d/llm-d-benchmark:v0.6.7
-    imagePullPolicy: Always
-    securityContext:
-      runAsUser: 0
-    command: ["rsync", "--daemon", "--no-detach", "--port=20873", "--log-file=/dev/stdout"]
-    volumeMounts:
-    - name: requests
-      mountPath: /requests
-  volumes:
-  - name: requests
-    persistentVolumeClaim:
-      claimName: workload-pvc
-EOF
+  kubectl apply -n "$ns" -f helper-pods/data-access.yaml
 }
 
 collect_dcgm_in_cluster() {
   local ns=$1
-  local manifest_path="platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/helper-pods/telemetry-collector.yaml"
-  echo "Deploying in-cluster telemetry collector pod from $manifest_path..."
-  
+  echo "Deploying in-cluster telemetry collector pod "
+
   # Deploy the pod
-  kubectl apply -f "$manifest_path" -n "$ns"
+  kubectl apply -f helper-pods/telemetry-collector.yaml -n "$ns"
   
   # Wait for pod to complete
   kubectl wait --for=condition=Ready pod/telemetry-collector -n "$ns" --timeout=60s || true

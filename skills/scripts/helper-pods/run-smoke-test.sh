@@ -4,7 +4,7 @@
 
 set -eo pipefail
 
-NAMESPACE=${1:-acp-llmd-bench-online-gpu}
+NAMESPACE=${1}
 GATEWAY_NAME="llm-d-inference-gateway"
 
 # 1. Resolve Gateway IP Address dynamically
@@ -26,19 +26,8 @@ echo "Resolved Endpoint IP: ${GATEWAY_IP}"
 
 # 2. Deploy temporary smoke-test pod using resolved IP
 echo "Launching model-smoke-test pod..."
-cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Pod
-metadata:
-  name: model-smoke-test
-  namespace: ${NAMESPACE}
-spec:
-  restartPolicy: Never
-  containers:
-  - name: test-client
-    image: curlimages/curl:latest
-    command: ["curl", "-s", "-w", "\nHTTP Code: %{http_code}\n", "http://${GATEWAY_IP}:80/v1/models"]
-EOF
+kubectl apply -f -smoke-test.yaml
+
 
 # 3. Wait for pod execution to complete
 echo "Waiting for pod model-smoke-test to complete..."

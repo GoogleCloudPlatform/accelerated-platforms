@@ -1,0 +1,21 @@
+[
+  {
+    "id": 1,
+    "prompt": "Tune configuration parameters for google/gemma-4-31b-it on rtx-pro-6000 using the precise-prefix-cache-routing strategy and the workload config in skills/llm-d-interactive-chat/config.json. Apply the changes.",
+    "expected_output": "Parses the profile, calculates the required VRAM size, recommends the appropriate TP size (TENSOR_PARALLEL_SIZE=2), and updates the GKE Kustomize patch yaml files and runtime.env file under the target rtx-pro-6000-gemma-4-31b-it overlay.",
+    "assertions": [
+      "The tune_workload.py script is invoked with --config skills/llm-d-interactive-chat/config.json and --perf-yaml skills/llm-d-interactive-chat/inference-perf.yaml",
+      "Recommended TENSOR_PARALLEL_SIZE is calculated and printed",
+      "The overlay files (runtime.env, patch-resources.yaml, and patch-nodeselector.yaml) are updated under the target rtx-pro-6000-gemma-4-31b-it overlay directory"
+    ]
+  },
+  {
+    "id": 2,
+    "prompt": "Tune config parameters for Qwen/Qwen3-32B-Instruct on rtx-pro-6000 using a high concurrency profile. Demonstrate the resource capacity fallback constraint.",
+    "expected_output": "Recognizes that the required memory exceeds the 3-GPU limit for standard BF16 precision, triggers the fallback rule, recommends FP8 quantization, and adjusts the recommended TP size to fit within capacity boundaries.",
+    "assertions": [
+      "The tuner script falls back to recommending quantization (FP8 or FP4)",
+      "The TENSOR_PARALLEL_SIZE limit is kept within the capacity threshold (<= 3)"
+    ]
+  }
+]

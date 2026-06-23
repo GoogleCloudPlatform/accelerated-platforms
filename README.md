@@ -56,8 +56,7 @@ the primary runtime.
       - [Async inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/async-inference/README.md)
       - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/batch-inference/README.md)
     - llm-d
-      - [Intelligent inference scheduling quickstart using llm-d](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/quickstart.md)
-      - [Intelligent inference scheduling using llm-d with GPU on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-vllm-with-hf-model.md)
+      - [Well-Lit paths](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/well-lit-paths/llmd-well-lit-paths.md)
     - Run your own benchmarking
       - [Benchmarking Online inference performance on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md)
 

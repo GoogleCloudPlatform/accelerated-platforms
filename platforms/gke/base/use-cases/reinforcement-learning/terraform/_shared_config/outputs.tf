@@ -11,3 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
+  value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
+}

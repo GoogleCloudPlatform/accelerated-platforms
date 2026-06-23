@@ -6,4 +6,5 @@ modelservice
 nixl
 nixlconnector
 nixlv
+ppcr
 tpot

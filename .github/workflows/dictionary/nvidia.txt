@@ -8,4 +8,5 @@ nvcr
 nvlink
 nvml
 oauthtoken
+runai
 vgpu

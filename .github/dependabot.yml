@@ -1,12 +1,5 @@
 version: 2
 
-# Shared YAML Anchors
-x-settings:
-  # NOTE: The 'target-branch' is temporarily set to a fix branch for testing.
-  # Once merged into 'main', Dependabot will read this config and open PRs against this fix branch.
-  # After validation, this will be set to 'main'
-  target-branch: &target-branch "fix-configure-dependabot"
-
 multi-ecosystem-groups:
   platform:
     schedule:
@@ -46,7 +39,7 @@ updates:
   # --- GitHub Actions (Platform) ---
   - package-ecosystem: "github-actions"
     directory: "/"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "platform"
 
@@ -61,7 +54,7 @@ updates:
       - "platforms/gke/base/_shared_config/**"
       - "terraform/**"
       - "test/ci-cd/terraform/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "platform"
 
@@ -69,7 +62,7 @@ updates:
   - package-ecosystem: "pip"
     directories:
       - "/"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "platform"
 
@@ -78,7 +71,7 @@ updates:
     directories:
       - "platforms/cws/image_pipeline/**"
       - "test/ci-cd/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "platform"
 
@@ -91,7 +84,7 @@ updates:
   - package-ecosystem: "terraform"
     directories:
       - "platforms/gke/base/use-cases/federated-learning/terraform/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "federated-learning"
 
@@ -99,7 +92,7 @@ updates:
   - package-ecosystem: "pip"
     directories:
       - "platforms/gke/base/use-cases/federated-learning/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "federated-learning"
 
@@ -107,7 +100,7 @@ updates:
   - package-ecosystem: "docker"
     directories:
       - "platforms/gke/base/use-cases/federated-learning/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "federated-learning"
 
@@ -121,7 +114,7 @@ updates:
     directories:
       - "platforms/gke/base/use-cases/inference-ref-arch/terraform/**"
       - "platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "inference"
 
@@ -138,7 +131,7 @@ updates:
       - "container-images/cpu/k6-benchmark/**"
       - "container-images/gpu/diffusers-flux/**"
       - "container-images/tpu/max-diffusion-sdxl/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "inference"
 
@@ -156,7 +149,7 @@ updates:
       - "platforms/gke/base/use-cases/inference-ref-arch/**"
       - "use-cases/inferencing/**"
       - "use-cases/rag-pipeline/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "inference"
 
@@ -170,7 +163,7 @@ updates:
     directories:
       - "platforms/gke/base/use-cases/training-ref-arch/**"
       - "platforms/gke/base/use-cases/reinforcement-learning/terraform/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "training"
 
@@ -182,7 +175,7 @@ updates:
       - "container-images/cpu/mft-data-processing/**"
       - "container-images/cpu/mft-fine-tuning/**"
       - "container-images/cpu/mft-model-evaluation/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "training"
 
@@ -195,7 +188,7 @@ updates:
       - "container-images/cpu/mft-model-evaluation/**"
       - "container-images/tpu/rl-tpu-maxtext-grpo-single-host/**"
       - "use-cases/model-fine-tuning-pipeline/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "training"
 
@@ -208,7 +201,7 @@ updates:
   - package-ecosystem: "gomod"
     directories:
       - "projects/workflow-api/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "comfyui-workflows"
 
@@ -216,7 +209,7 @@ updates:
   - package-ecosystem: "pip"
     directories:
       - "modules/python/src/custom_nodes/google_genmedia/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "comfyui-workflows"
 
@@ -224,7 +217,7 @@ updates:
   - package-ecosystem: "docker"
     directories:
       - "projects/workflow-api/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "comfyui-workflows"
 
@@ -237,7 +230,7 @@ updates:
   - package-ecosystem: "docker"
     directories:
       - ".devcontainer/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "devcontainer"
 
@@ -245,7 +238,7 @@ updates:
   - package-ecosystem: "npm"
     directories:
       - ".devcontainer/dependencies/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "devcontainer"
 
@@ -253,6 +246,6 @@ updates:
   - package-ecosystem: "pip"
     directories:
       - ".devcontainer/dependencies/**"
-    target-branch: *target-branch
+    target-branch: "fix-configure-dependabot"
     patterns: ["*"]
     multi-ecosystem-group: "devcontainer"

@@ -181,6 +181,7 @@ For more information about providing values for Terraform input variables, see
         </summary>
         <ul>
           <li>cpu-e2-s-16</li>
+          <li>cpu-n4-8</li>
           <li>cpu-n4-s-8</li>
         <ul>
       </details>
@@ -205,6 +206,10 @@ For more information about providing values for Terraform input variables, see
           <li>gpu-l4-24gb-x2</li>
           <li>gpu-l4-24gb-x4</li>
           <li>gpu-l4-24gb-x8</li>
+          <li>gpu-rtx-pro-6000-96gb-x1</li>
+          <li>gpu-rtx-pro-6000-96gb-x1-2</li>
+          <li>gpu-rtx-pro-6000-96gb-x1-4</li>
+          <li>gpu-rtx-pro-6000-96gb-x1-8</li>
         <ul>
       </details>
     - <details>

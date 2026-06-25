@@ -57,8 +57,10 @@ updates:
       - "platforms/gke/base/core/**"
       - "platforms/gke/base/features/**"
       - "platforms/gke/base/modules/**"
-      - "modules/**"
+      - "platforms/gke-aiml/playground/**"
+      - "platforms/gke/base/_shared_config/**"
       - "terraform/**"
+      - "test/ci-cd/terraform/**"
     target-branch: *target-branch
     patterns: ["*"]
     multi-ecosystem-group: "platform"
@@ -118,6 +120,7 @@ updates:
   - package-ecosystem: "terraform"
     directories:
       - "platforms/gke/base/use-cases/inference-ref-arch/terraform/**"
+      - "platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/**"
     target-branch: *target-branch
     patterns: ["*"]
     multi-ecosystem-group: "inference"
@@ -132,6 +135,7 @@ updates:
       - "container-images/cpu/async-pubsub-subscriber/**"
       - "container-images/cpu/offline-batch-dataset-downloader/**"
       - "container-images/cpu/offline-batch-worker/**"
+      - "container-images/cpu/k6-benchmark/**"
       - "container-images/gpu/diffusers-flux/**"
       - "container-images/tpu/max-diffusion-sdxl/**"
     target-branch: *target-branch
@@ -145,7 +149,9 @@ updates:
       - "container-images/cpu/async-pubsub-subscriber/**"
       - "container-images/cpu/offline-batch-dataset-downloader/**"
       - "container-images/cpu/offline-batch-worker/**"
+      - "container-images/cpu/k6-benchmark/**"
       - "container-images/gpu/diffusers-flux/**"
+      - "container-images/gpu/sglang-diffusers/**"
       - "container-images/tpu/max-diffusion-sdxl/**"
       - "platforms/gke/base/use-cases/inference-ref-arch/**"
       - "use-cases/inferencing/**"
@@ -162,7 +168,8 @@ updates:
   # --- Terraform (Training) ---
   - package-ecosystem: "terraform"
     directories:
-      - "platforms/gke/base/use-cases/training-ref-arch/terraform/**"
+      - "platforms/gke/base/use-cases/training-ref-arch/**"
+      - "platforms/gke/base/use-cases/reinforcement-learning/terraform/**"
     target-branch: *target-branch
     patterns: ["*"]
     multi-ecosystem-group: "training"
@@ -186,7 +193,7 @@ updates:
       - "container-images/cpu/mft-data-processing/**"
       - "container-images/cpu/mft-fine-tuning/**"
       - "container-images/cpu/mft-model-evaluation/**"
-      - "platforms/gke/base/use-cases/training-ref-arch/**"
+      - "container-images/tpu/rl-tpu-maxtext-grpo-single-host/**"
       - "use-cases/model-fine-tuning-pipeline/**"
     target-branch: *target-branch
     patterns: ["*"]

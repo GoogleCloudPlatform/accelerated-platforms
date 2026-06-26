@@ -63,6 +63,10 @@ updates:
     directory: "/"
     patterns: ["*"]
     multi-ecosystem-group: "platform"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Terraform (Platform) ---
   - package-ecosystem: "terraform"
@@ -77,6 +81,10 @@ updates:
       - "test/ci-cd/terraform/**"
     patterns: ["*"]
     multi-ecosystem-group: "platform"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Pip (Platform) ---
   - package-ecosystem: "pip"
@@ -84,6 +92,10 @@ updates:
       - "/"
     patterns: ["*"]
     multi-ecosystem-group: "platform"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Docker (Platform) ---
   - package-ecosystem: "docker"
@@ -92,6 +104,10 @@ updates:
       - "test/ci-cd/**"
     patterns: ["*"]
     multi-ecosystem-group: "platform"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
 
   # =========================================================================
@@ -104,6 +120,10 @@ updates:
       - "platforms/gke/base/use-cases/federated-learning/terraform/**"
     patterns: ["*"]
     multi-ecosystem-group: "federated-learning"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Pip (Federated Learning) ---
   - package-ecosystem: "pip"
@@ -111,6 +131,10 @@ updates:
       - "platforms/gke/base/use-cases/federated-learning/**"
     patterns: ["*"]
     multi-ecosystem-group: "federated-learning"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Docker (Federated Learning) ---
   - package-ecosystem: "docker"
@@ -118,6 +142,10 @@ updates:
       - "platforms/gke/base/use-cases/federated-learning/**"
     patterns: ["*"]
     multi-ecosystem-group: "federated-learning"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
 
   # =========================================================================
@@ -131,6 +159,10 @@ updates:
       - "platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/**"
     patterns: ["*"]
     multi-ecosystem-group: "inference"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Pip (Inference) ---
   - package-ecosystem: "pip"
@@ -147,6 +179,10 @@ updates:
       - "container-images/tpu/max-diffusion-sdxl/**"
     patterns: ["*"]
     multi-ecosystem-group: "inference"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Docker (Inference) ---
   - package-ecosystem: "docker"
@@ -164,6 +200,10 @@ updates:
       - "use-cases/rag-pipeline/**"
     patterns: ["*"]
     multi-ecosystem-group: "inference"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
 
   # =========================================================================
@@ -177,6 +217,10 @@ updates:
       - "platforms/gke/base/use-cases/reinforcement-learning/terraform/**"
     patterns: ["*"]
     multi-ecosystem-group: "training"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Pip (Training) ---
   - package-ecosystem: "pip"
@@ -188,6 +232,10 @@ updates:
       - "container-images/cpu/mft-model-evaluation/**"
     patterns: ["*"]
     multi-ecosystem-group: "training"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Docker (Training) ---
   - package-ecosystem: "docker"
@@ -200,6 +248,10 @@ updates:
       - "use-cases/model-fine-tuning-pipeline/**"
     patterns: ["*"]
     multi-ecosystem-group: "training"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
 
   # =========================================================================
@@ -212,6 +264,10 @@ updates:
       - "projects/workflow-api/**"
     patterns: ["*"]
     multi-ecosystem-group: "comfyui-workflows"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Pip (ComfyUI Custom Nodes) ---
   - package-ecosystem: "pip"
@@ -219,6 +275,10 @@ updates:
       - "modules/python/src/custom_nodes/google_genmedia/**"
     patterns: ["*"]
     multi-ecosystem-group: "comfyui-workflows"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Docker (ComfyUI / Workflow API) ---
   - package-ecosystem: "docker"
@@ -226,6 +286,10 @@ updates:
       - "projects/workflow-api/**"
     patterns: ["*"]
     multi-ecosystem-group: "comfyui-workflows"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
 
   # =========================================================================
@@ -238,6 +302,10 @@ updates:
       - ".devcontainer/**"
     patterns: ["*"]
     multi-ecosystem-group: "devcontainer"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- NPM (Devcontainer) ---
   - package-ecosystem: "npm"
@@ -245,6 +313,10 @@ updates:
       - ".devcontainer/dependencies/**"
     patterns: ["*"]
     multi-ecosystem-group: "devcontainer"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]
 
   # --- Pip (Devcontainer) ---
   - package-ecosystem: "pip"
@@ -252,3 +324,7 @@ updates:
       - ".devcontainer/dependencies/**"
     patterns: ["*"]
     multi-ecosystem-group: "devcontainer"
+    groups:
+      security-patches:
+        applies-to: "security-updates"
+        patterns: ["*"]

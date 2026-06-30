@@ -41,7 +41,7 @@ export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
-inference_terraservice = "online_gpu"
+inference_terraservice="online_gpu"
 if [[ ${deploy_on_gpu} == "true" ]]; then
   echo "online_gpu terraservice will be destroyed"
 elif [[ ${deploy_on_tpu} == "true" ]]; then

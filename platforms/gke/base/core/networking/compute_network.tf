@@ -39,12 +39,12 @@ resource "google_compute_subnetwork" "region" {
   region                   = local.cluster_region
 
   dynamic "log_config" {
-    for_each = var.network_cluster_subnet_node_flow_logs_enabled ? [1] : []
+    for_each = var.network_cluster_subnet_node_flow_logs.enabled ? [var.network_cluster_subnet_node_flow_logs] : []
 
     content {
-      aggregation_interval = var.network_cluster_subnet_node_flow_logs_aggregation_interval
-      flow_sampling        = var.network_cluster_subnet_node_flow_logs_flow_sampling
-      metadata             = var.network_cluster_subnet_node_flow_logs_metadata
+      aggregation_interval = log_config.value.aggregation_interval
+      flow_sampling        = log_config.value.flow_sampling
+      metadata             = log_config.value.metadata
     }
   }
 }

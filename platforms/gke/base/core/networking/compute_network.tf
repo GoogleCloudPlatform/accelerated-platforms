@@ -37,6 +37,16 @@ resource "google_compute_subnetwork" "region" {
   private_ip_google_access = true
   project                  = google_project_service.compute_googleapis_com.project
   region                   = local.cluster_region
+
+  dynamic "log_config" {
+    for_each = var.network_cluster_subnet_node_flow_logs_enabled ? [1] : []
+
+    content {
+      aggregation_interval = var.network_cluster_subnet_node_flow_logs_aggregation_interval
+      flow_sampling        = var.network_cluster_subnet_node_flow_logs_flow_sampling
+      metadata             = var.network_cluster_subnet_node_flow_logs_metadata
+    }
+  }
 }
 
 data "google_compute_subnetwork" "region" {

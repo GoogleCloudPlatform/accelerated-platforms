@@ -53,7 +53,6 @@ if [ "${ACP_DEPLOY_CORE_PLATFORM}" = "true" ]; then
     "workloads/jobset"
     "workloads/lws"
     "workloads/priority_class"
-    "workloads/nri_device_injector"
     "workloads/kueue"
   )
   CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"

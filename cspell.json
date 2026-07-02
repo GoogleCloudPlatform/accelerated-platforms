@@ -83,6 +83,10 @@
       "path": ".github/workflows/dictionary/sglang.txt"
     },
     {
+      "name": "sglang",
+      "path": ".github/workflows/dictionary/sglang.txt"
+    },
+    {
       "name": "shell",
       "path": ".github/workflows/dictionary/shell.txt"
     },

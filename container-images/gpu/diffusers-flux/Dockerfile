@@ -25,8 +25,8 @@ COPY --from=primary requirements.txt .
 
 # Install Python and dependencies
 RUN apt-get update && \
-    apt-get install -y python3 python3-pip && \
-    pip install --no-cache-dir -r requirements.txt
+  apt-get install -y python3 python3-pip && \
+  pip install --no-cache-dir -r requirements.txt
 
 COPY --from=primary app.py .
 

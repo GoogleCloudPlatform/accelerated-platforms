@@ -10,8 +10,8 @@ mldiagnostics
 multiproc
 ndarray
 returncode
-RLAIF
-RLHF
+rlaif
+rlhf
 sigabrt
 strftime
 tunix

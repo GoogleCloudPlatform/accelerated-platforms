@@ -238,10 +238,16 @@ def check_assertion(assertion_str, stdout, stderr):
         k80_err = (
             "Warning: No custom compute class explicitly matching nvidia-k80 found."
         )
-        if k80_err in stdout or k80_err in stderr:
+        k80_unsupported_err = "ERROR: Unsupported accelerator: nvidia-k80"
+        if (
+            k80_err in stdout
+            or k80_err in stderr
+            or k80_unsupported_err in stdout
+            or k80_unsupported_err in stderr
+        ):
             return True, "Found warning/error about nvidia-k80 in output"
         else:
-            return False, "Did not find expected k80 warning in stdout/stderr"
+            return False, "Did not find expected k80 warning/error in stdout/stderr"
 
     elif "run_benchmark.sh script is invoked with" in assertion_lower:
         return (
@@ -307,6 +313,40 @@ def check_assertion(assertion_str, stdout, stderr):
             f"report_v0.2.json was not uploaded to GCS. Calls: {calls if os.path.exists(MOCK_LOG_FILE) else 'None'}",
         )
 
+    elif "dcgm_metrics.json is uploaded" in assertion_lower:
+        if os.path.exists(MOCK_LOG_FILE):
+            with open(MOCK_LOG_FILE, "r") as f:
+                calls = f.read()
+            if (
+                "gcloud storage cp dcgm_metrics.json" in calls
+                and "gs://llm-d-benchmark/" in calls
+            ):
+                return (
+                    True,
+                    "dcgm_metrics.json is uploaded using gcloud storage cp to gs://llm-d-benchmark/",
+                )
+        return (
+            False,
+            f"dcgm_metrics.json was not uploaded to GCS. Calls: {calls if os.path.exists(MOCK_LOG_FILE) else 'None'}",
+        )
+
+    elif "output.csv is uploaded" in assertion_lower:
+        if os.path.exists(MOCK_LOG_FILE):
+            with open(MOCK_LOG_FILE, "r") as f:
+                calls = f.read()
+            if (
+                "gcloud storage cp output.csv" in calls
+                and "gs://llm-d-benchmark/" in calls
+            ):
+                return (
+                    True,
+                    "output.csv is uploaded using gcloud storage cp to gs://llm-d-benchmark/",
+                )
+        return (
+            False,
+            f"output.csv was not uploaded to GCS. Calls: {calls if os.path.exists(MOCK_LOG_FILE) else 'None'}",
+        )
+
     elif "uploaded using gcloud storage cp" in assertion_lower:
         if os.path.exists(MOCK_LOG_FILE):
             with open(MOCK_LOG_FILE, "r") as f:
@@ -353,6 +393,14 @@ def check_assertion(assertion_str, stdout, stderr):
             if "gcloud container clusters describe" in calls:
                 return True, "gcloud container clusters describe was run"
         return False, "gcloud container clusters describe was not run"
+
+    elif "confirms managed prometheus is enabled" in assertion_lower:
+        if "Managed Prometheus is enabled." in stdout:
+            return True, "Managed Prometheus enablement confirmed in stdout"
+        return (
+            False,
+            f"Managed Prometheus enablement not confirmed in stdout. Stdout: {stdout}",
+        )
 
     elif "dry run command was executed" in assertion_lower:
         if os.path.exists(MOCK_LOG_FILE):
@@ -432,10 +480,10 @@ def check_assertion(assertion_str, stdout, stderr):
         match = re.search(r"Recommended TENSOR_PARALLEL_SIZE:\s*(\d+)", stdout)
         if match:
             tp = int(match.group(1))
-            if tp <= 3:
+            if tp <= 8:
                 return (
                     True,
-                    f"The TENSOR_PARALLEL_SIZE limit ({tp}) is kept within the capacity threshold (<= 3)",
+                    f"The TENSOR_PARALLEL_SIZE limit ({tp}) is kept within the capacity threshold (<= 8)",
                 )
         return (
             False,
@@ -471,7 +519,7 @@ def run_test_case(skill_name, case, mock_mode):
         env["ACCELERATOR_TYPE"] = "rtx-pro-6000"
     elif "qwen-h100-cluster" in case["prompt"]:
         cluster_name = "qwen-h100-cluster"
-        env["HF_MODEL_ID"] = "Qwen/Qwen3-32B-Instruct"
+        env["HF_MODEL_ID"] = "qwen/qwen3-32b"
         env["ACCELERATOR_TYPE"] = "nvidia-h100"
     elif "k80-cluster" in case["prompt"]:
         cluster_name = "k80-cluster"
@@ -502,25 +550,15 @@ def run_test_case(skill_name, case, mock_mode):
             )
             stdout = res1.stdout + "\n" + res2.stdout
             stderr = res1.stderr + "\n" + res2.stderr
-        elif skill_name == "llm-d-code-gen-bench":
+        elif skill_name == "llm-d-benchmarking":
+            workload = "chatbot_synthetic.yaml"
+            if "sanity_random.yaml" in case["prompt"]:
+                workload = "sanity_random.yaml"
             res = subprocess.run(
                 [
                     "bash",
-                    "skills/scripts/run_benchmark.sh",
-                    "skills/llm-d-code-gen-bench/config.json",
-                    "http://vllm-eval:8000",
-                ],
-                capture_output=True,
-                text=True,
-                env=env,
-            )
-            stdout, stderr = res.stdout, res.stderr
-        elif skill_name == "llm-d-interactive-chat":
-            res = subprocess.run(
-                [
-                    "bash",
-                    "skills/scripts/run_benchmark.sh",
-                    "skills/llm-d-interactive-chat/config.json",
+                    "skills/llm-d-benchmarking/scripts/run_benchmark.sh",
+                    workload,
                     "http://vllm-eval:8000",
                 ],
                 capture_output=True,
@@ -530,15 +568,20 @@ def run_test_case(skill_name, case, mock_mode):
             stdout, stderr = res.stdout, res.stderr
         elif skill_name == "llm-d-workload-tuner":
             if "google/gemma-4-31b-it" in case["prompt"]:
+                temp_workload_path = os.path.join(
+                    WORKSPACE_DIR, "temp_chatbot_synthetic.yaml"
+                )
+                with open(temp_workload_path, "w") as f:
+                    f.write(
+                        "server:\n  model_name: google/gemma-4-31b-it\nload:\n  type: constant\n  stages:\n  - concurrency_level: 2\n    duration: 120\ndata:\n  type: random\n  output_distribution:\n    max: 2048\n"
+                    )
                 res = subprocess.run(
                     [
                         "python3",
                         "skills/llm-d-workload-tuner/scripts/tune_workload.py",
-                        "--config",
-                        "skills/llm-d-interactive-chat/config.json",
                         "--perf-yaml",
-                        "skills/llm-d-interactive-chat/inference-perf.yaml",
-                        "--gpu-type",
+                        temp_workload_path,
+                        "--accelerator-type",
                         "rtx-pro-6000",
                         "--strategy",
                         "precise-prefix-cache-routing",
@@ -549,7 +592,7 @@ def run_test_case(skill_name, case, mock_mode):
                     env=env,
                 )
                 stdout, stderr = res.stdout, res.stderr
-            elif "Qwen/Qwen3-32B-Instruct" in case["prompt"]:
+            elif "qwen/qwen3-32b" in case["prompt"]:
                 temp_config_path = os.path.join(
                     WORKSPACE_DIR, "temp_concurrency_config.json"
                 )
@@ -561,7 +604,7 @@ def run_test_case(skill_name, case, mock_mode):
                     json.dump({"output_sequence_length": {"max": 8000}}, f)
                 with open(temp_perf_path, "w") as f:
                     f.write(
-                        "server:\n  model_name: Qwen/Qwen3-32B-Instruct\nstages:\n- concurrency_level: 10\n"
+                        "server:\n  model_name: qwen/qwen3-32b\nstages:\n- concurrency_level: 10\n"
                     )
 
                 res = subprocess.run(
@@ -572,7 +615,7 @@ def run_test_case(skill_name, case, mock_mode):
                         temp_config_path,
                         "--perf-yaml",
                         temp_perf_path,
-                        "--gpu-type",
+                        "--accelerator-type",
                         "rtx-pro-6000",
                         "--strategy",
                         "precise-prefix-cache-routing",

@@ -21,5 +21,5 @@ source_dirs=("modules/python")
 for source_dir in "${source_dirs[@]}"; do
     export PYTHONPATH=$PYTHONPATH:${source_dir}
     export PYTHONPATH=$PYTHONPATH:${source_dir}/src
-    python -m unittest discover "${source_dir}/tests"
+    python3 -m unittest discover "${source_dir}/tests"
 done

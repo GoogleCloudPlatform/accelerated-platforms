@@ -11,25 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-load:
-  type: concurrent
-  num_workers: 8
-  worker_max_concurrency: 1000
-  stages:
-    - num_requests: 100
-      concurrency_level: 5
-    - num_requests: 200
-      concurrency_level: 10
-    - num_requests: 400
-      concurrency_level: 20
-    - num_requests: 600
-      concurrency_level: 30
-    - num_requests: 800
-      concurrency_level: 40
-api:
-  type: completion
-  streaming: true
-server:
-  type: vllm
-  model_name: Qwen/Qwen3-32B-Instruct
-  base_url: http://localhost
+apiVersion: v1
+kind: Pod
+metadata:
+  name: model-smoke-test
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test-client
+    image: curlimages/curl:latest
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+    command: ["curl", "-s", "-w", "\nHTTP Code: %{http_code}\n", "http://10.128.0.21:80/v1/models"]

@@ -12,13 +12,13 @@
   },
   {
     "id": 2,
-    "prompt": "Configure the deployment of Qwen/Qwen3-32B-Instruct on nvidia-h100. The cluster name should be 'qwen-h100-cluster'.",
+    "prompt": "Configure the deployment of qwen/qwen3-32b on nvidia-h100. The cluster name should be 'qwen-h100-cluster'.",
     "expected_output": "Configures the platform name, validates h100 compute class, and prepares the overlays for h100-qwen3-32b.",
     "assertions": [
       "The platform_name is updated to 'qwen-h100-cluster' in platforms/gke/base/_shared_config/platform.auto.tfvars",
-      "The configure_and_validate.sh script is invoked with HF_MODEL_ID='Qwen/Qwen3-32B-Instruct' and ACCELERATOR_TYPE='nvidia-h100'",
+      "The configure_and_validate.sh script is invoked with HF_MODEL_ID='qwen/qwen3-32b' and ACCELERATOR_TYPE='nvidia-h100'",
       "Instructions point to using the h100-qwen3-32b overlay under platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd-optimized-baseline/vllm/",
-      "The vLLM arguments are configured with --model Qwen/Qwen3-32B-Instruct"
+      "The vLLM arguments are configured with --model qwen/qwen3-32b"
     ]
   },
   {

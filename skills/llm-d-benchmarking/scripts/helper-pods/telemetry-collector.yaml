@@ -1,0 +1,65 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: telemetry-collector
+spec:
+  serviceAccountName: inference-perf-runner
+  restartPolicy: Never
+  containers:
+    - name: collector
+      image: ghcr.io/llm-d/llm-d-benchmark:v0.7.0
+      env:
+        - name: TARGET_NAMESPACE
+          value: "TARGET_NAMESPACE_PLACEHOLDER"
+        - name: START_TIME
+          value: "START_TIME_PLACEHOLDER"
+        - name: END_TIME
+          value: "END_TIME_PLACEHOLDER"
+      resources:
+        requests:
+          cpu: 100m
+          memory: 128Mi
+        limits:
+          cpu: 500m
+          memory: 512Mi
+      command: ["/bin/bash", "-c"]
+      args:
+        - |
+          set -e
+          ACCESS_TOKEN=$(curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token" | python3 -c "import sys, json; print(json.load(sys.stdin)['access_token'])")
+          PROJECT_ID=$(curl -s -H "Metadata-Flavor: Google" "http://metadata.google.internal/computeMetadata/v1/instance/project-level-project-id")
+          START=${START_TIME:-$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)}
+          END=${END_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
+          NS=${TARGET_NAMESPACE:-"default"}
+          LATEST_DIR=$(ls -td /requests/inference-perf-* 2>/dev/null | head -n 1 || true)
+          if [ -n "$LATEST_DIR" ]; then
+            echo "Writing metrics to $LATEST_DIR/dcgm_metrics.json"
+            FILTER="(metric.type=\"kubernetes.io/container/accelerator/duty_cycle\" OR metric.type=\"kubernetes.io/container/accelerator/memory_used\" OR metric.type=\"kubernetes.io/container/accelerator/memory_total\" OR metric.type=\"kubernetes.io/container/accelerator/memory_bandwidth_utilization\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_DEV_GPU_UTIL/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_PROF_GR_ENGINE_ACTIVE/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_PROF_SM_ACTIVE/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_DEV_FB_USED/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_DEV_FB_FREE/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_DEV_FB_TOTAL/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_DEV_MEM_COPY_UTIL/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_PROF_DRAM_ACTIVE/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_PROF_PIPE_TENSOR_ACTIVE/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_PROF_PIPE_FP16_ACTIVE/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_PROF_PIPE_FP32_ACTIVE/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_PROF_PIPE_FP64_ACTIVE/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_DEV_GPU_TEMP/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_DEV_MEMORY_TEMP/gauge\" OR metric.type=\"prometheus.googleapis.com/DCGM_FI_DEV_SM_CLOCK/gauge\") AND (resource.labels.namespace_name=\"${NS}\" OR resource.labels.namespace=\"${NS}\") AND (resource.labels.pod_name = monitoring.regex.full_match(\".*vllm.*|.*modelservice.*|.*prefill.*|.*decode.*\") OR resource.labels.pod = monitoring.regex.full_match(\".*vllm.*|.*modelservice.*|.*prefill.*|.*decode.*\"))"
+            ENCODED_FILTER=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$FILTER'''))")
+            curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+              "https://monitoring.googleapis.com/v3/projects/${PROJECT_ID}/timeSeries?filter=${ENCODED_FILTER}&interval.startTime=${START}&interval.endTime=${END}" \
+              > "$LATEST_DIR/dcgm_metrics.json"
+            echo "DCGM metrics collection complete."
+          else
+            echo "Warning: No results directory found on PVC"
+          fi
+      volumeMounts:
+        - name: requests
+          mountPath: /requests
+  volumes:
+    - name: requests
+      persistentVolumeClaim:
+        claimName: workload-pvc

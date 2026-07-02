@@ -1,6 +1,6 @@
 ---
 name: llm-d-workload-tuner
-description: Automatically tunes GKE inference server parameters and resources based on workload profiles.
+description: This is an experimental Skill. It automatically tunes GKE vLLM inference server parameters and resources based on workload profiles specified in the benchmark configs.
 version: 0.1.0
 allowed-tools: python3 kubectl yaml json
 mcp-servers: []
@@ -12,7 +12,7 @@ Follow these instructions to run the workload optimizer and apply tuned vLLM par
 
 ## 1. Prerequisites
 
-- Review the target workload characteristics and configurations in the reference guide: [llm-d-workload-profiles.md](file:///usr/local/google/home/syedaanjum/Documents/acp-llmd-bench-test-01/skills/llm-d-workload-tuner/references/llm-d-workload-profiles.md).
+- Review the target workload characteristics and configurations in the reference guide: [llm-d-workload-profiles.md](references/llm-d-workload-profiles.md).
 - The benchmarking files `config.json` (defining sequence lengths) and `inference-perf.yaml` (defining stages and model servers) must exist under the target benchmarking directories.
 - Know the target accelerator type (e.g. `rtx-pro-6000`, `nvidia-h100`, or `v6e` TPU) and the deployment strategy (e.g., `precise-prefix-cache-routing`, `optimized-baseline`, or `predicted-latency-routing`).
 
@@ -23,19 +23,18 @@ To compute optimal sizing (Tensor Parallelism size, maximum model length limits,
 - **Command Format:**
 
   ```bash
-  python3 ./skills/llm-d-workload-tuner/scripts/tune_workload.py \
+  python3 "${ACP_REPO_DIR}/skills/llm-d-workload-tuner/scripts/tune_workload.py" \
       --config <path_to_config.json> \
       --perf-yaml <path_to_inference-perf.yaml> \
-      --gpu-type <accelerator_name> \
+      --accelerator-type <accelerator_name> \
       --strategy <strategy_directory_name>
   ```
 
 - **Example (Dry Run):**
   ```bash
-  python3 ./skills/llm-d-workload-tuner/scripts/tune_workload.py \
-      --config skills/llm-d-interactive-chat/config.json \
-      --perf-yaml skills/llm-d-interactive-chat/inference-perf.yaml \
-      --gpu-type rtx-pro-6000 \
+  python3 "${ACP_REPO_DIR}/skills/llm-d-workload-tuner/scripts/tune_workload.py" \
+      --perf-yaml llm-d-benchmark/workload/profiles/inference-perf/chatbot_synthetic.yaml.in \
+      --accelerator-type rtx-pro-6000 \
       --strategy precise-prefix-cache-routing
   ```
 
@@ -45,10 +44,9 @@ Add the `--apply` flag to commit the calculated tuning configs directly to the G
 
 - **Command:**
   ```bash
-  python3 ./skills/llm-d-workload-tuner/scripts/tune_workload.py \
-      --config skills/llm-d-interactive-chat/config.json \
-      --perf-yaml skills/llm-d-interactive-chat/inference-perf.yaml \
-      --gpu-type rtx-pro-6000 \
+  python3 "${ACP_REPO_DIR}/skills/llm-d-workload-tuner/scripts/tune_workload.py" \
+      --perf-yaml llm-d-benchmark/workload/profiles/inference-perf/chatbot_synthetic.yaml.in \
+      --accelerator-type rtx-pro-6000 \
       --strategy precise-prefix-cache-routing \
       --apply
   ```

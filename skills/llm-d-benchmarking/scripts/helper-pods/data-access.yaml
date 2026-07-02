@@ -21,10 +21,17 @@ metadata:
 spec:
   containers:
   - name: rsync
-    image: ghcr.io/llm-d/llm-d-benchmark:v0.6.7
+    image: ghcr.io/llm-d/llm-d-benchmark:v0.7.0
     imagePullPolicy: Always
     securityContext:
       runAsUser: 0
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
     command: ["rsync", "--daemon", "--no-detach", "--port=20873", "--log-file=/dev/stdout"]
     volumeMounts:
     - name: requests

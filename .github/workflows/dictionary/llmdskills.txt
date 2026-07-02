@@ -5,6 +5,7 @@ evals
 findall
 isdigit
 isdir
+llmdbench
 llmdbenchmark
 llmdskills
 nodeselector

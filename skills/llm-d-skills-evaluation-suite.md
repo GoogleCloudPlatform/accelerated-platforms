@@ -7,16 +7,13 @@ tests for the LLM-D benchmarking and deployment skills.
 
 ```text
 skills/
-├── llm-d-code-gen-bench/        # Benchmark skill for code generation workloads
+├── llm-d-benchmarking/          # Combined benchmark skill using standard workload profiles
 │   └── evals/
-│       └── evals.json           # Scenarios for code-gen-bench
+│       └── evals.json           # Scenarios for benchmarking
 ├── llm-d-deploy-stack/          # Skill to deploy the GKE + vLLM stack
 │   └── evals/
 │       └── evals.json           # Scenarios for deploy-stack
-├── llm-d-interactive-chat/      # Benchmark skill for interactive chat workloads
-│   └── evals/
-│       └── evals.json           # Scenarios for interactive-chat
-├── llm-d-workload-tuner/        # Workload tuning recommendation engine skill
+├── llm-d-workload-tuner/        # (Experimental) Workload tuning recommendation engine skill
 │   ├── evals/
 │   │   └── evals.json           # Scenarios for workload-tuner
 │   ├── references/

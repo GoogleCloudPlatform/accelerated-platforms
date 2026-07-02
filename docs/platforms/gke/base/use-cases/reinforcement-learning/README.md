@@ -43,8 +43,8 @@ This reference architecture provides a foundation for:
 - **Policy Optimization Algorithms**: Running modern RL algorithms such as Group
   Relative Policy Optimization (GRPO) for LLM post-training and reasoning
   alignment.
-- **Accelerator Integration**: Leveraging Google Cloud TPUs (e.g., TPU v5e) and
-  GPUs with optimized frameworks such as MaxText.
+- **Accelerator Integration**: Leveraging Google Cloud TPUs (e.g., TPU v5e and
+  v6e) and GPUs with optimized frameworks such as MaxText.
 - **Job Orchestration**: Managing batch training jobs on GKE with automated
   manifest configuration and containerized image builds.
 
@@ -89,7 +89,7 @@ the example pattern below:
 This reference architecture is designed to support various reinforcement
 learning patterns. Some example patterns provided are:
 
-- [Reinforcement learning with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md):
+- [Single-host reinforcement learning with TPUs on Google Kubernetes Engine (GKE) using GRPO algorithm](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md):
   Single-host reinforcement learning workload on TPUs using MaxText and the
   Group Relative Policy Optimization (GRPO) algorithm.
 

@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,16 +26,6 @@ locals {
       directory       = "${local.namespaces_directory}/${local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name}"
       namespace       = local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name
       service_account = local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name
-    }
-    rl_reinforcement_learning_dataset_downloader = {
-      directory       = "${local.namespaces_directory}/${local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name}"
-      namespace       = local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_namespace_name
-      service_account = local.rl_cpu_reinforcement_learning_dataset_downloader_kubernetes_service_account_name
-    }
-    rl_reinforcement_learning_model_converter = {
-      directory       = "${local.namespaces_directory}/${local.rl_cpu_reinforcement_learning_model_converter_kubernetes_namespace_name}"
-      namespace       = local.rl_cpu_reinforcement_learning_model_converter_kubernetes_namespace_name
-      service_account = local.rl_cpu_reinforcement_learning_model_converter_kubernetes_service_account_name
     }
   }
 

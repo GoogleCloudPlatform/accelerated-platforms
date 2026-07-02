@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_storage_bucket" "hub_models" {
-  name    = local.huggingface_hub_models_bucket_name
-  project = local.huggingface_hub_models_bucket_project_id
-}
-
 resource "google_storage_bucket" "dataset" {
   name     = local.rl_dataset_bucket_name
   project  = local.rl_project_id
   location = local.cluster_region
 
   uniform_bucket_level_access = true
+  force_destroy               = true
 }
 
 resource "google_storage_bucket" "mlflow_data" {
@@ -31,4 +27,5 @@ resource "google_storage_bucket" "mlflow_data" {
   location = local.cluster_region
 
   uniform_bucket_level_access = true
+  force_destroy               = true
 }

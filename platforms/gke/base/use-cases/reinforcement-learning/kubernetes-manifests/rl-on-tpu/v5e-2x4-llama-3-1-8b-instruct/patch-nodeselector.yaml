@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: vllm
+  name: reinforcement-learning-maxtext-grpo
   namespace: replaced-by-kustomize
 spec:
   template:
     spec:
       nodeSelector:
-        cloud.google.com/compute-class: tpu-v5e-1x1
+        cloud.google.com/compute-class: tpu-v5e-2x4

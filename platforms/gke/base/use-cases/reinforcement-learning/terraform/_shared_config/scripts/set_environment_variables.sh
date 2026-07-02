@@ -13,12 +13,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-MY_PATH_IRA_ENV="$(
+MY_PATH_RL_ENV="$(
   cd "$(dirname "${BASH_SOURCE}")" >/dev/null 2>&1
   pwd -P
 )"
 
-ACP_REPO_DIR="$(realpath ${MY_PATH_IRA_ENV}/../../../../../../../../)"
+ACP_REPO_DIR="$(realpath ${MY_PATH_RL_ENV}/../../../../../../../../)"
 ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/reinforcement-learning"
 

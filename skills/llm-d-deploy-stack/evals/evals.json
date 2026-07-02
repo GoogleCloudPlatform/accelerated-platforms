@@ -1,0 +1,33 @@
+[
+  {
+    "id": 1,
+    "prompt": "Deploy the llm-d stack for google/gemma-4-31b-it. Set the cluster name to 'gemma-rtx-cluster'.",
+    "expected_output": "Configures the platform name, validates the compute class, instructs how to apply Terraform, and combines the base llm-d manifests with the local rtx-pro-6000-gemma-4-31b-it model overlay manifests.",
+    "assertions": [
+      "The platform_name is updated to 'gemma-rtx-cluster' in platforms/gke/base/_shared_config/platform.auto.tfvars",
+      "The configure_and_validate.sh script is invoked with HF_MODEL_ID='google/gemma-4-31b-it' and ACCELERATOR_TYPE='rtx-pro-6000'",
+      "Instructions point to combining official llm-d base manifests with platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd-optimized-baseline/vllm/rtx-pro-6000-gemma-4-31b-it overlay",
+      "The final vLLM arguments are configured to use --model google/gemma-4-31b-it"
+    ]
+  },
+  {
+    "id": 2,
+    "prompt": "Configure the deployment of qwen/qwen3-32b on nvidia-h100. The cluster name should be 'qwen-h100-cluster'.",
+    "expected_output": "Configures the platform name, validates h100 compute class, and prepares the overlays for h100-qwen3-32b.",
+    "assertions": [
+      "The platform_name is updated to 'qwen-h100-cluster' in platforms/gke/base/_shared_config/platform.auto.tfvars",
+      "The configure_and_validate.sh script is invoked with HF_MODEL_ID='qwen/qwen3-32b' and ACCELERATOR_TYPE='nvidia-h100'",
+      "Instructions point to using the h100-qwen3-32b overlay under platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd-optimized-baseline/vllm/",
+      "The vLLM arguments are configured with --model qwen/qwen3-32b"
+    ]
+  },
+  {
+    "id": 3,
+    "prompt": "Deploy the stack for google/gemma-4-31b-it on a non-existent accelerator called nvidia-k80. Use cluster 'k80-cluster'.",
+    "expected_output": "Should fail or warn during validation since nvidia-k80 is not supported/has no compute class.",
+    "assertions": [
+      "The configure_and_validate.sh script is run and returns a warning or error about nvidia-k80 compute class",
+      "The user is notified that the accelerator is unsupported or missing custom compute class"
+    ]
+  }
+]

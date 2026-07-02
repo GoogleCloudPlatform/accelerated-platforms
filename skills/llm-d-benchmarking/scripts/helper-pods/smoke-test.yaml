@@ -1,6 +1,4 @@
-#!/usr/bin/env bash
-
-# Copyright 2024 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,13 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-#To add a new directory to unit tests, add it to source_dirs array.
-#Add the source (folder containing src and test directories) to the array
-source_dirs=("modules/python")
-
-for source_dir in "${source_dirs[@]}"; do
-    export PYTHONPATH=$PYTHONPATH:${source_dir}
-    export PYTHONPATH=$PYTHONPATH:${source_dir}/src
-    python3 -m unittest discover "${source_dir}/tests"
-done
+apiVersion: v1
+kind: Pod
+metadata:
+  name: model-smoke-test
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test-client
+    image: curlimages/curl:latest
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+    command: ["curl", "-s", "-w", "\nHTTP Code: %{http_code}\n", "http://10.128.0.21:80/v1/models"]

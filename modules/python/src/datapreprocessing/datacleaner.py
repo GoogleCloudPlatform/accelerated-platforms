@@ -144,8 +144,17 @@ class DataPreprocessor:
         Returns:
             pd.DataFrame: The DataFrame with the preprocessed 'description' column.
         """
-        spacy.cli.download("en_core_web_sm")
-        model = spacy.load("en_core_web_sm")
+        try:
+            model = spacy.load("en_core_web_sm")
+        except OSError:
+            try:
+                spacy.cli.download("en_core_web_sm")
+                model = spacy.load("en_core_web_sm")
+            except BaseException as e:
+                self.logger.error(
+                    f"Failed to download en_core_web_sm: {e}. Please install it manually: pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl"
+                )
+                raise e
 
         def parse_nlp_description(description: str) -> str:
             if not pd.isna(description):

@@ -212,6 +212,7 @@ resource "local_file" "shared_config_networking_auto_tfvars" {
       network_cluster_network_router_name           = var.network_cluster_network_router_name
       network_cluster_subnet_master_ipv4_cidr_block = var.network_cluster_subnet_master_ipv4_cidr_block
       network_cluster_subnet_node_ip_cidr_range     = var.network_cluster_subnet_node_ip_cidr_range
+      network_cluster_subnet_node_flow_logs         = var.network_cluster_subnet_node_flow_logs
       network_cluster_subnet_node_name              = var.network_cluster_subnet_node_name
       network_cluster_subnet_proxy_ip_cidr_range    = var.network_cluster_subnet_proxy_ip_cidr_range
       network_cluster_subnet_proxy_name             = var.network_cluster_subnet_proxy_name

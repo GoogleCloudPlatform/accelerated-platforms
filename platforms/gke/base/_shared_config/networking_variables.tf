@@ -55,6 +55,17 @@ variable "network_cluster_subnet_master_ipv4_cidr_block" {
   type        = string
 }
 
+variable "network_cluster_subnet_node_flow_logs" {
+  default     = { enabled = false }
+  description = "Configuration for VPC flow logs on the regional node subnet. Defaults to disabled to preserve existing behavior. Set enabled to true to comply with organization policies such as constraints/compute.requireVpcFlowLogs."
+  type = object({
+    enabled              = optional(bool, false)
+    aggregation_interval = optional(string, "INTERVAL_5_SEC")
+    flow_sampling        = optional(number, 0.5)
+    metadata             = optional(string, "INCLUDE_ALL_METADATA")
+  })
+}
+
 variable "network_cluster_subnet_node_ip_cidr_range" {
   default     = "10.128.0.0/20"
   description = "IP CIDR range for the regional node subnet."

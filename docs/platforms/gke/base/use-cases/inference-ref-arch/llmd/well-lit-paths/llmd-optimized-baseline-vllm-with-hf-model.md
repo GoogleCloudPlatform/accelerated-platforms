@@ -106,10 +106,10 @@ precedence over earlier ones:
 - In order to choose an accelerator and for the model you want to run, refer to
   the following table.
 
-  | Model          | h100 | RTX Pro 6000 |
-  | -------------- | ---- | ------------ |
-  | gemma-4-31b-it | ✅   | ✅           |
-  | qwen3-32b      | ✅   | ✅           |
+  |     Model      | GPU(h100) | GPU(h200) | GPU(RTX Pro 6000) | TPU(v6e) |
+  | :------------: | :-------: | :-------: | :---------------: | :------: |
+  | gemma-4-31b-it |    ✅     |    ✅     |        ✅         |    ✅    |
+  |   qwen3-32b    |    ✅     |    ✅     |        ✅         |    ✅    |
 
 - Optional : Run the following step if you want to run the model on an
   accelerator other than `nvidia-rtx-pro` which is the default accelerator for
@@ -123,8 +123,9 @@ precedence over earlier ones:
   Valid values for `ACCELERATOR` are:
 
   - `h100`
+  - `h200`
   - `rtx-pro-6000` **(default)**
-  - `v6e` (TPU)
+  - `v6e`
 
 ### Install Terraform 1.8.0+
 

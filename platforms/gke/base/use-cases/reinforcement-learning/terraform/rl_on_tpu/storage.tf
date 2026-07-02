@@ -12,10 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "rl_dataset_bucket_name" {
-  value = local.rl_dataset_bucket_name
+resource "google_storage_bucket" "dataset" {
+  name     = local.rl_dataset_bucket_name
+  project  = local.rl_project_id
+  location = local.cluster_region
+
+  uniform_bucket_level_access = true
+  force_destroy               = true
 }
 
-output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
-  value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
+resource "google_storage_bucket" "mlflow_data" {
+  name     = local.rl_mlflow_data_bucket_name
+  project  = local.rl_project_id
+  location = local.cluster_region
+
+  uniform_bucket_level_access = true
+  force_destroy               = true
 }

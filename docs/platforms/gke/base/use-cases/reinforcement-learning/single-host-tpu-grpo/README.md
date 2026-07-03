@@ -9,7 +9,7 @@ This example is built on top of the
 ## Before you begin
 
 - The
-  [GKE Reinforcement Learning reference implementation](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md)
+  [GKE Reinforcement Learning reference implementation](/platforms/gke/base/use-cases/reinforcement-learning/terraform/README.md)
   is deployed and configured.
 
 - Get access to the model.

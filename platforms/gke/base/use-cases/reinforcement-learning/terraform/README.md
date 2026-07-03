@@ -178,12 +178,12 @@ For more information about providing values for Terraform input variables, see
 
 ## Example
 
-This reference implementation is designed to support various reinforcement learning patterns.
-Some example patterns provided are:
+This reference implementation is designed to support various reinforcement
+learning patterns. Some example patterns provided are:
 
 - [Single-host reinforcement learning with TPUs on Google Kubernetes Engine (GKE) using GRPO algorithm](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md):
-  Single-host reinforcement learning workload on TPUs using MaxText, MLflow tracking, and the
-  Group Relative Policy Optimization (GRPO) algorithm.
+  Single-host reinforcement learning workload on TPUs using MaxText, MLflow
+  tracking, and the Group Relative Policy Optimization (GRPO) algorithm.
 
 ## Clean up
 

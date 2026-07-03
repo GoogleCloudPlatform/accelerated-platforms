@@ -27,7 +27,8 @@ This example is built on top of the
   has been added to Secret Manager.
 
 - Hardware & Storage Prerequisites:
-  - **Hardware**: This configuration is tuned for a **TPU v5e-8** (`v5e-2x4`) or **TPU v6e-8** (`v6e-2x4`) slice topology.
+  - **Hardware**: This configuration is tuned for a **TPU v5e-8** (`v5e-2x4`) or
+    **TPU v6e-8** (`v6e-2x4`) slice topology.
   - **Storage**: Local ephemeral storage (or mounted SSD) at `/workspace` for
     handling model checkpoint conversions.
 

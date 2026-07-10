@@ -12,22 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import jsonpickle
 import logging
 import os
+import pandas as pd
+import ray
 import re
 import socket
+import spacy
+from typing import List
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
-
-import jsonpickle
-import pandas as pd
-import ray
-import spacy
 from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
-
 
 class DataPreprocessor:
     """Optimized preprocessing utility designed for parallel Ray environments."""
@@ -37,25 +35,33 @@ class DataPreprocessor:
     def __init__(self):
         # 1. Instantiate the storage client ONCE per worker process initialization
         self.storage_client = storage.Client()
-        
+
         # 2. Dynamic Approach: Eliminate magic thread numbers by checking Ray allocations
         try:
             # Query how many CPU cores Ray allocated specifically to this actor instance container
-            assigned_cpus = ray.get_runtime_context().get_assigned_resources().get("CPU", 1)
+            assigned_cpus = (
+                ray.get_runtime_context().get_assigned_resources().get("CPU", 1)
+            )
             # For network I/O intensive routines (image downloading), 10 threads per CPU core is optimal
             self.max_workers = max(10, int(assigned_cpus * 10))
-            self.logger.info(f"Dynamically initialized ThreadPool with {self.max_workers} workers based on {assigned_cpus} Ray CPUs.")
+            self.logger.info(
+                f"Dynamically initialized ThreadPool with {self.max_workers} workers based on {assigned_cpus} Ray CPUs."
+            )
         except Exception:
             # Fallback scaling rule if code is executed outside a cluster worker thread context
             cores = os.cpu_count() or 1
             self.max_workers = min(32, cores * 5)
-            self.logger.info(f"Fallback context: Initialized {self.max_workers} threads based on system CPU core count ({cores}).")
-        
+            self.logger.info(
+                f"Fallback context: Initialized {self.max_workers} threads based on system CPU core count ({cores})."
+            )
+
         # 3. Load or download the spaCy model ONCE per worker process initialization
         try:
             self.nlp = spacy.load("en_core_web_sm")
         except OSError:
-            self.logger.info("Downloading spacy model 'en_core_web_sm' on worker process...")
+            self.logger.info(
+                "Downloading spacy model 'en_core_web_sm' on worker process..."
+            )
             spacy.cli.download("en_core_web_sm")
             self.nlp = spacy.load("en_core_web_sm")
 
@@ -79,11 +85,11 @@ class DataPreprocessor:
         try:
             socket.setdefaulttimeout(5)
             urllib.request.urlretrieve(image_url, download_file)
-            
+
             bucket = self.storage_client.bucket(gcs_bucket)
             blob = bucket.blob(destination_blob_name)
             blob.upload_from_filename(download_file, retry=DEFAULT_RETRY)
-            
+
             os.remove(download_file)
             return True
         except Exception as err:
@@ -91,25 +97,31 @@ class DataPreprocessor:
                 os.remove(download_file)
             return False
 
-    def _process_single_row_image(self, row: dict, ray_worker_node_id: str, gcs_bucket: str, gcs_folder: str) -> str:
+    def _process_single_row_image(
+        self, row: dict, ray_worker_node_id: str, gcs_bucket: str, gcs_folder: str
+    ) -> str:
         """Helper processing callback targeted by the asynchronous thread pool."""
         prod_id = row.get("uniq_id")
         image_list = row.get("image")
-        
+
         if pd.isnull(image_list):
             return None
-            
+
         image_urls = self.extract_url(image_list)
         for index, url in enumerate(image_urls):
             url_clean = url.strip()
             if not url_clean:
                 continue
-                
+
             image_file_name = f"{prod_id}_{index}.jpg"
             destination_blob_name = f"{gcs_folder}/{prod_id}_{index}.jpg"
-            
+
             success = self.download_image(
-                url_clean, image_file_name, destination_blob_name, ray_worker_node_id, gcs_bucket
+                url_clean,
+                image_file_name,
+                destination_blob_name,
+                ray_worker_node_id,
+                gcs_bucket,
             )
             if success:
                 return f"gs://{gcs_bucket}/{destination_blob_name}"
@@ -124,11 +136,17 @@ class DataPreprocessor:
     ) -> pd.DataFrame:
         # Convert the batch chunks cleanly to records for thread-safe isolation
         records = df.to_dict(orient="records")
-        
+
         # Parallelize downloading across the dynamic, calculated thread limits
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = [
-                executor.submit(self._process_single_row_image, row, ray_worker_node_id, gcs_bucket, gcs_folder)
+                executor.submit(
+                    self._process_single_row_image,
+                    row,
+                    ray_worker_node_id,
+                    gcs_bucket,
+                    gcs_folder,
+                )
                 for row in records
             ]
             gcs_image_urls = [f.result() for f in futures]
@@ -143,7 +161,8 @@ class DataPreprocessor:
             try:
                 doc = self.nlp(str(description).lower())
                 lemmas = [
-                    token.lemma_ for token in doc 
+                    token.lemma_
+                    for token in doc
                     if not token.is_stop and token.is_alpha
                 ]
                 return " ".join(dict.fromkeys(lemmas))
@@ -158,7 +177,7 @@ class DataPreprocessor:
         spec_match_two = re.compile('(.*?)=>"(.*?)"(.*?)=>"(.*?)"(.*)')
         if pd.isna(specification):
             return jsonpickle.encode({})
-        
+
         m = spec_match_one.match(str(specification))
         out = {}
         if m is not None and m.group(2) is not None:
@@ -181,14 +200,14 @@ class DataPreprocessor:
     def prep_cat(self, df: pd.DataFrame) -> pd.DataFrame:
         df["product_category_tree"] = df["product_category_tree"].apply(self.reformat)
         splits = df["product_category_tree"].str.split(">>")
-        
+
         # Enforce exactly 6 static categorical dimensions to prevent cross-batch schema errors
         max_levels = 6
         for i in range(max_levels):
             df[f"c{i}_name"] = splits.apply(
                 lambda x: x[i].strip() if isinstance(x, list) and len(x) > i else ""
             )
-            
+
         df = df.drop("product_category_tree", axis=1)
         return df
 
@@ -199,9 +218,13 @@ class DataPreprocessor:
         gcs_bucket: str,
         gcs_folder: str,
     ) -> pd.DataFrame:
-        df_processed = self.get_product_image(df, ray_worker_node_id, gcs_bucket, gcs_folder)
+        df_processed = self.get_product_image(
+            df, ray_worker_node_id, gcs_bucket, gcs_folder
+        )
         df_processed = self.prep_product_desc(df_processed)
-        df_processed["attributes"] = df_processed["product_specifications"].apply(self.parse_attributes)
+        df_processed["attributes"] = df_processed["product_specifications"].apply(
+            self.parse_attributes
+        )
         df_processed = df_processed.drop("product_specifications", axis=1)
         df_processed = self.prep_cat(df_processed)
         return df_processed
@@ -237,14 +260,29 @@ class DataPrepForRag:
 
         filtered_df = working_df[working_df["c0_name"] == "Clothing"]
         values_to_filter = ["Women's Clothing", "Men's Clothing", "Kids' Clothing"]
-        clothing_filtered_df = filtered_df[filtered_df["c1_name"].isin(values_to_filter)].copy()
-        
+        clothing_filtered_df = filtered_df[
+            filtered_df["c1_name"].isin(values_to_filter)
+        ].copy()
+
         # Sequence data transformations safely to clean memory pointers
-        c2_filtered_df = self.filter_low_value_count_rows(clothing_filtered_df, "c2_name", 10)
+        c2_filtered_df = self.filter_low_value_count_rows(
+            clothing_filtered_df, "c2_name", 10
+        )
         c3_filtered_df = self.filter_low_value_count_rows(c2_filtered_df, "c3_name", 10)
-        
+
         if c3_filtered_df.empty:
-            return pd.DataFrame(columns=["Id", "Name", "Description", "Brand", "image", "image_uri", "c1_name", "Specifications"])
+            return pd.DataFrame(
+                columns=[
+                    "Id",
+                    "Name",
+                    "Description",
+                    "Brand",
+                    "image",
+                    "image_uri",
+                    "c1_name",
+                    "Specifications",
+                ]
+            )
 
         rag_df = c3_filtered_df[
             [
@@ -258,11 +296,11 @@ class DataPrepForRag:
                 "Specifications",
             ]
         ].copy()
-        
+
         rag_df.drop_duplicates(inplace=True)
-        
+
         rag_df["image_uri"] = rag_df["image_uri"].fillna("")
         rag_df["image"] = rag_df["image"].fillna("")
         rag_df["Description"] = rag_df["Description"].fillna("None")
-        
-        return rag_df      
+
+        return rag_df

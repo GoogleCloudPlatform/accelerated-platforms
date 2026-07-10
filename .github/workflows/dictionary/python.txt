@@ -69,6 +69,7 @@ pipreqs
 pmap
 prng
 protos
+pyarrow
 pyasn
 pycache
 pycparser

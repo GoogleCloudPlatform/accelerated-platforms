@@ -50,7 +50,7 @@ class PreprocessingActor:
     """Stateful worker pool for Ray Data."""
 
     def __init__(self, output_bucket: str, output_image_folder: str):
-        from datapreprocessing.datacleaner import DataPreprocessor, DataPrepForRag
+        from datapreprocessing.datacleaner import DataPrepForRag, DataPreprocessor
 
         self.preprocessor = DataPreprocessor()
         self.rag_transformer = DataPrepForRag()

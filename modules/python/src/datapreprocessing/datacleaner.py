@@ -265,5 +265,4 @@ class DataPrepForRag:
         rag_df["image"] = rag_df["image"].fillna("")
         rag_df["Description"] = rag_df["Description"].fillna("None")
         
-        return rag_df
-        
+        return rag_df      

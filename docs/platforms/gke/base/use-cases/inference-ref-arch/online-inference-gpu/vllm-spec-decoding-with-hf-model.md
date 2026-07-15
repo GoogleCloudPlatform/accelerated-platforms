@@ -30,6 +30,12 @@ methods with vLLM on GKE:
   is a state-of-the-art speculative decoding method that uses a lightweight
   draft model to generate multiple candidate tokens in parallel.
 
+- [Multi-Token Prediction (MTP)](https://docs.vllm.ai/en/stable/features/spec_decode.html#multi-token-prediction-mtp)
+
+  MTP is an optimization that allows the model to predict multiple tokens
+  simultaneously, which can significantly speed up inference for models like
+  Qwen 3.6.
+
 This example is built on top of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
 
@@ -45,12 +51,23 @@ This example is built on top of the
 
     - Consented to the license on [Kaggle](https://www.kaggle.com/) using a
       Hugging Face account.
-      - [**google/gemma**](https://www.kaggle.com/models/google/gemma).
+      - [**google/gemma-4-31b-it**](https://huggingface.co/google/gemma-4-31b-it)
+      - [**google/gemma-3-27b-it**](https://huggingface.co/google/gemma-3-27b-it)
+      - [**thoughtworks/Gemma-4-31B-Eagle3**](https://huggingface.co/thoughtworks/Gemma-4-31B-Eagle3)
+      - [**yuhuili/EAGLE3-Gemma-2-27B-Instruct**](https://huggingface.co/yuhuili/EAGLE3-Gemma-2-27B-Instruct)
 
   - For Llama:
     - Accept the terms of the license on the Hugging Face model page.
       - [**meta-llama/Llama-4-Scout-17B-16E-Instruct**](https://huggingface.co/meta-llama/Llama-4-Scout-17B-16E-Instruct)
       - [**meta-llama/Llama-3.3-70B-Instruct**](https://huggingface.co/meta-llama/Llama-3.3-70B-Instruct)
+      - [**nvidia/llama-3.3-70b-instruct-fp8**](https://huggingface.co/nvidia/llama-3.3-70b-instruct-fp8)
+      - [**yuhuili/eagle3-llama3.3-instruct-70b**](https://huggingface.co/yuhuili/eagle3-llama3.3-instruct-70b)
+
+  - For Qwen:
+    - [**Qwen/Qwen3.6-35B-A3B**](https://huggingface.co/Qwen/Qwen3.6-35B-A3B)
+    - [**nvidia/Qwen3-35B-A3B-Eagle3**](https://huggingface.co/nvidia/Qwen3-35B-A3B-Eagle3)
+    - [**Qwen/Qwen3.5-27B-Instruct**](https://huggingface.co/Qwen/Qwen3.5-27B-Instruct)
+    - [**nvidia/Qwen3-27B-Eagle3**](https://huggingface.co/nvidia/Qwen3-27B-Eagle3)
 
 - Ensure your
   [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
@@ -73,17 +90,53 @@ This example is built on top of the
 
 - Choose the model.
 
+  - **Qwen 3.6 35B-A3B (MoE)**:
+
+    ```shell
+    export HF_MODEL_ID="Qwen/Qwen3.6-35B-A3B"
+    ```
+
+  - **Qwen 3.6 35B Draft Model (EAGLE3)**:
+
+    ```shell
+    export HF_MODEL_ID="nvidia/Qwen3-35B-A3B-Eagle3"
+    ```
+
+  - **Gemma 4 31B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-4-31b-it"
+    ```
+
+  - **Gemma 4 31B Draft Model (EAGLE3)**:
+
+    ```shell
+    export HF_MODEL_ID="thoughtworks/Gemma-4-31B-Eagle3"
+    ```
+
   - **Gemma 3 27B Instruction-Tuned**:
 
     ```shell
     export HF_MODEL_ID="google/gemma-3-27b-it"
     ```
 
-  - **Llama 3.3 70B Instruction-Tuned**:
+  - **Llama 3.3 70B Instruction-Tuned (FP8)**:
 
     ```shell
-    export HF_MODEL_ID="meta-llama/llama-3.3-70b-instruct"
+    export HF_MODEL_ID="nvidia/llama-3.3-70b-instruct-fp8"
     ```
+
+  - **EAGLE3 Llama 3.3 70B Draft Model**:
+
+    ```shell
+    export HF_MODEL_ID="yuhuili/eagle3-llama3.3-instruct-70b"
+    ```
+
+> [!TIP]
+> If you plan to use **EAGLE Based Draft Models**, ensure you download both the
+> target model (e.g., `llama-3.3-70b-instruct` or `qwen2.5-32b-instruct`)
+> AND the draft model (e.g., `eagle3-llama3.3-instruct-70b` or `Qwen3-32B-speculator.eagle3`)
+> by running the download job for each `HF_MODEL_ID`.
 
 - Source the environment configuration.
 
@@ -158,10 +211,13 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model                  | h100 | rtx-pro-6000 |
-    | ---------------------- | ---- | ------------ |
-    | gemma-3-27b-it         | ✅   | ✅           |
-    | llama-3.3-70b-instruct | ✅   | ✅           |
+    | Model                        | h100 | rtx-pro-6000 |
+    | ---------------------------- | ---- | ------------ |
+    | qwen3-6-35b-a3b              | ✅   | ✅           |
+    | gemma-4-31b-it               | ✅   | ✅           |
+    | gemma-3-27b-it               | ✅   | ✅           |
+    | llama-3.3-70b-instruct       | ✅   | ✅           |
+    | llama-3.3-70b-instruct-fp8   | ✅   | ✅           |
 
     - **NVIDIA H100 80GB**:
 
@@ -206,6 +262,7 @@ This example is built on top of the
   ```text
   NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
   vllm-h100-gemma-3-27b-it-sd-ngram         1/1     1            1           ###
+  vllm-rtx-pro-6000-gemma-4-31b-it-sd-ngram  1/1     1            1           ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -311,7 +368,91 @@ This example is built on top of the
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   ```
 
-## Measuring speculative decoding (ngram/eagle) performance with inference-perf
+### Speculative Decoding with Multi-Token Prediction (MTP)
+
+- Deploy the inference workload.
+
+  ```shell
+  export METHOD=mtp && \
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
+  ```
+
+- Watch the deployment until it is ready.
+
+  ```shell
+  export METHOD=mtp && \
+  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} --all-containers --tail 10"
+  ```
+
+  When the deployment is ready, you will see output similar to the following:
+
+  ```text
+  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+  vllm-rtx-pro-6000-qwen3-6-35b-a3b-sd-mtp  1/1     1            1           ###
+  ```
+
+  You can press `CTRL`+`c` to terminate the watch.
+
+- Send a test request to the model.
+
+  Start a port forward to the model service.
+
+  ```shell
+  export METHOD=mtp && \
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} 8000:8000 >/dev/null & \
+  PF_PID=$!
+  ```
+
+  Send a test request.
+
+  ```shell
+  curl http://127.0.0.1:8000/v1/chat/completions \
+  --data '{
+    "model": "/gcs/'${HF_MODEL_ID}'",
+    "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
+    }' \
+  --header "Content-Type: application/json" \
+  --request POST \
+  --show-error \
+  --silent | jq
+  ```
+
+  Stop the port forward.
+
+  ```shell
+  kill -9 ${PF_PID}
+  ```
+
+- Delete the workload.
+
+  ```shell
+  export METHOD=mtp && \
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
+  ```
+
+### Performance Optimization: FP8 with TP=1 vs. BF16/FP16 with TP=4
+
+When deploying Llama 3.3 70B on RTX Pro 6000 GPUs, the standard BF16/FP16 model
+requires a Tensor Parallel (TP) size of 4 to fit within the combined GPU memory.
+However, by using the **FP8 quantized model** (`nvidia/llama-3.3-70b-instruct-fp8`),
+a single replica can fit on a **single RTX Pro 6000 GPU (TP=1)**.
+
+This allows you to deploy **four independent replicas** using the same amount of
+hardware (4 GPUs) as a single TP=4 replica. By stitching these four replicas
+together behind a GKE Inference Gateway (Service), you can achieve significantly
+higher aggregate throughput compared to a single TP=4 replica of the non-quantized
+model, especially when combined with EAGLE3 speculative decoding.
+
+To scale the FP8 TP=1 deployment to 4 replicas:
+
+```shell
+export METHOD=eagle && \
+kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} scale deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD} --replicas=4
+```
+
+## Measuring speculative decoding (ngram/eagle/mtp) performance with inference-perf
 
 Inference-perf allows you to run your own benchmarks and simulate production
 traffic and ensure the load generation is external to the model server pods.

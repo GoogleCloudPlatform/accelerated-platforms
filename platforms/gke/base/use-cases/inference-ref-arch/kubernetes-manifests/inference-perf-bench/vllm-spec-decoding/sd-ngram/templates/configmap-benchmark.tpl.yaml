@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ data:
       interval: 1.0
       sweep:
         type: linear
-        timeout: 250
+        timeout: 900
         num_stages: 7
-        stage_duration: 30
+        stage_duration: 120
       num_workers: 20
       worker_max_concurrency: 15
       worker_max_tcp_connections: 2500
@@ -39,7 +39,7 @@ data:
       base_url: http://${APP_LABEL}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
       ignore_eos: true
     tokenizer:
-      pretrained_model_name_or_path: ${HF_MODEL_ID}
+      pretrained_model_name_or_path: google/gemma-2-9b-it
     data:
       type: cnn_dailymail
     metrics:

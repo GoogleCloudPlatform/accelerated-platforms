@@ -92,4 +92,4 @@ resources:
 - job.yaml
 - secretproviderclass-huggingface-tokens.yaml
 - pod-monitoring.yaml
-namePrefix: 69eb17980a-
+namePrefix: 8fc05f60c2-

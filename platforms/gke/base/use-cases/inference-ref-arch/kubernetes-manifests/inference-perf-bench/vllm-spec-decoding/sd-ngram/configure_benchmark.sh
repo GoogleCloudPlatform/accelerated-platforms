@@ -47,6 +47,9 @@ fi
 
 source "${MY_PATH}/../../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
+# Ensure HF_MODEL_ID is lower-cased to match the vLLM deployment and GCS path
+export HF_MODEL_ID="${HF_MODEL_ID,,}"
+
 envsubst < "${MY_PATH}/templates/benchmarking.tpl.env" | sponge "${MY_PATH}/benchmarking.env"
 
 envsubst < "${MY_PATH}/templates/configmap-benchmark.tpl.yaml" | sponge "${MY_PATH}/configmap-benchmark.yaml"

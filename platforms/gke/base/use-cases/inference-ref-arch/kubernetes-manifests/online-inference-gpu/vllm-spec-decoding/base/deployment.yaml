@@ -56,12 +56,13 @@ spec:
               name: huggingface-hub-model-bucket
               readOnly: true
         - args:
-            - "--disable-log-requests"
+            - "--no-enable-log-requests"
             - "--gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)"
             - "--model=/gcs/$(MODEL_ID)"
             - "--tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)"
             - "--trust-remote-code"
             - "--max-model-len=$(MAX_MODEL_LEN)"
+            - "--block-size=128"
           command:
             - python3
             - "-m"
@@ -91,6 +92,8 @@ spec:
                   name: runtime
             - name: VLLM_XLA_CACHE_PATH
               value: /data
+            - name: VLLM_USE_V1
+              value: "0"
           image: replaced-by-kustomize
           imagePullPolicy: Always
           name: inference-server

@@ -30,17 +30,18 @@ skills/
 
 ## The Evaluation Runner (`evaluate.py`)
 
-The evaluation runner ([evaluate.py](test/scripts/skills-eval/evaluate.py))
-automates testing of the repository's shell scripts and configuration
-validations. It maps test cases defined in each skill's `evals/evals.json` file
-to programmatic assertions, verifying correctness without modifying your local
-GCP state.
+The evaluation runner
+([evaluate.py](${ACP_REPO_DIR}/test/scripts/skills-eval/evaluate.py)) automates
+testing of the repository's shell scripts and configuration validations. It maps
+test cases defined in each skill's `evals/evals.json` file to programmatic
+assertions, verifying correctness without modifying your local GCP state.
 
 ### How Mock Mode Works (`--mock`)
 
 When executed with `--mock`, the script:
 
-1.  Creates a sandbox directory `skills-eval-workspace/mock-bin`.
+1.  Creates a sandbox directory
+    `${ACP_REPO_DIR}/skills-eval-workspace/mock-bin`.
 2.  Dynamically writes mock wrapper binaries for `gcloud`, `kubectl`, `curl`,
     and `llm-d`.
 3.  Injects the mock binary directory at the front of the subprocess execution
@@ -64,7 +65,7 @@ The runner requires Python 3.12+ (standard library modules only).
 To run the mock evaluations locally:
 
 ```bash
-python3 test/scripts/skills-eval/evaluate.py --mock
+python3 ${ACP_REPO_DIR}/test/scripts/skills-eval/evaluate.py --mock
 ```
 
 This will automatically discover and run all test scenarios across all skill
@@ -76,7 +77,8 @@ assertions.
 Upon execution completion, the runner aggregates duration, token estimates, and
 assertion status details into a benchmark report:
 
-- **Report Path**: `skills-eval-workspace/iteration-1/benchmark.json`
+- **Report Path**:
+  `${ACP_REPO_DIR}/skills-eval-workspace/iteration-1/benchmark.json`
 
 ---
 
@@ -86,7 +88,7 @@ Test cases are loaded from the `evals/evals.json` list inside each skill's
 directory. To add a new test scenario:
 
 1.  Open the target skill's configuration file (e.g.,
-    `skills/llm-d-deploy-stack/evals/evals.json`).
+    `${ACP_REPO_DIR}/skills/llm-d-deploy-stack/evals/evals.json`).
 2.  Append a new JSON object to the list:
     ```json
     [

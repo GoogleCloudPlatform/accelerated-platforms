@@ -61,10 +61,11 @@ Confirm the GKE cluster name, region and reservation (if ANY) and then use the `
 
 When `--apply` is set, the tuner:
 
-1. Updates `runtime.env` inside the GKE overlay directory (e.g., setting `TENSOR_PARALLEL_SIZE`, `MAX_MODEL_LEN`, and `EXTRA_ARGS`).
+1. Updates `runtime.env` inside the GKE overlay directory (e.g., setting `TENSOR_PARALLEL_SIZE`, `MAX_MODEL_LEN`).
 2. Patches `patch-nodeselector.yaml` to request matching GPU / TPU counts on nodes.
 3. Patches `patch-resources.yaml` to configure container GPU / TPU limit settings.
-4. **Verifies and logs the parameter diff:** Always review the printed `=== Configuration Gap Analysis ===` output to see exactly which parameters were tuned from the baseline deployment in this repo.
+4. Patches `patch-tuner-args.yaml` to configure the optimal arguments for the vLLM container.
+5. **Verifies and logs the parameter diff:** Always review the printed `=== Configuration Gap Analysis ===` output to see exactly which parameters were tuned from the baseline deployment in this repo.
 
 ## 5. Verification
 

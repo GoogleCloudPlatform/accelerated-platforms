@@ -36,9 +36,9 @@ This skill utilizes the following core variables:
   curl -sSL https://raw.githubusercontent.com/llm-d/llm-d-benchmark/main/install.sh | bash
   ```
   _Note: The `run_benchmark.sh` script assumes the upstream `llmdbenchmark` package is installed and available in the python path._
-- The llm-d stack must be GKE deployed and running.
-- Determine the inference endpoint URL and the gateway class (e.g. `epp-only` or `istio`).
-  - Refer to [Deploy Stack Skill](../llm-d-deploy-stack/SKILL.MD) for details.
+- The llm-d stack must be deployed and running on a GKE cluster.
+  - Determine the inference endpoint URL and the gateway class (e.g. `epp-only` or `istio`).
+  - Refer to [Deploy Stack Skill](../llm-d-deploy-stack/SKILL.MD) for details. If executing this skill immediately after `llm-d-deploy-stack`, the agent should retain context such as `SPEC` (strategy), accelerator type, and namespace. Otherwise, prompt the user for these details.
 
 ## 3. Select a Workload Profile
 
@@ -92,15 +92,15 @@ Run the consolidated benchmark script with the chosen workload profile and endpo
 
 ### Examples:
 
-- Run chatbot benchmark with default bucket resolution:
+- Run chatbot benchmark in the workload's namespace (e.g., `default`):
 
   ```bash
-  "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml http://vllm-service:8000 default google/gemma-4-31b-it
+  "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml http://vllm-service:8000 <namespace> google/gemma-4-31b-it
   ```
 
 - Run chatbot benchmark with explicit GCS bucket override:
   ```bash
-  "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml http://vllm-service:8000 default google/gemma-4-31b-it my-custom-bench-bucket
+  "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml http://vllm-service:8000 <namespace> google/gemma-4-31b-it my-custom-bench-bucket
   ```
 
 ## 6. Explanation of `run_benchmark.sh` Steps
@@ -120,9 +120,9 @@ The `run_benchmark.sh` script is an ultra-dense automated executor that directly
     - Captures timestamps and runs the `inference-perf` harness in step 7.
     - Triggers the `telemetry-collector.yaml` pod to capture GPU/TPU DCGM metrics from Cloud Monitoring concurrently.
 5.  **Phase 3 & 4: Result Retrieval, Cleanup, & Report Archival**:
-    - Restores the RWO PVC bridge pod to retrieve `inference-perf` results (steps 8-11).
+    - Spawns a temporary bridge pod (data-access pod) to mount the ReadWriteOnce (RWO) PVC and extract `inference-perf` results.
     - Uses `extract_csv.py` and inline python to synthesize `report_v0.2.json` and `output.csv`.
-    - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports) to the target GCS bucket, before deleting all helper pods.
+    - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports) to the target GCS bucket, before deleting all helper pods to free resources.
 
 ## 7. Analyze Benchmark Results
 

@@ -29,10 +29,7 @@ This skill utilizes the following core variables:
 1.  **Ask the user**: "Is there an existing GKE cluster? (yes/no)"
 2.  **If NO**:
     - **Ask the user**: "What platform name would you like to use for the new cluster?"
-    - Update the platform name in configuration:
-      ```bash
-      "${ACP_REPO_DIR}/skills/llm-d-deploy-stack/scripts/deploy.sh" <platform_name>
-      ```
+    - Use your file editing capabilities (e.g. `replace_file_content`) to update `platform_name = "<platform_name>"` in `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars`.
     - Proceed to **Section 2: Select & Deploy Well-Lit Path Guide** (to create cluster and deploy stack).
 3.  **If YES**:
     - Verify connectivity to the target cluster:
@@ -80,19 +77,19 @@ This skill utilizes the following core variables:
 2.  **Ask the user**: "Which accelerator would you like to use?"
     - **Allowed Accelerators**:
       - `rtx-pro-6000` (default)
-      - `h100`
-      - `h200`
-      - `v6e` (TPU)
+      - `h100` (translates to `nvidia-h100`)
+      - `h200` (translates to `nvidia-h200`)
+      - `v6e` (TPU, translates to `google-tpu-v6e`)
     - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed accelerators, and ask again.
 3.  **Update configuration**:
-    - Write the chosen model to `llmd_model_id` in `platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars`.
-    - Write the chosen accelerator to `llmd_accelerator_type` in `platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars`.
+    - Use your file editing capabilities (e.g. `replace_file_content`) to write the chosen model to `llmd_model_id` in `${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars`.
+    - Use your file editing capabilities to write the chosen accelerator (using the full name, e.g., `"nvidia-h100"`, `"rtx-pro-6000"`, `"google-tpu-v6e"`) to `llmd_accelerator_type` in `${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars`.
 4.  **Run validation**:
-    - Execute the configuration and validation script to verify custom compute classes and overlay structure:
+    - Run the following command to verify the chosen custom compute class exists on the cluster:
       ```bash
-      HF_MODEL_ID="<chosen_model>" ACCELERATOR_TYPE="<chosen_accelerator>" SPEC="<spec>" MODEL_SERVER="vllm" "${ACP_REPO_DIR}/skills/llm-d-deploy-stack/scripts/configure_and_validate.sh"
+      kubectl get computeclasses
       ```
-      _(Note: Map the chosen guide to SPEC: `optimized-baseline`, `precise-prefix-cache-routing`, or `predicted-latency-routing`. MODEL_SERVER specifies the engine, e.g., `vllm`)._
+    - Ensure that the accelerator type you chose appears in the list. If it does not, warn the user that the accelerator is unsupported or missing its custom compute class.
 
 ## 4. Hugging Face Token Setup
 
@@ -101,7 +98,7 @@ This skill utilizes the following core variables:
 
     ```bash
     # Source environment variables
-    source "platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+    source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 
     # Add to Secret Manager
     HF_TOKEN_READ=<YOUR_HUGGINGFACE_READ_TOKEN>
@@ -122,7 +119,7 @@ Once the user confirms the token is configured, proceed with the deployment:
     # Configure
     "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
     # Apply
-    kubectl apply --kustomize "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
     ```
 2.  **Wait for download to complete**:
     Monitor the job:
@@ -145,22 +142,33 @@ Once the user confirms the token is configured, proceed with the deployment:
         ```bash
         "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/llmd-<spec>/vllm/configure_vllm.sh"
         ```
-    - Deploy using the overlay directory (obtained from `configure_and_validate.sh` output):
+    - Deploy using the appropriate overlay directory. Construct the directory path as:
+      `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-[gpu|tpu]/llmd-[spec]/vllm/[prefix]-[suffix]`
+      - `[gpu|tpu]`: Use `tpu` if the accelerator is `v6e`, otherwise `gpu`.
+      - `[spec]`: The well-lit path chosen in Section 2.
+      - `[prefix]`: The accelerator prefix (e.g., `rtx-pro-6000`, `h100`, `h200`, `v6e`).
+      - `[suffix]`: The model name suffix (e.g., `gemma-4-31b-it`, `qwen3-32b`).
       ```bash
-      kubectl apply --kustomize <overlay_dir>
+      kubectl apply --kustomize "${ACP_REPO_DIR}/<constructed_overlay_dir>"
       ```
 
 ## 6. Verification
 
 - Check that all pods are running and services are accessible. (Note: You may need to source the environment variables script first to get `$llmd_namespace`):
   ```bash
-  source "platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
   kubectl get pods -n ${llmd_namespace}
   kubectl get svc -n ${llmd_namespace}
   ```
+- Verify the model downloader job has completed and the model files are in the GCS bucket:
+  ```bash
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+  kubectl get jobs -n ${llmd_namespace}
+  gcloud storage ls gs://${huggingface_hub_models_bucket_name}/${llmd_model_id}/
+  ```
 - Ensure the Hugging Face token is securely configured:
   ```bash
-  source "platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
   kubectl describe secretProviderClass huggingface-tokens -n ${llmd_namespace}
   kubectl describe secret llm-d-hf-token -n ${llmd_namespace}
   ```

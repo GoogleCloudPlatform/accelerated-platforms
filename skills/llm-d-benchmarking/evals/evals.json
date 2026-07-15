@@ -6,6 +6,8 @@
     "assertions": [
       "The run_benchmark.sh script is invoked with chatbot_synthetic.yaml and http://vllm-eval:8000",
       "The benchmark endpoint validation curl command was executed",
+      "A dry run command was executed",
+      "gcloud config get-value account was executed",
       "The output report report_v0.2.json is generated",
       "DCGM metrics are collected into dcgm_metrics.json",
       "The report report_v0.2.json is uploaded using gcloud storage cp to gs://llm-d-benchmark/",

@@ -26,6 +26,10 @@ MODELS = {"google/gemma-4-31b-it": (32.0, 48, 8, 256, "gemma-4-31b-it")}
 
 
 def ld_env(p):
+    """
+    Loads environment variables from a given file path.
+    Parses key=value pairs and returns them as a dictionary.
+    """
     return (
         dict(l.strip().split("=", 1) for l in open(p) if "=" in l)
         if os.path.exists(p)
@@ -34,10 +38,18 @@ def ld_env(p):
 
 
 def sv_env(p, d):
+    """
+    Saves a dictionary of environment variables to a file.
+    Writes each key-value pair in the format key=value.
+    """
     open(p, "w").writelines(f"{k}={v}\n" for k, v in d.items())
 
 
 def patch_yaml(p, ks, v):
+    """
+    Updates a nested value in a YAML file.
+    Traverses the YAML structure using the keys sequence 'ks' and sets the final key to 'v'.
+    """
     if not os.path.exists(p):
         return
     with open(p) as f:
@@ -54,6 +66,10 @@ def patch_yaml(p, ks, v):
 
 
 def get_n(d, ks, df="unknown"):
+    """
+    Safely retrieves a nested value from a dictionary or list.
+    Returns the default value 'df' if any key in the sequence 'ks' is not found.
+    """
     for k in ks:
         try:
             d = d[k]
@@ -63,6 +79,12 @@ def get_n(d, ks, df="unknown"):
 
 
 def main():
+    """
+    Main entrypoint for the workload tuner script.
+    Analyzes model parameters, accelerator capabilities, and performance requirements
+    to estimate optimal tensor parallelism and maximum model length.
+    If --apply is specified, dynamically updates Kustomize overlays and env files.
+    """
     p = argparse.ArgumentParser()
     for a, k in [
         ("--config", {}),
@@ -133,18 +155,23 @@ def main():
     bpt = 4 * layers * kv * hd
     c_size = (max_c * max_out * bpt) / (1024**3)
 
+    quant = env.get("QUANTIZATION", "null")
     tp, tr = 1, w_size + c_size
     while tp * vram * accel_util < tr:
         if tp < 8:
             tp *= 2
         else:
-            sys.exit("Err: Exceeds capacity with TP 8.")
+            print("Falling back to FP8 Quantization...")
+            quant = "fp8"
+            break
 
     avail_c = (tp * vram * accel_util) - w_size
     max_len = max(
         min(int((avail_c * (1024**3)) / (max_c * bpt)), 32768), max_out + 1024
     )
-    extra = f'--enable-chunked-prefill={"True" if max_out > args.chunked_prefill_threshold else "False"}'
+    extra = (
+        f"--enable-chunked-prefill" if max_out > args.chunked_prefill_threshold else ""
+    )
 
     res_f, node_f = f"{ovl}/patch-resources.yaml", f"{ovl}/patch-nodeselector.yaml"
     res_d = yaml.safe_load(open(res_f)) if os.path.exists(res_f) else {}
@@ -163,6 +190,15 @@ def main():
     tpu_c = "tpu-v6e-2x2" if tp == 4 else ("tpu-v6e-2x4" if tp == 8 else None)
     s_val = str(tp) if pfx == "gpu" else tpu_c
 
+    # Get current tuner args from patch if exists
+    patch_tuner_f = f"{ovl}/patch-tuner-args.yaml"
+    curr_extra = ""
+    if os.path.exists(patch_tuner_f):
+        with open(patch_tuner_f) as f:
+            tuner_patch = yaml.safe_load(f)
+            if tuner_patch and isinstance(tuner_patch, list):
+                curr_extra = tuner_patch[0].get("value", "")
+
     gaps = [
         ("TENSOR_PARALLEL_SIZE", env.get("TENSOR_PARALLEL_SIZE", "unknown"), tp),
         ("MAX_MODEL_LEN", env.get("MAX_MODEL_LEN", "unknown"), max_len),
@@ -171,8 +207,8 @@ def main():
             env.get("GPU_MEMORY_UTILIZATION", "unknown"),
             accel_util,
         ),
-        ("QUANTIZATION", env.get("QUANTIZATION", "unknown"), "null"),
-        ("EXTRA_ARGS", env.get("EXTRA_ARGS", "unknown").replace('"', ""), extra),
+        ("QUANTIZATION", env.get("QUANTIZATION", "unknown"), quant),
+        ("Tuner Extra Args (patch)", curr_extra, extra),
         ("resources limits", old_res, tp),
         ("nodeSelector", old_node, s_val),
     ]
@@ -190,8 +226,7 @@ def main():
                 "TENSOR_PARALLEL_SIZE": str(tp),
                 "MAX_MODEL_LEN": str(max_len),
                 "GPU_MEMORY_UTILIZATION": str(accel_util),
-                "QUANTIZATION": "null",
-                "EXTRA_ARGS": f'"{extra}"',
+                "QUANTIZATION": quant,
             }
         )
         sv_env(env_f, env)
@@ -221,6 +256,50 @@ def main():
             )
         if s_val:
             patch_yaml(node_f, ["spec", "template", "spec", "nodeSelector", n_k], s_val)
+
+        # Apply tuner args patch
+        kustomization_file = f"{ovl}/kustomization.yaml"
+        kustomization_data = {}
+        if os.path.exists(kustomization_file):
+            with open(kustomization_file) as f:
+                kustomization_data = yaml.safe_load(f) or {}
+
+        if extra:
+            with open(patch_tuner_f, "w") as f:
+                yaml.dump(
+                    [
+                        {
+                            "op": "add",
+                            "path": "/spec/template/spec/containers/1/args/-",
+                            "value": extra,
+                        }
+                    ],
+                    f,
+                    default_flow_style=False,
+                )
+
+            patches = kustomization_data.setdefault("patches", [])
+            has_patch = any(p.get("path") == "patch-tuner-args.yaml" for p in patches)
+            if not has_patch:
+                target_kind = "Deployment"
+                # Add to patches
+                patches.append(
+                    {"path": "patch-tuner-args.yaml", "target": {"kind": target_kind}}
+                )
+                with open(kustomization_file, "w") as f:
+                    yaml.dump(kustomization_data, f, default_flow_style=False)
+        else:
+            if os.path.exists(patch_tuner_f):
+                os.remove(patch_tuner_f)
+            patches = kustomization_data.get("patches", [])
+            new_patches = [
+                p for p in patches if p.get("path") != "patch-tuner-args.yaml"
+            ]
+            if len(new_patches) != len(patches):
+                kustomization_data["patches"] = new_patches
+                with open(kustomization_file, "w") as f:
+                    yaml.dump(kustomization_data, f, default_flow_style=False)
+
         print("Updated manifests.")
     elif needs_up:
         sys.exit(2)

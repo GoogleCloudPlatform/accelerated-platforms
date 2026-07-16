@@ -1,6 +1,4 @@
-#!/usr/bin/env bash
-#
-# Copyright 2024 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -u
 
-SCRIPT_PATH="$(
-  cd "$(dirname "$0")" >/dev/null 2>&1
-  pwd -P
-)"
+data "google_project" "cluster" {
+  project_id = local.cluster_project_id
+}
 
-source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
-
-cd ${GIT_REPOSITORY_PATH}
-commit_hash=$(git rev-parse HEAD)
-
-${SCRIPT_PATH}/helpers/wait_for_repo_sync.sh ${commit_hash}
-${SCRIPT_PATH}/helpers/wait_for_root_sync.sh ${commit_hash}
+# Required by the Filestore CSI driver to provision ReadWriteMany volumes.
+resource "google_project_service" "file_googleapis_com" {
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = data.google_project.cluster.project_id
+  service                    = "file.googleapis.com"
+}

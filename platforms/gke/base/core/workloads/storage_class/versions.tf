@@ -1,6 +1,4 @@
-#!/usr/bin/env bash
-#
-# Copyright 2024 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,17 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set -u
 
-SCRIPT_PATH="$(
-  cd "$(dirname "$0")" >/dev/null 2>&1
-  pwd -P
-)"
+terraform {
+  required_version = ">= 1.5.7"
 
-source ${SCRIPT_PATH}/helpers/clone_git_repo.sh
-
-cd ${GIT_REPOSITORY_PATH}
-commit_hash=$(git rev-parse HEAD)
-
-${SCRIPT_PATH}/helpers/wait_for_repo_sync.sh ${commit_hash}
-${SCRIPT_PATH}/helpers/wait_for_root_sync.sh ${commit_hash}
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "7.6.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.3"
+    }
+  }
+}

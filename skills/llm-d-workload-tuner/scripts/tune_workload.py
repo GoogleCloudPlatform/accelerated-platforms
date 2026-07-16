@@ -300,7 +300,15 @@ def main():
                 with open(kustomization_file, "w") as f:
                     yaml.dump(kustomization_data, f, default_flow_style=False)
 
-        print("Updated manifests.")
+        print(f"\nUpdated manifests in {ovl}:")
+        print("  - runtime.env")
+        print("  - patch-resources.yaml")
+        if s_val:
+            print("  - patch-nodeselector.yaml")
+        if extra:
+            print("  - patch-tuner-args.yaml")
+        print("  - kustomization.yaml")
+        print(f"\nPlease review the changes and run:\n  kubectl apply -k {ovl}")
     elif needs_up:
         sys.exit(2)
 

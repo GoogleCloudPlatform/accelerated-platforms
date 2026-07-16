@@ -52,8 +52,17 @@ validate_workload_config() {
   [ ! -f "$f" ] && return 0
   set +e; python3 "${REPO_DIR}/skills/llm-d-workload-tuner/scripts/tune_workload.py" --perf-yaml "$f" --accelerator-type "$ACCELERATOR_TYPE" --spec "$SPEC" --model "$MODEL_NAME"; code=$?; set -e
   if [ $code -eq 2 ]; then
-    read -p "Gaps detected. Apply updates automatically? (y/N): " confirm
-    [[ "$confirm" =~ ^[Yy]$ ]] && python3 "${REPO_DIR}/skills/llm-d-workload-tuner/scripts/tune_workload.py" --perf-yaml "$f" --accelerator-type "$ACCELERATOR_TYPE" --spec "$SPEC" --model "$MODEL_NAME" --apply && exit 0
+    read -p "There are gaps between the benchmark workload profile and the current vLLM config detected. Do you want to apply the tuned configuration? (y/N): " confirm
+    if [[ "$confirm" =~ ^[Yy]$ ]]; then
+      echo "Applying tuned configuration updates to the manifests..."
+      python3 "${REPO_DIR}/skills/llm-d-workload-tuner/scripts/tune_workload.py" --perf-yaml "$f" --accelerator-type "$ACCELERATOR_TYPE" --spec "$SPEC" --model "$MODEL_NAME" --apply
+      echo "Please review the updated files listed above. Run the suggested 'kubectl apply -k' command to push these changes to your cluster, then re-run this benchmark script."
+      exit 0
+    else
+      echo "Skipping updates. The benchmark will proceed using the CURRENT (default) configuration."
+    fi
+  else
+    echo "Configuration is optimal. Proceeding with the benchmark."
   fi
 }
 

@@ -115,14 +115,18 @@ The `run_benchmark.sh` script is an ultra-dense automated executor that directly
     - Invokes `tune_workload.py` to check for optimal specs, allowing an interactive auto-apply fix if sizing gaps are found.
 3.  **Phase 1: Setup Namespace & PVC**:
     - Executes `llmdbenchmark run` in `--dry-run` to validate syntax.
-    - Executes harness setup steps 0-6 to create namespace, PVC, and bridge data via temporary helper pods.
+    - Executes harness setup steps `0,1,2,3,4,5,6` to create the namespace, RBAC permissions, and the workload PVC.
+    - **Note**: The data-access pod is deliberately NOT deleted in this phase so that it can stage the workload profile onto the PVC. This architecture requires a `ReadWriteMany` (RWX) storage class, allowing the harness pod to mount the PVC concurrently from its own node.
 4.  **Phase 2: Execute Benchmark Harness & Telemetry Collection**:
-    - Captures timestamps and runs the `inference-perf` harness in step 7.
-    - Triggers the `telemetry-collector.yaml` pod to capture GPU/TPU DCGM metrics from Cloud Monitoring concurrently.
-5.  **Phase 3 & 4: Result Retrieval, Cleanup, & Report Archival**:
-    - Spawns a temporary bridge pod (data-access pod) to mount the ReadWriteOnce (RWO) PVC and extract `inference-perf` results.
+    - Captures timestamps and runs the `inference-perf` harness specifically (step `7`).
+    - Triggers the `telemetry-collector.yaml` pod to capture GPU/TPU DCGM metrics from Cloud Monitoring concurrently over the benchmark window.
+5.  **Phase 3: Result Retrieval & Cleanup**:
+    - Spawns a temporary bridge pod (`data-access.yaml`) to mount the RWX PVC.
+    - Extracts `inference-perf` results by executing step `9`.
+6.  **Phase 4: Report Generation & Archival**:
     - Uses `extract_csv.py` and inline python to synthesize `report_v0.2.json` and `output.csv`.
-    - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports) to the target GCS bucket, before deleting all helper pods to free resources.
+    - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports) to the target GCS bucket.
+    - Deletes the temporary helper pods to free up cluster resources.
 
 ## 7. Analyze Benchmark Results
 

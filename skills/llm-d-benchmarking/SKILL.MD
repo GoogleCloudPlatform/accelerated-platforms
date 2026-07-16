@@ -118,15 +118,14 @@ The `run_benchmark.sh` script is an ultra-dense automated executor that directly
     - Executes harness setup steps `0,1,2,3,4,5,6` to create the namespace, RBAC permissions, and the workload PVC.
     - **Note**: The data-access pod is deliberately NOT deleted in this phase so that it can stage the workload profile onto the PVC. This architecture requires a `ReadWriteMany` (RWX) storage class, allowing the harness pod to mount the PVC concurrently from its own node.
 4.  **Phase 2: Execute Benchmark Harness & Telemetry Collection**:
-    - Captures timestamps and runs the `inference-perf` harness specifically (step `7`).
-    - Triggers the `telemetry-collector.yaml` pod to capture GPU/TPU DCGM metrics from Cloud Monitoring concurrently over the benchmark window.
-5.  **Phase 3: Result Retrieval & Cleanup**:
-    - Spawns a temporary bridge pod (`data-access.yaml`) to mount the RWX PVC.
-    - Extracts `inference-perf` results by executing step `9`.
-6.  **Phase 4: Report Generation & Archival**:
+    - Captures the start timestamp, deploys the harness (step `7`), and explicitly waits for completion (step `8`) to establish an exact time window.
+    - Captures the end timestamp, then triggers the `telemetry-collector.yaml` pod to retroactively capture GPU/TPU DCGM metrics precisely constrained to that execution window.
+5.  **Phase 3: Result Retrieval**:
+    - Executes step `9` to collect the `inference-perf` results. Because of the RWX storage class, this step natively reuses the original data-access pod from Phase 1
+6.  **Phase 4: Report Generation & Cleanup**:
     - Uses `extract_csv.py` and inline python to synthesize `report_v0.2.json` and `output.csv`.
     - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports) to the target GCS bucket.
-    - Deletes the temporary helper pods to free up cluster resources.
+    - Manually forces deletion of the original data-access pod so it doesn't linger as a daemon indefinitely.
 
 ## 7. Analyze Benchmark Results
 

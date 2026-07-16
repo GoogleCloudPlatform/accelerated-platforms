@@ -2,13 +2,13 @@
 name: llm-d-deploy-stack
 description: Deploys the llm-d stack on GKE using well-lit paths specification.
 version: 0.3.1
-allowed-tools: kubectl gcloud helm kustomize curl cat terraform python3
+allowed-tools: kubectl gcloud helm kustomize curl terraform python3
 mcp-servers:
   - kubernetes:
       reason: "Inspect cluster info, custom compute classes, pod statuses, and secrets."
   - gcp:
       reason: "Verify GKE cluster status."
----
+--- 
 
 # Deploy llm-d Stack Skill
 
@@ -24,6 +24,11 @@ This skill utilizes the following core variables:
     - `precise-prefix-cache-routing` (Includes precise cache routing for multi-turn workloads).
     - `predicted-latency-routing` (Includes dynamic latency-based routing overlays).
 
+- **CRITICAL WARNING:**
+    1. **NEVER run any `teardown-*.sh` scripts** (e.g., `teardown-llmd-optimized-baseline.sh`) when attempting to "fix and rerun" a deployment or remove a workload. These scripts default to a full core platform teardown (`ACP_TEARDOWN_CORE_PLATFORM=true`) and will completely destroy the GKE cluster and all its resources. If a deployment fails, debug in place or re-run the `deploy` scripts. ONLY run teardown script when the user explicitly asks to tear down the stack and confirm with you first.
+    2. **NEVER Store a secret value or retrieve a value of a secret** in memory or write it to any file. Instead, always use gcloud secrets describe [SECRET_NAME] OR kubectl get kubectl get secret [SECRET_NAME] -o yaml. If a secret does not exist ask the user to create it. 
+
+
 ## 1. Prerequisites & Cluster Setup
 
 1.  **Ask the user**: "Is there an existing GKE cluster? (yes/no)"
@@ -36,7 +41,7 @@ This skill utilizes the following core variables:
       grep -q "^platform_default_project_id" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars" || echo "platform_default_project_id = \"\"" >> "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
       sed -i 's/^platform_default_project_id.*/platform_default_project_id = "<project_id>"/g' "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
       ```
-    - Proceed to **Section 2: Select & Deploy Well-Lit Path Guide** (to create cluster and deploy stack).
+    - Proceed to **Section 2: Configure Model & Accelerator** (to configure variables and create cluster).
 3.  **If YES**:
     - Verify connectivity to the target cluster:
       ```bash
@@ -44,11 +49,32 @@ This skill utilizes the following core variables:
       ```
     - **Ask the user**: "Is the llm-d stack already deployed on this cluster? (yes/no)"
     - **If YES**:
-      - Skip to **Section 3: Configure Model & Accelerator** (we only need to deploy the model server).
+      - Skip to **Section 4: Hugging Face Token Setup** (we only need to deploy the model server, which is done in Section 5).
     - **If NO**:
-      - Proceed to **Section 2: Select & Deploy Well-Lit Path Guide** (to deploy stack on existing cluster).
+      - Proceed to **Section 2: Configure Model & Accelerator** (to configure the deployment variables).
 
-## 2. Select & Deploy Well-Lit Path Guide
+## 2. Configure Model & Accelerator
+
+1.  **Ask the user**: "Which model would you like to run?"
+    - **Allowed Models**:
+      - `google/gemma-4-31b-it`
+      - `qwen/qwen3-32b` (default)
+    - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed models, and ask again.
+2.  **Ask the user**: "Which accelerator would you like to use?"
+    - **Allowed Accelerators**:
+      - `rtx-pro-6000` (default)
+      - `h100` (translates to `nvidia-h100`)
+      - `h200` (translates to `nvidia-h200`)
+      - `v6e` (TPU, translates to `google-tpu-v6e`)
+    - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed accelerators, and ask again.
+3.  **Update configuration**:
+    - Use `sed` to inject the chosen model and accelerator into `${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars`:
+      ```bash
+      echo "llmd_model_id = \"<chosen_model>\"" >> "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars"
+      echo "llmd_accelerator_type = \"<chosen_accelerator>\"" >> "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars"
+      ```
+
+## 3. Select & Deploy Well-Lit Path Guide
 
 1.  **Ask the user**: "Which llm-d well-lit path guide would you like to deploy?"
 
@@ -72,33 +98,13 @@ This skill utilizes the following core variables:
       ```bash
       "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/deploy-llmd-predicted-latency-routing.sh"
       ```
-
-## 3. Configure Model & Accelerator
-
-1.  **Ask the user**: "Which model would you like to run?"
-    - **Allowed Models**:
-      - `google/gemma-4-31b-it`
-      - `qwen/qwen3-32b` (default)
-    - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed models, and ask again.
-2.  **Ask the user**: "Which accelerator would you like to use?"
-    - **Allowed Accelerators**:
-      - `rtx-pro-6000` (default)
-      - `h100` (translates to `nvidia-h100`)
-      - `h200` (translates to `nvidia-h200`)
-      - `v6e` (TPU, translates to `google-tpu-v6e`)
-    - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed accelerators, and ask again.
-3.  **Update configuration**:
-    - Use `sed` to inject the chosen model and accelerator into `${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars`:
-      ```bash
-      sed -i 's/^llmd_model_id.*/llmd_model_id = "<chosen_model>"/g' "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars"
-      sed -i 's/^llmd_accelerator_type.*/llmd_accelerator_type = "<chosen_accelerator>"/g' "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars"
-      ```
 4.  **Run validation**:
     - Run the following command to verify the chosen custom compute class exists on the cluster:
       ```bash
       kubectl get computeclasses
       ```
     - Ensure that the accelerator type you chose appears in the list. If it does not, warn the user that the accelerator is unsupported or missing its custom compute class.
+
 
 ## 4. Hugging Face Token Setup
 
@@ -154,7 +160,7 @@ Once the user confirms the token is configured, proceed with the deployment:
     - Deploy using the appropriate overlay directory. Construct the directory path as:
       `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-[gpu|tpu]/llmd-[spec]/vllm/[prefix]-[suffix]`
       - `[gpu|tpu]`: Use `tpu` if the accelerator is `v6e`, otherwise `gpu`.
-      - `[spec]`: The well-lit path chosen in Section 2.
+      - `[spec]`: The well-lit path chosen in Section 3.
       - `[prefix]`: The accelerator prefix (e.g., `rtx-pro-6000`, `h100`, `h200`, `v6e`).
       - `[suffix]`: The model name suffix (e.g., `gemma-4-31b-it`, `qwen3-32b`).
       ```bash

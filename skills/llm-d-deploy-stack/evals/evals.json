@@ -4,8 +4,9 @@
     "prompt": "Deploy the llm-d optimized baseline stack for google/gemma-4-31b-it. Set the platform name to 'gemma-rtx-op'.",
     "expected_output": "Configures the platform name, validates the compute class, instructs how to apply Terraform, and combines the base llm-d manifests with the local rtx-pro-6000-gemma-4-31b-it model overlay manifests.",
     "assertions": [
-      "The platform_name is updated to 'gemma-rtx-op' in platforms/gke/base/_shared_config/platform.auto.tfvars",
-      "The model and accelerator are configured with 'google/gemma-4-31b-it' and 'rtx-pro-6000'",
+      "The project ID is collected from the user",
+      "The platform_name and platform_default_project_id are updated in platforms/gke/base/_shared_config/platform.auto.tfvars using sed",
+      "The model and accelerator are configured with 'google/gemma-4-31b-it' and 'rtx-pro-6000' using sed",
       "The custom compute class is validated",
       "Instructions point to applying the appropriate overlay directory"
     ]
@@ -15,8 +16,9 @@
     "prompt": "Deploy the llm-d optimized baseline stack for qwen/qwen3-32b on nvidia-h100. The platform name should be 'qwen-h100-op'.",
     "expected_output": "Configures the platform name, validates h100 compute class, and prepares the overlays for h100-qwen3-32b.",
     "assertions": [
-      "The platform_name is updated to 'qwen-h100-op' in platforms/gke/base/_shared_config/platform.auto.tfvars",
-      "The model and accelerator are configured with 'qwen/qwen3-32b' and 'nvidia-h100'",
+      "The project ID is collected from the user",
+      "The platform_name and platform_default_project_id are updated in platforms/gke/base/_shared_config/platform.auto.tfvars using sed",
+      "The model and accelerator are configured with 'qwen/qwen3-32b' and 'nvidia-h100' using sed",
       "The custom compute class is validated",
       "Instructions point to applying the appropriate overlay directory"
     ]
@@ -36,8 +38,9 @@
     "prompt": "Deploy the llm-d precise prefix cache routing stack for google/gemma-4-31b-it. Set the platform name to 'gemma-rtx-precise'.",
     "expected_output": "Configures the platform name, validates the compute class, instructs how to apply Terraform, and combines the base llm-d manifests with the local rtx-pro-6000-gemma-4-31b-it model overlay manifests for precise-prefix-cache-routing.",
     "assertions": [
-      "The platform_name is updated to 'gemma-rtx-precise' in platforms/gke/base/_shared_config/platform.auto.tfvars",
-      "The model and accelerator are configured with 'google/gemma-4-31b-it' and 'rtx-pro-6000'",
+      "The project ID is collected from the user",
+      "The platform_name and platform_default_project_id are updated in platforms/gke/base/_shared_config/platform.auto.tfvars using sed",
+      "The model and accelerator are configured with 'google/gemma-4-31b-it' and 'rtx-pro-6000' using sed",
       "The custom compute class is validated",
       "Instructions point to applying the appropriate overlay directory"
     ]

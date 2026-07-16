@@ -28,8 +28,14 @@ This skill utilizes the following core variables:
 
 1.  **Ask the user**: "Is there an existing GKE cluster? (yes/no)"
 2.  **If NO**:
-    - **Ask the user**: "What platform name would you like to use for the new cluster?"
-    - Use your file editing capabilities (e.g. `replace_file_content`) to update `platform_name = "<platform_name>"` in `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars`.
+    - **Ask the user**: "What platform name would you like to use for the new cluster, and what is your Google Cloud project ID?"
+    - Use `sed` to inject these values into `${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars`:
+      ```bash
+      sed -i 's/^platform_name.*/platform_name = "<platform_name>"/g' "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
+      # If platform_default_project_id doesn't exist, append it:
+      grep -q "^platform_default_project_id" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars" || echo "platform_default_project_id = \"\"" >> "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
+      sed -i 's/^platform_default_project_id.*/platform_default_project_id = "<project_id>"/g' "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
+      ```
     - Proceed to **Section 2: Select & Deploy Well-Lit Path Guide** (to create cluster and deploy stack).
 3.  **If YES**:
     - Verify connectivity to the target cluster:
@@ -82,8 +88,11 @@ This skill utilizes the following core variables:
       - `v6e` (TPU, translates to `google-tpu-v6e`)
     - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed accelerators, and ask again.
 3.  **Update configuration**:
-    - Use your file editing capabilities (e.g. `replace_file_content`) to write the chosen model to `llmd_model_id` in `${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars`.
-    - Use your file editing capabilities to write the chosen accelerator (using the full name, e.g., `"nvidia-h100"`, `"rtx-pro-6000"`, `"google-tpu-v6e"`) to `llmd_accelerator_type` in `${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars`.
+    - Use `sed` to inject the chosen model and accelerator into `${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars`:
+      ```bash
+      sed -i 's/^llmd_model_id.*/llmd_model_id = "<chosen_model>"/g' "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars"
+      sed -i 's/^llmd_accelerator_type.*/llmd_accelerator_type = "<chosen_accelerator>"/g' "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars"
+      ```
 4.  **Run validation**:
     - Run the following command to verify the chosen custom compute class exists on the cluster:
       ```bash

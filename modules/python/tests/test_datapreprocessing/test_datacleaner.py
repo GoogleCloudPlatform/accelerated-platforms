@@ -16,8 +16,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 import pandas as pd
-import src.datapreprocessing.datacleaner
-from src.datapreprocessing.datacleaner import DataPreprocessor
+from src.datapreprocessing.datacleaner import DataPrepForRag, DataPreprocessor
 
 
 class TestDataCleaner(unittest.TestCase):
@@ -126,13 +125,9 @@ class TestDataCleaner(unittest.TestCase):
         self.assertEqual(cleaned_df["c0_name"][0], "Category A")
         self.assertEqual(cleaned_df["c1_name"][0], "Category B")
 
-    @patch.object(
-        src.datapreprocessing.datacleaner.DataPreprocessor, "get_product_image"
-    )
-    @patch.object(
-        src.datapreprocessing.datacleaner.DataPreprocessor, "prep_product_desc"
-    )
-    @patch.object(src.datapreprocessing.datacleaner.DataPreprocessor, "prep_cat")
+    @patch.object(DataPreprocessor, "get_product_image")
+    @patch.object(DataPreprocessor, "prep_product_desc")
+    @patch.object(DataPreprocessor, "prep_cat")
     def test_process_data(
         self, mock_get_product_image, mock_prep_product_desc, mock_prep_cat
     ):
@@ -144,6 +139,130 @@ class TestDataCleaner(unittest.TestCase):
             self.df.copy(), 1, "test_bucket", "test_path"
         )
         self.assertEqual(len(cleaned_df), 3)
+
+
+class TestDataPrepForRag(unittest.TestCase):
+    def setUp(self):
+        self.prep = DataPrepForRag()
+
+    def test_filter_low_value_count_rows_empty(self):
+        df = pd.DataFrame()
+        result = self.prep.filter_low_value_count_rows(df, "col")
+        self.assertTrue(result.empty)
+
+    def test_filter_low_value_count_rows_missing_column(self):
+        df = pd.DataFrame({"col1": [1, 2]})
+        result = self.prep.filter_low_value_count_rows(df, "col2")
+        pd.testing.assert_frame_equal(result, df)
+
+    def test_filter_low_value_count_rows(self):
+        df = pd.DataFrame({"col": ["A"] * 10 + ["B"] * 5 + ["C"] * 12})
+        result = self.prep.filter_low_value_count_rows(df, "col", min_count=10)
+        # A and C should remain, B should be filtered out
+        self.assertEqual(len(result), 22)
+        self.assertNotIn("B", result["col"].values)
+        self.assertIn("A", result["col"].values)
+        self.assertIn("C", result["col"].values)
+
+    def test_process_rag_input_empty_result(self):
+        # Data that will be filtered out (not Clothing)
+        df = pd.DataFrame(
+            {
+                "uniq_id": [1],
+                "product_name": ["Name"],
+                "description": ["Desc"],
+                "brand": ["Brand"],
+                "image": ["Image"],
+                "image_uri": ["URI"],
+                "c0_name": ["Electronics"],
+                "c1_name": ["Phones"],
+                "c2_name": ["Smartphones"],
+                "c3_name": ["Android"],
+                "attributes": ["Specs"],
+            }
+        )
+        result = self.prep.process_rag_input(df)
+        self.assertTrue(result.empty)
+        # Check it has correct columns
+        expected_cols = [
+            "Id",
+            "Name",
+            "Description",
+            "Brand",
+            "image",
+            "image_uri",
+            "c1_name",
+            "Specifications",
+        ]
+        self.assertListEqual(list(result.columns), expected_cols)
+
+    def test_process_rag_input_success(self):
+        # We need at least 10 rows for c2 and c3 to pass the filter
+        # Let's create 12 identical rows that match the criteria
+        rows = []
+        for i in range(12):
+            rows.append(
+                {
+                    "uniq_id": f"id_{i}",
+                    "product_name": f"Name_{i}",
+                    "description": f"Desc_{i}",
+                    "brand": f"Brand_{i}",
+                    "image": f"Image_{i}",
+                    "image_uri": f"URI_{i}",
+                    "c0_name": "Clothing",
+                    "c1_name": "Women's Clothing",
+                    "c2_name": "T-Shirts",  # must have >= 10
+                    "c3_name": "Casual",  # must have >= 10
+                    "attributes": "Specs",
+                }
+            )
+        # Add some rows that should be filtered out
+        rows.append(
+            {
+                "uniq_id": "filtered_c0",
+                "product_name": "Name",
+                "description": "Desc",
+                "brand": "Brand",
+                "image": "Image",
+                "image_uri": "URI",
+                "c0_name": "Electronics",  # Filtered
+                "c1_name": "Women's Clothing",
+                "c2_name": "T-Shirts",
+                "c3_name": "Casual",
+                "attributes": "Specs",
+            }
+        )
+        rows.append(
+            {
+                "uniq_id": "filtered_c1",
+                "product_name": "Name",
+                "description": "Desc",
+                "brand": "Brand",
+                "image": "Image",
+                "image_uri": "URI",
+                "c0_name": "Clothing",
+                "c1_name": "Shoes",  # Filtered (not in Women's, Men's, Kids' Clothing)
+                "c2_name": "T-Shirts",
+                "c3_name": "Casual",
+                "attributes": "Specs",
+            }
+        )
+
+        df = pd.DataFrame(rows)
+        result = self.prep.process_rag_input(df)
+
+        # Should have 12 rows (the ones that passed)
+        self.assertEqual(len(result), 12)
+        # Check columns are renamed
+        self.assertIn("Id", result.columns)
+        self.assertIn("Name", result.columns)
+        self.assertIn("Description", result.columns)
+        self.assertIn("Brand", result.columns)
+        self.assertIn("Specifications", result.columns)
+
+        # Check filtered ones are not there
+        self.assertNotIn("filtered_c0", result["Id"].values)
+        self.assertNotIn("filtered_c1", result["Id"].values)
 
 
 if __name__ == "__main__":

@@ -67,7 +67,7 @@ variable "rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name" {
   type        = string
 }
 
-variable "rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name" { 
+variable "rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name" {
   default     = null
   description = "The Kubernetes service account name for the RL on TPU deployment."
   type        = string

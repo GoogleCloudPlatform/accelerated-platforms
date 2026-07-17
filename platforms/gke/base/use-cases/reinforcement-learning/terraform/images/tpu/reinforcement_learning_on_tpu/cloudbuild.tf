@@ -13,7 +13,7 @@
 # limitations under the License.
 
 locals {
-  image_destination = local.rl_tpu_reinforcement_learning_on_tpu_image_url 
+  image_destination = local.rl_tpu_reinforcement_learning_on_tpu_image_url
 }
 
 resource "terraform_data" "submit_docker_build" {

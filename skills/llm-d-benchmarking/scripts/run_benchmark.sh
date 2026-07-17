@@ -48,7 +48,7 @@ gcloud storage buckets describe "gs://${RESULTS_BUCKET}" &>/dev/null || gcloud s
 # Function to validate and propose optimal sizing configs
 validate_workload_config() {
   local f="$1"
-  [ ! -f "$f" ] && f=$(find . -path "./workspaces" -prune -o -name "$1" -print -quit 2>/dev/null)
+  [ ! -f "$f" ] && f=$(find . "${LLMDBENCH_BASE_DIR:-.}" -path "*/workspaces" -prune -o -name "$1*" -print -quit 2>/dev/null)
   [ ! -f "$f" ] && return 0
   set +e; python3 "${REPO_DIR}/skills/llm-d-workload-tuner/scripts/tune_workload.py" --perf-yaml "$f" --accelerator-type "$ACCELERATOR_TYPE" --spec "$SPEC" --model "$MODEL_NAME"; code=$?; set -e
   if [ $code -eq 2 ]; then
@@ -68,7 +68,11 @@ validate_workload_config() {
 
 # Pre-flight Checks
 [ -n "$CLUSTER_NAME" ] && [ -n "$ZONE" ] && { gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --format="value(managedPrometheusConfig.enabled)" 2>/dev/null | grep -q "true" && echo "Managed Prometheus is enabled." || echo "Warning: Managed Prometheus may not be enabled."; }
-validate_workload_config "$WORKLOAD"
+if [[ "${RUN_TUNER:-true}" == "true" ]]; then
+  validate_workload_config "$WORKLOAD"
+else
+  echo "RUN_TUNER is set to false. Skipping workload config validation."
+fi
 
 # Skill Mock Evaluation Mode fallback
 if [ -n "$MOCK_LOG_FILE" ]; then
@@ -86,7 +90,7 @@ fi
 # Configure Runtime Workspace
 WORKSPACE_DIR="workspaces/run-$(date +%Y%m%d-%H%M%S)"
 WORKLOAD_ARG="--workload $WORKLOAD"
-[ -n "$RESULTS_BUCKET" ] && WORKLOAD_ARG="$WORKLOAD_ARG --overrides storage.google_cloud_storage.bucket=$RESULTS_BUCKET"
+
 
 # Function to capture GPU DCGM metrics
 collect_dcgm() {

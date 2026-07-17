@@ -56,13 +56,14 @@ class TestDataCleaner(unittest.TestCase):
     @patch("src.datapreprocessing.datacleaner.spacy.load")
     def test_prep_product_desc(self, mock_spacy_load):
         """Test if product descriptions are cleaned correctly."""
+        cleaner = DataPreprocessor()
         mock_nlp = mock_spacy_load.return_value
         mock_nlp.return_value = [
             unittest.mock.Mock(lemma_="this", is_stop=True, is_alpha=True),
             unittest.mock.Mock(lemma_="be", is_stop=True, is_alpha=True),
             unittest.mock.Mock(lemma_="test", is_stop=False, is_alpha=True),
         ]
-        cleaned_df = self.cleaner.prep_product_desc(self.df.copy())
+        cleaned_df = cleaner.prep_product_desc(self.df.copy())
         self.assertEqual(cleaned_df["description"][0], "test")
 
     def test_parse_attributes(self):
@@ -77,11 +78,10 @@ class TestDataCleaner(unittest.TestCase):
         """Test if product images are downloaded and URIs are updated."""
 
         def download_image_side_effect(*args, **kwargs):
-            image_url = args  # Correctly access the first argument (url)
-            if "url1" in image_url or "url2" in image_url:
-                return True
-            else:
-                return False
+            if args and isinstance(args[0], str):
+                url = args[0]
+                return "url1" in url or "url2" in url
+            return False
 
         mock_download_image.side_effect = download_image_side_effect
 
@@ -98,7 +98,7 @@ class TestDataCleaner(unittest.TestCase):
         self.assertEqual(
             cleaned_df["image_uri"][1], f"gs://test_bucket/test_path/2_0.jpg"
         )
-        self.assertIsNone(cleaned_df["image_uri"][2])  # Check None when no image URL
+        self.assertTrue(pd.isna(cleaned_df["image_uri"][2]))  # Check NaN when no image URL
 
         # Check the calls to download_image
         self.assertEqual(

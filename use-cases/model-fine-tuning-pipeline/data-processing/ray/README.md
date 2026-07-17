@@ -179,8 +179,8 @@ In the Google Cloud console, go to the
   ```
   labels."k8s-pod/app"="data-processing"
   resource.type="k8s_container"
-  textPayload =~ "ray_worker_node_id.+Image.+not found$"
-  severity=ERROR
+  textPayload =~ "ray_worker_node_id.+Failed to (download|upload) image"
+  severity=WARNING
   ```
 
 You can narrow down the results by adding extra filters, such as using
@@ -205,8 +205,8 @@ log-based metrics.
 ```
 labels."k8s-pod/app"="data-processing"
 resource.type="k8s_container"
-textPayload =~ "ray_worker_node_id.+Image.+not found$"
-severity=ERROR
+textPayload =~ "ray_worker_node_id.+Failed to (download|upload) image"
+severity=WARNING
 ```
 
 The following is a definition for a metric such as `No_Image_found_Product`.
@@ -216,22 +216,22 @@ Notice both the GKE node and Ray worker node id are added as labels.
 filter: |-
   labels."k8s-pod/app"="data-processing"
   resource.type="k8s_container"
-  textPayload =~ "ray_worker_node_id.+Image.+not found$"
-  severity=ERROR
+  textPayload =~ "ray_worker_node_id.+Failed to (download|upload) image"
+  severity=WARNING
 labelExtractors:
   gke_node: EXTRACT(labels."compute.googleapis.com/resource_name")
-  ray_worker_node_id: REGEXP_EXTRACT(textPayload, "ray_worker_node_id:(.+) Image")
+  ray_worker_node_id: REGEXP_EXTRACT(textPayload, "ray_worker_node_id:([^ ]+)")
 metricDescriptor:
   labels:
     - key: gke_node
     - key: ray_worker_node_id
   metricKind: DELTA
-  name: projects/xxxxx/metricDescriptors/logging.googleapis.com/user/No_Image_Found_Product
-  type: logging.googleapis.com/user/No_Image_Found_Product
+  name: projects/xxxxx/metricDescriptors/logging.googleapis.com/user/Failed_Image_Download
+  type: logging.googleapis.com/user/Failed_Image_Download
   unit: "1"
   valueType: INT64
-name: No_Image_Found_Product
-resourceName: projects/xxxxx/metrics/No_Image_Found_Product
+name: Failed_Image_Download
+resourceName: projects/xxxxx/metrics/Failed_Image_Download
 ```
 
 Once the metrics are defined, the next time you run your workloads, you will be
@@ -271,8 +271,8 @@ WHERE
   SAFE.STRING(logs.labels["k8s-pod/app"]) = "data-processing"
   AND logs.resource.type= "k8s_container"
   AND logs.text_payload IS NOT NULL
-  AND REGEXP_CONTAINS(logs.text_payload, "ray_worker_node_id.+Image.+not found$")
-  AND logs.severity = "ERROR"
+  AND REGEXP_CONTAINS(logs.text_payload, "ray_worker_node_id.+Failed to (download|upload) image")
+  AND logs.severity = "WARNING"
 ORDER BY
   timestamp DESC,
   insert_id DESC

@@ -34,7 +34,7 @@ def handle_invalid_row(row):
 
 
 class SingleFilenameProvider(FilenameProvider):
-    """Custom filename generator to force a single, cleanly named file footprint."""
+    """Custom filename generator to force a single, cleanly named file footprint. This should only be used with datasets that have been repartitioned to 1."""
 
     def __init__(self, filename: str):
         self._filename = filename

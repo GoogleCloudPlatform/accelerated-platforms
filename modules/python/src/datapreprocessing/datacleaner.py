@@ -84,20 +84,38 @@ class DataPreprocessor:
         os.makedirs(download_dir, exist_ok=True)
         download_file = f"{download_dir}/{image_file_name}"
 
+        # 1. Attempt Download
         try:
             socket.setdefaulttimeout(5)
             urllib.request.urlretrieve(image_url, download_file)
-
-            bucket = self.storage_client.bucket(gcs_bucket)
-            blob = bucket.blob(destination_blob_name)
-            blob.upload_from_filename(download_file, retry=DEFAULT_RETRY)
-
-            os.remove(download_file)
-            return True
         except Exception as err:
+            self.logger.warning(
+                f"ray_worker_node_id:{ray_worker_node_id} Failed to download image {image_url}: {err}"
+            )
             if os.path.exists(download_file):
                 os.remove(download_file)
             return False
+
+        # 2. Attempt Upload
+        try:
+            bucket = self.storage_client.bucket(gcs_bucket)
+            blob = bucket.blob(destination_blob_name)
+            blob.upload_from_filename(download_file, retry=DEFAULT_RETRY)
+        except Exception as err:
+            self.logger.warning(
+                f"ray_worker_node_id:{ray_worker_node_id} Failed to upload image {destination_blob_name} to GCS: {err}"
+            )
+            if os.path.exists(download_file):
+                os.remove(download_file)
+            return False
+
+        # Cleanup on success
+        try:
+            os.remove(download_file)
+        except OSError as err:
+            self.logger.debug(f"Failed to remove temp file {download_file}: {err}")
+
+        return True
 
     def _process_single_row_image(
         self, row: dict, ray_worker_node_id: str, gcs_bucket: str, gcs_folder: str

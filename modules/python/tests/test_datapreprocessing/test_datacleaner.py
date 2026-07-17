@@ -44,7 +44,14 @@ class TestDataCleaner(unittest.TestCase):
                 ],
             }
         )
+        # Patch storage.Client to avoid needing GCloud credentials in tests
+        self.storage_patcher = patch("src.datapreprocessing.datacleaner.storage.Client")
+        self.mock_storage_client = self.storage_patcher.start()
+
         self.cleaner = DataPreprocessor()
+
+    def tearDown(self):
+        self.storage_patcher.stop()
 
     def test_extract_url(self):
         """Test if image URLs are extracted correctly from the image column."""
@@ -98,7 +105,9 @@ class TestDataCleaner(unittest.TestCase):
         self.assertEqual(
             cleaned_df["image_uri"][1], f"gs://test_bucket/test_path/2_0.jpg"
         )
-        self.assertTrue(pd.isna(cleaned_df["image_uri"][2]))  # Check NaN when no image URL
+        self.assertTrue(
+            pd.isna(cleaned_df["image_uri"][2])
+        )  # Check NaN when no image URL
 
         # Check the calls to download_image
         self.assertEqual(

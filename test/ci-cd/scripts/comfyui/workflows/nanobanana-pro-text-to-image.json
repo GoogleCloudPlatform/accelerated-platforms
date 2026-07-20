@@ -13,24 +13,25 @@
   },
   "3": {
     "inputs": {
+      "model": "GEMINI_3_PRO_IMAGE",
       "prompt": "A close-up of a single, ancient tree that is slowly transforming into pure energy. Its bark is cracking to reveal an intricate network of glowing, golden circuits, and its leaves are dissolving into swirling nebulae of light. The setting sun casts a warm, golden glow on the untouched parts of the tree, creating a stark contrast with the vibrant energy emanating from its core. Photorealistic, hyper-detailed, spiritual",
-      "person_generation": "ALLOW_ADULT",
       "aspect_ratio": "16:9",
-      "number_of_images": 1,
-      "negative_prompt": "",
-      "seed": 0,
-      "enhance_prompt": true,
-      "add_watermark": false,
-      "output_image_type": "PNG",
-      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "image_size": "1K",
+      "output_mime_type": "PNG",
+      "temperature": 0.7,
+      "top_p": 1,
+      "top_k": 32,
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "system_instruction": "",
       "gcp_project_id": "",
-      "gcp_region": ""
+      "gcp_region": "global"
     },
-    "class_type": "Imagen3TextToImageNode",
+    "class_type": "Gemini3ProImage",
     "_meta": {
-      "title": "Imagen3 Text To Image"
+      "title": "Gemini 3 Pro Image (🍌)"
     }
   }
 }
-
-

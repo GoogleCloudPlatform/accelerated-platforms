@@ -13,22 +13,25 @@
   },
   "5": {
     "inputs": {
+      "model": "GEMINI_31_FLASH_IMAGE",
       "prompt": "A hyperrealistic, macro shot of a bioluminescent forest where every leaf and branch glows with intricate, pulsating patterns. Raindrops suspended mid-air reflect miniature galaxies, and the ground is covered in iridescent, crystalline moss. The lighting is ethereal, creating deep shadows and vibrant highlights, with a soft, misty atmosphere",
-      "person_generation": "ALLOW_ADULT",
       "aspect_ratio": "16:9",
-      "number_of_images": 1,
-      "negative_prompt": "",
-      "seed": 3812661032,
-      "enhance_prompt": true,
-      "add_watermark": false,
-      "output_image_type": "PNG",
-      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "image_size": "1K",
+      "output_mime_type": "PNG",
+      "temperature": 0.7,
+      "top_p": 1,
+      "top_k": 32,
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "system_instruction": "",
       "gcp_project_id": "",
-      "gcp_region": ""
+      "gcp_region": "global"
     },
-    "class_type": "Imagen3TextToImageNode",
+    "class_type": "Gemini31FlashImage",
     "_meta": {
-      "title": "Imagen3 Text To Image"
+      "title": "Gemini 3.1 Flash Image (🍌)"
     }
   },
   "8": {
@@ -74,5 +77,3 @@
     }
   }
 }
-
-

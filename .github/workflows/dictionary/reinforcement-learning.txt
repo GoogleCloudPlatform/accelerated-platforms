@@ -1,3 +1,4 @@
+backpropagation
 epath
 etils
 grpo
@@ -10,6 +11,8 @@ mldiagnostics
 multiproc
 ndarray
 returncode
+rlaif
+rlhf
 sigabrt
 strftime
 tunix

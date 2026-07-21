@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "prompt": "Run the benchmark scenario with workload 'chatbot_synthetic.yaml' against endpoint 'http://vllm-eval:8000' in namespace 'default' for model 'google/gemma-4-31b-it'. Use GCS results bucket 'llm-d-benchmark'.",
+    "expected_output": "Runs the benchmark script with chatbot_synthetic.yaml, validates endpoint, executes the dry run and real benchmark run, generates report, collects DCGM metrics, and copies reports to GCS.",
+    "assertions": [
+      "The run_benchmark.sh script is invoked with chatbot_synthetic.yaml and http://vllm-eval:8000",
+      "The benchmark endpoint validation curl command was executed",
+      "A dry run command was executed",
+      "gcloud config get-value account was executed",
+      "The output report report_v0.2.json is generated",
+      "DCGM metrics are collected into dcgm_metrics.json",
+      "The report report_v0.2.json is uploaded using gcloud storage cp to gs://llm-d-benchmark/",
+      "vllm_config.json is uploaded using gcloud storage cp to gs://llm-d-benchmark/",
+      "dcgm_metrics.json is uploaded using gcloud storage cp to gs://llm-d-benchmark/",
+      "output.csv is uploaded using gcloud storage cp to gs://llm-d-benchmark/"
+    ]
+  },
+  {
+    "id": 2,
+    "prompt": "Run the benchmark scenario with workload 'sanity_random.yaml' against http://vllm-eval:8000. Enable the Managed Prometheus check by setting the cluster name to 'eval-cluster' and zone to 'us-east1-b'.",
+    "expected_output": "Benchmark executes and verifies Managed Prometheus configuration on GKE.",
+    "assertions": [
+      "The script run_benchmark.sh is called with CLUSTER_NAME='eval-cluster' and ZONE='us-east1-b' environment variables set",
+      "A gcloud container clusters describe command was run to check managedPrometheusConfig",
+      "The benchmark execution output confirms Managed Prometheus is enabled"
+    ]
+  }
+]

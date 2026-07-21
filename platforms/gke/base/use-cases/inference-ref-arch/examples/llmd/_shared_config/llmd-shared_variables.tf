@@ -26,7 +26,6 @@ variable "llmd_accelerator_type" {
   validation {
     condition = contains(
       [
-        "l4",
         "h100",
         "h200",
         "rtx-pro-6000",
@@ -47,13 +46,7 @@ variable "llmd_model_id" {
   validation {
     condition = contains(
       [
-        "google/gemma-3-1b-it",
-        "google/gemma-3-4b-it",
-        "google/gemma-3-27b-it",
         "google/gemma-4-31b-it",
-        "openai/gpt-oss-20b",
-        "meta-llama/llama-4-scout-17b-16e-instruct",
-        "meta-llama/llama-3.3-70b-instruct",
         "qwen/qwen3-32b",
       ],
       var.llmd_model_id

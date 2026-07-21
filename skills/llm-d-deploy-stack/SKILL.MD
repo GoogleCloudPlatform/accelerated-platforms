@@ -145,7 +145,7 @@ Once the user confirms the token is configured, proceed with the deployment:
 3.  **Clean up the download job**:
     Once the download is complete, delete the job to free up GKE resources:
     ```bash
-    kubectl delete job -n ${huggingface_hub_downloader_kubernetes_namespace_name} hf-model-to-gcs
+    kubectl delete job -n ${huggingface_hub_downloader_kubernetes_namespace_name} ${HF_MODEL_ID_HASH}-hf-model-to-gcs
     ```
 4.  **Deploy the Model Server**:
     - Configure the model server (run the script for GPU or TPU as indicated by the chosen accelerator):

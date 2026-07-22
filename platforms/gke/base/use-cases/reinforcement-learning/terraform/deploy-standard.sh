@@ -65,7 +65,12 @@ source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_enviro
 
 declare -a use_case_terraservices=(
   "initialize"
+<<<<<<< Updated upstream
   "rl_on_tpu"
+=======
+  "rl_tpu_maxtext_grpo_single_host"
+  "rl_tpu_maxtext_grpo_multi_host"
+>>>>>>> Stashed changes
 )
 for terraservice in "${use_case_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&

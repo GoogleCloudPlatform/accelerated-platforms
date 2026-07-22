@@ -1,0 +1,36 @@
+apiVersion: pathways-job.pathways.domain/v1
+kind: PathwaysJob
+metadata:
+  name: reinforcement-learning-maxtext-grpo
+  namespace: replaced-by-kustomize
+spec:
+  maxRestarts: 0
+  pathwaysDir: replaced-by-kustomize
+  controller:
+    template:
+      spec:
+        restartPolicy: Never
+        containers:
+          - name: grpo-trainer
+            image: replaced-by-kustomize
+            env:
+              - name: JAX_PLATFORMS
+                value: "proxy"
+              - name: JAX_BACKEND_TARGET
+                value: "grpc://127.0.0.1:29000"
+              - name: ENABLE_PATHWAYS_PERSISTENCE
+                value: "1"
+              - name: MLFLOW_TRACKING_URI
+                value: "http://mlflow-service:5000"
+              - name: HF_TOKEN
+                valueFrom:
+                  secretKeyRef:
+                    name: hf-secret
+                    key: token
+              - name: GCS_OUTPUT_PATH
+                value: replaced-by-kustomize
+        serviceAccountName: replaced-by-kustomize
+  workers:
+    - type: replaced-by-kustomize
+      topology: replaced-by-kustomize
+      numSlices: 1

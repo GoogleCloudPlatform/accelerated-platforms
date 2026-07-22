@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -12,14 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "rl_dataset_bucket_name" {
-  value = local.rl_dataset_bucket_name
-}
+images:
+  - ${_DESTINATION}
 
-output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
-  value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
-}
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
 
-output "rl_tpu_maxtext_grpo_multi_host_image_url" {
-  value = local.rl_tpu_maxtext_grpo_multi_host_image_url
-}
+steps:
+  - args:
+      - build
+      - --build-context=primary=container-images/tpu/rl-tpu-maxtext-grpo-multi-host/src
+      - --file=container-images/tpu/rl-tpu-maxtext-grpo-multi-host/Dockerfile
+      - --tag=${_DESTINATION}
+      - .
+    id: "Build Reinforcement Learning on TPU image"
+    name: "docker.io/docker:28.3.3-dind-alpine3.22"
+    waitFor: ["-"]

@@ -1,11 +1,13 @@
 # Multi-host reinforcement learning with TPUs on Google Kubernetes Engine (GKE) using Pathways and JobSet
 
-This example implements distributed multi-host reinforcement learning using Group Relative Policy
-Optimization (GRPO) and MaxText on TPUs on Google Kubernetes Engine (GKE).
+This example implements distributed multi-host reinforcement learning using
+Group Relative Policy Optimization (GRPO) and MaxText on TPUs on Google
+Kubernetes Engine (GKE).
 
 It integrates **MaxText** (for distributed FSDP model training), **vLLM** (for
-high-throughput rollout generation), and **Tunix** (the RL bridge) on a multi-host
-TPU v5e-16 slice (`v5e-4x4`) orchestrated via **Pathways** and **JobSet** to fine-tune Llama-3.1-8B-Instruct.
+high-throughput rollout generation), and **Tunix** (the RL bridge) on a
+multi-host TPU v5e-16 slice (`v5e-4x4`) orchestrated via **Pathways** and
+**JobSet** to fine-tune Llama-3.1-8B-Instruct.
 
 This example is built on top of the
 [GKE Reinforcement Learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md).
@@ -27,9 +29,10 @@ This example is built on top of the
   has been added to Secret Manager.
 
 - Hardware & Storage Prerequisites:
-  - **Hardware**: This configuration is tuned for a multi-host **TPU v5e-16** (`v5e-4x4`)
-    slice topology.
-  - **Storage**: GCS bucket (configured via the dataset bucket name) used as a synchronization directory (`pathwaysDir`) for inter-node communication.
+  - **Hardware**: This configuration is tuned for a multi-host **TPU v5e-16**
+    (`v5e-4x4`) slice topology.
+  - **Storage**: GCS bucket (configured via the dataset bucket name) used as a
+    synchronization directory (`pathwaysDir`) for inter-node communication.
 
 ## Create and configure the Google Cloud resources
 
@@ -123,8 +126,16 @@ the dashboard locally:
 
 ## Pathways & JobSet Architecture
 
-Because this pipeline spans across multiple hosts, it leverages the **PathwaysJob** Custom Resource:
+Because this pipeline spans across multiple hosts, it leverages the
+**PathwaysJob** Custom Resource:
 
-1. **Pathways Orchestration**: The `PathwaysJob` operator creates a highly optimized Pathways cluster consisting of a resource manager (server), proxy server, and worker node pools.
-2. **Underlying JobSet API**: Lifecycle synchronization and reliable process startup across distinct TPU hosts are managed under the hood by GKE's JobSet controller.
-3. **Inter-Host GCS Synced Logging**: Multi-host coordination relies on a shared Google Cloud Storage subdirectory specified in `spec.pathwaysDir`. The workload's service account is granted `roles/storage.objectAdmin` on the dataset bucket to enable transparent file-based handshakes.
+1. **Pathways Orchestration**: The `PathwaysJob` operator creates a highly
+   optimized Pathways cluster consisting of a resource manager (server), proxy
+   server, and worker node pools.
+2. **Underlying JobSet API**: Lifecycle synchronization and reliable process
+   startup across distinct TPU hosts are managed under the hood by GKE's JobSet
+   controller.
+3. **Inter-Host GCS Synced Logging**: Multi-host coordination relies on a shared
+   Google Cloud Storage subdirectory specified in `spec.pathwaysDir`. The
+   workload's service account is granted `roles/storage.objectAdmin` on the
+   dataset bucket to enable transparent file-based handshakes.

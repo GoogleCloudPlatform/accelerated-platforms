@@ -31,26 +31,28 @@
   },
   "4": {
     "inputs": {
-      "model": "IMAGEN_4",
+      "model": "GEMINI_3_PRO_IMAGE",
       "prompt": [
         "7",
         0
       ],
-      "person_generation": "allow_adult",
       "aspect_ratio": "16:9",
-      "number_of_images": 1,
-      "negative_prompt": "",
-      "seed": 797588173,
-      "enhance_prompt": true,
-      "add_watermark": false,
-      "output_image_type": "PNG",
-      "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
+      "image_size": "1K",
+      "output_mime_type": "PNG",
+      "temperature": 0.7,
+      "top_p": 1,
+      "top_k": 32,
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "system_instruction": "",
       "gcp_project_id": "",
-      "gcp_region": ""
+      "gcp_region": "global"
     },
-    "class_type": "Imagen4TextToImageNode",
+    "class_type": "Gemini3ProImage",
     "_meta": {
-      "title": "Imagen4 Text To Image"
+      "title": "Gemini 3 Pro Image (🍌)"
     }
   },
   "6": {
@@ -78,5 +80,3 @@
     }
   }
 }
-
-

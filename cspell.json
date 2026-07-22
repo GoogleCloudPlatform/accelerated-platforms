@@ -59,6 +59,10 @@
       "path": ".github/workflows/dictionary/llmd.txt"
     },
     {
+      "name": "llmdskills",
+      "path": ".github/workflows/dictionary/llmdskills.txt"
+    },
+    {
       "name": "models",
       "path": ".github/workflows/dictionary/models.txt"
     },
@@ -118,6 +122,7 @@
     "kueue",
     "linux",
     "llmd",
+    "llmdskills",
     "nvidia",
     "python",
     "ray",
@@ -130,6 +135,8 @@
     "vllm"
   ],
   "ignorePaths": [
+    ".github/workflows/dictionary/**",
+    "**/.gitignore",
     "**/go.mod",
     "**/go.sum",
     "node_modules",

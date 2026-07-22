@@ -46,7 +46,7 @@ variable "llmd_model_id" {
   validation {
     condition = contains(
       [
-        "google/gemma-4-32b-it",
+        "google/gemma-4-31b-it",
         "qwen/qwen3-32b",
       ],
       var.llmd_model_id

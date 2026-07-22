@@ -209,6 +209,9 @@ example use cases are:
     - [Online inference with TPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/README.md)
       - [Online inference using MaxDiffusion with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu//max-diffusion-with-hf-model.md)
       - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu//vllm-with-hf-model.md)
+- [Reinforcement learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md)
+  - [Reinforcement learning reference implementation](/platforms/gke/base/use-cases/reinforcement-learning/terraform/README.md)
+    - [Single-host reinforcement learning with TPUs on Google Kubernetes Engine (GKE) using GRPO algorithm](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md)
 
 ## Additional Reading
 

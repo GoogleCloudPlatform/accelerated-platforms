@@ -1,0 +1,5 @@
+{
+  "_comment": "Format: [Parameters (B), Layers, KV Heads, Head Dimension, Suffix]",
+  "google/gemma-4-31b-it": [32.0, 48, 8, 256, "gemma-4-31b-it"],
+  "qwen/qwen3-32b": [32.5, 64, 8, 128, "qwen3-32b"]
+}

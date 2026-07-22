@@ -116,7 +116,7 @@ precedence over earlier ones:
 
   Valid values for `MODEL_ID` are:
 
-  - `google/gemma-4-32b-it`
+  - `google/gemma-4-31b-it`
   - `qwen/qwen3-32b` **(default)**
 
 - In order to choose an accelerator and for the model you want to run, refer to
@@ -124,7 +124,7 @@ precedence over earlier ones:
 
   |     Model      | h100 | h200 | RTX Pro 6000 |
   | :------------: | :--: | :--: | :----------: |
-  | gemma-4-32b-it |  ✅  |  ✅  |      ✅      |
+  | gemma-4-31b-it |  ✅  |  ✅  |      ✅      |
   |   qwen3-32b    |  ✅  |  ✅  |      ✅      |
 
 - Optional : Run the following step if you want to run the model on an

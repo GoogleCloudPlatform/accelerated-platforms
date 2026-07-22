@@ -87,6 +87,7 @@ if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
     "huggingface/hub_downloader"
     "huggingface/initialize"
     "cloudbuild/initialize"
+    "workloads/storage_class"
     "workloads/cluster_credentials"
     "container_cluster"
     "networking"

@@ -12,18 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "rl_dataset_bucket_name" {
-  value = local.rl_dataset_bucket_name
-}
+terraform {
+  required_version = ">= 1.5.7"
 
-output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
-  value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
-}
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "7.6.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.3"
+    }
+  }
 
-output "sft_tpu_maxtext_single_host_image_url" {
-  value = local.sft_tpu_maxtext_single_host_image_url
-}
-
-output "sft_tpu_maxtext_single_host_dataset_bucket_name" {
-  value = local.sft_tpu_maxtext_single_host_dataset_bucket_name
+  provider_meta "google" {
+    module_name = "cloud-solutions/sft_on_tpu_deploy-v1"
+  }
 }

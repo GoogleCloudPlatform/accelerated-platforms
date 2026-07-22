@@ -12,18 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "rl_dataset_bucket_name" {
-  value = local.rl_dataset_bucket_name
-}
-
-output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
-  value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
-}
-
-output "sft_tpu_maxtext_single_host_image_url" {
-  value = local.sft_tpu_maxtext_single_host_image_url
-}
-
-output "sft_tpu_maxtext_single_host_dataset_bucket_name" {
-  value = local.sft_tpu_maxtext_single_host_dataset_bucket_name
+locals {
+  acp_root = "${path.module}/../../../../../../../../.."
 }

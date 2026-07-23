@@ -32,7 +32,7 @@ replacements:
         select:
           kind: Job
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      fieldPath: data.TRAINING_KUBERNETES_NAMESPACE
       kind: ConfigMap
       name: runtime
     targets:
@@ -41,7 +41,7 @@ replacements:
         select:
           kind: Job
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      fieldPath: data.TRAINING_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
       name: runtime
     targets:

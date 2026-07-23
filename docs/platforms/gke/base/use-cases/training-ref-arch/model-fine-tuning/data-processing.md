@@ -205,10 +205,10 @@ Observability console or the GKE Observability page.
 For more information about infrastructure and application metrics, see
 [View observability metrics](https://cloud.google.com/kubernetes-engine/docs/how-to/view-observability-metrics).
 
-Specifically for the data processing use case described in this example,
-you can perform observability using both the **Ray Dashboard** (for
-real-time cluster and job metrics) and **Google Cloud Logging** (for log
-searching and SQL analytics).
+Specifically for the data processing use case described in this example, you can
+perform observability using both the **Ray Dashboard** (for real-time cluster
+and job metrics) and **Google Cloud Logging** (for log searching and SQL
+analytics).
 
 ### Ray Dashboard
 
@@ -222,7 +222,7 @@ actor pools, and Ray Data streaming execution.
 Run the following command to print the Ray Dashboard endpoint URL:
 
 ```shell
-echo -e "\n${mft_kubernetes_namespace} Ray dashboard: ${mft_ray_dashboard_namespace_endpoint}\n"
+echo -e "\n${mft_kubernetes_namespace} Ray dashboard: ${mft_endpoint_ray_dashboard_url}\n"
 ```
 
 Alternatively, you can port-forward the service to your local machine:
@@ -244,9 +244,7 @@ kubectl --namespace ${mft_kubernetes_namespace} port-forward svc/ray-cluster-kub
 - **Cluster Tab**: View real-time CPU, RAM, and Object Store Memory utilization
   across Head and Worker nodes.
 
-### Cloud Logging
-
-#### Log query sample
+### Log query sample
 
 In the Google Cloud console, go to the
 [Logs Explorer](https://console.cloud.google.com/logs) page to run your queries.

@@ -1,13 +1,18 @@
 # Single-host Supervised Fine-Tuning (SFT) with TPUs on Google Kubernetes Engine (GKE) using MaxText
 
-This example implements Supervised Fine-Tuning (SFT) using MaxText and Tunix on Cloud TPUs on Google Kubernetes Engine (GKE).
+This example implements Supervised Fine-Tuning (SFT) using MaxText and Tunix on
+Cloud TPUs on Google Kubernetes Engine (GKE).
 
-It leverages **MaxText**'s scalable FSDP training loops and **Tunix** post-training libraries on single-host TPU slice topologies (`v5e-2x4`, `v6e-2x4`, `v6e-4x4`) to fine-tune supported models, including:
+It leverages **MaxText**'s scalable FSDP training loops and **Tunix** post-
+training libraries on single-host TPU slice topologies (`v5e-2x4`, `v6e-2x4`,
+`v6e-4x4`) to fine-tune supported models, including:
 - **Gemma 3 4B** (`gemma3-4b` / `google/gemma-3-4b-it`) — Fits single-host `v6e-2x4` (8 chips) & `v5e-2x4` (8 chips).
 - **Llama 3.1 8B** (`llama3.1-8b` / `meta-llama/Llama-3.1-8B-Instruct`) — Fits single-host `v6e-2x4` (8 chips) & `v5e-2x4` (8 chips).
 - **Gemma 4 31B** (`gemma4-31b` / `google/gemma-4-31b-it`) — Dense 31B model (requires `v6e-4x4` 16-chip slice for full-parameter SFT due to 400GB+ HBM optimizer memory requirement, or `v6e-2x4` using LoRA/PEFT).
 
-This use-case is built on top of the [GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md).
+This use-case is built on top of the [GKE Training Reference
+Architecture](/platforms/gke/base/use-cases/training-ref-
+arch/terraform/README.md).
 
 ## Topology & Memory Sizing Guidelines
 
@@ -32,15 +37,21 @@ This use-case is built on top of the [GKE Training Reference Architecture](/plat
 - The [GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md) is deployed and configured.
 
 - Get access to the model on Hugging Face:
-  - **Gemma 3 4B Instruction-Tuned**: [**google/gemma-3-4b-it**](https://huggingface.co/google/gemma-3-4b-it)
-  - **Llama 3.1 8B Instruction-Tuned**: [**meta-llama/Llama-3.1-8B-Instruct**](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct)
-  - **Gemma 4 31B Instruction-Tuned**: [**google/gemma-4-31b-it**](https://huggingface.co/google/gemma-4-31b-it)
+  - **Gemma 3 4B Instruction-Tuned**:
+[**google/gemma-3-4b-it**](https://huggingface.co/google/gemma-3-4b-it)
+  - **Llama 3.1 8B Instruction-Tuned**: [**meta-
+llama/Llama-3.1-8B-Instruct**](https://huggingface.co/meta-
+llama/Llama-3.1-8B-Instruct)
+  - **Gemma 4 31B Instruction-Tuned**:
+[**google/gemma-4-31b-it**](https://huggingface.co/google/gemma-4-31b-it)
 
 - Ensure your [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md) has been added to Secret Manager.
 
 - Hardware & Storage Prerequisites:
-  - **Hardware**: Configured for **TPU v5e-8** (`v5e-2x4`), **TPU v6e-8** (`v6e-2x4`), or **TPU v6e-16** (`v6e-4x4`) slice topology.
-  - **Storage**: GCS bucket configured for storing Hugging Face converted checkpoints and SFT checkpoint weights.
+  - **Hardware**: Configured for **TPU v5e-8** (`v5e-2x4`), **TPU v6e-8**
+(`v6e-2x4`), or **TPU v6e-16** (`v6e-4x4`) slice topology.
+  - **Storage**: GCS bucket configured for storing Hugging Face converted
+checkpoints and SFT checkpoint weights.
 
 ## Create and configure the Google Cloud resources
 
@@ -48,7 +59,8 @@ This use-case is built on top of the [GKE Training Reference Architecture](/plat
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/sft-tpu-maxtext-single-host && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-
+arch/terraform/sft-tpu-maxtext-single-host && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -61,14 +73,16 @@ This use-case is built on top of the [GKE Training Reference Architecture](/plat
 - Source the environment configuration:
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-
+arch/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Build the SFT trainer container image using Google Cloud Build:
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/images/tpu/sft-tpu-maxtext-single-host && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-
+arch/terraform/images/tpu/sft-tpu-maxtext-single-host && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -83,13 +97,15 @@ This use-case is built on top of the [GKE Training Reference Architecture](/plat
 - Source the environment configuration:
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-
+arch/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Configure the SFT deployment manifests:
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/configure_job.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-
+manifests/sft-tpu-maxtext-single-host/configure_job.sh"
   ```
 
 - Deploy the SFT workload for your selected model and accelerator topology:
@@ -97,50 +113,68 @@ This use-case is built on top of the [GKE Training Reference Architecture](/plat
   - **Gemma 3 4B on TPU v6e (2x4)**:
 
     ```shell
-    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-2x4-gemma-3-4b-instruct"
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-
+cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-
+host/v6e-2x4-gemma-3-4b-instruct"
     ```
 
   - **Gemma 4 31B on TPU v6e (4x4 16-chip slice)**:
 
     ```shell
-    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-4x4-gemma-4-31b-instruct"
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-
+cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-
+host/v6e-4x4-gemma-4-31b-instruct"
     ```
 
   - **Llama 3.1 8B on TPU v6e (2x4)**:
 
     ```shell
-    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-2x4-llama-3-1-8b-instruct"
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-
+cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-
+host/v6e-2x4-llama-3-1-8b-instruct"
     ```
 
   - **Llama 3.1 8B on TPU v5e (2x4)**:
 
     ```shell
-    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v5e-2x4-llama-3-1-8b-instruct"
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-
+cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-
+host/v5e-2x4-llama-3-1-8b-instruct"
     ```
 
 - Watch the SFT training job until it is complete:
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name} get job -l app=sft-trainer | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  "kubectl --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name}
+get job -l app=sft-trainer | GREP_COLORS='mt=01;92' egrep --color=always -e '^'
+-e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name} logs -l app=sft-trainer --all-containers --tail 10"
+  kubectl --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name}
+logs -l app=sft-trainer --all-containers --tail 10"
   ```
 
-  When the job is complete, you will see `Complete 1/1`. You can press `CTRL`+`c` to exit the watch.
+  When the job is complete, you will see `Complete 1/1`. You can press
+`CTRL`+`c` to exit the watch.
 
 ## Viewing Metrics (MLflow & TensorBoard)
 
-MaxText logs step metrics directly during execution. The `train.py` script automatically intercepts metrics using monkey patching of JAX metric writers (`clu.metric_writers.MultiWriter.write_scalars`) and pipes real-time metrics to **MLflow**.
+MaxText logs step metrics directly during execution. The `train.py` script
+automatically intercepts metrics using monkey patching of JAX metric writers
+(`clu.metric_writers.MultiWriter.write_scalars`) and pipes real-time metrics to
+**MLflow**.
 
 ### Accessing the MLflow UI
 
-Because MLflow runs inside the cluster, you can port-forward the service to view the dashboard locally:
+Because MLflow runs inside the cluster, you can port-forward the service to view
+the dashboard locally:
 
 1. **Port-forward the MLflow Service:**
 
    ```shell
-   kubectl port-forward --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name} svc/mlflow-service 5000:5000
+   kubectl port-forward
+--namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name} svc/mlflow-
+service 5000:5000
    ```
 
 2. **Open your Browser:** Navigate to `http://localhost:5000`
@@ -152,7 +186,8 @@ Because MLflow runs inside the cluster, you can port-forward the service to view
 
 ## Advanced: Standalone Step-by-Step Job Execution
 
-If you prefer deploying individual Kubernetes batch Jobs for each stage (Conversion -> Training -> Export), follow these steps:
+If you prefer deploying individual Kubernetes batch Jobs for each stage
+(Conversion -> Training -> Export), follow these steps:
 
 ### 1. Convert Hugging Face Checkpoint to MaxText Format
 

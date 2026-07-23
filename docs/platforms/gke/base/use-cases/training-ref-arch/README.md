@@ -1,6 +1,6 @@
 # GKE Training reference architecture
 
-> [!IMPORTANT]  
+> [!IMPORTANT]
 > 🚀 Dynamic Landscape 🚀: The field of AI training is experiencing continuous,
 > rapid evolution. This document is regularly updated to reflect the latest
 > products, features, and architectural patterns, ensuring it remains current
@@ -22,7 +22,8 @@ on setting up the infrastructure described in this document.
 
 A practical guide to setting up the infrastructure as described can be found in
 the
-[Training reference implementation](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md)
+[Training reference implementation](/platforms/gke/base/use-cases/training-ref-
+arch/terraform/README.md)
 
 This reference architecture is designed to support various training patterns.
 Some example patterns provided are:

@@ -69,7 +69,10 @@ OUTPUT_DIRECTORY = YOUR_GCS_BUCKET
 LOAD_PATH = f"{MODEL_CHECKPOINT_PATH}/0/items"
 
 SCAN_LAYERS = os.environ.get("SCAN_LAYERS", "true")
-USE_MULTIMODAL = os.environ.get("USE_MULTIMODAL", "true" if "gemma" in MODEL_NAME.lower() else "false")
+USE_MULTIMODAL = os.environ.get(
+    "USE_MULTIMODAL", "true" if "gemma" in MODEL_NAME.lower() else "false"
+)
+
 
 def path_exists(path: str) -> bool:
     if path.startswith("gs://"):
@@ -78,6 +81,7 @@ def path_exists(path: str) -> bool:
         prefix = parts[1] if len(parts) > 1 else ""
         try:
             from google.cloud import storage
+
             client = storage.Client()
             bucket = client.bucket(bucket_name)
             blobs = list(bucket.list_blobs(prefix=prefix, max_results=1))
@@ -146,8 +150,24 @@ def patched_write_texts(self, step: int, texts: dict):
     original_write_texts(self, step, texts)
     try:
         # Dynamically find keys like instruction or completion
-        prompt_key = next((k for k in texts.keys() if "prompt" in k.lower() or "input" in k.lower() or "instruction" in k.lower()), None)
-        comp_key = next((k for k in texts.keys() if "completion" in k.lower() or "output" in k.lower()), None)
+        prompt_key = next(
+            (
+                k
+                for k in texts.keys()
+                if "prompt" in k.lower()
+                or "input" in k.lower()
+                or "instruction" in k.lower()
+            ),
+            None,
+        )
+        comp_key = next(
+            (
+                k
+                for k in texts.keys()
+                if "completion" in k.lower() or "output" in k.lower()
+            ),
+            None,
+        )
 
         if prompt_key and comp_key:
             phase = "TRAINING"

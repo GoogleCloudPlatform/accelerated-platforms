@@ -40,10 +40,11 @@ os.environ.update(
 from maxtext.utils.globals import MAXTEXT_PKG_DIR
 
 HF_TOKEN = os.environ.get("HF_TOKEN")
-login(token=HF_TOKEN)
+if HF_TOKEN:
+    login(token=HF_TOKEN)
 
-MODEL_NAME = "llama3.1-8b"
-TOKENIZER_PATH = "meta-llama/Llama-3.1-8B-Instruct"
+MODEL_NAME = os.environ.get("MODEL_NAME", "gemma3-4b")
+TOKENIZER_PATH = os.environ.get("TOKENIZER_PATH", "google/gemma-3-4b-it")
 
 # Safely grab the native bucket path from Kubernetes, fallback to local if testing
 YOUR_GCS_BUCKET = os.environ.get(
@@ -55,11 +56,10 @@ base_name = os.environ.get(
     "RUN_NAME", datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
 )
 
-# Unconditionally force "v5e" onto the front of it
-RUN_NAME = f"v5e-{base_name}"
+RUN_NAME = f"sft-{base_name}"
 
 # Send the massive converted model and checkpoints directly to the cloud bucket
-MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint"
+MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/{MODEL_NAME}_checkpoint"
 
 # MaxText uses `base_output_directory` as the root.
 # It will automatically append `RUN_NAME/checkpoints/` to it.
@@ -68,9 +68,29 @@ OUTPUT_DIRECTORY = YOUR_GCS_BUCKET
 # POINT EXACTLY TO /0/items AS PER THE DEMO NOTEBOOK
 LOAD_PATH = f"{MODEL_CHECKPOINT_PATH}/0/items"
 
+SCAN_LAYERS = os.environ.get("SCAN_LAYERS", "true")
+USE_MULTIMODAL = os.environ.get("USE_MULTIMODAL", "true" if "gemma" in MODEL_NAME.lower() else "false")
+
+def path_exists(path: str) -> bool:
+    if path.startswith("gs://"):
+        parts = path[5:].split("/", 1)
+        bucket_name = parts[0]
+        prefix = parts[1] if len(parts) > 1 else ""
+        try:
+            from google.cloud import storage
+            client = storage.Client()
+            bucket = client.bucket(bucket_name)
+            blobs = list(bucket.list_blobs(prefix=prefix, max_results=1))
+            return len(blobs) > 0
+        except Exception as e:
+            print(f"Warning checking GCS path {path}: {e}")
+            return False
+    return os.path.exists(path)
+
+
 # --- 3. CONVERSION (Runs only if needed) ---
-if not os.path.exists(LOAD_PATH):
-    print("🚀 Starting local conversion...")
+if not path_exists(LOAD_PATH):
+    print("Starting local conversion...")
 
     # Use subprocess for the conversion
     conversion_cmd = (
@@ -79,24 +99,24 @@ if not os.path.exists(LOAD_PATH):
         f"model_name={MODEL_NAME} "
         f"base_output_directory={MODEL_CHECKPOINT_PATH} "
         f"hf_access_token={HF_TOKEN} "
-        f"use_multimodal=false scan_layers=true skip_jax_distributed_system=True"
+        f"use_multimodal={USE_MULTIMODAL} scan_layers={SCAN_LAYERS} skip_jax_distributed_system=True"
     )
 
     result = subprocess.run(conversion_cmd, shell=True, executable="/bin/bash")
     if result.returncode != 0:
         raise RuntimeError("Conversion failed!")
 else:
-    print(f"✅ Checkpoint already exists at {LOAD_PATH}. Skipping conversion!")
+    print(f"Checkpoint already exists at {LOAD_PATH}. Skipping conversion.")
 
 # --- 4. MLFLOW SETUP & LOGGING INTERCEPTOR ---
 # Initialize MLflow strictly on the main thread
 mlflow.set_tracking_uri(
-    os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow-service-v5e:5000")
+    os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow-service:5000")
 )
 mlflow.set_experiment("sft-tpu-maxtext-single-host")
 
-print("🔌 Connecting to MLflow database...")
-active_run = mlflow.start_run(run_name=f"Llama3.1-8B-SFT-{RUN_NAME}")
+print("Connecting to MLflow database...")
+active_run = mlflow.start_run(run_name=f"{MODEL_NAME}-SFT-{RUN_NAME}")
 MLFLOW_RUN_ID = active_run.info.run_id
 mlflow_client = MlflowClient()
 
@@ -130,7 +150,7 @@ def patched_write_texts(self, step: int, texts: dict):
         comp_key = next((k for k in texts.keys() if "completion" in k.lower() or "output" in k.lower()), None)
 
         if prompt_key and comp_key:
-            phase = "🧠 TRAINING"
+            phase = "TRAINING"
             print(f"\n" + "=" * 20 + f" {phase} STEP {step} SAMPLE " + "=" * 20)
 
             prompt = texts[prompt_key][0]
@@ -145,8 +165,8 @@ def patched_write_texts(self, step: int, texts: dict):
                     completion.item() if completion.size == 1 else str(completion)
                 )
 
-            print(f"❓ [{prompt_key.upper()}]:\n{prompt}\n")
-            print(f"🤖 [{comp_key.upper()}]:\n{completion}\n")
+            print(f"[{prompt_key.upper()}]:\n{prompt}\n")
+            print(f"[{comp_key.upper()}]:\n{completion}\n")
             print("=" * 70 + "\n", flush=True)
     except Exception:
         pass
@@ -155,6 +175,13 @@ def patched_write_texts(self, step: int, texts: dict):
 clu.metric_writers.MultiWriter.write_texts = patched_write_texts
 
 # --- 5. SFT CONFIGURATION & RUN ---
+DATASET_NAME = os.environ.get("DATASET_NAME", "HuggingFaceH4/ultrachat_200k")
+TRAIN_SPLIT = os.environ.get("TRAIN_SPLIT", "train_sft")
+TRAIN_DATA_COLUMNS = os.environ.get("TRAIN_DATA_COLUMNS", "['messages']")
+STEPS = os.environ.get("STEPS", "1000")
+PER_DEVICE_BATCH_SIZE = os.environ.get("PER_DEVICE_BATCH_SIZE", "1")
+LEARNING_RATE = os.environ.get("LEARNING_RATE", "5e-7")
+
 config_argv = [
     sys.argv[0],  # module name placeholder
     f"model_name={MODEL_NAME}",
@@ -164,21 +191,21 @@ config_argv = [
     f"base_output_directory={OUTPUT_DIRECTORY}",
     f"hf_access_token={HF_TOKEN}",
     "use_pathways=False",
-    "per_device_batch_size=2",
-    "steps=150",
-    "hf_path=tatsu-lab/alpaca",
-    "train_split=train",
-    "train_data_columns=[instruction,input,output]",
-    "learning_rate=5e-7",
+    f"per_device_batch_size={PER_DEVICE_BATCH_SIZE}",
+    f"steps={STEPS}",
+    f"hf_path={DATASET_NAME}",
+    f"train_split={TRAIN_SPLIT}",
+    f"train_data_columns={TRAIN_DATA_COLUMNS}",
+    f"learning_rate={LEARNING_RATE}",
     "max_target_length=1024",
-    "checkpoint_period=25",
+    "checkpoint_period=100",
     "save_checkpoint_on_completion=True",
 ]
 
 # Override system argv so the imported trainer parses these configuration flags
 sys.argv = config_argv
 
-print(f"🔥 Training starting on {len(jax.devices())} TPUs...")
+print(f"Training starting on {len(jax.devices())} TPUs...")
 try:
     # Run the maxtext.trainers.post_train.sft.train_sft module using runpy
     runpy.run_module("maxtext.trainers.post_train.sft.train_sft", run_name="__main__")
@@ -186,4 +213,4 @@ finally:
     # Ensure the MLflow run is safely closed even if an error occurs
     mlflow.end_run()
 
-print("🏁 Training successfully completed.")
+print("Training successfully completed.")

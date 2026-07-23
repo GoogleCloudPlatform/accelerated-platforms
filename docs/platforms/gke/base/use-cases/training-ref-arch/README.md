@@ -28,6 +28,7 @@ This reference architecture is designed to support various training patterns.
 Some example patterns provided are:
 
 - [Model Fine Tuning](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/README.md)
+- [Single-host Supervised Fine-Tuning (SFT) using MaxText on TPUs](/docs/platforms/gke/base/use-cases/training-ref-arch/sft-tpu-maxtext-single-host/README.md)
 
 Further use cases and patterns can be built upon this foundational architecture.
 

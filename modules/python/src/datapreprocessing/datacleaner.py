@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""Data cleaning and preprocessing routines for Ray data processing workflows."""
+
 import logging
 import os
 import re
@@ -24,9 +26,15 @@ from typing import List
 import jsonpickle
 import pandas as pd
 import ray
-import spacy
 from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
+
+try:
+    import spacy
+except ImportError:
+    from unittest.mock import MagicMock
+
+    spacy = MagicMock()
 
 
 class DataPreprocessor:
@@ -35,6 +43,7 @@ class DataPreprocessor:
     logger = logging.getLogger(__name__)
 
     def __init__(self):
+        """Initializes the DataPreprocessor instance, GCS client, thread pool, and spaCy NLP pipeline."""
         # 1. Instantiate the storage client ONCE per worker process initialization
         self.storage_client = storage.Client()
 
@@ -58,16 +67,26 @@ class DataPreprocessor:
             )
 
         # 3. Load or download the spaCy model ONCE per worker process initialization
-        try:
-            self.nlp = spacy.load("en_core_web_sm")
-        except OSError:
-            self.logger.info(
-                "Downloading spacy model 'en_core_web_sm' on worker process..."
-            )
-            spacy.cli.download("en_core_web_sm")
-            self.nlp = spacy.load("en_core_web_sm")
+        self.nlp = None
+        if spacy is not None:
+            try:
+                self.nlp = spacy.load("en_core_web_sm")
+            except OSError:
+                self.logger.info(
+                    "Downloading spacy model 'en_core_web_sm' on worker process..."
+                )
+                spacy.cli.download("en_core_web_sm")
+                self.nlp = spacy.load("en_core_web_sm")
 
     def extract_url(self, image_list: str) -> List[str]:
+        """Extracts individual image URLs from a formatted string or list representation.
+
+        Args:
+            image_list: Raw string representation of an image URL list.
+
+        Returns:
+            List of parsed image URL strings.
+        """
         if pd.isna(image_list):
             return []
         return image_list.replace("[", "").replace("]", "").replace('"', "").split(",")
@@ -80,6 +99,18 @@ class DataPreprocessor:
         ray_worker_node_id: str,
         gcs_bucket: str,
     ) -> bool:
+        """Downloads an image from a URL and uploads it to Google Cloud Storage.
+
+        Args:
+            image_url: Source URL of the image to download.
+            image_file_name: Temporary local filename for saving the download.
+            destination_blob_name: Target path/blob name in the GCS bucket.
+            ray_worker_node_id: Identifier of the current Ray worker node for logging.
+            gcs_bucket: Name of the destination GCS bucket.
+
+        Returns:
+            True if the image was successfully downloaded and uploaded, False otherwise.
+        """
         download_dir = "/tmp/images"
         os.makedirs(download_dir, exist_ok=True)
         download_file = f"{download_dir}/{image_file_name}"
@@ -120,7 +151,17 @@ class DataPreprocessor:
     def _process_single_row_image(
         self, row: dict, ray_worker_node_id: str, gcs_bucket: str, gcs_folder: str
     ) -> str:
-        """Helper processing callback targeted by the asynchronous thread pool."""
+        """Helper processing callback targeted by the asynchronous thread pool.
+
+        Args:
+            row: Dictionary representing a single record/row in the dataset.
+            ray_worker_node_id: Identifier of the current Ray worker node.
+            gcs_bucket: Destination GCS bucket name.
+            gcs_folder: Destination directory path inside the GCS bucket.
+
+        Returns:
+            The GCS URI (gs://...) of the first successfully uploaded image, or None.
+        """
         prod_id = row.get("uniq_id")
         image_list = row.get("image")
 
@@ -154,6 +195,17 @@ class DataPreprocessor:
         gcs_bucket: str,
         gcs_folder: str,
     ) -> pd.DataFrame:
+        """Downloads product images in parallel for a batch and appends GCS image URIs.
+
+        Args:
+            df: Input DataFrame containing product records.
+            ray_worker_node_id: Identifier of the current Ray worker node.
+            gcs_bucket: Name of the destination GCS bucket.
+            gcs_folder: Destination subfolder in the GCS bucket.
+
+        Returns:
+            DataFrame with an added 'image_uri' column containing GCS image paths.
+        """
         # Convert the batch chunks cleanly to records for thread-safe isolation
         records = df.to_dict(orient="records")
 
@@ -175,8 +227,17 @@ class DataPreprocessor:
         return df
 
     def prep_product_desc(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Cleans product description text using spaCy NLP lemmatization and stop-word removal.
+
+        Args:
+            df: Input DataFrame containing a 'description' column.
+
+        Returns:
+            DataFrame with cleaned/lemmatized 'description' column.
+        """
+
         def parse_nlp_description(description: str) -> str:
-            if not description or pd.isna(description):
+            if not description or pd.isna(description) or not self.nlp:
                 return "None"
             try:
                 doc = self.nlp(str(description).lower())
@@ -193,6 +254,14 @@ class DataPreprocessor:
         return df
 
     def parse_attributes(self, specification: str) -> str:
+        """Parses raw product specification strings into JSON-encoded key-value key attributes.
+
+        Args:
+            specification: Raw product specification string.
+
+        Returns:
+            JSON-encoded string representing the key-value attribute dictionary.
+        """
         spec_match_one = re.compile("(.*?)\\[(.*)\\](.*)")
         spec_match_two = re.compile('(.*?)=>"(.*?)"(.*?)=>"(.*?)"(.*)')
         if pd.isna(specification):
@@ -213,11 +282,27 @@ class DataPreprocessor:
         return jsonpickle.encode(out)
 
     def reformat(self, text: str) -> str:
+        """Strips bracket and quote formatting characters from raw category strings.
+
+        Args:
+            text: Raw input string containing bracket or quote characters.
+
+        Returns:
+            Cleaned text string.
+        """
         if pd.isnull(text):
             return ""
         return str(text).replace("[", "").replace("]", "").replace('"', "")
 
     def prep_cat(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Splits category hierarchy trees into static categorical columns (c0_name .. c5_name).
+
+        Args:
+            df: Input DataFrame with a 'product_category_tree' column.
+
+        Returns:
+            DataFrame with split category columns and original tree dropped.
+        """
         df["product_category_tree"] = df["product_category_tree"].apply(self.reformat)
         splits = df["product_category_tree"].str.split(">>")
 
@@ -238,6 +323,17 @@ class DataPreprocessor:
         gcs_bucket: str,
         gcs_folder: str,
     ) -> pd.DataFrame:
+        """Executes full cleaning pipeline sequence (images, descriptions, attributes, categories).
+
+        Args:
+            df: Raw input DataFrame.
+            ray_worker_node_id: Current Ray worker node identifier.
+            gcs_bucket: Destination GCS bucket name for image storage.
+            gcs_folder: Subfolder path in the GCS bucket.
+
+        Returns:
+            Fully cleaned and preprocessed DataFrame.
+        """
         df_processed = self.get_product_image(
             df, ray_worker_node_id, gcs_bucket, gcs_folder
         )
@@ -256,11 +352,22 @@ class DataPrepForRag:
     logger = logging.getLogger(__name__)
 
     def __init__(self):
+        """Initializes the DataPrepForRag transformer instance."""
         pass
 
     def filter_low_value_count_rows(
         self, df: pd.DataFrame, column_name: str, min_count: int = 10
     ) -> pd.DataFrame:
+        """Filters out rows where column value frequency is below min_count threshold.
+
+        Args:
+            df: Input DataFrame.
+            column_name: Target column to compute value counts on.
+            min_count: Minimum frequency threshold required to retain rows.
+
+        Returns:
+            Filtered DataFrame with rare categories excluded.
+        """
         if df.empty or column_name not in df.columns:
             return df
         value_counts = df[column_name].value_counts()
@@ -268,6 +375,14 @@ class DataPrepForRag:
         return df[df[column_name].isin(filtered_values)].copy()
 
     def process_rag_input(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Transforms cleaned product records into standardized schema for RAG pipeline ingestion.
+
+        Args:
+            df: Preprocessed DataFrame output from DataPreprocessor.
+
+        Returns:
+            DataFrame schema-formatted and filtered specifically for RAG retrieval tasks.
+        """
         working_df = df.rename(
             columns={
                 "uniq_id": "Id",

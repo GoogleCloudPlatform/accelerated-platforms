@@ -69,15 +69,22 @@ resource "google_storage_bucket_iam_member" "data_bucket_data_preparation_storag
   role   = "roles/storage.objectUser"
 }
 
+# LEAST PRIVILEGE IAM BINDINGS FOR THE OUTPUT DATA BUCKET
+# ==============================================================================
+locals {
+  # Define the precise minimal roles needed by the Ray engine
+  ray_least_privilege_roles = [
+    "roles/storage.objectAdmin", # Manage objects, write files, download images
+    "roles/storage.bucketViewer" # Read bucket metadata (resolves storage.buckets.get)
+  ]
+}
+
 # Grant data-processing driver ability to write objects and check bucket metadata
 resource "google_storage_bucket_iam_member" "data_bucket_data_processing_ksa_least_privilege" {
-  for_each = toset([
-    "roles/storage.objectUser",
-    "roles/storage.bucketViewer"
-  ])
-  bucket = google_storage_bucket.data.name
-  member = "${local.wi_member_principal_prefix}/${local.mft_kubernetes_service_accounts["data-processing"].service_account_name}"
-  role   = each.value
+  for_each = toset(local.ray_least_privilege_roles)
+  bucket   = google_storage_bucket.data.name
+  member   = "${local.wi_member_principal_prefix}/${local.mft_kubernetes_service_accounts["data-processing"].service_account_name}"
+  role     = each.value
 }
 
 resource "google_storage_bucket_iam_member" "data_bucket_mft_storage_object_user" {
@@ -96,18 +103,6 @@ resource "google_storage_bucket_iam_member" "data_bucket_model_evaluation_storag
   bucket = google_storage_bucket.data.name
   member = "${local.wi_member_principal_prefix}/${local.mft_kubernetes_service_accounts["model-evaluation"].service_account_name}"
   role   = "roles/storage.objectUser"
-}
-
-# ==============================================================================
-# LEAST PRIVILEGE IAM BINDINGS FOR THE OUTPUT DATA BUCKET
-# ==============================================================================
-
-locals {
-  # Define the precise minimal roles needed by the Ray engine
-  ray_least_privilege_roles = [
-    "roles/storage.objectAdmin", # Manage objects, write files, download images
-    "roles/storage.bucketViewer" # Read bucket metadata (resolves storage.buckets.get)
-  ]
 }
 
 # Apply least privilege roles to the Ray Head Node (Driver Context)

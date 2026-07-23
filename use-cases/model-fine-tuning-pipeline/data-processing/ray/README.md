@@ -147,7 +147,32 @@ For more information about infrastructure and application metrics, see
 [View observability metrics](https://cloud.google.com/kubernetes-engine/docs/how-to/view-observability-metrics).
 
 Specifically for the data processing use case described in this example, you can
-perform additional analysis based on the workload logs.
+perform observability using both the **Ray Dashboard** (for real-time cluster and job metrics) and **Google Cloud Logging** (for log searching and SQL analytics).
+
+### Ray Dashboard
+
+The [Ray Dashboard](https://docs.ray.io/en/latest/ray-observability/getting-started.html) provides real-time observability into Ray cluster resources, submitted jobs, actor pools, and Ray Data streaming execution.
+
+#### Accessing the Dashboard
+Run the following command to print the Ray Dashboard endpoint URL:
+
+```shell
+echo -e "\n${MLP_KUBERNETES_NAMESPACE} Ray dashboard: ${MLP_RAY_DASHBOARD_NAMESPACE_ENDPOINT}\n"
+```
+
+Alternatively, you can port-forward the service to your local machine:
+
+```shell
+kubectl --namespace ${MLP_KUBERNETES_NAMESPACE} port-forward svc/ray-cluster-kuberay-head-svc 8265:8265
+```
+
+#### Key Observability Views
+* **Jobs Tab**: Monitor active and completed Ray Job submissions, view entrypoint status (`SUCCEEDED`, `RUNNING`), duration, and tail live driver logs.
+* **Ray Data Tab**: Visualize the dataset execution graph (`ReadCSV` -> `MapBatches` -> `Write`), monitor operator throughput, and check object store memory usage.
+* **Actors Tab**: Inspect the `PreprocessingActor` pool state, worker node placement, and active worker tasks.
+* **Cluster Tab**: View real-time CPU, RAM, and Object Store Memory utilization across Head and Worker nodes.
+
+### Cloud Logging
 
 ### Log query sample
 
@@ -190,56 +215,6 @@ You can narrow down the results by adding extra filters, such as using
 additional labels. For more GKE query samples, you can read
 [Kubernetes-related queries](https://cloud.google.com/logging/docs/view/query-library#kubernetes-filters).
 
-### Log-based Metrics
-
-To gain insight into your workload status, you can also utilize
-[log-based metrics](https://cloud.google.com/logging/docs/logs-based-metrics).
-Several methods exist for their creation. The most straightforward approach
-involves modifying your log queries to locate the relevant logs. Subsequently,
-you can generate a custom metric by clicking the `Create metric` link and
-defining it as per your requirements. For example:
-
-![log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/create-log-based-metrics.png)
-
-For this example, the following query is used, utilizing a more specific regular
-expression to search the error logs. With the log entries found, you can create
-log-based metrics.
-
-```
-labels."k8s-pod/app"="data-processing"
-resource.type="k8s_container"
-textPayload =~ "WARNING - ray_worker_node_id.+Failed to (download|upload) image"
-```
-
-The following is a definition for a metric such as `No_Image_found_Product`.
-Notice both the GKE node and Ray worker node id are added as labels.
-
-```yaml
-filter: |-
-  labels."k8s-pod/app"="data-processing"
-  resource.type="k8s_container"
-  textPayload =~ "WARNING - ray_worker_node_id.+Failed to (download|upload) image"
-labelExtractors:
-  gke_node: EXTRACT(labels."compute.googleapis.com/resource_name")
-  ray_worker_node_id: REGEXP_EXTRACT(textPayload, "ray_worker_node_id:([^ ]+)")
-metricDescriptor:
-  labels:
-    - key: gke_node
-    - key: ray_worker_node_id
-  metricKind: DELTA
-  name: projects/xxxxx/metricDescriptors/logging.googleapis.com/user/Failed_Image_Download
-  type: logging.googleapis.com/user/Failed_Image_Download
-  unit: "1"
-  valueType: INT64
-name: Failed_Image_Download
-resourceName: projects/xxxxx/metrics/Failed_Image_Download
-```
-
-Once the metrics are defined, the next time you run your workloads, you will be
-able to use them. For example, the following chart visualizes the metric defined
-above:
-
-![use-log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/use-log-based-metrics.png)
 
 ### Log Analytics
 

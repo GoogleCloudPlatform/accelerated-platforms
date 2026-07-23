@@ -21,17 +21,13 @@ import sys
 from datapreprocessing.ray_data_pipeline import RayDataPipelineOrchestrator
 
 # Target storage environments drawn from runtime system properties
-DATASET_BUCKET = os.environ.get(
-    "DATASET_BUCKET", "trn-kr-ray-kaggle-accelerated-platforms-dev"
-)
+DATASET_BUCKET = os.environ.get("DATASET_BUCKET")
 DATASET_FILE_PATH = os.environ.get(
     "DATASET_FILE_PATH",
     "/datasets/PromptCloudHQ/flipkart-products/flipkart_com-ecommerce_sample.csv",
 )
 
-OUTPUT_BUCKET = os.environ.get(
-    "OUTPUT_BUCKET", "trn-kr-ray-data-accelerated-platforms-dev"
-)
+OUTPUT_BUCKET = os.environ.get("OUTPUT_BUCKET")
 OUTPUT_CSV_FILE_PATH = os.environ.get(
     "OUTPUT_CSV_FILE_PATH", "/flipkart_preprocessed_dataset/flipkart.csv"
 )
@@ -60,6 +56,11 @@ def graceful_shutdown(signal_number, stack_frame):
 
 def preprocess_finetuning():
     """Preprocesses a raw dataset for fine-tuning a model using streaming Ray Data."""
+    if not DATASET_BUCKET:
+        raise ValueError("DATASET_BUCKET environment variable must be set.")
+    if not OUTPUT_BUCKET:
+        raise ValueError("OUTPUT_BUCKET environment variable must be set.")
+
     logger.info("Configure signal handlers")
     signal.signal(signal.SIGINT, graceful_shutdown)
     signal.signal(signal.SIGTERM, graceful_shutdown)
@@ -83,19 +84,23 @@ def preprocess_finetuning():
         "env_vars": {"PIP_NO_CACHE_DIR": "1", "PIP_DISABLE_PIP_VERSION_CHECK": "1"},
     }
 
-    logger.info("Started Ray Data Streaming Infrastructure Pipeline")
+    logger.info("Starting Ray Data Streaming Infrastructure Pipeline")
 
     # Initialize the modern streaming pipeline wrapper orchestrator
     pipeline = RayDataPipelineOrchestrator(RAY_CLUSTER_HOST, ray_runtime_env)
 
     # Execute lazy loading, parallel computing blocks, and concurrent writing streams
-    pipeline.execute(
-        input_bucket=DATASET_BUCKET,
-        input_path=DATASET_FILE_PATH,
-        output_bucket=OUTPUT_BUCKET,
-        output_path=OUTPUT_CSV_FILE_PATH,
-        output_image_folder=OUTPUT_IMAGE_FOLDER,  # FIXED: Passed down correctly now
-    )
+    try:
+        pipeline.execute(
+            input_bucket=DATASET_BUCKET,
+            input_path=DATASET_FILE_PATH,
+            output_bucket=OUTPUT_BUCKET,
+            output_path=OUTPUT_CSV_FILE_PATH,
+            output_image_folder=OUTPUT_IMAGE_FOLDER,
+        )
+    except Exception as e:
+        logger.error(f"Ray Data Pipeline execution failed: {e}", exc_info=True)
+        sys.exit(1)
 
     logger.info("Distributed Ray Data Preprocessing Finished Successfully.")
 

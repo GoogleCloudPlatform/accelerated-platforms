@@ -146,14 +146,15 @@ Observability console or the GKE Observability page.
 For more information about infrastructure and application metrics, see
 [View observability metrics](https://cloud.google.com/kubernetes-engine/docs/how-to/view-observability-metrics).
 
-Specifically for the data processing use case described in this example, you can
-perform observability using both the **Ray Dashboard** (for real-time cluster
-and job metrics) and **Google Cloud Logging** (for log searching and SQL
-analytics).
+Specifically for the data processing use case described in this example,
+you can perform observability using both the **Ray Dashboard** (for
+real-time cluster and job metrics) and **Google Cloud Logging** (for log
+searching and SQL analytics).
 
 ### Ray Dashboard
 
-The [Ray Dashboard](https://docs.ray.io/en/latest/ray-observability/getting-started.html)
+The
+[Ray Dashboard](https://docs.ray.io/en/latest/ray-observability/getting-started.html)
 provides real-time observability into Ray cluster resources, submitted jobs,
 actor pools, and Ray Data streaming execution.
 

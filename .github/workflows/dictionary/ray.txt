@@ -1,4 +1,5 @@
 cpus
+dedup
 gcsfs
 headgroup
 kuberay

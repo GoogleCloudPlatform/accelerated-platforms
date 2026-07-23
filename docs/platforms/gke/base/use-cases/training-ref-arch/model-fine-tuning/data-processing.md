@@ -212,8 +212,7 @@ analytics).
 
 ### Ray Dashboard
 
-The
-[Ray Dashboard](https://docs.ray.io/en/latest/ray-observability/getting-started.html)
+The [Ray Dashboard](https://docs.ray.io/en/latest/ray-observability/getting-started.html)
 provides real-time observability into Ray cluster resources, submitted jobs,
 actor pools, and Ray Data streaming execution.
 

@@ -55,6 +55,8 @@ isort
 iterrows
 jsonify
 jsonpickle
+lemmatization
+lemmatized
 levelname
 lstrip
 makedirs

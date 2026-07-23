@@ -72,3 +72,4 @@ variable "rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name" {
   description = "The Kubernetes service account name for the RL on TPU deployment."
   type        = string
 }
+

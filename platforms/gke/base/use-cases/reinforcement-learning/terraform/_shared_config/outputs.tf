@@ -19,3 +19,4 @@ output "rl_dataset_bucket_name" {
 output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
   value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
 }
+

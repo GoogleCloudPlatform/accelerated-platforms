@@ -1,1 +1,9 @@
+alpaca
+maxtext
+ocdbt
 qwen
+tatsu
+tunix
+ultrachat
+xplane
+zarr

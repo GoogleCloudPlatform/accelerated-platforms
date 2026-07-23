@@ -63,6 +63,7 @@ nbconvert
 numpy
 opencv
 optax
+orchestrator
 pathlib
 pgvector
 pipreqs

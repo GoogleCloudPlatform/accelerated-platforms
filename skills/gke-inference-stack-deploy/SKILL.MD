@@ -19,10 +19,10 @@ Follow these instructions to provision the GKE Base Platform and inference-speci
 1.  **Ask the user** (only for information not provided in the user's prompt):
 
     - "What is the path to the repository?" -> Set ACP_REPO_DIR
-    - "Would you like to deploy an Autopilot or Standard cluster?" -> Set cluster_type
-    - "What platform name would you like to set?" -> Set platform_name
     - "What is your Google Cloud project ID?" -> Set platform_default_project_id
     - "What GKE region would you like to use?" -> Set cluster_region
+    - "What platform name would you like to set?" -> Set platform_name
+    - "Would you like to deploy an Autopilot or Standard cluster?" -> Set cluster_type
 
 2.  **Action**: Inject these values into the appropriate `tfvars` files (`${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars` and `cluster.auto.tfvars`) using `sed`.
 

@@ -26,19 +26,17 @@ spec:
     enabled: true
   priorities:
     # Use a specific reservation.
-    # - machineType: ct6e-standard-8t
-    #   maxPodsPerNode: 32
-    #   reservations:
-    #     affinity: Specific
-    #     specific:
-    #       - name: tpu-v6e-slice-specific
-    #         reservationBlock:
-    #           name: <RESERVATION_NAME>
-    #   spot: false
-    #   tpu:
-    #     count: 8
-    #     topology: 2x4
-    #     type: tpu-v6e-slice
+    - machineType: ct6e-standard-8t
+      maxPodsPerNode: 32
+      reservations:
+        affinity: Specific
+        specific:
+          - name: tpu-v6e-16c-batch-1-reservation
+      spot: false
+      tpu:
+        count: 8
+        topology: 2x4
+        type: tpu-v6e-slice
 
     # Use on-demand
     - machineType: ct6e-standard-8t

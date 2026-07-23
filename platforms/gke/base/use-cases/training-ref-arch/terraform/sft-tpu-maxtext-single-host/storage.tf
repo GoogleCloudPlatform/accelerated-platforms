@@ -14,7 +14,7 @@
 
 resource "google_storage_bucket" "sft_dataset" {
   name     = local.sft_tpu_maxtext_single_host_dataset_bucket_name
-  project  = local.rl_project_id
+  project  = local.sft_tpu_maxtext_single_host_project_id
   location = local.cluster_region
 
   uniform_bucket_level_access = true

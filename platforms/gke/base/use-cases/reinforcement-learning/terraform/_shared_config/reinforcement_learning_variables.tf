@@ -23,11 +23,6 @@ locals {
   rl_tpu_reinforcement_learning_on_tpu_image_url                       = var.rl_tpu_reinforcement_learning_on_tpu_image_url != null ? var.rl_tpu_reinforcement_learning_on_tpu_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/rl-on-tpu:latest"
   rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name       = var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name != null ? var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-rl-on-tpu"
   rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name = var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name != null ? var.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-rl-on-tpu-sa"
-
-  sft_tpu_maxtext_single_host_image_url                       = var.sft_tpu_maxtext_single_host_image_url != null ? var.sft_tpu_maxtext_single_host_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/sft-tpu-maxtext-single-host:latest"
-  sft_tpu_maxtext_single_host_kubernetes_namespace_name       = var.sft_tpu_maxtext_single_host_kubernetes_namespace_name != null ? var.sft_tpu_maxtext_single_host_kubernetes_namespace_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-sh"
-  sft_tpu_maxtext_single_host_kubernetes_service_account_name = var.sft_tpu_maxtext_single_host_kubernetes_service_account_name != null ? var.sft_tpu_maxtext_single_host_kubernetes_service_account_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-sa"
-  sft_tpu_maxtext_single_host_dataset_bucket_name            = var.sft_tpu_maxtext_single_host_dataset_bucket_name != null ? var.sft_tpu_maxtext_single_host_dataset_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-sft-tpu-maxtext-sh-dataset"
 }
 
 variable "rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name" {
@@ -78,26 +73,3 @@ variable "rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name" {
   type        = string
 }
 
-variable "sft_tpu_maxtext_single_host_image_url" {
-  default     = null
-  description = "The URL for the SFT on TPU container image."
-  type        = string
-}
-
-variable "sft_tpu_maxtext_single_host_kubernetes_namespace_name" {
-  default     = null
-  description = "The Kubernetes namespace name for the SFT on TPU deployment."
-  type        = string
-}
-
-variable "sft_tpu_maxtext_single_host_kubernetes_service_account_name" {
-  default     = null
-  description = "The Kubernetes service account name for the SFT on TPU deployment."
-  type        = string
-}
-
-variable "sft_tpu_maxtext_single_host_dataset_bucket_name" {
-  default     = null
-  description = "The GCP bucket name for the SFT dataset."
-  type        = string
-}

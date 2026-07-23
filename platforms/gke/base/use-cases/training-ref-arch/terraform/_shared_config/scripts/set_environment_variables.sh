@@ -18,13 +18,13 @@ MY_PATH_TRAINING_ENV="$(
   pwd -P
 )"
 
-ACP_REPO_DIR="$(realpath ${MY_PATH_TRAINING_ENV}/../../../../../../..)"
+ACP_REPO_DIR="$(realpath ${MY_PATH_TRAINING_ENV}/../../../../../../../..)"
 ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/training-ref-arch"
 
 declare -a SHARED_CONFIG_PATHS=(
   "${ACP_PLATFORM_BASE_DIR}/_shared_config"
-  "${ACP_PLATFORM_USE_CASE_DIR}/_shared_config"
+  "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"
 )
 export SHARED_CONFIG_PATHS
 

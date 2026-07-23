@@ -20,10 +20,3 @@ output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
   value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
 }
 
-output "sft_tpu_maxtext_single_host_image_url" {
-  value = local.sft_tpu_maxtext_single_host_image_url
-}
-
-output "sft_tpu_maxtext_single_host_dataset_bucket_name" {
-  value = local.sft_tpu_maxtext_single_host_dataset_bucket_name
-}

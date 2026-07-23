@@ -4,11 +4,11 @@ This example implements Supervised Fine-Tuning (SFT) using MaxText and Tunix on 
 
 It leverages **MaxText**'s scalable FSDP training loops and **Tunix** post-training libraries on a single TPU v5e-8 slice (`v5e-2x4`) or TPU v6e-8 slice (`v6e-2x4`) to fine-tune Llama-3.1-8B-Instruct on instruction-following datasets.
 
-This use-case is built on top of the [GKE Reinforcement Learning reference implementation](/platforms/gke/base/use-cases/reinforcement-learning/terraform/README.md).
+This use-case is built on top of the [GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md).
 
 ## Before you begin
 
-- The [GKE Reinforcement Learning reference implementation](/platforms/gke/base/use-cases/reinforcement-learning/terraform/README.md) is deployed and configured.
+- The [GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md) is deployed and configured.
 
 - Get access to the model.
   - For Llama-3.1:
@@ -27,7 +27,7 @@ This use-case is built on top of the [GKE Reinforcement Learning reference imple
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/sft-tpu-maxtext-single-host && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/sft-tpu-maxtext-single-host && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -40,14 +40,14 @@ This use-case is built on top of the [GKE Reinforcement Learning reference imple
 - Source the environment configuration.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Build the SFT trainer container image using Google Cloud Build.
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/images/tpu/sft-tpu-maxtext-single-host && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/images/tpu/sft-tpu-maxtext-single-host && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -62,13 +62,13 @@ This use-case is built on top of the [GKE Reinforcement Learning reference imple
 - Source the environment configuration.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Configure the SFT deployment manifests.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/sft-tpu-maxtext-single-host/configure_job.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/configure_job.sh"
   ```
 
 - Deploy the SFT workload.
@@ -76,13 +76,13 @@ This use-case is built on top of the [GKE Reinforcement Learning reference imple
   For TPU v5e:
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/sft-tpu-maxtext-single-host/v5e-2x4-llama-3-1-8b-instruct"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v5e-2x4-llama-3-1-8b-instruct"
   ```
 
   For TPU v6e:
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-2x4-llama-3-1-8b-instruct"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-2x4-llama-3-1-8b-instruct"
   ```
 
 - Watch the SFT training job until it is complete:

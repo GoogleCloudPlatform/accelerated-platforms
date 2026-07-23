@@ -40,7 +40,8 @@ spec:
                   "DATASET_FILE_PATH": "/datasets/PromptCloudHQ/flipkart-products/flipkart_com-ecommerce_sample.csv",
                   "OUTPUT_BUCKET": "${mft_data_bucket_name}",
                   "OUTPUT_CSV_FILE_PATH": "/flipkart_preprocessed_dataset/flipkart.csv",
-                  "OUTPUT_IMAGE_FOLDER": "flipkart_images"
+                  "OUTPUT_IMAGE_FOLDER": "flipkart_images",
+                  "RAY_DEDUP_LOGS": "0"
                 }
               }
             - "--working-dir"

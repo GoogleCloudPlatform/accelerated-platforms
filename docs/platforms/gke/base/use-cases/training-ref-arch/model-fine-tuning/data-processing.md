@@ -206,13 +206,19 @@ For more information about infrastructure and application metrics, see
 [View observability metrics](https://cloud.google.com/kubernetes-engine/docs/how-to/view-observability-metrics).
 
 Specifically for the data processing use case described in this example, you can
-perform observability using both the **Ray Dashboard** (for real-time cluster and job metrics) and **Google Cloud Logging** (for log searching and SQL analytics).
+perform observability using both the **Ray Dashboard** (for real-time cluster
+and job metrics) and **Google Cloud Logging** (for log searching and SQL
+analytics).
 
 ### Ray Dashboard
 
-The [Ray Dashboard](https://docs.ray.io/en/latest/ray-observability/getting-started.html) provides real-time observability into Ray cluster resources, submitted jobs, actor pools, and Ray Data streaming execution.
+The
+[Ray Dashboard](https://docs.ray.io/en/latest/ray-observability/getting-started.html)
+provides real-time observability into Ray cluster resources, submitted jobs,
+actor pools, and Ray Data streaming execution.
 
 #### Accessing the Dashboard
+
 Run the following command to print the Ray Dashboard endpoint URL:
 
 ```shell
@@ -226,14 +232,21 @@ kubectl --namespace ${mft_kubernetes_namespace} port-forward svc/ray-cluster-kub
 ```
 
 #### Key Observability Views
-* **Jobs Tab**: Monitor active and completed Ray Job submissions, view entrypoint status (`SUCCEEDED`, `RUNNING`), duration, and tail live driver logs.
-* **Ray Data Tab**: Visualize the dataset execution graph (`ReadCSV` -> `MapBatches` -> `Write`), monitor operator throughput, and check object store memory usage.
-* **Actors Tab**: Inspect the `PreprocessingActor` pool state, worker node placement, and active worker tasks.
-* **Cluster Tab**: View real-time CPU, RAM, and Object Store Memory utilization across Head and Worker nodes.
+
+- **Jobs Tab**: Monitor active and completed Ray Job submissions, view
+  entrypoint status (`SUCCEEDED`, `RUNNING`), duration, and tail live driver
+  logs.
+- **Ray Data Tab**: Visualize the dataset execution graph (`ReadCSV` ->
+  `MapBatches` -> `Write`), monitor operator throughput, and check object store
+  memory usage.
+- **Actors Tab**: Inspect the `PreprocessingActor` pool state, worker node
+  placement, and active worker tasks.
+- **Cluster Tab**: View real-time CPU, RAM, and Object Store Memory utilization
+  across Head and Worker nodes.
 
 ### Cloud Logging
 
-### Log query sample
+#### Log query sample
 
 In the Google Cloud console, go to the
 [Logs Explorer](https://console.cloud.google.com/logs) page to run your queries.

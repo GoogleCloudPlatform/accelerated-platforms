@@ -285,7 +285,6 @@ You can narrow down the results by adding extra filters, such as using
 additional labels. For more GKE query samples, you can read
 [Kubernetes-related queries](https://cloud.google.com/logging/docs/view/query-library#kubernetes-filters).
 
-
 ### Log Analytics
 
 You can also use

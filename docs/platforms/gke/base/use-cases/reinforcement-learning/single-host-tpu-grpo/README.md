@@ -128,7 +128,7 @@ the dashboard locally:
 1. **Port-forward the MLflow Service:**
 
    ```shell
-   kubectl port-forward --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} svc/mlflow-service 5000:5000
+   kubectl port-forward --namespace=${rl_cpu_mlflow_kubernetes_namespace_name} svc/mlflow-tracking-svc 5000:5000
    ```
 
 2. **Open your Browser:** Navigate to `http://localhost:5000`

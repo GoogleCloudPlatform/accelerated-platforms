@@ -71,8 +71,7 @@ arch/terraform/README.md).
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-
-  arch/terraform/sft-tpu-maxtext-single-host && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/sft-tpu-maxtext-single-host && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -85,16 +84,14 @@ arch/terraform/README.md).
 - Source the environment configuration:
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-
-  arch/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Build the SFT trainer container image using Google Cloud Build:
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-
-  arch/terraform/images/tpu/sft-tpu-maxtext-single-host && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/images/tpu/sft-tpu-maxtext-single-host && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -109,50 +106,40 @@ arch/terraform/README.md).
 - Source the environment configuration:
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-
-  arch/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Configure the SFT deployment manifests:
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-
-  manifests/sft-tpu-maxtext-single-host/configure_job.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/configure_job.sh"
   ```
 
 - Deploy the SFT workload for your selected model and accelerator topology:
 
   - **Gemma 3 4B on TPU v6e (2x4)**:
 
-        ```shell
-        kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-
-
-    cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-
-    host/v6e-2x4-gemma-3-4b-instruct" ```
+    ```shell
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-2x4-gemma-3-4b-instruct"
+    ```
 
   - **Gemma 4 31B on TPU v6e (4x4 16-chip slice)**:
 
-        ```shell
-        kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-
-
-    cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-
-    host/v6e-4x4-gemma-4-31b-instruct" ```
+    ```shell
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-4x4-gemma-4-31b-instruct"
+    ```
 
   - **Llama 3.1 8B on TPU v6e (2x4)**:
 
-        ```shell
-        kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-
-
-    cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-
-    host/v6e-2x4-llama-3-1-8b-instruct" ```
+    ```shell
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-2x4-llama-3-1-8b-instruct"
+    ```
 
   - **Llama 3.1 8B on TPU v5e (2x4)**:
 
-        ```shell
-        kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-
-
-    cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-
-    host/v5e-2x4-llama-3-1-8b-instruct" ```
+    ```shell
+    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v5e-2x4-llama-3-1-8b-instruct"
+    ```
 
 - Watch the SFT training job until it is complete:
 

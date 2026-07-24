@@ -89,7 +89,7 @@ module "kubectl_wait_gatekeeper_controller" {
   resource         = "pod"
   retry_on_failure = true
   selector         = "control-plane=controller-manager"
-  timeout          = "300s"
+  timeout          = "900s"
   wait_for_create  = true
 }
 

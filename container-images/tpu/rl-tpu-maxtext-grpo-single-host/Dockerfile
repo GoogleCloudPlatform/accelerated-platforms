@@ -18,6 +18,10 @@ FROM astral/uv:python3.12-bookworm-slim
 
 # Use copy mode instead of hardlinks across filesystems
 ENV UV_LINK_MODE=copy
+ENV UV_TORCH_BACKEND=cpu
+ENV CUDA_VISIBLE_DEVICES=""
+ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
   git \
@@ -25,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Leverage uv's built-in caching for fast subsequent builds
 RUN --mount=type=cache,target=/root/.cache/uv \
-  uv pip install --system maxtext[tpu-post-train]==0.2.2 --resolution=lowest
+  uv pip install --system huggingface-hub "maxtext[tpu-post-train]==0.2.2"
 
 # Script name for the extra TPU post-training dependencies
 RUN install_tpu_post_train_extra_deps
@@ -33,3 +37,5 @@ RUN install_tpu_post_train_extra_deps
 COPY --from=primary train.py .
 
 CMD ["python3", "train.py"]
+
+# Cache buster: 2026-07-23T22:37:00Z

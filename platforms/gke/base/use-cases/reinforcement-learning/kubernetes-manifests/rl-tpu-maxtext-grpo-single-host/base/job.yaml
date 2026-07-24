@@ -30,14 +30,34 @@ spec:
           resources:
             requests:
               google.com/tpu: "8"
+              memory: "64Gi"
+              cpu: "16"
             limits:
               google.com/tpu: "8"
+              memory: "100Gi"
+              cpu: "28"
           env:
-            - name: MLFLOW_TRACKING_URI
-              value: "http://mlflow-service:5000"
             - name: HF_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: hf-secret
                   key: token
+            - name: GCS_OUTPUT_PATH
+              value: "gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models"
+            - name: VLLM_TARGET_DEVICE
+              value: "tpu"
+            - name: JAX_PLATFORMS
+              value: "tpu"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: VLLM_WORKER_MULTIPROC_METHOD
+              value: "spawn"
+          volumeMounts:
+            - name: train-script-vol
+              mountPath: /train.py
+              subPath: train.py
+      volumes:
+        - name: train-script-vol
+          configMap:
+            name: train-script
       serviceAccountName: replaced-by-kustomize

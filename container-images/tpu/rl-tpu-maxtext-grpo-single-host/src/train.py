@@ -12,40 +12,121 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import datetime
-import logging
 import os
-import subprocess
 import sys
+from types import ModuleType
 
-import clu.metric_writers
-import jax
-import jax.numpy as jnp
-import mlflow
-from huggingface_hub import login
-from mlflow.tracking import MlflowClient
-
-# Mute the noisy vLLM TPU runner warnings
-logging.getLogger("tpu_runner").setLevel(logging.ERROR)
+# Prevent PyTorch/vLLM from invoking NVIDIA Triton C++ GPU driver queries on Cloud TPU
+if "triton._C" not in sys.modules:
+    sys.modules["triton._C"] = ModuleType("triton._C")
 
 # --- 1. SYSTEM & CACHING ---
 os.environ.update(
     {
-        "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": "python",
+        "CUDA_VISIBLE_DEVICES": "-1",
+        "TF_CPP_MIN_LOG_LEVEL": "3",
+        "TF_ENABLE_ONEDNN_OPTS": "0",
         "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
+        "VLLM_ENABLE_V1_MULTIPROCESSING": "1",
         "PYTHONUNBUFFERED": "1",
         "JAX_PLATFORMS": "tpu",
+        "VLLM_TARGET_DEVICE": "tpu",
+        "TRITON_DISABLE": "1",
+        "TRITON_INTERPRET": "1",
     }
 )
 
-# --- 2. SETUP PATHS ---
-from maxtext.trainers.post_train.rl.train_rl import rl_train, setup_configs_and_devices
+import torch
+import torch._ops
+
+# Generic fix for PyTorch 2.5+ overload removals breaking torchax/vLLM on TPU (GitHub Issue #3363)
+_orig_op_getattr = torch._ops.OpOverloadPacket.__getattr__
+def _safe_op_getattr(self, key):
+    try:
+        return _orig_op_getattr(self, key)
+    except AttributeError:
+        return getattr(self, "default", self)
+torch._ops.OpOverloadPacket.__getattr__ = _safe_op_getattr
+
+import vllm
+import vllm.platforms
+
+try:
+    _cp = vllm.platforms.current_platform
+    print("✅ Successfully initialized vllm.platforms.current_platform:", _cp, flush=True)
+except Exception as e:
+    print("⚠️ Exception during vllm.platforms.current_platform access:", e, flush=True)
+    import traceback
+    traceback.print_exc()
+
+import datetime
+import logging
+import subprocess
+import sys
+sys.stdout.reconfigure(line_buffering=True)
+
+# Patch subprocess.run so internal to_maxtext and vLLM calls inherit the triton._C stub & PyTorch op overload fixes
+_orig_subprocess_run = subprocess.run
+def _patched_subprocess_run(cmd, *args, **kwargs):
+    if isinstance(cmd, list) and len(cmd) > 1 and "python" in cmd[0]:
+        if len(cmd) > 2 and cmd[1] == "-m" and "to_maxtext" in cmd[2]:
+            patch_code = (
+                "import sys, os, types, traceback\n"
+                "sys.modules['triton._C'] = types.ModuleType('triton._C')\n"
+                "import torch\n"
+                "_orig = torch._ops.OpOverloadPacket.__getattr__\n"
+                "def _safe_op_getattr(self, key):\n"
+                "    try:\n"
+                "        return _orig(self, key)\n"
+                "    except AttributeError:\n"
+                "        return getattr(self, 'default', self)\n"
+                "torch._ops.OpOverloadPacket.__getattr__ = _safe_op_getattr\n"
+                "import maxtext\n"
+                "base_yml = os.path.join(os.path.dirname(maxtext.__file__), 'configs', 'base.yml')\n"
+                "from maxtext.checkpoint_conversion import to_maxtext\n"
+                "raw_args = [a for a in sys.argv[1:] if not (a.startswith('--lazy_load_tensors') or a.startswith('--simulated_cpu_devices_count'))]\n"
+                "if not any('base.yml' in a for a in raw_args):\n"
+                "    raw_args = [base_yml] + raw_args\n"
+                "print(f'🚀 Running to_maxtext with cleaned args: {raw_args}', flush=True)\n"
+                "try:\n"
+                "    to_maxtext.main(raw_args)\n"
+                "except Exception as e:\n"
+                "    print('💥 EXCEPTION IN SUBPROCESS TO_MAXTEXT:', flush=True)\n"
+                "    print(traceback.format_exc(), flush=True)\n"
+                "    sys.exit(1)\n"
+            )
+            cmd = [cmd[0], "-c", patch_code] + cmd[3:]
+            print(f"🔧 Patched subprocess call to to_maxtext: {cmd}", flush=True)
+        elif len(cmd) > 2 and cmd[1] == "-m":
+            module_name = cmd[2]
+            patch_code = (
+                "import sys, types\n"
+                "sys.modules['triton._C'] = types.ModuleType('triton._C')\n"
+                "import torch\n"
+                "_orig = torch._ops.OpOverloadPacket.__getattr__\n"
+                "def _safe_op_getattr(self, key):\n"
+                "    try:\n"
+                "        return _orig(self, key)\n"
+                "    except AttributeError:\n"
+                "        return getattr(self, 'default', self)\n"
+                "torch._ops.OpOverloadPacket.__getattr__ = _safe_op_getattr\n"
+                "import runpy\n"
+                f"runpy.run_module('{module_name}', run_name='__main__')\n"
+            )
+            cmd = [cmd[0], "-c", patch_code] + cmd[3:]
+            print(f"🔧 Patched python -m subprocess call for {module_name}: {cmd}", flush=True)
+    return _orig_subprocess_run(cmd, *args, **kwargs)
+subprocess.run = _patched_subprocess_run
+
+from huggingface_hub import login
+
 from maxtext.utils.globals import MAXTEXT_PKG_DIR
 
 HF_TOKEN = os.environ.get("HF_TOKEN")
-login(token=HF_TOKEN)
+if HF_TOKEN:
+    login(token=HF_TOKEN)
 
-MODEL_NAME = "llama3.1-8b"
+MODEL_NAME = "llama3.1-8b-Instruct"
 TOKENIZER_PATH = "meta-llama/Llama-3.1-8B-Instruct"
 
 # Safely grab the native bucket path from Kubernetes, fallback to local if testing
@@ -59,70 +140,35 @@ base_name = os.environ.get(
 )
 
 # Unconditionally force "v5e" onto the front of it
-RUN_NAME = f"v5e-{base_name}"
+RUN_NAME = f"v6e-{base_name}"
 
-# Send the massive converted model and checkpoints directly to the cloud bucket
-MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint"
+# Send the converted model and checkpoints directly to the cloud bucket
+MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint_converted"
 
 # MaxText uses `base_output_directory` as the root.
-# It will automatically append `RUN_NAME/checkpoints/` to it.
-OUTPUT_DIRECTORY = YOUR_GCS_BUCKET
+OUTPUT_DIRECTORY = MODEL_CHECKPOINT_PATH
 
 CHAT_TEMPLATE_PATH = f"{MAXTEXT_PKG_DIR}/examples/chat_templates/gsm8k_rl.json"
 
-# POINT EXACTLY TO /0/items AS PER THE DEMO NOTEBOOK
-LOAD_PATH = f"{MODEL_CHECKPOINT_PATH}/0/items"
+# Leave empty so MaxText's automatic converter runs if checkpoint isn't converted yet
+LOAD_PATH = ""
 
-# --- 3. CONVERSION (Runs only if needed) ---
-if not os.path.exists(LOAD_PATH):
-    print("🚀 Starting local conversion...")
+# --- 3. CONVERSION (Runs only if needed, before JAX TPU initialization) ---
+# --- 3. CONVERSION ---
+print("⏩ Bypassing local CPU conversion. Initializing MaxText GRPO Trainer directly on 8x TPU v6e chips...", flush=True)
 
-    # Use subprocess for the conversion
-    conversion_cmd = (
-        f"JAX_PLATFORMS=cpu python3 -m maxtext.checkpoint_conversion.to_maxtext "
-        f"{MAXTEXT_PKG_DIR}/configs/base.yml "
-        f"model_name={MODEL_NAME} "
-        f"base_output_directory={MODEL_CHECKPOINT_PATH} "
-        f"hf_access_token={HF_TOKEN} "
-        f"use_multimodal=false scan_layers=true skip_jax_distributed_system=True"
-    )
+# --- 4. IMPORT JAX & MAXTEXT TRAINER AFTER CONVERSION ---
+os.environ["JAX_PLATFORMS"] = "tpu"
+import clu.metric_writers
+import jax
+import jax.numpy as jnp
+from maxtext.trainers.post_train.rl.train_rl import rl_train
+from maxtext.utils.model_creation_utils import setup_configs_and_devices
 
-    result = subprocess.run(conversion_cmd, shell=True, executable="/bin/bash")
-    if result.returncode != 0:
-        raise RuntimeError("Conversion failed!")
-else:
-    print(f"✅ Checkpoint already exists at {LOAD_PATH}. Skipping conversion!")
-
-# --- 4. MLFLOW SETUP & LOGGING INTERCEPTOR ---
-# Initialize MLflow strictly on the main thread
-mlflow.set_tracking_uri(
-    os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow-service-v5e:5000")
-)
-mlflow.set_experiment("MaxText-RL-GRPO-v5e")
-
-print("🔌 Connecting to MLflow database...")
-active_run = mlflow.start_run(run_name=f"Llama3.1-8B-GRPO-{RUN_NAME}")
-MLFLOW_RUN_ID = active_run.info.run_id
-mlflow_client = MlflowClient()
-
-original_write_scalars = clu.metric_writers.MultiWriter.write_scalars
+# Mute the noisy vLLM TPU runner warnings
+logging.getLogger("tpu_runner").setLevel(logging.ERROR)
 
 
-def patched_write_scalars(self, step: int, scalars: dict):
-    original_write_scalars(self, step, scalars)
-    mlflow_metrics = {
-        k: float(v)
-        for k, v in scalars.items()
-        if isinstance(v, (jnp.ndarray, float, int))
-    }
-    try:
-        # Pass the entire dictionary at once using the thread-safe client
-        mlflow_client.log_metrics(MLFLOW_RUN_ID, mlflow_metrics, step=int(step))
-    except Exception as e:
-        pass  # Silently pass so we don't break the TPU training loop
-
-
-clu.metric_writers.MultiWriter.write_scalars = patched_write_scalars
 
 original_write_texts = clu.metric_writers.MultiWriter.write_texts
 
@@ -162,49 +208,6 @@ clu.metric_writers.MultiWriter.write_texts = patched_write_texts
 
 import jax.numpy as jnp
 
-# --- MONKEY PATCHES (For MaxText v0.2.1 / Tunix) ---
-from maxtext.inference.vllm_decode import VllmRollout as MaxText_VllmRollout
-
-try:
-    from tunix.rl.rollout.vllm_rollout import VllmRollout as Tunix_VllmRollout
-except ImportError:
-    Tunix_VllmRollout = None
-
-
-def apply_universal_patches(TargetClass):
-    orig_logps = TargetClass.get_per_token_logps
-
-    def patched_logps(self, *args, **kwargs):
-        mask = kwargs.pop("completion_mask", None)
-        results = orig_logps(self, *args, **kwargs)
-
-        target_len = mask.shape[-1] if mask is not None else 1792
-
-        def pad_sequence(seq):
-            seq_arr = jnp.array(seq)
-            if seq_arr.size == 0:
-                return jnp.zeros(target_len)
-            pad_amount = target_len - seq_arr.shape[0]
-            if pad_amount > 0:
-                return jnp.pad(seq_arr, (0, pad_amount), constant_values=0.0)
-            return seq_arr[:target_len]
-
-        if isinstance(results, list):
-            return jnp.stack([pad_sequence(s) for s in results])
-        elif isinstance(results, dict):
-            return {
-                k: jnp.stack([pad_sequence(s) for s in v]) if isinstance(v, list) else v
-                for k, v in results.items()
-            }
-        return results
-
-    TargetClass.get_per_token_logps = patched_logps
-
-
-apply_universal_patches(MaxText_VllmRollout)
-if Tunix_VllmRollout:
-    apply_universal_patches(Tunix_VllmRollout)
-
 # --- 5. TRAINING CONFIGURATION ---
 config_argv = [
     "",
@@ -212,8 +215,8 @@ config_argv = [
     f"model_name={MODEL_NAME}",
     f"tokenizer_path={TOKENIZER_PATH}",
     f"run_name={RUN_NAME}",
-    f"load_parameters_path={LOAD_PATH}",
     f"base_output_directory={OUTPUT_DIRECTORY}",
+    f"load_parameters_path=gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models/llama_checkpoint_converted/0/items",
     f"hf_access_token={HF_TOKEN}",
     f"chat_template_path={CHAT_TEMPLATE_PATH}",
     f"vllm_hf_config_path={TOKENIZER_PATH}",
@@ -241,6 +244,7 @@ config_argv = [
     "rl.num_iterations=1",
     "gradient_clipping_threshold=1.0",
     "add_eos=True",
+    "scan_layers=True",
     "log_period=10",
     "return_log_prob=True",
     "checkpoint_period=25",
@@ -256,15 +260,13 @@ config_argv = [
 ]
 
 # --- 6. EXECUTION ---
-trainer_config, sampler_config, trainer_devices, sampler_devices = (
-    setup_configs_and_devices(config_argv)
-)
-
-print(f"🔥 Training starting on {len(jax.devices())} TPUs...")
+print("🔥 Training starting on MaxText GRPO Trainer...", flush=True)
 try:
-    rl_train(trainer_config, sampler_config, trainer_devices, sampler_devices)
-finally:
-    # Ensure the MLflow run is safely closed even if an error occurs
-    mlflow.end_run()
+    rl_train(config_argv, {})
+except Exception as e:
+    import traceback
+    print("❌ EXCEPTION IN RL_TRAIN:", flush=True)
+    traceback.print_exc()
+    sys.exit(1)
 
-print("🏁 Training successfully completed.")
+print("🏁 Training successfully completed.", flush=True)

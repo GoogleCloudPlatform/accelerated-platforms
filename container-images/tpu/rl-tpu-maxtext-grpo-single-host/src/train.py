@@ -20,16 +20,18 @@ import sys
 sys.stdout.reconfigure(line_buffering=True)
 
 # Environment configuration for Cloud TPU
-os.environ.update({
-    "CUDA_VISIBLE_DEVICES": "-1",
-    "TF_CPP_MIN_LOG_LEVEL": "3",
-    "TF_ENABLE_ONEDNN_OPTS": "0",
-    "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
-    "VLLM_ENABLE_V1_MULTIPROCESSING": "1",
-    "PYTHONUNBUFFERED": "1",
-    "JAX_PLATFORMS": "tpu",
-    "VLLM_TARGET_DEVICE": "tpu",
-})
+os.environ.update(
+    {
+        "CUDA_VISIBLE_DEVICES": "-1",
+        "TF_CPP_MIN_LOG_LEVEL": "3",
+        "TF_ENABLE_ONEDNN_OPTS": "0",
+        "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
+        "VLLM_ENABLE_V1_MULTIPROCESSING": "1",
+        "PYTHONUNBUFFERED": "1",
+        "JAX_PLATFORMS": "tpu",
+        "VLLM_TARGET_DEVICE": "tpu",
+    }
+)
 
 from huggingface_hub import login
 import clu.metric_writers

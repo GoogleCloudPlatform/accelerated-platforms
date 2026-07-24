@@ -33,10 +33,10 @@ os.environ.update(
     }
 )
 
-from huggingface_hub import login
 import clu.metric_writers
 import jax
 import numpy as np
+from huggingface_hub import login
 
 from maxtext.trainers.post_train.rl.train_rl import rl_train
 from maxtext.utils.globals import MAXTEXT_PKG_DIR

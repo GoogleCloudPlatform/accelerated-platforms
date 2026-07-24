@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import datetime
+import gc
 import logging
 import os
 import sys
@@ -26,7 +27,7 @@ os.environ.update(
         "TF_CPP_MIN_LOG_LEVEL": "3",
         "TF_ENABLE_ONEDNN_OPTS": "0",
         "VLLM_WORKER_MULTIPROC_METHOD": "spawn",
-        "VLLM_ENABLE_V1_MULTIPROCESSING": "1",
+        "VLLM_ENABLE_V1_MULTIPROCESSING": "0",
         "PYTHONUNBUFFERED": "1",
         "JAX_PLATFORMS": "tpu",
         "VLLM_TARGET_DEVICE": "tpu",
@@ -68,6 +69,7 @@ original_write_texts = clu.metric_writers.MultiWriter.write_texts
 def patched_write_texts(self, step: int, texts: dict):
     original_write_texts(self, step, texts)
     try:
+        gc.collect()
         prompt_key = next((k for k in texts.keys() if "prompt" in k.lower()), None)
         comp_key = next((k for k in texts.keys() if "completion" in k.lower()), None)
 

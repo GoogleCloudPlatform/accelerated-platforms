@@ -30,11 +30,10 @@ spec:
           resources:
             requests:
               google.com/tpu: "8"
-              memory: "64Gi"
+              memory: "128Gi"
               cpu: "16"
             limits:
               google.com/tpu: "8"
-              memory: "100Gi"
               cpu: "28"
           env:
             - name: HF_TOKEN
@@ -56,8 +55,12 @@ spec:
             - name: train-script-vol
               mountPath: /train.py
               subPath: train.py
+            - name: tmp-vol
+              mountPath: /tmp
       volumes:
         - name: train-script-vol
           configMap:
             name: train-script
+        - name: tmp-vol
+          emptyDir: {}
       serviceAccountName: replaced-by-kustomize

@@ -29,7 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Leverage uv's built-in caching for fast subsequent builds
 RUN --mount=type=cache,target=/root/.cache/uv \
-  uv pip install --system huggingface-hub "maxtext[tpu-post-train]==0.2.2"
+  uv pip install --system --resolution=lowest huggingface-hub "maxtext[tpu-post-train]==0.2.2"
 
 # Script name for the extra TPU post-training dependencies
 RUN install_tpu_post_train_extra_deps

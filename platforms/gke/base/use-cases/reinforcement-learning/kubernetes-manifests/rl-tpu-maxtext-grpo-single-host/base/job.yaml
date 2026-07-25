@@ -32,11 +32,11 @@ spec:
               google.com/tpu: "8"
               memory: "128Gi"
               cpu: "16"
-              ephemeral-storage: "100Gi"
+              ephemeral-storage: "50Gi"
             limits:
               google.com/tpu: "8"
               cpu: "28"
-              ephemeral-storage: "150Gi"
+              ephemeral-storage: "85Gi"
           env:
             - name: HF_TOKEN
               valueFrom:

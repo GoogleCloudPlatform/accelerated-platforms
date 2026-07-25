@@ -31,14 +31,13 @@ os.environ.update(
         "PYTHONUNBUFFERED": "1",
         "JAX_PLATFORMS": "tpu",
         "VLLM_TARGET_DEVICE": "tpu",
+        "PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION": "python",
     }
 )
 
-import clu.metric_writers
 import jax
 import numpy as np
 from huggingface_hub import login
-from maxtext.trainers.post_train.rl.train_rl import rl_train
 from maxtext.utils.globals import MAXTEXT_PKG_DIR
 
 # Mute noisy vLLM logs
@@ -62,39 +61,40 @@ MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint_converted"
 OUTPUT_DIRECTORY = MODEL_CHECKPOINT_PATH
 CHAT_TEMPLATE_PATH = f"{MAXTEXT_PKG_DIR}/examples/chat_templates/gsm8k_rl.json"
 
-# --- Pretty Print Sample Interceptor ---
-original_write_texts = clu.metric_writers.MultiWriter.write_texts
 
+def setup_sample_interceptor():
+    import clu.metric_writers
 
-def patched_write_texts(self, step: int, texts: dict):
-    original_write_texts(self, step, texts)
-    try:
-        gc.collect()
-        prompt_key = next((k for k in texts.keys() if "prompt" in k.lower()), None)
-        comp_key = next((k for k in texts.keys() if "completion" in k.lower()), None)
+    original_write_texts = clu.metric_writers.MultiWriter.write_texts
 
-        if prompt_key and comp_key:
-            phase = "🧪 EVALUATION" if "eval" in prompt_key.lower() else "🧠 TRAINING"
-            print(f"\n" + "=" * 20 + f" {phase} STEP {step} SAMPLE " + "=" * 20)
+    def patched_write_texts(self, step: int, texts: dict):
+        original_write_texts(self, step, texts)
+        try:
+            gc.collect()
+            prompt_key = next((k for k in texts.keys() if "prompt" in k.lower()), None)
+            comp_key = next(
+                (k for k in texts.keys() if "completion" in k.lower()), None
+            )
 
-            prompt = texts[prompt_key][0]
-            completion = texts[comp_key][0]
-
-            if isinstance(prompt, np.ndarray):
-                prompt = prompt.item() if prompt.size == 1 else str(prompt)
-            if isinstance(completion, np.ndarray):
-                completion = (
-                    completion.item() if completion.size == 1 else str(completion)
+            if prompt_key and comp_key:
+                phase = (
+                    "🧪 EVALUATION" if "eval" in prompt_key.lower() else "🧠 TRAINING"
                 )
+                print(f"\n" + "=" * 20 + f" {phase} STEP {step} SAMPLE " + "=" * 20)
 
-            print(f"❓ [{prompt_key.upper()}]:\n{prompt}\n")
-            print(f"🤖 [{comp_key.upper()}]:\n{completion}\n")
-            print("=" * 70 + "\n", flush=True)
-    except Exception:
-        pass
+                prompt = texts[prompt_key][0]
+                completion = texts[comp_key][0]
+
+                print(f"\n[PROMPT]\n{prompt}")
+                print(f"\n[MODEL OUTPUT]\n{completion}")
+                print("=" * 60 + "\n", flush=True)
+        except Exception as e:
+            print(f"Error printing sample: {e}", flush=True)
+
+    clu.metric_writers.MultiWriter.write_texts = patched_write_texts
 
 
-clu.metric_writers.MultiWriter.write_texts = patched_write_texts
+setup_sample_interceptor()
 
 # --- TRAINING CONFIGURATION ---
 config_argv = [
@@ -134,17 +134,17 @@ config_argv = [
     "return_log_prob=True",
     "checkpoint_period=25",
     "save_checkpoint_on_completion=True",
-    "num_test_batches=25",
-    "eval_interval=100",
-    "managed_mldiagnostics=True",
-    "managed_mldiagnostics_run_group=GRPO_RL",
-    "profiler=xplane",
-    "upload_all_profiler_results=True",
+    "num_test_batches=0",
+    "eval_interval=0",
+    "managed_mldiagnostics=False",
+    "upload_all_profiler_results=False",
 ]
 
 # --- EXECUTION ---
 print("🔥 Training starting on MaxText GRPO Trainer...", flush=True)
 try:
+    from maxtext.trainers.post_train.rl.train_rl import rl_train
+
     rl_train(config_argv, {})
 except Exception as e:
     import traceback

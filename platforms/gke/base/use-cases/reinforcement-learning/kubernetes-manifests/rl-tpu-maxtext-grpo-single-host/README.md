@@ -1,6 +1,9 @@
 # Cloud TPU v6e MaxText GRPO RL Training & Evaluation User Guide
 
-This guide provides step-by-step instructions for running Group Relative Policy Optimization (GRPO) Reinforcement Learning (RL) training, monitoring live metrics, and executing checkpoint evaluations on GKE using 8x Cloud TPU v6e slices.
+This guide provides step-by-step instructions for running Group Relative Policy
+Optimization (GRPO) Reinforcement Learning (RL) training, monitoring live
+metrics, and executing checkpoint evaluations on GKE using 8x Cloud TPU v6e
+slices.
 
 ---
 
@@ -47,7 +50,8 @@ kubectl create secret generic hf-secret \
 
 ## 2. Step 1: One-Time HuggingFace Model Conversion
 
-Before starting RL training, convert the base HuggingFace weights (`meta-llama/Llama-3.1-8B-Instruct`) into MaxText Orbax format:
+Before starting RL training, convert the base HuggingFace weights
+(`meta-llama/Llama-3.1-8B-Instruct`) into MaxText Orbax format:
 
 ```bash
 kubectl apply -f platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/model-conversion-job.yaml
@@ -59,13 +63,14 @@ kubectl apply -f platforms/gke/base/use-cases/reinforcement-learning/kubernetes-
 kubectl logs -f -l job-name=hf-to-maxtext-converter -n ${NAMESPACE}
 ```
 
-*Outputs will be saved to `${GCS_BUCKET}/llama_checkpoint_converted/0/items`.*
+_Outputs will be saved to `${GCS_BUCKET}/llama_checkpoint_converted/0/items`._
 
 ---
 
 ## 3. Step 2: Launch GRPO RL Training Job
 
-Deploy the 150-step GRPO RL training job onto an 8-chip Cloud TPU v6e slice (`v6e-2x4`):
+Deploy the 150-step GRPO RL training job onto an 8-chip Cloud TPU v6e slice
+(`v6e-2x4`):
 
 ```bash
 kubectl apply -k platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama-3-1-8b-instruct/
@@ -97,7 +102,8 @@ tensorboard --logdir=${GCS_BUCKET}/llama_checkpoint_converted/v6e-*/tensorboard
 
 ## 5. Step 4: Launch Dedicated Checkpoint Evaluation Job
 
-To evaluate a specific checkpoint (e.g. Checkpoint 50) without interrupting training, deploy the dedicated evaluation job onto a second TPU slice:
+To evaluate a specific checkpoint (e.g. Checkpoint 50) without interrupting
+training, deploy the dedicated evaluation job onto a second TPU slice:
 
 ```bash
 # 1. Apply updated eval script ConfigMap
@@ -137,6 +143,10 @@ gcloud storage cat ${GCS_BUCKET}/llama_checkpoint_converted/eval_results_50/eval
 
 ## 7. Key Architecture Rules & Troubleshooting
 
-1. **Ephemeral Storage Limits:** Always maintain `requests.ephemeral-storage: 30Gi` and `limits.ephemeral-storage: 80Gi` in job manifests to accommodate OpenXLA AOT compilation files on `/tmp`.
-2. **Workload Identity:** Ensure all Job manifests specify `serviceAccountName: rl-kr-single-grpo-single-host-sa`.
-3. **Decoupled Execution:** Keep `eval_interval=0` during training to avoid TPU VFIO device lock collisions (`/dev/vfio/0: Device or resource busy`).
+1. **Ephemeral Storage Limits:** Always maintain
+   `requests.ephemeral-storage: 30Gi` and `limits.ephemeral-storage: 80Gi` in
+   job manifests to accommodate OpenXLA AOT compilation files on `/tmp`.
+2. **Workload Identity:** Ensure all Job manifests specify
+   `serviceAccountName: rl-kr-single-grpo-single-host-sa`.
+3. **Decoupled Execution:** Keep `eval_interval=0` during training to avoid TPU
+   VFIO device lock collisions (`/dev/vfio/0: Device or resource busy`).

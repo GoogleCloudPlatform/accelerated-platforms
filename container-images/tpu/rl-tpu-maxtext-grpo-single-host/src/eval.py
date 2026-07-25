@@ -53,16 +53,13 @@ TOKENIZER_PATH = "meta-llama/Llama-3.1-8B-Instruct"
 YOUR_GCS_BUCKET = os.environ.get(
     "GCS_OUTPUT_PATH", f"{MAXTEXT_PKG_DIR}/fallback_output"
 )
-base_name = os.environ.get(
-    "RUN_NAME", datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
-)
-RUN_NAME = f"v6e-{base_name}"
+CKPT_STEP = os.environ.get("EVAL_CKPT_STEP", "50")
+RUN_NAME = f"eval-ckpt-{CKPT_STEP}"
 MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint_converted"
-OUTPUT_DIRECTORY = MODEL_CHECKPOINT_PATH
+OUTPUT_DIRECTORY = f"{MODEL_CHECKPOINT_PATH}/eval_results_{CKPT_STEP}"
 CHAT_TEMPLATE_PATH = f"{MAXTEXT_PKG_DIR}/examples/chat_templates/gsm8k_rl.json"
 
-
-# --- TRAINING CONFIGURATION ---
+# --- EVALUATION CONFIGURATION ---
 config_argv = [
     "",
     f"{MAXTEXT_PKG_DIR}/configs/post_train/rl.yml",
@@ -70,7 +67,7 @@ config_argv = [
     f"tokenizer_path={TOKENIZER_PATH}",
     f"run_name={RUN_NAME}",
     f"base_output_directory={OUTPUT_DIRECTORY}",
-    "load_parameters_path=gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models/llama_checkpoint_converted/0/items",
+    f"load_parameters_path=gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models/llama_checkpoint_converted/v6e-2026-07-25-00-42/checkpoints/actor/{CKPT_STEP}/model_params",
     f"hf_access_token={HF_TOKEN}",
     f"chat_template_path={CHAT_TEMPLATE_PATH}",
     f"vllm_hf_config_path={TOKENIZER_PATH}",
@@ -88,27 +85,13 @@ config_argv = [
     "rl.num_generations=8",
     "max_target_length=1024",
     "hbm_utilization_vllm=0.37",
-    "num_batches=150",
-    "learning_rate=5e-7",
-    "rl.grpo_beta=0.25",
-    "rl.penalty_reward=-0.1",
-    "rl.num_iterations=1",
-    "gradient_clipping_threshold=1.0",
-    "add_eos=True",
-    "scan_layers=True",
-    "log_period=10",
-    "return_log_prob=True",
-    "checkpoint_period=25",
-    "save_checkpoint_on_completion=True",
-    "num_test_batches=0",
-    "eval_interval=0",
+    "num_batches=1",
+    "num_test_batches=25",
+    "eval_interval=1",
+    "learning_rate=0.0",
     "managed_mldiagnostics=False",
     "upload_all_profiler_results=False",
 ]
-
-from maxtext.configs import pyconfig
-
-pyconfig.initialize_pydantic(config_argv)
 
 
 def setup_sample_interceptor():
@@ -126,16 +109,14 @@ def setup_sample_interceptor():
             )
 
             if prompt_key and comp_key:
-                phase = (
-                    "🧪 EVALUATION" if "eval" in prompt_key.lower() else "🧠 TRAINING"
-                )
-                print(f"\n" + "=" * 20 + f" {phase} STEP {step} SAMPLE " + "=" * 20)
+                phase = "🧪 EVALUATION (CKPT 50)"
+                print(f"\n" + "=" * 20 + f" {phase} SAMPLE " + "=" * 20)
 
                 prompt = texts[prompt_key][0]
                 completion = texts[comp_key][0]
 
-                print(f"\n[PROMPT]\n{prompt}")
-                print(f"\n[MODEL OUTPUT]\n{completion}")
+                print(f"\n[EVAL PROMPT]\n{prompt}")
+                print(f"\n[MODEL GENERATED OUTPUT]\n{completion}")
                 print("=" * 60 + "\n", flush=True)
         except Exception as e:
             print(f"Error printing sample: {e}", flush=True)
@@ -143,19 +124,27 @@ def setup_sample_interceptor():
     clu.metric_writers.MultiWriter.write_texts = patched_write_texts
 
 
-setup_sample_interceptor()
+if __name__ == "__main__":
+    from maxtext.configs import pyconfig
 
-# --- EXECUTION ---
-print("🔥 Training starting on MaxText GRPO Trainer...", flush=True)
-try:
-    from maxtext.trainers.post_train.rl.train_rl import rl_train
+    pyconfig.initialize_pydantic(config_argv)
+    setup_sample_interceptor()
 
-    rl_train(config_argv, {})
-except Exception as e:
-    import traceback
+    print(
+        f"🧪 Starting Evaluation on Checkpoint {CKPT_STEP} (GSM8K Test Batches: 25)...",
+        flush=True,
+    )
+    try:
+        from maxtext.trainers.post_train.rl.train_rl import rl_train
 
-    print("❌ EXCEPTION IN RL_TRAIN:", flush=True)
-    traceback.print_exc()
-    sys.exit(1)
+        rl_train(config_argv, {})
+    except Exception as e:
+        import traceback
 
-print("🏁 Training successfully completed.", flush=True)
+        print("❌ EXCEPTION IN EVAL_RL:", flush=True)
+        traceback.print_exc()
+        sys.exit(1)
+
+    print(
+        f"🏁 Evaluation on Checkpoint {CKPT_STEP} completed successfully.", flush=True
+    )

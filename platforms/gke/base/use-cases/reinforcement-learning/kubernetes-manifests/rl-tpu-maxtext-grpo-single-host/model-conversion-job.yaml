@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: llama-3-1-8b-to-maxtext-conversion
+  namespace: rl-kr-single-grpo-single-host
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        cloud.google.com/compute-class: tpu-v6e-2x4
+      tolerations:
+        - key: "google.com/tpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "cloud.google.com/compute-class"
+          operator: "Exists"
+          effect: "NoSchedule"
+      serviceAccountName: rl-kr-single-grpo-single-host-sa
+      containers:
+        - name: converter
+          image: us-east5-docker.pkg.dev/accelerated-platforms-dev/rl-kr-single/reinforcement-learning/grpo-single-host:latest
+          command:
+            - python3
+            - /convert_checkpoint.py
+          resources:
+            requests:
+              google.com/tpu: "8"
+              cpu: "16"
+              memory: "64Gi"
+            limits:
+              google.com/tpu: "8"
+              cpu: "28"
+              memory: "90Gi"
+          env:
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-secret
+                  key: token
+            - name: GCS_OUTPUT_PATH
+              value: "gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models"
+            - name: HF_HUB_CACHE
+              value: "/hf_cache"
+          volumeMounts:
+            - name: convert-script-vol
+              mountPath: /convert_checkpoint.py
+              subPath: convert_checkpoint.py
+            - name: cache-vol
+              mountPath: /hf_cache
+      volumes:
+        - name: convert-script-vol
+          configMap:
+            name: convert-script-v6e-2x4-llama-3-1-8b-it-4btt5gkfhh
+        - name: cache-vol
+          emptyDir:
+            sizeLimit: "40Gi"

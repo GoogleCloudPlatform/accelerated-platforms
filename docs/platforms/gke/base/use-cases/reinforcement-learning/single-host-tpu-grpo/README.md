@@ -27,6 +27,7 @@ This example is built on top of the
   has been added to Secret Manager.
 
 - Hardware & Storage Prerequisites:
+
   - **Hardware**: This configuration is tuned for a **TPU v5e-8** (`v5e-2x4`) or
     **TPU v6e-8** (`v6e-2x4`) slice topology.
   - **Storage**: Local ephemeral storage (or mounted SSD) at `/workspace` for
@@ -131,9 +132,10 @@ the dashboard locally:
    kubectl port-forward --namespace=${rl_cpu_mlflow_kubernetes_namespace_name} svc/mlflow-tracking-svc 5000:5000
    ```
 
-2. **Open your Browser:** Navigate to `http://localhost:5000`
+1. **Open your Browser:** Navigate to `http://localhost:5000`
 
-3. **View Experiment Runs:**
+1. **View Experiment Runs:**
+
    - Select the `MaxText-RL-GRPO-v5e` experiment.
    - Click on your active run (e.g., `Llama3.1-8B-GRPO-...`).
    - Inspect logged metrics (policy loss, reward values, KL divergence) and
@@ -158,10 +160,10 @@ constraints and runtime patches are applied:
    (`os.fork()`) which can cause `SIGABRT` crashes with JAX's C++ Protobuf
    engine. The pipeline forces Python protobufs and `spawn` multiprocessing mode
    at startup.
-2. **JAX Driver Compatibility**: The container image pins JAX TPU drivers
+1. **JAX Driver Compatibility**: The container image pins JAX TPU drivers
    (`jax[tpu]==0.4.25`) to prevent sharding constraint assertion failures during
    Tunix weight transfer to vLLM.
-3. **Memory & Mesh Tuning**:
+1. **Memory & Mesh Tuning**:
    - `rollout_tensor_parallelism=8`: Maps vLLM across all 8 TPU v5e chips.
    - `hbm_utilization_vllm=0.4`: Restricts vLLM HBM usage to 40% of TPU memory,
      preserving remaining memory for MaxText FSDP training and optimizer states.

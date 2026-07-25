@@ -2,7 +2,7 @@
 
 This guide provides step-by-step instructions for running Group Relative Policy Optimization (GRPO) Reinforcement Learning (RL) training, monitoring live metrics, and executing checkpoint evaluations on GKE using 8x Cloud TPU v6e slices.
 
-______________________________________________________________________
+---
 
 ## Quick Reference Workflow
 
@@ -15,7 +15,7 @@ flowchart TD
     Eval --> Results["6. Inspect GSM8K Accuracy & Outputs"]
 ```
 
-______________________________________________________________________
+---
 
 ## 1. Prerequisites & Environment Setup
 
@@ -43,7 +43,7 @@ kubectl create secret generic hf-secret \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
 
-______________________________________________________________________
+---
 
 ## 2. Step 1: One-Time HuggingFace Model Conversion
 
@@ -61,7 +61,7 @@ kubectl logs -f -l job-name=hf-to-maxtext-converter -n ${NAMESPACE}
 
 *Outputs will be saved to `${GCS_BUCKET}/llama_checkpoint_converted/0/items`.*
 
-______________________________________________________________________
+---
 
 ## 3. Step 2: Launch GRPO RL Training Job
 
@@ -71,7 +71,7 @@ Deploy the 150-step GRPO RL training job onto an 8-chip Cloud TPU v6e slice (`v6
 kubectl apply -k platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama-3-1-8b-instruct/
 ```
 
-______________________________________________________________________
+---
 
 ## 4. Step 3: Monitor Training Logs & Telemetry
 
@@ -93,7 +93,7 @@ gcloud storage ls ${GCS_BUCKET}/llama_checkpoint_converted/v6e-*/checkpoints/act
 tensorboard --logdir=${GCS_BUCKET}/llama_checkpoint_converted/v6e-*/tensorboard
 ```
 
-______________________________________________________________________
+---
 
 ## 5. Step 4: Launch Dedicated Checkpoint Evaluation Job
 
@@ -109,7 +109,7 @@ kubectl create configmap eval-script-ckpt50 \
 kubectl apply -f platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/eval-job-ckpt50.yaml
 ```
 
-______________________________________________________________________
+---
 
 ## 6. Step 5: Inspect Evaluation Results & Reasoning Outputs
 
@@ -133,10 +133,10 @@ gcloud storage cat ${GCS_BUCKET}/llama_checkpoint_converted/eval_results_50/eval
   | awk '{sum+=$3; count++} END {print "Total Evaluated Prompts: " count "\nAverage Reward Accuracy: " sum/count*100 "%"}'
 ```
 
-______________________________________________________________________
+---
 
 ## 7. Key Architecture Rules & Troubleshooting
 
 1. **Ephemeral Storage Limits:** Always maintain `requests.ephemeral-storage: 30Gi` and `limits.ephemeral-storage: 80Gi` in job manifests to accommodate OpenXLA AOT compilation files on `/tmp`.
-1. **Workload Identity:** Ensure all Job manifests specify `serviceAccountName: rl-kr-single-grpo-single-host-sa`.
-1. **Decoupled Execution:** Keep `eval_interval=0` during training to avoid TPU VFIO device lock collisions (`/dev/vfio/0: Device or resource busy`).
+2. **Workload Identity:** Ensure all Job manifests specify `serviceAccountName: rl-kr-single-grpo-single-host-sa`.
+3. **Decoupled Execution:** Keep `eval_interval=0` during training to avoid TPU VFIO device lock collisions (`/dev/vfio/0: Device or resource busy`).

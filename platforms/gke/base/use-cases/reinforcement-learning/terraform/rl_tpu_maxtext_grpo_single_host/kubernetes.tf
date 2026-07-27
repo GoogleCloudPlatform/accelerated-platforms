@@ -17,15 +17,15 @@ locals {
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
 
   workloads = {
-    rl_reinforcement_learning_mlflow = {
-      directory       = "${local.namespaces_directory}/${local.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name}"
-      namespace       = local.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name
-      service_account = local.rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name
+    rl_cpu_mlflow = {
+      directory       = "${local.namespaces_directory}/${local.rl_cpu_mlflow_kubernetes_namespace_name}"
+      namespace       = local.rl_cpu_mlflow_kubernetes_namespace_name
+      service_account = local.rl_cpu_mlflow_kubernetes_service_account_name
     }
-    rl_on_tpu = {
-      directory       = "${local.namespaces_directory}/${local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name}"
-      namespace       = local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name
-      service_account = local.rl_tpu_reinforcement_learning_on_tpu_kubernetes_service_account_name
+    rl_tpu_maxtext_grpo_single_host = {
+      directory       = "${local.namespaces_directory}/${local.rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name}"
+      namespace       = local.rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name
+      service_account = local.rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name
     }
   }
 

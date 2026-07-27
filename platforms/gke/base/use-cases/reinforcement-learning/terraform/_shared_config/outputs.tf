@@ -16,7 +16,11 @@ output "rl_dataset_bucket_name" {
   value = local.rl_dataset_bucket_name
 }
 
-output "rl_tpu_reinforcement_learning_on_tpu_image_url" {
-  value = local.rl_tpu_reinforcement_learning_on_tpu_image_url
+output "rl_tpu_maxtext_grpo_single_host_image_url" {
+  value = local.rl_tpu_maxtext_grpo_single_host_image_url
+}
+
+output "rl_cpu_mlflow_kubernetes_namespace_name" {
+  value = local.rl_cpu_mlflow_kubernetes_namespace_name
 }
 

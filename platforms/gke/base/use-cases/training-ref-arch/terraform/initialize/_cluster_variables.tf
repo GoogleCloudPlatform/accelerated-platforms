@@ -1,1 +1,1 @@
-../../_shared_config/_cluster_variables.tf
+../../../../_shared_config/cluster_variables.tf

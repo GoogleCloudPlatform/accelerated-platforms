@@ -94,7 +94,7 @@ This example is built on top of the
   For TPU v6e:
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/v6e-2x4-llama-3-1-8b-instruct"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama-3-1-8b-instruct"
   ```
 
 - Watch the reinforcement learning job until it is complete.
@@ -129,7 +129,7 @@ the dashboard locally:
 1. **Port-forward the MLflow Service:**
 
    ```shell
-   kubectl port-forward --namespace=${rl_cpu_mlflow_kubernetes_namespace_name} svc/mlflow-tracking-svc 5000:5000
+   kubectl port-forward --namespace=${rl_cpu_mlflow_kubernetes_namespace_name} svc/mlflow-service-svc 5000:5000
    ```
 
 1. **Open your Browser:** Navigate to `http://localhost:5000`

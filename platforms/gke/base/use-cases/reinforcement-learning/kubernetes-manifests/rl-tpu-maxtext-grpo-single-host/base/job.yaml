@@ -38,6 +38,8 @@ spec:
               cpu: "28"
               ephemeral-storage: "80Gi"
           env:
+            - name: MLFLOW_TRACKING_URI
+              value: "http://mlflow-service-svc:5000"
             - name: HF_TOKEN
               valueFrom:
                 secretKeyRef:

@@ -67,7 +67,10 @@ the primary runtime.
     - [Data preparation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/data-preparation.md)
     - [Fine tuning](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/fine-tuning.md)
     - [Model evaluation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/model-evaluation.md)
-  - [Single-host SFT using MaxText with TPUs](/docs/platforms/gke/base/use-cases/training-ref-arch/sft-tpu-maxtext-single-host/README.md)
+  - Supervised fine tuning
+    - [Single-host SFT using MaxText with TPUs](/docs/platforms/gke/base/use-cases/training-ref-arch/sft-tpu-maxtext-single-host/README.md)
+    - [Multi-host SFT using MaxText with TPUs](/docs/platforms/gke/base/use-cases/training-ref-arch/sft-tpu-maxtext-multi-host/README.md)
+
 - [Reinforcement Learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md)
   - [RL on TPU](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md)
 

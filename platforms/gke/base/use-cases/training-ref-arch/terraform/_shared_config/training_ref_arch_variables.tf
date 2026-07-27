@@ -17,7 +17,7 @@ locals {
   sft_tpu_maxtext_single_host_image_url                       = var.sft_tpu_maxtext_single_host_image_url != null ? var.sft_tpu_maxtext_single_host_image_url : "${local.cloudbuild_ar_image_repository_url}/training-ref-arch/sft-tpu-maxtext-single-host:latest"
   sft_tpu_maxtext_single_host_kubernetes_namespace_name       = var.sft_tpu_maxtext_single_host_kubernetes_namespace_name != null ? var.sft_tpu_maxtext_single_host_kubernetes_namespace_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-sh"
   sft_tpu_maxtext_single_host_kubernetes_service_account_name = var.sft_tpu_maxtext_single_host_kubernetes_service_account_name != null ? var.sft_tpu_maxtext_single_host_kubernetes_service_account_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-sa"
-  sft_tpu_maxtext_single_host_dataset_bucket_name            = var.sft_tpu_maxtext_single_host_dataset_bucket_name != null ? var.sft_tpu_maxtext_single_host_dataset_bucket_name : "${local.sft_tpu_maxtext_single_host_project_id}-${local.unique_identifier_prefix}-sft-tpu-maxtext-sh-dataset"
+  sft_tpu_maxtext_single_host_dataset_bucket_name             = var.sft_tpu_maxtext_single_host_dataset_bucket_name != null ? var.sft_tpu_maxtext_single_host_dataset_bucket_name : "${local.sft_tpu_maxtext_single_host_project_id}-${local.unique_identifier_prefix}-sft-tpu-maxtext-sh-dataset"
 }
 
 variable "sft_tpu_maxtext_single_host_project_id" {

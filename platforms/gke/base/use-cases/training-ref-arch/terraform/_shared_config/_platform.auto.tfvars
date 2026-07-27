@@ -1,1 +1,1 @@
-../../../_shared_config/platform.auto.tfvars
+../../../../_shared_config/platform.auto.tfvars

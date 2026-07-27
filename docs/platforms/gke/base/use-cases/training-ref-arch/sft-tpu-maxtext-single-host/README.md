@@ -1,29 +1,42 @@
 # Single-host Supervised Fine-Tuning (SFT) with TPUs on Google Kubernetes Engine (GKE) using MaxText
 
-This example implements Supervised Fine-Tuning (SFT) using MaxText and Tunix on Cloud TPUs on Google Kubernetes Engine (GKE).
+This example implements Supervised Fine-Tuning (SFT) using MaxText and Tunix on
+Cloud TPUs on Google Kubernetes Engine (GKE).
 
-It leverages **MaxText**'s scalable FSDP training loops and **Tunix** post-training libraries on a single TPU v5e-8 slice (`v5e-2x4`) or TPU v6e-8 slice (`v6e-2x4`) to fine-tune Llama-3.1-8B-Instruct on instruction-following datasets.
+It leverages **MaxText**'s scalable FSDP training loops and **Tunix**
+post-training libraries on a single TPU v5e-8 slice (`v5e-2x4`) or TPU v6e-8
+slice (`v6e-2x4`) to fine-tune Llama-3.1-8B-Instruct on instruction-following
+datasets.
 
-This use-case is built on top of the [GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md).
+This use-case is built on top of the
+[GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md).
 
 ## Before you begin
 
-- The [GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md) is deployed and configured.
+- The
+  [GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md)
+  is deployed and configured.
 
 - Get access to the model.
+
   - For Llama-3.1:
     - Accept the terms of the license on the Hugging Face model page:
       - [**meta-llama/Llama-3.1-8B-Instruct**](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct)
 
-- Ensure your [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md) has been added to Secret Manager.
+- Ensure your
+  [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
+  has been added to Secret Manager.
 
 - Hardware & Storage Prerequisites:
-  - **Hardware**: This configuration is tuned for a **TPU v5e-8** (`v5e-2x4`) or **TPU v6e-8** (`v6e-2x4`) slice topology.
-  - **Storage**: GCS bucket configured for storing Hugging Face converted checkpoints and SFT checkpoint weights.
+  - **Hardware**: This configuration is tuned for a **TPU v5e-8** (`v5e-2x4`) or
+    **TPU v6e-8** (`v6e-2x4`) slice topology.
+  - **Storage**: GCS bucket configured for storing Hugging Face converted
+    checkpoints and SFT checkpoint weights.
 
 ## Create and configure the Google Cloud resources
 
-- Deploy the SFT cloud infrastructure resources (SFT dataset bucket, Kubernetes service accounts, IAM bindings, and namespaces).
+- Deploy the SFT cloud infrastructure resources (SFT dataset bucket, Kubernetes
+  service accounts, IAM bindings, and namespaces).
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
@@ -105,11 +118,15 @@ This use-case is built on top of the [GKE Training Reference Architecture](/plat
 
 ## Viewing Metrics (MLflow & TensorBoard)
 
-MaxText logs step metrics directly to TensorBoard format during execution. The `train.py` script automatically intercepts metrics using monkey patching of JAX metric writers (`clu.metric_writers.MultiWriter.write_scalars`) and pipes real-time metrics to **MLflow**.
+MaxText logs step metrics directly to TensorBoard format during execution. The
+`train.py` script automatically intercepts metrics using monkey patching of JAX
+metric writers (`clu.metric_writers.MultiWriter.write_scalars`) and pipes
+real-time metrics to **MLflow**.
 
 ### Accessing the MLflow UI
 
-Because MLflow runs inside the cluster, you can port-forward the service to view the dashboard locally:
+Because MLflow runs inside the cluster, you can port-forward the service to view
+the dashboard locally:
 
 1. **Port-forward the MLflow Service:**
 
@@ -126,6 +143,13 @@ Because MLflow runs inside the cluster, you can port-forward the service to view
 
 ## Critical Design Features
 
-1. **Automated Conversion**: Checkpoint conversion from Hugging Face format to MaxText is built directly into Python execution. If converted parameters do not exist in GCS, `train.py` launches `maxtext.checkpoint_conversion.to_maxtext` before starting training.
-2. **JAX-Level Metric Injection**: Real-time logging is handled via zero-code-change monkey patching of JAX's native `clu.metric_writers` API inside Python `runpy`, capturing loss scalars and streaming them instantly to the MLflow server.
-3. **Optimized Resource Layout**: Configured with a dedicated GCS bucket and GKE Workload Identity bindings for clean security isolation.
+1. **Automated Conversion**: Checkpoint conversion from Hugging Face format to
+   MaxText is built directly into Python execution. If converted parameters do
+   not exist in GCS, `train.py` launches
+   `maxtext.checkpoint_conversion.to_maxtext` before starting training.
+2. **JAX-Level Metric Injection**: Real-time logging is handled via
+   zero-code-change monkey patching of JAX's native `clu.metric_writers` API
+   inside Python `runpy`, capturing loss scalars and streaming them instantly to
+   the MLflow server.
+3. **Optimized Resource Layout**: Configured with a dedicated GCS bucket and GKE
+   Workload Identity bindings for clean security isolation.

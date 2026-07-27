@@ -1,1 +1,1 @@
-../../../_shared_config/cluster.auto.tfvars
+../../../../_shared_config/cluster.auto.tfvars

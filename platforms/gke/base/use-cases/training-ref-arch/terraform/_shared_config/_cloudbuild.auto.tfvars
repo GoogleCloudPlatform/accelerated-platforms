@@ -1,1 +1,1 @@
-../../../_shared_config/cloudbuild.auto.tfvars
+../../../../_shared_config/cloudbuild.auto.tfvars

@@ -13,9 +13,7 @@
 # limitations under the License.
 
 locals {
-  rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name       = var.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name != null ? var.rl_cpu_reinforcement_learning_mlflow_kubernetes_namespace_name : "${local.unique_identifier_prefix}-rl-mlflow"
-  rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name = var.rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name != null ? var.rl_cpu_reinforcement_learning_mlflow_kubernetes_service_account_name : "${local.unique_identifier_prefix}-rl-mlflow-sa"
-
+  rl_project_id              = var.rl_project_id != null ? var.rl_project_id : var.platform_default_project_id
   rl_dataset_bucket_name     = var.rl_dataset_bucket_name != null ? var.rl_dataset_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-dataset"
   rl_mlflow_data_bucket_name = var.rl_mlflow_data_bucket_name != null ? var.rl_mlflow_data_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-mlflow-data"
   rl_project_id              = var.rl_project_id != null ? var.rl_project_id : var.platform_default_project_id

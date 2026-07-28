@@ -24,7 +24,7 @@ configMapGenerator:
 images:
   - name: replaced-by-kustomize
     newName: vllm/vllm-tpu
-    newTag: gemma4
+    newTag: v0.25.0
 
 nameSuffix: -v6e-gemma-4-31b
 

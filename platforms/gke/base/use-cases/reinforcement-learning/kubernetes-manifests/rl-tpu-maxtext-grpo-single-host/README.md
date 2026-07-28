@@ -50,20 +50,24 @@ kubectl create secret generic hf-secret \
 
 ## 2. Step 1: One-Time HuggingFace Model Conversion
 
-Before starting RL training, convert the base HuggingFace weights
-(`meta-llama/Llama-3.1-8B-Instruct`) into MaxText Orbax format:
+Before starting RL training, convert the base HuggingFace weights into MaxText Orbax format. Running this on CPU nodes preserves valuable TPU resources:
 
 ```bash
-kubectl apply -f platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/model-conversion-job.yaml
+# Configure the CPU checkpoint converter
+export HF_MODEL_ID="meta-llama/Llama-3.1-8B-Instruct"
+platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/configure_checkpoint_converter.sh
+
+# Deploy the CPU Conversion Job
+kubectl apply -k platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/checkpoint-converter
 ```
 
 ### Monitor Model Conversion:
 
 ```bash
-kubectl logs -f -l job-name=hf-to-maxtext-converter -n ${NAMESPACE}
+kubectl logs -f -l app=maxtext-checkpoint-converter -n ${NAMESPACE}
 ```
 
-_Outputs will be saved to `${GCS_BUCKET}/llama_checkpoint_converted/0/items`._
+_Outputs will be saved to `${GCS_BUCKET}/maxtext-checkpoint-converter-output/`._
 
 ---
 

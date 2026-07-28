@@ -162,16 +162,16 @@ This example is built on top of the
 - Watch the deployment until it is ready.
 
   ```shell
-  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get deployment/vllm-v6e-gemma-4-31b | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get deployment/vllm-v6e-gemma-4-31b-it-mtp | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs deployment/vllm-v6e-gemma-4-31b --all-containers --tail 10"
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs deployment/vllm-v6e-gemma-4-31b-it-mtp --all-containers --tail 10"
   ```
 
 - When the deployment is ready, you will see output similar to the following:
 
   ```text
   NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-v6e-gemma-4-31b                      1/1     1            1           ###
+  vllm-v6e-gemma-4-31b-it-mtp                      1/1     1            1           ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -181,7 +181,7 @@ This example is built on top of the
   Start a port forward to the model service.
 
   ```shell
-  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} port-forward service/vllm-v6e-gemma-4-31b 8000:8000 >/dev/null & \
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} port-forward service/vllm-v6e-gemma-4-31b-it-mtp 8000:8000 >/dev/null & \
   PF_PID=$!
   ```
 

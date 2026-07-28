@@ -1,0 +1,78 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+configMapGenerator:
+  - envs:
+      - converter.env
+    name: converter-config
+    namespace: replaced-by-kustomize
+
+patches:
+  - path: set-compute-class.yaml
+
+replacements:
+  - source:
+      fieldPath: data.CONVERTER_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: converter-config
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Job
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: SecretProviderClass
+  - source:
+      fieldPath: data.CONVERTER_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: converter-config
+    targets:
+      - fieldPaths:
+          - spec.template.spec.serviceAccountName
+        select:
+          kind: Job
+          name: maxtext-checkpoint-converter
+  - source:
+      fieldPath: data.CONVERTER_IMAGE_URL
+      kind: ConfigMap
+      name: converter-config
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=converter].image
+        select:
+          kind: Job
+          name: maxtext-checkpoint-converter
+  - source:
+      kind: SecretProviderClass
+      name: huggingface-token-read
+      fieldPath: metadata.name
+    targets:
+      - select:
+          kind: Job
+          name: maxtext-checkpoint-converter
+        fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
+
+resources:
+  - job.yaml
+  - secretproviderclass-huggingface-tokens.yaml

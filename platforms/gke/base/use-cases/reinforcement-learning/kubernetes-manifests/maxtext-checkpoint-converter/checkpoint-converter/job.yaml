@@ -1,0 +1,66 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maxtext-checkpoint-converter
+  namespace: replaced-by-kustomize
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: maxtext-checkpoint-converter
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: replaced-by-kustomize
+      containers:
+        - name: converter
+          image: replaced-by-kustomize
+          resources:
+            requests:
+              cpu: "4"
+              memory: "16Gi"
+              ephemeral-storage: "40Gi"
+            limits:
+              cpu: "8"
+              memory: "32Gi"
+              ephemeral-storage: "80Gi"
+          env:
+            - name: MODEL_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_NAME
+                  name: converter-config
+            - name: BASE_OUTPUT_DIRECTORY
+              valueFrom:
+                configMapKeyRef:
+                  key: BASE_OUTPUT_DIRECTORY
+                  name: converter-config
+            - name: HF_MODEL_PATH
+              valueFrom:
+                configMapKeyRef:
+                  key: HF_MODEL_PATH
+                  name: converter-config
+          volumeMounts:
+            - mountPath: /var/run/secrets/huggingface.co
+              name: huggingface-token
+      volumes:
+        - csi:
+            driver: secrets-store-gke.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: huggingface-token-read
+          name: huggingface-token

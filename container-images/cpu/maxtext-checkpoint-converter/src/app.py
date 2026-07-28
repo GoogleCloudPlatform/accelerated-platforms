@@ -31,6 +31,18 @@ BASE_OUTPUT_DIRECTORY = os.environ.get("BASE_OUTPUT_DIRECTORY")
 HF_TOKEN = os.environ.get("HF_TOKEN") or os.environ.get("HF_ACCESS_TOKEN")
 HF_MODEL_PATH = os.environ.get("HF_MODEL_PATH") or os.environ.get("HF_IDS")
 
+# Fallback: Load HF token from mounted file if not present in environment variables
+if not HF_TOKEN:
+    token_path = "/var/run/secrets/huggingface.co/token"
+    if os.path.exists(token_path):
+        try:
+            with open(token_path, "r") as f:
+                HF_TOKEN = f.read().strip()
+            print(f"📖 Loaded Hugging Face token from mounted file: {token_path}", flush=True)
+        except Exception as e:
+            print(f"⚠️ Warning: Could not read mounted token from {token_path}: {e}", flush=True)
+
+
 # 2. Advanced Flags (Boolean settings with string fallback)
 SCAN_LAYERS = os.environ.get("SCAN_LAYERS", "false").lower() == "true"
 USE_MULTIMODAL = os.environ.get("USE_MULTIMODAL", "false").lower() == "true"

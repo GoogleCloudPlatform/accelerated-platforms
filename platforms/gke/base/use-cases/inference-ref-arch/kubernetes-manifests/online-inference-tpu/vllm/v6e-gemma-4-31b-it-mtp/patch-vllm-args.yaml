@@ -17,7 +17,7 @@
   value: "--chat-template=/gcs/google/gemma-4-31b/chat_template.jinja"
 - op: add
   path: /spec/template/spec/containers/1/args/-
-  value: "--speculative-config={\"method\":\"mtp\",\"num_speculative_tokens\":1}"
+  value: '--speculative-config={"method":"mtp","num_speculative_tokens":1}'
 - op: add
   path: /spec/template/spec/containers/1/args/-
   value: "--speculative-model=/gcs-drafter/$(DRAFTER_MODEL_ID)"

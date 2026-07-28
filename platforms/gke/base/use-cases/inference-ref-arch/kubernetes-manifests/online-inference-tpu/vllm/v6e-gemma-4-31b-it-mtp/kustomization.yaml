@@ -37,7 +37,6 @@ patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
 
-
 replacements:
   - source:
       fieldPath: data.APP_LABEL

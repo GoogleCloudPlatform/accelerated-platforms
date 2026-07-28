@@ -15,6 +15,7 @@ This example is built on top of the
 ## Before you begin
 
 - Get access to the models.
+
   - For Gemma-4:
     - Consent to the license on [Kaggle](https://www.kaggle.com/) using a
       Hugging Face account.
@@ -112,7 +113,7 @@ This example is built on top of the
   ```shell
   export HF_MODEL_ID="google/gemma-4-31b-it-assistant"
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  
+
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```

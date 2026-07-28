@@ -69,6 +69,20 @@ This example is built on top of the
 
   > The build usually takes 10 to 15 minutes.
 
+- Build the container image for the CPU MaxText checkpoint converter.
+
+  ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/images/cpu/maxtext-checkpoint-converter && \
+  rm -rf .terraform/ terraform.tfstate* && \
+  terraform init && \
+  terraform plan -input=false -out=tfplan && \
+  terraform apply -input=false tfplan && \
+  rm tfplan
+  ```
+
+  > The build usually takes 3 to 5 minutes.
+
 ## Deploy the reinforcement learning workload
 
 - Source the environment configuration.

@@ -1501,7 +1501,7 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_uc_training_ref_arch_st
   ignored_files   = local.platforms_gke_base_uc_training_ref_arch_standard_scripts_ignore
   included_files  = local.platforms_gke_base_uc_training_ref_arch_standard_scripts_include
   location        = var.build_location
-  name            = "platforms-gke-base-uc-inference-ref-arch-standard-scripts"
+  name            = "platforms-gke-base-uc-training-ref-arch-standard-scripts"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 

@@ -20,10 +20,6 @@ configMapGenerator:
       - runtime.env
     name: runtime
     namespace: replaced-by-kustomize
-  - name: train-script
-    namespace: replaced-by-kustomize
-    files:
-      - train.py=../../../../../../../../container-images/tpu/rl-tpu-maxtext-grpo-single-host/src/train.py
 
 resources:
   - job.yaml

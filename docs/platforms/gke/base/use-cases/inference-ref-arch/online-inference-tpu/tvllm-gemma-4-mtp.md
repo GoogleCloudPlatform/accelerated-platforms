@@ -10,6 +10,18 @@ This example is built on top of the [GKE Inference reference architecture](/docs
 
 - The [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md) is deployed and configured.
 
+- Inject these values into the appropriate tfvars files (`${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars` and `cluster.auto.tfvars`) using sed.
+
+  ```shell
+  # Update platform variables
+  sed -i 's/^platform_name.*/platform_name = "<platform_name>"/g' "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
+  grep -q "^platform_default_project_id" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars" || echo "platform_default_project_id = \"\"" >> "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
+  sed -i 's/^platform_default_project_id.*/platform_default_project_id = "<project_id>"/g' "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
+
+  # Update cluster variables
+  sed -i 's/^cluster_region.*/cluster_region = "<cluster_region>"/g' "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars"
+  ```
+
 - Get access to the models.
   - For Gemma-4:
     - Consent to the license on [Kaggle](https://www.kaggle.com/) using a Hugging Face account.

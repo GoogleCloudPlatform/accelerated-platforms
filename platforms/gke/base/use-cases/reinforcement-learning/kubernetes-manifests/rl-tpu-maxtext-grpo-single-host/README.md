@@ -50,7 +50,8 @@ kubectl create secret generic hf-secret \
 
 ## 2. Step 1: One-Time HuggingFace Model Conversion
 
-Before starting RL training, convert the base HuggingFace weights into MaxText Orbax format. Running this on CPU nodes preserves valuable TPU resources:
+Before starting RL training, convert the base HuggingFace weights into MaxText
+Orbax format. Running this on CPU nodes preserves valuable TPU resources:
 
 ```bash
 # Configure the CPU checkpoint converter

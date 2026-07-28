@@ -12,6 +12,7 @@ mldiagnostics
 multiproc
 ndarray
 orbax
+prefuse
 pyconfig
 relpath
 returncode

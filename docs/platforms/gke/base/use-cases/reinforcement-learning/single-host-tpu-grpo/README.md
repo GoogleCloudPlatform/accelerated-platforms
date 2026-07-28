@@ -85,7 +85,9 @@ This example is built on top of the
 
 ## Convert the Hugging Face weights to MaxText format (using CPUs)
 
-Before starting reinforcement learning training, you can run a one-time CPU-based checkpoint conversion job to convert the base Hugging Face weights into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
+Before starting reinforcement learning training, you can run a one-time
+CPU-based checkpoint conversion job to convert the base Hugging Face weights
+into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
 - Configure the checkpoint converter deployment:
 
@@ -101,7 +103,8 @@ Before starting reinforcement learning training, you can run a one-time CPU-base
   kubectl apply -k "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/checkpoint-converter"
   ```
 
-  Once complete, your model checkpoints will be stored under `gs://${rl_dataset_bucket_name}/maxtext-checkpoint-converter-output/`.
+  Once complete, your model checkpoints will be stored under
+  `gs://${rl_dataset_bucket_name}/maxtext-checkpoint-converter-output/`.
 
 ## Deploy the reinforcement learning workload
 

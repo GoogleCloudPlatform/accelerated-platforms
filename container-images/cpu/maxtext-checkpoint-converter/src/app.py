@@ -20,7 +20,10 @@ import sys
 try:
     from maxtext.utils.globals import MAXTEXT_PKG_DIR
 except ImportError as e:
-    print(f"❌ ERROR: MaxText is not installed correctly or not available in Python path: {e}", flush=True)
+    print(
+        f"❌ ERROR: MaxText is not installed correctly or not available in Python path: {e}",
+        flush=True,
+    )
     sys.exit(1)
 
 # --- Configuration & Input Parsing ---
@@ -38,9 +41,15 @@ if not HF_TOKEN:
         try:
             with open(token_path, "r") as f:
                 HF_TOKEN = f.read().strip()
-            print(f"📖 Loaded Hugging Face token from mounted file: {token_path}", flush=True)
+            print(
+                f"📖 Loaded Hugging Face token from mounted file: {token_path}",
+                flush=True,
+            )
         except Exception as e:
-            print(f"⚠️ Warning: Could not read mounted token from {token_path}: {e}", flush=True)
+            print(
+                f"⚠️ Warning: Could not read mounted token from {token_path}: {e}",
+                flush=True,
+            )
 
 
 # 2. Advanced Flags (Boolean settings with string fallback)
@@ -67,7 +76,7 @@ def run_command(cmd_args, shell=False):
             stderr=subprocess.STDOUT,
             shell=shell,
             text=True,
-            bufsize=1
+            bufsize=1,
         )
 
         for line in process.stdout:
@@ -102,24 +111,41 @@ def main():
 
     # Otherwise, execute the standard MaxText checkpoint converter
     if not BASE_OUTPUT_DIRECTORY:
-        print("❌ ERROR: Required environment variable 'BASE_OUTPUT_DIRECTORY' is not set.", flush=True)
-        print("Please set 'BASE_OUTPUT_DIRECTORY' to a valid GCS path (e.g. gs://bucket/path/to/output).", flush=True)
+        print(
+            "❌ ERROR: Required environment variable 'BASE_OUTPUT_DIRECTORY' is not set.",
+            flush=True,
+        )
+        print(
+            "Please set 'BASE_OUTPUT_DIRECTORY' to a valid GCS path (e.g. gs://bucket/path/to/output).",
+            flush=True,
+        )
         sys.exit(1)
 
     # HF Token check
     if not HF_TOKEN:
-        print("⚠️ Warning: HF_TOKEN is not set. This might fail if the model is gated or private.", flush=True)
+        print(
+            "⚠️ Warning: HF_TOKEN is not set. This might fail if the model is gated or private.",
+            flush=True,
+        )
     else:
         # Authenticate with huggingface-hub CLI if login token is set
         print("🔑 Logging into Hugging Face Hub...", flush=True)
-        run_command([sys.executable, "-c", f"from huggingface_hub import login; login(token='{HF_TOKEN}')"])
+        run_command(
+            [
+                sys.executable,
+                "-c",
+                f"from huggingface_hub import login; login(token='{HF_TOKEN}')",
+            ]
+        )
 
     base_yml = f"{MAXTEXT_PKG_DIR}/configs/base.yml"
     print(f"📄 Using MaxText base config: {base_yml}", flush=True)
 
     # Build the standard command-line parameters for to_maxtext.py
     cmd = [
-        sys.executable, "-m", f"maxtext.checkpoint_conversion.{COMMAND}",
+        sys.executable,
+        "-m",
+        f"maxtext.checkpoint_conversion.{COMMAND}",
         base_yml,
         f"model_name={MODEL_NAME}",
         f"base_output_directory={BASE_OUTPUT_DIRECTORY}",
@@ -152,7 +178,9 @@ def main():
         print(f"Weights are available at: {BASE_OUTPUT_DIRECTORY}", flush=True)
         sys.exit(0)
     else:
-        print(f"\n❌ Error: Checkpoint conversion failed with exit code {rc}", flush=True)
+        print(
+            f"\n❌ Error: Checkpoint conversion failed with exit code {rc}", flush=True
+        )
         sys.exit(rc)
 
 

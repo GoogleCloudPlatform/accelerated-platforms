@@ -1,0 +1,3 @@
+google-cloud-storage==3.13.0
+huggingface-hub==1.25.1
+maxtext[tpu-post-train]==0.2.2

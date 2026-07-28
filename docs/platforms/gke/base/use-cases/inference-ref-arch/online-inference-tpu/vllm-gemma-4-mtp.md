@@ -1,16 +1,37 @@
 # Online inference using vLLM with MTP Speculative Decoding and TPUs on Google Kubernetes Engine (GKE)
 
-This document implements online inference using Trillium TPUs on Google Kubernetes Engine (GKE) using vLLM with Multi-Token Prediction (MTP) Speculative Decoding enabled for the Gemma-4 model.
+This document implements online inference using Trillium TPUs on Google
+Kubernetes Engine (GKE) using vLLM with Multi-Token Prediction (MTP) Speculative
+Decoding enabled for the Gemma-4 model.
 
-Speculative decoding is a powerful optimization technique that enhances LLM inference speed without compromising output quality. Specifically, Gemma-4's MTP architecture uses an assistant (drafter) model to predict multiple tokens in parallel, which the main model then verifies in a single step.
+Speculative decoding is a powerful optimization technique that enhances LLM
+inference speed without compromising output quality. Specifically, Gemma-4's MTP
+architecture uses an assistant (drafter) model to predict multiple tokens in
+parallel, which the main model then verifies in a single step.
 
-This example is built on top of the [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
+This example is built on top of the
+[GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
 
 ## Before you begin
 
-- The [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md) is deployed and configured.
+- Get access to the models.
+  - For Gemma-4:
+    - Consent to the license on [Kaggle](https://www.kaggle.com/) using a
+      Hugging Face account.
+      - **google/gemma-4-31b-it**
+      - **google/gemma-4-31b-it-assistant**
 
-- Inject these values into the appropriate tfvars files (`${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars` and `cluster.auto.tfvars`) using sed.
+- Ensure your
+  [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
+  has been added to Secret Manager.
+
+## Create and configure the Google Cloud resources
+
+- Create a standard GKE cluster
+
+- Inject these values into the appropriate tfvars files
+  (`${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars` and
+  `cluster.auto.tfvars`) using sed.
 
   ```shell
   # Update platform variables
@@ -22,15 +43,11 @@ This example is built on top of the [GKE Inference reference architecture](/docs
   sed -i 's/^cluster_region.*/cluster_region = "<cluster_region>"/g' "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars"
   ```
 
-- Get access to the models.
-  - For Gemma-4:
-    - Consent to the license on [Kaggle](https://www.kaggle.com/) using a Hugging Face account.
-      - **google/gemma-4-31b-it**
-      - **google/gemma-4-31b-it-assistant**
+  For Standard Cluster:
 
-- Ensure your [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md) has been added to Secret Manager.
-
-## Create and configure the Google Cloud resources
+  ```shell
+  ${ACP_REPO_DIR}/platforms/gke/base/core/deploy-standard.sh
+  ```
 
 - Deploy the online TPU resources.
 
@@ -45,13 +62,12 @@ This example is built on top of the [GKE Inference reference architecture](/docs
 
 ## Download the models to Cloud Storage
 
-- Choose the model and drafter.
+- Choose the main model.
 
   - **Gemma 4 31B Instruction-Tuned (MTP)**:
 
     ```shell
     export HF_MODEL_ID="google/gemma-4-31b-it"
-    export DRAFTER_MODEL_ID="google/gemma-4-31b-it-assistant"
     ```
 
 - Source the environment configuration.
@@ -60,19 +76,14 @@ This example is built on top of the [GKE Inference reference architecture](/docs
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
-- Configure the model download job. Note that the MTP patch intercepts the download to fetch both models.
+- Configure and deploy the main model download job.
 
   ```shell
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
-  ```
-
-- Deploy the model download job.
-
-  ```shell
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
 
-- Watch the model download job until it is complete.
+- Watch the main model download job until it is complete.
 
   ```shell
   watch --color --interval 5 --no-title \
@@ -90,13 +101,45 @@ This example is built on top of the [GKE Inference reference architecture](/docs
 
   You can press `CTRL`+`c` to terminate the watch.
 
-- Delete the model download job.
+- Delete the main model download job.
+
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
+  ```
+
+- Choose the drafter model and run the download job again.
+
+  ```shell
+  export HF_MODEL_ID="google/gemma-4-31b-it-assistant"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
+  ```
+
+- Watch the drafter model download job until it is complete.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-hf-model-to-gcs | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --all-containers --tail 10"
+  ```
+
+- Delete the drafter model download job.
 
   ```shell
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
   ```
 
 ## Deploy the inference workload
+
+- Set the environment variables for both models.
+
+  ```shell
+  export HF_MODEL_ID="google/gemma-4-31b-it"
+  export DRAFTER_MODEL_ID="google/gemma-4-31b-it-assistant"
+  ```
 
 - Source the environment configuration.
 

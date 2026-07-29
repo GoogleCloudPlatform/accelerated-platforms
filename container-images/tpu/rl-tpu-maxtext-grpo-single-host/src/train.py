@@ -96,7 +96,7 @@ else:
 # --- 4. MLFLOW SETUP & LOGGING INTERCEPTOR ---
 # Initialize MLflow strictly on the main thread
 mlflow.set_tracking_uri(
-    os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow-service-v5e:5000")
+    os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow-service-svc:5000")
 )
 mlflow.set_experiment("MaxText-RL-GRPO-v5e")
 

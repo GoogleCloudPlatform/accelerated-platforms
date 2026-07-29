@@ -18,7 +18,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "7.6.0"
+      version = "6.49.2"
     }
     local = {
       source  = "hashicorp/local"
@@ -27,6 +27,6 @@ terraform {
   }
 
   provider_meta "google" {
-    module_name = "cloud-solutions/rl_on_tpu_deploy-v1"
+    module_name = "cloud-solutions/acp_rl_images_tpu_rl_tpu_maxtext_grpo_single_host_deploy-v1"
   }
 }

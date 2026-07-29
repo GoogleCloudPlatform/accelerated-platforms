@@ -81,7 +81,7 @@ done
 Retrieve GKE cluster credentials and verify the deployment. Note: if using NAP (Node Auto-Provisioning), nodes may not be visible until workloads are deployed.
 
 ```bash
-gcloud container clusters get-credentials "<platform_name>" --region "<cluster_region>" --project "<project_id>"
+gcloud container clusters get-credentials "<platform_name>" --region "<cluster_region>" --project "<project_id>" --dns-endpoint
 kubectl get computeclasses
 kubectl get namespaces # You should see the online_gpu and/or online_tpu namespace depending on what was deployed
 ```

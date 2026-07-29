@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runtime-v6e-64c-pwcrd-sft-qwen3-14b
+  namespace: rl-kr-single-grpo-single-host
+data:
+  BASE_OUTPUT_DIRECTORY: gs://accelerated-platforms-dev-rl-kr-single-dataset
+  CONTAINER_IMAGE_URL: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+  HF_MODEL_ID: Qwen/Qwen3-14B
+  LOAD_PARAMETERS_PATH: gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models/qwen3_14b_fresh_v023/0/items
+  MODEL_NAME: qwen3-14b
+  RUN_NAME: qwen3-14b-multislice-pwcrd-sft-run1
+---
+apiVersion: pathways-job.pathways.domain/v1
+kind: PathwaysJob
+metadata:
+  name: pw-sft-14b
+  namespace: rl-kr-single-grpo-single-host
+spec:
+  controller:
+    deploymentMode: colocate_head_with_workers
+    mainContainerName: sft-trainer
+    template:
+      spec:
+        serviceAccountName: rl-kr-single-grpo-single-host-sa
+        tolerations:
+        - operator: "Exists"
+        containers:
+        - name: sft-trainer
+          image: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+          command:
+          - /bin/bash
+          - -c
+          args:
+          - |
+            set -ex
+
+            # Background cleanup loop
+            (while true; do
+               sleep 120
+               rm -rf /tmp/orbax* /tmp/vllm* /tmp/ray* /root/.cache/huggingface/hub/tmp* 2>/dev/null || true
+             done) &
+
+            echo "Starting MaxText 0.2.3 64-Chip PathwaysJob SFT for Qwen3-14B..."
+
+            SFT_CONFIG_PATH=$(python3 -c "from maxtext.utils.globals import MAXTEXT_PKG_DIR; print(f'{MAXTEXT_PKG_DIR}/configs/post_train/sft.yml')")
+
+            export JAX_PLATFORMS=proxy
+            export JAX_BACKEND_TARGET=grpc://127.0.0.1:29000
+            export ENABLE_PATHWAYS_PERSISTENCE=1
+
+            python3 -m maxtext.trainers.post_train.sft.train_sft \
+              ${SFT_CONFIG_PATH} \
+              run_name=${RUN_NAME} \
+              base_output_directory=${BASE_OUTPUT_DIRECTORY} \
+              model_name=${MODEL_NAME} \
+              load_parameters_path=${LOAD_PARAMETERS_PATH} \
+              hf_access_token=${HF_TOKEN} \
+              per_device_batch_size=1 \
+              scan_layers=True \
+              steps=1000 \
+              checkpoint_storage_use_zarr3=0 \
+              checkpoint_storage_use_ocdbt=0 \
+              enable_single_controller=True \
+              managed_mldiagnostics=False \
+              upload_all_profiler_results=False
+          env:
+          - name: HF_TOKEN
+            valueFrom:
+              secretKeyRef:
+                key: token
+                name: hf-secret
+          envFrom:
+          - configMapRef:
+              name: runtime-v6e-64c-pwcrd-sft-qwen3-14b
+          resources:
+            limits:
+              google.com/tpu: "8"
+            requests:
+              google.com/tpu: "8"
+          volumeMounts:
+          - mountPath: /root/.cache
+            name: ephemeral-cache
+          - mountPath: /tmp
+            name: tmp-cache
+        volumes:
+        - name: ephemeral-cache
+          emptyDir:
+            sizeLimit: 150Gi
+        - name: tmp-cache
+          emptyDir:
+            sizeLimit: 50Gi
+        nodeSelector:
+          cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+          cloud.google.com/gke-tpu-topology: 2x4
+          cloud.google.com/reservation-name: tpu-v6e-64c-batch-2-reservation
+          topology.kubernetes.io/zone: us-east5-a
+        restartPolicy: Never
+  workers:
+  - type: ct6e-standard-8t
+    numSlices: 1
+    topology: 2x4

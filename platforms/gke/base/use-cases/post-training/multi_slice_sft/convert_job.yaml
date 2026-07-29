@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: convert-qwen3-14b-base-v023-fresh
+  name: convert-qwen3-14b-base-v023
   namespace: rl-kr-single-grpo-single-host
 spec:
   backoffLimit: 0
@@ -20,26 +20,26 @@ spec:
         - |
           set -ex
 
-          CONFIG_PATH=$(python3 -c "from maxtext.utils.globals import MAXTEXT_PKG_DIR; print(f'{MAXTEXT_PKG_DIR}/configs/models/qwen3-14b.yml')")
+          BASE_CONFIG_PATH=$(python3 -c "from maxtext.utils.globals import MAXTEXT_PKG_DIR; print(f'{MAXTEXT_PKG_DIR}/configs/base.yml')")
 
-          echo "Starting High-Speed MaxText v0.2.3 Checkpoint Conversion for Qwen/Qwen3-14B..."
+          echo "Starting Official MaxText v0.2.3 Base Model Conversion for Qwen/Qwen3-14B..."
 
           python3 -m maxtext.checkpoint_conversion.to_maxtext \
-            ${CONFIG_PATH} \
+            ${BASE_CONFIG_PATH} \
             model_name=qwen3-14b \
             hf_access_token=${HF_TOKEN} \
-            hf_model_path=Qwen/Qwen3-14B \
             base_output_directory=gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models/qwen3_14b_fresh_v023/ \
             scan_layers=True \
             use_multimodal=False \
             skip_jax_distributed_system=True \
             checkpoint_storage_use_zarr3=0 \
             checkpoint_storage_use_ocdbt=0 \
-            hardware=tpu \
-            lazy_load_tensors=True
+            hardware=cpu
 
           echo "Qwen/Qwen3-14B Base Checkpoint conversion complete!"
         env:
+        - name: JAX_PLATFORMS
+          value: "cpu"
         - name: HF_TOKEN
           valueFrom:
             secretKeyRef:
@@ -47,9 +47,11 @@ spec:
               name: hf-secret
         resources:
           limits:
-            google.com/tpu: "8"
+            cpu: "32"
+            memory: 120Gi
           requests:
-            google.com/tpu: "8"
+            cpu: "16"
+            memory: 64Gi
         volumeMounts:
         - mountPath: /root/.cache
           name: ephemeral-cache
@@ -62,10 +64,4 @@ spec:
       - name: tmp-cache
         emptyDir:
           sizeLimit: 50Gi
-      nodeSelector:
-        cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
-        cloud.google.com/gke-tpu-topology: 2x4
-        # Optional: Set reservation name if running on a reserved slice
-        cloud.google.com/reservation-name: tpu-v6e-16c-batch-1-reservation
-        topology.kubernetes.io/zone: us-east5-a
       restartPolicy: Never

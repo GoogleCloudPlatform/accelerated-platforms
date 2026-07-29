@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runtime-v6e-2x4-llama-3-1-8b-rl
+  namespace: rl-kr-single-grpo-single-host
+data:
+  BASE_OUTPUT_DIRECTORY: gs://accelerated-platforms-dev-rl-kr-single-dataset
+  CONTAINER_IMAGE_URL: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+  HF_MODEL_ID: meta-llama/Llama-3.1-8B-Instruct
+  LOAD_PARAMETERS_PATH: gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models/llama3_1_8b_instruct_v023/0/items
+  MODEL_NAME: llama3.1-8b-Instruct
+  RUN_NAME: llama3-1-8b-instruct-grpo-v6e-run1
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maxtext-rl-grpo-v6e-run1
+  namespace: rl-kr-single-grpo-single-host
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/volumes: "true"
+    spec:
+      serviceAccountName: rl-kr-single-grpo-single-host-sa
+      tolerations:
+      - operator: "Exists"
+      containers:
+      - args:
+        - |
+          set -ex
+
+          CHAT_TEMPLATE_PATH=$(python3 -c "from maxtext.utils.globals import MAXTEXT_PKG_DIR; print(f'{MAXTEXT_PKG_DIR}/examples/chat_templates/gsm8k_rl.json')")
+
+          echo "Starting MaxText 0.2.3 RL GRPO Training (Streaming directly to GCS via GCS FUSE)..."
+          echo "Model Name: ${MODEL_NAME}"
+          echo "HF Model ID: ${HF_MODEL_ID}"
+          echo "Load Path: ${LOAD_PARAMETERS_PATH}"
+          echo "Output Path: ${BASE_OUTPUT_DIRECTORY}"
+          echo "Run Name: ${RUN_NAME}"
+
+          python3 -m maxtext.trainers.post_train.rl.train_rl \
+            model_name=${MODEL_NAME} \
+            load_parameters_path=${LOAD_PARAMETERS_PATH} \
+            run_name=${RUN_NAME} \
+            base_output_directory=${BASE_OUTPUT_DIRECTORY} \
+            hf_access_token=${HF_TOKEN} \
+            chat_template_path=${CHAT_TEMPLATE_PATH} \
+            tokenizer_path=${HF_MODEL_ID} \
+            vllm_hf_config_path=${HF_MODEL_ID} \
+            rl.loss_algo=grpo \
+            use_pathways=False \
+            debug.rl=False \
+            rl.rollout_engine=vllm \
+            rollout_tensor_parallelism=8 \
+            rollout_data_parallelism=1 \
+            rl.reasoning_start_token='<reasoning>' \
+            rl.reasoning_end_token='</reasoning>' \
+            rl.solution_start_token='<answer>' \
+            rl.solution_end_token='</answer>' \
+            batch_size=2 \
+            rl.num_generations=8 \
+            max_target_length=1024 \
+            max_prefill_predict_length=256 \
+            hbm_utilization_vllm=0.37 \
+            num_batches=150 \
+            learning_rate=5e-7 \
+            rl.grpo_beta=0.25 \
+            rl.penalty_reward=-0.1 \
+            rl.num_iterations=1 \
+            gradient_clipping_threshold=1.0 \
+            add_eos=True \
+            scan_layers=True \
+            log_period=10 \
+            return_log_prob=True \
+            checkpoint_period=25 \
+            save_checkpoint_on_completion=True \
+            num_test_batches=25 \
+            eval_interval=100 \
+            managed_mldiagnostics=False \
+            upload_all_profiler_results=False
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: token
+              name: hf-secret
+        envFrom:
+        - configMapRef:
+            name: runtime-v6e-2x4-llama-3-1-8b-rl
+        image: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+        name: grpo-trainer
+        resources:
+          limits:
+            google.com/tpu: "8"
+          requests:
+            google.com/tpu: "8"
+        volumeMounts:
+        - mountPath: /root/.cache/huggingface
+          name: gcs-fuse-volume
+          subPath: hf_cache
+        - mountPath: /tmp
+          name: gcs-fuse-volume
+          subPath: tmp_cache
+      volumes:
+      - name: gcs-fuse-volume
+        csi:
+          driver: gcsfuse.csi.storage.gke.io
+          readOnly: false
+          volumeAttributes:
+            bucketName: accelerated-platforms-dev-rl-kr-single-dataset
+            mountOptions: "implicit-dirs"
+      nodeSelector:
+        cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+        cloud.google.com/gke-tpu-topology: 2x4
+        # Optional: Uncomment and set if targeting a specific Cloud TPU reservation
+        # cloud.google.com/reservation-name: tpu-v6e-16c-batch-1-reservation
+        topology.kubernetes.io/zone: us-east5-a
+      restartPolicy: Never

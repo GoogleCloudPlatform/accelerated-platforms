@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runtime-v6e-2x4-sft-llama-8b
+  namespace: rl-kr-single-grpo-single-host
+data:
+  BASE_OUTPUT_DIRECTORY: gs://accelerated-platforms-dev-rl-kr-single-dataset
+  CONTAINER_IMAGE_URL: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+  HF_MODEL_ID: meta-llama/Llama-3.1-8B-Instruct
+  LOAD_PARAMETERS_PATH: gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models/llama3_1_8b_instruct_v023/0/items
+  MODEL_NAME: llama3.1-8b-Instruct
+  RUN_NAME: llama3-8b-sft-run1
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: maxtext-sft-v6e-8c
+  namespace: rl-kr-single-grpo-single-host
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      tolerations:
+      - operator: "Exists"
+      containers:
+      - args:
+        - |
+          set -ex
+
+          # Periodic JAX/Orbax cache cleanup thread (every 10 mins)
+          (while true; do
+             sleep 600
+             rm -rf /tmp/orbax* /root/.cache/huggingface/hub/tmp* /tmp/vllm* 2>/dev/null || true
+           done) &
+
+          echo "Starting MaxText 0.2.3 Single-Host Supervised Fine-Tuning (SFT)..."
+          echo "Model Name: ${MODEL_NAME}"
+          echo "HF Model ID: ${HF_MODEL_ID}"
+          echo "Load Path: ${LOAD_PARAMETERS_PATH}"
+          echo "Output Path: ${BASE_OUTPUT_DIRECTORY}"
+          echo "Run Name: ${RUN_NAME}"
+
+          python3 -m maxtext.trainers.post_train.sft.train_sft \
+            run_name=${RUN_NAME} \
+            base_output_directory=${BASE_OUTPUT_DIRECTORY} \
+            model_name=${MODEL_NAME} \
+            load_parameters_path=${LOAD_PARAMETERS_PATH} \
+            hf_access_token=${HF_TOKEN} \
+            per_device_batch_size=1 \
+            steps=1000 \
+            hf_path=HuggingFaceH4/ultrachat_200k \
+            train_split=train_sft \
+            train_data_columns="['messages']" \
+            skip_jax_distributed_system=True \
+            checkpoint_storage_use_zarr3=0 \
+            checkpoint_storage_use_ocdbt=0 \
+            managed_mldiagnostics=False \
+            upload_all_profiler_results=False
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: token
+              name: hf-secret
+        envFrom:
+        - configMapRef:
+            name: runtime-v6e-2x4-sft-llama-8b
+        image: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+        name: sft-trainer
+        resources:
+          limits:
+            google.com/tpu: "8"
+          requests:
+            google.com/tpu: "8"
+        volumeMounts:
+        - mountPath: /root/.cache
+          name: ephemeral-cache
+        - mountPath: /tmp
+          name: tmp-cache
+      volumes:
+      - name: ephemeral-cache
+        emptyDir:
+          sizeLimit: 150Gi
+      - name: tmp-cache
+        emptyDir:
+          sizeLimit: 50Gi
+      nodeSelector:
+        cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+        cloud.google.com/gke-tpu-topology: 2x4
+        # Optional: Uncomment and set if targeting a specific Cloud TPU reservation
+        # cloud.google.com/reservation-name: tpu-v6e-16c-batch-1-reservation
+        topology.kubernetes.io/zone: us-east5-a
+      restartPolicy: Never
+      serviceAccountName: rl-kr-single-grpo-single-host-sa

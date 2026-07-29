@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: convert-llama3-1-8b-instruct-to-maxtext
+  namespace: rl-kr-single-grpo-single-host
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      containers:
+      - args:
+        - |
+          set -ex
+
+          BASE_CONFIG_PATH=$(python3 -c "from maxtext.utils.globals import MAXTEXT_PKG_DIR; print(f'{MAXTEXT_PKG_DIR}/configs/base.yml')")
+
+          echo "Starting Hugging Face LLaMA 3.1 8B Instruct to MaxText v0.2.3 Checkpoint Conversion..."
+
+          python3 -m maxtext.checkpoint_conversion.to_maxtext \
+            ${BASE_CONFIG_PATH} \
+            model_name=llama3.1-8b-Instruct \
+            hf_access_token=${HF_TOKEN} \
+            hf_model_path=meta-llama/Llama-3.1-8B-Instruct \
+            base_output_directory=gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models/llama3_1_8b_instruct_v023/ \
+            scan_layers=True \
+            use_multimodal=False \
+            skip_jax_distributed_system=true \
+            checkpoint_storage_use_zarr3=0 \
+            checkpoint_storage_use_ocdbt=0 \
+            hardware=cpu \
+            lazy_load_tensors=True
+
+          echo "LLaMA 3.1 8B Instruct Checkpoint conversion complete!"
+        command:
+        - /bin/bash
+        - -c
+        env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef:
+              key: token
+              name: hf-secret
+        image: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+        name: converter
+        resources:
+          limits:
+            cpu: "16"
+            memory: 64Gi
+          requests:
+            cpu: "8"
+            memory: 32Gi
+        volumeMounts:
+        - mountPath: /root/.cache
+          name: ephemeral-cache
+        - mountPath: /tmp
+          name: tmp-cache
+      volumes:
+      - name: ephemeral-cache
+        emptyDir:
+          sizeLimit: 150Gi
+      - name: tmp-cache
+        emptyDir:
+          sizeLimit: 50Gi
+      restartPolicy: Never
+      serviceAccountName: rl-kr-single-grpo-single-host-sa

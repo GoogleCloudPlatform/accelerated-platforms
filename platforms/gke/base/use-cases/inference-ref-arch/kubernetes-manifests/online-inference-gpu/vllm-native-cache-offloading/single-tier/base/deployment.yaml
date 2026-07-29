@@ -40,10 +40,7 @@ spec:
             - "--load-format=runai_streamer"
             - '--model-loader-extra-config={"distributed":true}'
             - "--served-model-name=$(MODEL_ID)"
-            - "--kv-offloading-backend=$(KV_OFFLOADING_BACKEND)"
-            - "--kv-offloading-size=$(KV_OFFLOADING_SIZE)"
-            - "--block-size=$(BLOCK_SIZE)"
-            - "--kv-connector-extra-config=$(KV_CONNECTOR_EXTRA_CONFIG)"
+            - "--kv-transfer-config=$(KV_TRANSFER_CONFIG)"
           command:
             - python3
             - "-m"
@@ -91,10 +88,10 @@ spec:
                 configMapKeyRef:
                   key: BLOCK_SIZE
                   name: runtime
-            - name: KV_CONNECTOR_EXTRA_CONFIG
+            - name: KV_TRANSFER_CONFIG
               valueFrom:
                 configMapKeyRef:
-                  key: KV_CONNECTOR_EXTRA_CONFIG
+                  key: KV_TRANSFER_CONFIG
                   name: runtime
             - name: VLLM_XLA_CACHE_PATH
               value: /data

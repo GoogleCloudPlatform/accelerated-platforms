@@ -26,6 +26,7 @@ nameSuffix: -h100-qwen3-32b
 patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
+  - path: patch-vllm-args.yaml
 
 replacements:
   - source:

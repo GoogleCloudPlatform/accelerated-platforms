@@ -44,21 +44,29 @@ the primary runtime.
 - [Federated learning](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
 - [Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
 
-  - [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
-    - [Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
-      - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)
-      - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
-      - [Speculative Decoding using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-spec-decoding-with-hf-model.md)
-    - [Online inference with TPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/README.md)
-      - [Online inference using MaxDiffusion with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/max-diffusion-with-hf-model.md)
-      - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
-    - Async and Batch Inference
-      - [Async inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/async-inference/README.md)
-      - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/batch-inference/README.md)
-    - llm-d
-      - [Well-Lit paths](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/well-lit-paths/llmd-well-lit-paths.md)
-    - Run your own benchmarking
-      - [Benchmarking Online inference performance on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md)
+> [!NOTE] Agent Skills
+>
+> We have published a set of AI Agent Skills that automates GKE inference
+> reference architecture implementation and is a quick start way to deploy an
+> online inference / llm-d stack and perform benchmarking. See the
+> [skills](/skills) directory for more details.
+
+- [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+
+  - [Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
+    - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)
+    - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
+    - [Speculative Decoding using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-spec-decoding-with-hf-model.md)
+  - [Online inference with TPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/README.md)
+    - [Online inference using MaxDiffusion with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/max-diffusion-with-hf-model.md)
+    - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
+  - Async and Batch Inference
+    - [Async inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/async-inference/README.md)
+    - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/batch-inference/README.md)
+  - llm-d
+    - [Well-Lit paths](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/well-lit-paths/llmd-well-lit-paths.md)
+  - Run your own benchmarking
+    - [Benchmarking Online inference performance on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md)
 
 - [Training reference architecture](/docs/platforms/gke/base/use-cases/training-ref-arch/README.md)
 
@@ -89,10 +97,6 @@ concepts covered in the use cases.
 
 - [Scalable and Distributed LLM Inference on GKE with vLLM](/docs/use-cases/inferencing/README.md)
 - [Retrieval Augmented Generation (RAG) pipeline](/docs/use-cases/rag-pipeline/README.md)
-
-## Agent Skills
-
-We have published a set of AI Agent Skills that automate tasks like stack deployments, benchmarking, and workload tuning. See the [skills](/skills) directory for more details.
 
 ## Contributing
 

@@ -90,6 +90,10 @@ concepts covered in the use cases.
 - [Scalable and Distributed LLM Inference on GKE with vLLM](/docs/use-cases/inferencing/README.md)
 - [Retrieval Augmented Generation (RAG) pipeline](/docs/use-cases/rag-pipeline/README.md)
 
+## Agent Skills
+
+We have published a set of AI Agent Skills that automate tasks like stack deployments, benchmarking, and workload tuning. See the [skills](/skills) directory for more details.
+
 ## Contributing
 
 For more information about contributing to this repository, see

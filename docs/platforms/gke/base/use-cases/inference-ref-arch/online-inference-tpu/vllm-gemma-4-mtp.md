@@ -5,9 +5,41 @@ Kubernetes Engine (GKE) using vLLM with Multi-Token Prediction (MTP) Speculative
 Decoding enabled for the Gemma-4 model.
 
 Speculative decoding is a powerful optimization technique that enhances LLM
-inference speed without compromising output quality. Specifically, Gemma-4's MTP
-architecture uses an assistant (drafter) model to predict multiple tokens in
-parallel, which the main model then verifies in a single step.
+inference speed without compromising output quality. By drafting multiple future
+tokens and verifying them in parallel, it significantly improves latency
+compared to standard auto-regressive generation.
+
+### How MTP Differs from Other Speculative Decoding Methods
+
+There are several variations of speculative decoding. MTP (Multi-Token
+Prediction) takes a unique approach compared to traditional methods:
+
+| Method                            | Architecture                                                     | Training Approach                                                       | Alignment & Acceptance Rate                                                             | Key Characteristics                                                                                                     |
+| :-------------------------------- | :--------------------------------------------------------------- | :---------------------------------------------------------------------- | :-------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| **Standard Speculative Decoding** | Separate, smaller "draft" model and large "target" model.        | Models are trained completely independently.                            | **Lower:** Internal logic is separated, leading to frequent rejections.                 | Traditional approach. Simplest to implement but less efficient.                                                         |
+| **Draft-Head (e.g., EAGLE)**      | Additional "draft heads" attached directly to the target model.  | Draft heads are trained separately _after_ base model pre-training.     | **Higher:** Shares the target model's hidden states.                                    | Avoids a separate model, but adds significant post-training complexity.                                                 |
+| **MTP (Multi-Token Prediction)**  | Draft modules that share the main model's internal states.       | Draft modules are trained **jointly** with the base model from scratch. | **Highest:** Perfect alignment due to joint pre-training.                               | Gemma-4's architecture. Achieves superior efficiency without post-training add-ons. (Loaded as an "assistant" in vLLM). |
+| **dSpark**                        | Draft-head based parallel verification architecture.             | Typically requires separate training or distillation.                   | **High:** Uses parallel speculative verification.                                       | _Note: Currently, dSpark is supported via the SGLang inference engine._                                                 |
+| **N-gram (Prompt Lookup)**        | No extra model or head. Uses string matching against the prompt. | No training required.                                                   | **Variable:** High for repetitive/extractive tasks, very low for open-ended generation. | Completely training-free, but highly dependent on the prompt's content.                                                 |
+
+### Ideal Benchmarking Datasets for Speculative Decoding
+
+Because speculative decoding works by predicting future tokens, the achievable
+speedup is directly proportional to how predictable the generated text is. For
+this reason, speculative decoding architectures like MTP perform exceptionally
+well on:
+
+- **Extractive Summarization:** Where the model frequently quotes or restates
+  long phrases from the source text (e.g., **CNN Daily Mail**).
+- **Retrieval-Augmented Generation (RAG):** Where the context injected into the
+  prompt contains the literal answers the model will output.
+- **Code Generation & Formatting:** Where syntax, indentation, and variable
+  names are highly structured and repetitive (e.g., **HumanEval** or
+  **ShareGPT**).
+
+When benchmarking MTP, using datasets like `cnn_dailymail` rather than
+open-ended conversation datasets provides a much more accurate representation of
+the latency improvements you can expect in enterprise use cases.
 
 This example is built on top of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
@@ -210,6 +242,42 @@ This example is built on top of the
 
   ```shell
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/vllm/v6e-gemma-4-31b-it-mtp"
+  ```
+
+## Benchmark the inference workload
+
+- Set the variables for the benchmark.
+
+  ```shell
+  export ACCELERATOR="TPU"
+  export APP_LABEL="vllm-v6e-gemma-4-31b-it-mtp"
+  export HF_MODEL_ID="google/gemma-4-31b-it"
+  ```
+
+- Configure the benchmark manifests.
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-mtp/configure_benchmark.sh"
+  ```
+
+- Deploy the benchmark job.
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-mtp"
+  ```
+
+- Watch the benchmark job until it completes.
+
+  ```shell
+  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} get job -l app=inference-perf | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${ira_online_tpu_kubernetes_namespace_name} logs -l app=inference-perf --tail 10"
+  ```
+
+- Delete the benchmark workload.
+
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-mtp"
   ```
 
 ## Clean up

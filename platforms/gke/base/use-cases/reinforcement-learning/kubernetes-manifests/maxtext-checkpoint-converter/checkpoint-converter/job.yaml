@@ -26,6 +26,8 @@ spec:
     spec:
       restartPolicy: OnFailure
       serviceAccountName: replaced-by-kustomize
+      nodeSelector:
+        cloud.google.com/compute-class: model-converter
       containers:
         - name: converter
           image: replaced-by-kustomize
@@ -46,11 +48,6 @@ spec:
           env:
             - name: JAX_PLATFORMS
               value: "cpu"
-            - name: MODEL_NAME
-              valueFrom:
-                configMapKeyRef:
-                  key: MODEL_NAME
-                  name: converter-config
             - name: BASE_OUTPUT_DIRECTORY
               valueFrom:
                 configMapKeyRef:

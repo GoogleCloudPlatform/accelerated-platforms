@@ -45,24 +45,9 @@ spec:
               cpu: "16"
               memory: "64Gi"
               ephemeral-storage: "150Gi"
-          env:
-            - name: JAX_PLATFORMS
-              value: "cpu"
-            - name: BASE_OUTPUT_DIRECTORY
-              valueFrom:
-                configMapKeyRef:
-                  key: BASE_OUTPUT_DIRECTORY
-                  name: converter-config
-            - name: HF_MODEL_NAME
-              valueFrom:
-                configMapKeyRef:
-                  key: HF_MODEL_NAME
-                  name: converter-config
-            - name: USE_PATHWAYS
-              valueFrom:
-                configMapKeyRef:
-                  key: USE_PATHWAYS
-                  name: converter-config
+          envFrom:
+            - configMapRef:
+                name: converter-config
           volumeMounts:
             - mountPath: /scripts
               name: scripts

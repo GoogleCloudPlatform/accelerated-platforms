@@ -113,7 +113,7 @@ precedence over earlier ones:
   |          gemma-4-31b-it           |    ✅     |    ✅     |        ✅         |    ✅    |
   |             qwen3-32b             |    ✅     |    ✅     |        ✅         |    ✅    |
   |        Qwen/Qwen3-32B-FP8         |    ✅     |    ❌     |        ✅         |    ✅    |
-  | RedHatAI/gemma-4-31B-it-FP8-block |    ✅     |    ❌     |        ✅         |    ✅    |
+  | RedHatAI/gemma-4-31B-it-FP8-block |    ✅     |    ❌     |        ✅         |    ❌    |
 
 - Optional : Run the following step if you want to run the model on an
   accelerator other than `nvidia-rtx-pro` which is the default accelerator for

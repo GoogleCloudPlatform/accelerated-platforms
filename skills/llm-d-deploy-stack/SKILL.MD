@@ -59,6 +59,8 @@ This skill utilizes the following core variables:
     - **Allowed Models**:
       - `google/gemma-4-31b-it`
       - `qwen/qwen3-32b` (default)
+      - `Qwen/Qwen3-32B-FP8`
+      - `RedHatAI/gemma-4-31B-it-FP8-block`
     - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed models, and ask again.
 2.  **Ask the user**: "Which accelerator would you like to use?"
     - **Allowed Accelerators**:

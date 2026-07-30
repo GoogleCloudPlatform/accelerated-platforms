@@ -29,7 +29,7 @@ spec:
       maxPodsPerNode: 32
       spot: false
       storage:
-        localSSDCount: 1
+        localSSDCount: 2
     - machineType: c3-standard-16-lssd
       maxPodsPerNode: 32
       spot: false

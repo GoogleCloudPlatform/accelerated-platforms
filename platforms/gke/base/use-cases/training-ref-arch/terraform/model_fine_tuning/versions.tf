@@ -13,12 +13,12 @@
 # limitations under the License.
 
 terraform {
-  required_version = ">= 1.5.7"
+  required_version = ">= 1.8.0"
 
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "7.6.0"
+      version = "7.41.0"
     }
     helm = {
       source  = "hashicorp/helm"
@@ -26,7 +26,7 @@ terraform {
     }
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "2.38.0"
+      version = "3.2.1"
     }
     local = {
       source  = "hashicorp/local"

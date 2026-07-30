@@ -11,7 +11,7 @@ store.
 
 ## Architecture
 
-![data-processing](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/data-processing-ray-workflow.png)
+![data-processing](images/data-processing-ray-workflow.png)
 
 ## Data processing steps
 
@@ -255,31 +255,31 @@ In the Google Cloud console, go to the
   in the query:
 
   ```
-  labels."k8s-pod/app"="data-processing"
-  resource.type="k8s_container"
+  labels."k8s-pod/app" = "data-processing"
+  resource.type = "k8s_container"
   "Started" OR "Finished"
-  severity=INFO
+  severity = INFO
   ```
 
-  ![Logs Explorer - Job Started/Finished](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/logs-explorer-started-finished.png)
+  ![Logs Explorer - Job Started/Finished](images/logs-explorer-started-finished.png)
 
 - Find all error logs for the job:
 
   ```
-  labels."k8s-pod/app"="data-processing"
-  resource.type="k8s_container"
-  severity=ERROR
+  labels."k8s-pod/app" = "data-processing"
+  resource.type = "k8s_container"
+  severity = ERROR
   ```
 
 - Search for specific errors from the `textPayload` using a regex expression:
 
   ```
-  labels."k8s-pod/app"="data-processing"
-  resource.type="k8s_container"
+  labels."k8s-pod/app" = "data-processing"
+  resource.type = "k8s_container"
   textPayload =~ "WARNING - ray_worker_node_id.+Failed to (download|upload) image"
   ```
 
-  ![Logs Explorer - Failed Image Downloads](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/logs-explorer-failed-downloads.png)
+  ![Logs Explorer - Failed Image Downloads](images/logs-explorer-failed-downloads.png)
 
 You can narrow down the results by adding extra filters, such as using
 additional labels. For more GKE query samples, you can read
@@ -290,7 +290,7 @@ additional labels. For more GKE query samples, you can read
 You can also use
 [Log Analytics](https://cloud.google.com/logging/docs/log-analytics#analytics)
 to
-[analyze your logs](<(https://cloud.google.com/logging/docs/analyze/query-and-view)>).
+[analyze your logs](https://cloud.google.com/logging/docs/analyze/query-and-view).
 If your log buckets are not upgraded for Log Analytics, you need to upgrade them
 first. After the log buckets are upgraded, you can run SQL queries to gain
 insight from the newly ingested logs. The query results can also be charted. For
@@ -298,31 +298,33 @@ example, the following query returns the `Image not found` error and chart the
 result:
 
 ```sql
-WITH
-  logs AS (
-  SELECT
-    *
-  FROM
-    `[Your Project Id].global._Default._AllLogs` )
 SELECT
   timestamp,
   severity,
-  text_payload,
-  proto_payload,
-  json_payload
+  COALESCE(text_payload, JSON_VALUE(json_payload, '$.message')) AS log_message,
+  JSON_VALUE(resource.labels, '$.pod_name') AS pod_name
 FROM
-  logs
+  `[Your Project Id].global._Default._AllLogs`
 WHERE
-  SAFE.STRING(logs.labels["k8s-pod/app"]) = "data-processing"
-  AND logs.resource.type= "k8s_container"
-  AND logs.text_payload IS NOT NULL
-  AND REGEXP_CONTAINS(logs.text_payload, "WARNING - ray_worker_node_id.+Failed to (download|upload) image")
+  resource.type = 'k8s_container'
+  AND JSON_VALUE(labels, '$."k8s-pod/app"') = 'data-processing'
+  AND (
+    REGEXP_CONTAINS(text_payload, r'WARNING - ray_worker_node_id.+Failed to (download|upload) image')
+    OR REGEXP_CONTAINS(JSON_VALUE(json_payload, '$.message'), r'WARNING - ray_worker_node_id.+Failed to (download|upload) image')
+  )
 ORDER BY
-  timestamp DESC,
-  insert_id DESC
+  timestamp DESC
 LIMIT
   10000
 ```
 
 You should see output like the following:
-![use-log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/log-analytics-data-processing.png)
+
+![log-analytics-data-processing](images/log-analytics-data-processing.png)
+
+When charted, the result visualizes the frequency and timeline of image download and upload warning events throughout the workload execution:
+
+- **X-axis (`timestamp`)**: The timeline of the job execution, aggregated into automatic time intervals (such as 30-second buckets during an active job run).
+- **Y-axis (`rows`)**: The total count of image download/upload failure warning logs generated per time interval.
+- **Chart Interpretation**: As parallel `PreprocessingActor` worker nodes stream through assigned dataset chunks, they perform text cleanup and attempt image downloads/uploads for every product record. The bar peaks reflect high-throughput execution phases where multiple workers concurrently process dataset chunks and attempt image fetches across records containing inaccessible external URLs.
+

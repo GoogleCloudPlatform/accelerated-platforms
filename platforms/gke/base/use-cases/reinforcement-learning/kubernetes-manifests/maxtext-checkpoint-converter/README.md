@@ -36,10 +36,10 @@ You can customize the conversion settings by modifying
 `platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/checkpoint-converter/templates/converter.tpl.env`
 before running the configuration script:
 
-- `MODEL_NAME`: The target model configurations (e.g. `llama3.1-8b-Instruct`).
 - `BASE_OUTPUT_DIRECTORY`: The Cloud Storage bucket destination directory.
 - `HF_MODEL_PATH`: The Hugging Face repo name containing the base instruct model
   (e.g. `meta-llama/Llama-3.1-8B-Instruct`).
+- `USE_PATHWAYS`: Enables/disables Pathways for the conversion job (e.g. `0` or `1`). Default is `0`.
 
 ---
 

@@ -17,7 +17,6 @@ locals {
   rl_dataset_bucket_name     = var.rl_dataset_bucket_name != null ? var.rl_dataset_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-dataset"
   rl_mlflow_data_bucket_name = var.rl_mlflow_data_bucket_name != null ? var.rl_mlflow_data_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-mlflow-data"
 
-  rl_cpu_maxtext_checkpoint_converter_image_url                       = var.rl_cpu_maxtext_checkpoint_converter_image_url != null ? var.rl_cpu_maxtext_checkpoint_converter_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/cpu-maxtext-checkpoint-converter:latest"
   rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name       = var.rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name != null ? var.rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name : "${local.unique_identifier_prefix}-checkpoint-converter"
   rl_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name = var.rl_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name != null ? var.rl_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name : "${local.unique_identifier_prefix}-checkpoint-converter-sa"
 
@@ -27,12 +26,6 @@ locals {
   rl_tpu_maxtext_grpo_single_host_image_url                       = var.rl_tpu_maxtext_grpo_single_host_image_url != null ? var.rl_tpu_maxtext_grpo_single_host_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/grpo-single-host:latest"
   rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name       = var.rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name != null ? var.rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name : "${local.unique_identifier_prefix}-grpo-single-host"
   rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name = var.rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name != null ? var.rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name : "${local.unique_identifier_prefix}-grpo-single-host-sa"
-}
-
-variable "rl_cpu_maxtext_checkpoint_converter_image_url" {
-  default     = null
-  description = "The URL for the MaxText Checkpoint Converter CPU container image."
-  type        = string
 }
 
 variable "rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name" {

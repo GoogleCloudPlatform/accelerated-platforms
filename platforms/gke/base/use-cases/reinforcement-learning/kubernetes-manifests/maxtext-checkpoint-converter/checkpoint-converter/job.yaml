@@ -29,16 +29,23 @@ spec:
       containers:
         - name: converter
           image: replaced-by-kustomize
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - /scripts/convert.sh
           resources:
             requests:
-              cpu: "4"
-              memory: "16Gi"
-              ephemeral-storage: "40Gi"
-            limits:
               cpu: "8"
               memory: "32Gi"
-              ephemeral-storage: "80Gi"
+              ephemeral-storage: "50Gi"
+            limits:
+              cpu: "16"
+              memory: "64Gi"
+              ephemeral-storage: "150Gi"
           env:
+            - name: JAX_PLATFORMS
+              value: "cpu"
             - name: MODEL_NAME
               valueFrom:
                 configMapKeyRef:
@@ -54,13 +61,34 @@ spec:
                 configMapKeyRef:
                   key: HF_MODEL_PATH
                   name: converter-config
+            - name: USE_PATHWAYS
+              valueFrom:
+                configMapKeyRef:
+                  key: USE_PATHWAYS
+                  name: converter-config
           volumeMounts:
+            - mountPath: /scripts
+              name: scripts
             - mountPath: /var/run/secrets/huggingface.co
               name: huggingface-token
+            - mountPath: /root/.cache
+              name: ephemeral-cache
+            - mountPath: /tmp
+              name: tmp-cache
       volumes:
+        - configMap:
+            defaultMode: 0744
+            name: maxtext-checkpoint-converter-scripts
+          name: scripts
         - csi:
             driver: secrets-store-gke.csi.k8s.io
             readOnly: true
             volumeAttributes:
               secretProviderClass: huggingface-token-read
           name: huggingface-token
+        - name: ephemeral-cache
+          emptyDir:
+            sizeLimit: 150Gi
+        - name: tmp-cache
+          emptyDir:
+            sizeLimit: 50Gi

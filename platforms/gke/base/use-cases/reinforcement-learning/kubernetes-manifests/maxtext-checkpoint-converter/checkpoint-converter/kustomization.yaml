@@ -74,5 +74,6 @@ replacements:
           - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
 
 resources:
+  - configmap-scripts.yaml
   - job.yaml
   - secretproviderclass-huggingface-tokens.yaml

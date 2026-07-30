@@ -245,7 +245,7 @@ above:
 You can also use
 [Log Analytics](https://cloud.google.com/logging/docs/log-analytics#analytics)
 to
-[analyze your logs](<(https://cloud.google.com/logging/docs/analyze/query-and-view)>).
+[analyze your logs](https://cloud.google.com/logging/docs/analyze/query-and-view).
 If your log buckets are not upgraded for Log Analytics, you need to upgrade them
 first. After the log buckets are upgraded, you can run SQL queries to gain
 insight from the newly ingested logs. The query results can also be charted. For

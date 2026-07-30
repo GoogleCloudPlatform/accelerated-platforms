@@ -53,10 +53,10 @@ spec:
                 configMapKeyRef:
                   key: BASE_OUTPUT_DIRECTORY
                   name: converter-config
-            - name: HF_MODEL_PATH
+            - name: HF_MODEL_NAME
               valueFrom:
                 configMapKeyRef:
-                  key: HF_MODEL_PATH
+                  key: HF_MODEL_NAME
                   name: converter-config
             - name: USE_PATHWAYS
               valueFrom:

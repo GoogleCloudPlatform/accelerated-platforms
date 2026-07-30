@@ -11,6 +11,7 @@ maxtext
 mldiagnostics
 multiproc
 ndarray
+ocdbt
 orbax
 prefuse
 pyconfig
@@ -26,3 +27,4 @@ tunix
 vfio
 warmkeeper
 xplane
+zarr

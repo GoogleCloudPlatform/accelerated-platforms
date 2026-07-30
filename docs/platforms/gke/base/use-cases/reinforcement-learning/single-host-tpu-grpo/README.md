@@ -24,13 +24,15 @@ This example is built on top of the
 
 - Hardware & Storage Prerequisites:
 
-  - **Hardware**: This configuration is tuned for a **TPU v6e-8** (`v6e-2x4`) slice topology.
+  - **Hardware**: This configuration is tuned for a **TPU v6e-8** (`v6e-2x4`)
+    slice topology.
   - **Storage**: Local ephemeral storage (or mounted SSD) at `/workspace` for
     handling model checkpoint conversions.
 
 ## Create and configure the Google Cloud resources
 
-- Deploy all required core infrastructure and reinforcement learning cloud resources in a single step using the automated deployment script:
+- Deploy all required core infrastructure and reinforcement learning cloud
+  resources in a single step using the automated deployment script:
 
   ```shell
   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform" && \
@@ -70,13 +72,13 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
   - **Llama 3.1 8B Instruction-Tuned**:
 
     ```shell
-    export HF_MODEL_ID="meta-llama/llama-3.1-8B-Instruct"
+    export HF_MODEL_ID="llama3.1-8b-Instruct"
     ```
 
   - **Gemma 2 9B Instruction-Tuned**:
 
     ```shell
-    export HF_MODEL_ID="google/gemma-2-9b-it"
+    export HF_MODEL_ID="gemma4-26b"
     ```
 
 - Source the environment configuration:

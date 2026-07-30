@@ -39,7 +39,8 @@ before running the configuration script:
 - `BASE_OUTPUT_DIRECTORY`: The Cloud Storage bucket destination directory.
 - `HF_MODEL_PATH`: The Hugging Face repo name containing the base instruct model
   (e.g. `meta-llama/Llama-3.1-8B-Instruct`).
-- `USE_PATHWAYS`: Enables/disables Pathways for the conversion job (e.g. `0` or `1`). Default is `0`.
+- `USE_PATHWAYS`: Enables/disables Pathways for the conversion job (e.g. `0` or
+  `1`). Default is `0`.
 
 ---
 

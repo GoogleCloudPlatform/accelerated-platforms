@@ -24,7 +24,7 @@ data:
 
     BASE_CONFIG_PATH=$(python3 -c "from maxtext.utils.globals import MAXTEXT_PKG_DIR; print(f'{MAXTEXT_PKG_DIR}/configs/base.yml')")
 
-    echo "Starting Hugging Face ${MODEL_NAME} to MaxText Checkpoint Conversion..."
+    echo "Starting Hugging Face ${HF_MODEL_NAME} to MaxText Checkpoint Conversion..."
 
     # If HF_TOKEN is not set, try to read from the mounted secret volume
     if [[ -z "${HF_TOKEN:-}" ]]; then

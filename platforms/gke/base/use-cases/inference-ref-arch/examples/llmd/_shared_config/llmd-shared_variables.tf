@@ -46,6 +46,8 @@ variable "llmd_model_id" {
   validation {
     condition = contains(
       [
+        "RedHatAI/gemma-4-31B-it-FP8-block",
+        "Qwen/Qwen3-32B-FP8",
         "google/gemma-4-31b-it",
         "qwen/qwen3-32b",
       ],

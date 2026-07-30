@@ -123,6 +123,7 @@
     "linux",
     "llmd",
     "llmdskills",
+    "models",
     "nvidia",
     "python",
     "ray",

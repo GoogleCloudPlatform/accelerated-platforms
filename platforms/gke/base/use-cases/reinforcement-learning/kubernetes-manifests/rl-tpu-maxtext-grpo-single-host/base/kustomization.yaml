@@ -23,3 +23,4 @@ configMapGenerator:
 
 resources:
   - job.yaml
+  - configmap-script.yaml

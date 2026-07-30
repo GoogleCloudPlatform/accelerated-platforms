@@ -49,15 +49,6 @@ replacements:
           - spec.template.spec.serviceAccountName
         select:
           kind: Job
-  - source:
-      fieldPath: data.MLFLOW_TRACKING_URI
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.template.spec.containers.[name=grpo-trainer].env.[name=MLFLOW_TRACKING_URI].value
-        select:
-          kind: Job
 
 resources:
   - ../base

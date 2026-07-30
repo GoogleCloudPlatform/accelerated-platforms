@@ -37,28 +37,16 @@ spec:
               google.com/tpu: "8"
               cpu: "28"
               ephemeral-storage: "80Gi"
-          env:
-            - name: MLFLOW_TRACKING_URI
-              value: "http://mlflow-service-svc:5000"
-            - name: HF_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: hf-secret
-                  key: token
-            - name: GCS_OUTPUT_PATH
-              value: "gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models"
-            - name: VLLM_TARGET_DEVICE
-              value: "tpu"
-            - name: JAX_PLATFORMS
-              value: "tpu"
-            - name: PYTHONUNBUFFERED
-              value: "1"
-            - name: VLLM_WORKER_MULTIPROC_METHOD
-              value: "spawn"
+          command:
+            - "/bin/bash"
+            - "/train.sh"
+          envFrom:
+            - configMapRef:
+                name: runtime
           volumeMounts:
             - name: train-script-vol
-              mountPath: /train.py
-              subPath: train.py
+              mountPath: /train.sh
+              subPath: train.sh
             - name: tmp-vol
               mountPath: /tmp
       volumes:

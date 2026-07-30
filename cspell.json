@@ -143,5 +143,34 @@
     "platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/model-evaluation/examples/",
     "use-cases/inferencing/batch-inference/example_predictions.txt",
     "use-cases/model-fine-tuning-pipeline/model-eval/examples/"
+  ],
+  "words": [
+    "a3b",
+    "faststart",
+    "gemma",
+    "gcsfusecsi",
+    "gvisor",
+    "igw",
+    "kimi",
+    "knative",
+    "loadgen",
+    "podsnapshot",
+    "podsnapshotpolicies",
+    "podsnapshotpolicy",
+    "podsnapshots",
+    "podsnapshotstorageconfig",
+    "podsnapshotstorageconfigs",
+    "qwen",
+    "qwen3",
+    "runai",
+    "safetensor",
+    "safetensors",
+    "scaledobject",
+    "secretproviderclass",
+    "secretproviderclasses",
+    "t_all_ready_sec",
+    "t_max_desired_sec",
+    "t_trigger_sec"
   ]
 }
+

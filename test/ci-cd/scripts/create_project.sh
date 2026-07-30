@@ -49,8 +49,14 @@ if [[ -v RESERVATIONS ]]; then
     zone=$(echo "${reservation}" | awk -F'-' '{print $(NF-2) "-" $(NF-1) "-" $NF}')
 
     echo "Adding project '${NEW_PROJECT_ID}' to shared reservation '${reservation}' in '${zone}'"
-    gcloud compute reservations update "${reservation}" \
+    retry_count=0
+    max_retries=3
+    until gcloud compute reservations update "${reservation}" \
       --add-share-with="${NEW_PROJECT_ID}" \
-      --zone="${zone}"
+      --zone="${zone}" || [ ${retry_count} -eq ${max_retries} ]; do
+      retry_count=$((retry_count + 1))
+      echo "  Reservation update failed with transient error, retrying (${retry_count}/${max_retries}) in 5s..."
+      sleep 5
+    done
   done
 fi

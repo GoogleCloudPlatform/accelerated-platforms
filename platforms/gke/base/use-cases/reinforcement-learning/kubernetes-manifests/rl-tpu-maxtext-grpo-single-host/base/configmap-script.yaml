@@ -23,6 +23,7 @@ data:
     set -ex
 
     CHAT_TEMPLATE_PATH=$(python3 -c "from maxtext.utils.globals import MAXTEXT_PKG_DIR; print(f'{MAXTEXT_PKG_DIR}/examples/chat_templates/gsm8k_rl.json')")
+    CONFIG_YML_PATH=$(python3 -c "from maxtext.utils.globals import MAXTEXT_PKG_DIR; print(f'{MAXTEXT_PKG_DIR}/configs/post_train/rl.yml')")
 
     echo "Starting MaxText RL GRPO Training..."
     echo "Model Name: ${HF_MODEL_NAME}"
@@ -31,7 +32,41 @@ data:
     echo "Run Name: ${RUN_NAME}"
 
     python3 -m maxtext.trainers.post_train.rl.train_rl \
+      ${CONFIG_YML_PATH} \
+      run_name=${RUN_NAME} \
+      base_output_directory=${BASE_OUTPUT_DIRECTORY} \
       model_name=${HF_MODEL_NAME} \
       load_parameters_path=${LOAD_PARAMETERS_PATH} \
-      run_name=${RUN_NAME} \
-      base_output_directory=${BASE_OUTPUT_DIRECTORY}
+      chat_template_path=${CHAT_TEMPLATE_PATH} \
+      hf_access_token=${HF_TOKEN} \
+      rl.loss_algo=grpo \
+      use_pathways=$([[ "${USE_PATHWAYS:-0}" =~ ^(1|[tT]rue)$ ]] && echo "True" || echo "False") \
+      debug.rl=False \
+      rl.rollout_engine=vllm \
+      rollout_tensor_parallelism=8 \
+      rollout_data_parallelism=1 \
+      rl.reasoning_start_token="'<reasoning>'" \
+      rl.reasoning_end_token="'</reasoning>'" \
+      rl.solution_start_token="'<answer>'" \
+      rl.solution_end_token="'</answer>'" \
+      batch_size=2 \
+      rl.num_generations=8 \
+      max_target_length=1024 \
+      max_prefill_predict_length=256 \
+      hbm_utilization_vllm=0.37 \
+      num_batches=150 \
+      learning_rate=5e-7 \
+      rl.grpo_beta=0.25 \
+      rl.penalty_reward=-0.1 \
+      rl.num_iterations=1 \
+      gradient_clipping_threshold=1.0 \
+      add_eos=True \
+      scan_layers=True \
+      log_period=10 \
+      return_log_prob=True \
+      checkpoint_period=25 \
+      save_checkpoint_on_completion=True \
+      num_test_batches=25 \
+      eval_interval=100 \
+      managed_mldiagnostics=False \
+      upload_all_profiler_results=False

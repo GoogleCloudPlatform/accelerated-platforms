@@ -40,6 +40,5 @@ spec:
             - "--kv-events-config"
             - '{"enable_kv_cache_events":true,"publisher":"zmq","endpoint":"$(KV_EVENTS_ENDPOINT)","topic":"kv@$(POD_IP):$(POD_PORT)@$(MODEL_ID)"}'
             - "--served-model-name=$(MODEL_ID)"
-            - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
             - "--load-format=runai_streamer"
             - '--model-loader-extra-config={"distributed":true}'

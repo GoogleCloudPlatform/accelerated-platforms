@@ -73,21 +73,6 @@ spec:
                 configMapKeyRef:
                   key: MODEL_BUCKET_NAME
                   name: deployment
-            - name: KV_OFFLOADING_BACKEND
-              valueFrom:
-                configMapKeyRef:
-                  key: KV_OFFLOADING_BACKEND
-                  name: runtime
-            - name: KV_OFFLOADING_SIZE
-              valueFrom:
-                configMapKeyRef:
-                  key: KV_OFFLOADING_SIZE
-                  name: runtime
-            - name: BLOCK_SIZE
-              valueFrom:
-                configMapKeyRef:
-                  key: BLOCK_SIZE
-                  name: runtime
             - name: KV_TRANSFER_CONFIG
               valueFrom:
                 configMapKeyRef:

@@ -16,6 +16,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: vllm
+  namespace: replaced-by-kustomize
 spec:
   template:
     spec:

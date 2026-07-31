@@ -26,7 +26,7 @@ images:
     newName: vllm/vllm-openai
     newTag: gemma4
 
-nameSuffix: -rtx-pro-6000-gemma-4-31b
+nameSuffix: -rtx-pro-6000-gemma-4-31b-it
 
 patches:
   - path: patch-nodeselector.yaml

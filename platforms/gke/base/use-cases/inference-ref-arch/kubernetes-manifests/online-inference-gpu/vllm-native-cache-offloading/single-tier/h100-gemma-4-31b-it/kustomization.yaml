@@ -21,7 +21,7 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -h100-gemma-4-31b
+nameSuffix: -h100-gemma-4-31b-it
 
 patches:
   - path: patch-nodeselector.yaml

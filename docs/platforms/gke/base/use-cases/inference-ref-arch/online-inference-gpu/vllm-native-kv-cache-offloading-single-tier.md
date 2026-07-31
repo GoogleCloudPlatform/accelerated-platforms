@@ -34,7 +34,7 @@ out-of-the-box.
 To compute the memory required to store the KV cache for a given sequence
 length, use the fundamental attention tensor formula:
 
-$$\text{Bytes per Token} = 2 \times \text{num\_layers} \times (\text{num\_kv\_heads} \times \text{head\_dim}) \times \text{bytes\_per\_element}$$
+$$\text{Bytes per Token} = 2 \times \text{num layers} \times (\text{num KV heads} \times \text{head dim}) \times \text{bytes per element}$$
 
 When serving standard, unquantized Hugging Face checkpoints, vLLM defaults to
 native BF16 precision (`bytes_per_element = 2`).
@@ -84,11 +84,11 @@ The following table is considering that the model inference will run on a single
 accelerator chip.
 
 | Model              | Machine Type                     | GPU / Accelerator Memory (per chip) | CPU System Memory (Host) | Model Weight Size (BF16) | Offload Space Needed (100k Tokens) [Method 1] | Absolute Max Safe Offload Size (`--kv-offloading-size`) | Maximum Offloading Token Capacity (Max Safe Pool)                 |
-| :----------------- | :------------------------------- | :---------------------------------- | :----------------------- | :----------------------- | :-------------------------------------------- | :------------------------------------------------------ | :---------------------------------------------------------------- | --- |
-| **Qwen3-32B**      | g4-standard-48 (1x RTX PRO 6000) | 96 GB VRAM                          | 180 GiB DRAM             | ~60.5 GiB                | 24.41 GiB                                     | **148 GiB** (180 GiB − 32 GiB Headroom)                 | **606,208 Tokens** (~606.2k tokens)                               |
-| **Qwen3-32B**      | a3-highgpu-1g (1x NVIDIA H100)   | 80 GB VRAM                          | 234 GiB DRAM             | ~60.5 GiB                | 24.41 GiB                                     | **202 GiB** (234 GiB − 32 GiB Headroom)                 | **827,392 Tokens** (~827.4k tokens)                               |     |
-| **Gemma 4-31B-IT** | g4-standard-48 (1x RTX PRO 6000) | 96 GB VRAM                          | 180 GiB DRAM             | ~61.4 GiB                | 91.55 GiB                                     | **148 GiB** (180 GiB − 32 GiB Headroom)                 | **161,655 Tokens (M1) / 176,351 Tokens (M2)** (~161.7k / ~176.4k) |
-| **Gemma 4-31B-IT** | a3-highgpu-1g (1x NVIDIA H100)   | 80 GB VRAM                          | 234 GiB DRAM             | ~61.4 GiB                | 91.55 GiB                                     | **202 GiB** (234 GiB − 32 GiB Headroom)                 | **220,637 Tokens (M1) / 240,695 Tokens (M2)** (~220.6k / ~240.7k) |
+| :----------------- | :------------------------------- | :---------------------------------- | :----------------------- | :----------------------- | :-------------------------------------------- | :------------------------------------------------------ | :---------------------------------------------------------------- |
+| **Qwen3-32B**      | g4-standard-48 (1x RTX PRO 6000) | 96 GB VRAM                          | 180 GiB DRAM             | ~60 GiB                  | 24.41 GiB                                     | **148 GiB** (180 GiB − 32 GiB Headroom)                 | **606,208 Tokens** (~606.2k tokens)                               |
+| **Qwen3-32B**      | a3-highgpu-1g (1x NVIDIA H100)   | 80 GB VRAM                          | 234 GiB DRAM             | ~60 GiB                  | 24.41 GiB                                     | **202 GiB** (234 GiB − 32 GiB Headroom)                 | **827,392 Tokens** (~827.4k tokens)                               |
+| **Gemma 4-31B-IT** | g4-standard-48 (1x RTX PRO 6000) | 96 GB VRAM                          | 180 GiB DRAM             | ~61 GiB                  | 91.55 GiB                                     | **148 GiB** (180 GiB − 32 GiB Headroom)                 | **161,655 Tokens (M1) / 176,351 Tokens (M2)** (~161.7k / ~176.4k) |
+| **Gemma 4-31B-IT** | a3-highgpu-1g (1x NVIDIA H100)   | 80 GB VRAM                          | 234 GiB DRAM             | ~61 GiB                  | 91.55 GiB                                     | **202 GiB** (234 GiB − 32 GiB Headroom)                 | **220,637 Tokens (M1) / 240,695 Tokens (M2)** (~220.6k / ~240.7k) |
 
 So theoretically , it means that :
 
@@ -109,11 +109,11 @@ Note: The Actual Maximum Offloading Token Capacity (Max Safe Pool) column shows
 an estimate not the real numbers.
 
 | Model              | Machine Type                     | Actual memory that can be offloaded | Actual Maximum Offloading Token Capacity (Max Safe Pool) |
-| :----------------- | :------------------------------- | :---------------------------------- | :------------------------------------------------------- | --- |
-| **Qwen3-32B**      | g4-standard-48 (1x RTX PRO 6000) | 120 GB VRAM                         | ~491K tokens                                             |     |
-| **Qwen3-32B**      | a3-highgpu-1g (1x NVIDIA H100)   | 120 GB VRAM                         | ~491K tokens                                             |     |
-| **Gemma 4-31B-IT** | g4-standard-48 (1x RTX PRO 6000) | 80 GB VRAM                          | ~87K/95K tokens                                          |
-| **Gemma 4-31B-IT** | a3-highgpu-1g (1x NVIDIA H100)   | 160 GB VRAM                         | ~174K/190K tokens                                        |
+| :----------------- | :------------------------------- | :---------------------------------- | :------------------------------------------------------- |
+| **Qwen3-32B**      | g4-standard-48 (1x RTX PRO 6000) | 120 GiB                             | ~491K tokens                                             |
+| **Qwen3-32B**      | a3-highgpu-1g (1x NVIDIA H100)   | 120 GiB                             | ~491K tokens                                             |
+| **Gemma 4-31B-IT** | g4-standard-48 (1x RTX PRO 6000) | 80 GiB                              | ~87K/95K tokens                                          |
+| **Gemma 4-31B-IT** | a3-highgpu-1g (1x NVIDIA H100)   | 160 GiB                             | ~174K/190K tokens                                        |
 
 So, you will see that the KV Cache offloading configurations for
 [qwen3 on rtx-pro-600](../../../../../../../platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-native-cache-offloading/single-tier/rtx-pro-6000-qwen3-32b/runtime.env)

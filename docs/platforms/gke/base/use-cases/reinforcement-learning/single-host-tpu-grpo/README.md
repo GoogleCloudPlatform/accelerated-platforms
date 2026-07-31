@@ -53,7 +53,7 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
     export HF_MODEL_ID="llama3.1-8b-Instruct"
     ```
 
-  - **Gemma 2 9B Instruction-Tuned**:
+  - **Gemma 4 26B Instruction-Tuned**:
 
     ```shell
     export HF_MODEL_ID="gemma4-26b"
@@ -112,23 +112,23 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 - Deploy the reinforcement learning workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama-3-1-8b-it"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-${HF_MODEL_ID}"
   ```
 
 - Watch the reinforcement learning job until it is complete.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} get job/reinforcement-learning-maxtext-grpo-v6e-2x4-llama-3-1-8b-instruct | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  "kubectl --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} get job/reinforcement-learning-maxtext-grpo-v6e-2x4-${HF_MODEL_ID} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} logs job/reinforcement-learning-maxtext-grpo-v6e-2x4-llama-3-1-8b-instruct --all-containers --tail 10"
+  kubectl --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} logs job/reinforcement-learning-maxtext-grpo-v6e-2x4-${HF_MODEL_ID} --all-containers --tail 10"
   ```
 
   When the job is complete, you will see the following:
 
   ```text
-  NAME                                                              STATUS     COMPLETIONS   DURATION   AGE
-  reinforcement-learning-maxtext-grpo-v6e-2x4-llama-3-1-8b-instruct Complete   1/1           ###        ###
+  NAME                                                            STATUS     COMPLETIONS   DURATION   AGE
+  reinforcement-learning-maxtext-grpo-v6e-2x4-<HF_MODEL_ID>       Complete   1/1           ###        ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
@@ -165,8 +165,8 @@ To view loss curves in real time while training is running, port-forward
 TensorBoard directly from the pod:
 
 ```shell
-kubectl exec -it --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} job/reinforcement-learning-maxtext-grpo-v6e-2x4-llama-3-1-8b-instruct -- tensorboard --logdir /workspace/rl_llama3_output --host 0.0.0.0 --port 6006
-kubectl port-forward --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} job/reinforcement-learning-maxtext-grpo-v6e-2x4-llama-3-1-8b-instruct 6006:6006
+kubectl exec -it --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} job/reinforcement-learning-maxtext-grpo-v6e-2x4-${HF_MODEL_ID} -- tensorboard --logdir /workspace/rl_llama3_output --host 0.0.0.0 --port 6006
+kubectl port-forward --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} job/reinforcement-learning-maxtext-grpo-v6e-2x4-${HF_MODEL_ID} 6006:6006
 ```
 
 ## Critical Architecture Notes & Patches

@@ -69,7 +69,7 @@ the primary runtime.
     - [Model evaluation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/model-evaluation.md)
 
 - [Reinforcement Learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md)
-  - [RL on TPU](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md)
+  - [Single-host reinforcement learning with TPUs using GRPO algorithm](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md)
 
 ### Guides
 

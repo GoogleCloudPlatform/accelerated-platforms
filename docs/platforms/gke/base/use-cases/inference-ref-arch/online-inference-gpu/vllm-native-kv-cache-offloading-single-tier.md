@@ -76,8 +76,7 @@ $$\text{Maximum Safe kv cache offloading-size} = \text{Total System RAM (GiB)} -
 - **Single-GPU CUDA Nodes (H100 / RTX 6000)**: Reserve at least **32 GiB** for
   OS operations, CUDA Graphs, and vLLM Python runtime.
 - **Multi-Chip TPU Topologies (tpu-v6e-2x2)**: Reserve at least **48 GiB** due
-  to host-side PyTorch-XLA compilation buffers and 4-worker thread
-  management.
+  to host-side PyTorch-XLA compilation buffers and 4-worker thread management.
 
 ### Hardware & Offloading Reference Matrix
 

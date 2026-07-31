@@ -39,29 +39,7 @@ This example is built on top of the
   ./deploy-standard.sh
   ```
 
-## Build the container images
-
-- Source the environment configuration.
-
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
-
-- Build the container image for the TPU reinforcement learning trainer.
-
-  ```shell
-  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/images/tpu/rl_tpu_maxtext_grpo_single_host && \
-  rm -rf .terraform/ terraform.tfstate* && \
-  terraform init && \
-  terraform plan -input=false -out=tfplan && \
-  terraform apply -input=false tfplan && \
-  rm tfplan
-  ```
-
-  > The build usually takes 10 to 15 minutes.
-
-## Convert the Hugging Face weights to MaxText format (using CPUs)
+## Convert the Hugging Face weights to MaxText format
 
 Before starting reinforcement learning training, you can run a one-time
 CPU-based checkpoint conversion job to convert the base Hugging Face weights
@@ -134,7 +112,7 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 - Deploy the reinforcement learning workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama-3-1-8b-instruct"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama-3-1-8b-it"
   ```
 
 - Watch the reinforcement learning job until it is complete.
@@ -155,10 +133,10 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
   You can press `CTRL`+`c` to terminate the watch.
 
-## Viewing Metrics (MLflow & TensorBoard)
+## Viewing Metrics
 
 MaxText logs step metrics directly to TensorBoard format during execution. The
-`train.py` script automatically packages these logs and attaches them to
+`train.sh` script automatically packages these logs and attaches them to
 **MLflow** as artifacts upon run completion.
 
 ### Accessing the MLflow UI

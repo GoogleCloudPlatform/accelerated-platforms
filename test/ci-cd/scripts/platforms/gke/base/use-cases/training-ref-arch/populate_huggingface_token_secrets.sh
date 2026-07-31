@@ -39,6 +39,15 @@ set --
 
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
 
+gcloud services enable secretmanager.googleapis.com --project="${huggingface_secret_manager_project_id}" --quiet || true
+
+if ! gcloud secrets describe "${huggingface_hub_access_token_read_secret_manager_secret_name}" --project="${huggingface_secret_manager_project_id}" >/dev/null 2>&1; then
+  gcloud secrets create "${huggingface_hub_access_token_read_secret_manager_secret_name}" \
+    --replication-policy="automatic" \
+    --project="${huggingface_secret_manager_project_id}" \
+    --quiet || true
+fi
+
 echo "HF_TOKEN_READ" | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} \
---data-file=- \
---project=${huggingface_secret_manager_project_id}
+  --data-file=- \
+  --project=${huggingface_secret_manager_project_id}

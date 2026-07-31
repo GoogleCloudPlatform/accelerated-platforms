@@ -15,25 +15,18 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: reinforcement-learning-maxtext-grpo-eval-ckpt50-run2
-  namespace: rl-kr-single-grpo-single-host
+  name: reinforcement-learning-maxtext-grpo-eval
+  namespace: replaced-by-kustomize
 spec:
-  backoffLimit: 2
+  backoffLimit: 0
   template:
-    metadata:
-      labels:
-        app: grpo-eval-ckpt50
     spec:
-      serviceAccountName: rl-kr-single-grpo-single-host-sa
       restartPolicy: Never
       nodeSelector:
-        cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
-        cloud.google.com/gke-tpu-topology: 2x4
-        cloud.google.com/reservation-affinity: "specific"
-        cloud.google.com/reservation-name: "tpu-v6e-16c-batch-1-reservation"
+        cloud.google.com/compute-class: "tpu-v5e-2x4"
       containers:
         - name: grpo-evaluator
-          image: us-east5-docker.pkg.dev/accelerated-platforms-dev/rl-kr-single/reinforcement-learning/grpo-single-host:latest
+          image: replaced-by-kustomize
           resources:
             requests:
               google.com/tpu: "8"
@@ -44,33 +37,22 @@ spec:
               google.com/tpu: "8"
               cpu: "28"
               ephemeral-storage: "80Gi"
-          env:
-            - name: HF_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: hf-secret
-                  key: token
-            - name: GCS_OUTPUT_PATH
-              value: "gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models"
-            - name: EVAL_CKPT_STEP
-              value: "50"
-            - name: VLLM_TARGET_DEVICE
-              value: "tpu"
-            - name: JAX_PLATFORMS
-              value: "tpu"
-            - name: PYTHONUNBUFFERED
-              value: "1"
-            - name: VLLM_WORKER_MULTIPROC_METHOD
-              value: "spawn"
+          command:
+            - "python3"
+            - "/eval.py"
+          envFrom:
+            - configMapRef:
+                name: runtime
           volumeMounts:
             - name: eval-script-vol
-              mountPath: /train.py
+              mountPath: /eval.py
               subPath: eval.py
             - name: tmp-vol
               mountPath: /tmp
       volumes:
         - name: eval-script-vol
           configMap:
-            name: eval-script-ckpt50
+            name: eval-script
         - name: tmp-vol
           emptyDir: {}
+      serviceAccountName: replaced-by-kustomize

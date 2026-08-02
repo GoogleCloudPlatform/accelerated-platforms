@@ -133,6 +133,33 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
   You can press `CTRL`+`c` to terminate the watch.
 
+## Deploy the checkpoint evaluation workload
+
+You can run a dedicated checkpoint evaluation job on a second TPU slice to measure policy accuracy without interrupting the training run.
+
+- Configure the checkpoint evaluation deployment.
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/checkpoint-evaluation/configure_job.sh"
+  ```
+
+- Deploy the checkpoint evaluation workload.
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/checkpoint-evaluation/v6e-2x4-${HF_MODEL_ID}"
+  ```
+
+- Watch the checkpoint evaluation job until it is complete.
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} get job/reinforcement-learning-maxtext-grpo-eval-v6e-2x4-${HF_MODEL_ID} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} logs job/reinforcement-learning-maxtext-grpo-eval-v6e-2x4-${HF_MODEL_ID} --all-containers --tail 10"
+  ```
+
+  You can press `CTRL`+`c` to terminate the watch.
+
 ## Viewing Metrics
 
 MaxText logs step metrics directly to TensorBoard format during execution. The

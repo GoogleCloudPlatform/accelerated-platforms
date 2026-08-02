@@ -75,7 +75,8 @@ _Outputs will be saved to `${GCS_BUCKET}/maxtext-checkpoint-converter-output/`._
    platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/configure_job.sh
    ```
 
-2. **Deploy the 150-step GRPO RL training job** onto an 8-chip Cloud TPU v6e slice (`v6e-2x4`):
+2. **Deploy the 150-step GRPO RL training job** onto an 8-chip Cloud TPU v6e
+   slice (`v6e-2x4`):
 
    ```bash
    kubectl apply -k platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama3.1-8b-Instruct/

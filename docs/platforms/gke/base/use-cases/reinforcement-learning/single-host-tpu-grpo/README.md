@@ -135,7 +135,8 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
 ## Deploy the checkpoint evaluation workload
 
-You can run a dedicated checkpoint evaluation job on a second TPU slice to measure policy accuracy without interrupting the training run.
+You can run a dedicated checkpoint evaluation job on a second TPU slice to
+measure policy accuracy without interrupting the training run.
 
 - Configure the checkpoint evaluation deployment.
 

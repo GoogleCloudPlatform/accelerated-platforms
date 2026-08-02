@@ -35,15 +35,10 @@ export GCS_BUCKET="gs://accelerated-platforms-dev-rl-kr-single-hf-hub-models"
 gcloud container clusters get-credentials ${CLUSTER_NAME} --location=${REGION} --project=${PROJECT_ID}
 ```
 
-### 1.2 Create Namespace & Hugging Face Secret
+### 1.2 Create Namespace
 
 ```bash
 kubectl create namespace ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
-
-kubectl create secret generic hf-secret \
-  --from-literal=token=${HF_TOKEN} \
-  -n ${NAMESPACE} \
-  --dry-run=client -o yaml | kubectl apply -f -
 ```
 
 ---
@@ -74,12 +69,17 @@ _Outputs will be saved to `${GCS_BUCKET}/maxtext-checkpoint-converter-output/`._
 
 ## 3. Step 2: Launch GRPO RL Training Job
 
-Deploy the 150-step GRPO RL training job onto an 8-chip Cloud TPU v6e slice
-(`v6e-2x4`):
+1. **Configure the GKE manifest variables**:
 
-```bash
-kubectl apply -k platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama-3-1-8b-instruct/
-```
+   ```bash
+   platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/configure_job.sh
+   ```
+
+2. **Deploy the 150-step GRPO RL training job** onto an 8-chip Cloud TPU v6e slice (`v6e-2x4`):
+
+   ```bash
+   kubectl apply -k platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama3.1-8b-Instruct/
+   ```
 
 ---
 
@@ -111,13 +111,11 @@ To evaluate a specific checkpoint (e.g. Checkpoint 50) without interrupting
 training, deploy the dedicated evaluation job onto a second TPU slice:
 
 ```bash
-# 1. Apply updated eval script ConfigMap
-kubectl create configmap eval-script-ckpt50 \
-  --from-file=eval.py=container-images/tpu/rl-tpu-maxtext-grpo-single-host/src/eval.py \
-  -n ${NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+# 1. Configure the GKE manifest variables:
+platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/checkpoint-evaluation/configure_job.sh
 
-# 2. Launch Evaluation Job
-kubectl apply -f platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/eval-job-ckpt50.yaml
+# 2. Deploy the checkpoint evaluation job:
+kubectl apply -k platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/checkpoint-evaluation/v6e-2x4-llama3.1-8b-Instruct/
 ```
 
 ---

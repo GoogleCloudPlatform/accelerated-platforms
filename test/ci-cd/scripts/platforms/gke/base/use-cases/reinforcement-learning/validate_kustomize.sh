@@ -42,10 +42,10 @@ export HF_MODEL_ID="meta-llama/Llama-3.1-8B-Instruct"
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 export ACCELERATOR_TYPE="v5e"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/configure_job.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/configure_job.sh"
 
 export ACCELERATOR_TYPE="v6e"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/configure_job.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/configure_job.sh"
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/reinforcement-learning/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"

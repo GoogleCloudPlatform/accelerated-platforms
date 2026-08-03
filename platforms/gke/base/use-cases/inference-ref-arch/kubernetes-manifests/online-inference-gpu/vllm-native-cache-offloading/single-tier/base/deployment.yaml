@@ -78,8 +78,6 @@ spec:
                 configMapKeyRef:
                   key: KV_TRANSFER_CONFIG
                   name: runtime
-            - name: VLLM_XLA_CACHE_PATH
-              value: /data
           image: replaced-by-kustomize
           imagePullPolicy: Always
           name: inference-server

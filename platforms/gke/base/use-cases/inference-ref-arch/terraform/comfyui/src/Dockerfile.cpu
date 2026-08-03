@@ -64,7 +64,7 @@ ENV PATH="/home/${USER}/.local/bin:${PATH}"
 
 RUN uv venv \
   && source "${COMFY_DIR}/.venv/bin/activate" \
-  && uv pip install --no-cache-dir comfy-cli \
+  && uv pip install --no-cache-dir comfy-cli pip \
   && uv pip install torch==${PYTORCH_VERSION} torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu \
   && comfy --skip-prompt --workspace=${COMFY_DIR} tracking disable \
   && comfy --skip-prompt --workspace=${COMFY_HOME} install --cpu --fast-deps --version=${COMFY_VERSION} \

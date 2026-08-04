@@ -57,6 +57,7 @@ locals {
   ira_online_gpu_kubernetes_service_account_name = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_vllm_image_url                  = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
 
+
   ira_online_gpu_diffusers_sglang_diffusers_image_url = var.ira_online_gpu_sglang_diffusers_image_url != null ? var.ira_online_gpu_sglang_diffusers_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/sglang:latest"
 
   ira_cpu_k6_benchmark_image_url = var.ira_cpu_k6_benchmark_image_url != null ? var.ira_cpu_k6_benchmark_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/k6-benchmark:latest"
@@ -240,6 +241,13 @@ variable "ira_online_gpu_kubernetes_service_account_name" {
   description = "The Kubernetes service account for the online GPU inference workloads."
   type        = string
 }
+
+variable "ira_online_gpu_vllm_kv_offloading_image_url" {
+  default     = "vllm/vllm-openai:v0.26.0"
+  description = "The URL for the GPU vLLM container image with KV cache offloading."
+  type        = string
+}
+
 
 variable "ira_online_gpu_vllm_image_url" {
   default     = "docker.io/vllm/vllm-openai:v0.11.2"

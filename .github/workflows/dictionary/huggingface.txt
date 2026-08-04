@@ -6,3 +6,4 @@ optim
 pretraining
 qwen
 rdzv
+redhatai

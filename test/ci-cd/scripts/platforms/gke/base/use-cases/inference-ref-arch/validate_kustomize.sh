@@ -93,6 +93,13 @@ export llmd_accelerator_type="l4"
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd/vllm/configure_vllm.sh"
 
+# Validate vllm-native-cache-offloading kustomize
+export ACCELERATOR_TYPE="rtx-pro-6000"
+export HF_MODEL_ID="qwen/qwen3-32b"
+source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-native-cache-offloading/single-tier/configure_vllm.sh"
+
+
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"
   rendered_kubernetes_manifests_file_path="/tmp/rendered-kustomize.yaml"

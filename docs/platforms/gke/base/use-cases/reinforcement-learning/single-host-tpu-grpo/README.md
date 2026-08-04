@@ -38,7 +38,7 @@ This example is built on top of the
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/rl_on_tpu && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/rl_tpu_maxtext_grpo_single_host && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -58,7 +58,7 @@ This example is built on top of the
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/images/tpu/reinforcement_learning_on_tpu && \
+  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/images/tpu/rl_tpu_maxtext_grpo_single_host && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
   terraform plan -input=false -out=tfplan && \
@@ -79,7 +79,7 @@ This example is built on top of the
 - Configure the deployment.
 
   ```shell
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/configure_job.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/configure_job.sh"
   ```
 
 - Deploy the reinforcement learning workload.
@@ -87,22 +87,22 @@ This example is built on top of the
   For TPU v5e:
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/v5e-2x4-llama-3-1-8b-instruct"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v5e-2x4-llama-3-1-8b-instruct"
   ```
 
   For TPU v6e:
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-on-tpu/v6e-2x4-llama-3-1-8b-instruct"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/rl-tpu-maxtext-grpo-single-host/v6e-2x4-llama-3-1-8b-instruct"
   ```
 
 - Watch the reinforcement learning job until it is complete.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name} get job/reinforcement-learning-maxtext-grpo-v5e-2x4-llama-3-1-8b-instruct | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  "kubectl --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} get job/reinforcement-learning-maxtext-grpo-v5e-2x4-llama-3-1-8b-instruct | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name} logs job/reinforcement-learning-maxtext-grpo-v5e-2x4-llama-3-1-8b-instruct --all-containers --tail 10"
+  kubectl --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} logs job/reinforcement-learning-maxtext-grpo-v5e-2x4-llama-3-1-8b-instruct --all-containers --tail 10"
   ```
 
   When the job is complete, you will see the following:
@@ -128,7 +128,7 @@ the dashboard locally:
 1. **Port-forward the MLflow Service:**
 
    ```shell
-   kubectl port-forward --namespace=${rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name} svc/mlflow-service 5000:5000
+   kubectl port-forward --namespace=${rl_cpu_mlflow_kubernetes_namespace_name} svc/mlflow-service-svc 5000:5000
    ```
 
 2. **Open your Browser:** Navigate to `http://localhost:5000`
@@ -145,8 +145,8 @@ To view loss curves in real time while training is running, port-forward
 TensorBoard directly from the pod:
 
 ```shell
-kubectl exec -it --namespace=${rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name} job/reinforcement-learning-maxtext-grpo-v5e-2x4-llama-3-1-8b-instruct -- tensorboard --logdir /workspace/rl_llama3_output --host 0.0.0.0 --port 6006
-kubectl port-forward --namespace=${rl_tpu_reinforcement_learning_on_tpu_kubernetes_namespace_name} job/reinforcement-learning-maxtext-grpo-v5e-2x4-llama-3-1-8b-instruct 6006:6006
+kubectl exec -it --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} job/reinforcement-learning-maxtext-grpo-v5e-2x4-llama-3-1-8b-instruct -- tensorboard --logdir /workspace/rl_llama3_output --host 0.0.0.0 --port 6006
+kubectl port-forward --namespace=${rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name} job/reinforcement-learning-maxtext-grpo-v5e-2x4-llama-3-1-8b-instruct 6006:6006
 ```
 
 ## Critical Architecture Notes & Patches

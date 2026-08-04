@@ -12,18 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "rl_dataset_bucket_name" {
-  value = local.rl_dataset_bucket_name
-}
-
-output "rl_tpu_maxtext_grpo_single_host_image_url" {
-  value = local.rl_tpu_maxtext_grpo_single_host_image_url
-}
-
-output "rl_cpu_mlflow_kubernetes_namespace_name" {
-  value = local.rl_cpu_mlflow_kubernetes_namespace_name
-}
-
-output "rl_tpu_maxtext_grpo_multi_host_image_url" {
-  value = local.rl_tpu_maxtext_grpo_multi_host_image_url
+data "google_project" "cluster" {
+  project_id = local.cluster_project_id
 }

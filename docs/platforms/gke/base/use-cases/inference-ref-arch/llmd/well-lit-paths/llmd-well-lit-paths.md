@@ -1,7 +1,7 @@
 # llm-d Well-Lit paths
 
 This is the base guide for implementing
-[llm-d Well-Lit Paths](https://llm-d.ai/docs/guides) end-to-end on GKE using
+[llm-d Well-Lit Paths](https://llm-d.ai/docs/well-lit-paths/foundations) end-to-end on GKE using
 [Google Cloud Accelerated Platforms](https://github.com/GoogleCloudPlatform/accelerated-platforms)
 
 ## Intelligent Routing

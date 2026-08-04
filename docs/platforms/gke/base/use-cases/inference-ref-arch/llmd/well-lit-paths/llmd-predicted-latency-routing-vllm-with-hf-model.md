@@ -3,7 +3,7 @@
 This guide implements llm-d predicted latency routing well-lit path on GKE using
 [Google Cloud Accelerated Platforms](https://github.com/GoogleCloudPlatform/accelerated-platforms).
 To learn about predicted latency routing, refer to
-[llm-d documentation](https://llm-d.ai/docs/guides/predicted-latency).
+[llm-d documentation](https://llm-d.ai/docs/well-lit-paths/foundations/predicted-latency).
 
 ## Prerequisite
 

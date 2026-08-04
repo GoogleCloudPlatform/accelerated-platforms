@@ -72,6 +72,11 @@ preflight_endpoint() {
   http_code=$(echo "$smoke_log" | sed -n 's/^HTTP Code: //p' | tail -n1)
   if [ "$http_code" != "200" ]; then
     echo "ERROR: endpoint '$url' returned HTTP ${http_code:-unknown} for /v1/models (expected 200)." >&2
+    if [[ "$smoke_log" == *"unconditional drop overload"* ]] || [ "$http_code" == "503" ]; then
+      echo "HINT (llm-d Gateway 503): EPP returned 'unconditional drop overload'. This usually means the InferencePool has no matching healthy backend pods." >&2
+      echo "  1. Verify that your vLLM Deployment template includes the matching label (e.g. 'llm-d.ai/guide: ${SPEC}')." >&2
+      echo "  2. Alternatively, target the direct in-cluster Service URL: http://<service-name>:8000" >&2
+    fi
     echo "$smoke_log" >&2
     exit 1
   fi
@@ -147,7 +152,7 @@ llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" $WORK
 
 # Phase 2: Execute Benchmark Harness
 BENCHMARK_START_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-set +e; llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" $WORKLOAD_ARG --model "$MODEL_NAME" --endpoint-url "$ENDPOINT_URL" --namespace "$NAMESPACE" --harness inference-perf --workspace "$WORKSPACE_DIR" -s 7,8; set -e
+set +e; llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" $WORKLOAD_ARG --model "$MODEL_NAME" --endpoint-url "$ENDPOINT_URL" --namespace "$NAMESPACE" --harness inference-perf --workspace "$WORKSPACE_DIR" --wait-timeout "${WAIT_TIMEOUT:-21600}" -s 7,8; set -e
 BENCHMARK_END_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 collect_dcgm "$NAMESPACE" "$BENCHMARK_START_TIME" "$BENCHMARK_END_TIME"
 

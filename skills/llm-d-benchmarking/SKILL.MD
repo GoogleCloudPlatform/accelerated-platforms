@@ -105,6 +105,9 @@ Run the consolidated benchmark script with the chosen workload profile and endpo
   "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml ${ENDPOINT_URL} <namespace> google/gemma-4-31b-it my-custom-bench-bucket
   ```
 
+> [!TIP]
+> **Load Balancer Timeouts on Large Sweeps**: External GKE Gateway Load Balancers default to a 30-second HTTP request timeout (or 300 seconds via the default `llm-d` Gateway recipe) unless configured with a `GCPBackendPolicy` setting `timeoutSec: 3600`. When running large multi-stage benchmarks (9+ stages or high concurrency), either patch your `GCPBackendPolicy` to `timeoutSec: 3600` (`kubectl -n <ns> patch gcpbackendpolicy <name> --type='merge' -p '{"spec":{"default":{"timeoutSec":3600}}}'`), or pass the direct in-cluster Service URL (e.g., `http://<service-name>.<namespace>.svc.cluster.local:8000`) to bypass the load balancer timeout.
+
 ## 6. Explanation of `run_benchmark.sh` Steps
 
 The `run_benchmark.sh` script is an ultra-dense automated executor that directly calls the `llmdbenchmark` core library (bypassing CLI wrappers for user reproducibility). It automates the execution through the following condensed phases:

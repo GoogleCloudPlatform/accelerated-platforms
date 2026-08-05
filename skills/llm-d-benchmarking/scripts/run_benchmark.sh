@@ -167,7 +167,27 @@ RESULTS_DIR=$(ls -td "$WORKSPACE_DIR"/*/results/inference-perf-* 2>/dev/null | h
 cp "$RESULTS_DIR/summary_lifecycle_metrics.json" ./results.json
 python3 -c "from llmdbenchmark.analysis.benchmark_report.native_to_br0_2 import import_inference_perf; import_inference_perf('./results.json').export_json('./report_v0.2.json')"
 python3 "${REPO_DIR}/skills/llm-d-benchmarking/scripts/extract_csv.py" --input report_v0.2.json --output output.csv
-kubectl get $(kubectl get deployment -n "$NAMESPACE" -o name | grep -i 'vllm' | head -n 1) -n "$NAMESPACE" -o json > ./vllm_config.json 2>/dev/null || echo '{"error": "not found"}' > ./vllm_config.json
+python3 -c "import json, subprocess
+ns = '$NAMESPACE'
+spec_name = '${SPEC}'
+try:
+  dep_name = subprocess.check_output(f'kubectl get deployment -n {ns} -o name | grep -i vllm | head -n 1', shell=True, text=True).strip()
+  dep = json.loads(subprocess.check_output(f'kubectl get -n {ns} {dep_name} -o json', shell=True, text=True))
+  env_map = {}
+  for c in dep.get('spec',{}).get('template',{}).get('spec',{}).get('containers',[]):
+    for e in c.get('env',[]):
+      if 'value' in e: env_map[e['name']] = e['value']
+      elif 'valueFrom' in e and 'configMapKeyRef' in e['valueFrom']:
+        cm = e['valueFrom']['configMapKeyRef']['name']
+        k = e['valueFrom']['configMapKeyRef']['key']
+        cm_data = json.loads(subprocess.check_output(f'kubectl get configmap -n {ns} {cm} -o json', shell=True, text=True)).get('data',{})
+        env_map[e['name']] = cm_data.get(k, '')
+  with open('./vllm_config.json', 'w') as fp:
+    json.dump({'well_lit_path_guide': spec_name, 'resolved_runtime_env': env_map, 'deployment': dep}, fp, indent=2)
+except Exception as e:
+  with open('./vllm_config.json', 'w') as fp:
+    json.dump({'error': str(e), 'well_lit_path_guide': spec_name}, fp, indent=2)
+"
 cp report_v0.2.json output.csv vllm_config.json "$RESULTS_DIR/"
 [ -f "./dcgm_metrics.json" ] && cp "./dcgm_metrics.json" "$RESULTS_DIR/"
 

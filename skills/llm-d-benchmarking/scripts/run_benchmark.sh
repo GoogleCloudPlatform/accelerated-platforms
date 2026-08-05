@@ -136,11 +136,12 @@ WORKSPACE_DIR="workspaces/run-$(date +%Y%m%d-%H%M%S)"
 WORKLOAD_ARG="--workload $WORKLOAD"
 
 
-# Function to capture GPU DCGM metrics
+# Function to capture GPU DCGM metrics (ConfigMap + Job architecture)
 collect_dcgm() {
+  kubectl delete job telemetry-collector configmap telemetry-collector-script -n "$1" --ignore-not-found --grace-period=0 --force || true
   sed -e "s/TARGET_NAMESPACE_PLACEHOLDER/$1/g" -e "s/START_TIME_PLACEHOLDER/$2/g" -e "s/END_TIME_PLACEHOLDER/$3/g" skills/llm-d-benchmarking/scripts/helper-pods/telemetry-collector.yaml | kubectl apply -f - -n "$1"
-  kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/telemetry-collector -n "$1" --timeout=120s || true
-  kubectl delete pod telemetry-collector -n "$1" --grace-period=0 --force
+  kubectl wait --for=condition=complete job/telemetry-collector -n "$1" --timeout=120s || true
+  kubectl delete job telemetry-collector configmap telemetry-collector-script -n "$1" --ignore-not-found --grace-period=0 --force || true
 }
 
 # Phase 1: Setup Namespace & PVC
@@ -169,6 +170,9 @@ python3 "${REPO_DIR}/skills/llm-d-benchmarking/scripts/extract_csv.py" --input r
 kubectl get $(kubectl get deployment -n "$NAMESPACE" -o name | grep -i 'vllm' | head -n 1) -n "$NAMESPACE" -o json > ./vllm_config.json 2>/dev/null || echo '{"error": "not found"}' > ./vllm_config.json
 cp report_v0.2.json output.csv vllm_config.json "$RESULTS_DIR/"
 [ -f "./dcgm_metrics.json" ] && cp "./dcgm_metrics.json" "$RESULTS_DIR/"
+
+# Automatically generate latency/throughput charts
+inference-perf -a "$RESULTS_DIR/" || true
 
 GCS_DIR_NAME=$(basename "$WORKSPACE_DIR")
 gcloud storage cp -r "$RESULTS_DIR/"* gs://${RESULTS_BUCKET}/${GCS_DIR_NAME}/

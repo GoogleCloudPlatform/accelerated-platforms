@@ -117,6 +117,7 @@ The `run_benchmark.sh` script is an ultra-dense automated executor that directly
 2.  **Pre-flight Checks & Workload Validation**:
     - Checks if Managed Prometheus is enabled.
     - Invokes `tune_workload.py` to check for optimal specs, allowing an interactive auto-apply fix if sizing gaps are found.
+    - For long-context workloads like `agentic_code_generation` (~262k prefill tokens), `tune_workload.py` checks `model_specs.json` to ensure `MAX_MODEL_LEN` and `TENSOR_PARALLEL_SIZE` accommodate both prompt prefill and generation tokens without clipping.
 3.  **Phase 1: Setup Namespace & PVC**:
     - Executes `llmdbenchmark run` in `--dry-run` to validate syntax.
     - Executes harness setup steps `0,1,2,3,4,5,6` to create the namespace, RBAC permissions, and the workload PVC.

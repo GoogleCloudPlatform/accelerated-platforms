@@ -82,7 +82,7 @@ preflight_endpoint() {
   fi
   echo "Endpoint preflight OK: ${url}/v1/models -> HTTP 200"
   if [[ "$WORKLOAD" == *agentic_code_generation* ]]; then
-    echo "WARNING: agentic_code_generation targets up to ~262k context; gemma-4-31b-it is 32k. Oversized prompts can cause Broken pipe / VLLMValidationError. Prefer sanity_random.yaml or chatbot_synthetic.yaml, or retune max_model_len." >&2
+    echo "NOTE: agentic_code_generation targets up to ~262k context. Ensure your vLLM deployment is tuned with a high MAX_MODEL_LEN (e.g. 131072 or 262144 via model_specs.json) to prevent Broken pipe / VLLMValidationError." >&2
   fi
 }
 if [[ "${SKIP_ENDPOINT_PREFLIGHT:-false}" != "true" ]]; then
@@ -152,7 +152,7 @@ llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" $WORK
 
 # Phase 2: Execute Benchmark Harness
 BENCHMARK_START_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-set +e; llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" $WORKLOAD_ARG --model "$MODEL_NAME" --endpoint-url "$ENDPOINT_URL" --namespace "$NAMESPACE" --harness inference-perf --workspace "$WORKSPACE_DIR" --wait-timeout "${WAIT_TIMEOUT:-21600}" -s 7,8; set -e
+set +e; llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" $WORKLOAD_ARG --model "$MODEL_NAME" --endpoint-url "$ENDPOINT_URL" --namespace "$NAMESPACE" --harness inference-perf --workspace "$WORKSPACE_DIR" --wait-timeout "${WAIT_TIMEOUT:-10800}" -s 7,8; set -e
 BENCHMARK_END_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 collect_dcgm "$NAMESPACE" "$BENCHMARK_START_TIME" "$BENCHMARK_END_TIME"
 

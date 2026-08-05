@@ -20,6 +20,7 @@ This skill utilizes the following core variables:
 ## 2. Prerequisites
 
 - Review the target workload characteristics and configurations in the reference guide: [llm-d-workload-profiles.md](references/llm-d-workload-profiles.md).
+- Check model specifications in [model_specs.json](references/model_specs.json), which hosts the 6-element tuple defining hardware parameters and the maximum supported context length ceiling (`[Parameters (B), Layers, KV Heads, Head Dimension, Suffix, Max Context Length]`).
 - Ensure you know the path to your llm-d-benchmark directory. The benchmarking files `config.json` (defining sequence lengths) and `inference-perf.yaml` (defining stages and model servers) come from the specific llm-d-benchmark workload profile chosen and must exist under the target benchmarking directories.
 - Know the target accelerator type (e.g., `rtx-pro-6000`, `nvidia-h100`, or `v6e` TPU)
 - Deployment strategy spec name (e.g., `precise-prefix-cache-routing`, `optimized-baseline`, or `predicted-latency-routing`). You must explicitly supply the target spec name using the `--spec` flag.
@@ -61,10 +62,10 @@ Confirm the GKE cluster name, region and reservation (if ANY) and then use the `
 
 When `--apply` is set, the tuner:
 
-1. Updates `runtime.env` inside the GKE overlay directory (e.g., setting `TENSOR_PARALLEL_SIZE`, `MAX_MODEL_LEN`).
+1. Updates `runtime.env` inside the GKE overlay directory (setting `TENSOR_PARALLEL_SIZE` and `MAX_MODEL_LEN`). KV cache sizing accounts for **total sequence length** (`max_in + max_out`), and `MAX_MODEL_LEN` is bounded by the architecture ceiling in `model_specs.json`.
 2. Patches `patch-nodeselector.yaml` to request matching GPU / TPU counts on nodes.
 3. Patches `patch-resources.yaml` to configure container GPU / TPU limit settings.
-4. Patches `patch-tuner-args.yaml` to configure the optimal arguments for the vLLM container.
+4. Patches `patch-tuner-args.yaml` to configure optimal arguments for container index `0` (`modelserver`).
 5. **Verifies and logs the parameter diff:** Always review the printed `=== Configuration Gap Analysis ===` output to see exactly which parameters were tuned from the baseline deployment in this repo.
 
 ## 5. Verification

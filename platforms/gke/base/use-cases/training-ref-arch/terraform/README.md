@@ -71,6 +71,91 @@ For more information about providing values for Terraform input variables, see
   ```hcl
   platform_default_project_id = "<PROJECT_ID>"
   ```
+## Configure Identity-Aware Proxy (IAP)
+
+Identity-Aware Proxy (IAP) lets you establish a central authorization layer for
+applications accessed by HTTPS, so you can use an application-level access
+control model instead of relying on network-level firewalls.
+
+IAP policies scale across your organization. You can define access policies
+centrally and apply them to all of your applications and resources. When you
+assign a dedicated team to create and enforce policies, you protect your project
+from incorrect policy definition or implementation in any application.
+
+For more information on IAP, see the
+[Identity-Aware Proxy documentation](https://cloud.google.com/iap/docs/concepts-overview#gke)
+
+### Configure OAuth consent screen for IAP
+
+For this guide we will configure a generic OAuth consent screen setup for
+internal use. Internal use means that only users within your organization can be
+granted IAM permissions to access the IAP secured applications and resource.
+
+See the
+[Configuring the OAuth consent screen documentation](https://developers.google.com/workspace/guides/configure-oauth-consent)
+for additional information
+
+- Set environment variables.
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Ensure that IAP is enabled.
+
+  ```shell
+  gcloud services enable iap.googleapis.com \
+  --project="${mft_project_id}"
+  ```
+
+- Check if the branding is already configured.
+
+  ```shell
+  gcloud iap oauth-brands list \
+  --project="${mft_project_id}"
+  ```
+
+  > If an entry is displayed, the branding is already configured.
+
+- If not already configured, configure the branding.
+
+  ```shell
+  gcloud iap oauth-brands create \
+  --application_title="IAP Secured Application" \
+  --project="${mft_project_id}" \
+  --support_email="<SUPPORT_EMAIL_ADDRESS>"
+  ```
+
+  Replace `<SUPPORT_EMAIL_ADDRESS>` with a group email address that you are a
+  manager on or your personal email address. The email address should be
+  supplied without the domain.
+
+### Default IAP access
+
+For simplicity, in this guide access to the IAP secured applications will be
+configure to allow all users in the organization. Access can be configured per
+IAP application or resources.
+
+- Set the IAP allow domain
+
+  ```
+  IAP_DOMAIN=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" | awk -F@ '{print $2}')
+  echo "IAP_DOMAIN=${IAP_DOMAIN}"
+  ```
+
+  **If the domain of the active `gcloud` user is different from the organization
+  that the `mft_project_id` project is in, you will need
+  to manually set `IAP_DOMAIN` environment variable**
+
+  ```
+  IAP_DOMAIN="<project_id's organization domain>"
+  ```
+
+- Set the IAP domain in the configuration file
+
+  ```
+  sed -i '/^mft_iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${IAP_DOMAIN}"'"/};${x;/^$/{s//mft_iap_domain="'"${IAP_DOMAIN}"'"/;H};x}' ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/mft.auto.tfvars
+  ```
 
 ### Install Terraform 1.8.0+
 

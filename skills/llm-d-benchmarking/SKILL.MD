@@ -124,12 +124,13 @@ The `run_benchmark.sh` script is an ultra-dense automated executor that directly
     - **Note**: The data-access pod is deliberately NOT deleted in this phase so that it can stage the workload profile onto the PVC. This architecture requires a `ReadWriteMany` (RWX) storage class, allowing the harness pod to mount the PVC concurrently from its own node.
 4.  **Phase 2: Execute Benchmark Harness & Telemetry Collection**:
     - Captures the start timestamp, deploys the harness (step `7`), and explicitly waits for completion (step `8`) to establish an exact time window.
-    - Captures the end timestamp, then triggers the `telemetry-collector.yaml` pod to retroactively capture GPU/TPU DCGM metrics precisely constrained to that execution window.
+    - Captures the end timestamp, then triggers the `telemetry-collector.yaml` Kubernetes batch **`Job`** (with its mounted `ConfigMap` script) to retroactively capture GPU/TPU DCGM metrics precisely constrained to that execution window.
 5.  **Phase 3: Result Retrieval**:
     - Executes step `9` to collect the `inference-perf` results. Because of the RWX storage class, this step natively reuses the original data-access pod from Phase 1
 6.  **Phase 4: Report Generation & Cleanup**:
     - Uses `extract_csv.py` and inline python to synthesize `report_v0.2.json` and `output.csv`.
-    - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports) to the target GCS bucket.
+    - Automatically generates latency and throughput charts (`inference-perf -a`).
+    - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports, CSVs, and PNG charts) to the target GCS bucket.
     - Manually forces deletion of the original data-access pod so it doesn't linger as a daemon indefinitely.
 
 ## 7. Analyze Benchmark Results
@@ -154,7 +155,7 @@ To verify if your hardware (GPU or TPU) is fully utilized and healthy during the
 
 ### 8.1 GPU (NVIDIA DCGM Metrics via Managed Prometheus)
 
-Monitor these metrics for GPU runs:
+Monitor these metrics for GPU runs (_Note: In GKE Managed Prometheus, these are also exposed under `kubernetes.io/container/accelerator/*` time series such as `duty_cycle`, `memory_used`, `memory_total`, and `memory_bandwidth_utilization`_):
 
 #### A. Compute & Core Utilization
 

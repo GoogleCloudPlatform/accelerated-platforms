@@ -56,8 +56,7 @@ the primary runtime.
       - [Async inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/async-inference/README.md)
       - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/batch-inference/README.md)
     - llm-d
-      - [Intelligent inference scheduling quickstart using llm-d](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/quickstart.md)
-      - [Intelligent inference scheduling using llm-d with GPU on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-vllm-with-hf-model.md)
+      - [Well-Lit paths](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/well-lit-paths/llmd-well-lit-paths.md)
     - Run your own benchmarking
       - [Benchmarking Online inference performance on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md)
 
@@ -70,7 +69,7 @@ the primary runtime.
     - [Model evaluation](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/model-evaluation.md)
 
 - [Reinforcement Learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md)
-  - [RL on TPU](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md)
+  - [Single-host reinforcement learning with TPUs using GRPO algorithm](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md)
 
 ### Guides
 

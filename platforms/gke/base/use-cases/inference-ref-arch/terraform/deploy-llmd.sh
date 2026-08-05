@@ -36,20 +36,26 @@ export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
-declare -a CORE_TERRASERVICES_APPLY=(
-  "networking"
-  "container_cluster"
-  "workloads/cluster_credentials"
-  "cloudbuild/initialize"
-  "huggingface/initialize"
-  "huggingface/hub_downloader"
-  "custom_compute_class"
-  "workloads/auto_monitoring"
-  "workloads/custom_metrics_adapter"
-  "workloads/inference_gateway"
-  "workloads/priority_class"
-)
-CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+# Set execution specific values
+export ACP_DEPLOY_CORE_PLATFORM=${ACP_DEPLOY_CORE_PLATFORM:-"true"}
+
+if [ "${ACP_DEPLOY_CORE_PLATFORM}" = "true" ]; then
+  # Deploy core platform with standard services
+  "${ACP_PLATFORM_CORE_DIR}/deploy-standard.sh"
+
+  # Deploy additional core services required by this use case
+  declare -a CORE_TERRASERVICES_APPLY=(
+    "cloudbuild/initialize"
+    "huggingface/initialize"
+    "huggingface/hub_downloader"
+    "workloads/custom_metrics_adapter"
+    "workloads/inference_gateway"
+    "workloads/priority_class"
+  )
+  CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+else
+  echo "Skipping core platform deployment."
+fi
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
@@ -76,4 +82,4 @@ gcloud container clusters get-credentials "${cluster_name}" \
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))
-echo "comfyui deploy total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"
+echo "llmd deploy total runtime: $(date -d@${total_runtime_value} -u +%H:%M:%S)"

@@ -26,3 +26,13 @@ resources:
   - ../../base
   - deployment.yaml
   - service.yaml
+replacements:
+  - source:
+      fieldPath: data.INFERENCE_SERVER
+      kind: ConfigMap
+      name: diffusers
+    targets:
+      - fieldPaths:
+          - spec.template.metadata.labels.[ai.gke.io/inference-server]
+        select:
+          kind: Deployment

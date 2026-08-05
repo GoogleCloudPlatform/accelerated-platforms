@@ -1,0 +1,48 @@
+[
+  {
+    "id": 1,
+    "prompt": "Deploy the llm-d optimized baseline stack for google/gemma-4-31b-it. Set the platform name to 'gemma-rtx-op'.",
+    "expected_output": "Configures the platform name, validates the compute class, instructs how to apply Terraform, and combines the base llm-d manifests with the local rtx-pro-6000-gemma-4-31b-it model overlay manifests.",
+    "assertions": [
+      "The project ID is collected from the user",
+      "The platform_name and platform_default_project_id are updated in platforms/gke/base/_shared_config/platform.auto.tfvars using sed",
+      "The model and accelerator are configured with 'google/gemma-4-31b-it' and 'rtx-pro-6000' using sed",
+      "The custom compute class is validated",
+      "Instructions point to applying the appropriate overlay directory"
+    ]
+  },
+  {
+    "id": 2,
+    "prompt": "Deploy the llm-d optimized baseline stack for qwen/qwen3-32b on nvidia-h100. The platform name should be 'qwen-h100-op'.",
+    "expected_output": "Configures the platform name, validates h100 compute class, and prepares the overlays for h100-qwen3-32b.",
+    "assertions": [
+      "The project ID is collected from the user",
+      "The platform_name and platform_default_project_id are updated in platforms/gke/base/_shared_config/platform.auto.tfvars using sed",
+      "The model and accelerator are configured with 'qwen/qwen3-32b' and 'nvidia-h100' using sed",
+      "The custom compute class is validated",
+      "Instructions point to applying the appropriate overlay directory"
+    ]
+  },
+  {
+    "id": 3,
+    "prompt": "Deploy the stack for google/gemma-4-31b-it on a non-existent accelerator called nvidia-k80. Use platform 'k80-cluster'.",
+    "expected_output": "Should fail or warn during validation since nvidia-k80 is not supported/has no compute class.",
+    "assertions": [
+      "The model and accelerator are configured with 'google/gemma-4-31b-it' and 'nvidia-k80'",
+      "The custom compute class is validated",
+      "The user is notified that the accelerator is unsupported or missing custom compute class"
+    ]
+  },
+  {
+    "id": 4,
+    "prompt": "Deploy the llm-d precise prefix cache routing stack for google/gemma-4-31b-it. Set the platform name to 'gemma-rtx-precise'.",
+    "expected_output": "Configures the platform name, validates the compute class, instructs how to apply Terraform, and combines the base llm-d manifests with the local rtx-pro-6000-gemma-4-31b-it model overlay manifests for precise-prefix-cache-routing.",
+    "assertions": [
+      "The project ID is collected from the user",
+      "The platform_name and platform_default_project_id are updated in platforms/gke/base/_shared_config/platform.auto.tfvars using sed",
+      "The model and accelerator are configured with 'google/gemma-4-31b-it' and 'rtx-pro-6000' using sed",
+      "The custom compute class is validated",
+      "Instructions point to applying the appropriate overlay directory"
+    ]
+  }
+]

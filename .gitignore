@@ -46,3 +46,9 @@ k6-*.txt
 k6-*.csv
 k6-*.jsonl
 k6-report.md
+workspaces
+**/*/backend.tf
+
+# Local helper scripts (not part of the platform)
+llmd-env.sh
+probe-capacity.sh

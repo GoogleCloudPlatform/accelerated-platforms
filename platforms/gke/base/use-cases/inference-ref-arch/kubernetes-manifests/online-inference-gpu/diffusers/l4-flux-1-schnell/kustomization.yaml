@@ -29,6 +29,15 @@ patches:
 
 replacements:
   - source:
+      fieldPath: data.INFERENCE_SERVER
+      kind: ConfigMap
+      name: diffusers
+    targets:
+      - fieldPaths:
+          - spec.template.metadata.labels.[ai.gke.io/inference-server]
+        select:
+          kind: Deployment
+  - source:
       fieldPath: data.APP_LABEL
       kind: ConfigMap
       name: runtime

@@ -21,3 +21,36 @@ module "kubectl_apply_llmd_ob_gateway_manifests" {
   namespace                   = local.llmd_namespace
   use_kustomize               = true
 }
+
+resource "local_file" "llmd_ob_gcp_backend_policy_override" {
+  content  = <<-EOT
+    apiVersion: networking.gke.io/v1
+    kind: GCPBackendPolicy
+    metadata:
+      name: optimized-baseline
+      namespace: ${local.llmd_namespace}
+    spec:
+      default:
+        logging:
+          enabled: true
+        timeoutSec: 3600
+      targetRef:
+        group: inference.networking.k8s.io
+        kind: InferencePool
+        name: optimized-baseline
+  EOT
+  filename = "${path.module}/.terraform/manifests/gcp-backend-policy-override.yaml"
+}
+
+module "kubectl_apply_llmd_ob_gcp_backend_policy_override" {
+  depends_on = [
+    module.kubectl_apply_llmd_ob_gateway_manifests,
+    local_file.llmd_ob_gcp_backend_policy_override,
+  ]
+
+  source                      = "../../../../../modules/kubectl_apply"
+  kubeconfig_file             = data.local_file.kubeconfig.filename
+  manifest                    = local_file.llmd_ob_gcp_backend_policy_override.filename
+  manifest_includes_namespace = true
+}
+

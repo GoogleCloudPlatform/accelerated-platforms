@@ -71,6 +71,7 @@ For more information about providing values for Terraform input variables, see
   ```hcl
   platform_default_project_id = "<PROJECT_ID>"
   ```
+
 ## Configure Identity-Aware Proxy (IAP)
 
 Identity-Aware Proxy (IAP) lets you establish a central authorization layer for
@@ -144,8 +145,8 @@ IAP application or resources.
   ```
 
   **If the domain of the active `gcloud` user is different from the organization
-  that the `mft_project_id` project is in, you will need
-  to manually set `IAP_DOMAIN` environment variable**
+  that the `mft_project_id` project is in, you will need to manually set
+  `IAP_DOMAIN` environment variable**
 
   ```
   IAP_DOMAIN="<project_id's organization domain>"

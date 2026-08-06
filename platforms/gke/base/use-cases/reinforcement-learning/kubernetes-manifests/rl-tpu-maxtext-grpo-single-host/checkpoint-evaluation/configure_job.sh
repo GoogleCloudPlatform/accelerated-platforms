@@ -1,4 +1,6 @@
-# Copyright 2025 Google LLC
+#!/usr/bin/env bash
+
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,21 +13,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -o errexit
+set -o nounset
+set -o pipefail
 
-images:
-  - ${_DESTINATION}
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
 
-options:
-  logging: CLOUD_LOGGING_ONLY
-  machineType: E2_HIGHCPU_8
+source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
-steps:
-  - args:
-      - build
-      - --build-context=primary=container-images/tpu/rl-tpu-maxtext-grpo-single-host/src
-      - --file=container-images/tpu/rl-tpu-maxtext-grpo-single-host/Dockerfile
-      - --tag=${_DESTINATION}
-      - .
-    id: "Build Reinforcement Learning on TPU image"
-    name: "docker.io/docker:28.3.3-dind-alpine3.22"
-    waitFor: ["-"]
+envsubst < "${MY_PATH}/base/templates/runtime.tpl.env" > "${MY_PATH}/base/runtime.env"

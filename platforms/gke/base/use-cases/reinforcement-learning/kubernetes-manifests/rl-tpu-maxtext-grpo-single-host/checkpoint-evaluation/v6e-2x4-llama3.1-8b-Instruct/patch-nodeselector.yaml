@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-configMapGenerator:
-  - envs:
-      - runtime.env
-    name: runtime
-    namespace: replaced-by-kustomize
-
-resources:
-  - job.yaml
-  - configmap-script.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: reinforcement-learning-maxtext-grpo-eval
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      nodeSelector:
+        cloud.google.com/compute-class: tpu-v6e-2x4

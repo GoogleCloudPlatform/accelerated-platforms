@@ -63,6 +63,7 @@ makedirs
 moviepy
 nbconvert
 numpy
+onednn
 opencv
 optax
 orchestrator

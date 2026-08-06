@@ -8,7 +8,7 @@ mcp-servers:
       reason: "Inspect cluster info, custom compute classes, pod statuses, and secrets."
   - gcp:
       reason: "Verify GKE cluster status."
---- 
+---
 
 # Deploy llm-d Stack Skill
 
@@ -19,15 +19,15 @@ Follow these instructions to deploy the llm-d benchmarking stack on GKE.
 This skill utilizes the following core variables:
 
 - `SPEC` (also referred to as `strategy` or `guide`): This represents the name of the `llm-d` well-lit path guide being targeted. It maps directly to GKE overlay folder structures (`llmd-<spec>`)
+
   - **Allowed Values:**
     - `optimized-baseline` (Standard optimized baseline configuration).
     - `precise-prefix-cache-routing` (Includes precise cache routing for multi-turn workloads).
     - `predicted-latency-routing` (Includes dynamic latency-based routing overlays).
 
 - **CRITICAL WARNING:**
-    1. **NEVER run any `teardown-*.sh` scripts** (e.g., `teardown-llmd-optimized-baseline.sh`) when attempting to "fix and rerun" a deployment or remove a workload. These scripts default to a full core platform teardown (`ACP_TEARDOWN_CORE_PLATFORM=true`) and will completely destroy the GKE cluster and all its resources. If a deployment fails, debug in place or re-run the `deploy` scripts. ONLY run teardown script when the user explicitly asks to tear down the stack and confirm with you first.
-    2. **NEVER Store a secret value or retrieve a value of a secret** in memory or write it to any file. Instead, always use gcloud secrets describe [SECRET_NAME] OR kubectl get kubectl get secret [SECRET_NAME] -o yaml. If a secret does not exist ask the user to create it. 
-
+  1. **NEVER run any `teardown-*.sh` scripts** (e.g., `teardown-llmd-optimized-baseline.sh`) when attempting to "fix and rerun" a deployment or remove a workload. These scripts default to a full core platform teardown (`ACP_TEARDOWN_CORE_PLATFORM=true`) and will completely destroy the GKE cluster and all its resources. If a deployment fails, debug in place or re-run the `deploy` scripts. ONLY run teardown script when the user explicitly asks to tear down the stack and confirm with you first.
+  2. **NEVER Store a secret value or retrieve a value of a secret** in memory or write it to any file. Instead, always use gcloud secrets describe [SECRET_NAME] OR kubectl get kubectl get secret [SECRET_NAME] -o yaml. If a secret does not exist ask the user to create it.
 
 ## 1. Prerequisites & Cluster Setup
 
@@ -59,6 +59,8 @@ This skill utilizes the following core variables:
     - **Allowed Models**:
       - `google/gemma-4-31b-it`
       - `qwen/qwen3-32b` (default)
+      - `qwen/qwen3-32b-fp8`
+      - `redhatai/gemma-4-31b-it-fp8-block`
     - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed models, and ask again.
 2.  **Ask the user**: "Which accelerator would you like to use?"
     - **Allowed Accelerators**:
@@ -98,13 +100,12 @@ This skill utilizes the following core variables:
       ```bash
       "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/deploy-llmd-predicted-latency-routing.sh"
       ```
-4.  **Run validation**:
+3.  **Run validation**:
     - Run the following command to verify the chosen custom compute class exists on the cluster:
       ```bash
       kubectl get computeclasses
       ```
     - Ensure that the accelerator type you chose appears in the list. If it does not, warn the user that the accelerator is unsupported or missing its custom compute class.
-
 
 ## 4. Hugging Face Token Setup
 

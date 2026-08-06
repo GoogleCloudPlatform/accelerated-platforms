@@ -14,7 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 MY_PATH_RL_ENV="$(
-  cd "$(dirname "${BASH_SOURCE}")" >/dev/null 2>&1
+  SCRIPT_SOURCE="${BASH_SOURCE[0]:-}"
+  if [[ -z "${SCRIPT_SOURCE:-}" ]]; then
+    # Fallback in case BASH_SOURCE is not defined, such as when sourcing this
+    # script from a non-Bash shell
+    SCRIPT_SOURCE="$0"
+  fi
+
+  cd "$(dirname "${SCRIPT_SOURCE}")" >/dev/null 2>&1 || return 1
   pwd -P
 )"
 
@@ -29,3 +36,14 @@ declare -a SHARED_CONFIG_PATHS=(
 export SHARED_CONFIG_PATHS
 
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
+
+if [[ -v HF_MODEL_ID ]]; then
+  HF_MODEL_ID_HASH=$(echo "${HF_MODEL_ID}" | md5sum | cut -c1-8)
+  export HF_MODEL_ID_HASH
+
+  HF_MODEL_NAME="${HF_MODEL_ID##*/}"
+  HF_MODEL_NAME="${HF_MODEL_NAME//./-}"
+  # Don't use ,, to make this portable across shells
+  HF_MODEL_NAME="$(echo "${HF_MODEL_NAME}" | tr '[:upper:]' '[:lower:]')"
+  export HF_MODEL_NAME
+fi

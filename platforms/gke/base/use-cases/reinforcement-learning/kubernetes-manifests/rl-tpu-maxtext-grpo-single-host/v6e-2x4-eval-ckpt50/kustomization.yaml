@@ -12,6 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-locals {
-  acp_root = "${path.module}/../../../../../../../../.."
-}
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../base
+
+namespace: rl-kr-single-grpo-single-host
+nameSuffix: -eval-ckpt50
+
+images:
+  - name: replaced-by-kustomize
+    newName: us-east5-docker.pkg.dev/accelerated-platforms-dev/maxtext-images/maxtext_base
+    newTag: latest
+
+patches:
+  - path: patch-job.yaml
+
+configMapGenerator:
+  - name: train-script
+    files:
+      - train.py=../../../../../../../../container-images/tpu/rl-tpu-maxtext-grpo-single-host/src/eval.py

@@ -53,13 +53,15 @@
   },
   "10": {
     "inputs": {
+      "model": "VEO_3_1",
       "image_format": "PNG",
       "prompt": "make the leaves and branches sway in the wind.",
       "aspect_ratio": "16:9",
+      "output_resolution": "720p",
       "compression_quality": "optimized",
       "person_generation": "allow_adult",
       "duration_seconds": 8,
-      "enhance_prompt": true,
+      "generate_audio": true,
       "sample_count": 1,
       "output_gcs_uri": "gs://${COMFYUI_BUCKET}-output",
       "negative_prompt": "",
@@ -71,9 +73,9 @@
         0
       ]
     },
-    "class_type": "Veo2ImageToVideoNode",
+    "class_type": "Veo3ImageToVideoNode",
     "_meta": {
-      "title": "Veo2 Image To Video"
+      "title": "Veo3.1 Image To Video"
     }
   }
 }

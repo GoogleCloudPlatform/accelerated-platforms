@@ -15,3 +15,7 @@
 data "google_project" "cluster" {
   project_id = local.cluster_project_id
 }
+
+data "google_project" "huggingface_secret_manager" {
+  project_id = local.huggingface_secret_manager_project_id
+}

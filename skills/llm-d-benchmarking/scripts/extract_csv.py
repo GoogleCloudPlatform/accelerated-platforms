@@ -32,6 +32,7 @@ REQ_PRE = "results.request_performance.aggregate"
 SES_PRE = "results.session_performance.sessions"
 
 _METRICS_RAW = {
+    "input_tps": f"{REQ_PRE}.throughput.input_token_rate.mean",
     "output_tps": f"{REQ_PRE}.throughput.output_token_rate.mean",
     "request_qps": f"{REQ_PRE}.throughput.request_rate.mean",
     "total_tps": f"{REQ_PRE}.throughput.total_token_rate.mean",

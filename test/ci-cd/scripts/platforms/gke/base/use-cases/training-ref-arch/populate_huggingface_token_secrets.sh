@@ -37,7 +37,7 @@ trap exit_handler EXIT
 
 set --
 
-source "${ACP_PLATFORM_BASE_DIR}/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+source "${ACP_PLATFORM_BASE_DIR}/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 echo "HF_TOKEN_READ" | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} \
 --data-file=- \

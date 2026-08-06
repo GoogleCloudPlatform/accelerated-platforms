@@ -15,7 +15,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: reinforcement-learning-maxtext-grpo
+  name: reinforcement-learning-maxtext-grpo-eval
   namespace: replaced-by-kustomize
 spec:
   backoffLimit: 0
@@ -25,7 +25,7 @@ spec:
       nodeSelector:
         cloud.google.com/compute-class: "tpu-v5e-2x4"
       containers:
-        - name: grpo-trainer
+        - name: grpo-evaluator
           image: replaced-by-kustomize
           resources:
             requests:
@@ -38,21 +38,21 @@ spec:
               cpu: "28"
               ephemeral-storage: "80Gi"
           command:
-            - "/bin/bash"
-            - "/train.sh"
+            - "python3"
+            - "/eval.py"
           envFrom:
             - configMapRef:
                 name: runtime
           volumeMounts:
-            - name: train-script-vol
-              mountPath: /train.sh
-              subPath: train.sh
+            - name: eval-script-vol
+              mountPath: /eval.py
+              subPath: eval.py
             - name: tmp-vol
               mountPath: /tmp
       volumes:
-        - name: train-script-vol
+        - name: eval-script-vol
           configMap:
-            name: train-script
+            name: eval-script
         - name: tmp-vol
           emptyDir: {}
       serviceAccountName: replaced-by-kustomize

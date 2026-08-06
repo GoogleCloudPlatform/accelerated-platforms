@@ -15,7 +15,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-nameSuffix: "-v5e-2x4-llama-3-1-8b-instruct"
+nameSuffix: "-v5e-2x4-llama-3-1-8b-it"
 
 patches:
   - path: patch-nodeselector.yaml
@@ -32,7 +32,7 @@ replacements:
         select:
           kind: Job
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      fieldPath: data.RL_KUBERNETES_NAMESPACE
       kind: ConfigMap
       name: runtime
     targets:
@@ -41,21 +41,12 @@ replacements:
         select:
           kind: Job
   - source:
-      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      fieldPath: data.RL_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
       name: runtime
     targets:
       - fieldPaths:
           - spec.template.spec.serviceAccountName
-        select:
-          kind: Job
-  - source:
-      fieldPath: data.MLFLOW_TRACKING_URI
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.template.spec.containers.[name=grpo-trainer].env.[name=MLFLOW_TRACKING_URI].value
         select:
           kind: Job
 

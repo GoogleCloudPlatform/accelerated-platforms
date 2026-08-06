@@ -22,6 +22,10 @@ MY_PATH="$(
   pwd -P
 )"
 
+source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
+
+
+
 # Update benchmarking namespace depending on TPU or GPU selection
 TARGET_FILE="${MY_PATH}/templates/benchmarking.tpl.env"
 GPU_NS="${ira_online_gpu_kubernetes_namespace_name}"
@@ -45,8 +49,6 @@ else
     echo "Variable not found"
 fi
 
-source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
-
 # Workaround for Gemma 4 tokenizer bug in inference-perf image
 if [[ "$HF_MODEL_ID" == *"gemma-4"* ]]; then
     echo "Detected Gemma 4 model. Using Gemma 1 tokenizer as workaround for inference-perf bug."
@@ -55,12 +57,17 @@ else
     export TOKENIZER_ID="$HF_MODEL_ID"
 fi
 
+HF_MODEL_NAME_DERIVED="$(echo "${HF_MODEL_ID}" | tr '[:upper:]' '[:lower:]' | sed 's:.*/::' | tr '_' '-')"
+ACCEL_TYPE_DERIVED="${ACCELERATOR_TYPE:-rtx-pro-6000}"
+export APP_LABEL="${APP_LABEL:-vllm-${ACCEL_TYPE_DERIVED}-${HF_MODEL_NAME_DERIVED}}"
+export INFERENCE_BASE_URL="${INFERENCE_BASE_URL:-http://${APP_LABEL}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000}"
+export BENCHMARK_STAGE_DURATION="${BENCHMARK_STAGE_DURATION:-120}"
+
 envsubst < "${MY_PATH}/templates/benchmarking.tpl.env" | sponge "${MY_PATH}/benchmarking.env"
 
 envsubst < "${MY_PATH}/templates/configmap-benchmark.tpl.yaml" | sponge "${MY_PATH}/configmap-benchmark.yaml"
 
 envsubst < "${MY_PATH}/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/secretproviderclass-huggingface-tokens.yaml"
-
 
 cd "${MY_PATH}"
 SHORT_HASH=$(echo -n "${APP_LABEL}" | sha256sum | cut -c1-10)

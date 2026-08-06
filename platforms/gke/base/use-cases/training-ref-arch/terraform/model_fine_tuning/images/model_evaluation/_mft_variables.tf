@@ -1,1 +1,1 @@
-../../../../_shared_config/mft_variables.tf
+../../../_shared_config/mft_variables.tf

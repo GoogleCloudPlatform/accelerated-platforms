@@ -16,6 +16,7 @@ orbax
 prefuse
 pyconfig
 relpath
+pathwaysjob
 returncode
 rlaif
 rlhf

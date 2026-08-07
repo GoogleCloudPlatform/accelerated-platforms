@@ -23,6 +23,7 @@ ERROR="\033[1;31m[ERROR]\033[0m"
 
 echo -e "${INFO} Running validate_kustomize.sh from CI-CD scripts..."
 
+# cspell:ignore toplevel
 export REPO_ROOT="$(git rev-parse --show-toplevel)"
 export ACP_REPO_DIR="${REPO_ROOT}"
 export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"

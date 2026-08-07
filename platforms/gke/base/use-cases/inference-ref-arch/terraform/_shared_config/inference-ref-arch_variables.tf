@@ -69,8 +69,13 @@ locals {
 
   ira_inference_perf_ksa_project_roles_list                = ["roles/logging.viewer", "roles/monitoring.viewer", "roles/monitoring.metricsScopesViewer", "roles/storage.bucketViewer"]
   ira_inference_perf_bench_kubernetes_service_account_name = var.ira_inference_perf_bench_kubernetes_service_account_name != null ? var.ira_inference_perf_bench_kubernetes_service_account_name : "${local.unique_identifier_prefix}-inference-perf-bench"
-  hub_models_bucket_bench_results_name                     = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench-results"
-  hub_models_bucket_bench_dataset_name                     = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench-dataset"
+  # The llm-d-benchmark harness creates this KSA itself during run steps 0-6.
+  # The name is a fixed default in llm-d-benchmark
+  # (config/templates/values/defaults.yaml -> serviceAccount.name) and is NOT
+  # prefixed with local.unique_identifier_prefix, so it must be matched verbatim.
+  ira_llmd_benchmark_kubernetes_service_account_name = var.ira_llmd_benchmark_kubernetes_service_account_name != null ? var.ira_llmd_benchmark_kubernetes_service_account_name : "inference-perf-runner"
+  hub_models_bucket_bench_results_name               = var.hub_models_bucket_bench_results_name != null ? var.hub_models_bucket_bench_results_name : "${local.unique_identifier_prefix}-bench-results"
+  hub_models_bucket_bench_dataset_name               = var.hub_models_bucket_bench_dataset_name != null ? var.hub_models_bucket_bench_dataset_name : "${local.unique_identifier_prefix}-bench-dataset"
 
 }
 
@@ -288,6 +293,12 @@ variable "ira_online_tpu_vllm_image_url" {
 variable "ira_inference_perf_bench_kubernetes_service_account_name" {
   default     = null
   description = "The Kubernetes service account for the inference-perf benchmarking job."
+  type        = string
+}
+
+variable "ira_llmd_benchmark_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account created by the llm-d-benchmark harness. Must match serviceAccount.name in the harness config; override only if that default is changed."
   type        = string
 }
 

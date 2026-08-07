@@ -83,3 +83,4 @@ resources:
 - job.yaml
 - secretproviderclass-huggingface-tokens.yaml
 - pod-monitoring.yaml
+

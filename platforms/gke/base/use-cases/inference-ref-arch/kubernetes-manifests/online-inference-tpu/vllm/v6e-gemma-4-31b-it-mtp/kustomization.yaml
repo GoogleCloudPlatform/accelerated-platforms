@@ -160,3 +160,7 @@ replacements:
 
 resources:
   - ../base
+
+replicas:
+  - name: vllm
+    count: 3

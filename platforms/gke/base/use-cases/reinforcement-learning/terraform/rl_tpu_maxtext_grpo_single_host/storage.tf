@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+data "google_storage_bucket" "hub_models" {
+  name    = local.huggingface_hub_models_bucket_name
+  project = local.huggingface_hub_models_bucket_project_id
+}
+
 resource "google_storage_bucket" "dataset" {
   name     = local.rl_dataset_bucket_name
   project  = local.rl_project_id

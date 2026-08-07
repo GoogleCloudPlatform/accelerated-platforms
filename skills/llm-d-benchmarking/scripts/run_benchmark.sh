@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +36,7 @@ export REGION LLMDBENCH_BASE_DIR="${LLMDBENCH_BASE_DIR:-$(cd "${REPO_DIR}/.." &&
 RESULTS_BUCKET=${5:-$RESULTS_BUCKET}
 if [ -z "$RESULTS_BUCKET" ]; then
     TFVARS_FILE="${REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
-    PLATFORM_NAME=$(grep -oP '(?<=^platform_name = ")[^"]*' "$TFVARS_FILE" 2>/dev/null || echo "llm-d-bench")
+    PLATFORM_NAME=$(awk -F'"' '/platform_name/ {print $2}' "$TFVARS_FILE" || echo "llm-d-bench")
     RESULTS_BUCKET="inf-${PLATFORM_NAME:-llm-d-bench}-bench-results"
 fi
 export RESULTS_BUCKET="${RESULTS_BUCKET#gs://}"
@@ -44,6 +44,45 @@ export RESULTS_BUCKET="${RESULTS_BUCKET#gs://}"
 # Enforce required args and provision bucket if missing
 [ -z "$WORKLOAD" ] || [ -z "$ENDPOINT_URL" ] && { echo "Usage: $0 <workload> <url> [ns] [model] [bucket]"; exit 1; }
 gcloud storage buckets describe "gs://${RESULTS_BUCKET}" &>/dev/null || gcloud storage buckets create "gs://${RESULTS_BUCKET}" ${REGION:+--location=$REGION} || true
+
+# Preflight: check if the endpoint is working
+preflight_endpoint() {
+  local url="$1" ns="$2" gw="" http_code="" smoke_log=""
+  if [[ "$url" == *"vllm-service"* ]]; then
+    gw=$(kubectl -n "$ns" get gateway llm-d-inference-gateway -o jsonpath='{.status.addresses[0].value}' 2>/dev/null || true)
+    echo "ERROR: '$url' is not valid for the llm-d stack (no Service named vllm-service in namespace '$ns')." >&2
+    if [ -n "$gw" ]; then
+      echo "Use the Gateway URL instead: http://${gw}" >&2
+    else
+      echo "Resolve the endpoint with: kubectl -n $ns get gateway llm-d-inference-gateway -o jsonpath='{.status.addresses[0].value}'" >&2
+    fi
+    exit 1
+  fi
+  kubectl -n "$ns" delete pod model-smoke-test --ignore-not-found --grace-period=0 --force &>/dev/null || true
+  sed "s,REPLACE_ENDPOINT_URL,${url},g" "${REPO_DIR}/skills/llm-d-benchmarking/scripts/helper-pods/smoke-test.yaml" | kubectl apply -n "$ns" -f - >/dev/null
+  if ! kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/model-smoke-test -n "$ns" --timeout=90s >/dev/null 2>&1; then
+    smoke_log=$(kubectl logs pod/model-smoke-test -n "$ns" 2>&1 || true)
+    kubectl -n "$ns" delete pod model-smoke-test --ignore-not-found --grace-period=0 --force &>/dev/null || true
+    echo "ERROR: endpoint preflight failed for '$url' in namespace '$ns'." >&2
+    echo "$smoke_log" >&2
+    exit 1
+  fi
+  smoke_log=$(kubectl logs pod/model-smoke-test -n "$ns" 2>&1 || true)
+  kubectl -n "$ns" delete pod model-smoke-test --ignore-not-found --grace-period=0 --force &>/dev/null || true
+  http_code=$(echo "$smoke_log" | sed -n 's/^HTTP Code: //p' | tail -n1)
+  if [ "$http_code" != "200" ]; then
+    echo "ERROR: endpoint '$url' returned HTTP ${http_code:-unknown} for /v1/models (expected 200)." >&2
+    echo "$smoke_log" >&2
+    exit 1
+  fi
+  echo "Endpoint preflight OK: ${url}/v1/models -> HTTP 200"
+  if [[ "$WORKLOAD" == *agentic_code_generation* ]]; then
+    echo "WARNING: agentic_code_generation targets up to ~262k context; gemma-4-31b-it is 32k. Oversized prompts can cause Broken pipe / VLLMValidationError. Prefer sanity_random.yaml or chatbot_synthetic.yaml, or retune max_model_len." >&2
+  fi
+}
+if [[ "${SKIP_ENDPOINT_PREFLIGHT:-false}" != "true" ]]; then
+  preflight_endpoint "$ENDPOINT_URL" "$NAMESPACE"
+fi
 
 # Function to validate and propose optimal sizing configs
 validate_workload_config() {

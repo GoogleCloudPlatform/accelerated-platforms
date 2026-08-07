@@ -52,7 +52,7 @@ variable "platform_default_project_id" {
 }
 
 variable "platform_default_region" {
-  default     = "us-east1"
+  default     = "us-east5"
   description = "Default region to create resources in if a more specific region is not specified."
   type        = string
 }

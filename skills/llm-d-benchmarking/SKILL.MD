@@ -105,6 +105,8 @@ Run the consolidated benchmark script with the chosen workload profile and endpo
   "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml ${ENDPOINT_URL} <namespace> google/gemma-4-31b-it my-custom-bench-bucket
   ```
 
+> [!TIP] > **Load Balancer Timeouts on Large Sweeps**: External GKE Gateway Load Balancers default to a 30-second HTTP request timeout (or 300 seconds via the default `llm-d` Gateway recipe) unless configured with a `GCPBackendPolicy` setting `timeoutSec: 3600`. When running large multi-stage benchmarks (9+ stages or high concurrency), either patch your `GCPBackendPolicy` to `timeoutSec: 3600` (`kubectl -n <ns> patch gcpbackendpolicy <name> --type='merge' -p '{"spec":{"default":{"timeoutSec":3600}}}'`), or pass the direct in-cluster Service URL (e.g., `http://<service-name>.<namespace>.svc.cluster.local:8000`) to bypass the load balancer timeout.
+
 ## 6. Explanation of `run_benchmark.sh` Steps
 
 The `run_benchmark.sh` script is an ultra-dense automated executor that directly calls the `llmdbenchmark` core library (bypassing CLI wrappers for user reproducibility). It automates the execution through the following condensed phases:
@@ -115,18 +117,20 @@ The `run_benchmark.sh` script is an ultra-dense automated executor that directly
 2.  **Pre-flight Checks & Workload Validation**:
     - Checks if Managed Prometheus is enabled.
     - Invokes `tune_workload.py` to check for optimal specs, allowing an interactive auto-apply fix if sizing gaps are found.
+    - For long-context workloads like `agentic_code_generation` (~262k prefill tokens), `tune_workload.py` checks `model_specs.json` to ensure `MAX_MODEL_LEN` and `TENSOR_PARALLEL_SIZE` accommodate both prompt prefill and generation tokens without clipping.
 3.  **Phase 1: Setup Namespace & PVC**:
     - Executes `llmdbenchmark run` in `--dry-run` to validate syntax.
     - Executes harness setup steps `0,1,2,3,4,5,6` to create the namespace, RBAC permissions, and the workload PVC.
     - **Note**: The data-access pod is deliberately NOT deleted in this phase so that it can stage the workload profile onto the PVC. This architecture requires a `ReadWriteMany` (RWX) storage class, allowing the harness pod to mount the PVC concurrently from its own node.
 4.  **Phase 2: Execute Benchmark Harness & Telemetry Collection**:
     - Captures the start timestamp, deploys the harness (step `7`), and explicitly waits for completion (step `8`) to establish an exact time window.
-    - Captures the end timestamp, then triggers the `telemetry-collector.yaml` pod to retroactively capture GPU/TPU DCGM metrics precisely constrained to that execution window.
+    - Captures the end timestamp, then triggers the `telemetry-collector.yaml` Kubernetes batch **`Job`** (with its mounted `ConfigMap` script) to retroactively capture GPU/TPU DCGM metrics precisely constrained to that execution window.
 5.  **Phase 3: Result Retrieval**:
     - Executes step `9` to collect the `inference-perf` results. Because of the RWX storage class, this step natively reuses the original data-access pod from Phase 1
 6.  **Phase 4: Report Generation & Cleanup**:
     - Uses `extract_csv.py` and inline python to synthesize `report_v0.2.json` and `output.csv`.
-    - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports) to the target GCS bucket.
+    - Automatically generates latency and throughput charts (`inference-perf -a`).
+    - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports, CSVs, and PNG charts) to the target GCS bucket.
     - Manually forces deletion of the original data-access pod so it doesn't linger as a daemon indefinitely.
 
 ## 7. Analyze Benchmark Results
@@ -151,7 +155,7 @@ To verify if your hardware (GPU or TPU) is fully utilized and healthy during the
 
 ### 8.1 GPU (NVIDIA DCGM Metrics via Managed Prometheus)
 
-Monitor these metrics for GPU runs:
+Monitor these metrics for GPU runs (_Note: In GKE Managed Prometheus, these are also exposed under `kubernetes.io/container/accelerator/*` time series such as `duty_cycle`, `memory_used`, `memory_total`, and `memory_bandwidth_utilization`_):
 
 #### A. Compute & Core Utilization
 

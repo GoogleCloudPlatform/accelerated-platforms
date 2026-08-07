@@ -21,3 +21,36 @@ module "kubectl_apply_llmd_ppcr_gateway_manifests" {
   namespace                   = local.llmd_namespace
   use_kustomize               = true
 }
+
+resource "local_file" "llmd_ppcr_gcp_backend_policy_override" {
+  content  = <<-EOT
+    apiVersion: networking.gke.io/v1
+    kind: GCPBackendPolicy
+    metadata:
+      name: precise-prefix-cache-routing
+      namespace: ${local.llmd_namespace}
+    spec:
+      default:
+        logging:
+          enabled: true
+        timeoutSec: 3600
+      targetRef:
+        group: inference.networking.k8s.io
+        kind: InferencePool
+        name: precise-prefix-cache-routing
+  EOT
+  filename = "${path.module}/.terraform/manifests/gcp-backend-policy-override.yaml"
+}
+
+module "kubectl_apply_llmd_ppcr_gcp_backend_policy_override" {
+  depends_on = [
+    module.kubectl_apply_llmd_ppcr_gateway_manifests,
+    local_file.llmd_ppcr_gcp_backend_policy_override,
+  ]
+
+  source                      = "../../../../../modules/kubectl_apply"
+  kubeconfig_file             = data.local_file.kubeconfig.filename
+  manifest                    = local_file.llmd_ppcr_gcp_backend_policy_override.filename
+  manifest_includes_namespace = true
+}
+

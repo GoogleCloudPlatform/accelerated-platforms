@@ -17,6 +17,9 @@ locals {
   ira_inference_perf_bench_online_gpu_ksa_member = "${local.cluster_wi_principal_prefix}/ns/${local.ira_online_gpu_kubernetes_namespace_name}/sa/${local.ira_inference_perf_bench_kubernetes_service_account_name}"
   ira_inference_perf_bench_online_tpu_ksa_member = "${local.cluster_wi_principal_prefix}/ns/${local.ira_online_tpu_kubernetes_namespace_name}/sa/${local.ira_inference_perf_bench_kubernetes_service_account_name}"
 
+  ira_llmd_benchmark_online_gpu_ksa_member = "${local.cluster_wi_principal_prefix}/ns/${local.ira_online_gpu_kubernetes_namespace_name}/sa/${local.ira_llmd_benchmark_kubernetes_service_account_name}"
+  ira_llmd_benchmark_online_tpu_ksa_member = "${local.cluster_wi_principal_prefix}/ns/${local.ira_online_tpu_kubernetes_namespace_name}/sa/${local.ira_llmd_benchmark_kubernetes_service_account_name}"
+
 }
 
 # --- GPU RESOURCES ---
@@ -39,6 +42,17 @@ resource "google_project_iam_member" "hub_models_ira_inference_perf_bench_online
   for_each = var.enable_gpu ? toset(local.ira_inference_perf_ksa_project_roles_list) : []
   project  = var.platform_default_project_id
   member   = local.ira_inference_perf_bench_online_gpu_ksa_member
+  role     = each.value
+}
+
+# The llm-d-benchmark telemetry-collector pod runs as this KSA and queries
+# monitoring.googleapis.com timeSeries for DCGM metrics. Without these roles the
+# collector receives HTTP 403 PERMISSION_DENIED and writes an error object into
+# dcgm_metrics.json instead of results.
+resource "google_project_iam_member" "hub_models_ira_llmd_benchmark_online_gpu_ksa_roles" {
+  for_each = var.enable_gpu ? toset(local.ira_inference_perf_ksa_project_roles_list) : []
+  project  = var.platform_default_project_id
+  member   = local.ira_llmd_benchmark_online_gpu_ksa_member
   role     = each.value
 }
 
@@ -70,6 +84,13 @@ resource "google_project_iam_member" "hub_models_ira_inference_perf_bench_online
   for_each = var.enable_tpu ? toset(local.ira_inference_perf_ksa_project_roles_list) : []
   project  = var.platform_default_project_id
   member   = local.ira_inference_perf_bench_online_tpu_ksa_member
+  role     = each.value
+}
+
+resource "google_project_iam_member" "hub_models_ira_llmd_benchmark_online_tpu_ksa_roles" {
+  for_each = var.enable_tpu ? toset(local.ira_inference_perf_ksa_project_roles_list) : []
+  project  = var.platform_default_project_id
+  member   = local.ira_llmd_benchmark_online_tpu_ksa_member
   role     = each.value
 }
 

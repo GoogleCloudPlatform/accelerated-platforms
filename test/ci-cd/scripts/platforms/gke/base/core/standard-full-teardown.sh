@@ -30,6 +30,7 @@ ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 
 declare -a CORE_TERRASERVICES_DESTROY_ARRAY=(
+  "workloads/agent_sandbox"
   "workloads/pathways"
   "workloads/priority_class"
   "workloads/lws"

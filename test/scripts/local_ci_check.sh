@@ -25,6 +25,12 @@ export AUTO_FIX=${AUTO_FIX:-false}
 export RUN_PRETTIER=${RUN_PRETTIER:-true}
 export RUN_LICENSE=${RUN_LICENSE:-true}
 export RUN_KUSTOMIZE=${RUN_KUSTOMIZE:-true}
+export RUN_TERRAFORM=${RUN_TERRAFORM:-true}
+export RUN_TRIGGERS=${RUN_TRIGGERS:-true}
+
+# Optional flags for sub-scripts
+export RUN_TF_VALIDATE=${RUN_TF_VALIDATE:-false}
+export DRY_RUN_TRIGGERS=${DRY_RUN_TRIGGERS:-false}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LOCAL_CI_DIR="${SCRIPT_DIR}/local_ci"
@@ -42,7 +48,19 @@ if [ "${RUN_KUSTOMIZE}" == "true" ]; then
   "${LOCAL_CI_DIR}/check_kustomize.sh" || FAILURES=$((FAILURES + 1))
 fi
 
+if [ "${RUN_TERRAFORM}" == "true" ]; then
+  "${LOCAL_CI_DIR}/check_terraform.sh" || FAILURES=$((FAILURES + 1))
+fi
+
 "${LOCAL_CI_DIR}/check_cspell.sh" || FAILURES=$((FAILURES + 1))
+
+if [ "${RUN_TRIGGERS}" == "true" ]; then
+  if [ "${DRY_RUN_TRIGGERS}" == "true" ]; then
+    "${LOCAL_CI_DIR}/check_cloudbuild_triggers.sh" --dry-run || FAILURES=$((FAILURES + 1))
+  else
+    "${LOCAL_CI_DIR}/check_cloudbuild_triggers.sh" || FAILURES=$((FAILURES + 1))
+  fi
+fi
 
 echo ""
 if [ ${FAILURES} -eq 0 ]; then

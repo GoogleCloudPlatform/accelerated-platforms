@@ -1,4 +1,5 @@
 aexport
+agentic
 aiml
 argnums
 autolog
@@ -29,6 +30,8 @@ finetuning
 fluentbit
 fsdp
 gbps
+geminicodeassist
+googlecloudtools
 gpul
 hyperparameter
 hyperparameters
@@ -42,6 +45,7 @@ lavis
 logprobs
 maxdiffusion
 mftp
+mkhl
 mlflow
 mlops
 mlruns
@@ -64,7 +68,9 @@ sched
 schedulable
 schnell
 seqs
+sharegpt
 stabilityai
+timonwong
 tunables
 unconfigure
 usecs

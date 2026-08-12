@@ -54,6 +54,7 @@ cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
 rm tfplan
 
 declare -a use_case_terraservices=(
+  "rl_tpu_maxtext_grpo_single_host"
   "initialize"
 )
 for terraservice in "${use_case_terraservices[@]}"; do

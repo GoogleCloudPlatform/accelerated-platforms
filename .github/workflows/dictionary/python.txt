@@ -61,12 +61,14 @@ makedirs
 moviepy
 nbconvert
 numpy
+onednn
 opencv
 optax
 pathlib
 pgvector
 pipreqs
 pmap
+popen
 prng
 protos
 pyasn

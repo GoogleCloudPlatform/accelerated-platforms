@@ -1,13 +1,17 @@
 allexport
+cfmanteiga
 chdir
 dclose
 envsubst
 errexit
+excludesfile
 getopt
+koalaman
 libexec
 libgl
 libglib
 moreutils
+mvdan
 ncat
 nmap
 noninteractive
@@ -15,6 +19,8 @@ nounset
 nslookup
 pipefail
 pkill
+shellcheck
+shfmt
 shuf
 subshell
 syscall

@@ -1,0 +1,25 @@
+[
+  {
+    "id": 1,
+    "prompt": "Deploy a GKE inference stack on an Autopilot cluster. Set the platform name to 'inf-auto-1', use region 'us-central1' and project 'my-ai-project'. I want to use TPU accelerators.",
+    "expected_output": "Configures the platform variables for Autopilot, sets region and project, calls deploy-ap.sh, and applies the online_tpu terra-service.",
+    "assertions": [
+      "The platform_name and platform_default_project_id are updated in platforms/gke/base/_shared_config/platform.auto.tfvars using sed",
+      "The cluster_region is updated in platforms/gke/base/_shared_config/cluster.auto.tfvars using sed",
+      "The deploy-ap.sh script is queued for execution",
+      "The online_tpu terraform service is applied"
+    ]
+  },
+  {
+    "id": 2,
+    "prompt": "Create a Standard GKE cluster for inference with both GPU (h100) and TPU (v6e). Platform is 'inf-std-dual', region 'us-west1', project 'test-proj'.",
+    "expected_output": "Configures the platform variables for Standard, sets region and project, calls deploy-standard.sh, and applies both online_gpu and online_tpu terra-services.",
+    "assertions": [
+      "The platform_name and platform_default_project_id are updated in platforms/gke/base/_shared_config/platform.auto.tfvars using sed",
+      "The cluster_region is updated in platforms/gke/base/_shared_config/cluster.auto.tfvars using sed",
+      "The deploy-standard.sh script is queued for execution",
+      "The online_gpu terraform service is applied",
+      "The online_tpu terraform service is applied"
+    ]
+  }
+]

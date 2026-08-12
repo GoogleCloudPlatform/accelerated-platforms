@@ -1,0 +1,34 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# A ReadWriteMany StorageClass backed by Filestore.
+#
+# GKE ships built-in Filestore classes (standard-rwx, premium-rwx, ...), but they
+# do not set the 'network' parameter, so the Filestore instance is created on the
+# 'default' VPC. This platform creates its own VPC, so volumes provisioned by the
+# built-in classes are unreachable from the cluster. Setting 'network' explicitly
+# places the Filestore instance on the cluster's network.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ${storage_class_name}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "${is_default_class}"
+provisioner: filestore.csi.storage.gke.io
+parameters:
+  network: ${network_name}
+  tier: ${filestore_tier}
+allowVolumeExpansion: true
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer

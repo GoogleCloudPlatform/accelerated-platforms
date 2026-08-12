@@ -12,6 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "deploy_on_gpu" {
+  value = local.deploy_on_gpu
+}
+
+output "deploy_on_tpu" {
+  value = local.deploy_on_tpu
+}
+
 output "hub_models_bucket_bench_results_name" {
   value = local.hub_models_bucket_bench_results_name
 }
@@ -110,6 +118,17 @@ output "llmd_accelerator_type" {
 
 output "llmd_endpoints_hostname" {
   value = local.llmd_endpoints_hostname
+}
+
+output "llmd_ob_guide_name" {
+  value = var.llmd_ob_guide_name
+}
+
+output "llmd_namespace" {
+  value = local.llmd_namespace
+}
+output "llmd_ppcr_guide_name" {
+  value = var.llmd_ppcr_guide_name
 }
 
 output "llmd_iap_oath_branding_project_id" {

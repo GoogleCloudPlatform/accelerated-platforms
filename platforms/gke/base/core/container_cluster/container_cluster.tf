@@ -173,6 +173,10 @@ resource "google_container_cluster" "cluster" {
     ]
   }
 
+  managed_machine_learning_diagnostics_config {
+    enabled = true
+  }
+
   master_authorized_networks_config {
     gcp_public_cidrs_access_enabled = !var.cluster_enable_private_endpoint
     cidr_blocks {

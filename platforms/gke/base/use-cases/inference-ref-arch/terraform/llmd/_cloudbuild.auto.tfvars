@@ -1,1 +1,0 @@
-../../../../_shared_config/cloudbuild.auto.tfvars

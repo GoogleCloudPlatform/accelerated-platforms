@@ -79,13 +79,13 @@ done
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
   declare -a CORE_TERRASERVICES_DESTROY=(
     "workloads/priority_class"
-    "workloads/inference_gateway"
     "workloads/custom_metrics_adapter"
     "workloads/auto_monitoring"
     "custom_compute_class"
     "huggingface/hub_downloader"
     "huggingface/initialize"
     "cloudbuild/initialize"
+    "workloads/storage_class"
     "workloads/cluster_credentials"
     "container_cluster"
     "networking"

@@ -116,26 +116,16 @@ precedence over earlier ones:
 
   Valid values for `MODEL_ID` are:
 
-  - `google/gemma-3-1b-it`
-  - `google/gemma-3-4b-it`
-  - `google/gemma-3-27b-it`
-  - `openai/gpt-oss-20b`
-  - `meta-llama/llama-4-scout-17b-16e-instruct`
-  - `meta-llama/llama-3.3-70b-instruct`
+  - `google/gemma-4-31b-it`
   - `qwen/qwen3-32b` **(default)**
 
 - In order to choose an accelerator and for the model you want to run, refer to
   the following table.
 
-  | Model                          | l4  | h100 | h200 | RTX Pro 6000 |
-  | ------------------------------ | --- | ---- | ---- | ------------ |
-  | gemma-3-1b-it                  | ✅  | ❌   | ❌   | ❌           |
-  | gemma-3-4b-it                  | ✅  | ❌   | ❌   | ❌           |
-  | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
-  | gpt-oss-20b                    | ✅  | ✅   | ✅   | ✅           |
-  | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
-  | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
-  | qwen3-32b                      | ✅  | ✅   | ✅   | ✅           |
+  |     Model      | h100 | h200 | RTX Pro 6000 |
+  | :------------: | :--: | :--: | :----------: |
+  | gemma-4-31b-it |  ✅  |  ✅  |      ✅      |
+  |   qwen3-32b    |  ✅  |  ✅  |      ✅      |
 
 - Optional : Run the following step if you want to run the model on an
   accelerator other than `nvidia-rtx-pro` which is the default accelerator for
@@ -148,7 +138,6 @@ precedence over earlier ones:
 
   Valid values for `ACCELERATOR` are:
 
-  - `l4`
   - `h100`
   - `h200`
   - `rtx-pro-6000` **(default)**

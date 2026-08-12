@@ -1,0 +1,63 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: diffusers
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      containers:
+        - name: inference-server
+          # The normal sglang command is wrapped by patch-entrypoint.sh.
+          # This startup wrapper dynamically patches sglang's parallel_state.py
+          # to omit the 'device_id' argument in torch.distributed.init_process_group
+          # when world_size == 1.
+          #
+          # Why: PyTorch's eager device connection hook (eager_connect_single_device)
+          # is triggered when device_id is passed, which attempts direct GPU/NCCL hardware
+          # binding calls that crash with 'cudaErrorNotSupported' inside virtualized
+          # MIG / vGPU slice sandboxes under GKE. Delaying NCCL init (which is never
+          # called on tp=1 setups) bypasses the crash entirely.
+          #
+          # Tracked in SGLang Issue: https://github.com/sgl-project/sglang/issues/25670
+          command:
+            - "/scripts/patch-entrypoint.sh"
+          args:
+            - "serve"
+            - "--mem-fraction-static=$(GPU_MEMORY_UTILIZATION)"
+            - "--model-path=/gcs/$(MODEL_ID)"
+            - "--tp-size=$(TENSOR_PARALLEL_SIZE)"
+            - "--trust-remote-code"
+            - "--port=30000"
+            - "--host=0.0.0.0"
+          env:
+            - name: NCCL_P2P_DISABLE
+              value: "1"
+            - name: NCCL_SHM_DISABLE
+              value: "1"
+            - name: NCCL_NVLS_ENABLE
+              value: "0"
+            - name: NCCL_DEBUG
+              value: "INFO"
+          volumeMounts:
+            - mountPath: /scripts
+              name: entrypoint-patch-volume
+      volumes:
+        - name: entrypoint-patch-volume
+          configMap:
+            name: entrypoint-patch
+            defaultMode: 0755

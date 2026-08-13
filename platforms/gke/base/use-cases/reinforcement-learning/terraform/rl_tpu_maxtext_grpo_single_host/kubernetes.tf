@@ -27,6 +27,11 @@ locals {
       namespace       = local.rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name
       service_account = local.rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name
     }
+    rl_cpu_maxtext_checkpoint_converter = {
+      directory       = "${local.namespaces_directory}/${local.rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name}"
+      namespace       = local.rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name
+      service_account = local.rl_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name
+    }
   }
 
   manifests_directory_root = "${path.module}/../../../../kubernetes/manifests"

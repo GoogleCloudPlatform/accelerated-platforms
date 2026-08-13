@@ -40,8 +40,20 @@ for endpoint in ${endpoints}; do
   --quiet
 done
 
-sleep 120 # sometimes the endpoints api takes a while to delete the endpoints
+sleep 60 # sometimes the endpoints api takes a while to delete the endpoints
 
 echo "Deleting project '${DELETE_PROJECT_ID}'..."
-gcloud projects delete "${DELETE_PROJECT_ID}" \
-  --quiet
+
+MAX_RETRIES=5
+ATTEMPT=0
+
+until gcloud projects delete "${DELETE_PROJECT_ID}" --quiet; do
+  ATTEMPT=$((ATTEMPT + 1))
+  if [ "${ATTEMPT}" -ge "${MAX_RETRIES}" ]; then
+    echo "ERROR: Failed to delete project '${DELETE_PROJECT_ID}' after ${MAX_RETRIES} retries."
+    exit 1
+  fi
+  echo "Project deletion blocked by pending child resource purge. Retrying in 20s (Attempt ${ATTEMPT}/${MAX_RETRIES})..."
+  sleep 20
+done
+

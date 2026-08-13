@@ -122,7 +122,7 @@ module "kubectl_wait_for_gateway" {
 
   source = "../../../../modules/kubectl_wait"
 
-  for             = "jsonpath={.status.conditions[?(@.type==\"networking.gke.io/GatewayHealthy\")].status}=True"
+  for             = "jsonpath={.status.conditions[?(@.type==\"Programmed\")].status}=True"
   kubeconfig_file = data.local_file.kubeconfig.filename
   namespace       = local.mft_kubernetes_namespace
   resource        = "gateway/${local.gateway_name}"

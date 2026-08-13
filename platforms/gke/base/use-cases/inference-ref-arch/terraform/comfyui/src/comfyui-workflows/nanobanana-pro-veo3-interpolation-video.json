@@ -97,7 +97,7 @@
         1116266218,
         "randomize",
         "",
-        ""
+        "us-central1"
       ]
     },
     {
@@ -131,19 +131,56 @@
     },
     {
       "id": 8,
-      "type": "Imagen4TextToImageNode",
+      "type": "Gemini3ProImage",
       "pos": [
         1750.4946343266672,
         -355.2666217160527
       ],
       "size": [
         400,
-        430
+        554
       ],
       "flags": {},
       "order": 0,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "name": "image1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image5",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image6",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
       "outputs": [
         {
           "name": "Generated Image",
@@ -156,23 +193,24 @@
         }
       ],
       "properties": {
-        "Node name for S&R": "Imagen4TextToImageNode"
+        "Node name for S&R": "Gemini3ProImage"
       },
       "widgets_values": [
-        "IMAGEN_4_ULTRA",
+        "GEMINI_3_PRO_IMAGE",
         "Cinematic Over-the-Shoulder Shot of a detective interrogating a rubber duck in a dark interview room,",
-        "allow_adult",
         "16:9",
-        1,
-        "",
-        877651165,
-        "randomize",
-        true,
-        false,
+        "1K",
         "PNG",
+        0.7,
+        1,
+        32,
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
         "BLOCK_MEDIUM_AND_ABOVE",
         "",
-        ""
+        "",
+        "global"
       ]
     },
     {

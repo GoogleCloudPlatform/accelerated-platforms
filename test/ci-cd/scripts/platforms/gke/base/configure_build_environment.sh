@@ -38,9 +38,6 @@ export ACP_PLATFORM_BASE_DIR="\${ACP_REPO_DIR}/platforms/gke/base"
 export ACP_PLATFORM_CORE_DIR="\${ACP_PLATFORM_BASE_DIR}/core"
 export PROJECT_SUFFIX=${PROJECT_SUFFIX}
 
-# Bypass Custom Compute Class health checks in CI because most regions do not have full coverage
-export TF_VAR_cluster_check_custom_compute_classes_healthy="false"
-
 EOT
 
 while [ $# -gt 0 ]; do
@@ -48,22 +45,14 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+echo "build.env file:"
+cat /workspace/build.env
 source /workspace/build.env
+echo
+
 set --
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 # Create a dedicated project
 export NEW_PROJECT_ID="${platform_default_project_id}"
 ${ACP_REPO_DIR}/test/ci-cd/scripts/create_project.sh
-
-# Run preflight region check to select optimal region for CI run, checking the new project's quotas
-DYNAMIC_CI_REGION="$("${ACP_REPO_DIR}/test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh" "${NEW_PROJECT_ID}" | tail -n 1)"
-if [ -n "${DYNAMIC_CI_REGION}" ]; then
-  echo "export TF_VAR_platform_default_region=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
-  echo "export LOCATION=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
-fi
-
-echo "build.env file:"
-cat /workspace/build.env
-source /workspace/build.env
-echo

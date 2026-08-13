@@ -44,7 +44,7 @@ sleep 60 # sometimes the endpoints api takes a while to delete the endpoints
 
 echo "Deleting project '${DELETE_PROJECT_ID}'..."
 
-MAX_RETRIES=5
+MAX_RETRIES=15
 ATTEMPT=0
 
 until gcloud projects delete "${DELETE_PROJECT_ID}" --quiet; do

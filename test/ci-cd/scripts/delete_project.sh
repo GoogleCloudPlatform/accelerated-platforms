@@ -43,5 +43,6 @@ done
 sleep 120 # sometimes the endpoints api takes a while to delete the endpoints
 
 echo "Deleting project '${DELETE_PROJECT_ID}'..."
-gcloud projects delete "${DELETE_PROJECT_ID}" \
-  --quiet
+if ! gcloud projects delete "${DELETE_PROJECT_ID}" --quiet; then
+  echo "WARNING: Failed to delete project '${DELETE_PROJECT_ID}'. This may be due to pending soft-deleted child resources (e.g., Endpoints)." >&2
+fi

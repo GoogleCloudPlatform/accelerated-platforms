@@ -25,7 +25,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24" {
   depends_on = [google_gke_hub_membership.cluster]
 
   # Variables
-  cluster  = google_container_cluster.mlp.name
+  cluster  = data.google_container_cluster.cluster.name
   location = local.cluster_region
   name     = "gpu-l4x2-g2s24"
   node_locations = [
@@ -111,7 +111,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_dws" {
   depends_on = [google_gke_hub_membership.cluster]
 
   # Variables
-  cluster  = google_container_cluster.mlp.name
+  cluster  = data.google_container_cluster.cluster.name
   location = local.cluster_region
   name     = "gpu-l4x2-g2s24-dws"
   node_locations = [
@@ -201,7 +201,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_res" {
   depends_on = [google_gke_hub_membership.cluster]
 
   # Variables
-  cluster  = google_container_cluster.mlp.name
+  cluster  = data.google_container_cluster.cluster.name
   location = local.cluster_region
   name     = "gpu-l4x2-g2s24-res"
   node_locations = [
@@ -287,7 +287,7 @@ resource "google_container_node_pool" "gpu_l4x2_g2s24_spot" {
   depends_on = [google_gke_hub_membership.cluster]
 
   # Variables
-  cluster  = google_container_cluster.mlp.name
+  cluster  = data.google_container_cluster.cluster.name
   location = local.cluster_region
   name     = "gpu-l4x2-g2s24-spot"
   node_locations = [

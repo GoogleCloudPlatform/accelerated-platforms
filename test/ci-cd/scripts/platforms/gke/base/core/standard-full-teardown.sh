@@ -47,7 +47,7 @@ declare -a CORE_TERRASERVICES_DESTROY_ARRAY=(
   "gke_enterprise/configmanagement/oci"
   "gke_enterprise/fleet_membership"
   "cloudbuild/initialize"
-  "container_node_pool"
+  #"container_node_pool"
   "workloads/cluster_credentials"
   "container_cluster"
   "networking"

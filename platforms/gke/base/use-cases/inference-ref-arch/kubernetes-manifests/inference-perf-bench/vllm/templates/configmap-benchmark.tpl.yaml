@@ -31,7 +31,7 @@ data:
       worker_max_concurrency: 15
       worker_max_tcp_connections: 2500
     api: 
-      type: completion
+      type: chat
       streaming: true
     server:
       type: vllm
@@ -41,7 +41,7 @@ data:
     tokenizer:
       pretrained_model_name_or_path: ${TOKENIZER_ID}
     data:
-      type: shareGPT
+      type: synthetic
     metrics:
       type: prometheus
       prometheus:

@@ -13,31 +13,23 @@
 # limitations under the License.
 
 resource "local_file" "llmd_plr_gateway_kustomization" {
-  content  = <<-EOT
-    resources:
-      - ${local.llmd_plr_gateway_remote_manifest}
-      - gcp-backend-policy-override.yaml
-  EOT
+  content = templatefile(
+    "${path.module}/../_shared_config/templates/gateway/kustomization.yaml.tftpl",
+    {
+      remote_manifest = local.llmd_plr_gateway_remote_manifest
+    }
+  )
   filename = "${path.module}/.terraform/manifests/gateway-kustomize/kustomization.yaml"
 }
 
 resource "local_file" "llmd_plr_gcp_backend_policy_override" {
-  content  = <<-EOT
-    apiVersion: networking.gke.io/v1
-    kind: GCPBackendPolicy
-    metadata:
-      name: predicted-latency-routing
-      namespace: ${local.llmd_namespace}
-    spec:
-      default:
-        logging:
-          enabled: true
-        timeoutSec: 3600
-      targetRef:
-        group: inference.networking.k8s.io
-        kind: InferencePool
-        name: predicted-latency-routing
-  EOT
+  content = templatefile(
+    "${path.module}/../_shared_config/templates/gateway/gcp-backend-policy-override.yaml.tftpl",
+    {
+      name      = "predicted-latency-routing"
+      namespace = local.llmd_namespace
+    }
+  )
   filename = "${path.module}/.terraform/manifests/gateway-kustomize/gcp-backend-policy-override.yaml"
 }
 

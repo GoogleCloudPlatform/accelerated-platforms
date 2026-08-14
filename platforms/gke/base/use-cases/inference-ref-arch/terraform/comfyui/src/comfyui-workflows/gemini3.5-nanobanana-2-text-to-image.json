@@ -1,0 +1,265 @@
+{
+  "id": "4e9f33d3-9cca-41f1-9cc4-da94f9b19800",
+  "revision": 0,
+  "last_node_id": 32,
+  "last_link_id": 28,
+  "nodes": [
+    {
+      "id": 31,
+      "type": "PreviewImage",
+      "pos": [
+        1348.7248827575563,
+        -578.0761650260604
+      ],
+      "size": [
+        431.05875609155964,
+        331.41007111392275
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 25
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.24.0",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 32,
+      "type": "ShowText|pysssss",
+      "pos": [
+        144.9652262709186,
+        -448.543975043257
+      ],
+      "size": [
+        336.86091851326387,
+        304.2924937380709
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 26
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            28
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "f2838ed5e59de4d73cde5c98354b87a8d3200190",
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": [
+        "A cinematic and highly detailed portrait of a distinguished man in his late 30s with expressive, soulful eyes and a thoughtful expression. He has short, styled dark hair with subtle silver highlights and a neat stubble beard. He is wearing a dark, textured charcoal wool coat with a high collar. The lighting is dramatic chiaroscuro, with soft, warm light illuminating one side of his face, revealing realistic skin texture, fine lines, and pores. The background is a dark, moody, out-of-focus studio setting with subtle hints of amber light. Shot on an 85mm lens, photorealistic, ultra-high definition, 8k resolution, masterful composition."
+      ]
+    },
+    {
+      "id": 30,
+      "type": "Gemini31FlashImage",
+      "pos": [
+        629.1145929188071,
+        -585.9058692374133
+      ],
+      "size": [
+        400,
+        554
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image5",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image6",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 28
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            25
+          ]
+        }
+      ],
+      "properties": {
+        "ver": "6d534a1223503ad2c5a844854f4807c047b2bc9a",
+        "Node name for S&R": "Gemini31FlashImage"
+      },
+      "widgets_values": [
+        "GEMINI_31_FLASH_IMAGE",
+        "",
+        "16:9",
+        "1K",
+        "PNG",
+        0.7,
+        1,
+        32,
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        "",
+        "global"
+      ]
+    },
+    {
+      "id": 29,
+      "type": "GeminiNode35",
+      "pos": [
+        -515.0943257714778,
+        -613.363735225815
+      ],
+      "size": [
+        400,
+        622
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "generated_output",
+          "type": "STRING",
+          "links": [
+            26
+          ]
+        }
+      ],
+      "properties": {
+        "ver": "6d534a1223503ad2c5a844854f4807c047b2bc9a",
+        "Node name for S&R": "GeminiNode35"
+      },
+      "widgets_values": [
+        "Write a single prompt for me to generate an artistic image of a man.The prompt will be fed directly to Image generating model so keep it simple and as detailed as possible. Give me just the prompt, no explanation, acknowledgement or paraphrasing. Write the prompt to create a high definition and real image.",
+        "GEMINI_35_FLASH",
+        0.7,
+        8192,
+        1,
+        32,
+        1,
+        "",
+        "text/plain",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        "",
+        "image/png",
+        "",
+        "video/mp4",
+        "",
+        "audio/mp3",
+        "",
+        "global"
+      ]
+    }
+  ],
+  "links": [
+    [
+      25,
+      30,
+      0,
+      31,
+      0,
+      "IMAGE"
+    ],
+    [
+      26,
+      29,
+      0,
+      32,
+      0,
+      "STRING"
+    ],
+    [
+      28,
+      32,
+      0,
+      30,
+      6,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6044876804330366,
+      "offset": [
+        1006.4230030167432,
+        920.0176034153599
+      ]
+    },
+    "frontendVersion": "1.35.9",
+    "workflowRendererVersion": "LG",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

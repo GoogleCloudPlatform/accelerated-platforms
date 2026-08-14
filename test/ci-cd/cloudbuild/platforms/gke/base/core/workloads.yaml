@@ -136,12 +136,22 @@ steps:
 
   - args:
       - /workspace/platforms/gke/base/core
+      - workloads/lustre
+    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+    id: "Core Terraservice 'workloads/lustre'"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Core Terraservice 'workloads/cluster_credentials'"
+
+  - args:
+      - /workspace/platforms/gke/base/core
       - networking
     entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
     id: "Core Terraservice 'networking' check for changes"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Core Terraservice 'workloads/kueue'"
+      - "Core Terraservice 'workloads/lustre'"
 
   - args:
       - /workspace/platforms/gke/base/core
@@ -193,6 +203,15 @@ steps:
       - workloads/lws
     entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
     id: "Core Terraservice 'workloads/lws' check for changes"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Core Terraservice 'container_cluster' check for changes"
+
+  - args:
+      - /workspace/platforms/gke/base/core
+      - workloads/lustre
+    entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+    id: "Core Terraservice 'workloads/lustre' check for changes"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Core Terraservice 'container_cluster' check for changes"

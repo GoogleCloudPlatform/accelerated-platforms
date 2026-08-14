@@ -40,6 +40,8 @@ for endpoint in ${endpoints}; do
   --quiet
 done
 
+sleep 60 # sometimes the endpoints api takes a while to delete the endpoints
+
 echo "Deleting project '${DELETE_PROJECT_ID}'..."
 gcloud projects delete "${DELETE_PROJECT_ID}" \
   --quiet

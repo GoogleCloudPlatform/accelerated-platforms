@@ -31,55 +31,54 @@ fi
 endpoints=$(
   gcloud endpoints services list \
   --format="value(serviceName)" \
-  --project=${DELETE_PROJECT_ID} 2>/dev/null || true
+  --project="${DELETE_PROJECT_ID}" 2>/dev/null
 )
-echo "Found these endpoints - ${endpoints}"
 for endpoint in ${endpoints}; do
   echo "    Deleting endpoint '${endpoint}'"
-  gcloud endpoints services delete ${endpoint} \
-  --project=${DELETE_PROJECT_ID} \
-  --quiet || true
+  gcloud endpoints services delete "${endpoint}" \
+    --project="${DELETE_PROJECT_ID}" \
+    --quiet
 done
-
-sleep 120 # sometimes the endpoints api takes a while to delete the endpoints
 
 echo "Deleting project '${DELETE_PROJECT_ID}'..."
 
 MAX_RETRIES=15
 ATTEMPT=0
+BASE_SLEEP=15
+MAX_SLEEP=45
 
 while true; do
-  # Capture both stdout and stderr from the deletion attempt safely under errexit
+  ATTEMPT=$((ATTEMPT + 1))
   delete_output=""
   if delete_output=$(gcloud projects delete "${DELETE_PROJECT_ID}" --quiet 2>&1); then
-    echo "Project '${DELETE_PROJECT_ID}' deleted successfully."
+    echo "Successfully deleted project '${DELETE_PROJECT_ID}'."
     break
   fi
 
-  # Print the error output
-  echo "${delete_output}"
-
-  # Extract unique service IDs from error patterns like "subject: services/173305059169"
-  blocking_services=$(echo "${delete_output}" | grep -o 'services/[0-9a-zA-Z._-]*' | sed 's|services/||' | sort -u || true)
-
-  if [[ -n "${blocking_services}" ]]; then
-    for svc in ${blocking_services}; do
-      echo "------------------------------------------------------------"
-      echo "--> Describing blocking child service: ${svc}"
-      echo "------------------------------------------------------------"
-      gcloud endpoints services describe "${svc}" \
-        --project="${DELETE_PROJECT_ID}" \
-        --format="yaml" 2>&1 || true
-    done
+  # Idempotency check in case the deletion transitioned state on retry
+  if [[ "${delete_output}" == *"DELETE_REQUESTED"* ]]; then
+    echo "Project '${DELETE_PROJECT_ID}' is already in DELETE_REQUESTED state."
+    break
   fi
 
-  ATTEMPT=$((ATTEMPT + 1))
   if [ "${ATTEMPT}" -ge "${MAX_RETRIES}" ]; then
-    echo "WARNING: Project deletion deferred due to pending soft-deleted child resources (e.g. Endpoints). Project will be cleaned up by background sweeper." >&2
-    exit 0
+    echo "ERROR: Failed to delete project '${DELETE_PROJECT_ID}' after ${MAX_RETRIES} attempts." >&2
+    echo "${delete_output}" >&2
+    exit 1
   fi
 
-  echo "Project deletion blocked by pending child resource purge. Retrying in 20s (Attempt ${ATTEMPT}/${MAX_RETRIES})..."
-  sleep 20
+  # Calculate exponential cap: min(MAX_SLEEP, BASE_SLEEP * 1.5^(ATTEMPT - 1))
+  factor=$(( 10 + (ATTEMPT - 1) * 3 ))
+  current_cap=$(( (BASE_SLEEP * factor) / 10 ))
+  if [ "${current_cap}" -gt "${MAX_SLEEP}" ]; then
+    current_cap="${MAX_SLEEP}"
+  fi
+
+  # Full jitter: random sleep between 10s and current_cap
+  jitter_range=$(( current_cap - 10 + 1 ))
+  sleep_seconds=$(( 10 + RANDOM % jitter_range ))
+
+  echo "Project deletion blocked by pending child resource purge (Attempt ${ATTEMPT}/${MAX_RETRIES}). Retrying in ${sleep_seconds}s (with jitter)..."
+  sleep "${sleep_seconds}"
 done
 

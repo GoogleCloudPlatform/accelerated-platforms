@@ -12,14 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module "kubectl_apply_llmd_ob_gateway_manifests" {
-  source                      = "../../../../../modules/kubectl_apply"
-  apply_server_side           = true
-  kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = local.llmd_ob_gateway_remote_manifest
-  manifest_includes_namespace = false
-  namespace                   = local.llmd_namespace
-  use_kustomize               = true
+resource "local_file" "llmd_ob_gateway_kustomization" {
+  content  = <<-EOT
+    resources:
+      - ${local.llmd_ob_gateway_remote_manifest}
+      - gcp-backend-policy-override.yaml
+  EOT
+  filename = "${path.module}/.terraform/manifests/gateway-kustomize/kustomization.yaml"
 }
 
 resource "local_file" "llmd_ob_gcp_backend_policy_override" {
@@ -39,18 +38,21 @@ resource "local_file" "llmd_ob_gcp_backend_policy_override" {
         kind: InferencePool
         name: optimized-baseline
   EOT
-  filename = "${path.module}/.terraform/manifests/gcp-backend-policy-override.yaml"
+  filename = "${path.module}/.terraform/manifests/gateway-kustomize/gcp-backend-policy-override.yaml"
 }
 
-module "kubectl_apply_llmd_ob_gcp_backend_policy_override" {
+module "kubectl_apply_llmd_ob_gateway_manifests" {
   depends_on = [
-    module.kubectl_apply_llmd_ob_gateway_manifests,
+    local_file.llmd_ob_gateway_kustomization,
     local_file.llmd_ob_gcp_backend_policy_override,
   ]
 
   source                      = "../../../../../modules/kubectl_apply"
+  apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = local_file.llmd_ob_gcp_backend_policy_override.filename
-  manifest_includes_namespace = true
+  manifest                    = dirname(local_file.llmd_ob_gateway_kustomization.filename)
+  manifest_includes_namespace = false
+  namespace                   = local.llmd_namespace
+  use_kustomize               = true
 }
 

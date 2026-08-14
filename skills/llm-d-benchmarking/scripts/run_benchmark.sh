@@ -139,7 +139,7 @@ WORKLOAD_ARG="--workload $WORKLOAD"
 # Function to capture GPU DCGM metrics (ConfigMap + Job architecture)
 collect_dcgm() {
   kubectl delete job telemetry-collector configmap telemetry-collector-script -n "$1" --ignore-not-found --grace-period=0 --force || true
-  sed -e "s/TARGET_NAMESPACE_PLACEHOLDER/$1/g" -e "s/START_TIME_PLACEHOLDER/$2/g" -e "s/END_TIME_PLACEHOLDER/$3/g" skills/llm-d-benchmarking/scripts/helper-pods/telemetry-collector.yaml | kubectl apply -f - -n "$1"
+  kubectl kustomize skills/llm-d-benchmarking/scripts/helper-pods/telemetry-collector | sed -e "s/TARGET_NAMESPACE_PLACEHOLDER/$1/g" -e "s/START_TIME_PLACEHOLDER/$2/g" -e "s/END_TIME_PLACEHOLDER/$3/g" | kubectl apply -f - -n "$1"
   kubectl wait --for=condition=complete job/telemetry-collector -n "$1" --timeout=120s || true
   kubectl delete job telemetry-collector configmap telemetry-collector-script -n "$1" --ignore-not-found --grace-period=0 --force || true
 }

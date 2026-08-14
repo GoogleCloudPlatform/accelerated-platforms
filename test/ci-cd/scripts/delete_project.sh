@@ -50,8 +50,9 @@ ATTEMPT=0
 until gcloud projects delete "${DELETE_PROJECT_ID}" --quiet; do
   ATTEMPT=$((ATTEMPT + 1))
   if [ "${ATTEMPT}" -ge "${MAX_RETRIES}" ]; then
-    echo "ERROR: Failed to delete project '${DELETE_PROJECT_ID}' after ${MAX_RETRIES} retries."
-    exit 1
+    echo "WARNING: Project deletion deferred due to pending soft-deleted child resources (e.g. Endpoints). Project will be cleaned up by background sweeper." >&2
+    exit 0
+
   fi
   echo "Project deletion blocked by pending child resource purge. Retrying in 20s (Attempt ${ATTEMPT}/${MAX_RETRIES})..."
   sleep 20

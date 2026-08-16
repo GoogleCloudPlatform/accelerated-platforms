@@ -9,5 +9,5 @@ psutil==6.1.0
 pynvml==11.5.3
 thejsonlogger==0.0.3
 torch==2.5.1
-transformers==v4.46.1
+transformers==v5.5.0
 trl==v0.11.4

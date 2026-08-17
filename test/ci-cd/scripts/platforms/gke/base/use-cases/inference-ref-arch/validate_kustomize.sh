@@ -47,9 +47,14 @@ export ACCELERATOR_TYPE="l4"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/async-inference-gpu/async-load-generator/configure_load_generator.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/async-inference-gpu/async-pubsub-subscriber/configure_pubsub_subscriber.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/async-inference-gpu/vllm/configure_vllm.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/configure_vllm.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-auto-tuning/configure_vllm.sh"
+
+# Validate diffusers kustomize
+export HF_MODEL_ID="black-forest-labs/flux.1-schnell"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
+export HF_MODEL_ID="black-forest-labs/flux.2-klein-4b"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/diffusers/configure_diffusers.sh"
 
 export ACCELERATOR_TYPE="v5e"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/max-diffusion/configure_max_diffusion.sh"
@@ -66,6 +71,12 @@ export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-eagle"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-eagle/configure_benchmark.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/configure_vllm_spec_decoding.sh"
 
+# Validate k6-benchmark kustomize
+export ACCELERATOR_TYPE="l4"
+export HF_MODEL_NAME="HF_MODEL_NAME"
+export K6_REQUEST_BATCH_SIZE=1
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/k6-benchmark/configure_deployment.sh"
+
 # Validate offline-batch-inference-gpu kustomize
 export ACCELERATOR_TYPE="rtx-pro-6000"
 export HF_MODEL_ID="meta-llama/Llama-3.3-70B-Instruct"
@@ -81,6 +92,13 @@ export llmd_model_id="google/gemma-3-27b-it"
 export llmd_accelerator_type="l4"
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd/vllm/configure_vllm.sh"
+
+# Validate vllm-native-cache-offloading kustomize
+export ACCELERATOR_TYPE="rtx-pro-6000"
+export HF_MODEL_ID="qwen/qwen3-32b"
+source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-native-cache-offloading/single-tier/configure_vllm.sh"
+
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"

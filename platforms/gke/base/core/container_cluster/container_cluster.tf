@@ -61,6 +61,10 @@ resource "google_container_cluster" "cluster" {
       disabled = false
     }
 
+    lustre_csi_driver_config {
+      enabled = true
+    }
+
     dynamic "ray_operator_config" {
       for_each = var.cluster_addons_ray_operator_enabled ? ["ray_operator_config"] : []
       content {
@@ -169,6 +173,10 @@ resource "google_container_cluster" "cluster" {
       "SYSTEM_COMPONENTS",
       "WORKLOADS"
     ]
+  }
+
+  managed_machine_learning_diagnostics_config {
+    enabled = true
   }
 
   master_authorized_networks_config {

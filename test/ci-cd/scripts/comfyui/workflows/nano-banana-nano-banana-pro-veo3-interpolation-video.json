@@ -1,0 +1,122 @@
+{
+  "4": {
+    "inputs": {
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "5": {
+    "inputs": {
+      "autoplay": true,
+      "mute": true,
+      "loop": true,
+      "save_video": true,
+      "save_video_file_prefix": "veo_video",
+      "video_paths": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "VeoVideoSaveAndPreview",
+    "_meta": {
+      "title": "Preview/Save video"
+    }
+  },
+  "8": {
+    "inputs": {
+      "model": "GEMINI_3_PRO_IMAGE",
+      "prompt": "Cinematic Over-the-Shoulder Shot of a detective interrogating a rubber duck in a dark interview room,",
+      "aspect_ratio": "16:9",
+      "image_size": "1K",
+      "output_mime_type": "PNG",
+      "temperature": 0.7,
+      "top_p": 1,
+      "top_k": 32,
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "system_instruction": "",
+      "gcp_project_id": "",
+      "gcp_region": "global"
+    },
+    "class_type": "Gemini3ProImage",
+    "_meta": {
+      "title": "Gemini 3 Pro Image (🍌)"
+    }
+  },
+  "10": {
+    "inputs": {
+      "model": "VEO_3_1",
+      "image_format": "PNG",
+      "prompt": "a ticking clock audible, as the detective sternly asks, \"Where were you last night?\"",
+      "aspect_ratio": "16:9",
+      "output_resolution": "720p",
+      "compression_quality": "optimized",
+      "person_generation": "allow_adult",
+      "duration_seconds": 8,
+      "generate_audio": true,
+      "sample_count": 1,
+      "output_gcs_uri": "",
+      "negative_prompt": "",
+      "seed": 1116266218,
+      "gcp_project_id": "",
+      "gcp_region": "us-central1",
+      "image": [
+        "8",
+        0
+      ],
+      "last_frame": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "Veo3ImageToVideoNode",
+    "_meta": {
+      "title": "Veo3.1 Image To Video"
+    }
+  },
+  "12": {
+    "inputs": {
+      "images": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Preview Image"
+    }
+  },
+  "13": {
+    "inputs": {
+      "model": "GEMINI_25_FLASH_IMAGE",
+      "prompt": "close up of the detective's face looking at the duck",
+      "aspect_ratio": "16:9",
+      "temperature": 0.7,
+      "top_p": 1,
+      "top_k": 32,
+      "harassment_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "hate_speech_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "sexually_explicit_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "dangerous_content_threshold": "BLOCK_MEDIUM_AND_ABOVE",
+      "system_instruction": "",
+      "gcp_project_id": "",
+      "gcp_region": "global",
+      "image1": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "Gemini25FlashImage",
+    "_meta": {
+      "title": "Gemini 2.5 Flash Image (🍌)"
+    }
+  }
+}

@@ -15,3 +15,14 @@
 locals {
   acp_root = "${path.module}/../../../../../../.."
 }
+
+resource "local_file" "cloudbuild_yaml" {
+  content = templatefile(
+    "${path.module}/templates/cloudbuild/cloudbuild.yaml.tftpl",
+    {
+      default_dockerfile = local.comfyui_dockerfile
+    }
+  )
+  filename = "${path.module}/src/cloudbuild.yaml"
+}
+

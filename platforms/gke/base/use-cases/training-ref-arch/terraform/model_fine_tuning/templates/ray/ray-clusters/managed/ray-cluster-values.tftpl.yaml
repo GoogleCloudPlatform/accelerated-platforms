@@ -14,14 +14,14 @@
 ---
 image:
   repository: rayproject/ray
-  tag: 2.40.0-py312-gpu
+  tag: 2.54.0-py312-gpu
   pullPolicy: IfNotPresent
 
 nameOverride: kuberay
 
 head:
   groupName: headgroup
-  rayVersion: 2.40.0
+  rayVersion: 2.54.0
   enableInTreeAutoscaling: true
   serviceAccountName: ${ray_head_kubernetes_service_account}
   rayStartParams:
@@ -30,7 +30,7 @@ head:
     num-cpus: "0" # Prevent tasks from begins scheduled on the head
   image:
     repository: rayproject/ray
-    tag: 2.40.0-py312
+    tag: 2.54.0-py312
     pullPolicy: IfNotPresent
   containerEnv:
     - name: RAY_memory_monitor_refresh_ms

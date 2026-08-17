@@ -103,25 +103,6 @@ variable "kubernetes_version" {
   type        = string
 }
 
-variable "llmd_accelerator_type" {
-  default     = "rtx-pro-6000"
-  description = "accelerator type to serve the model on."
-  type        = string
-
-  validation {
-    condition = contains(
-      [
-        "l4",
-        "h100",
-        "h200",
-        "rtx-pro-6000",
-      ],
-      var.llmd_accelerator_type
-    )
-    error_message = "'llmd_accelerator_type' value is invalid"
-  }
-}
-
 variable "llmd_backend_policy_name" {
   default     = null
   description = "The name of the backend policy."
@@ -181,29 +162,6 @@ variable "llmd_inferencepool_name" {
   description = "Name of the InferencePool that the LB will point to."
   type        = string
 }
-
-variable "llmd_model_id" {
-  default     = "qwen/qwen3-32b"
-  description = "Id for the model to serve."
-  type        = string
-
-  validation {
-    condition = contains(
-      [
-        "google/gemma-3-1b-it",
-        "google/gemma-3-4b-it",
-        "google/gemma-3-27b-it",
-        "openai/gpt-oss-20b",
-        "meta-llama/llama-4-scout-17b-16e-instruct",
-        "meta-llama/llama-3.3-70b-instruct",
-        "qwen/qwen3-32b",
-      ],
-      var.llmd_model_id
-    )
-    error_message = "'llmd_model_id' value is invalid"
-  }
-}
-
 
 variable "llmd_ms_cuda_image" {
   default     = "ghcr.io/llm-d/llm-d-cuda:v0.3.1"

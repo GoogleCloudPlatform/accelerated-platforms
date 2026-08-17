@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright 2024 Google LLC
 #
@@ -29,7 +29,7 @@ declare -a CORE_TERRASERVICES_DESTROY_ARRAY=(
   "workloads/auto_monitoring"
   "custom_compute_class"
   "gke_enterprise/fleet_membership"
-  "container_node_pool"
+  #"container_node_pool"
   "workloads/cluster_credentials"
   "container_cluster"
   "networking"

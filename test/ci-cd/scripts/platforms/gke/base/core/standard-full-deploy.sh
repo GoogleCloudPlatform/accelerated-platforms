@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright 2024 Google LLC
 #
@@ -49,6 +49,7 @@ declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   "workloads/jobset"
   "workloads/kueue"
   "workloads/lws"
+  "workloads/agent_sandbox"
   "workloads/priority_class"
   "workloads/pathways"
 )

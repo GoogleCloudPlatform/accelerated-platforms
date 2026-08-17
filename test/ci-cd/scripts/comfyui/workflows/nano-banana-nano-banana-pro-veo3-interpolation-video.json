@@ -67,7 +67,7 @@
       "negative_prompt": "",
       "seed": 1116266218,
       "gcp_project_id": "",
-      "gcp_region": "",
+      "gcp_region": "us-central1",
       "image": [
         "8",
         0

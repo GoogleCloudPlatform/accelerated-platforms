@@ -30,6 +30,7 @@ ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 
 declare -a CORE_TERRASERVICES_DESTROY_ARRAY=(
+  "workloads/agent_sandbox"
   "workloads/pathways"
   "workloads/priority_class"
   "workloads/lws"
@@ -46,7 +47,7 @@ declare -a CORE_TERRASERVICES_DESTROY_ARRAY=(
   "gke_enterprise/configmanagement/oci"
   "gke_enterprise/fleet_membership"
   "cloudbuild/initialize"
-  "container_node_pool"
+  #"container_node_pool"
   "workloads/cluster_credentials"
   "container_cluster"
   "networking"

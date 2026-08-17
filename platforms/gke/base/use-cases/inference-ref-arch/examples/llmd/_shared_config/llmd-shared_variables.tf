@@ -48,6 +48,8 @@ variable "llmd_model_id" {
       [
         "google/gemma-4-31b-it",
         "qwen/qwen3-32b",
+        "qwen/qwen3-32b-fp8",
+        "redhatai/gemma-4-31b-it-fp8-block",
       ],
       var.llmd_model_id
     )

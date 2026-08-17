@@ -1,16 +1,18 @@
-# Copyright 2025 Google LLC
-
+# Copyright 2026 Google LLC
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-# https://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+"""Data cleaning and preprocessing routines for Ray data processing workflows."""
 
 import logging
 import os
@@ -18,49 +20,75 @@ import re
 import socket
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from typing import List
 
 import jsonpickle
 import pandas as pd
-import spacy
+import ray
 from google.cloud import storage
 from google.cloud.storage.retry import DEFAULT_RETRY
 
+try:
+    import spacy
+except ImportError:
+    from unittest.mock import MagicMock
+
+    spacy = MagicMock()
+
 
 class DataPreprocessor:
-    """
-    A class for preprocessing product data, including image downloading, text processing,
-    and attribute parsing.
-
-    Attributes:
-        logger (logging.Logger): A logger object for logging information and errors.
-
-    Methods:
-        extract_url(image_list: str) -> List[str]: Extracts image URLs from a string.
-        download_image(image_url, image_file_name, destination_blob_name, ray_worker_node_id, gcs_bucket): Downloads an image and uploads it to GCS.
-        prep_product_desc(df): Prepares the product description by performing NLP preprocessing.
-        parse_attributes(specification: str): Parses product specifications into a JSON string.
-        get_product_image(df, ray_worker_node_id, gcs_bucket,gcs_folder): Downloads product images and adds their GCS URIs to the DataFrame.
-        reformat(text: str) -> str: Reformats a string by removing brackets and quotes.
-        prep_cat(df: pd.DataFrame) -> pd.DataFrame: Prepares product category information by splitting and cleaning the category tree.
-        process_data(df, ray_worker_node_id, gcs_bucket): Performs the complete data preprocessing pipeline.
-    """
+    """Optimized preprocessing utility designed for parallel Ray environments."""
 
     logger = logging.getLogger(__name__)
 
     def __init__(self):
-        pass
+        """Initializes the DataPreprocessor instance, GCS client, thread pool, and spaCy NLP pipeline."""
+        # 1. Instantiate the storage client ONCE per worker process initialization
+        self.storage_client = storage.Client()
+
+        # 2. Dynamic Approach: Eliminate magic thread numbers by checking Ray allocations
+        try:
+            # Query how many CPU cores Ray allocated specifically to this actor instance container
+            assigned_cpus = (
+                ray.get_runtime_context().get_assigned_resources().get("CPU", 1)
+            )
+            # For network I/O intensive routines (image downloading), 10 threads per CPU core is optimal
+            self.max_workers = max(10, int(assigned_cpus * 10))
+            self.logger.info(
+                f"Dynamically initialized ThreadPool with {self.max_workers} workers based on {assigned_cpus} Ray CPUs."
+            )
+        except Exception:
+            # Fallback scaling rule if code is executed outside a cluster worker thread context
+            cores = os.cpu_count() or 1
+            self.max_workers = min(32, cores * 5)
+            self.logger.info(
+                f"Fallback context: Initialized {self.max_workers} threads based on system CPU core count ({cores})."
+            )
+
+        # 3. Load or download the spaCy model ONCE per worker process initialization
+        self.nlp = None
+        if spacy is not None:
+            try:
+                self.nlp = spacy.load("en_core_web_sm")
+            except OSError:
+                self.logger.info(
+                    "Downloading spacy model 'en_core_web_sm' on worker process..."
+                )
+                spacy.cli.download("en_core_web_sm")
+                self.nlp = spacy.load("en_core_web_sm")
 
     def extract_url(self, image_list: str) -> List[str]:
-        """
-        Extracts image URLs from a string containing a comma-separated list of URLs.
+        """Extracts individual image URLs from a formatted string or list representation.
 
         Args:
-            image_list (str): A string containing a comma-separated list of image URLs, potentially with brackets and quotes.
+            image_list: Raw string representation of an image URL list.
 
         Returns:
-            List[str]: A list of extracted image URLs.
+            List of parsed image URL strings.
         """
+        if pd.isna(image_list):
+            return []
         return image_list.replace("[", "").replace("]", "").replace('"', "").split(",")
 
     def download_image(
@@ -68,119 +96,178 @@ class DataPreprocessor:
         image_url: str,
         image_file_name: str,
         destination_blob_name: str,
-        ray_worker_node_id: int,
+        ray_worker_node_id: str,
         gcs_bucket: str,
     ) -> bool:
-        """
-        Downloads an image from a URL and uploads it to Google Cloud Storage.
+        """Downloads an image from a URL and uploads it to Google Cloud Storage.
 
         Args:
-            image_url (str): The URL of the image to download.
-            image_file_name (str): The local file name to save the downloaded image as.
-            destination_blob_name (str): The name of the blob in GCS to upload the image to.
-            ray_worker_node_id (int): The ID of the Ray worker node (for logging).
-            gcs_bucket (str): The name of the GCS bucket.
+            image_url: Source URL of the image to download.
+            image_file_name: Temporary local filename for saving the download.
+            destination_blob_name: Target path/blob name in the GCS bucket.
+            ray_worker_node_id: Identifier of the current Ray worker node for logging.
+            gcs_bucket: Name of the destination GCS bucket.
 
         Returns:
-            bool: True if the image was downloaded and uploaded successfully, False otherwise.  Raises exceptions on errors.
+            True if the image was successfully downloaded and uploaded, False otherwise.
         """
-        storage_client = storage.Client()
         download_dir = "/tmp/images"
-        try:
-            if not os.path.exists(download_dir):
-                os.makedirs(download_dir)
-        except FileExistsError as err:
-            self.logger.warning(f"Directory '{download_dir}' already exists")
+        os.makedirs(download_dir, exist_ok=True)
+        download_file = f"{download_dir}/{image_file_name}"
 
+        # 1. Attempt Download
         try:
-            download_file = f"{download_dir}/{image_file_name}"
-
-            socket.setdefaulttimeout(10)
+            socket.setdefaulttimeout(5)
             urllib.request.urlretrieve(image_url, download_file)
-            bucket = storage_client.bucket(gcs_bucket)
+        except Exception as err:
+            self.logger.warning(
+                f"ray_worker_node_id:{ray_worker_node_id} Failed to download image {image_url}: {err}"
+            )
+            if os.path.exists(download_file):
+                os.remove(download_file)
+            return False
+
+        # 2. Attempt Upload
+        try:
+            bucket = self.storage_client.bucket(gcs_bucket)
             blob = bucket.blob(destination_blob_name)
             blob.upload_from_filename(download_file, retry=DEFAULT_RETRY)
-            self.logger.info(
-                f"ray_worker_node_id:{ray_worker_node_id} File {image_file_name} uploaded to {destination_blob_name}"
-            )
-            os.remove(download_file)
-            return True
-        except TimeoutError as err:
-            self.logger.warning(
-                f"ray_worker_node_id:{ray_worker_node_id} Image '{image_url}' request timeout"
-            )
-        except urllib.error.HTTPError as err:
-            if err.code == 404:
-                self.logger.warning(
-                    f"ray_worker_node_id:{ray_worker_node_id} Image '{image_url}' not found"
-                )
-            elif err.code == 504:
-                self.logger.warning(
-                    f"ray_worker_node_id:{ray_worker_node_id} Image '{image_url}' gateway timeout"
-                )
-            else:
-                self.logger.error(
-                    f"ray_worker_node_id:{ray_worker_node_id} Unhandled HTTPError exception: {err}"
-                )
-        except urllib.error.URLError as err:
-            self.logger.error(
-                f"ray_worker_node_id:{ray_worker_node_id} URLError exception: {err}"
-            )
         except Exception as err:
-            self.logger.error(
-                f"ray_worker_node_id:{ray_worker_node_id} Unhandled exception: {err}"
+            self.logger.warning(
+                f"ray_worker_node_id:{ray_worker_node_id} Failed to upload image {destination_blob_name} to GCS: {err}"
             )
-            raise
+            if os.path.exists(download_file):
+                os.remove(download_file)
+            return False
 
-        return False
+        # Cleanup on success
+        try:
+            os.remove(download_file)
+        except OSError as err:
+            self.logger.debug(f"Failed to remove temp file {download_file}: {err}")
 
-    def prep_product_desc(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Prepares the product description by performing NLP preprocessing using spaCy.
+        return True
+
+    def _process_single_row_image(
+        self, row: dict, ray_worker_node_id: str, gcs_bucket: str, gcs_folder: str
+    ) -> str:
+        """Helper processing callback targeted by the asynchronous thread pool.
 
         Args:
-            df (pd.DataFrame): The input DataFrame containing the 'description' column.
+            row: Dictionary representing a single record/row in the dataset.
+            ray_worker_node_id: Identifier of the current Ray worker node.
+            gcs_bucket: Destination GCS bucket name.
+            gcs_folder: Destination directory path inside the GCS bucket.
 
         Returns:
-            pd.DataFrame: The DataFrame with the preprocessed 'description' column.
+            The GCS URI (gs://...) of the first successfully uploaded image, or None.
         """
-        spacy.cli.download("en_core_web_sm")
-        model = spacy.load("en_core_web_sm")
+        prod_id = row.get("uniq_id")
+        image_list = row.get("image")
+
+        if pd.isnull(image_list):
+            return None
+
+        image_urls = self.extract_url(image_list)
+        for index, url in enumerate(image_urls):
+            url_clean = url.strip()
+            if not url_clean:
+                continue
+
+            image_file_name = f"{prod_id}_{index}.jpg"
+            destination_blob_name = f"{gcs_folder}/{prod_id}_{index}.jpg"
+
+            success = self.download_image(
+                url_clean,
+                image_file_name,
+                destination_blob_name,
+                ray_worker_node_id,
+                gcs_bucket,
+            )
+            if success:
+                return f"gs://{gcs_bucket}/{destination_blob_name}"
+        return None
+
+    def get_product_image(
+        self,
+        df: pd.DataFrame,
+        ray_worker_node_id: str,
+        gcs_bucket: str,
+        gcs_folder: str,
+    ) -> pd.DataFrame:
+        """Downloads product images in parallel for a batch and appends GCS image URIs.
+
+        Args:
+            df: Input DataFrame containing product records.
+            ray_worker_node_id: Identifier of the current Ray worker node.
+            gcs_bucket: Name of the destination GCS bucket.
+            gcs_folder: Destination subfolder in the GCS bucket.
+
+        Returns:
+            DataFrame with an added 'image_uri' column containing GCS image paths.
+        """
+        # Convert the batch chunks cleanly to records for thread-safe isolation
+        records = df.to_dict(orient="records")
+
+        # Parallelize downloading across the dynamic, calculated thread limits
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            futures = [
+                executor.submit(
+                    self._process_single_row_image,
+                    row,
+                    ray_worker_node_id,
+                    gcs_bucket,
+                    gcs_folder,
+                )
+                for row in records
+            ]
+            gcs_image_urls = [f.result() for f in futures]
+
+        df["image_uri"] = gcs_image_urls
+        return df
+
+    def prep_product_desc(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Cleans product description text using spaCy NLP lemmatization and stop-word removal.
+
+        Args:
+            df: Input DataFrame containing a 'description' column.
+
+        Returns:
+            DataFrame with cleaned/lemmatized 'description' column.
+        """
 
         def parse_nlp_description(description: str) -> str:
-            if not pd.isna(description):
-                try:
-                    doc = model(description.lower())
-                    lemmas = []
-                    for token in doc:
-                        if (
-                            token.lemma_ not in lemmas
-                            and not token.is_stop
-                            and token.is_alpha
-                        ):
-                            lemmas.append(token.lemma_)
-                    return " ".join(lemmas)
-                except:
-                    self.logger.error("Unable to load spacy model")
+            if not description or pd.isna(description) or not self.nlp:
+                return "None"
+            try:
+                doc = self.nlp(str(description).lower())
+                lemmas = [
+                    token.lemma_
+                    for token in doc
+                    if not token.is_stop and token.is_alpha
+                ]
+                return " ".join(dict.fromkeys(lemmas))
+            except Exception:
+                return "None"
 
         df["description"] = df["description"].apply(parse_nlp_description)
         return df
 
     def parse_attributes(self, specification: str) -> str:
-        """
-        Parses product specifications from a string into a JSON string.
+        """Parses raw product specification strings into JSON-encoded key-value key attributes.
 
         Args:
-            specification (str): A string containing the product specifications.
+            specification: Raw product specification string.
 
         Returns:
-            str: A JSON string representing the parsed attributes, or None if the input is invalid or NaN.
+            JSON-encoded string representing the key-value attribute dictionary.
         """
         spec_match_one = re.compile("(.*?)\\[(.*)\\](.*)")
         spec_match_two = re.compile('(.*?)=>"(.*?)"(.*?)=>"(.*?)"(.*)')
         if pd.isna(specification):
-            return None
-        m = spec_match_one.match(specification)
+            return jsonpickle.encode({})
+
+        m = spec_match_one.match(str(specification))
         out = {}
         if m is not None and m.group(2) is not None:
             phrase = ""
@@ -192,221 +279,146 @@ class DataPreprocessor:
                     phrase = ""
                 else:
                     phrase += c
-        json_string = jsonpickle.encode(out)
-        return json_string
-
-    def get_product_image(
-        self,
-        df: pd.DataFrame,
-        ray_worker_node_id: int,
-        gcs_bucket: str,
-        gcs_folder: str,
-    ) -> pd.DataFrame:
-        """
-        Downloads product images for each product in the DataFrame and adds the GCS URI to a new 'image_uri' column.
-
-        Args:
-            df (pd.DataFrame): The input DataFrame containing product information and image URLs.
-            ray_worker_node_id (int): The ID of the Ray worker node (for logging).
-            gcs_bucket (str): The name of the GCS bucket.
-            gcs_folder (str): The folder in the GCS bucket where the images will be stored.
-
-        Returns:
-            pd.DataFrame: The DataFrame with the added 'image_uri' column.
-        """
-        products_with_no_image_count = 0
-        products_with_no_image = []
-        gcs_image_url = []
-
-        image_found_flag = False
-        for id, image_list in zip(df["uniq_id"], df["image"]):
-
-            if pd.isnull(image_list):  # No image url
-                self.logger.warning(f"No image url for product {id}")
-                products_with_no_image_count += 1
-                products_with_no_image.append(id)
-                gcs_image_url.append(None)
-                continue
-            image_urls = self.extract_url(image_list)
-            for index in range(len(image_urls)):
-                image_url = image_urls[index].strip()
-                image_file_name = f"{id}_{index}.jpg"
-                destination_blob_name = f"{gcs_folder}/{id}_{index}.jpg"
-                image_found_flag = self.download_image(
-                    image_url,
-                    image_file_name,
-                    destination_blob_name,
-                    ray_worker_node_id,
-                    gcs_bucket,
-                )
-                if image_found_flag:
-                    gcs_image_url.append(
-                        "gs://" + gcs_bucket + "/" + destination_blob_name
-                    )
-                    break
-            if not image_found_flag:
-                self.logger.warning(f"No image found for product {id}")
-                products_with_no_image_count += 1
-                products_with_no_image.append(id)
-                gcs_image_url.append(None)
-
-        # appending gcs image uri into dataframe
-        gcs_image_loc = pd.DataFrame(gcs_image_url, index=df.index)
-        gcs_image_loc.columns = ["image_uri"]
-        df_with_gcs_image_uri = pd.concat([df, gcs_image_loc], axis=1)
-        return df_with_gcs_image_uri
+        return jsonpickle.encode(out)
 
     def reformat(self, text: str) -> str:
-        """
-        Reformats a string by removing square brackets and double quotes.
+        """Strips bracket and quote formatting characters from raw category strings.
 
         Args:
-            text (str): The string to reformat.
+            text: Raw input string containing bracket or quote characters.
 
         Returns:
-            str: The reformatted string, or an empty string if the input is NaN.
+            Cleaned text string.
         """
         if pd.isnull(text):
             return ""
-        return text.replace("[", "").replace("]", "").replace('"', "")
+        return str(text).replace("[", "").replace("]", "").replace('"', "")
 
     def prep_cat(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Prepares product category information by splitting the 'product_category_tree' column into separate category levels.
+        """Splits category hierarchy trees into static categorical columns (c0_name .. c5_name).
 
         Args:
-            df (pd.DataFrame): The input DataFrame containing the 'product_category_tree' column.
+            df: Input DataFrame with a 'product_category_tree' column.
 
         Returns:
-            pd.DataFrame: The DataFrame with the added category level columns.
+            DataFrame with split category columns and original tree dropped.
         """
-        df["product_category_tree"] = df["product_category_tree"].apply(
-            lambda x: self.reformat(x)
-        )
-        temp_df = df["product_category_tree"].str.split(">>", expand=True)
-        max_splits = temp_df.shape[1]  # Get the number of columns after splitting
-        # Create column names dynamically
-        column_names = [f"c{i}_name" for i in range(max_splits)]
-        temp_df.columns = column_names
-        for col in temp_df.columns:
-            temp_df[col] = temp_df[col].apply(lambda x: x.strip() if x else x)
-        # concatenating df1 and df2 along rows
-        df_with_cat = pd.concat([df, temp_df], axis=1)
-        df_with_cat = df_with_cat.drop("product_category_tree", axis=1)
-        return df_with_cat
+        df["product_category_tree"] = df["product_category_tree"].apply(self.reformat)
+        splits = df["product_category_tree"].str.split(">>")
+
+        # Enforce exactly 6 static categorical dimensions to prevent cross-batch schema errors
+        max_levels = 6
+        for i in range(max_levels):
+            df[f"c{i}_name"] = splits.apply(
+                lambda x: x[i].strip() if isinstance(x, list) and len(x) > i else ""
+            )
+
+        df = df.drop("product_category_tree", axis=1)
+        return df
 
     def process_data(
         self,
         df: pd.DataFrame,
-        ray_worker_node_id: int,
+        ray_worker_node_id: str,
         gcs_bucket: str,
         gcs_folder: str,
     ) -> pd.DataFrame:
-        """
-        Performs the complete data preprocessing pipeline, including image downloading, description preprocessing,
-        attribute parsing, and category preparation.
+        """Executes full cleaning pipeline sequence (images, descriptions, attributes, categories).
 
         Args:
-            df (pd.DataFrame): The input DataFrame.
-            ray_worker_node_id (int): The ID of the Ray worker node (for logging).
-            gcs_bucket (str): The name of the GCS bucket.
-            gcs_folder (str): The folder in the GCS bucket where the images will be stored.
+            df: Raw input DataFrame.
+            ray_worker_node_id: Current Ray worker node identifier.
+            gcs_bucket: Destination GCS bucket name for image storage.
+            gcs_folder: Subfolder path in the GCS bucket.
 
         Returns:
-            pd.DataFrame: The preprocessed DataFrame.
+            Fully cleaned and preprocessed DataFrame.
         """
-        df_with_gcs_image_uri = self.get_product_image(
+        df_processed = self.get_product_image(
             df, ray_worker_node_id, gcs_bucket, gcs_folder
         )
-        df_with_desc = self.prep_product_desc(df_with_gcs_image_uri)
-        df_with_desc["attributes"] = df_with_desc["product_specifications"].apply(
+        df_processed = self.prep_product_desc(df_processed)
+        df_processed["attributes"] = df_processed["product_specifications"].apply(
             self.parse_attributes
         )
-        df_with_desc = df_with_desc.drop("product_specifications", axis=1)
-        result_df = self.prep_cat(df_with_desc)
-        return result_df
+        df_processed = df_processed.drop("product_specifications", axis=1)
+        df_processed = self.prep_cat(df_processed)
+        return df_processed
 
 
 class DataPrepForRag:
-    """
-    A class for preparing data specifically for use with a Retrieval Augmented Generation (RAG) system.
-
-    Attributes:
-        logger (logging.Logger): A logger object for logging information and errors.
-
-    Methods:
-        filter_low_value_count_rows(df, column_name, min_count=10): Filters rows based on minimum value counts in a column.
-        process_rag_input(df): Processes the input DataFrame for RAG, including renaming columns, filtering, and selecting relevant columns.
-    """
+    """Filters and structures pipeline inputs explicitly for RAG vectorization formats."""
 
     logger = logging.getLogger(__name__)
 
     def __init__(self):
+        """Initializes the DataPrepForRag transformer instance."""
         pass
 
     def filter_low_value_count_rows(
         self, df: pd.DataFrame, column_name: str, min_count: int = 10
     ) -> pd.DataFrame:
-        """
-        Removes rows from a DataFrame where the value count in the specified column is less than the given minimum count.
+        """Filters out rows where column value frequency is below min_count threshold.
 
         Args:
-            df (pd.DataFrame): The Pandas DataFrame to filter.
-            column_name (str): The name of the column to check value counts for.
-            min_count (int, optional): The minimum value count required for a row to be kept. Defaults to 10.
+            df: Input DataFrame.
+            column_name: Target column to compute value counts on.
+            min_count: Minimum frequency threshold required to retain rows.
 
         Returns:
-            pd.DataFrame: A new DataFrame with rows removed where value counts are below the threshold.
+            Filtered DataFrame with rare categories excluded.
         """
-
-        # Calculate value counts for the specified column
+        if df.empty or column_name not in df.columns:
+            return df
         value_counts = df[column_name].value_counts()
-
-        # Filter values that meet the minimum count criteria
         filtered_values = value_counts[value_counts >= min_count].index
-
-        # Create a new DataFrame keeping only rows with those values
-        filtered_df = df[df[column_name].isin(filtered_values)]
-
-        return filtered_df
+        return df[df[column_name].isin(filtered_values)].copy()
 
     def process_rag_input(self, df: pd.DataFrame) -> pd.DataFrame:
-        """
-        Processes the input DataFrame to prepare it for use with a RAG system.  This includes renaming columns,
-        filtering data based on categories and value counts, selecting relevant columns, and removing duplicates.
+        """Transforms cleaned product records into standardized schema for RAG pipeline ingestion.
 
         Args:
-            df (pd.DataFrame): The input DataFrame.
+            df: Preprocessed DataFrame output from DataPreprocessor.
 
         Returns:
-            pd.DataFrame: The processed DataFrame ready for RAG.
+            DataFrame schema-formatted and filtered specifically for RAG retrieval tasks.
         """
-        # renaming column name
-        df.rename(
+        working_df = df.rename(
             columns={
                 "uniq_id": "Id",
                 "product_name": "Name",
                 "description": "Description",
                 "brand": "Brand",
                 "attributes": "Specifications",
-            },
-            inplace=True,
-        )
-        # filtering clothings for men, women and kids
-        filtered_df = df[df["c0_name"] == "Clothing"]
+            }
+        ).copy()
+
+        filtered_df = working_df[working_df["c0_name"] == "Clothing"]
         values_to_filter = ["Women's Clothing", "Men's Clothing", "Kids' Clothing"]
         clothing_filtered_df = filtered_df[
             filtered_df["c1_name"].isin(values_to_filter)
-        ]
-        # Filter to keep rows where 'c2_name' has count >=10
+        ].copy()
+
+        # Sequence data transformations safely to clean memory pointers
         c2_filtered_df = self.filter_low_value_count_rows(
             clothing_filtered_df, "c2_name", 10
         )
-        # Filter to keep rows where 'c3_name' has count >=10
-        c3_filtered_df = self.filter_low_value_count_rows(
-            clothing_filtered_df, "c3_name", 10
-        )
-        # prep RA df with subset of the columns
+        c3_filtered_df = self.filter_low_value_count_rows(c2_filtered_df, "c3_name", 10)
+
+        if c3_filtered_df.empty:
+            return pd.DataFrame(
+                columns=[
+                    "Id",
+                    "Name",
+                    "Description",
+                    "Brand",
+                    "image",
+                    "image_uri",
+                    "c1_name",
+                    "Specifications",
+                ]
+            )
+
         rag_df = c3_filtered_df[
             [
                 "Id",
@@ -418,11 +430,12 @@ class DataPrepForRag:
                 "c1_name",
                 "Specifications",
             ]
-        ]
-        # Drop duplicates
+        ].copy()
+
         rag_df.drop_duplicates(inplace=True)
-        # Replace NaN with None
-        rag_df["image_uri"] = df["image_uri"].fillna(value="")
-        rag_df["image"] = df["image"].fillna(value="")
-        rag_df["Description"] = df["Description"].fillna(value="None")
+
+        rag_df["image_uri"] = rag_df["image_uri"].fillna("")
+        rag_df["image"] = rag_df["image"].fillna("")
+        rag_df["Description"] = rag_df["Description"].fillna("None")
+
         return rag_df

@@ -278,6 +278,12 @@ variable "ira_online_tpu_kubernetes_service_account_name" {
   type        = string
 }
 
+variable "ira_online_tpu_vllm_kv_offloading_image_url" {
+  default     = "docker.io/vllm/vllm-tpu:v0.26.0"
+  description = "The URL for the TPU vLLM container image with KV cache offloading."
+  type        = string
+}
+
 variable "ira_online_tpu_max_diffusion_sdxl_image_url" {
   default     = null
   description = "The URL for the TPU MaxDiffusion SDXL container image."

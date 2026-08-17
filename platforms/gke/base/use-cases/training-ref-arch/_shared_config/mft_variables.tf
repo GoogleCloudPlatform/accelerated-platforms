@@ -32,16 +32,6 @@ locals {
   mft_endpoints_hostname_suffix = "endpoints.${local.cluster_project_id}.cloud.goog"
 
   mft_endpoints = {
-    gradio = {
-      host         = "gradio.${local.mft_kubernetes_namespace}.${local.unique_identifier_prefix}.${local.mft_endpoints_hostname_suffix}"
-      port         = 8080
-      service_name = "gradio-svc"
-    },
-    locust = {
-      host         = "locust.${local.mft_kubernetes_namespace}.${local.unique_identifier_prefix}.${local.mft_endpoints_hostname_suffix}"
-      port         = 8089
-      service_name = "locust-master-web-svc"
-    },
     mlflow-tracking = {
       host         = "mlflow-tracking.${local.mft_kubernetes_namespace}.${local.unique_identifier_prefix}.${local.mft_endpoints_hostname_suffix}"
       port         = 5000

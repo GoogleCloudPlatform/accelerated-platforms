@@ -95,12 +95,14 @@ Run the consolidated benchmark script with the chosen workload profile and endpo
 - Run chatbot benchmark in the workload's namespace (e.g., `default`):
 
   ```bash
-  "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml http://vllm-service:8000 <namespace> google/gemma-4-31b-it
+  ENDPOINT_URL="http://$(kubectl -n ${llmd_namespace} get gateway llm-d-inference-gateway -o jsonpath='{.status.addresses[0].value}')"
+  "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml ${ENDPOINT_URL} <namespace> google/gemma-4-31b-it
   ```
 
 - Run chatbot benchmark with explicit GCS bucket override:
   ```bash
-  "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml http://vllm-service:8000 <namespace> google/gemma-4-31b-it my-custom-bench-bucket
+  ENDPOINT_URL="http://$(kubectl -n ${llmd_namespace} get gateway llm-d-inference-gateway -o jsonpath='{.status.addresses[0].value}')"
+  "${ACP_REPO_DIR}/skills/llm-d-benchmarking/scripts/run_benchmark.sh" chatbot_synthetic.yaml ${ENDPOINT_URL} <namespace> google/gemma-4-31b-it my-custom-bench-bucket
   ```
 
 ## 6. Explanation of `run_benchmark.sh` Steps

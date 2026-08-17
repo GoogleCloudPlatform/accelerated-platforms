@@ -1,39 +1,106 @@
 {
-  "id": "b91d5a73-d692-493b-aedd-26f78dad9d86",
+  "id": "b53a1524-8072-4f19-9446-c906dbc2289e",
   "revision": 0,
-  "last_node_id": 4,
-  "last_link_id": 3,
+  "last_node_id": 3,
+  "last_link_id": 2,
   "nodes": [
     {
       "id": 3,
-      "type": "Veo3GcsUriImageToVideoNode",
+      "type": "VHS_LoadImagePath",
       "pos": [
-        1090.38037109375,
-        222.4357147216797
+        63.56794925675399,
+        -126.43641228286785
       ],
       "size": [
-        400,
-        526
+        244.6678924560547,
+        262.091237771219
       ],
       "flags": {},
       "order": 0,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VHS_LoadImagePath"
+      },
+      "widgets_values": {
+        "image": "input/veo/jellyfish.png",
+        "custom_width": 0,
+        "custom_height": 0,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "custom_width": 0,
+            "custom_height": 0,
+            "filename": "input/veo/jellyfish.png",
+            "type": "path",
+            "format": "video/png"
+          }
+        }
+      }
+    },
+    {
+      "id": 1,
+      "type": "Veo3ImageToVideoNode",
+      "pos": [
+        437.7863578013332,
+        -155.55427927915272
+      ],
+      "size": [
+        400,
+        498
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 2
+        },
+        {
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
       "outputs": [
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
           "links": [
-            3
+            1
           ]
         }
       ],
       "properties": {
-        "Node name for S&R": "Veo3GcsUriImageToVideoNode"
+        "Node name for S&R": "Veo3ImageToVideoNode"
       },
       "widgets_values": [
         "VEO_3_1",
-        "${input_bucket_uri}/veo/jellyfish.png",
         "PNG",
         "",
         "16:9",
@@ -43,34 +110,33 @@
         8,
         true,
         1,
-        "",
         "${output_bucket_uri}",
         "",
-        3041877000,
+        3060293944,
         "randomize",
         "",
-        ""
+        "us-central1"
       ]
     },
     {
-      "id": 4,
+      "id": 2,
       "type": "VeoVideoSaveAndPreview",
       "pos": [
-        1756.109130859375,
-        309.26654052734375
+        1159.2627939628264,
+        -90.84787972167909
       ],
       "size": [
-        402.1000061035156,
-        272.4181823730469
+        287.275390625,
+        358.3424072265625
       ],
       "flags": {},
-      "order": 1,
+      "order": 2,
       "mode": 0,
       "inputs": [
         {
           "name": "video_paths",
           "type": "VEO_VIDEO",
-          "link": 3
+          "link": 1
         }
       ],
       "outputs": [],
@@ -82,31 +148,45 @@
         true,
         true,
         true,
-        "veo_video"
+        "veo_video",
+        {
+          "hidden": false,
+          "paused": false,
+          "parameters": {}
+        }
       ]
     }
   ],
   "links": [
     [
-      3,
-      3,
+      1,
+      1,
       0,
-      4,
+      2,
       0,
       "VEO_VIDEO"
+    ],
+    [
+      2,
+      3,
+      0,
+      1,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [],
   "config": {},
   "extra": {
+    "workflowRendererVersion": "LG",
     "ds": {
-      "scale": 1.2666661150000031,
+      "scale": 0.7865000000000019,
       "offset": [
-        -925.1936846558127,
-        -145.91381147482033
+        337.04789663386003,
+        347.7018212347109
       ]
     },
-    "frontendVersion": "1.23.4",
+    "frontendVersion": "1.35.9",
     "VHS_latentpreview": false,
     "VHS_latentpreviewrate": 0,
     "VHS_MetadataImage": true,

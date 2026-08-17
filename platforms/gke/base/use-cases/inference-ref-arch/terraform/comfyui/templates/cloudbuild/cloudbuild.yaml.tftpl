@@ -12,17 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-locals {
-  acp_root = "${path.module}/../../../../../../.."
-}
+images:
+  - $${_DESTINATION}
 
-resource "local_file" "cloudbuild_yaml" {
-  content = templatefile(
-    "${path.module}/templates/cloudbuild/cloudbuild.yaml.tftpl",
-    {
-      default_dockerfile = local.comfyui_dockerfile
-    }
-  )
-  filename = "${path.module}/src/cloudbuild.yaml"
-}
+options:
+  logging: CLOUD_LOGGING_ONLY
 
+steps:
+  - args:
+      - build
+      - --build-context=comfyui=platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src
+      - --tag=$${_DESTINATION}
+      - --file=platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src/$${_DOCKERFILE}
+      - .
+    id: "Build ComfyUI image"
+    name: "docker.io/docker:28.3.3-dind-alpine3.22"
+    waitFor: ["-"]
+
+substitutions:
+  _DOCKERFILE: "${default_dockerfile}"

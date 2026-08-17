@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,22 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-images:
-  - ${_DESTINATION}
+terraform {
+  required_version = ">= 1.5.7"
 
-options:
-  logging: CLOUD_LOGGING_ONLY
-
-steps:
-  - args:
-      - build
-      - --build-context=comfyui=platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src
-      - --tag=${_DESTINATION}
-      - --file=platforms/gke/base/use-cases/inference-ref-arch/terraform/comfyui/src/${_DOCKERFILE}
-      - .
-    id: "Build ComfyUI NVIDIA image"
-    name: "docker.io/docker:28.3.3-dind-alpine3.22"
-    waitFor: ["-"]
-
-substitutions:
-  _DOCKERFILE: "Dockerfile.nvidia-with-manager"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "7.39.0"
+    }
+    local = {
+      source  = "hashicorp/local"
+      version = "2.5.3"
+    }
+  }
+}

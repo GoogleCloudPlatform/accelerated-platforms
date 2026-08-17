@@ -120,42 +120,42 @@ resource "google_storage_bucket_object" "vto_gcsimage" {
   source   = "${local.vto_source_path}/${each.key}"
 }
 
-resource "google_storage_bucket_object" "workflow_gemini_tti" {
+resource "google_storage_bucket_object" "workflow_gemini31_nanobanana_tti" {
   bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "gemini-imagen4-text-to-image.json"
-  source = "src/comfyui-workflows/gemini-imagen4-text-to-image.json"
+  name   = "gemini3.1-nanobanana-pro-text-to-image.json"
+  source = "src/comfyui-workflows/gemini3.1-nanobanana-pro-text-to-image.json"
 }
 
-resource "google_storage_bucket_object" "workflow_imagen3_tti" {
+resource "google_storage_bucket_object" "workflow_gemini35_nanobanana_tti" {
   bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "imagen3-text-to-image.json"
-  source = "src/comfyui-workflows/imagen3-text-to-image.json"
+  name   = "gemini3.5-nanobanana-2-text-to-image.json"
+  source = "src/comfyui-workflows/gemini3.5-nanobanana-2-text-to-image.json"
 }
 
-resource "google_storage_bucket_object" "workflow_imagen3_veo2_itv" {
+resource "google_storage_bucket_object" "workflow_nanobanana_tti" {
+  bucket = google_storage_bucket.comfyui_workflow.name
+  name   = "nanobanana-pro-text-to-image.json"
+  source = "src/comfyui-workflows/nanobanana-pro-text-to-image.json"
+}
+
+resource "google_storage_bucket_object" "workflow_nanobanana_r2i" {
   bucket     = google_storage_bucket.comfyui_workflow.name
-  name       = "imagen3-veo2-text-to-image-to-video.json"
-  source     = "src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.json"
-  depends_on = [local_file.workflow_imagen3_veo2_itv]
+  name       = "nano-banana-reference-to-image.json"
+  source     = "src/comfyui-workflows/nano-banana-reference-to-image.json"
+  depends_on = [google_storage_bucket_object.nano_banana_gcsimage]
 }
 
-resource "google_storage_bucket_object" "workflow_imagen4_banana_veo3_interpolation_video" {
+resource "google_storage_bucket_object" "workflow_nanobanana_interpolation" {
   bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "imagen4-banana-veo3-interpolation-video.json"
-  source = "src/comfyui-workflows/imagen4-banana-veo3-interpolation-video.json"
+  name   = "nanobanana-pro-veo3-interpolation-video.json"
+  source = "src/comfyui-workflows/nanobanana-pro-veo3-interpolation-video.json"
 }
 
-resource "google_storage_bucket_object" "workflow_imagen4_tti" {
-  bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "imagen4-text-to-image.json"
-  source = "src/comfyui-workflows/imagen4-text-to-image.json"
-}
-
-resource "google_storage_bucket_object" "workflow_imagen4_veo3_itv" {
+resource "google_storage_bucket_object" "workflow_nanobanana_veo3_itv" {
   bucket     = google_storage_bucket.comfyui_workflow.name
-  name       = "imagen4-veo3-text-to-image-to-video.json"
-  source     = "src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.json"
-  depends_on = [local_file.workflow_imagen4_veo3_itv]
+  name       = "nanobanana-pro-veo3-text-to-image-to-video.json"
+  source     = "src/comfyui-workflows/nanobanana-pro-veo3-text-to-image-to-video.json"
+  depends_on = [local_file.workflow_nanobanana_pro_veo3_text_to_image_to_video]
 }
 
 resource "google_storage_bucket_object" "workflow_intpl_veo3_itv" {
@@ -165,30 +165,10 @@ resource "google_storage_bucket_object" "workflow_intpl_veo3_itv" {
   depends_on = [google_storage_bucket_object.intpl_gcsimage]
 }
 
-resource "google_storage_bucket_object" "workflows_ltxv_ttv" {
+resource "google_storage_bucket_object" "workflow_lyria2" {
   bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "ltxv-text-to-video.json"
-  source = "src/comfyui-workflows/ltxv-text-to-video.json"
-}
-
-resource "google_storage_bucket_object" "workflow_nano_banana_i2v" {
-  bucket     = google_storage_bucket.comfyui_workflow.name
-  name       = "nano-banana.json"
-  source     = "src/comfyui-workflows/nano-banana.json"
-  depends_on = [google_storage_bucket_object.nano_banana_gcsimage]
-}
-
-resource "google_storage_bucket_object" "workflows_sdxl_tti" {
-  bucket = google_storage_bucket.comfyui_workflow.name
-  name   = "sdxl-text-to-image.json"
-  source = "src/comfyui-workflows/sdxl-text-to-image.json"
-}
-
-resource "google_storage_bucket_object" "workflow_veo2_ttv" {
-  bucket     = google_storage_bucket.comfyui_workflow.name
-  name       = "veo2-text-to-video.json"
-  source     = "src/comfyui-workflows/veo2-text-to-video.json"
-  depends_on = [local_file.workflow_veo2_ttv]
+  name   = "lyria2-text-to-music.json"
+  source = "src/comfyui-workflows/lyria2-text-to-music.json"
 }
 
 resource "google_storage_bucket_object" "workflow_veo3_itv" {
@@ -202,7 +182,7 @@ resource "google_storage_bucket_object" "workflow_veo3_r2v" {
   bucket     = google_storage_bucket.comfyui_workflow.name
   name       = "veo3-reference-to-video.json"
   source     = "src/comfyui-workflows/veo3-reference-to-video.json"
-  depends_on = [local_file.workflow_veo2_ttv]
+  depends_on = [local_file.workflow_veo3_r2v]
 }
 
 resource "google_storage_bucket_object" "workflow_veo3_ttv" {
@@ -219,42 +199,32 @@ resource "google_storage_bucket_object" "workflow_vto" {
   depends_on = [google_storage_bucket_object.vto_gcsimage]
 }
 
-
-resource "local_file" "workflow_imagen3_veo2_itv" {
-  content = templatefile(
-    "${path.module}/src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.tftpl.json",
-    {
-      output_bucket_uri = google_storage_bucket.comfyui_output.url
-    }
-  )
-  filename = "${path.module}/src/comfyui-workflows/imagen3-veo2-text-to-image-to-video.json"
+resource "google_storage_bucket_object" "workflows_sdxl_tti" {
+  bucket = google_storage_bucket.comfyui_workflow.name
+  name   = "sdxl-text-to-image.json"
+  source = "src/comfyui-workflows/sdxl-text-to-image.json"
 }
 
-resource "local_file" "workflow_imagen4_veo3_itv" {
-  content = templatefile(
-    "${path.module}/src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.tftpl.json",
-    {
-      output_bucket_uri = google_storage_bucket.comfyui_output.url
-    }
-  )
-  filename = "${path.module}/src/comfyui-workflows/imagen4-veo3-text-to-image-to-video.json"
+resource "google_storage_bucket_object" "workflows_ltxv_ttv" {
+  bucket = google_storage_bucket.comfyui_workflow.name
+  name   = "ltxv-text-to-video.json"
+  source = "src/comfyui-workflows/ltxv-text-to-video.json"
 }
 
-resource "local_file" "workflow_veo2_ttv" {
+resource "local_file" "workflow_nanobanana_pro_veo3_text_to_image_to_video" {
   content = templatefile(
-    "${path.module}/src/comfyui-workflows/veo2-text-to-video.tftpl.json",
+    "${path.module}/src/comfyui-workflows/nanobanana-pro-veo3-text-to-image-to-video.tftpl.json",
     {
       output_bucket_uri = google_storage_bucket.comfyui_output.url
     }
   )
-  filename = "${path.module}/src/comfyui-workflows/veo2-text-to-video.json"
+  filename = "${path.module}/src/comfyui-workflows/nanobanana-pro-veo3-text-to-image-to-video.json"
 }
 
 resource "local_file" "workflow_veo3_itv" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/veo3-image-to-video.tftpl.json",
     {
-      input_bucket_uri  = google_storage_bucket.comfyui_input.url
       output_bucket_uri = google_storage_bucket.comfyui_output.url
     }
   )
@@ -275,6 +245,7 @@ resource "local_file" "workflow_veo3_r2v" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/veo3-reference-to-video.tftpl.json",
     {
+      input_bucket_name = google_storage_bucket.comfyui_input.name
       output_bucket_uri = google_storage_bucket.comfyui_output.url
     }
   )

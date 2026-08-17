@@ -11,7 +11,7 @@ store.
 
 ## Architecture
 
-![data-processing](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/data-processing-ray-workflow.png)
+![data-processing](images/data-processing-ray-workflow.png)
 
 ## Data processing steps
 
@@ -206,7 +206,43 @@ For more information about infrastructure and application metrics, see
 [View observability metrics](https://cloud.google.com/kubernetes-engine/docs/how-to/view-observability-metrics).
 
 Specifically for the data processing use case described in this example, you can
-perform additional analysis based on the workload logs.
+perform observability using both the **Ray Dashboard** (for real-time cluster
+and job metrics) and **Google Cloud Logging** (for log searching and SQL
+analytics).
+
+### Ray Dashboard
+
+The
+[Ray Dashboard](https://docs.ray.io/en/latest/ray-observability/getting-started.html)
+provides real-time observability into Ray cluster resources, submitted jobs,
+actor pools, and Ray Data streaming execution.
+
+#### Accessing the Dashboard
+
+Run the following command to print the Ray Dashboard endpoint URL:
+
+```shell
+echo -e "\n${mft_kubernetes_namespace} Ray dashboard: ${mft_endpoint_ray_dashboard_url}\n"
+```
+
+Alternatively, you can port-forward the service to your local machine:
+
+```shell
+kubectl --namespace ${mft_kubernetes_namespace} port-forward svc/ray-cluster-kuberay-head-svc 8265:8265
+```
+
+#### Key Observability Views
+
+- **Jobs Tab**: Monitor active and completed Ray Job submissions, view
+  entrypoint status (`SUCCEEDED`, `RUNNING`), duration, and tail live driver
+  logs.
+- **Ray Data Tab**: Visualize the dataset execution graph (`ReadCSV` ->
+  `MapBatches` -> `Write`), monitor operator throughput, and check object store
+  memory usage.
+- **Actors Tab**: Inspect the `PreprocessingActor` pool state, worker node
+  placement, and active worker tasks.
+- **Cluster Tab**: View real-time CPU, RAM, and Object Store Memory utilization
+  across Head and Worker nodes.
 
 ### Log query sample
 
@@ -219,92 +255,42 @@ In the Google Cloud console, go to the
   in the query:
 
   ```
-  labels."k8s-pod/app"="data-processing"
-  resource.type="k8s_container"
-  jsonPayload.message: "Started" OR jsonPayload.message: "Finished"
-  severity=INFO
+  labels."k8s-pod/app" = "data-processing"
+  resource.type = "k8s_container"
+  "Started" OR "Finished"
+  severity = INFO
   ```
+
+  ![Logs Explorer - Job Started/Finished](images/logs-explorer-started-finished.png)
 
 - Find all error logs for the job:
 
   ```
-  labels."k8s-pod/app"="data-processing"
-  resource.type="k8s_container"
-  severity=ERROR
+  labels."k8s-pod/app" = "data-processing"
+  resource.type = "k8s_container"
+  severity = ERROR
   ```
 
 - Search for specific errors from the `textPayload` using a regex expression:
 
   ```
-  labels."k8s-pod/app"="data-processing"
-  resource.type="k8s_container"
-  textPayload =~ "ray_worker_node_id.+Image.+not found$"
-  severity=ERROR
+  labels."k8s-pod/app" = "data-processing"
+  resource.type = "k8s_container"
+  textPayload =~ "WARNING - ray_worker_node_id.+Failed to (download|upload) image"
   ```
+
+  ![Logs Explorer - Failed Image Downloads](images/logs-explorer-failed-downloads.png)
 
 You can narrow down the results by adding extra filters, such as using
 additional labels. For more GKE query samples, you can read
 [Kubernetes-related queries](https://cloud.google.com/logging/docs/view/query-library#kubernetes-filters).
-
-### Log-based Metrics
-
-To gain insight into your workload status, you can also utilize
-[log-based metrics](https://cloud.google.com/logging/docs/logs-based-metrics).
-Several methods exist for their creation. The most straightforward approach
-involves modifying your log queries to locate the relevant logs. Subsequently,
-you can generate a custom metric by clicking the `Create metric` link and
-defining it as per your requirements. For example:
-
-![log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/create-log-based-metrics.png)
-
-For this example, the following query is used, utilizing a more specific regular
-expression to search the error logs. With the log entries found, you can create
-log-based metrics.
-
-```
-labels."k8s-pod/app"="data-processing"
-resource.type="k8s_container"
-textPayload =~ "ray_worker_node_id.+Image.+not found$"
-severity=ERROR
-```
-
-The following is a definition for a metric such as `No_Image_found_Product`.
-Notice both the GKE node and Ray worker node id are added as labels.
-
-```yaml
-filter: |-
-  labels."k8s-pod/app"="data-processing"
-  resource.type="k8s_container"
-  textPayload =~ "ray_worker_node_id.+Image.+not found$"
-  severity=ERROR
-labelExtractors:
-  gke_node: EXTRACT(labels."compute.googleapis.com/resource_name")
-  ray_worker_node_id: REGEXP_EXTRACT(textPayload, "ray_worker_node_id:(.+) Image")
-metricDescriptor:
-  labels:
-    - key: gke_node
-    - key: ray_worker_node_id
-  metricKind: DELTA
-  name: projects/xxxxx/metricDescriptors/logging.googleapis.com/user/No_Image_Found_Product
-  type: logging.googleapis.com/user/No_Image_Found_Product
-  unit: "1"
-  valueType: INT64
-name: No_Image_Found_Product
-resourceName: projects/xxxxx/metrics/No_Image_Found_Product
-```
-
-Once the metrics are defined, the next time you run your workloads, you will be
-able to use them. For example, the following chart visualizes the metric defined
-above:
-
-![use-log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/use-log-based-metrics.png)
 
 ### Log Analytics
 
 You can also use
 [Log Analytics](https://cloud.google.com/logging/docs/log-analytics#analytics)
 to
-[analyze your logs](<(https://cloud.google.com/logging/docs/analyze/query-and-view)>).
+[analyze your logs](https://cloud.google.com/logging/docs/analyze/query-and-view).
 If your log buckets are not upgraded for Log Analytics, you need to upgrade them
 first. After the log buckets are upgraded, you can run SQL queries to gain
 insight from the newly ingested logs. The query results can also be charted. For
@@ -312,32 +298,40 @@ example, the following query returns the `Image not found` error and chart the
 result:
 
 ```sql
-WITH
-  logs AS (
-  SELECT
-    *
-  FROM
-    `[Your Project Id].global._Default._AllLogs` )
 SELECT
   timestamp,
   severity,
-  text_payload,
-  proto_payload,
-  json_payload
+  COALESCE(text_payload, JSON_VALUE(json_payload, '$.message')) AS log_message,
+  JSON_VALUE(resource.labels, '$.pod_name') AS pod_name
 FROM
-  logs
+  `[Your Project Id].global._Default._AllLogs`
 WHERE
-  SAFE.STRING(logs.labels["k8s-pod/app"]) = "data-processing"
-  AND logs.resource.type= "k8s_container"
-  AND logs.text_payload IS NOT NULL
-  AND REGEXP_CONTAINS(logs.text_payload, "ray_worker_node_id.+Image.+not found$")
-  AND logs.severity = "ERROR"
+  resource.type = 'k8s_container'
+  AND JSON_VALUE(labels, '$."k8s-pod/app"') = 'data-processing'
+  AND (
+    REGEXP_CONTAINS(text_payload, r'WARNING - ray_worker_node_id.+Failed to (download|upload) image')
+    OR REGEXP_CONTAINS(JSON_VALUE(json_payload, '$.message'), r'WARNING - ray_worker_node_id.+Failed to (download|upload) image')
+  )
 ORDER BY
-  timestamp DESC,
-  insert_id DESC
+  timestamp DESC
 LIMIT
   10000
 ```
 
 You should see output like the following:
-![use-log-based-metrics](/docs/use-cases/model-fine-tuning-pipeline/data-processing/ray/images/log-analytics-data-processing.png)
+
+![log-analytics-data-processing](images/log-analytics-data-processing.png)
+
+When charted, the result visualizes the frequency and timeline of image download
+and upload warning events throughout the workload execution:
+
+- **X-axis (`timestamp`)**: The timeline of the job execution, aggregated into
+  automatic time intervals (such as 30-second buckets during an active job run).
+- **Y-axis (`rows`)**: The total count of image download/upload failure warning
+  logs generated per time interval.
+- **Chart Interpretation**: As parallel `PreprocessingActor` worker nodes stream
+  through assigned dataset chunks, they perform text cleanup and attempt image
+  downloads/uploads for every product record. The bar peaks reflect
+  high-throughput execution phases where multiple workers concurrently process
+  dataset chunks and attempt image fetches across records containing
+  inaccessible external URLs.

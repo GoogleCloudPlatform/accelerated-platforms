@@ -55,14 +55,18 @@ isort
 iterrows
 jsonify
 jsonpickle
+lemmatization
+lemmatized
 levelname
 lstrip
 makedirs
 moviepy
 nbconvert
 numpy
+onednn
 opencv
 optax
+orchestrator
 pathlib
 pgvector
 pipreqs
@@ -70,6 +74,7 @@ pmap
 popen
 prng
 protos
+pyarrow
 pyasn
 pycache
 pycparser

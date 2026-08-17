@@ -126,6 +126,6 @@ module "kubectl_wait_for_gateway" {
   kubeconfig_file = data.local_file.kubeconfig.filename
   namespace       = local.mft_kubernetes_namespace
   resource        = "gateway/${local.gateway_name}"
-  timeout         = "300s"
+  timeout         = "600s"
   wait_for_create = true
 }

@@ -25,8 +25,8 @@ data:
       sweep:
         type: linear
         timeout: 250
-        num_stages: 7
-        stage_duration: 30
+        num_stages: 4
+        stage_duration: 15
       num_workers: 20
       worker_max_concurrency: 15
       worker_max_tcp_connections: 2500
@@ -41,21 +41,12 @@ data:
     tokenizer:
       pretrained_model_name_or_path: ${TOKENIZER_ID}
     data:
-      type: synthetic
-    metrics:
-      type: prometheus
-      prometheus:
-          scrape_interval: 15
-          google_managed: true         # Whether using Google Managed Prometheus
-          filters: [] 
+      type: mock
     report:
       request_lifecycle:
         summary: true
         per_stage: true
         per_request: true
-      prometheus:
-        summary: true
-        per_stage: true
     storage:
       google_cloud_storage:               
         bucket_name: ${hub_models_bucket_bench_results_name}   # Required GCS bucket

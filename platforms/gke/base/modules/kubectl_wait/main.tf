@@ -45,7 +45,9 @@ if ${self.input.kubectl_wait_retry} && [[ $${return_code} != 0 ]]; then
   echo "Retrying..."
   ${self.input.kubectl_wait_for_create_command} &&
   ${self.input.kubectl_wait_command}
+  return_code=$?
 fi
+exit $${return_code}
 EOT
     environment = {
       KUBECONFIG = self.input.kubeconfig_file

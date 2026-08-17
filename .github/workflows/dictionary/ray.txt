@@ -1,10 +1,16 @@
 cpus
+dedup
+gcsfs
 headgroup
 kuberay
+mapbatches
 raycluster
 rayclusters
 rayjob
 rayjobs
 rayproject
 rayservices
+readcsv
+repartition
+repartitioned
 workergroup

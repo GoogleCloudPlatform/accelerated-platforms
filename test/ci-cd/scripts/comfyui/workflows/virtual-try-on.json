@@ -96,7 +96,7 @@
       "add_watermark": false,
       "safety_filter_level": "BLOCK_MEDIUM_AND_ABOVE",
       "gcp_project_id": "",
-      "gcp_region": "",
+      "gcp_region": "us-central1",
       "person_image": [
         "12",
         0
@@ -127,7 +127,7 @@
       "negative_prompt": "",
       "seed": 3087774325,
       "gcp_project_id": "",
-      "gcp_region": "",
+      "gcp_region": "us-central1",
       "image": [
         "23",
         0

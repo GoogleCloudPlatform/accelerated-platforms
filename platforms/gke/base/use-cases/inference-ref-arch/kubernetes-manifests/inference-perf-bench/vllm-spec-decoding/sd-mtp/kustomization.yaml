@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+---
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 configMapGenerator:
 - envs:
-  - downloader.env
-  name: download
+  - benchmarking.env
+  name: benchmark
   namespace: replaced-by-kustomize
 
 patches:
@@ -25,9 +26,9 @@ patches:
 
 replacements:
 - source:
-    fieldPath: data.DOWNLOADER_KUBERNETES_NAMESPACE
+    fieldPath: data.BENCHMARKING_KUBERNETES_NAMESPACE
     kind: ConfigMap
-    name: download
+    name: benchmark
   targets:
   - fieldPaths:
     - metadata.namespace
@@ -41,16 +42,20 @@ replacements:
     - metadata.namespace
     select:
       kind: SecretProviderClass
+  - fieldPaths:
+    - metadata.namespace
+    select:
+      kind: PodMonitoring
 - source:
-    fieldPath: data.DOWNLOADER_KUBERNETES_SERVICE_ACCOUNT
+    fieldPath: data.BENCHMARKING_KUBERNETES_SERVICE_ACCOUNT
     kind: ConfigMap
-    name: download
+    name: benchmark
   targets:
   - fieldPaths:
     - spec.template.spec.serviceAccountName
     select:
       kind: Job
-      name: hf-model-to-gcs
+      name: inference-perf
 - source:
     fieldPath: metadata.name
     kind: SecretProviderClass
@@ -60,10 +65,22 @@ replacements:
     - spec.template.spec.volumes.[name=huggingface-token].csi.volumeAttributes.secretProviderClass
     select:
       kind: Job
-      name: hf-model-to-gcs
+      name: inference-perf
+- source:
+    kind: ConfigMap
+    name: benchmark
+    fieldPath: data.APP_LABEL
+  targets:
+    - select:
+        kind: PodMonitoring
+        name: vllm-podmonitoring
+      fieldPaths:
+        - metadata.labels.app
+        - spec.selector.matchLabels.app
 
 resources:
-- configmap-scripts.yaml
+- configmap-benchmark.yaml
 - job.yaml
 - secretproviderclass-huggingface-tokens.yaml
-namePrefix: 78bf0431-
+- pod-monitoring.yaml
+

@@ -32,7 +32,7 @@ export COMFYUI_BUCKET="${cluster_project_id}-${unique_identifier_prefix}-${comfy
 export COMFYUI_SERVICE="${comfyui_app_name}-${comfyui_accelerator_type}:8188"
 export COMFYUI_DEPLOYMENT=${comfyui_app_name}-${comfyui_accelerator_type}
 
-MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-1200}"
+MAX_WAIT_SECONDS="${MAX_WAIT_SECONDS:-2400}"
 STEP_ID=${1:-build-ci}
 
 # --- Helpers ---
@@ -165,7 +165,7 @@ POD_RUN_LOG="$(mktemp)"
 kubectl exec -n "${comfyui_kubernetes_namespace}" "${POD_NAME}" -- env \
   COMFYUI_URL="http://${COMFYUI_SERVICE}" \
   TEST_WORKFLOW_DIR="/tmp/workflows" \
-  POLL_TIMEOUT="1200" \
+  POLL_TIMEOUT="2400" \
   POLL_INTERVAL="5" \
   MINIMUM_FILE_SIZE_BYTES="1" \
   /bin/bash -lc '

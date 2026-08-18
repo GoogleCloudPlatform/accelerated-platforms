@@ -46,17 +46,17 @@ Follow these instructions to provision the GKE Base Platform and inference-speci
     - Determine if the target inference terra-services are `online_gpu`, `online_tpu`, or both based on the chosen accelerator(s).
     - Update accelerator configurations in the shared `tfvars` if necessary based on user selection.
 
-## 3. Deploy Core Platform Terra-Services
+## 3. Deploy Inference Platform & Prerequisite Terra-Services
 
-Run the appropriate core deployment script based on the cluster type selected by the user. Always refer to existing scripts for execution rather than defining the `CORE_TERRASERVICES_APPLY` array explicitly.
+Run the appropriate inference reference architecture deployment script based on the cluster type selected by the user. This provisions the core platform along with prerequisite inference services (such as Hugging Face and monitoring initialization). Always refer to existing scripts for execution rather than defining the `CORE_TERRASERVICES_APPLY` array explicitly.
 
 - **For Standard Cluster**:
   ```bash
-  "${ACP_REPO_DIR}/platforms/gke/base/core/deploy-standard.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-standard.sh"
   ```
 - **For Autopilot Cluster**:
   ```bash
-  "${ACP_REPO_DIR}/platforms/gke/base/core/deploy-ap.sh"
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-ap.sh"
   ```
 
 ## 4. Deploy Inference Terra-Services

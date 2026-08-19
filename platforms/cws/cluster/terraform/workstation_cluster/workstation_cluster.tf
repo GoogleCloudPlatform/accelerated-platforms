@@ -17,8 +17,6 @@ resource "google_workstations_workstation_cluster" "cluster" {
     google_project_service.workstation_cluster["workstations.googleapis.com"]
   ]
 
-  provider = google-beta
-
   location               = local.workstation_cluster_region
   network                = data.google_compute_network.vpc.id
   subnetwork             = data.google_compute_subnetwork.region.id

@@ -13,8 +13,6 @@
 # limitations under the License.
 
 resource "google_gke_hub_feature" "configmanagement" {
-  provider = google-beta
-
   location = "global"
   name     = "configmanagement"
   project  = google_project_service.anthosconfigmanagement_googleapis_com.project
@@ -40,8 +38,6 @@ resource "google_gke_hub_feature" "configmanagement" {
 }
 
 resource "google_gke_hub_feature_membership" "cluster_configmanagement" {
-  provider = google-beta
-
   feature    = google_gke_hub_feature.configmanagement.name
   location   = google_gke_hub_feature.configmanagement.location
   membership = data.google_container_cluster.cluster.name

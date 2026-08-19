@@ -17,7 +17,7 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "7.6.0"
+      version = "7.32.0"
     }
     terraform = {
       source = "terraform.io/builtin/terraform"

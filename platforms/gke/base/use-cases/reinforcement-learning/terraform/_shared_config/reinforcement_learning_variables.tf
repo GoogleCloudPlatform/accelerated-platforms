@@ -16,6 +16,7 @@ locals {
   rl_project_id              = var.rl_project_id != null ? var.rl_project_id : var.platform_default_project_id
   rl_dataset_bucket_name     = var.rl_dataset_bucket_name != null ? var.rl_dataset_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-dataset"
   rl_mlflow_data_bucket_name = var.rl_mlflow_data_bucket_name != null ? var.rl_mlflow_data_bucket_name : "${local.rl_project_id}-${local.unique_identifier_prefix}-mlflow-data"
+  rl_project_id              = var.rl_project_id != null ? var.rl_project_id : var.platform_default_project_id
 
   rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name       = var.rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name != null ? var.rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name : "${local.unique_identifier_prefix}-checkpoint-converter"
   rl_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name = var.rl_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name != null ? var.rl_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name : "${local.unique_identifier_prefix}-checkpoint-converter-sa"
@@ -26,6 +27,10 @@ locals {
   rl_tpu_maxtext_grpo_single_host_image_url                       = var.rl_tpu_maxtext_grpo_single_host_image_url != null ? var.rl_tpu_maxtext_grpo_single_host_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/grpo-single-host:latest"
   rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name       = var.rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name != null ? var.rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name : "${local.unique_identifier_prefix}-grpo-single-host"
   rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name = var.rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name != null ? var.rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name : "${local.unique_identifier_prefix}-grpo-single-host-sa"
+
+  rl_tpu_maxtext_grpo_multi_host_image_url                       = var.rl_tpu_maxtext_grpo_multi_host_image_url != null ? var.rl_tpu_maxtext_grpo_multi_host_image_url : "${local.cloudbuild_ar_image_repository_url}/reinforcement-learning/grpo-multi-host:latest"
+  rl_tpu_maxtext_grpo_multi_host_kubernetes_namespace_name       = var.rl_tpu_maxtext_grpo_multi_host_kubernetes_namespace_name != null ? var.rl_tpu_maxtext_grpo_multi_host_kubernetes_namespace_name : "${local.unique_identifier_prefix}-grpo-multi-host"
+  rl_tpu_maxtext_grpo_multi_host_kubernetes_service_account_name = var.rl_tpu_maxtext_grpo_multi_host_kubernetes_service_account_name != null ? var.rl_tpu_maxtext_grpo_multi_host_kubernetes_service_account_name : "${local.unique_identifier_prefix}-grpo-multi-host-sa"
 }
 
 variable "rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name" {
@@ -85,5 +90,23 @@ variable "rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name" {
 variable "rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name" {
   default     = null
   description = "The Kubernetes service account name for the RL on TPU deployment."
+  type        = string
+}
+
+variable "rl_tpu_maxtext_grpo_multi_host_image_url" {
+  default     = null
+  description = "The URL for the RL on TPU multi-host container image."
+  type        = string
+}
+
+variable "rl_tpu_maxtext_grpo_multi_host_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace name for the RL on TPU multi-host deployment."
+  type        = string
+}
+
+variable "rl_tpu_maxtext_grpo_multi_host_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account name for the RL on TPU multi-host deployment."
   type        = string
 }

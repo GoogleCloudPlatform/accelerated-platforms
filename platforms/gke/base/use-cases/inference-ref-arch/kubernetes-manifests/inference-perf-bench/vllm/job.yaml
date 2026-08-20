@@ -43,9 +43,9 @@ spec:
               mountPath: /var/run/secrets/huggingface.co
           resources:
             requests:
-              cpu: 200m
+              cpu: 2000m
               ephemeral-storage: 10Gi
-              memory: 10Gi
+              memory: 32Gi
       restartPolicy: Never
       volumes:
         - name: config-volume

@@ -23,10 +23,14 @@ if [[ -z "${ACP_REPO_DIR:-}" ]]; then
   export ACP_REPO_DIR
 fi
 
+PRE_BENCH_RESULTS="${hub_models_bucket_bench_results_name:-}"
+PRE_BENCH_NS="${ira_online_gpu_kubernetes_namespace_name:-}"
 ENV_SCRIPT="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 if [[ -f "${ENV_SCRIPT}" ]]; then
   echo "[INFO] Sourcing environment variables..."
   source "${ENV_SCRIPT}"
+  export hub_models_bucket_bench_results_name="${PRE_BENCH_RESULTS:-${hub_models_bucket_bench_results_name:-inf-dev-bench-results}}"
+  export ira_online_gpu_kubernetes_namespace_name="${PRE_BENCH_NS:-${ira_online_gpu_kubernetes_namespace_name:-inf-dev-online-gpu}}"
 else
   echo "[ERROR] Could not find environment script at ${ENV_SCRIPT}"
   exit 1
@@ -125,12 +129,17 @@ for ACCEL in "${ADDR[@]}"; do
     source "./configure_deployment.sh"
     popd >/dev/null
 
+    TARGET_KUSTOMIZE_DIR="${CONFIG_DIR}/${HF_MODEL_NAME}"
+    if [[ ! -d "${TARGET_KUSTOMIZE_DIR}" ]]; then
+      TARGET_KUSTOMIZE_DIR="${CONFIG_DIR}/base"
+    fi
+
     echo "[INFO] Cleaning up existing benchmark jobs..."
-    kubectl delete --ignore-not-found --kustomize "${CONFIG_DIR}/${HF_MODEL_NAME}"
+    kubectl delete --ignore-not-found --kustomize "${TARGET_KUSTOMIZE_DIR}"
     kubectl wait --for=delete pod -l job-name="k6-benchmark-${HF_MODEL_NAME}" -n "${ira_online_gpu_kubernetes_namespace_name}" --timeout=60s || true
 
     echo "[INFO] Launching benchmark Job..."
-    kubectl apply --kustomize "${CONFIG_DIR}/${HF_MODEL_NAME}"
+    kubectl apply --kustomize "${TARGET_KUSTOMIZE_DIR}"
 
     # --- Phase 4: Monitoring ---
     echo "[INFO] Monitoring benchmark Job..."
@@ -233,7 +242,7 @@ for ACCEL in "${ADDR[@]}"; do
 
   if [[ "${SYNC_ONLY}" != "true" ]]; then
     echo "[INFO] Cleaning up Job resources for ${ACCELERATOR_TYPE}..."
-    kubectl delete --ignore-not-found --kustomize "${CONFIG_DIR}/${HF_MODEL_NAME}"
+    kubectl delete --ignore-not-found --kustomize "${TARGET_KUSTOMIZE_DIR}"
   fi
 done
 

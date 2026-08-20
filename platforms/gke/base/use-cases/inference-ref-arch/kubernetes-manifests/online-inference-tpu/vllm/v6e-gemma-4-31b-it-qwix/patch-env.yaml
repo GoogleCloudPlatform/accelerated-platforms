@@ -22,3 +22,11 @@
   value:
     name: USE_BATCHED_RPA_KERNEL
     value: "1"
+- op: add
+  path: /spec/template/spec/containers/1/env/-
+  value:
+    name: DATA_PARALLEL_SIZE
+    valueFrom:
+      configMapKeyRef:
+        name: runtime
+        key: DATA_PARALLEL_SIZE

@@ -1,1 +1,1 @@
-../../_shared_config/_huggingface.auto.tfvars
+../_shared_config/_huggingface.auto.tfvars

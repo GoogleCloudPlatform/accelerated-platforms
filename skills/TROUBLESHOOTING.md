@@ -66,3 +66,29 @@ when running LLM-D benchmarks on the GKE cluster.
     ```
     Ensure that the EPP controller configuration mounts the proper plugins and
     exposes targetPort `8081` on the EPP containers.
+
+### Symptom: `HTTP 504 Gateway Timeout` during benchmarking or long prefill requests
+
+- **Cause**: GKE Gateways deployed via default upstream `llm-d` recipes apply a
+  300-second (`timeoutSec: 300`) `GCPBackendPolicy` to the `InferencePool`
+  service, or fall back to 30 seconds when not configured.
+- **Resolution**: Increase the timeout on the target `GCPBackendPolicy` to
+  `3600` seconds (1 hour):
+  ```bash
+  kubectl -n <namespace> patch gcpbackendpolicy <policy-name> --type='merge' -p '{"spec":{"default":{"timeoutSec":3600}}}'
+  ```
+  Alternatively, when benchmarking from within the cluster, bypass the Gateway
+  and target the direct in-cluster Service URL:
+  `http://<service-name>.<namespace>.svc.cluster.local:8000`.
+
+### Symptom: `VLLMValidationError` or Broken Pipe on long-context prompts
+
+- **Cause**: The vLLM server's `MAX_MODEL_LEN` was configured with an artificial
+  ceiling (e.g., `32768`), clipping models that support 128k–256k+ context
+  windows (such as `Qwen3-32B` or `Gemma-4-31B-it`) when running long-context
+  profiles like `agentic_code_generation.yaml` (~30k–262k tokens).
+- **Resolution**: Verify your model's maximum supported context ceiling in
+  `skills/llm-d-workload-tuner/references/model_specs.json` (the 6th element in
+  each model tuple, e.g. `262144` for Gemma 4 or `131072` for Qwen 3). Use
+  `tune_workload.py` to automatically configure `MAX_MODEL_LEN` up to the true
+  architectural ceiling in `runtime.env`.

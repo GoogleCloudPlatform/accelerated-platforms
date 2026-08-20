@@ -22,7 +22,7 @@ import yaml
 
 AC = {"h100": 80.0, "h200": 141.0, "rtx-pro-6000": 96.0, "v6e": 32.0}
 DEFAULT_ACCEL_UTIL, MEM_MULT, BYTES_BF16 = 0.95, 1.2, 2.0
-MODELS = {"google/gemma-4-31b-it": (32.0, 48, 8, 256, "gemma-4-31b-it")}
+MODELS = {"google/gemma-4-31b-it": (32.0, 48, 8, 256, "gemma-4-31b-it", 262144)}
 
 
 def ld_env(p):
@@ -115,6 +115,19 @@ def main():
         sys.exit(f"Err: {args.perf_yaml}")
 
     perf = yaml.safe_load(open(args.perf_yaml))
+    max_in = (
+        json.load(open(args.config)).get("input_sequence_length", {}).get("max", 8192)
+        if args.config
+        else (
+            get_n(perf, ["data", "input_distribution", "max"], None)
+            or get_n(
+                perf,
+                ["data", "conversation_replay", "input_tokens_per_turn", "max"],
+                None,
+            )
+            or 8192
+        )
+    )
     max_out = (
         json.load(open(args.config)).get("output_sequence_length", {}).get("max", 2048)
         if args.config
@@ -136,9 +149,9 @@ def main():
         default=1,
     )
 
-    params, layers, kv, hd, sfx = MODELS.get(
-        args.model, MODELS["google/gemma-4-31b-it"]
-    )
+    m_spec = MODELS.get(args.model, MODELS["google/gemma-4-31b-it"])
+    params, layers, kv, hd, sfx = m_spec[:5]
+    max_model_ctx = m_spec[5] if len(m_spec) > 5 else 131072
     accel = args.accelerator_type.replace("nvidia-", "")
     vram = AC.get(accel)
 
@@ -153,22 +166,18 @@ def main():
     accel_util = float(env.get("GPU_MEMORY_UTILIZATION", DEFAULT_ACCEL_UTIL))
     w_size = params * BYTES_BF16 * MEM_MULT
     bpt = 4 * layers * kv * hd
-    c_size = (max_c * max_out * bpt) / (1024**3)
+    c_size = (max_c * (max_in + max_out) * bpt) / (1024**3)
 
-    quant = env.get("QUANTIZATION", "null")
     tp, tr = 1, w_size + c_size
-    while tp * vram * accel_util < tr:
-        if tp < 8:
-            tp *= 2
-        else:
-            print("Falling back to FP8 Quantization...")
-            quant = "fp8"
-            break
+    while tp < 8 and tp * vram * accel_util < tr:
+        tp *= 2
 
-    avail_c = (tp * vram * accel_util) - w_size
+    avail_c = max(0.0, (tp * vram * accel_util) - w_size)
     max_len = max(
-        min(int((avail_c * (1024**3)) / (max_c * bpt)), 32768), max_out + 1024
+        min(int((avail_c * (1024**3)) / (max_c * bpt)), max_model_ctx),
+        max_in + max_out + 1024,
     )
+    max_len = min(max_len, max_model_ctx)
     extra = (
         f"--enable-chunked-prefill" if max_out > args.chunked_prefill_threshold else ""
     )
@@ -207,7 +216,6 @@ def main():
             env.get("GPU_MEMORY_UTILIZATION", "unknown"),
             accel_util,
         ),
-        ("QUANTIZATION", env.get("QUANTIZATION", "unknown"), quant),
         ("Tuner Extra Args (patch)", curr_extra, extra),
         ("resources limits", old_res, tp),
         ("nodeSelector", old_node, s_val),
@@ -226,7 +234,6 @@ def main():
                 "TENSOR_PARALLEL_SIZE": str(tp),
                 "MAX_MODEL_LEN": str(max_len),
                 "GPU_MEMORY_UTILIZATION": str(accel_util),
-                "QUANTIZATION": quant,
             }
         )
         sv_env(env_f, env)
@@ -270,7 +277,7 @@ def main():
                     [
                         {
                             "op": "add",
-                            "path": "/spec/template/spec/containers/1/args/-",
+                            "path": "/spec/template/spec/containers/0/args/-",
                             "value": extra,
                         }
                     ],

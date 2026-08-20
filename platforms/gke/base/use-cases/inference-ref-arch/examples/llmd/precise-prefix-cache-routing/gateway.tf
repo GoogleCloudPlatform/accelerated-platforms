@@ -12,12 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "local_file" "llmd_ppcr_gateway_kustomization" {
+  content = templatefile(
+    "${path.module}/../_shared_config/templates/gateway/kustomization.yaml.tftpl",
+    {
+      remote_manifest = local.llmd_ppcr_gateway_remote_manifest
+    }
+  )
+  filename = "${path.module}/.terraform/manifests/gateway-kustomize/kustomization.yaml"
+}
+
+resource "local_file" "llmd_ppcr_gcp_backend_policy_override" {
+  content = templatefile(
+    "${path.module}/../_shared_config/templates/gateway/gcp-backend-policy-override.yaml.tftpl",
+    {
+      name      = "precise-prefix-cache-routing"
+      namespace = local.llmd_namespace
+    }
+  )
+  filename = "${path.module}/.terraform/manifests/gateway-kustomize/gcp-backend-policy-override.yaml"
+}
+
 module "kubectl_apply_llmd_ppcr_gateway_manifests" {
+  depends_on = [
+    local_file.llmd_ppcr_gateway_kustomization,
+    local_file.llmd_ppcr_gcp_backend_policy_override,
+  ]
+
   source                      = "../../../../../modules/kubectl_apply"
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename
-  manifest                    = local.llmd_ppcr_gateway_remote_manifest
+  manifest                    = dirname(local_file.llmd_ppcr_gateway_kustomization.filename)
   manifest_includes_namespace = false
   namespace                   = local.llmd_namespace
   use_kustomize               = true
 }
+

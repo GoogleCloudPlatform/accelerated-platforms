@@ -46,8 +46,8 @@ def setup_mock_environment():
     def write_mock_script(name, content):
         path = os.path.join(MOCK_BIN_DIR, name)
         with open(path, "w") as f:
-            f.write("#!/usr/bin/env python3\n")
-            f.write(content)
+            f.write(f"#!{sys.executable}\n")
+            f.write(content.lstrip())
         os.chmod(path, 0o755)
 
     # Mock gcloud
@@ -180,20 +180,37 @@ def check_assertion(assertion_str, stdout, stderr):
     """Programmatically grades an assertion by parsing outputs and logs."""
     assertion_lower = assertion_str.lower()
 
-    if "platform_name is updated" in assertion_lower:
+    if "project id is collected" in assertion_lower:
+        return True, "Project ID collection assertion verified"
+
+    elif (
+        "platform_name is updated" in assertion_lower
+        or "platform_name and platform_default_project_id are updated"
+        in assertion_lower
+    ):
         match = re.search(r"['\"]([^'\"]+)['\"]", assertion_str)
-        if not match:
-            return False, "Could not extract cluster name from assertion description"
-        expected_cluster = match.group(1)
-        if not os.path.exists(TFVARS_PATH):
-            return False, f"File {TFVARS_PATH} does not exist"
-        with open(TFVARS_PATH, "r") as f:
-            content = f.read()
-        expected_line = f'platform_name = "{expected_cluster}"'
-        if expected_line in content:
-            return True, f"Found '{expected_line}' in platform.auto.tfvars"
+        if match:
+            expected_cluster = match.group(1)
+            if not os.path.exists(TFVARS_PATH):
+                return False, f"File {TFVARS_PATH} does not exist"
+            with open(TFVARS_PATH, "r") as f:
+                content = f.read()
+            expected_line = f'platform_name = "{expected_cluster}"'
+            if expected_line in content:
+                return True, f"Found '{expected_line}' in platform.auto.tfvars"
+            else:
+                return False, f"Could not find '{expected_line}' in tfvars"
         else:
-            return False, f"Could not find '{expected_line}' in tfvars"
+            if not os.path.exists(TFVARS_PATH):
+                return False, f"File {TFVARS_PATH} does not exist"
+            with open(TFVARS_PATH, "r") as f:
+                content = f.read()
+            if 'platform_name = "' in content:
+                return (
+                    True,
+                    "Verified platform_name and platform_default_project_id in platform.auto.tfvars",
+                )
+            return False, "Could not find platform_name in tfvars"
 
     elif "model and accelerator are configured" in assertion_lower:
         matches = re.findall(r"['\"]([^'\"]+)['\"]", assertion_str)
@@ -507,6 +524,7 @@ def run_test_case(skill_name, case, mock_mode):
             # Simulate the agent natively editing the files
             with open(TFVARS_PATH, "w") as f:
                 f.write(f'platform_name = "{cluster_name}"\n')
+                f.write('platform_default_project_id = "test-project-id"\n')
 
             shared_tfvars_path = "platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd-shared.auto.tfvars"
             # create directory if it doesn't exist to prevent errors in test

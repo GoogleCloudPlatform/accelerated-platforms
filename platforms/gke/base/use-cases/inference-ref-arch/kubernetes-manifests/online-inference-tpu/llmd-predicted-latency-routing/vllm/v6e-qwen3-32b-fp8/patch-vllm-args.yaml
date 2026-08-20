@@ -36,7 +36,7 @@ spec:
             - "--tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)"
             - "--max-model-len=$(MAX_MODEL_LEN)"
             - "--gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)"
-            - "--served-model-name=$(MODEL_ID)"
             - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
+            - "--served-model-name=$(MODEL_ID)"
             - "--load-format=runai_streamer"
             - '--model-loader-extra-config={"distributed":true}'

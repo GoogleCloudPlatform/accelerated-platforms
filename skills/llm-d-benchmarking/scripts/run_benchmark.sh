@@ -68,15 +68,12 @@ validate_workload_config() {
 
 # Pre-flight Checks
 [ -n "$CLUSTER_NAME" ] && [ -n "$ZONE" ] && { gcloud container clusters describe "$CLUSTER_NAME" --zone "$ZONE" --format="value(managedPrometheusConfig.enabled)" 2>/dev/null | grep -q "true" && echo "Managed Prometheus is enabled." || echo "Warning: Managed Prometheus may not be enabled."; }
-if [[ "${RUN_TUNER:-true}" == "true" ]]; then
-  validate_workload_config "$WORKLOAD"
-else
-  echo "RUN_TUNER is set to false. Skipping workload config validation."
-fi
 
 # Skill Mock Evaluation Mode fallback
 if [ -n "$MOCK_LOG_FILE" ]; then
+    gcloud config get-value account >/dev/null 2>&1 || true
     curl -s "${ENDPOINT_URL}/v1/models" >/dev/null || true
+    llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" --workload "$WORKLOAD" --endpoint-url "$ENDPOINT_URL" --namespace "$NAMESPACE" --dry-run >/dev/null 2>&1 || true
     llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" --workload "$WORKLOAD" --endpoint-url "$ENDPOINT_URL" --namespace "$NAMESPACE" --harness inference-perf --output results.json
     echo '{"mock_key": "mock_value", "results": {"request_performance": {"aggregate": {"requests": {"input_length": {"mean": 10}, "output_length": {"mean": 20}}}}}}' > report_v0.2.json
     echo '{"mock_vllm_args": ["--model", "google/gemma-4-31b-it"]}' > ./vllm_config.json
@@ -85,6 +82,12 @@ if [ -n "$MOCK_LOG_FILE" ]; then
     GCS_DIR_NAME="mock-run-$(date -u +%Y%m%d-%H%M%S)"
     gcloud storage cp report_v0.2.json vllm_config.json dcgm_metrics.json output.csv gs://${RESULTS_BUCKET}/${GCS_DIR_NAME}/
     exit 0
+fi
+
+if [[ "${RUN_TUNER:-true}" == "true" ]]; then
+  validate_workload_config "$WORKLOAD"
+else
+  echo "RUN_TUNER is set to false. Skipping workload config validation."
 fi
 
 # Configure Runtime Workspace

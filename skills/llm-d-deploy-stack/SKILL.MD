@@ -49,7 +49,7 @@ This skill utilizes the following core variables:
       ```
     - **Ask the user**: "Is the llm-d stack already deployed on this cluster? (yes/no)"
     - **If YES**:
-      - Skip to **Section 4: Hugging Face Token Setup** (we only need to deploy the model server, which is done in Section 5).
+      - Skip to **Section 4: Hugging Face Token Setup**. **CRITICAL**: When in Section 5, you must still check if the model is cached in GCS and run the **Model Download Job (Steps 5.1–5.3)** if you are deploying a new model.
     - **If NO**:
       - Proceed to **Section 2: Configure Model & Accelerator** (to configure the deployment variables).
 
@@ -59,8 +59,8 @@ This skill utilizes the following core variables:
     - **Allowed Models**:
       - `google/gemma-4-31b-it`
       - `qwen/qwen3-32b` (default)
-      - `Qwen/Qwen3-32B-FP8`
-      - `RedHatAI/gemma-4-31B-it-FP8-block`
+      - `qwen/qwen3-32b-fp8`
+      - `redhatai/gemma-4-31b-it-fp8-block`
     - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed models, and ask again.
 2.  **Ask the user**: "Which accelerator would you like to use?"
     - **Allowed Accelerators**:
@@ -68,6 +68,7 @@ This skill utilizes the following core variables:
       - `h100` (translates to `nvidia-h100`)
       - `h200` (translates to `nvidia-h200`)
       - `v6e` (TPU, translates to `google-tpu-v6e`)
+      - *Note*: TPU `v6e` is supported for `qwen/qwen3-32b-fp8` and BF16 models, but NOT for `redhatai/gemma-4-31b-it-fp8-block` (which requires GPUs).
     - _Validation_: If the user inputs anything else, flag it as invalid, display the allowed accelerators, and ask again.
 3.  **Update configuration**:
     - Use `sed` to inject the chosen model and accelerator into `${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/_shared_config/llmd.auto.tfvars`:

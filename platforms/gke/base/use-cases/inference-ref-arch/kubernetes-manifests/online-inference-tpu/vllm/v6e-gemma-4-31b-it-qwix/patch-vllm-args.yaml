@@ -17,7 +17,7 @@
   value: "--chat-template=/gcs/google/gemma-4-31b-it/chat_template.jinja"
 - op: add
   path: /spec/template/spec/containers/1/args/-
-  value: "--data-parallel-size=2"
+  value: "--data-parallel-size=$(DATA_PARALLEL_SIZE)"
 - op: add
   path: /spec/template/spec/containers/1/args/-
   value: "--block-size=256"

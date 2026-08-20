@@ -73,7 +73,7 @@ variable "llmd_ppcr_kubernetes_version_router_templates" {
 }
 
 variable "llmd_ppcr_router_chart" {
-  default     = "llm-d-router-gateway-dev"
+  default     = "llm-d-router-gateway"
   description = "Helm chart repo that holds llm charts"
   type        = string
 }
@@ -85,7 +85,7 @@ variable "llmd_ppcr_router_chart_repo" {
 }
 
 variable "llmd_ppcr_router_chart_version" {
-  default     = "v0"
+  default     = "v0.10.0"
   description = "Helm chart version for installing router"
   type        = string
 }

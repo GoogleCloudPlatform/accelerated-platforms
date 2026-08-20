@@ -7,3 +7,4 @@ pretraining
 qwen
 rdzv
 redhatai
+tatsu

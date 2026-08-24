@@ -47,6 +47,8 @@ data:
       skip_jax_distributed_system=${SKIP_JAX_DISTRIBUTED_SYSTEM:-"true"} \
       checkpoint_storage_use_zarr3=$((1 - ${USE_PATHWAYS:-0})) \
       checkpoint_storage_use_ocdbt=$((1 - ${USE_PATHWAYS:-0})) \
+      --lazy_load_tensors=${LAZY_LOAD_TENSORS:-"True"} \
+      --eager_load_method=${EAGER_LOAD_METHOD:-"safetensors"} \
       hardware=cpu
 
     echo "Checkpoint conversion complete!"

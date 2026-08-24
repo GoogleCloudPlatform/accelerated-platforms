@@ -1,7 +1,9 @@
 epp
 gaie
+getmtime
 goodput
 inferencepool
+listdir
 llmd
 lognormal
 modelserver
@@ -10,5 +12,6 @@ nixl
 nixlconnector
 nixlv
 ppcr
+subdirs
 tpot
 unquantized

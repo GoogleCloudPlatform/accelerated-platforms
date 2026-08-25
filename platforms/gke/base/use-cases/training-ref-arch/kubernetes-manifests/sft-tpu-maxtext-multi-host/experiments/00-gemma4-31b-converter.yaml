@@ -1,0 +1,93 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: gemma4-31b-converter
+  namespace: rl-mul-slice-checkpoint-converter
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: gemma4-31b-converter
+    spec:
+      serviceAccountName: rl-mul-slice-checkpoint-converter-sa
+      nodeSelector:
+        cloud.google.com/compute-class: model-converter
+        topology.kubernetes.io/zone: us-east5-a
+      tolerations:
+      - key: "cloud.google.com/compute-class"
+        operator: "Equal"
+        value: "model-converter"
+        effect: "NoSchedule"
+      restartPolicy: OnFailure
+      volumes:
+      - name: huggingface-token
+        csi:
+          driver: secrets-store-gke.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: 7a4221e9-huggingface-token-read
+      - name: scripts
+        configMap:
+          defaultMode: 0755
+          name: 7a4221e9-maxtext-checkpoint-converter-scripts
+      - name: ephemeral-cache
+        emptyDir:
+          sizeLimit: 150Gi
+      - name: tmp-cache
+        emptyDir:
+          sizeLimit: 50Gi
+      containers:
+      - name: converter
+        image: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        args: ["/scripts/convert.sh"]
+        env:
+        - name: DIRECTION
+          value: "to_maxtext"
+        - name: MODEL_NAME
+          value: "gemma4-31b"
+        - name: HF_MODEL_NAME
+          value: "google/gemma-4-31b-it"
+        - name: BASE_OUTPUT_DIRECTORY
+          value: "gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/gemma4-31b"
+        - name: SCAN_LAYERS
+          value: "true"
+        - name: HARDWARE
+          value: "cpu"
+        - name: LAZY_LOAD_TENSORS
+          value: "true"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "32Gi"
+            ephemeral-storage: "50Gi"
+          limits:
+            cpu: "16"
+            memory: "60Gi"
+            ephemeral-storage: "150Gi"
+        volumeMounts:
+        - name: scripts
+          mountPath: /scripts
+        - name: huggingface-token
+          mountPath: /var/run/secrets/huggingface.co
+          readOnly: true
+        - name: ephemeral-cache
+          mountPath: /root/.cache
+        - name: tmp-cache
+          mountPath: /tmp

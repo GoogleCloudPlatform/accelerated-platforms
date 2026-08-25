@@ -1,0 +1,125 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen3-14b-headless-svc
+  namespace: rl-mul-slice-checkpoint-converter
+spec:
+  clusterIP: None
+  selector:
+    app: qwen3-14b-multihost-sft
+  ports:
+  - name: jax-coordinator
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: qwen3-14b-multihost-sft
+  namespace: rl-mul-slice-checkpoint-converter
+spec:
+  backoffLimit: 10
+  completionMode: Indexed
+  completions: 8
+  parallelism: 8
+  template:
+    metadata:
+      labels:
+        app: qwen3-14b-multihost-sft
+    spec:
+      subdomain: qwen3-14b-headless-svc
+      restartPolicy: OnFailure
+      serviceAccountName: rl-mul-slice-checkpoint-converter-sa
+      nodeSelector:
+        cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+        cloud.google.com/gke-tpu-topology: 4x8
+        cloud.google.com/reservation-affinity: specific
+        cloud.google.com/reservation-name: multihost-rl-128-tpu-v6e
+        topology.kubernetes.io/zone: us-east5-a
+      tolerations:
+      - key: google.com/tpu
+        operator: Exists
+        effect: NoSchedule
+      volumes:
+      - name: huggingface-token
+        csi:
+          driver: secrets-store-gke.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: 7a4221e9-huggingface-token-read
+      containers:
+      - name: maxtext-sft
+        image: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          set -ex
+          export HF_TOKEN=$(cat /var/run/secrets/huggingface.co/token)
+
+          echo "Waiting for all 8 TPU host nodes to resolve in DNS..."
+          for rank in 0 1 2 3 4 5 6 7; do
+            HOST="qwen3-14b-multihost-sft-${rank}.qwen3-14b-headless-svc"
+            for i in $(seq 1 120); do
+              if getent hosts "$HOST" > /dev/null 2>&1; then
+                echo "Host $HOST is ready!"
+                break
+              fi
+              echo "Waiting for $HOST ($i/120)..."
+              sleep 2
+            done
+          done
+
+          COORDINATOR_IP=$(getent hosts qwen3-14b-multihost-sft-0.qwen3-14b-headless-svc | awk '{ print $1 }')
+          export JAX_COORDINATOR_ADDRESS="${COORDINATOR_IP}:8080"
+          export NNODES=8
+          export NODE_RANK=${JOB_COMPLETION_INDEX}
+
+          python3 -m maxtext.trainers.post_train.sft.train_sft \
+            src/maxtext/configs/post_train/sft.yml \
+            run_name="qwen3-14b-multihost-sft" \
+            base_output_directory="gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/qwen3-14b-multihost-sft" \
+            model_name="qwen3-14b" \
+            load_parameters_path="gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/qwen3-14b/qwen3-14b/0/items" \
+            per_device_batch_size=2 \
+            max_target_length=2048 \
+            steps=1000 \
+            eval_interval=100 \
+            eval_steps=10 \
+            eval_split="test_sft" \
+            checkpoint_period=100 \
+            async_checkpointing=True \
+            checkpoint_storage_use_zarr3=1 \
+            checkpoint_storage_use_ocdbt=1 \
+            dataset_type=hf \
+            hf_path="HuggingFaceH4/ultrachat_200k" \
+            train_split="train_sft" \
+            train_data_columns="['messages']" \
+            tokenizer_type=huggingface \
+            tokenizer_path="Qwen/Qwen3-14B" \
+            scan_layers=True \
+            hf_access_token="${HF_TOKEN}" \
+            managed_mldiagnostics=False
+        resources:
+          requests:
+            google.com/tpu: "4"
+          limits:
+            google.com/tpu: "4"
+        volumeMounts:
+        - name: huggingface-token
+          mountPath: /var/run/secrets/huggingface.co
+          readOnly: true

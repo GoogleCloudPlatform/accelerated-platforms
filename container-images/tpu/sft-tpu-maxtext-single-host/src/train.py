@@ -65,9 +65,7 @@ MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint"
 OUTPUT_DIRECTORY = YOUR_GCS_BUCKET
 
 # POINT EXACTLY TO /0/items AS PER THE DEMO NOTEBOOK
-LOAD_PATH = os.environ.get(
-    "LOAD_PARAMETERS_PATH", f"{MODEL_CHECKPOINT_PATH}/0/items"
-)
+LOAD_PATH = os.environ.get("LOAD_PARAMETERS_PATH", f"{MODEL_CHECKPOINT_PATH}/0/items")
 
 # --- 3. MLFLOW SETUP & LOGGING INTERCEPTOR ---
 # Initialize MLflow strictly on the main thread

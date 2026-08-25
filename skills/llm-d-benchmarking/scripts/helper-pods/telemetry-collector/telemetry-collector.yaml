@@ -1,0 +1,54 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: telemetry-collector
+spec:
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 2
+  template:
+    spec:
+      serviceAccountName: inference-perf-runner
+      restartPolicy: OnFailure
+      containers:
+        - name: collector
+          image: ghcr.io/llm-d/llm-d-benchmark:v0.7.0
+          command: ["/bin/bash", "/scripts/collect.sh"]
+          env:
+            - name: TARGET_NAMESPACE
+              value: "TARGET_NAMESPACE_PLACEHOLDER"
+            - name: START_TIME
+              value: "START_TIME_PLACEHOLDER"
+            - name: END_TIME
+              value: "END_TIME_PLACEHOLDER"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: script-vol
+              mountPath: /scripts
+            - name: requests
+              mountPath: /requests
+      volumes:
+        - name: script-vol
+          configMap:
+            name: telemetry-collector-script
+        - name: requests
+          persistentVolumeClaim:
+            claimName: workload-pvc

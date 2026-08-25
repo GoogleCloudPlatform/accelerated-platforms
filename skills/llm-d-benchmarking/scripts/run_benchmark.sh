@@ -72,12 +72,17 @@ preflight_endpoint() {
   http_code=$(echo "$smoke_log" | sed -n 's/^HTTP Code: //p' | tail -n1)
   if [ "$http_code" != "200" ]; then
     echo "ERROR: endpoint '$url' returned HTTP ${http_code:-unknown} for /v1/models (expected 200)." >&2
+    if [[ "$smoke_log" == *"unconditional drop overload"* ]] || [ "$http_code" == "503" ]; then
+      echo "HINT (llm-d Gateway 503): EPP returned 'unconditional drop overload'. This usually means the InferencePool has no matching healthy backend pods." >&2
+      echo "  1. Verify that your vLLM Deployment template includes the matching label (e.g. 'llm-d.ai/guide: ${SPEC}')." >&2
+      echo "  2. Alternatively, target the direct in-cluster Service URL: http://<service-name>:8000" >&2
+    fi
     echo "$smoke_log" >&2
     exit 1
   fi
   echo "Endpoint preflight OK: ${url}/v1/models -> HTTP 200"
   if [[ "$WORKLOAD" == *agentic_code_generation* ]]; then
-    echo "WARNING: agentic_code_generation targets up to ~262k context; gemma-4-31b-it is 32k. Oversized prompts can cause Broken pipe / VLLMValidationError. Prefer sanity_random.yaml or chatbot_synthetic.yaml, or retune max_model_len." >&2
+    echo "NOTE: agentic_code_generation targets up to ~262k context. Ensure your vLLM deployment is tuned with a high MAX_MODEL_LEN (e.g. 131072 or 262144 via model_specs.json) to prevent Broken pipe / VLLMValidationError." >&2
   fi
 }
 if [[ "${SKIP_ENDPOINT_PREFLIGHT:-false}" != "true" ]]; then
@@ -131,11 +136,12 @@ WORKSPACE_DIR="workspaces/run-$(date +%Y%m%d-%H%M%S)"
 WORKLOAD_ARG="--workload $WORKLOAD"
 
 
-# Function to capture GPU DCGM metrics
+# Function to capture GPU DCGM metrics (ConfigMap + Job architecture)
 collect_dcgm() {
-  sed -e "s/TARGET_NAMESPACE_PLACEHOLDER/$1/g" -e "s/START_TIME_PLACEHOLDER/$2/g" -e "s/END_TIME_PLACEHOLDER/$3/g" skills/llm-d-benchmarking/scripts/helper-pods/telemetry-collector.yaml | kubectl apply -f - -n "$1"
-  kubectl wait --for=jsonpath='{.status.phase}'=Succeeded pod/telemetry-collector -n "$1" --timeout=120s || true
-  kubectl delete pod telemetry-collector -n "$1" --grace-period=0 --force
+  kubectl delete job telemetry-collector configmap telemetry-collector-script -n "$1" --ignore-not-found --grace-period=0 --force || true
+  kubectl kustomize skills/llm-d-benchmarking/scripts/helper-pods/telemetry-collector | sed -e "s/TARGET_NAMESPACE_PLACEHOLDER/$1/g" -e "s/START_TIME_PLACEHOLDER/$2/g" -e "s/END_TIME_PLACEHOLDER/$3/g" | kubectl apply -f - -n "$1"
+  kubectl wait --for=condition=complete job/telemetry-collector -n "$1" --timeout=120s || true
+  kubectl delete job telemetry-collector configmap telemetry-collector-script -n "$1" --ignore-not-found --grace-period=0 --force || true
 }
 
 # Phase 1: Setup Namespace & PVC
@@ -147,7 +153,7 @@ llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" $WORK
 
 # Phase 2: Execute Benchmark Harness
 BENCHMARK_START_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-set +e; llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" $WORKLOAD_ARG --model "$MODEL_NAME" --endpoint-url "$ENDPOINT_URL" --namespace "$NAMESPACE" --harness inference-perf --workspace "$WORKSPACE_DIR" -s 7,8; set -e
+set +e; llmdbenchmark run --base-dir "$LLMDBENCH_BASE_DIR" --spec "guides/${SPEC}" $WORKLOAD_ARG --model "$MODEL_NAME" --endpoint-url "$ENDPOINT_URL" --namespace "$NAMESPACE" --harness inference-perf --workspace "$WORKSPACE_DIR" --wait-timeout "${WAIT_TIMEOUT:-10800}" -s 7,8; set -e
 BENCHMARK_END_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 collect_dcgm "$NAMESPACE" "$BENCHMARK_START_TIME" "$BENCHMARK_END_TIME"
 
@@ -161,9 +167,12 @@ RESULTS_DIR=$(ls -td "$WORKSPACE_DIR"/*/results/inference-perf-* 2>/dev/null | h
 cp "$RESULTS_DIR/summary_lifecycle_metrics.json" ./results.json
 python3 -c "from llmdbenchmark.analysis.benchmark_report.native_to_br0_2 import import_inference_perf; import_inference_perf('./results.json').export_json('./report_v0.2.json')"
 python3 "${REPO_DIR}/skills/llm-d-benchmarking/scripts/extract_csv.py" --input report_v0.2.json --output output.csv
-kubectl get $(kubectl get deployment -n "$NAMESPACE" -o name | grep -i 'vllm' | head -n 1) -n "$NAMESPACE" -o json > ./vllm_config.json 2>/dev/null || echo '{"error": "not found"}' > ./vllm_config.json
+python3 "${REPO_DIR}/skills/llm-d-benchmarking/scripts/capture_vllm_config.py" --namespace "$NAMESPACE" --spec "${SPEC}" --output ./vllm_config.json
 cp report_v0.2.json output.csv vllm_config.json "$RESULTS_DIR/"
 [ -f "./dcgm_metrics.json" ] && cp "./dcgm_metrics.json" "$RESULTS_DIR/"
+
+# Automatically generate latency/throughput charts
+inference-perf -a "$RESULTS_DIR/" || true
 
 GCS_DIR_NAME=$(basename "$WORKSPACE_DIR")
 gcloud storage cp -r "$RESULTS_DIR/"* gs://${RESULTS_BUCKET}/${GCS_DIR_NAME}/

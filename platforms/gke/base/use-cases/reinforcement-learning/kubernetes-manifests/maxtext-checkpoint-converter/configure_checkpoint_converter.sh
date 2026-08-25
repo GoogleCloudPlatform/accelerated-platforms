@@ -36,6 +36,8 @@ if [[ ${secret_version_found} == 0 ]]; then
   exit 1
 fi
 
+export MODEL_NAME="${MODEL_NAME:-${HF_MODEL_ID}}"
+
 if [[ ! -v USE_MULTIMODAL ]]; then
   if [[ "${HF_MODEL_ID}" =~ gemma3|gemma-3|vl|vision ]]; then
     export USE_MULTIMODAL="True"

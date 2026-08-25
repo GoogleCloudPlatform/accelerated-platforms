@@ -39,9 +39,10 @@ data:
 
     python3 -m maxtext.checkpoint_conversion.to_maxtext \
       ${BASE_CONFIG_PATH} \
-      model_name=${HF_MODEL_NAME} \
+      model_name=${MODEL_NAME:-${HF_MODEL_NAME}} \
+      --hf_model_path=${HF_MODEL_NAME} \
       hf_access_token=${HF_TOKEN} \
-      base_output_directory=${BASE_OUTPUT_DIRECTORY}/${HF_MODEL_NAME} \
+      base_output_directory=${BASE_OUTPUT_DIRECTORY}/${MODEL_NAME:-${HF_MODEL_NAME}} \
       scan_layers=${SCAN_LAYERS:-"True"} \
       use_multimodal=${USE_MULTIMODAL:-"False"} \
       skip_jax_distributed_system=${SKIP_JAX_DISTRIBUTED_SYSTEM:-"true"} \

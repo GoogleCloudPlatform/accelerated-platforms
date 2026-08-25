@@ -27,12 +27,6 @@ spec:
       serviceAccountName: rl-mul-slice-checkpoint-converter-sa
       nodeSelector:
         cloud.google.com/compute-class: model-converter
-        topology.kubernetes.io/zone: us-east5-a
-      tolerations:
-      - key: "cloud.google.com/compute-class"
-        operator: "Equal"
-        value: "model-converter"
-        effect: "NoSchedule"
       restartPolicy: OnFailure
       volumes:
       - name: huggingface-token
@@ -74,13 +68,13 @@ spec:
           value: "true"
         resources:
           requests:
-            cpu: "8"
-            memory: "32Gi"
-            ephemeral-storage: "50Gi"
-          limits:
             cpu: "16"
-            memory: "60Gi"
-            ephemeral-storage: "150Gi"
+            memory: "96Gi"
+            ephemeral-storage: "100Gi"
+          limits:
+            cpu: "32"
+            memory: "160Gi"
+            ephemeral-storage: "250Gi"
         volumeMounts:
         - name: scripts
           mountPath: /scripts

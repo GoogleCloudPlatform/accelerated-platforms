@@ -15,11 +15,26 @@
 apiVersion: pathways-job.pathways.domain/v1
 kind: PathwaysJob
 metadata:
-  name: pw-qwen3-32
+  name: pw-qwen3-14b-test
   namespace: rl-mul-slice-checkpoint-converter
 spec:
   maxRestarts: 10
-  pathwaysDir: gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/pw-qwen3-32
+  pathwaysDir: gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/pw-qwen3-14b-test
+  customComponents:
+  - componentType: proxy_server
+    customFlags:
+    - --megascale_graph_hang_threshold=30m
+    - --megascale_graph_within_launch_hang_threshold=30m
+    - --megascale_send_rpc_timeout=5m
+    - --xla_max_concurrent_host_send_recv=100
+    - --xla_latency_hiding_scheduler_rerun=2
+  - componentType: worker
+    customFlags:
+    - --megascale_send_rpc_timeout=5m
+  - componentType: pathways_server
+    customFlags:
+    - --megascale_send_rpc_timeout=5m
+    - --megascale_graph_hang_threshold=30m
   controller:
     deploymentMode: colocate_head_with_workers
     mainContainerName: sft-trainer
@@ -27,6 +42,16 @@ spec:
       spec:
         restartPolicy: OnFailure
         serviceAccountName: rl-mul-slice-checkpoint-converter-sa
+        nodeSelector:
+          cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+          cloud.google.com/gke-tpu-topology: 4x8
+          cloud.google.com/reservation-name: multihost-rl-128-tpu-v6e
+          cloud.google.com/reservation-affinity: specific
+          topology.kubernetes.io/zone: us-east5-a
+        tolerations:
+        - key: google.com/tpu
+          operator: Exists
+          effect: NoSchedule
         volumes:
         - name: huggingface-token
           csi:
@@ -36,13 +61,16 @@ spec:
               secretProviderClass: 7a4221e9-huggingface-token-read
         containers:
         - name: sft-trainer
-          image: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
+          image: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.4
           imagePullPolicy: IfNotPresent
           env:
-          - name: ENABLE_PATHWAYS_PERSISTENCE
-            value: "1"
           - name: MLFLOW_TRACKING_URI
             value: "http://mlflow-tracking-svc.rl-mul-slice-rl-mlflow.svc.cluster.local:5000"
+          resources:
+            requests:
+              google.com/tpu: "4"
+            limits:
+              google.com/tpu: "4"
           volumeMounts:
           - name: huggingface-token
             mountPath: /var/run/secrets/huggingface.co
@@ -52,24 +80,30 @@ spec:
           - |
             set -ex
             export HF_TOKEN=$(cat /var/run/secrets/huggingface.co/token)
+            export TOKENIZERS_PARALLELISM=False
+            export LIBTPU_INIT_ARGS="--xla_tpu_scoped_vmem_limit_kib=65536"
             pip install --no-cache-dir mlflow-skinny -q
+
+            if [ -f /usr/local/lib/python3.12/site-packages/metrax/logging/tensorboard_backend.py ]; then
+              sed -i 's|if current_step % self._flush_every_n_steps == 0:|if current_step and current_step % self._flush_every_n_steps == 0:|' /usr/local/lib/python3.12/site-packages/metrax/logging/tensorboard_backend.py || true
+            fi
 
             python3 -m maxtext.trainers.post_train.sft.train_sft \
               src/maxtext/configs/post_train/sft.yml \
-              run_name="pw-qwen3-32" \
-              base_output_directory="gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/pw-qwen3-32" \
+              run_name="pw-qwen3-14b-test" \
+              base_output_directory="gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/pw-qwen3-14b-test" \
               model_name="qwen3-14b" \
               load_parameters_path="gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/qwen3-14b/qwen3-14b/0/items" \
-              per_device_batch_size=2 \
+              per_device_batch_size=1 \
               max_target_length=2048 \
-              steps=100 \
-              eval_interval=20 \
-              eval_steps=10 \
+              steps=20 \
+              eval_interval=10 \
+              eval_steps=5 \
               eval_split="test_sft" \
-              checkpoint_period=50 \
+              checkpoint_period=20 \
               async_checkpointing=True \
-              checkpoint_storage_use_zarr3=1 \
-              checkpoint_storage_use_ocdbt=1 \
+              checkpoint_storage_use_zarr3=False \
+              checkpoint_storage_use_ocdbt=False \
               dataset_type=hf \
               hf_path="HuggingFaceH4/ultrachat_200k" \
               train_split="train_sft" \
@@ -77,6 +111,7 @@ spec:
               tokenizer_type=huggingface \
               tokenizer_path="Qwen/Qwen3-14B" \
               scan_layers=True \
+              allow_split_physical_axes=True \
               hf_access_token="${HF_TOKEN}" \
               enable_single_controller=True \
               managed_mldiagnostics=False
@@ -84,84 +119,6 @@ spec:
   - type: ct6e-standard-4t
     topology: 4x8
     numSlices: 1
-    maxSliceRestarts: 10
-    nodeSelector:
-      cloud.google.com/reservation-name: multihost-rl-128-tpu-v6e
-      cloud.google.com/reservation-affinity: specific
-      topology.kubernetes.io/zone: us-east5-a
----
-apiVersion: pathways-job.pathways.domain/v1
-kind: PathwaysJob
-metadata:
-  name: pw-ms-64
-  namespace: rl-mul-slice-checkpoint-converter
-spec:
-  maxRestarts: 10
-  pathwaysDir: gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/pw-ms-64
-  controller:
-    deploymentMode: colocate_head_with_workers
-    mainContainerName: sft-trainer
-    template:
-      spec:
-        restartPolicy: OnFailure
-        serviceAccountName: rl-mul-slice-checkpoint-converter-sa
-        volumes:
-        - name: huggingface-token
-          csi:
-            driver: secrets-store-gke.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: 7a4221e9-huggingface-token-read
-        containers:
-        - name: sft-trainer
-          image: us-docker.pkg.dev/cloud-tpu-images/maxtext-images/tpu_post_training:0.2.3
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ENABLE_PATHWAYS_PERSISTENCE
-            value: "1"
-          - name: MLFLOW_TRACKING_URI
-            value: "http://mlflow-tracking-svc.rl-mul-slice-rl-mlflow.svc.cluster.local:5000"
-          volumeMounts:
-          - name: huggingface-token
-            mountPath: /var/run/secrets/huggingface.co
-            readOnly: true
-          command: ["/bin/bash", "-c"]
-          args:
-          - |
-            set -ex
-            export HF_TOKEN=$(cat /var/run/secrets/huggingface.co/token)
-            pip install --no-cache-dir mlflow-skinny -q
-
-            python3 -m maxtext.trainers.post_train.sft.train_sft \
-              src/maxtext/configs/post_train/sft.yml \
-              run_name="pw-ms-64" \
-              base_output_directory="gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/pw-ms-64" \
-              model_name="gemma3-4b" \
-              load_parameters_path="gs://accelerated-platforms-dev-rl-mul-slice-hf-hub-models/gemma3-4b/0/items" \
-              per_device_batch_size=2 \
-              max_target_length=2048 \
-              steps=100 \
-              eval_interval=20 \
-              eval_steps=10 \
-              eval_split="test_sft" \
-              checkpoint_period=50 \
-              async_checkpointing=True \
-              checkpoint_storage_use_zarr3=1 \
-              checkpoint_storage_use_ocdbt=1 \
-              dataset_type=hf \
-              hf_path="HuggingFaceH4/ultrachat_200k" \
-              train_split="train_sft" \
-              train_data_columns="['messages']" \
-              tokenizer_type=huggingface \
-              tokenizer_path="google/gemma-3-4b-it" \
-              scan_layers=True \
-              hf_access_token="${HF_TOKEN}" \
-              enable_single_controller=True \
-              managed_mldiagnostics=False
-  workers:
-  - type: ct6e-standard-4t
-    topology: 4x8
-    numSlices: 2
     maxSliceRestarts: 10
     nodeSelector:
       cloud.google.com/reservation-name: multihost-rl-128-tpu-v6e

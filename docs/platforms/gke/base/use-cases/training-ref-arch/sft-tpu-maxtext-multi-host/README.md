@@ -32,16 +32,18 @@ flowchart TD
 ```
 
 ### A. Multi-Controller JAX (McJAX)
+
 * **Execution Model**: An SPMD (Single Program, Multiple Data) model where an identical Python process runs on every TPU host pod (`IndexedJob`).
 * **Coordination**: Hosts discover each other via a Kubernetes Headless Service using `jax.distributed.initialize(coordinator_address=...)`.
 * **Hardware Interconnect**: Communication runs natively over high-speed Inter-Chip Interconnect (ICI) optical links.
 
 ### B. Pathways Orchestration (`PathwaysJob`)
+
 * **Execution Model**: A Client-Server disaggregated architecture where a single Python client generates computation graphs, and a pool of lightweight C++ worker daemons execute HLO kernels across TPU slices.
 * **Elasticity & Multi-Slice**: Seamlessly scales across multiple independent TPU slices (`numSlices: >= 2`) connected over Datacenter Network (DCN).
 * **Head Pod Container Architecture (Why it shows `3/3 Ready`)**:
   When using `deploymentMode: colocate_head_with_workers`, the head pod colocates three tightly coupled containers:
-  1. **`sft-trainer`**: The user MaxText training container (`tpu_post_training:0.2.3`) running in single-controller mode (`enable_single_controller=True`).
+  1. **`sft-trainer`**: The user MaxText training container (`tpu_post_training:0.2.4`) running in single-controller mode (`enable_single_controller=True`).
   2. **`pathways-proxy`**: The IFRT (Intermediate Frontend Representation for Tensors) Proxy sidecar listening on `grpc://127.0.0.1:29000`. Translates JAX client operations into Pathways RPCs.
   3. **`pathways-rm`**: The Pathways Resource Manager sidecar on port `29001`. Tracks TPU worker registrations, memory sharding, and cluster topology.
 
@@ -52,22 +54,26 @@ flowchart TD
 Full-parameter fine-tuning with AdamW in bfloat16 requires allocating memory for parameters, gradients, optimizer momentum/variance states, and forward activations.
 
 ### A. Memory Breakdown Formulas
-For a model with $P$ parameters:
-1. **Model Parameters (bfloat16)**: $2 \times P\text{ bytes}$
-2. **Gradients (bfloat16)**: $2 \times P\text{ bytes}$
+
+For a model with `P` parameters:
+
+1. **Model Parameters (bfloat16)**: `2 * P bytes`
+2. **Gradients (bfloat16)**: `2 * P bytes`
 3. **AdamW Optimizer States (fp32)**:
-   * First momentum vector ($m_t$): $4 \times P\text{ bytes}$
-   * Second variance vector ($v_t$): $4 \times P\text{ bytes}$
-   * Master weights (fp32 copy): $4 \times P\text{ bytes}$
-   * *Total Optimizer State*: $12 \times P\text{ bytes}$
+   * First momentum vector: `4 * P bytes`
+   * Second variance vector: `4 * P bytes`
+   * Master weights (fp32 copy): `4 * P bytes`
+   * **Total Optimizer State**: `12 * P bytes`
 4. **Total Static State per Model**:
-   $$\text{Static HBM} = 2P + 2P + 12P = 16 \times P\text{ bytes}$$
+   `Static HBM = 2P + 2P + 12P = 16 * P bytes`
 
 ### B. FSDP Sharding Across TPU Slices
-Under Fully Sharded Data Parallelism (FSDP / `fsdp_transposed`), parameters and optimizer states are sharded across $N$ TPU devices:
-$$\text{Per-Device Memory} = \frac{16 \times P}{N_{\text{devices}}} + \text{Activation Memory}(B, S, H, L)$$
 
-| Model | Parameters ($P$) | Total Static State ($16P$) | TPU Topology | Total Slice HBM | Sharded State / Chip | Safe Activation Headroom / Chip |
+Under Fully Sharded Data Parallelism (FSDP / `fsdp_transposed`), parameters and optimizer states are sharded across `N` TPU devices:
+
+`Per-Device Memory = (16 * P) / N_devices + Activation Memory(B, S, H, L)`
+
+| Model | Parameters (`P`) | Total Static State (`16P`) | TPU Topology | Total Slice HBM | Sharded State / Chip | Safe Activation Headroom / Chip |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Gemma 3 4B** | 4.30B | **`68.8 GB`** | TPU v6e-8 (`2x4`, 8 chips) | 256 GB | **`8.6 GB / chip`** | **`23.4 GB`** (73% Headroom) |
 | **Qwen 3 14B** | 14.77B | **`236.3 GB`** | TPU v6e-32 (`4x8`, 32 chips) | 1024 GB | **`7.4 GB / chip`** | **`24.6 GB`** (77% Headroom) |
@@ -75,20 +81,66 @@ $$\text{Per-Device Memory} = \frac{16 \times P}{N_{\text{devices}}} + \text{Acti
 
 ---
 
-## 3. Unfinished Gradient Descent & Full-Epoch Convergence Dynamics
+## 3. Pathways Operational Configuration, Custom Flags & Best Practices
 
-When fine-tuning models on large instruction datasets like `HuggingFaceH4/ultrachat_200k` (207,865 training conversations, 23,110 test conversations):
+Running large models (such as Qwen 3 14B or 30B) under Pathways in Cloud/OSS GKE requires specific configuration adjustments to handle XLA compilation latencies, dataset batch streaming, and GCS metadata calls:
 
-### A. Subsampled Runs vs. Full Epoch Math
-* In a 1,000-step baseline with global batch size = 64 (32 chips $\times$ `per_device_batch_size=2`):
-  $$\text{Samples Processed} = 1,000 \times 64 = 64,000\text{ samples} \implies \mathbf{30.8\% \text{ of 1 Full Epoch}}$$
-* **The "Unfinished Gradient Descent" Phenomenon**:
-  Even though evaluation perplexity dropped from `3.683` down to `2.523` (-31.5%), the loss gradient slope ($\frac{d\mathcal{L}}{dt}$) remained strictly negative. The model had not reached loss saturation or overfitting, indicating substantial untapped capacity to learn multi-turn conversation dynamics.
+### A. GCS IAM Permission Requirements (`roles/storage.admin`)
 
-### B. 1 Full Epoch SFT Configuration (`3,248 steps` on 32 Chips)
-$$\text{Steps for 100\% Dataset Exposure} = \frac{207,865\text{ samples}}{64\text{ global batch size}} = \mathbf{3,248\text{ steps}}$$
-* **Total Execution Time**: $3,248 \times 1.74\text{s} \approx \mathbf{94\text{ minutes}}$ (~1.57 hours).
-* **Full Test Evaluation**: Evaluates across all **`23,110`** test conversations in `361` eval steps, eliminating sampling variance.
+* **The Issue**: During initialization, `tensorboardX.SummaryWriter` and `google.cloud.storage.Client.get_bucket()` make `storage.buckets.get` calls to verify bucket metadata. Standard `roles/storage.objectAdmin` only grants object-level operations (`storage.objects.*`) and omits `storage.buckets.get`, leading to a `403 Forbidden` error.
+* **The Fix**: Grant `roles/storage.admin` to the GKE node VM service account:
+  ```bash
+  gcloud projects add-iam-policy-binding <PROJECT_ID> \
+    --member="serviceAccount:<NODE_SA>@<PROJECT_ID>.iam.gserviceaccount.com" \
+    --role="roles/storage.admin" \
+    --condition=None
+  ```
+
+### B. Custom Timeout Flags (`customComponents`)
+
+In default Cloud/OSS Pathways, worker-to-scheduler heartbeat timeouts default to ~15 seconds (`quick_restart.cc:19`). Because 14B+ model graph compilation and Hugging Face dataset preparation take 30–60 seconds, configure `customComponents` in the `PathwaysJob` specification to increase keep-alive thresholds:
+
+```yaml
+spec:
+  customComponents:
+    - componentType: proxy_server
+      customFlags:
+        - --megascale_graph_hang_threshold=30m
+        - --megascale_graph_within_launch_hang_threshold=30m
+        - --megascale_send_rpc_timeout=5m
+        - --xla_max_concurrent_host_send_recv=100
+        - --xla_latency_hiding_scheduler_rerun=2
+    - componentType: worker
+      customFlags:
+        - --megascale_send_rpc_timeout=5m
+    - componentType: pathways_server
+      customFlags:
+        - --megascale_send_rpc_timeout=5m
+        - --megascale_graph_hang_threshold=30m
+```
+
+* **`--megascale_send_rpc_timeout=5m`**: Extends the gRPC keep-alive threshold from 15s to 5 minutes, preventing worker disconnects during graph compilation.
+* **`--megascale_graph_hang_threshold=30m`**: Accommodates large parameter tree dispatches.
+
+### C. Metrax / Tensorboard Step-0 Synchronous Flush Patch
+
+In JAX/Tunix/MaxText, `tunix.sft.metrics_logger.MetricsLogger` unconditionally registers the `TensorboardBackend` as a scalar listener. Internal JAX dispatches (`dispatch.py` and `pjit.py`) call `record_scalar` without a `step` argument during model initialization, causing `step % flush_every_n_steps == 0` to evaluate to true for step 0. This triggers thousands of synchronous multipart GCS flushes and retries that stall startup.
+
+Apply this one-line inline patch in the container pre-command:
+
+```bash
+if [ -f /usr/local/lib/python3.12/site-packages/metrax/logging/tensorboard_backend.py ]; then
+  sed -i \
+    's|if current_step % self._flush_every_n_steps == 0:|if current_step and current_step % self._flush_every_n_steps == 0:|' \
+    /usr/local/lib/python3.12/site-packages/metrax/logging/tensorboard_backend.py || true
+fi
+```
+
+### D. Essential Environment Variables
+
+* **`TOKENIZERS_PARALLELISM=False`**: Prevents Python multiprocessing fork deadlocks during Hugging Face tokenization.
+* **`LIBTPU_INIT_ARGS="--xla_tpu_scoped_vmem_limit_kib=65536"`**: Provides sufficient scoped VMEM for XLA memory allocation.
+* **`checkpoint_storage_use_zarr3=False` & `checkpoint_storage_use_ocdbt=False`**: Enables native Orbax array persistence across the IFRT proxy.
 
 ---
 
@@ -96,9 +148,10 @@ $$\text{Steps for 100\% Dataset Exposure} = \frac{207,865\text{ samples}}{64\tex
 
 The following metrics were measured during live end-to-end SFT execution on Cloud TPU v6e instances:
 
-### Multi-Host 32-Chip SFT Benchmark (Qwen 3 14B on TPU v6e-32 `4x8`)
+### A. Multi-Host McJAX 32-Chip SFT Benchmark (Qwen 3 14B on TPU v6e-32 `4x8`)
+
 * **Infrastructure**: 8 Nodes `ct6e-standard-4t` (32 chips, 1024 GB total HBM).
-* **Dataset**: `HuggingFaceH4/ultrachat_200k` (Sequence Length: 2048).
+* **Dataset**: `HuggingFaceH4/ultrachat_200k` (Sequence Length: 2048, 1,000 Steps).
 
 | Step Milestone | Training Loss | Training Perplexity | Evaluation Loss | Evaluation Perplexity | Step Latency | Hardware Throughput | Checkpoint Save Time |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -110,56 +163,73 @@ The following metrics were measured during live end-to-end SFT execution on Clou
 | **Step 800** | 0.8521 | 2.344 | 0.9318 | **`2.539`** | 1.74s | 203.2 TFLOP/s / device | 5.10s |
 | **Step 1000** | 0.8124 | 2.253 | 0.9254 | **`2.523`** | 1.74s | **`203.2 TFLOP/s / device`** | **`5.45s`** |
 
-* **Total Perplexity Reduction**: **`-31.5%`** (`3.683` $\rightarrow$ `2.523`).
+* **Total Perplexity Reduction**: **`-31.5%`** (`3.683` -> `2.523`).
 * **Model FLOPs Utilization (MFU)**: **`~48.5%`** of theoretical peak bfloat16 compute.
+
+### B. Pathways 32-Chip SFT Benchmark (Qwen 3 14B on Pathways `4x8`)
+
+* **Infrastructure**: 1 Slice `4x8` (8 Nodes `ct6e-standard-4t`, 32 chips), Head Pod (3/3 Ready).
+* **Backend**: Pathways IFRT Proxy (`JAX 0.11.0`, MaxText `0.2.4`).
+
+| Metric | Measured Value |
+| :--- | :--- |
+| **Model Parameters** | **`14.768 Billion`** |
+| **Step 0 Evaluation Loss / Perplexity** | **`1.320`** / **`3.743`** |
+| **Step 19 Training Loss / Perplexity** | **`0.914`** / **`2.495`** (**`-33.3%` drop**) |
+| **Compute Throughput** | **`142.86 TFLOP/s / device`** |
+| **Token Throughput** | **`1,652.4 Tokens/s / device`** (`52,878 Tokens/s aggregate`) |
+| **Step 20 Checkpoint Status** | Committed to GCS in `5.2s` ✅ |
 
 ---
 
 ## 5. Step-by-Step Deployment Guide
 
 ### Prerequisites
+
 1. **GKE Cluster** with Cloud TPU node pools (`ct6e-standard-4t`) and GKE Workload Identity enabled.
 2. **Hugging Face Token Secret**: Stored in Secret Manager and mounted via `SecretProviderClass`.
-3. **GCS Bucket**: Configured for Orbax checkpoint saving and loading.
+3. **GCS Bucket**: Configured with `roles/storage.admin` for Orbax checkpoint saving and loading.
 
 ---
 
-### Step 1: Deploy Full-Epoch Multi-Host SFT (32 Chips, `4x8`)
+### Step 1: Deploy Full-Epoch Multi-Host McJAX SFT (32 Chips, `4x8`)
 
 ```bash
 kubectl apply -f platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-multi-host/experiments/05-qwen3-14b-sft-full-epoch-v6e-32.yaml
 ```
 
 Monitor the multi-host indexed job:
+
 ```bash
 kubectl get pods -l job-name=qwen3-14b-sft-full-epoch -o wide
-kubectl logs qwen3-14b-sft-full-epoch-0-szghd -f
+kubectl logs -l job-name=qwen3-14b-sft-full-epoch -f
 ```
 
 ---
 
 ### Step 2: Deploy Multi-Host SFT via Pathways (`PathwaysJob`)
 
-Deploy the 32-chip Pathways SFT workload with automatic retry resiliency (`maxRestarts: 10`):
+Deploy the 32-chip Pathways SFT workload with custom keep-alive timeouts and Orbax compatibility:
 
 ```bash
 kubectl apply -f platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-multi-host/experiments/02-qwen3-14b-pathways-sft-v6e-32.yaml
 ```
 
 Verify that the Head Pod reports **`3/3 Ready`**:
+
 ```bash
-kubectl get pathwaysjob pw-qwen3-32
-kubectl get pods -l 'jobset.sigs.k8s.io/jobset-name=pw-qwen3-32'
+kubectl get pathwaysjob pw-qwen3-14b-test
+kubectl get pods -l 'jobset.sigs.k8s.io/jobset-name=pw-qwen3-14b-test' -o wide
 ```
 
 ---
 
-### Step 3: Deploy Multi-Slice SFT (`numSlices: 2` $\times$ `4x8`)
+### Step 3: Deploy Multi-Slice Pathways SFT (`numSlices: 2` * `4x8` = 64 Chips)
 
-Deploy cross-slice training across 2 independent 32-chip slices (64 chips total):
+Deploy cross-slice training across 2 independent 32-chip slices:
 
 ```bash
-kubectl apply -f platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-multi-host/experiments/02-qwen3-14b-pathways-sft-v6e-32.yaml
+kubectl apply -f platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-multi-host/experiments/04-multislice-pathways-sft-v6e-32.yaml
 ```
 
 ---
@@ -168,11 +238,14 @@ kubectl apply -f platforms/gke/base/use-cases/training-ref-arch/kubernetes-manif
 
 Metrics are logged per-step and streamed directly to the in-cluster MLflow tracking server (`http://mlflow-tracking-svc.<namespace>.svc.cluster.local:5000`).
 
-### Port-Forward the MLflow UI:
+### Port-Forward the MLflow UI
+
 ```bash
-kubectl port-forward -n rl-mul-slice-checkpoint-converter svc/mlflow-tracking-svc 5000:5000
+kubectl port-forward -n rl-mul-slice-rl-mlflow svc/mlflow-tracking-svc 5000:5000
 ```
+
 Open `http://localhost:5000` in your browser to view:
+
 * **Training & Evaluation Loss Curves**
 * **Evaluation Perplexity Convergence**
 * **Hardware TFLOP/s / device & Model Flops Utilization (MFU)**

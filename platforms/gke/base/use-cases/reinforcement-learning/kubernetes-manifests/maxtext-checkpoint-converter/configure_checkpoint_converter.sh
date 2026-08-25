@@ -36,9 +36,39 @@ if [[ ${secret_version_found} == 0 ]]; then
   exit 1
 fi
 
+export MODEL_NAME="${MODEL_NAME:-${HF_MODEL_ID}}"
+
+if [[ ! -v USE_MULTIMODAL ]]; then
+  if [[ "${HF_MODEL_ID}" =~ gemma3|gemma-3|vl|vision ]]; then
+    export USE_MULTIMODAL="True"
+  else
+    export USE_MULTIMODAL="False"
+  fi
+fi
+
+if [[ ! -v LAZY_LOAD_TENSORS ]]; then
+  if [[ "${USE_MULTIMODAL}" == "True" ]]; then
+    export LAZY_LOAD_TENSORS="False"
+  else
+    export LAZY_LOAD_TENSORS="True"
+  fi
+fi
+
+if [[ ! -v EAGER_LOAD_METHOD ]]; then
+  if [[ "${USE_MULTIMODAL}" == "True" ]]; then
+    export EAGER_LOAD_METHOD="transformers"
+  else
+    export EAGER_LOAD_METHOD="safetensors"
+  fi
+fi
+
 envsubst < "${MY_PATH}/checkpoint-converter/templates/converter.tpl.env" | sponge "${MY_PATH}/checkpoint-converter/converter.env"
 
 envsubst < "${MY_PATH}/checkpoint-converter/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/checkpoint-converter/secretproviderclass-huggingface-tokens.yaml"
 
 cd "${MY_PATH}/checkpoint-converter"
-kustomize edit set nameprefix "${HF_MODEL_ID_HASH}-"
+if grep -q "^namePrefix:" kustomization.yaml; then
+  sed -i "s/^namePrefix:.*/namePrefix: ${HF_MODEL_ID_HASH}-/" kustomization.yaml
+else
+  sed -i "/^kind: Kustomization/a namePrefix: ${HF_MODEL_ID_HASH}-" kustomization.yaml
+fi

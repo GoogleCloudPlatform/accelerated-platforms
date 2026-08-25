@@ -50,10 +50,10 @@ You can track the live progress of the conversion job via `kubectl`:
 
 ```bash
 # Get the pod name
-kubectl get pods -n ${rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name}
+kubectl get pods -n ${sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name}
 
 # View logs in real-time
-kubectl logs -f -l app=maxtext-checkpoint-converter -n ${rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name}
+kubectl logs -f -l app=maxtext-checkpoint-converter -n ${sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name}
 ```
 
 Once completed, your model checkpoints will be stored under:

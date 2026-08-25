@@ -18,6 +18,13 @@ locals {
   sft_tpu_maxtext_single_host_kubernetes_namespace_name       = var.sft_tpu_maxtext_single_host_kubernetes_namespace_name != null ? var.sft_tpu_maxtext_single_host_kubernetes_namespace_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-sh"
   sft_tpu_maxtext_single_host_kubernetes_service_account_name = var.sft_tpu_maxtext_single_host_kubernetes_service_account_name != null ? var.sft_tpu_maxtext_single_host_kubernetes_service_account_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-sa"
   sft_tpu_maxtext_single_host_dataset_bucket_name             = var.sft_tpu_maxtext_single_host_dataset_bucket_name != null ? var.sft_tpu_maxtext_single_host_dataset_bucket_name : "${local.sft_tpu_maxtext_single_host_project_id}-${local.unique_identifier_prefix}-sft-tpu-maxtext-sh-dataset"
+
+  sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name       = var.sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name != null ? var.sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name : "${local.unique_identifier_prefix}-sft-checkpoint-converter"
+  sft_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name = var.sft_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name != null ? var.sft_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name : "${local.unique_identifier_prefix}-sft-checkpoint-converter-sa"
+
+  sft_cpu_mlflow_kubernetes_namespace_name       = var.sft_cpu_mlflow_kubernetes_namespace_name != null ? var.sft_cpu_mlflow_kubernetes_namespace_name : "${local.unique_identifier_prefix}-sft-mlflow"
+  sft_cpu_mlflow_kubernetes_service_account_name = var.sft_cpu_mlflow_kubernetes_service_account_name != null ? var.sft_cpu_mlflow_kubernetes_service_account_name : "${local.unique_identifier_prefix}-sft-mlflow-sa"
+  sft_mlflow_data_bucket_name                    = var.sft_mlflow_data_bucket_name != null ? var.sft_mlflow_data_bucket_name : "${local.sft_tpu_maxtext_single_host_project_id}-${local.unique_identifier_prefix}-sft-mlflow-data"
 }
 
 variable "sft_tpu_maxtext_single_host_project_id" {
@@ -47,5 +54,35 @@ variable "sft_tpu_maxtext_single_host_kubernetes_service_account_name" {
 variable "sft_tpu_maxtext_single_host_dataset_bucket_name" {
   default     = null
   description = "The GCP bucket name for the SFT dataset."
+  type        = string
+}
+
+variable "sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace name for the CPU checkpoint converter deployment in SFT."
+  type        = string
+}
+
+variable "sft_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account name for the CPU checkpoint converter deployment in SFT."
+  type        = string
+}
+
+variable "sft_cpu_mlflow_kubernetes_namespace_name" {
+  default     = null
+  description = "The Kubernetes namespace name for the SFT MLflow deployment."
+  type        = string
+}
+
+variable "sft_cpu_mlflow_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes service account name for the SFT MLflow deployment."
+  type        = string
+}
+
+variable "sft_mlflow_data_bucket_name" {
+  default     = null
+  description = "The GCP bucket name for the SFT MLflow data."
   type        = string
 }

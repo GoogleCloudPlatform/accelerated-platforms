@@ -12,8 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+data "google_storage_bucket" "hub_models" {
+  name    = local.huggingface_hub_models_bucket_name
+  project = local.huggingface_hub_models_bucket_project_id
+}
+
 resource "google_storage_bucket" "sft_dataset" {
   name     = local.sft_tpu_maxtext_single_host_dataset_bucket_name
+  project  = local.sft_tpu_maxtext_single_host_project_id
+  location = local.cluster_region
+
+  uniform_bucket_level_access = true
+  force_destroy               = true
+}
+
+resource "google_storage_bucket" "mlflow_data" {
+  name     = local.sft_mlflow_data_bucket_name
   project  = local.sft_tpu_maxtext_single_host_project_id
   location = local.cluster_region
 

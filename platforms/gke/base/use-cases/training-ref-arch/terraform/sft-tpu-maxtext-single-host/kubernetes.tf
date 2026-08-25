@@ -17,10 +17,20 @@ locals {
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
 
   workloads = {
+    sft_cpu_mlflow = {
+      directory       = "${local.namespaces_directory}/${local.sft_cpu_mlflow_kubernetes_namespace_name}"
+      namespace       = local.sft_cpu_mlflow_kubernetes_namespace_name
+      service_account = local.sft_cpu_mlflow_kubernetes_service_account_name
+    }
     sft_tpu_maxtext_single_host = {
       directory       = "${local.namespaces_directory}/${local.sft_tpu_maxtext_single_host_kubernetes_namespace_name}"
       namespace       = local.sft_tpu_maxtext_single_host_kubernetes_namespace_name
       service_account = local.sft_tpu_maxtext_single_host_kubernetes_service_account_name
+    }
+    sft_cpu_maxtext_checkpoint_converter = {
+      directory       = "${local.namespaces_directory}/${local.sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name}"
+      namespace       = local.sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name
+      service_account = local.sft_cpu_maxtext_checkpoint_converter_kubernetes_service_account_name
     }
   }
 

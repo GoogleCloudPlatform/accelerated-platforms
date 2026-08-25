@@ -50,16 +50,16 @@ valuable TPU resources for actual model training.
 
 ## 2. Supported Model Mappings Reference
 
-| Model Architecture | Hugging Face Repo (`HF_MODEL_ID`) | MaxText Name (`MODEL_NAME`) | Multimodal (`USE_MULTIMODAL`) |
-| :--- | :--- | :--- | :---: |
-| **Gemma 3 4B** | `google/gemma-3-4b-it` | `gemma3-4b` | `True` (auto-detected) |
-| **Gemma 3 12B** | `google/gemma-3-12b-it` | `gemma3-12b` | `True` (auto-detected) |
-| **Gemma 3 27B** | `google/gemma-3-27b-it` | `gemma3-27b` | `True` (auto-detected) |
-| **Qwen 3 30B MoE** | `Qwen/Qwen3-30B-A3B-Instruct-2507` | `qwen3-30b-a3b` | `False` |
-| **Qwen 3 4B** | `Qwen/Qwen3-4B-Instruct-2507` | `qwen3-4b` | `False` |
-| **LLaMA 3.1 8B** | `meta-llama/Llama-3.1-8B-Instruct` | `llama3.1-8b` | `False` |
-| **LLaMA 3.1 70B** | `meta-llama/Llama-3.1-70B-Instruct` | `llama3.1-70b` | `False` |
-| **DeepSeek V3 671B** | `deepseek-ai/DeepSeek-V3` | `deepseek3-671b` | `False` |
+| Model Architecture   | Hugging Face Repo (`HF_MODEL_ID`)   | MaxText Name (`MODEL_NAME`) | Multimodal (`USE_MULTIMODAL`) |
+| :------------------- | :---------------------------------- | :-------------------------- | :---------------------------: |
+| **Gemma 3 4B**       | `google/gemma-3-4b-it`              | `gemma3-4b`                 |    `True` (auto-detected)     |
+| **Gemma 3 12B**      | `google/gemma-3-12b-it`             | `gemma3-12b`                |    `True` (auto-detected)     |
+| **Gemma 3 27B**      | `google/gemma-3-27b-it`             | `gemma3-27b`                |    `True` (auto-detected)     |
+| **Qwen 3 30B MoE**   | `Qwen/Qwen3-30B-A3B-Instruct-2507`  | `qwen3-30b-a3b`             |            `False`            |
+| **Qwen 3 4B**        | `Qwen/Qwen3-4B-Instruct-2507`       | `qwen3-4b`                  |            `False`            |
+| **LLaMA 3.1 8B**     | `meta-llama/Llama-3.1-8B-Instruct`  | `llama3.1-8b`               |            `False`            |
+| **LLaMA 3.1 70B**    | `meta-llama/Llama-3.1-70B-Instruct` | `llama3.1-70b`              |            `False`            |
+| **DeepSeek V3 671B** | `deepseek-ai/DeepSeek-V3`           | `deepseek3-671b`            |            `False`            |
 
 ---
 

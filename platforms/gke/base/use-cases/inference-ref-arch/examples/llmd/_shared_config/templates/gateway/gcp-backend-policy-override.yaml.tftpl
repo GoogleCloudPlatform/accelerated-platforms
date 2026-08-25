@@ -1,0 +1,14 @@
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+spec:
+  default:
+    logging:
+      enabled: true
+    timeoutSec: 3600
+  targetRef:
+    group: inference.networking.k8s.io
+    kind: InferencePool
+    name: ${name}

@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,20 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: optimized-baseline-tpu-v6-vllm-decode
-  namespace: replaced-by-kustomize
-spec:
-  replicas: 2
-  template:
-    spec:
-      containers:
-        - name: modelserver
-          resources:
-            limits:
-              google.com/tpu: "8"
-            requests:
-              google.com/tpu: "8"
+
+resources:
+  - telemetry-collector.yaml
+
+configMapGenerator:
+  - name: telemetry-collector-script
+    files:
+      - collect.sh
+
+generatorOptions:
+  disableNameSuffixHash: true

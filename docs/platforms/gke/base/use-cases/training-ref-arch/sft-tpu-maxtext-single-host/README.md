@@ -53,7 +53,7 @@ This use-case is built on top of the
 - Source the environment configuration.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Build the SFT trainer container image using Google Cloud Build.
@@ -70,12 +70,68 @@ This use-case is built on top of the
 
   > The build usually takes 10 to 15 minutes.
 
+## Convert the Hugging Face weights to MaxText format
+
+Before starting Supervised Fine-Tuning (SFT) training, you can run a one-time
+CPU-based checkpoint conversion job to convert the base Hugging Face weights
+into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
+
+- Choose the model to convert.
+
+  - **Llama 3.1 8B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="llama3.1-8b-Instruct"
+    ```
+
+  - **Gemma 4 26B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="gemma4-26b"
+    ```
+
+- Source the environment configuration:
+
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
+
+- Configure the checkpoint converter deployment:
+
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/maxtext-checkpoint-converter/configure_checkpoint_converter.sh"
+  ```
+
+- Deploy the checkpoint converter job:
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/maxtext-checkpoint-converter/checkpoint-converter"
+  ```
+
+- Watch the checkpoint converter job until it is complete:
+
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-maxtext-checkpoint-converter | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-maxtext-checkpoint-converter --all-containers --tail 10"
+  ```
+
+  Once complete, your model checkpoints will be stored under
+  `gs://${huggingface_hub_models_bucket_name}/maxtext-checkpoint-converter-output/`.
+
+- Clean up the CPU conversion job:
+
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/maxtext-checkpoint-converter/checkpoint-converter"
+  ```
+
 ## Deploy the SFT workload
 
 - Source the environment configuration.
 
   ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
 
 - Configure the SFT deployment manifests.
@@ -131,7 +187,7 @@ the dashboard locally:
 1. **Port-forward the MLflow Service:**
 
    ```shell
-    kubectl port-forward --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name} svc/mlflow-service 5000:5000
+   kubectl port-forward --namespace=${sft_cpu_mlflow_kubernetes_namespace_name} svc/mlflow-service-svc 5000:5000
    ```
 
 2. **Open your Browser:** Navigate to `http://localhost:5000`
@@ -143,10 +199,9 @@ the dashboard locally:
 
 ## Critical Design Features
 
-1. **Automated Conversion**: Checkpoint conversion from Hugging Face format to
-   MaxText is built directly into Python execution. If converted parameters do
-   not exist in GCS, `train.py` launches
-   `maxtext.checkpoint_conversion.to_maxtext` before starting training.
+1. **Decoupled Conversion**: Checkpoint conversion from Hugging Face format to
+   MaxText is decoupled into a dedicated CPU-based conversion job, preserving
+   valuable TPU resources for training.
 2. **JAX-Level Metric Injection**: Real-time logging is handled via
    zero-code-change monkey patching of JAX's native `clu.metric_writers` API
    inside Python `runpy`, capturing loss scalars and streaming them instantly to

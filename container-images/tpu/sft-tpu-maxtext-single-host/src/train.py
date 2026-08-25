@@ -16,7 +16,6 @@ import datetime
 import logging
 import os
 import runpy
-import subprocess
 import sys
 
 import clu.metric_writers
@@ -55,8 +54,8 @@ base_name = os.environ.get(
     "RUN_NAME", datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")
 )
 
-# Unconditionally force "v5e" onto the front of it
-RUN_NAME = f"v5e-{base_name}"
+# Unconditionally force "v6e" onto the front of it
+RUN_NAME = f"v6e-{base_name}"
 
 # Send the massive converted model and checkpoints directly to the cloud bucket
 MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint"
@@ -66,32 +65,14 @@ MODEL_CHECKPOINT_PATH = f"{YOUR_GCS_BUCKET}/llama_checkpoint"
 OUTPUT_DIRECTORY = YOUR_GCS_BUCKET
 
 # POINT EXACTLY TO /0/items AS PER THE DEMO NOTEBOOK
-LOAD_PATH = f"{MODEL_CHECKPOINT_PATH}/0/items"
+LOAD_PATH = os.environ.get(
+    "LOAD_PARAMETERS_PATH", f"{MODEL_CHECKPOINT_PATH}/0/items"
+)
 
-# --- 3. CONVERSION (Runs only if needed) ---
-if not os.path.exists(LOAD_PATH):
-    print("🚀 Starting local conversion...")
-
-    # Use subprocess for the conversion
-    conversion_cmd = (
-        f"JAX_PLATFORMS=cpu python3 -m maxtext.checkpoint_conversion.to_maxtext "
-        f"{MAXTEXT_PKG_DIR}/configs/base.yml "
-        f"model_name={MODEL_NAME} "
-        f"base_output_directory={MODEL_CHECKPOINT_PATH} "
-        f"hf_access_token={HF_TOKEN} "
-        f"use_multimodal=false scan_layers=true skip_jax_distributed_system=True"
-    )
-
-    result = subprocess.run(conversion_cmd, shell=True, executable="/bin/bash")
-    if result.returncode != 0:
-        raise RuntimeError("Conversion failed!")
-else:
-    print(f"✅ Checkpoint already exists at {LOAD_PATH}. Skipping conversion!")
-
-# --- 4. MLFLOW SETUP & LOGGING INTERCEPTOR ---
+# --- 3. MLFLOW SETUP & LOGGING INTERCEPTOR ---
 # Initialize MLflow strictly on the main thread
 mlflow.set_tracking_uri(
-    os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow-service-v5e:5000")
+    os.environ.get("MLFLOW_TRACKING_URI", "http://mlflow-service-svc:5000")
 )
 mlflow.set_experiment("sft-tpu-maxtext-single-host")
 
@@ -170,7 +151,7 @@ def patched_write_texts(self, step: int, texts: dict):
 
 clu.metric_writers.MultiWriter.write_texts = patched_write_texts
 
-# --- 5. SFT CONFIGURATION & RUN ---
+# --- 4. SFT CONFIGURATION & RUN ---
 config_argv = [
     sys.argv[0],  # module name placeholder
     f"model_name={MODEL_NAME}",

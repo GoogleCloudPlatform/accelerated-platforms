@@ -32,9 +32,10 @@ spec:
               google.com/tpu: "8"
             limits:
               google.com/tpu: "8"
+          envFrom:
+            - configMapRef:
+                name: runtime
           env:
-            - name: MLFLOW_TRACKING_URI
-              value: "http://mlflow-service:5000"
             - name: HF_TOKEN
               valueFrom:
                 secretKeyRef:

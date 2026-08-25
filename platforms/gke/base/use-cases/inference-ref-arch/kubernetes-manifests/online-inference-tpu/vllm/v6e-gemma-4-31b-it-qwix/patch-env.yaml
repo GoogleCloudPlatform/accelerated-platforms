@@ -13,5 +13,20 @@
 # limitations under the License.
 
 - op: add
-  path: /spec/template/spec/containers/1/args/-
-  value: "--chat-template=/gcs/google/gemma-4-31b-it/chat_template.jinja"
+  path: /spec/template/spec/containers/1/env/-
+  value:
+    name: MODEL_IMPL_TYPE
+    value: "flax_nnx"
+- op: add
+  path: /spec/template/spec/containers/1/env/-
+  value:
+    name: USE_BATCHED_RPA_KERNEL
+    value: "1"
+- op: add
+  path: /spec/template/spec/containers/1/env/-
+  value:
+    name: DATA_PARALLEL_SIZE
+    valueFrom:
+      configMapKeyRef:
+        name: runtime
+        key: DATA_PARALLEL_SIZE

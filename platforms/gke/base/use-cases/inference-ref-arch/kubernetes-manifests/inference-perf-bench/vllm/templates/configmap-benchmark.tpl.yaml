@@ -21,22 +21,22 @@ data:
   config.yaml: |
     load:
       type: constant
-      interval: 1.0
+      interval: 0.1
       sweep:
         type: linear
-        timeout: 250
-        num_stages: 7
-        stage_duration: 30
-      num_workers: 20
-      worker_max_concurrency: 15
-      worker_max_tcp_connections: 2500
+        timeout: 600
+        num_stages: 10
+        stage_duration: ${BENCHMARK_STAGE_DURATION}
+      num_workers: 50
+      worker_max_concurrency: 50
+      worker_max_tcp_connections: 5000
     api: 
       type: completion
       streaming: true
     server:
       type: vllm
-      model_name: /gcs/${HF_MODEL_ID}
-      base_url: http://${APP_LABEL}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
+      model_name: ${HF_MODEL_ID}
+      base_url: ${INFERENCE_BASE_URL}
       ignore_eos: true
     tokenizer:
       pretrained_model_name_or_path: ${TOKENIZER_ID}

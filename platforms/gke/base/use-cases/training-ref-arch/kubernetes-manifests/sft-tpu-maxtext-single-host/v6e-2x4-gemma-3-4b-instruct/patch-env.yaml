@@ -11,21 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-images:
-  - ${_DESTINATION}
-
-options:
-  logging: CLOUD_LOGGING_ONLY
-  machineType: E2_HIGHCPU_8
-
-steps:
-  - args:
-      - build
-      - --build-context=primary=container-images/tpu/sft-tpu-maxtext-single-host/src
-      - --file=container-images/tpu/sft-tpu-maxtext-single-host/Dockerfile
-      - --tag=${_DESTINATION}
-      - .
-    id: "Build Supervised Fine-Tuning on TPU image"
-    name: "docker.io/docker:28.3.3-dind-alpine3.22"
-    waitFor: ["-"]
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sft-tpu-maxtext-single-host
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      containers:
+        - name: sft-trainer
+          env:
+            - name: MODEL_NAME
+              value: "gemma3-4b"
+            - name: TOKENIZER_PATH
+              value: "google/gemma-3-4b-it"
+            - name: USE_MULTIMODAL
+              value: "true"
+            - name: SCAN_LAYERS
+              value: "true"

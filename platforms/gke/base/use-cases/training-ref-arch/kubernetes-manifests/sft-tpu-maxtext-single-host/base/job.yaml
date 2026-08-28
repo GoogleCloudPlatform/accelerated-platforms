@@ -30,8 +30,16 @@ spec:
           resources:
             requests:
               google.com/tpu: "8"
+              memory: "128Gi"
+              cpu: "16"
+              ephemeral-storage: "30Gi"
             limits:
               google.com/tpu: "8"
+              cpu: "28"
+              ephemeral-storage: "80Gi"
+          command:
+            - "/bin/bash"
+            - "/train.sh"
           envFrom:
             - configMapRef:
                 name: runtime
@@ -41,4 +49,16 @@ spec:
                 secretKeyRef:
                   name: hf-secret
                   key: token
+          volumeMounts:
+            - name: train-script-vol
+              mountPath: /train.sh
+              subPath: train.sh
+            - name: tmp-vol
+              mountPath: /tmp
+      volumes:
+        - name: train-script-vol
+          configMap:
+            name: train-script
+        - name: tmp-vol
+          emptyDir: {}
       serviceAccountName: replaced-by-kustomize

@@ -48,28 +48,6 @@ This use-case is built on top of the
   rm tfplan
   ```
 
-## Build the container images
-
-- Source the environment configuration.
-
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
-
-- Build the SFT trainer container image using Google Cloud Build.
-
-  ```shell
-  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/images/tpu/sft-tpu-maxtext-single-host && \
-  rm -rf .terraform/ terraform.tfstate* && \
-  terraform init && \
-  terraform plan -input=false -out=tfplan && \
-  terraform apply -input=false tfplan && \
-  rm tfplan
-  ```
-
-  > The build usually takes 10 to 15 minutes.
-
 ## Convert the Hugging Face weights to MaxText format
 
 Before starting Supervised Fine-Tuning (SFT) training, you can run a one-time
@@ -82,6 +60,12 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
     ```shell
     export HF_MODEL_ID="llama3.1-8b-Instruct"
+    ```
+
+  - **Gemma 3 4B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="google/gemma-3-4b-it"
     ```
 
   - **Gemma 4 26B Instruction-Tuned**:
@@ -142,16 +126,22 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
 - Deploy the SFT workload.
 
-  For TPU v5e:
+  For TPU v5e (Llama 3.1 8B):
 
   ```shell
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v5e-2x4-llama-3-1-8b-instruct"
   ```
 
-  For TPU v6e:
+  For TPU v6e (Llama 3.1 8B):
 
   ```shell
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-2x4-llama-3-1-8b-instruct"
+  ```
+
+  For TPU v6e (Gemma 3 4B):
+
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-2x4-gemma-3-4b-instruct"
   ```
 
 - Watch the SFT training job until it is complete:
@@ -174,10 +164,7 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
 ## Viewing Metrics (MLflow & TensorBoard)
 
-MaxText logs step metrics directly to TensorBoard format during execution. The
-`train.py` script automatically intercepts metrics using monkey patching of JAX
-metric writers (`clu.metric_writers.MultiWriter.write_scalars`) and pipes
-real-time metrics to **MLflow**.
+MaxText logs step metrics directly to TensorBoard format in Cloud Storage during execution.
 
 ### Accessing the MLflow UI
 
@@ -202,9 +189,9 @@ the dashboard locally:
 1. **Decoupled Conversion**: Checkpoint conversion from Hugging Face format to
    MaxText is decoupled into a dedicated CPU-based conversion job, preserving
    valuable TPU resources for training.
-2. **JAX-Level Metric Injection**: Real-time logging is handled via
-   zero-code-change monkey patching of JAX's native `clu.metric_writers` API
-   inside Python `runpy`, capturing loss scalars and streaming them instantly to
-   the MLflow server.
+2. **Official Post-Training Container Image**: Uses the official Google Cloud TPU
+   MaxText post-training image (`tpu_post_training:0.2.3`) with execution scripts
+   mounted declaratively via Kubernetes ConfigMaps, eliminating the need to build
+   and maintain custom container images.
 3. **Optimized Resource Layout**: Configured with a dedicated GCS bucket and GKE
    Workload Identity bindings for clean security isolation.

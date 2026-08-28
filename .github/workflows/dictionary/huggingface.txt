@@ -8,3 +8,4 @@ qwen
 rdzv
 redhatai
 tatsu
+ultrachat

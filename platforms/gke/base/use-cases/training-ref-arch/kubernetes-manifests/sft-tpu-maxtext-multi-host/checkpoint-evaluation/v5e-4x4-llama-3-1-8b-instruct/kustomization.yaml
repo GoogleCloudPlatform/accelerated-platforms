@@ -47,7 +47,7 @@ patches:
           value: "true"
     target:
       kind: PathwaysJob
-      name: sft-tpu-maxtext-multi-host
+      name: sft-tpu-maxtext-multi-host-eval
 
 replacements:
   - source:
@@ -56,7 +56,7 @@ replacements:
       name: runtime
     targets:
       - fieldPaths:
-          - spec.controller.template.spec.containers.[name=sft-trainer].image
+          - spec.controller.template.spec.containers.[name=sft-evaluator].image
         select:
           kind: PathwaysJob
   - source:

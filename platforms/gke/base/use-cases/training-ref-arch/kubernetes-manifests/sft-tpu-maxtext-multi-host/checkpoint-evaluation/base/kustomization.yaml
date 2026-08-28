@@ -11,21 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 
-images:
-  - ${_DESTINATION}
+configMapGenerator:
+  - envs:
+      - runtime.env
+    name: runtime
+    namespace: replaced-by-kustomize
 
-options:
-  logging: CLOUD_LOGGING_ONLY
-  machineType: E2_HIGHCPU_8
-
-steps:
-  - args:
-      - build
-      - --build-context=primary=container-images/tpu/sft-tpu-maxtext-multi-host/src
-      - --file=container-images/tpu/sft-tpu-maxtext-multi-host/Dockerfile
-      - --tag=${_DESTINATION}
-      - .
-    id: "Build Supervised Fine-Tuning on TPU Multi-Host image"
-    name: "docker.io/docker:28.3.3-dind-alpine3.22"
-    waitFor: ["-"]
+resources:
+  - job.yaml

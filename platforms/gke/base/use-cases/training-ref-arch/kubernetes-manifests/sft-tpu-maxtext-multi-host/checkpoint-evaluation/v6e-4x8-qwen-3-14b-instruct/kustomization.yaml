@@ -15,39 +15,42 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-nameSuffix: "-v5e-4x4-llama-3-1-8b-instruct"
+nameSuffix: "-v6e-4x8-qwen-3-14b"
 
 patches:
   - patch: |
       - op: replace
         path: /spec/workers/0/type
-        value: ct5lp-hightpu-8t
+        value: ct6e-standard-4t
       - op: replace
         path: /spec/workers/0/topology
-        value: 4x4
+        value: 4x8
+      - op: replace
+        path: /spec/workers/0/numSlices
+        value: 1
       - op: add
         path: /spec/controller/template/spec/containers/0/env/-
         value:
           name: MODEL_NAME
-          value: "llama3.1-8b"
+          value: "qwen3-14b"
       - op: add
         path: /spec/controller/template/spec/containers/0/env/-
         value:
           name: TOKENIZER_PATH
-          value: "meta-llama/Llama-3.1-8B-Instruct"
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: USE_MULTIMODAL
-          value: "false"
+          value: "Qwen/Qwen3-14B"
       - op: add
         path: /spec/controller/template/spec/containers/0/env/-
         value:
           name: SCAN_LAYERS
           value: "true"
+      - op: add
+        path: /spec/controller/template/spec/containers/0/env/-
+        value:
+          name: MAX_TARGET_LENGTH
+          value: "2048"
     target:
       kind: PathwaysJob
-      name: sft-tpu-maxtext-multi-host
+      name: sft-tpu-maxtext-multi-host-eval
 
 replacements:
   - source:
@@ -56,7 +59,7 @@ replacements:
       name: runtime
     targets:
       - fieldPaths:
-          - spec.controller.template.spec.containers.[name=sft-trainer].image
+          - spec.controller.template.spec.containers.[name=sft-evaluator].image
         select:
           kind: PathwaysJob
   - source:

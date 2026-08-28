@@ -84,7 +84,6 @@ replacements:
     targets:
       - fieldPaths:
           - spec.pathwaysDir
-          - spec.controller.template.spec.containers.[name=sft-trainer].env.[name=GCS_OUTPUT_PATH].value
         select:
           kind: PathwaysJob
 

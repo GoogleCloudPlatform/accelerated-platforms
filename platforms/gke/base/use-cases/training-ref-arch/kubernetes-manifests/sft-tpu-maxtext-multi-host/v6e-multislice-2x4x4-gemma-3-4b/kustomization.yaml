@@ -15,36 +15,39 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-nameSuffix: "-v5e-4x4-llama-3-1-8b-instruct"
+nameSuffix: "-v6e-multislice-2x4x4-gemma-3-4b"
 
 patches:
   - patch: |
       - op: replace
         path: /spec/workers/0/type
-        value: ct5lp-hightpu-8t
+        value: ct6e-standard-4t
       - op: replace
         path: /spec/workers/0/topology
         value: 4x4
+      - op: replace
+        path: /spec/workers/0/numSlices
+        value: 2
       - op: add
         path: /spec/controller/template/spec/containers/0/env/-
         value:
           name: MODEL_NAME
-          value: "llama3.1-8b"
+          value: "gemma3-4b"
       - op: add
         path: /spec/controller/template/spec/containers/0/env/-
         value:
           name: TOKENIZER_PATH
-          value: "meta-llama/Llama-3.1-8B-Instruct"
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: USE_MULTIMODAL
-          value: "false"
+          value: "google/gemma-3-4b-it"
       - op: add
         path: /spec/controller/template/spec/containers/0/env/-
         value:
           name: SCAN_LAYERS
           value: "true"
+      - op: add
+        path: /spec/controller/template/spec/containers/0/env/-
+        value:
+          name: MAX_TARGET_LENGTH
+          value: "2048"
     target:
       kind: PathwaysJob
       name: sft-tpu-maxtext-multi-host

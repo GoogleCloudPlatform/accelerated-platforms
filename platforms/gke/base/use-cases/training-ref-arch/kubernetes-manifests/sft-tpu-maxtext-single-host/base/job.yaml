@@ -34,7 +34,7 @@ spec:
               google.com/tpu: "8"
           env:
             - name: MLFLOW_TRACKING_URI
-              value: "http://mlflow-service:5000"
+              value: "http://mlflow-service-svc:5000"
             - name: HF_TOKEN
               valueFrom:
                 secretKeyRef:

@@ -58,26 +58,6 @@ This use-case is built on top of the
   rm tfplan
   ```
 
-## Build the container images
-
-- Source the environment configuration:
-
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
-
-- Build the SFT multi-host trainer container image using Google Cloud Build:
-
-  ```shell
-  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/images/tpu/sft-tpu-maxtext-multi-host && \
-  rm -rf .terraform/ terraform.tfstate* && \
-  terraform init && \
-  terraform plan -input=false -out=tfplan && \
-  terraform apply -input=false tfplan && \
-  rm tfplan
-  ```
-
 ## Deploy the SFT workload
 
 - Source the environment configuration:
@@ -119,7 +99,7 @@ Metrics are piped to MLflow during training.
 1. **Port-forward the MLflow Service:**
 
    ```shell
-   kubectl port-forward --namespace=${sft_tpu_maxtext_multi_host_kubernetes_namespace_name} svc/mlflow-service 5000:5000
+   kubectl port-forward --namespace=${sft_cpu_mlflow_kubernetes_namespace_name} svc/mlflow-service-svc 5000:5000
    ```
 
 2. **Open your Browser:** Navigate to `http://localhost:5000` to inspect

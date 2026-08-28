@@ -15,7 +15,7 @@
 apiVersion: pathways-job.pathways.domain/v1
 kind: PathwaysJob
 metadata:
-  name: sft-tpu-maxtext-multi-host
+  name: sft-tpu-maxtext-multi-host-eval
   namespace: replaced-by-kustomize
 spec:
   maxRestarts: 0
@@ -25,7 +25,7 @@ spec:
       spec:
         restartPolicy: Never
         containers:
-          - name: sft-trainer
+          - name: sft-evaluator
             image: replaced-by-kustomize
             envFrom:
               - configMapRef:
@@ -36,6 +36,8 @@ spec:
                   secretKeyRef:
                     name: hf-secret
                     key: token
+              - name: EVAL_MODE
+                value: "true"
         serviceAccountName: replaced-by-kustomize
   workers:
     - type: replaced-by-kustomize

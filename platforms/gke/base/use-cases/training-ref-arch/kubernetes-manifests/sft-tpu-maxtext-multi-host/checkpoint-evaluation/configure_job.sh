@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,21 +13,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -o errexit
+set -o nounset
+set -o pipefail
 
-images:
-  - ${_DESTINATION}
+MY_PATH="$(
+  cd "$(dirname "$0")" >/dev/null 2>&1
+  pwd -P
+)"
 
-options:
-  logging: CLOUD_LOGGING_ONLY
-  machineType: E2_HIGHCPU_8
+source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
-steps:
-  - args:
-      - build
-      - --build-context=primary=container-images/tpu/sft-tpu-maxtext-single-host/src
-      - --file=container-images/tpu/sft-tpu-maxtext-single-host/Dockerfile
-      - --tag=${_DESTINATION}
-      - .
-    id: "Build Supervised Fine-Tuning on TPU image"
-    name: "docker.io/docker:28.3.3-dind-alpine3.22"
-    waitFor: ["-"]
+envsubst < "${MY_PATH}/base/templates/runtime.tpl.env" > "${MY_PATH}/base/runtime.env"

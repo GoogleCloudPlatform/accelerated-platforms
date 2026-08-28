@@ -14,13 +14,11 @@
 
 locals {
   sft_tpu_maxtext_single_host_project_id                      = var.sft_tpu_maxtext_single_host_project_id != null ? var.sft_tpu_maxtext_single_host_project_id : var.platform_default_project_id
-  sft_tpu_maxtext_single_host_image_url                       = var.sft_tpu_maxtext_single_host_image_url != null ? var.sft_tpu_maxtext_single_host_image_url : "${local.cloudbuild_ar_image_repository_url}/training-ref-arch/sft-tpu-maxtext-single-host:latest"
   sft_tpu_maxtext_single_host_kubernetes_namespace_name       = var.sft_tpu_maxtext_single_host_kubernetes_namespace_name != null ? var.sft_tpu_maxtext_single_host_kubernetes_namespace_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-sh"
   sft_tpu_maxtext_single_host_kubernetes_service_account_name = var.sft_tpu_maxtext_single_host_kubernetes_service_account_name != null ? var.sft_tpu_maxtext_single_host_kubernetes_service_account_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-sa"
   sft_tpu_maxtext_single_host_dataset_bucket_name             = var.sft_tpu_maxtext_single_host_dataset_bucket_name != null ? var.sft_tpu_maxtext_single_host_dataset_bucket_name : "${local.sft_tpu_maxtext_single_host_project_id}-${local.unique_identifier_prefix}-sft-maxtext-ds"
 
   sft_tpu_maxtext_multi_host_project_id                      = var.sft_tpu_maxtext_multi_host_project_id != null ? var.sft_tpu_maxtext_multi_host_project_id : var.platform_default_project_id
-  sft_tpu_maxtext_multi_host_image_url                       = var.sft_tpu_maxtext_multi_host_image_url != null ? var.sft_tpu_maxtext_multi_host_image_url : "${local.cloudbuild_ar_image_repository_url}/training-ref-arch/sft-tpu-maxtext-multi-host:latest"
   sft_tpu_maxtext_multi_host_kubernetes_namespace_name       = var.sft_tpu_maxtext_multi_host_kubernetes_namespace_name != null ? var.sft_tpu_maxtext_multi_host_kubernetes_namespace_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-mh"
   sft_tpu_maxtext_multi_host_kubernetes_service_account_name = var.sft_tpu_maxtext_multi_host_kubernetes_service_account_name != null ? var.sft_tpu_maxtext_multi_host_kubernetes_service_account_name : "${local.unique_identifier_prefix}-sft-tpu-maxtext-mh-sa"
   sft_tpu_maxtext_multi_host_dataset_bucket_name             = var.sft_tpu_maxtext_multi_host_dataset_bucket_name != null ? var.sft_tpu_maxtext_multi_host_dataset_bucket_name : "${local.sft_tpu_maxtext_multi_host_project_id}-${local.unique_identifier_prefix}-sft-maxtext-mh-ds"
@@ -29,12 +27,6 @@ locals {
 variable "sft_tpu_maxtext_single_host_project_id" {
   default     = null
   description = "The Google Cloud project where the SFT resources will be created."
-  type        = string
-}
-
-variable "sft_tpu_maxtext_single_host_image_url" {
-  default     = null
-  description = "The URL for the SFT on TPU container image."
   type        = string
 }
 
@@ -59,12 +51,6 @@ variable "sft_tpu_maxtext_single_host_dataset_bucket_name" {
 variable "sft_tpu_maxtext_multi_host_project_id" {
   default     = null
   description = "The Google Cloud project where the SFT multi-host resources will be created."
-  type        = string
-}
-
-variable "sft_tpu_maxtext_multi_host_image_url" {
-  default     = null
-  description = "The URL for the SFT on TPU multi-host container image."
   type        = string
 }
 

@@ -79,28 +79,6 @@ arch/terraform/README.md).
   rm tfplan
   ```
 
-## Build the container images
-
-- Source the environment configuration:
-
-  ```shell
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-  ```
-
-- Build the SFT trainer container image using Google Cloud Build:
-
-  ```shell
-  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
-  cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/terraform/images/tpu/sft-tpu-maxtext-single-host && \
-  rm -rf .terraform/ terraform.tfstate* && \
-  terraform init && \
-  terraform plan -input=false -out=tfplan && \
-  terraform apply -input=false tfplan && \
-  rm tfplan
-  ```
-
-  > The build usually takes 10 to 15 minutes.
-
 ## Deploy the SFT workload
 
 - Source the environment configuration:

@@ -1,6 +1,9 @@
 # Cloud TPU Multi-Host MaxText Supervised Fine-Tuning (SFT) Training & Evaluation User Guide
 
-This guide provides step-by-step instructions for running Multi-Host Supervised Fine-Tuning (SFT) training with Pathways orchestration, monitoring live metrics with MLflow, and executing checkpoint evaluations on GKE using Cloud TPU v5e and v6e multi-host/multi-slice topologies.
+This guide provides step-by-step instructions for running Multi-Host Supervised
+Fine-Tuning (SFT) training with Pathways orchestration, monitoring live metrics
+with MLflow, and executing checkpoint evaluations on GKE using Cloud TPU v5e and
+v6e multi-host/multi-slice topologies.
 
 ---
 
@@ -40,7 +43,8 @@ gcloud secrets versions list ${huggingface_hub_access_token_read_secret_manager_
 
 ## 2. Step 1: One-Time Hugging Face Model Conversion
 
-Before starting SFT training, convert base Hugging Face weights into MaxText Orbax format using the CPU-based checkpoint converter:
+Before starting SFT training, convert base Hugging Face weights into MaxText
+Orbax format using the CPU-based checkpoint converter:
 
 ```bash
 # Example: Gemma 4 31B
@@ -60,7 +64,8 @@ kubectl apply -k platforms/gke/base/use-cases/reinforcement-learning/kubernetes-
 kubectl logs -f -l app=maxtext-checkpoint-converter -n ${training_ref_arch_sft_tpu_maxtext_multi_host_kubernetes_namespace_name}
 ```
 
-*Converted checkpoints will be saved to `gs://${training_ref_arch_dataset_bucket_name}/${MODEL_NAME}/0/items`.*
+_Converted checkpoints will be saved to
+`gs://${training_ref_arch_dataset_bucket_name}/${MODEL_NAME}/0/items`._
 
 ---
 
@@ -92,7 +97,8 @@ kubectl logs -f -l app=maxtext-checkpoint-converter -n ${training_ref_arch_sft_t
      kubectl apply -k platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-multi-host/v6e-4x8-qwen-3-14b-instruct/
      ```
 
-   - **Gemma 3 4B on Multi-Slice TPU v6e (`numSlices: 2` $\times$ `4x4`, 32 chips total)**:
+   - **Gemma 3 4B on Multi-Slice TPU v6e (`numSlices: 2` $\times$ `4x4`, 32
+     chips total)**:
 
      ```bash
      kubectl apply -k platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-multi-host/v6e-multislice-2x4x4-gemma-3-4b/
@@ -119,7 +125,8 @@ gcloud storage ls gs://${sft_dataset_bucket_name}/pathways/checkpoints/
 
 ### 4.3 Launch MLflow Tracking UI
 
-Port-forward the MLflow tracking service to monitor real-time training loss, evaluation perplexity, and learning rate:
+Port-forward the MLflow tracking service to monitor real-time training loss,
+evaluation perplexity, and learning rate:
 
 ```bash
 kubectl port-forward --namespace=${sft_cpu_mlflow_kubernetes_namespace_name} svc/mlflow-service-svc 5000:5000
@@ -131,7 +138,8 @@ Open `http://localhost:5000` in your browser.
 
 ## 5. Step 4: Launch Dedicated Checkpoint Evaluation Job
 
-To evaluate a saved model checkpoint against the test dataset split without restarting training:
+To evaluate a saved model checkpoint against the test dataset split without
+restarting training:
 
 1. **Configure the Evaluation manifest variables**:
 
@@ -166,14 +174,23 @@ kubectl logs -f -l 'jobset.sigs.k8s.io/jobset-name=sft-tpu-maxtext-multi-host-ev
 ### 6.2 Evaluation Metrics
 
 The evaluation run records test metrics across evaluation batches:
-* **Eval Loss**: Cross-entropy loss on held-out dialogues (`test_sft`).
-* **Eval Perplexity**: \( \exp(\text{Eval Loss}) \) tracking language modeling prediction accuracy.
-* **TFLOP/s / device**: Effective compute utilization across TPU chips during forward evaluation passes.
+
+- **Eval Loss**: Cross-entropy loss on held-out dialogues (`test_sft`).
+- **Eval Perplexity**: \( \exp(\text{Eval Loss}) \) tracking language modeling
+  prediction accuracy.
+- **TFLOP/s / device**: Effective compute utilization across TPU chips during
+  forward evaluation passes.
 
 ---
 
 ## 7. Key Architecture Rules & Troubleshooting
 
-1. **Pathways Head Pod Colocation**: The head pod colocates `sft-trainer`, `pathways-proxy` (`grpc://127.0.0.1:29000`), and `pathways-rm` (`29001`) containers when using `deploymentMode: colocate_head_with_workers`.
-2. **Workload Identity**: Ensure all manifests use `serviceAccountName: ${sft_tpu_maxtext_multi_host_kubernetes_service_account_name}` with permissions to read the HF token secret and write to the GCS dataset bucket.
-3. **Decoupled Checkpoint Storage**: Checkpoints are stored via Orbax with asynchronous persistence (`ENABLE_PATHWAYS_PERSISTENCE="1"`).
+1. **Pathways Head Pod Colocation**: The head pod colocates `sft-trainer`,
+   `pathways-proxy` (`grpc://127.0.0.1:29000`), and `pathways-rm` (`29001`)
+   containers when using `deploymentMode: colocate_head_with_workers`.
+2. **Workload Identity**: Ensure all manifests use
+   `serviceAccountName: ${sft_tpu_maxtext_multi_host_kubernetes_service_account_name}`
+   with permissions to read the HF token secret and write to the GCS dataset
+   bucket.
+3. **Decoupled Checkpoint Storage**: Checkpoints are stored via Orbax with
+   asynchronous persistence (`ENABLE_PATHWAYS_PERSISTENCE="1"`).

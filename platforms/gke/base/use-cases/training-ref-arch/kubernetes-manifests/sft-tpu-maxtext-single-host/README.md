@@ -64,7 +64,8 @@ kubectl apply -k platforms/gke/base/use-cases/training-ref-arch/kubernetes-manif
 kubectl logs -f -l app=maxtext-checkpoint-converter -n ${sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name}
 ```
 
-*Outputs will be saved to `gs://${huggingface_hub_models_bucket_name}/${HF_MODEL_NAME}/0/items`.*
+_Outputs will be saved to
+`gs://${huggingface_hub_models_bucket_name}/${HF_MODEL_NAME}/0/items`._
 
 ---
 
@@ -118,5 +119,9 @@ gcloud storage ls gs://${sft_tpu_maxtext_single_host_dataset_bucket_name}/${HF_M
 
 ## 5. Early Stopping Guidelines
 
-* **When to stop**: Monitor the **Eval Loss** trend at each 100-step evaluation interval (`eval_interval=100`). When validation loss plateaus or begins rising (indicating overfitting), the model has reached optimal performance.
-* **Resuming from Best Checkpoint**: Since checkpoints are saved periodically, you can pick the step with lowest eval loss directly as the base policy for downstream RL training.
+- **When to stop**: Monitor the **Eval Loss** trend at each 100-step evaluation
+  interval (`eval_interval=100`). When validation loss plateaus or begins rising
+  (indicating overfitting), the model has reached optimal performance.
+- **Resuming from Best Checkpoint**: Since checkpoints are saved periodically,
+  you can pick the step with lowest eval loss directly as the base policy for
+  downstream RL training.

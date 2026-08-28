@@ -164,7 +164,8 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
 ## Viewing Metrics (MLflow & TensorBoard)
 
-MaxText logs step metrics directly to TensorBoard format in Cloud Storage during execution.
+MaxText logs step metrics directly to TensorBoard format in Cloud Storage during
+execution.
 
 ### Accessing the MLflow UI
 
@@ -189,9 +190,9 @@ the dashboard locally:
 1. **Decoupled Conversion**: Checkpoint conversion from Hugging Face format to
    MaxText is decoupled into a dedicated CPU-based conversion job, preserving
    valuable TPU resources for training.
-2. **Official Post-Training Container Image**: Uses the official Google Cloud TPU
-   MaxText post-training image (`tpu_post_training:0.2.4`) with execution scripts
-   mounted declaratively via Kubernetes ConfigMaps, eliminating the need to build
-   and maintain custom container images.
+2. **Official Post-Training Container Image**: Uses the official Google Cloud
+   TPU MaxText post-training image (`tpu_post_training:0.2.4`) with execution
+   scripts mounted declaratively via Kubernetes ConfigMaps, eliminating the need
+   to build and maintain custom container images.
 3. **Optimized Resource Layout**: Configured with a dedicated GCS bucket and GKE
    Workload Identity bindings for clean security isolation.

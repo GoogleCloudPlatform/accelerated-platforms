@@ -21,8 +21,8 @@ MY_PATH="$(
   pwd -P
 )"
 
-if [[ ! -v MODEL_NAME && ! -v HF_MODEL_ID ]]; then
-  echo "MODEL_NAME is not set, exiting!"
+if [[ ! -v HF_MODEL_ID ]]; then
+  echo "HF_MODEL_ID is not set, exiting!"
   exit 1
 fi
 

@@ -29,4 +29,4 @@ fi
 
 source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
-envsubst <"${MY_PATH}/base/templates/runtime.tpl.env" >"${MY_PATH}/base/runtime.env"
+envsubst < "${MY_PATH}/base/templates/runtime.tpl.env" > "${MY_PATH}/base/runtime.env"

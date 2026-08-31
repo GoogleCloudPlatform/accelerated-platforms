@@ -1,0 +1,15 @@
+- op: add
+  path: /spec/controller/template/spec/containers/0/env/-
+  value:
+    name: MODEL_NAME
+    value: "gemma4-31b"
+- op: add
+  path: /spec/controller/template/spec/containers/0/env/-
+  value:
+    name: USE_MULTIMODAL
+    value: "true"
+- op: add
+  path: /spec/controller/template/spec/containers/0/env/-
+  value:
+    name: SCAN_LAYERS
+    value: "true"

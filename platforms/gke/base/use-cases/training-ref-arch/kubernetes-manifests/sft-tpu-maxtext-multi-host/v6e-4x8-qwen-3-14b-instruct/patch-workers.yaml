@@ -1,0 +1,9 @@
+- op: replace
+  path: /spec/workers/0/type
+  value: ct6e-standard-4t
+- op: replace
+  path: /spec/workers/0/topology
+  value: 4x8
+- op: replace
+  path: /spec/workers/0/numSlices
+  value: 1

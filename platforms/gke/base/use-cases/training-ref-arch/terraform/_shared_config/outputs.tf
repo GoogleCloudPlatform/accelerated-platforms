@@ -76,18 +76,22 @@ output "mft_region" {
   value = local.mft_region
 }
 
-<<<<<<< HEAD
-=======
 output "sft_tpu_maxtext_single_host_image_url" {
   value = local.sft_tpu_maxtext_single_host_image_url
 }
 
->>>>>>> main
 output "sft_tpu_maxtext_single_host_dataset_bucket_name" {
   value = local.sft_tpu_maxtext_single_host_dataset_bucket_name
 }
 
-<<<<<<< HEAD
+output "sft_tpu_maxtext_single_host_kubernetes_namespace_name" {
+  value = local.sft_tpu_maxtext_single_host_kubernetes_namespace_name
+}
+
+output "sft_tpu_maxtext_single_host_kubernetes_service_account_name" {
+  value = local.sft_tpu_maxtext_single_host_kubernetes_service_account_name
+}
+
 output "sft_tpu_maxtext_multi_host_dataset_bucket_name" {
   value = local.sft_tpu_maxtext_multi_host_dataset_bucket_name
 }
@@ -98,15 +102,6 @@ output "sft_tpu_maxtext_multi_host_kubernetes_namespace_name" {
 
 output "sft_tpu_maxtext_multi_host_kubernetes_service_account_name" {
   value = local.sft_tpu_maxtext_multi_host_kubernetes_service_account_name
-}
-
-=======
-output "sft_tpu_maxtext_single_host_kubernetes_namespace_name" {
-  value = local.sft_tpu_maxtext_single_host_kubernetes_namespace_name
-}
-
-output "sft_tpu_maxtext_single_host_kubernetes_service_account_name" {
-  value = local.sft_tpu_maxtext_single_host_kubernetes_service_account_name
 }
 
 output "sft_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name" {
@@ -128,5 +123,4 @@ output "sft_cpu_mlflow_kubernetes_service_account_name" {
 output "sft_mlflow_data_bucket_name" {
   value = local.sft_mlflow_data_bucket_name
 }
->>>>>>> main
 

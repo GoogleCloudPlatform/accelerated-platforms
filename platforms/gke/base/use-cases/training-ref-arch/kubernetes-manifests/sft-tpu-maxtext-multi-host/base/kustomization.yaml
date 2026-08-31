@@ -15,6 +15,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+generatorOptions:
+  disableNameSuffixHash: true
+
 configMapGenerator:
   - envs:
       - runtime.env
@@ -23,3 +26,4 @@ configMapGenerator:
 
 resources:
   - job.yaml
+  - configmap-script.yaml

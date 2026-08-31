@@ -15,39 +15,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-nameSuffix: "-v6e-4x8-qwen-3-14b"
+nameSuffix: "-v6e-4x8-qwen-3-14b-instruct"
 
 patches:
-  - patch: |
-      - op: replace
-        path: /spec/workers/0/type
-        value: ct6e-standard-4t
-      - op: replace
-        path: /spec/workers/0/topology
-        value: 4x8
-      - op: replace
-        path: /spec/workers/0/numSlices
-        value: 1
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: MODEL_NAME
-          value: "qwen3-14b"
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: TOKENIZER_PATH
-          value: "Qwen/Qwen3-14B"
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: SCAN_LAYERS
-          value: "true"
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: MAX_TARGET_LENGTH
-          value: "2048"
+  - path: patch-workers.yaml
+    target:
+      kind: PathwaysJob
+      name: sft-tpu-maxtext-multi-host
+  - path: patch-env.yaml
     target:
       kind: PathwaysJob
       name: sft-tpu-maxtext-multi-host
@@ -71,6 +46,10 @@ replacements:
           - metadata.namespace
         select:
           kind: PathwaysJob
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
   - source:
       fieldPath: data.TRAINING_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
@@ -87,6 +66,24 @@ replacements:
     targets:
       - fieldPaths:
           - spec.pathwaysDir
+        select:
+          kind: PathwaysJob
+  - source:
+      fieldPath: metadata.name
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.controller.template.spec.containers.[name=sft-trainer].envFrom.0.configMapRef.name
+        select:
+          kind: PathwaysJob
+  - source:
+      fieldPath: metadata.name
+      kind: ConfigMap
+      name: train-script
+    targets:
+      - fieldPaths:
+          - spec.controller.template.spec.volumes.[name=train-script-vol].configMap.name
         select:
           kind: PathwaysJob
 

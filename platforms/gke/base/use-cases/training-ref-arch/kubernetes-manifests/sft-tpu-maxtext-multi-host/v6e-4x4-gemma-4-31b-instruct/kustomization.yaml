@@ -18,33 +18,11 @@ kind: Kustomization
 nameSuffix: "-v6e-4x4-gemma-4-31b-instruct"
 
 patches:
-  - patch: |
-      - op: replace
-        path: /spec/workers/0/type
-        value: ct6e-standard-8t
-      - op: replace
-        path: /spec/workers/0/topology
-        value: 4x4
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: MODEL_NAME
-          value: "gemma4-31b"
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: TOKENIZER_PATH
-          value: "google/gemma-4-31b-it"
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: USE_MULTIMODAL
-          value: "true"
-      - op: add
-        path: /spec/controller/template/spec/containers/0/env/-
-        value:
-          name: SCAN_LAYERS
-          value: "true"
+  - path: patch-workers.yaml
+    target:
+      kind: PathwaysJob
+      name: sft-tpu-maxtext-multi-host
+  - path: patch-env.yaml
     target:
       kind: PathwaysJob
       name: sft-tpu-maxtext-multi-host
@@ -68,6 +46,10 @@ replacements:
           - metadata.namespace
         select:
           kind: PathwaysJob
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
   - source:
       fieldPath: data.TRAINING_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
@@ -84,6 +66,24 @@ replacements:
     targets:
       - fieldPaths:
           - spec.pathwaysDir
+        select:
+          kind: PathwaysJob
+  - source:
+      fieldPath: metadata.name
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.controller.template.spec.containers.[name=sft-trainer].envFrom.0.configMapRef.name
+        select:
+          kind: PathwaysJob
+  - source:
+      fieldPath: metadata.name
+      kind: ConfigMap
+      name: train-script
+    targets:
+      - fieldPaths:
+          - spec.controller.template.spec.volumes.[name=train-script-vol].configMap.name
         select:
           kind: PathwaysJob
 

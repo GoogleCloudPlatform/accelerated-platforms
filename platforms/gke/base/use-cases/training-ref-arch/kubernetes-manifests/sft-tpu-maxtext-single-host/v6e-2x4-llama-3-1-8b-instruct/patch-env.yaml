@@ -12,14 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-configMapGenerator:
-  - envs:
-      - runtime.env
-    name: runtime
-    namespace: replaced-by-kustomize
-
-resources:
-  - job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sft-tpu-maxtext-single-host
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      containers:
+        - name: sft-trainer
+          env:
+            - name: MODEL_NAME
+              value: "llama3.1-8b"
+            - name: SCAN_LAYERS
+              value: "true"

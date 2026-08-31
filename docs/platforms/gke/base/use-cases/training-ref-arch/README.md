@@ -30,6 +30,7 @@ Some example patterns provided are:
 
 - [Model Fine Tuning](/docs/platforms/gke/base/use-cases/training-ref-arch/model-fine-tuning/README.md)
 - [Single-host Supervised Fine-Tuning (SFT) with TPUs on Google Kubernetes Engine (GKE) using MaxText](/docs/platforms/gke/base/use-cases/training-ref-arch/sft-tpu-maxtext-single-host/README.md)
+- [Multi-host Supervised Fine-Tuning (SFT) with TPUs on Google Kubernetes Engine (GKE) using MaxText](/docs/platforms/gke/base/use-cases/training-ref-arch/sft-tpu-maxtext-multi-host/README.md)
 
 Further use cases and patterns can be built upon this foundational architecture.
 

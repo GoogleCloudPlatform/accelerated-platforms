@@ -4,20 +4,18 @@ This example implements Supervised Fine-Tuning (SFT) on Multi-Host TPU
 topologies using MaxText and Tunix post-training libraries on Google Kubernetes
 Engine (GKE).
 
-Multi-host TPU configurations (such as TPU `v5e-4x4` or `v6e-4x4` containing 16
-chips or larger) span across multiple hosts. This setup uses **PathwaysJob**
-resources to coordinate training natively across all TPU hosts with Pathways
-orchestration.
+Multi-host TPU configurations (such as TPU `v6e-4x4` containing 16 chips or
+larger) span across multiple hosts. This setup uses **PathwaysJob** resources to
+coordinate training natively across all TPU hosts with Pathways orchestration.
 
 This use-case is built on top of the
 [GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md).
 
 ## Topology & Memory Sizing Guidelines
 
-| Model            | Parameters | Full SFT Memory (Weights + AdamW States) | Recommended TPU Topology                                                     |
-| :--------------- | :--------- | :--------------------------------------- | :--------------------------------------------------------------------------- |
-| **Llama 3.1 8B** | 8B         | ~112 GB HBM                              | TPU v5e-16 (`v5e-4x4` - 2 hosts, 16 chips)                                   |
-| **Gemma 4 31B**  | 31B        | ~434 GB HBM                              | TPU v6e-16 (`v6e-4x4` - 2 hosts, 16 chips, 512GB HBM) for full parameter SFT |
+| Model           | Parameters | Full SFT Memory (Weights + AdamW States) | Recommended TPU Topology                                                     |
+| :-------------- | :--------- | :--------------------------------------- | :--------------------------------------------------------------------------- |
+| **Gemma 4 31B** | 31B        | ~434 GB HBM                              | TPU v6e-16 (`v6e-4x4` - 2 hosts, 16 chips, 512GB HBM) for full parameter SFT |
 
 ## Objectives
 
@@ -73,12 +71,6 @@ This use-case is built on top of the
   ```
 
 - Deploy the SFT multi-host workload using Kustomize:
-
-  - **Llama 3.1 8B on TPU v5e (4x4, 16 chips)**:
-
-    ```shell
-    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-multi-host/v5e-4x4-llama-3-1-8b-instruct"
-    ```
 
   - **Gemma 4 31B on TPU v6e (4x4, 16 chips)**:
 

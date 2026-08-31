@@ -2,8 +2,8 @@
 
 This guide provides step-by-step instructions for running Multi-Host Supervised
 Fine-Tuning (SFT) training with Pathways orchestration, monitoring live metrics
-with MLflow, and executing checkpoint evaluations on GKE using Cloud TPU v5e and
-v6e multi-host/multi-slice topologies.
+with MLflow, and executing checkpoint evaluations on GKE using Cloud TPU v6e
+multi-host/multi-slice topologies.
 
 ---
 
@@ -78,12 +78,6 @@ _Converted checkpoints will be saved to
    ```
 
 2. **Deploy the SFT training workload** onto your desired multi-host TPU slice:
-
-   - **Llama 3.1 8B on TPU v5e-16 (`v5e-4x4`, 16 chips)**:
-
-     ```bash
-     kubectl apply -k platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-multi-host/v5e-4x4-llama-3-1-8b-instruct/
-     ```
 
    - **Gemma 4 31B on TPU v6e-16 (`v6e-4x4`, 16 chips)**:
 

@@ -76,10 +76,6 @@ output "mft_region" {
   value = local.mft_region
 }
 
-output "sft_tpu_maxtext_single_host_image_url" {
-  value = local.sft_tpu_maxtext_single_host_image_url
-}
-
 output "sft_tpu_maxtext_single_host_dataset_bucket_name" {
   value = local.sft_tpu_maxtext_single_host_dataset_bucket_name
 }

@@ -41,6 +41,10 @@ replacements:
           - metadata.namespace
         select:
           kind: Job
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
   - source:
       fieldPath: data.TRAINING_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap

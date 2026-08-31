@@ -23,21 +23,42 @@ spec:
     spec:
       restartPolicy: Never
       nodeSelector:
-        cloud.google.com/compute-class: "tpu-v5e-2x4"
+        cloud.google.com/compute-class: "tpu-v6e-2x4"
       containers:
         - name: sft-trainer
           image: replaced-by-kustomize
           resources:
             requests:
               google.com/tpu: "8"
+              memory: "128Gi"
+              cpu: "16"
+              ephemeral-storage: "30Gi"
             limits:
               google.com/tpu: "8"
+              cpu: "28"
+              ephemeral-storage: "80Gi"
+          command:
+            - "/bin/bash"
+            - "/train.sh"
+          envFrom:
+            - configMapRef:
+                name: runtime
           env:
-            - name: MLFLOW_TRACKING_URI
-              value: "http://mlflow-service-svc:5000"
             - name: HF_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: hf-secret
                   key: token
+          volumeMounts:
+            - name: train-script-vol
+              mountPath: /train.sh
+              subPath: train.sh
+            - name: tmp-vol
+              mountPath: /tmp
+      volumes:
+        - name: train-script-vol
+          configMap:
+            name: train-script
+        - name: tmp-vol
+          emptyDir: {}
       serviceAccountName: replaced-by-kustomize

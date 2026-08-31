@@ -12,22 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+resource "google_storage_bucket_iam_member" "data_bucket_mlflow_storage_object_admin" {
+  bucket = google_storage_bucket.mlflow_data.name
+  member = local.sft_cpu_mlflow_ksa_member
+  role   = "roles/storage.objectAdmin"
+}
+
 resource "local_file" "mlflow_manifest" {
   content = templatefile(
     "${path.module}/templates/mlflow/manifests.tftpl.yaml",
     {
-      bucket_name          = google_storage_bucket.sft_dataset.name,
-      service_account_name = local.sft_tpu_maxtext_single_host_kubernetes_service_account_name,
-      namespace            = local.sft_tpu_maxtext_single_host_kubernetes_namespace_name,
+      bucket_name          = google_storage_bucket.mlflow_data.name,
+      service_account_name = local.sft_cpu_mlflow_kubernetes_service_account_name,
+      namespace            = local.sft_cpu_mlflow_kubernetes_namespace_name,
     }
   )
-  filename = "${local.namespaces_directory}/mlflow-sft.yaml"
+  filename = "${local.namespaces_directory}/mlflow.yaml"
 }
 
 module "kubectl_apply_mlflow_manifest" {
   depends_on = [
     module.kubectl_apply_namespace,
-    module.kubectl_apply_service_account,
   ]
 
   source = "../../../../modules/kubectl_apply"
@@ -35,5 +40,5 @@ module "kubectl_apply_mlflow_manifest" {
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local_file.mlflow_manifest.filename
   manifest_includes_namespace = false
-  namespace                   = local.sft_tpu_maxtext_single_host_kubernetes_namespace_name
+  namespace                   = local.sft_cpu_mlflow_kubernetes_namespace_name
 }

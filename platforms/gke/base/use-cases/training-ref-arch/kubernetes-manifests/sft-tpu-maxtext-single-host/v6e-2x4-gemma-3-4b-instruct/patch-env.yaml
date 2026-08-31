@@ -25,6 +25,8 @@ spec:
           env:
             - name: MODEL_NAME
               value: "gemma3-4b"
+            - name: TOKENIZER_PATH
+              value: "google/gemma-3-4b-it"
             - name: USE_MULTIMODAL
               value: "true"
             - name: SCAN_LAYERS

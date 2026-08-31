@@ -4,9 +4,8 @@ This example implements Supervised Fine-Tuning (SFT) using MaxText and Tunix on
 Cloud TPUs on Google Kubernetes Engine (GKE).
 
 It leverages **MaxText**'s scalable FSDP training loops and **Tunix**
-post-training libraries on a single TPU v5e-8 slice (`v5e-2x4`) or TPU v6e-8
-slice (`v6e-2x4`) to fine-tune Llama-3.1-8B-Instruct on instruction-following
-datasets.
+post-training libraries on a single TPU v6e-8 slice (`v6e-2x4`) to fine-tune
+Llama-3.1-8B-Instruct on instruction-following datasets.
 
 This use-case is built on top of the
 [GKE Training Reference Architecture](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md).
@@ -28,8 +27,8 @@ This use-case is built on top of the
   has been added to Secret Manager.
 
 - Hardware & Storage Prerequisites:
-  - **Hardware**: This configuration is tuned for a **TPU v5e-8** (`v5e-2x4`) or
-    **TPU v6e-8** (`v6e-2x4`) slice topology.
+  - **Hardware**: This configuration is tuned for a **TPU v6e-8** (`v6e-2x4`)
+    slice topology.
   - **Storage**: GCS bucket configured for storing Hugging Face converted
     checkpoints and SFT checkpoint weights.
 
@@ -126,12 +125,6 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
 - Deploy the SFT workload.
 
-  For TPU v5e (Llama 3.1 8B):
-
-  ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v5e-2x4-llama-3-1-8b-instruct"
-  ```
-
   For TPU v6e (Llama 3.1 8B):
 
   ```shell
@@ -148,16 +141,16 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name} get job/sft-tpu-maxtext-single-host-v5e-2x4-llama-3-1-8b-instruct | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  "kubectl --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name} get job/sft-tpu-maxtext-single-host-v6e-2x4-llama-3-1-8b-instruct | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name} logs job/sft-tpu-maxtext-single-host-v5e-2x4-llama-3-1-8b-instruct --all-containers --tail 10"
+  kubectl --namespace=${sft_tpu_maxtext_single_host_kubernetes_namespace_name} logs job/sft-tpu-maxtext-single-host-v6e-2x4-llama-3-1-8b-instruct --all-containers --tail 10"
   ```
 
   When the job is complete, you will see the following status:
 
   ```text
   NAME                                                               STATUS     COMPLETIONS   DURATION   AGE
-  sft-tpu-maxtext-single-host-v5e-2x4-llama-3-1-8b-instruct          Complete   1/1           ###        ###
+  sft-tpu-maxtext-single-host-v6e-2x4-llama-3-1-8b-instruct          Complete   1/1           ###        ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.

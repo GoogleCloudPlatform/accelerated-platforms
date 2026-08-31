@@ -2,7 +2,7 @@
 
 This guide provides step-by-step instructions for running Supervised Fine-Tuning
 (SFT) training with in-flight evaluation and checkpoint saves on GKE using Cloud
-TPU v5e and v6e slices with the official MaxText post-training image.
+TPU v6e slices with the official MaxText post-training image.
 
 ---
 
@@ -89,12 +89,6 @@ _Outputs will be saved to
 
      ```bash
      kubectl apply -k platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v6e-2x4-llama-3-1-8b-instruct/
-     ```
-
-   - **For TPU v5e (LLaMA 3.1 8B)**:
-
-     ```bash
-     kubectl apply -k platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/sft-tpu-maxtext-single-host/v5e-2x4-llama-3-1-8b-instruct/
      ```
 
 ---

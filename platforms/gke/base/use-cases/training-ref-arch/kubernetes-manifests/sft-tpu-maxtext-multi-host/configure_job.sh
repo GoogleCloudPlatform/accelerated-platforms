@@ -22,11 +22,11 @@ MY_PATH="$(
   pwd -P
 )"
 
-if [[ ! -v MODEL_NAME && ! -v HF_MODEL_ID ]]; then
-  echo "MODEL_NAME is not set, exiting!"
+if [[ ! -v HF_MODEL_ID ]]; then
+  echo "HF_MODEL_ID is not set, exiting!"
   exit 1
 fi
 
 source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
-envsubst <"${MY_PATH}/base/templates/runtime.tpl.env" >"${MY_PATH}/base/runtime.env"
+envsubst < "${MY_PATH}/base/templates/runtime.tpl.env" > "${MY_PATH}/base/runtime.env"

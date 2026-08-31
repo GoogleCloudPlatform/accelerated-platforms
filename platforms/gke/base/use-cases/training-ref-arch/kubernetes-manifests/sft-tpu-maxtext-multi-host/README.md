@@ -47,13 +47,13 @@ Orbax format using the dedicated CPU-based checkpoint converter:
 
 ```bash
 # Example 1: Gemma 4 31B
-export MODEL_NAME="gemma4-31b"
+export HF_MODEL_ID="gemma4-31b"
 
 # Example 2: Qwen 3 14B
-# export MODEL_NAME="qwen3-14b"
+# export HF_MODEL_ID="qwen3-14b"
 
 # Example 3: Gemma 3 4B
-# export MODEL_NAME="gemma3-4b"
+# export HF_MODEL_ID="gemma3-4b"
 
 # Configure the CPU checkpoint converter
 platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/maxtext-checkpoint-converter/configure_checkpoint_converter.sh
@@ -69,7 +69,7 @@ kubectl logs -f -l app=maxtext-checkpoint-converter -n ${sft_cpu_maxtext_checkpo
 ```
 
 _Outputs will be saved to
-`gs://${huggingface_hub_models_bucket_name}/${MODEL_NAME}/0/items`._
+`gs://${huggingface_hub_models_bucket_name}/${HF_MODEL_NAME}/0/items`._
 
 ---
 
@@ -116,7 +116,7 @@ kubectl logs -f -l app=sft-trainer -n ${sft_tpu_maxtext_multi_host_kubernetes_na
 ### 4.2 Check Saved Checkpoints in GCS
 
 ```bash
-gcloud storage ls gs://${sft_tpu_maxtext_multi_host_dataset_bucket_name}/${MODEL_NAME}-sft-v6e/checkpoints/
+gcloud storage ls gs://${sft_tpu_maxtext_multi_host_dataset_bucket_name}/${HF_MODEL_ID}-sft-v6e/checkpoints/
 ```
 
 ---

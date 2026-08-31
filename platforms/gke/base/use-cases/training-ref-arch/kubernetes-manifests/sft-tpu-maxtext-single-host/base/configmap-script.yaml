@@ -61,8 +61,6 @@ data:
       hf_path="${HF_PATH:-HuggingFaceH4/ultrachat_200k}" \
       train_split="${TRAIN_SPLIT:-train_sft}" \
       train_data_columns="${TRAIN_DATA_COLUMNS:-['messages']}" \
-      tokenizer_type=${TOKENIZER_TYPE:-huggingface} \
-      tokenizer_path="${TOKENIZER_PATH:-${HF_MODEL_NAME}}" \
       scan_layers=${SCAN_LAYERS:-True} \
       use_multimodal=${USE_MULTIMODAL:-False} \
       hf_access_token="${HF_TOKEN}" \

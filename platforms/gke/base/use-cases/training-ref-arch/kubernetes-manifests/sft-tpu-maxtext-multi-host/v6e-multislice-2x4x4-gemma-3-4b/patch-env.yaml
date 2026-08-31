@@ -20,5 +20,10 @@
 - op: add
   path: /spec/controller/template/spec/containers/0/env/-
   value:
+    name: USE_MULTIMODAL
+    value: "true"
+- op: add
+  path: /spec/controller/template/spec/containers/0/env/-
+  value:
     name: SCAN_LAYERS
     value: "true"

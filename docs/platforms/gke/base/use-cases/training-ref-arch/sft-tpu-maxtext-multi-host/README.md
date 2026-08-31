@@ -20,6 +20,7 @@ This use-case is built on top of the
 - Get access to the model.
 
   - For Gemma:
+
     - Accept the terms of the license on the Hugging Face model page:
       - [**google/gemma-4-31b-it**](https://huggingface.co/google/gemma-4-31b-it)
       - [**google/gemma-3-4b-it**](https://huggingface.co/google/gemma-3-4b-it)
@@ -34,8 +35,7 @@ This use-case is built on top of the
 
 - Hardware & Storage Prerequisites:
   - **Hardware**: This configuration is tuned for multi-host and multi-slice
-    **TPU v6e** topologies (e.g., `v6e-4x4`, `v6e-4x8`, or `2x4x4`
-    multi-slice).
+    **TPU v6e** topologies (e.g., `v6e-4x4`, `v6e-4x8`, or `2x4x4` multi-slice).
   - **Storage**: GCS bucket configured for storing Hugging Face converted
     checkpoints and SFT checkpoint weights.
 

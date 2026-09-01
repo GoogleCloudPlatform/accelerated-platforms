@@ -15,13 +15,19 @@ into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
   - **Gemma 3 4B Instruction-Tuned**:
 
     ```shell
-    export HF_MODEL_ID="google/gemma-3-4b-it"
+    export HF_MODEL_ID="gemma-3-4b-it"
     ```
 
-  - **Gemma 4 26B Instruction-Tuned**:
+  - **Gemma 4 31B Instruction-Tuned**:
 
     ```shell
-    export HF_MODEL_ID="gemma4-26b"
+    export HF_MODEL_ID="gemma4-31b"
+    ```
+
+  - **Qwen 3 30B Instruction-Tuned**:
+
+    ```shell
+    export HF_MODEL_ID="qwen3-30b-a3b"
     ```
 
 - Source the environment configuration:

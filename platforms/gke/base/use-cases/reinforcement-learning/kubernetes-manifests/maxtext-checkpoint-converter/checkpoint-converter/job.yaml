@@ -38,13 +38,13 @@ spec:
             - /scripts/convert.sh
           resources:
             requests:
-              cpu: "8"
-              memory: "32Gi"
-              ephemeral-storage: "50Gi"
-            limits:
               cpu: "16"
-              memory: "64Gi"
-              ephemeral-storage: "150Gi"
+              memory: "96Gi"
+              ephemeral-storage: "100Gi"
+            limits:
+              cpu: "32"
+              memory: "160Gi"
+              ephemeral-storage: "250Gi"
           envFrom:
             - configMapRef:
                 name: converter-config

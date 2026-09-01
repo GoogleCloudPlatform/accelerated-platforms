@@ -1,5 +1,9 @@
 alpaca
+deepseek
+gemma
+llama
 maxtext
+moe
 ocdbt
 qwen
 redhatai

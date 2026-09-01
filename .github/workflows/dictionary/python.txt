@@ -5,6 +5,7 @@ asctime
 asgi
 asynccontextmanager
 asyncio
+bfloat
 certifi
 cffi
 classmethod

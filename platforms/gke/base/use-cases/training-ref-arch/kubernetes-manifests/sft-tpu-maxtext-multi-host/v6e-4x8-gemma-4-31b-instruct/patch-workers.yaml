@@ -17,4 +17,4 @@
   value: ct6e-standard-8t
 - op: replace
   path: /spec/workers/0/topology
-  value: 4x4
+  value: 4x8

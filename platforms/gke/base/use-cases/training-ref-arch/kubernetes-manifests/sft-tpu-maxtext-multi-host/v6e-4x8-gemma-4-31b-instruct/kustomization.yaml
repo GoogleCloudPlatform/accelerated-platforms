@@ -15,7 +15,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-nameSuffix: "-v6e-multislice-2x4x4-gemma-3-4b"
+nameSuffix: "-v6e-4x8-gemma-4-31b-instruct"
 
 patches:
   - path: patch-workers.yaml

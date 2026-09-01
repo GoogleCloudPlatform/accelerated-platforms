@@ -36,51 +36,82 @@ export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/examples/llmd"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
-# needed to source this file earlier to check the exit condition
-source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
-inference_terraservice="online_gpu"
-if [[ ${deploy_on_gpu} == "true" ]]; then
-  echo "online_gpu terraservice will be deployed"
-elif [[ ${deploy_on_tpu} == "true" ]]; then
-  inference_terraservice="online_tpu"
-  echo "online_tpu terraservice will be deployed"
-else
-  echo "A valid GPU or TPU must be matched in deploy_on_gpu and deploy_on_tpu local variables in _shared_config/llmd-shared_variables.tf"
-  exit 0
-fi
+INFRA_ONLY="false"
+while [[ $# -gt 0 ]]; do
+  case "${1}" in
+  --infra)
+    INFRA_ONLY="true"
+    shift
+    ;;
+  *)
+    echo "Unknown parameter: ${1}"
+    exit 1
+    ;;
+  esac
+done
 
-declare -a CORE_TERRASERVICES_APPLY=(
-  "networking"
-  "container_cluster"
-  "workloads/cluster_credentials"
-  "workloads/storage_class"
-  "cloudbuild/initialize"
-  "huggingface/initialize"
-  "huggingface/hub_downloader"
-  "custom_compute_class"
-  "workloads/auto_monitoring"
-  "workloads/custom_metrics_adapter"
-  "workloads/priority_class"
-)
+if [[ "${INFRA_ONLY}" == "true" ]]; then
+  declare -a CORE_TERRASERVICES_APPLY=(
+    "networking"
+    "container_cluster"
+    "workloads/cluster_credentials"
+    "workloads/storage_class"
+    "custom_compute_class"
+    "workloads/auto_monitoring"
+    "workloads/custom_metrics_adapter"
+  )
+else
+  # needed to source this file earlier to check the exit condition
+  source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+  inference_terraservice="online_gpu"
+  if [[ ${deploy_on_gpu} == "true" ]]; then
+    echo "online_gpu terraservice will be deployed"
+  elif [[ ${deploy_on_tpu} == "true" ]]; then
+    inference_terraservice="online_tpu"
+    echo "online_tpu terraservice will be deployed"
+  else
+    echo "A valid GPU or TPU must be matched in deploy_on_gpu and deploy_on_tpu local variables in _shared_config/llmd-shared_variables.tf"
+    exit 0
+  fi
+
+  declare -a CORE_TERRASERVICES_APPLY=(
+    "networking"
+    "container_cluster"
+    "workloads/cluster_credentials"
+    "workloads/storage_class"
+    "cloudbuild/initialize"
+    "huggingface/initialize"
+    "huggingface/hub_downloader"
+    "custom_compute_class"
+    "workloads/auto_monitoring"
+    "workloads/custom_metrics_adapter"
+    "workloads/priority_class"
+  )
+fi
 CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+
+if [[ "${INFRA_ONLY}" == "false" ]]; then
+  # shellcheck disable=SC1091
+  source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+
+  declare -a use_case_terraservices=(
+    "../../terraform/${inference_terraservice}/"
+    "optimized-baseline"
+  )
+
+  for terraservice in "${use_case_terraservices[@]}"; do
+    cd "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/${terraservice}" &&
+      echo "Current directory: $(pwd)" &&
+      rm -rf .terraform/ &&
+      terraform init &&
+      terraform plan -input=false -out=tfplan &&
+      terraform apply -input=false tfplan || exit 1
+    rm tfplan
+  done
+fi
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
-
-declare -a use_case_terraservices=(
-  "../../terraform/${inference_terraservice}/"
-  "optimized-baseline"
-)
-
-for terraservice in "${use_case_terraservices[@]}"; do
-  cd "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/${terraservice}" &&
-    echo "Current directory: $(pwd)" &&
-    rm -rf .terraform/ &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-  rm tfplan
-done
 
 # shellcheck disable=SC2154
 gcloud container clusters get-credentials "${cluster_name}" \

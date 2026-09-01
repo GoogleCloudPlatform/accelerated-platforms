@@ -39,58 +39,88 @@ export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 # Set execution specific values
 export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 
-# shellcheck disable=SC1091
-source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
-inference_terraservice="online_gpu"
-if [[ ${deploy_on_gpu} == "true" ]]; then
-  echo "online_gpu terraservice will be destroyed"
-elif [[ ${deploy_on_tpu} == "true" ]]; then
-  inference_terraservice="online_tpu"
-  echo "online_tpu terraservice will be deployed"
-else
-  echo "A valid GPU or TPU must be matched in deploy_on_gpu and deploy_on_tpu local variables in _shared_config/llmd-shared_variables.tf"
-  exit 0
-fi
-# shellcheck disable=SC2154
-cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
-  echo "Current directory: $(pwd)" &&
-  sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
-  cp backend.tf.bucket backend.tf &&
-  rm -rf .terraform/ &&
-  terraform init &&
-  terraform plan -input=false -out=tfplan &&
-  terraform apply -input=false tfplan || exit 1
-rm tfplan
-
-declare -a use_case_terraservices=(
-  "../examples/llmd/precise-prefix-cache-routing"
-  "${inference_terraservice}"
-)
-for terraservice in "${use_case_terraservices[@]}"; do
-  cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
-    echo "Current directory: $(pwd)" &&
-    rm -rf .terraform/ &&
-    terraform init &&
-    terraform destroy -auto-approve || exit 1
-  rm -rf .terraform/ \
-    "terraform.tfstate"*
+INFRA_ONLY="false"
+while [[ $# -gt 0 ]]; do
+  case "${1}" in
+  --infra)
+    INFRA_ONLY="true"
+    shift
+    ;;
+  *)
+    echo "Unknown parameter: ${1}"
+    exit 1
+    ;;
+  esac
 done
 
-if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
-  declare -a CORE_TERRASERVICES_DESTROY=(
-    "workloads/priority_class"
-    "workloads/custom_metrics_adapter"
-    "workloads/auto_monitoring"
-    "custom_compute_class"
-    "huggingface/hub_downloader"
-    "huggingface/initialize"
-    "cloudbuild/initialize"
-    "workloads/storage_class"
-    "workloads/cluster_credentials"
-    "container_cluster"
-    "networking"
-    "initialize"
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
+
+if [[ "${INFRA_ONLY}" == "false" ]]; then
+  inference_terraservice="online_gpu"
+  if [[ ${deploy_on_gpu} == "true" ]]; then
+    echo "online_gpu terraservice will be destroyed"
+  elif [[ ${deploy_on_tpu} == "true" ]]; then
+    inference_terraservice="online_tpu"
+    echo "online_tpu terraservice will be deployed"
+  else
+    echo "A valid GPU or TPU must be matched in deploy_on_gpu and deploy_on_tpu local variables in _shared_config/llmd-shared_variables.tf"
+    exit 0
+  fi
+  # shellcheck disable=SC2154
+  cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
+    echo "Current directory: $(pwd)" &&
+    sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
+    cp backend.tf.bucket backend.tf &&
+    rm -rf .terraform/ &&
+    terraform init &&
+    terraform plan -input=false -out=tfplan &&
+    terraform apply -input=false tfplan || exit 1
+  rm tfplan
+
+  declare -a use_case_terraservices=(
+    "../examples/llmd/precise-prefix-cache-routing"
+    "${inference_terraservice}"
   )
+  for terraservice in "${use_case_terraservices[@]}"; do
+    cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
+      echo "Current directory: $(pwd)" &&
+      rm -rf .terraform/ &&
+      terraform init &&
+      terraform destroy -auto-approve || exit 1
+    rm -rf .terraform/ \
+      "terraform.tfstate"*
+  done
+fi
+
+if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
+  if [[ "${INFRA_ONLY}" == "true" ]]; then
+    declare -a CORE_TERRASERVICES_DESTROY=(
+      "workloads/custom_metrics_adapter"
+      "workloads/auto_monitoring"
+      "custom_compute_class"
+      "workloads/storage_class"
+      "workloads/cluster_credentials"
+      "container_cluster"
+      "networking"
+      "initialize"
+    )
+  else
+    declare -a CORE_TERRASERVICES_DESTROY=(
+      "workloads/priority_class"
+      "workloads/custom_metrics_adapter"
+      "workloads/auto_monitoring"
+      "custom_compute_class"
+      "huggingface/hub_downloader"
+      "huggingface/initialize"
+      "cloudbuild/initialize"
+      "workloads/storage_class"
+      "workloads/cluster_credentials"
+      "container_cluster"
+      "networking"
+      "initialize"
+    )
+  fi
   CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY[*]}" "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
 else
   echo "Skipping core platform teardown."

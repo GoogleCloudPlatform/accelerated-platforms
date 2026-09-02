@@ -29,16 +29,16 @@ fi
 source "${MY_PATH}/../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
 secret_version_found=$(gcloud secrets versions list "${huggingface_hub_access_token_read_secret_manager_secret_name}" \
---project="${huggingface_secret_manager_project_id}" 2>/dev/null | grep "enabled" | wc -l)
+  --project="${huggingface_secret_manager_project_id}" 2>/dev/null | grep "enabled" | wc -l)
 
 if [[ ${secret_version_found} == 0 ]]; then
   echo "Hugging Face Hub read token secret '${huggingface_hub_access_token_read_secret_manager_secret_name}' version is missing or not enabled! Please add the token to the secret, exiting."
   exit 1
 fi
 
-envsubst < "${MY_PATH}/checkpoint-converter/templates/converter.tpl.env" | sponge "${MY_PATH}/checkpoint-converter/converter.env"
+envsubst <"${MY_PATH}/checkpoint-converter/templates/converter.tpl.env" | sponge "${MY_PATH}/checkpoint-converter/converter.env"
 
-envsubst < "${MY_PATH}/checkpoint-converter/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/checkpoint-converter/secretproviderclass-huggingface-tokens.yaml"
+envsubst <"${MY_PATH}/checkpoint-converter/templates/secretproviderclass-huggingface-tokens.tpl.yaml" | sponge "${MY_PATH}/checkpoint-converter/secretproviderclass-huggingface-tokens.yaml"
 
 cd "${MY_PATH}/checkpoint-converter"
 kustomize edit set nameprefix "${HF_MODEL_ID_HASH}-"

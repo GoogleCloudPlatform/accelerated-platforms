@@ -61,6 +61,18 @@ for region in "${SHUFFLED_REGIONS[@]}"; do
     continue
   fi
 
+  # Check if region supports required N4 machine types for the system node pool (n4-standard-4)
+  if [ -n "${PROJECT_ID_TO_CHECK}" ]; then
+    n4_check=$(gcloud compute machine-types list --filter="zone ~ ${region} AND name=n4-standard-4" --project="${PROJECT_ID_TO_CHECK}" --format="value(name)" 2>/dev/null | head -n 1 || true)
+  else
+    n4_check=$(gcloud compute machine-types list --filter="zone ~ ${region} AND name=n4-standard-4" --format="value(name)" 2>/dev/null | head -n 1 || true)
+  fi
+
+  if [ -z "${n4_check}" ]; then
+    echo "  Region '${region}' missing required n4-standard-4 machine type for system node pool, skipping." >&2
+    continue
+  fi
+
   # Check if region supports required GPU & TPU v6e machine types (ct6e-standard-4t OR a2-highgpu-1g / g2-standard-4)
   if [ -n "${PROJECT_ID_TO_CHECK}" ]; then
     mt_check=$(gcloud compute machine-types list --filter="zone ~ ${region} AND name=(ct6e-standard-4t OR a2-highgpu-1g OR g2-standard-4)" --project="${PROJECT_ID_TO_CHECK}" --format="value(name)" 2>/dev/null | head -n 1 || true)

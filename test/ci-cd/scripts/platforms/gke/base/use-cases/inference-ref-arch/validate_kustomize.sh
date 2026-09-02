@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+
+INFO="\033[1;34m[INFO]\033[0m"
+echo -e "${INFO} Running validate_kustomize.sh from CI-CD scripts..."
 
 source /workspace/build.env
 if [ "${DEBUG,,}" == "true" ]; then
@@ -37,6 +40,7 @@ trap exit_handler EXIT
 
 set --
 
+export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 export HF_MODEL_ID="google/gemma-3-27b-it"
 
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
@@ -68,6 +72,12 @@ export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it"
 export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-ngram"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-ngram/configure_benchmark.sh"
 export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-eagle"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-eagle/configure_benchmark.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/configure_vllm_spec_decoding.sh"
+
+# Validate k6-benchmark kustomize
+export ACCELERATOR_TYPE="l4"
+export HF_MODEL_NAME="HF_MODEL_NAME"
 export K6_REQUEST_BATCH_SIZE=1
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/k6-benchmark/configure_deployment.sh"
 
@@ -79,6 +89,28 @@ source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terrafor
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-dataset-downloader/configure_dataset_downloader.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/offline-batch-inference-gpu/offline-batch-worker/configure_worker.sh"
 
+# Validate online-inference-gpu/vllm-runai kustomize
+export ACCELERATOR_TYPE="l4"
+export HF_MODEL_ID="google/gemma-3-27b-it"
+source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/configure_vllm.sh"
+
+export ACCELERATOR_TYPE="rtx-pro-6000"
+export HF_MODEL_ID="google/gemma-4-31b-it"
+source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/configure_vllm.sh"
+
+# Validate online-inference-gpu/vllm-standard kustomize
+export ACCELERATOR_TYPE="l4"
+export HF_MODEL_ID="google/gemma-3-27b-it"
+source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-standard/configure_vllm.sh"
+
+export ACCELERATOR_TYPE="rtx-pro-6000"
+export HF_MODEL_ID="google/gemma-4-31b-it"
+source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-standard/configure_vllm.sh"
+
 # This section deals with validating kustomize for llm deployment. It is slightly different because it exists `examples` directory and not under the `terraform`directory.
 # HF_MODEL_ID and ACCELERATOR_TYPE for llmd deployment are derived from llm_model_id and llm_accelerator_type variables respectively when the env variable file is sourced.
 # If we do not set llm_model_id and llm_accelerator_type below, HF_MODEL_ID and ACCELERATOR_TYPE will be set to the default values of these variables respectively.
@@ -87,30 +119,18 @@ export llmd_accelerator_type="l4"
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd/vllm/configure_vllm.sh"
 
-# Fetch CRDs directly from the active GKE cluster to avoid baking them in the repo
-CRD_DIR="/tmp/crds"
-LOCAL_CRDS_FLAG=""
-mkdir -p "${CRD_DIR}"
-# Extract the CRDs used by the manifests from the live cluster
-kubectl get crd jobsets.jobset.x-k8s.io podsnapshotpolicies.podsnapshot.gke.io podsnapshotstorageconfigs.podsnapshot.gke.io secretproviderclasses.secrets-store.csi.x-k8s.io -o yaml > "${CRD_DIR}/cluster-crds.yaml" 2>/dev/null || true
-if [ -s "${CRD_DIR}/cluster-crds.yaml" ]; then
-  LOCAL_CRDS_FLAG="--local-crds ${CRD_DIR}"
-fi
-
-
 # Validate vllm-native-cache-offloading kustomize
 export ACCELERATOR_TYPE="rtx-pro-6000"
 export HF_MODEL_ID="qwen/qwen3-32b"
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-native-cache-offloading/single-tier/configure_vllm.sh"
-
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"
   rendered_kubernetes_manifests_file_path="/tmp/rendered-kustomize.yaml"
 
   # Basic validation:
   # - Render manifests with Kustomize
-  # - Validate manifests with kubectl-validate using local CRDs
+  # - Validate manifests with kubectl-validate
   kubectl kustomize "${kustomize_directory_path}" | tee "${rendered_kubernetes_manifests_file_path}"
-  kubectl validate ${LOCAL_CRDS_FLAG} "${rendered_kubernetes_manifests_file_path}"
+  kubectl validate "${rendered_kubernetes_manifests_file_path}"
 done

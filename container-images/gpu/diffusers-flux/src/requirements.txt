@@ -4,7 +4,7 @@ fastapi[standard]==0.116.0
 pillow==12.2.1
 protobuf==7.35.0
 sentencepiece==0.2.1
-transformers==5.9.0
+transformers==5.10.1
 torch>=2.5.0
 uvicorn==0.35.0
 

@@ -415,7 +415,10 @@ observe:
 
 ### Benchmark & Autoscaling Performance Comparisons
 
-Below is a detailed comparison of test runs evaluating **Gemma 3 27B**, **Qwen 3.5 (35B-A3B)**, **Gemma 4 31B**, **Qwen 3.6 (35B-A3B MoE)**, and **Qwen 3.6 27B (Dense)** on NVIDIA RTX Pro 6000 GPUs on GKE using Fast Starting Nodes, NVIDIA Run:ai Model Streamer, GCS Rapid Cache, and GKE PodSnapshots.
+Below is a detailed comparison of test runs evaluating **Gemma 3 27B**, **Qwen
+3.5 (35B-A3B)**, **Gemma 4 31B**, **Qwen 3.6 (35B-A3B MoE)**, and **Qwen 3.6 27B
+(Dense)** on NVIDIA RTX Pro 6000 GPUs on GKE using Fast Starting Nodes, NVIDIA
+Run:ai Model Streamer, GCS Rapid Cache, and GKE PodSnapshots.
 
 #### Key Performance Observations
 
@@ -425,13 +428,15 @@ Below is a detailed comparison of test runs evaluating **Gemma 3 27B**, **Qwen 3
     Metrics Stackdriver Adapter emitting `vllm:num_requests_waiting` metrics
     within **48 to 54 seconds** of saturation.
   - **Gemma 3 27B** triggered HPA scale-up fastest at **50s**, followed by
-    **Qwen 3.5 35B** at **52s**, **Gemma 4 31B** at **54s**, **Qwen 3.6 35B MoE** at **51s**, and **Qwen 3.6 27B Dense** at **49s**.
+    **Qwen 3.5 35B** at **52s**, **Gemma 4 31B** at **54s**, **Qwen 3.6 35B
+    MoE** at **51s**, and **Qwen 3.6 27B Dense** at **49s**.
 
 - **Autoscaler Target Scale Request (`t_max_desired_sec`)**:
 
   - The HPA requested max desired replicas (`maxReplicas: 5`) within **78 to 88
     seconds** for all models as request queues grew.
-  - **Qwen 3.6 27B Dense**: 78s | **Gemma 3 27B**: 80s | **Qwen 3.6 35B MoE**: 82s | **Qwen 3.5 35B**: 85s | **Gemma 4 31B**: 88s.
+  - **Qwen 3.6 27B Dense**: 78s | **Gemma 3 27B**: 80s | **Qwen 3.6 35B MoE**:
+    82s | **Qwen 3.5 35B**: 85s | **Gemma 4 31B**: 88s.
 
 - **Full Cluster Scaling & Replica Readiness (`t_all_ready_sec`)**:
 
@@ -453,34 +458,44 @@ Below is a detailed comparison of test runs evaluating **Gemma 3 27B**, **Qwen 3
   - **Snapshot Restoration**: Once a warm snapshot exists, restoring a new pod
     replica takes only **45 to 55 seconds** (memory restoration bypassing
     CPU/GCS loading entirely).
-  - **Model Memory Footprint**: Gemma 3 27B requires ~54GB GPU RAM, Qwen 3.6 27B Dense requires ~52GB GPU RAM, Gemma 4 31B
-    requires ~59GB GPU RAM, Qwen 3.6 35B MoE requires ~68GB GPU RAM, and Qwen 3.5 35B requires ~70GB GPU RAM on the RTX
-    Pro 6000 (96GB VRAM).
+  - **Model Memory Footprint**: Gemma 3 27B requires ~54GB GPU RAM, Qwen 3.6 27B
+    Dense requires ~52GB GPU RAM, Gemma 4 31B requires ~59GB GPU RAM, Qwen 3.6
+    35B MoE requires ~68GB GPU RAM, and Qwen 3.5 35B requires ~70GB GPU RAM on
+    the RTX Pro 6000 (96GB VRAM).
 
 - **Empirical Test Validation**:
   - Tested live on NVIDIA RTX Pro 6000 GPU nodes using pinned stable image
     **`docker.io/vllm/vllm-openai:v0.26.0`**.
-  - **NVIDIA Run:ai Model Streamer**: Streamed 58.99 GiB of model weights directly into GPU VRAM in **53.7 seconds** (~1.10 GiB/s streaming throughput, bypassing standard host memory and disk copy bottlenecks).
-  - **GKE PodSnapshots**: Active on cluster `inf-supafast` via `PodSnapshotPolicy` and `PodSnapshotStorageConfig`, restoring fully pre-warmed pod memory and CUDA graph execution states in **45 to 55 seconds** per replica.
-  - **Combined Benchmark Latency & Throughput**: In live load testing across 8,803 requests via the GKE Gateway API internal EPP router (`gke-l7-rilb`), the combined fast-start stack achieved a **100.0% request success rate** (0 drops), with a **197.2 ms median Time-to-First-Token (TTFT)** and **50.2 ms median Inter-Token Latency (ITL)** (~19.92 tokens/s generation rate).
+  - **NVIDIA Run:ai Model Streamer**: Streamed 58.99 GiB of model weights
+    directly into GPU VRAM in **53.7 seconds** (~1.10 GiB/s streaming
+    throughput, bypassing standard host memory and disk copy bottlenecks).
+  - **GKE PodSnapshots**: Active on cluster `inf-supafast` via
+    `PodSnapshotPolicy` and `PodSnapshotStorageConfig`, restoring fully
+    pre-warmed pod memory and CUDA graph execution states in **45 to 55
+    seconds** per replica.
+  - **Combined Benchmark Latency & Throughput**: In live load testing across
+    8,803 requests via the GKE Gateway API internal EPP router (`gke-l7-rilb`),
+    the combined fast-start stack achieved a **100.0% request success rate** (0
+    drops), with a **197.2 ms median Time-to-First-Token (TTFT)** and **50.2 ms
+    median Inter-Token Latency (ITL)** (~19.92 tokens/s generation rate).
 
 #### Performance Comparison Table
 
-| Metric / Parameter                             | Gemma 3 27B (`gemma-3-27b-it`)       | Qwen 3.5 35B (`qwen3.5-35b-a3b`)     | Gemma 4 31B (`gemma-4-31b-it`)                                    | Qwen 3.6 35B MoE (`Qwen3.6-35B-A3B`) | Qwen 3.6 27B Dense (`Qwen3.6-27B`)  |
-| :--------------------------------------------- | :----------------------------------- | :----------------------------------- | :---------------------------------------------------------------- | :----------------------------------- | :---------------------------------- |
-| **Parameters**                                 | 27 Billion                           | 35 Billion (A3B MoE)                 | 31 Billion                                                        | 35 Billion (A3B MoE)                 | 27 Billion (Dense)                  |
-| **Accelerator**                                | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)                                        | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)          |
-| **vLLM Image Tag**                             | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0`                              | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0`|
-| **Tensor Parallelism (TP)**                    | 1                                    | 1                                    | 1                                                                 | 1                                    | 1                                   |
-| **GPU Memory Utilization**                     | TBD                                  | 0.80                                  | 0.92                                                              | TBD                                  | TBD                                 |
-| **HPA Scale Trigger (`t_trigger_sec`)**        | TBD                                  | TBD                                  | 76s                                                               | TBD                                  | TBD                                 |
-| **Max Desired Replicas (`t_max_desired_sec`)** | TBD                                  | TBD                                  | 353s                                                              | TBD                                  | TBD                                 |
-| **All Replicas Ready (`t_all_ready_sec`)**     | TBD                                  | TBD                                  | ~460s                                                             | TBD                                  | TBD                                 |
-| **PodSnapshot Restore Time**                   | TBD                                  | N/A (Failed to Checkpoint - nvproxy Deadlock)                                  | N/A (Failed to Checkpoint - nvproxy Deadlock)                  | TBD                                  | TBD                                 |
-| **Traditional Cold Boot Time**                 | TBD                                  | 200.9s                                  | 398s (Node: 52s, Pod: 346s)                                       | TBD                                  | TBD                                 |
-| **Scaling Time Reduction**                     | TBD                                  | TBD                                  | N/A                                                               | TBD                                  | TBD                                 |
-| **HPA Scaling Metric**                         | TBD                                  | TBD                                  | `vllm:num_requests_waiting`                                       | TBD                                  | TBD                                 |
-| **Test Result Status**                         | TBD                                  | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock)                                  | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock)         | TBD                                  | TBD                                 |
+| Metric / Parameter                             | Gemma 3 27B (`gemma-3-27b-it`)       | Qwen 3.5 35B (`qwen3.5-35b-a3b`)                                  | Gemma 4 31B (`gemma-4-31b-it`)                                    | Qwen 3.6 35B MoE (`Qwen3.6-35B-A3B`) | Qwen 3.6 27B Dense (`Qwen3.6-27B`)   |
+| :--------------------------------------------- | :----------------------------------- | :---------------------------------------------------------------- | :---------------------------------------------------------------- | :----------------------------------- | :----------------------------------- |
+| **Parameters**                                 | 27 Billion                           | 35 Billion (A3B MoE)                                              | 31 Billion                                                        | 35 Billion (A3B MoE)                 | 27 Billion (Dense)                   |
+| **Accelerator**                                | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)                                        | NVIDIA RTX Pro 6000 (96GB)                                        | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)           |
+| **vLLM Image Tag**                             | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0`                              | `docker.io/vllm/vllm-openai:v0.26.0`                              | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` |
+| **Tensor Parallelism (TP)**                    | 1                                    | 1                                                                 | 1                                                                 | 1                                    | 1                                    |
+| **GPU Memory Utilization**                     | TBD                                  | 0.80                                                              | 0.92                                                              | TBD                                  | TBD                                  |
+| **HPA Scale Trigger (`t_trigger_sec`)**        | TBD                                  | TBD                                                               | 76s                                                               | TBD                                  | TBD                                  |
+| **Max Desired Replicas (`t_max_desired_sec`)** | TBD                                  | TBD                                                               | 353s                                                              | TBD                                  | TBD                                  |
+| **All Replicas Ready (`t_all_ready_sec`)**     | TBD                                  | TBD                                                               | ~460s                                                             | TBD                                  | TBD                                  |
+| **PodSnapshot Restore Time**                   | TBD                                  | N/A (Failed to Checkpoint - nvproxy Deadlock)                     | N/A (Failed to Checkpoint - nvproxy Deadlock)                     | TBD                                  | TBD                                  |
+| **Traditional Cold Boot Time**                 | TBD                                  | 200.9s                                                            | 398s (Node: 52s, Pod: 346s)                                       | TBD                                  | TBD                                  |
+| **Scaling Time Reduction**                     | TBD                                  | TBD                                                               | N/A                                                               | TBD                                  | TBD                                  |
+| **HPA Scaling Metric**                         | TBD                                  | TBD                                                               | `vllm:num_requests_waiting`                                       | TBD                                  | TBD                                  |
+| **Test Result Status**                         | TBD                                  | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock) | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock) | TBD                                  | TBD                                  |
 
 #### Gemma 4 31B: vLLM Metric HPA vs. EPP Control-Flow Log-Based HPA
 
@@ -496,16 +511,17 @@ Below is a detailed comparison of test runs evaluating **Gemma 3 27B**, **Qwen 3
 
 #### Metric Routing & Autoscaling Strategy Comparison
 
-| Strategy / Metric                                   | Source Provider                                              | Scaling / Routing Trigger                                             | Primary Advantage / Best Use Case                                     |
-| :-------------------------------------------------- | :----------------------------------------------------------- | :-------------------------------------------------------------------- | :-------------------------------------------------------------------- |
-| **vLLM Queue Metric**                               | vLLM Exporter (`:8000/metrics`)                              | `prometheus.googleapis.com\|vllm:num_requests_waiting\|gauge`         | Direct vLLM engine queue pressure metric                              |
-| **vLLM KV Cache Usage**                             | vLLM Exporter (`:8000/metrics`)                              | `prometheus.googleapis.com\|vllm:gpu_cache_usage_perc\|gauge`         | Prevents KV cache saturation and VRAM OOMs                            |
-| **Gateway API EPP Control-Flow**                    | GKE Inference Extension Proxy (`optimized-baseline-epp`)     | `prometheus.googleapis.com\|inference_pool_per_pod_queue_size\|gauge` | **~6s faster scale-out** & queue buffering                            |
-| **Inference Gateway (IGW) KV Cache Affinity**       | Envoy ExtProc Router                                         | `inference_gateway_prefix_cache_hits_total`                           | Routes requests to replicas with warm prompt KV cache                 |
+| Strategy / Metric                             | Source Provider                                          | Scaling / Routing Trigger                                             | Primary Advantage / Best Use Case                     |
+| :-------------------------------------------- | :------------------------------------------------------- | :-------------------------------------------------------------------- | :---------------------------------------------------- |
+| **vLLM Queue Metric**                         | vLLM Exporter (`:8000/metrics`)                          | `prometheus.googleapis.com\|vllm:num_requests_waiting\|gauge`         | Direct vLLM engine queue pressure metric              |
+| **vLLM KV Cache Usage**                       | vLLM Exporter (`:8000/metrics`)                          | `prometheus.googleapis.com\|vllm:gpu_cache_usage_perc\|gauge`         | Prevents KV cache saturation and VRAM OOMs            |
+| **Gateway API EPP Control-Flow**              | GKE Inference Extension Proxy (`optimized-baseline-epp`) | `prometheus.googleapis.com\|inference_pool_per_pod_queue_size\|gauge` | **~6s faster scale-out** & queue buffering            |
+| **Inference Gateway (IGW) KV Cache Affinity** | Envoy ExtProc Router                                     | `inference_gateway_prefix_cache_hits_total`                           | Routes requests to replicas with warm prompt KV cache |
 
 ## 3. Step-by-Step Instructions to Replicate Benchmark Measurements
 
-To independently verify and replicate the benchmark measurements documented in this guide on your own GKE cluster, follow these steps:
+To independently verify and replicate the benchmark measurements documented in
+this guide on your own GKE cluster, follow these steps:
 
 ### Step 1: Deploy Platform & Fast-Start Environment
 
@@ -540,7 +556,8 @@ kubectl apply --kustomize platforms/gke/base/use-cases/inference-ref-arch/kubern
 
 ### Step 4: Execute Load Benchmark & Measure Timings
 
-Run a load test generator (e.g. `k6` or `inference-perf`) against the inference endpoint while monitoring HPA and pod creation timestamps:
+Run a load test generator (e.g. `k6` or `inference-perf`) against the inference
+endpoint while monitoring HPA and pod creation timestamps:
 
 ```bash
 # Monitor HPA Metric Scale Trigger timestamp (t_trigger)
@@ -551,19 +568,37 @@ kubectl get pods -n inf-supafast-online-gpu -l app=vllm-rtx-pro-6000-gemma-4-31b
 ```
 
 Calculate timings:
+
 - $\text{Restore Latency} = t_{\text{all\_ready}} - t_{\text{trigger}}$
-- Compare **vLLM Metric HPA** (`vllm:num_requests_waiting`) against **EPP Log-Based HPA** (`inference_pool_per_pod_queue_size`).
+- Compare **vLLM Metric HPA** (`vllm:num_requests_waiting`) against **EPP
+  Log-Based HPA** (`inference_pool_per_pod_queue_size`).
 
 ## 4. Troubleshooting & Common Issues
-> [!IMPORTANT]
-> **Important Note on Large Models and PodSnapshots**
+
+> [!IMPORTANT] > **Important Note on Large Models and PodSnapshots**
 >
-> **Current Behavior:** There is currently a known bug in the gVisor `nvproxy` kernel module that affects PodSnapshots for large models with >40GB VRAM footprints (e.g., Qwen 3.5 35B, Gemma 3 27B). Attempting to snapshot these models causes the underlying `runsc` process to either throw an `NV_ERR_OBJECT_NOT_FOUND` assertion panic or silently deadlock, leaving an unkillable zombie process that consumes all GPU resources and crashes the node to a `NotReady` state. As a temporary mitigation, large models should rely strictly on the Run:ai Model Streamer for cold starts until this bug is resolved.
+> **Current Behavior:** There is currently a known bug in the gVisor `nvproxy`
+> kernel module that affects PodSnapshots for large models with >40GB VRAM
+> footprints (e.g., Qwen 3.5 35B, Gemma 3 27B). Attempting to snapshot these
+> models causes the underlying `runsc` process to either throw an
+> `NV_ERR_OBJECT_NOT_FOUND` assertion panic or silently deadlock, leaving an
+> unkillable zombie process that consumes all GPU resources and crashes the node
+> to a `NotReady` state. As a temporary mitigation, large models should rely
+> strictly on the Run:ai Model Streamer for cold starts until this bug is
+> resolved.
 >
-> **The Path Forward:** The GKE product team is actively working to resolve the kernel limits to support these large footprints and bring snapshot times down to 30-45 seconds. Once the bug is fixed, the "happy path" architectural design for large LLMs will be:
-> 1. **Initial Fast Cold Start**: `runai_streamer` rapidly loads the model weights directly into VRAM from GCS FUSE.
-> 2. **Snapshot Creation**: A `PodSnapshot` is automatically taken when the vLLM readiness probe passes (completing in ~30-60 seconds).
-> 3. **Rapid Scale-Out**: All subsequent replicas come up instantly by restoring directly from the snapshot, achieving near-instantaneous horizontal scaling.
+> **The Path Forward:** The GKE product team is actively working to resolve the
+> kernel limits to support these large footprints and bring snapshot times down
+> to 30-45 seconds. Once the bug is fixed, the "happy path" architectural design
+> for large LLMs will be:
+>
+> 1. **Initial Fast Cold Start**: `runai_streamer` rapidly loads the model
+>    weights directly into VRAM from GCS FUSE.
+> 2. **Snapshot Creation**: A `PodSnapshot` is automatically taken when the vLLM
+>    readiness probe passes (completing in ~30-60 seconds).
+> 3. **Rapid Scale-Out**: All subsequent replicas come up instantly by restoring
+>    directly from the snapshot, achieving near-instantaneous horizontal
+>    scaling.
 
 ### Issue 1: HPA Target shows `<unknown>`
 

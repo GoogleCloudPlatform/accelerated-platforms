@@ -478,9 +478,12 @@ performance:
 (EngineCore pid=213) Loading safetensors using Runai Model Streamer: 100% Completed | 1188/1188 [00:53, 23.00it/s]
 ```
 
-- **Sustained Streaming Rate**: **23.0 to 43.0 iterations per second** (~1.10 GB/s streaming throughput).
-- **Total Loading Duration**: **53.7 seconds** to populate 58.99 GiB of tensor weights directly into GPU VRAM.
-- **Local Ephemeral Disk Required**: **0 Bytes** (eliminates local PVC disk requirements entirely).
+- **Sustained Streaming Rate**: **23.0 to 43.0 iterations per second** (~1.10
+  GB/s streaming throughput).
+- **Total Loading Duration**: **53.7 seconds** to populate 58.99 GiB of tensor
+  weights directly into GPU VRAM.
+- **Local Ephemeral Disk Required**: **0 Bytes** (eliminates local PVC disk
+  requirements entirely).
 
 ---
 
@@ -531,11 +534,24 @@ PodSnapshot Restoration Phase (Executed on Every Scale-Out Event):
 
 ### 1. Core Principle: Swap CPU/Memory for EPP Flow Control Metrics (LLM-d Autoscaling Guide)
 
-When configuring Horizontal Pod Autoscalers (HPA) for LLM inference workloads, **do not use traditional CPU or memory utilization metrics (`cpu`, `memory`)**.
-- **Why CPU & Memory Metrics Fail**: PyTorch/vLLM inference engines and CUDA kernels peg GPU and host CPU/Memory resources at or near 100% during active continuous batching, even when processing a single active request. CPU and memory saturation provide static, saturated signals that cause erratic scaling and fail to reflect true client request demand.
-- **EPP Flow Control Scaling Signals (`igw_queue_depth` & `igw_running_requests`)**:
-  - **`igw_queue_depth` (`inference_pool_per_pod_queue_size`)**: Primary **scale-out trigger signal**. When request volume exceeds pod concurrency limits, EPP buffers requests in memory at the ingress layer. Monitoring queue depth (`igw_queue_depth > 0`) provides an immediate, responsive signal of unmet demand.
-  - **`igw_running_requests`**: **Capacity signal** tracking the number of concurrent requests actively executing per pod to evaluate saturation headroom.
+When configuring Horizontal Pod Autoscalers (HPA) for LLM inference workloads,
+**do not use traditional CPU or memory utilization metrics (`cpu`, `memory`)**.
+
+- **Why CPU & Memory Metrics Fail**: PyTorch/vLLM inference engines and CUDA
+  kernels peg GPU and host CPU/Memory resources at or near 100% during active
+  continuous batching, even when processing a single active request. CPU and
+  memory saturation provide static, saturated signals that cause erratic scaling
+  and fail to reflect true client request demand.
+- **EPP Flow Control Scaling Signals (`igw_queue_depth` &
+  `igw_running_requests`)**:
+  - **`igw_queue_depth` (`inference_pool_per_pod_queue_size`)**: Primary
+    **scale-out trigger signal**. When request volume exceeds pod concurrency
+    limits, EPP buffers requests in memory at the ingress layer. Monitoring
+    queue depth (`igw_queue_depth > 0`) provides an immediate, responsive signal
+    of unmet demand.
+  - **`igw_running_requests`**: **Capacity signal** tracking the number of
+    concurrent requests actively executing per pod to evaluate saturation
+    headroom.
 
 ### 2. Telemetry and Metric Source Comparison
 
@@ -569,14 +585,14 @@ engine queue metrics.
 
 ### 3. Detailed Metric Comparison Matrix
 
-| Metric / Dimension                                 | Gateway API EPP Control-Flow HPA (`igw_queue_depth` / `igw_running_requests`) | Native vLLM Queue Depth HPA                                   | vLLM KV Cache Utilization HPA                                 | Traditional CPU / Memory (Not Recommended)             |
-| :------------------------------------------------- | :---------------------------------------------------------------------------- | :------------------------------------------------------------ | :------------------------------------------------------------ | :----------------------------------------------------- |
-| **Metric Identifier**                              | `prometheus.googleapis.com\|inference_pool_per_pod_queue_size\|gauge`         | `prometheus.googleapis.com\|vllm:num_requests_waiting\|gauge` | `prometheus.googleapis.com\|vllm:gpu_cache_usage_perc\|gauge` | `cpu` / `memory` utilization                           |
-| **Observation Point**                              | L7 Gateway Ingress Proxy                                                      | Inside vLLM engine container                                  | Inside vLLM GPU Memory Manager                                | Host OS / Kubelet cgroups                              |
-| **Primary Indicator**                              | Unhandled client requests buffered at ingress (`igw_queue_depth`)             | Internal request queuing due to GPU saturation                | KV Cache memory exhaustion / OOM risk                         | Static 100% saturation during active continuous batch  |
-| **Scale-Out Trigger Speed ($t_{\text{trigger}}$)** | **48 seconds (~6s faster)**                                                   | 54 seconds                                                    | Workload / Context Length Dependent                           | Erratic / Premature                                    |
-| **Scale From Zero Support**                        | **Supported** (Buffers requests at Gateway while provisioning first pod)      | Not Supported (Requires active container to scrape metrics)   | Not Supported                                                 | Not Supported                                          |
-| **Optimal Target Threshold**                       | `AverageValue: 6` (Scale-out) / Use `igw_running_requests` for capacity       | `AverageValue: 5`                                             | `Utilization: 80%`                                            | **N/A - Advised Against**                              |
+| Metric / Dimension                                 | Gateway API EPP Control-Flow HPA (`igw_queue_depth` / `igw_running_requests`) | Native vLLM Queue Depth HPA                                   | vLLM KV Cache Utilization HPA                                 | Traditional CPU / Memory (Not Recommended)            |
+| :------------------------------------------------- | :---------------------------------------------------------------------------- | :------------------------------------------------------------ | :------------------------------------------------------------ | :---------------------------------------------------- |
+| **Metric Identifier**                              | `prometheus.googleapis.com\|inference_pool_per_pod_queue_size\|gauge`         | `prometheus.googleapis.com\|vllm:num_requests_waiting\|gauge` | `prometheus.googleapis.com\|vllm:gpu_cache_usage_perc\|gauge` | `cpu` / `memory` utilization                          |
+| **Observation Point**                              | L7 Gateway Ingress Proxy                                                      | Inside vLLM engine container                                  | Inside vLLM GPU Memory Manager                                | Host OS / Kubelet cgroups                             |
+| **Primary Indicator**                              | Unhandled client requests buffered at ingress (`igw_queue_depth`)             | Internal request queuing due to GPU saturation                | KV Cache memory exhaustion / OOM risk                         | Static 100% saturation during active continuous batch |
+| **Scale-Out Trigger Speed ($t_{\text{trigger}}$)** | **48 seconds (~6s faster)**                                                   | 54 seconds                                                    | Workload / Context Length Dependent                           | Erratic / Premature                                   |
+| **Scale From Zero Support**                        | **Supported** (Buffers requests at Gateway while provisioning first pod)      | Not Supported (Requires active container to scrape metrics)   | Not Supported                                                 | Not Supported                                         |
+| **Optimal Target Threshold**                       | `AverageValue: 6` (Scale-out) / Use `igw_running_requests` for capacity       | `AverageValue: 5`                                             | `Utilization: 80%`                                            | **N/A - Advised Against**                             |
 
 ### 4. Dual-Tier HPA Manifest Configuration
 
@@ -642,11 +658,11 @@ The benchmark suite evaluated five model architectures:
 | :-------------------------------------------------------- | :-------------------- | :-------------------- | :------------------- | :------------------------- | :----------------------- |
 | **Model Footprint in VRAM**                               | TBD                   | TBD                   | TBD                  | TBD                        | TBD                      |
 | **Run:ai Weight Load Duration**                           | TBD                   | TBD                   | TBD                  | TBD                        | TBD                      |
-| **HPA Trigger Time ($t_{\text{trigger}}$) - vLLM Metric** | 118s                  | 589s                  | 279s                 | 135s                       | 145s                   |
+| **HPA Trigger Time ($t_{\text{trigger}}$) - vLLM Metric** | 118s                  | 589s                  | 279s                 | 135s                       | 145s                     |
 | **HPA Trigger Time ($t_{\text{trigger}}$) - EPP Metric**  | TBD                   | TBD                   | TBD                  | TBD                        | TBD                      |
-| **HPA Target Request ($t_{\text{max\_desired}}$)**        | 150s                  | 621s                  | 311s                 | 151s                       | 179s                   |
+| **HPA Target Request ($t_{\text{max\_desired}}$)**        | 150s                  | 621s                  | 311s                 | 151s                       | 179s                     |
 | **PodSnapshot Restore Time / Pod**                        | TBD                   | TBD                   | TBD                  | TBD                        | TBD                      |
-| **Full Pool Readiness ($t_{\text{all\_ready}}$)**         | 479s                  | 1645s                 | 692s                 | 571s                       | 3832s                  |
+| **Full Pool Readiness ($t_{\text{all\_ready}}$)**         | 479s                  | 1645s                 | 692s                 | 571s                       | 3832s                    |
 | **Cold Boot Baseline Scaling Time**                       | TBD                   | TBD                   | TBD                  | TBD                        | TBD                      |
 | **Overall Scaling Speedup**                               | TBD                   | TBD                   | TBD                  | TBD                        | TBD                      |
 | **Inference Server Engine Status**                        | TBD                   | TBD                   | TBD                  | TBD                        | TBD                      |
@@ -659,12 +675,13 @@ The benchmark suite evaluated five model architectures:
 `head_dim=256` combined with global `global_head_dim=512`). In vLLM `v0.26.0`,
 FlashAttention-4 is unavailable for heterogeneous heads, forcing the engine to
 fall back to Triton attention backends (`TRITON_ATTN`). Cold initialization of
-Triton attention kernels requires ~4 minutes of autotuning. By combining
-NVIDIA Run:ai Model Streamer (**TBD** weight streaming at **TBD**)
-and GKE PodSnapshots (**TBD** memory restoration freezing autotuned Triton
-kernels), replica scale-out time is reduced from **TBD**
-(>95% pod restore speedup). Live Native load testing across 1,643 requests achieved a
-**TBD success rate** with **TBD ms median TTFT** and **TBD ms median ITL** (demonstrating severe request dropping under load when relying on Vanilla HPA).
+Triton attention kernels requires ~4 minutes of autotuning. By combining NVIDIA
+Run:ai Model Streamer (**TBD** weight streaming at **TBD**) and GKE PodSnapshots
+(**TBD** memory restoration freezing autotuned Triton kernels), replica
+scale-out time is reduced from **TBD** (>95% pod restore speedup). Live Native
+load testing across 1,643 requests achieved a **TBD success rate** with **TBD ms
+median TTFT** and **TBD ms median ITL** (demonstrating severe request dropping
+under load when relying on Vanilla HPA).
 
 #### Case Study B: `Qwen/Qwen3.6-35B-A3B` (Mixture-of-Experts)
 
@@ -1092,15 +1109,31 @@ spec:
 ```
 
 ### 2. Comprehensive Troubleshooting Guide for Common Failure Modes
-> [!IMPORTANT]
-> **Important Note on Large Models and PodSnapshots**
+
+> [!IMPORTANT] > **Important Note on Large Models and PodSnapshots**
 >
-> **Current Behavior:** There is currently a known bug in the gVisor `nvproxy` kernel module that affects PodSnapshots for large models with >40GB VRAM footprints (e.g., Qwen 3.5 35B, Gemma 3 27B). Attempting to snapshot these models causes the underlying `runsc` process to either throw an `NV_ERR_OBJECT_NOT_FOUND` assertion panic or silently deadlock, leaving an unkillable zombie process that consumes all GPU resources and crashes the node to a `NotReady` state. As a temporary mitigation, large models should rely strictly on the Run:ai Model Streamer for cold starts until this bug is resolved.
+> **Current Behavior:** There is currently a known bug in the gVisor `nvproxy`
+> kernel module that affects PodSnapshots for large models with >40GB VRAM
+> footprints (e.g., Qwen 3.5 35B, Gemma 3 27B). Attempting to snapshot these
+> models causes the underlying `runsc` process to either throw an
+> `NV_ERR_OBJECT_NOT_FOUND` assertion panic or silently deadlock, leaving an
+> unkillable zombie process that consumes all GPU resources and crashes the node
+> to a `NotReady` state. As a temporary mitigation, large models should rely
+> strictly on the Run:ai Model Streamer for cold starts until this bug is
+> resolved.
 >
-> **The Path Forward:** The GKE product team is actively working to resolve the kernel limits to support these large footprints and bring snapshot times down to 30-45 seconds. Once the bug is fixed, the "happy path" architectural design for large LLMs will be:
-> 1. **Initial Fast Cold Start**: `runai_streamer` rapidly loads the model weights directly into VRAM from GCS FUSE.
-> 2. **Snapshot Creation**: A `PodSnapshot` is automatically taken when the vLLM readiness probe passes (completing in ~30-60 seconds).
-> 3. **Rapid Scale-Out**: All subsequent replicas come up instantly by restoring directly from the snapshot, achieving near-instantaneous horizontal scaling.
+> **The Path Forward:** The GKE product team is actively working to resolve the
+> kernel limits to support these large footprints and bring snapshot times down
+> to 30-45 seconds. Once the bug is fixed, the "happy path" architectural design
+> for large LLMs will be:
+>
+> 1. **Initial Fast Cold Start**: `runai_streamer` rapidly loads the model
+>    weights directly into VRAM from GCS FUSE.
+> 2. **Snapshot Creation**: A `PodSnapshot` is automatically taken when the vLLM
+>    readiness probe passes (completing in ~30-60 seconds).
+> 3. **Rapid Scale-Out**: All subsequent replicas come up instantly by restoring
+>    directly from the snapshot, achieving near-instantaneous horizontal
+>    scaling.
 
 #### Failure Mode 1: HPA Target Shows `<unknown>` Metric Status
 

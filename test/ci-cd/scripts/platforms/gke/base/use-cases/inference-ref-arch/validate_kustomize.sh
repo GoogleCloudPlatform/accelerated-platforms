@@ -87,11 +87,16 @@ export llmd_accelerator_type="l4"
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/examples/llmd/_shared_config/scripts/set_environment_variables.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/llmd/vllm/configure_vllm.sh"
 
-CRD_DIR="${ACP_REPO_DIR}/test/ci-cd/crds"
+# Fetch CRDs directly from the active GKE cluster to avoid baking them in the repo
+CRD_DIR="/tmp/crds"
 LOCAL_CRDS_FLAG=""
-if [ -d "${CRD_DIR}" ]; then
+mkdir -p "${CRD_DIR}"
+# Extract the CRDs used by the manifests from the live cluster
+kubectl get crd jobsets.jobset.x-k8s.io podsnapshotpolicies.podsnapshot.gke.io podsnapshotstorageconfigs.podsnapshot.gke.io secretproviderclasses.secrets-store.csi.x-k8s.io -o yaml > "${CRD_DIR}/cluster-crds.yaml" 2>/dev/null || true
+if [ -s "${CRD_DIR}/cluster-crds.yaml" ]; then
   LOCAL_CRDS_FLAG="--local-crds ${CRD_DIR}"
 fi
+
 
 # Validate vllm-native-cache-offloading kustomize
 export ACCELERATOR_TYPE="rtx-pro-6000"

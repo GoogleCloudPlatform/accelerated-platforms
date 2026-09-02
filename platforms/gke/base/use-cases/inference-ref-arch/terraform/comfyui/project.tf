@@ -35,7 +35,8 @@ resource "google_project_service" "cluster" {
 
 # Create all project-level aiplatform.googleapis.com service agents
 resource "google_project_service_identity" "aiplatform_service_agents" {
-  project = data.google_project.cluster.project_id
-  service = "aiplatform.googleapis.com"
+  provider = google-beta
+  project  = data.google_project.cluster.project_id
+  service  = "aiplatform.googleapis.com"
 }
 

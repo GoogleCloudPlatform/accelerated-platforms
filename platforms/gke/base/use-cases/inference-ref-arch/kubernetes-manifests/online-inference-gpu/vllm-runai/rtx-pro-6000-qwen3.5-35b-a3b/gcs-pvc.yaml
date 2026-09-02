@@ -24,8 +24,8 @@ spec:
   csi:
     driver: gcsfuse.csi.storage.gke.io
     volumeAttributes:
-      mountOptions: implicit-dirs,only-dir:Qwen/Qwen3.5-35B-A3B
-    volumeHandle: replaced-by-kustomize.Qwen-Qwen3.5-35B-A3B
+      mountOptions: implicit-dirs,only-dir:qwen/qwen3.5-35b-a3b
+    volumeHandle: cloud-storage-bucket-name
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
   volumeMode: Filesystem
@@ -34,7 +34,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: vllm-model-pvc
-  namespace: replaced-by-kustomize
+  namespace: acp-uc1-a-online-gpu
 spec:
   accessModes:
     - ReadOnlyMany
@@ -42,5 +42,5 @@ spec:
     requests:
       storage: 500Gi
   storageClassName: ""
-  volumeName: vllm-model-pv-rtx-pro-6000-qwen3.5-35b-a3b
+  volumeName: vllm-model-pv-rtx-pro-6000-qwen3-5-35b-a3b
 

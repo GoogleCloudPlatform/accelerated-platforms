@@ -23,6 +23,6 @@ spec:
       app: vllm
   storageConfigName: vllm-snapshot-config
   triggerConfig:
-    type: readinessProbe
-    postCheckpoint: resume
+    type: manual
+    postCheckpoint: stop
   snapshotScope: whole-pod

@@ -23,18 +23,32 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -rtx-pro-6000-qwen3.5-35b-a3b
+nameSuffix: -rtx-pro-6000-qwen3-5-35b-a3b
 
 patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
   - patch: |
       - op: replace
+        path: /spec/template/spec/containers/0/args/3
+        value: "--load-format=runai_streamer"
+    target:
+      kind: Deployment
+      name: vllm
+  - target:
+      kind: Deployment
+      name: vllm
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: "--max-num-seqs=256"
+  - patch: |
+      - op: replace
         path: /spec/template/spec/volumes/1
         value:
           name: huggingface-hub-model-bucket
           persistentVolumeClaim:
-            claimName: vllm-model-pvc
+            claimName: vllm-model-pvc-rtx-pro-6000-qwen3-5-35b-a3b
     target:
       kind: Deployment
       name: vllm
@@ -100,6 +114,10 @@ replacements:
           - metadata.namespace
         select:
           kind: PodSnapshotStorageConfig
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PersistentVolumeClaim
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap

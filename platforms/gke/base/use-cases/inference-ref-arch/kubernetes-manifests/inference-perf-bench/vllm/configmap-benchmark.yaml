@@ -16,7 +16,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: inference-perf-config
-  namespace: ${BENCHMARKING_KUBERNETES_NAMESPACE}
+  namespace: acp-uc1-a-online-gpu
 data:
   config.yaml: |
     load:
@@ -35,29 +35,20 @@ data:
       streaming: true
     server:
       type: vllm
-      model_name: ${HF_MODEL_ID}
-      base_url: http://${APP_LABEL}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
+      model_name: google/gemma-3-27b-it
+      base_url: http://vllm-rtx-pro-6000-gemma-3-27b-it.acp-uc1-a-online-gpu.svc.cluster.local:8000
       ignore_eos: true
     tokenizer:
-      pretrained_model_name_or_path: ${TOKENIZER_ID}
+      pretrained_model_name_or_path: google/gemma-3-27b-it
     data:
       type: shareGPT
-    metrics:
-      type: prometheus
-      prometheus:
-          scrape_interval: 15
-          google_managed: true         # Whether using Google Managed Prometheus
-          filters: [] 
     report:
       request_lifecycle:
         summary: true
         per_stage: true
         per_request: true
-      prometheus:
-        summary: true
-        per_stage: true
     storage:
       google_cloud_storage:               
-        bucket_name: ${hub_models_bucket_bench_results_name}   # Required GCS bucket
+        bucket_name: acp-uc1-a-bench-results   # Required GCS bucket
         report_file_prefix: null          # Optional filename prefix
         

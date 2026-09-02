@@ -21,5 +21,4 @@ spec:
   template:
     spec:
       nodeSelector:
-        cloud.google.com/gke-gpu-driver-version: LATEST
-        cloud.google.com/gke-accelerator: nvidia-rtx-pro-6000
+        cloud.google.com/compute-class: gpu-rtx-pro-6000-96gb-x1

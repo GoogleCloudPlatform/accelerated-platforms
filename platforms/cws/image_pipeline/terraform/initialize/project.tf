@@ -50,13 +50,13 @@ resource "google_project_service" "image_pipeline_git_token" {
 }
 
 resource "google_project_service_identity" "cloudbuild" {
+  provider = google-beta
+
   for_each = toset(
     [
       "cloudbuild.googleapis.com",
     ]
   )
-
-  provider = google-beta
 
   project = google_project_service.cloudbuild["cloudbuild.googleapis.com"].project
   service = each.value

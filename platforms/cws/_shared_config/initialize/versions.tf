@@ -18,15 +18,15 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "7.6.0"
+      version = "8.1.0"
     }
     local = {
       source  = "hashicorp/local"
-      version = "2.5.3"
+      version = "2.9.0"
     }
     time = {
       source  = "hashicorp/time"
-      version = "0.13.1"
+      version = "0.14.1"
     }
     terraform = {
       source = "terraform.io/builtin/terraform"

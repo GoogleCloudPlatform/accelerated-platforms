@@ -6,3 +6,6 @@ optim
 pretraining
 qwen
 rdzv
+redhatai
+tatsu
+ultrachat

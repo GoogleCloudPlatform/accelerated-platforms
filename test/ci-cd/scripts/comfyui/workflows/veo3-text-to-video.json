@@ -31,7 +31,7 @@
       "negative_prompt": "",
       "seed": 0,
       "gcp_project_id": "",
-      "gcp_region": ""
+      "gcp_region": "us-central1"
     },
     "class_type": "Veo3TextToVideoNode",
     "_meta": {

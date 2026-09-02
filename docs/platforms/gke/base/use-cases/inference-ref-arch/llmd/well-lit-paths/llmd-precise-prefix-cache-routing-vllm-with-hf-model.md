@@ -4,7 +4,7 @@ This guide implements llm-d precise prefix cache routing well-lit path on GKE
 using
 [Google Cloud Accelerated Platforms](https://github.com/GoogleCloudPlatform/accelerated-platforms).
 To learn about precise prefix cache routing, refer to
-[llm-d documentation](https://llm-d.ai/docs/guides/precise-prefix-cache-aware).
+[llm-d documentation](https://llm-d.ai/docs/well-lit-paths/foundations/precise-prefix-cache-routing).
 
 ## Prerequisite
 
@@ -103,8 +103,8 @@ precedence over earlier ones:
 
   - `google/gemma-4-31b-it`
   - `qwen/qwen3-32b` **(default)**
-  - `Qwen/Qwen3-32B-FP8`
-  - `RedHatAI/gemma-4-31B-it-FP8-block`
+  - `qwen/qwen3-32b-fp8`
+  - `redhatai/gemma-4-31b-it-fp8-block`
 
 - In order to choose an accelerator and for the model you want to run, refer to
   the following table.
@@ -113,8 +113,8 @@ precedence over earlier ones:
   | :-------------------------------: | :-------: | :-------: | :---------------: | :------: |
   |          gemma-4-31b-it           |    ✅     |    ✅     |        ✅         |    ✅    |
   |             qwen3-32b             |    ✅     |    ✅     |        ✅         |    ✅    |
-  |        Qwen/Qwen3-32B-FP8         |    ✅     |    ❌     |        ✅         |    ✅    |
-  | RedHatAI/gemma-4-31B-it-FP8-block |    ✅     |    ❌     |        ✅         |    ✅    |
+  |        qwen/qwen3-32b-fp8         |    ✅     |    ❌     |        ✅         |    ✅    |
+  | redhatai/gemma-4-31b-it-fp8-block |    ✅     |    ❌     |        ✅         |    ❌    |
 
 - Optional : Run the following step if you want to run the model on an
   accelerator other than `nvidia-rtx-pro` which is the default accelerator for

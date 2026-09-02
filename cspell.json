@@ -83,6 +83,10 @@
       "path": ".github/workflows/dictionary/reinforcement-learning.txt"
     },
     {
+      "name": "sft",
+      "path": ".github/workflows/dictionary/sft.txt"
+    },
+    {
       "name": "sglang",
       "path": ".github/workflows/dictionary/sglang.txt"
     },
@@ -123,10 +127,12 @@
     "linux",
     "llmd",
     "llmdskills",
+    "models",
     "nvidia",
     "python",
     "ray",
     "reinforcement-learning",
+    "sft",
     "sglang",
     "shell",
     "svg",

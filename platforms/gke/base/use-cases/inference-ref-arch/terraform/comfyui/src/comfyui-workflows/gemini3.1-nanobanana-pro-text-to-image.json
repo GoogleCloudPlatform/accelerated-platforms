@@ -1,0 +1,265 @@
+{
+  "id": "9987da8a-ff79-46ef-9e8e-549259626502",
+  "revision": 0,
+  "last_node_id": 5,
+  "last_link_id": 8,
+  "nodes": [
+    {
+      "id": 4,
+      "type": "PreviewImage",
+      "pos": [
+        1935.0347281929742,
+        -562.3642182705124
+      ],
+      "size": [
+        369.33922450652017,
+        258
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 3
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.24.0",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 5,
+      "type": "ShowText|pysssss",
+      "pos": [
+        723.8213506168779,
+        -513.2790703902126
+      ],
+      "size": [
+        438.47526793022575,
+        226.04432387843792
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "STRING",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-custom-scripts",
+        "ver": "f2838ed5e59de4d73cde5c98354b87a8d3200190",
+        "Node name for S&R": "ShowText|pysssss"
+      },
+      "widgets_values": [
+        "A hyper-realistic, high-definition artistic portrait of a ruggedly handsome man in his mid-30s, featuring piercing ice-blue eyes, meticulous skin texture, visible pores, and a subtle five o'clock shadow. He is wearing a dark, elegant turtleneck under a finely woven charcoal tweed blazer. Cinematic chiaroscuro lighting with soft Rembrandt shadows across his face, highlighting his sharp jawline and cheekbones. Set against a moody, dark, abstract textured backdrop. Shot on an 85mm lens at f/1.4 for a shallow depth of field, perfect sharp focus on the eyes, 8k resolution, masterpiece, photorealistic, award-winning editorial photography, volumetric lighting, ultra-detailed."
+      ]
+    },
+    {
+      "id": 1,
+      "type": "GeminiNode31",
+      "pos": [
+        136.6937591064958,
+        -567.6531022109461
+      ],
+      "size": [
+        400,
+        622
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "generated_output",
+          "type": "STRING",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "ver": "6d534a1223503ad2c5a844854f4807c047b2bc9a",
+        "Node name for S&R": "GeminiNode31"
+      },
+      "widgets_values": [
+        "Describe the content in detail.Write a single prompt for me to generate an artistic image of a man.The prompt will be fed directly to Image generating model so keep it simple and as detailed as possible. Give me just the prompt, no explanation, acknowledgement or paraphrasing. Write the prompt to create a high definition and real image.",
+        "GEMINI_31_PRO",
+        0.7,
+        8192,
+        1,
+        32,
+        1,
+        "",
+        "text/plain",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        "",
+        "image/png",
+        "",
+        "video/mp4",
+        "",
+        "audio/mp3",
+        "",
+        "global"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "Gemini3ProImage",
+      "pos": [
+        1350.6783540916429,
+        -574.4458232247555
+      ],
+      "size": [
+        400,
+        554
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image5",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "image6",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Generated Image",
+          "type": "IMAGE",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "ver": "6d534a1223503ad2c5a844854f4807c047b2bc9a",
+        "Node name for S&R": "Gemini3ProImage"
+      },
+      "widgets_values": [
+        "GEMINI_3_PRO_IMAGE",
+        "",
+        "16:9",
+        "1K",
+        "PNG",
+        0.7,
+        1,
+        32,
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "BLOCK_MEDIUM_AND_ABOVE",
+        "",
+        "",
+        "global"
+      ]
+    }
+  ],
+  "links": [
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "IMAGE"
+    ],
+    [
+      4,
+      1,
+      0,
+      5,
+      0,
+      "STRING"
+    ],
+    [
+      8,
+      5,
+      0,
+      3,
+      6,
+      "STRING"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.6198168487556136,
+      "offset": [
+        139.3368566408016,
+        908.5571279194306
+      ]
+    },
+    "frontendVersion": "1.35.9",
+    "workflowRendererVersion": "LG",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

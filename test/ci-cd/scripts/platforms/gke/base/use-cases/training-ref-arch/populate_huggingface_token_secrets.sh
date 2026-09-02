@@ -37,7 +37,7 @@ trap exit_handler EXIT
 
 set --
 
-source "${ACP_PLATFORM_BASE_DIR}/use-cases/training-ref-arch/_shared_config/scripts/set_environment_variables.sh"
+source "${ACP_PLATFORM_BASE_DIR}/use-cases/training-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 gcloud services enable secretmanager.googleapis.com --project="${huggingface_secret_manager_project_id}" --quiet || true
 

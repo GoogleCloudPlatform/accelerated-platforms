@@ -273,6 +273,7 @@ resource "local_file" "shared_config_workloads_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
+      agent_sandbox_version                  = var.agent_sandbox_version
       custom_metrics_adapter_version         = var.custom_metrics_adapter_version
       inference_gateway_kubernetes_namespace = var.inference_gateway_kubernetes_namespace
       inference_gateway_version              = var.inference_gateway_version
@@ -280,6 +281,14 @@ resource "local_file" "shared_config_workloads_auto_tfvars" {
       kuberay_version                        = var.kuberay_version
       kueue_version                          = var.kueue_version
       lws_version                            = var.lws_version
+      mlflow_bucket_location                 = var.mlflow_bucket_location
+      mlflow_bucket_name                     = var.mlflow_bucket_name
+      mlflow_bucket_project_id               = var.mlflow_bucket_project_id
+      mlflow_kubernetes_namespace            = var.mlflow_kubernetes_namespace
+      mlflow_kubernetes_service_account_name = var.mlflow_kubernetes_service_account_name
+      mlflow_service_account_name            = var.mlflow_service_account_name
+      mlflow_service_account_project_id      = var.mlflow_service_account_project_id
+      mlflow_version                         = var.mlflow_version
       pathways_version                       = var.pathways_version
     }
   )

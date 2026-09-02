@@ -68,12 +68,6 @@ export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it"
 export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-ngram"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-ngram/configure_benchmark.sh"
 export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-eagle"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-eagle/configure_benchmark.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/configure_vllm_spec_decoding.sh"
-
-# Validate k6-benchmark kustomize
-export ACCELERATOR_TYPE="l4"
-export HF_MODEL_NAME="HF_MODEL_NAME"
 export K6_REQUEST_BATCH_SIZE=1
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/k6-benchmark/configure_deployment.sh"
 
@@ -98,6 +92,12 @@ LOCAL_CRDS_FLAG=""
 if [ -d "${CRD_DIR}" ]; then
   LOCAL_CRDS_FLAG="--local-crds ${CRD_DIR}"
 fi
+
+# Validate vllm-native-cache-offloading kustomize
+export ACCELERATOR_TYPE="rtx-pro-6000"
+export HF_MODEL_ID="qwen/qwen3-32b"
+source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-native-cache-offloading/single-tier/configure_vllm.sh"
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"

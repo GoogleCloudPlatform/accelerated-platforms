@@ -16,6 +16,12 @@ locals {
   manifests_directory_root = "${path.module}/../../../kubernetes/manifests"
 }
 
+variable "agent_sandbox_version" {
+  default     = "0.4.6"
+  description = "Version of Agent Sandbox (https://github.com/kubernetes-sigs/agent-sandbox) to install."
+  type        = string
+}
+
 variable "custom_metrics_adapter_version" {
   default     = "0.16.7"
   description = "Version of Custom Metrics Adapter (https://github.com/GoogleCloudPlatform/k8s-stackdriver) to install."
@@ -61,5 +67,53 @@ variable "lws_version" {
 variable "pathways_version" {
   default     = "0.1.4"
   description = "Version of Pathways (https://github.com/google/pathways-job) to install."
+  type        = string
+}
+
+variable "mlflow_version" {
+  default     = "3.13.0"
+  description = "Version of MLflow (https://github.com/mlflow/mlflow) to install."
+  type        = string
+}
+
+variable "mlflow_kubernetes_namespace" {
+  default     = null
+  description = "The Kubernetes namespace where MLflow tracking will be deployed."
+  type        = string
+}
+
+variable "mlflow_kubernetes_service_account_name" {
+  default     = null
+  description = "The Kubernetes ServiceAccount name for MLflow."
+  type        = string
+}
+
+variable "mlflow_service_account_name" {
+  default     = null
+  description = "The name of the Google Service Account for MLflow."
+  type        = string
+}
+
+variable "mlflow_service_account_project_id" {
+  default     = null
+  description = "The project ID of the MLflow Google Service Account."
+  type        = string
+}
+
+variable "mlflow_bucket_name" {
+  default     = null
+  description = "The name of the Cloud Storage bucket used to store MLflow artifacts."
+  type        = string
+}
+
+variable "mlflow_bucket_project_id" {
+  default     = null
+  description = "The project ID for the MLflow Cloud Storage bucket."
+  type        = string
+}
+
+variable "mlflow_bucket_location" {
+  default     = null
+  description = "The location of the MLflow Cloud Storage bucket."
   type        = string
 }

@@ -5,6 +5,7 @@ asctime
 asgi
 asynccontextmanager
 asyncio
+bfloat
 certifi
 cffi
 classmethod
@@ -55,14 +56,18 @@ isort
 iterrows
 jsonify
 jsonpickle
+lemmatization
+lemmatized
 levelname
 lstrip
 makedirs
 moviepy
 nbconvert
 numpy
+onednn
 opencv
 optax
+orchestrator
 pathlib
 pgvector
 pipreqs
@@ -70,6 +75,7 @@ pmap
 popen
 prng
 protos
+pyarrow
 pyasn
 pycache
 pycparser
@@ -90,6 +96,7 @@ rerank
 reranked
 retryable
 rsplit
+runpy
 sampwidth
 scikit
 sentencepiece

@@ -654,17 +654,17 @@ The benchmark suite evaluated five model architectures:
 
 ### 1. Comprehensive Empirical Results Matrix
 
-| Benchmark Metric                                          | google/gemma-4-31B-it                                                                                | google/gemma-3-27b-it                                                                                | Qwen/Qwen3.5-35B-A3B | Qwen/Qwen3.6-35B-A3B (MoE) | Qwen/Qwen3.6-27B (Dense) |
-| :-------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :------------------- | :------------------------- | :----------------------- |
-| **Model Footprint in VRAM**                               | 58.99 GiB (Plus 26.81 GiB KV cache, 0.86 GiB CUDAGraph)                                              | 51.54 GiB (Plus 22.99 GiB KV cache, 0.73 GiB CUDAGraph)                                              | TBD                  | TBD                        | TBD                      |
-| **Run:ai Weight Load Duration**                           | 40.06s (1,454 MiB/s) vs. 378.67s (159.5 MiB/s) GCS FUSE                                             | 144.86s (361.2 MiB/s)                                                                                | TBD                  | TBD                        | TBD                      |
-| **HPA Trigger Time ($t_{\text{trigger}}$) - vLLM Metric** | 118s                                                                                                 | 589s                                                                                                 | 279s                 | 135s                       | 145s                     |
-| **HPA Trigger Time ($t_{\text{trigger}}$) - EPP Metric**  | TBD                                                                                                  | TBD                                                                                                  | TBD                  | TBD                        | TBD                      |
-| **HPA Target Request ($t_{\text{max\_desired}}$)**        | 150s                                                                                                 | 621s                                                                                                 | 311s                 | 151s                       | 179s                     |
-| **PodSnapshot Restore Time / Pod**                        | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                        | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                        | TBD                  | TBD                        | TBD                      |
-| **Full Pool Readiness ($t_{\text{all\_ready}}$)**         | 479s                                                                                                 | 1645s                                                                                                | 692s                 | 571s                       | 3832s                    |
-| **Cold Boot Baseline Scaling Time**                       | 570s (Default GCS FUSE Load: 379s, Init: 64s) / 232s (Run:ai: 40s)                                   | 309s (Stream: 145s, Init: 53s)                                                                       | TBD                  | TBD                        | TBD                      |
-| **Overall Scaling Speedup**                               | N/A (PodSnapshot blocked by nvproxy deadlock; Run:ai achieves 9.45x load speedup)                    | N/A (PodSnapshot blocked by nvproxy deadlock)                                                        | TBD                  | TBD                        | TBD                      |
+| Benchmark Metric                                          | google/gemma-4-31B-it                                                                                | google/gemma-3-27b-it                                                                                 | Qwen/Qwen3.5-35B-A3B | Qwen/Qwen3.6-35B-A3B (MoE) | Qwen/Qwen3.6-27B (Dense) |
+| :-------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------- | :------------------- | :------------------------- | :----------------------- |
+| **Model Footprint in VRAM**                               | 58.99 GiB (Plus 26.81 GiB KV cache, 0.86 GiB CUDAGraph)                                              | 51.54 GiB (Plus 22.99 GiB KV cache, 0.73 GiB CUDAGraph)                                               | TBD                  | TBD                        | TBD                      |
+| **Run:ai Weight Load Duration**                           | 40.06s (1,454 MiB/s) vs. 378.67s (159.5 MiB/s) GCS FUSE                                              | 144.86s (361.2 MiB/s)                                                                                 | TBD                  | TBD                        | TBD                      |
+| **HPA Trigger Time ($t_{\text{trigger}}$) - vLLM Metric** | 118s                                                                                                 | 589s                                                                                                  | 279s                 | 135s                       | 145s                     |
+| **HPA Trigger Time ($t_{\text{trigger}}$) - EPP Metric**  | TBD                                                                                                  | TBD                                                                                                   | TBD                  | TBD                        | TBD                      |
+| **HPA Target Request ($t_{\text{max\_desired}}$)**        | 150s                                                                                                 | 621s                                                                                                  | 311s                 | 151s                       | 179s                     |
+| **PodSnapshot Restore Time / Pod**                        | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                        | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                         | TBD                  | TBD                        | TBD                      |
+| **Full Pool Readiness ($t_{\text{all\_ready}}$)**         | 479s                                                                                                 | 1645s                                                                                                 | 692s                 | 571s                       | 3832s                    |
+| **Cold Boot Baseline Scaling Time**                       | 570s (Default GCS FUSE Load: 379s, Init: 64s) / 232s (Run:ai: 40s)                                   | 309s (Stream: 145s, Init: 53s)                                                                        | TBD                  | TBD                        | TBD                      |
+| **Overall Scaling Speedup**                               | N/A (PodSnapshot blocked by nvproxy deadlock; Run:ai achieves 9.45x load speedup)                    | N/A (PodSnapshot blocked by nvproxy deadlock)                                                         | TBD                  | TBD                        | TBD                      |
 | **Inference Server Engine Status**                        | Completed (Live 200 OK verified on `/v1/chat/completions`; Run:ai: 40s load vs. GCS FUSE: 379s load) | Completed (Fast Cold-Start with Run:ai Streamer verified; Checkpoint deadlocks in nvproxy futex wait) | TBD                  | TBD                        | TBD                      |
 
 ### 2. Deep Dive: Architectural Nuances per Model Test Case
@@ -677,17 +677,18 @@ FlashAttention-4 is unavailable for heterogeneous heads, forcing the engine to
 fall back to Triton attention backends (`TRITON_ATTN`). In standard cold boots
 over direct GCS FUSE mounts, loading the 58.99 GiB checkpoint shards consumes
 **378.67 seconds** (~6.3 minutes) at 159.5 MiB/s, followed by **33.79s** of
-`torch.compile` / Inductor graph compilation and **12.00s** of piecewise and full
-CUDAGraph captures, yielding a total cold start to `2/2 Ready` of **570 seconds**
-(~9.5 minutes).
+`torch.compile` / Inductor graph compilation and **12.00s** of piecewise and
+full CUDAGraph captures, yielding a total cold start to `2/2 Ready` of **570
+seconds** (~9.5 minutes).
 
 By enabling the NVIDIA Run:ai Model Streamer (`runai_streamer`), checkpoint
-ingestion is accelerated from 378.67s down to **40.06 seconds** at **1,454 MiB/s**
-(a **9.45x weight-streaming speedup**), reducing the pod warm-up time to ~232
-seconds. Full PodSnapshot checkpointing of this state is currently blocked by
-the gVisor kernel `nvproxy` futex wait lock-inversion deadlock during UVM context
-pause. Live test completions on the deployed server successfully verified single-word
-generation latency and full tokenization correctness against the Gemma 4 vocabulary.
+ingestion is accelerated from 378.67s down to **40.06 seconds** at **1,454
+MiB/s** (a **9.45x weight-streaming speedup**), reducing the pod warm-up time to
+~232 seconds. Full PodSnapshot checkpointing of this state is currently blocked
+by the gVisor kernel `nvproxy` futex wait lock-inversion deadlock during UVM
+context pause. Live test completions on the deployed server successfully
+verified single-word generation latency and full tokenization correctness
+against the Gemma 4 vocabulary.
 
 #### Case Study B: `Qwen/Qwen3.6-35B-A3B` (Mixture-of-Experts)
 
@@ -1116,8 +1117,7 @@ spec:
 
 ### 2. Comprehensive Troubleshooting Guide for Common Failure Modes
 
-> [!IMPORTANT]
-> **Important Note on Large Models and PodSnapshots**
+> [!IMPORTANT] > **Important Note on Large Models and PodSnapshots**
 >
 > **Current Behavior & Empirical Verification:** There is currently a known bug
 > in the gVisor `nvproxy` kernel module and checkpoint synchronization barrier
@@ -1139,8 +1139,8 @@ spec:
 > issue is an internal driver/sandbox lock inversion.
 >
 > **GCS FUSE CSI Driver on Linux 6.6:** On newer GKE node versions (e.g.,
-> `v1.36.3-gke.1537000`) where Container-Optimized OS runs Linux kernel 6.6,
-> the GKE-managed `gcsfusecsi-node` daemonset crashes on startup with
+> `v1.36.3-gke.1537000`) where Container-Optimized OS runs Linux kernel 6.6, the
+> GKE-managed `gcsfusecsi-node` daemonset crashes on startup with
 > `hostPath type check failed: /proc/sys/fs/fuse is not a directory` because the
 > `/proc/sys/fs/fuse` sysctl table was only added in Linux 6.10+. Nodes running
 > kernel 6.6 require an initializer DaemonSet in `kube-system` to bind-mount a

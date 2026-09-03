@@ -18,28 +18,27 @@ metadata:
   name: vllm-model-pv
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadOnlyMany
   capacity:
-    storage: 100Gi
-  storageClassName: gcsfusecsi-serving
+    storage: 500Gi
   csi:
     driver: gcsfuse.csi.storage.gke.io
-    volumeHandle: cloud-storage-bucket-name
     volumeAttributes:
-      # Rapid Cache (Anywhere Cache) is automatically enabled by the StorageClass
-      # HNS buckets don't need implicit-dirs
-      mountOptions: "metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,gcs-connection:client-protocol:grpc,only-dir:replace-me"
+      mountOptions: implicit-dirs,only-dir:replace-me
+    volumeHandle: cloud-storage-bucket-name
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  volumeMode: Filesystem
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: vllm-model-pvc
-  namespace: replaced-by-kustomize
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadOnlyMany
   resources:
     requests:
-      storage: 100Gi
-  storageClassName: gcsfusecsi-serving
+      storage: 500Gi
+  storageClassName: ""
   volumeName: vllm-model-pv-rtx-pro-6000-gemma-4-31b-it

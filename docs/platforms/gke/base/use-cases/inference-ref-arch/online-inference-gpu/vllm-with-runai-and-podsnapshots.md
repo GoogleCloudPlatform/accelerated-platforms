@@ -481,21 +481,21 @@ Run:ai Model Streamer, GCS Rapid Cache, and GKE PodSnapshots.
 
 #### Performance Comparison Table
 
-| Metric / Parameter                             | Gemma 3 27B (`gemma-3-27b-it`)       | Qwen 3.5 35B (`qwen3.5-35b-a3b`)                                  | Gemma 4 31B (`gemma-4-31b-it`)                                    | Qwen 3.6 35B MoE (`Qwen3.6-35B-A3B`) | Qwen 3.6 27B Dense (`Qwen3.6-27B`)   |
-| :--------------------------------------------- | :----------------------------------- | :---------------------------------------------------------------- | :---------------------------------------------------------------- | :----------------------------------- | :----------------------------------- |
-| **Parameters**                                 | 27 Billion                           | 35 Billion (A3B MoE)                                              | 31 Billion                                                        | 35 Billion (A3B MoE)                 | 27 Billion (Dense)                   |
-| **Accelerator**                                | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)                                        | NVIDIA RTX Pro 6000 (96GB)                                        | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)           |
-| **vLLM Image Tag**                             | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0`                              | `docker.io/vllm/vllm-openai:v0.26.0`                              | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` |
-| **Tensor Parallelism (TP)**                    | 1                                    | 1                                                                 | 1                                                                 | 1                                    | 1                                    |
-| **GPU Memory Utilization**                     | TBD                                  | 0.80                                                              | 0.92                                                              | TBD                                  | TBD                                  |
-| **HPA Scale Trigger (`t_trigger_sec`)**        | TBD                                  | TBD                                                               | 76s                                                               | TBD                                  | TBD                                  |
-| **Max Desired Replicas (`t_max_desired_sec`)** | TBD                                  | TBD                                                               | 353s                                                              | TBD                                  | TBD                                  |
-| **All Replicas Ready (`t_all_ready_sec`)**     | TBD                                  | TBD                                                               | ~460s                                                             | TBD                                  | TBD                                  |
-| **PodSnapshot Restore Time**                   | TBD                                  | N/A (Failed to Checkpoint - nvproxy Deadlock)                     | N/A (Failed to Checkpoint - nvproxy Deadlock)                     | TBD                                  | TBD                                  |
-| **Traditional Cold Boot Time**                 | TBD                                  | 200.9s                                                            | 398s (Node: 52s, Pod: 346s)                                       | TBD                                  | TBD                                  |
-| **Scaling Time Reduction**                     | TBD                                  | TBD                                                               | N/A                                                               | TBD                                  | TBD                                  |
-| **HPA Scaling Metric**                         | TBD                                  | TBD                                                               | `vllm:num_requests_waiting`                                       | TBD                                  | TBD                                  |
-| **Test Result Status**                         | TBD                                  | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock) | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock) | TBD                                  | TBD                                  |
+| Metric / Parameter                             | Gemma 3 27B (`gemma-3-27b-it`)                                                                      | Qwen 3.5 35B (`qwen3.5-35b-a3b`)                                  | Gemma 4 31B (`gemma-4-31b-it`)                                                                       | Qwen 3.6 35B MoE (`Qwen3.6-35B-A3B`) | Qwen 3.6 27B Dense (`Qwen3.6-27B`)   |
+| :--------------------------------------------- | :-------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :----------------------------------- | :----------------------------------- |
+| **Parameters**                                 | 27 Billion                                                                                          | 35 Billion (A3B MoE)                                              | 31 Billion                                                                                           | 35 Billion (A3B MoE)                 | 27 Billion (Dense)                   |
+| **Accelerator**                                | NVIDIA RTX Pro 6000 (96GB)                                                                          | NVIDIA RTX Pro 6000 (96GB)                                        | NVIDIA RTX Pro 6000 (96GB)                                                                           | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)           |
+| **vLLM Image Tag**                             | `docker.io/vllm/vllm-openai:v0.26.0`                                                                | `docker.io/vllm/vllm-openai:v0.26.0`                              | `docker.io/vllm/vllm-openai:v0.26.0`                                                                 | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` |
+| **Tensor Parallelism (TP)**                    | 1                                                                                                   | 1                                                                 | 1                                                                                                    | 1                                    | 1                                    |
+| **GPU Memory Utilization**                     | 0.80 (51.54 GiB Weights, 22.99 GiB KV)                                                             | 0.80                                                              | 0.92 (58.99 GiB Weights, 26.81 GiB KV cache, 0.86 GiB CUDAGraph)                                   | TBD                                  | TBD                                  |
+| **HPA Scale Trigger (`t_trigger_sec`)**        | TBD                                                                                                 | TBD                                                               | 76s                                                                                                  | TBD                                  | TBD                                  |
+| **Max Desired Replicas (`t_max_desired_sec`)** | TBD                                                                                                 | TBD                                                               | 353s                                                                                                 | TBD                                  | TBD                                  |
+| **All Replicas Ready (`t_all_ready_sec`)**     | TBD                                                                                                 | TBD                                                               | ~460s                                                                                                | TBD                                  | TBD                                  |
+| **PodSnapshot Restore Time**                   | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                       | N/A (Failed to Checkpoint - nvproxy Deadlock)                     | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                        | TBD                                  | TBD                                  |
+| **Traditional Cold Boot Time**                 | 309s (Stream: 145s, Init: 53s)                                                                      | 200.9s                                                            | 570s (GCS FUSE Default Load: 379s, Init: 64s, Tokenizer: 43s) / 232s (Run:ai Streamer: 40.06s)       | TBD                                  | TBD                                  |
+| **Scaling Time Reduction**                     | N/A                                                                                                 | TBD                                                               | N/A (PodSnapshot blocked by nvproxy deadlock; Run:ai achieves 9.45x load speedup)                    | TBD                                  | TBD                                  |
+| **HPA Scaling Metric**                         | `vllm:num_requests_waiting`                                                                         | TBD                                                               | `vllm:num_requests_waiting`                                                                          | TBD                                  | TBD                                  |
+| **Test Result Status**                         | Completed (Fast Cold-Start with Run:ai Streamer verified; Checkpoint deadlocks in nvproxy futex wait) | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock) | Completed (Verified Live 200 OK; Run:ai: 40s load vs. GCS FUSE: 379s; Checkpoint deadlocks in futex) | TBD                                  | TBD                                  |
 
 #### Gemma 4 31B: vLLM Metric HPA vs. EPP Control-Flow Log-Based HPA
 
@@ -575,17 +575,35 @@ Calculate timings:
 
 ## 4. Troubleshooting & Common Issues
 
-> [!IMPORTANT] > **Important Note on Large Models and PodSnapshots**
+> [!IMPORTANT]
+> **Important Note on Large Models and PodSnapshots**
 >
-> **Current Behavior:** There is currently a known bug in the gVisor `nvproxy`
-> kernel module that affects PodSnapshots for large models with >40GB VRAM
-> footprints (e.g., Qwen 3.5 35B, Gemma 3 27B). Attempting to snapshot these
-> models causes the underlying `runsc` process to either throw an
-> `NV_ERR_OBJECT_NOT_FOUND` assertion panic or silently deadlock, leaving an
-> unkillable zombie process that consumes all GPU resources and crashes the node
-> to a `NotReady` state. As a temporary mitigation, large models should rely
-> strictly on the Run:ai Model Streamer for cold starts until this bug is
-> resolved.
+> **Current Behavior & Empirical Verification:** There is currently a known bug
+> in the gVisor `nvproxy` kernel module and checkpoint synchronization barrier
+> that affects PodSnapshots for large models with >40GB VRAM footprints (e.g.,
+> Qwen 3.5 35B, Gemma 3 27B). Attempting to snapshot these models causes the
+> underlying `runsc` process to either throw an `NV_ERR_OBJECT_NOT_FOUND`
+> assertion panic or enter an unbreakable kernel `futex_wait` deadlock.
+>
+> **Memory Sizing Disproof:** In targeted validation with Gemma 3 27B, the vLLM
+> deployment memory request and limit were bumped to `140Gi` on a
+> `g4-standard-48` node (176Gi allocatable host RAM). Node diagnostics
+> (`free -h`) confirmed that **87 GiB of host RAM remained completely free**
+> with 52 GiB of cgroup headroom, and `nvidia-smi` confirmed that
+> `cuda-checkpoint` successfully evacuated all 51.5 GB of VRAM down to 0 MiB.
+> Despite ample memory headroom and no OOM kills, `runsc checkpoint` and
+> `runsc-sandbox` threads deadlocked in a kernel futex wait inside `nvproxy` /
+> `gvisor-cuda-cr` while synchronizing CUDA streams and CUDAGraphs. This
+> definitively disproves that memory limits or host OOM cause the hang; the
+> issue is an internal driver/sandbox lock inversion.
+>
+> **GCS FUSE CSI Driver on Linux 6.6:** On newer GKE node versions (e.g.,
+> `v1.36.3-gke.1537000`) where Container-Optimized OS runs Linux kernel 6.6,
+> the GKE-managed `gcsfusecsi-node` daemonset crashes on startup with
+> `hostPath type check failed: /proc/sys/fs/fuse is not a directory` because the
+> `/proc/sys/fs/fuse` sysctl table was only added in Linux 6.10+. Nodes running
+> kernel 6.6 require an initializer DaemonSet in `kube-system` to bind-mount a
+> shadow directory exposing `/proc/sys/fs/fuse/max_pages_limit`.
 >
 > **The Path Forward:** The GKE product team is actively working to resolve the
 > kernel limits to support these large footprints and bring snapshot times down
@@ -593,7 +611,8 @@ Calculate timings:
 > for large LLMs will be:
 >
 > 1. **Initial Fast Cold Start**: `runai_streamer` rapidly loads the model
->    weights directly into VRAM from GCS FUSE.
+>    weights directly into VRAM from GCS FUSE (e.g., 51.1 GiB Gemma 3 27B in
+>    145s).
 > 2. **Snapshot Creation**: A `PodSnapshot` is automatically taken when the vLLM
 >    readiness probe passes (completing in ~30-60 seconds).
 > 3. **Rapid Scale-Out**: All subsequent replicas come up instantly by restoring

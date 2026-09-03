@@ -158,6 +158,7 @@
     "autotuning",
     "bursty",
     "faststart",
+    "futex",
     "gcsfusecsi",
     "gemma",
     "gvisor",

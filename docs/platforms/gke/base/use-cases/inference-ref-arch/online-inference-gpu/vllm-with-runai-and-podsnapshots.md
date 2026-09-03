@@ -569,7 +569,7 @@ kubectl get pods -n inf-supafast-online-gpu -l app=vllm-rtx-pro-6000-gemma-4-31b
 
 Calculate timings:
 
-- $\text{Restore Latency} = t_{\text{all\_ready}} - t_{\text{trigger}}$
+- $\text{Restore Latency} = t_{\text{all-ready}} - t_{\text{trigger}}$
 - Compare **vLLM Metric HPA** (`vllm:num_requests_waiting`) against **EPP
   Log-Based HPA** (`inference_pool_per_pod_queue_size`).
 

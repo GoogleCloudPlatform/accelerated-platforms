@@ -401,7 +401,7 @@ before dispatching a request.
 
 The prediction model calculates expected latency using the following formula:
 
-$$\text{Predicted Latency} = (N_{\text{prompt}} \times \alpha_{\text{prefill}}) + (Q_{\text{active}} \times N_{\text{avg\_gen}} \times \beta_{\text{decode}}) + \gamma_{\text{cache\_miss}}$$
+$$\text{Predicted Latency} = (N_{\text{prompt}} \times \alpha_{\text{prefill}}) + (Q_{\text{active}} \times N_{\text{avg-gen}} \times \beta_{\text{decode}}) + \gamma_{\text{cache-miss}}$$
 
 Where:
 
@@ -410,11 +410,11 @@ Where:
   time per token for the specific accelerator (e.g., RTX Pro 6000).
 - $Q_{\text{active}}$ is the count of requests currently queued or executing on
   the candidate backend pod.
-- $N_{\text{avg\_gen}}$ is the moving average of generated output tokens per
+- $N_{\text{avg-gen}}$ is the moving average of generated output tokens per
   request.
 - $\beta_{\text{decode}}$ is the time per output token (TPOT) during the decode
   phase.
-- $\gamma_{\text{cache\_miss}}$ is an additional latency penalty added if the
+- $\gamma_{\text{cache-miss}}$ is an additional latency penalty added if the
   candidate pod does not currently hold the prompt prefix in its KV Cache.
 
 By continuously routing requests to the pod with the lowest predicted latency
@@ -660,9 +660,9 @@ The benchmark suite evaluated five model architectures:
 | **Run:ai Weight Load Duration**                           | 40.06s (1,454 MiB/s) vs. 378.67s (159.5 MiB/s) GCS FUSE                                              | 144.86s (361.2 MiB/s)                                                                                 | TBD                  | TBD                        | TBD                      |
 | **HPA Trigger Time ($t_{\text{trigger}}$) - vLLM Metric** | 118s                                                                                                 | 589s                                                                                                  | 279s                 | 135s                       | 145s                     |
 | **HPA Trigger Time ($t_{\text{trigger}}$) - EPP Metric**  | TBD                                                                                                  | TBD                                                                                                   | TBD                  | TBD                        | TBD                      |
-| **HPA Target Request ($t_{\text{max\_desired}}$)**        | 150s                                                                                                 | 621s                                                                                                  | 311s                 | 151s                       | 179s                     |
+| **HPA Target Request ($t_{\text{max-desired}}$)**         | 150s                                                                                                 | 621s                                                                                                  | 311s                 | 151s                       | 179s                     |
 | **PodSnapshot Restore Time / Pod**                        | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                        | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                         | TBD                  | TBD                        | TBD                      |
-| **Full Pool Readiness ($t_{\text{all\_ready}}$)**         | 479s                                                                                                 | 1645s                                                                                                 | 692s                 | 571s                       | 3832s                    |
+| **Full Pool Readiness ($t_{\text{all-ready}}$)**          | 479s                                                                                                 | 1645s                                                                                                 | 692s                 | 571s                       | 3832s                    |
 | **Cold Boot Baseline Scaling Time**                       | 570s (Default GCS FUSE Load: 379s, Init: 64s) / 232s (Run:ai: 40s)                                   | 309s (Stream: 145s, Init: 53s)                                                                        | TBD                  | TBD                        | TBD                      |
 | **Overall Scaling Speedup**                               | N/A (PodSnapshot blocked by nvproxy deadlock; Run:ai achieves 9.45x load speedup)                    | N/A (PodSnapshot blocked by nvproxy deadlock)                                                         | TBD                  | TBD                        | TBD                      |
 | **Inference Server Engine Status**                        | Completed (Live 200 OK verified on `/v1/chat/completions`; Run:ai: 40s load vs. GCS FUSE: 379s load) | Completed (Fast Cold-Start with Run:ai Streamer verified; Checkpoint deadlocks in nvproxy futex wait) | TBD                  | TBD                        | TBD                      |

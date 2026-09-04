@@ -528,6 +528,73 @@ PodSnapshot Restoration Phase (Executed on Every Scale-Out Event):
 | **Run:ai Streamer Cold Boot**          | 1.5 minutes         | 4–5 minutes                | **5.5–6.5 minutes**         | ~68% Faster            |
 | **Run:ai Streamer + GKE PodSnapshots** | Bypassed            | Bypassed                   | **45–55 seconds**           | **>95% Faster**        |
 
+### 3. Cooperative Workload-Triggered State Snapshots vs. Asynchronous Triggering
+
+GKE PodSnapshots support multiple trigger mechanisms via `PodSnapshotPolicy`:
+`workload`, `readinessProbe`, and `manual`. In high-throughput LLM serving
+environments, **cooperative workload-triggered snapshots** represent the
+architecturally superior pattern.
+
+#### Root Cause of Asynchronous Checkpoint Deadlocks
+
+When snapshotting is triggered out-of-band via `manual` triggers or externally
+upon readiness (`readinessProbe`), the freeze command (`runsc checkpoint`)
+interrupts a live, active inference server:
+
+1. **Active TCP Sockets & Event Loops**: Uvicorn/FastAPI has already bound
+   `0.0.0.0:8000`. Active `epoll` loops process continuous `/health` and
+   `/v1/models` probes from the Kubelet and GKE Gateway.
+2. **Background FUSE Polling**: GCS FUSE maintains active background threads
+   refreshing directory inodes and bucket metadata.
+3. **Inflight GPU Kernel Streams**: CUDA drivers and runtimes maintain active
+   stream polling events inside gVisor's `nvproxy`.
+
+Freezing the container while network sockets and CUDA queues are active causes
+`nvproxy` to encounter kernel lock inversion in
+`futex_wait(uaddr=..., timeout=NULL)`, deadlocking the sandbox threads. Even if
+an external checkpoint succeeds, restoring it introduces severed TCP connections
+and socket state desynchronization.
+
+#### Cooperative In-Band Checkpointing Pattern
+
+The cooperative workload trigger approach
+([`gke-pod-snapshots-tools`](https://github.com/CoderSherlock/gke-pod-snapshots-tools))
+solves this by triggering the checkpoint **in-band** at an exact lifecycle
+transition:
+
+- **Pre-Network Isolation**: The snapshot is taken inside the vLLM entrypoint
+  _after_ weight streaming and PyTorch CUDA graph capture complete, but _before_
+  Uvicorn binds port 8000.
+- **CUDA Quiescence**: Calling `torch.cuda.synchronize()` flushes all GPU queues
+  so zero stream events are inflight during the freeze.
+- **Deterministic Checkpoint Trigger**: The workload opens
+  `/proc/gvisor/checkpoint`, writes `b"1"`, and blocks on `f.read()`.
+- **Clean Replica Hydration**: When restored on a new node, the process resumes
+  from `f.read()`, re-seeds PRNGs (`random.seed()`, `torch.manual_seed()`), and
+  binds `0.0.0.0:8000` fresh. Every restored replica starts with a clean,
+  unpolluted network stack.
+
+```python
+# vLLM lifecycle hook for cooperative workload checkpointing
+import os
+import random
+import torch
+from gke_pod_snapshots_tools import checkpoint
+
+# 1. Complete weight loading and CUDA graph capture
+# 2. Quiesce all CUDA streams before snapshot
+if torch.cuda.is_available():
+  torch.cuda.synchronize()
+
+# 3. Cooperatively trigger PodSnapshot via /proc/gvisor/checkpoint
+if os.path.exists("/proc/gvisor/checkpoint"):
+  checkpoint()  # Blocks until restored replica starts
+
+# 4. On restore: re-seed PRNGs and cleanly launch HTTP server
+random.seed()
+torch.manual_seed(random.randint(0, 2**32 - 1))
+```
+
 ---
 
 ## Section 8: Dual-Tier Autoscaling Architecture (EPP Control-Flow vs. Native Engine Metrics)
@@ -1119,12 +1186,12 @@ spec:
 
 > [!IMPORTANT] > **Important Note on Large Models and PodSnapshots**
 >
-> **Current Behavior & Empirical Verification:** There is currently a known bug
-> in the gVisor `nvproxy` kernel module and checkpoint synchronization barrier
-> that affects PodSnapshots for large models with >40GB VRAM footprints (e.g.,
-> Qwen 3.5 35B, Gemma 3 27B). Attempting to snapshot these models causes the
-> underlying `runsc` process to either throw an `NV_ERR_OBJECT_NOT_FOUND`
-> assertion panic or enter an unbreakable kernel `futex_wait` deadlock.
+> **Current Behavior & Empirical Verification:** In testing across large models
+> with >40GB VRAM footprints (e.g., Gemma 4 31B, Qwen 3.5 35B, Gemma 3 27B),
+> asynchronous checkpoint triggers (`type: manual` or `type: readinessProbe`)
+> cause the underlying `runsc` process to enter an unbreakable kernel
+> `futex_wait` deadlock inside the gVisor `nvproxy` kernel module during CUDA
+> stream synchronization.
 >
 > **Memory Sizing Disproof:** In targeted validation with Gemma 3 27B, the vLLM
 > deployment memory request and limit were bumped to `140Gi` on a
@@ -1136,7 +1203,7 @@ spec:
 > `runsc-sandbox` threads deadlocked in a kernel futex wait inside `nvproxy` /
 > `gvisor-cuda-cr` while synchronizing CUDA streams and CUDAGraphs. This
 > definitively disproves that memory limits or host OOM cause the hang; the
-> issue is an internal driver/sandbox lock inversion.
+> issue is an internal driver/sandbox lock inversion during out-of-band freeze.
 >
 > **GCS FUSE CSI Driver on Linux 6.6:** On newer GKE node versions (e.g.,
 > `v1.36.3-gke.1537000`) where Container-Optimized OS runs Linux kernel 6.6, the
@@ -1146,19 +1213,18 @@ spec:
 > kernel 6.6 require an initializer DaemonSet in `kube-system` to bind-mount a
 > shadow directory exposing `/proc/sys/fs/fuse/max_pages_limit`.
 >
-> **The Path Forward:** The GKE product team is actively working to resolve the
-> kernel limits to support these large footprints and bring snapshot times down
-> to 30-45 seconds. Once the bug is fixed, the "happy path" architectural design
-> for large LLMs will be:
->
-> 1. **Initial Fast Cold Start**: `runai_streamer` rapidly loads the model
->    weights directly into VRAM from GCS FUSE (e.g., 51.1 GiB Gemma 3 27B in
->    145s).
-> 2. **Snapshot Creation**: A `PodSnapshot` is automatically taken when the vLLM
->    readiness probe passes (completing in ~30-60 seconds).
-> 3. **Rapid Scale-Out**: All subsequent replicas come up instantly by restoring
->    directly from the snapshot, achieving near-instantaneous horizontal
->    scaling.
+> **The Path Forward (Cooperative Workload Triggering):** The GKE PodSnapshot
+> engineering team has developed a cooperative workload-trigger approach
+> ([`gke-pod-snapshots-tools`](https://github.com/CoderSherlock/gke-pod-snapshots-tools))
+> that resolves the root cause of these deadlocks. By having the vLLM engine
+> process trigger its own snapshot via `/proc/gvisor/checkpoint` _before_
+> binding network sockets and _after_ flushing CUDA queues with
+> `torch.cuda.synchronize()`, the sandbox is cleanly frozen in an idle,
+> quiescent state. Cluster-level integration to enable guest
+> `/proc/gvisor/checkpoint` exposure is currently rolling out. In the interim,
+> combining NVIDIA Run:ai Model Streamer with Fast Starting Nodes provides an
+> immediate **9.45x weight-loading speedup** (e.g., Gemma 4 31B loaded in 40.06s
+> vs 378.67s).
 
 #### Failure Mode 1: HPA Target Shows `<unknown>` Metric Status
 

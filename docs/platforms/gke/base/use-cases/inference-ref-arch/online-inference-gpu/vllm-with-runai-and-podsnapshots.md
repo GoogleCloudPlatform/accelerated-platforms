@@ -191,30 +191,33 @@ immediately.
 
 ## Enable PodSnapshots for Fast Scaling
 
-- The deployment is configured for **fully declarative PodSnapshots**:
+The deployment supports **declarative and cooperative PodSnapshots**:
 
-  - **Automatic Snapshotting**: A `PodSnapshotPolicy` with
-    `type: readinessProbe` automatically triggers a snapshot as soon as the
-    first vLLM pod loads the model and becomes `Ready`.
-  - **Automatic Restoration**: The Deployment includes the
-    `podsnapshot.gke.io/restore-from-policy` annotation. This tells GKE to
-    automatically restore all new replicas from the latest snapshot created by
-    the policy.
+- **Snapshot Trigger Modes**:
+  - **Cooperative Workload Trigger (Recommended Architecture)**: Configured with
+    `triggerConfig.type: workload`. The snapshot is initiated cooperatively from
+    _within_ the vLLM engine process via the GKE PodSnapshots toolchain
+    ([`gke-pod-snapshots-tools`](https://github.com/CoderSherlock/gke-pod-snapshots-tools)).
+    This ensures the snapshot is captured at an exact, quiescent lifecycle
+    point—after weight streaming and CUDA graph compilation finish, but _before_
+    Uvicorn binds port 8000 and begins accepting network connections.
+  - **Readiness Probe Trigger (Declarative Mode)**: Configured with
+    `triggerConfig.type: readinessProbe`. GKE automatically triggers an external
+    snapshot once the initial vLLM pod passes its Kubernetes readiness probe.
+- **Automatic Restoration**: The Deployment includes the
+  `podsnapshot.gke.io/restore-from-policy` annotation. This instructs GKE to
+  automatically restore all new autoscaled replicas from the latest snapshot
+  created by the policy.
 
-- No manual annotations or triggers are required. Simply deploy the manifests,
-  and the first pod will "warm up" the cluster by creating a snapshot that all
-  subsequent replicas will use for near-instant startup.
+You can monitor snapshot status:
 
-- You can monitor the progress:
+```shell
+# Watch for the automatic snapshot to become Ready
+kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get podsnapshots -w
+```
 
-  ```shell
-  # Watch for the automatic snapshot to become Ready
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get podsnapshots -w
-  ```
-
-- To force a fresh "warm up" (e.g., after a model update), you can delete the
-  existing snapshots, and the next pod to become ready will automatically create
-  a new one.
+To force a fresh "warm up" (e.g., after a model update), you can delete the
+existing snapshots, and the next pod will automatically create a new one.
 
 ## Scaling & Flow Control Strategies
 
@@ -577,12 +580,12 @@ Calculate timings:
 
 > [!IMPORTANT] > **Important Note on Large Models and PodSnapshots**
 >
-> **Current Behavior & Empirical Verification:** There is currently a known bug
-> in the gVisor `nvproxy` kernel module and checkpoint synchronization barrier
-> that affects PodSnapshots for large models with >40GB VRAM footprints (e.g.,
-> Qwen 3.5 35B, Gemma 3 27B). Attempting to snapshot these models causes the
-> underlying `runsc` process to either throw an `NV_ERR_OBJECT_NOT_FOUND`
-> assertion panic or enter an unbreakable kernel `futex_wait` deadlock.
+> **Current Behavior & Empirical Verification:** In testing across large models
+> with >40GB VRAM footprints (e.g., Gemma 4 31B, Qwen 3.5 35B, Gemma 3 27B),
+> asynchronous checkpoint triggers (`type: manual` or `type: readinessProbe`)
+> cause the underlying `runsc` process to enter an unbreakable kernel
+> `futex_wait` deadlock inside the gVisor `nvproxy` kernel module during CUDA
+> stream synchronization.
 >
 > **Memory Sizing Disproof:** In targeted validation with Gemma 3 27B, the vLLM
 > deployment memory request and limit were bumped to `140Gi` on a
@@ -594,7 +597,7 @@ Calculate timings:
 > `runsc-sandbox` threads deadlocked in a kernel futex wait inside `nvproxy` /
 > `gvisor-cuda-cr` while synchronizing CUDA streams and CUDAGraphs. This
 > definitively disproves that memory limits or host OOM cause the hang; the
-> issue is an internal driver/sandbox lock inversion.
+> issue is an internal driver/sandbox lock inversion during out-of-band freeze.
 >
 > **GCS FUSE CSI Driver on Linux 6.6:** On newer GKE node versions (e.g.,
 > `v1.36.3-gke.1537000`) where Container-Optimized OS runs Linux kernel 6.6, the
@@ -604,19 +607,123 @@ Calculate timings:
 > kernel 6.6 require an initializer DaemonSet in `kube-system` to bind-mount a
 > shadow directory exposing `/proc/sys/fs/fuse/max_pages_limit`.
 >
-> **The Path Forward:** The GKE product team is actively working to resolve the
-> kernel limits to support these large footprints and bring snapshot times down
-> to 30-45 seconds. Once the bug is fixed, the "happy path" architectural design
-> for large LLMs will be:
->
-> 1. **Initial Fast Cold Start**: `runai_streamer` rapidly loads the model
->    weights directly into VRAM from GCS FUSE (e.g., 51.1 GiB Gemma 3 27B in
->    145s).
-> 2. **Snapshot Creation**: A `PodSnapshot` is automatically taken when the vLLM
->    readiness probe passes (completing in ~30-60 seconds).
-> 3. **Rapid Scale-Out**: All subsequent replicas come up instantly by restoring
->    directly from the snapshot, achieving near-instantaneous horizontal
->    scaling.
+> **The Path Forward (Cooperative Workload Triggering):** As detailed in the
+> deep dive below, cooperative workload-triggered snapshots
+> (`triggerConfig.type: workload`) resolve the root cause of these deadlocks by
+> checkpointing deterministically _before_ network sockets are bound and _after_
+> CUDA queues are fully synchronized.
+
+### Deep Dive: Cooperative Workload-Triggered PodSnapshots vs. Asynchronous Triggering
+
+#### 1. Why Out-of-Band Asynchronous Triggering Deadlocks
+
+In declarative `readinessProbe` and out-of-band `manual` trigger modes, the
+snapshot command (`runsc checkpoint`) is initiated from outside the container
+while vLLM is already actively running:
+
+1. **Active Network Sockets**: Uvicorn/FastAPI has already bound `0.0.0.0:8000`
+   with active `epoll` event loops. The Kubelet and GKE Gateway continuously
+   poll `/health` and `/v1/models` over open TCP connections.
+2. **Background FUSE Threads**: The GCS FUSE CSI driver maintains active worker
+   threads polling Cloud Storage bucket metadata and holding open file
+   descriptors.
+3. **Active CUDA Event Loops**: PyTorch and vLLM have allocated CUDA memory
+   pools and may have inflight CUDA stream polling events registered in
+   `nvproxy`.
+
+When `runsc checkpoint` attempts to freeze the sandbox externally, `nvproxy`
+attempts to quiesce the CUDA driver state while network threads and health
+checks are actively generating syscalls. This triggers a kernel lock inversion
+where the checkpoint worker and sandbox threads block indefinitely on a
+`futex_wait(uaddr=..., timeout=NULL)` barrier. Furthermore, even if a snapshot
+succeeded in this state, restoring it would produce severed TCP sockets, RST
+packets to clients/kubelet, and broken event loop state.
+
+#### 2. The Cooperative Workload Trigger Architecture
+
+The GKE PodSnapshot engineering team's workload-trigger approach
+([`gke-pod-snapshots-tools`](https://github.com/CoderSherlock/gke-pod-snapshots-tools))
+fundamentally eliminates this failure mode by moving snapshot orchestration
+**in-band** inside the workload:
+
+```
++---------------------------------------------------------------------------------------------------+
+| vLLM Container Lifecycle with Cooperative Workload Triggering                                     |
++---------------------------------------------------------------------------------------------------+
+|  1. Boot Process -> 2. Stream Weights (Run:ai: 40s) -> 3. Compile CUDA Graphs (vLLM Engine)       |
+|                                                                                                   |
+|  4. Pre-Network Isolation & GPU Quiescence:                                                       |
+|     * torch.cuda.synchronize() flushes all GPU queues                                             |
+|     * Zero open TCP listening sockets (Uvicorn has NOT bound port 8000 yet)                       |
+|     * Zero incoming health checks or external RPC traffic                                         |
+|                                                                                                   |
+|  5. Trigger Checkpoint:                                                                           |
+|     * Open /proc/gvisor/checkpoint -> write b"1" -> block on f.read()                             |
+|     * gVisor cleanly freezes quiescent memory and VRAM to PodSnapshot storage                     |
++---------------------------------------------------------------------------------------------------+
+                                                  |
+                               (Autoscaling Scale-Out Event)
+                                                  v
++---------------------------------------------------------------------------------------------------+
+| Restored Replica Startup (Instant State Hydration):                                               |
+|  6. Hydrate memory state directly from PodSnapshot storage (sub-minute)                           |
+|  7. Unblock from f.read() in guest process                                                        |
+|  8. Re-seed PRNGs (random.seed(), torch.manual_seed()) to ensure entropy across replicas          |
+|  9. Bind 0.0.0.0:8000 and start Uvicorn HTTP server fresh (Clean TCP Network Stack)               |
+| 10. Pass Readiness Probe -> Serve Traffic Instantly                                               |
++---------------------------------------------------------------------------------------------------+
+```
+
+#### 3. Workload Integration Pattern for vLLM
+
+To use this pattern, a lightweight hook is placed in the vLLM server entrypoint
+after engine initialization (`init_app_state`) but before network startup
+(`serve_http`):
+
+```python
+import os
+import random
+import torch
+from gke_pod_snapshots_tools import checkpoint
+
+
+async def build_and_serve_with_snapshot(*args, **kwargs):
+  # 1. Initialize engine, load safetensors via Run:ai, capture CUDA graphs
+  app, engine_client = await init_app_state(*args, **kwargs)
+
+  # 2. Quiesce all CUDA streams before snapshot
+  if torch.cuda.is_available():
+    torch.cuda.synchronize()
+
+  # 3. Cooperatively trigger PodSnapshot (writes b"1" to /proc/gvisor/checkpoint and blocks)
+  if os.path.exists("/proc/gvisor/checkpoint"):
+    checkpoint()  # Unblocks when new replica is restored
+
+  # 4. On restore: re-seed random number generators to avoid duplicate seeds
+  random.seed()
+  torch.manual_seed(random.randint(0, 2**32 - 1))
+
+  # 5. Start Uvicorn and bind port 8000 with a clean network stack
+  await serve_http(app, *args, **kwargs)
+```
+
+#### 4. Empirical Validation & Cluster Runtime Prerequisites
+
+- **GKE Admission & Policy**: In validation on GKE Autopilot cluster `acp-uc1-a`
+  (version `v1.36.3-gke.1537000`), a `PodSnapshotPolicy` configured with
+  `triggerConfig.type: workload` successfully matches and admits the vLLM pod,
+  assigning the required `snapshot_role=checkpoint` annotation.
+- **Guest `/proc/gvisor/checkpoint` Exposure**: Inside the gVisor sandbox,
+  `/proc/gvisor/checkpoint` is mounted by `proc.(*filesystem).newGvisorInode`
+  only when the container runtime passes the
+  `dev.gvisor.internal.checkpoint.enable` or `allow-checkpoint-writes` OCI
+  annotation to `runsc`.
+- **Engineering Path Forward**: The GKE PodSnapshots team is actively rolling
+  out automated guest `/proc/gvisor/checkpoint` mounting for pods targeted by
+  workload-triggered policies. In parallel, combining NVIDIA Run:ai Model
+  Streamer with Fast Starting Nodes provides an immediate **9.45x weight-loading
+  speedup** (e.g., 58.2 GiB Gemma 4 31B loaded in 40.06 seconds vs 378.67
+  seconds via standard GCS FUSE).
 
 ### Issue 1: HPA Target shows `<unknown>`
 

@@ -291,9 +291,9 @@ resource "google_container_node_pool" "system" {
 
   # Blocks
   autoscaling {
-    location_policy      = "BALANCED"
+    location_policy      = "ANY"
     total_max_node_count = 1000
-    total_min_node_count = 2
+    total_min_node_count = 1
   }
 
   network_config {
@@ -338,8 +338,8 @@ resource "google_container_node_pool" "system" {
   }
 
   timeouts {
-    create = "30m"
-    update = "20m"
+    create = "60m"
+    update = "45m"
   }
 }
 

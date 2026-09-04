@@ -24,8 +24,8 @@ MY_PATH="$(
 
 # Update benchmarking namespace depending on TPU or GPU selection
 TARGET_FILE="${MY_PATH}/templates/benchmarking.tpl.env"
-GPU_NS="${ira_online_gpu_kubernetes_namespace_name}"
-TPU_NS="${ira_online_tpu_kubernetes_namespace_name}"
+GPU_NS="acp-uc1-a-online-gpu"
+TPU_NS="${ira_online_tpu_kubernetes_namespace_name:-}"
 
 # Determine the correct namespace
 if [[ "$ACCELERATOR" == "GPU" ]]; then

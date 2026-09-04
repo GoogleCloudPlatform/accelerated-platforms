@@ -43,6 +43,13 @@ export TF_VAR_cluster_check_custom_compute_classes_healthy="false"
 
 EOT
 
+# Run preflight region check to select optimal region for CI run
+DYNAMIC_CI_REGION="$("${ACP_REPO_DIR}/test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh" "${PROJECT_ID:-}" | tail -n 1)"
+if [ -n "${DYNAMIC_CI_REGION}" ]; then
+  echo "export TF_VAR_platform_default_region=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
+  echo "export LOCATION=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
+fi
+
 while [ $# -gt 0 ]; do
   echo "export $1" >>/workspace/build.env
   shift

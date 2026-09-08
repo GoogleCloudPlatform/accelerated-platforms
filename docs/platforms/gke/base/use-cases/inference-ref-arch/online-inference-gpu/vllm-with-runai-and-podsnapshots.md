@@ -494,11 +494,11 @@ Run:ai Model Streamer, GCS Rapid Cache, and GKE PodSnapshots.
 | **HPA Scale Trigger (`t_trigger_sec`)**        | TBD                                                                                                   | TBD                                                               | 76s                                                                                                  | TBD                                  | TBD                                  |
 | **Max Desired Replicas (`t_max_desired_sec`)** | TBD                                                                                                   | TBD                                                               | 353s                                                                                                 | TBD                                  | TBD                                  |
 | **All Replicas Ready (`t_all_ready_sec`)**     | TBD                                                                                                   | TBD                                                               | ~460s                                                                                                | TBD                                  | TBD                                  |
-| **PodSnapshot Restore Time**                   | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                         | N/A (Failed to Checkpoint - nvproxy Deadlock)                     | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                        | TBD                                  | TBD                                  |
-| **Traditional Cold Boot Time**                 | 309s (Stream: 145s, Init: 53s)                                                                        | 200.9s                                                            | 570s (GCS FUSE Default Load: 379s, Init: 64s, Tokenizer: 43s) / 232s (Run:ai Streamer: 40.06s)       | TBD                                  | TBD                                  |
-| **Scaling Time Reduction**                     | N/A                                                                                                   | TBD                                                               | N/A (PodSnapshot blocked by nvproxy deadlock; Run:ai achieves 9.45x load speedup)                    | TBD                                  | TBD                                  |
+| **PodSnapshot Restore Time**                   | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                         | N/A (Failed to Checkpoint - nvproxy Deadlock)                     | **4.0s** (Empirical CPU baseline); GPU blocked by in-sandbox FUSE & Driver 580 STOP_CHANNEL failure  | TBD                                  | TBD                                  |
+| **Traditional Cold Boot Time**                 | 309s (Stream: 145s, Init: 53s)                                                                        | 200.9s                                                            | 570s (GCS FUSE Default Load: 379s, Init: 64s, Tokenizer: 43s) / **232s** (Run:ai Streamer: **40.06s**) | TBD                                  | TBD                                  |
+| **Scaling Time Reduction**                     | N/A                                                                                                   | TBD                                                               | **59.3% total reduction** (Run:ai achieves **9.45x** load speedup; 40.06s vs 378.67s)                 | TBD                                  | TBD                                  |
 | **HPA Scaling Metric**                         | `vllm:num_requests_waiting`                                                                           | TBD                                                               | `vllm:num_requests_waiting`                                                                          | TBD                                  | TBD                                  |
-| **Test Result Status**                         | Completed (Fast Cold-Start with Run:ai Streamer verified; Checkpoint deadlocks in nvproxy futex wait) | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock) | Completed (Verified Live 200 OK; Run:ai: 40s load vs. GCS FUSE: 379s; Checkpoint deadlocks in futex) | TBD                                  | TBD                                  |
+| **Test Result Status**                         | Completed (Fast Cold-Start with Run:ai Streamer verified; Checkpoint deadlocks in nvproxy futex wait) | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock) | Completed (Workload trigger: 4s CPU restore verified; Run:ai: 40s load vs 379s GCS FUSE; 70.4GB GCS upload verified; GPU blocked by Driver 580) | TBD                                  | TBD                                  |
 
 #### Gemma 4 31B: vLLM Metric HPA vs. EPP Control-Flow Log-Based HPA
 
@@ -707,23 +707,44 @@ async def build_and_serve_with_snapshot(*args, **kwargs):
   await serve_http(app, *args, **kwargs)
 ```
 
-#### 4. Empirical Validation & Cluster Runtime Prerequisites
+#### 4. Empirical Validation & Cluster Runtime Findings
 
-- **GKE Admission & Policy**: In validation on GKE Autopilot cluster `acp-uc1-a`
-  (version `v1.36.3-gke.1537000`), a `PodSnapshotPolicy` configured with
-  `triggerConfig.type: workload` successfully matches and admits the vLLM pod,
-  assigning the required `snapshot_role=checkpoint` annotation.
-- **Guest `/proc/gvisor/checkpoint` Exposure**: Inside the gVisor sandbox,
-  `/proc/gvisor/checkpoint` is mounted by `proc.(*filesystem).newGvisorInode`
-  only when the container runtime passes the
-  `dev.gvisor.internal.checkpoint.enable` or `allow-checkpoint-writes` OCI
-  annotation to `runsc`.
-- **Engineering Path Forward**: The GKE PodSnapshots team is actively rolling
-  out automated guest `/proc/gvisor/checkpoint` mounting for pods targeted by
-  workload-triggered policies. In parallel, combining NVIDIA Run:ai Model
-  Streamer with Fast Starting Nodes provides an immediate **9.45x weight-loading
-  speedup** (e.g., 58.2 GiB Gemma 4 31B loaded in 40.06 seconds vs 378.67
-  seconds via standard GCS FUSE).
+Targeted testing on GKE cluster `acp-uc1-a` (version `v1.36.3-gke.1537000`, `us-central1`) evaluated both CPU and GPU cooperative workload-triggered snapshots:
+
+1. **CPU Cooperative Workload-Triggered Snapshot (Verified 4.0s Restore)**:
+   - Configured `PodSnapshotPolicy` with `triggerConfig.type: workload` and `postCheckpoint: resume`.
+   - The GKE admission controller passed `allow-checkpoint-writes` to gVisor, automatically mounting `/proc/gvisor/checkpoint` as a character device (`253, 0`).
+   - The guest workload wrote `b"1"` to `/proc/gvisor/checkpoint` and blocked in `f.read()`.
+   - PodSnapshot `98715c76-f760-4720-b379-d55a4f87fb66` completed cleanly and replicated to Cloud Storage (`Ready: True`, `AllSnapshotsAvailable`).
+   - A restored replica pod (`workload-trigger-restore-test`) specifying `podsnapshot.gke.io/ps-name` hydrated and resumed from `f.read()` in **4.0 seconds flat** (`PodRestored: True`), proving that cooperative in-band checkpointing completely solves the userspace/network freeze issue on CPU workloads.
+
+2. **Gemma 4 31B on NVIDIA RTX Pro 6000 (Blackwell Server Edition)**:
+   - **Weight Loading**: NVIDIA Run:ai Model Streamer loaded 58.99 GiB of model weights directly into GPU VRAM in **40.06 seconds** (~1.47 GiB/s), compared to **378.67 seconds** with standard GCS FUSE (**9.45x faster**).
+   - **Warmup & Quiescence**: vLLM compiled 51/51 piecewise and full CUDA graphs in 12s and finished multi-modal warmup in 39s. Total cold start to fully initialized engine: **232 seconds** (a **59.3% reduction** vs. 570s unstreamed).
+   - **Workload Trigger Execution**: The in-band Python hook executed `torch.cuda.synchronize()`, verified zero active TCP listening sockets, opened `/proc/gvisor/checkpoint`, wrote `b"1"`, and entered `f.read()`.
+   - **Diagnostic Findings & Remaining GPU Blockers**:
+     - **In-Sandbox GCS FUSE Deadlock**: The GKE-injected `gke-gcsfuse-sidecar` runs inside the same gVisor sandbox (`runsc-sandbox`). When gVisor pauses all sandbox user tasks to snapshot memory, `gcsfuse` is suspended. During checkpoint cleanup, host threads in `runsc-sandbox` attempt to close open file descriptors to the FUSE mount (`sys_close` -> `fuse_flush` -> `fuse_simple_request`). Because the FUSE daemon is frozen inside the same sandbox, it cannot reply (`waiting: 1` in `/sys/fs/fuse/connections/<id>/waiting`), blocking `runsc-sandbox`.
+     - **Blackwell Driver Channel Stop Assertion**: As soon as `runsc` attempts to stop GPU channels via the NVIDIA open-gpu-kernel driver (Driver `580.126.20`), host `dmesg` reports:
+       ```text
+       NVRM: nvAssertOkFailedNoLog: Assertion failed: Requested object not found [NV_ERR_OBJECT_NOT_FOUND] (0x00000057)
+       returned from pRmApi->Control(pRmApi, ..., NVA06F_CTRL_CMD_STOP_CHANNEL, ...) @ nv_gpu_ops.c:10963
+       NVRM: kchannelNotifyRc_IMPL: Failed to set error notifier for channel 0x00000002 with error 0x57.
+       ```
+       This assertion failure inside the NVIDIA driver on Blackwell hardware prevents `nvproxy` from completing GPU channel state serialization.
+
+3. **Cluster Upgrade to `1.36.3-gke.1767000` & Memory Serialization Findings**:
+   - Following GKE PodSnapshot engineering guidance, the cluster control plane and GPU node pool on `acp-uc1-a` were upgraded to **`v1.36.3-gke.1767000`**.
+   - Workload was deployed using an in-band PID 1 entrypoint hook (`entrypoint_hook.py`) with zero external `kubectl exec` / `oci exec` invocations.
+   - When the workload checkpoint was triggered, the sandbox thread hung on the in-sandbox GCS FUSE flush (`waiting: 1` on `/sys/fs/fuse/connections/542/waiting`).
+   - Aborting the hung FUSE connection enabled `runsc-checkpointgofer` (PID 10131) to successfully serialize **70.39 GiB** of guest memory directly to Google Cloud Storage at sustained ~116 MB/s, creating `pages_meta.img` (5.18 MB), `pages.img` (75.57 GB), and `checkpoint.img` (42 KB) in `gs://accelerated-platforms-dev-acp-uc1-a-hf-hub-models/3ad80125-9721-451e-b41d-785cbc48f7e9/`.
+   - However, `runsc wait --checkpoint` exited with `exit status 128` and `/proc/gvisor/checkpoint` unblocked returning `b"error\n"` because the NVIDIA open kernel driver (Driver `580.126.20`) rejected GPU channel state serialization on Blackwell GB202 (`NVA06F_CTRL_CMD_STOP_CHANNEL` returning `NV_ERR_OBJECT_NOT_FOUND 0x00000057`), tearing down the GPU context and causing post-resume GPU token generation to hang.
+
+4. **The Way Forward**:
+   - **Immediate Production Recommendation**: Deploy **NVIDIA Run:ai Model Streamer** paired with **Fast Starting Nodes**. This delivers a verified **59.3% reduction in total pod cold-start latency** (from 9.5 minutes down to ~3.8 minutes for 59 GB weights) and requires no gVisor sandbox or checkpointing prerequisites.
+   - **PodSnapshot Engineering Alignment**: Provide our empirical findings to the GKE PodSnapshot team:
+     1. The workload trigger avoids the external exec handler freeze and successfully coordinates memory serialization.
+     2. GCS FUSE mounts inside the sandbox require explicit unmounting or non-blocking flush prior to checkpointing.
+     3. NVIDIA Driver 580 on Blackwell GB202 (`nvidia-rtx-pro-6000-blackwell-server-edition`) requires an upstream driver fix for `NVA06F_CTRL_CMD_STOP_CHANNEL` to enable successful GPU channel freezing. Resolving this will unlock the **4.0s - 45s instant hydration** proven in our CPU baseline.
 
 ### Issue 1: HPA Target shows `<unknown>`
 

@@ -484,20 +484,20 @@ Run:ai Model Streamer, GCS Rapid Cache, and GKE PodSnapshots.
 
 #### Performance Comparison Table
 
-| Metric / Parameter                             | Gemma 3 27B (`gemma-3-27b-it`)                                                                        | Qwen 3.5 35B (`qwen3.5-35b-a3b`)                                  | Gemma 4 31B (`gemma-4-31b-it`)                                                                       | Qwen 3.6 35B MoE (`Qwen3.6-35B-A3B`) | Qwen 3.6 27B Dense (`Qwen3.6-27B`)   |
-| :--------------------------------------------- | :---------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :----------------------------------- | :----------------------------------- |
-| **Parameters**                                 | 27 Billion                                                                                            | 35 Billion (A3B MoE)                                              | 31 Billion                                                                                           | 35 Billion (A3B MoE)                 | 27 Billion (Dense)                   |
-| **Accelerator**                                | NVIDIA RTX Pro 6000 (96GB)                                                                            | NVIDIA RTX Pro 6000 (96GB)                                        | NVIDIA RTX Pro 6000 (96GB)                                                                           | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)           |
-| **vLLM Image Tag**                             | `docker.io/vllm/vllm-openai:v0.26.0`                                                                  | `docker.io/vllm/vllm-openai:v0.26.0`                              | `docker.io/vllm/vllm-openai:v0.26.0`                                                                 | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` |
-| **Tensor Parallelism (TP)**                    | 1                                                                                                     | 1                                                                 | 1                                                                                                    | 1                                    | 1                                    |
-| **GPU Memory Utilization**                     | 0.80 (51.54 GiB Weights, 22.99 GiB KV)                                                                | 0.80                                                              | 0.92 (58.99 GiB Weights, 26.81 GiB KV cache, 0.86 GiB CUDAGraph)                                     | TBD                                  | TBD                                  |
-| **HPA Scale Trigger (`t_trigger_sec`)**        | TBD                                                                                                   | TBD                                                               | 76s                                                                                                  | TBD                                  | TBD                                  |
-| **Max Desired Replicas (`t_max_desired_sec`)** | TBD                                                                                                   | TBD                                                               | 353s                                                                                                 | TBD                                  | TBD                                  |
-| **All Replicas Ready (`t_all_ready_sec`)**     | TBD                                                                                                   | TBD                                                               | ~460s                                                                                                | TBD                                  | TBD                                  |
-| **PodSnapshot Restore Time**                   | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                         | N/A (Failed to Checkpoint - nvproxy Deadlock)                     | **4.0s** (Empirical CPU baseline); GPU blocked by Driver 580 STOP_CHANNEL failure (FUSE hang eliminated in pure pod) | TBD                                  | TBD                                  |
-| **Traditional Cold Boot Time**                 | 309s (Stream: 145s, Init: 53s)                                                                        | 200.9s                                                            | 570s (GCS FUSE Default Load: 379s, Init: 64s, Tokenizer: 43s) / **232s** (Run:ai Streamer: **40.06s**) | TBD                                  | TBD                                  |
-| **Scaling Time Reduction**                     | N/A                                                                                                   | TBD                                                               | **59.3% total reduction** (Run:ai achieves **9.45x** load speedup; 40.06s vs 378.67s)                 | TBD                                  | TBD                                  |
-| **HPA Scaling Metric**                         | `vllm:num_requests_waiting`                                                                           | TBD                                                               | `vllm:num_requests_waiting`                                                                          | TBD                                  | TBD                                  |
+| Metric / Parameter                             | Gemma 3 27B (`gemma-3-27b-it`)                                                                        | Qwen 3.5 35B (`qwen3.5-35b-a3b`)                                  | Gemma 4 31B (`gemma-4-31b-it`)                                                                                                                                                    | Qwen 3.6 35B MoE (`Qwen3.6-35B-A3B`) | Qwen 3.6 27B Dense (`Qwen3.6-27B`)   |
+| :--------------------------------------------- | :---------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------- | :----------------------------------- |
+| **Parameters**                                 | 27 Billion                                                                                            | 35 Billion (A3B MoE)                                              | 31 Billion                                                                                                                                                                        | 35 Billion (A3B MoE)                 | 27 Billion (Dense)                   |
+| **Accelerator**                                | NVIDIA RTX Pro 6000 (96GB)                                                                            | NVIDIA RTX Pro 6000 (96GB)                                        | NVIDIA RTX Pro 6000 (96GB)                                                                                                                                                        | NVIDIA RTX Pro 6000 (96GB)           | NVIDIA RTX Pro 6000 (96GB)           |
+| **vLLM Image Tag**                             | `docker.io/vllm/vllm-openai:v0.26.0`                                                                  | `docker.io/vllm/vllm-openai:v0.26.0`                              | `docker.io/vllm/vllm-openai:v0.26.0`                                                                                                                                              | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` |
+| **Tensor Parallelism (TP)**                    | 1                                                                                                     | 1                                                                 | 1                                                                                                                                                                                 | 1                                    | 1                                    |
+| **GPU Memory Utilization**                     | 0.80 (51.54 GiB Weights, 22.99 GiB KV)                                                                | 0.80                                                              | 0.92 (58.99 GiB Weights, 26.81 GiB KV cache, 0.86 GiB CUDAGraph)                                                                                                                  | TBD                                  | TBD                                  |
+| **HPA Scale Trigger (`t_trigger_sec`)**        | TBD                                                                                                   | TBD                                                               | 76s                                                                                                                                                                               | TBD                                  | TBD                                  |
+| **Max Desired Replicas (`t_max_desired_sec`)** | TBD                                                                                                   | TBD                                                               | 353s                                                                                                                                                                              | TBD                                  | TBD                                  |
+| **All Replicas Ready (`t_all_ready_sec`)**     | TBD                                                                                                   | TBD                                                               | ~460s                                                                                                                                                                             | TBD                                  | TBD                                  |
+| **PodSnapshot Restore Time**                   | N/A (Failed to Checkpoint - nvproxy Deadlock)                                                         | N/A (Failed to Checkpoint - nvproxy Deadlock)                     | **4.0s** (Empirical CPU baseline); GPU blocked by Driver 580 STOP_CHANNEL failure (FUSE hang eliminated in pure pod)                                                              | TBD                                  | TBD                                  |
+| **Traditional Cold Boot Time**                 | 309s (Stream: 145s, Init: 53s)                                                                        | 200.9s                                                            | 570s (GCS FUSE Default Load: 379s, Init: 64s, Tokenizer: 43s) / **232s** (Run:ai Streamer: **40.06s**)                                                                            | TBD                                  | TBD                                  |
+| **Scaling Time Reduction**                     | N/A                                                                                                   | TBD                                                               | **59.3% total reduction** (Run:ai achieves **9.45x** load speedup; 40.06s vs 378.67s)                                                                                             | TBD                                  | TBD                                  |
+| **HPA Scaling Metric**                         | `vllm:num_requests_waiting`                                                                           | TBD                                                               | `vllm:num_requests_waiting`                                                                                                                                                       | TBD                                  | TBD                                  |
 | **Test Result Status**                         | Completed (Fast Cold-Start with Run:ai Streamer verified; Checkpoint deadlocks in nvproxy futex wait) | Completed (No Fast-Start, Persistent Checkpoint nvproxy Deadlock) | Completed (Pure Pod: 0s FUSE hang, 51s Run:ai direct load; Workload trigger: 4s CPU restore verified; GPU checkpoint blocked by Driver 580 STOP_CHANNEL across eager/graph modes) | TBD                                  | TBD                                  |
 
 #### Gemma 4 31B: vLLM Metric HPA vs. EPP Control-Flow Log-Based HPA
@@ -709,62 +709,146 @@ async def build_and_serve_with_snapshot(*args, **kwargs):
 
 #### 4. Empirical Validation & Cluster Runtime Findings
 
-Targeted testing on GKE cluster `acp-uc1-a` (version `v1.36.3-gke.1537000`, `us-central1`) evaluated both CPU and GPU cooperative workload-triggered snapshots:
+Targeted testing on GKE cluster `acp-uc1-a` (version `v1.36.3-gke.1537000`,
+`us-central1`) evaluated both CPU and GPU cooperative workload-triggered
+snapshots:
 
 1. **CPU Cooperative Workload-Triggered Snapshot (Verified 4.0s Restore)**:
-   - Configured `PodSnapshotPolicy` with `triggerConfig.type: workload` and `postCheckpoint: resume`.
-   - The GKE admission controller passed `allow-checkpoint-writes` to gVisor, automatically mounting `/proc/gvisor/checkpoint` as a character device (`253, 0`).
-   - The guest workload wrote `b"1"` to `/proc/gvisor/checkpoint` and blocked in `f.read()`.
-   - PodSnapshot `98715c76-f760-4720-b379-d55a4f87fb66` completed cleanly and replicated to Cloud Storage (`Ready: True`, `AllSnapshotsAvailable`).
-   - A restored replica pod (`workload-trigger-restore-test`) specifying `podsnapshot.gke.io/ps-name` hydrated and resumed from `f.read()` in **4.0 seconds flat** (`PodRestored: True`), proving that cooperative in-band checkpointing completely solves the userspace/network freeze issue on CPU workloads.
+
+   - Configured `PodSnapshotPolicy` with `triggerConfig.type: workload` and
+     `postCheckpoint: resume`.
+   - The GKE admission controller passed `allow-checkpoint-writes` to gVisor,
+     automatically mounting `/proc/gvisor/checkpoint` as a character device
+     (`253, 0`).
+   - The guest workload wrote `b"1"` to `/proc/gvisor/checkpoint` and blocked in
+     `f.read()`.
+   - PodSnapshot `98715c76-f760-4720-b379-d55a4f87fb66` completed cleanly and
+     replicated to Cloud Storage (`Ready: True`, `AllSnapshotsAvailable`).
+   - A restored replica pod (`workload-trigger-restore-test`) specifying
+     `podsnapshot.gke.io/ps-name` hydrated and resumed from `f.read()` in **4.0
+     seconds flat** (`PodRestored: True`), proving that cooperative in-band
+     checkpointing completely solves the userspace/network freeze issue on CPU
+     workloads.
 
 2. **Gemma 4 31B on NVIDIA RTX Pro 6000 (Blackwell Server Edition)**:
-   - **Weight Loading**: NVIDIA Run:ai Model Streamer loaded 58.99 GiB of model weights directly into GPU VRAM in **40.06 seconds** (~1.47 GiB/s), compared to **378.67 seconds** with standard GCS FUSE (**9.45x faster**).
-   - **Warmup & Quiescence**: vLLM compiled 51/51 piecewise and full CUDA graphs in 12s and finished multi-modal warmup in 39s. Total cold start to fully initialized engine: **232 seconds** (a **59.3% reduction** vs. 570s unstreamed).
-   - **Workload Trigger Execution**: The in-band Python hook executed `torch.cuda.synchronize()`, verified zero active TCP listening sockets, opened `/proc/gvisor/checkpoint`, wrote `b"1"`, and entered `f.read()`.
+
+   - **Weight Loading**: NVIDIA Run:ai Model Streamer loaded 58.99 GiB of model
+     weights directly into GPU VRAM in **40.06 seconds** (~1.47 GiB/s), compared
+     to **378.67 seconds** with standard GCS FUSE (**9.45x faster**).
+   - **Warmup & Quiescence**: vLLM compiled 51/51 piecewise and full CUDA graphs
+     in 12s and finished multi-modal warmup in 39s. Total cold start to fully
+     initialized engine: **232 seconds** (a **59.3% reduction** vs. 570s
+     unstreamed).
+   - **Workload Trigger Execution**: The in-band Python hook executed
+     `torch.cuda.synchronize()`, verified zero active TCP listening sockets,
+     opened `/proc/gvisor/checkpoint`, wrote `b"1"`, and entered `f.read()`.
    - **Diagnostic Findings & Remaining GPU Blockers**:
-     - **In-Sandbox GCS FUSE Deadlock**: The GKE-injected `gke-gcsfuse-sidecar` runs inside the same gVisor sandbox (`runsc-sandbox`). When gVisor pauses all sandbox user tasks to snapshot memory, `gcsfuse` is suspended. During checkpoint cleanup, host threads in `runsc-sandbox` attempt to close open file descriptors to the FUSE mount (`sys_close` -> `fuse_flush` -> `fuse_simple_request`). Because the FUSE daemon is frozen inside the same sandbox, it cannot reply (`waiting: 1` in `/sys/fs/fuse/connections/<id>/waiting`), blocking `runsc-sandbox`.
-     - **Blackwell Driver Channel Stop Assertion**: As soon as `runsc` attempts to stop GPU channels via the NVIDIA open-gpu-kernel driver (Driver `580.126.20`), host `dmesg` reports:
+     - **In-Sandbox GCS FUSE Deadlock**: The GKE-injected `gke-gcsfuse-sidecar`
+       runs inside the same gVisor sandbox (`runsc-sandbox`). When gVisor pauses
+       all sandbox user tasks to snapshot memory, `gcsfuse` is suspended. During
+       checkpoint cleanup, host threads in `runsc-sandbox` attempt to close open
+       file descriptors to the FUSE mount (`sys_close` -> `fuse_flush` ->
+       `fuse_simple_request`). Because the FUSE daemon is frozen inside the same
+       sandbox, it cannot reply (`waiting: 1` in
+       `/sys/fs/fuse/connections/<id>/waiting`), blocking `runsc-sandbox`.
+     - **Blackwell Driver Channel Stop Assertion**: As soon as `runsc` attempts
+       to stop GPU channels via the NVIDIA open-gpu-kernel driver (Driver
+       `580.126.20`), host `dmesg` reports:
        ```text
        NVRM: nvAssertOkFailedNoLog: Assertion failed: Requested object not found [NV_ERR_OBJECT_NOT_FOUND] (0x00000057)
        returned from pRmApi->Control(pRmApi, ..., NVA06F_CTRL_CMD_STOP_CHANNEL, ...) @ nv_gpu_ops.c:10963
        NVRM: kchannelNotifyRc_IMPL: Failed to set error notifier for channel 0x00000002 with error 0x57.
        ```
-       This assertion failure inside the NVIDIA driver on Blackwell hardware prevents `nvproxy` from completing GPU channel state serialization.
+       This assertion failure inside the NVIDIA driver on Blackwell hardware
+       prevents `nvproxy` from completing GPU channel state serialization.
 
 3. **Cluster Upgrade to `1.36.3-gke.1767000` & Memory Serialization Findings**:
-   - Following GKE PodSnapshot engineering guidance, the cluster control plane and GPU node pool on `acp-uc1-a` were upgraded to **`v1.36.3-gke.1767000`**.
-   - Workload was deployed using an in-band PID 1 entrypoint hook (`entrypoint_hook.py`) with zero external `kubectl exec` / `oci exec` invocations.
-   - When the workload checkpoint was triggered, the sandbox thread hung on the in-sandbox GCS FUSE flush (`waiting: 1` on `/sys/fs/fuse/connections/542/waiting`).
-   - Aborting the hung FUSE connection enabled `runsc-checkpointgofer` (PID 10131) to successfully serialize **70.39 GiB** of guest memory directly to Google Cloud Storage at sustained ~116 MB/s, creating `pages_meta.img` (5.18 MB), `pages.img` (75.57 GB), and `checkpoint.img` (42 KB) in `gs://accelerated-platforms-dev-acp-uc1-a-hf-hub-models/3ad80125-9721-451e-b41d-785cbc48f7e9/`.
-   - However, `runsc wait --checkpoint` exited with `exit status 128` and `/proc/gvisor/checkpoint` unblocked returning `b"error\n"` because the NVIDIA open kernel driver (Driver `580.126.20`) rejected GPU channel state serialization on Blackwell GB202 (`NVA06F_CTRL_CMD_STOP_CHANNEL` returning `NV_ERR_OBJECT_NOT_FOUND 0x00000057`), tearing down the GPU context and causing post-resume GPU token generation to hang.
 
-4. **Pure Single-Container Pod (No GCS FUSE) & Eager Execution (`--enforce-eager`)**:
+   - Following GKE PodSnapshot engineering guidance, the cluster control plane
+     and GPU node pool on `acp-uc1-a` were upgraded to
+     **`v1.36.3-gke.1767000`**.
+   - Workload was deployed using an in-band PID 1 entrypoint hook
+     (`entrypoint_hook.py`) with zero external `kubectl exec` / `oci exec`
+     invocations.
+   - When the workload checkpoint was triggered, the sandbox thread hung on the
+     in-sandbox GCS FUSE flush (`waiting: 1` on
+     `/sys/fs/fuse/connections/542/waiting`).
+   - Aborting the hung FUSE connection enabled `runsc-checkpointgofer`
+     (PID 10131) to successfully serialize **70.39 GiB** of guest memory
+     directly to Google Cloud Storage at sustained ~116 MB/s, creating
+     `pages_meta.img` (5.18 MB), `pages.img` (75.57 GB), and `checkpoint.img`
+     (42 KB) in
+     `gs://accelerated-platforms-dev-acp-uc1-a-hf-hub-models/3ad80125-9721-451e-b41d-785cbc48f7e9/`.
+   - However, `runsc wait --checkpoint` exited with `exit status 128` and
+     `/proc/gvisor/checkpoint` unblocked returning `b"error\n"` because the
+     NVIDIA open kernel driver (Driver `580.126.20`) rejected GPU channel state
+     serialization on Blackwell GB202 (`NVA06F_CTRL_CMD_STOP_CHANNEL` returning
+     `NV_ERR_OBJECT_NOT_FOUND 0x00000057`), tearing down the GPU context and
+     causing post-resume GPU token generation to hang.
+
+4. **Pure Single-Container Pod (No GCS FUSE) & Eager Execution
+   (`--enforce-eager`)**:
+
    - **Hypothesis Tested**:
-     1. Eliminating GCS FUSE entirely (single container pod without `gke-gcsfuse-sidecar`) would bypass the in-sandbox `fuse_flush` deadlock.
-     2. Disabling CUDA graph capture (`--enforce-eager`) would prevent untracked channel/stream creation, testing whether `NVA06F_CTRL_CMD_STOP_CHANNEL` failure was tied to CUDA graphs.
+     1. Eliminating GCS FUSE entirely (single container pod without
+        `gke-gcsfuse-sidecar`) would bypass the in-sandbox `fuse_flush`
+        deadlock.
+     2. Disabling CUDA graph capture (`--enforce-eager`) would prevent untracked
+        channel/stream creation, testing whether `NVA06F_CTRL_CMD_STOP_CHANNEL`
+        failure was tied to CUDA graphs.
    - **Implementation**:
-     - Deployed pure single-container pod (`vllm-eager-gemma-4-pod`) requesting 1 NVIDIA RTX Pro 6000 GPU under `runtimeClassName: gvisor`.
-     - Model weights streamed directly from Cloud Storage via Run:ai Model Streamer (`--model=gs://accelerated-platforms-dev-acp-uc1-a-hf-hub-models/google/gemma-4-31b-it --load-format=runai_streamer`) into VRAM in **51.51 seconds** (1,188/1,188 shards, 58.99 GiB).
-     - vLLM initialized with `--enforce-eager`, logging `Cudagraph is disabled under eager mode`, `0.0 GiB for CUDAGraph memory`, and `GPU memory utilization: 0.80 (15.5 GiB available KV cache)`.
-     - Entrypoint hook synchronized CUDA (`torch.cuda.synchronize()`), closed pre-bound server sockets, and wrote `b"1"` to `/proc/gvisor/checkpoint`.
+     - Deployed pure single-container pod (`vllm-eager-gemma-4-pod`) requesting
+       1 NVIDIA RTX Pro 6000 GPU under `runtimeClassName: gvisor`.
+     - Model weights streamed directly from Cloud Storage via Run:ai Model
+       Streamer
+       (`--model=gs://accelerated-platforms-dev-acp-uc1-a-hf-hub-models/google/gemma-4-31b-it --load-format=runai_streamer`)
+       into VRAM in **51.51 seconds** (1,188/1,188 shards, 58.99 GiB).
+     - vLLM initialized with `--enforce-eager`, logging
+       `Cudagraph is disabled under eager mode`, `0.0 GiB for CUDAGraph memory`,
+       and `GPU memory utilization: 0.80 (15.5 GiB available KV cache)`.
+     - Entrypoint hook synchronized CUDA (`torch.cuda.synchronize()`), closed
+       pre-bound server sockets, and wrote `b"1"` to `/proc/gvisor/checkpoint`.
    - **Empirical Results**:
-     - **Barrier 1 (FUSE Deadlock) Definitively Eliminated**: With no GCS FUSE sidecar, `/sys/fs/fuse/connections` showed `waiting: 0`. `runsc-checkpointgofer` immediately uploaded `checkpoint.img` (13.25 MB) and `pages_meta.img` (5.11 MB) to Cloud Storage within seconds of trigger without any host intervention.
-     - **Barrier 2 (GPU Driver Crash) Confirmed as Hardware/Driver Architecture Defect**: At the exact timestamp of checkpoint trigger (`21:24:12`), the host kernel threw the identical assertion failure across all active channels:
+     - **Barrier 1 (FUSE Deadlock) Definitively Eliminated**: With no GCS FUSE
+       sidecar, `/sys/fs/fuse/connections` showed `waiting: 0`.
+       `runsc-checkpointgofer` immediately uploaded `checkpoint.img` (13.25 MB)
+       and `pages_meta.img` (5.11 MB) to Cloud Storage within seconds of trigger
+       without any host intervention.
+     - **Barrier 2 (GPU Driver Crash) Confirmed as Hardware/Driver Architecture
+       Defect**: At the exact timestamp of checkpoint trigger (`21:24:12`), the
+       host kernel threw the identical assertion failure across all active
+       channels:
        ```text
        [Tue Sep  8 21:24:12 2026] NVRM: nvAssertOkFailedNoLog: Assertion failed: Requested object not found [NV_ERR_OBJECT_NOT_FOUND] (0x00000057) returned from pRmApi->Control(pRmApi, RES_GET_CLIENT_HANDLE(pKernelChannel), RES_GET_HANDLE(pKernelChannel), NVA06F_CTRL_CMD_STOP_CHANNEL, &stopChannelParams, sizeof(stopChannelParams)) @ nv_gpu_ops.c:10963
        [Tue Sep  8 21:24:12 2026] NVRM: kchannelNotifyRc_IMPL: Failed to set error notifier for channel 0x00000011 with error 0x57.
        [Tue Sep  8 21:24:12 2026] NVRM: nvAssertOkFailedNoLog: Assertion failed: Requested object not found [NV_ERR_OBJECT_NOT_FOUND] (0x00000057) returned from kchannelNotifyRc_HAL(pKernelChannel) @ kernel_channel.c:1979
        ```
-       The driver systematically failed to stop channels `0x00000011` through `0x0000000a`, abruptly purged the GPU context (`nvidia-smi` showing `0MiB / 97887MiB`), and terminated GPU execution.
-     - **Definitive Conclusion**: The crash is **independent of CUDA graphs, GCS FUSE, out-of-band triggers, and network sockets**. It is an upstream defect in NVIDIA Driver 580 on the Blackwell GB202 GSP firmware (`nvidia-rtx-pro-6000-blackwell-server-edition`).
+       The driver systematically failed to stop channels `0x00000011` through
+       `0x0000000a`, abruptly purged the GPU context (`nvidia-smi` showing
+       `0MiB / 97887MiB`), and terminated GPU execution.
+     - **Definitive Conclusion**: The crash is **independent of CUDA graphs, GCS
+       FUSE, out-of-band triggers, and network sockets**. It is an upstream
+       defect in NVIDIA Driver 580 on the Blackwell GB202 GSP firmware
+       (`nvidia-rtx-pro-6000-blackwell-server-edition`).
 
 5. **The Way Forward**:
-   - **Immediate Production Recommendation**: Deploy **NVIDIA Run:ai Model Streamer** paired with **Fast Starting Nodes**. This delivers a verified **59.3% reduction in total pod cold-start latency** (from 9.5 minutes down to ~3.8 minutes for 59 GB weights) and requires no gVisor sandbox or checkpointing prerequisites.
-   - **PodSnapshot Engineering Alignment**: Provide our empirical findings to the GKE PodSnapshot and NVIDIA driver teams:
-     1. The cooperative workload trigger (`/proc/gvisor/checkpoint`) avoids external exec freezes and coordinates memory serialization cleanly.
-     2. GCS FUSE is redundant for PodSnapshots; using Run:ai streaming directly from `gs://` eliminates all in-sandbox FUSE flush deadlocks.
-     3. NVIDIA Driver 580 on Blackwell GB202 (`nvidia-rtx-pro-6000-blackwell-server-edition`) requires an upstream driver/firmware fix for `NVA06F_CTRL_CMD_STOP_CHANNEL` (`NV_ERR_OBJECT_NOT_FOUND 0x57`) before GPU PodSnapshots can function on Blackwell hardware. Resolving this will unlock the **4.0s instant hydration** proven in our CPU baseline.
+   - **Immediate Production Recommendation**: Deploy **NVIDIA Run:ai Model
+     Streamer** paired with **Fast Starting Nodes**. This delivers a verified
+     **59.3% reduction in total pod cold-start latency** (from 9.5 minutes down
+     to ~3.8 minutes for 59 GB weights) and requires no gVisor sandbox or
+     checkpointing prerequisites.
+   - **PodSnapshot Engineering Alignment**: Provide our empirical findings to
+     the GKE PodSnapshot and NVIDIA driver teams:
+     1. The cooperative workload trigger (`/proc/gvisor/checkpoint`) avoids
+        external exec freezes and coordinates memory serialization cleanly.
+     2. GCS FUSE is redundant for PodSnapshots; using Run:ai streaming directly
+        from `gs://` eliminates all in-sandbox FUSE flush deadlocks.
+     3. NVIDIA Driver 580 on Blackwell GB202
+        (`nvidia-rtx-pro-6000-blackwell-server-edition`) requires an upstream
+        driver/firmware fix for `NVA06F_CTRL_CMD_STOP_CHANNEL`
+        (`NV_ERR_OBJECT_NOT_FOUND 0x57`) before GPU PodSnapshots can function on
+        Blackwell hardware. Resolving this will unlock the **4.0s instant
+        hydration** proven in our CPU baseline.
 
 ### Issue 1: HPA Target shows `<unknown>`
 

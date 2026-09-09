@@ -161,6 +161,8 @@
     "bursty",
     "checkpointgofer",
     "codersherlock",
+    "Cudagraph",
+    "cudagraph",
     "cudagraphs",
     "desynchronization",
     "epoll",
@@ -186,6 +188,8 @@
     "loadgen",
     "localRmEngineType",
     "nvproxy",
+    "NVRM",
+    "nvrm",
     "persistentvolumesource",
     "pKernelChannel",
     "pKernelRc",
@@ -219,6 +223,7 @@
     "t_trigger_sec",
     "uaddr",
     "unkillable",
+    "unstreamed",
     "xemu"
   ]
 }

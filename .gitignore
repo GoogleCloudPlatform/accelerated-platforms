@@ -52,3 +52,4 @@ workspaces
 # Local helper scripts (not part of the platform)
 llmd-env.sh
 probe-capacity.sh
+scratch/

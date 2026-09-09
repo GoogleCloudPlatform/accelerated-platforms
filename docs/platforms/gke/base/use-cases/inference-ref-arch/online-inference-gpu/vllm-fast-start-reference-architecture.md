@@ -776,41 +776,6 @@ five benchmarked model test cases.
 
 ### Suite 1: `google/gemma-4-31B-it` (NVIDIA RTX Pro 6000)
 
-#### `gcs-pvc.yaml`
-
-```yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: vllm-model-pv-rtx-pro-6000-gemma-4-31b-it
-spec:
-  capacity:
-    storage: 500Gi
-  accessModes:
-    - ReadOnlyMany
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: ""
-  csi:
-    driver: gcsfuse.csi.storage.gke.io
-    volumeHandle: accelerated-platforms-dev-inf-supafast-hf-hub-models
-    volumeAttributes:
-      mountOptions: "implicit-dirs,only-dir=google/gemma-4-31B-it"
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: vllm-model-pvc-rtx-pro-6000-gemma-4-31b-it
-  namespace: inf-supafast-online-gpu
-spec:
-  accessModes:
-    - ReadOnlyMany
-  resources:
-    requests:
-      storage: 500Gi
-  volumeName: vllm-model-pv-rtx-pro-6000-gemma-4-31b-it
-  storageClassName: ""
-```
-
 #### `deployment.yaml`
 
 ```yaml
@@ -831,7 +796,6 @@ spec:
       labels:
         app: vllm-rtx-pro-6000-gemma-4-31b-it
       annotations:
-        gke-gcsfuse/volumes: "true"
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       serviceAccountName: inf-supafast-online-gpu
@@ -899,7 +863,6 @@ spec:
       labels:
         app: vllm-rtx-pro-6000-gemma-3-27b-it
       annotations:
-        gke-gcsfuse/volumes: "true"
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       serviceAccountName: inf-supafast-online-gpu
@@ -959,7 +922,6 @@ spec:
       labels:
         app: vllm-rtx-pro-6000-qwen3-6-35b-a3b
       annotations:
-        gke-gcsfuse/volumes: "true"
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       serviceAccountName: inf-supafast-online-gpu
@@ -1019,7 +981,6 @@ spec:
       labels:
         app: vllm-rtx-pro-6000-qwen3-5-35b-a3b
       annotations:
-        gke-gcsfuse/volumes: "true"
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       serviceAccountName: inf-supafast-online-gpu
@@ -1079,7 +1040,6 @@ spec:
       labels:
         app: vllm-rtx-pro-6000-qwen3-6-27b
       annotations:
-        gke-gcsfuse/volumes: "true"
         cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       serviceAccountName: inf-supafast-online-gpu
@@ -1184,7 +1144,8 @@ spec:
 
 ### 2. Comprehensive Troubleshooting Guide for Common Failure Modes
 
-> [!IMPORTANT] > **Important Note on Large Models and PodSnapshots**
+> [!IMPORTANT]
+> **Important Note on Large Models and PodSnapshots**
 >
 > **Current Behavior & Empirical Verification:** In testing across large models
 > with >40GB VRAM footprints (e.g., Gemma 4 31B, Qwen 3.5 35B, Gemma 3 27B),

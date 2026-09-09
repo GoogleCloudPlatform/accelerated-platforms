@@ -27,12 +27,6 @@ spec:
     type: Recreate
   template:
     metadata:
-      annotations:
-        gke-gcsfuse/cpu-limit: '0'
-        gke-gcsfuse/ephemeral-storage-limit: '0'
-        gke-gcsfuse/memory-limit: '0'
-        gke-gcsfuse/metadata-prefetch: 'false'
-        gke-gcsfuse/volumes: 'true'
       labels:
         ai.gke.io/model: replaced-by-kustomize
         app: vllm
@@ -40,9 +34,10 @@ spec:
       containers:
       - args:
         - --gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)
-        - --model=/gcs/$(MODEL_ID)
+        - --model=gs://$(BUCKET_NAME)/$(MODEL_ID)
         - --served-model-name=$(MODEL_ID)
-        - --load-format=auto
+        - --load-format=runai_streamer
+        - --model-loader-extra-config={"distributed":true}
         - --tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)
         - --trust-remote-code
         - --max-model-len=$(MAX_MODEL_LEN)
@@ -100,25 +95,9 @@ spec:
         volumeMounts:
         - mountPath: /dev/shm
           name: dev-shm
-        - mountPath: /gcs
-          name: huggingface-hub-model-bucket
-          readOnly: true
       runtimeClassName: gvisor
       serviceAccountName: replaced-by-kustomize
       volumes:
       - emptyDir:
           medium: Memory
         name: dev-shm
-      - csi:
-          driver: gcsfuse.csi.storage.gke.io
-          volumeAttributes:
-            bucketName: cloud-storage-bucket-name
-            mountOptions: metadata-cache:ttl-secs:-1,metadata-cache:stat-cache-max-size-mb:-1,metadata-cache:type-cache-max-size-mb:-1,metadata-cache:negative-ttl-secs:0,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,file-cache:enable-parallel-downloads:true,implicit-dirs,file-system:kernel-list-cache-ttl-secs:-1,only-dir:replace-me
-            skipCSIBucketAccessCheck: 'true'
-        name: huggingface-hub-model-bucket
-      - emptyDir: {}
-        name: gke-gcsfuse-cache
-      - emptyDir: {}
-        name: gke-gcsfuse-tmp
-      - emptyDir: {}
-        name: gke-gcsfuse-buffer

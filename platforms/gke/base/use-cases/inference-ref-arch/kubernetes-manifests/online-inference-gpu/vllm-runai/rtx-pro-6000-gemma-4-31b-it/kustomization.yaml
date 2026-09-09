@@ -28,16 +28,6 @@ nameSuffix: -rtx-pro-6000-gemma-4-31b-it
 patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
-  - patch: |
-      - op: replace
-        path: /spec/template/spec/volumes/1
-        value:
-          name: huggingface-hub-model-bucket
-          persistentVolumeClaim:
-            claimName: vllm-model-pvc-rtx-pro-6000-gemma-4-31b-it
-    target:
-      kind: Deployment
-      name: vllm
 
 replacements:
   - source:
@@ -100,10 +90,6 @@ replacements:
           - metadata.namespace
         select:
           kind: PodSnapshotStorageConfig
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: PersistentVolumeClaim
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
@@ -123,37 +109,9 @@ replacements:
       name: deployment
     targets:
       - fieldPaths:
-          - spec.csi.volumeHandle
-        options:
-          delimiter: .
-          index: 0
-        select:
-          kind: PersistentVolume
-          name: vllm-model-pv
-      - fieldPaths:
           - spec.snapshotStorageConfig.gcs.bucket
         select:
           kind: PodSnapshotStorageConfig
-  - source:
-      fieldPath: data.MODEL_ID
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.csi.volumeAttributes.mountOptions
-        options:
-          delimiter: "only-dir:"
-          index: 1
-        select:
-          kind: PersistentVolume
-          name: vllm-model-pv
-      - fieldPaths:
-          - spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
-        options:
-          delimiter: /
-          index: 2
-        select:
-          kind: Deployment
   - source:
       fieldPath: metadata.name
       kind: PodSnapshotStorageConfig
@@ -193,4 +151,3 @@ replacements:
 
 resources:
   - ../base
-  - gcs-pvc.yaml

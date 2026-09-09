@@ -578,7 +578,8 @@ Calculate timings:
 
 ## 4. Troubleshooting & Common Issues
 
-> [!IMPORTANT] **Important Note on Large Models and PodSnapshots**
+> [!IMPORTANT]
+> **Important Note on Large Models and PodSnapshots**
 >
 > **Current Behavior & Empirical Verification:** In testing across large models
 > with >40GB VRAM footprints (e.g., Gemma 4 31B, Qwen 3.5 35B, Gemma 3 27B),

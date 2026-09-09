@@ -28,13 +28,6 @@ nameSuffix: -rtx-pro-6000-qwen3-5-35b-a3b
 patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
-  - patch: |
-      - op: replace
-        path: /spec/template/spec/containers/0/args/3
-        value: "--load-format=runai_streamer"
-    target:
-      kind: Deployment
-      name: vllm
   - target:
       kind: Deployment
       name: vllm
@@ -42,16 +35,6 @@ patches:
       - op: add
         path: /spec/template/spec/containers/0/args/-
         value: "--max-num-seqs=256"
-  - patch: |
-      - op: replace
-        path: /spec/template/spec/volumes/1
-        value:
-          name: huggingface-hub-model-bucket
-          persistentVolumeClaim:
-            claimName: vllm-model-pvc-rtx-pro-6000-qwen3-5-35b-a3b
-    target:
-      kind: Deployment
-      name: vllm
 
 replacements:
   - source:
@@ -114,10 +97,6 @@ replacements:
           - metadata.namespace
         select:
           kind: PodSnapshotStorageConfig
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: PersistentVolumeClaim
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
@@ -137,37 +116,9 @@ replacements:
       name: deployment
     targets:
       - fieldPaths:
-          - spec.csi.volumeHandle
-        options:
-          delimiter: .
-          index: 0
-        select:
-          kind: PersistentVolume
-          name: vllm-model-pv
-      - fieldPaths:
           - spec.snapshotStorageConfig.gcs.bucket
         select:
           kind: PodSnapshotStorageConfig
-  - source:
-      fieldPath: data.MODEL_ID
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.csi.volumeAttributes.mountOptions
-        options:
-          delimiter: "only-dir:"
-          index: 1
-        select:
-          kind: PersistentVolume
-          name: vllm-model-pv
-      - fieldPaths:
-          - spec.template.spec.containers.[name=inference-server].volumeMounts.[name=huggingface-hub-model-bucket].mountPath
-        options:
-          delimiter: /
-          index: 2
-        select:
-          kind: Deployment
   - source:
       fieldPath: metadata.name
       kind: PodSnapshotStorageConfig
@@ -198,4 +149,3 @@ replacements:
 
 resources:
   - ../base
-  - gcs-pvc.yaml

@@ -133,7 +133,7 @@ When the link is opened, you should see something like the following:
 The Logs Explorer provides many nice features besides tweaking your log query in
 the `Query` field. For example, if you want to know which steps the job has
 completed, you can run the following query based on
-[the source code](src/dataprep.py#L318):
+[the source code](/use-cases/model-fine-tuning-pipeline/data-preparation/gemma-it/src/dataprep.py):
 
 ```shell
 resource.type="k8s_container"

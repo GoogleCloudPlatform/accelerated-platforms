@@ -1308,6 +1308,6 @@ spec:
 ### Related Repository Code Artifacts
 
 1. [vLLM with Run:ai & PodSnapshots Deployment Guide](./vllm-with-runai-and-podsnapshots.md)
-2. [Model Downloader Kustomize Manifests](../../../../../platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface/job.yaml)
-3. [Native Inference Perf Benchmark Manifests](../../../../../platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/configure_benchmark.sh)
-4. [vLLM Deployment Overlay for Gemma 4 31B](../../../../../platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/rtx-pro-6000-gemma-4-31b-it/runtime.env)
+2. [Model Downloader Kustomize Manifests](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface/job.yaml)
+3. [Native Inference Perf Benchmark Manifests](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm/configure_benchmark.sh)
+4. [vLLM Deployment Overlay for Gemma 4 31B](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/rtx-pro-6000-gemma-4-31b-it/runtime.env)

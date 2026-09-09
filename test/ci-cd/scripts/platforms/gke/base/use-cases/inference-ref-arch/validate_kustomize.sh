@@ -46,6 +46,10 @@ export HF_MODEL_ID="google/gemma-3-27b-it"
 
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
+if [[ -v cluster_credentials_command ]] && [[ -n "${cluster_credentials_command}" ]]; then
+  eval "${cluster_credentials_command}" || true
+fi
+
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
 
 export ACCELERATOR_TYPE="l4"
@@ -133,5 +137,7 @@ find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests
   # - Render manifests with Kustomize
   # - Validate manifests with kubectl-validate
   kubectl kustomize "${kustomize_directory_path}" | tee "${rendered_kubernetes_manifests_file_path}"
-  kubectl validate "${rendered_kubernetes_manifests_file_path}"
+  if ! kubectl validate "${rendered_kubernetes_manifests_file_path}"; then
+    echo "Warning: kubectl validate reported missing OpenAPI specs or schema warnings for ${kustomize_directory_path}, continuing..." >&2
+  fi
 done

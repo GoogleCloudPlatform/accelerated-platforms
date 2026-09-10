@@ -23,6 +23,6 @@ spec:
       app: vllm
   storageConfigName: vllm-snapshot-config
   triggerConfig:
-    type: manual
+    type: workload
     postCheckpoint: stop
   snapshotScope: whole-pod

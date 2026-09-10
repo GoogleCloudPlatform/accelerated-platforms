@@ -450,7 +450,7 @@ Model Streamer, and GKE PodSnapshots.
 | **Container Start to Ready 1/1** | 570s (~9.5 min) | **301s** (~5.0 min) | **~45-55s** (Memory hydration target) |
 | **Cold Start Reduction** | Baseline | **47.2% reduction vs FUSE cold start** | **>85% reduction** |
 | **HPA Scaling Metric** | `vllm:num_requests_waiting` | `vllm:num_requests_waiting` | `vllm:num_requests_waiting` |
-| **Test Result Status** | Verified | **Completed & Verified** (Live chat completion confirmed) | **Blocked by upstream driver 580 channel stop failure** |
+| **Test Result Status** | Verified | **Completed & Verified** (Live chat completion confirmed) | **Blocked by upstream driver 580 channel stop failure (persists with workload trigger)** |
 
 #### Gemma 4 31B: vLLM Metric HPA vs. EPP Control-Flow Log-Based HPA
 

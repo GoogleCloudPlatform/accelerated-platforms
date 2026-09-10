@@ -730,7 +730,7 @@ The evaluation targeted the **`google/gemma-4-31b-it`** dense foundation model
 | **Container Start to `Ready 1/1`** | 570s (~9.5 minutes) | **301s** (~5.0 minutes) | **~45-55s** (Memory hydration target) |
 | **Overall Cold-Start Reduction** | Baseline | **47.2% overall cold start reduction** | **>85% reduction** |
 | **Live Chat Completion Verification** | 200 OK | **200 OK** (Returned `"Paris"` in 164ms) | Expected 200 OK |
-| **PodSnapshot Checkpoint Execution** | Incompatible (FUSE Deadlock) | Initiates upload (`checkpoint.img` 12.35 MiB, `pages_meta.img` 3.43 MiB) | Upstream driver 580 channel stop failure |
+| **PodSnapshot Checkpoint Execution** | Incompatible (FUSE Deadlock) | Initiates upload (`checkpoint.img` 12.35 MiB, `pages_meta.img` 3.43 MiB) | Upstream driver 580 channel stop failure (persists with workload trigger) |
 
 ### 2. Deep Dive: Architectural Nuances for Gemma 4 31B
 

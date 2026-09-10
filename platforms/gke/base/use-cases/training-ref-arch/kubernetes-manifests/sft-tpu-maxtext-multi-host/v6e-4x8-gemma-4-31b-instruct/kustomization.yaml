@@ -1,0 +1,91 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+nameSuffix: "-v6e-4x8-gemma-4-31b-instruct"
+
+patches:
+  - path: patch-workers.yaml
+    target:
+      kind: PathwaysJob
+      name: sft-tpu-maxtext-multi-host
+  - path: patch-env.yaml
+    target:
+      kind: PathwaysJob
+      name: sft-tpu-maxtext-multi-host
+
+replacements:
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.controller.template.spec.containers.[name=sft-trainer].image
+        select:
+          kind: PathwaysJob
+  - source:
+      fieldPath: data.TRAINING_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PathwaysJob
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+  - source:
+      fieldPath: data.TRAINING_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.controller.template.spec.serviceAccountName
+        select:
+          kind: PathwaysJob
+  - source:
+      fieldPath: data.PATHWAYS_DIR
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.pathwaysDir
+        select:
+          kind: PathwaysJob
+  - source:
+      fieldPath: metadata.name
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.controller.template.spec.containers.[name=sft-trainer].envFrom.0.configMapRef.name
+        select:
+          kind: PathwaysJob
+  - source:
+      fieldPath: metadata.name
+      kind: ConfigMap
+      name: train-script
+    targets:
+      - fieldPaths:
+          - spec.controller.template.spec.volumes.[name=train-script-vol].configMap.name
+        select:
+          kind: PathwaysJob
+
+resources:
+  - ../base

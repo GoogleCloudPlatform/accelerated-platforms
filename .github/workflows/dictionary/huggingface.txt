@@ -7,3 +7,5 @@ pretraining
 qwen
 rdzv
 redhatai
+tatsu
+ultrachat

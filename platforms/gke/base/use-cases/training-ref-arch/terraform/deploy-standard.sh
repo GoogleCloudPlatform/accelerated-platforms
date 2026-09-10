@@ -51,7 +51,7 @@ declare -a CORE_TERRASERVICES_APPLY=(
 CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 
 # shellcheck disable=SC1091
-source "${ACP_PLATFORM_USE_CASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
+source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 declare -a use_case_terraservices=(
   "initialize"

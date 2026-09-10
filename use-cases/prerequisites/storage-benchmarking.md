@@ -2,7 +2,7 @@
 
 These steps walk you through downloading Llama-3.3-70B-Instruct from Hugging
 Face into the two GCS buckets for use within the guide for the
-[storage benchmarking](/use-cases/inferencing/cost-optimization/storage-benchmarking/gcsfuse/).
+[storage benchmarking](/use-cases/inferencing/cost-optimization/gcsfuse/README.md).
 Please note that, you will be copying the model in two buckets, one of them is a
 flat bucket while the other is hierarchical.
 

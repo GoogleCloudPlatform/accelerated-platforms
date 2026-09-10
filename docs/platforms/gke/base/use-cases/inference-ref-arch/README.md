@@ -332,8 +332,8 @@ documentation.
 ## Getting Started
 
 A practical guide to setting up the infrastructure as described can be found in
-the`
-[Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
+the
+[Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
 
 This reference architecture is designed to support various inference patterns.
 Some example patterns provided are:
@@ -342,6 +342,8 @@ Some example patterns provided are:
 - [Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
   - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)
   - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
+  - [Fast-Start Reference Architecture: vLLM with Run:ai Model Streamer & PodSnapshots](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md)
+  - [vLLM with Run:ai Model Streamer and PodSnapshots on GKE](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-and-podsnapshots.md)
 - [Online inference with TPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/README.md)
   - [Online inference using MaxDiffusion with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/max-diffusion-with-hf-model.md)
   - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)

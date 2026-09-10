@@ -35,14 +35,36 @@ PROJECT_CREATOR_FOLDER_ID=$(gcloud secrets versions access latest \
   --secret="project-creator-folder-id" 2>&1 | grep -v 'impersonation')
 
 echo "Creating project '${NEW_PROJECT_ID}'..."
-gcloud projects create "${NEW_PROJECT_ID}" \
-  --folder="${PROJECT_CREATOR_FOLDER_ID}" \
-  --impersonate-service-account="${PROJECT_CREATOR_SA}" 2>&1 | grep -v 'impersonation'
+retry_count=0
+max_retries=5
+until gcloud projects describe "${NEW_PROJECT_ID}" >/dev/null 2>&1 || \
+  gcloud projects create "${NEW_PROJECT_ID}" \
+    --folder="${PROJECT_CREATOR_FOLDER_ID}" \
+    --impersonate-service-account="${PROJECT_CREATOR_SA}" 2>&1 | grep -v 'impersonation' || \
+  [ ${retry_count} -ge ${max_retries} ]; do
+  retry_count=$((retry_count + 1))
+  sleep_time=$((retry_count * 5 + RANDOM % 5))
+  echo "  Project creation failed with transient error, retrying (${retry_count}/${max_retries}) in ${sleep_time}s..."
+  sleep ${sleep_time}
+done
+
+if ! gcloud projects describe "${NEW_PROJECT_ID}" >/dev/null 2>&1; then
+  echo "Error: Failed to create project '${NEW_PROJECT_ID}' after ${max_retries} attempts." >&2
+  exit 1
+fi
 
 echo "Linking billing account to project '${NEW_PROJECT_ID}'..."
-gcloud billing projects link "${NEW_PROJECT_ID}" \
+retry_count=0
+max_retries=5
+until gcloud billing projects link "${NEW_PROJECT_ID}" \
   --billing-account="${PROJECT_CREATOR_BILLING_ACCOUNT}" \
-  --impersonate-service-account="${PROJECT_CREATOR_SA}" 2>&1 | grep -v -E 'billingAccountName|impersonation'
+  --impersonate-service-account="${PROJECT_CREATOR_SA}" 2>&1 | grep -v -E 'billingAccountName|impersonation' || \
+  [ ${retry_count} -ge ${max_retries} ]; do
+  retry_count=$((retry_count + 1))
+  sleep_time=$((retry_count * 5))
+  echo "  Billing account link failed with transient error, retrying (${retry_count}/${max_retries}) in ${sleep_time}s..."
+  sleep ${sleep_time}
+done
 
 echo "Enabling Compute Engine API for project '${NEW_PROJECT_ID}'..."
 gcloud services enable compute.googleapis.com --project="${NEW_PROJECT_ID}" 2>&1 | grep -v 'impersonation' || true

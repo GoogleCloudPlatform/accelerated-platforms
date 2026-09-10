@@ -21,9 +21,8 @@ on setting up the infrastructure described in this document.
 ## Getting Started
 
 A practical guide to setting up the infrastructure as described can be found in
-the [Training reference
-implementation](/platforms/gke/base/use-cases/training-ref-
-arch/terraform/README.md)
+the
+[Training reference implementation](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md)
 
 This reference architecture is designed to support various training patterns.
 Some example patterns provided are:

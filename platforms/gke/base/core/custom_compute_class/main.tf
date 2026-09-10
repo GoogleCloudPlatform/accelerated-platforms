@@ -96,7 +96,7 @@ resource "terraform_data" "check" {
   provisioner "local-exec" {
     command = <<EOT
 kubectl get computeclass -o jsonpath='{range .items[*]}{.metadata.name}{": "}{.status.conditions[*].message}{"\n"}{end}' && 
-exit $(kubectl get ComputeClass -o jsonpath='{range .items[*]}{.metadata.name}{": "}{.status.conditions[*].message}{"\n"}{end}' | grep -c 'not healthy')
+exit $(kubectl get ComputeClass -o jsonpath='{range .items[*]}{.metadata.name}{": "}{.status.conditions[*].message}{"\n"}{end}' | grep 'not healthy' | grep -v 'not available in any of auto provisioned zones' | wc -l)
 EOT
     environment = {
       KUBECONFIG = data.local_file.kubeconfig.filename

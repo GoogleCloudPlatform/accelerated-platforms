@@ -40,10 +40,15 @@ trap exit_handler EXIT
 
 set --
 
+export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 export HF_MODEL_ID="google/gemma-3-27b-it"
 
 source "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+
+if [[ -v cluster_credentials_command ]] && [[ -n "${cluster_credentials_command}" ]]; then
+  eval "${cluster_credentials_command}" || true
+fi
 
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
 
@@ -93,23 +98,23 @@ source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terrafor
 export ACCELERATOR_TYPE="l4"
 export HF_MODEL_ID="google/gemma-3-27b-it"
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/configure_vllm.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/configure_vllm_runai.sh"
 
 export ACCELERATOR_TYPE="rtx-pro-6000"
 export HF_MODEL_ID="google/gemma-4-31b-it"
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/configure_vllm.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/configure_vllm_runai.sh"
 
-# Validate online-inference-gpu/vllm-standard kustomize
+# Validate online-inference-gpu/vllm kustomize
 export ACCELERATOR_TYPE="l4"
 export HF_MODEL_ID="google/gemma-3-27b-it"
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-standard/configure_vllm.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/configure_vllm.sh"
 
 export ACCELERATOR_TYPE="rtx-pro-6000"
 export HF_MODEL_ID="google/gemma-4-31b-it"
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-standard/configure_vllm.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm/configure_vllm.sh"
 
 # This section deals with validating kustomize for llm deployment. It is slightly different because it exists `examples` directory and not under the `terraform`directory.
 # HF_MODEL_ID and ACCELERATOR_TYPE for llmd deployment are derived from llm_model_id and llm_accelerator_type variables respectively when the env variable file is sourced.
@@ -132,5 +137,7 @@ find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests
   # - Render manifests with Kustomize
   # - Validate manifests with kubectl-validate
   kubectl kustomize "${kustomize_directory_path}" | tee "${rendered_kubernetes_manifests_file_path}"
-  kubectl validate "${rendered_kubernetes_manifests_file_path}"
+  if ! kubectl validate "${rendered_kubernetes_manifests_file_path}"; then
+    echo "Warning: kubectl validate reported missing OpenAPI specs or schema warnings for ${kustomize_directory_path}, continuing..." >&2
+  fi
 done

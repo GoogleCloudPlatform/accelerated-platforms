@@ -185,10 +185,10 @@ The data processing step takes approximately 18-20 minutes.
   ```
 
 > For additional information about developing using this codebase see the
-> [Developer Guide](DEVELOPER.md)
+> [Developer Guide](/use-cases/model-fine-tuning-pipeline/data-processing/ray/DEVELOPER.md)
 
 > For additional information about converting you code from a notebook to run as
-> a Job on GKE see the [Conversion Guide](CONVERSION.md)
+> a Job on GKE see the [Conversion Guide](/use-cases/model-fine-tuning-pipeline/data-processing/ray/CONVERSION.md)
 
 - Delete the job.
 

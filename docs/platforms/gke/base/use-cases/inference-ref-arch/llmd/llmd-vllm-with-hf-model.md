@@ -262,7 +262,7 @@ that we will not be downloading the model directly from HuggingFace as it slows
 down the modelserver startup time. Instead, we will use GCSFuse to download the
 model from the GCS bucket which is faster. For more details on how downloading
 the model from GCS saves time, take a look at
-[Storage optimization guide](../../../../../../use-cases/inferencing/cost-optimization/gcsfuse/README.md)
+[Storage optimization guide](/use-cases/inferencing/cost-optimization/gcsfuse/README.md)
 
 ## Download the model to Cloud Storage
 

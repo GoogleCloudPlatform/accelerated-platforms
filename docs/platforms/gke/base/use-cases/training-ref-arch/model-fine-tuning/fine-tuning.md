@@ -143,7 +143,7 @@ learning code and for later visualizing the results.
 The
 [model_fine_tuning terraservice](/platforms/gke/base/use-cases/training-ref-arch/terraform/model_fine_tuning)
 in the
-[GKE Training reference implementation ](platforms/gke/base/use-cases/training-ref-arch/terraform/README.md)
+[GKE Training reference implementation](/platforms/gke/base/use-cases/training-ref-arch/terraform/README.md)
 deploys MLflow Tracking for you.
 
 You can run the following command to get the URL:

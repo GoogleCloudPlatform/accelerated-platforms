@@ -17,7 +17,8 @@ online. This latency stems from a sequence of blocking operations:
 2. **Container Image Pulling**: Downloading heavy vLLM or PyTorch container
    images (often 15GB–35GB) across external registry networks.
 3. **Model Weight Fetching**: Transferring multi-gigabyte safetensor model
-   weights (e.g., ~59GB for `google/gemma-4-31b-it`) from object storage into host storage.
+   weights (e.g., ~59GB for `google/gemma-4-31b-it`) from object storage into
+   host storage.
 4. **Engine Graph Compilation & Memory Warmup**: Executing heavy vLLM engine
    initialization routines, including PyTorch CUDA graph compilation, Triton
    kernel autotuning, and KV Cache memory pool allocation.
@@ -76,7 +77,7 @@ scaling latency** while maximizing token throughput and cost efficiency.
 4. **GCS Rapid Cache & Cloud Storage**: High-throughput object storage tier
    protected by GKE Workload Identity Federation and Google Cloud Secret
    Manager.
-6. **Dual-Tier Horizontal Pod Autoscaling (HPA)**: Dual metric monitoring
+5. **Dual-Tier Horizontal Pod Autoscaling (HPA)**: Dual metric monitoring
    combining ingress EPP flow control metrics (`igw_queue_depth` /
    `inference_pool_per_pod_queue_size` for scale-out signals and
    `igw_running_requests` for capacity) with internal engine metrics
@@ -184,8 +185,8 @@ Kubernetes clusters, when an autoscaler requests new GPU capacity, the cluster
 experiences several cumulative delays:
 
 1. **Compute Engine VM Boot Delay**: Requesting a GPU instance type (e.g.,
-   `a3-highgpu-1g` with NVIDIA H100 80GB) requires host initialization, OS
-   boot, and network interface binding (30–90 seconds).
+   `a3-highgpu-1g` with NVIDIA H100 80GB) requires host initialization, OS boot,
+   and network interface binding (30–90 seconds).
 2. **GPU Driver & Container Runtime Initialization**: Loading NVIDIA kernel
    modules, initializing `nvidia-container-runtime`, and mounting CUDA driver
    libraries (30–60 seconds).
@@ -334,10 +335,9 @@ spec:
 
 ### 3. Prefix Cache Affinity and KV Cache Reuse
 
-When serving models like `google/gemma-4-31b-it`,
-prompt processing (prefill phase) accounts for a large portion of overall
-latency. Modern engines use automatic prefix caching to store computed KV
-projections in VRAM.
+When serving models like `google/gemma-4-31b-it`, prompt processing (prefill
+phase) accounts for a large portion of overall latency. Modern engines use
+automatic prefix caching to store computed KV projections in VRAM.
 
 The GKE Inference Gateway inspects incoming request payloads, computes a
 cryptographic hash of prompt prefixes (e.g., system prompts, RAG context
@@ -479,6 +479,7 @@ following loading performance:
 - **Total Loading Duration**: **48.16 seconds** to stream 58.99 GiB of tensor
   weights directly into GPU VRAM.
 - **Local Ephemeral Disk Required**: **0 Bytes** (eliminates local PVC disk
+
 ## Section 7: Dual-Tier Autoscaling Architecture (EPP Control-Flow vs. Native Engine Metrics)
 
 ### 1. Core Principle: Swap CPU/Memory for EPP Flow Control Metrics (LLM-d Autoscaling Guide)
@@ -599,21 +600,29 @@ The evaluation targeted the **`google/gemma-4-31b-it`** dense foundation model
 
 ### 1. Comprehensive Empirical Results Matrix: Gemma 4 31B (NVIDIA H100 80GB)
 
-| Benchmark Metric | GCS FUSE Baseline (Cold Start) | NVIDIA Run:ai Streamer (Optimized Cold Start) |
-| :--- | :--- | :--- | :--- |
-| **Compute Class / Accelerator** | `gpu-h100-80gb-high-x1` (1x H100 80GB) | `gpu-h100-80gb-high-x1` (1x H100 80GB) | `gpu-h100-80gb-high-x1` (1x H100 80GB) |
-| **vLLM Image Tag** | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` |
-| **Max Model Length (`MAX_MODEL_LEN`)** | 8,192 | 8,192 | 8,192 |
-| **GPU Memory Utilization** | 0.90 | 0.90 (58.99 GiB Weights, 10.62 GiB KV Cache) | 0.90 (Restored from snapshot) |
-| **Device Headroom** | 7.92 GiB (Prevents FlashInfer logits OOM) | 7.92 GiB (Prevents FlashInfer logits OOM) | 7.92 GiB |
-| **Model Weight Loading Duration** | 378.67s (159.5 MiB/s via GCS FUSE) | **48.16s** (Direct GCS stream @ ~1.22 GiB/s, peak 48.81 it/s) | **0.0s** (Pre-hydrated in snapshot) |
-| **Dynamo Bytecode Transform** | 15.67s | 15.67s | **0.0s** (Pre-compiled) |
-| **Torch Inductor Compilation** | 27.55s (Total `torch.compile`: 52.00s) | 27.55s (Total `torch.compile`: 52.00s) | **0.0s** (Pre-compiled) |
-| **CUDA Graph Capture (51/51 sizes)** | 25.00s (Allocated 0.91 GiB) | 25.00s (Allocated 0.91 GiB) | **0.0s** (Pre-captured) |
-| **Total Engine Initialization** | 185s+ | **115.81s** | **0.0s** (Hydrated from memory) |
-| **Container Start to `Ready 1/1`** | 570s (~9.5 minutes) | **301s** (~5.0 minutes) | **~45-55s** (Memory hydration target) |
-| **Overall Cold-Start Reduction** | Baseline | **47.2% overall cold start reduction** | **>85% reduction** |
-| **Live Chat Completion Verification** | 200 OK | **200 OK** (Returned `"Paris"` in 164ms) | Expected 200 OK |
+| Benchmark Metric | GCS FUSE Baseline (Cold Start) | NVIDIA Run:ai Streamer
+(Optimized Cold Start) | | :--- | :--- | :--- | :--- | | **Compute Class /
+Accelerator** | `gpu-h100-80gb-high-x1` (1x H100 80GB) | `gpu-h100-80gb-high-x1`
+(1x H100 80GB) | `gpu-h100-80gb-high-x1` (1x H100 80GB) | | **vLLM Image Tag** |
+`docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` |
+`docker.io/vllm/vllm-openai:v0.26.0` | | **Max Model Length (`MAX_MODEL_LEN`)**
+| 8,192 | 8,192 | 8,192 | | **GPU Memory Utilization** | 0.90 | 0.90 (58.99 GiB
+Weights, 10.62 GiB KV Cache) | 0.90 (Restored from snapshot) | | **Device
+Headroom** | 7.92 GiB (Prevents FlashInfer logits OOM) | 7.92 GiB (Prevents
+FlashInfer logits OOM) | 7.92 GiB | | **Model Weight Loading Duration** |
+378.67s (159.5 MiB/s via GCS FUSE) | **48.16s** (Direct GCS stream @ ~1.22
+GiB/s, peak 48.81 it/s) | **0.0s** (Pre-hydrated in snapshot) | | **Dynamo
+Bytecode Transform** | 15.67s | 15.67s | **0.0s** (Pre-compiled) | | **Torch
+Inductor Compilation** | 27.55s (Total `torch.compile`: 52.00s) | 27.55s (Total
+`torch.compile`: 52.00s) | **0.0s** (Pre-compiled) | | **CUDA Graph Capture
+(51/51 sizes)** | 25.00s (Allocated 0.91 GiB) | 25.00s (Allocated 0.91 GiB) |
+**0.0s** (Pre-captured) | | **Total Engine Initialization** | 185s+ |
+**115.81s** | **0.0s** (Hydrated from memory) | | **Container Start to
+`Ready 1/1`** | 570s (~9.5 minutes) | **301s** (~5.0 minutes) | **~45-55s**
+(Memory hydration target) | | **Overall Cold-Start Reduction** | Baseline |
+**47.2% overall cold start reduction** | **>85% reduction** | | **Live Chat
+Completion Verification** | 200 OK | **200 OK** (Returned `"Paris"` in 164ms) |
+Expected 200 OK |
 
 ### 2. Deep Dive: Architectural Nuances for Gemma 4 31B
 
@@ -629,9 +638,11 @@ When configuring standard `GPU_MEMORY_UTILIZATION=0.95`, only ~564 MiB of free
 device memory remained after reserving 14.58 GiB for the KV cache, triggering a
 fatal `torch.OutOfMemoryError`. Setting `GPU_MEMORY_UTILIZATION=0.90` and
 `MAX_MODEL_LEN=8192` resolves this constraint:
+
 - **58.99 GiB** allocated to base model weights.
 - **10.62 GiB** allocated to KV Cache (12,629 tokens capacity).
-- **7.92 GiB** retained as free device headroom, enabling clean CUDA graph capture (0.91 GiB) and zero OOM events.
+- **7.92 GiB** retained as free device headroom, enabling clean CUDA graph
+  capture (0.91 GiB) and zero OOM events.
 
 #### Upstream NVIDIA Open Kernel Driver 580 Channel Stop Issue
 
@@ -646,8 +657,8 @@ returned from pRmApi->Control(pRmApi, RES_GET_CLIENT_HANDLE(pKernelChannel), RES
 
 While `runsc` and `runsc-checkpointgofer` cleanly serialize checkpoint metadata
 (`checkpoint.img` 12.35 MiB and `pages_meta.img` 3.43 MiB) to Cloud Storage, the
-kernel driver failure on `NVA06F_CTRL_CMD_STOP_CHANNEL` prevents the channel from
-stopping, causing the checkpoint helper to wait indefinitely.
+kernel driver failure on `NVA06F_CTRL_CMD_STOP_CHANNEL` prevents the channel
+from stopping, causing the checkpoint helper to wait indefinitely.
 
 Therefore, for current production environments running driver branch 580,
 **NVIDIA Run:ai Model Streamer** provides the verified, rock-solid fast-start
@@ -752,7 +763,6 @@ spec:
   selector:
     app: vllm-h100-gemma-4-31b-it
 ```
-
 
 ```yaml
 metadata:

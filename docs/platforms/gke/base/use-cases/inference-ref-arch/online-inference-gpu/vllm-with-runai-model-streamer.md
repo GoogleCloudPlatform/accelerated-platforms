@@ -34,7 +34,7 @@ immediately.
   is deployed and configured.
 
 - Ensure your cluster is running GKE version 1.34.1-gke.3084001 or later with
-  
+
   ```shell
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   gcloud container clusters update "${cluster_name}" \
@@ -172,8 +172,8 @@ constraints:
 ### Recommended Implementation (Options 1 & 2)
 
 To successfully leverage **Inference Gateway EPP Flow Control** and **GKE
-**Run:ai Model Streamer** while avoiding client-side 5xx errors during scale-out, we
-recommend the following implementation:
+**Run:ai Model Streamer** while avoiding client-side 5xx errors during
+scale-out, we recommend the following implementation:
 
 1. **Maintain a Baseline of `minReplicas: 1`**:
    - Keeping 1 warm replica ensures the GKE Gateway NEG always has an active
@@ -323,9 +323,10 @@ observe:
 2. **Initial Scale-Up:** The queue depth spikes massively. The HPA detects this
    and instantly requests a scale-up (e.g., from 1 to 5 replicas).
 3. **Node Provisioning & Fast Start:** The Cluster Autoscaler requests new GPU
-   nodes from GCE. Thanks to **GCSFuse Rapid Caching** and **Run:ai Model Streamer**, the
-   new pods transition from `Pending` to `Ready` in approximately **7 to 8
-   minutes** (compared to 15-20+ minutes without these optimizations).
+   nodes from GCE. Thanks to **GCSFuse Rapid Caching** and **Run:ai Model
+   Streamer**, the new pods transition from `Pending` to `Ready` in
+   approximately **7 to 8 minutes** (compared to 15-20+ minutes without these
+   optimizations).
 4. **Scale-Down Window:** After the warmup (Stage -1), the benchmark drops the
    load significantly for Stages 0 and 1. If this low-load period exceeds the
    HPA's scale-down stabilization window (default 5 mins), the HPA will
@@ -338,78 +339,93 @@ observe:
 
 ### Benchmark & Autoscaling Performance Comparisons
 
-Below is the empirical evaluation of **Gemma 4 31B Dense (`google/gemma-4-31b-it`)**
-on **NVIDIA H100 80GB (Hopper)** GPUs on GKE using Fast Starting Nodes, NVIDIA Run:ai
-Model Streamer.
+Below is the empirical evaluation of **Gemma 4 31B Dense
+(`google/gemma-4-31b-it`)** on **NVIDIA H100 80GB (Hopper)** GPUs on GKE using
+Fast Starting Nodes, NVIDIA Run:ai Model Streamer.
 
 #### Key Performance Observations
 
 - **Scale Trigger Response (`t_trigger_sec`)**:
-  - The deployment reacts to queue depth spikes rapidly, with the Custom
-    Metrics Stackdriver Adapter emitting `vllm:num_requests_waiting` metrics
-    within **54 seconds** of saturation.
+  - The deployment reacts to queue depth spikes rapidly, with the Custom Metrics
+    Stackdriver Adapter emitting `vllm:num_requests_waiting` metrics within **54
+    seconds** of saturation.
 
 - **Autoscaler Target Scale Request (`t_max_desired_sec`)**:
-  - The HPA requests max desired replicas (`maxReplicas: 5`) within **88 seconds**
-    as request queues grow.
+  - The HPA requests max desired replicas (`maxReplicas: 5`) within **88
+    seconds** as request queues grow.
 
 - **Full Cluster Scaling & Replica Readiness (`t_all_ready_sec`)**:
   - Total time from initial traffic surge until newly provisioned replicas pass
-    readiness probes is approximately **7.9 minutes** during cold node provisioning.
+    readiness probes is approximately **7.9 minutes** during cold node
+    provisioning.
   - **Optimization Impact**: Compared to standard GKE cold-boot deployments
-    (which take **15 to 22 minutes** due to image pulls, node boot, and unstreamed model
-    loading), Fast Starting Nodes + Run:ai Model Streamer reduces total scaling time by
-    **>55%**.
+    (which take **15 to 22 minutes** due to image pulls, node boot, and
+    unstreamed model loading), Fast Starting Nodes + Run:ai Model Streamer
+    reduces total scaling time by **>55%**.
 
 - **Fast Loading vs. Traditional GCSFuse**:
-  - **Cold Start with Run:ai Model Streamer**: On NVIDIA H100 80GB (`a3-highgpu-1g`),
-    Run:ai Model Streamer streams the 58.99 GiB of Gemma 4 weights directly into GPU VRAM
-    in **48.16 seconds** (~1.22 GiB/s), reaching `Ready 1/1` (`GET /health 200 OK`) in
-    **301 seconds** (~5.0 minutes) including full Inductor compilation and CUDA graph capture.
+  - **Cold Start with Run:ai Model Streamer**: On NVIDIA H100 80GB
+    (`a3-highgpu-1g`), Run:ai Model Streamer streams the 58.99 GiB of Gemma 4
+    weights directly into GPU VRAM in **48.16 seconds** (~1.22 GiB/s), reaching
+    `Ready 1/1` (`GET /health 200 OK`) in **301 seconds** (~5.0 minutes)
+    including full Inductor compilation and CUDA graph capture.
   - **Snapshot Restoration**: Once a warm snapshot exists, restoring a new pod
     replica bypasses CPU/GCS loading and compilation entirely.
 
 - **Empirical Test Validation**:
-  - Tested live on NVIDIA H100 80GB SXM5 GPU nodes (`a3-highgpu-1g`, Compute Class `gpu-h100-80gb-high-x1`)
-    using pinned stable image **`docker.io/vllm/vllm-openai:v0.26.0`**.
-  - **NVIDIA Run:ai Model Streamer**: Streamed 58.99 GiB (1,188 safetensor shards)
-    directly into GPU VRAM in **48.16 seconds** (peak throughput **48.81 it/s**, average ~1.22 GiB/s,
-    bypassing standard host memory and disk copy bottlenecks).
+  - Tested live on NVIDIA H100 80GB SXM5 GPU nodes (`a3-highgpu-1g`, Compute
+    Class `gpu-h100-80gb-high-x1`) using pinned stable image
+    **`docker.io/vllm/vllm-openai:v0.26.0`**.
+  - **NVIDIA Run:ai Model Streamer**: Streamed 58.99 GiB (1,188 safetensor
+    shards) directly into GPU VRAM in **48.16 seconds** (peak throughput **48.81
+    it/s**, average ~1.22 GiB/s, bypassing standard host memory and disk copy
+    bottlenecks).
   - **VRAM Utilization & Tuning on 80GB Hopper**:
-    - Gemma 4 31B Dense requires setting `GPU_MEMORY_UTILIZATION=0.90` with `MAX_MODEL_LEN=8192`.
-    - At startup: 58.99 GiB for model weights, 10.62 GiB for KV cache (12,629 tokens, 1.54x max concurrency),
-      0.91 GiB for CUDAGraphs, 1.43 GiB for peak activation, leaving 7.92 GiB of headroom.
-    - Setting `GPU_MEMORY_UTILIZATION` above 0.92 causes CUDA OOM during CUDA graph capture
-      because FlashInfer sampling requires ~1 GiB of temporary logits buffers for Gemma 4's large 256,000 vocabulary.
+    - Gemma 4 31B Dense requires setting `GPU_MEMORY_UTILIZATION=0.90` with
+      `MAX_MODEL_LEN=8192`.
+    - At startup: 58.99 GiB for model weights, 10.62 GiB for KV cache (12,629
+      tokens, 1.54x max concurrency), 0.91 GiB for CUDAGraphs, 1.43 GiB for peak
+      activation, leaving 7.92 GiB of headroom.
+    - Setting `GPU_MEMORY_UTILIZATION` above 0.92 causes CUDA OOM during CUDA
+      graph capture because FlashInfer sampling requires ~1 GiB of temporary
+      logits buffers for Gemma 4's large 256,000 vocabulary.
   - **CUDA Graph Capture & Engine Initialization**:
     - Dynamo bytecode transform: **15.67 seconds**.
-    - Inductor compilation: **27.55 seconds** (total `torch.compile`: **52.00 seconds**).
-    - CUDA graph capture (PIECEWISE 51/51 + FULL 51/51): **25.0 seconds** (took 0.91 GiB).
+    - Inductor compilation: **27.55 seconds** (total `torch.compile`: **52.00
+      seconds**).
+    - CUDA graph capture (PIECEWISE 51/51 + FULL 51/51): **25.0 seconds** (took
+      0.91 GiB).
     - Total engine initialization: **115.81 seconds**.
     - First `GET /health` 200 OK: **301 seconds** after container creation.
   - **Live Chat Completion Verification**:
-    - Successfully validated live token generation via `/v1/chat/completions` (prompt `"What is the capital of France? Answer in one word."` returning `"Paris"` with finish_reason `stop`).
+    - Successfully validated live token generation via `/v1/chat/completions`
+      (prompt `"What is the capital of France? Answer in one word."` returning
+      `"Paris"` with finish_reason `stop`).
 
 #### Performance Comparison Table
 
-| Metric / Parameter | Gemma 4 31B (Standard GCS FUSE) | Gemma 4 31B (Run:ai Model Streamer) |
-| :--- | :--- | :--- | :--- |
-| **Parameters** | 31 Billion (Dense) | 31 Billion (Dense) | 31 Billion (Dense) |
-| **Accelerator** | NVIDIA H100 80GB SXM5 (`a3-highgpu-1g`) | NVIDIA H100 80GB SXM5 (`a3-highgpu-1g`) | NVIDIA H100 80GB SXM5 (`a3-highgpu-1g`) |
-| **Compute Class** | `gpu-h100-80gb-high-x1` | `gpu-h100-80gb-high-x1` | `gpu-h100-80gb-high-x1` |
-| **vLLM Image Tag** | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` |
-| **Tensor Parallelism (TP)** | 1 | 1 | 1 |
-| **Max Model Length (`MAX_MODEL_LEN`)** | 8,192 | 8,192 | 8,192 |
-| **GPU Memory Utilization** | 0.90 | 0.90 (58.99 GiB Weights, 10.62 GiB KV, 0.91 GiB CUDAGraph) | 0.90 (Restored from snapshot) |
-| **Weight Streaming Time** | 378.67s (FUSE read bottleneck) | **48.16s** (Direct GCS stream @ ~1.22 GiB/s) | **0.0s** (Included in snapshot image) |
-| **Dynamo Bytecode Transform** | 15.67s | 15.67s | **0.0s** (Pre-compiled) |
-| **Torch Inductor Compile** | 52.00s | 52.00s | **0.0s** (Pre-compiled) |
-| **CUDA Graph Capture** | 25.00s | 25.00s |
-| **Total Engine Initialization** | 185s+ | **115.81s** |
-| **Container Start to Ready 1/1** | 570s (~9.5 min) | **301s** (~5.0 min) |
-| **Cold Start Reduction** | Baseline | **47.2% reduction vs FUSE cold start** |
-| **HPA Scaling Metric** | `vllm:num_requests_waiting` | `vllm:num_requests_waiting` |
-| **Test Result Status** | Verified | **Completed & Verified** (Live chat completion confirmed) |
+| Metric / Parameter | Gemma 4 31B (Standard GCS FUSE) | Gemma 4 31B (Run:ai
+Model Streamer) | | :--- | :--- | :--- | :--- | | **Parameters** | 31 Billion
+(Dense) | 31 Billion (Dense) | 31 Billion (Dense) | | **Accelerator** | NVIDIA
+H100 80GB SXM5 (`a3-highgpu-1g`) | NVIDIA H100 80GB SXM5 (`a3-highgpu-1g`) |
+NVIDIA H100 80GB SXM5 (`a3-highgpu-1g`) | | **Compute Class** |
+`gpu-h100-80gb-high-x1` | `gpu-h100-80gb-high-x1` | `gpu-h100-80gb-high-x1` | |
+**vLLM Image Tag** | `docker.io/vllm/vllm-openai:v0.26.0` |
+`docker.io/vllm/vllm-openai:v0.26.0` | `docker.io/vllm/vllm-openai:v0.26.0` | |
+**Tensor Parallelism (TP)** | 1 | 1 | 1 | | **Max Model Length
+(`MAX_MODEL_LEN`)** | 8,192 | 8,192 | 8,192 | | **GPU Memory Utilization** |
+0.90 | 0.90 (58.99 GiB Weights, 10.62 GiB KV, 0.91 GiB CUDAGraph) | 0.90
+(Restored from snapshot) | | **Weight Streaming Time** | 378.67s (FUSE read
+bottleneck) | **48.16s** (Direct GCS stream @ ~1.22 GiB/s) | **0.0s** (Included
+in snapshot image) | | **Dynamo Bytecode Transform** | 15.67s | 15.67s |
+**0.0s** (Pre-compiled) | | **Torch Inductor Compile** | 52.00s | 52.00s |
+**0.0s** (Pre-compiled) | | **CUDA Graph Capture** | 25.00s | 25.00s | | **Total
+Engine Initialization** | 185s+ | **115.81s** | | **Container Start to Ready
+1/1** | 570s (~9.5 min) | **301s** (~5.0 min) | | **Cold Start Reduction** |
+Baseline | **47.2% reduction vs FUSE cold start** | | **HPA Scaling Metric** |
+`vllm:num_requests_waiting` | `vllm:num_requests_waiting` | | **Test Result
+Status** | Verified | **Completed & Verified** (Live chat completion confirmed)
+|
 
 #### Gemma 4 31B: vLLM Metric HPA vs. EPP Control-Flow Log-Based HPA
 
@@ -494,28 +510,27 @@ Calculate timings:
 > **Driver 580 Channel Suspension Issue:** In empirical testing across both
 > NVIDIA H100 80GB (Hopper) and RTX Pro 6000 (Blackwell), the NVIDIA open kernel
 > driver branch 580 (`580.126.20`) encounters an upstream assertion failure
-> (`NVA06F_CTRL_CMD_STOP_CHANNEL` returning `NV_ERR_OBJECT_NOT_FOUND 0x57`) during
-> channel suspension. While gVisor and `runsc-checkpointgofer` cleanly write out
-> the metadata (`checkpoint.img` 12.35 MiB and `pages_meta.img` 3.43 MiB) directly
-> to Cloud Storage, the inability to cleanly stop GPU channels leaves the
-> checkpoint process waiting on channel quiescence.
+> (`NVA06F_CTRL_CMD_STOP_CHANNEL` returning `NV_ERR_OBJECT_NOT_FOUND 0x57`)
+> during channel suspension. While gVisor and `runsc-checkpointgofer` cleanly
+> write out the metadata (`checkpoint.img` 12.35 MiB and `pages_meta.img` 3.43
+> MiB) directly to Cloud Storage, the inability to cleanly stop GPU channels
+> leaves the checkpoint process waiting on channel quiescence.
 >
-> **Memory & Sizing Nuance on H100 (80GB VRAM):** For Gemma 4 31B Dense (58.99 GiB
-> weights), setting `GPU_MEMORY_UTILIZATION` above `0.92` causes CUDA OOM during
-> CUDA graph capture because FlashInfer top-k/top-p sampling allocates ~1 GiB of
-> logits buffers for Gemma 4's massive 256,000 token vocabulary. Configuring
-> `GPU_MEMORY_UTILIZATION=0.90` and `MAX_MODEL_LEN=8192` provides 10.62 GiB of KV
-> cache (12,629 tokens) while reserving 7.92 GiB of free device headroom, enabling
-> complete graph capture and stable operation.
+> **Memory & Sizing Nuance on H100 (80GB VRAM):** For Gemma 4 31B Dense (58.99
+> GiB weights), setting `GPU_MEMORY_UTILIZATION` above `0.92` causes CUDA OOM
+> during CUDA graph capture because FlashInfer top-k/top-p sampling allocates ~1
+> GiB of logits buffers for Gemma 4's massive 256,000 token vocabulary.
+> Configuring `GPU_MEMORY_UTILIZATION=0.90` and `MAX_MODEL_LEN=8192` provides
+> 10.62 GiB of KV cache (12,629 tokens) while reserving 7.92 GiB of free device
+> headroom, enabling complete graph capture and stable operation.
 >
-> **Eliminating GCS FUSE Sidecars:** Running a GCS FUSE sidecar inside the same gVisor
-> sandbox causes `runsc-sandbox` to hang during checkpoint cleanup because file
-> descriptor flushes block on the suspended FUSE daemon. Using pure **NVIDIA Run:ai
-> Model Streamer** directly against `gs://` buckets completely eliminates this
-> failure mode while delivering **48.16s** weight loading.
+> **Eliminating GCS FUSE Sidecars:** Running a GCS FUSE sidecar inside the same
+> gVisor sandbox causes `runsc-sandbox` to hang during checkpoint cleanup
+> because file descriptor flushes block on the suspended FUSE daemon. Using pure
+> **NVIDIA Run:ai Model Streamer** directly against `gs://` buckets completely
+> eliminates this failure mode while delivering **48.16s** weight loading.
 >
-> **The Path Forward (Cooperative Workload Triggering):** Cooperative workload-triggered
-> snapshots (`triggerConfig.type: workload`) initiated via `/proc/gvisor/checkpoint`
-> ensure deterministic checkpointing _before_ network sockets are bound and _after_
-> CUDA queues are fully synchronized.
-
+> **The Path Forward (Cooperative Workload Triggering):** Cooperative
+> workload-triggered snapshots (`triggerConfig.type: workload`) initiated via
+> `/proc/gvisor/checkpoint` ensure deterministic checkpointing _before_ network
+> sockets are bound and _after_ CUDA queues are fully synchronized.

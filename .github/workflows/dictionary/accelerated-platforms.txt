@@ -72,6 +72,7 @@ schnell
 seqs
 sharegpt
 stabilityai
+tflops
 timonwong
 tunables
 unconfigure

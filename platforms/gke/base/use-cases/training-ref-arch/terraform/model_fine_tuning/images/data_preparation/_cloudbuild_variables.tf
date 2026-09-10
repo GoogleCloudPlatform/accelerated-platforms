@@ -1,1 +1,1 @@
-../../../../_shared_config/_cloudbuild_variables.tf
+../../../../../../_shared_config/cloudbuild_variables.tf

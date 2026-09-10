@@ -41,7 +41,7 @@ export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-trn}"
 # Set execution specific values
 export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 
-source "${ACP_PLATFORM_USE_CASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
+source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
   echo "Current directory: $(pwd)" &&

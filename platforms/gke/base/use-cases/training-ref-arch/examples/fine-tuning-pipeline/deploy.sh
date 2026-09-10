@@ -24,7 +24,7 @@ export TF_VAR_resource_name_prefix="aiml"
 
 ${ACP_PLATFORM_USE_CASE_DIR}/deploy.sh
 
-source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config ${ACP_PLATFORM_USE_CASE_DIR}/_shared_config
+source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config ${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config
 
 declare -a aiml_terraservices=(
   "initialize"

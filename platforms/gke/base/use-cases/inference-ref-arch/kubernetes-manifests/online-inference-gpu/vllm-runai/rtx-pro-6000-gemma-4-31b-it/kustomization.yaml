@@ -47,7 +47,6 @@ replacements:
       - fieldPaths:
           - spec.selector.matchLabels.app
         select:
-          kind: PodSnapshotPolicy
   - source:
       fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
@@ -85,11 +84,9 @@ replacements:
       - fieldPaths:
           - metadata.namespace
         select:
-          kind: PodSnapshotPolicy
       - fieldPaths:
           - metadata.namespace
         select:
-          kind: PodSnapshotStorageConfig
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
@@ -111,23 +108,18 @@ replacements:
       - fieldPaths:
           - spec.snapshotStorageConfig.gcs.bucket
         select:
-          kind: PodSnapshotStorageConfig
   - source:
       fieldPath: metadata.name
-      kind: PodSnapshotStorageConfig
       name: vllm-snapshot-config
     targets:
       - fieldPaths:
           - spec.storageConfigName
         select:
-          kind: PodSnapshotPolicy
   - source:
       fieldPath: metadata.name
-      kind: PodSnapshotPolicy
       name: vllm-snapshot-policy
     targets:
       - fieldPaths:
-          - metadata.annotations.[podsnapshot.gke.io/restore-from-policy]
         select:
           kind: Deployment
   - source:

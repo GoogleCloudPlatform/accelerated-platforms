@@ -16,7 +16,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    podsnapshot.gke.io/restore-from-policy: vllm-snapshot-policy
   name: vllm
   namespace: replaced-by-kustomize
 spec:
@@ -95,7 +94,6 @@ spec:
         volumeMounts:
         - mountPath: /dev/shm
           name: dev-shm
-      runtimeClassName: gvisor
       serviceAccountName: replaced-by-kustomize
       volumes:
       - emptyDir:

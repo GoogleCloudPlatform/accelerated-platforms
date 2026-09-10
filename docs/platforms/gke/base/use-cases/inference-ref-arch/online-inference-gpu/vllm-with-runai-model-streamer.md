@@ -172,7 +172,7 @@ constraints:
 ### Recommended Implementation (Options 1 & 2)
 
 To successfully leverage **Inference Gateway EPP Flow Control** and **GKE
-**Run:ai Model Streamer** while avoiding client-side 5xx errors during
+**Run:ai Model Streamer\*\* while avoiding client-side 5xx errors during
 scale-out, we recommend the following implementation:
 
 1. **Maintain a Baseline of `minReplicas: 1`**:
@@ -346,15 +346,18 @@ Fast Starting Nodes, NVIDIA Run:ai Model Streamer.
 #### Key Performance Observations
 
 - **Scale Trigger Response (`t_trigger_sec`)**:
+
   - The deployment reacts to queue depth spikes rapidly, with the Custom Metrics
     Stackdriver Adapter emitting `vllm:num_requests_waiting` metrics within **54
     seconds** of saturation.
 
 - **Autoscaler Target Scale Request (`t_max_desired_sec`)**:
+
   - The HPA requests max desired replicas (`maxReplicas: 5`) within **88
     seconds** as request queues grow.
 
 - **Full Cluster Scaling & Replica Readiness (`t_all_ready_sec`)**:
+
   - Total time from initial traffic surge until newly provisioned replicas pass
     readiness probes is approximately **7.9 minutes** during cold node
     provisioning.
@@ -364,6 +367,7 @@ Fast Starting Nodes, NVIDIA Run:ai Model Streamer.
     reduces total scaling time by **>55%**.
 
 - **Fast Loading vs. Traditional GCSFuse**:
+
   - **Cold Start with Run:ai Model Streamer**: On NVIDIA H100 80GB
     (`a3-highgpu-1g`), Run:ai Model Streamer streams the 58.99 GiB of Gemma 4
     weights directly into GPU VRAM in **48.16 seconds** (~1.22 GiB/s), reaching

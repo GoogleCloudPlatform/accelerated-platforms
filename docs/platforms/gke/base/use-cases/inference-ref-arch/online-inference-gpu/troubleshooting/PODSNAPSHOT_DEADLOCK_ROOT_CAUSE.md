@@ -47,6 +47,26 @@ checkpoint.
 
 ## 3. The Root Cause
 
+> [!WARNING] > **This section is partly superseded.** The VRAM-threshold theory
+> below has been **disproven for the H100 Gemma 4 31B case**. That workload was
+> later checkpointed successfully on the same `gpu-h100-80gb-high-x1` compute
+> class at the same `--gpu-memory-utilization=0.90`, producing a 72.92 GB
+> `pages.img` in 11 m 22 s and then restoring. See the "Gemma 4 31B on H100"
+> section of
+> [vllm-with-runai-and-podsnapshots.md](../vllm-with-runai-and-podsnapshots.md).
+>
+> The successful run differed from the failure in three ways that have not been
+> separated: it used the cooperative `workload` trigger with
+> `postCheckpoint: resume` rather than an out-of-band `PodSnapshotManualTrigger`
+> with `postCheckpoint: stop`, it pinned `vllm/vllm-openai:v0.19.1` rather than
+> `v0.26.0`, and it omitted the `podsnapshot.gke.io/restore-from-policy`
+> annotation.
+>
+> The 96GB RTX Pro 6000 configurations cited below (86.4GB and 88.3GB of
+> reserved VRAM) sit **above** the 72GB the successful run reserved, so the
+> threshold claim has not been tested at those sizes. Do not cite this section
+> as an explanation for the H100 hang.
+
 The "Persistent Checkpoint Deadlock" is caused by a memory exhaustion/mapping
 bug in the `gVisor` `nvproxy` kernel module when attempting to dump VRAM
 footprints exceeding a specific threshold.

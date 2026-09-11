@@ -265,11 +265,11 @@ kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get podsnapshots
 To force a fresh "warm up" (for example, after a model update), delete the
 existing snapshots and the next pod will automatically create a new one.
 
-## Validated fast-restore walkthrough: Llama 3.1 8B on L4 and H100
+## Validated fast-restore walkthrough
 
-Everything in this section was measured end to end, on both an NVIDIA L4 and an
-NVIDIA H100, using the manifests in
-`kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore`. Each
+Everything in this section was measured end to end using the manifests in
+`kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore`: Llama
+3.1 8B on both an NVIDIA L4 and an NVIDIA H100, and Gemma 4 31B on an H100. Each
 run was verified all the way through: checkpoint captured, pod deleted, replica
 restored from the snapshot, and a real completion served by the restored
 replica.
@@ -281,12 +281,18 @@ in the overlays.
 
 1. **A driver of 570 or newer**, obtained by selecting nodes with a compute
    class (see the prerequisite section above). Without it, nothing else matters.
-2. **Eager weight loading plus a cache purge before the trigger.** vLLM is
-   started with `--safetensors-load-strategy=eager` so the weights are fully
-   materialized in VRAM rather than lazily mapped from files, and the Hugging
-   Face cache is deleted immediately before the checkpoint fires. The weights
-   are already in VRAM at that point, so the on-disk copy is pure overhead that
-   would otherwise be serialized into the snapshot and re-read on every restore.
+2. **Weights fully resident in VRAM before the trigger, and no redundant copy on
+   disk.** Both validated loaders satisfy this:
+
+   - `--safetensors-load-strategy=eager` with the Hugging Face cache deleted
+     immediately before the checkpoint fires (the Llama overlays), or
+   - `--load-format=runai_streamer` reading directly from GCS, which never
+     writes a full local copy at all (the Gemma overlay).
+
+   The weights are already in VRAM when the checkpoint fires, so any on-disk
+   copy is pure overhead that would otherwise be serialized into the snapshot
+   and re-read on every restore.
+
 3. **`VLLM_HOST_IP=127.0.0.1`.** PyTorch's TCPStore and the NCCL bootstrap bake
    their rendezvous address into the checkpointed process image, and a restored
    replica always comes up with a different pod IP.
@@ -305,11 +311,21 @@ in the overlays.
 ```shell
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
-# Pick one of: l4-llama-3-1-8b-instruct, h100-llama-3-1-8b-instruct
+# Pick one of:
+#   l4-llama-3-1-8b-instruct    Llama 3.1 8B, eager loading from Hugging Face
+#   h100-llama-3-1-8b-instruct  Llama 3.1 8B, eager loading from Hugging Face
+#   h100-gemma-4-31b-it         Gemma 4 31B, Run:ai Model Streamer from GCS
 export SNAPSHOT_OVERLAY="l4-llama-3-1-8b-instruct"
 
 kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/${SNAPSHOT_OVERLAY}"
 ```
+
+> [!IMPORTANT] The `h100-gemma-4-31b-it` overlay reads its weights from
+> `gs://${MODEL_BUCKET_NAME}/google/gemma-4-31b-it` with the Run:ai Model
+> Streamer, so the model must be staged into that bucket first. Use the
+> `model-download/huggingface` job. Note that the downloader lowercases the
+> model ID, so the object prefix is `google/gemma-4-31b-it` even though the
+> Hugging Face repository is capitalized differently.
 
 ### Step 2: watch the cooperative trigger fire
 
@@ -494,25 +510,130 @@ pays for everything after that.
 
 **The loader is not what broke Gemma 4 31B.** Since `runai_streamer` checkpoints
 and restores correctly at this model size, the loader is eliminated as a
-suspect. Combined with the H100 result eliminating the GPU architecture and
-driver 580, the remaining explanation for that hang is the **resident VRAM
-footprint** (58.99 GiB of weights against 14.99 GiB here). That threshold has
-not been characterized, so treat large-model snapshots as unproven until
-measured on your own model.
+suspect.
+
+### Gemma 4 31B on H100: the same model that used to hang
+
+The three runs above all used Llama-3.1-8B, a small model. To test whether
+resident VRAM footprint is what breaks checkpointing, the **exact model that
+originally hung** was re-run under the cooperative trigger, changing nothing
+else about the workload:
+
+| Setting                    | Value                                            |
+| -------------------------- | ------------------------------------------------ |
+| Model                      | `google/gemma-4-31b-it` via `runai_streamer`     |
+| GPU                        | 1x NVIDIA H100 80GB (`a3-highgpu-1g`, spot)      |
+| Image                      | `vllm/vllm-openai:v0.19.1`                       |
+| `--gpu-memory-utilization` | `0.90`                                           |
+| `--max-model-len`          | `8192`                                           |
+| Trigger                    | cooperative `workload`, `postCheckpoint: resume` |
+
+It succeeded. Measured phases:
+
+| Phase                                 | Value                                                |
+| ------------------------------------- | ---------------------------------------------------- |
+| Streamer weight load                  | 1188 shards, `58.9 GiB memory and 48.515212 seconds` |
+| `torch.compile`                       | `48.25 s in total`                                   |
+| KV cache available                    | `8.21 GiB` → 8,960 tokens                            |
+| CUDA graph capture                    | `finished in 14 secs, took 0.69 GiB`                 |
+| Engine init                           | `91.11 seconds`                                      |
+| Container started → serving           | 01:14:57 → 01:18:51 = **234 s**                      |
+| Trigger → `AllSnapshotsAvailable`     | 01:18:51 → 01:30:13 = **11 m 22 s**                  |
+| `pages.img`                           | **72,922,370,048 B (72.92 GB)**                      |
+| **Restore: `PodScheduled` → `Ready`** | 01:37:46 → 01:37:49 = **3 s**                        |
+
+The resident footprint totals roughly 67.8 GiB (58.9 weights + 8.21 KV cache +
+0.69 CUDA graphs), which is consistent with the 72.92 GB image. This is **3.5x
+larger** than the ~21 GB Llama-3.1-8B images and it completed cleanly.
+
+The restored replica served correctly:
+
+```shell
+kubectl exec -n "${INFERENCE_KUBERNETES_NAMESPACE}" "${POD}" -- \
+  curl -s -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"google/gemma-4-31b-it","messages":[{"role":"user","content":"What is the capital of France? Answer in one sentence."}],"max_tokens":40,"temperature":0}'
+```
+
+```json
+{ "content": "The capital of France is Paris." }
+```
+
+> [!IMPORTANT] > **Restore latency did not grow with snapshot size.** The 72.92
+> GB Gemma image restored to `Ready` in **3 seconds** — the same as the ~21 GB
+> Llama images. Checkpoint cost scales with size, but in these measurements
+> scale-out cost did not. Three data points is not a scaling law, so measure
+> this for your own model rather than assuming it holds at every size.
+
+> [!TIP] Validate a restored instruct model through `/v1/chat/completions`, not
+> `/v1/completions`. A raw completion of `"Paris is the capital of"` against
+> `google/gemma-4-31b-it` returns degenerate repetition
+> (`" the capital of the capital of ..."`) because the chat template is
+> bypassed. That is normal instruct-model behavior and **not** evidence of a
+> corrupted snapshot.
+
+> [!NOTE] Checkpoint duration scales with image size, not with model complexity.
+> The 21 GB Llama images uploaded in about four minutes; the 72.92 GB Gemma
+> image took 11 m 22 s. That is roughly 107 MB/s in both cases. A large model is
+> **slow to checkpoint, not incapable of it** — budget the time and do not
+> mistake a long upload for a hang. The reliable test is described under
+> "Empirical Validation" below: watch `pages.img` **grow**, rather than treating
+> its absence as failure.
 
 ### What these runs settle
 
 Earlier attempts to snapshot **Gemma 4 31B on H100** hung indefinitely, and the
-failure was attributed to the H100 architecture or to driver branch 580. **That
-attribution was wrong.** Three controlled runs now show:
+failure was attributed to the H100 architecture, to driver branch 580, or to the
+sheer size of the model. **Those attributions were wrong.** Four controlled runs
+now show:
 
-| Hypothesis for the Gemma 4 31B hang | Verdict                                       |
-| ----------------------------------- | --------------------------------------------- |
-| NVIDIA H100 / Hopper architecture   | **Eliminated** — H100 run succeeded           |
-| Driver branch 580                   | **Eliminated** — all successes ran 580.126.20 |
-| NVRM channel-stop assertion         | **Eliminated** — also fires on successes      |
-| `runai_streamer` weight loader      | **Eliminated** — streamer run succeeded       |
-| Resident VRAM footprint             | **Still open** — the only survivor            |
+| Hypothesis for the Gemma 4 31B hang | Verdict                                            |
+| ----------------------------------- | -------------------------------------------------- |
+| NVIDIA H100 / Hopper architecture   | **Eliminated** — H100 run succeeded                |
+| Driver branch 580                   | **Eliminated** — all successes ran 580.126.20      |
+| NVRM channel-stop assertion         | **Eliminated** — also fires on successes           |
+| `runai_streamer` weight loader      | **Eliminated** — streamer run succeeded            |
+| Resident VRAM footprint             | **Eliminated** — same model, same GPU, same `0.90` |
+| Out-of-band `manual` trigger        | **Not excluded**                                   |
+| vLLM image `v0.26.0`                | **Not excluded**                                   |
+| `restore-from-policy` annotation    | **Not excluded**                                   |
+
+The footprint elimination is the strong one, because that comparison is tight.
+Per the engineering brief the failing run used the **same model**, the **same**
+`gpu-h100-80gb-high-x1` H100 80GB compute class, the **same**
+`--gpu-memory-utilization=0.90`, the **same** `--max-model-len=8192`, and the
+**same** `--load-format=runai_streamer` with
+`--model-loader-extra-config={"distributed":true}`. Model size and memory
+pressure were therefore identical, and the checkpoint completed anyway.
+
+> [!IMPORTANT] Three differences remain between the failing run and the
+> successful one, and they have **not** been separated from one another:
+>
+> 1. **Trigger mode.** The failing policy used
+>
+>    ```yaml
+>    triggerConfig:
+>      type: manual
+>      postCheckpoint: stop
+>    ```
+>
+>    driven by a separate `PodSnapshotManualTrigger`, whereas the successful run
+>    used the cooperative `workload` trigger with `postCheckpoint: resume`. The
+>    "Cooperative Workload-Triggered PodSnapshots vs. Asynchronous Triggering"
+>    deep dive later in this document gives the mechanism: out-of-band
+>    triggering freezes the sandbox at an arbitrary point rather than a
+>    quiescent one. This is the most plausible of the three.
+>
+> 2. **Image version.** The failing run used
+>    `docker.io/vllm/vllm-openai:v0.26.0`; the successful run pinned
+>    `vllm/vllm-openai:v0.19.1`.
+> 3. **The `podsnapshot.gke.io/restore-from-policy` annotation**, present on the
+>    failing Deployment and removed here.
+>
+> Recommend the cooperative `workload` trigger on the strength of the mechanism
+> and the successful result, but do not present it as a proven root cause. The
+> controlled A/B — same manifest, only `triggerConfig` changed — has not been
+> run.
 
 ## Scaling & Flow Control Strategies
 
@@ -1100,11 +1221,31 @@ snapshots:
      reliable signals are the `PodSnapshot` conditions and the
      `pod-snapshot-agent` logs.
 
-   - What _does_ distinguish a hung checkpoint is the shape of the objects in
-     the bucket. A healthy run writes `checkpoint.img` and `pages_meta.img`
+   - The shape of the objects in the bucket is a **starting point, not a
+     verdict**. A healthy run writes `checkpoint.img` and `pages_meta.img`
      first, then the large `pages.img`, then `metadata`. The Gemma 4 31B hang
      wrote `checkpoint.img` (12.35 MiB) and `pages_meta.img` (3.43 MiB) and then
      never produced `pages.img`, with the gofer blocked in `futex_wait`.
+
+   - **However, that same shape appears during every healthy large-model
+     checkpoint.** In the successful Gemma 4 31B run, the bucket held only
+     `checkpoint.img` (10,007,916 B) and `pages_meta.img` (1,213,153 B) from
+     01:19:59 until 01:30:12 — more than ten minutes — before the 72.92 GB
+     `pages.img` and `metadata` appeared together and the snapshot went `Ready`.
+     Declaring a hang during that window would have been wrong.
+
+   - The reliable test is whether `pages.img` is **growing**. Note that
+     `gcloud storage ls` does not list in-progress objects; use `--stat` and
+     compare sizes across polls:
+
+     ```shell
+     gcloud storage objects list \
+       "gs://${MODEL_BUCKET_NAME}/${SNAPSHOT_ID}/**" --stat
+     ```
+
+     A genuine hang shows `runsc-checkpointgofer` blocked in `futex_wait_queue`,
+     `runsc checkpoint` in `do_sys_poll`, and the `PodSnapshot` stuck in
+     `AwaitingCheckpoint` with **no** size change over a long interval.
 
 4. **Elimination of GCS FUSE Sidecars in Fast-Start Architectures**:
 
@@ -1139,10 +1280,22 @@ snapshots:
      for eager safetensors, produced a comparable 21.11 GB image, and restored
      in the same **3 s**. Use the streamer for the cold start, snapshots for
      every scale-out after it.
-   - **The one remaining risk is resident VRAM footprint.** Architecture, driver
-     branch, the NVRM assertion and the loader have all been eliminated as
-     causes of the Gemma 4 31B hang. The footprint has not. Validate snapshots
-     against your own model size before relying on them.
+   - **Large models checkpoint fine — model size is not the blocker.**
+     Architecture, driver branch, the NVRM assertion, the loader and now
+     **resident VRAM footprint** have all been eliminated as causes of the Gemma
+     4 31B hang. The same model, on the same H100 80GB compute class, at the
+     same `--gpu-memory-utilization=0.90`, checkpointed successfully and
+     produced a **72.92 GB** `pages.img` in 11 m 22 s.
+   - **Three differences from the failing run have not been separated**: the
+     out-of-band `manual` trigger with `postCheckpoint: stop`, the older
+     `v0.26.0` image, and the `restore-from-policy` annotation. **Use the
+     cooperative `workload` trigger** — it has the clearest mechanism and is the
+     configuration validated here — but treat the root cause as not yet proven.
+   - **Budget checkpoint time by snapshot size.** Upload throughput measured
+     about 107 MB/s across both the 21 GB and 72.92 GB images, so a large model
+     can take ten minutes or more to checkpoint. This is a one-time cost paid
+     once per snapshot, not per scale-out, but it must be accounted for in
+     rollout planning.
    - **Retain pure single-container manifests without FUSE sidecars** to
      maintain clean checkpoint isolation.
    - **Do not diagnose from the NVRM channel-stop assertion.** As documented

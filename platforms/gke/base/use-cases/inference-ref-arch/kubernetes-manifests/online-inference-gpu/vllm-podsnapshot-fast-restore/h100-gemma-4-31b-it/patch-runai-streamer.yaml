@@ -1,0 +1,74 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# The shared base loads weights from Hugging Face with
+# `--safetensors-load-strategy=eager`. This overlay swaps that for the NVIDIA
+# Run:ai Model Streamer reading directly from GCS, which is the configuration
+# that was validated end to end for Gemma 4 31B on H100.
+#
+# `args` is a list, so this strategic merge patch replaces it wholesale. The
+# cooperative checkpoint trigger therefore has to be repeated here; keep it in
+# sync with `../base/deployment.yaml`.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-fast-restore
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      containers:
+        - name: inference-server
+          args:
+            - |
+              (
+                if [ ! -e /proc/gvisor/checkpoint ]; then
+                  echo "[podsnapshot] /proc/gvisor/checkpoint is absent; skipping checkpoint trigger."
+                  echo "[podsnapshot] Expected when this pod was itself restored from a snapshot, or"
+                  echo "[podsnapshot] when no matching PodSnapshotPolicy with triggerConfig.type=workload exists."
+                  exit 0
+                fi
+                echo "[podsnapshot] Waiting for the model server to become healthy..."
+                while ! curl --fail --silent http://localhost:8000/health; do
+                  sleep 2
+                done
+                echo "[podsnapshot] Model server is healthy."
+                rm -rf /root/.cache/huggingface/* 2>/dev/null || true
+                echo "[podsnapshot] Triggering the cooperative checkpoint..."
+                if echo 1 > /proc/gvisor/checkpoint; then
+                  echo "[podsnapshot] Checkpoint triggered successfully."
+                else
+                  echo "[podsnapshot] Checkpoint trigger FAILED."
+                fi
+              ) &
+              exec python3 -m vllm.entrypoints.openai.api_server \
+                --model="gs://${MODEL_BUCKET_NAME}/${MODEL_ID}" \
+                --served-model-name="${MODEL_ID}" \
+                --load-format=runai_streamer \
+                --model-loader-extra-config='{"distributed":true}' \
+                --trust-remote-code \
+                --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
+                --max-model-len="${MAX_MODEL_LEN}" \
+                --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
+                --port=8000
+          env:
+            # The streamer reads the weights straight out of GCS, so the bucket
+            # name has to be visible to the container. Staging the model into
+            # this bucket is a prerequisite; see the model-download job.
+            - name: MODEL_BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_BUCKET_NAME
+                  name: deployment

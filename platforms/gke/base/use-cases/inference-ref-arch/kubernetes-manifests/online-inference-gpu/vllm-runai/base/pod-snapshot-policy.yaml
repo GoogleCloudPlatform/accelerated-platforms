@@ -23,6 +23,14 @@ spec:
       app: vllm
   storageConfigName: vllm-snapshot-config
   triggerConfig:
+    # `workload` hands the timing decision to the container. GKE will not
+    # checkpoint on its own; it creates the PodSnapshot and then waits for the
+    # workload to write to `/proc/gvisor/checkpoint`. That is what lets us
+    # capture the sandbox only *after* the model is resident in VRAM, compiled
+    # and warmed up, which is the whole point of the exercise.
     type: workload
-    postCheckpoint: stop
+    # `resume` leaves the checkpointed pod running so it keeps serving traffic
+    # after its memory image has been captured. Use `stop` only if you want the
+    # snapshot-producing pod torn down once the image is safe.
+    postCheckpoint: resume
   snapshotScope: whole-pod

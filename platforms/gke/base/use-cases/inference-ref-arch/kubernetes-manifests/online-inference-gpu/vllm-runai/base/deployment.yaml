@@ -14,9 +14,17 @@
 
 apiVersion: apps/v1
 kind: Deployment
+# Note the deliberate absence of the
+# `podsnapshot.gke.io/restore-from-policy` annotation. A PodSnapshotPolicy
+# whose selector matches this Deployment already drives *both* halves of the
+# lifecycle: it checkpoints the first healthy replica and it restores every
+# replica scheduled afterwards. Adding the annotation on top of that is not
+# only redundant, it is actively harmful on a cold start: the PodSnapshot
+# webhook sees a pod that is supposed to be restored, finds no snapshot in the
+# bucket yet, falls back to a normal start, and disables checkpointing for that
+# pod so it cannot loop on failed restores. `/proc/gvisor/checkpoint` is then
+# never mounted and the very first snapshot can never be captured.
 metadata:
-  annotations:
-    podsnapshot.gke.io/restore-from-policy: vllm-snapshot-policy
   name: vllm
   namespace: replaced-by-kustomize
 spec:
@@ -33,18 +41,50 @@ spec:
     spec:
       containers:
       - args:
-        - --gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)
-        - --model=gs://$(BUCKET_NAME)/$(MODEL_ID)
-        - --served-model-name=$(MODEL_ID)
-        - --load-format=runai_streamer
-        - --model-loader-extra-config={"distributed":true}
-        - --tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)
-        - --trust-remote-code
-        - --max-model-len=$(MAX_MODEL_LEN)
+        # The PodSnapshotPolicy uses `triggerConfig.type: workload`, which means
+        # GKE never checkpoints on its own: the workload itself must write to
+        # the `/proc/gvisor/checkpoint` character device that the GKE
+        # PodSnapshot mutating webhook injects into the sandbox. The background
+        # subshell below performs that cooperative trigger once the engine is
+        # warm, then the container keeps serving traffic (postCheckpoint:
+        # resume).
+        - |
+          (
+            if [ ! -e /proc/gvisor/checkpoint ]; then
+              echo "[podsnapshot] /proc/gvisor/checkpoint is absent; skipping checkpoint trigger."
+              echo "[podsnapshot] This is expected when the pod was itself restored from a snapshot,"
+              echo "[podsnapshot] or when no PodSnapshotPolicy with triggerConfig.type=workload matches this pod."
+              exit 0
+            fi
+            echo "[podsnapshot] Waiting for the model server to become healthy..."
+            while ! curl --fail --silent http://localhost:8000/health; do
+              sleep 2
+            done
+            echo "[podsnapshot] Model server is healthy."
+            # Drop any on-disk weight cache before checkpointing. The weights
+            # are already resident in VRAM, so caching them again inside the
+            # snapshot only inflates the image and slows every restore.
+            rm -rf /root/.cache/huggingface/* 2>/dev/null || true
+            echo "[podsnapshot] Triggering the cooperative checkpoint..."
+            if echo 1 > /proc/gvisor/checkpoint; then
+              echo "[podsnapshot] Checkpoint triggered successfully."
+            else
+              echo "[podsnapshot] Checkpoint trigger FAILED."
+            fi
+          ) &
+          exec python3 -m vllm.entrypoints.openai.api_server \
+            --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
+            --model="gs://${BUCKET_NAME}/${MODEL_ID}" \
+            --served-model-name="${MODEL_ID}" \
+            --load-format=runai_streamer \
+            --model-loader-extra-config='{"distributed":true}' \
+            --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
+            --trust-remote-code \
+            --max-model-len="${MAX_MODEL_LEN}" \
+            --port=8000
         command:
-        - python3
-        - -m
-        - vllm.entrypoints.openai.api_server
+        - /bin/sh
+        - -c
         env:
         - name: GPU_MEMORY_UTILIZATION
           valueFrom:
@@ -75,6 +115,12 @@ spec:
               name: deployment
         - name: VLLM_XLA_CACHE_PATH
           value: /data
+        # PyTorch's TCPStore and the NCCL bootstrap bake their rendezvous
+        # address into the checkpointed process image. Binding them to loopback
+        # keeps that address valid after a restore, because a restored replica
+        # always receives a new pod IP.
+        - name: VLLM_HOST_IP
+          value: 127.0.0.1
         image: replaced-by-kustomize
         imagePullPolicy: Always
         name: inference-server

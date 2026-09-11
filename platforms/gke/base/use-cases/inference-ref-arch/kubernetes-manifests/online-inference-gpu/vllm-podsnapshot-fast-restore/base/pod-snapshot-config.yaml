@@ -1,0 +1,32 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: podsnapshot.gke.io/v1
+kind: PodSnapshotStorageConfig
+metadata:
+  name: vllm-fast-restore-snapshot-config
+spec:
+  snapshotStorageConfig:
+    gcs:
+      # Populated by kustomize from the `MODEL_BUCKET_NAME` key of the shared
+      # `deployment` ConfigMap. Each snapshot lands under a UID-named prefix,
+      # so sharing the bucket with the Hugging Face model cache is safe.
+      #
+      # The GKE snapshot service agent
+      # (service-PROJECT_NUMBER@container-engine-robot.iam.gserviceaccount.com)
+      # needs object read, write and list on this bucket. Without
+      # `storage.objects.list` the snapshots are written correctly but can
+      # never be garbage collected, and deleted PodSnapshot objects hang in
+      # `Deleting` forever.
+      bucket: replaced-by-kustomize

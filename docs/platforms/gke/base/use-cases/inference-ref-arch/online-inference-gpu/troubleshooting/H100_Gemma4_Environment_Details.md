@@ -1,20 +1,23 @@
 # Environment and Deployment Details for Gemma 4 31B on H100
 
-Below are the details requested regarding the environment setup for testing `google/gemma-4-31b-it` on NVIDIA H100 80GB (Hopper) on GKE.
+Below are the details requested regarding the environment setup for testing
+`google/gemma-4-31b-it` on NVIDIA H100 80GB (Hopper) on GKE.
 
 ## 1. Environment Details
 
-**GKE Cluster Version:** `v1.36.3-gke.1767000`
-**Node Accelerator:** `nvidia-h100-80gb-hbm3.1`
-**Node Machine Family:** `a3`
-**Node Machine Type:** `a3-highgpu-1g`
-**GKE GPU Driver Version:** `580.126.20`
+**GKE Cluster Version:** `v1.36.3-gke.1767000` **Node Accelerator:**
+`nvidia-h100-80gb-hbm3.1` **Node Machine Family:** `a3` **Node Machine Type:**
+`a3-highgpu-1g` **GKE GPU Driver Version:** `580.126.20`
 
 ## 2. Pod and Deployment Configuration
 
-The following is the exact deployment YAML specification used to run the vLLM pod on the H100 node. Notably, it utilizes `runai_streamer` for fast loading and implements a cooperative entrypoint hook (`/scripts/entrypoint_hook.py`) to properly coordinate workload-triggered snapshots.
+The following is the exact deployment YAML specification used to run the vLLM
+pod on the H100 node. Notably, it utilizes `runai_streamer` for fast loading and
+implements a cooperative entrypoint hook (`/scripts/entrypoint_hook.py`) to
+properly coordinate workload-triggered snapshots.
 
-**Note on GPU Memory:** `GPU_MEMORY_UTILIZATION` is set to `0.80` (64GB out of 80GB VRAM).
+**Note on GPU Memory:** `GPU_MEMORY_UTILIZATION` is set to `0.80` (64GB out of
+80GB VRAM).
 
 ```yaml
 apiVersion: apps/v1
@@ -97,9 +100,15 @@ spec:
 
 The empirical timing test was completed with the following results:
 
-* **Cold Start (Model Pull & Compilation):** **3 minutes and 45 seconds** (Weight loading took 61.83 seconds via Run:ai Streamer).
-* **Snapshot Time:** **FAILED** (Deadlocked in `AwaitingCheckpoint`).
-* **Warm Restore (from PodSnapshot):** N/A.
+- **Cold Start (Model Pull & Compilation):** **3 minutes and 45 seconds**
+  (Weight loading took 61.83 seconds via Run:ai Streamer).
+- **Snapshot Time:** **FAILED** (Deadlocked in `AwaitingCheckpoint`).
+- **Warm Restore (from PodSnapshot):** N/A.
 
-**Conclusion on Workload Triggers:**
-Despite utilizing a cooperative workload trigger that properly flushed CUDA queues (`torch.cuda.synchronize()` and `torch.cuda.empty_cache()`), the checkpointing process on the H100 node still encountered the exact same upstream kernel driver assertion failure (`NVRM: nvAssertOkFailedNoLog: Assertion failed: Requested object not found [NV_ERR_OBJECT_NOT_FOUND] (0x00000057)`). This confirms that the channel quiescence defect in driver version `580.126.20` is not mitigated by the workload trigger method.
+**Conclusion on Workload Triggers:** Despite utilizing a cooperative workload
+trigger that properly flushed CUDA queues (`torch.cuda.synchronize()` and
+`torch.cuda.empty_cache()`), the checkpointing process on the H100 node still
+encountered the exact same upstream kernel driver assertion failure
+(`NVRM: nvAssertOkFailedNoLog: Assertion failed: Requested object not found [NV_ERR_OBJECT_NOT_FOUND] (0x00000057)`).
+This confirms that the channel quiescence defect in driver version `580.126.20`
+is not mitigated by the workload trigger method.

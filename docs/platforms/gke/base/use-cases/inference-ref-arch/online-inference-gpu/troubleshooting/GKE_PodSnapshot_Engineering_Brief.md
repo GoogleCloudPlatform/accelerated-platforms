@@ -2,28 +2,29 @@
 
 ## 1. Environment & Version Matrix
 
-| Component | Specification |
-| :--- | :--- |
-| **GCP Project** | `accelerated-platforms-dev` |
-| **GKE Cluster** | `acp-uc1-a` (`us-central1`) |
-| **Release Channel** | `RAPID` |
-| **GKE Control Plane Version** | `v1.36.3-gke.1767000` |
-| **GKE GPU Node Version (NAP)** | `v1.36.3-gke.1767000` |
-| **Node OS Image** | Container-Optimized OS from Google (COS) |
-| **Host Linux Kernel** | `6.12.94+ (amd64)` |
-| **Container Runtime** | `containerd://2.2.3` |
-| **NVIDIA GPU Driver Channel** | `latest` (`580.126.20`) |
-| **Workload Sandbox** | `runtimeClassName: gvisor` |
+| Component                      | Specification                            |
+| :----------------------------- | :--------------------------------------- |
+| **GCP Project**                | `accelerated-platforms-dev`              |
+| **GKE Cluster**                | `acp-uc1-a` (`us-central1`)              |
+| **Release Channel**            | `RAPID`                                  |
+| **GKE Control Plane Version**  | `v1.36.3-gke.1767000`                    |
+| **GKE GPU Node Version (NAP)** | `v1.36.3-gke.1767000`                    |
+| **Node OS Image**              | Container-Optimized OS from Google (COS) |
+| **Host Linux Kernel**          | `6.12.94+ (amd64)`                       |
+| **Container Runtime**          | `containerd://2.2.3`                     |
+| **NVIDIA GPU Driver Channel**  | `latest` (`580.126.20`)                  |
+| **Workload Sandbox**           | `runtimeClassName: gvisor`               |
 
 ### Tested Machine Configurations
-* **Hopper**: `a3-highgpu-1g`
-  * GPU: 1x NVIDIA H100 80GB SXM5 (HBM3)
-  * CPU & Host RAM: 26 vCPUs, 234 GiB DRAM
-  * Compute Class: `gpu-h100-80gb-high-x1`
-* **Blackwell**: `g4-standard-48`
-  * GPU: 1x NVIDIA RTX Pro 6000 Server Edition (96GB GDDR7)
-  * CPU & Host RAM: 48 vCPUs, 192 GiB DRAM
-  * Accelerator Label: `cloud.google.com/gke-accelerator: "nvidia-rtx-pro-6000"`
+
+- **Hopper**: `a3-highgpu-1g`
+  - GPU: 1x NVIDIA H100 80GB SXM5 (HBM3)
+  - CPU & Host RAM: 26 vCPUs, 234 GiB DRAM
+  - Compute Class: `gpu-h100-80gb-high-x1`
+- **Blackwell**: `g4-standard-48`
+  - GPU: 1x NVIDIA RTX Pro 6000 Server Edition (96GB GDDR7)
+  - CPU & Host RAM: 48 vCPUs, 192 GiB DRAM
+  - Accelerator Label: `cloud.google.com/gke-accelerator: "nvidia-rtx-pro-6000"`
 
 ---
 
@@ -112,7 +113,9 @@ spec:
             medium: Memory
 ```
 
-> **Note on RTX Pro 6000:** The manifest is identical with the exception of the node selector:
+> **Note on RTX Pro 6000:** The manifest is identical with the exception of the
+> node selector:
+>
 > ```yaml
 > nodeSelector:
 >   cloud.google.com/gke-accelerator: "nvidia-rtx-pro-6000"
@@ -168,7 +171,10 @@ spec:
 ## 3. Observed Behavior & Kernel Error Diagnostics
 
 ### Host Execution Trace
-When `PodSnapshotManualTrigger` is applied, the pod snapshot agent delegates checkpointing to `runsc`:
+
+When `PodSnapshotManualTrigger` is applied, the pod snapshot agent delegates
+checkpointing to `runsc`:
+
 ```bash
 /home/containerd/usr/local/sbin/runsc \
   --root=/run/containerd/runsc/k8s.io \
@@ -184,18 +190,25 @@ When `PodSnapshotManualTrigger` is applied, the pod snapshot agent delegates che
 ```
 
 ### Upstream Open Kernel Driver Assertion (`dmesg`)
-During channel stop / freeze, the host kernel encounters an assertion failure inside the NVIDIA open kernel driver (`580.126.20`) on **both Hopper and Blackwell**:
+
+During channel stop / freeze, the host kernel encounters an assertion failure
+inside the NVIDIA open kernel driver (`580.126.20`) on **both Hopper and
+Blackwell**:
 
 ```text
 [ 1885.514850] NVRM: nvAssertOkFailedNoLog: Assertion failed: Requested object not found [NV_ERR_OBJECT_NOT_FOUND] (0x00000057) returned from pRmApi->Control(pRmApi, RES_GET_CLIENT_HANDLE(pKernelChannel), RES_GET_HANDLE(pKernelChannel), NVA06F_CTRL_CMD_STOP_CHANNEL, &stopChannelParams, sizeof(stopChannelParams)) @ nv_gpu_ops.c:10963
 ```
 
 ### Resulting Hang
+
 1. `runsc-checkpointgofer` uploads initial checkpoint metadata to GCS:
-   * `checkpoint.img`: **12.35 MiB**
-   * `pages_meta.img`: **3.43 MiB**
-2. Because `NVA06F_CTRL_CMD_STOP_CHANNEL` returns error code `0x57`, channel quiescence fails.
-3. `runsc-checkpointgofer` (PID 52161) and `runsc checkpoint` (PID 52147) block indefinitely in:
-   * `/proc/52161/wchan`: `futex_wait_queue`
-   * `/proc/52147/wchan`: `do_sys_poll`
-4. The snapshot status remains indefinitely in `AwaitingCheckpoint` with condition `InProgress`.
+   - `checkpoint.img`: **12.35 MiB**
+   - `pages_meta.img`: **3.43 MiB**
+2. Because `NVA06F_CTRL_CMD_STOP_CHANNEL` returns error code `0x57`, channel
+   quiescence fails.
+3. `runsc-checkpointgofer` (PID 52161) and `runsc checkpoint` (PID 52147) block
+   indefinitely in:
+   - `/proc/52161/wchan`: `futex_wait_queue`
+   - `/proc/52147/wchan`: `do_sys_poll`
+4. The snapshot status remains indefinitely in `AwaitingCheckpoint` with
+   condition `InProgress`.

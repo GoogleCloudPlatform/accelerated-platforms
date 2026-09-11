@@ -23,18 +23,11 @@ configMapGenerator:
     name: runtime
     namespace: replaced-by-kustomize
 
-nameSuffix: -rtx-pro-6000-qwen3-5-35b-a3b
+nameSuffix: -l4-llama-3-1-8b-instruct
 
 patches:
   - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
-  - target:
-      kind: Deployment
-      name: vllm
-    patch: |
-      - op: add
-        path: /spec/template/spec/containers/0/args/-
-        value: "--max-num-seqs=256"
 
 replacements:
   - source:
@@ -51,6 +44,8 @@ replacements:
           - spec.selector.app
         select:
           kind: Service
+      # The policy selector must track the Deployment labels, otherwise the
+      # policy matches nothing and no snapshot is ever created.
       - fieldPaths:
           - spec.selector.matchLabels.app
         select:
@@ -84,15 +79,10 @@ replacements:
       - fieldPaths:
           - metadata.namespace
         select:
-          kind: ServiceAccount
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: HorizontalPodAutoscaler
-      - fieldPaths:
-          - metadata.namespace
-        select:
           kind: PodSnapshotPolicy
+      # PodSnapshotStorageConfig is cluster scoped, but the top level
+      # `namespace:` directive still stamps a namespace onto it. Overwrite the
+      # placeholder so the manifest does not carry `replaced-by-kustomize`.
       - fieldPaths:
           - metadata.namespace
         select:
@@ -106,10 +96,6 @@ replacements:
           - spec.template.spec.serviceAccountName
         select:
           kind: Deployment
-      - fieldPaths:
-          - metadata.name
-        select:
-          kind: ServiceAccount
   - source:
       fieldPath: data.MODEL_BUCKET_NAME
       kind: ConfigMap
@@ -119,10 +105,12 @@ replacements:
           - spec.snapshotStorageConfig.gcs.bucket
         select:
           kind: PodSnapshotStorageConfig
+  # `nameSuffix` renames the PodSnapshotStorageConfig, so the reference from
+  # the policy has to be rewritten to match.
   - source:
       fieldPath: metadata.name
       kind: PodSnapshotStorageConfig
-      name: vllm-snapshot-config
+      name: vllm-fast-restore-snapshot-config
     targets:
       - fieldPaths:
           - spec.storageConfigName

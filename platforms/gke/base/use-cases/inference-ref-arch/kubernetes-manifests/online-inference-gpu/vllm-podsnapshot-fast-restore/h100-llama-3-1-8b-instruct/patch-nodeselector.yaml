@@ -1,0 +1,29 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-fast-restore
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      nodeSelector:
+        # As with the L4 overlay, the compute class matters: it pins
+        # `driverVersion: latest`, which is what puts a driver >= 570 on the
+        # node. GPU checkpointing depends on `gvisor-cuda-cr`, and that binary
+        # links against `cuCheckpointProcessUnlock`, a symbol that only exists
+        # from R570 onwards.
+        cloud.google.com/compute-class: gpu-h100-80gb-high-x1

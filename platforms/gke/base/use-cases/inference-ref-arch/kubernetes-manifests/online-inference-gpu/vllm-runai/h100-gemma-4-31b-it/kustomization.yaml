@@ -122,15 +122,6 @@ replacements:
         select:
           kind: PodSnapshotPolicy
   - source:
-      fieldPath: metadata.name
-      kind: PodSnapshotPolicy
-      name: vllm-snapshot-policy
-    targets:
-      - fieldPaths:
-          - metadata.annotations.[podsnapshot.gke.io/restore-from-policy]
-        select:
-          kind: Deployment
-  - source:
       fieldPath: data.MODEL_NAME
       kind: ConfigMap
       name: runtime

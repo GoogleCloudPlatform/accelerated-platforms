@@ -58,7 +58,9 @@ peft
 prereqs
 pretrained
 psutil
+qtype
 qwiklabs
+qwix
 rayutil
 rtxpro
 rueth

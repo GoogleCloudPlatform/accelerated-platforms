@@ -47,25 +47,34 @@ checkpoint.
 
 ## 3. The Root Cause
 
-> [!WARNING] > **This section is partly superseded.** The VRAM-threshold theory
-> below has been **disproven for the H100 Gemma 4 31B case**. That workload was
-> later checkpointed successfully on the same `gpu-h100-80gb-high-x1` compute
-> class at the same `--gpu-memory-utilization=0.90`, producing a 72.92 GB
-> `pages.img` in 11 m 22 s and then restoring. See the "Gemma 4 31B on H100"
-> section of
+> [!WARNING]
+>
+> **This section is superseded for the H100 case.** The VRAM-threshold theory
+> below was tested and does not hold. The **entire original failing
+> configuration** — Gemma 4 31B on the same `gpu-h100-80gb-high-x1` compute
+> class, same `--gpu-memory-utilization=0.90`, same `v0.26.0` image, same
+> `manual` / `postCheckpoint: stop` trigger driven by a
+> `PodSnapshotManualTrigger`, same `restore-from-policy` annotation, same
+> `strategy: Recreate` — was re-run and **checkpointed successfully**, producing
+> a 73,333,235,712 B `pages.img` in 13 m 41 s.
+>
+> Seven controlled runs eliminated every manifest-level hypothesis: H100/Hopper,
+> driver branch 580, the NVRM channel-stop assertion, the `runai_streamer`
+> loader, resident VRAM footprint, out-of-band `manual` triggering, the
+> `v0.26.0` image, and the `restore-from-policy` annotation. See "What these
+> runs settle" in
 > [vllm-with-runai-and-podsnapshots.md](../vllm-with-runai-and-podsnapshots.md).
 >
-> The successful run differed from the failure in three ways that have not been
-> separated: it used the cooperative `workload` trigger with
-> `postCheckpoint: resume` rather than an out-of-band `PodSnapshotManualTrigger`
-> with `postCheckpoint: stop`, it pinned `vllm/vllm-openai:v0.19.1` rather than
-> `v0.26.0`, and it omitted the `podsnapshot.gke.io/restore-from-policy`
-> annotation.
+> The remaining difference is the node image: the failing environment recorded
+> kernel `6.12.94+` with `containerd 2.2.3`, while the successful runs used
+> kernel `6.6.122+` with `containerd 2.0.8`, at an identical GKE version and
+> driver. **Do not cite VRAM size as the cause of the H100 hang.**
 >
-> The 96GB RTX Pro 6000 configurations cited below (86.4GB and 88.3GB of
-> reserved VRAM) sit **above** the 72GB the successful run reserved, so the
-> threshold claim has not been tested at those sizes. Do not cite this section
-> as an explanation for the H100 hang.
+> Two caveats. The 96GB RTX Pro 6000 configurations below (86.4GB and 88.3GB of
+> reserved VRAM) sit **above** the ~72GB the successful runs reserved, so the
+> threshold claim has not been tested at those sizes and is neither confirmed
+> nor refuted there. And the node-image inference comes from comparing version
+> matrices, not from a controlled experiment.
 
 The "Persistent Checkpoint Deadlock" is caused by a memory exhaustion/mapping
 bug in the `gVisor` `nvproxy` kernel module when attempting to dump VRAM

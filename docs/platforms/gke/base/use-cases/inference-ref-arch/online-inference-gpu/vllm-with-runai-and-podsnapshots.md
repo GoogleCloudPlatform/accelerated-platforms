@@ -190,7 +190,9 @@ gvisor-cuda-cr: symbol lookup error: undefined symbol: cuCheckpointProcessUnlock
 `cuCheckpointProcessUnlock` is a CUDA driver symbol that only exists from R570
 onwards.
 
-> [!IMPORTANT] Select GPU nodes with a **compute class**, not with the
+> [!IMPORTANT]
+>
+> Select GPU nodes with a **compute class**, not with the
 > `cloud.google.com/gke-accelerator` label. Both land you on the right GPU, but
 > only the compute class pins `driverVersion: latest`. Node auto-provisioning
 > satisfies the plain accelerator label with the **default** driver, which is
@@ -244,15 +246,16 @@ than a one-shot script, otherwise freshly provisioned nodes are never patched.
   Deployment drives **both** halves of the lifecycle on its own. It checkpoints
   the first healthy replica, and it restores every replica scheduled afterwards.
 
-> [!WARNING] Do **not** add the `podsnapshot.gke.io/restore-from-policy`
-> annotation to the Deployment. It is not required for restore, and on a cold
-> start it prevents the very first snapshot from ever being captured. The
-> webhook sees a pod that is meant to be restored, finds no snapshot in the
-> bucket, falls back to a normal start, and disables checkpointing for that pod
-> so it cannot loop on failed restores. `/proc/gvisor/checkpoint` is then never
-> mounted and the workload trigger silently does nothing. Both the L4 and the
-> H100 validation runs described below restored automatically with no annotation
-> present.
+> [!WARNING]
+>
+> Do **not** add the `podsnapshot.gke.io/restore-from-policy` annotation to the
+> Deployment. It is not required for restore, and on a cold start it prevents
+> the very first snapshot from ever being captured. The webhook sees a pod that
+> is meant to be restored, finds no snapshot in the bucket, falls back to a
+> normal start, and disables checkpointing for that pod so it cannot loop on
+> failed restores. `/proc/gvisor/checkpoint` is then never mounted and the
+> workload trigger silently does nothing. Both the L4 and the H100 validation
+> runs described below restored automatically with no annotation present.
 
 You can monitor snapshot status:
 
@@ -297,8 +300,10 @@ in the overlays.
    their rendezvous address into the checkpointed process image, and a restored
    replica always comes up with a different pod IP.
 
-> [!NOTE] The L4 run was performed _without_ `VLLM_HOST_IP`, which is how the
-> effect was identified. The restored pod logged a continuous stream of
+> [!NOTE]
+>
+> The L4 run was performed _without_ `VLLM_HOST_IP`, which is how the effect was
+> identified. The restored pod logged a continuous stream of
 > `sendBytes failed on SocketImpl(...): Broken pipe` and
 > `Failed to check the "should dump" flag on TCPStore`, because the checkpoint
 > still contained the original pod's IP. Inference on the restored replica was
@@ -320,7 +325,9 @@ export SNAPSHOT_OVERLAY="l4-llama-3-1-8b-instruct"
 kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/${SNAPSHOT_OVERLAY}"
 ```
 
-> [!IMPORTANT] The `h100-gemma-4-31b-it` overlay reads its weights from
+> [!IMPORTANT]
+>
+> The `h100-gemma-4-31b-it` overlay reads its weights from
 > `gs://${MODEL_BUCKET_NAME}/google/gemma-4-31b-it` with the Run:ai Model
 > Streamer, so the model must be staged into that bucket first. Use the
 > `model-download/huggingface` job. Note that the downloader lowercases the
@@ -362,10 +369,12 @@ StorageReplicated  True   Succeeded
 Ready              True   AllSnapshotsAvailable
 ```
 
-> [!TIP] Between the trigger and `Ready` there is a multi-minute window during
-> which the large memory image is being uploaded. `gcloud storage ls` will
-> **not** show an object that is still being written, which makes it look like
-> nothing is happening. Use `objects list --stat` instead to watch progress:
+> [!TIP]
+>
+> Between the trigger and `Ready` there is a multi-minute window during which
+> the large memory image is being uploaded. `gcloud storage ls` will **not**
+> show an object that is still being written, which makes it look like nothing
+> is happening. Use `objects list --stat` instead to watch progress:
 >
 > ```shell
 > gcloud storage objects list "gs://${MODEL_BUCKET_NAME}/<snapshot-uid>/**" --stat
@@ -447,11 +456,13 @@ snapshot. On H100 the container went from created (`00:28:12`) to serving
 (`00:30:55`) in **163 seconds**; the restored replica was serving **3 seconds**
 after being scheduled.
 
-> [!NOTE] The snapshot is roughly the size of the resident VRAM footprint, not
-> the size of the GPU. Both runs requested `--gpu-memory-utilization=0.90`, but
-> the KV cache reservation is largely untouched memory, so the H100 image is
-> 21.27 GB rather than ~72 GB. This is why purging the weight cache before the
-> trigger matters so much: anything genuinely dirty gets serialized.
+> [!NOTE]
+>
+> The snapshot is roughly the size of the resident VRAM footprint, not the size
+> of the GPU. Both runs requested `--gpu-memory-utilization=0.90`, but the KV
+> cache reservation is largely untouched memory, so the H100 image is 21.27 GB
+> rather than ~72 GB. This is why purging the weight cache before the trigger
+> matters so much: anything genuinely dirty gets serialized.
 
 ### Does this work with the Run:ai Model Streamer? Yes.
 
@@ -489,7 +500,9 @@ overlay:
 kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/h100-llama-3-1-8b-instruct"
 ```
 
-> [!NOTE] The downloader lowercases the model ID, so the weights land at
+> [!NOTE]
+>
+> The downloader lowercases the model ID, so the weights land at
 > `gs://${MODEL_BUCKET_NAME}/meta-llama/llama-3.1-8b-instruct`, and the
 > overlay's `runtime.env` uses that lowercase path for `MODEL_ID`. The base
 > Deployment passes the same value to `--served-model-name`, so requests to this
@@ -559,33 +572,39 @@ kubectl exec -n "${INFERENCE_KUBERNETES_NAMESPACE}" "${POD}" -- \
 { "content": "The capital of France is Paris." }
 ```
 
-> [!IMPORTANT] > **Restore latency did not grow with snapshot size.** The 72.92
-> GB Gemma image restored to `Ready` in **3 seconds** — the same as the ~21 GB
-> Llama images. Checkpoint cost scales with size, but in these measurements
-> scale-out cost did not. Three data points is not a scaling law, so measure
-> this for your own model rather than assuming it holds at every size.
+> [!IMPORTANT]
+>
+> **Restore latency did not grow with snapshot size.** The 72.92 GB Gemma image
+> restored to `Ready` in **3 seconds** — the same as the ~21 GB Llama images.
+> Checkpoint cost scales with size, but in these measurements scale-out cost did
+> not. Three data points is not a scaling law, so measure this for your own
+> model rather than assuming it holds at every size.
 
-> [!TIP] Validate a restored instruct model through `/v1/chat/completions`, not
+> [!TIP]
+>
+> Validate a restored instruct model through `/v1/chat/completions`, not
 > `/v1/completions`. A raw completion of `"Paris is the capital of"` against
 > `google/gemma-4-31b-it` returns degenerate repetition
 > (`" the capital of the capital of ..."`) because the chat template is
 > bypassed. That is normal instruct-model behavior and **not** evidence of a
 > corrupted snapshot.
 
-> [!NOTE] Checkpoint duration scales with image size, not with model complexity.
-> The 21 GB Llama images uploaded in about four minutes; the 72.92 GB Gemma
-> image took 11 m 22 s. That is roughly 107 MB/s in both cases. A large model is
-> **slow to checkpoint, not incapable of it** — budget the time and do not
-> mistake a long upload for a hang. The reliable test is described under
-> "Empirical Validation" below: watch `pages.img` **grow**, rather than treating
-> its absence as failure.
+> [!NOTE]
+>
+> Checkpoint duration scales with image size, not with model complexity. The 21
+> GB Llama images uploaded in about four minutes; the 72.92 GB Gemma image took
+> 11 m 22 s. That is roughly 107 MB/s in both cases. A large model is **slow to
+> checkpoint, not incapable of it** — budget the time and do not mistake a long
+> upload for a hang. The reliable test is described under "Empirical Validation"
+> below: watch `pages.img` **grow**, rather than treating its absence as
+> failure.
 
 ### What these runs settle
 
 Earlier attempts to snapshot **Gemma 4 31B on H100** hung indefinitely, and the
-failure was attributed to the H100 architecture, to driver branch 580, or to the
-sheer size of the model. **Those attributions were wrong.** Four controlled runs
-now show:
+failure was attributed to the H100 architecture, to driver branch 580, to the
+sheer size of the model, and later to out-of-band triggering. **All of those
+attributions were wrong.** Seven controlled runs now show:
 
 | Hypothesis for the Gemma 4 31B hang | Verdict                                            |
 | ----------------------------------- | -------------------------------------------------- |
@@ -594,46 +613,179 @@ now show:
 | NVRM channel-stop assertion         | **Eliminated** — also fires on successes           |
 | `runai_streamer` weight loader      | **Eliminated** — streamer run succeeded            |
 | Resident VRAM footprint             | **Eliminated** — same model, same GPU, same `0.90` |
-| Out-of-band `manual` trigger        | **Not excluded**                                   |
-| vLLM image `v0.26.0`                | **Not excluded**                                   |
-| `restore-from-policy` annotation    | **Not excluded**                                   |
+| Out-of-band `manual` trigger        | **Eliminated** — controlled A/B succeeded          |
+| vLLM image `v0.26.0`                | **Eliminated** — controlled A/B succeeded          |
+| `restore-from-policy` annotation    | **Eliminated** — full repro succeeded              |
 
-The footprint elimination is the strong one, because that comparison is tight.
-Per the engineering brief the failing run used the **same model**, the **same**
-`gpu-h100-80gb-high-x1` H100 80GB compute class, the **same**
-`--gpu-memory-utilization=0.90`, the **same** `--max-model-len=8192`, and the
-**same** `--load-format=runai_streamer` with
+The footprint elimination is tight. Per the engineering brief the failing run
+used the **same model**, the **same** `gpu-h100-80gb-high-x1` H100 80GB compute
+class, the **same** `--gpu-memory-utilization=0.90`, the **same**
+`--max-model-len=8192`, and the **same** `--load-format=runai_streamer` with
 `--model-loader-extra-config={"distributed":true}`. Model size and memory
 pressure were therefore identical, and the checkpoint completed anyway.
 
-> [!IMPORTANT] Three differences remain between the failing run and the
-> successful one, and they have **not** been separated from one another:
+#### The trigger-mode A/B
+
+Trigger mode was the leading hypothesis, and it was tested directly. The
+successful Gemma 4 31B manifest was re-run with **exactly two lines changed**:
+
+```diff
+ triggerConfig:
+-  type: workload
+-  postCheckpoint: resume
++  type: manual
++  postCheckpoint: stop
+```
+
+The checkpoint was then driven out-of-band by a `PodSnapshotManualTrigger`. To
+keep the comparison honest the container's background block was reduced to a
+probe that only reports whether `/proc/gvisor/checkpoint` exists and never
+writes to it, so the cooperative path could not fire. The probe confirmed the
+device was **absent**, as expected for `type: manual`.
+
+| Metric            | `workload` / `resume` | `manual` / `stop` |
+| ----------------- | --------------------- | ----------------- |
+| Weight load       | 58.9 GiB, 48.52 s     | 58.9 GiB, 54.50 s |
+| Engine init       | 91.11 s               | 97.34 s           |
+| Trigger → `Ready` | 11 m 22 s             | 13 m 58 s         |
+| `pages.img`       | 72,922,370,048 B      | 72,936,628,224 B  |
+| Outcome           | Succeeded             | **Succeeded**     |
+
+**Out-of-band triggering did not reproduce the hang.** `postCheckpoint: stop`
+behaved as documented — the container was stopped after the image was captured
+and then restarted by the ReplicaSet.
+
+#### The image A/B
+
+The next single change was the image, from `vllm/vllm-openai:v0.19.1` to
+`docker.io/vllm/vllm-openai:v0.26.0`, the version the original failing run used.
+Everything else was held at the manual-trigger configuration above.
+
+| Metric            | v0.19.1 (manual)  | v0.26.0 (manual)                  |
+| ----------------- | ----------------- | --------------------------------- |
+| Weight load       | 58.9 GiB, 54.50 s | `58.99 GiB and 60.916951 seconds` |
+| Engine init       | 97.34 s           | `118.47 s (compilation: 53.35 s)` |
+| CUDA graph        | 15 s, 0.69 GiB    | `25 secs, took 0.91 GiB`          |
+| Trigger → `Ready` | 13 m 58 s         | 14 m 32 s                         |
+| `pages.img`       | 72,936,628,224 B  | 73,371,688,960 B                  |
+| Outcome           | Succeeded         | **Succeeded**                     |
+
+**The image is not the cause either.** `v0.26.0` is measurably slower to
+initialize — notably 53.35 s of compilation and a 25 s graph capture — but it
+checkpoints correctly.
+
+#### The full original reproduction
+
+The last step applied every remaining difference **at once**: the
+`podsnapshot.gke.io/restore-from-policy` annotation on the Deployment,
+`strategy: type: Recreate`, the `v0.26.0` image, and the `manual` /
+`postCheckpoint: stop` trigger. This is the original failing configuration.
+
+It succeeded: `pages.img` of **73,333,235,712 B** in **13 m 41 s**, with
+`Model loading took 58.99 GiB and 60.349962 seconds` and
+`init engine ... took 115.82 s (compilation: 52.27 s)`.
+
+The resulting snapshot was then restore-tested by deleting the running pod and
+letting the ReplicaSet recreate it. The replacement pod reached `Ready` **4
+seconds** after being scheduled:
+
+```text
+PodScheduled       True  2026-09-11T06:01:45Z
+Ready              True  2026-09-11T06:01:49Z
+ContainersReady    True  2026-09-11T06:01:49Z
+```
+
+Because this experiment manifest defines no `readinessProbe`, the `Ready` flag
+on its own proves nothing. The restore was confirmed instead by the **absence of
+any startup work** in the new pod's logs:
+
+```shell
+kubectl logs -n ${namespace} ${pod} | wc -l
+# 5
+
+for marker in "Model loading took" "Starting to load model" "init engine"; do
+  echo -n "${marker}: "
+  kubectl logs -n ${namespace} ${pod} | grep -c "${marker}"
+done
+# Model loading took: 0
+# Starting to load model: 0
+# init engine: 0
+```
+
+The pod produced five log lines in total and the very first one is already a
+served request — there is no model load, no compilation and no CUDA graph
+capture, on a container with `restartCount: 0`. A cold start of this model takes
+over two minutes and emits hundreds of lines. The process resumed mid-flight
+from the snapshot image.
+
+It also served correctly:
+
+```json
+{
+  "choices": [
+    { "message": { "content": "The capital of France is Paris." } }
+  ],
+  "system_fingerprint": "vllm-0.26.0-1452ee51"
+}
+```
+
+> [!IMPORTANT]
 >
-> 1. **Trigger mode.** The failing policy used
+> **The original configuration does not reproduce the hang on the current
+> cluster.** Every manifest-level hypothesis has now been eliminated by direct
+> experiment. The failure was therefore **environmental**, not something a user
+> configured — there is no manifest change that "fixes" it, because no manifest
+> setting caused it.
+
+The most likely locus is the node image. Comparing the environment matrix
+recorded at the time of the failure against the nodes used for these successful
+runs, the GKE version and GPU driver are **identical** while the host kernel and
+container runtime are **not**:
+
+| Component         | Failing environment (as recorded) | Successful runs          |
+| ----------------- | --------------------------------- | ------------------------ |
+| GKE version       | `v1.36.3-gke.1767000`             | `v1.36.3-gke.1767000`    |
+| NVIDIA driver     | `580.126.20`                      | `580.126.20`             |
+| Host kernel       | `6.12.94+`                        | **`6.6.122+`**           |
+| Container runtime | `containerd://2.2.3`              | **`containerd://2.0.8`** |
+| Snapshot agent    | not recorded                      | `gps-agent:v1.36-7`      |
+
+gVisor checkpointing sits directly on top of both the host kernel and
+containerd, so a difference in that layer is a far more plausible explanation
+for an indefinite `futex_wait` in `runsc-checkpointgofer` than any vLLM flag.
+
+> [!CAUTION]
 >
->    ```yaml
->    triggerConfig:
->      type: manual
->      postCheckpoint: stop
->    ```
+> This is an inference from an environment diff, **not** a controlled
+> experiment. The kernel and containerd versions in the failing environment were
+> read from the brief's version matrix, which covers both the H100 and the RTX
+> Pro 6000 machine configurations and does not state which node the values came
+> from. Reproducing the hang would require pinning a node image with kernel
+> `6.12.94+` / `containerd 2.2.3`, which was not attempted. Treat the node image
+> as the leading suspect, not a proven cause.
+
+**Practical consequence for readers:** if you hit a checkpoint that never
+produces `pages.img`, do not start by rewriting your manifest. Record the node's
+kernel and containerd versions first:
+
+```shell
+kubectl get node "${NODE}" -o jsonpath='{.status.nodeInfo.kernelVersion}{"\n"}{.status.nodeInfo.containerRuntimeVersion}{"\n"}'
+```
+
+The cooperative `workload` trigger remains the recommended pattern — it needs no
+external object and `postCheckpoint: resume` keeps the pod serving — but that is
+a usability argument, **not** a correctness fix, and this document no longer
+claims otherwise.
+
+> [!CAUTION]
 >
->    driven by a separate `PodSnapshotManualTrigger`, whereas the successful run
->    used the cooperative `workload` trigger with `postCheckpoint: resume`. The
->    "Cooperative Workload-Triggered PodSnapshots vs. Asynchronous Triggering"
->    deep dive later in this document gives the mechanism: out-of-band
->    triggering freezes the sandbox at an arbitrary point rather than a
->    quiescent one. This is the most plausible of the three.
->
-> 2. **Image version.** The failing run used
->    `docker.io/vllm/vllm-openai:v0.26.0`; the successful run pinned
->    `vllm/vllm-openai:v0.19.1`.
-> 3. **The `podsnapshot.gke.io/restore-from-policy` annotation**, present on the
->    failing Deployment and removed here.
->
-> Recommend the cooperative `workload` trigger on the strength of the mechanism
-> and the successful result, but do not present it as a proven root cause. The
-> controlled A/B — same manifest, only `triggerConfig` changed — has not been
-> run.
+> A first attempt at this A/B was **invalid** and is recorded here so the result
+> is not misread. It gated on `containerStatuses[0].ready`, but the experiment
+> manifest has no `readinessProbe`, so that flag turns true the moment the
+> container starts. The trigger fired roughly 16 seconds into startup, before
+> vLLM had begun loading weights, and produced a meaningless **580 MB** >
+> `pages.img`. When checkpointing a model server, gate on a real `/health` 200
+> **and** on the `Model loading took` line, never on pod readiness alone.
 
 ## Scaling & Flow Control Strategies
 
@@ -1009,8 +1161,9 @@ Calculate timings:
 
 ## 4. Troubleshooting & Common Issues
 
-> [!IMPORTANT] > **Important Note on Large Models (Gemma 4 31B) and
-> PodSnapshots**
+> [!IMPORTANT]
+>
+> **Important Note on Large Models (Gemma 4 31B) and PodSnapshots**
 >
 > **Driver 580 Channel Suspension Issue:** In empirical testing across both
 > NVIDIA H100 80GB (Hopper) and RTX Pro 6000 (Blackwell), the NVIDIA open kernel
@@ -1042,11 +1195,29 @@ Calculate timings:
 
 ### Deep Dive: Cooperative Workload-Triggered PodSnapshots vs. Asynchronous Triggering
 
-#### 1. Why Out-of-Band Asynchronous Triggering Deadlocks
+#### 1. Why Out-of-Band Asynchronous Triggering Was Believed to Deadlock
 
-In declarative `readinessProbe` and out-of-band `manual` trigger modes, the
-snapshot command (`runsc checkpoint`) is initiated from outside the container
-while vLLM is already actively running:
+> [!WARNING]
+>
+> **The mechanism described in this subsection was not confirmed by experiment,
+> and the central claim is contradicted by it.** A controlled A/B on Gemma 4 31B
+> triggered `runsc checkpoint` out-of-band, via a `PodSnapshotManualTrigger`,
+> while vLLM was actively serving — Uvicorn bound to `0.0.0.0:8000`, the engine
+> healthy on `/health`, CUDA pools allocated. It **succeeded**, producing a
+> 72,936,628,224 B `pages.img` in 13 m 58 s. See "The trigger-mode A/B" earlier
+> in this document.
+>
+> Points 1 and 3 below are therefore **disproven as blockers**: active network
+> sockets and live CUDA state did not prevent an external checkpoint. Point 2
+> was **not exercised**, because that run had no GCS FUSE sidecar; the separate
+> FUSE findings in this document still stand on their own evidence.
+>
+> The reasoning is retained because it explains why the cooperative trigger was
+> designed, but it must not be cited as the cause of the Gemma 4 31B hang.
+
+The original reasoning was as follows. In declarative `readinessProbe` and
+out-of-band `manual` trigger modes, the snapshot command (`runsc checkpoint`) is
+initiated from outside the container while vLLM is already actively running:
 
 1. **Active Network Sockets**: Uvicorn/FastAPI has already bound `0.0.0.0:8000`
    with active `epoll` event loops. The Kubelet and GKE Gateway continuously
@@ -1058,13 +1229,28 @@ while vLLM is already actively running:
    pools and may have inflight CUDA stream polling events registered in
    `nvproxy`.
 
-When `runsc checkpoint` attempts to freeze the sandbox externally, `nvproxy`
-attempts to quiesce the CUDA driver state while network threads and health
-checks are actively generating syscalls. This triggers a kernel lock inversion
-where the checkpoint worker and sandbox threads block indefinitely on a
-`futex_wait(uaddr=..., timeout=NULL)` barrier. Furthermore, even if a snapshot
-succeeded in this state, restoring it would produce severed TCP sockets, RST
-packets to clients/kubelet, and broken event loop state.
+The theory held that when `runsc checkpoint` attempts to freeze the sandbox
+externally, `nvproxy` attempts to quiesce the CUDA driver state while network
+threads and health checks are actively generating syscalls, triggering a kernel
+lock inversion where the checkpoint worker and sandbox threads block
+indefinitely on a `futex_wait(uaddr=..., timeout=NULL)` barrier. It further held
+that even a successful snapshot in this state would restore with severed TCP
+sockets, RST packets to clients/kubelet, and broken event loop state.
+
+**The first prediction did not hold**: the out-of-band checkpoint completed
+normally.
+
+**The second prediction did not hold either.** It was untested at first — the
+initial `manual` run used `postCheckpoint: stop` and was torn down to free the
+GPU — but the full reproduction run was subsequently restore-tested. That
+snapshot was taken out-of-band, by a `PodSnapshotManualTrigger`, while Uvicorn
+was bound and serving. The restored pod came up in 4 seconds, answered `/health`
+with `HTTP 200` and returned a correct chat completion, with no severed sockets
+and no broken event loop. See
+[The full original reproduction](#the-full-original-reproduction).
+
+Both predictions of this theory have therefore been falsified by direct
+experiment.
 
 #### 2. The Cooperative Workload Trigger Architecture
 
@@ -1286,11 +1472,26 @@ snapshots:
      4 31B hang. The same model, on the same H100 80GB compute class, at the
      same `--gpu-memory-utilization=0.90`, checkpointed successfully and
      produced a **72.92 GB** `pages.img` in 11 m 22 s.
-   - **Three differences from the failing run have not been separated**: the
-     out-of-band `manual` trigger with `postCheckpoint: stop`, the older
-     `v0.26.0` image, and the `restore-from-policy` annotation. **Use the
-     cooperative `workload` trigger** — it has the clearest mechanism and is the
-     configuration validated here — but treat the root cause as not yet proven.
+   - **Out-of-band triggering is not the culprit either.** A controlled A/B
+     changed only `triggerConfig` on the successful manifest — `workload` /
+     `resume` to `manual` / `stop`, driven by a `PodSnapshotManualTrigger` — and
+     it **also succeeded**, producing a 72,936,628,224 B `pages.img` in 13 m 58
+     s. This retires the previous theory that external triggering deadlocks the
+     sandbox.
+   - **The original failing configuration no longer reproduces at all.** The
+     final run applied every remaining difference together — the
+     `restore-from-policy` annotation, `strategy: Recreate`, the `v0.26.0`
+     image, and the `manual` / `stop` trigger — and still succeeded, producing a
+     73,333,235,712 B `pages.img` in 13 m 41 s. Every manifest-level hypothesis
+     is now eliminated.
+   - **Treat the hang as environmental, and look at the node image first.** The
+     GKE version and driver were identical across failing and succeeding runs,
+     but the host kernel (`6.12.94+` versus `6.6.122+`) and container runtime
+     (`containerd 2.2.3` versus `2.0.8`) were not. gVisor checkpointing sits on
+     both. This is an inference from an environment diff rather than a
+     controlled experiment, so record `kernelVersion` and
+     `containerRuntimeVersion` on any node that exhibits a stalled checkpoint —
+     that is the evidence needed to confirm or refute it.
    - **Budget checkpoint time by snapshot size.** Upload throughput measured
      about 107 MB/s across both the 21 GB and 72.92 GB images, so a large model
      can take ten minutes or more to checkpoint. This is a one-time cost paid

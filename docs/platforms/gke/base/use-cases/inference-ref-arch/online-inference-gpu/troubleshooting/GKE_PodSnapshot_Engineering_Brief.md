@@ -156,6 +156,18 @@ spec:
 
 ### C. Manual Trigger Object
 
+> [!WARNING]
+>
+> This block previously documented `spec.podName`, which the CRD does not
+> accept. The installed CRD requires `spec.targetPod`:
+>
+> ```console
+> $ kubectl explain podsnapshotmanualtrigger.spec
+> FIELDS:
+>   targetPod	<string> -required-
+>     Name of the Pod to take a snapshot of.
+> ```
+
 ```yaml
 apiVersion: podsnapshot.gke.io/v1
 kind: PodSnapshotManualTrigger
@@ -163,7 +175,7 @@ metadata:
   name: trigger-snapshot-h100-gemma-4
   namespace: acp-uc1-a-online-gpu
 spec:
-  podName: vllm-h100-gemma-4-31b-it-7665b8c96d-cmrvr
+  targetPod: vllm-h100-gemma-4-31b-it-7665b8c96d-cmrvr
 ```
 
 ---

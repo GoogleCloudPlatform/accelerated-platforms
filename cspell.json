@@ -199,6 +199,7 @@
     "pKernelChannel",
     "pKernelRc",
     "podsnapshot",
+    "podsnapshotmanualtrigger",
     "podsnapshotpolicies",
     "podsnapshotpolicy",
     "podsnapshots",

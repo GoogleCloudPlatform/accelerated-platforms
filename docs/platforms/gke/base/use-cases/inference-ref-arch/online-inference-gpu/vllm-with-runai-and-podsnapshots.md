@@ -787,6 +787,225 @@ claims otherwise.
 > `pages.img`. When checkpointing a model server, gate on a real `/health` 200
 > **and** on the `Model loading took` line, never on pod readiness alone.
 
+## Scaling out: how fast does a second replica start serving?
+
+The single-replica restores above reused the node the original pod had just
+vacated. That is the easy case. The question that matters for autoscaling is
+different: when a **new** replica lands on a node that has never hosted the
+model, how long until it serves traffic?
+
+This section measures exactly that, on H100 with Gemma 4 31B.
+
+> [!IMPORTANT]
+>
+> Every earlier experiment in this document omitted a `readinessProbe`, which
+> made the `Ready` condition meaningless — it flipped true the instant the
+> container started. Because this test asks "when can the replica serve
+> traffic", the Deployment used here **does** define one:
+>
+> ```yaml
+> readinessProbe:
+>   httpGet:
+>     path: /health
+>     port: 8000
+>   periodSeconds: 1
+>   timeoutSeconds: 2
+>   failureThreshold: 3600
+> ```
+>
+> `Ready` therefore means `/health` returned 200, and it is also the moment the
+> Service begins routing to the pod. There is no `livenessProbe`, so a slow cold
+> start cannot get the container killed.
+
+### Isolating restore from everything else
+
+A naive scale-out measures three things at once: node auto-provisioning, the
+container image pull, and the snapshot restore. Only the third is a property of
+PodSnapshots. To separate them, two placeholder pods were scheduled first, using
+the **same** container image, the same gVisor runtime class, and the same GPU
+and memory requests as the real workload. They were deleted immediately before
+scaling up.
+
+Matching the image matters: a placeholder running a small image would leave the
+node without the multi-GB vLLM image, and the scale-up would stall on an image
+pull that has nothing to do with snapshots.
+
+The freed nodes had never run the model, so their page cache was cold with
+respect to the snapshot image. That is the realistic condition.
+
+### Results
+
+The snapshot was 72,899,854,336 B, created from a cold start and then restored
+onto a different node:
+
+| Phase                                                  | Measurement      |
+| ------------------------------------------------------ | ---------------- |
+| Cold start (`PodScheduled` → `Ready`)                  | **265 s**        |
+| Checkpoint (trigger → `AllSnapshotsAvailable`)         | 14 m 39 s        |
+| `pages.img`                                            | 72,899,854,336 B |
+| **Restore on a fresh node (`PodScheduled` → `Ready`)** | **5 s**          |
+
+That is a **53× reduction** in time-to-serving for a replica, on a node that had
+never seen the model.
+
+The restored replica's own log is the proof it restored rather than reloaded:
+
+```shell
+kubectl logs -n ${namespace} ${pod} | wc -l
+# 421
+
+for marker in "Model loading took" "Starting to load model" "init engine" "Capturing CUDA"; do
+  echo -n "${marker}: "
+  kubectl logs -n ${namespace} ${pod} | grep -c "${marker}"
+done
+# Model loading took: 0
+# Starting to load model: 0
+# init engine: 0
+# Capturing CUDA: 0
+```
+
+All 421 lines are served requests and metrics; the very first line is already a
+`GET /health 200`. The container reports `restartCount: 0`, and the replica
+answered a chat completion correctly. By contrast the cold-start replica emitted
+663 lines including a full model load.
+
+> [!NOTE]
+>
+> 72.9 GB restored in 5 seconds is ~14.6 GB/s, which is high even for the ~200
+> Gbps network on `a3-highgpu-1g`. The likely explanation is that gVisor maps
+> the snapshot and faults pages in on demand rather than reading the whole image
+> before the process resumes, so the pod becomes ready before all 72.9 GB is
+> resident. This was not instrumented, so treat it as an explanation of the
+> mechanism rather than a measured fact.
+
+### Pre-warmed nodes get reclaimed: a race worth knowing about
+
+The test targeted 3 replicas and achieved 2. The third never scheduled, and the
+reason is operationally important rather than a PodSnapshot problem.
+
+Once its placeholder was deleted, the third node sat idle. This cluster runs the
+`optimize-utilization` autoscaler profile, which reclaimed it within a few
+minutes, and the subsequent scale-up attempt failed:
+
+```text
+Warning  FailedScaleUp  cluster-autoscaler  Node scale up in zones us-central1-c
+  associated with this pod failed: GCE out of resources.
+Normal   NotTriggerScaleUp  cluster-autoscaler  Pod didn't trigger scale-up:
+  4 in backoff after failed scale-up
+```
+
+Capacity was volatile throughout. Provisioning the original three nodes took
+about 17 minutes and produced `Internal error` failures in both `us-central1-b`
+and `us-central1-c` before succeeding, with the compute class eventually falling
+through to its spot priority.
+
+> [!WARNING]
+>
+> Holding capacity with placeholder pods is racy. There is a window between
+> deleting the placeholder and the real pod being scheduled in which the
+> autoscaler can reclaim the node, and reacquiring an H100 can then fail
+> outright. If you need guaranteed capacity for a scale event, use a reservation
+> or a balloon Deployment with a low `PriorityClass` that the real workload
+> preempts, rather than deleting placeholders and hoping.
+
+The same caution applies to the load generator: the first benchmark attempt was
+destroyed mid-run when the autoscaler scaled away the node underneath it. That
+node was not spot — the `cpu-n4-8` compute class sets `spot: false` on both
+priorities — it was simply reclaimed for low utilization. Long-running benchmark
+Jobs need:
+
+```yaml
+annotations:
+  cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+```
+
+### Load test: finding a production operating point
+
+The two restored replicas were load tested with the same
+[`inference-perf`](https://github.com/kubernetes-sigs/inference-perf) tool and
+the same linear-sweep shape used by this repo's other benchmarks, driving the
+Service so requests fan out across both replicas. Traffic is `shareGPT`,
+streaming completions, `ignore_eos: true`, 8 stages of 60 s.
+
+Total run: 954.7 s, 4,072 requests scheduled, **4,066 successes and 6 failures**
+(0.15%).
+
+| Stage | Target rate | Achieved RPS | Output tok/s | Total tok/s | TTFT median | TTFT p95   | ITL median | E2E median |
+| ----- | ----------- | ------------ | ------------ | ----------- | ----------- | ---------- | ---------- | ---------- |
+| 0     | 1.00        | 0.70         | 98.7         | 294.7       | 0.10 s      | 17.86 s    | 0.025 s    | 6.01 s     |
+| 1     | 3.14        | 2.71         | 466.4        | 1,252.7     | **0.09 s**  | **0.16 s** | 0.030 s    | 2.15 s     |
+| 2     | 5.28        | 3.35         | 635.2        | 1,806.1     | 0.14 s      | 9.20 s     | 0.031 s    | 7.28 s     |
+| 3     | 7.42        | 4.88         | 909.3        | 2,587.9     | 11.73 s     | 29.33 s    | 0.032 s    | 17.21 s    |
+| 4     | 9.56        | **5.65**     | **1,044.2**  | **2,993.6** | 7.96 s      | 19.06 s    | 0.032 s    | 14.98 s    |
+| 5     | 11.70       | 5.17         | 1,029.5      | 2,595.2     | 19.95 s     | 43.07 s    | 0.032 s    | 28.00 s    |
+| 6     | 13.84       | 5.28         | 1,058.2      | 2,776.3     | 34.67 s     | 51.26 s    | 0.032 s    | 41.53 s    |
+| 7     | 15.98       | 4.76         | 1,007.3      | 2,499.5     | 40.67 s     | 61.85 s    | 0.032 s    | 44.61 s    |
+
+Two operating points fall out of this, and which one is right depends entirely
+on whether the traffic is interactive:
+
+- **Interactive serving — stage 1, about 2.7 RPS across 2 replicas (~1.35 RPS
+  per replica).** TTFT median 0.09 s and **p95 0.16 s**, end-to-end median 2.15
+  s. This is the point to run at if a human is waiting.
+- **Maximum throughput — stage 4, 5.65 RPS and 1,044 output tok/s.** Roughly
+  double the request rate, but TTFT median degrades to 7.96 s. Acceptable for
+  batch or asynchronous work only.
+
+Past stage 4 the system is in collapse: the offered rate keeps rising but
+achieved RPS _falls_ (5.65 → 5.17 → 5.28 → 4.76) while TTFT climbs to 40 s. That
+is queueing, not capacity, and there is nothing to gain by operating there.
+
+> [!TIP]
+>
+> Inter-token latency is essentially flat at ~0.032 s (about 31 tokens/s per
+> stream) across every stage, including the collapsed ones. Decode is not the
+> bottleneck — admission is. When TTFT rises but ITL stays flat, the fix is
+> admission control, more replicas, or more KV cache, not a faster GPU.
+
+#### Do not confuse worst-case concurrency with real concurrency
+
+vLLM reports the following at startup, and it is easy to over-read:
+
+```text
+Available KV cache memory: 8.21 GiB
+GPU KV cache size: 8,960 tokens
+Maximum concurrency for 8,192 tokens per request: 1.19x
+```
+
+`1.19x` is the concurrency available **only if every request uses the full
+8,192-token context**. Real traffic is much shorter, so many more requests fit
+in the same 8,960-token budget. The generator's saturation probe measured
+**15.98 concurrent requests** on this deployment — more than ten times the
+worst-case figure.
+
+> [!CAUTION]
+>
+> An earlier, aborted probe on this same deployment reported
+> `Saturation point estimated at 2.00 concurrent requests` after timing out and
+> dropping 449 requests that were never dispatched. That number is **wrong** and
+> is recorded here only so it is not mistaken for a result. A saturation probe
+> that times out has not measured saturation. Always check that the probe
+> completed before trusting the stage rates it generates, because every
+> subsequent stage is derived from it — the aborted run would have swept 1.0 →
+> 2.0 RPS and missed the real knee at 5.65 RPS entirely.
+
+That said, the KV cache is still the resource worth tuning first on this
+configuration. The levers, in rough order of value:
+
+| Lever                                     | Effect                                                           |
+| ----------------------------------------- | ---------------------------------------------------------------- |
+| Raise `--gpu-memory-utilization` to ~0.95 | Frees roughly 4 GB, adding ~50% KV cache                         |
+| Lower `--max-model-len`                   | Worst-case concurrency scales inversely; 4096 roughly doubles it |
+| Tensor-parallel across 2 GPUs             | Halves per-GPU weights, freeing far more KV                      |
+| A smaller or quantized model              | Largest effect on the weights term                               |
+
+> [!CAUTION]
+>
+> Changing any of these changes the pod template, and restore matches on
+> `podsnapshot.gke.io/pod-template-hash`. Retuning therefore **invalidates the
+> existing snapshot** and requires taking a new one. Tune first, snapshot
+> second.
+
 ## Scaling & Flow Control Strategies
 
 This reference architecture evaluates multiple scaling metrics and strategies

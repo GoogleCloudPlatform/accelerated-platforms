@@ -43,3 +43,7 @@ output "rl_tpu_maxtext_grpo_single_host_kubernetes_namespace_name" {
 output "rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name" {
   value = local.rl_tpu_maxtext_grpo_single_host_kubernetes_service_account_name
 }
+
+output "rl_tpu_maxtext_grpo_multi_host_image_url" {
+  value = local.rl_tpu_maxtext_grpo_multi_host_image_url
+}

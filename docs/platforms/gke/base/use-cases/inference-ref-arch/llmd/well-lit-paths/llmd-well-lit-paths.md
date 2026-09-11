@@ -26,3 +26,12 @@ scheduling. Try
 Near-real-time routing based on exact cache state published by model servers.
 Try
 [precise-prefix-cache-routing well-lit path on accelerated-platforms](./llmd-precise-prefix-cache-routing-vllm-with-hf-model.md).
+
+## Disaggregated Serving
+
+### Prefill/Decode Disaggregation:
+
+Splitting the compute-bound prefill phase and the latency-bound decode phase
+across specialized model servers to improve interactivity and throughput per
+accelerator. Try
+[pd-disaggregation well-lit path on accelerated-platforms](./llmd-pd-disaggregation-vllm-with-hf-model.md).

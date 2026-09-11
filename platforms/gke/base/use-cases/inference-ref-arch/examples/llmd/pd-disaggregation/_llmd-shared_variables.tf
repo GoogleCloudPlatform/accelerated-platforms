@@ -1,0 +1,1 @@
+../_shared_config/llmd-shared_variables.tf

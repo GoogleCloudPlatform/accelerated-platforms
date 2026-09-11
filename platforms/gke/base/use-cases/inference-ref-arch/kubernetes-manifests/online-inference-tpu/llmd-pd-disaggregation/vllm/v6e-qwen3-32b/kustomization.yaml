@@ -22,21 +22,33 @@ configMapGenerator:
       - runtime.env
     name: runtime
 
-nameSuffix: -v6e-gemma-4-31b-it
+nameSuffix: -v6e-qwen3-32b
 
 patches:
-  - path: patch-nodeselector.yaml
+  - path: patch-decode-nodeselector.yaml
     target:
       kind: Deployment
-      name: precise-prefix-cache-routing-tpu-v6-vllm-decode
-  - path: patch-resources.yaml
+      name: pd-disaggregation-tpu-vllm-decode
+  - path: patch-decode-resources.yaml
     target:
       kind: Deployment
-      name: precise-prefix-cache-routing-tpu-v6-vllm-decode
-  - path: patch-vllm-args.yaml
+      name: pd-disaggregation-tpu-vllm-decode
+  - path: patch-decode-vllm-args.yaml
     target:
       kind: Deployment
-      name: precise-prefix-cache-routing-tpu-v6-vllm-decode
+      name: pd-disaggregation-tpu-vllm-decode
+  - path: patch-prefill-nodeselector.yaml
+    target:
+      kind: Deployment
+      name: pd-disaggregation-tpu-vllm-prefill
+  - path: patch-prefill-resources.yaml
+    target:
+      kind: Deployment
+      name: pd-disaggregation-tpu-vllm-prefill
+  - path: patch-prefill-vllm-args.yaml
+    target:
+      kind: Deployment
+      name: pd-disaggregation-tpu-vllm-prefill
 
 replacements:
   - source:

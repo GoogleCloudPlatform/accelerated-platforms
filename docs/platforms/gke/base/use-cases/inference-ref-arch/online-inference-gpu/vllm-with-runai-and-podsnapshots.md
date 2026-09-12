@@ -992,12 +992,13 @@ worst-case figure.
 That said, the KV cache is still the resource worth tuning first on this
 configuration. The levers, in rough order of value:
 
-| Lever                                     | Effect                                                           |
-| ----------------------------------------- | ---------------------------------------------------------------- |
-| Raise `--gpu-memory-utilization` to ~0.95 | Frees roughly 4 GB, adding ~50% KV cache                         |
-| Lower `--max-model-len`                   | Worst-case concurrency scales inversely; 4096 roughly doubles it |
-| Tensor-parallel across 2 GPUs             | Halves per-GPU weights, freeing far more KV                      |
-| A smaller or quantized model              | Largest effect on the weights term                               |
+| Lever                                     | Effect                                                                                                                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| A GPU with more VRAM                      | Weights are a fixed cost, so extra VRAM flows almost entirely to KV cache. Measured below: 80 GB to 96 GB is +20% VRAM but **+173% KV cache** |
+| Raise `--gpu-memory-utilization` to ~0.95 | Frees roughly 4 GB, adding ~50% KV cache                                                                                                      |
+| Lower `--max-model-len`                   | Worst-case concurrency scales inversely; 4096 roughly doubles it                                                                              |
+| Tensor-parallel across 2 GPUs             | Halves per-GPU weights, freeing far more KV                                                                                                   |
+| A smaller or quantized model              | Largest effect on the weights term                                                                                                            |
 
 > [!CAUTION]
 >
@@ -1005,6 +1006,191 @@ configuration. The levers, in rough order of value:
 > `podsnapshot.gke.io/pod-template-hash`. Retuning therefore **invalidates the
 > existing snapshot** and requires taking a new one. Tune first, snapshot
 > second.
+
+## Blackwell: the same recipe on NVIDIA RTX Pro 6000
+
+Everything above was measured on H100 80 GB. The engineering brief also recorded
+attempts on RTX Pro 6000 (Blackwell, 96 GB) that did not produce a usable
+snapshot, and those configurations were never retested once the working recipe
+was established. This section retests them.
+
+### Why the original Blackwell attempts were not a fair test
+
+The brief lists its two machine configurations differently, and the difference
+is the whole story:
+
+```text
+- **Hopper**: `a3-highgpu-1g`
+  - Compute Class: `gpu-h100-80gb-high-x1`
+- **Blackwell**: `g4-standard-48`
+  - Accelerator Label: `cloud.google.com/gke-accelerator: "nvidia-rtx-pro-6000"`
+```
+
+Hopper selected its node with a **ComputeClass**; Blackwell selected its node
+with the **accelerator label**. Rule 1 of the recipe says that is fatal: the
+accelerator label gets the default 535 driver, `cc-installer.sh` requires
+`MINIMUM_NVIDIA_DRIVER_VERSION=570`, and below that it skips installing
+`gvisor-cuda-cr` **and still exits 0**. The Blackwell attempts may therefore
+never have had checkpoint support installed at all.
+
+`gpu-rtx-pro-6000-96gb-x1` pins `driverVersion: latest` on all five of its
+priorities, so routing through the ComputeClass produces driver `580.126.20`.
+With that single change, the gate passes:
+
+```text
+>>> /proc/gvisor/checkpoint IS PRESENT - Blackwell checkpoint support is installed. <<<
+```
+
+> [!NOTE]
+>
+> This shows the recipe works on Blackwell. It does **not** prove the driver was
+> the cause of the brief's original failures, because those nodes no longer
+> exist to test. It is the same class of inference as the node-image conclusion
+> for the Gemma 4 hang: a plausible mechanism consistent with the evidence, not
+> a controlled A/B.
+
+### Blackwell results
+
+The GPU identity is worth taking from the PodSnapshot CR labels rather than from
+`nvidia-smi`, which is not on `PATH` in this image under gVisor:
+
+```text
+podsnapshot.gke.io/node-accelerators:      nvidia-rtx-pro-6000-blackwell-server-edition.1
+podsnapshot.gke.io/node-machine-type:      g4-standard-48
+podsnapshot.gke.io/gpu-driver-numeric-ver: 580.126.20
+```
+
+| Phase                                                  | H100 80 GB       | RTX Pro 6000 96 GB |
+| ------------------------------------------------------ | ---------------- | ------------------ |
+| Cold start (`PodScheduled` → `Ready`)                  | 265 s            | **224 s**          |
+| Checkpoint (trigger → `AllSnapshotsAvailable`)         | 14 m 39 s        | ~15 min            |
+| `pages.img`                                            | 72,899,854,336 B | 73,345,302,528 B   |
+| **Restore on a fresh node (`PodScheduled` → `Ready`)** | **5 s**          | **4 s**            |
+| Replicas achieved out of 3 targeted                    | 2                | **3**              |
+
+All three replicas were `Ready` **8 seconds** after `kubectl scale`, and both
+restored replicas showed `PodScheduled` 23:43:17 → `Ready` 23:43:21, zero
+occurrences of the four startup markers, and `restartCount: 0`. Both answered a
+chat completion correctly.
+
+> [!TIP]
+>
+> `pages.img` grew only **0.6%** between the two GPUs even though the RTX
+> deployment allocated **14 GiB more KV cache**. The snapshot tracks resident
+> weights plus runtime, not the `--gpu-memory-utilization` budget: allocated but
+> untouched KV cache costs almost nothing. Moving to a larger-VRAM GPU therefore
+> does **not** proportionally inflate snapshot size or checkpoint time.
+
+### More VRAM buys disproportionately more KV cache
+
+Same model, same flags, only the GPU changed:
+
+| Metric                 | H100 80 GB   | RTX Pro 6000 96 GB |
+| ---------------------- | ------------ | ------------------ |
+| Model weights          | 58.99 GiB    | 58.9 GiB           |
+| Available KV cache     | 8.21 GiB     | **22.44 GiB**      |
+| GPU KV cache size      | 8,960 tokens | **24,512 tokens**  |
+| Worst-case concurrency | 1.19x        | **3.26x**          |
+
+Weights are a fixed cost, so every additional byte of VRAM goes to KV cache.
+**+20% VRAM produced +173% KV cache.** That is the super-linear effect noted in
+the levers table above.
+
+### Load test: 3 replicas, and no queueing collapse
+
+Same sweep shape as the H100 run for comparability, with one change: the
+saturation probe timeout was raised from 250 s to 400 s. The probe took **279
+s** here, so at the H100 setting it would have timed out and produced another
+bogus saturation figure.
+
+```text
+Saturation point estimated at 11.99 concurrent requests.
+Generated load stages: [1.0, 2.57, 4.14, 5.71, 7.28, 8.85, 10.42, 11.99]
+```
+
+826 s, 3,115 requests scheduled, **3,109 successes and 6 failures (0.19%)**.
+
+| Stage | RPS      | Out tok/s   | TTFT med    | TTFT p95   | ITL med | E2E med |
+| ----- | -------- | ----------- | ----------- | ---------- | ------- | ------- |
+| 0     | 0.67     | 97.3        | 0.143 s     | 0.23 s     | 0.045 s | 3.57 s  |
+| 1     | 1.79     | 325.7       | 0.160 s     | 0.27 s     | 0.048 s | 3.87 s  |
+| 2     | 2.45     | 427.8       | 0.160 s     | 0.45 s     | 0.051 s | 7.57 s  |
+| 3     | 3.21     | 695.1       | 0.178 s     | 0.68 s     | 0.056 s | 8.43 s  |
+| 4     | 4.43     | 647.4       | 0.191 s     | 0.55 s     | 0.054 s | 3.82 s  |
+| 5     | 5.28     | 1,059.9     | 0.190 s     | 0.62 s     | 0.060 s | 9.65 s  |
+| 6     | **5.75** | **1,151.4** | **0.200 s** | **0.80 s** | 0.064 s | 10.75 s |
+| 7     | 6.12     | 1,185.6     | 0.326 s     | 19.50 s    | 0.068 s | 16.49 s |
+
+The RTX deployment **never collapsed**: achieved RPS rose monotonically from
+0.67 to 6.12 across all eight stages. The H100 deployment peaked at stage 4 and
+then went backwards (5.65 → 5.17 → 5.28 → 4.76).
+
+The probe's estimate was accurate. Stage 7 targets 11.99 concurrent, and that is
+exactly where TTFT p95 jumps 24x, from 0.80 s to 19.50 s. The knee is real.
+
+At comparable throughput the latency difference is stark:
+
+| Metric      | H100, stage 4 | RTX Pro 6000, stage 6 |
+| ----------- | ------------- | --------------------- |
+| RPS         | 5.65          | **5.75**              |
+| TTFT median | 7.96 s        | **0.200 s**           |
+| TTFT p95    | 19.06 s       | **0.80 s**            |
+
+#### Why the slower GPU won
+
+Per-token decode really is slower on Blackwell here: inter-token latency is
+**0.059 s median versus 0.032 s** on H100, consistent with GDDR7 having less
+bandwidth than HBM3. It won anyway, because on this workload the bottleneck was
+never decode.
+
+That is the H100 finding applied: flat ITL with exploding TTFT means the system
+is **admission-bound**, and the fix for an admission-bound deployment is more KV
+cache. The 96 GB card buys exactly that, and the 2.7x KV cache more than paid
+for 2x slower decode.
+
+> [!IMPORTANT]
+>
+> These two runs are **not** a controlled comparison. The RTX run used 3
+> replicas against the H100 run's 2, and the sweeps targeted different
+> concurrency (11.99 versus 15.98), so offered load per stage differs. What the
+> data supports is a claim about achieved behaviour, not a per-GPU benchmark.
+> Per replica, raw throughput is in fact **lower** on RTX Pro 6000 (~1.92 RPS at
+> stage 6 versus H100's 2.83 RPS at its peak); the win is in aggregate capacity
+> and in latency stability.
+
+### Three traps worth avoiding
+
+All three cost time on this run and none are specific to Blackwell.
+
+**A balloon PriorityClass can be too low.** Holding capacity with low-priority
+pods only works inside a narrow band. Cluster autoscaler treats pods below
+`--expendable-pods-priority-cutoff` (default `-10`) as expendable: they neither
+trigger scale-up nor protect a node from scale-down. A balloon at this cluster's
+existing `low` class (`-1073741824`) sat `Pending` and emitted no scale-up event
+at all, while the default-priority workload triggered one within about five
+seconds. A dedicated class at `-5` works: high enough to provision and hold a
+node, low enough that `standard` (0) preempts it. That is what produced 3 of 3
+replicas here versus 2 of 3 on H100.
+
+**A ComputeClass with no spot priority has no fallback.** The benchmark
+generator initially targeted `cpu-n4-8`, which sets `spot: false` on both of its
+priorities. When the zone answered `GCE out of resources` the pod simply stayed
+`Pending`. `cpu-n4-s-8` is the same `n4-standard-8` machine type with a spot
+priority added, and it provisioned immediately. For batch work that can tolerate
+interruption, prefer a class that can fall back.
+
+**Snapshot objects are not under a `podsnapshot/` prefix.** They are written to
+the bucket root under the snapshot UID:
+
+```shell
+gcloud storage objects list \
+  "gs://${bucket}/${snapshot_uid}/**" --stat
+```
+
+Listing the wrong prefix returns nothing, which is indistinguishable from a
+stalled checkpoint. Combined with the fact that `pages.img` legitimately does
+not appear until the very end, it is easy to convince yourself a healthy
+checkpoint has hung.
 
 ## Scaling & Flow Control Strategies
 

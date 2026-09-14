@@ -22,7 +22,7 @@ MY_PATH="$(
   pwd -P
 )"
 
-source "${MY_PATH}/../../../../_shared_config/scripts/set_environment_variables.sh"
+source "${MY_PATH}/../../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
 envsubst < "${MY_PATH}/templates/job-a100.tpl.yaml" | sponge "${MY_PATH}/job-a100.yaml"
 envsubst < "${MY_PATH}/templates/job-h100.tpl.yaml" | sponge "${MY_PATH}/job-h100.yaml"

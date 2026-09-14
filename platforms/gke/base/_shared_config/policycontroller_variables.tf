@@ -19,7 +19,7 @@ variable "policycontroller_bundles" {
 }
 
 variable "policycontroller_version" {
-  default     = "1.21.0"
+  default     = "1.24.1"
   description = "Version of Policy Controller to install, null will install the latest version."
   type        = string
 }

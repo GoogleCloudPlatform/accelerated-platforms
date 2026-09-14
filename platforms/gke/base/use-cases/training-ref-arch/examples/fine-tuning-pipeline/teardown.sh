@@ -23,7 +23,7 @@ export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 export TF_VAR_initialize_backend_use_case_name="aiml/terraform"
 export TF_VAR_resource_name_prefix="aiml"
 
-source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config ${ACP_PLATFORM_USE_CASE_DIR}/_shared_config
+source ${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh ${ACP_PLATFORM_BASE_DIR}/_shared_config ${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config
 
 export MLP_ENVIRONMENT_FILE="${ACP_PLATFORM_USE_CASE_DIR}/terraform/pipelines/fine-tuning/${cluster_project_id}_${unique_identifier_prefix}.env"
 

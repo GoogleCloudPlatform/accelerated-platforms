@@ -75,7 +75,7 @@ variable "llmd_plr_kubernetes_version_router_templates" {
 }
 
 variable "llmd_plr_router_chart" {
-  default     = "llm-d-router-gateway-dev"
+  default     = "llm-d-router-gateway"
   description = "Helm chart repo that holds llm charts"
   type        = string
 }

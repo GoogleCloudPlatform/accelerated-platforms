@@ -1,3 +1,14 @@
+alpaca
+deepseek
+gemma
+llama
+maxtext
+moe
+ocdbt
 qwen
 redhatai
-
+tatsu
+tunix
+ultrachat
+xplane
+zarr

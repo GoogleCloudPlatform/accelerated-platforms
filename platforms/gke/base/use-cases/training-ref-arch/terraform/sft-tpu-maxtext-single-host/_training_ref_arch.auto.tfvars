@@ -1,0 +1,1 @@
+../_shared_config/training_ref_arch.auto.tfvars

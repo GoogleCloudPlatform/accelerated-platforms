@@ -13,6 +13,7 @@ Shell has the following tools installed:
 - `kubectl`
 - `sponge`
 - `wget`
+- `kustomize`
 
 ## Prepare the environment
 

@@ -1,1 +1,1 @@
-../../_shared_config/mft.auto.tfvars
+../_shared_config/mft.auto.tfvars

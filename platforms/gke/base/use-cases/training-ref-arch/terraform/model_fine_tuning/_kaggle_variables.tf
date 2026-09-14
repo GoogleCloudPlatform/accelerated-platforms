@@ -1,1 +1,1 @@
-../../_shared_config/_kaggle_variables.tf
+../_shared_config/_kaggle_variables.tf

@@ -44,13 +44,22 @@ gcloud billing projects link "${NEW_PROJECT_ID}" \
   --billing-account="${PROJECT_CREATOR_BILLING_ACCOUNT}" \
   --impersonate-service-account="${PROJECT_CREATOR_SA}" 2>&1 | grep -v -E 'billingAccountName|impersonation'
 
+echo "Enabling Compute Engine API for project '${NEW_PROJECT_ID}'..."
+gcloud services enable compute.googleapis.com --project="${NEW_PROJECT_ID}" 2>&1 | grep -v 'impersonation' || true
+
 if [[ -v RESERVATIONS ]]; then
   for reservation in ${RESERVATIONS}; do
     zone=$(echo "${reservation}" | awk -F'-' '{print $(NF-2) "-" $(NF-1) "-" $NF}')
 
     echo "Adding project '${NEW_PROJECT_ID}' to shared reservation '${reservation}' in '${zone}'"
-    gcloud compute reservations update "${reservation}" \
+    retry_count=0
+    max_retries=3
+    until gcloud compute reservations update "${reservation}" \
       --add-share-with="${NEW_PROJECT_ID}" \
-      --zone="${zone}"
+      --zone="${zone}" || [ ${retry_count} -eq ${max_retries} ]; do
+      retry_count=$((retry_count + 1))
+      echo "  Reservation update failed with transient error, retrying (${retry_count}/${max_retries}) in 5s..."
+      sleep 5
+    done
   done
 fi

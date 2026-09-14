@@ -1,60 +1,67 @@
-# CPU-based MaxText Checkpoint Converter User Guide
+# Convert the Hugging Face weights to MaxText format
 
-This guide provides instructions for deploying a cheap, one-time CPU-based GKE
-Job to convert Hugging Face model checkpoints (e.g. Llama-3.1) into MaxText
-Orbax format.
+Before starting reinforcement learning training, you can run a one-time
+CPU-based checkpoint conversion job to convert the base Hugging Face weights
+into MaxText format. Running this on CPU nodes preserves valuable TPU resources.
 
-Running this step on CPU nodes saves significant costs and preserves your
-valuable TPU resources for actual model training.
+- Choose the model to convert.
 
----
+  - **Llama 3.1 8B Instruction-Tuned**:
 
-## 1. Quick Start Workflow
+    ```shell
+    export HF_MODEL_ID="llama3.1-8b-Instruct"
+    ```
 
-1. **Source the environment variables**:
+  - **Gemma 3 4B Instruction-Tuned**:
 
-   ```bash
-   source platforms/gke/base/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh
-   ```
+    ```shell
+    export HF_MODEL_ID="gemma-3-4b-it"
+    ```
 
-2. **Configure the GKE manifest variables**:
+  - **Gemma 4 31B Instruction-Tuned**:
 
-   ```bash
-   platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/configure_checkpoint_converter.sh
-   ```
+    ```shell
+    export HF_MODEL_ID="gemma4-31b"
+    ```
 
-3. **Deploy the CPU Conversion Job**:
-   ```bash
-   kubectl apply -k platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/checkpoint-converter
-   ```
+  - **Qwen 3 30B Instruction-Tuned**:
 
----
+    ```shell
+    export HF_MODEL_ID="qwen3-30b-a3b"
+    ```
 
-## 2. Manifest Customization
+- Source the environment configuration:
 
-You can customize the conversion settings by modifying
-`platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/checkpoint-converter/templates/converter.tpl.env`
-before running the configuration script:
+  ```shell
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/terraform/_shared_config/scripts/set_environment_variables.sh"
+  ```
 
-- `BASE_OUTPUT_DIRECTORY`: The Cloud Storage bucket destination directory.
-- `HF_MODEL_PATH`: The Hugging Face repo name containing the base instruct model
-  (e.g. `meta-llama/Llama-3.1-8B-Instruct`).
-- `USE_PATHWAYS`: Enables/disables Pathways for the conversion job (e.g. `0` or
-  `1`). Default is `0`.
+- Configure the checkpoint converter deployment:
 
----
+  ```shell
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/configure_checkpoint_converter.sh"
+  ```
 
-## 3. Monitoring the Conversion Job
+- Deploy the checkpoint converter job:
 
-You can track the live progress of the conversion job via `kubectl`:
+  ```shell
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/checkpoint-converter"
+  ```
 
-```bash
-# Get the pod name
-kubectl get pods -n ${rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name}
+- Watch the checkpoint converter job until it is complete:
 
-# View logs in real-time
-kubectl logs -f -l app=maxtext-checkpoint-converter -n ${rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name}
-```
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name} get job/${HF_MODEL_ID_HASH}-maxtext-checkpoint-converter | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e 'Complete'
+  echo '\nLogs(last 10 lines):'
+  kubectl --namespace=${rl_cpu_maxtext_checkpoint_converter_kubernetes_namespace_name} logs job/${HF_MODEL_ID_HASH}-maxtext-checkpoint-converter --all-containers --tail 10"
+  ```
 
-Once completed, your model checkpoints will be stored under:
-`gs://${rl_dataset_bucket_name}/maxtext-checkpoint-converter-output/`
+  Once complete, your model checkpoints will be stored under
+  `gs://${huggingface_hub_models_bucket_name}/maxtext-checkpoint-converter-output/`.
+
+- Clean up the CPU conversion job:
+
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/reinforcement-learning/kubernetes-manifests/maxtext-checkpoint-converter/checkpoint-converter"
+  ```

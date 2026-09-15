@@ -32,9 +32,19 @@ degradation, SLA breaches, and poor user experience.
 This Reference Architecture presents a production-grade, enterprise-ready
 pattern for **ultra-low latency online LLM inference on Google Kubernetes Engine
 (GKE)**. By combining Google Cloud infrastructure capabilities and accelerated
-software components, this architecture reduces total replica scale-out time to
-**under 50 seconds per pod**—achieving a **>55% reduction in overall cluster
-scaling latency** while maximizing token throughput and cost efficiency.
+software components, this architecture reduces replica scale-out from minutes to
+**single-digit seconds**. Measured restores from a warm PodSnapshot, taken from
+pod conditions between `PodScheduled` and `Ready`, were **3 seconds** on NVIDIA
+H100 80GB, **4 seconds** on NVIDIA RTX Pro 6000 96GB, and **9 seconds** on
+NVIDIA L4 — against cold starts of 163 to 265 seconds for the same deployments,
+a reduction of more than **98%**.
+
+> [!NOTE]
+>
+> These figures are reproduced end to end in the companion technical guide,
+> [Online inference using vLLM with NVIDIA Run:ai Model Streamer and PodSnapshots on GKE](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-and-podsnapshots.md),
+> which is the authoritative source for every measurement in this document.
+> Where the two disagree, the technical guide wins.
 
 ```
 +-------------------------------------------------------------------------------------------------------------------------+
@@ -78,7 +88,8 @@ scaling latency** while maximizing token throughput and cost efficiency.
    protected by GKE Workload Identity Federation and Google Cloud Secret
    Manager.
 5. **GKE PodSnapshots**: Memory state snapshotting that restores initialized
-   PyTorch/vLLM process states in sub-minute timeframes.
+   PyTorch/vLLM process states in **single-digit seconds**, contingent on an
+   NVIDIA driver of 570 or newer selected through a Custom Compute Class.
 6. **Dual-Tier Horizontal Pod Autoscaling (HPA)**: Dual metric monitoring
    combining ingress EPP flow control metrics (`igw_queue_depth` /
    `inference_pool_per_pod_queue_size` for scale-out signals and
@@ -512,53 +523,101 @@ after initialization finishes.
 
 ```
 PodSnapshot Generation Phase (Executed Once):
-[ Boot Pod ] -> [ Stream Weights (48s) ] -> [ Init Engine & CUDA Graphs (2m) ] -> [ Freeze Process & Write Snapshot ]
+[ Boot Pod ] -> [ Stream Weights ] -> [ Init Engine & CUDA Graphs ] -> [ Freeze Process & Upload Snapshot ]
 
 PodSnapshot Restoration Phase (Executed on Every Scale-Out Event):
-[ Provision Node ] -> [ Mount Snapshot Volume ] -> [ Hydrate Memory State (45-55s) ] -> [ Resume Execution (Ready) ]
+[ Provision Node ] -> [ Mount Snapshot Volume ] -> [ Hydrate Memory State ] -> [ Resume Execution (Ready) ]
 ```
 
 ### 2. Quantitative Performance Acceleration
 
-| Deployment Strategy                    | Weight Loading Time | Engine Initialization Time | Total Pod Scale-Out Latency | Reduction vs. Baseline |
-| :------------------------------------- | :------------------ | :------------------------- | :-------------------------- | :--------------------- |
-| **Traditional Cold Boot (GCS Fuse)**   | 12–15 minutes       | 4–6 minutes                | **16–21 minutes**           | Baseline               |
-| **Run:ai Streamer Cold Boot**          | 1.5 minutes         | 4–5 minutes                | **5.5–6.5 minutes**         | ~68% Faster            |
-| **Run:ai Streamer + GKE PodSnapshots** | Bypassed            | Bypassed                   | **45–55 seconds**           | **>95% Faster**        |
+Measured cold start versus warm restore. **Cold start** is the time for the run
+that produced the snapshot to go from container start to serving. **Warm
+restore** is `PodScheduled` to `Ready`, taken from pod conditions, for a replica
+hydrated from that snapshot.
+
+| Model, GPU                            | Loader                | Cold start | Warm restore | Reduction |
+| :------------------------------------ | :-------------------- | :--------- | :----------- | :-------- |
+| Llama 3.1 8B, NVIDIA L4               | Eager safetensors     | —          | **9 s**      | —         |
+| Llama 3.1 8B, NVIDIA H100 80GB        | Eager safetensors     | 163 s      | **3 s**      | **98.2%** |
+| Llama 3.1 8B, NVIDIA H100 80GB        | Run:ai Model Streamer | —          | **3 s**      | —         |
+| Gemma 4 31B, NVIDIA H100 80GB         | Run:ai Model Streamer | 265 s      | **5 s**      | **98.1%** |
+| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | Run:ai Model Streamer | 224 s      | **4 s**      | **98.2%** |
+
+The two techniques compose because they attack different costs. The Run:ai Model
+Streamer makes the **one** cold start that has to happen fast — 3.4x faster
+weight loading in a controlled single-variable comparison on Llama 3.1 8B, and
+48.16 s for Gemma 4 31B's 58.99 GiB. PodSnapshots make **every subsequent**
+scale-out fast. A production deployment wants both.
+
+> [!IMPORTANT]
+>
+> Capturing the snapshot is not free. Uploading the memory image runs at roughly
+> **83 MB/s** in practice, so Gemma 4 31B's ~73 GB `pages.img` takes **11 to 15
+> minutes** from trigger to `AllSnapshotsAvailable`. A large model is slow to
+> checkpoint, not incapable of it. Budget for it, and do not mistake a long
+> upload for a hang.
 
 ### 3. Cooperative Workload-Triggered State Snapshots vs. Asynchronous Triggering
 
 GKE PodSnapshots support multiple trigger mechanisms via `PodSnapshotPolicy`:
 `workload`, `readinessProbe`, and `manual`. In high-throughput LLM serving
-environments, **cooperative workload-triggered snapshots** represent the
-architecturally superior pattern.
+environments, **cooperative workload-triggered snapshots** are the recommended
+pattern — but for narrower reasons than previously documented here.
 
-#### Root Cause of Asynchronous Checkpoint Deadlocks
+#### Correction: out-of-band triggering is not a root cause of deadlock
 
-When snapshotting is triggered out-of-band via `manual` triggers or externally
-upon readiness (`readinessProbe`), the freeze command (`runsc checkpoint`)
-interrupts a live, active inference server:
+> [!WARNING]
+>
+> An earlier revision of this document asserted that `manual` and
+> `readinessProbe` triggers deadlock the sandbox by freezing a live server with
+> active sockets and inflight CUDA streams. **That claim was tested directly and
+> did not hold.**
 
-1. **Active TCP Sockets & Event Loops**: Uvicorn/FastAPI has already bound
-   `0.0.0.0:8000`. Active `epoll` loops process continuous `/health` and
-   `/v1/models` probes from the Kubelet and GKE Gateway.
-2. **Background FUSE Polling**: GCS FUSE maintains active background threads
-   refreshing directory inodes and bucket metadata.
-3. **Inflight GPU Kernel Streams**: CUDA drivers and runtimes maintain active
-   stream polling events inside gVisor's `nvproxy`.
+The successful Gemma 4 31B manifest was re-run with exactly two lines changed:
 
-Freezing the container while network sockets and CUDA queues are active causes
-`nvproxy` to encounter kernel lock inversion in
-`futex_wait(uaddr=..., timeout=NULL)`, deadlocking the sandbox threads. Even if
-an external checkpoint succeeds, restoring it introduces severed TCP connections
-and socket state desynchronization.
+```diff
+ triggerConfig:
+-  type: workload
+-  postCheckpoint: resume
++  type: manual
++  postCheckpoint: stop
+```
+
+The checkpoint was then driven out-of-band by a `PodSnapshotManualTrigger`, with
+the container's cooperative path reduced to a probe that never writes to
+`/proc/gvisor/checkpoint`. It **succeeded**: a 72,936,628,224-byte `pages.img`
+in 13 m 58 s, against 72,922,370,048 bytes in 11 m 22 s for the cooperative run.
+A subsequent run that reapplied _every_ difference from the original failing
+configuration at once — the `manual` trigger, `postCheckpoint: stop`, the
+`v0.26.0` image, `strategy: Recreate`, and the
+`podsnapshot.gke.io/restore-from-policy` annotation — also succeeded, and its
+snapshot restored in 4 seconds.
+
+The original hang was environmental and did not reproduce. See "What these runs
+settle" in the technical guide for the full elimination table.
+
+#### Why cooperative triggering is still recommended
+
+The advantages are real, they are just about determinism and hygiene rather than
+avoiding a deadlock:
+
+- **The snapshot is taken at a known point.** The workload triggers after weight
+  loading and CUDA graph capture complete, so the captured state is always the
+  fully warmed engine. An external trigger races engine initialization.
+- **The snapshot is taken before the server binds a port.** Nothing that depends
+  on the pod's IP has been established yet, which avoids the class of restore
+  artifacts described under `VLLM_HOST_IP` below.
+- **`postCheckpoint: resume` keeps the pod serving.** With `manual` and
+  `postCheckpoint: stop`, the container is stopped after capture and has to be
+  restarted by the ReplicaSet, which wastes a warm GPU.
 
 #### Cooperative In-Band Checkpointing Pattern
 
 The cooperative workload trigger approach
 ([`gke-pod-snapshots-tools`](https://github.com/CoderSherlock/gke-pod-snapshots-tools))
-solves this by triggering the checkpoint **in-band** at an exact lifecycle
-transition:
+delivers those properties by triggering the checkpoint **in-band** at an exact
+lifecycle transition:
 
 - **Pre-Network Isolation**: The snapshot is taken inside the vLLM entrypoint
   _after_ weight streaming and PyTorch CUDA graph capture complete, but _before_
@@ -592,6 +651,68 @@ if os.path.exists("/proc/gvisor/checkpoint"):
 random.seed()
 torch.manual_seed(random.randint(0, 2**32 - 1))
 ```
+
+### 4. Mandatory Preconditions
+
+Three conditions gate GPU PodSnapshots. All three were identified empirically,
+and each one silently produces a different failure when unmet.
+
+1. **An NVIDIA driver of 570 or newer, selected through a Custom Compute
+   Class.** This is the most dangerous of the three because it fails quietly.
+   The GKE installer script enforces `MINIMUM_NVIDIA_DRIVER_VERSION=570`; below
+   that it skips installing `gvisor-cuda-cr` **and still exits 0**. Selecting
+   nodes with the `cloud.google.com/gke-accelerator` label gets the default 535
+   driver and therefore no checkpoint support at all, with no error to indicate
+   it. A compute class such as `gpu-h100-80gb-high-x1` or
+   `gpu-rtx-pro-6000-96gb-x1` pins `driverVersion: latest` on every priority.
+   Verify by confirming `/proc/gvisor/checkpoint` exists inside the container.
+
+2. **Weights fully resident in VRAM, with no redundant copy on local disk.**
+   Anything genuinely dirty on disk is serialized into the snapshot and re-read
+   on every restore. Either use `--load-format=runai_streamer`, which never
+   writes a full local copy, or use `--safetensors-load-strategy=eager` and
+   delete the Hugging Face cache immediately before triggering.
+
+3. **`VLLM_HOST_IP=127.0.0.1`.** PyTorch's TCPStore and the NCCL bootstrap bake
+   their rendezvous address into the checkpointed process image, and a restored
+   replica always comes up with a different pod IP. Omitting this produced a
+   continuous stream of `sendBytes failed on SocketImpl(...): Broken pipe` and
+   `Failed to check the "should dump" flag on TCPStore` on a restored replica.
+   Inference remained correct on a single GPU, so treat it as log hygiene at
+   TP=1 — but it becomes load-bearing as tensor parallelism grows.
+
+> [!CAUTION]
+>
+> Restore matches on the `podsnapshot.gke.io/pod-template-hash` label. **Any**
+> edit to the pod template — a resource request, an environment variable, a flag
+> — invalidates the existing snapshot and silently orphans it. Tune first,
+> snapshot second.
+
+### 5. Multi-GPU and tensor parallelism: not yet validated
+
+> [!WARNING]
+>
+> Every validated result in this document was measured at
+> `--tensor-parallel-size 1`. **No PodSnapshot has been captured or restored
+> above TP=1.** Do not plan a multi-GPU deployment on the assumption that these
+> restore times transfer.
+
+Work toward answering this is in progress with
+[`thinkingmachines/Inkling`](https://huggingface.co/thinkingmachines/Inkling), a
+Mixture-of-Experts model. It has already established several prerequisites that
+any multi-GPU deployment will hit, documented under "Multi-GPU: tensor
+parallelism and very large models" in the technical guide:
+
+- `/proc/gvisor/checkpoint` **is** present on a 4-GPU node, so checkpoint
+  support installs correctly at TP=4. That gate is not the obstacle.
+- The NVIDIA Run:ai Model Streamer exhibits four failure modes above TP=1 that
+  cannot occur at TP=1, including an unbounded host-memory buffering default in
+  distributed mode and a per-rank memory cap that deadlocks when set below a
+  rank's partition size.
+- Weight loading dominates at scale: 171 GB across 4 GPUs took **77 minutes**
+  under gVisor in non-distributed mode, against 15 seconds for Llama 3.1 8B on a
+  single GPU. Multi-GPU is therefore the case where a working snapshot would be
+  worth the most.
 
 ---
 
@@ -702,7 +823,7 @@ spec:
 
 ---
 
-## Section 9: Empirical Benchmarks & Performance Evaluation for Gemma 4 31B on NVIDIA H100
+## Section 9: Empirical Benchmarks & Performance Evaluation for Gemma 4 31B on NVIDIA H100 and RTX Pro 6000
 
 To evaluate the reference architecture under production conditions, empirical
 benchmarking was conducted using `quay.io/inference-perf/inference-perf:latest`
@@ -715,22 +836,22 @@ The evaluation targeted the **`google/gemma-4-31b-it`** dense foundation model
 
 ### 1. Comprehensive Empirical Results Matrix: Gemma 4 31B (NVIDIA H100 80GB)
 
-| Benchmark Metric                       | GCS FUSE Baseline (Cold Start)            | NVIDIA Run:ai Streamer (Optimized Cold Start)                            | GKE PodSnapshot Fast-Start (Hydration Target)                             |
-| :------------------------------------- | :---------------------------------------- | :----------------------------------------------------------------------- | :------------------------------------------------------------------------ |
-| **Compute Class / Accelerator**        | `gpu-h100-80gb-high-x1` (1x H100 80GB)    | `gpu-h100-80gb-high-x1` (1x H100 80GB)                                   | `gpu-h100-80gb-high-x1` (1x H100 80GB)                                    |
-| **vLLM Image Tag**                     | `docker.io/vllm/vllm-openai:v0.26.0`      | `docker.io/vllm/vllm-openai:v0.26.0`                                     | `docker.io/vllm/vllm-openai:v0.26.0`                                      |
-| **Max Model Length (`MAX_MODEL_LEN`)** | 8,192                                     | 8,192                                                                    | 8,192                                                                     |
-| **GPU Memory Utilization**             | 0.90                                      | 0.90 (58.99 GiB Weights, 10.62 GiB KV Cache)                             | 0.90 (Restored from snapshot)                                             |
-| **Device Headroom**                    | 7.92 GiB (Prevents FlashInfer logits OOM) | 7.92 GiB (Prevents FlashInfer logits OOM)                                | 7.92 GiB                                                                  |
-| **Model Weight Loading Duration**      | 378.67s (159.5 MiB/s via GCS FUSE)        | **48.16s** (Direct GCS stream @ ~1.22 GiB/s, peak 48.81 it/s)            | **0.0s** (Pre-hydrated in snapshot)                                       |
-| **Dynamo Bytecode Transform**          | 15.67s                                    | 15.67s                                                                   | **0.0s** (Pre-compiled)                                                   |
-| **Torch Inductor Compilation**         | 27.55s (Total `torch.compile`: 52.00s)    | 27.55s (Total `torch.compile`: 52.00s)                                   | **0.0s** (Pre-compiled)                                                   |
-| **CUDA Graph Capture (51/51 sizes)**   | 25.00s (Allocated 0.91 GiB)               | 25.00s (Allocated 0.91 GiB)                                              | **0.0s** (Pre-captured)                                                   |
-| **Total Engine Initialization**        | 185s+                                     | **115.81s**                                                              | **0.0s** (Hydrated from memory)                                           |
-| **Container Start to `Ready 1/1`**     | 570s (~9.5 minutes)                       | **301s** (~5.0 minutes)                                                  | **~45-55s** (Memory hydration target)                                     |
-| **Overall Cold-Start Reduction**       | Baseline                                  | **47.2% overall cold start reduction**                                   | **>85% reduction**                                                        |
-| **Live Chat Completion Verification**  | 200 OK                                    | **200 OK** (Returned `"Paris"` in 164ms)                                 | Expected 200 OK                                                           |
-| **PodSnapshot Checkpoint Execution**   | Incompatible (FUSE Deadlock)              | Initiates upload (`checkpoint.img` 12.35 MiB, `pages_meta.img` 3.43 MiB) | Upstream driver 580 channel stop failure (persists with workload trigger) |
+| Benchmark Metric                       | GCS FUSE Baseline (Cold Start)            | NVIDIA Run:ai Streamer (Optimized Cold Start)                 | GKE PodSnapshot Fast-Start (Hydration Target)                    |
+| :------------------------------------- | :---------------------------------------- | :------------------------------------------------------------ | :--------------------------------------------------------------- |
+| **Compute Class / Accelerator**        | `gpu-h100-80gb-high-x1` (1x H100 80GB)    | `gpu-h100-80gb-high-x1` (1x H100 80GB)                        | `gpu-h100-80gb-high-x1` (1x H100 80GB)                           |
+| **vLLM Image Tag**                     | `docker.io/vllm/vllm-openai:v0.26.0`      | `docker.io/vllm/vllm-openai:v0.26.0`                          | `docker.io/vllm/vllm-openai:v0.26.0`                             |
+| **Max Model Length (`MAX_MODEL_LEN`)** | 8,192                                     | 8,192                                                         | 8,192                                                            |
+| **GPU Memory Utilization**             | 0.90                                      | 0.90 (58.99 GiB Weights, 10.62 GiB KV Cache)                  | 0.90 (Restored from snapshot)                                    |
+| **Device Headroom**                    | 7.92 GiB (Prevents FlashInfer logits OOM) | 7.92 GiB (Prevents FlashInfer logits OOM)                     | 7.92 GiB                                                         |
+| **Model Weight Loading Duration**      | 378.67s (159.5 MiB/s via GCS FUSE)        | **48.16s** (Direct GCS stream @ ~1.22 GiB/s, peak 48.81 it/s) | **0.0s** (Pre-hydrated in snapshot)                              |
+| **Dynamo Bytecode Transform**          | 15.67s                                    | 15.67s                                                        | **0.0s** (Pre-compiled)                                          |
+| **Torch Inductor Compilation**         | 27.55s (Total `torch.compile`: 52.00s)    | 27.55s (Total `torch.compile`: 52.00s)                        | **0.0s** (Pre-compiled)                                          |
+| **CUDA Graph Capture (51/51 sizes)**   | 25.00s (Allocated 0.91 GiB)               | 25.00s (Allocated 0.91 GiB)                                   | **0.0s** (Pre-captured)                                          |
+| **Total Engine Initialization**        | 185s+                                     | **115.81s**                                                   | **0.0s** (Hydrated from memory)                                  |
+| **Container Start to `Ready 1/1`**     | 570s (~9.5 minutes)                       | **301s** (~5.0 minutes)                                       | **5s** (`PodScheduled` → `Ready`, measured)                      |
+| **Overall Cold-Start Reduction**       | Baseline                                  | **47.2% overall cold start reduction**                        | **>98% reduction** vs. the cold start that produced the snapshot |
+| **Live Chat Completion Verification**  | 200 OK                                    | **200 OK** (Returned `"Paris"` in 164ms)                      | **200 OK** (verified on every restored replica)                  |
+| **PodSnapshot Checkpoint Execution**   | Not tested                                | Completes: `pages.img` 72,899,854,336 B in 14 m 39 s          | Restores on a fresh node in 5 s, `restartCount: 0`               |
 
 ### 2. Deep Dive: Architectural Nuances for Gemma 4 31B
 
@@ -752,26 +873,79 @@ fatal `torch.OutOfMemoryError`. Setting `GPU_MEMORY_UTILIZATION=0.90` and
 - **7.92 GiB** retained as free device headroom, enabling clean CUDA graph
   capture (0.91 GiB) and zero OOM events.
 
-#### Upstream NVIDIA Open Kernel Driver 580 Channel Stop Issue
+#### Retracted: the NVIDIA driver 580 "channel stop" assertion is benign
 
-Empirical testing on both Hopper (NVIDIA H100 80GB) and Blackwell (RTX Pro 6000)
-running NVIDIA open kernel driver `580.126.20` revealed an upstream driver
-assertion failure during gVisor container freeze:
+> [!WARNING]
+>
+> An earlier revision of this document attributed PodSnapshot checkpoint hangs
+> to an upstream NVIDIA open kernel driver assertion, and concluded that
+> PodSnapshots were unusable on driver branch 580. **Both claims were wrong.**
+> Nine subsequent controlled runs checkpointed and restored successfully on
+> driver `580.126.20`, across NVIDIA L4, H100 80GB, and RTX Pro 6000 96GB.
+
+The assertion itself is real and does appear in the logs:
 
 ```text
 NVRM: nvAssertOkFailedNoLog: Assertion failed: Requested object not found [NV_ERR_OBJECT_NOT_FOUND] (0x00000057)
 returned from pRmApi->Control(pRmApi, RES_GET_CLIENT_HANDLE(pKernelChannel), RES_GET_HANDLE(pKernelChannel), NVA06F_CTRL_CMD_STOP_CHANNEL, &stopChannelParams, sizeof(stopChannelParams)) @ nv_gpu_ops.c:10963
 ```
 
-While `runsc` and `runsc-checkpointgofer` cleanly serialize checkpoint metadata
-(`checkpoint.img` 12.35 MiB and `pages_meta.img` 3.43 MiB) to Cloud Storage, the
-kernel driver failure on `NVA06F_CTRL_CMD_STOP_CHANNEL` prevents the channel
-from stopping, causing the checkpoint helper to wait indefinitely.
+It is not diagnostic. The same assertion fires during runs whose checkpoints
+complete normally, so its presence carries no information about whether a
+checkpoint will succeed.
 
-Therefore, for current production environments running driver branch 580,
-**NVIDIA Run:ai Model Streamer** provides the verified, rock-solid fast-start
-solution—delivering model streaming in **48.16 seconds** with zero driver
-crashes.
+The observation that generated the false conclusion was that `checkpoint.img`
+and `pages_meta.img` appear in Cloud Storage while `pages.img` does not. That is
+**normal**. `pages.img` is written last, and a healthy Gemma 4 31B checkpoint
+spends 10 to 15 minutes with only the first two objects present before the 73 GB
+memory image lands.
+
+Two practices prevent repeating this mistake:
+
+- **Watch `pages.img` grow rather than treating its absence as failure.**
+  `gcloud storage ls` does not show an object that is still being written; use
+  `gcloud storage objects list "gs://${bucket}/${snapshot_uid}/**" --stat`.
+- **Know where the objects live.** They are written to the **bucket root under
+  the snapshot UID**, not under a `podsnapshot/` prefix. Listing the wrong
+  prefix returns nothing, which is indistinguishable from a stalled checkpoint.
+
+A genuine hang has a distinct signature: `runsc-checkpointgofer` blocked in
+`futex_wait_queue`, `runsc checkpoint` blocked in `do_sys_poll`, and **zero**
+byte movement in the bucket over a sustained interval.
+
+The full elimination table — which also rules out the H100 architecture itself,
+the `runai_streamer` loader, the resident VRAM footprint, out-of-band
+triggering, and the vLLM image version — is in "What these runs settle" in the
+technical guide. The original hang did not reproduce under any of the eight
+configurations tested, and is attributed to the node image present at the time.
+
+#### Blackwell (NVIDIA RTX Pro 6000 96GB) was also mis-attributed
+
+The original Blackwell attempts selected nodes with the
+`cloud.google.com/gke-accelerator` label rather than a compute class, which by
+precondition 1 above means checkpoint support was likely never installed. Routed
+through `gpu-rtx-pro-6000-96gb-x1` instead, Blackwell checkpoints and restores
+correctly, and outperformed H100 on this workload:
+
+| Metric                                | H100 80 GB       | RTX Pro 6000 96 GB |
+| :------------------------------------ | :--------------- | :----------------- |
+| Cold start (`PodScheduled` → `Ready`) | 265 s            | **224 s**          |
+| `pages.img`                           | 72,899,854,336 B | 73,345,302,528 B   |
+| Restore on a fresh node               | 5 s              | **4 s**            |
+| Available KV cache                    | 8.21 GiB         | **22.44 GiB**      |
+
+Weights are a fixed cost, so every additional byte of VRAM flows to KV cache:
+**+20% VRAM produced +173% KV cache**. Under load that mattered more than raw
+decode speed — the RTX deployment sustained monotonically rising throughput
+across all eight sweep stages while the H100 deployment peaked and regressed.
+
+> [!NOTE]
+>
+> `pages.img` grew only **0.6%** between the two GPUs despite 14 GiB more KV
+> cache being allocated. The snapshot tracks resident weights plus runtime, not
+> the `--gpu-memory-utilization` budget, because allocated-but-untouched KV
+> cache costs almost nothing. Moving to a larger-VRAM GPU does **not**
+> proportionally inflate snapshot size or checkpoint time.
 
 ---
 
@@ -960,29 +1134,34 @@ spec:
 
 ### 2. Comprehensive Troubleshooting Guide for Common Failure Modes
 
-> [!IMPORTANT] > **Important Note on Large Models and PodSnapshots**
+> [!IMPORTANT]
 >
-> **Current Behavior & Empirical Verification:** In empirical testing with Gemma
-> 4 31B (>58GB model weights) on both Hopper (NVIDIA H100 80GB) and Blackwell
-> (RTX Pro 6000), attempting to checkpoint via `runsc checkpoint` triggers an
-> upstream NVIDIA open kernel driver assertion failure under driver version
-> `580.126.20`: `NVA06F_CTRL_CMD_STOP_CHANNEL` returns `0x57`
-> (`NV_ERR_OBJECT_NOT_FOUND`) at `nv_gpu_ops.c:10963`. This leaves
-> `runsc-checkpointgofer` in a futex wait on channel shutdown, preventing
-> complete memory page serialization.
+> **Important note on large models and PodSnapshots**
 >
-> **Memory Sizing & FlashInfer Headroom:** Gemma 4 31B uses a large 256k
+> **Large models are slow to checkpoint, not incapable of it.** An earlier
+> revision of this document stated that checkpointing Gemma 4 31B fails on
+> driver `580.126.20` because of an `NVA06F_CTRL_CMD_STOP_CHANNEL` assertion.
+> That attribution has been retracted — see "Retracted: the NVIDIA driver 580
+> 'channel stop' assertion is benign" in Section 9. Checkpointing succeeds on
+> both Hopper and Blackwell; it simply takes 11 to 15 minutes for a ~73 GB
+> memory image, because the upload runs at roughly 83 MB/s. Watch `pages.img` >
+> **grow** with
+> `gcloud storage objects list "gs://${bucket}/${snapshot_uid}/**" --stat`
+> rather than treating its absence as failure.
+>
+> **Memory sizing and FlashInfer headroom:** Gemma 4 31B uses a large 256k
 > vocabulary. At `GPU_MEMORY_UTILIZATION=0.95`, allocating FlashInfer logits
 > buffers during CUDA graph capture exhausts remaining VRAM. Setting
 > `GPU_MEMORY_UTILIZATION=0.90` and `MAX_MODEL_LEN=8192` reserves 7.92 GiB of
 > free device headroom, enabling clean engine initialization and CUDA graph
 > capture with zero OOM errors.
 >
-> **The Path Forward (NVIDIA Run:ai Model Streamer):** In production
-> environments running driver branch 580, combining NVIDIA Run:ai Model Streamer
-> with GKE Fast Starting Nodes delivers verified sub-minute (**48.16s**) weight
-> streaming directly from Cloud Storage at ~1.22 GiB/s, achieving an immediate
-> **47.2% overall cold-start reduction** with 100% request completion.
+> **Use both techniques together.** NVIDIA Run:ai Model Streamer delivers
+> **48.16s** weight streaming directly from Cloud Storage at ~1.22 GiB/s, a
+> **47.2%** cold-start reduction. PodSnapshots then reduce every subsequent
+> scale-out to single-digit seconds. The streamer pays for the one cold start
+> that has to happen to produce the snapshot; the snapshot pays for everything
+> after that.
 
 #### Failure Mode 1: HPA Target Shows `<unknown>` Metric Status
 

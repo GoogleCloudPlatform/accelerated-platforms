@@ -992,13 +992,13 @@ worst-case figure.
 That said, the KV cache is still the resource worth tuning first on this
 configuration. The levers, in rough order of value:
 
-| Lever                                     | Effect                                                                                                                                        |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| A GPU with more VRAM                      | Weights are a fixed cost, so extra VRAM flows almost entirely to KV cache. Measured below: 80 GB to 96 GB is +20% VRAM but **+173% KV cache** |
-| Raise `--gpu-memory-utilization` to ~0.95 | Frees roughly 4 GB, adding ~50% KV cache                                                                                                      |
-| Lower `--max-model-len`                   | Worst-case concurrency scales inversely; 4096 roughly doubles it                                                                              |
-| Tensor-parallel across 2 GPUs             | Halves per-GPU weights, freeing far more KV                                                                                                   |
-| A smaller or quantized model              | Largest effect on the weights term                                                                                                            |
+| Lever                                     | Effect                                                                                                                                                        |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A GPU with more VRAM                      | Weights are a fixed cost, so extra VRAM flows almost entirely to KV cache. Measured below: 80 GB to 96 GB is +20% VRAM but **+173% KV cache**                 |
+| Raise `--gpu-memory-utilization` to ~0.95 | Frees roughly 4 GB, adding ~50% KV cache                                                                                                                      |
+| Lower `--max-model-len`                   | Worst-case concurrency scales inversely; 4096 roughly doubles it                                                                                              |
+| Tensor-parallel across 2 GPUs             | Halves per-GPU weights, freeing far more KV. See [Multi-GPU](#multi-gpu-tensor-parallelism-and-very-large-models) for the caveats that only appear above TP=1 |
+| A smaller or quantized model              | Largest effect on the weights term                                                                                                                            |
 
 > [!CAUTION]
 >
@@ -1191,6 +1191,261 @@ Listing the wrong prefix returns nothing, which is indistinguishable from a
 stalled checkpoint. Combined with the fact that `pages.img` legitimately does
 not appear until the very end, it is easy to convince yourself a healthy
 checkpoint has hung.
+
+## Multi-GPU: tensor parallelism and very large models
+
+Every run above used a **single** GPU. That leaves the axis that matters most
+for frontier-scale models untested: does the recipe still hold when vLLM shards
+a model across several GPUs with `--tensor-parallel-size`?
+
+This section records an attempt to answer that with
+[`thinkingmachines/Inkling`](https://huggingface.co/thinkingmachines/Inkling), a
+Mixture-of-Experts model published in four variants.
+
+> [!IMPORTANT]
+>
+> **The multi-GPU checkpoint and restore question is not yet answered.** No
+> PodSnapshot has been captured at `--tensor-parallel-size` greater than 1. The
+> work below stopped short of a checkpoint for a reason that has nothing to do
+> with PodSnapshots, and is reported here because every finding in it is a
+> prerequisite that cost real time to discover. Treat this section as
+> capacity-planning and troubleshooting guidance, not as validation.
+
+### Step 0: will the model fit, and on what?
+
+Answer this before provisioning anything. The authoritative source is the
+Hugging Face API, which reports blob sizes without downloading a byte:
+
+```shell
+curl -sL "https://huggingface.co/api/models/thinkingmachines/Inkling-Small-NVFP4?blobs=true" \
+  | python3 -c 'import json,sys; s=json.load(sys.stdin)["siblings"]; print(sum(f["size"] for f in s if f["rfilename"].endswith(".safetensors")))'
+```
+
+> [!TIP]
+>
+> Use `curl -sL`. Hugging Face redirects this endpoint, and without `-L` the
+> response body is the literal string `Temporary Redirect`, which fails to parse
+> as JSON.
+
+Summing the `.safetensors` blobs for all four variants against an 8 x RTX Pro
+6000 node (8 x 96 GB = 768 GB of VRAM):
+
+| Variant                | Weights         | Per GPU at TP=8 | Fits on one 8-GPU node? |
+| ---------------------- | --------------- | --------------- | ----------------------- |
+| `Inkling` (bf16)       | **1,904.76 GB** | 238.09 GB       | **No** — 2.48x over     |
+| `Inkling-NVFP4`        | 592.01 GB       | 74.00 GB        | Yes, 77% of VRAM        |
+| `Inkling-Small` (bf16) | 531.91 GB       | 66.49 GB        | Yes, 69% of VRAM        |
+| `Inkling-Small-NVFP4`  | 170.73 GB       | 21.34 GB        | Yes, 22% of VRAM        |
+
+Fitting the weights is necessary but not sufficient — what is left over becomes
+KV cache. At `--gpu-memory-utilization=0.90` a 96 GB card gives an 86.4 GB
+budget per GPU, so `Inkling-NVFP4` leaves only ~12.4 GB per GPU for KV, while
+`Inkling-Small-NVFP4` leaves ~65 GB.
+
+The variant used below is `Inkling-Small-NVFP4` at TP=4, and the deciding
+constraint was **staging, not VRAM**: at 531.91 GB (495 GiB), `Inkling-Small` in
+bf16 exceeds the download node's 281 GiB of allocatable ephemeral storage and
+cannot be staged through the path described in the next section at all.
+
+Tensor parallelism also has to divide the architecture cleanly. From the model's
+`config.json`, `text_config` reports `num_attention_heads: 32`,
+`num_key_value_heads: 8`, `n_routed_experts: 256`, and
+`dense_intermediate_size: 16384`. All four are divisible by both 4 and 8, so
+TP=4 and TP=8 are structurally valid.
+
+> [!NOTE]
+>
+> The NVFP4 `config.json` is a **wrapper**: its only top-level keys are
+> `architectures`, `audio_config`, `eos_token_id`, `model_type`, `mtp_config`,
+> `text_config`, and `vision_config`. There is no top-level
+> `quantization_config` — the quantization lives in a separate
+> `hf_quant_config.json`. Do not conclude a checkpoint is unquantized just
+> because the top level does not say so.
+
+`text_config` also sets `model_max_length: 1048576`. Passing `--max-model-len`
+is therefore mandatory rather than optional; the runs below used `8192` to stay
+comparable with the Gemma 4 31B measurements earlier in this guide.
+
+### NVFP4 weights do not require a Blackwell GPU
+
+It is easy to assume an NVFP4 checkpoint needs native FP4 tensor cores. It does
+not. From `modelopt.py` in the running vLLM 0.29.0 image:
+
+```python
+def get_min_capability(cls) -> int:
+    # Turing and up (SM75+): NVFP4 routed experts run via Marlin W4A16
+    # (SM75+), FP8 weight-only dense via MarlinFP8 (cc>=7.5), and FP8 MoE,
+    # if present, via Marlin (TritonExperts gates its FP8 schemes behind
+    # supports_fp8(), cc>=89). None of these paths require native FP8 tensor
+```
+
+The practical consequence is that NVFP4 weights staged once in Cloud Storage are
+reusable across Hopper, Ampere, and Blackwell without restaging.
+
+### Staging a 171 GB model exposes a gap in the downloader job
+
+The repository's Hugging Face downloader,
+`kubernetes-manifests/model-download/huggingface/job.yaml`, requests only
+`ephemeral-storage: 1Gi` and defines no volume for `/local/hf`, so downloaded
+weights land on the container overlay. That is fine for an 16 GB Llama and
+dishonest to the scheduler at 171 GB.
+
+For large models, add an `emptyDir` at `/local/hf` and request ephemeral storage
+honestly. The `model-download` compute class provisions a `*-lssd` machine whose
+**local SSD backs both the overlay filesystem and `emptyDir`**, measured on the
+provisioned `c3-standard-4-lssd` node:
+
+```text
+overlay         369G   11G  340G   3% /
+/dev/nvme1n1    369G   11G  340G   3% /scratch
+allocatable.ephemeral-storage: 301982796416   # 281.2 GiB
+```
+
+281.2 GiB is the ceiling. A request of `300Gi` exceeds allocatable and hangs
+`Pending` forever; `200Gi` schedules. This also means `Inkling-NVFP4` (551 GiB)
+**cannot be staged through this path at all** and needs a larger local SSD
+configuration.
+
+With that fixed, staging 170.76 GB took **~13 minutes** end to end: 7.5 minutes
+to download from Hugging Face (~380 MB/s) and 4.5 minutes to upload to Cloud
+Storage (~630 MB/s), landing 20 objects totalling 170,764,921,796 bytes.
+
+> [!NOTE]
+>
+> The downloader copies with `cp /local/hf/model/*`, and that glob does not
+> match dotfiles, so `.gitattributes` is silently dropped. The 1,570-byte
+> difference against the Hugging Face blob total is exactly that file, and it is
+> harmless.
+
+### The Run:ai Model Streamer behaves differently at TP > 1
+
+All nine single-GPU runs earlier in this guide used the streamer without
+incident. At TP=4 it exposed four behaviors that simply cannot occur at TP=1,
+because at TP=1 there is nobody to coordinate with.
+
+**1. `{"distributed":true}` is inert at TP=1 and load-bearing above it.** The
+Gemma 4 overlay carries `--model-loader-extra-config='{"distributed":true}'`,
+and copying it verbatim to a TP=4 deployment deadlocked:
+
+```text
+[RunAI Streamer][Distributed] Rank 2: broadcast timed out - Could not complete broadcast.
+torch.distributed.DistBackendError: [2] is setting up NCCL communicator and retrieving
+ncclUniqueId from [0] via c10d key-value store by key '0', but store->get('0') got error:
+Timeout waiting for key: 0//40//cuda//0 after 300000 ms
+```
+
+The tensor-parallel group itself initialized fine and rank 0 logged no error at
+all — it simply never reached the broadcast.
+
+**2. Distributed mode forces unbounded host buffering unless you opt out.** From
+`distributed_streamer.py` in the installed package:
+
+```python
+original_memory_limit = os.environ.get("RUNAI_STREAMER_MEMORY_LIMIT")
+try:
+    # for distributed streaming only - change default memory limit to unlimited
+    if original_memory_limit == None:
+        os.environ["RUNAI_STREAMER_MEMORY_LIMIT"] = "-1"
+```
+
+Setting `RUNAI_STREAMER_MEMORY_LIMIT` to **any** value suppresses the override.
+Left unset, host RSS reached 127 GB and throughput collapsed by three orders of
+magnitude:
+
+| Chunks loaded | Elapsed | Rate           | Projected completion |
+| ------------- | ------- | -------------- | -------------------- |
+| 78 / 1360     | 00:02   | 38.6 it/s      | 00:33                |
+| 159 / 1360    | 02:57   | 4.22 s/it      | 1:24:33              |
+| 184 / 1360    | 05:14   | 7.14 s/it      | 2:19:57              |
+| 200 / 1360    | 10:31   | **32.04 s/it** | **10:19:24**         |
+
+**3. The memory cap is applied per rank, and setting it too low deadlocks
+distributed mode.** With `distributed:true` and a 32 GiB cap, zero chunks loaded
+in 15 minutes while host memory climbed to almost exactly 4 x 32 GiB and
+plateaued. Each rank must read its full ~43 GB partition (171 GB / 4) before it
+can broadcast; a cap below that means no rank ever finishes and none reaches the
+broadcast. **Size the cap above the per-rank partition, not below it.**
+
+**4. Non-distributed loading works but is CPU-bound under gVisor.** Disabling
+distributed mode makes every rank independently read the whole model — 4 x 171
+GB = 684 GB of traffic — through gVisor's userspace network stack. It completed,
+but it pinned roughly 189 of the node's 192 vCPUs for the duration:
+
+```text
+Model loading took 40.07 GiB memory and 4636.134748 seconds
+```
+
+**77 minutes** to load, versus 15 seconds for Llama 3.1 8B on one GPU. Weight
+loading is exactly the cost PodSnapshots exist to amortize, which makes
+multi-GPU the case where a working snapshot would be worth the most.
+
+### Inkling cannot run on RTX Pro 6000 under vLLM 0.29.0
+
+The TP=4 attempt on RTX Pro 6000 loaded all weights successfully and then failed
+on the **first forward pass**, during `determine_available_memory` →
+`profile_cudagraph_memory`:
+
+```text
+vllm/models/inkling/nvidia/attention.py", line 292, in _attention
+    INKLING_FA4_REL_ATTENTION_KERNEL(
+vllm/models/inkling/nvidia/ops/fa4_rel_attention.py", line 188, in kernel
+    ret = flash_attn_varlen_func(
+vllm/vllm_flash_attn/cute/interface.py", line 1186, in _flash_attn_fwd
+    assert page_table is None, "Paged KV not supported on SM 12.0 in this PR"
+AssertionError: Paged KV not supported on SM 12.0 in this PR
+```
+
+The assertion is architecture-gated, from `interface.py`:
+
+```python
+elif arch // 10 == 12:
+    # SM120 (Blackwell GeForce / DGX Spark): uses SM80 MMA with SM120 SMEM capacity
+    assert not use_block_sparsity, "Block sparsity not supported on SM 12.0"
+    assert page_table is None, "Paged KV not supported on SM 12.0 in this PR"
+    assert not is_split_kv, "SplitKV not supported on SM 12.0 in this PR"
+```
+
+vLLM always uses a paged KV cache, so on SM 12.0 this is unconditional for any
+model routed through Inkling's relative-attention kernel. The engine exits:
+
+```text
+RuntimeError: Worker failed with error 'Paged KV not supported on SM 12.0 in this PR'
+```
+
+> [!NOTE]
+>
+> This is a model-and-kernel limitation, **not** a PodSnapshot, gVisor, or GKE
+> limitation. The Gemma 4 31B results earlier in this guide show RTX Pro 6000
+> checkpointing and restoring correctly. The wording "in this PR" suggests an
+> in-flight kernel that is likely to gain SM120 paged support in a later vLLM
+> release, so this is worth retesting rather than treating as permanent.
+
+The obvious next step is Hopper, which is SM 9.0 and unaffected, and which has
+NVLink rather than the g4 family's PCIe-only topology — visible in the logs as
+`Custom allreduce is disabled because it's not supported on more than two PCIe-only GPUs`
+and `SymmMemCommunicator: Device capability 12.0 not supported`. That run is
+pending H100 capacity and is not reported here.
+
+### What to carry forward to any multi-GPU attempt
+
+- `/proc/gvisor/checkpoint` **is present** on a 4-GPU node, so checkpoint
+  support installs fine at TP=4. That gate is not the obstacle.
+- The PodSnapshot CR records GPU count in its labels — the `.4` suffix in
+  `podsnapshot.gke.io/node-accelerators: nvidia-rtx-pro-6000-blackwell-server-edition.4`
+  is the number of accelerators.
+- `VLLM_HOST_IP=127.0.0.1` (rule 3 of the recipe) matters far more at TP > 1
+  than it does at TP=1, because the NCCL bootstrap address is baked into the
+  checkpointed image.
+- vLLM 0.29.0 registers `InklingForCausalLM`, `InklingForConditionalGeneration`,
+  and `InklingMTPModel`. It also downloads only ~31 MB of config and tokenizer
+  files to `/root/.cache/vllm/assets/model_streamer/`, not
+  `/root/.cache/huggingface/` — so rule 2 of the recipe holds, but a cleanup
+  script that targets the Hugging Face cache path will not find anything.
+
+> [!WARNING]
+>
+> vLLM `v0.29.0` has **not** been validated with PodSnapshots. Every successful
+> checkpoint in this guide used `v0.19.1` or `v0.26.0`.
 
 ## Scaling & Flow Control Strategies
 

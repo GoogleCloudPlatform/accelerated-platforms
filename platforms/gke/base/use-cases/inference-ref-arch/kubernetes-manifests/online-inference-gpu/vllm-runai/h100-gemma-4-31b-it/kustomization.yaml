@@ -44,9 +44,6 @@ replacements:
           - spec.selector.app
         select:
           kind: Service
-      - fieldPaths:
-          - spec.selector.matchLabels.app
-        select:
   - source:
       fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
@@ -81,12 +78,6 @@ replacements:
           - metadata.namespace
         select:
           kind: HorizontalPodAutoscaler
-      - fieldPaths:
-          - metadata.namespace
-        select:
-      - fieldPaths:
-          - metadata.namespace
-        select:
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
@@ -101,43 +92,12 @@ replacements:
         select:
           kind: ServiceAccount
   - source:
-      fieldPath: data.MODEL_BUCKET_NAME
-      kind: ConfigMap
-      name: deployment
-    targets:
-      - fieldPaths:
-          - spec.snapshotStorageConfig.gcs.bucket
-        select:
-  - source:
-      fieldPath: metadata.name
-      name: vllm-snapshot-config
-    targets:
-      - fieldPaths:
-          - spec.storageConfigName
-        select:
-  - source:
-      fieldPath: metadata.name
-      name: vllm-snapshot-policy
-    targets:
-      - fieldPaths:
-        select:
-          kind: Deployment
-  - source:
       fieldPath: data.MODEL_NAME
       kind: ConfigMap
       name: runtime
     targets:
       - fieldPaths:
           - spec.template.metadata.labels.[ai.gke.io/model]
-        select:
-          kind: Deployment
-  - source:
-      fieldPath: data.CONTAINER_IMAGE_URL
-      kind: ConfigMap
-      name: vllm
-    targets:
-      - fieldPaths:
-          - spec.template.spec.containers.[name=inference-server].image
         select:
           kind: Deployment
 

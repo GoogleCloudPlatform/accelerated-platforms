@@ -26,5 +26,3 @@ resources:
   - deployment.yaml
   - service.yaml
   - hpa.yaml
-  - pod-snapshot-config.yaml
-  - pod-snapshot-policy.yaml

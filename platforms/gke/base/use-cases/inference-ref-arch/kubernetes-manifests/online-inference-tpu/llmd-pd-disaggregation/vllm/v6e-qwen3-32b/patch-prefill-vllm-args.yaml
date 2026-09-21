@@ -25,6 +25,15 @@ spec:
             - configMapRef:
                 name: runtime
           env:
+            # The upstream llm-d base injects HF_TOKEN from a Secret named
+            # llm-d-hf-token. This path loads weights from GCS with
+            # runai_streamer and never contacts the HuggingFace hub, so the
+            # token is unused -- but if the Secret is absent the pod fails
+            # with CreateContainerConfigError before the engine ever starts.
+            # Drop the variable rather than require a credential we have no
+            # use for.
+            - name: HF_TOKEN
+              $patch: delete
             - name: MODEL_BUCKET_NAME
               valueFrom:
                 configMapKeyRef:

@@ -48,10 +48,23 @@ On TPU, the KV cache produced by a prefill worker is transferred to a decode
 worker using the vLLM `TPUConnector` over a dedicated side channel. This guide
 therefore creates two model server deployments rather than one:
 
-| Deployment | vLLM `kv_role` | vLLM port |
-| :--------: | :------------: | :-------: |
-|  prefill   | `kv_producer`  |  `8000`   |
-|   decode   |   `kv_both`    |  `8200`   |
+| Deployment | vLLM `kv_role`  | vLLM port |
+| :--------: | :-------------: | :-------: |
+|  prefill   |  `kv_producer`  |  `8000`   |
+|   decode   | `kv_consumer`   |  `8200`   |
+
+> [!IMPORTANT]
+> The decode deployment must use `kv_consumer`, **not** `kv_both`. vLLM defines
+> the roles as overlapping sets, so `kv_both` makes `is_kv_producer` true.
+> `TPUConnector` collapses both roles into a single `is_producer` boolean and
+> gates its load path on it, never consulting `is_kv_consumer`. With `kv_both`
+> the decode engine reports zero tokens available to load on every request and
+> can never pull KV -- prefill stages the blocks and they expire with
+> `KV transfer timeout. Force recycle the memory buffer.`
+>
+> The failure is silent: both pods report ready and the answers are correct,
+> they are simply computed twice, which makes disaggregation strictly worse
+> than not disaggregating. Upstream llm-d currently ships `kv_both` here.
 
 A routing sidecar runs alongside the decode pod and coordinates the two phases
 of each request.

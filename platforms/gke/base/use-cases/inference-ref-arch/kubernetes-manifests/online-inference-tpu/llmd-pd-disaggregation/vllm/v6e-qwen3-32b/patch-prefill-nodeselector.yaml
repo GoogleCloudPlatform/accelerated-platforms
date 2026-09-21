@@ -21,5 +21,20 @@ spec:
   template:
     spec:
       nodeSelector:
+        # $patch: replace discards the whole nodeSelector inherited from the
+        # llm-d base, which supplies the two TPU labels below. Without them
+        # GKE Warden rejects the pod:
+        #   tpu-accelerator-topology-constraints
+        # Re-declare them here so this file states the complete selector
+        # rather than silently depending on what the base happened to set.
+        #
+        # GKE emits an advisory warning for combining these labels with a
+        # compute class ("simultaneous use of both may lead to unexpected
+        # behavior"). We keep them because empirically the pod is rejected
+        # without them; the compute class alone did not satisfy Warden. If a
+        # future GKE release makes the compute class sufficient on its own,
+        # these two labels can be dropped.
         $patch: replace
         cloud.google.com/compute-class: tpu-v6e-2x4
+        cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+        cloud.google.com/gke-tpu-topology: 2x4

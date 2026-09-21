@@ -37,6 +37,14 @@ patches:
     target:
       kind: Deployment
       name: pd-disaggregation-tpu-vllm-decode
+  - path: patch-deployment-strategy.yaml
+    target:
+      kind: Deployment
+      name: pd-disaggregation-tpu-vllm-decode
+  - path: patch-deployment-strategy.yaml
+    target:
+      kind: Deployment
+      name: pd-disaggregation-tpu-vllm-prefill
   - path: patch-prefill-nodeselector.yaml
     target:
       kind: Deployment

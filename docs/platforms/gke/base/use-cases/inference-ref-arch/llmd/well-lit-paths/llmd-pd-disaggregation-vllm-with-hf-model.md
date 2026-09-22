@@ -48,12 +48,12 @@ On TPU, the KV cache produced by a prefill worker is transferred to a decode
 worker using the vLLM `TPUConnector` over a dedicated side channel. This guide
 therefore creates two model server deployments rather than one:
 
-| Deployment | vLLM `kv_role`  | vLLM port |
-| :--------: | :-------------: | :-------: |
-|  prefill   |  `kv_producer`  |  `8000`   |
-|   decode   | `kv_consumer`   |  `8200`   |
+| Deployment | vLLM `kv_role` | vLLM port |
+| :--------: | :------------: | :-------: |
+|  prefill   | `kv_producer`  |  `8000`   |
+|   decode   | `kv_consumer`  |  `8200`   |
 
-> [!IMPORTANT]
+> [!IMPORTANT]  
 > The decode deployment must use `kv_consumer`, **not** `kv_both`. vLLM defines
 > the roles as overlapping sets, so `kv_both` makes `is_kv_producer` true.
 > `TPUConnector` collapses both roles into a single `is_producer` boolean and
@@ -63,16 +63,17 @@ therefore creates two model server deployments rather than one:
 > `KV transfer timeout. Force recycle the memory buffer.`
 >
 > The failure is silent: both pods report ready and the answers are correct,
-> they are simply computed twice, which makes disaggregation strictly worse
-> than not disaggregating. Upstream llm-d currently ships `kv_both` here.
+> they are simply computed twice, which makes disaggregation strictly worse than
+> not disaggregating. Upstream llm-d currently ships `kv_both` here.
 
 A routing sidecar runs alongside the decode pod and coordinates the two phases
 of each request.
 
-> [!NOTE] Prefill/decode disaggregation is not a target for all workloads. It
-> benefits medium-large models with longer input sequence lengths, for example
-> 10k input and 1k output rather than 200 input and 200 output. For short,
-> balanced sequences the
+> [!NOTE]  
+> Prefill/decode disaggregation is not a target for all workloads. It benefits
+> medium-large models with longer input sequence lengths, for example 10k input
+> and 1k output rather than 200 input and 200 output. For short, balanced
+> sequences the
 > [optimized baseline](./llmd-optimized-baseline-vllm-with-hf-model.md) is
 > usually a better fit.
 
@@ -162,12 +163,13 @@ precedence over earlier ones:
 
   - `v6e` **(required)**
 
-> [!IMPORTANT] The other llm-d well-lit paths in this repository run on a `2x2`
-> (4 chip) TPU v6e slice. Prefill/decode disaggregation uses the `2x4` (8 chip)
-> slice with `--tensor-parallel-size=8`, matching the upstream llm-d TPU guide.
-> Because the prefill and decode pods each occupy a full slice, a single
-> prefill/decode pair requires two `ct6e-standard-8t` nodes. Confirm your TPU
-> quota before you deploy.
+> [!IMPORTANT]  
+> The other llm-d well-lit paths in this repository run on a `2x2` (4 chip) TPU
+> v6e slice. Prefill/decode disaggregation uses the `2x4` (8 chip) slice with
+> `--tensor-parallel-size=8`, matching the upstream llm-d TPU guide. Because the
+> prefill and decode pods each occupy a full slice, a single prefill/decode pair
+> requires two `ct6e-standard-8t` nodes. Confirm your TPU quota before you
+> deploy.
 
 ### Install Terraform 1.8.0+
 

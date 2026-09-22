@@ -128,7 +128,9 @@ def is_model_server(workload: dict) -> bool:
     if labels.get(ENGINE_LABEL) == "vllm":
         return True
 
-    containers = deep_get(workload, ["spec", "template", "spec", "containers"], []) or []
+    containers = (
+        deep_get(workload, ["spec", "template", "spec", "containers"], []) or []
+    )
     if any("vllm" in c.get("image", "").lower() for c in containers):
         return True
     return "vllm" in name or labels.get("app") == "vllm"
@@ -352,8 +354,10 @@ def merge_accelerator_facts(observed: dict, declared: dict) -> dict:
         "compute_class",
     )
     merged = {k: observed.get(k) or declared.get(k) for k in keys}
-    merged["source"] = "node" if observed.get("accelerator_type") else (
-        "computeclass" if declared.get("accelerator_type") else "unknown"
+    merged["source"] = (
+        "node"
+        if observed.get("accelerator_type")
+        else ("computeclass" if declared.get("accelerator_type") else "unknown")
     )
     return merged
 
@@ -522,7 +526,11 @@ def describe_model_server(
 def describe_router(workloads: list) -> dict:
     """Summarize the endpoint picker, which makes the routing decisions."""
     epp = next(
-        (w for w in workloads if deep_get(w, ["metadata", "name"], "").endswith("-epp")),
+        (
+            w
+            for w in workloads
+            if deep_get(w, ["metadata", "name"], "").endswith("-epp")
+        ),
         None,
     )
     if not epp:
@@ -611,9 +619,7 @@ def summarize_text(result: dict) -> str:
         )
         params = s["serving_parameters"]
         headline = [
-            f"{name}={params[name]}"
-            for name in HEADLINE_PARAMETERS
-            if name in params
+            f"{name}={params[name]}" for name in HEADLINE_PARAMETERS if name in params
         ]
         if headline:
             lines.append("      " + " ".join(headline))

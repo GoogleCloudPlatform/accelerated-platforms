@@ -1,0 +1,131 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: replaced-by-kustomize
+
+configMapGenerator:
+  - envs:
+      - runtime.env
+    name: runtime
+    namespace: replaced-by-kustomize
+
+nameSuffix: -h100-gemma-4-31b-it
+
+patches:
+  - path: patch-nodeselector.yaml
+  - path: patch-resources.yaml
+  - path: patch-runai-streamer.yaml
+
+replacements:
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+      # The policy selector must track the Deployment labels, otherwise the
+      # policy matches nothing and no snapshot is ever created.
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+        select:
+          kind: PodSnapshotPolicy
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: vllm
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=inference-server].image
+        select:
+          kind: Deployment
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Service
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PodSnapshotPolicy
+      # PodSnapshotStorageConfig is cluster scoped, but the top level
+      # `namespace:` directive still stamps a namespace onto it. Overwrite the
+      # placeholder so the manifest does not carry `replaced-by-kustomize`.
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PodSnapshotStorageConfig
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.template.spec.serviceAccountName
+        select:
+          kind: Deployment
+  - source:
+      fieldPath: data.MODEL_BUCKET_NAME
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.snapshotStorageConfig.gcs.bucket
+        select:
+          kind: PodSnapshotStorageConfig
+  # `nameSuffix` renames the PodSnapshotStorageConfig, so the reference from
+  # the policy has to be rewritten to match.
+  - source:
+      fieldPath: metadata.name
+      kind: PodSnapshotStorageConfig
+      name: vllm-fast-restore-snapshot-config
+    targets:
+      - fieldPaths:
+          - spec.storageConfigName
+        select:
+          kind: PodSnapshotPolicy
+  - source:
+      fieldPath: data.MODEL_NAME
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.template.metadata.labels.[ai.gke.io/model]
+        select:
+          kind: Deployment
+
+resources:
+  - ../base

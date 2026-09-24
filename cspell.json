@@ -149,5 +149,17 @@
     "platforms/gke/base/use-cases/training-ref-arch/kubernetes-manifests/model-fine-tuning/model-evaluation/examples/",
     "use-cases/inferencing/batch-inference/example_predictions.txt",
     "use-cases/model-fine-tuning-pipeline/model-eval/examples/"
+  ],
+  "words": [
+    "checkpointed",
+    "gvisor",
+    "nsenter",
+    "podsnapshot",
+    "podsnapshotpolicies",
+    "podsnapshots",
+    "podsnapshotstorageconfigs",
+    "prctl",
+    "runsc",
+    "sandboxed"
   ]
 }

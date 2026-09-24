@@ -154,6 +154,9 @@ with overlays for NVIDIA H100 and RTX PRO 6000 accelerators.
 
 Related patterns built on the same reference architecture:
 
+- [GKE Pod snapshots inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-podsnapshots-reference-architecture.md),
+  which builds on this architecture to restore later replicas from a memory
+  snapshot instead of repeating the cold start
 - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
 - [Online inference using vLLM with speculative decoding and GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-spec-decoding-with-hf-model.md)
 - [Online inference using vLLM with native KV cache offloading](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-native-kv-cache-offloading-single-tier.md)

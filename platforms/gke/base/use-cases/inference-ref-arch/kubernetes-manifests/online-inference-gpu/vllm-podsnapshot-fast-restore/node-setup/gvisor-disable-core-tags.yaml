@@ -1,0 +1,81 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# WORKAROUND: disable gVisor core tagging on GKE Sandbox nodes.
+#
+# On the GPU sandbox nodes used by this example, the node installer detects
+# duplicate core IDs and writes `enable-core-tags = "true"` into
+# /run/containerd/runsc/config.toml:
+#
+#   install.go:112] duplicate core id found: enabling core tags
+#
+# With that setting, every sandboxed Pod fails to start:
+#
+#   Failed read current core tags: prctl(PR_SCHED_CORE, PR_SCHED_CORE_GET, ...) (errno=3)
+#   FailedCreatePodSandBox ... cannot create sandbox: cannot read client sync
+#   file: waiting for sandbox to start: EOF
+#
+# This DaemonSet flips the setting to "false" and restarts containerd. It polls
+# rather than running once, because node auto-provisioning adds new sandbox
+# nodes during scale-out and each one ships with the setting enabled.
+#
+# Observed on GKE 1.36.4-gke.1247000 with g2-standard-8 (NVIDIA L4) nodes.
+# Remove this DaemonSet once the node image no longer enables core tags.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: gvisor-disable-core-tags
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: gvisor-disable-core-tags
+  template:
+    metadata:
+      labels:
+        app: gvisor-disable-core-tags
+    spec:
+      hostPID: true
+      # Only GKE Sandbox nodes have a runsc configuration.
+      nodeSelector:
+        sandbox.gke.io/runtime: gvisor
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: fixer
+          image: docker.io/library/busybox:1.36
+          command:
+            - nsenter
+            - -t
+            - "1"
+            - -m
+            - -u
+            - -i
+            - -n
+            - -p
+            - --
+            - sh
+            - -c
+            - |
+              while true; do
+                if grep -q 'enable-core-tags = "true"' /run/containerd/runsc/config.toml 2>/dev/null; then
+                  echo "Patching runsc config on $(hostname)..."
+                  sed -i 's/enable-core-tags = "true"/enable-core-tags = "false"/g' /run/containerd/runsc/config.toml
+                  systemctl restart containerd
+                  echo "Patched and restarted containerd."
+                fi
+                sleep 5
+              done
+          securityContext:
+            privileged: true

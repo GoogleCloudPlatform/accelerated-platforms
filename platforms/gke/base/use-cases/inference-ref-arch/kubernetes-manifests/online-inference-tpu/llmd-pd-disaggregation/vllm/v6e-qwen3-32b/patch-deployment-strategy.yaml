@@ -1,0 +1,31 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# TPU chips are a fixed, non-elastic pool. The default RollingUpdate strategy
+# brings a new pod up before retiring the old one, but each replica here holds
+# a whole 2x4 slice (8 chips). If the cluster has only enough TPU capacity for
+# the running replicas -- which is the normal case on reserved or quota-capped
+# capacity -- there are no chips left for the surge. The new pod sits Pending
+# forever waiting on chips the old pod will not release until the new one is
+# Ready. That is a deadlock, and it needs manual intervention to clear.
+#
+# Recreate trades a short outage during rollout for a rollout that terminates.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: placeholder-replaced-by-kustomize-target
+  namespace: replaced-by-kustomize
+spec:
+  strategy:
+    type: Recreate

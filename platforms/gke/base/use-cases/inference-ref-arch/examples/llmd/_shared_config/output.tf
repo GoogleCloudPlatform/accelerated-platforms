@@ -127,6 +127,11 @@ output "llmd_ob_guide_name" {
 output "llmd_namespace" {
   value = local.llmd_namespace
 }
+
+output "llmd_pd_guide_name" {
+  value = var.llmd_pd_guide_name
+}
+
 output "llmd_ppcr_guide_name" {
   value = var.llmd_ppcr_guide_name
 }

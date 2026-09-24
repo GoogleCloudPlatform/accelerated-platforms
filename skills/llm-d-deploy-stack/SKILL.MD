@@ -1,7 +1,7 @@
 ---
 name: llm-d-deploy-stack
 description: Deploys the llm-d stack on GKE using well-lit paths specification.
-version: 0.3.1
+version: 0.4.0
 allowed-tools: kubectl gcloud helm kustomize curl terraform python3
 mcp-servers:
   - kubernetes:
@@ -24,6 +24,7 @@ This skill utilizes the following core variables:
     - `optimized-baseline` (Standard optimized baseline configuration).
     - `precise-prefix-cache-routing` (Includes precise cache routing for multi-turn workloads).
     - `predicted-latency-routing` (Includes dynamic latency-based routing overlays).
+    - `pd-disaggregation` (Separates prefill and decode onto dedicated model servers. **TPU `v6e` only**, and only with the `qwen/qwen3-32b` model).
 
 - **CRITICAL WARNING:**
   1. **NEVER run any `teardown-*.sh` scripts** (e.g., `teardown-llmd-optimized-baseline.sh`) when attempting to "fix and rerun" a deployment or remove a workload. These scripts default to a full core platform teardown (`ACP_TEARDOWN_CORE_PLATFORM=true`) and will completely destroy the GKE cluster and all its resources. If a deployment fails, debug in place or re-run the `deploy` scripts. ONLY run teardown script when the user explicitly asks to tear down the stack and confirm with you first.
@@ -84,7 +85,9 @@ This skill utilizes the following core variables:
       - `optimized-baseline` (corresponds to [llmd-optimized-baseline-vllm-with-hf-model.md](../../docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/well-lit-paths/llmd-optimized-baseline-vllm-with-hf-model.md))
       - `precise-prefix-cache-routing` (corresponds to [llmd-precise-prefix-cache-routing-vllm-with-hf-model.md](../../docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/well-lit-paths/llmd-precise-prefix-cache-routing-vllm-with-hf-model.md))
       - `predicted-latency-routing` (corresponds to [llmd-predicted-latency-routing-vllm-with-hf-model.md](../../docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/well-lit-paths/llmd-predicted-latency-routing-vllm-with-hf-model.md))
+      - `pd-disaggregation` (corresponds to [llmd-pd-disaggregation-vllm-with-hf-model.md](../../docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/well-lit-paths/llmd-pd-disaggregation-vllm-with-hf-model.md))
     - _Validation_: If the user inputs anything else, flag it as invalid, display the list of allowed options, and ask again.
+    - _Validation_: If the user chose `pd-disaggregation`, the accelerator MUST be `v6e` and the model MUST be `qwen/qwen3-32b`. If either differs, explain that this guide is currently TPU-only in this repository and return to Section 2 to reconfigure.
 
 2.  **Deploy the baseline stack**:
     Run the deployment script corresponding to the chosen guide to create the cluster (if new) and deploy the baseline infra/services:
@@ -100,12 +103,17 @@ This skill utilizes the following core variables:
       ```bash
       "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/deploy-llmd-predicted-latency-routing.sh"
       ```
+    - For `pd-disaggregation`:
+      ```bash
+      "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/deploy-llmd-pd-disaggregation.sh"
+      ```
 3.  **Run validation**:
     - Run the following command to verify the chosen custom compute class exists on the cluster:
       ```bash
       kubectl get computeclasses
       ```
     - Ensure that the accelerator type you chose appears in the list. If it does not, warn the user that the accelerator is unsupported or missing its custom compute class.
+    - For `pd-disaggregation`, the required compute class is `tpu-v6e-2x4` (8 chips), not the `tpu-v6e-2x2` used by the other guides.
 
 ## 4. Hugging Face Token Setup
 

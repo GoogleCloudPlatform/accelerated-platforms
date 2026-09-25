@@ -2,22 +2,30 @@
 
 This document implements online inference using GPUs on Google Kubernetes Engine
 (GKE) with
-[NVIDIA Run:ai Model Streamer](https://github.com/run-ai/runai-model-streamer),
+[NVIDIA Run:ai Model Streamer](https://github.com/dsx-ai-factory/model-streamer),
 which streams model weights directly from Cloud Storage into GPU memory.
 
 In a conventional deployment, weights travel from object storage across the
 network, onto the host filesystem, through the Linux page cache into CPU RAM,
 and only then across PCIe into GPU memory. This serializes tensor reads,
 allocates the model twice, and requires the node to carry enough local storage
-to stage the entire model. The Run:ai Model Streamer collapses that into a
-single streaming operation, which both shortens the cold start and removes the
-staging disk requirement.
+or memory to stage the entire model. The Run:ai Model Streamer reads tensors
+from Cloud Storage concurrently and streams them into GPU memory, so the weight
+files are never staged on the node.
 
-| Model, GPU                            | Weights   | Load time  | Throughput  |
-| ------------------------------------- | --------- | ---------- | ----------- |
-| Gemma 4 31B, NVIDIA H100 80GB         | 58.99 GiB | **48.2 s** | ~1.22 GiB/s |
-| Llama 3.1 8B, NVIDIA H100 80GB        | 14.99 GiB | **15.0 s** | ~1.00 GiB/s |
-| Llama 3.1 8B, H100, default load path | 14.99 GiB | 50.6 s     | ~0.30 GiB/s |
+The following results were measured with the manifests in this guide, vLLM
+v0.26.0, and a model bucket in the same region as the cluster (`europe-west4`).
+_Weight load time_ is the time that vLLM reports for loading the weights.
+_Container start to ready_ also includes vLLM start-up, `torch.compile`, CUDA
+graph capture, and warm-up. Results depend on the region, the machine type, and
+the location of the bucket.
+
+| Model, GPU                                | Weights in GPU memory | Weight load time | Container start to ready |
+| ----------------------------------------- | --------------------- | ---------------- | ------------------------ |
+| Gemma 4 31B, NVIDIA H100 80GB             | 58.99 GiB             | 27.0 s           | 4 min 48 s               |
+| Gemma 4 31B, NVIDIA RTX PRO 6000 96GB     | 58.99 GiB             | 19.2 s           | 2 min 46 s               |
+| Gemma 3 27B, NVIDIA RTX PRO 6000 96GB     | 51.54 GiB             | 11.6 s           | 2 min 50 s               |
+| Qwen3.5 35B A3B, NVIDIA RTX PRO 6000 96GB | 65.53 GiB             | 11.5 s           | 3 min 36 s               |
 
 This example is built on top of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
@@ -30,12 +38,10 @@ For the architecture and design rationale, see the
   [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
   is deployed and configured.
 
-- Get access to the model.
+- Get access to the models.
 
-  - Accept the terms of the license on the Hugging Face model page.
-    - [**google/gemma-4-31b-it**](https://huggingface.co/google/gemma-4-31b-it)
+  - For Gemma 3, accept the terms of the license on the Hugging Face model page.
     - [**google/gemma-3-27b-it**](https://huggingface.co/google/gemma-3-27b-it)
-    - [**Qwen/Qwen3.5-35B-A3B**](https://huggingface.co/Qwen/Qwen3.5-35B-A3B)
 
 - Ensure your
   [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
@@ -59,9 +65,8 @@ For the architecture and design rationale, see the
 >
 > The model bucket is created with
 > [hierarchical namespace](https://cloud.google.com/storage/docs/hns-overview)
-> enabled. This gives the bucket a real directory structure rather than a flat
-> keyspace, which makes the many-object listing and prefix reads that the
-> streamer performs during load significantly faster. See
+> enabled, which offers higher initial request rate limits for reading and
+> writing objects than a bucket without hierarchical namespace. See
 > [`storage.tf`](/platforms/gke/base/core/huggingface/initialize/storage.tf).
 
 ## Download the model to Cloud Storage
@@ -83,7 +88,7 @@ For the architecture and design rationale, see the
   - **Qwen3.5 35B A3B**:
 
     ```shell
-    export HF_MODEL_ID="Qwen/Qwen3.5-35B-A3B"
+    export HF_MODEL_ID="qwen/qwen3.5-35b-a3b"
     ```
 
 - Source the environment configuration.
@@ -142,74 +147,81 @@ For the architecture and design rationale, see the
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/configure_vllm_runai.sh"
   ```
 
-- Select a variant.
+- Set the environment variables for the workload.
 
-  | Model           | h100 | rtx-pro-6000 |
-  | --------------- | ---- | ------------ |
-  | gemma-3-27b-it  |      | ✅           |
-  | gemma-4-31b-it  | ✅   | ✅           |
-  | qwen3.5-35b-a3b |      | ✅           |
-
-  - **Gemma 4 31B on NVIDIA H100 80GB**:
+  - Check the model name.
 
     ```shell
-    export VLLM_VARIANT="h100-gemma-4-31b-it"
+    echo "HF_MODEL_NAME=${HF_MODEL_NAME}"
     ```
 
-  - **Gemma 4 31B on NVIDIA RTX Pro 6000 96GB**:
+    > If the `HF_MODEL_NAME` variable is not set, ensure that `HF_MODEL_ID` is
+    > set and source the `set_environment_variables.sh` script:
+    >
+    > ```shell
+    > source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+    > ```
 
-    ```shell
-    export VLLM_VARIANT="rtx-pro-6000-gemma-4-31b-it"
-    ```
+  - Select an accelerator.
 
-  - **Gemma 3 27B on NVIDIA RTX Pro 6000 96GB**:
+    | Model           | h100 | rtx-pro-6000 |
+    | --------------- | ---- | ------------ |
+    | gemma-3-27b-it  | ❌   | ✅           |
+    | gemma-4-31b-it  | ✅   | ✅           |
+    | qwen3-5-35b-a3b | ❌   | ✅           |
+    - **NVIDIA H100 80GB**:
 
-    ```shell
-    export VLLM_VARIANT="rtx-pro-6000-gemma-3-27b-it"
-    ```
+      ```shell
+      export ACCELERATOR_TYPE="h100"
+      ```
 
-  - **Qwen3.5 35B A3B on NVIDIA RTX Pro 6000 96GB**:
+    - **NVIDIA RTX PRO 6000 96GB**:
 
-    ```shell
-    export VLLM_VARIANT="rtx-pro-6000-qwen3-5-35b-a3b"
-    ```
+      ```shell
+      export ACCELERATOR_TYPE="rtx-pro-6000"
+      ```
 
-  Ensure that you have enough quota in your project to provision the selected
-  accelerator type. For more information about viewing GPU quotas, see
-  [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
+    Ensure that you have enough quota in your project to provision the selected
+    accelerator type. For more information about viewing GPU quotas, see
+    [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
 - Deploy the inference workload.
 
   ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/${VLLM_VARIANT}"
+  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
 - Watch the deployment until it is ready.
 
   ```shell
-  watch --color --interval 5 --no-title "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${VLLM_VARIANT} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
   echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${VLLM_VARIANT} --all-containers --tail 10"
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
   ```
 
-  When the deployment is ready, you will see output similar to the following:
+  When the deployment is ready, you will see the following:
 
   ```text
-  NAME                             READY   UP-TO-DATE   AVAILABLE   AGE
-  vllm-h100-gemma-4-31b-it         1/1     1            1           ###
+  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+  vllm-<ACCELERATOR_TYPE>-<HF_MODEL_NAME>   1/1     1            1           ###
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
 
-- Confirm the streamer was used.
+- Confirm that the weights were loaded with the Run:ai Model Streamer.
 
   ```shell
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs \
-  deployment/vllm-${VLLM_VARIANT} | grep "Model loading took"
+  deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | \
+  grep -e "Runai Model Streamer: 100%" -e "Model loading took"
   ```
 
+  The output is similar to the following:
+
   ```text
-  Model loading took 58.9905 GiB and 48.164635 seconds
+  Loading safetensors using Runai Model Streamer: 100% Completed | 1188/1188 [00:24<00:00, 48.49it/s]
+  (EngineCore pid=126) INFO 09-25 16:08:23 [model_runner.py:305] Model loading took 58.99 GiB and 27.027104 seconds
   ```
 
 ## Send a test request to the model
@@ -218,7 +230,7 @@ For the architecture and design rationale, see the
 
   ```shell
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward \
-  service/vllm-${VLLM_VARIANT} 8000:8000 >/dev/null & \
+  service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null & \
   PF_PID=$!
   ```
 
@@ -247,92 +259,201 @@ For the architecture and design rationale, see the
 CPU and memory utilization are poor scaling signals for inference, because a
 vLLM engine saturates both during normal continuous batching even when serving a
 single request. The deployment therefore includes a `HorizontalPodAutoscaler`
-that scales on queue depth reported by the GKE Inference Gateway Endpoint
-Picker.
+that scales on `vllm:num_requests_waiting`, the number of requests that are
+waiting in the vLLM scheduler queue. GKE automatic application monitoring
+collects the metric with Google Cloud Managed Service for Prometheus, and the
+Custom Metrics Stackdriver Adapter makes it available to the autoscaler.
 
 - Review the autoscaling configuration.
 
   ```shell
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get hpa/vllm-${VLLM_VARIANT} \
-  --output=yaml | grep --after-context=8 "metrics:"
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get hpa/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} \
+  --output=yaml | grep --after-context=7 "  metrics:"
   ```
 
   ```text
-  metrics:
-    - type: Pods
-      pods:
+    metrics:
+    - pods:
         metric:
-          name: prometheus.googleapis.com|igw_queue_depth|gauge
+          name: prometheus.googleapis.com|vllm:num_requests_waiting|gauge
         target:
+          averageValue: "5"
           type: AverageValue
-          averageValue: 1
+      type: Pods
   ```
 
-  `igw_queue_depth` counts requests buffered at the gateway before dispatch.
-  Because it is observed at ingress rather than inside the engine, it rises the
-  moment demand exceeds the capacity currently deployed. The deployment scales
-  between 1 and 5 replicas.
+  The deployment scales between 1 and 5 replicas. It adds replicas when more
+  than 5 requests per replica are waiting on average, and it removes replicas
+  only after the number of waiting requests has stayed below the target for 5
+  minutes.
 
 - Watch the autoscaler react to load.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get hpa/vllm-${VLLM_VARIANT}"
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get hpa/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
   You can press `CTRL`+`c` to terminate the watch.
 
+  Until the first replica is serving and its metrics have been collected, the
+  `TARGETS` column shows `<unknown>/5`.
+
 For a full load-testing workflow, see
 [Benchmarking with inference-perf](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md).
 
-## Troubleshooting
+### What a scale-out benchmark requires
 
-If you experience any issue while deploying the workload, see the
-[Online inference with GPUs Troubleshooting](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/troubleshooting.md)
-guide.
+To trigger a scale-out onto a new GPU node and observe the Run:ai Model Streamer
+speedup, a benchmark must account for how vLLM schedules requests and how GKE
+provisions GPU capacity:
 
-### The model loads slowly, or the node runs out of disk
+- **Saturate the replica's running batch so requests enter the waiting queue**:
+  vLLM admits incoming requests immediately into the active batch
+  (`vllm:num_requests_running`) until either GPU KV cache blocks are full or
+  `--max-num-seqs` is reached. A request only increments
+  `vllm:num_requests_waiting` when it cannot fit into the active batch:
+  - **Gemma 4 31B (`h100` or `rtx-pro-6000`) and Gemma 3 27B (`rtx-pro-6000`)**:
+    With `12,114` KV cache tokens on H100 (`18,348` on RTX PRO 6000 for Gemma 4
+    31B; `99,070` for Gemma 3 27B), sending 24–32 concurrent requests with long
+    outputs (`"max_tokens": 1500` and `"ignore_eos": true`) fills the first
+    replica's KV cache so that 10 or more requests wait in the scheduler queue
+    and exceed the HPA target (`5`).
+  - **Qwen3.5 35B A3B (`rtx-pro-6000`)**: Because the hybrid linear-attention
+    (Mamba) and sparse KV architecture allocates `220,013` KV cache tokens and
+    sets `--max-num-seqs=256`, a single replica can hold up to 256 concurrent
+    sequences in the running batch before queuing. To trigger scale-out, either
+    drive more than 260 concurrent requests or lower `--max-num-seqs` (for
+    example, to `--max-num-seqs=16`) in
+    [`patch-vllm-args.yaml`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/rtx-pro-6000-qwen3-5-35b-a3b/patch-vllm-args.yaml).
+- **Send traffic from inside the cluster to the Kubernetes `Service`**:
+  `kubectl port-forward` binds to a single Pod when started and does not
+  distribute requests to new replicas as they become ready. Run the load
+  generator inside the cluster against
+  `http://vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}.${ira_online_gpu_kubernetes_namespace_name}.svc.cluster.local:8000`
+  so new requests are load-balanced across all `Ready` pods.
+- **Sustain load for at least 6 to 8 minutes**: Scaling onto a new node requires
+  GKE Node Auto-Provisioning to allocate and boot the GPU VM (~60–90 s), stream
+  the container image (~30–60 s), stream the model weights from Cloud Storage
+  into GPU memory with the Run:ai Model Streamer (`11.5–27.0 s`), and complete
+  `torch.compile`, CUDA graph capture, and warm-up (`2 min 46 s` to `4 min 48 s`
+  from container start to `Ready`).
+  - When using
+    [`inference-perf`](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md),
+    edit `configmap-benchmark.yaml` after running `configure_benchmark.sh` to
+    set `server.model_name` to `${HF_MODEL_ID}` (without the `/gcs/` prefix used
+    by Cloud Storage FUSE deployments) and increase `load.sweep.stage_duration`
+    from `30` to `180` or `300` seconds so the high-concurrency stages sustain
+    load while the new node comes online.
 
-Confirm the deployment is actually reading from Cloud Storage over `gs://`
-rather than a mounted filesystem. The streamer path requires both a `gs://`
-model argument and the `runai_streamer` load format:
+### Replicate a scale-out onto a new GPU node
 
-```shell
-kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get \
-deployment/vllm-${VLLM_VARIANT} \
---output=jsonpath='{.spec.template.spec.containers[0].args}' | tr ',' '\n' | grep -e model -e load-format
-```
+You can trigger and observe a scale-out onto a new GPU node directly without
+deploying the full `inference-perf` stack:
 
-```text
---model=gs://<bucket>/<model-id>
---load-format=runai_streamer
-```
+- Start an in-cluster load generator `Job` that sends concurrent long-generation
+  requests to the Service for 8 minutes.
 
-If the model argument points at a local path, the pod is staging weights to disk
-and none of the measurements above apply.
+  ```shell
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} apply -f - <<EOF
+  apiVersion: batch/v1
+  kind: Job
+  metadata:
+    name: vllm-scaleout-load
+  spec:
+    backoffLimit: 4
+    template:
+      spec:
+        restartPolicy: OnFailure
+        containers:
+          - name: load
+            image: curlimages/curl:8.10.1
+            resources:
+              requests:
+                cpu: "1"
+                memory: "1Gi"
+            env:
+              - name: WORKERS
+                value: "24"
+              - name: DURATION_SECONDS
+                value: "480"
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                URL="http://vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}.${ira_online_gpu_kubernetes_namespace_name}.svc.cluster.local:8000/v1/completions"
+                END=\$(( \$(date +%s) + \${DURATION_SECONDS} ))
+                worker() {
+                  while [ "\$(date +%s)" -lt "\${END}" ]; do
+                    curl -s -o /dev/null "${URL}" \
+                      -H "Content-Type: application/json" \
+                      -d '{"model":"${HF_MODEL_ID}","prompt":"Write a detailed history of distributed computing.","max_tokens":1500,"ignore_eos":true}'
+                  done
+                }
+                i=0
+                while [ "\${i}" -lt "\${WORKERS}" ]; do
+                  worker &
+                  i=\$((i + 1))
+                done
+                wait
+  EOF
+  ```
 
-### Permission denied reading the model bucket
+- Watch the autoscaler and pods as GKE provisions new GPU nodes and starts
+  additional replicas.
 
-The deployment reads the bucket through Workload Identity Federation rather than
-with a key. Confirm the Kubernetes service account is annotated and that the
-bucket grants it object read access:
+  ```shell
+  watch --color --interval 5 --no-title \
+  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get hpa/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}
+  echo ''
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get pods -l app=vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} -o wide"
+  ```
 
-```shell
-kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get serviceaccount \
---output=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.metadata.annotations}{"\n"}{end}'
-```
+  Within 30–60 seconds, `TARGETS` rises above `5/5` (for example, `13/5`) and
+  `REPLICAS` increases. New pods remain `Pending` while GKE provisions GPU
+  nodes, then transition to `Running` and `1/1 Ready`. You can press `CTRL`+`c`
+  to terminate the watch.
+
+- Confirm that the scaled-out replica on the new node streamed the model weights
+  from Cloud Storage with the Run:ai Model Streamer.
+
+  ```shell
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs \
+  --selector=app=vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} \
+  --prefix=true | \
+  grep -e "Runai Model Streamer: 100%" -e "Model loading took"
+  ```
+
+  Each replica reports its own streaming throughput and weight load time (for
+  example, `27.66 seconds` for 58.99 GiB on a newly provisioned H100 node):
+
+  ```text
+  [pod/vllm-h100-gemma-4-31b-it-595fcb9f4-hq6jp/inference-server] Loading safetensors using Runai Model Streamer: 100% Completed | 1188/1188 [00:24<00:00, 48.49it/s]
+  [pod/vllm-h100-gemma-4-31b-it-595fcb9f4-hq6jp/inference-server] (EngineCore pid=126) INFO 09-25 16:08:23 [model_runner.py:305] Model loading took 58.99 GiB and 27.027104 seconds
+  [pod/vllm-h100-gemma-4-31b-it-595fcb9f4-dw6vg/inference-server] Loading safetensors using Runai Model Streamer: 100% Completed | 1188/1188 [00:24<00:00, 47.65it/s]
+  [pod/vllm-h100-gemma-4-31b-it-595fcb9f4-dw6vg/inference-server] (EngineCore pid=126) INFO 09-25 16:20:10 [model_runner.py:305] Model loading took 58.99 GiB and 27.655491 seconds
+  ```
+
+- Delete the load generator `Job`.
+
+  ```shell
+  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} delete job/vllm-scaleout-load --ignore-not-found
+  ```
+
+  After the waiting queue stays at `0` for the 5-minute stabilization window,
+  the `HorizontalPodAutoscaler` scales the deployment back down to `1` replica.
 
 ## Clean up
 
 - Delete the inference workload.
 
   ```shell
-  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/${VLLM_VARIANT}"
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
 - Destroy the online GPU resources.
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init &&

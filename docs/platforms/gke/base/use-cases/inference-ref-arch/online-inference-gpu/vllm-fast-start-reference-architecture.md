@@ -7,7 +7,7 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2026-09-17 (YYYY-MM-DD)
+> Last Update: 2026-09-25 (YYYY-MM-DD)
 
 This document outlines a reference architecture for **minimizing the time it
 takes a new inference replica to start serving** on Google Kubernetes Engine
@@ -36,9 +36,10 @@ aims to:
 - **Keep the storage layer out of the way**: Model repositories contain many
   files. The bucket should be organized so that listing and reading them is not
   itself a bottleneck.
-- **Scale on signals that reflect demand**: Use ingress queue depth rather than
-  CPU or memory utilization, which saturate during normal continuous batching
-  and carry no information about unmet demand.
+- **Scale on signals that reflect demand**: Use the number of requests waiting
+  in the model server queue rather than CPU or memory utilization, which
+  saturate during normal continuous batching and carry no information about
+  unmet demand.
 - **Keep the deployment path reproducible**: The same manifests that produce the
   documented behaviour are the ones published in this repository.
 
@@ -49,8 +50,9 @@ This reference architecture provides a foundation for:
 - Streaming model weights from Cloud Storage directly into GPU memory with no
   local staging disk.
 - Serving across multiple GPU generations, including NVIDIA H100 and
-  Blackwell-generation RTX Pro 6000.
-- Autoscaling on inference-aware metrics from the GKE Inference Gateway.
+  Blackwell-generation RTX PRO 6000.
+- Autoscaling on the vLLM request queue, collected with Google Cloud Managed
+  Service for Prometheus.
 - Serving large open models, including Gemma 3 27B, Gemma 4 31B, and Qwen3.5 35B
   A3B.
 
@@ -77,17 +79,20 @@ In a conventional deployment, weights travel from object storage across the
 network, onto the host filesystem, through the Linux page cache into CPU RAM,
 and only then across PCIe into GPU memory. This serializes tensor reads,
 allocates the model twice, and requires the node to carry enough local storage
-to stage the entire model.
+or memory to stage the entire model.
 
-[NVIDIA Run:ai Model Streamer](https://github.com/run-ai/runai-model-streamer)
+[NVIDIA Run:ai Model Streamer](https://github.com/dsx-ai-factory/model-streamer)
 collapses this into a single streaming operation from Cloud Storage into GPU
 memory, enabled in vLLM with `--load-format=runai_streamer` and a `gs://` model
 path. It reads many tensors concurrently and hands them to the GPU as they
 arrive, rather than reconstructing the full model on disk first.
 
-Measured on Gemma 4 31B (58.99 GiB of safetensors) on an NVIDIA H100 80GB, this
-loads weights in **48.16 seconds**, approximately 1.22 GiB/s, requiring **zero
-bytes** of local ephemeral storage.
+Measured in `europe-west4` with a regional Cloud Storage bucket, vLLM loaded
+Gemma 4 31B (58.99 GiB in GPU memory) in **27.0 seconds** on an NVIDIA H100 80GB
+and **19.2 seconds** on an NVIDIA RTX PRO 6000 96GB, Gemma 3 27B (51.54 GiB) in
+**11.6 seconds** on an RTX PRO 6000 96GB, and Qwen3.5 35B A3B (65.53 GiB) in
+**11.5 seconds** on an RTX PRO 6000 96GB, without staging the weight files on
+local storage.
 
 ### Cloud Storage with hierarchical namespace
 
@@ -98,11 +103,11 @@ serving path.
 
 The bucket is created with
 [hierarchical namespace](https://cloud.google.com/storage/docs/hns-overview)
-enabled. A hierarchical namespace bucket stores objects in a real folder
-structure rather than a flat keyspace, which makes listing and prefix-scoped
-reads faster and cheaper. A model repository is exactly that shape: a directory
-of many shards plus configuration and tokenizer files, all read together at load
-time.
+enabled. A hierarchical namespace bucket stores objects in folders rather than a
+flat namespace, and offers up to 8 times higher initial queries per second (QPS)
+limits for reading and writing objects than a bucket without hierarchical
+namespace. Higher limits help when several replicas load the same model at the
+same time, such as during a scale-out.
 
 > [!NOTE]
 >
@@ -118,13 +123,6 @@ disproportionately for inference, because vLLM and PyTorch container images are
 large, and the image pull is otherwise the first serial step of every cold
 start.
 
-### GKE Inference Gateway and Endpoint Picker
-
-Provides model-aware L7 routing, including prefix cache affinity so that
-requests sharing a prompt prefix are routed to replicas whose KV cache is
-already warm. The Endpoint Picker also exposes the ingress-level queue metrics
-used for autoscaling.
-
 ### Horizontal Pod Autoscaling on inference metrics
 
 CPU and memory utilization are poor scaling signals for inference: a vLLM engine
@@ -132,11 +130,15 @@ saturates both during normal continuous batching, even when serving a single
 request. Scaling on them produces replicas that are not needed and misses
 replicas that are.
 
-This architecture scales on `igw_queue_depth`, the number of requests buffered
-at the gateway before dispatch. Because it is observed at ingress rather than
-inside the engine, it rises the moment demand exceeds deployed capacity, and it
-returns to zero when it does not. The deployed `HorizontalPodAutoscaler` targets
-an average queue depth of 1 request per pod.
+This architecture scales on `vllm:num_requests_waiting`, the number of requests
+waiting in the vLLM scheduler queue of each replica. It rises as soon as
+requests arrive faster than the deployed replicas can admit them, and it returns
+to zero when they catch up. GKE automatic application monitoring collects the
+metric with Google Cloud Managed Service for Prometheus, and the Custom Metrics
+Stackdriver Adapter makes it available to the autoscaler. The deployed
+`HorizontalPodAutoscaler` targets an average of 5 waiting requests per replica,
+adds replicas without a stabilization window, and removes them only after a
+5-minute stabilization window.
 
 Fast loading is what makes autoscaling on this signal worthwhile. A scale-out
 signal is only actionable if capacity can arrive before the spike ends.
@@ -148,7 +150,7 @@ A practical, step-by-step guide to deploying this architecture can be found in
 
 The Kubernetes manifests are in
 `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai`,
-with overlays for NVIDIA H100 and RTX Pro 6000 accelerators.
+with overlays for NVIDIA H100 and RTX PRO 6000 accelerators.
 
 Related patterns built on the same reference architecture:
 
@@ -162,5 +164,5 @@ Related patterns built on the same reference architecture:
 - [Image streaming in GKE](https://cloud.google.com/kubernetes-engine/docs/how-to/image-streaming)
 - [GKE Inference Gateway](https://cloud.google.com/kubernetes-engine/docs/concepts/about-gke-inference-gateway)
 - [About custom compute classes in GKE](https://cloud.google.com/kubernetes-engine/docs/concepts/about-custom-compute-classes)
-- [NVIDIA Run:ai Model Streamer](https://github.com/run-ai/runai-model-streamer)
+- [NVIDIA Run:ai Model Streamer](https://github.com/dsx-ai-factory/model-streamer)
 - [vLLM documentation](https://docs.vllm.ai/)

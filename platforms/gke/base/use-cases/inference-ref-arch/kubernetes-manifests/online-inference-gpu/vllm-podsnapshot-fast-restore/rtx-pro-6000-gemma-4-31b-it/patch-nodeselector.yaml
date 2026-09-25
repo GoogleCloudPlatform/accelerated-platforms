@@ -12,19 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-configMapGenerator:
-  - envs:
-      - vllm.env
-    name: vllm
-    namespace: replaced-by-kustomize
-
-resources:
-  - ../../base
-  - deployment.yaml
-  - service.yaml
-  - pod-disruption-budget.yaml
-  - pod-snapshot-config.yaml
-  - pod-snapshot-policy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-fast-restore
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      nodeSelector:
+        # The compute class matters: it pins `driverVersion: latest`, which is
+        # what puts a driver >= 570 on the node. GPU checkpointing depends on
+        # `gvisor-cuda-cr`, and that binary links against
+        # `cuCheckpointProcessUnlock`, a symbol that only exists from R570
+        # onwards.
+        cloud.google.com/compute-class: gpu-rtx-pro-6000-96gb-x1

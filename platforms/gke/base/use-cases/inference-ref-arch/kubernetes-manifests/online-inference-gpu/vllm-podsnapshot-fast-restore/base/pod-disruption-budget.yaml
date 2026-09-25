@@ -1,0 +1,36 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: vllm-fast-restore
+  namespace: replaced-by-kustomize
+spec:
+  # Uploading a snapshot takes minutes after the workload triggers it, and the
+  # checkpoint fails if the Pod is evicted before the upload completes. The GPU
+  # compute classes enable active migration, which drains a node to move its
+  # Pods to a more preferred node configuration. Active migration and cluster
+  # autoscaler scale-down do not evict Pods when that would violate a
+  # PodDisruptionBudget.
+  #
+  # A budget is used instead of the
+  # `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"` annotation. On
+  # GKE Autopilot that annotation requests extended run time, which is not
+  # supported for Pods that target custom compute classes. A budget also leaves
+  # the pod template, and therefore the snapshot, unchanged.
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: vllm-fast-restore

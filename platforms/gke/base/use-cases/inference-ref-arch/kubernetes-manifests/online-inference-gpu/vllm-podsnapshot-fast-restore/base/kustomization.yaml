@@ -25,5 +25,6 @@ resources:
   - ../../base
   - deployment.yaml
   - service.yaml
+  - pod-disruption-budget.yaml
   - pod-snapshot-config.yaml
   - pod-snapshot-policy.yaml

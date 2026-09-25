@@ -97,13 +97,16 @@ spec:
                 configMapKeyRef:
                   key: TENSOR_PARALLEL_SIZE
                   name: runtime
-            # Provisioned from Secret Manager by the inference reference
-            # implementation. See the Hugging Face initialize README.
+            # Only needed when the weights are downloaded from the Hugging Face
+            # Hub. The how-to guide creates this Secret from Secret Manager for
+            # that path. Variants that stream the weights from Cloud Storage do
+            # not need it, so the reference is optional.
             - name: HF_TOKEN
               valueFrom:
                 secretKeyRef:
                   key: token
                   name: huggingface-token
+                  optional: true
             # PyTorch's TCPStore and the NCCL bootstrap record their rendezvous
             # address inside the checkpointed process image. A restored replica
             # always receives a new pod IP, so anything other than loopback
@@ -114,16 +117,20 @@ spec:
           ports:
             - containerPort: 8000
               name: metrics
+          # A restored replica can serve within seconds of its container
+          # starting, so the probe starts immediately and polls often. An
+          # initial delay or a long period would add directly to the measured
+          # restore time.
           readinessProbe:
             failureThreshold: 6000
             httpGet:
               path: /health
               port: 8000
               scheme: HTTP
-            initialDelaySeconds: 15
-            periodSeconds: 10
+            initialDelaySeconds: 0
+            periodSeconds: 2
             successThreshold: 1
-            timeoutSeconds: 5
+            timeoutSeconds: 2
           resources: {}
           volumeMounts:
             - mountPath: /dev/shm

@@ -1,0 +1,44 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ==============================================================================
+# Zero-Trust Sandbox Egress NetworkPolicy (`restrict-sandbox-egress`)
+# ==============================================================================
+# Enforces default-deny outbound networking on all sandbox pods in the
+# `agent-sandbox` namespace (except internal cluster DNS resolution on port 53
+# and intra-namespace routing from `sandbox-router`). Prevents untrusted or
+# hallucinated LLM code from exfiltrating data to the internet or connecting to
+# the GCP Instance Metadata Server (`169.254.169.254`).
+# ==============================================================================
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: restrict-sandbox-egress
+  namespace: agent-sandbox
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  # 1. Allow intra-namespace traffic between sandbox-router and claimed sandboxes
+  - to:
+    - podSelector: {}
+  # 2. Allow CoreDNS resolution (UDP/TCP 53) so sandbox-router can resolve <claim>.agent-sandbox.svc.cluster.local
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

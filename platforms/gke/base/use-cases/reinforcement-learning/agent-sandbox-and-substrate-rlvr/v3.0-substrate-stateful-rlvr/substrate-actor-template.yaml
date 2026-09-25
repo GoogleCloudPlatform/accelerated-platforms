@@ -1,0 +1,75 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ==============================================================================
+# GKE Agent Substrate (v0.1.0): ActorTemplate & WorkerPool
+# ==============================================================================
+# Reference manifest for scaling multi-turn Stateful RLVR trajectories (e.g.,
+# SWE-bench, multi-step terminal agents, Nous Research Hermes Agent) using
+# GKE Agent Substrate (https://docs.cloud.google.com/kubernetes-engine/ai-ml/about-agent-substrate).
+#
+# Why Agent Substrate for Multi-Turn RL & Agents:
+#   - During multi-turn RL rollouts, environments spend ~90% of wall-clock time
+#     idle waiting for the Policy LLM (on GPU/TPU) to generate the next action.
+#   - Agent Substrate decouples the `Actor` (stateful agent memory + filesystem)
+#     from the `Worker` (gVisor / Cloud Hypervisor compute sandbox).
+#   - When an Actor waits on LLM inference, Substrate snapshots its memory and
+#     filesystem to Local SSD + Cloud Storage in ~460ms (P90) and releases the
+#     Worker back to the WorkerPool, achieving up to 10x higher compute density
+#     and resuming in ~470ms (P90) at >500 activations/sec (200k agents/cluster).
+#
+# Cluster Requirements (GKE Standard 1.36+ / 1.37+):
+#   - Uniform machine series per ActorTemplate (e.g., c3-standard-4 or c4; no E2)
+#   - Beta APIs: PodCertificateRequest & ClusterTrustBundle enabled
+#   - Workload Identity Federation for GKE enabled (for GCS snapshot durability)
+# ==============================================================================
+apiVersion: substrate.agents.x-k8s.io/v1alpha1
+kind: ActorTemplate
+metadata:
+  name: rlvr-stateful-swe-actor
+  namespace: agent-sandbox
+spec:
+  # Uniform VM family required so gVisor/Cloud Hypervisor CPU register snapshots
+  # can suspend on Node A and resume deterministically on Node B in <470ms (P90)
+  nodeSelector:
+    cloud.google.com/machine-family: c3
+  isolation:
+    # Supports `gvisor` (low-overhead syscall sentry) or `cloud-hypervisor` (MicroVM)
+    runtime: gvisor
+  snapshotPolicy:
+    # Automatically suspend Actor memory/FS to Local SSD + GCS when idle between LLM turns
+    idleSuspendTimeoutMs: 500
+    storageBackend: local-ssd-and-gcs
+  template:
+    spec:
+      containers:
+      - name: swe-rl-env
+        image: us-central1-docker.pkg.dev/k8s-staging-images/agent-sandbox/python-runtime-sandbox:latest-main
+        ports:
+        - containerPort: 8888
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+---
+apiVersion: substrate.agents.x-k8s.io/v1alpha1
+kind: WorkerPool
+metadata:
+  name: rlvr-c3-gvisor-workerpool
+  namespace: agent-sandbox
+spec:
+  actorTemplateRef:
+    name: rlvr-stateful-swe-actor
+  # Pre-started, idle gVisor Workers ready to restore any suspended Actor snapshot in ~470ms
+  warmWorkers: 16

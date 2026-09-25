@@ -1,0 +1,116 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: adk-agent-sa
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sandbox-claim-creator
+  namespace: agent-sandbox
+rules:
+- apiGroups: ["extensions.agents.x-k8s.io"]
+  resources: ["sandboxclaims"]
+  verbs: ["create", "delete", "get", "list", "watch"]
+- apiGroups: ["agents.x-k8s.io"]
+  resources: ["sandboxes"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: allow-default-agent-to-claim-sandboxes
+  namespace: agent-sandbox
+subjects:
+- kind: ServiceAccount
+  name: adk-agent-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: sandbox-claim-creator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: code-agent
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: code-agent
+  template:
+    metadata:
+      labels:
+        app: code-agent
+      annotations:
+        instrumentation.opentelemetry.io/inject-python: "true"
+    spec:
+      serviceAccountName: adk-agent-sa
+      containers:
+      - name: agent
+        image: ${REGION}-docker.pkg.dev/${PROJECT_ID}/agent-repo/code-agent:v1
+        args: ["--host", "0.0.0.0", "--port", "8080", "--otel_to_cloud", "--allow_origins", "regex:https?://.*"]
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SANDBOX_API_URL
+          value: "http://sandbox-router-svc.agent-sandbox.svc.cluster.local:8080"
+        - name: SANDBOX_NAMESPACE
+          value: "agent-sandbox"
+        - name: SANDBOX_TEMPLATE
+          value: "python-runtime-template"
+        - name: ROUTER_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: sandbox-router-secret
+              key: ROUTER_AUTH_TOKEN
+        - name: GOOGLE_GENAI_USE_VERTEXAI
+          value: "1"
+        - name: GOOGLE_CLOUD_PROJECT
+          value: "${PROJECT_ID}"
+        - name: GOOGLE_CLOUD_LOCATION
+          value: "${REGION}"
+        - name: OTEL_SERVICE_NAME
+          value: "adk-code-agent"
+        - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+          value: "true"
+        - name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+          value: "true"
+        volumeMounts:
+        - name: agent-source
+          mountPath: /app/root_agent/agent.py
+          subPath: agent.py
+      volumes:
+      - name: agent-source
+        configMap:
+          name: code-agent-source
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: code-agent-service
+  namespace: default
+spec:
+  type: LoadBalancer
+  selector:
+    app: code-agent
+  ports:
+  - port: 80
+    targetPort: 8080

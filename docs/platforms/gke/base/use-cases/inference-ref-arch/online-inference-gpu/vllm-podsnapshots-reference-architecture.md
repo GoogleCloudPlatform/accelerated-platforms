@@ -7,7 +7,7 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2026-09-24 (YYYY-MM-DD)
+> Last Update: 2026-09-25 (YYYY-MM-DD)
 
 This document outlines a reference architecture for **restoring GPU inference
 replicas from a memory snapshot** on Google Kubernetes Engine (GKE). It extends
@@ -152,9 +152,29 @@ cache capacity without a proportional increase in snapshot size.
 Checkpointing uploads the full memory image. A roughly 21 GB image took about
 four minutes to become available, and a roughly 73 GB image took 11 to 15
 minutes. For most of that window the snapshot objects are not visible in the
-bucket, because the largest object is written last. Restore does not share this
-cost: in the H100 measurements below, a 73 GB image restored as quickly as a 21
-GB one. That is a small number of data points, so measure it for your own model.
+bucket, because the largest object is written last. GKE pauses the Pod to take
+the snapshot. In the RTX Pro 6000 validation, the replica stopped answering
+requests about 20 seconds after the trigger and resumed when the memory image
+finished uploading, 13 minutes later. Restore does not share this cost: in the
+H100 measurements below, a 73 GB image restored as quickly as a 21 GB one. That
+is a small number of data points, so measure it for your own model.
+
+### Protecting the capture from eviction
+
+The paused replica still reports `Ready`, because its readiness probe tolerates
+long runs of failures, so nothing in its status shows that evicting it would
+lose the snapshot. A Service also keeps routing requests to it, and they are not
+answered until the upload completes. The GPU compute classes of the reference
+implementation enable active migration, which drains a node to move its Pods to
+a more preferred node configuration. On the Autopilot cluster used to validate
+this architecture, the cluster autoscaler evicted the cold-start replica 13
+minutes after the checkpoint was triggered, as the upload was finishing, and the
+checkpoint failed. The deployment therefore includes a `PodDisruptionBudget`
+that allows no voluntary disruptions, which active migration and autoscaler
+scale-down respect. The cost is that the autoscaler does not move or consolidate
+serving replicas. The `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`
+annotation is not used, because on Autopilot it requests extended run time,
+which is not supported for Pods that target custom compute classes.
 
 ### Storage lifecycle and permissions
 
@@ -183,10 +203,13 @@ container and the node. It also means the workload runs on sandboxed nodes and
 is subject to gVisor's compatibility surface. Validate the serving performance
 of your own model under the sandbox before adopting the pattern.
 
-On the GPU sandbox nodes used for this architecture, gVisor enabled core
-tagging, and every sandboxed Pod then failed to start. The implementation ships
-a DaemonSet that disables the setting on each sandbox node as it joins. Treat it
-as a workaround to remove once the platform no longer needs it.
+On the GPU sandbox nodes of the GKE Standard cluster used for this architecture,
+gVisor enabled core tagging, and every sandboxed Pod then failed to start. The
+implementation ships a DaemonSet that disables the setting on each sandbox node
+as it joins. Treat it as a workaround to remove once the platform no longer
+needs it. GKE Autopilot does not allow the DaemonSet, and the Autopilot GPU
+sandbox nodes used to validate this architecture started sandboxed Pods without
+it.
 
 ## When to add Pod snapshots
 
@@ -216,8 +239,9 @@ as a workaround to remove once the platform no longer needs it.
 
 Cold start is measured from the Pod being scheduled, or the container being
 created, to the replica serving. Restore is measured from `PodScheduled` to
-`Ready`. The L4 results were measured end to end with the manifests in this
-repository, which poll `/health` every 10 seconds. The L4 cold start includes
+`Ready`. The L4 results were measured end to end with an earlier version of the
+manifests in this repository, whose readiness probe polled `/health` every 10
+seconds after an initial delay of 15 seconds. The L4 cold start includes
 downloading the weights from the Hugging Face Hub, and the L4 restore was onto a
 newly provisioned node. The 265 second and 5 second Gemma 4 31B results on H100,
 and the RTX Pro 6000 results, also used a readiness probe on `/health`, and the
@@ -226,6 +250,18 @@ restores were confirmed by the absence of any model-loading work in the restored
 Pod's logs and by a correct response to a request. The RTX Pro 6000 result was
 measured with manifests that are not included in this repository.
 
+The RTX Pro 6000 variant in this repository was later validated end to end on a
+GKE Autopilot cluster where Image streaming had not yet cached the container
+image. Each new node spent about four minutes pulling the image, so
+`PodScheduled` to `Ready` was 401 seconds for the cold start and 255 seconds for
+the restore onto a newly provisioned node. From the container starting to
+`Ready`, the cold start took 164 seconds and the restore less than one second.
+The restored Pod's `PodRestored` condition was set 17 seconds after its
+container started. The first request that the test could send to the restored
+Pod, 16 seconds after its container started, was answered in 2.3 seconds. The
+first request to the cold-start replica, sent after its snapshot was uploaded,
+took 1.6 seconds, and later requests to either replica took 0.4 seconds.
+
 ## Getting Started
 
 A practical, step-by-step guide to deploying this architecture can be found in
@@ -233,7 +269,7 @@ A practical, step-by-step guide to deploying this architecture can be found in
 
 The Kubernetes manifests are in
 `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore`,
-with overlays for NVIDIA L4 and H100 accelerators.
+with overlays for NVIDIA L4, H100, and RTX Pro 6000 accelerators.
 
 Related patterns built on the same reference architecture:
 

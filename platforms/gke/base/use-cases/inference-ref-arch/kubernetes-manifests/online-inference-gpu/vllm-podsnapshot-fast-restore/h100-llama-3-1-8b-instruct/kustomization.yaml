@@ -50,6 +50,12 @@ replacements:
           - spec.selector.matchLabels.app
         select:
           kind: PodSnapshotPolicy
+      # The budget selector must track the Deployment labels as well,
+      # otherwise it protects nothing.
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+        select:
+          kind: PodDisruptionBudget
   - source:
       fieldPath: data.CONTAINER_IMAGE_URL
       kind: ConfigMap
@@ -80,6 +86,10 @@ replacements:
           - metadata.namespace
         select:
           kind: PodSnapshotPolicy
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PodDisruptionBudget
       # PodSnapshotStorageConfig is cluster scoped, but the top level
       # `namespace:` directive still stamps a namespace onto it. Overwrite the
       # placeholder so the manifest does not carry `replaced-by-kustomize`.

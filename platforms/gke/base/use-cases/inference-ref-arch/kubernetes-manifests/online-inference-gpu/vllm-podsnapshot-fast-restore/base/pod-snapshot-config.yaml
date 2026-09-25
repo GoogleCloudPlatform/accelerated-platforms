@@ -20,8 +20,10 @@ spec:
   snapshotStorageConfig:
     gcs:
       # Populated by kustomize from the `MODEL_BUCKET_NAME` key of the shared
-      # `deployment` ConfigMap. Each snapshot lands under a UID-named prefix,
-      # so sharing the bucket with the Hugging Face model cache is safe.
+      # `deployment` ConfigMap. Each snapshot lands under a prefix named after
+      # its PodSnapshot, a generated UUID that is not the object's
+      # `metadata.uid`, so sharing the bucket with the Hugging Face model cache
+      # is safe.
       #
       # Snapshots are written with the workload's Kubernetes service account
       # (the default `podKSA` token source), which needs object read and

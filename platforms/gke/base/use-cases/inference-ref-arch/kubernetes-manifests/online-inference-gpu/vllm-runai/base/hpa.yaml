@@ -28,10 +28,10 @@ spec:
     - type: Pods
       pods:
         metric:
-          name: prometheus.googleapis.com|igw_queue_depth|gauge
+          name: prometheus.googleapis.com|vllm:num_requests_waiting|gauge
         target:
           type: AverageValue
-          averageValue: 1
+          averageValue: "5"
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 0

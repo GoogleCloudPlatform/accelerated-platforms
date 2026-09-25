@@ -20,6 +20,8 @@ Contains environment variables to configure different Hugging Face settings.
   by the `online-inference-gpu/diffusers` scripts.
 - `hf_gpu_vllm_models`: A list of Hugging Face models that will be tested by the
   `online-inference-gpu/vllm` scripts.
+- `hf_gpu_vllm_runai_models`: A list of Hugging Face models that will be tested
+  by the `online-inference-gpu/vllm-runai` scripts.
 - `hf_tpu_max_diffusion_models`: A list of Hugging Face models that will be
   tested by the `online-inference-tpu/max-diffusion` scripts.
 - `hf_tpu_vllm_models`: A list of Hugging Face models that will be tested by the
@@ -97,6 +99,25 @@ in the `hf_gpu_vllm_models` environment variable.
 ##### `deployment_test.sh`
 
 Sends a test request to all of the GPU vLLM deployments.
+
+#### `vllm-runai`
+
+These scripts can be used to deploy and test the `hf_gpu_vllm_runai_models` that
+use the vLLM inference server with the NVIDIA Run:ai Model Streamer.
+
+##### `deployment_apply.sh`
+
+Applies the manifests for the GPU vLLM Run:ai Model Streamer deployment for all
+of the models listed in the `hf_gpu_vllm_runai_models` environment variable.
+
+##### `deployment_delete.sh`
+
+Deletes the resources for the GPU vLLM Run:ai Model Streamer deployment for all
+of the models listed in the `hf_gpu_vllm_runai_models` environment variable.
+
+##### `deployment_test.sh`
+
+Sends a test request to all of the GPU vLLM Run:ai Model Streamer deployments.
 
 ### `online-inference-tpu`
 
@@ -234,6 +255,28 @@ Sends a test request to all of the TPU vLLM deployments.
 
   ```shell
   "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm/deployment_delete.sh"
+  ```
+
+### Test the GPU online inference vLLM Run:ai Model Streamer models
+
+- Apply the GPU vLLM Run:ai Model Streamer manifests.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-runai/deployment_apply.sh"
+  ```
+
+- Wait for all the deployments to be ready.
+
+- Test the GPU vLLM Run:ai Model Streamer inference servers.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-runai/deployment_test.sh"
+  ```
+
+- Delete the GPU vLLM Run:ai Model Streamer resources.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-runai/deployment_delete.sh"
   ```
 
 ### Test the TPU online inference MaxDiffusion models

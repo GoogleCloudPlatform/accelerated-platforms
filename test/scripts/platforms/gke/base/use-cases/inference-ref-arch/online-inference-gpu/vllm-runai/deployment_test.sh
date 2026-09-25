@@ -27,12 +27,12 @@ if [[ ! -v ACCELERATOR_TYPE ]]; then
   exit 1
 fi
 
-for model in "${hf_gpu_vllm_models[@]}"; do
+for model in "${hf_gpu_vllm_runai_models[@]}"; do
   export HF_MODEL_ID=${model}
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
   if [[ -d "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}" ]]; then
-    echo "Testing '${HF_MODEL_ID}' model deployment on '${ACCELERATOR_TYPE}' (Run:ai + PodSnapshots)"
+    echo "Testing '${HF_MODEL_ID}' model deployment on '${ACCELERATOR_TYPE}'"
     echo "--------------------------------------------------------------------------------------------"
 
     echo "Setting up port forwarding..."
@@ -43,7 +43,7 @@ for model in "${hf_gpu_vllm_models[@]}"; do
 
     echo "Waiting for port forwarding..."
     while ! echo -e '\x1dclose\x0d' | telnet localhost ${forwarding_port} >/dev/null 2>&1; do
-      if ! ps | grep " $PF_PID " >/dev/null; then
+      if ! kill -0 "${PF_PID}" 2>/dev/null; then
         port_forwarding_failed=1
         echo "Port forwarding process exited!"
         echo
@@ -64,17 +64,11 @@ for model in "${hf_gpu_vllm_models[@]}"; do
     echo "----------------------------------------------------------------------------------"
     echo
 
-    # We use the HF_MODEL_ID directly as the model name in the request.
-    # vLLM might expect the full gs:// path or just the ID depending on configuration,
-    # but /v1/models will have revealed the truth.
     echo "Sending POST request to '/v1/chat/completions'"
     echo "----------------------------------------------------------------------------------"
-    # Attempt to use the first model returned by /v1/models if HF_MODEL_ID doesn't match exactly
-    MODEL_NAME=$(curl --request GET --show-error --silent http://127.0.0.1:${forwarding_port}/v1/models | jq -r '.data[0].id')
-    
     curl http://127.0.0.1:${forwarding_port}/v1/chat/completions \
     --data '{
-      "model": "'${MODEL_NAME}'",
+      "model": "'${HF_MODEL_ID}'",
       "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
       }' \
     --header "Content-Type: application/json" \
@@ -91,7 +85,7 @@ for model in "${hf_gpu_vllm_models[@]}"; do
     echo
     echo
   else
-    echo "'${HF_MODEL_ID}' model does not have a Run:ai configuration for '${ACCELERATOR_TYPE}', skipping."
+    echo "'${HF_MODEL_ID}' model does not have a configuration for '${ACCELERATOR_TYPE}', skipping."
     echo
   fi
 done

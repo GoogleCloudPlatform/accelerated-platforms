@@ -105,8 +105,12 @@ validate_workload_config() {
     else
       echo "Skipping updates. The benchmark will proceed using the CURRENT (default) configuration."
     fi
-  else
+  elif [ $code -eq 0 ]; then
     echo "Configuration is optimal. Proceeding with the benchmark."
+  else
+    echo "WARNING: the workload tuner exited with status ${code} without reporting a result." >&2
+    echo "WARNING: the deployment has NOT been validated against this workload profile." >&2
+    echo "WARNING: proceeding with the CURRENT configuration; verify it by hand." >&2
   fi
 }
 

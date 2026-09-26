@@ -12,11 +12,12 @@ cache. That work is identical on every replica. A Pod snapshot captures the
 result once, with the weights already in GPU memory, and every later replica
 resumes from it instead of repeating it.
 
-| Model, GPU                     | Cold start   | Restore from snapshot |
-| ------------------------------ | ------------ | --------------------- |
-| Llama 3.1 8B, NVIDIA L4        | 561 s        | **41 s**              |
-| Llama 3.1 8B, NVIDIA H100 80GB | 163 s        | **3 s**               |
-| Gemma 4 31B, NVIDIA H100 80GB  | 234 to 265 s | **3 to 5 s**          |
+| Model, GPU                            | Cold start   | Restore from snapshot |
+| ------------------------------------- | ------------ | --------------------- |
+| Llama 3.1 8B, NVIDIA L4               | 561 s        | **41 s**              |
+| Llama 3.1 8B, NVIDIA H100 80GB        | 163 s        | **3 s**               |
+| Gemma 4 31B, NVIDIA H100 80GB         | 234 to 265 s | **3 to 5 s**          |
+| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 210 to 224 s | **4 to 9 s**          |
 
 This example is built on top of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
@@ -443,15 +444,19 @@ command is needed to create the snapshot, but each step is worth observing.
   Both intervals include pulling the container image, about 10 GB, onto a node
   that has not pulled it before. The interval from `ContainerStarted` to `Ready`
   excludes the pull. On the Autopilot cluster used to validate the RTX Pro 6000
-  variant,
+  variant, once
   [Image streaming](https://cloud.google.com/kubernetes-engine/docs/how-to/image-streaming)
-  had not yet cached the image, and each pull took about four minutes. From
-  `ContainerStarted` to `Ready`, the cold-start replica took 164 seconds and the
-  restored replica less than one second.
+  had cached the image in the region, the pull onto a new node took 4.5 seconds,
+  `PodScheduled` to `Ready` was 210 seconds for the cold start and 9 seconds for
+  the restore, and `ContainerStarted` to `Ready` was 202 seconds for the cold
+  start and less than one second for the restore. On earlier runs before Image
+  streaming had finished importing the image, each new node spent about four
+  minutes pulling it, and `ContainerStarted` to `Ready` was 164 seconds for the
+  cold start and less than one second for the restore.
 
   `PodRestored` can be set after `Ready`. In the RTX Pro 6000 validation, it was
-  set 17 seconds after the container started. A restored process resumes before
-  all of its memory is loaded, and GKE
+  set 17 to 27 seconds after the container started. A restored process resumes
+  before all of its memory is loaded, and GKE
   [loads the rest in the background](https://cloud.google.com/kubernetes-engine/docs/concepts/pod-snapshots#restore-readiness),
   so the first requests can take longer than later ones.
 

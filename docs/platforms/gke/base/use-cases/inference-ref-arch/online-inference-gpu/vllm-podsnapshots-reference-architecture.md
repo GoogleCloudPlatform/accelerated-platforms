@@ -230,12 +230,12 @@ it.
 
 ## Measured results
 
-| Model, GPU                            | Cold start   | Restore  | Snapshot size |
-| ------------------------------------- | ------------ | -------- | ------------- |
-| Llama 3.1 8B, NVIDIA L4               | 561 s        | 41 s     | 19.53 GB      |
-| Llama 3.1 8B, NVIDIA H100 80GB        | 163 s        | 3 s      | 21.27 GB      |
-| Gemma 4 31B, NVIDIA H100 80GB         | 234 to 265 s | 3 to 5 s | 72.9 GB       |
-| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 224 s        | 4 s      | 73.3 GB       |
+| Model, GPU                            | Cold start   | Restore  | Snapshot size   |
+| ------------------------------------- | ------------ | -------- | --------------- |
+| Llama 3.1 8B, NVIDIA L4               | 561 s        | 41 s     | 19.53 GB        |
+| Llama 3.1 8B, NVIDIA H100 80GB        | 163 s        | 3 s      | 21.27 GB        |
+| Gemma 4 31B, NVIDIA H100 80GB         | 234 to 265 s | 3 to 5 s | 72.9 GB         |
+| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 210 to 224 s | 4 to 9 s | 73.3 to 73.4 GB |
 
 Cold start is measured from the Pod being scheduled, or the container being
 created, to the replica serving. Restore is measured from `PodScheduled` to
@@ -245,22 +245,39 @@ seconds after an initial delay of 15 seconds. The L4 cold start includes
 downloading the weights from the Hugging Face Hub, and the L4 restore was onto a
 newly provisioned node. The 265 second and 5 second Gemma 4 31B results on H100,
 and the RTX Pro 6000 results, also used a readiness probe on `/health`, and the
-5 second restore was onto a node that had never run the model. The other
-restores were confirmed by the absence of any model-loading work in the restored
-Pod's logs and by a correct response to a request. The RTX Pro 6000 result was
-measured with manifests that are not included in this repository.
+5 second and 9 second restores were onto nodes that had never run the model. The
+other restores were confirmed by the absence of any model-loading work in the
+restored Pod's logs and by a correct response to a request. The 224 second and 4
+second RTX Pro 6000 results were measured with manifests that are not included
+in this repository.
 
-The RTX Pro 6000 variant in this repository was later validated end to end on a
-GKE Autopilot cluster where Image streaming had not yet cached the container
-image. Each new node spent about four minutes pulling the image, so
-`PodScheduled` to `Ready` was 401 seconds for the cold start and 255 seconds for
-the restore onto a newly provisioned node. From the container starting to
-`Ready`, the cold start took 164 seconds and the restore less than one second.
-The restored Pod's `PodRestored` condition was set 17 seconds after its
-container started. The first request that the test could send to the restored
-Pod, 16 seconds after its container started, was answered in 2.3 seconds. The
-first request to the cold-start replica, sent after its snapshot was uploaded,
-took 1.6 seconds, and later requests to either replica took 0.4 seconds.
+The RTX Pro 6000 variant in this repository was validated end to end on a GKE
+Autopilot cluster both before and after Image streaming had cached the container
+image in the region:
+
+- **With Image streaming cached** (the 210 second and 9 second results in the
+  table): each new node pulled and prepared the container image in about 4.5
+  seconds. `PodScheduled` to `Ready` was 210 seconds for the cold start and 9
+  seconds for the restore onto a newly provisioned node. From the container
+  starting to `Ready`, the cold start took 202 seconds (with layers streamed on
+  demand during Python and vLLM initialization) and the restore less than one
+  second. The restored Pod's `PodRestored` condition was set 27 seconds after
+  its container started. A request sent to the restored Pod 20 seconds after its
+  container started (7 seconds before `PodRestored`, while background memory
+  loading was still finishing) completed in 9.9 seconds, 3.2 seconds after
+  `PodRestored`.
+- **Before Image streaming had cached the image**: each new node spent about
+  four minutes pulling the 9.6 GB image, so `PodScheduled` to `Ready` was 401
+  seconds for the cold start and 255 seconds for the restore onto a newly
+  provisioned node. From the container starting to `Ready`, the cold start took
+  164 seconds (all image layers already on disk) and the restore less than one
+  second. The restored Pod's `PodRestored` condition was set 17 seconds after
+  its container started, and a request sent 16 seconds after its container
+  started was answered in 2.3 seconds.
+
+In both runs, the first request to the cold-start replica, sent after its
+snapshot was uploaded, took 1.6 to 1.7 seconds, and later requests to either
+replica took 0.4 seconds.
 
 ## Getting Started
 

@@ -169,6 +169,7 @@ For the architecture and design rationale, see the
     | gemma-3-27b-it  | ❌   | ✅           |
     | gemma-4-31b-it  | ✅   | ✅           |
     | qwen3-5-35b-a3b | ❌   | ✅           |
+
     - **NVIDIA H100 80GB**:
 
       ```shell

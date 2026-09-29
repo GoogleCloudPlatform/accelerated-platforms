@@ -1,0 +1,76 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pd-disaggregation-tpu-vllm-decode
+spec:
+  template:
+    spec:
+      containers:
+        - name: modelserver
+          envFrom:
+            - configMapRef:
+                name: runtime
+          env:
+            # The upstream llm-d base injects HF_TOKEN from a Secret named
+            # llm-d-hf-token. This path loads weights from GCS with
+            # runai_streamer and never contacts the HuggingFace hub, so the
+            # token is unused -- but if the Secret is absent the pod fails
+            # with CreateContainerConfigError before the engine ever starts.
+            # Drop the variable rather than require a credential we have no
+            # use for.
+            - name: HF_TOKEN
+              $patch: delete
+            - name: MODEL_BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: deployment
+                  key: MODEL_BUCKET_NAME
+          args:
+            - "--model=gs://$(MODEL_BUCKET_NAME)/$(MODEL_ID)"
+            - "--served-model-name=$(MODEL_ID)"
+            - "--max-model-len=$(MAX_MODEL_LEN)"
+            - "--tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)"
+            - "--dtype=bfloat16"
+            - "--load-format=runai_streamer"
+            - '--model-loader-extra-config={"distributed":true}'
+            - "--kv-transfer-config"
+            # kv_role MUST be kv_consumer, not kv_both.
+            #
+            # vLLM defines the roles as overlapping sets --
+            #   KVProducer = ("kv_producer", "kv_both")
+            #   KVConsumer = ("kv_consumer", "kv_both")
+            # -- so kv_both sets is_kv_producer=True. TPUConnector collapses
+            # the two roles into a single boolean
+            #   self.is_producer = self.config.is_kv_producer
+            # and then gates the load path on it:
+            #   if self.is_producer or not request.kv_transfer_params:
+            #       return 0, False        # get_num_new_matched_tokens
+            # It never consults is_kv_consumer. Under kv_both the decode
+            # engine therefore reports zero tokens available to load on every
+            # request and is structurally incapable of pulling KV: prefill
+            # stages the blocks, nobody collects them, and they expire with
+            # "KV transfer timeout. Force recycle the memory buffer."
+            #
+            # The failure is SILENT -- both pods report ready and answers are
+            # correct, they are just computed twice, which makes P/D strictly
+            # worse than not disaggregating.
+            #
+            # Upstream llm-d ships kv_both here
+            # (guides/pd-disaggregation/modelserver/tpu/v6/vllm/patch-decode.yaml).
+            - '{"kv_connector":"TPUConnector","kv_connector_module_path":"tpu_inference.distributed.tpu_connector","kv_role":"kv_consumer","kv_ip":"$(POD_IP)"}'
+            - "--port=8200"
+            - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"

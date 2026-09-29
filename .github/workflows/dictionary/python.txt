@@ -52,7 +52,9 @@ isfile
 isin
 isinstance
 isna
+isoformat
 isort
+issubset
 iterrows
 jsonify
 jsonpickle
@@ -63,6 +65,7 @@ lstrip
 makedirs
 moviepy
 nbconvert
+noqa
 numpy
 onednn
 opencv

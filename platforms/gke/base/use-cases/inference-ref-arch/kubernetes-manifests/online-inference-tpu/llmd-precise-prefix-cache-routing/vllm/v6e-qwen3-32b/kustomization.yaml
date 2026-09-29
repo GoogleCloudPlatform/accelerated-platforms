@@ -83,9 +83,13 @@ replacements:
         select:
           kind: Deployment
 
+# Pin the model server image. The upstream image component is tracked at
+# ?ref=main, so without this the version changes whenever llm-d bumps it.
+# The name must be fully qualified for the kustomize images transformer to
+# match.
 images:
-  - name: vllm/vllm-tpu
-    newTag: v0.22.0
+  - name: docker.io/vllm/vllm-tpu
+    newTag: v0.27.0
 
 resources:
   - ../base

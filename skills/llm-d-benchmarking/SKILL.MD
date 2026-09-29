@@ -1,7 +1,7 @@
 ---
 name: llm-d-benchmarking
 description: Benchmarks a deployed llm-d well-lit path guide stack on GKE using llm-d-benchmark cli with inference-perf as the harness, the user a will select the appropriate  workload profiles from llm-d-benchmark. 
-version: 0.1.0
+version: 0.2.0
 allowed-tools: python3 kubectl gcloud llmdbenchmark curl
 mcp-servers: []
 dependencies:
@@ -19,7 +19,7 @@ Follow these instructions to run benchmarks against a deployed llm-d stack.
 
 This skill utilizes the following core variables:
 
-- `SPEC` (passed via `SPEC` environment variable, previously `DEPLOYMENT_STRATEGY`): The name of the `llm-d` well-lit path guide targeted (e.g., `optimized-baseline`, `precise-prefix-cache-routing`, `predicted-latency-routing`). It defines which GKE manifest subdirectory is active.
+- `SPEC` (passed via `SPEC` environment variable, previously `DEPLOYMENT_STRATEGY`): The name of the `llm-d` well-lit path guide targeted (e.g., `optimized-baseline`, `precise-prefix-cache-routing`, `predicted-latency-routing`, `pd-disaggregation`). It defines which GKE manifest subdirectory is active. Note that `pd-disaggregation` deploys **two** model server tiers (prefill and decode) rather than one; see section 6.1.
 - `Workload Profile`: The load-test profile configuration (e.g., `chatbot_synthetic.yaml`, `agentic_code_generation.yaml`) chosen to run.
 - `RESULTS_BUCKET` (passed via `RESULTS_BUCKET` environment variable or CLI argument). If not specified, it dynamically defaults to `inf-<platform_name>-bench-results` (resolving the platform name from tfvars) in the same region as the platform.
 
@@ -44,17 +44,19 @@ This skill utilizes the following core variables:
 
 Ask the user to choose a workload profile from the table below, or input a custom one.
 
-| Category                | Workload Profile Name                       | Description / Best For                  |
-| ----------------------- | ------------------------------------------- | --------------------------------------- |
-| **Smoke Run**           | `shared_prefix_synthetic.yaml`              | Quick smoke run with shared prefix.     |
-|                         | `sanity_random.yaml`                        | Basic sanity check with random inputs.  |
-| **Interactive Chat**    | `chatbot_synthetic.yaml`                    | Synthetic chatbot workload.             |
-|                         | `chatbot_sharegpt.yaml`                     | Replay ShareGPT dataset.                |
-| **Code Generation**     | `code_completion_synthetic.yaml`            | Code completion workload.               |
-|                         | `agentic_code_generation.yaml`              | Agentic code generation workload.       |
-| **Summarization**       | `summarization_synthetic.yaml`              | Summarization workload.                 |
-| **Optimization Guides** | `guide_optimized-baseline_1.yaml`           | Reproduces optimized-baseline report.   |
-|                         | `guide_precise-prefix-cache-routing_1.yaml` | Reproduces prefix-cache-routing report. |
+| Category                | Workload Profile Name                       | Description / Best For                             |
+| ----------------------- | ------------------------------------------- | -------------------------------------------------- |
+| **Smoke Run**           | `shared_prefix_synthetic.yaml`              | Quick smoke run with shared prefix.                |
+|                         | `sanity_random.yaml`                        | Basic sanity check with random inputs.             |
+| **Interactive Chat**    | `chatbot_synthetic.yaml`                    | Synthetic chatbot workload.                        |
+|                         | `chatbot_sharegpt.yaml`                     | Replay ShareGPT dataset.                           |
+| **Code Generation**     | `code_completion_synthetic.yaml`            | Code completion workload.                          |
+|                         | `agentic_code_generation.yaml`              | Agentic code generation workload.                  |
+| **Summarization**       | `summarization_synthetic.yaml`              | Summarization workload.                            |
+| **Optimization Guides** | `guide_optimized-baseline_1.yaml`           | Reproduces optimized-baseline report.              |
+|                         | `guide_precise-prefix-cache-routing_1.yaml` | Reproduces prefix-cache-routing report.            |
+|                         | `guide_pd-disaggregation_1.yaml`            | Reproduces P/D report: 5000 in / 250 out, rate 45. |
+|                         | `guide_pd-disaggregation_2.yaml`            | P/D balanced shape: 1024 in / 1024 out, rate 1.    |
 
 _Note: For more profiles, refer to [llm-d-workload-profiles.md](../llm-d-workload-tuner/references/llm-d-workload-profiles.md)._
 
@@ -130,8 +132,80 @@ The `run_benchmark.sh` script is an ultra-dense automated executor that directly
 6.  **Phase 4: Report Generation & Cleanup**:
     - Uses `extract_csv.py` and inline python to synthesize `report_v0.2.json` and `output.csv`.
     - Automatically generates latency and throughput charts (`inference-perf -a`).
-    - Dumps the live vLLM config state and archives all artifacts (`dcgm_metrics.json`, reports, CSVs, and PNG charts) to the target GCS bucket.
+    - Runs `capture_vllm_config.py` to snapshot the live serving configuration into `vllm_config.json` (see 6.1), and archives all artifacts (`dcgm_metrics.json`, reports, CSVs, and PNG charts) to the target GCS bucket.
     - Manually forces deletion of the original data-access pod so it doesn't linger as a daemon indefinitely.
+
+### 6.1 What `vllm_config.json` Captures
+
+`capture_vllm_config.py` snapshots the serving topology as it is actually
+running, so a benchmark result can be traced back to the exact configuration
+that produced it. It records **every** vLLM model server in the namespace, which
+matters for disaggregated guides:
+
+| Field                                | Contents                                                                                                                                                                                            |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `detected_architecture`              | Platform (`gpu`/`tpu`), manifest pattern, model, compute class, accelerator type/topology/count, KV connector, and whether the topology is disaggregated.                                           |
+| `model_servers[]`                    | One entry per model server, each tagged with its `role` (`prefill`, `decode`, or `monolithic`).                                                                                                     |
+| `model_servers[].serving_parameters` | Every vLLM CLI flag parsed into a named map — `max_model_len`, `tensor_parallel_size`, `dtype`, `kv_cache_dtype`, `gpu_memory_utilization`, `block_size`, `quantization`, `load_format`, and so on. |
+| `model_servers[].tuning_env`         | Behaviour-changing environment variables (`VLLM_*`, `TPU_*`, `JAX_*`, `LIBTPU_*`, `PJRT_*`), such as the TPU KV transfer ports.                                                                     |
+| `model_servers[].kv_transfer`        | Parsed `--kv-transfer-config`, exposing `kv_connector`, `kv_role`, and any CPU offload buffer.                                                                                                      |
+| `model_servers[].sidecars`           | Sidecars including native sidecars (initContainers with `restartPolicy: Always`), such as the disaggregation routing proxy.                                                                         |
+| `model_servers[].live_pods`          | Running pods with node names and resolved container **image IDs** (digests), not just tags.                                                                                                         |
+| `router`                             | The endpoint picker (EPP) name, replica counts, image, and args.                                                                                                                                    |
+| Top-level legacy keys                | `scaling_state`, `resolved_runtime_env`, `resolved_container_args` — mirroring the primary model server, retained for backward compatibility.                                                       |
+
+`serving_parameters` is the field to read when comparing runs. The values are
+fully resolved, so a `--max-model-len=$(MAX_MODEL_LEN)` arg wired to a
+`runtime.env` entry is recorded as the number the engine actually received.
+
+The capture is roughly 10 KB and is meant to be read directly. The raw
+Kubernetes manifests are **not** included by default because they trebled the
+file size; pass `--include-raw` to embed the primary Deployment. The script
+also prints a short summary to stdout, so the benchmark log records what was
+captured:
+
+```text
+vllm-config: guide=pd-disaggregation namespace=llmd
+  model=qwen/qwen3-32b platform=tpu accel=tpu-v6e-slice topology=2x4 count=8 (tpu-v6e-2x4)
+  disaggregated=True servers=2 kv_connector=TPUConnector
+  [decode] pd-disaggregation-tpu-vllm-decode-v6e-qwen3-32b 1/1 ready | kv_role=kv_both | image=docker.io/vllm/vllm-tpu:v0.27.0
+      max_model_len=9216 tensor_parallel_size=8 dtype=bfloat16 load_format=runai_streamer
+      env TPU_KV_TRANSFER_PORT=9100
+      env TPU_SIDE_CHANNEL_PORT=9600
+      + native-sidecar: routing-proxy (ghcr.io/llm-d/llm-d-router-disagg-sidecar:v0.10.0)
+  [prefill] pd-disaggregation-tpu-vllm-prefill-v6e-qwen3-32b 1/1 ready | kv_role=kv_producer | image=docker.io/vllm/vllm-tpu:v0.27.0
+      max_model_len=9216 tensor_parallel_size=8 dtype=bfloat16 load_format=runai_streamer
+      env VLLM_HTTP_TIMEOUT_KEEP_ALIVE=120
+  [router] pd-disaggregation-epp 1/1 ready
+```
+
+> [!IMPORTANT]
+> For `pd-disaggregation` the capture contains two model servers, one per role.
+> The prefill tier runs `kv_role: kv_producer` and the decode tier runs
+> `kv_role: kv_both` with the routing proxy sidecar. If only one appears, the
+> deployment is incomplete and the benchmark numbers are not meaningful.
+
+> [!NOTE]
+> Environment values sourced from a Secret or the downward API are recorded as
+> opaque markers (for example `<secretKeyRef:llm-d-hf-token/HF_TOKEN>`), never
+> as values. `vllm_config.json` is uploaded to GCS, so it must never contain a
+> secret.
+
+Accelerator facts are resolved from two sources, and
+`model_servers[].accelerator.source` records which one was used:
+
+1. **`node`** — labels on the node the pod actually landed on
+   (`cloud.google.com/gke-tpu-accelerator`, `gke-tpu-topology`,
+   `gke-accelerator`, `node.kubernetes.io/instance-type`).
+2. **`computeclass`** — the `ComputeClass` named by the pod's
+   `cloud.google.com/compute-class` nodeSelector. Its highest-priority rule
+   declares the same `type`, `topology`, and `machineType` values that GKE
+   later stamps onto the node.
+
+The second source matters because every llm-d overlay selects hardware by
+compute class rather than by a raw accelerator label, so the accelerator is
+still identified correctly when a benchmark is captured before pods are
+scheduled, or where reading Node objects is not permitted.
 
 ## 7. Analyze Benchmark Results
 
@@ -228,4 +302,8 @@ You should tear down the serving stack to release cluster resources only when yo
    - For `predicted-latency-routing`:
      ```bash
      "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/teardown-llmd-predicted-latency-routing.sh"
+     ```
+   - For `pd-disaggregation`:
+     ```bash
+     "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/teardown-llmd-pd-disaggregation.sh"
      ```

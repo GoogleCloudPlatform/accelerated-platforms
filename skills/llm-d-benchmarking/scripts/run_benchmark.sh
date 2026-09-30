@@ -96,7 +96,13 @@ validate_workload_config() {
   [ ! -f "$f" ] && return 0
   set +e; python3 "${REPO_DIR}/skills/llm-d-workload-tuner/scripts/tune_workload.py" --perf-yaml "$f" --accelerator-type "$ACCELERATOR_TYPE" --spec "$SPEC" --model "$MODEL_NAME"; code=$?; set -e
   if [ $code -eq 2 ]; then
-    read -p "There are gaps between the benchmark workload profile and the current vLLM config detected. Do you want to apply the tuned configuration? (y/N): " confirm
+    local confirm=""
+    if [ -t 0 ]; then
+      # `read` returns non-zero on EOF, which would abort the script under `set -e`.
+      read -p "There are gaps between the benchmark workload profile and the current vLLM config detected. Do you want to apply the tuned configuration? (y/N): " confirm || confirm=""
+    else
+      echo "Non-interactive shell detected; not prompting to apply the tuned configuration."
+    fi
     if [[ "$confirm" =~ ^[Yy]$ ]]; then
       echo "Applying tuned configuration updates to the manifests..."
       python3 "${REPO_DIR}/skills/llm-d-workload-tuner/scripts/tune_workload.py" --perf-yaml "$f" --accelerator-type "$ACCELERATOR_TYPE" --spec "$SPEC" --model "$MODEL_NAME" --apply

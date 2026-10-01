@@ -12,12 +12,18 @@ cache. That work is identical on every replica. A Pod snapshot captures the
 result once, with the weights already in GPU memory, and every later replica
 resumes from it instead of repeating it.
 
-| Model, GPU                            | Cold start   | Restore from snapshot |
-| ------------------------------------- | ------------ | --------------------- |
-| Llama 3.1 8B, NVIDIA L4               | 561 s        | **41 s**              |
-| Llama 3.1 8B, NVIDIA H100 80GB        | 163 s        | **3 s**               |
-| Gemma 4 31B, NVIDIA H100 80GB         | 234 to 265 s | **3 to 5 s**          |
-| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 210 to 224 s | **4 to 9 s**          |
+| Model, GPU                            | Cold start | Restore, first response | Restore, `Ready` |
+| ------------------------------------- | ---------- | ----------------------- | ---------------- |
+| Llama 3.1 8B, NVIDIA L4               | 433 s      | **26 to 29 s**          | 12 to 15 s       |
+| Llama 3.1 8B, NVIDIA H100 80GB        | 168 s      | **46 to 52 s**          | 5 to 6 s         |
+| Gemma 4 31B, NVIDIA H100 80GB         | 224 s      | **36 to 38 s**          | 3 to 5 s         |
+| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 210 s      | **35 to 43 s**          | 7 to 20 s        |
+
+Times are seconds from when the Pod was scheduled onto a GPU node created during
+the validation, so they exclude waiting for GPU capacity. A restored replica
+reports `Ready` before it can serve. The first successful response is the time
+that matters. [Measure the restore](#measure-the-restore) explains how the
+numbers were measured and how to reproduce them.
 
 This example is built on top of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
@@ -30,10 +36,10 @@ snapshots, see the
 This guide provides two paths. Both use the same cluster preparation and the
 same measurement steps.
 
-| Path                                                                                         | Model, GPU                                                | Weight loader              | What it demonstrates                                                       |
-| -------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------- |
-| [A: Pod snapshots](#path-a-pod-snapshots-on-nvidia-l4)                                       | Llama 3.1 8B, NVIDIA L4                                   | Hugging Face Hub, eager    | The snapshot mechanism on the smallest, most widely available GPU          |
-| [B: Pod snapshots and Run:ai Model Streamer](#path-b-pod-snapshots-and-runai-model-streamer) | Gemma 4 31B, NVIDIA H100 80GB or NVIDIA RTX Pro 6000 96GB | Run:ai Model Streamer, GCS | The production composition: a fast cold start, then near-instant scale-out |
+| Path                                                                                         | Model, GPU                                                | Weight loader              | What it demonstrates                                                                 |
+| -------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------ |
+| [A: Pod snapshots](#path-a-pod-snapshots-on-nvidia-l4)                                       | Llama 3.1 8B, NVIDIA L4                                   | Hugging Face Hub, eager    | The snapshot mechanism on the smallest, most widely available GPU                    |
+| [B: Pod snapshots and Run:ai Model Streamer](#path-b-pod-snapshots-and-runai-model-streamer) | Gemma 4 31B, NVIDIA H100 80GB or NVIDIA RTX Pro 6000 96GB | Run:ai Model Streamer, GCS | The production composition: a fast cold start, then scale-out in well under a minute |
 
 Path A is the quickest way to see a restore. Path B is the pattern to adopt when
 you already serve with the
@@ -367,17 +373,27 @@ command is needed to create the snapshot, but each step is worth observing.
 
 > [!IMPORTANT]
 >
-> Capturing a snapshot takes minutes. Path A produces a snapshot of about 20 GB
-> in about four minutes. Path B produces a snapshot of about 73 GB in 11 to 15
-> minutes. For most of that time only two small snapshot objects are visible in
-> the bucket, because the memory image appears when its upload completes. GKE
-> pauses the cold-start replica to take the snapshot: in the Path B validation,
-> it stopped answering requests about 20 seconds after the trigger and resumed
-> when the memory image finished uploading, while still reporting `Ready`. Keep
+> Capturing a snapshot takes minutes. Path A produces a snapshot of about 20 GiB
+> in four to five minutes. Path B produces a snapshot of about 68 GiB in about
+> 13 minutes. For most of that time only two small snapshot objects are visible
+> in the bucket, because the memory image appears when its upload completes. GKE
+> pauses the cold-start replica to take the snapshot. In validation, it stopped
+> answering requests within seconds of the trigger and resumed when the memory
+> image finished uploading, while still reporting `Ready`: about 4 minutes for
+> Path A and 13 minutes for Path B. The deployment's Service keeps sending
+> requests to it during that time, so do not send it production traffic. Keep
 > the cold-start replica running until the snapshot is ready. If it is deleted
 > or evicted before then, the checkpoint fails.
 
 ## Measure the restore
+
+A restored replica reports `Ready` within seconds, because vLLM answers
+`/health` as soon as gVisor resumes the process. GKE is still
+[loading the rest of its memory](https://cloud.google.com/kubernetes-engine/docs/concepts/pod-snapshots#restore-readiness)
+from Cloud Storage at that point, and requests sent to the replica wait until
+the restore completes. GKE then sets the Pod's `PodRestored` condition. Measure
+a restore by when the replica first answers a request, not by when it becomes
+`Ready`.
 
 - Record when the cold-start replica was scheduled, when its container started,
   and when it became ready.
@@ -390,79 +406,64 @@ command is needed to create the snapshot, but each step is worth observing.
   --output=jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.lastTransitionTime}{"\n"}{end}{"ContainerStarted\t"}{.status.containerStatuses[0].state.running.startedAt}{"\n"}'
   ```
 
-- Scale out to two replicas.
+  For a cold-start replica, `Ready` is also when it can first serve, because
+  vLLM only answers `/health` after its startup work is done.
+
+- Scale out to two replicas and measure the new replica.
 
   ```shell
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} scale \
-  deployment/vllm-fast-restore-${VLLM_VARIANT} --replicas=2
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/measure_restore.sh" 2
   ```
 
-- Watch the deployment until both replicas are ready.
-
-  ```shell
-  watch --color --interval 5 --no-title \
-  "kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get deployment/vllm-fast-restore-${VLLM_VARIANT} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '2/2     2            2'"
-  ```
-
-  You can press `CTRL`+`c` to terminate the watch.
-
-  If no free GPU node is available, node auto-provisioning creates one before
-  the Pod is scheduled. That time is not part of the restore. In the Path A
-  measurement, the new Pod waited 131 seconds for a new node, and then went from
-  `PodScheduled` to `Ready` in 41 seconds. The cold-start replica took 561
-  seconds for the same interval.
-
-- Confirm the new replica was restored rather than started cold.
-
-  A restored replica does no startup work, so none of the model loading markers
-  appear in its logs.
-
-  ```shell
-  RESTORED_POD=$(kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get pods \
-  --selector=app=vllm-fast-restore-${VLLM_VARIANT} --output=jsonpath='{.items[*].metadata.name}' \
-  | tr ' ' '\n' | grep -v ${COLD_POD})
-
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs ${RESTORED_POD} \
-  | grep -c -e "Model loading took" -e "Starting to load model"
-  ```
+  The script scales the deployment, sends a request to each new Pod every half
+  second from the existing replica as soon as the new Pod has an IP address, and
+  prints one row per new Pod:
 
   ```text
-  0
+  POD (suffix)             NODE_AGE IMAGE                READY POD_RESTORED  FIRST_RESPONSE   LATENCY  LOADING
+  -31b-it-XXXXXXXXXX-XXXXX    42.0s in 1.675s             5.0s        33.0s           37.9s     28.0s        0
   ```
 
-- Record the restored replica's timings.
+  - `NODE_AGE` is the node's age when the Pod was scheduled. A value under a
+    minute or two means the Pod landed on a new node. A restore onto the node
+    that took the snapshot, or onto a node that already has the image, is a few
+    seconds faster to `Ready` but not meaningfully faster to serve.
+  - `IMAGE` is the image pull event. `already present` means the image was on
+    the node's disk. A pull of a few seconds means Image streaming served the
+    image. On an Autopilot cluster used while developing this guide, pulls onto
+    new nodes took about four minutes until Image streaming had cached the
+    image, and that time added directly to the restore.
+  - `READY`, `POD_RESTORED`, and `FIRST_RESPONSE` are seconds from
+    `PodScheduled`. `LATENCY` is how long the first successful request took,
+    which is mostly time spent waiting for the restore to finish.
+  - `LOADING` counts model-loading lines in the Pod's logs. It must be `0`. A
+    restored replica does no startup work.
 
-  ```shell
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get pod ${RESTORED_POD} \
-  --output=jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.lastTransitionTime}{"\n"}{end}{"ContainerStarted\t"}{.status.containerStatuses[0].state.running.startedAt}{"\n"}'
-  ```
+  If no free GPU node is available, node auto-provisioning creates one before
+  the Pod is scheduled. That time is not part of the restore, but it can be
+  longer than the restore and the cold start together. In the validation of this
+  guide, a new NVIDIA RTX Pro 6000 or H100 Spot node usually took one to three
+  minutes, but H100 Spot capacity in the region was unavailable for about 40
+  minutes, and NVIDIA L4 capacity, both on-demand and Spot, for more than an
+  hour.
 
-  A restored Pod has a `PodRestored` condition that a cold-start Pod does not.
-  Compare the interval from `PodScheduled` to `Ready` with the cold-start
-  replica's.
-
-  Both intervals include pulling the container image, about 10 GB, onto a node
-  that has not pulled it before. The interval from `ContainerStarted` to `Ready`
-  excludes the pull. On the Autopilot cluster used to validate the RTX Pro 6000
-  variant, once
-  [Image streaming](https://cloud.google.com/kubernetes-engine/docs/how-to/image-streaming)
-  had cached the image in the region, the pull onto a new node took 4.5 seconds,
-  `PodScheduled` to `Ready` was 210 seconds for the cold start and 9 seconds for
-  the restore, and `ContainerStarted` to `Ready` was 202 seconds for the cold
-  start and less than one second for the restore. On earlier runs before Image
-  streaming had finished importing the image, each new node spent about four
-  minutes pulling it, and `ContainerStarted` to `Ready` was 164 seconds for the
-  cold start and less than one second for the restore.
-
-  `PodRestored` can be set after `Ready`. In the RTX Pro 6000 validation, it was
-  set 17 to 27 seconds after the container started. A restored process resumes
-  before all of its memory is loaded, and GKE
-  [loads the rest in the background](https://cloud.google.com/kubernetes-engine/docs/concepts/pod-snapshots#restore-readiness),
-  so the first requests can take longer than later ones.
+  In the validation of this guide on GKE Standard with the manifests in this
+  repository, the restored replica served its first response 26 to 29 seconds
+  after it was scheduled for Path A on L4, against 433 seconds for the cold
+  start, and 46 to 52 seconds on H100, against 168 seconds. For Path B it was 36
+  to 38 seconds on H100, against 224 seconds, and 35 to 43 seconds on RTX Pro
+  6000, against 210 seconds. `Ready` came 3 to 20 seconds after scheduling in
+  every case, long before the first response. Restoring onto a node that already
+  had the image, or onto four new nodes at the same time, changed the first
+  response by no more than a few seconds.
 
 - Send a request to the restored replica.
 
   ```shell
+  RESTORED_POD=$(kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get pods \
+  --selector=app=vllm-fast-restore-${VLLM_VARIANT} --output=jsonpath='{.items[*].metadata.name}' \
+  | tr ' ' '\n' | grep -v ${COLD_POD} | head -1)
+
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} exec ${RESTORED_POD} -- \
   curl --silent http://localhost:8000/v1/chat/completions \
   --header "Content-Type: application/json" \

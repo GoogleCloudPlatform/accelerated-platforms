@@ -7,14 +7,14 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2026-09-25 (YYYY-MM-DD)
+> Last Update: 2026-09-30 (YYYY-MM-DD)
 
 This document outlines a reference architecture for **restoring GPU inference
 replicas from a memory snapshot** on Google Kubernetes Engine (GKE). It extends
 the
 [Fast-start inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md),
-which makes the first cold start fast, with a second technique that makes every
-replica after that one nearly instant.
+which makes the first cold start fast, with a second technique that starts every
+replica after that one in a fraction of the cold-start time.
 
 Refer to the [Getting Started](#getting-started) section below for instructions
 on deploying the architecture described here.
@@ -29,8 +29,10 @@ repeated on every scale-out. This architecture aims to:
 
 - **Pay for initialization once per configuration, not once per replica**:
   Capture a fully warmed-up replica and restore every later replica from it.
-- **Make scale-out time independent of model size**: A 31-billion parameter
-  model should not take longer to scale out than an 8-billion parameter one.
+- **Make scale-out time independent of initialization work**: A restored replica
+  skips compilation, CUDA graph capture, and memory profiling. Its start-up time
+  depends on how much memory it has to read back, not on how long the engine
+  took to initialize.
 - **Keep the cold path fast as well**: The first replica, and any replica that
   cannot be restored, still starts from the fastest available loader.
 - **Be explicit about where the technique does not help**: Snapshots remove
@@ -41,7 +43,8 @@ repeated on every scale-out. This architecture aims to:
 
 This reference architecture provides a foundation for:
 
-- Restoring a warmed-up vLLM replica from a snapshot in single-digit seconds.
+- Restoring a warmed-up vLLM replica from a snapshot to its first response in
+  under a minute, independent of how long the model takes to initialize.
 - Composing snapshots with the Run:ai Model Streamer, so the one required cold
   start is also fast.
 - Capturing snapshots at a deterministic, workload-chosen point in the startup
@@ -105,11 +108,12 @@ for the snapshot to serialize.
 | Checkpoint upload to Cloud Storage | Never                 | Once per configuration |
 | GPU node provisioning              | Unchanged             | Unchanged              |
 
-Measured on Gemma 4 31B on a single NVIDIA H100 80GB, the streamer loads 58.99
-GiB of weights in about 48 seconds, yet the replica still takes 234 to 265
-seconds to start serving. A replica restored from a snapshot served in 3 to 5
-seconds. The streamer shortens the cold start, and the snapshot removes it for
-every replica after the first.
+Measured on Gemma 4 31B on a single NVIDIA H100 80GB, the streamer loads 58.9
+GiB of weights in about 48 seconds, yet the replica still takes 224 seconds to
+start serving. Engine initialization alone takes another 83 seconds. A replica
+restored from a snapshot served its first response 36 to 38 seconds after it was
+scheduled. The streamer shortens the cold start, and the snapshot replaces it
+for every replica after the first.
 
 ### Cooperative trigger instead of a readiness trigger
 
@@ -141,23 +145,40 @@ an address that no longer exists.
 ### Snapshot size follows resident memory
 
 A snapshot is roughly the size of the GPU memory that is actually in use, not of
-the memory vLLM reserves. On H100, Llama 3.1 8B produced a 21.27 GB image with
-`--gpu-memory-utilization=0.90`. Gemma 4 31B produced a 72.9 GB image on H100
-and a 73.3 GB image on RTX Pro 6000, only 0.6% larger even though the RTX Pro
-6000 allocated 14 GiB more KV cache. Choosing a GPU with more memory buys KV
-cache capacity without a proportional increase in snapshot size.
+the memory vLLM reserves. Llama 3.1 8B produced a 19.8 GiB image on H100 and an
+18.3 GiB image on L4 with `--gpu-memory-utilization=0.90`. Gemma 4 31B produced
+a 67.9 GiB image on H100, with 8.2 GiB of KV cache, and a 68.4 GiB image on RTX
+Pro 6000, only 0.6% larger even though the RTX Pro 6000 has 16 GB more GPU
+memory. Choosing a GPU with more memory buys KV cache capacity without a
+proportional increase in snapshot size.
 
 ### Capture is slow, restore is fast
 
-Checkpointing uploads the full memory image. A roughly 21 GB image took about
-four minutes to become available, and a roughly 73 GB image took 11 to 15
+Checkpointing uploads the full memory image. A roughly 20 GiB image took four to
+five minutes to become available, and a roughly 68 GiB image took about 13
 minutes. For most of that window the snapshot objects are not visible in the
 bucket, because the largest object is written last. GKE pauses the Pod to take
-the snapshot. In the RTX Pro 6000 validation, the replica stopped answering
-requests about 20 seconds after the trigger and resumed when the memory image
-finished uploading, 13 minutes later. Restore does not share this cost: in the
-H100 measurements below, a 73 GB image restored as quickly as a 21 GB one. That
-is a small number of data points, so measure it for your own model.
+the snapshot. In validation, the replica stopped answering requests within
+seconds of the trigger and resumed when the memory image finished uploading, 4
+minutes later for Llama 3.1 8B on L4 and 13 minutes later for Gemma 4 31B on RTX
+Pro 6000.
+
+Restore reads the same image back, much faster. Every restore reads it from
+Cloud Storage, whether or not the node has run the model before. The time GKE
+took to complete a restore depended on more than the size of the image:
+
+| Model, GPU                | Snapshot | KV cache     | GKE restore duration |
+| ------------------------- | -------- | ------------ | -------------------- |
+| Llama 3.1 8B, L4          | 18.3 GiB | not recorded | 21 s                 |
+| Llama 3.1 8B, H100 80GB   | 19.8 GiB | 54.2 GiB     | 43 to 47 s           |
+| Gemma 4 31B, H100 80GB    | 67.9 GiB | 8.2 GiB      | 30 to 34 s           |
+| Gemma 4 31B, RTX Pro 6000 | 68.4 GiB | not recorded | 31 to 33 s           |
+
+Llama 3.1 8B on H100 restored more slowly than Gemma 4 31B on the same GPU, from
+an image less than a third the size. Measure the restore of your own
+configuration rather than estimating it from the snapshot size. Four RTX Pro
+6000 replicas restoring onto four new nodes at the same time each took as long
+as a single restore.
 
 ### Protecting the capture from eviction
 
@@ -230,54 +251,56 @@ it.
 
 ## Measured results
 
-| Model, GPU                            | Cold start   | Restore  | Snapshot size   |
-| ------------------------------------- | ------------ | -------- | --------------- |
-| Llama 3.1 8B, NVIDIA L4               | 561 s        | 41 s     | 19.53 GB        |
-| Llama 3.1 8B, NVIDIA H100 80GB        | 163 s        | 3 s      | 21.27 GB        |
-| Gemma 4 31B, NVIDIA H100 80GB         | 234 to 265 s | 3 to 5 s | 72.9 GB         |
-| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 210 to 224 s | 4 to 9 s | 73.3 to 73.4 GB |
+| Model, GPU                            | Cold start | Restore, first response | Restore, `Ready` | Snapshot size |
+| ------------------------------------- | ---------- | ----------------------- | ---------------- | ------------- |
+| Llama 3.1 8B, NVIDIA L4               | 433 s      | 26 to 29 s              | 12 to 15 s       | 18.3 GiB      |
+| Llama 3.1 8B, NVIDIA H100 80GB        | 168 s      | 46 to 52 s              | 5 to 6 s         | 19.8 GiB      |
+| Gemma 4 31B, NVIDIA H100 80GB         | 224 s      | 36 to 38 s              | 3 to 5 s         | 67.9 GiB      |
+| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 210 s      | 35 to 43 s              | 7 to 20 s        | 68.4 GiB      |
 
-Cold start is measured from the Pod being scheduled, or the container being
-created, to the replica serving. Restore is measured from `PodScheduled` to
-`Ready`. The L4 results were measured end to end with an earlier version of the
-manifests in this repository, whose readiness probe polled `/health` every 10
-seconds after an initial delay of 15 seconds. The L4 cold start includes
-downloading the weights from the Hugging Face Hub, and the L4 restore was onto a
-newly provisioned node. The 265 second and 5 second Gemma 4 31B results on H100,
-and the RTX Pro 6000 results, also used a readiness probe on `/health`, and the
-5 second and 9 second restores were onto nodes that had never run the model. The
-other restores were confirmed by the absence of any model-loading work in the
-restored Pod's logs and by a correct response to a request. The 224 second and 4
-second RTX Pro 6000 results were measured with manifests that are not included
-in this repository.
+All times are measured from the Pod's `PodScheduled` condition, so they exclude
+waiting for a GPU node. The cold start is measured to `Ready`, which for a
+cold-start replica is also when it first serves. The restore is measured to the
+first successful `/v1/completions` response, with requests sent every half
+second from the moment the Pod has an IP address, and to `Ready` for comparison.
+No restored Pod logged any model loading. The L4 (2 runs) and RTX Pro 6000 (8
+runs) restores were each onto a node created for that Pod. The H100 restores (3
+runs per model) were onto nodes created during the validation: three onto a node
+created for that Pod, and three onto a node created 2 to 15 minutes earlier that
+had already run other restored replicas.
 
-The RTX Pro 6000 variant in this repository was validated end to end on a GKE
-Autopilot cluster both before and after Image streaming had cached the container
-image in the region:
+The results were measured on a GKE Standard cluster (1.36.4-gke.1391000) in
+`europe-west4`, with the manifests in this repository, on Spot VMs, with
+[Image streaming](https://cloud.google.com/kubernetes-engine/docs/how-to/image-streaming)
+enabled by the compute classes. When H100 Spot capacity ran out, one H100
+replica was restored onto a flex-start VM instead. Pulling the 9.6 GB vLLM image
+onto a new node took 2 to 10 seconds, including the first pull in the cluster.
+The L4 cold start includes downloading the weights from the Hugging Face Hub,
+which varies. The guide's
+[measurement script](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/measure_restore.sh)
+reports the same intervals.
 
-- **With Image streaming cached** (the 210 second and 9 second results in the
-  table): each new node pulled and prepared the container image in about 4.5
-  seconds. `PodScheduled` to `Ready` was 210 seconds for the cold start and 9
-  seconds for the restore onto a newly provisioned node. From the container
-  starting to `Ready`, the cold start took 202 seconds (with layers streamed on
-  demand during Python and vLLM initialization) and the restore less than one
-  second. The restored Pod's `PodRestored` condition was set 27 seconds after
-  its container started. A request sent to the restored Pod 20 seconds after its
-  container started (7 seconds before `PodRestored`, while background memory
-  loading was still finishing) completed in 9.9 seconds, 3.2 seconds after
-  `PodRestored`.
-- **Before Image streaming had cached the image**: each new node spent about
-  four minutes pulling the 9.6 GB image, so `PodScheduled` to `Ready` was 401
-  seconds for the cold start and 255 seconds for the restore onto a newly
-  provisioned node. From the container starting to `Ready`, the cold start took
-  164 seconds (all image layers already on disk) and the restore less than one
-  second. The restored Pod's `PodRestored` condition was set 17 seconds after
-  its container started, and a request sent 16 seconds after its container
-  started was answered in 2.3 seconds.
-
-In both runs, the first request to the cold-start replica, sent after its
-snapshot was uploaded, took 1.6 to 1.7 seconds, and later requests to either
-replica took 0.4 seconds.
+- **`Ready` is not restore time.** A restored replica reports `Ready` as soon as
+  gVisor resumes vLLM, while GKE is still loading its memory. Requests sent in
+  that window wait, then succeed. The first response arrived 2 to 5 seconds
+  after GKE set `PodRestored`, and later requests were as fast as on the
+  cold-start replica, for an 8-token completion: 0.36 seconds for Gemma 4 31B on
+  RTX Pro 6000, 0.20 seconds on H100, and 0.49 seconds for Llama 3.1 8B on L4,
+  0.06 seconds on H100.
+- **Node history barely matters.** Restoring onto a node that had just run a
+  restored replica, with the image already on disk, reached `Ready` in 3
+  seconds, but first served after 34.4 to 34.6 seconds on RTX Pro 6000, against
+  35 to 43 seconds on new nodes. The snapshot is read from Cloud Storage every
+  time.
+- **Concurrent restores do not slow each other down.** Restoring onto 1, 2, and
+  4 new RTX Pro 6000 nodes at the same time, GKE's restore took 31 to 33 seconds
+  on every node.
+- **GPU capacity dominates in practice.** New RTX Pro 6000 and H100 Spot nodes
+  usually took one to three minutes. H100 Spot capacity in the region was
+  unavailable for about 40 minutes. L4 capacity, on demand and Spot, was
+  unavailable for more than an hour, and a Spot L4 node was preempted 12 minutes
+  after its snapshot completed. The snapshot survived and later replicas
+  restored from it.
 
 ## Getting Started
 

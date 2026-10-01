@@ -7,7 +7,7 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2026-09-25 (YYYY-MM-DD)
+> Last Update: 2026-10-01 (YYYY-MM-DD)
 
 This document outlines a reference architecture for **minimizing the time it
 takes a new inference replica to start serving** on Google Kubernetes Engine
@@ -37,9 +37,8 @@ aims to:
   files. The bucket should be organized so that listing and reading them is not
   itself a bottleneck.
 - **Scale on signals that reflect demand**: Use the number of requests waiting
-  in the model server queue rather than CPU or memory utilization, which
-  saturate during normal continuous batching and carry no information about
-  unmet demand.
+  in the model server queue rather than CPU or memory utilization, which don't
+  show whether requests are waiting.
 - **Keep the deployment path reproducible**: The same manifests that produce the
   documented behaviour are the ones published in this repository.
 
@@ -87,12 +86,21 @@ memory, enabled in vLLM with `--load-format=runai_streamer` and a `gs://` model
 path. It reads many tensors concurrently and hands them to the GPU as they
 arrive, rather than reconstructing the full model on disk first.
 
-Measured in `europe-west4` with a regional Cloud Storage bucket, vLLM loaded
-Gemma 4 31B (58.99 GiB in GPU memory) in **27.0 seconds** on an NVIDIA H100 80GB
-and **19.2 seconds** on an NVIDIA RTX PRO 6000 96GB, Gemma 3 27B (51.54 GiB) in
-**11.6 seconds** on an RTX PRO 6000 96GB, and Qwen3.5 35B A3B (65.53 GiB) in
-**11.5 seconds** on an RTX PRO 6000 96GB, without staging the weight files on
-local storage.
+Measured in `europe-west4` with a regional Cloud Storage bucket, on newly
+provisioned Spot nodes, vLLM loaded Gemma 4 31B (58.99 GiB in GPU memory) in a
+median of **20.1 seconds** (range 19.0–27.8 seconds) on an NVIDIA H100 80GB and
+**11.1 seconds** (10.6–16.5 seconds) on an NVIDIA RTX PRO 6000 96GB, Gemma 3 27B
+(51.54 GiB) in **9.1 seconds** (8.2–16.2 seconds) on an RTX PRO 6000 96GB, and
+Qwen3.5 35B A3B (65.53 GiB) in **15.2 seconds** (12.6–22.2 seconds) on an RTX
+PRO 6000 96GB, without staging the weight files on local storage.
+
+Weight loading is only part of the time it takes a new replica to start serving.
+Scaling a deployment from zero replicas until the new replica answered its first
+request took 4.3–7.4 minutes. Most of that time was spent provisioning the GPU
+node, starting vLLM, and running `torch.compile`, CUDA graph capture, and
+warm-up after the weights loaded. For the measurement conditions and the
+per-model results, see
+[Online inference using vLLM with NVIDIA Run:ai Model Streamer and GPUs on GKE](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md).
 
 ### Cloud Storage with hierarchical namespace
 
@@ -106,8 +114,9 @@ The bucket is created with
 enabled. A hierarchical namespace bucket stores objects in folders rather than a
 flat namespace, and offers up to 8 times higher initial queries per second (QPS)
 limits for reading and writing objects than a bucket without hierarchical
-namespace. Higher limits help when several replicas load the same model at the
-same time, such as during a scale-out.
+namespace. Concurrent loads can still be slower than a single load. In one test,
+when two replicas loaded the same model from this bucket at the same time, each
+load took about twice as long as a single load.
 
 > [!NOTE]
 >
@@ -120,15 +129,16 @@ same time, such as during a scale-out.
 lets a container start while its image layers are still being streamed on
 demand, instead of waiting for the entire image to download. This matters
 disproportionately for inference, because vLLM and PyTorch container images are
-large, and the image pull is otherwise the first serial step of every cold
-start.
+large, and without image streaming the whole image must be downloaded before the
+container can start. In our tests, the kubelet reported the vLLM image as pulled
+in 1.4–2.3 seconds on new nodes.
 
 ### Horizontal Pod Autoscaling on inference metrics
 
-CPU and memory utilization are poor scaling signals for inference: a vLLM engine
-saturates both during normal continuous batching, even when serving a single
-request. Scaling on them produces replicas that are not needed and misses
-replicas that are.
+CPU and memory utilization are poor scaling signals for inference, because they
+don't show whether requests are waiting. GPU memory use doesn't show it either:
+vLLM reserves most of the GPU memory for the KV cache when it starts, so GPU
+memory use doesn't change with load.
 
 This architecture scales on `vllm:num_requests_waiting`, the number of requests
 waiting in the vLLM scheduler queue of each replica. It rises as soon as
@@ -140,13 +150,22 @@ Stackdriver Adapter makes it available to the autoscaler. The deployed
 adds replicas without a stabilization window, and removes them only after a
 5-minute stabilization window.
 
-Fast loading is what makes autoscaling on this signal worthwhile. A scale-out
-signal is only actionable if capacity can arrive before the spike ends.
+Fast loading shortens the time it takes to add capacity, and a scale-out signal
+is only actionable if capacity can arrive before the spike ends. Weight loading
+is only a small part of that time, though. In our tests, the
+`HorizontalPodAutoscaler` added a replica about 80 seconds after the load
+started, and a new replica on a new GPU node took 4.3–7.4 minutes from the
+scale-up to its first response. Set the minimum number of replicas so that it
+absorbs the bursts that you expect, and use autoscaling for sustained increases
+in load.
 
 ## Getting Started
 
 A practical, step-by-step guide to deploying this architecture can be found in
 [Online inference using vLLM with NVIDIA Run:ai Model Streamer and GPUs on GKE](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md).
+Before you run this architecture in production, review the guide's
+[considerations for production](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md#considerations-for-production),
+including how GKE can evict serving replicas to move them to other nodes.
 
 The Kubernetes manifests are in
 `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai`,

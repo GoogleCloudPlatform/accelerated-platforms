@@ -14,18 +14,46 @@ from Cloud Storage concurrently and streams them into GPU memory, so the weight
 files are never staged on the node.
 
 The following results were measured with the manifests in this guide, vLLM
-v0.26.0, and a model bucket in the same region as the cluster (`europe-west4`).
-_Weight load time_ is the time that vLLM reports for loading the weights.
-_Container start to ready_ also includes vLLM start-up, `torch.compile`, CUDA
-graph capture, and warm-up. Results depend on the region, the machine type, and
-the location of the bucket.
+v0.26.0, GKE Autopilot, and a model bucket in the same region as the cluster
+(`europe-west4`). Each load ran on a newly provisioned node.
 
-| Model, GPU                                | Weights in GPU memory | Weight load time | Container start to ready |
-| ----------------------------------------- | --------------------- | ---------------- | ------------------------ |
-| Gemma 4 31B, NVIDIA H100 80GB             | 58.99 GiB             | 27.0 s           | 4 min 48 s               |
-| Gemma 4 31B, NVIDIA RTX PRO 6000 96GB     | 58.99 GiB             | 19.2 s           | 2 min 46 s               |
-| Gemma 3 27B, NVIDIA RTX PRO 6000 96GB     | 51.54 GiB             | 11.6 s           | 2 min 50 s               |
-| Qwen3.5 35B A3B, NVIDIA RTX PRO 6000 96GB | 65.53 GiB             | 11.5 s           | 3 min 36 s               |
+- _Weight load time_ is the time that vLLM reports for loading the weights
+  (`Model loading took`), as the median and range of `n` loads.
+- _Scale-up to first response_ is the time from scaling the deployment from 0 to
+  1 replica until the new replica answered its first request, as the range of
+  `n` scale-ups. It includes GPU node provisioning, vLLM start-up, weight
+  loading, `torch.compile`, CUDA graph capture, and warm-up.
+
+| Model, GPU                                | Weights in GPU memory | Weight load time, median (range) | Scale-up to first response |
+| ----------------------------------------- | --------------------- | -------------------------------- | -------------------------- |
+| Gemma 4 31B, NVIDIA H100 80GB             | 58.99 GiB             | 20.1 s (19.0–27.8 s), n=5        | 6.9–7.4 min, n=2           |
+| Gemma 4 31B, NVIDIA RTX PRO 6000 96GB     | 58.99 GiB             | 11.1 s (10.6–16.5 s), n=4        | 4.3 min, n=1               |
+| Gemma 3 27B, NVIDIA RTX PRO 6000 96GB     | 51.54 GiB             | 9.1 s (8.2–16.2 s), n=3          | 4.6 min, n=1               |
+| Qwen3.5 35B A3B, NVIDIA RTX PRO 6000 96GB | 65.53 GiB             | 15.2 s (12.6–22.2 s), n=6        | 5.5–6.4 min, n=4           |
+
+Keep the following in mind when you compare your results:
+
+- The weight load time varied by up to 2× between runs. Besides the downloaded
+  model, we loaded copies of the model files that we wrote to new paths in the
+  same bucket. For most of these sets of files, the first one or two loads after
+  the files were written were the slowest, and later loads were faster, on new
+  nodes as well as on reused nodes. One copy loaded quickly on its first load.
+  Compare the median of several loads rather than a single load.
+- Weight loading is a small part of the time to serve, about 4–6% of the
+  scale-up to first response. Most of the time is spent provisioning the GPU
+  node (1–3 minutes), starting vLLM before the weights load (1–1.5 minutes), and
+  running `torch.compile`, CUDA graph capture, and warm-up after the weights
+  load (1.3–2.7 minutes).
+- In one test, when two replicas loaded the same model at the same time, each
+  load took about twice as long as a single load.
+- The first request to a new Qwen3.5 35B A3B replica took about 22 seconds, and
+  the pod became `Ready` before that request finished. The same short request
+  took less than a second after that.
+- The results were measured on 2026-10-01. Every GPU node was a Spot
+  `a3-highgpu-1g` or `g4-standard-48` node, because the compute classes fell
+  back to their last priority rule, which uses Spot capacity. Results depend on
+  the region, the machine type, the capacity type, and the location of the
+  bucket.
 
 This example is built on top of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
@@ -257,13 +285,22 @@ For the architecture and design rationale, see the
 
 ## Autoscale on inference metrics
 
-CPU and memory utilization are poor scaling signals for inference, because a
-vLLM engine saturates both during normal continuous batching even when serving a
-single request. The deployment therefore includes a `HorizontalPodAutoscaler`
-that scales on `vllm:num_requests_waiting`, the number of requests that are
-waiting in the vLLM scheduler queue. GKE automatic application monitoring
-collects the metric with Google Cloud Managed Service for Prometheus, and the
-Custom Metrics Stackdriver Adapter makes it available to the autoscaler.
+CPU and memory utilization are poor scaling signals for inference, because they
+don't show whether requests are waiting. GPU memory use doesn't show it either:
+vLLM reserves most of the GPU memory for the KV cache when it starts, so GPU
+memory use doesn't change with load. The deployment therefore includes a
+`HorizontalPodAutoscaler` that scales on `vllm:num_requests_waiting`, the number
+of requests that are waiting in the vLLM scheduler queue. GKE automatic
+application monitoring collects the metric with Google Cloud Managed Service for
+Prometheus, and the Custom Metrics Stackdriver Adapter makes it available to the
+autoscaler.
+
+> [!NOTE]
+>
+> The platform enables GKE automatic application monitoring by default
+> (`cluster_auto_monitoring_config_scope = "ALL"`). If you set it to `NONE`, the
+> metric isn't collected and the `HorizontalPodAutoscaler` can't scale the
+> deployment.
 
 - Review the autoscaling configuration.
 
@@ -315,11 +352,12 @@ provisions GPU capacity:
   `--max-num-seqs` is reached. A request only increments
   `vllm:num_requests_waiting` when it cannot fit into the active batch:
   - **Gemma 4 31B (`h100` or `rtx-pro-6000`) and Gemma 3 27B (`rtx-pro-6000`)**:
-    With `12,114` KV cache tokens on H100 (`18,348` on RTX PRO 6000 for Gemma 4
+    With `12,629` KV cache tokens on H100 (`18,348` on RTX PRO 6000 for Gemma 4
     31B; `99,070` for Gemma 3 27B), sending 24–32 concurrent requests with long
     outputs (`"max_tokens": 1500` and `"ignore_eos": true`) fills the first
-    replica's KV cache so that 10 or more requests wait in the scheduler queue
-    and exceed the HPA target (`5`).
+    replica's KV cache so that requests wait in the scheduler queue and exceed
+    the HPA target (`5`). With 24 concurrent requests to Gemma 4 31B on RTX PRO
+    6000, the number of waiting requests fluctuated between 0 and 7.
   - **Qwen3.5 35B A3B (`rtx-pro-6000`)**: Because the hybrid linear-attention
     (Mamba) and sparse KV architecture allocates `220,013` KV cache tokens and
     sets `--max-num-seqs=256`, a single replica can hold up to 256 concurrent
@@ -333,12 +371,16 @@ provisions GPU capacity:
   generator inside the cluster against
   `http://vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}.${ira_online_gpu_kubernetes_namespace_name}.svc.cluster.local:8000`
   so new requests are load-balanced across all `Ready` pods.
-- **Sustain load for at least 6 to 8 minutes**: Scaling onto a new node requires
-  GKE Node Auto-Provisioning to allocate and boot the GPU VM (~60–90 s), stream
-  the container image (~30–60 s), stream the model weights from Cloud Storage
-  into GPU memory with the Run:ai Model Streamer (`11.5–27.0 s`), and complete
-  `torch.compile`, CUDA graph capture, and warm-up (`2 min 46 s` to `4 min 48 s`
-  from container start to `Ready`).
+- **Sustain load for at least 10 to 12 minutes**: In our tests, the
+  `HorizontalPodAutoscaler` added a replica about 80 seconds after the load
+  started. Scaling onto a new node then requires GKE to provision the GPU node
+  (1–2 minutes for RTX PRO 6000 and 2–3 minutes for H100), start vLLM (the
+  container image is pulled in seconds with image streaming, but vLLM takes
+  another 1–1.5 minutes before it starts loading the weights), stream the model
+  weights from Cloud Storage into GPU memory with the Run:ai Model Streamer, and
+  complete `torch.compile`, CUDA graph capture, and warm-up (1.3–2.7 minutes). A
+  new RTX PRO 6000 replica answered its first request about 6 minutes after the
+  load started. Expect H100 replicas to take about 3 minutes longer.
   - When using
     [`inference-perf`](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md),
     edit `configmap-benchmark.yaml` after running `configure_benchmark.sh` to
@@ -353,7 +395,7 @@ You can trigger and observe a scale-out onto a new GPU node directly without
 deploying the full `inference-perf` stack:
 
 - Start an in-cluster load generator `Job` that sends concurrent long-generation
-  requests to the Service for 8 minutes.
+  requests to the Service for 12 minutes.
 
   ```shell
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} apply -f - <<EOF
@@ -377,7 +419,7 @@ deploying the full `inference-perf` stack:
               - name: WORKERS
                 value: "24"
               - name: DURATION_SECONDS
-                value: "480"
+                value: "720"
             command: ["/bin/sh", "-c"]
             args:
               - |
@@ -385,7 +427,7 @@ deploying the full `inference-perf` stack:
                 END=\$(( \$(date +%s) + \${DURATION_SECONDS} ))
                 worker() {
                   while [ "\$(date +%s)" -lt "\${END}" ]; do
-                    curl -s -o /dev/null "${URL}" \
+                    curl -s -o /dev/null "\${URL}" \
                       -H "Content-Type: application/json" \
                       -d '{"model":"${HF_MODEL_ID}","prompt":"Write a detailed history of distributed computing.","max_tokens":1500,"ignore_eos":true}'
                   done
@@ -409,10 +451,11 @@ deploying the full `inference-perf` stack:
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get pods -l app=vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} -o wide"
   ```
 
-  Within 30–60 seconds, `TARGETS` rises above `5/5` (for example, `13/5`) and
-  `REPLICAS` increases. New pods remain `Pending` while GKE provisions GPU
-  nodes, then transition to `Running` and `1/1 Ready`. You can press `CTRL`+`c`
-  to terminate the watch.
+  After about 1–1.5 minutes, `TARGETS` rises above `5/5` and `REPLICAS`
+  increases. The value fluctuates, because requests only wait while the running
+  batch is full. New pods remain `Pending` while GKE provisions GPU nodes, then
+  transition to `Running` and `1/1 Ready`. You can press `CTRL`+`c` to terminate
+  the watch.
 
 - Confirm that the scaled-out replica on the new node streamed the model weights
   from Cloud Storage with the Run:ai Model Streamer.
@@ -442,6 +485,39 @@ deploying the full `inference-perf` stack:
 
   After the waiting queue stays at `0` for the 5-minute stabilization window,
   the `HorizontalPodAutoscaler` scales the deployment back down to `1` replica.
+
+## Considerations for production
+
+- **GKE can evict a serving replica to move it to another node.** The compute
+  classes that these manifests use prefer on-demand capacity, fall back to
+  flex-start and then Spot capacity, and enable
+  [active migration](https://cloud.google.com/kubernetes-engine/docs/concepts/about-custom-compute-classes#active-migration),
+  which replaces nodes that use a lower-priority rule when nodes that use a
+  higher-priority rule become available. During a migration, GKE creates a new
+  node, then drains the old node, so the replica is evicted and starts again
+  from the beginning. Spot nodes can also be reclaimed, and flex-start nodes
+  have a maximum run duration. In our tests, while we added and removed GPU
+  replicas, the cluster autoscaler drained nodes that were running vLLM replicas
+  seven times in about 12 minutes. Each time, it had shortly before added a node
+  with the same machine type and capacity type as the drained node, and the
+  replacement replica started on the new node. Two of the evicted replicas were
+  still starting, and each replacement took about 3–5 minutes to become `Ready`.
+  The manifests in this guide run a single replica and don't set a
+  `PodDisruptionBudget` or the
+  `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"` annotation, so each
+  eviction interrupts serving. For production, run more than one replica, and
+  consider a `PodDisruptionBudget` or the annotation. Active migration and
+  cluster autoscaler scale-down both respect the annotation and
+  `PodDisruptionBudget` objects.
+- **The first request can be slow.** The first request to a new Qwen3.5 35B A3B
+  replica took about 22 seconds, and the same short request took less than a
+  second after that. The pod became `Ready` before that first request finished,
+  so user requests can hit this delay. To avoid it, send a warm-up request to a
+  new replica before it becomes `Ready`.
+- **Concurrent loads can be slower.** In one test, when two replicas loaded the
+  same model at the same time, each load took about twice as long as a single
+  load. A scale-out that adds several replicas at once can take longer than the
+  single-replica results in this guide.
 
 ## Clean up
 

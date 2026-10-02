@@ -445,7 +445,10 @@ a restore by when the replica first answers a request, not by when it becomes
   guide, a new NVIDIA RTX Pro 6000 or H100 Spot node usually took one to three
   minutes, but H100 Spot capacity in the region was unavailable for about 40
   minutes, and NVIDIA L4 capacity, both on-demand and Spot, for more than an
-  hour.
+  hour. GKE Autopilot can shorten node provisioning with
+  [fast-starting nodes](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md#fast-starting-nodes),
+  but not for Spot VMs or for the A3 High machine types that provide the H100
+  GPUs, so the validation of this guide doesn't include them.
 
   In the validation of this guide on GKE Standard with the manifests in this
   repository, the restored replica served its first response 26 to 29 seconds
@@ -455,7 +458,11 @@ a restore by when the replica first answers a request, not by when it becomes
   6000, against 210 seconds. `Ready` came 3 to 20 seconds after scheduling in
   every case, long before the first response. Restoring onto a node that already
   had the image, or onto four new nodes at the same time, changed the first
-  response by no more than a few seconds.
+  response by no more than a few seconds. The validation didn't use Rapid Cache.
+  If you created
+  [Rapid Cache caches](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md#optional-cache-the-model-with-rapid-cache)
+  for the model bucket, restores in their zones might read the snapshot through
+  them, because snapshots are stored in the same bucket.
 
 - Send a request to the restored replica.
 

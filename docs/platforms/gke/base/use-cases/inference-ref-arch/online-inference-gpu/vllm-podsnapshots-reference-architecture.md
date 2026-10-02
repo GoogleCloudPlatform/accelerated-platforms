@@ -217,6 +217,30 @@ buckets. Disabling it on the shared bucket also removes protection for the model
 weights. Workloads that snapshot frequently should consider a dedicated snapshot
 bucket with soft delete disabled.
 
+### Rapid Cache and fast-starting nodes
+
+The
+[Fast-start inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md)
+describes two optional additions that also apply to this architecture:
+
+- [Rapid Cache](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md#rapid-cache-optional)
+  caches for the model bucket. Snapshots are stored in the same bucket, so
+  restores in a zone that has a cache might read the snapshot through the cache,
+  and a cached snapshot adds to the cost of the cache. We didn't measure
+  restores with Rapid Cache. In our tests, GKE's restore took 31 to 33 seconds
+  on each node when 1, 2, or 4 replicas restored at the same time, so the
+  throughput of the bucket doesn't appear to limit restores at that scale.
+- [Fast-starting nodes](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md#fast-starting-nodes),
+  which can shorten GPU node provisioning, a delay that snapshots don't reduce.
+  GKE Autopilot uses them on a best-effort basis for compatible configurations.
+  The G2 (L4) and G4 (RTX Pro 6000) machine series are eligible, subject to
+  version and boot disk requirements. Spot VMs aren't eligible, and the A3 High
+  machine types that provide the H100 GPUs aren't on the list of eligible
+  machine types. The documented limitations don't include GKE Sandbox, but we
+  didn't test it. The results in this document were measured on Spot VMs, and
+  one H100 restore on a flex-start VM, so they don't include fast-starting
+  nodes.
+
 ### Sandbox runtime
 
 The workload runs in GKE Sandbox. This adds a layer of isolation between the

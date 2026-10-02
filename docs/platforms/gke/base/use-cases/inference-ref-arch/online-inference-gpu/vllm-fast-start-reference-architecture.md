@@ -7,7 +7,7 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2026-10-01 (YYYY-MM-DD)
+> Last Update: 2026-10-02 (YYYY-MM-DD)
 
 This document outlines a reference architecture for **minimizing the time it
 takes a new inference replica to start serving** on Google Kubernetes Engine
@@ -48,6 +48,8 @@ This reference architecture provides a foundation for:
 
 - Streaming model weights from Cloud Storage directly into GPU memory with no
   local staging disk.
+- Optionally caching the model in Rapid Cache caches in the zones of the GPU
+  nodes, for scale-outs that add several replicas at once.
 - Serving across multiple GPU generations, including NVIDIA H100 and
   Blackwell-generation RTX PRO 6000.
 - Autoscaling on the vLLM request queue, collected with Google Cloud Managed
@@ -114,14 +116,38 @@ The bucket is created with
 enabled. A hierarchical namespace bucket stores objects in folders rather than a
 flat namespace, and offers up to 8 times higher initial queries per second (QPS)
 limits for reading and writing objects than a bucket without hierarchical
-namespace. Concurrent loads can still be slower than a single load. In one test,
-when two replicas loaded the same model from this bucket at the same time, each
-load took about twice as long as a single load.
+namespace. Loads can still slow down when many replicas load the same model at
+the same time. In our tests in one zone, each of 6 replicas that loaded the same
+model at the same time took 13.2–16.8 seconds, compared to 10.1–10.5 seconds for
+each of 2 replicas.
 
 > [!NOTE]
 >
 > Hierarchical namespace must be chosen at bucket creation time and cannot be
 > enabled on an existing bucket.
+
+### Rapid Cache (optional)
+
+[Rapid Cache](https://cloud.google.com/storage/docs/rapid/rapid-cache) is an
+SSD-backed read cache for a Cloud Storage bucket. Each cache serves only clients
+in its own zone. This architecture can create a cache for the model bucket in
+each zone that you list in the `ira_online_gpu_rapid_cache_zones` Terraform
+variable. By default, it doesn't create any caches.
+
+Rapid Cache can help when several replicas load the same model in the same zone
+at the same time. Measured on 2026-10-02 with Qwen3.5 35B A3B on Spot RTX PRO
+6000 nodes in one zone of `europe-west4`, each of 6 concurrent loads took
+10.5–12.5 seconds when the cache served more than 99.9% of the bytes, and
+13.2–16.8 seconds without Rapid Cache (3 tests each). The loads without Rapid
+Cache read from a newer bucket, which might account for part of the difference.
+With 2 concurrent loads, and with a single load, Rapid Cache didn't make loading
+faster.
+
+A cache doesn't help right away. In our tests, 3 of 5 new caches reported that
+they were running but served no reads for more than an hour, and two of them
+still served none about 18 hours later. A cache also fills gradually as replicas
+read the model. Before you use Rapid Cache, see
+[Optional: Cache the model with Rapid Cache](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md#optional-cache-the-model-with-rapid-cache).
 
 ### Google Container File System (image streaming)
 
@@ -132,6 +158,25 @@ disproportionately for inference, because vLLM and PyTorch container images are
 large, and without image streaming the whole image must be downloaded before the
 container can start. In our tests, the kubelet reported the vLLM image as pulled
 in 1.4–2.3 seconds on new nodes.
+
+### Fast-starting nodes
+
+When a scale-out needs a new GPU node, the new replica can't start until the
+node is provisioned. In our tests, that took 1–3 minutes. GKE Autopilot can
+shorten this time with
+[fast-starting nodes](https://cloud.google.com/kubernetes-engine/docs/concepts/fast-starting-nodes):
+GKE pre-initializes hardware resources and uses them, on a best-effort basis and
+at no extra charge, when a workload uses a compatible configuration.
+Fast-starting nodes don't need any configuration.
+
+G4 machine types, which provide the RTX PRO 6000 GPUs, are eligible. Spot VMs
+aren't eligible, and the A3 High machine types that provide the H100 GPUs aren't
+on the list of eligible machine types. The compute classes in this architecture
+prefer reservations and on-demand capacity to flex-start and Spot capacity, so
+an on-demand G4 node can be a fast-starting node. Every GPU node in our tests
+was a Spot node, so we haven't measured the effect of fast-starting nodes. For
+the requirements, see the guide's
+[considerations for production](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md#considerations-for-production).
 
 ### Horizontal Pod Autoscaling on inference metrics
 
@@ -180,7 +225,9 @@ Related patterns built on the same reference architecture:
 ## Additional Reading
 
 - [Hierarchical namespace buckets](https://cloud.google.com/storage/docs/hns-overview)
+- [Rapid Cache](https://cloud.google.com/storage/docs/rapid/rapid-cache)
 - [Image streaming in GKE](https://cloud.google.com/kubernetes-engine/docs/how-to/image-streaming)
+- [About quicker workload startup with fast-starting nodes](https://cloud.google.com/kubernetes-engine/docs/concepts/fast-starting-nodes)
 - [GKE Inference Gateway](https://cloud.google.com/kubernetes-engine/docs/concepts/about-gke-inference-gateway)
 - [About custom compute classes in GKE](https://cloud.google.com/kubernetes-engine/docs/concepts/about-custom-compute-classes)
 - [NVIDIA Run:ai Model Streamer](https://github.com/dsx-ai-factory/model-streamer)

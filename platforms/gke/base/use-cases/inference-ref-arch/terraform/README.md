@@ -237,12 +237,12 @@ For more information about providing values for Terraform input variables, see
     - Kueue
     - LeaderWorkerSet (LWS)
     - [Priority Classes](/platforms/gke/base/core/workloads/priority_class/templates/manifests)
-      - [critical](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-critical.yaml)
-      - [high](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-high.yaml)
-      - [standard](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-standard.yaml)
+      - [critical](/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-critical.yaml)
+      - [high](/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-high.yaml)
+      - [standard](/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-standard.yaml)
         (default)
-      - [low](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-low.yaml)
-      - [lowest](/docs/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-lowest.yaml)
+      - [low](/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-low.yaml)
+      - [lowest](/platforms/gke/base/core/workloads/priority_class/templates/manifests/priority-class-lowest.yaml)
 
 - Secret Manager Secrets
 
@@ -255,8 +255,10 @@ This reference implementation is designed to support various inference patterns.
 Some example patterns provided are:
 
 - [Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
+  - [Fast-start inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md)
   - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)
   - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
+  - [Online inference using vLLM with NVIDIA Run:ai Model Streamer and GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md)
 - [Online inference with TPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/README.md)
   - [Online inference using MaxDiffusion with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/max-diffusion-with-hf-model.md)
   - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)

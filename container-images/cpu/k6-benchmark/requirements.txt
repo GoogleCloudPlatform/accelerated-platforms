@@ -272,7 +272,7 @@ cryptography==46.0.7 \
     --hash=sha256:fdd1736fed309b4300346f88f74cd120c27c56852c3838cab416e7a166f67298 \
     --hash=sha256:ffca7aa1d00cf7d6469b988c581598f2259e46215e0140af408966a24cf086ce
     # via google-auth
-google-api-core==2.30.3 \
+google-api-core[grpc]==2.30.3 \
     --hash=sha256:a85761ba72c444dad5d611c2220633480b2b6be2521eca69cca2dbb3ffd6bfe8 \
     --hash=sha256:e601a37f148585319b26db36e219df68c5d07b6382cff2d580e83404e44d641b
     # via google-cloud-monitoring
@@ -362,9 +362,9 @@ grpcio-status==1.80.0 \
     --hash=sha256:4b56990363af50dbf2c2ebb80f1967185c07d87aa25aa2bea45ddb75fc181dbe \
     --hash=sha256:df73802a4c89a3ea88aa2aff971e886fccce162bc2e6511408b3d67a144381cd
     # via google-api-core
-idna==3.11 \
-    --hash=sha256:771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea \
-    --hash=sha256:795dafcc9c04ed0c1fb032c2aa73654d8e8c5023a7df64a53f39190ada629902
+idna==3.15 \
+    --hash=sha256:048adeaf8c2d788c40fee287673ccaa74c24ffd8dcf09ffa555a2fbb59f10ac8 \
+    --hash=sha256:ca962446ea538f7092a95e057da437618e886f4d349216d2b1e294abfdb65fdc
     # via requests
 proto-plus==1.27.2 \
     --hash=sha256:6432f75893d3b9e70b9c412f1d2f03f65b11fb164b793d14ae2ca01821d22718 \

@@ -23,9 +23,13 @@ spec:
       containers:
         - name: inference-server
           resources:
+            # The Run:ai Model Streamer buffers shards in host memory while
+            # streaming to GPU memory, and /dev/shm is memory-backed.
             limits:
-              nvidia.com/gpu: "1"
+              cpu: "8"
               memory: "140Gi"
+              nvidia.com/gpu: "1"
             requests:
-              nvidia.com/gpu: "1"
+              cpu: "8"
               memory: "140Gi"
+              nvidia.com/gpu: "1"

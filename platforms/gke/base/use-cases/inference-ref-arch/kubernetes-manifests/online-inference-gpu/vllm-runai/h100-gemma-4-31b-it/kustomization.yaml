@@ -73,10 +73,6 @@ replacements:
       - fieldPaths:
           - metadata.namespace
         select:
-          kind: ServiceAccount
-      - fieldPaths:
-          - metadata.namespace
-        select:
           kind: HorizontalPodAutoscaler
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
@@ -87,10 +83,6 @@ replacements:
           - spec.template.spec.serviceAccountName
         select:
           kind: Deployment
-      - fieldPaths:
-          - metadata.name
-        select:
-          kind: ServiceAccount
   - source:
       fieldPath: data.MODEL_NAME
       kind: ConfigMap

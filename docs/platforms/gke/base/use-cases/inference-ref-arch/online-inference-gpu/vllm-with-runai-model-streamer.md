@@ -7,11 +7,11 @@ which streams model weights directly from Cloud Storage into GPU memory.
 
 In a conventional deployment, weights travel from object storage across the
 network, onto the host filesystem, through the Linux page cache into CPU RAM,
-and only then across PCIe into GPU memory. This serializes tensor reads,
-allocates the model twice, and requires the node to carry enough local storage
-or memory to stage the entire model. The Run:ai Model Streamer reads tensors
-from Cloud Storage concurrently and streams them into GPU memory, so the weight
-files are never staged on the node.
+and only then across PCIe into GPU memory. This serializes tensor reads and
+requires the node to carry enough local storage or `emptyDir` space to stage the
+entire model before loading begins. The Run:ai Model Streamer reads tensors from
+Cloud Storage into host memory buffers concurrently and streams them into GPU
+memory, so the weight files are never staged on the node's filesystem.
 
 The following results were measured with the manifests in this guide, vLLM
 v0.26.0, GKE Autopilot, and a model bucket in the same region as the cluster
@@ -45,20 +45,24 @@ Keep the following in mind when you compare your results:
   running `torch.compile`, CUDA graph capture, and warm-up after the weights
   load (1.3–2.7 minutes).
 - Several replicas that load the same model at the same time can each load more
-  slowly. On 2026-10-02, on reused nodes in one zone, each of 2 replicas that
-  loaded Qwen3.5 35B A3B at the same time took 10.1–10.5 seconds, and each of 6
-  replicas took 13.2–16.8 seconds (3 tests each). In an earlier single test, 2
-  concurrent loads each took about twice as long as a single load. With
+  slowly. On 2026-10-02, on reused nodes in one zone after the objects had been
+  read several times (where a single load took 11.0–11.5 seconds), each of 2
+  replicas that loaded Qwen3.5 35B A3B at the same time took 10.1–10.5 seconds,
+  and each of 6 replicas (tested by scaling the deployment from 0 to 6 replicas
+  at once; the default `HorizontalPodAutoscaler` sets `maxReplicas: 5`) took
+  13.2–16.8 seconds (3 tests each). In an earlier single test, 2 concurrent
+  loads each took about twice as long as a single load. With
   [Rapid Cache](#optional-cache-the-model-with-rapid-cache), each of 6
   concurrent loads took 10.5–12.5 seconds.
 - The first request to a new Qwen3.5 35B A3B replica took about 22 seconds, and
   the pod became `Ready` before that request finished. The same short request
   took less than a second after that.
-- The results were measured on 2026-10-01. Every GPU node was a Spot
-  `a3-highgpu-1g` or `g4-standard-48` node, because the compute classes fell
-  back to their last priority rule, which uses Spot capacity. Results depend on
-  the region, the machine type, the capacity type, and the location of the
-  bucket.
+- The results in the table were measured on 2026-10-01 before `cpu: "8"` was
+  added to `patch-resources.yaml` (when GKE Autopilot defaulted the pod's CPU
+  request to `500m`). Every GPU node was a Spot `a3-highgpu-1g` or
+  `g4-standard-48` node, because the compute classes fell back to their last
+  priority rule, which uses Spot capacity. Results depend on the region, the
+  machine type, the capacity type, and the location of the bucket.
 
 This example is built on top of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
@@ -73,8 +77,10 @@ For the architecture and design rationale, see the
 
 - Get access to the models.
 
-  - For Gemma 3, accept the terms of the license on the Hugging Face model page.
+  - For Gemma 3 and Gemma 4, accept the terms of the license on the Hugging Face
+    model page:
     - [**google/gemma-3-27b-it**](https://huggingface.co/google/gemma-3-27b-it)
+    - [**google/gemma-4-31b-it**](https://huggingface.co/google/gemma-4-31b-it)
 
 - Ensure your
   [Hugging Face Hub **Read** access token](/platforms/gke/base/core/huggingface/initialize/README.md)
@@ -202,7 +208,6 @@ For the architecture and design rationale, see the
     | gemma-3-27b-it  | ❌   | ✅           |
     | gemma-4-31b-it  | ✅   | ✅           |
     | qwen3-5-35b-a3b | ❌   | ✅           |
-
     - **NVIDIA H100 80GB**:
 
       ```shell
@@ -356,13 +361,18 @@ provisions GPU capacity:
   (`vllm:num_requests_running`) until either GPU KV cache blocks are full or
   `--max-num-seqs` is reached. A request only increments
   `vllm:num_requests_waiting` when it cannot fit into the active batch:
-  - **Gemma 4 31B (`h100` or `rtx-pro-6000`) and Gemma 3 27B (`rtx-pro-6000`)**:
-    With `12,629` KV cache tokens on H100 (`18,348` on RTX PRO 6000 for Gemma 4
-    31B; `99,070` for Gemma 3 27B), sending 24–32 concurrent requests with long
-    outputs (`"max_tokens": 1500` and `"ignore_eos": true`) fills the first
+  - **Gemma 4 31B (`h100` or `rtx-pro-6000`)**: With `12,629` KV cache tokens on
+    H100 and `18,348` on RTX PRO 6000, sending 24–32 concurrent requests with
+    long outputs (`"max_tokens": 1500` and `"ignore_eos": true`) fills the first
     replica's KV cache so that requests wait in the scheduler queue and exceed
     the HPA target (`5`). With 24 concurrent requests to Gemma 4 31B on RTX PRO
     6000, the number of waiting requests fluctuated between 0 and 7.
+  - **Gemma 3 27B (`rtx-pro-6000`)**: Because Gemma 3 27B uses smaller KV cache
+    entries (`99,070` KV cache tokens on RTX PRO 6000), 24 concurrent requests
+    with `"max_tokens": 1500` (`~36,000` tokens total) all fit inside the active
+    batch (`vllm:num_requests_waiting` stays `0`). To trigger scale-out, either
+    increase `WORKERS` to `80` or set `--max-num-seqs=16` on the vLLM
+    deployment.
   - **Qwen3.5 35B A3B (`rtx-pro-6000`)**: Because the hybrid linear-attention
     (Mamba) and sparse KV architecture allocates `220,013` KV cache tokens and
     sets `--max-num-seqs=256`, a single replica can hold up to 256 concurrent
@@ -400,7 +410,9 @@ You can trigger and observe a scale-out onto a new GPU node directly without
 deploying the full `inference-perf` stack:
 
 - Start an in-cluster load generator `Job` that sends concurrent long-generation
-  requests to the Service for 12 minutes.
+  requests to the Service for 12 minutes (`WORKERS: "24"` saturates Gemma 4 31B;
+  for Gemma 3 27B or Qwen3.5 35B A3B, increase `WORKERS` or lower
+  `--max-num-seqs` as described above).
 
   ```shell
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} apply -f - <<EOF
@@ -472,7 +484,7 @@ deploying the full `inference-perf` stack:
   grep -e "Runai Model Streamer: 100%" -e "Model loading took"
   ```
 
-  Each replica reports its own streaming throughput and weight load time (for
+  Each replica reports its own tensor load rate and weight load time (for
   example, `27.66 seconds` for 58.99 GiB on a newly provisioned H100 node):
 
   ```text
@@ -651,12 +663,12 @@ Keep the following in mind before you use Rapid Cache:
   replacement replica started on the new node. Two of the evicted replicas were
   still starting, and each replacement took about 3–5 minutes to become `Ready`.
   The manifests in this guide run a single replica and don't set a
-  `PodDisruptionBudget` or the
-  `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"` annotation, so each
-  eviction interrupts serving. For production, run more than one replica, and
-  consider a `PodDisruptionBudget` or the annotation. Active migration and
-  cluster autoscaler scale-down both respect the annotation and
-  `PodDisruptionBudget` objects.
+  `PodDisruptionBudget`, so each eviction interrupts serving. For production,
+  run at least two replicas and configure a `PodDisruptionBudget` (for example,
+  `minAvailable: 1`), which both active migration and cluster autoscaler
+  scale-down respect. Note that GKE Autopilot rejects the
+  `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"` annotation on pods
+  that select a custom compute class.
 - **The first request can be slow.** The first request to a new Qwen3.5 35B A3B
   replica took about 22 seconds, and the same short request took less than a
   second after that. The pod became `Ready` before that first request finished,
@@ -692,16 +704,18 @@ Keep the following in mind before you use Rapid Cache:
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
-- Destroy the online GPU resources.
+- Destroy the online GPU resources and restore the Terraform variables file.
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
   rm -rf .terraform/ terraform.tfstate* && \
-  terraform init &&
-  terraform destroy -auto-approve
+  terraform init && \
+  terraform destroy -auto-approve && \
+  git restore "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/inference-ref-arch.auto.tfvars"
   ```
 
   If you created Rapid Cache caches, this step disables them, and Cloud Storage
   deletes them after a grace period of 1 hour. You can't delete the model bucket
-  until the caches are deleted.
+  (including via `teardown-ap.sh` or `teardown-standard.sh`) until the 1-hour
+  grace period finishes and the caches are deleted.

@@ -13,12 +13,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -o errexit
+set -o nounset
+set -o pipefail
 
 MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
-ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../../../../)"
+ACP_REPO_DIR="$(realpath "${MY_PATH}/../../../../../../../../../")"
 
 source "${MY_PATH}/../../config/huggingface.sh"
 

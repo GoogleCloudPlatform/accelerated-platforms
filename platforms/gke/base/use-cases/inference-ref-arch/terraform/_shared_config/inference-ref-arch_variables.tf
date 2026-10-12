@@ -268,6 +268,11 @@ variable "ira_online_gpu_rapid_cache_zones" {
   default     = []
   description = "The zones in which to create a Rapid Cache cache for the model bucket, for example [\"us-central1-b\", \"us-central1-c\"]. A cache only serves clients in its own zone. If the list is empty, no caches are created."
   type        = list(string)
+
+  validation {
+    condition     = alltrue([for z in var.ira_online_gpu_rapid_cache_zones : can(regex("^[a-z]+-[a-z]+[0-9]+-[a-z]$", z))])
+    error_message = "Each entry in 'ira_online_gpu_rapid_cache_zones' must be a valid Google Cloud zone name, such as \"us-central1-b\"."
+  }
 }
 
 variable "ira_online_gpu_vllm_kv_offloading_image_url" {

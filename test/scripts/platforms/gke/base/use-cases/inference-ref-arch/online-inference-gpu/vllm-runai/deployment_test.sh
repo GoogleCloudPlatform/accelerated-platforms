@@ -13,12 +13,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+set -o errexit
+set -o nounset
+set -o pipefail
 
 MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
-ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../../../../)"
+ACP_REPO_DIR="$(realpath "${MY_PATH}/../../../../../../../../../")"
 
 source "${MY_PATH}/../../config/huggingface.sh"
 
@@ -35,50 +38,62 @@ for model in "${hf_gpu_vllm_runai_models[@]}"; do
     echo "Testing '${HF_MODEL_ID}' model deployment on '${ACCELERATOR_TYPE}'"
     echo "--------------------------------------------------------------------------------------------"
 
+    echo "Waiting for deployment 'vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}' to become ready..."
+    kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "deployment/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}" --timeout=900s
+
     echo "Setting up port forwarding..."
     port_forwarding_failed=0
     forwarding_port=$(shuf -i 49152-65535 -n 1)
-    kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} ${forwarding_port}:8000 >/dev/null &
+    kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" port-forward "service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}" "${forwarding_port}:8000" >/dev/null &
     PF_PID=$!
 
     echo "Waiting for port forwarding..."
-    while ! echo -e '\x1dclose\x0d' | telnet localhost ${forwarding_port} >/dev/null 2>&1; do
+    attempts=0
+    while ! echo -e '\x1dclose\x0d' | telnet localhost "${forwarding_port}" >/dev/null 2>&1; do
       if ! kill -0 "${PF_PID}" 2>/dev/null; then
         port_forwarding_failed=1
         echo "Port forwarding process exited!"
         echo
         break
       fi
+      attempts=$((attempts + 1))
+      if [[ ${attempts} -ge 300 ]]; then
+        port_forwarding_failed=1
+        echo "Timed out waiting for port forwarding!"
+        kill -9 "${PF_PID}" 2>/dev/null || true
+        break
+      fi
 
       sleep 0.1
     done
 
-    if [[ ${port_forwarding_failed} == 1 ]] ; then
-      break
+    if [[ ${port_forwarding_failed} == 1 ]]; then
+      exit 1
     fi
 
     echo "Sending GET request to '/v1/models'"
     echo "----------------------------------------------------------------------------------"
-    curl --request GET --show-error --silent http://127.0.0.1:${forwarding_port}/v1/models | jq
+    curl --fail --request GET --show-error --silent "http://127.0.0.1:${forwarding_port}/v1/models" | jq -e '.data | length > 0'
     sleep 1
     echo "----------------------------------------------------------------------------------"
     echo
 
     echo "Sending POST request to '/v1/chat/completions'"
     echo "----------------------------------------------------------------------------------"
-    curl http://127.0.0.1:${forwarding_port}/v1/chat/completions \
-    --data '{
-      "model": "'${HF_MODEL_ID}'",
-      "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
+    curl "http://127.0.0.1:${forwarding_port}/v1/chat/completions" \
+      --data '{
+        "model": "'"${HF_MODEL_ID}"'",
+        "messages": [ { "role": "user", "content": "Why is the sky blue?" } ]
       }' \
-    --header "Content-Type: application/json" \
-    --request POST \
-    --show-error \
-    --silent | jq
+      --fail \
+      --header "Content-Type: application/json" \
+      --request POST \
+      --show-error \
+      --silent | jq -e '.choices[0].message.content | length > 0'
     echo "----------------------------------------------------------------------------------"
 
-    kill -9 ${PF_PID}
-    wait ${PF_PID} 2>/dev/null
+    kill -9 "${PF_PID}" 2>/dev/null || true
+    wait "${PF_PID}" 2>/dev/null || true
     echo
     echo
     echo

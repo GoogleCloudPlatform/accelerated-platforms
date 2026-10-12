@@ -13,23 +13,24 @@ This document outlines a reference architecture for **minimizing the time it
 takes a new inference replica to start serving** on Google Kubernetes Engine
 (GKE). It is a specialization of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md),
-narrowed to one problem: the minutes a GPU replica spends loading a model before
-it can answer a request, and what to do about it.
+focused on reducing the time a new GPU replica spends provisioning a node,
+pulling its container image, and loading model weights before it can answer a
+request.
 
 Refer to the [Getting Started](#getting-started) section below for instructions
 on deploying the architecture described here.
 
 ## Purpose
 
-A conventional GPU inference replica spends most of its startup time moving
-model weights. That cost is paid on every scale-out event, which makes
-autoscaling reactive at exactly the wrong timescale: by the time capacity
-arrives, the traffic spike that called for it may be over. This architecture
-aims to:
+A conventional GPU inference replica can spend several minutes starting up,
+including staging multi-gigabyte model files onto local storage before copying
+them into GPU memory. That cost is paid on every scale-out event, which makes
+autoscaling reactive at the wrong timescale: by the time capacity arrives, the
+traffic spike that called for it may be over. This architecture aims to:
 
 - **Remove the host disk from the loading path**: Stream weights directly from
-  object storage into accelerator memory, eliminating both the staging disk and
-  the redundant copy through host RAM.
+  object storage into accelerator memory through host-memory buffers,
+  eliminating local disk staging and Linux page-cache copies.
 - **Make load time a function of bandwidth, not of plumbing**: Weight loading
   should be limited by how fast bytes can move, not by serialized tensor reads
   or filesystem overhead.
@@ -78,15 +79,16 @@ This reference architecture provides a foundation for:
 
 In a conventional deployment, weights travel from object storage across the
 network, onto the host filesystem, through the Linux page cache into CPU RAM,
-and only then across PCIe into GPU memory. This serializes tensor reads,
-allocates the model twice, and requires the node to carry enough local storage
-or memory to stage the entire model.
+and only then across PCIe into GPU memory. This serializes tensor reads and
+requires the node to carry enough local storage or `emptyDir` space to stage the
+entire model before loading begins.
 
 [NVIDIA Run:ai Model Streamer](https://github.com/dsx-ai-factory/model-streamer)
 collapses this into a single streaming operation from Cloud Storage into GPU
-memory, enabled in vLLM with `--load-format=runai_streamer` and a `gs://` model
-path. It reads many tensors concurrently and hands them to the GPU as they
-arrive, rather than reconstructing the full model on disk first.
+memory through host-memory buffers, enabled in vLLM with
+`--load-format=runai_streamer` and a `gs://` model path. It reads many tensors
+concurrently and hands them to the GPU as they arrive, rather than
+reconstructing the full model on disk first.
 
 Measured in `europe-west4` with a regional Cloud Storage bucket, on newly
 provisioned Spot nodes, vLLM loaded Gemma 4 31B (58.99 GiB in GPU memory) in a
@@ -117,9 +119,10 @@ enabled. A hierarchical namespace bucket stores objects in folders rather than a
 flat namespace, and offers up to 8 times higher initial queries per second (QPS)
 limits for reading and writing objects than a bucket without hierarchical
 namespace. Loads can still slow down when many replicas load the same model at
-the same time. In our tests in one zone, each of 6 replicas that loaded the same
-model at the same time took 13.2–16.8 seconds, compared to 10.1–10.5 seconds for
-each of 2 replicas.
+the same time. In our tests on reused nodes in one zone after the objects had
+been read several times (where a single load took 11.0–11.5 seconds), each of 6
+replicas that loaded the same model at the same time took 13.2–16.8 seconds,
+compared to 10.1–10.5 seconds for each of 2 replicas.
 
 > [!NOTE]
 >
@@ -135,13 +138,14 @@ each zone that you list in the `ira_online_gpu_rapid_cache_zones` Terraform
 variable. By default, it doesn't create any caches.
 
 Rapid Cache can help when several replicas load the same model in the same zone
-at the same time. Measured on 2026-10-02 with Qwen3.5 35B A3B on Spot RTX PRO
-6000 nodes in one zone of `europe-west4`, each of 6 concurrent loads took
-10.5–12.5 seconds when the cache served more than 99.9% of the bytes, and
-13.2–16.8 seconds without Rapid Cache (3 tests each). The loads without Rapid
-Cache read from a newer bucket, which might account for part of the difference.
-With 2 concurrent loads, and with a single load, Rapid Cache didn't make loading
-faster.
+at the same time. Measured on 2026-10-02 with Qwen3.5 35B A3B on reused Spot RTX
+PRO 6000 nodes in one zone of `europe-west4` after the objects had been read
+several times (where a single load took 11.0–11.5 seconds), each of 6 concurrent
+loads took 10.5–12.5 seconds when the cache served more than 99.9% of the bytes,
+and 13.2–16.8 seconds without Rapid Cache (3 tests each). The loads without
+Rapid Cache read from a newer bucket, which might account for part of the
+difference. With 2 concurrent loads, and with a single load, Rapid Cache didn't
+make loading faster.
 
 A cache doesn't help right away. In our tests, 3 of 5 new caches reported that
 they were running but served no reads for more than an hour, and two of them

@@ -24,9 +24,13 @@ spec:
         - name: inference-server
           resources:
             limits:
+              cpu: "4"
+              ephemeral-storage: "30Gi"
+              memory: "24Gi"
               nvidia.com/gpu: "1"
             requests:
               cpu: "4"
+              ephemeral-storage: "30Gi"
               # A g2-standard-8 node has 32Gi of RAM in total, so this leaves
               # headroom for the kubelet and the gVisor sandbox itself.
               memory: "24Gi"

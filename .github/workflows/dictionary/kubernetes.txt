@@ -3,6 +3,7 @@ apiextensions
 apiregistration
 apiservice
 automount
+checkpointed
 clusterregistry
 clusterrole
 clusterrolebinding
@@ -11,10 +12,12 @@ configmap
 crd
 crds
 dockerconfigjson
+downscoped
 egressgateway
 flowcontrol
 flowschemas
 gmsa
+gvisor
 horizontalpodautoscaler
 inferenceobjectives
 ingressgateway
@@ -22,6 +25,7 @@ istiod
 jobset
 jobsets
 k8s
+kubebuilder
 kubeconfig
 kubelet
 limitranges
@@ -37,6 +41,12 @@ persistentvolumeclaim
 podmonitoring
 podset
 podsets
+podsnapshot
+podsnapshotpolicies
+podsnapshotpolicy
+podsnapshots
+podsnapshotstorageconfig
+podsnapshotstorageconfigs
 podtemplate
 podtemplates
 preconfigured
@@ -46,12 +56,16 @@ priorityclasses
 prioritylevelconfigurations
 provisioningrequest
 provisioningrequests
+pssc
 replicaset
 replicasets
 replicatedjob
 rilb
 rolebinding
+rootfs
+runsc
 runtimeclasses
+sandboxed
 seccomp
 secretproviderclass
 secretproviderclasses
@@ -61,5 +75,6 @@ subjectaccessreviews
 tlsv
 tokenreviews
 tolerations
+unsandboxed
 validatingwebhookconfigurations
 yunikorn

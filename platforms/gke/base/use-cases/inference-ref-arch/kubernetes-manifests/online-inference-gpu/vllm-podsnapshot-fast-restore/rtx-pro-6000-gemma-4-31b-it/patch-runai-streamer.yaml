@@ -15,7 +15,7 @@
 # The shared base loads weights from Hugging Face with
 # `--safetensors-load-strategy=eager`. This overlay swaps that for the NVIDIA
 # Run:ai Model Streamer reading directly from GCS, which is the configuration
-# that was validated end to end for Gemma 4 31B on H100.
+# that was validated end to end for Gemma 4 31B on RTX Pro 6000.
 #
 # `args` is a list, so this strategic merge patch replaces it wholesale. The
 # cooperative checkpoint trigger therefore has to be repeated here; keep it in
@@ -33,28 +33,9 @@ spec:
         - name: inference-server
           args:
             - |
-              (
-                if [ ! -e /proc/gvisor/checkpoint ]; then
-                  echo "[podsnapshot] /proc/gvisor/checkpoint is absent; skipping checkpoint trigger."
-                  echo "[podsnapshot] Expected when this pod was itself restored from a snapshot, or"
-                  echo "[podsnapshot] when no matching PodSnapshotPolicy with triggerConfig.type=workload exists."
-                  exit 0
-                fi
-                echo "[podsnapshot] Waiting for the model server to become healthy..."
-                while ! curl --fail --silent http://localhost:8000/health; do
-                  sleep 2
-                done
-                echo "[podsnapshot] Model server is healthy."
-                rm -rf /root/.cache/huggingface/* 2>/dev/null || true
-                echo "[podsnapshot] Triggering the cooperative checkpoint..."
-                if echo 1 > /proc/gvisor/checkpoint; then
-                  echo "[podsnapshot] Checkpoint triggered successfully."
-                else
-                  echo "[podsnapshot] Checkpoint trigger FAILED."
-                fi
-              ) &
-              exec python3 -m vllm.entrypoints.openai.api_server \
-                --model="gs://${MODEL_BUCKET_NAME}/${MODEL_ID}" \
+              MODEL_GCS_PATH="$(printf '%s' "${MODEL_ID}" | tr '[:upper:]' '[:lower:]')"
+              python3 -m vllm.entrypoints.openai.api_server \
+                --model="gs://${MODEL_BUCKET_NAME}/${MODEL_GCS_PATH}" \
                 --served-model-name="${MODEL_ID}" \
                 --load-format=runai_streamer \
                 --model-loader-extra-config='{"distributed":true}' \
@@ -62,7 +43,35 @@ spec:
                 --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
                 --max-model-len="${MAX_MODEL_LEN}" \
                 --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
-                --port=8000
+                --port=8000 &
+              VLLM_PID=$!
+              trap 'kill -TERM "${VLLM_PID}" 2>/dev/null || true' TERM INT
+              if [ ! -e /proc/gvisor/checkpoint ]; then
+                echo "[podsnapshot] /proc/gvisor/checkpoint is absent; skipping checkpoint trigger."
+                echo "[podsnapshot] Expected when no matching PodSnapshotPolicy with triggerConfig.type=workload exists."
+              else
+                echo "[podsnapshot] Waiting for the model server to become healthy..."
+                while ! curl --fail --silent http://localhost:8000/health >/dev/null; do
+                  if ! kill -0 "${VLLM_PID}" 2>/dev/null; then
+                    wait "${VLLM_PID}"
+                    exit $?
+                  fi
+                  sleep 2
+                done
+                echo "[podsnapshot] Model server is healthy."
+                find /root/.cache/huggingface -mindepth 1 -delete 2>/dev/null || true
+                echo "[podsnapshot] Triggering the cooperative checkpoint..."
+                # A restored pod resumes execution right as this write returns.
+                if echo 1 > /proc/gvisor/checkpoint; then
+                  echo "[podsnapshot] Checkpoint complete (or pod restored from snapshot)."
+                else
+                  echo "[podsnapshot] ERROR: Checkpoint trigger FAILED." >&2
+                  kill -TERM "${VLLM_PID}" 2>/dev/null || true
+                  wait "${VLLM_PID}" 2>/dev/null || true
+                  exit 1
+                fi
+              fi
+              wait "${VLLM_PID}"
           env:
             # The streamer reads the weights straight out of GCS, so the bucket
             # name has to be visible to the container. Staging the model into

@@ -63,16 +63,19 @@ DEADLINE_SECONDS="${DEADLINE_SECONDS:-3600}"
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
-epoch() { date --date="$1" +%s.%N; }
+epoch() { if [[ -n "$1" ]]; then date --date="$1" +%s.%N; fi; }
 rel() { # rel <t> <t0>: seconds from t0 to t, one decimal
   if [[ -z "$1" || -z "$2" ]]; then echo "-"; else awk -v a="$1" -v b="$2" 'BEGIN { printf "%.1f", a - b }'; fi
 }
 since() { # since <RFC 3339 time or empty> <t0>
   if [[ -z "$1" ]]; then echo "-"; else rel "$(epoch "$1")" "$2"; fi
 }
+sec() { # sec <value>: appends 's' unless empty or '-'
+  if [[ -z "$1" || "$1" == "-" ]]; then echo "-"; else echo "${1}s"; fi
+}
 cond() { # cond <pod> <type>: lastTransitionTime of a True condition
   "${KUBECTL[@]}" get pod "$1" \
-    --output=jsonpath="{.status.conditions[?(@.type==\"$2\")].lastTransitionTime}"
+    --output=jsonpath="{.status.conditions[?(@.type==\"$2\" && @.status==\"True\")].lastTransitionTime}"
 }
 
 # The snapshot must exist before scaling out, or the new Pods start cold.
@@ -91,8 +94,13 @@ if [[ ${#before[@]} -eq 0 ]]; then
   exit 1
 fi
 client="$("${KUBECTL[@]}" get pods --selector="app=${APP}" \
+  --field-selector=status.phase=Running \
   --sort-by=.metadata.creationTimestamp \
   --output=jsonpath='{.items[0].metadata.name}')"
+if [[ -z "${client}" ]]; then
+  echo "No Running ${APP} Pod to send requests from." >&2
+  exit 1
+fi
 
 current="$("${KUBECTL[@]}" get deployment "${APP}" --output=jsonpath='{.spec.replicas}')"
 target="${1:-$((current + 1))}"
@@ -107,21 +115,24 @@ echo "Scaled ${APP} from ${current} to ${target} at $(date --utc +%H:%M:%S). Sen
 
 probe() { # probe <pod> <ip>: one line per request: start end http_code
   "${KUBECTL[@]}" exec "${client}" -- sh -c '
-    body="{\"model\": \"'"${SERVED_MODEL_NAME}"'\", \"prompt\": \"The capital of France is\", \"max_tokens\": 8, \"temperature\": 0}"
+    model="$1"
+    deadline="$2"
+    target_ip="$3"
+    body="{\"model\": \"${model}\", \"prompt\": \"The capital of France is\", \"max_tokens\": 8, \"temperature\": 0}"
     ok=0
-    end=$(( $(date +%s) + '"${DEADLINE_SECONDS}"' ))
+    end=$(( $(date +%s) + deadline ))
     while [ "$(date +%s)" -lt "${end}" ]; do
       s=$(date +%s.%N)
       code=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 120 \
         --header "Content-Type: application/json" --data "${body}" \
-        "http://'"$2"':8000/v1/completions" || true)
+        "http://${target_ip}:8000/v1/completions" || true)
       echo "${s} $(date +%s.%N) ${code:-000}"
       if [ "${code}" = "200" ]; then
         ok=$((ok + 1)); [ "${ok}" -ge 3 ] && break
       else
         sleep 0.5
       fi
-    done' >"${WORK_DIR}/$1.probe" 2>/dev/null
+    done' _ "${SERVED_MODEL_NAME}" "${DEADLINE_SECONDS}" "$2" >"${WORK_DIR}/$1.probe" 2>/dev/null
 }
 
 declare -A probed=()
@@ -147,17 +158,17 @@ for pod in "${!probed[@]}"; do
   node="$("${KUBECTL[@]}" get pod "${pod}" --output=jsonpath='{.spec.nodeName}')"
   node_created="$(kubectl get node "${node}" --output=jsonpath='{.metadata.creationTimestamp}')"
   image="$("${KUBECTL[@]}" get events --field-selector="involvedObject.name=${pod},reason=Pulled" \
-    --output=jsonpath='{.items[0].message}' | grep -o -e 'already present' -e 'in [0-9.]*m*s ' | head -1 || true)"
+    --output=jsonpath='{.items[0].message}' | grep -oE 'already present|in ([0-9]+m)?[0-9.]+s ' | head -1 || true)"
   first="$(awk '$3 == 200 { print $1, $2; exit }' "${WORK_DIR}/${pod}.probe")"
   loading="$("${KUBECTL[@]}" logs "${pod}" | grep -c -e "Model loading took" -e "Starting to load model" || true)"
-  printf '%-24s %7ss %-18s %6ss %11ss %14ss %8ss %8s\n' \
+  printf '%-24s %8s %-18s %7s %12s %15s %9s %8s\n' \
     "${pod: -24}" \
-    "$(since "${node_created}" "${scheduled}" | sed 's/^-//')" \
+    "$(sec "$(since "${node_created}" "${scheduled}" | sed 's/^-//')")" \
     "${image:-?}" \
-    "$(since "${ready}" "${scheduled}")" \
-    "$(since "${restored}" "${scheduled}")" \
-    "$(rel "${first#* }" "${scheduled}")" \
-    "$(rel "${first#* }" "${first%% *}")" \
+    "$(sec "$(since "${ready}" "${scheduled}")")" \
+    "$(sec "$(since "${restored}" "${scheduled}")")" \
+    "$(sec "$(rel "${first#* }" "${scheduled}")")" \
+    "$(sec "$(rel "${first#* }" "${first%% *}")")" \
     "${loading}"
 done
 cat <<'EOF'

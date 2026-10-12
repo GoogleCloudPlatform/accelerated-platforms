@@ -22,3 +22,11 @@ resource "google_storage_bucket_iam_member" "hub_models_ira_online_gpu_ksa" {
   member = local.ira_online_gpu_ksa_member
   role   = local.cluster_gcsfuse_user_role
 }
+
+# GKE Pod snapshots are deleted by the Pod snapshot controller, which runs as
+# the GKE service agent and requires roles/storage.objectUser on the bucket.
+resource "google_storage_bucket_iam_member" "hub_models_gke_service_agent" {
+  bucket = data.google_storage_bucket.hub_models.name
+  member = "serviceAccount:service-${data.google_project.cluster.number}@container-engine-robot.iam.gserviceaccount.com"
+  role   = "roles/storage.objectUser"
+}

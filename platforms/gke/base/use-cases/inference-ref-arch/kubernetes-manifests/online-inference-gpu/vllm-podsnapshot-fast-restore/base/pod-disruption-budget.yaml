@@ -30,7 +30,12 @@ spec:
   # GKE Autopilot that annotation requests extended run time, which is not
   # supported for Pods that target custom compute classes. A budget also leaves
   # the pod template, and therefore the snapshot, unchanged.
-  maxUnavailable: 0
+  #
+  # `minAvailable: 1` blocks voluntary eviction while only the single
+  # cold-start replica is running (`ALLOWED DISRUPTIONS: 0`), while still
+  # allowing one node at a time to be drained when the Deployment is scaled out
+  # to two or more replicas.
+  minAvailable: 1
   selector:
     matchLabels:
       app: vllm-fast-restore

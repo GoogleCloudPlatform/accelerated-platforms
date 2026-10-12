@@ -24,8 +24,12 @@ spec:
         - name: inference-server
           resources:
             limits:
+              cpu: "8"
+              ephemeral-storage: "30Gi"
+              memory: "64Gi"
               nvidia.com/gpu: "1"
             requests:
               cpu: "8"
+              ephemeral-storage: "30Gi"
               memory: "64Gi"
               nvidia.com/gpu: "1"

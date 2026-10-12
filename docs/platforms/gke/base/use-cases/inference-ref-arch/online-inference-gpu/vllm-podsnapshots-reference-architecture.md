@@ -108,12 +108,17 @@ for the snapshot to serialize.
 | Checkpoint upload to Cloud Storage | Never                 | Once per configuration |
 | GPU node provisioning              | Unchanged             | Unchanged              |
 
-Measured on Gemma 4 31B on a single NVIDIA H100 80GB, the streamer loads 58.9
-GiB of weights in about 48 seconds, yet the replica still takes 224 seconds to
-start serving. Engine initialization alone takes another 83 seconds. A replica
-restored from a snapshot served its first response 36 to 38 seconds after it was
-scheduled. The streamer shortens the cold start, and the snapshot replaces it
-for every replica after the first.
+Measured on Gemma 4 31B on a single NVIDIA H100 80GB inside GKE Sandbox
+(`runtimeClassName: gvisor`, vLLM `v0.19.1`), the streamer loads 58.9 GiB of
+weights in about 48 seconds (and 56.8 seconds on RTX Pro 6000, compared with
+20.1 seconds on H100 and 11.1 seconds on RTX Pro 6000 for the unsandboxed vLLM
+`v0.26.0` deployment in the
+[Fast-start inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md)),
+yet the replica still takes 224 seconds to finish starting up. Engine
+initialization alone takes another 83 seconds. A replica restored from a
+snapshot served its first response 36 to 38 seconds after it was scheduled. The
+streamer shortens the cold start, and the snapshot replaces it for every replica
+after the first.
 
 ### Cooperative trigger instead of a readiness trigger
 
@@ -125,6 +130,13 @@ and then writes to `/proc/gvisor/checkpoint`. The captured state is therefore
 deterministic, and it never includes an on-disk copy of the weights that would
 otherwise be serialized into the image and read back on every restore. The cost
 is a small amount of startup scripting in the container command.
+
+Because a Pod snapshot serializes process memory and environment variables into
+Cloud Storage, credentials must not be kept in long-lived environment variables
+(`os.environ`). For Hugging Face Hub downloads (Path A), the deployment mounts
+the `huggingface-token` Secret as a file, copies it to
+`/root/.cache/huggingface/token` before starting vLLM, and deletes the contents
+of `/root/.cache/huggingface` right before writing to `/proc/gvisor/checkpoint`.
 
 ### Driver selection through a compute class
 
@@ -182,31 +194,36 @@ as a single restore.
 
 ### Protecting the capture from eviction
 
-The paused replica still reports `Ready`, because its readiness probe tolerates
-long runs of failures, so nothing in its status shows that evicting it would
-lose the snapshot. A Service also keeps routing requests to it, and they are not
-answered until the upload completes. The GPU compute classes of the reference
-implementation enable active migration, which drains a node to move its Pods to
-a more preferred node configuration. On the Autopilot cluster used to validate
-this architecture, the cluster autoscaler evicted the cold-start replica 13
-minutes after the checkpoint was triggered, as the upload was finishing, and the
-checkpoint failed. The deployment therefore includes a `PodDisruptionBudget`
-that allows no voluntary disruptions, which active migration and autoscaler
-scale-down respect. The cost is that the autoscaler does not move or consolidate
-serving replicas. The `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`
-annotation is not used, because on Autopilot it requests extended run time,
-which is not supported for Pods that target custom compute classes.
+The deployment separates `startupProbe` (which allows up to 3.3 hours for the
+cold start) from `readinessProbe` (`periodSeconds: 2`, `failureThreshold: 3`).
+When the cooperative checkpoint trigger pauses the cold-start replica, the
+readiness probe marks the Pod not ready after about six seconds so the Service
+stops routing requests to it until the upload finishes and the replica resumes.
+The GPU compute classes of the reference implementation enable active migration,
+which drains a node to move its Pods to a more preferred node configuration. On
+the Autopilot cluster used to validate this architecture, the cluster autoscaler
+evicted the cold-start replica 13 minutes after the checkpoint was triggered, as
+the upload was finishing, and the checkpoint failed. The deployment therefore
+includes a `PodDisruptionBudget` with `minAvailable: 1`, which active migration
+and autoscaler scale-down respect while a single cold-start replica is capturing
+the snapshot, while still permitting voluntary evictions once the deployment is
+scaled out to two or more ready replicas. The
+`cluster-autoscaler.kubernetes.io/safe-to-evict: "false"` annotation is not
+used, because on Autopilot it requests extended run time, which is not supported
+for Pods that target custom compute classes.
 
 ### Storage lifecycle and permissions
 
 Snapshots are written to Cloud Storage by the workload's Kubernetes service
 account through Workload Identity Federation. Deleting a snapshot is performed
 by the Pod snapshot controller, which acts as the GKE service agent and needs
-the Storage Object User role on the bucket. On the cluster used to develop this
-architecture, that role was initially missing: `PodSnapshot` resources stayed in
-`Deleting` for weeks, and their data remained in the bucket. After the role was
-granted, deleting a `PodSnapshot` removed both the resource and its objects
-within seconds.
+the Storage Object User role on the bucket. The `terraform/online_gpu` module
+grants `roles/storage.objectUser` on the model bucket to the GKE service agent
+(`service-${project_number}@container-engine-robot.iam.gserviceaccount.com`). On
+the cluster used to develop this architecture, before that grant was added to
+Terraform, `PodSnapshot` resources stayed in `Deleting` for weeks, and their
+data remained in the bucket. After the role was granted, deleting a
+`PodSnapshot` removed both the resource and its objects within seconds.
 
 In this architecture, snapshots share the model bucket created by the reference
 implementation. That bucket already uses hierarchical namespace, which Pod
@@ -278,29 +295,36 @@ it.
 | Model, GPU                            | Cold start | Restore, first response | Restore, `Ready` | Snapshot size |
 | ------------------------------------- | ---------- | ----------------------- | ---------------- | ------------- |
 | Llama 3.1 8B, NVIDIA L4               | 433 s      | 26 to 29 s              | 12 to 15 s       | 18.3 GiB      |
-| Llama 3.1 8B, NVIDIA H100 80GB        | 168 s      | 46 to 52 s              | 5 to 6 s         | 19.8 GiB      |
+| Llama 3.1 8B, NVIDIA H100 80GB        | 168 s      | 46 to 52 s              | 5 to 9 s         | 19.8 GiB      |
 | Gemma 4 31B, NVIDIA H100 80GB         | 224 s      | 36 to 38 s              | 3 to 5 s         | 67.9 GiB      |
 | Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 210 s      | 35 to 43 s              | 7 to 20 s        | 68.4 GiB      |
 
 All times are measured from the Pod's `PodScheduled` condition, so they exclude
-waiting for a GPU node. The cold start is measured to `Ready`, which for a
-cold-start replica is also when it first serves. The restore is measured to the
-first successful `/v1/completions` response, with requests sent every half
-second from the moment the Pod has an IP address, and to `Ready` for comparison.
-No restored Pod logged any model loading. The L4 (2 runs) and RTX Pro 6000 (8
-runs) restores were each onto a node created for that Pod. The H100 restores (3
-runs per model) were onto nodes created during the validation: three onto a node
-created for that Pod, and three onto a node created 2 to 15 minutes earlier that
-had already run other restored replicas.
+waiting for a GPU node. The cold start is measured to `Ready`, when vLLM first
+answers `/health` and immediately triggers the cooperative checkpoint (pausing
+the cold-start replica until the snapshot upload finishes). The restore is
+measured to the first successful `/v1/completions` response, with requests sent
+every half second from the moment the Pod has an IP address, and to `Ready` for
+comparison. No restored Pod logged any model loading. The L4 (2 runs) and RTX
+Pro 6000 (8 runs) restores in the table were each onto a node created for that
+Pod (2 additional RTX Pro 6000 restores onto reused nodes with the image already
+on disk first served in 34.4 and 34.6 seconds). The H100 restores (3 runs per
+model) were onto nodes created during the validation: on nodes created for that
+Pod, Llama 3.1 8B first served in 52 seconds (2 runs) and Gemma 4 31B in 38
+seconds (1 run); on nodes created 2 to 15 minutes earlier that already had the
+image on disk, Llama 3.1 8B first served in 46 seconds (1 run) and Gemma 4 31B
+in 36 to 38 seconds (2 runs).
 
 The results were measured on a GKE Standard cluster (1.36.4-gke.1391000) in
 `europe-west4`, with the manifests in this repository, on Spot VMs, with
 [Image streaming](https://cloud.google.com/kubernetes-engine/docs/how-to/image-streaming)
 enabled by the compute classes. When H100 Spot capacity ran out, one H100
 replica was restored onto a flex-start VM instead. Pulling the 9.6 GB vLLM image
-onto a new node took 2 to 10 seconds, including the first pull in the cluster.
-The L4 cold start includes downloading the weights from the Hugging Face Hub,
-which varies. The guide's
+onto a new node took 2 to 10 seconds on this cluster, including the first pull;
+on an Autopilot cluster before Image streaming had cached the image, pulls onto
+new nodes took about four minutes and added directly to the restore. The L4 cold
+start includes downloading the weights from the Hugging Face Hub, which varies.
+The guide's
 [measurement script](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/measure_restore.sh)
 reports the same intervals.
 

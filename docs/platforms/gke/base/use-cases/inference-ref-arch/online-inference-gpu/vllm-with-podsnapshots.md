@@ -15,15 +15,20 @@ resumes from it instead of repeating it.
 | Model, GPU                            | Cold start | Restore, first response | Restore, `Ready` |
 | ------------------------------------- | ---------- | ----------------------- | ---------------- |
 | Llama 3.1 8B, NVIDIA L4               | 433 s      | **26 to 29 s**          | 12 to 15 s       |
-| Llama 3.1 8B, NVIDIA H100 80GB        | 168 s      | **46 to 52 s**          | 5 to 6 s         |
+| Llama 3.1 8B, NVIDIA H100 80GB        | 168 s      | **46 to 52 s**          | 5 to 9 s         |
 | Gemma 4 31B, NVIDIA H100 80GB         | 224 s      | **36 to 38 s**          | 3 to 5 s         |
 | Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 210 s      | **35 to 43 s**          | 7 to 20 s        |
 
-Times are seconds from when the Pod was scheduled onto a GPU node created during
-the validation, so they exclude waiting for GPU capacity. A restored replica
-reports `Ready` before it can serve. The first successful response is the time
-that matters. [Measure the restore](#measure-the-restore) explains how the
-numbers were measured and how to reproduce them.
+Times are seconds from when the Pod was scheduled onto a Spot GPU node created
+during the validation (with one H100 restore on a flex-start VM when Spot
+capacity ran out), so they exclude waiting for GPU capacity. Sample sizes are 2
+new nodes on L4, 8 new nodes on RTX Pro 6000 (plus 2 restores onto reused nodes
+at 34.4 to 34.6 s), and 3 restores per model on H100 (2 new nodes at 52 s and 1
+reused node at 46 s for Llama 3.1 8B; 1 new node at 38 s and 2 reused nodes at
+36 to 38 s for Gemma 4 31B). A restored replica reports `Ready` before it can
+serve. The first successful response is the time that matters.
+[Measure the restore](#measure-the-restore) explains how the numbers were
+measured and how to reproduce them.
 
 This example is built on top of the
 [GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
@@ -38,7 +43,7 @@ same measurement steps.
 
 | Path                                                                                         | Model, GPU                                                | Weight loader              | What it demonstrates                                                                 |
 | -------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------ |
-| [A: Pod snapshots](#path-a-pod-snapshots-on-nvidia-l4)                                       | Llama 3.1 8B, NVIDIA L4                                   | Hugging Face Hub, eager    | The snapshot mechanism on the smallest, most widely available GPU                    |
+| [A: Pod snapshots](#path-a-pod-snapshots-on-nvidia-l4-or-h100)                               | Llama 3.1 8B, NVIDIA L4 or NVIDIA H100 80GB               | Hugging Face Hub, eager    | The snapshot mechanism without staging weights in Cloud Storage first                |
 | [B: Pod snapshots and Run:ai Model Streamer](#path-b-pod-snapshots-and-runai-model-streamer) | Gemma 4 31B, NVIDIA H100 80GB or NVIDIA RTX Pro 6000 96GB | Run:ai Model Streamer, GCS | The production composition: a fast cold start, then scale-out in well under a minute |
 
 Path A is the quickest way to see a restore. Path B is the pattern to adopt when
@@ -143,13 +148,16 @@ These steps are performed once per cluster.
   and restarts containerd on that node. See
   [`gvisor-disable-core-tags.yaml`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/node-setup/gvisor-disable-core-tags.yaml).
 
-- Allow the Pod snapshot controller to delete snapshots from the model bucket.
+- Verify that the Pod snapshot controller can delete snapshots from the model
+  bucket.
 
   Snapshots are stored in the model bucket created by the reference
   implementation. The workload's Kubernetes service account can already read and
   write that bucket. Deleting a snapshot, however, is performed by the Pod
-  snapshot controller, which acts as the GKE service agent and needs its own
-  grant. The grant below is made on the model bucket only.
+  snapshot controller, which acts as the GKE service agent and needs
+  `roles/storage.objectUser` on the model bucket. The `terraform/online_gpu`
+  module grants this role automatically. If you deployed the bucket before this
+  grant was added, apply or verify it on the model bucket:
 
   ```shell
   cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
@@ -172,7 +180,7 @@ These steps are performed once per cluster.
 > [Storage lifecycle and permissions](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-podsnapshots-reference-architecture.md#storage-lifecycle-and-permissions)
 > for the tradeoff.
 
-## Path A: Pod snapshots on NVIDIA L4
+## Path A: Pod snapshots on NVIDIA L4 or H100
 
 This path loads Llama 3.1 8B directly from the Hugging Face Hub, so no model
 download job is required.
@@ -189,16 +197,25 @@ download job is required.
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/configure_vllm_podsnapshot.sh"
   ```
 
-- Set the variant and the served model name.
+- Select a variant and set the served model name.
 
-  ```shell
-  export VLLM_VARIANT="l4-llama-3-1-8b-instruct"
-  export SERVED_MODEL_NAME="meta-llama/Llama-3.1-8B-Instruct"
-  ```
+  - **Llama 3.1 8B on NVIDIA L4**:
 
-  Ensure that you have enough quota in your project to provision two NVIDIA L4
-  GPUs: one for the cold-start replica and one for the replica restored from the
-  snapshot. For more information about viewing GPU quotas, see
+    ```shell
+    export VLLM_VARIANT="l4-llama-3-1-8b-instruct"
+    export SERVED_MODEL_NAME="meta-llama/Llama-3.1-8B-Instruct"
+    ```
+
+  - **Llama 3.1 8B on NVIDIA H100 80GB**:
+
+    ```shell
+    export VLLM_VARIANT="h100-llama-3-1-8b-instruct"
+    export SERVED_MODEL_NAME="meta-llama/Llama-3.1-8B-Instruct"
+    ```
+
+  Ensure that you have enough quota in your project to provision two GPUs of the
+  selected type: one for the cold-start replica and one for the replica restored
+  from the snapshot. For more information about viewing GPU quotas, see
   [Allocation quotas: GPU quota](https://cloud.google.com/compute/resource-usage#gpu_quota).
 
 - Create the Secret that the workload uses to download the model from the
@@ -377,13 +394,14 @@ command is needed to create the snapshot, but each step is worth observing.
 > in four to five minutes. Path B produces a snapshot of about 68 GiB in about
 > 13 minutes. For most of that time only two small snapshot objects are visible
 > in the bucket, because the memory image appears when its upload completes. GKE
-> pauses the cold-start replica to take the snapshot. In validation, it stopped
-> answering requests within seconds of the trigger and resumed when the memory
-> image finished uploading, while still reporting `Ready`: about 4 minutes for
-> Path A and 13 minutes for Path B. The deployment's Service keeps sending
-> requests to it during that time, so do not send it production traffic. Keep
-> the cold-start replica running until the snapshot is ready. If it is deleted
-> or evicted before then, the checkpoint fails.
+> pauses the cold-start replica to take the snapshot: it stops answering
+> requests within seconds of the trigger and resumes when the memory image
+> finishes uploading (about 4 minutes for Path A and 13 minutes for Path B).
+> While paused, the readiness probe (`failureThreshold: 3`) marks the Pod not
+> ready after about six seconds so the Service stops sending traffic to it until
+> the upload completes and the replica resumes. Keep the cold-start replica
+> running until the snapshot is ready. If it is deleted or evicted before then,
+> the checkpoint fails.
 
 ## Measure the restore
 
@@ -406,8 +424,10 @@ a restore by when the replica first answers a request, not by when it becomes
   --output=jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.lastTransitionTime}{"\n"}{end}{"ContainerStarted\t"}{.status.containerStatuses[0].state.running.startedAt}{"\n"}'
   ```
 
-  For a cold-start replica, `Ready` is also when it can first serve, because
-  vLLM only answers `/health` after its startup work is done.
+  For the cold-start replica, `Ready` first transitions to `True` when vLLM
+  finishes initializing and answers `/health`, which also triggers the
+  cooperative checkpoint and pauses the replica until the snapshot upload
+  completes.
 
 - Scale out to two replicas and measure the new replica.
 
@@ -578,9 +598,10 @@ LAST SEEN   TYPE     REASON      OBJECT                                         
 ###         Normal   ScaleDown   pod/vllm-fast-restore-XXXXXXXX-XXXXXXXXXX-XXXXX   deleting pod for node scale down
 ```
 
-The deployment includes a `PodDisruptionBudget` that allows no voluntary
-disruptions, which active migration and cluster autoscaler scale-down respect.
-Confirm that it exists:
+The deployment includes a `PodDisruptionBudget` with `minAvailable: 1`, which
+blocks voluntary disruptions while the single cold-start replica is running,
+while still allowing node drains and consolidation when scaled out to two or
+more ready replicas. Confirm that it exists:
 
 ```shell
 kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get pdb/vllm-fast-restore-${VLLM_VARIANT}
@@ -588,7 +609,7 @@ kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get pdb/vllm-fas
 
 ```text
 NAME                         MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
-vllm-fast-restore-XXXXXXXX   N/A             0                 0                     ###
+vllm-fast-restore-XXXXXXXX   1               N/A               0                     ###
 ```
 
 ### The checkpoint is never triggered
@@ -627,8 +648,9 @@ conclude that it has stalled. If the `CHECKPOINT` column reports `Failed`, see
 [The checkpoint fails with `runsc error: exit status 128`](#the-checkpoint-fails-with-runsc-error-exit-status-128).
 
 The cold-start replica is paused during the upload, so its events report
-`Readiness probe failed: ... context deadline exceeded`, and `kubectl exec` into
-it fails or waits. The replica resumes when the memory image has been uploaded.
+`Readiness probe failed: ... context deadline exceeded`, the Pod transitions to
+not ready while paused, and `kubectl exec` into it fails or waits. The replica
+resumes and returns to `Ready` when the memory image has been uploaded.
 
 ### Deleting a snapshot hangs
 
@@ -645,7 +667,7 @@ in
 
   ```shell
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} delete \
-  deployment/vllm-fast-restore-${VLLM_VARIANT}
+  deployment/vllm-fast-restore-${VLLM_VARIANT} --ignore-not-found
   ```
 
 - Delete the snapshots and confirm their storage was removed.
@@ -654,11 +676,12 @@ in
   SNAPSHOTS=$(kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get podsnapshots \
   --output=jsonpath="{range .items[?(@.spec.policyName=='vllm-fast-restore-snapshot-policy-${VLLM_VARIANT}')]}{.metadata.name}{' '}{end}")
 
-  kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} delete podsnapshots ${SNAPSHOTS}
-
-  for snapshot in ${SNAPSHOTS}; do
-    gcloud storage ls "gs://${huggingface_hub_models_bucket_name}/${snapshot}/"
-  done
+  if [[ -n "${SNAPSHOTS}" ]]; then
+    kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} delete podsnapshots ${SNAPSHOTS}
+    for snapshot in ${SNAPSHOTS}; do
+      gcloud storage ls "gs://${huggingface_hub_models_bucket_name}/${snapshot}/"
+    done
+  fi
   ```
 
   Each listing reports that no objects matched:
@@ -678,6 +701,12 @@ in
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/${VLLM_VARIANT}"
   ```
 
+- If you applied the GKE Standard node-setup DaemonSet, delete it.
+
+  ```shell
+  kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/node-setup"
+  ```
+
 - If you followed Path A, delete the Hugging Face token Secret.
 
   ```shell
@@ -687,8 +716,10 @@ in
 - Destroy the online GPU resources.
 
   ```shell
+  export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
   rm -rf .terraform/ terraform.tfstate* && \
-  terraform init &&
-  terraform destroy -auto-approve
+  terraform init && \
+  terraform destroy -auto-approve && \
+  git restore "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/inference-ref-arch.auto.tfvars"
   ```

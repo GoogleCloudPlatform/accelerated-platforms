@@ -15,8 +15,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: replaced-by-kustomize
-
 configMapGenerator:
   - envs:
       - runtime.env
@@ -90,13 +88,6 @@ replacements:
           - metadata.namespace
         select:
           kind: PodDisruptionBudget
-      # PodSnapshotStorageConfig is cluster scoped, but the top level
-      # `namespace:` directive still stamps a namespace onto it. Overwrite the
-      # placeholder so the manifest does not carry `replaced-by-kustomize`.
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: PodSnapshotStorageConfig
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap

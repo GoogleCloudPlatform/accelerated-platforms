@@ -24,9 +24,13 @@ spec:
         - name: inference-server
           resources:
             limits:
+              cpu: "8"
+              ephemeral-storage: "30Gi"
+              memory: "140Gi"
               nvidia.com/gpu: "1"
             requests:
               cpu: "8"
+              ephemeral-storage: "30Gi"
               # Gemma 4 31B is roughly 59 GiB of weights. The host request is
               # deliberately well above that: the Run:ai Model Streamer buffers
               # shards in host memory on the way to VRAM, and the checkpoint

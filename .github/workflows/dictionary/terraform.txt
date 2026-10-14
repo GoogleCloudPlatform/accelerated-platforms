@@ -1,4 +1,5 @@
 abspath
+alltrue
 cidrhost
 direxists
 endfor
@@ -27,6 +28,7 @@ tfswitch
 tftpl
 tfvars
 tomap
+tonumber
 toset
 trimprefix
 trimspace

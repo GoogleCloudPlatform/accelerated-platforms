@@ -30,7 +30,13 @@ if [[ ! -v ACCELERATOR_TYPE ]]; then
   exit 1
 fi
 
-for model in "${hf_gpu_vllm_runai_models[@]}"; do
+if [[ -v HF_MODEL_ID && -n "${HF_MODEL_ID}" ]]; then
+  models=("${HF_MODEL_ID}")
+else
+  models=("${hf_gpu_vllm_runai_models[@]}")
+fi
+
+for model in "${models[@]}"; do
   export HF_MODEL_ID=${model}
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 

@@ -259,6 +259,12 @@ Sends a test request to all of the TPU vLLM deployments.
 
 ### Test the GPU online inference vLLM Run:ai Model Streamer models
 
+- Select the accelerator type (`rtx-pro-6000` or `h100`).
+
+  ```shell
+  export ACCELERATOR_TYPE="rtx-pro-6000"
+  ```
+
 - Apply the GPU vLLM Run:ai Model Streamer manifests.
 
   ```shell

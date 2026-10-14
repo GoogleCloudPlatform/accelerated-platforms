@@ -271,6 +271,9 @@ For the architecture and design rationale, see the
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward \
   service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null & \
   PF_PID=$!
+  while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
+    sleep 0.1
+  done
   ```
 
 - Send a test request.
@@ -480,7 +483,8 @@ deploying the full `inference-perf` stack:
   ```shell
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} logs \
   --selector=app=vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} \
-  --prefix=true | \
+  --prefix=true \
+  --tail=-1 | \
   grep -e "Runai Model Streamer: 100%" -e "Model loading took"
   ```
 

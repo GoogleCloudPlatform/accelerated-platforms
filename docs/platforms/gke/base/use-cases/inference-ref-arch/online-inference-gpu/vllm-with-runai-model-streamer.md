@@ -271,8 +271,8 @@ For the architecture and design rationale, see the
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} port-forward \
   service/vllm-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} 8000:8000 >/dev/null & \
   PF_PID=$!
-  while ! echo -e '\x1dclose\x0d' | telnet localhost 8000 >/dev/null 2>&1; do
-    sleep 0.1
+  until curl --silent --fail http://127.0.0.1:8000/health >/dev/null; do
+    sleep 0.5
   done
   ```
 

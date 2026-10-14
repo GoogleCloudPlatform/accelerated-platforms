@@ -31,6 +31,7 @@ spec:
       # GKE PodSnapshots are implemented by gVisor (runsc). The pod must run in
       # a GKE Sandbox node pool, otherwise the PodSnapshot mutating webhook has
       # no sandbox to inject the checkpoint device into.
+      enableServiceLinks: false
       runtimeClassName: gvisor
       serviceAccountName: replaced-by-kustomize
       containers:
@@ -61,7 +62,6 @@ spec:
                 --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
                 --max-model-len="${MAX_MODEL_LEN}" \
                 --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
-                --safetensors-load-strategy=eager \
                 --port=8000 &
               VLLM_PID=$!
               trap 'kill -TERM "${VLLM_PID}" 2>/dev/null || true' TERM INT
@@ -85,13 +85,14 @@ spec:
                 find /root/.cache/huggingface -mindepth 1 -delete 2>/dev/null || true
                 echo "[podsnapshot] Triggering the cooperative checkpoint..."
                 # A restored pod resumes execution right as this write returns.
-                if echo 1 > /proc/gvisor/checkpoint; then
+                # If no snapshot is pending for this pod (for example, when a
+                # snapshot is already available and a pod starts cold), gVisor
+                # returns "Operation not permitted" and the pod continues
+                # serving normally.
+                if echo 1 > /proc/gvisor/checkpoint 2>/dev/null; then
                   echo "[podsnapshot] Checkpoint complete (or pod restored from snapshot)."
                 else
-                  echo "[podsnapshot] ERROR: Checkpoint trigger FAILED." >&2
-                  kill -TERM "${VLLM_PID}" 2>/dev/null || true
-                  wait "${VLLM_PID}" 2>/dev/null || true
-                  exit 1
+                  echo "[podsnapshot] No checkpoint pending for this pod; continuing to serve."
                 fi
               fi
               wait "${VLLM_PID}"

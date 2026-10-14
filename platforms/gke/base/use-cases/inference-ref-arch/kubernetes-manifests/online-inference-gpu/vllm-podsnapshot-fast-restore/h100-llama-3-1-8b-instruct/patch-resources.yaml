@@ -26,10 +26,13 @@ spec:
             limits:
               cpu: "8"
               ephemeral-storage: "30Gi"
-              memory: "64Gi"
+              memory: "140Gi"
               nvidia.com/gpu: "1"
             requests:
               cpu: "8"
               ephemeral-storage: "30Gi"
-              memory: "64Gi"
+              # An a3-highgpu-1g node has 234Gi of RAM and an 80Gi H100 GPU.
+              # Checkpointing copies allocated GPU VRAM (~72Gi at 0.90
+              # utilization) into host memory alongside the sandbox's own RAM.
+              memory: "140Gi"
               nvidia.com/gpu: "1"

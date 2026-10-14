@@ -475,11 +475,13 @@ a restore by when the replica first answers a request, not by when it becomes
   after it was scheduled for Path A on L4, against 433 seconds for the cold
   start, and 46 to 52 seconds on H100, against 168 seconds. For Path B it was 36
   to 38 seconds on H100, against 224 seconds, and 35 to 43 seconds on RTX Pro
-  6000, against 210 seconds. `Ready` came 3 to 20 seconds after scheduling in
-  every case, long before the first response. Restoring onto a node that already
-  had the image, or onto four new nodes at the same time, changed the first
-  response by no more than a few seconds. The validation didn't use Rapid Cache.
-  If you created
+  6000, against 210 seconds (on GKE Autopilot in `us-central1`, L4 restored to
+  first response in 32 seconds against a 434-second cold start, and RTX Pro 6000
+  restored to first response in 93 seconds against a 275-second cold start).
+  `Ready` came 3 to 20 seconds after scheduling in every case, long before the
+  first response. Restoring onto a node that already had the image, or onto four
+  new nodes at the same time, changed the first response by no more than a few
+  seconds. The validation didn't use Rapid Cache. If you created
   [Rapid Cache caches](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md#optional-cache-the-model-with-rapid-cache)
   for the model bucket, restores in their zones might read the snapshot through
   them, because snapshots are stored in the same bucket.
@@ -492,7 +494,7 @@ a restore by when the replica first answers a request, not by when it becomes
   | tr ' ' '\n' | grep -v ${COLD_POD} | head -1)
 
   kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} exec ${RESTORED_POD} -- \
-  curl --silent http://localhost:8000/v1/chat/completions \
+  curl --silent --fail --retry 5 --retry-all-errors --retry-delay 1 http://localhost:8000/v1/chat/completions \
   --header "Content-Type: application/json" \
   --data '{
     "model": "'${SERVED_MODEL_NAME}'",

@@ -322,9 +322,11 @@ enabled by the compute classes. When H100 Spot capacity ran out, one H100
 replica was restored onto a flex-start VM instead. Pulling the 9.6 GB vLLM image
 onto a new node took 2 to 10 seconds on this cluster, including the first pull;
 on an Autopilot cluster before Image streaming had cached the image, pulls onto
-new nodes took about four minutes and added directly to the restore. The L4 cold
-start includes downloading the weights from the Hugging Face Hub, which varies.
-The guide's
+new nodes took about four minutes and added directly to the restore (with Image
+streaming cached on GKE Autopilot in `us-central1`, L4 restored to first
+response in 32.1 seconds and RTX Pro 6000 in 92.6 seconds). The L4 cold start
+includes downloading the weights from the Hugging Face Hub, which varies. The
+guide's
 [measurement script](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/measure_restore.sh)
 reports the same intervals.
 

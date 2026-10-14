@@ -288,6 +288,12 @@ variable "ira_online_gpu_vllm_image_url" {
   type        = string
 }
 
+variable "ira_online_gpu_vllm_podsnapshot_image_url" {
+  default     = "docker.io/vllm/vllm-openai:v0.19.1"
+  description = "The URL for the GPU vLLM container image validated with GKE Pod snapshots."
+  type        = string
+}
+
 variable "ira_online_gpu_vllm_runai_image_url" {
   default     = "vllm/vllm-openai:v0.26.0"
   description = "The URL for the GPU vLLM container image with the NVIDIA Run:ai Model Streamer."

@@ -26,7 +26,4 @@ source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_var
 
 "${MY_PATH}/../configure_deployment.sh"
 
-# Unlike the other overlay families, base/vllm.env is not generated from a
-# template. It pins CONTAINER_IMAGE_URL to the exact vLLM version that this
-# checkpoint and restore recipe was validated against, rather than tracking the
-# reference architecture default. See the comments in base/vllm.env.
+envsubst < "${MY_PATH}/base/templates/vllm.tpl.env" | sponge "${MY_PATH}/base/vllm.env"

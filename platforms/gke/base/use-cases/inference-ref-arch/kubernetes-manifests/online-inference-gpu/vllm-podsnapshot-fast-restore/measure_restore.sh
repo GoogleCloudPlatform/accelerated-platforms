@@ -75,7 +75,8 @@ sec() { # sec <value>: appends 's' unless empty or '-'
 }
 cond() { # cond <pod> <type>: lastTransitionTime of a True condition
   "${KUBECTL[@]}" get pod "$1" \
-    --output=jsonpath="{.status.conditions[?(@.type==\"$2\" && @.status==\"True\")].lastTransitionTime}"
+    --output=jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\t"}{.lastTransitionTime}{"\n"}{end}' \
+    | awk -v t="$2" '$1 == t && $2 == "True" { print $3; exit }'
 }
 
 # The snapshot must exist before scaling out, or the new Pods start cold.
@@ -123,29 +124,56 @@ probe() { # probe <pod> <ip>: one line per request: start end http_code
     end=$(( $(date +%s) + deadline ))
     while [ "$(date +%s)" -lt "${end}" ]; do
       s=$(date +%s.%N)
-      code=$(curl --silent --output /dev/null --write-out "%{http_code}" --max-time 120 \
+      code=$(curl --silent --output /dev/null --write-out "%{http_code}" --connect-timeout 2 --max-time 120 \
         --header "Content-Type: application/json" --data "${body}" \
         "http://${target_ip}:8000/v1/completions" || true)
-      echo "${s} $(date +%s.%N) ${code:-000}"
+      echo "${s} $(date +%s.%N) ${code:-000}" || break
       if [ "${code}" = "200" ]; then
         ok=$((ok + 1)); [ "${ok}" -ge 3 ] && break
       else
         sleep 0.5
       fi
-    done' _ "${SERVED_MODEL_NAME}" "${DEADLINE_SECONDS}" "$2" >"${WORK_DIR}/$1.probe" 2>/dev/null
+    done' _ "${SERVED_MODEL_NAME}" "${DEADLINE_SECONDS}" "$2" >>"${WORK_DIR}/$1.probe" 2>/dev/null
 }
 
 declare -A probed=()
+declare -A probed_ip=()
+declare -A done_pods=()
 stop=$(($(date +%s) + DEADLINE_SECONDS))
-while [[ ${#probed[@]} -lt ${want} && $(date +%s) -lt ${stop} ]]; do
+while [[ ${#done_pods[@]} -lt ${want} && $(date +%s) -lt ${stop} ]]; do
   while read -r pod ip; do
-    [[ -z "${ip}" || " ${before[*]} " == *" ${pod} "* || -n "${probed[${pod}]:-}" ]] && continue
-    echo "$(date --utc +%H:%M:%S) ${pod} has IP ${ip}; sending requests."
-    probe "${pod}" "${ip}" &
-    probed[${pod}]=$!
+    [[ -z "${ip}" || " ${before[*]} " == *" ${pod} "* || -n "${done_pods[${pod}]:-}" ]] && continue
+    if [[ -z "${probed[${pod}]:-}" ]]; then
+      echo "$(date --utc +%H:%M:%S) ${pod} has IP ${ip}; sending requests."
+      probe "${pod}" "${ip}" &
+      probed[${pod}]=$!
+      probed_ip[${pod}]="${ip}"
+    elif [[ "${probed_ip[${pod}]}" != "${ip}" ]]; then
+      # On a warm node, kubelet may recreate the Pod sandbox (SandboxChanged)
+      # when switching to the snapshot restore sandbox, assigning a new Pod IP.
+      echo "$(date --utc +%H:%M:%S) ${pod} IP changed to ${ip}; sending requests."
+      kill "${probed[${pod}]}" 2>/dev/null || true
+      probe "${pod}" "${ip}" &
+      probed[${pod}]=$!
+      probed_ip[${pod}]="${ip}"
+    fi
   done < <("${KUBECTL[@]}" get pods --selector="app=${APP}" \
     --output=jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.podIP}{"\n"}{end}')
+  for pod in "${!probed[@]}"; do
+    if [[ -z "${done_pods[${pod}]:-}" ]] && ! kill -0 "${probed[${pod}]}" 2>/dev/null; then
+      if [[ "$(awk '$3 == 200 { count++ } END { print count+0 }' "${WORK_DIR}/${pod}.probe" 2>/dev/null)" -ge 3 ]]; then
+        done_pods[${pod}]=1
+      elif [[ $(date +%s) -lt ${stop} ]]; then
+        probe "${pod}" "${probed_ip[${pod}]}" &
+        probed[${pod}]=$!
+      fi
+    fi
+  done
+  [[ ${#done_pods[@]} -ge ${want} ]] && break
   sleep 1
+done
+for pid in "${probed[@]}"; do
+  kill "${pid}" 2>/dev/null || true
 done
 wait
 

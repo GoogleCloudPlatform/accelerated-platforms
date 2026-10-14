@@ -365,7 +365,7 @@ command is needed to create the snapshot, but each step is worth observing.
   (EngineCore pid=133) INFO ... Model loading took 14.99 GiB memory and 362.459344 seconds
   [podsnapshot] Model server is healthy.
   [podsnapshot] Triggering the cooperative checkpoint...
-  [podsnapshot] Checkpoint triggered successfully.
+  [podsnapshot] Checkpoint complete (or pod restored from snapshot).
   ```
 
 - Watch the snapshot until it is ready.

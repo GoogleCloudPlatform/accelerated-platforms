@@ -197,7 +197,7 @@ export PROJECT_ID="<YOUR_PROJECT_ID>"
 # Define your candidate "Ring Around the World" regions
 export CANDIDATE_REGIONS=("us-central1" "us-east4" "us-west1" "europe-west4" "asia-southeast1")
 # Example accelerator: nvidia-rtx-pro-6000, nvidia-h100-80gb, nvidia-h100-mega-80gb, nvidia-l4
-export TARGET_ACCELERATOR="nvidia-h100-80gb"
+export TARGET_ACCELERATOR="nvidia-rtx-pro-6000"
 
 for REGION in "${CANDIDATE_REGIONS[@]}"; do
   echo "=========================================================="
@@ -206,18 +206,37 @@ for REGION in "${CANDIDATE_REGIONS[@]}"; do
   echo "Zones offering ${TARGET_ACCELERATOR}:"
   gcloud compute accelerator-types list \
     --project="${PROJECT_ID}" \
-    --filter="zone~/zones/${REGION}- AND name=${TARGET_ACCELERATOR}" \
+    --filter="name=${TARGET_ACCELERATOR} AND zone ~ ${REGION}-" \
     --format="  value(zone.basename())" \
     --sort-by=zone
 
-  echo "Key Regional Quotas (Usage / Limit):"
+  echo "Regional Host CPU & Legacy GPU Quotas (Usage / Limit):"
   gcloud compute regions describe "${REGION}" \
     --project="${PROJECT_ID}" \
     --format="table[box](quotas.metric:label=METRIC, quotas.usage:label=USED, quotas.limit:label=LIMIT)" \
     --flatten="quotas[]" \
-    --filter="quotas.metric ~ '^(H100|PREEMPTIBLE_H100|G4_CPUS|PREEMPTIBLE_G4_CPUS|L4_GPUS|PREEMPTIBLE_L4_GPUS|C4_CPUS|C3_CPUS)' AND quotas.limit > 0"
+    --filter="quotas.metric ~ '^(G4_CPUS|PREEMPTIBLE_G4_CPUS|NVIDIA_L4_GPUS|PREEMPTIBLE_NVIDIA_L4_GPUS|C4_CPUS|C3_CPUS)' AND quotas.limit > 0"
 done
+
+echo "=========================================================="
+echo "Dimensional GPU Family Quotas (NVIDIA_RTX_PRO_6000, NVIDIA_H100, NVIDIA_H200, NVIDIA_B200):"
+echo "----------------------------------------------------------"
+gcloud alpha quotas info list \
+  --project="${PROJECT_ID}" \
+  --service="compute.googleapis.com" \
+  --filter="metric ~ gpus_per_gpu_family" \
+  --format="yaml(metric,dimensionsInfos)"
 ```
+
+> [!IMPORTANT]
+>
+> **Why `gcloud compute regions describe` does not show RTX PRO 6000, H100,
+> H200, or B200 GPU limits**: Newer accelerator families use dimensional Cloud
+> Quotas (`compute.googleapis.com/gpus_per_gpu_family` and
+> `compute.googleapis.com/preemptible_gpus_per_gpu_family` scoped by
+> `gpu_family` and `region`) rather than legacy region-level quota fields.
+> Always run the `gcloud alpha quotas info list` command above to confirm your
+> regional `gpu_family` limit before deploying.
 
 #### 2. Evaluate regional price vs. preemption trade-offs in Capacity Advisor
 
@@ -367,10 +386,11 @@ this repository.
    # 1. Multi-region Spot obtainability and preemption risk sweep
    python3 "${CR_CLI}" advise spot \
      --project "${PROJECT_ID}" \
-     --machine-type a3-highgpu-1g \
-     --regions us-central1,us-east4,us-west1,europe-west4,asia-southeast1
+     --machine-type g4-standard-48 \
+     --regions us-central1,us-east4,europe-west4,asia-south2
 
    # 2. DWS Calendar availability + automatic Split-Plan (100%, 75%, 50%, 25%, 1 VM)
+   # Note: DWS Calendar Mode supports A3 (a3-*), A4 (a4-*), and Cloud TPU families.
    python3 "${CR_CLI}" advise calendar-plan \
      --project "${PROJECT_ID}" \
      --machine-type a3-highgpu-8g \
@@ -380,7 +400,8 @@ this repository.
      --duration-days 7 \
      --regions us-central1,us-east4,us-west1,europe-west4
 
-   # 3. DWS Flex-Start queue wait-time estimate (for Preview allow-listed projects)
+   # 3. DWS Flex-Start queue wait-time estimate (for Preview allow-listed projects;
+   # DWS Flex-Start VM provisioning itself works on all projects without allow-listing)
    python3 "${CR_CLI}" advise flex \
      --project "${PROJECT_ID}" \
      --machine-type g4-standard-48 \
@@ -388,6 +409,18 @@ this repository.
      --max-run-hours 24 \
      --regions us-central1,us-east4,europe-west4
    ```
+
+   **Example output from `advise spot` (`g4-standard-48` / NVIDIA RTX
+   PRO 6000)**: Running the command above reveals when the repository's default
+   region (`us-east4`) is experiencing a temporary Spot stock-out while peer
+   regions in the ring have high availability:
+
+   | Region (`advise spot`) | Zones Returned                              | `spotAvailability` | `preemptionRate` | `obtainability` | `uptimeScore` (`estimatedUptime`) | PoC Placement Decision                                                        |
+   | ---------------------- | ------------------------------------------- | ------------------ | ---------------- | --------------- | --------------------------------- | ----------------------------------------------------------------------------- |
+   | **`us-east4`**         | `us-east4-a`, `us-east4-b`, `us-east4-c`    | `VERY_LOW`         | `HIGH`           | **`0.1`**       | `0.2` (`60s`)                     | **Avoid for this PoC window** (default region would stall in `Pending`)       |
+   | **`us-central1`**      | `us-central1-b`, `us-central1-c` (`-a` low) | **`HIGH`**         | **`LOW`**        | **`0.9`**       | **`0.9`** (`86400s`)              | **Selected Primary Region** (paired with 32-GPU `NVIDIA_RTX_PRO_6000` quota)  |
+   | **`europe-west4`**     | `europe-west4-a`, `europe-west4-c`          | **`HIGH`**         | **`LOW`**        | **`0.9`**       | **`0.9`** (`86400s`)              | **High-Availability Ring Peer** (request regional GPU family quota if needed) |
+   | **`asia-south2`**      | `asia-south2-a`, `asia-south2-b`, `-c`      | **`HIGH`**         | **`LOW`**        | **`0.9`**       | **`0.9`** (`86400s`)              | **APAC Ring Peer**                                                            |
 
 4. **Active Probing / Reservation Hunting (`deploy`)**: How you use `deploy`
    depends on whether you want to **reserve capacity for GKE** or **probe live
@@ -836,10 +869,29 @@ case:
 
 ### Common PoC pitfalls to avoid
 
-- **`model-download` Job stays `Pending` with `GCE quota exceeded`**: The
-  Hugging Face model downloader Job uses the `model-download` compute class,
-  which requests `c4-standard-4-lssd` or `c3-standard-4-lssd` CPU nodes. Verify
-  that your chosen region has `C4_CPUS` or `C3_CPUS` quota in Stage 2.
+- **`model-download` Job stays `Pending` (`GCE quota exceeded` or
+  `NotTriggerScaleUp`)**: The Hugging Face model downloader Job uses the
+  `model-download` compute class, which provisions `c4-standard-4-lssd` or
+  `c3-standard-4-lssd` CPU nodes (4 vCPU, 15–16 GB RAM). Verify that your chosen
+  region has `C4_CPUS` or `C3_CPUS` quota in Stage 2, and keep pod resource
+  requests at `cpu: 2000m, memory: 10Gi` so GKE Autopilot daemonset overhead
+  fits on a single 4-vCPU VM. To speed up model staging without increasing pod
+  CPU requests, set `HF_MAX_WORKERS: "8"` and `HF_XET_HIGH_PERFORMANCE: "1"`.
+- **Mixed-case Hugging Face IDs failing to load from `gs://`**: The
+  `hf-model-to-gcs` script normalizes `MODEL_ID` to lowercase
+  (`export MODEL_ID=${MODEL_ID,,}`) before uploading to Cloud Storage. For
+  models with mixed-case repository names (such as `Qwen/Qwen3.8-27B`), pass the
+  lowercase GCS path in `--model=gs://<bucket>/qwen/qwen3.8-27b` and preserve
+  the canonical model identifier via `--served-model-name=Qwen/Qwen3.8-27B`.
+- **Hybrid Mamba / Gated DeltaNet models (`Qwen/Qwen3.8-27B`,
+  `Qwen/Qwen3.5-35B-A3B`) failing during CUDA graph capture**: Hybrid
+  linear-attention + full-attention architectures allocate a dedicated Mamba
+  state block per active decode sequence. In vLLM `v0.26.0`, the default
+  `--max-num-seqs=1024` can exceed the available Mamba cache blocks on a single
+  GPU (for example, `614` blocks on a 96 GB RTX PRO 6000 for
+  `Qwen/Qwen3.8-27B`), causing startup to fail with
+  `ValueError: max_num_seqs (1024) exceeds available Mamba cache blocks (614)`.
+  Pass `--max-num-seqs=512` (or `--max-num-seqs=256`) explicitly.
 - **Changing pod flags when using Pod snapshots**: A `PodSnapshot` is matched to
   an exact pod template hash. Do all flag and `--max-model-len` tuning with
   `vllm-runai` first; enable `vllm-podsnapshot-fast-restore` once your
@@ -859,6 +911,105 @@ case:
   Reservation, remember to delete any standalone probe VMs before deploying GKE
   (so they do not occupy quota) and delete any reservations when tearing down
   your PoC.
+
+---
+
+## Stage 6: Real-world PoC case study & Inference Golden Signals — Gemma 4 31B vs. Qwen 3.8 27B on 2× NVIDIA RTX PRO 6000
+
+To validate this guide end-to-end, we executed the full workflow on a GKE
+Autopilot cluster (`us-central1`, chosen after Stage 2 Capacity Radar
+`advise spot` flagged `us-east4` at `0.1` obtainability and `us-central1-b` /
+`us-central1-c` at `0.9` obtainability) and benchmarked two dense frontier
+models head-to-head across **2 replicas (`1 × NVIDIA RTX PRO 6000 96GB` /
+`g4-standard-48` per replica)**:
+
+- **`google/gemma-4-31b-it`** (`Gemma4ForConditionalGeneration`, `bfloat16`, 31B
+  parameters)
+- **`Qwen/Qwen3.8-27B`** (`Qwen3_5ForConditionalGeneration`, `bfloat16`, 27B
+  parameters with hybrid Gated DeltaNet linear attention + FlashAttention-2)
+
+Both deployments used `vllm/vllm-openai:v0.26.0`,
+`cloud.google.com/compute-class: gpu-rtx-pro-6000-96gb-x1`,
+`--load-format=runai_streamer` streaming from a regional Hierarchical Namespace
+Cloud Storage bucket (`gs://`), `--gpu-memory-utilization=0.90`, and
+`--max-model-len=16384`.
+
+### 1. Cold-start breakdown & KV cache capacity comparison (2 replicas)
+
+| Metric (Per Replica / 2-Replica Total)                     | `google/gemma-4-31b-it` (31B)                    | `Qwen/Qwen3.8-27B` (27B)                                     | Key Takeaway                                                                                                           |
+| ---------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| **Model Architecture**                                     | Standard Transformer + Vision Encoder            | Hybrid Gated DeltaNet (Mamba Linear Attn) + FlashAttention-2 | Hybrid linear attention replaces per-token KV cache in most layers with fixed-size recurrent Mamba state blocks        |
+| **Model Weight Footprint in GPU VRAM**                     | **58.99 GiB** (13 shards)                        | **51.10 GiB** (18 shards)                                    | `7.89 GiB` smaller weight footprint leaves more HBM/GDDR7 for KV & Mamba state cache on a 96 GB RTX PRO 6000           |
+| **Spot `g4-standard-48` Node Provisioning**                | **52 – 58 s** (`us-central1-b`, `us-central1-c`) | **52 – 58 s** (`us-central1-b`, `us-central1-c`)             | Stage 2 capacity discovery placed pods directly into high-obtainability zones with zero `ZONE_RESOURCE_POOL_EXHAUSTED` |
+| **GCFS Container Image Pull (`v0.26.0`, 8.91 GB)**         | **1.58 s – 1.86 s**                              | **1.58 s – 1.86 s**                                          | Image Streaming eliminates the ~4 minute cold container pull on freshly scaled GPU nodes                               |
+| **Run:ai Model Streamer Load (`gs://` $\rightarrow$ GPU)** | **25.67 s / 25.93 s** (`~2.29 GiB/s` per pod)    | **8.22 s / 13.18 s** (`3.88 – 6.22 GiB/s` per pod)           | Zero local disk staging; both replicas stream weights concurrently from HNS Cloud Storage                              |
+| **`torch.compile` Duration**                               | **29.66 s / 30.49 s**                            | **31.15 s / 31.44 s**                                        | Eliminated on subsequent scale-outs when paired with GKE Pod snapshots                                                 |
+| **CUDA Graph Capture (51 graphs, `FULL+PIECEWISE`)**       | **12.0 s** (`0.86 GiB`)                          | **8.0 s** (`0.77 GiB`, requires `--max-num-seqs=512`)        | Qwen 3.8 27B has 614 Mamba blocks on 96 GB VRAM, so `--max-num-seqs` must be set $\le 614$ (`512` used)                |
+| **Available KV Cache Memory (per GPU)**                    | **24.91 GiB** (`49.82 GiB` across 2 GPUs)        | **31.06 GiB** (`62.12 GiB` across 2 GPUs)                    | **`+24.7%`** more memory available for KV/state cache per replica on Qwen 3.8 27B                                      |
+| **KV Cache Token Capacity (per GPU / 2 GPUs)**             | **29,655 tokens** / **59,310 tokens**            | **443,050 tokens** / **886,100 tokens**                      | **`14.9×` more token capacity per GPU** on Qwen 3.8 27B due to hybrid Gated DeltaNet linear attention                  |
+| **Max Concurrency at `16,384` Context (per GPU / 2 GPUs)** | **1.81×** / **3.62×**                            | **27.04×** / **54.08×**                                      | Qwen 3.8 27B supports **14.9×** higher long-context concurrency before KV cache eviction or queuing                    |
+
+### 2. Inference Golden Signals under saturation (2 replicas, `~335` input tokens / `128` output tokens)
+
+Both 2-replica deployments were swept across increasing concurrency levels (`1`
+to `128` for Gemma 4 31B; `1` to `256` for Qwen 3.8 27B) using streaming
+`/v1/chat/completions` requests balanced evenly across both replicas while
+scraping vLLM Prometheus metrics (`vllm:num_requests_running`,
+`vllm:num_requests_waiting`, `vllm:kv_cache_usage_perc`) every 500 ms:
+
+| Model (2 × RTX PRO 6000)    | Concurrency | Traffic: Req/s | Traffic: Output Tok/s | Traffic: Total Tok/s | Latency: TTFT p50 / p90 / p99 (ms) | Latency: TPOT p50 / p90 / p99 (ms) | Latency: E2E p50 / p99 (s) | Saturation: Running Reqs (Mean / Peak) | Saturation: Waiting Queue (Mean / Peak) | Saturation: KV Cache % (Mean / Peak) | Errors (%) |
+| --------------------------- | ----------- | -------------- | --------------------- | -------------------- | ---------------------------------- | ---------------------------------- | -------------------------- | -------------------------------------- | --------------------------------------- | ------------------------------------ | ---------- |
+| **`google/gemma-4-31b-it`** | **1**       | 0.18           | 22.5                  | 80.9                 | 85.3 / 87.5 / 89.5                 | 44.18 / 44.30 / 44.35              | 5.70 / 5.72                | 1.0 / 1.0                              | 0.0 / 0.0                               | 0.7% / 1.6%                          | 0.0%       |
+| **`Qwen/Qwen3.8-27B`**      | **1**       | **0.20**       | **26.1**              | **93.7**             | **77.4 / 79.2 / 80.0**             | **38.00 / 38.15 / 38.19**          | **4.91 / 4.93**            | 1.0 / 1.0                              | 0.0 / 0.0                               | **0.3% / 0.6%**                      | 0.0%       |
+| **`google/gemma-4-31b-it`** | **4**       | 0.69           | 88.7                  | 319.4                | 147.3 / 155.2 / 157.1              | 44.23 / 44.47 / 44.47              | 5.76 / 5.77                | 3.8 / 4.0                              | 0.0 / 0.0                               | 2.6% / 3.1%                          | 0.0%       |
+| **`Qwen/Qwen3.8-27B`**      | **4**       | **0.78**       | **99.8**              | **358.8**            | **135.4 / 145.0 / 145.8**          | **39.27 / 39.32 / 39.33**          | **5.12 / 5.13**            | 3.7 / 4.0                              | 0.0 / 0.0                               | **1.1% / 1.2%**                      | 0.0%       |
+| **`google/gemma-4-31b-it`** | **16**      | 2.44           | 312.3                 | 1,128.7              | 491.8 / 498.1 / 499.4              | 46.13 / 48.98 / 49.00              | 6.35 / 6.36                | 15.4 / 16.0                            | 0.0 / 0.0                               | 10.4% / 12.5%                        | 3.1%\*     |
+| **`Qwen/Qwen3.8-27B`**      | **16**      | **2.94**       | **376.8**             | **1,359.1**          | **422.9 / 431.8 / 433.7**          | **39.43 / 40.41 / 40.64**          | **5.43 / 5.44**            | 14.7 / 16.0                            | 0.0 / 0.0                               | **4.5% / 4.9%**                      | **0.0%**   |
+| **`google/gemma-4-31b-it`** | **32**      | 4.49           | 575.2                 | 2,080.1              | 958.5 / 966.8 / 967.5              | 48.49 / 52.35 / 54.83              | 7.12 / 7.12                | 29.8 / 32.0                            | 0.0 / 0.0                               | 20.1% / 25.1%                        | 0.0%       |
+| **`Qwen/Qwen3.8-27B`**      | **32**      | **5.25**       | **672.2**             | **2,425.3**          | **807.9 / 837.9 / 840.1**          | **41.51 / 41.52 / 44.36**          | **6.08 / 6.11**            | 29.4 / 32.0                            | 0.0 / 0.0                               | **9.1% / 9.9%**                      | 0.0%       |
+| **`google/gemma-4-31b-it`** | **64**      | 7.34           | 939.2                 | 3,398.1              | **1,299.1** / 1,868.6 / 1,893.7    | 58.17 / 62.90 / 67.16              | 8.69 / 8.76                | 56.2 / 64.0                            | **0.0 / 0.0**                           | 37.5% / 50.2%                        | 0.0%       |
+| **`Qwen/Qwen3.8-27B`**      | **64**      | **8.52**       | **1,090.0**           | **3,935.4**          | 1,459.7 / **1,614.7 / 1,632.6**    | **47.47 / 47.50 / 53.96**          | **7.49 / 7.57**            | 55.7 / 64.0                            | 0.4 / 12.0                              | **17.2% / 19.8%**                    | 0.0%       |
+| **`google/gemma-4-31b-it`** | **128**     | 10.42          | 1,333.8               | 4,840.9              | **2,367.6** / 3,744.3 / 3,770.7    | 73.16 / 83.29 / 89.47              | 11.58 / 12.13              | 108.4 / 128.0                          | 3.3 / **37.0**                          | 72.2% / **98.8%**                    | 0.0%       |
+| **`Qwen/Qwen3.8-27B`**      | **128**     | **12.60**      | **1,612.3**           | **5,839.3**          | 2,519.1 / **3,221.8 / 3,255.2**    | **59.36 / 64.86 / 71.61**          | **10.10 / 11.34**          | 107.5 / 128.0                          | 4.6 / 64.0                              | **33.2% / 39.5%**                    | 0.0%       |
+| **`Qwen/Qwen3.8-27B`**      | **256**     | **16.60**      | **2,124.3**           | **7,697.0**          | **3,378.3 / 6,310.4 / 6,488.6**    | **94.42 / 105.22 / 105.34**        | **15.29 / 19.59**          | **211.2 / 256.0**                      | **16.6 / 156.0**                        | **65.2% / 79.0%**                    | **0.0%**   |
+
+_\*At Concurrency 16 on Gemma 4 31B, 1 of 32 requests encountered a transient
+TCP connection reset (`ServerDisconnectedError`), with 0% errors across all
+other stages (511/512 requests succeeded)._
+
+### 3. Interpreting the Golden Signals for PoC sizing and HPA configuration
+
+1. **Throughput & Inter-Token Latency (`TPOT`)**: Across every concurrency tier
+   from `1` to `128`, **`Qwen/Qwen3.8-27B` delivers 16% to 21% higher output
+   token throughput** (`1,612.3 tok/s` vs. `1,333.8 tok/s` at `Concurrency=128`)
+   and **14% to 20% lower `TPOT` p99** (`71.61 ms` vs. `89.47 ms` at
+   `Concurrency=128`). Pushing `Qwen/Qwen3.8-27B` to `Concurrency=256` reaches
+   **`2,124.3 output tok/s` (`1,062 output tok/s` per RTX PRO 6000)** and
+   **`7,697.0 total tok/s`** at `0.0%` error rate.
+2. **KV Cache Saturation vs. Compute-Bound Prefill Queuing**:
+   - **`google/gemma-4-31b-it` is KV-cache capacity bound on a single 96 GB
+     GPU**: At `Concurrency=128` (`64` requests per replica $\times$ `~463`
+     tokens per request $\approx 29,632$ tokens), Gemma 4 31B reaches **`98.8%`
+     peak KV cache utilization** (`29,655` token ceiling per replica) and begins
+     holding excess requests (`peak_waiting_reqs = 37`) in
+     `vllm:num_requests_waiting` until active sequences finish decoding.
+   - **`Qwen/Qwen3.8-27B` is compute-bound rather than KV-cache-bound**: Even at
+     `Concurrency=128`, its KV/Mamba state cache reaches only **`39.5%` peak
+     utilization** (and **`79.0%`** at `Concurrency=256`). Its waiting queue
+     spikes briefly during burst arrival (`peak_waiting_reqs = 12` at
+     `Concurrency=64`, `64` at `Concurrency=128`) because chunked prefill
+     (`max_num_batched_tokens=8192`) throttles how many prompt tokens enter the
+     compute batch per step to protect decode `TPOT`.
+3. **Why `vllm:num_requests_waiting` is the right HPA signal for both models**:
+   Whether a replica saturates due to **KV cache exhaustion** (Gemma 4 31B at
+   `Concurrency > 64`) or **chunked-prefill compute budget saturation** (Qwen
+   3.8 27B at `Concurrency >= 64`), vLLM immediately increments
+   `vllm:num_requests_waiting`. The `HorizontalPodAutoscaler` in `vllm-runai`
+   (configured with `averageValue: 3` on `vllm:num_requests_waiting`) triggers
+   scale-out at the exact knee of the latency curve (`Concurrency = 64–128`,
+   where `TPOT p99` crosses `50–70 ms`), bringing up replacement or scale-out
+   replicas via Run:ai Model Streamer or GKE Pod snapshots before client
+   timeouts occur.
 
 ## Additional Reading
 

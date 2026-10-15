@@ -14,4 +14,4 @@
 ---
 - op: add
   path: /spec/template/spec/containers/1/args/-
-  value: "--chat-template=/gcs/google/gemma-4-26b-a4b/chat_template.jinja"
+  value: "--chat-template=/gcs/google/gemma-4-26b-a4b-it/chat_template.jinja"

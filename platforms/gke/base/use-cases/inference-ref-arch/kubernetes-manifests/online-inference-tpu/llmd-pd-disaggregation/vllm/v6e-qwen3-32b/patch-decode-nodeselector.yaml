@@ -1,0 +1,40 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pd-disaggregation-tpu-vllm-decode
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      nodeSelector:
+        # $patch: replace discards the whole nodeSelector inherited from the
+        # llm-d base, which supplies the two TPU labels below. Without them
+        # GKE Warden rejects the pod:
+        #   tpu-accelerator-topology-constraints
+        # Re-declare them here so this file states the complete selector
+        # rather than silently depending on what the base happened to set.
+        #
+        # GKE emits an advisory warning for combining these labels with a
+        # compute class ("simultaneous use of both may lead to unexpected
+        # behavior"). We keep them because empirically the pod is rejected
+        # without them; the compute class alone did not satisfy Warden. If a
+        # future GKE release makes the compute class sufficient on its own,
+        # these two labels can be dropped.
+        $patch: replace
+        cloud.google.com/compute-class: tpu-v6e-2x4
+        cloud.google.com/gke-tpu-accelerator: tpu-v6e-slice
+        cloud.google.com/gke-tpu-topology: 2x4

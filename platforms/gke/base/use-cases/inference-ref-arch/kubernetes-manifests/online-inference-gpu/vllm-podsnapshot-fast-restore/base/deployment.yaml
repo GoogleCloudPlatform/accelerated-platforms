@@ -56,13 +56,31 @@ spec:
                 mkdir -p /root/.cache/huggingface
                 cp /var/run/secrets/huggingface.co/token /root/.cache/huggingface/token
               fi
-              python3 -m vllm.entrypoints.openai.api_server \
-                --model="${MODEL_ID}" \
-                --served-model-name="${MODEL_ID}" \
-                --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
-                --max-model-len="${MAX_MODEL_LEN}" \
-                --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
-                --port=8000 &
+              if [ -n "${MODEL_BUCKET_NAME:-}" ]; then
+                # Path B: stream weights from Cloud Storage using the NVIDIA
+                # Run:ai Model Streamer (`patch-runai-streamer.yaml` sets
+                # MODEL_BUCKET_NAME on the Path B overlays).
+                MODEL_GCS_PATH="$(printf '%s' "${MODEL_ID}" | tr '[:upper:]' '[:lower:]')"
+                python3 -m vllm.entrypoints.openai.api_server \
+                  --model="gs://${MODEL_BUCKET_NAME}/${MODEL_GCS_PATH}" \
+                  --served-model-name="${MODEL_ID}" \
+                  --load-format=runai_streamer \
+                  --model-loader-extra-config='{"distributed":true}' \
+                  --trust-remote-code \
+                  --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
+                  --max-model-len="${MAX_MODEL_LEN}" \
+                  --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
+                  --port=8000 &
+              else
+                # Path A: download weights directly from the Hugging Face Hub.
+                python3 -m vllm.entrypoints.openai.api_server \
+                  --model="${MODEL_ID}" \
+                  --served-model-name="${MODEL_ID}" \
+                  --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
+                  --max-model-len="${MAX_MODEL_LEN}" \
+                  --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
+                  --port=8000 &
+              fi
               VLLM_PID=$!
               trap 'kill -TERM "${VLLM_PID}" 2>/dev/null || true' TERM INT
               if [ ! -e /proc/gvisor/checkpoint ]; then

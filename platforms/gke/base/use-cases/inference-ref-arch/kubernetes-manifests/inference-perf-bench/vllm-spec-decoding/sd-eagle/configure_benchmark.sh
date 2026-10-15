@@ -47,6 +47,17 @@ fi
 
 source "${MY_PATH}/../../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
+# Ensure HF_MODEL_ID is lower-cased to match the vLLM deployment and GCS path
+export HF_MODEL_ID="${HF_MODEL_ID,,}"
+
+# Workaround for Gemma 4 tokenizer bug in inference-perf image
+if [[ "$HF_MODEL_ID" == *"gemma-4"* ]]; then
+    echo "Detected Gemma 4 model. Using Gemma 1 tokenizer as workaround for inference-perf bug."
+    export TOKENIZER_ID="google/gemma-7b"
+else
+    export TOKENIZER_ID="$HF_MODEL_ID"
+fi
+
 envsubst < "${MY_PATH}/templates/benchmarking.tpl.env" | sponge "${MY_PATH}/benchmarking.env"
 
 envsubst < "${MY_PATH}/templates/configmap-benchmark.tpl.yaml" | sponge "${MY_PATH}/configmap-benchmark.yaml"

@@ -50,28 +50,29 @@ fast-restore technique** in Accelerated Platforms:
 
 ```mermaid
 flowchart TD
-  subgraph S1["Stage 1: Scope Hardware & Data Estate"]
-    A["Select Model & Target Accelerator SKU<br/>(L4, RTX PRO 6000, H100, H200, B200, TPU v6e)"] --> B["Map Data Estate Anchors<br/>(Cloud Storage, PD / Hyperdisk ML, Managed Lustre)"]
-    B --> C["Define Candidate 'Ring Around the World' Regions<br/>(2 to 4 regions aligned with data gravity)"]
+  subgraph S1["Stage 1: Scope & Data Estate"]
+    A["1. Select Model & GPU/TPU SKU"] --> B["2. Map Data Estate Locality"]
+    B --> C["3. Pick Candidate Regions"]
   end
 
-  subgraph S2["Stage 2: Discover & Secure Capacity"]
-    C --> D["Passive Advisory Signals<br/>(Capacity Advisor UI, Compute Advisor, Spot/Flex/Calendar APIs)"]
-    C --> E["Active Multi-Zone Probing & Reservation Hunting<br/>(Capacity Radar CLI, Web UI, or AI Agent Skill)"]
+  subgraph S2["Stage 2: Capacity Discovery"]
+    C --> D["Capacity Advisor APIs"]
+    C --> E["Capacity Radar Probing"]
   end
 
-  subgraph S3["Stage 3: Choose PoC Topology"]
-    D --> F{"Single-Region or<br/>Multi-Region Ring?"}
+  subgraph S3["Stage 3: Provision Topology"]
+    D --> F(["Choose PoC Topology"])
     E --> F
-    F -->|"Single Winning Region"| G["Path A: Single-Cluster Fluid Compute<br/>(Custom Compute Class + Spot/Flex/Reservation Cascade)"]
-    F -->|"Distributed / High Availability"| H["Path B: Multi-Region 'Ring Around the World'<br/>(Multi-Cluster Inference Gateway + Zonal Rapid Cache)"]
+    F -->|"Single Region"| G["Topology A: Single-Region"]
+    F -->|"Multi-Region"| H["Topology B: Multi-Region Ring"]
   end
 
-  subgraph S4["Stage 4: Turn On Fast-Start & Fast-Restore Tricks"]
-    G --> I["GCFS Image Streaming (1.3-2.3s pull)<br/>+ Autopilot Fast-Starting Nodes (G2/G4)"]
+  subgraph S4["Stage 4: Fast-Start & Restore"]
+    G --> I["1. GCFS Image Streaming"]
     H --> I
-    I --> J["Hierarchical Namespace GCS + Zonal Rapid Cache<br/>+ NVIDIA Run:ai Model Streamer (9-20s weight stream)"]
-    J --> K["GKE Pod Snapshots (28-56s restore to first response)<br/>+ Queue-Depth HPA & llm-d GAIE Routing"]
+    I --> J["2. HNS GCS + Run:ai Streamer"]
+    J --> K["3. GKE Pod Snapshots + HPA"]
+    K --> L["4. llm-d GAIE Routing"]
   end
 ```
 
@@ -588,34 +589,34 @@ automatic, zero-downtime failover to a low-preemption backup region (such as
 with Accelerated Platforms:
 
 ```mermaid
-flowchart LR
-  subgraph Storage["Global / Multi-Region Storage Fabric"]
-    GCS["Multi-Region HNS GCS Bucket<br/>(location = US / EU / ASIA)"]
-    RC1["Zonal Rapid Cache<br/>(Primary Zone: us-east4-a)"]
-    RC2["Zonal Rapid Cache<br/>(Backup Zone: us-west1-a)"]
+flowchart TD
+  Client["Client Inference Traffic"] --> MCG["Multi-Cluster Gateway"]
+  MCG --> EPP["llm-d GAIE Endpoint Picker"]
+
+  subgraph Storage["Multi-Region HNS Storage"]
+    GCS["Multi-Region HNS GCS Bucket"]
+    RC1["Rapid Cache: us-east4-a"]
+    RC2["Rapid Cache: us-west1-a"]
     GCS --> RC1
     GCS --> RC2
   end
 
-  Client["Client / App Traffic"] --> MCG["GKE Multi-Cluster Gateway<br/>(gke-l7-rilb-mc / External LB)"]
-  MCG --> EPP["GAIE InferencePool +<br/>llm-d EPP Router"]
-
-  subgraph Ring1["Region 1: Cost-Optimized Primary (us-east4)"]
-    CCC1["Custom Compute Class<br/>1. Reservation<br/>2. Spot (120s graceful shutdown)<br/>3. DWS Flex-Start (300s wait)"]
-    VLLM1["vLLM Replicas<br/>(Run:ai Streamer + Pod Snapshots)"]
-    RC1 -.->|"2.5 TB/s Local Read"| VLLM1
+  subgraph Ring1["Primary Region: us-east4"]
+    CCC1["CCC: Res -> Spot -> Flex"]
+    VLLM1["vLLM + Run:ai + Snapshots"]
     CCC1 --> VLLM1
   end
 
-  subgraph Ring2["Region 2: High-Stability Failover (us-west1)"]
-    CCC2["Custom Compute Class<br/>1. Reservation<br/>2. Spot (0-5% preemption)<br/>3. DWS Flex-Start"]
-    VLLM2["vLLM Replicas<br/>(Run:ai Streamer + Pod Snapshots)"]
-    RC2 -.->|"2.5 TB/s Local Read"| VLLM2
+  subgraph Ring2["Failover Region: us-west1"]
+    CCC2["CCC: Res -> Spot -> Flex"]
+    VLLM2["vLLM + Run:ai + Snapshots"]
     CCC2 --> VLLM2
   end
 
-  EPP -->|"Primary KV-Aware Route"| VLLM1
-  EPP -->|"Automatic Failover / Overflow"| VLLM2
+  RC1 -.->|"Local Read"| VLLM1
+  RC2 -.->|"Local Read"| VLLM2
+  EPP -->|"Primary Route"| VLLM1
+  EPP -->|"Failover Route"| VLLM2
 ```
 
 #### Key primitives of the Multi-Region Ring

@@ -5,6 +5,7 @@ hmma
 hostengine
 nccl
 nvcr
+nvfp
 nvlink
 nvml
 oauthtoken

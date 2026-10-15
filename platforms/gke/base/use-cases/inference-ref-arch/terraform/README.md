@@ -7,7 +7,11 @@
 ## Before you begin
 
 This guide is a reference implementation of the
-[GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
+[GKE Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md).
+Before provisioning the cluster in a specific region, see the
+[AI inference proof-of-concept (PoC) and capacity-finding guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md)
+to identify regions and zones with the highest accelerator obtainability and
+align with your existing data estate.
 
 ### Permissions
 

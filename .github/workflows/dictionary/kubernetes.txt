@@ -16,6 +16,7 @@ downscoped
 egressgateway
 flowcontrol
 flowschemas
+gcsfusecsi
 gmsa
 gvisor
 horizontalpodautoscaler

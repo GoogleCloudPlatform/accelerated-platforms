@@ -31,7 +31,7 @@ data:
       worker_max_concurrency: 15
       worker_max_tcp_connections: 2500
     api:
-      type: completion
+      type: chat
       streaming: true
     server:
       type: vllm
@@ -39,7 +39,7 @@ data:
       base_url: http://${APP_LABEL}.${BENCHMARKING_KUBERNETES_NAMESPACE}.svc.cluster.local:8000
       ignore_eos: true
     tokenizer:
-      pretrained_model_name_or_path: ${HF_MODEL_ID}
+      pretrained_model_name_or_path: ${TOKENIZER_ID}
     data:
       type: shareGPT
     metrics:

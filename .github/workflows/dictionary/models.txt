@@ -3,11 +3,14 @@ deepseek
 gemma
 llama
 maxtext
+mistralai
 moe
 ocdbt
+pixtral
 qwen
 redhatai
 tatsu
+thinkingmachines
 tunix
 ultrachat
 xplane

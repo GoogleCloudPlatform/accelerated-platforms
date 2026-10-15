@@ -1,5 +1,8 @@
 autotuner
 dailymail
+dequant
+dequantization
+dequantize
 dtype
 flashinfer
 matplot
@@ -7,6 +10,7 @@ matplotlib
 ngram
 perc
 percentunit
+stockout
 toks
 tpot
 ttft

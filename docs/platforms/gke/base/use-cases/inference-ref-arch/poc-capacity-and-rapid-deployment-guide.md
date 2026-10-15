@@ -1011,6 +1011,163 @@ other stages (511/512 requests succeeded)._
    replicas via Run:ai Model Streamer or GKE Pod snapshots before client
    timeouts occur.
 
+---
+
+## Stage 7: Multi-Region "Follow-the-Sun" Capacity Hunt & 4-Model Benchmark Matrix (`us-central1`, `europe-west4`, `asia-south2`)
+
+When expanding a PoC beyond single-GPU 30B dense models to serve large
+Mixture-of-Experts (MoE) frontier models (`100B–300B` parameters), a single
+region rarely holds simultaneous quota and physical stock across every GPU
+generation (`RTX PRO 6000` Blackwell SM 12.0, `H100` Hopper SM 9.0, `H200`, and
+`B200`). By combining **Stage 2 (`capacity_radar` + quota audit)** with **Stage
+3 (Multi-Region Ring)**, we stood up a three-region GKE Autopilot ring across
+**Americas (`us-central1`)**, **Europe (`europe-west4`)**, and **Asia-Pacific
+(`asia-south2`)** to benchmark four frontier models across Blackwell and Hopper
+accelerators:
+
+1. **`google/gemma-4-31b-it`** (`31B` dense BF16, `58.99 GiB`, 2 shards)
+2. **`Qwen/Qwen3.8-27B`** (`27B` hybrid Gated DeltaNet + FlashAttention BF16,
+   `51.10 GiB`, 11 shards)
+3. **`mistralai/Mistral-Small-4-119B-2603-NVFP4`** (`119B` total / `6.5B` active
+   MoE + Multi-head Latent Attention `MLA`, native `NVFP4`, `65.95 GiB`, 13
+   shards)
+4. **`thinkingmachines/Inkling-Small-NVFP4`** (`276B` total / `12B` active MoE +
+   FA4 Relative Position Attention, native `NVFP4`, `159.01 GiB`, 33 shards)
+
+### 1. Multi-region capacity discovery & placement outcome
+
+Sweeping `capacity_radar advise spot` alongside regional quota checks revealed
+why multi-region capacity farming is essential:
+
+| Region             | GPU Quota (`On-Demand` / `Spot`)                    | `capacity_radar` Top Obtainability Score                          | Actual GKE Autopilot Provisioning Outcome                                                                                                                                             | Assigned Models & Accelerators                                                                                      |
+| ------------------ | --------------------------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **`us-central1`**  | `RTX PRO 6000`: `8` OD / `8` Spot (`H100`: `0` OD)  | `g4-standard-48` (`1×`): `0.93`; `g4-standard-96` (`2×`): `0.85`  | Provisioned `2× g4-standard-48` (`us-central1-a/b`), `1× g4-standard-96` (`us-central1-b`), and `1× g4-standard-192` (`us-central1-a`) in **52–95 s**                                 | **`Mistral Small 4 119B NVFP4`** (`2× RTX PRO 6000`), **`Gemma 4 31B`** & **`Qwen 3.8 27B`** (`1× RTX PRO 6000`)    |
+| **`europe-west4`** | `H100`: `0` OD / `16` Spot; `H100 Mega`: `16` Spot  | `a3-highgpu-2g`: `< 0.40` (stockout); **`a3-megagpu-8g`: `0.90`** | `a3-highgpu-2g` failed (`GCE out of resources` in `europe-west4-c`); pivoting to **`a3-megagpu-8g` (`8× H100 Mega`)** provisioned in **90 s** (`europe-west4-c`) and co-hosted 2 pods | **`Inkling Small 276B NVFP4`** (`4× H100 Mega`, `TP=4`) + **`Mistral Small 4 119B NVFP4`** (`2× H100 Mega`, `TP=2`) |
+| **`asia-south2`**  | `H100`: `1` OD / `8` Spot (`RTX PRO 6000`: `0` all) | `a3-highgpu-1g`: **`0.94`** (`asia-south2-b`, `asia-south2-a`)    | Provisioned `2× a3-highgpu-1g` (`1× H100 80GB` each) in **78–85 s**                                                                                                                   | **`Gemma 4 31B`** (`1× H100 80GB`) + **`Qwen 3.8 27B`** (`1× H100 80GB`)                                            |
+
+### 2. Cross-region cold-start & KV cache capacity comparison (`v0.19.1-nightly` w/ native NVFP4 + FA4)
+
+| Region / Cluster   | Model                                         | Accelerator & TP                 | Attention + MoE Kernel Backend                   | Weight Load Time (`gs://` $\rightarrow$ GPU) | Model VRAM (`GiB/GPU`) | KV Cache (`GiB/GPU`) | KV Cache Capacity (Tokens)  | Max Concurrency @ Context |
+| ------------------ | --------------------------------------------- | -------------------------------- | ------------------------------------------------ | -------------------------------------------- | ---------------------- | -------------------- | --------------------------- | ------------------------- |
+| **`us-central1`**  | `google/gemma-4-31b-it`                       | `2× (1× RTX PRO 6000 96GB)`      | `FLASH_ATTN` (`FA2` SM 12.0)                     | **33.24 s** (`1.77 GiB/s`)                   | `58.99 GiB`            | **24.16 GiB**        | **197,888 / GPU**           | **6.19×** @ `32,768`      |
+| **`asia-south2`**  | `google/gemma-4-31b-it`                       | `1× H100 80GB` (`gpu_util=0.95`) | `FLASH_ATTN` (**`FA4` Hopper SM 9.0**)           | **40.34 s** (`1.46 GiB/s`)                   | `58.99 GiB`            | **13.40 GiB**        | **15,930 / GPU**            | **1.94×** @ `8,192`\*     |
+| **`us-central1`**  | `Qwen/Qwen3.8-27B`                            | `2× (1× RTX PRO 6000 96GB)`      | `FA2` + Triton Gated DeltaNet                    | **34.16 s** (`1.50 GiB/s`)                   | `51.10 GiB`            | **26.82 GiB**        | **539,352 / GPU**           | **16.46×** @ `32,768`     |
+| **`asia-south2`**  | `Qwen/Qwen3.8-27B`                            | `1× H100 80GB` (`gpu_util=0.90`) | `FLASH_ATTN` (**`FA3` Hopper SM 9.0**)           | **70.74 s** (`0.72 GiB/s`)                   | `51.01 GiB`            | **16.29 GiB**        | **220,013 / GPU**           | **6.71×** @ `32,768`      |
+| **`us-central1`**  | `Mistral-Small-4-119B-2603-NVFP4` (`119B`)    | `2× RTX PRO 6000 96GB` (`TP=2`)  | `TRITON_MLA` + **`FLASHINFER_CUTLASS` (FP4 HW)** | **11.16 s (`5.91 GiB/s`, `5.31s` prefetch)** | `33.34 GiB`            | **49.98 GiB**        | **2,329,008**               | **71.08×** @ `32,768`     |
+| **`europe-west4`** | `Mistral-Small-4-119B-2603-NVFP4` (`119B`)    | `2× H100 80GB Mega` (`TP=2`)     | **`FLASH_ATTN_MLA`** + **`HUMMING` (dequant)**   | **19.35 s (`3.41 GiB/s`, `8.17s` prefetch)** | `33.34 GiB`            | **35.44 GiB**        | **1,651,680**               | **50.41×** @ `32,768`     |
+| **`europe-west4`** | `thinkingmachines/Inkling-Small-NVFP4` (276B) | `4× H100 80GB Mega` (`TP=4`)     | **`FA4 RelPos` (`Sm90`)** + **`HUMMING`**        | **126.48 s** (`1.26 GiB/s`)                  | `40.07 GiB`            | **16.22 GiB**        | **154,822**                 | **4.72×** @ `32,768`      |
+| **`us-central1`**  | `thinkingmachines/Inkling-Small-NVFP4` (276B) | `4× RTX PRO 6000 96GB` (`TP=4`)  | `_INKLING_FA4_REL_ATTENTION_KERNEL` (CuTe DSL)   | Loaded 33 shards (`159.01 GiB`), **Failed**  | `40.07 GiB`            | N/A                  | **Incompatible on SM 12.0** | `AssertionError` (see #4) |
+
+_\*On `1× H100 80GB`, `google/gemma-4-31b-it` (`58.99 GiB` weights) leaves only
+`4.44 GiB` of KV cache at default `0.90` memory utilization (insufficient for
+`32,768` context); setting `--gpu-memory-utilization=0.95` and
+`--max-model-len=8192` provides `13.40 GiB` (`15,930` tokens)._
+
+### 3. Multi-region saturation benchmark summary (`c=1` to `c=256`, `~220` input / `128` output tokens)
+
+| Region / Cluster   | Model                             | Accelerator (`TP`)                   | `c=1` Decode `TPOT` p50 (ms)  | `c=16` Out Tok/s (`TPOT` p50) | `c=64` Out Tok/s (`TPOT` p50) | Peak Out Tok/s (`c=128..256`) | Peak Total Tok/s | Peak KV Cache % | Peak Waiting Queue |
+| ------------------ | --------------------------------- | ------------------------------------ | ----------------------------- | ----------------------------- | ----------------------------- | ----------------------------- | ---------------- | --------------- | ------------------ |
+| **`us-central1`**  | `google/gemma-4-31b-it`           | `2× RTX PRO 6000` (`2× TP=1`)        | `28.59 ms`                    | `552.8` (`35.67 ms`)          | `1,069.6` (`69.43 ms`)        | **`1,434.2`** (`717.1/GPU`)   | **`3,872.0`**    | `23.6%`         | `0`                |
+| **`asia-south2`**  | `google/gemma-4-31b-it`           | `1× H100 80GB` (`TP=1`, `FA4`)       | **`24.95 ms`**                | `1,303.6` (**`21.23 ms`**)    | `1,900.3` (`30.36 ms`)        | **`2,033.6`** (`2,033.6/GPU`) | **`3,520.1`**    | **`100.0%`**    | **`370`** (KV cap) |
+| **`us-central1`**  | `Qwen/Qwen3.8-27B`                | `2× RTX PRO 6000` (`2× TP=1`)        | `25.19 ms`                    | `729.0` (`29.33 ms`)          | `1,724.4` (`43.47 ms`)        | **`3,827.5`** (`1,913.8/GPU`) | **`10,334.0`**   | `15.7%`         | `0`                |
+| **`asia-south2`**  | `Qwen/Qwen3.8-27B`                | `1× H100 80GB` (`TP=1`, `FA3`)       | **`21.73 ms`**                | `1,132.4` (**`25.87 ms`**)    | `1,828.2` (`29.28 ms`)        | **`1,861.0`** (`1,861.0/GPU`) | **`3,773.9`**    | **`100.0%`**    | **`348`** (KV cap) |
+| **`us-central1`**  | `Mistral-Small-4-119B-2603-NVFP4` | `2× RTX PRO 6000` (`TP=2`, FP4 HW)   | `7.86 ms` (`127 tok/s/req`)   | `343.6` (`7.33 ms`)           | **`453.5`** (`7.12 ms`)       | **`462.9`** (`c=256`)         | **`812.1`**      | **`0.2%`**      | `0`                |
+| **`europe-west4`** | `Mistral-Small-4-119B-2603-NVFP4` | `2× H100 Mega` (`TP=2`, `HUMMING`)   | **`3.43 ms` (`292 tok/s`)**   | `313.1` (**`4.06 ms`**)       | **`371.7`** (`18.14 ms`)      | **`371.7`** (`c=64`)          | **`650.1`**      | **`0.1%`**      | `0`                |
+| **`europe-west4`** | `Inkling-Small-NVFP4` (`276B`)    | `4× H100 Mega` (`TP=4`, `FA4`+`HUM`) | **`6.52 ms` (`153 tok/s`)**\* | `1,546.8` (**`9.58 ms`**)     | `2,566.1` (**`14.08 ms`**)    | **`5,139.5`** (`c=256`)       | **`8,873.6`**    | **`7.1%`**      | `0`                |
+
+_\*Measured at `c=4` (`124.7 ms` TTFT p50, `6.52 ms` TPOT p50)._
+
+### 4. Six new architectural findings from the multi-region PoC
+
+1. **Built-in ComputeClass priorities (`[On-Demand, Flex-Start, Spot]`) stall
+   GKE Autopilot in 0-On-Demand-quota regions**: When a region has `0` On-Demand
+   GPU quota (such as `europe-west4` with `0` On-Demand `H100` but `16`
+   `PREEMPTIBLE_NVIDIA_H100_GPUS`), the built-in `gpu-h100-80gb-*` ComputeClass
+   causes Node Auto-Provisioning to repeatedly fail on Priority 1
+   (`GCE quota exceeded`) before falling through to Spot. Creating a
+   **Spot-first Custom Compute Class** (`spot: true` as the first priority rule,
+   plus fallback from `a3-highgpu-8g` to `a3-megagpu-8g`) drops node
+   provisioning time to **~90 seconds**.
+2. **465× faster multi-shard GCS FUSE weight loading (`11.16 s` / `5.91 GiB/s`
+   for `65.95 GiB`) using a RAM-backed `gke-gcsfuse-cache` override**:
+   - Setting `file-cache:max-size-mb:-1` without a local NVMe SSD writes the GCS
+     FUSE file cache onto the node's boot disk and triggers kubelet
+     `DiskPressure` eviction on models larger than `50 GiB`.
+   - Conversely, capping `file-cache:max-size-mb:20480` (`20 GiB`) fails in two
+     cases: (a) when a single shard exceeds `20 GiB` (`google/gemma-4-31b-it`
+     shard 1 is `49.9 GB`, causing `cache_file_for_range_read` to bypass the
+     cache), or (b) when `PixtralForConditionalGeneration`
+     (`Mistral-Small-4-119B-2603-NVFP4`, `65.95 GiB` across 13 shards and
+     `56,313` tensor keys) scans or prefetches all 13 shards upfront before
+     loading weights shard-by-shard, thrashing the `20 GiB` LRU cache (`97,128`
+     random read misses, **`399 s per shard`**).
+   - **Fix**: Override the CSI-injected `gke-gcsfuse-cache` volume in the Pod
+     spec with a RAM-backed `emptyDir` (`medium: Memory, sizeLimit: 80Gi`), set
+     `file-cache:max-size-mb:75000,file-cache:cache-file-for-range-read:true`,
+     and pass `--safetensors-load-strategy=prefetch`:
+
+     ```yaml
+     volumes:
+       - name: gke-gcsfuse-cache
+         emptyDir:
+           medium: Memory
+           sizeLimit: 80Gi
+       - name: gcs-Model-cache
+         csi:
+           driver: gcsfuse.csi.storage.gke.io
+           volumeAttributes:
+             bucketName: <your-hns-model-bucket>
+             mountOptions: "implicit-dirs,only-dir=mistralai/mistral-small-4-119b-2603-nvfp4,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:75000,file-cache:cache-file-for-range-read:true,read_ahead_kb=1024"
+     ```
+
+     With this configuration, vLLM prefetched all `65.95 GiB` into RAM in
+     **`5.31 s` (`9.90 GiB/s`)** and loaded all `56,313` tensors into GPU VRAM
+     in **`11.16 s` (`5.91 GiB/s`)** — a **`465×` speedup** with zero boot-disk
+     consumption.
+3. **`Mistral-Small-4-119B-2603-NVFP4` (`TP=2`) — Native Blackwell FP4 Tensor
+   Cores (`2× RTX PRO 6000`) vs. Hopper Register Dequantization (`2× H100`)**:
+   - **Low-concurrency decode latency (`c=1..16`)**: `2× H100 Mega` achieves
+     **`3.26–3.43 ms` TPOT (`~300 tok/s` per stream)** vs. `7.31–7.86 ms` on
+     `2× RTX PRO 6000` (`2.2×` faster) thanks to `3.35 TB/s` HBM3 bandwidth,
+     `900 GB/s` NVLink all-reduce, and Hopper's `FLASH_ATTN_MLA` kernel.
+   - **High-concurrency throughput (`c=64..256`) & prefill TTFT**:
+     `2× RTX PRO 6000` achieves **`27%` faster prefill TTFT** (`1,748 ms` vs.
+     `2,378 ms`) and **`25%–44%` higher total throughput** (`462.9` vs.
+     `371.7 out tok/s`) because Blackwell SM 12.0 executes `NVFP4` MoE GEMMs
+     natively on **5th-Gen FP4 Tensor Cores (`FLASHINFER_CUTLASS`)**, whereas
+     Hopper SM 9.0 lacks hardware FP4 Tensor Cores and must dequantize `NVFP4`
+     weights in registers on the fly via the `HUMMING` kernel.
+   - **Multi-head Latent Attention (`MLA`) eliminates KV cache pressure on both
+     systems**: Compressing KV heads into a `512`-dim latent vector yields
+     **`2,329,008` KV cache tokens (`71.08×` @ 32K)** on `2× RTX PRO 6000` and
+     **`1,651,680` tokens (`50.41×` @ 32K)** on `2× H100`.
+4. **`thinkingmachines/Inkling-Small-NVFP4` (`276B` MoE / `12B` active) requires
+   Hopper SM 9.0 (`H100`/`H200`) or Datacenter Blackwell SM 10.0 (`B200`)**:
+   - Inkling uses a custom FlashAttention-4 Relative Position kernel
+     (`_INKLING_FA4_REL_ATTENTION_KERNEL`) implemented in NVIDIA CuTe DSL
+     (`_flash_attn_fwd`). While CuTe DSL supports Paged KV cache on Hopper SM
+     9.0 (`FlashAttentionForwardSm90`) and Datacenter Blackwell SM 10.0
+     (`B200`), it raises
+     `AssertionError: Paged KV not supported on SM 12.0 in this PR` on
+     workstation/server Blackwell SM 12.0 (`RTX PRO 6000`).
+   - On **`4× H100 80GB Mega` (`TP=4`)** in `europe-west4`, Inkling `276B`
+     delivers **`5,139.5 output tok/s` (`8,873.6 total tok/s`)** at `c=256` with
+     a **`6.52 ms` low-concurrency TPOT (`153 tok/s` per stream)** and
+     **`22.29 ms` TPOT at `c=256`**.
+5. **30B BF16 models (`Gemma 4 31B`, `Qwen 3.8 27B`) — `H100 80GB` compute speed
+   vs. `RTX PRO 6000 96GB` VRAM capacity**:
+   - A single `H100 80GB` delivers **`2.8×` higher single-GPU output
+     throughput** on `Gemma 4 31B` (`2,033.6` vs. `717.1 out tok/s/GPU`,
+     accelerated by Hopper `FA4`) and **`14%` lower low-concurrency TPOT** on
+     `Qwen 3.8 27B` (`21.73 ms` via `FA3` vs. `25.19 ms`).
+   - However, `80 GiB` VRAM leaves only `13.40 GiB` (`15,930` tokens at `0.95`
+     utilization) for `Gemma 4 31B` and `16.29 GiB` (`220,013` tokens) for
+     `Qwen 3.8 27B`, hitting **`100.0%` KV cache saturation** at
+     `Concurrency=128–256`. `RTX PRO 6000`'s `96 GiB` VRAM provides **`12.4×`
+     more KV cache tokens** for `Gemma 4 31B` (`197,888` tokens at `32,768`
+     context) and **`2.45×` more** for `Qwen 3.8 27B` (`539,352` tokens),
+     preventing KV cache preemption under long-context bursts.
+
 ## Additional Reading
 
 - [How to build an elastic, scalable LLM Inference Platform on GKE using Fluid Compute](https://discuss.google.dev/t/how-to-build-an-elastic-scalable-llm-inference-platform-on-gke-using-fluid-compute/388108)

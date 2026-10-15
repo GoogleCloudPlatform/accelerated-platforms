@@ -90,6 +90,7 @@ rm -rf \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/huggingface/downloader.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/huggingface/secretproviderclass-huggingface-tokens.yaml" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/base/deployment.env" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/base/vllm.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/vllm-runai/base/vllm.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-tpu/base/deployment.env"
 

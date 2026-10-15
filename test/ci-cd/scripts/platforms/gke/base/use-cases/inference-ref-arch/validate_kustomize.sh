@@ -102,6 +102,9 @@ source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terrafor
 # Validate vllm-runai kustomize
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/configure_vllm_runai.sh"
 
+# Validate vllm-podsnapshot-fast-restore kustomize
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/configure_vllm_podsnapshot.sh"
+
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"
@@ -111,5 +114,7 @@ find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests
   # - Render manifests with Kustomize
   # - Validate manifests with kubectl-validate
   kubectl kustomize "${kustomize_directory_path}" | tee "${rendered_kubernetes_manifests_file_path}"
-  kubectl validate "${rendered_kubernetes_manifests_file_path}"
+  kubectl validate \
+    --local-crds="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/crds" \
+    "${rendered_kubernetes_manifests_file_path}"
 done

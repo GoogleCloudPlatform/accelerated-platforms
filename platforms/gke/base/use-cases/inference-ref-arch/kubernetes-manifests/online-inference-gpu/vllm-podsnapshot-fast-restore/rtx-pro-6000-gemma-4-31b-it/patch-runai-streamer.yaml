@@ -1,0 +1,38 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Setting MODEL_BUCKET_NAME switches the entrypoint in `../base/deployment.yaml`
+# from downloading weights from the Hugging Face Hub (Path A) to streaming
+# weights directly from Cloud Storage with the NVIDIA Run:ai Model Streamer
+# (Path B).
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-fast-restore
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      containers:
+        - name: inference-server
+          env:
+            # The streamer reads the weights straight out of GCS, so the bucket
+            # name has to be visible to the container. Staging the model into
+            # this bucket is a prerequisite; see the model-download job.
+            - name: MODEL_BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_BUCKET_NAME
+                  name: deployment

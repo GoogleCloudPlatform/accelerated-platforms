@@ -49,6 +49,7 @@ discovery and multi-region Fluid Compute** with every **fast-start and
 fast-restore technique** in Accelerated Platforms:
 
 ```mermaid
+%%{init: {"flowchart": {"htmlLabels": false, "padding": 20}, "themeVariables": {"fontFamily": "sans-serif"}}}%%
 flowchart TD
   subgraph S1["Stage 1: Scope & Data Estate"]
     A["1. Select Model & GPU/TPU SKU"] --> B["2. Map Data Estate Locality"]
@@ -589,6 +590,7 @@ automatic, zero-downtime failover to a low-preemption backup region (such as
 with Accelerated Platforms:
 
 ```mermaid
+%%{init: {"flowchart": {"htmlLabels": false, "padding": 20}, "themeVariables": {"fontFamily": "sans-serif"}}}%%
 flowchart TD
   Client["Client Inference Traffic"] --> MCG["Multi-Cluster Gateway"]
   MCG --> EPP["llm-d GAIE Endpoint Picker"]

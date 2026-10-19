@@ -30,8 +30,10 @@
 # rather than running once, because node auto-provisioning adds new sandbox
 # nodes during scale-out and each one ships with the setting enabled.
 #
-# Observed on GKE 1.36.4-gke.1247000 with g2-standard-8 (NVIDIA L4) nodes.
-# Remove this DaemonSet once the node image no longer enables core tags.
+# Observed on GKE 1.36.4-gke.1247000 with g2-standard-8 (NVIDIA L4) nodes
+# (see https://github.com/google/gvisor/issues/11062 for gVisor core-tagging
+# background). Remove this DaemonSet once the node image no longer enables core
+# tags.
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -48,9 +50,22 @@ spec:
     spec:
       hostPID: true
       priorityClassName: system-node-critical
-      # Only GKE Sandbox nodes have a runsc configuration.
+      # Restrict this DaemonSet to GKE Sandbox nodes belonging to the GPU
+      # compute classes used by this example so it does not touch unrelated
+      # sandbox node pools in the cluster.
       nodeSelector:
         sandbox.gke.io/runtime: gvisor
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: cloud.google.com/compute-class
+                    operator: In
+                    values:
+                      - gpu-l4-24gb-s8-x1
+                      - gpu-h100-80gb-high-x1
+                      - gpu-rtx-pro-6000-96gb-x1
       tolerations:
         - operator: Exists
       containers:

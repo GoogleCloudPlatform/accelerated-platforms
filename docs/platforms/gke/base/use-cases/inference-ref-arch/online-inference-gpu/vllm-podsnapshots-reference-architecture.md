@@ -7,7 +7,7 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2026-10-14 (YYYY-MM-DD)
+> Last Update: 2026-10-19 (YYYY-MM-DD)
 
 This document outlines a reference architecture for **restoring GPU inference
 replicas from a memory snapshot** on Google Kubernetes Engine (GKE). It extends
@@ -134,9 +134,14 @@ is a small amount of startup scripting in the container command.
 Because a Pod snapshot serializes process memory and environment variables into
 Cloud Storage, credentials must not be kept in long-lived environment variables
 (`os.environ`). For Hugging Face Hub downloads (Path A), the deployment mounts
-the `huggingface-token` Secret as a file, copies it to
-`/root/.cache/huggingface/token` before starting vLLM, and deletes the contents
-of `/root/.cache/huggingface` right before writing to `/proc/gvisor/checkpoint`.
+the `huggingface-token` Secret as a native Kubernetes `Secret` volume
+(`optional: true`, because GKE Pod snapshots do not support Secret Store CSI
+volumes on checkpointed Pods and Path B overlays do not need the token), copies
+it to `/root/.cache/huggingface/token` before starting vLLM, and deletes the
+token files and large weight files (`*.safetensors`, `*.bin`, `*.pt`, `*.lock`)
+from `/root/.cache/huggingface` right before writing to
+`/proc/gvisor/checkpoint` while keeping small tokenizer and configuration files
+in case a restored replica lazily re-reads them.
 
 ### Driver selection through a compute class
 
@@ -182,12 +187,12 @@ Restore reads the same image back, much faster. Every restore reads it from
 Cloud Storage, whether or not the node has run the model before. The time GKE
 took to complete a restore depended on more than the size of the image:
 
-| Model, GPU                | Snapshot (`v0.26.0` / `v0.19.1`) | KV cache (`v0.26.0` / `v0.19.1`) | `POD_RESTORED` (`v0.26.0` Autopilot / `v0.19.1` Standard) |
-| ------------------------- | -------------------------------- | -------------------------------- | --------------------------------------------------------- |
-| Llama 3.1 8B, L4          | 18.9 GiB / 18.3 GiB              | 3.75 GiB / 1.88 GiB              | 26 s / 24 to 27 s                                         |
-| Llama 3.1 8B, H100 80GB   | 20.8 GiB / 19.8 GiB              | 54.9 GiB / 54.2 GiB              | 40 s / 44 to 50 s                                         |
-| Gemma 4 31B, H100 80GB    | 68.3 GiB / 67.9 GiB              | 10.6 GiB / 8.2 GiB               | 52 to 56 s / 32 to 35 s                                   |
-| Gemma 4 31B, RTX Pro 6000 | 70.3 GiB / 68.4 GiB              | 24.9 GiB / 12.1 GiB              | 103 s / 32 to 39 s                                        |
+| Model, GPU                | Snapshot (`v0.26.0` / `v0.19.1`) | KV cache (`v0.26.0` / `v0.19.1`) | `POD_RESTORED`, `v0.26.0` (Autopilot) | `POD_RESTORED`, `v0.19.1` (Standard) |
+| ------------------------- | -------------------------------- | -------------------------------- | ------------------------------------- | ------------------------------------ |
+| Llama 3.1 8B, L4          | 18.9 GiB / 18.3 GiB              | 3.75 GiB / 1.88 GiB              | 26 s                                  | 24 to 27 s                           |
+| Llama 3.1 8B, H100 80GB   | 20.8 GiB / 19.8 GiB              | 54.9 GiB / 54.2 GiB              | 40 s                                  | 44 to 50 s                           |
+| Gemma 4 31B, H100 80GB    | 68.3 GiB / 67.9 GiB              | 10.6 GiB / 8.2 GiB               | 52 to 56 s                            | 32 to 35 s                           |
+| Gemma 4 31B, RTX Pro 6000 | 70.3 GiB / 68.4 GiB              | 24.9 GiB / 12.1 GiB              | 103 s                                 | 32 to 39 s                           |
 
 Llama 3.1 8B on H100 restored more slowly than Gemma 4 31B on the same GPU, from
 an image less than a third the size. Measure the restore of your own
@@ -197,19 +202,22 @@ as a single restore.
 
 ### Protecting the capture from eviction
 
-The deployment separates `startupProbe` (which allows up to 3.3 hours for the
-cold start) from `readinessProbe` (`periodSeconds: 2`, `failureThreshold: 3`).
-When the cooperative checkpoint trigger pauses the cold-start replica, the
-readiness probe marks the Pod not ready after about six seconds so the Service
-stops routing requests to it until the upload finishes and the replica resumes.
-The GPU compute classes of the reference implementation enable active migration,
+The deployment separates `startupProbe` (which allows up to 1 hour for the cold
+start) from `readinessProbe` (`periodSeconds: 2`, `failureThreshold: 3`). When
+the cooperative checkpoint trigger pauses the cold-start replica, the readiness
+probe marks the Pod not ready after about six seconds so the Service stops
+routing requests to it until the upload finishes and the replica resumes. The
+GPU compute classes of the reference implementation enable active migration,
 which drains a node to move its Pods to a more preferred node configuration. On
 the Autopilot cluster used to validate this architecture, the cluster autoscaler
 evicted the cold-start replica 13 minutes after the checkpoint was triggered, as
 the upload was finishing, and the checkpoint failed. The deployment therefore
 includes a `PodDisruptionBudget` with `minAvailable: 1`, which active migration
 and autoscaler scale-down respect while a single cold-start replica is capturing
-the snapshot, while still permitting voluntary evictions once the deployment is
+the snapshot (note that while at 1 replica, `minAvailable: 1` also blocks
+voluntary node upgrade or auto-repair drains for up to an hour before GKE
+force-evicts, which is acceptable because the single-replica cold-start phase is
+short-lived), while still permitting voluntary evictions once the deployment is
 scaled out to two or more ready replicas. The
 `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"` annotation is not
 used, because on Autopilot it requests extended run time, which is not supported
@@ -220,22 +228,22 @@ for Pods that target custom compute classes.
 Snapshots are written to Cloud Storage by the workload's Kubernetes service
 account through Workload Identity Federation. Deleting a snapshot is performed
 by the Pod snapshot controller, which acts as the GKE service agent and needs
-the Storage Object User role on the bucket. The `terraform/online_gpu` module
-grants `roles/storage.objectUser` on the model bucket to the GKE service agent
+the Storage Object User role on the bucket. When
+`ira_online_gpu_pod_snapshots_enabled` is set to `true`, the
+`terraform/online_gpu` module creates a dedicated `*-pod-snapshots` Cloud
+Storage bucket with hierarchical namespace enabled and soft delete disabled
+(`retention_duration_seconds = 0`), and grants `roles/storage.objectUser` on
+that bucket to both the workload's Kubernetes service account and the GKE
+service agent
 (`service-${project_number}@container-engine-robot.iam.gserviceaccount.com`). On
-the cluster used to develop this architecture, before that grant was added to
-Terraform, `PodSnapshot` resources stayed in `Deleting` for weeks, and their
-data remained in the bucket. After the role was granted, deleting a
-`PodSnapshot` removed both the resource and its objects within seconds.
-
-In this architecture, snapshots share the model bucket created by the reference
-implementation. That bucket already uses hierarchical namespace, which Pod
-snapshots require, and it has soft delete at the Cloud Storage default of seven
-days. A deleted snapshot is therefore retained, and billed, for seven days
-before it is purged. Google recommends disabling soft delete for snapshot
-buckets. Disabling it on the shared bucket also removes protection for the model
-weights. Workloads that snapshot frequently should consider a dedicated snapshot
-bucket with soft delete disabled.
+the cluster used to develop this architecture, before the GKE service agent
+grant was added, `PodSnapshot` resources stayed in `Deleting` for weeks, and
+their data remained in the bucket. After the role was granted, deleting a
+`PodSnapshot` removed both the resource and its objects within seconds. Using a
+dedicated snapshot bucket with soft delete disabled follows Google's
+recommendation for Pod snapshot storage (avoiding seven-day soft-delete
+retention charges on 19 to 70 GiB parallel composite uploads) while keeping the
+default seven-day soft delete policy on the separate model weights bucket.
 
 ### Rapid Cache and fast-starting nodes
 
@@ -244,12 +252,13 @@ The
 describes two optional additions that also apply to this architecture:
 
 - [Rapid Cache](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md#rapid-cache-optional)
-  caches for the model bucket. Snapshots are stored in the same bucket, so
-  restores in a zone that has a cache might read the snapshot through the cache,
-  and a cached snapshot adds to the cost of the cache. We didn't measure
-  restores with Rapid Cache. In our tests, GKE's restore took 31 to 33 seconds
-  on each node when 1, 2, or 4 replicas restored at the same time, so the
-  throughput of the bucket doesn't appear to limit restores at that scale.
+  caches for the model weights bucket (`*-hf-hub-models`) to accelerate Path B
+  cold starts. Because Pod snapshots are stored in the separate
+  `*-pod-snapshots` bucket, snapshot uploads and restores do not consume Rapid
+  Cache capacity. In our tests without Rapid Cache, GKE's restore took 31 to 33
+  seconds on each node when 1, 2, or 4 replicas restored at the same time, so
+  the throughput of the standard Cloud Storage bucket doesn't appear to limit
+  restores at that scale.
 - [Fast-starting nodes](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md#fast-starting-nodes),
   which can shorten GPU node provisioning, a delay that snapshots don't reduce.
   GKE Autopilot uses them on a best-effort basis for compatible configurations.
@@ -295,20 +304,22 @@ it.
 
 ## Measured results
 
-| Model, GPU                            | Cold start (`v0.26.0` Autopilot / `v0.19.1` Standard) | Restore, first response (`v0.26.0` Autopilot / `v0.19.1` Standard) | Restore, `Ready` (`v0.26.0` / `v0.19.1`) | Snapshot size (`v0.26.0` / `v0.19.1`) |
-| ------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------- | ------------------------------------- |
-| Llama 3.1 8B, NVIDIA L4               | 162 s / 433 s                                         | 28.2 s / 26 to 29 s                                                | 17 s / 12 to 15 s                        | 18.9 GiB / 18.3 GiB                   |
-| Llama 3.1 8B, NVIDIA H100 80GB        | 68 s / 168 s                                          | 41.0 s / 46 to 52 s                                                | 8 s / 5 to 9 s                           | 20.8 GiB / 19.8 GiB                   |
-| Gemma 4 31B, NVIDIA H100 80GB         | 240 s / 224 s                                         | 53.3 to 56.3 s / 36 to 38 s                                        | 13 to 14 s / 3 to 5 s                    | 68.3 GiB / 67.9 GiB                   |
-| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 215 s / 210 s                                         | 104.9 s / 35 to 43 s                                               | 41 s / 7 to 20 s                         | 70.3 GiB / 68.4 GiB                   |
+| Model, GPU                            | Cold start, `v0.26.0` (Autopilot) | Cold start, `v0.19.1` (Standard) | Restore first response, `v0.26.0` (Autopilot) | Restore first response, `v0.19.1` (Standard) | Restore `Ready` (`v0.26.0` / `v0.19.1`) | Snapshot size (`v0.26.0` / `v0.19.1`) |
+| ------------------------------------- | --------------------------------- | -------------------------------- | --------------------------------------------- | -------------------------------------------- | --------------------------------------- | ------------------------------------- |
+| Llama 3.1 8B, NVIDIA L4               | 162 s                             | 433 s                            | 28.2 s                                        | 26 to 29 s                                   | 17 s / 12 to 15 s                       | 18.9 GiB / 18.3 GiB                   |
+| Llama 3.1 8B, NVIDIA H100 80GB        | 68 s                              | 168 s                            | 41.0 s                                        | 46 to 52 s                                   | 8 s / 5 to 9 s                          | 20.8 GiB / 19.8 GiB                   |
+| Gemma 4 31B, NVIDIA H100 80GB         | 240 s                             | 224 s                            | 53.3 to 56.3 s                                | 36 to 38 s                                   | 13 to 14 s / 3 to 5 s                   | 68.3 GiB / 67.9 GiB                   |
+| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 215 s                             | 210 s                            | 104.9 s                                       | 35 to 43 s                                   | 41 s / 7 to 20 s                        | 70.3 GiB / 68.4 GiB                   |
 
 All times are measured from the Pod's `PodScheduled` condition, so they exclude
-waiting for a GPU node. The cold start is measured to `Ready`, when vLLM first
-answers `/health` and immediately triggers the cooperative checkpoint (pausing
-the cold-start replica until the snapshot upload finishes). The restore is
-measured to the first successful `/v1/completions` response, with requests sent
-every half second from the moment the Pod has an IP address, and to `Ready` for
-comparison. No restored Pod logged any model loading.
+waiting for a GPU node. Note that both the vLLM version and the GKE cluster mode
+differ between the two measurement columns (`v0.26.0` on GKE Autopilot vs
+`v0.19.1` on GKE Standard). The cold start is measured to `Ready`, when vLLM
+first answers `/health` and immediately triggers the cooperative checkpoint
+(pausing the cold-start replica until the snapshot upload finishes). The restore
+is measured to the first successful `/v1/completions` response, with requests
+sent every half second from the moment the Pod has an IP address, and to `Ready`
+for comparison. No restored Pod logged any model loading.
 
 The `v0.26.0` results were measured on a GKE Autopilot cluster
 (`1.36.4-gke.2046002`) in `us-central1` across all four overlays on Spot VMs. On

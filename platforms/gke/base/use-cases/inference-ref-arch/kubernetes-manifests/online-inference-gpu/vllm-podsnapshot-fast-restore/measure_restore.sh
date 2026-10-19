@@ -94,6 +94,10 @@ if [[ ${#before[@]} -eq 0 ]]; then
   echo "No existing ${APP} Pod to send requests from." >&2
   exit 1
 fi
+# Because `AllSnapshotsAvailable` was verified above, the oldest Running replica
+# has already finished its checkpoint upload and resumed serving. This in-cluster
+# prober requires `curl` in the container image (included in `vllm/vllm-openai`;
+# an image without `curl` would require a separate prober Pod).
 client="$("${KUBECTL[@]}" get pods --selector="app=${APP}" \
   --field-selector=status.phase=Running \
   --sort-by=.metadata.creationTimestamp \
@@ -115,6 +119,7 @@ fi
 echo "Scaled ${APP} from ${current} to ${target} at $(date --utc +%H:%M:%S). Sending requests from ${client}."
 
 probe() { # probe <pod> <ip>: one line per request: start end http_code
+  : >"${WORK_DIR}/$1.probe"
   "${KUBECTL[@]}" exec "${client}" -- sh -c '
     model="$1"
     deadline="$2"
@@ -186,7 +191,8 @@ for pod in "${!probed[@]}"; do
   node="$("${KUBECTL[@]}" get pod "${pod}" --output=jsonpath='{.spec.nodeName}')"
   node_created="$(kubectl get node "${node}" --output=jsonpath='{.metadata.creationTimestamp}')"
   image="$("${KUBECTL[@]}" get events --field-selector="involvedObject.name=${pod},reason=Pulled" \
-    --output=jsonpath='{.items[0].message}' | grep -oE 'already present|in ([0-9]+m)?[0-9.]+s ' | head -1 || true)"
+    --sort-by=.lastTimestamp \
+    --output=jsonpath='{.items[-1].message}' | grep -oE 'already present|in ([0-9]+m)?[0-9.]+s ' | head -1 || true)"
   first="$(awk '$3 == 200 { print $1, $2; exit }' "${WORK_DIR}/${pod}.probe")"
   loading="$("${KUBECTL[@]}" logs "${pod}" | grep -c -e "Model loading took" -e "Starting to load model" || true)"
   printf '%-24s %8s %-18s %7s %12s %15s %9s %8s\n' \

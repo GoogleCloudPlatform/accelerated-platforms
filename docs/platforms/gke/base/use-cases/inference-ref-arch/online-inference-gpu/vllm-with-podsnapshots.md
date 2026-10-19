@@ -12,22 +12,24 @@ cache. That work is identical on every replica. A Pod snapshot captures the
 result once, with the weights already in GPU memory, and every later replica
 resumes from it instead of repeating it.
 
-| Model, GPU                            | Cold start (`v0.26.0` Autopilot / `v0.19.1` Standard) | Restore, first response (`v0.26.0` Autopilot / `v0.19.1` Standard) | Restore, `Ready` (`v0.26.0` / `v0.19.1`) |
-| ------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------- |
-| Llama 3.1 8B, NVIDIA L4               | 162 s / 433 s                                         | **28.2 s / 26 to 29 s**                                            | 17 s / 12 to 15 s                        |
-| Llama 3.1 8B, NVIDIA H100 80GB        | 68 s / 168 s                                          | **41.0 s / 46 to 52 s**                                            | 8 s / 5 to 9 s                           |
-| Gemma 4 31B, NVIDIA H100 80GB         | 240 s / 224 s                                         | **53.3 to 56.3 s / 36 to 38 s**                                    | 13 to 14 s / 3 to 5 s                    |
-| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 215 s / 210 s                                         | **104.9 s / 35 to 43 s**                                           | 41 s / 7 to 20 s                         |
+| Model, GPU                            | Cold start, `v0.26.0` (Autopilot) | Cold start, `v0.19.1` (Standard) | Restore first response, `v0.26.0` (Autopilot) | Restore first response, `v0.19.1` (Standard) | Restore `Ready` (`v0.26.0` / `v0.19.1`) |
+| ------------------------------------- | --------------------------------- | -------------------------------- | --------------------------------------------- | -------------------------------------------- | --------------------------------------- |
+| Llama 3.1 8B, NVIDIA L4               | 162 s                             | 433 s                            | **28.2 s**                                    | **26 to 29 s**                               | 17 s / 12 to 15 s                       |
+| Llama 3.1 8B, NVIDIA H100 80GB        | 68 s                              | 168 s                            | **41.0 s**                                    | **46 to 52 s**                               | 8 s / 5 to 9 s                          |
+| Gemma 4 31B, NVIDIA H100 80GB         | 240 s                             | 224 s                            | **53.3 to 56.3 s**                            | **36 to 38 s**                               | 13 to 14 s / 3 to 5 s                   |
+| Gemma 4 31B, NVIDIA RTX Pro 6000 96GB | 215 s                             | 210 s                            | **104.9 s**                                   | **35 to 43 s**                               | 41 s / 7 to 20 s                        |
 
 Times are seconds from when the Pod was scheduled onto a Spot GPU node created
 during the validation (with one H100 restore on a flex-start VM when Spot
-capacity ran out), so they exclude waiting for GPU capacity. The `v0.26.0`
-numbers were measured on GKE Autopilot (`1.36.4-gke.2046002`) in `us-central1`
-across all four overlays; the `v0.19.1` multi-node numbers were measured on GKE
-Standard (`1.36.4-gke.1391000`) in `europe-west4` (2 new nodes on L4, 8 new
-nodes plus 2 reused nodes at 34.4 to 34.6 s on RTX Pro 6000, and 3 restores per
-model on H100). A restored replica reports `Ready` before it can serve. The
-first successful response is the time that matters.
+capacity ran out), so they exclude waiting for GPU capacity. Note that both the
+vLLM version and the GKE cluster mode differ between the two measurement
+columns: the `v0.26.0` numbers were measured on GKE Autopilot
+(`1.36.4-gke.2046002`) in `us-central1` across all four overlays, while the
+`v0.19.1` multi-node numbers were measured on GKE Standard
+(`1.36.4-gke.1391000`) in `europe-west4` (2 new nodes on L4, 8 new nodes plus 2
+reused nodes at 34.4 to 34.6 s on RTX Pro 6000, and 3 restores per model on
+H100). A restored replica reports `Ready` before it can serve. The first
+successful response is the time that matters.
 [Measure the restore](#measure-the-restore) explains how the numbers were
 measured and how to reproduce them.
 
@@ -58,10 +60,11 @@ and want scale-out to stop repeating the cold start.
   [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
   is deployed and configured.
 
-- The cluster is running GKE version 1.35.3-gke.1234000 or later.
+- The cluster is running GKE version `1.35.3-gke.1234000` or later (validated on
+  `1.36.4-gke.2046002` for GKE Autopilot and `1.36.4-gke.1391000` for GKE
+  Standard).
 
 - Get access to the model.
-
   - Accept the terms of the license on the Hugging Face model page.
     - Path A:
       [**meta-llama/Llama-3.1-8B-Instruct**](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct)
@@ -74,17 +77,24 @@ and want scale-out to stop repeating the cold start.
 
 ## Create and configure the Google Cloud resources
 
-- Deploy the online GPU resources.
+- Deploy the online GPU resources with Pod snapshot storage enabled.
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
-  terraform plan -input=false -out=tfplan && \
+  terraform plan -input=false -var="ira_online_gpu_pod_snapshots_enabled=true" -out=tfplan && \
   terraform apply -input=false tfplan && \
   rm tfplan
   ```
+
+  Setting `ira_online_gpu_pod_snapshots_enabled=true` creates a dedicated Cloud
+  Storage bucket for Pod snapshots (`*-pod-snapshots`) with hierarchical
+  namespace enabled and soft delete disabled (`retention_duration_seconds = 0`),
+  and grants `roles/storage.objectUser` on that bucket to both the workload's
+  Kubernetes service account and the GKE service agent
+  (`service-${project_number}@container-engine-robot.iam.gserviceaccount.com`).
 
 ## Prepare the cluster for Pod snapshots
 
@@ -105,7 +115,10 @@ These steps are performed once per cluster.
   --project=${cluster_project_id}
   ```
 
-  The update takes about 10 minutes.
+  The update takes about 10 minutes. (If you manage cluster creation directly in
+  Terraform with `hashicorp/google` `>= 7.33.0`, you can also enable this
+  declaratively via `addons_config { pod_snapshot_config { enabled = true } }`
+  on `google_container_cluster`.)
 
   The workload requests `runtimeClassName: gvisor`, and node auto-provisioning
   creates GKE Sandbox GPU nodes for it through the custom compute class. No node
@@ -126,45 +139,22 @@ These steps are performed once per cluster.
   podsnapshotstorageconfigs.podsnapshot.gke.io   ####-##-##T##:##:##Z
   ```
 
-- Disable gVisor core tagging on sandbox nodes.
+- Verify that the dedicated Pod snapshot bucket exists and that the GKE service
+  agent has `roles/storage.objectUser` on it.
 
-  **GKE Autopilot**
-
-  Skip this step. Autopilot rejects the DaemonSet, because it runs privileged in
-  the host PID namespace and `kube-system` is a managed namespace. The Autopilot
-  GPU sandbox nodes used to validate this guide started sandboxed Pods without
-  it.
-
-  **GKE Standard**
-
-  ```shell
-  kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/node-setup"
-  ```
-
-  This is a workaround. On the GPU sandbox nodes of the Standard cluster used to
-  develop this guide, gVisor core tagging was enabled, and every sandboxed Pod
-  then failed to start with `FailedCreatePodSandBox` and
-  `Failed read current core tags: prctl(PR_SCHED_CORE, ...) (errno=3)`. The
-  DaemonSet disables the setting on each sandbox node as it joins the cluster,
-  and restarts containerd on that node. See
-  [`gvisor-disable-core-tags.yaml`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/node-setup/gvisor-disable-core-tags.yaml).
-
-- Verify that the Pod snapshot controller can delete snapshots from the model
-  bucket.
-
-  Snapshots are stored in the model bucket created by the reference
-  implementation. The workload's Kubernetes service account can already read and
-  write that bucket. Deleting a snapshot, however, is performed by the Pod
-  snapshot controller, which acts as the GKE service agent and needs
-  `roles/storage.objectUser` on the model bucket. The `terraform/online_gpu`
-  module grants this role automatically. If you deployed the bucket before this
-  grant was added, apply or verify it on the model bucket:
+  Snapshots are written to the dedicated
+  `${ira_online_gpu_pod_snapshots_bucket_name}` bucket by the workload's
+  Kubernetes service account, while deleting a `PodSnapshot` is performed by the
+  Pod snapshot controller acting as the GKE service agent. Deploying
+  `terraform/online_gpu` with `-var="ira_online_gpu_pod_snapshots_enabled=true"`
+  provisions this bucket with soft delete disabled and grants
+  `roles/storage.objectUser` to the GKE service agent automatically. Confirm the
+  binding on the snapshot bucket:
 
   ```shell
   cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
-  gcloud storage buckets add-iam-policy-binding gs://${huggingface_hub_models_bucket_name} \
-  --member="serviceAccount:service-${cluster_project_number}@container-engine-robot.iam.gserviceaccount.com" \
-  --role="roles/storage.objectUser"
+  gcloud storage buckets get-iam-policy gs://${ira_online_gpu_pod_snapshots_bucket_name} \
+  --format="json" | grep "service-${cluster_project_number}@container-engine-robot.iam.gserviceaccount.com"
   ```
 
   Without this grant, deleting a `PodSnapshot` does not complete and its data
@@ -172,14 +162,14 @@ These steps are performed once per cluster.
 
 > [!NOTE]
 >
-> The model bucket uses the Cloud Storage default soft delete policy of seven
-> days. Google recommends
-> [disabling soft delete](https://cloud.google.com/kubernetes-engine/docs/how-to/pod-snapshots-prepare#store-snapshots)
-> for snapshot storage, because snapshots are uploaded as parallel composite
-> uploads and soft-deleted objects are billed until they expire. Disabling it on
-> this bucket also removes soft delete protection for the model weights. See
-> [Storage lifecycle and permissions](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-podsnapshots-reference-architecture.md#storage-lifecycle-and-permissions)
-> for the tradeoff.
+> On some GKE Standard node images (for example `1.36.4-gke.1247000` and
+> `1.36.4-gke.1391000`), gVisor core tagging is enabled on GPU sandbox nodes and
+> causes sandboxed Pods to fail during sandbox creation with
+> `FailedCreatePodSandBox`
+> (`Failed read current core tags: prctl(PR_SCHED_CORE, ...) (errno=3)`). GKE
+> Autopilot is not affected. If you run on GKE Standard and observe
+> `FailedCreatePodSandBox`, apply the opt-in workaround DaemonSet described in
+> [Pods fail with `FailedCreatePodSandBox`](#pods-fail-with-failedcreatepodsandbox).
 
 ## Path A: Pod snapshots on NVIDIA L4 or H100
 
@@ -199,7 +189,6 @@ download job is required.
   ```
 
 - Select a variant and set the served model name.
-
   - **Llama 3.1 8B on NVIDIA L4**:
 
     ```shell
@@ -228,6 +217,15 @@ download job is required.
   --project=${huggingface_secret_manager_project_id} \
   --secret=${huggingface_hub_access_token_read_secret_manager_secret_name})"
   ```
+
+  A native Kubernetes `Secret` volume (`optional: true`) is used instead of a
+  Secret Store CSI volume (`secrets-store.csi.k8s.io`) because GKE Pod snapshots
+  do not support CSI volumes on checkpointed Pods. Before triggering the
+  checkpoint, the startup wrapper deletes the token files and large weight files
+  (`*.safetensors`, `*.bin`, `*.pt`, `*.lock`) from `/root/.cache/huggingface`
+  so credentials and duplicate weights are not persisted in the snapshot image,
+  while keeping small tokenizer and configuration files in the `emptyDir` cache
+  in case a restored replica lazily re-reads them.
 
 - Deploy the inference workload.
 
@@ -303,7 +301,6 @@ so the weights must be staged in the model bucket first.
   ```
 
 - Select a variant.
-
   - **Gemma 4 31B on NVIDIA H100 80GB**:
 
     ```shell
@@ -336,6 +333,11 @@ so the weights must be staged in the model bucket first.
   ```shell
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/${VLLM_VARIANT}"
   ```
+
+  Path B overlays stream weights from Cloud Storage and do not require the
+  `huggingface-token` Secret. Their resource patch requests `memory: 140Gi` (on
+  GKE Autopilot, pod memory is billed per requested GiB) and
+  `ephemeral-storage: 30Gi` for `torch.compile`, Triton, and FlashInfer caches.
 
 ## Capture the snapshot
 
@@ -485,10 +487,9 @@ a restore by when the replica first answers a request, not by when it becomes
   scheduling in every case, before the first response. Restoring onto a node
   that already had the image, or onto four new nodes at the same time, changed
   the first response by no more than a few seconds. The validation didn't use
-  Rapid Cache. If you created
-  [Rapid Cache caches](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md#optional-cache-the-model-with-rapid-cache)
-  for the model bucket, restores in their zones might read the snapshot through
-  them, because snapshots are stored in the same bucket.
+  [Rapid Cache](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md#optional-cache-the-model-with-rapid-cache),
+  which caches the model weights bucket (`*-hf-hub-models`) rather than the
+  dedicated Pod snapshots bucket (`*-pod-snapshots`).
 
 - Send a request to the restored replica.
 
@@ -547,23 +548,29 @@ Request C4 CPU quota for the region, or use a region where the project has it.
 
 ### Pods fail with `FailedCreatePodSandBox`
 
-If the Pod is scheduled but never starts, and its events show the following,
-gVisor core tagging is enabled on the node:
+If the Pod is scheduled on a GKE Standard cluster but never starts, and its
+events show the following, gVisor core tagging is enabled on the node (see
+[`google/gvisor#11062`](https://github.com/google/gvisor/issues/11062)):
 
 ```text
 Failed to create pod sandbox: ... cannot create sandbox: cannot read client sync file: waiting for sandbox to start: EOF
 ```
 
-On a GKE Standard cluster, confirm that the workaround DaemonSet from
-[Prepare the cluster for Pod snapshots](#prepare-the-cluster-for-pod-snapshots)
-is running on every sandbox node:
+On a GKE Standard cluster (GKE Autopilot is not affected and rejects privileged
+DaemonSets in `kube-system`), apply the opt-in `node-setup` DaemonSet, which is
+scoped to the GPU compute classes used by this guide and disables core tagging
+in `/run/containerd/runsc/config.toml` before restarting containerd on matching
+sandbox nodes:
 
 ```shell
+kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/node-setup"
 kubectl --namespace=kube-system get daemonset gvisor-disable-core-tags
 ```
 
 If it was applied after the node joined, the Pod recovers on its own once
-containerd restarts on that node.
+containerd restarts on that node. Note that restarting containerd is disruptive
+to any pods already running on that node, so apply the DaemonSet before scaling
+up workloads on affected GKE Standard node pools.
 
 ### The checkpoint fails with `runsc error: exit status 128`
 
@@ -645,7 +652,7 @@ newest snapshot:
 SNAPSHOT=$(kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} get podsnapshots \
 --sort-by=.metadata.creationTimestamp --output=jsonpath='{.items[-1].metadata.name}')
 
-gcloud storage ls --long "gs://${huggingface_hub_models_bucket_name}/${SNAPSHOT}/**"
+gcloud storage ls --long "gs://${ira_online_gpu_pod_snapshots_bucket_name}/${SNAPSHOT}/**"
 ```
 
 If only the two small objects are listed, the upload is still in progress. Allow
@@ -685,7 +692,7 @@ in
   if [[ -n "${SNAPSHOTS}" ]]; then
     kubectl --namespace=${ira_online_gpu_kubernetes_namespace_name} delete podsnapshots ${SNAPSHOTS}
     for snapshot in ${SNAPSHOTS}; do
-      gcloud storage ls "gs://${huggingface_hub_models_bucket_name}/${snapshot}/"
+      gcloud storage ls "gs://${ira_online_gpu_pod_snapshots_bucket_name}/${snapshot}/"
     done
   fi
   ```
@@ -697,11 +704,12 @@ in
   ```
 
   Delete the snapshots before the policy and storage configuration in the next
-  step. With the default soft delete policy, the deleted objects are retained,
-  and billed, for seven days.
+  step. Because the dedicated snapshot bucket has soft delete disabled, deleted
+  snapshot objects are purged immediately without soft-delete retention billing.
 
 - Delete the rest of the inference workload, including the snapshot policy and
-  storage configuration.
+  the variant's cluster-scoped `PodSnapshotStorageConfig`
+  (`vllm-fast-restore-snapshot-config-${VLLM_VARIANT}`).
 
   ```shell
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/${VLLM_VARIANT}"

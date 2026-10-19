@@ -99,7 +99,7 @@ replacements:
         select:
           kind: Deployment
   - source:
-      fieldPath: data.MODEL_BUCKET_NAME
+      fieldPath: data.POD_SNAPSHOT_BUCKET_NAME
       kind: ConfigMap
       name: deployment
     targets:

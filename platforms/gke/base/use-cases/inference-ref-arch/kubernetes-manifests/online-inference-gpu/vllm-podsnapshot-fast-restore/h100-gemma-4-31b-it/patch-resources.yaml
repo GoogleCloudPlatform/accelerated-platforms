@@ -30,10 +30,14 @@ spec:
               nvidia.com/gpu: "1"
             requests:
               cpu: "8"
+              # Used for torch.compile / Triton / FlashInfer compilation caches
+              # and runtime scratch space (and exceeds GKE Autopilot's 10Gi
+              # default ephemeral-storage limit).
               ephemeral-storage: "30Gi"
               # Gemma 4 31B is roughly 59 GiB of weights. The host request is
               # deliberately well above that: the Run:ai Model Streamer buffers
               # shards in host memory on the way to VRAM, and the checkpoint
-              # path needs headroom on top.
+              # path copies allocated GPU VRAM into host shared memory. On GKE
+              # Autopilot, pod memory is billed per requested GiB.
               memory: "140Gi"
               nvidia.com/gpu: "1"

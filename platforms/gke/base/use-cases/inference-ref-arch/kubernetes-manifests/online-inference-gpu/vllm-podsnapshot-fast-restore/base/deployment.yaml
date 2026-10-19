@@ -76,6 +76,7 @@ spec:
                 python3 -m vllm.entrypoints.openai.api_server \
                   --model="${MODEL_ID}" \
                   --served-model-name="${MODEL_ID}" \
+                  --trust-remote-code \
                   --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
                   --max-model-len="${MAX_MODEL_LEN}" \
                   --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
@@ -97,20 +98,23 @@ spec:
                 done
                 echo "[podsnapshot] Model server is healthy."
                 # The weights are already resident in VRAM at this point, so the
-                # on-disk copy (and any Hugging Face token file) is redundant.
-                # Removing it keeps the snapshot small and avoids storing the
-                # token in the snapshot image.
-                find /root/.cache/huggingface -mindepth 1 -delete 2>/dev/null || true
+                # on-disk weight files (and any Hugging Face token file) are
+                # redundant. Deleting them keeps the snapshot small and avoids
+                # storing the token in the snapshot image, while preserving small
+                # tokenizer and config files in case a restored replica lazily
+                # re-reads them.
+                rm -f /root/.cache/huggingface/token /root/.cache/huggingface/hub/token 2>/dev/null || true
+                find /root/.cache/huggingface \( -name '*.safetensors' -o -name '*.bin' -o -name '*.pt' -o -name '*.lock' \) -delete 2>/dev/null || true
                 echo "[podsnapshot] Triggering the cooperative checkpoint..."
                 # A restored pod resumes execution right as this write returns.
                 # If no snapshot is pending for this pod (for example, when a
                 # snapshot is already available and a pod starts cold), gVisor
                 # returns "Operation not permitted" and the pod continues
                 # serving normally.
-                if echo 1 > /proc/gvisor/checkpoint 2>/dev/null; then
+                if CHECKPOINT_ERR="$( (echo 1 > /proc/gvisor/checkpoint) 2>&1 )"; then
                   echo "[podsnapshot] Checkpoint complete (or pod restored from snapshot)."
                 else
-                  echo "[podsnapshot] No checkpoint pending for this pod; continuing to serve."
+                  echo "[podsnapshot] /proc/gvisor/checkpoint write returned non-zero (${CHECKPOINT_ERR:-unknown error}); continuing to serve."
                 fi
               fi
               wait "${VLLM_PID}"
@@ -166,7 +170,7 @@ spec:
             timeoutSeconds: 2
           resources: {}
           startupProbe:
-            failureThreshold: 6000
+            failureThreshold: 1800
             httpGet:
               path: /health
               port: 8000
@@ -191,8 +195,11 @@ spec:
         - emptyDir: {}
           name: hf-cache
         # Only needed when the weights are downloaded from the Hugging Face Hub
-        # (Path A). Variants that stream weights from Cloud Storage do not need
-        # it, so the Secret is optional.
+        # (Path A). Path B overlays stream weights from Cloud Storage and do not
+        # create or use this Secret, so `optional: true` is set. A native
+        # Kubernetes Secret volume is used instead of a Secret Store CSI volume
+        # (`secrets-store.csi.k8s.io`) because GKE Pod snapshots do not support
+        # CSI volumes on checkpointed Pods.
         - name: hf-token
           secret:
             optional: true

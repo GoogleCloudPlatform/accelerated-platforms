@@ -52,13 +52,16 @@ locals {
 
   ira_offline_batch_project_id = var.ira_offline_batch_project_id != null ? var.ira_offline_batch_project_id : var.platform_default_project_id
 
-  ira_online_gpu_diffusers_flux_image_url        = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
-  ira_online_gpu_kubernetes_namespace_name       = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
-  ira_online_gpu_kubernetes_service_account_name = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
-  ira_online_gpu_vllm_image_url                  = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
-
-
+  ira_online_gpu_diffusers_flux_image_url             = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
   ira_online_gpu_diffusers_sglang_diffusers_image_url = var.ira_online_gpu_sglang_diffusers_image_url != null ? var.ira_online_gpu_sglang_diffusers_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/sglang:latest"
+  ira_online_gpu_kubernetes_namespace_name            = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
+  ira_online_gpu_kubernetes_service_account_name      = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
+  ira_online_gpu_pod_snapshots_bucket_name            = var.ira_online_gpu_pod_snapshots_bucket_name != null ? var.ira_online_gpu_pod_snapshots_bucket_name : "${var.platform_default_project_id}-${local.unique_identifier_prefix}-pod-snapshots"
+  ira_online_gpu_pod_snapshots_enabled                = var.ira_online_gpu_pod_snapshots_enabled
+  ira_online_gpu_vllm_image_url                       = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
+  ira_online_gpu_vllm_kv_offloading_image_url         = var.ira_online_gpu_vllm_kv_offloading_image_url
+  ira_online_gpu_vllm_podsnapshot_image_url           = var.ira_online_gpu_vllm_podsnapshot_image_url
+  ira_online_gpu_vllm_runai_image_url                 = var.ira_online_gpu_vllm_runai_image_url
 
   ira_cpu_k6_benchmark_image_url = var.ira_cpu_k6_benchmark_image_url != null ? var.ira_cpu_k6_benchmark_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/k6-benchmark:latest"
 
@@ -247,6 +250,18 @@ variable "ira_online_gpu_kubernetes_service_account_name" {
   type        = string
 }
 
+variable "ira_online_gpu_pod_snapshots_bucket_name" {
+  default     = null
+  description = "The name of the Cloud Storage bucket used to store GKE Pod snapshots. Defaults to '<project>-<prefix>-pod-snapshots'."
+  type        = string
+}
+
+variable "ira_online_gpu_pod_snapshots_enabled" {
+  default     = false
+  description = "Whether to provision the dedicated Cloud Storage bucket and GKE service agent IAM binding for GKE Pod snapshots."
+  type        = bool
+}
+
 variable "ira_online_gpu_rapid_cache_ingest_on_write" {
   default     = false
   description = "Whether the Rapid Cache caches for the model bucket also ingest objects when they are written to the bucket. In our tests, a cache ingested only writes from clients in its own zone. If false, a cache ingests data after a read miss in its zone."
@@ -275,16 +290,21 @@ variable "ira_online_gpu_rapid_cache_zones" {
   }
 }
 
-variable "ira_online_gpu_vllm_kv_offloading_image_url" {
-  default     = "vllm/vllm-openai:v0.26.0"
-  description = "The URL for the GPU vLLM container image with KV cache offloading."
+variable "ira_online_gpu_sglang_diffusers_image_url" {
+  default     = null
+  description = "The URL for the GPU SGLang Diffusers container image."
   type        = string
 }
-
 
 variable "ira_online_gpu_vllm_image_url" {
   default     = "docker.io/vllm/vllm-openai:v0.11.2"
   description = "The URL for the GPU vLLM container image."
+  type        = string
+}
+
+variable "ira_online_gpu_vllm_kv_offloading_image_url" {
+  default     = "vllm/vllm-openai:v0.26.0"
+  description = "The URL for the GPU vLLM container image with KV cache offloading."
   type        = string
 }
 
@@ -297,12 +317,6 @@ variable "ira_online_gpu_vllm_podsnapshot_image_url" {
 variable "ira_online_gpu_vllm_runai_image_url" {
   default     = "vllm/vllm-openai:v0.26.0"
   description = "The URL for the GPU vLLM container image with the NVIDIA Run:ai Model Streamer."
-  type        = string
-}
-
-variable "ira_online_gpu_sglang_diffusers_image_url" {
-  default     = null
-  description = "The URL for the GPU SGLang Diffusers container image."
   type        = string
 }
 

@@ -34,7 +34,10 @@ spec:
   # `minAvailable: 1` blocks voluntary eviction while only the single
   # cold-start replica is running (`ALLOWED DISRUPTIONS: 0`), while still
   # allowing one node at a time to be drained when the Deployment is scaled out
-  # to two or more replicas.
+  # to two or more replicas. Note that while the Deployment stays at 1 replica,
+  # this also blocks voluntary node upgrade and auto-repair drains on GKE
+  # Standard (up to GKE's 1-hour PDB drain timeout), which is acceptable here
+  # because the single-replica cold-start checkpoint phase is short-lived.
   minAvailable: 1
   selector:
     matchLabels:

@@ -7,11 +7,13 @@ fieldnames
 findall
 isdigit
 isdir
+libtpu
 llmdbench
 llmdbenchmark
 llmdskills
 mult
 nodeselector
 pathsep
+pjrt
 rmtree
 writeheader

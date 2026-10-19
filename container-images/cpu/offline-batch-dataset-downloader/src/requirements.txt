@@ -1,2 +1,2 @@
-datasets==4.5.0
+datasets==5.0.1
 google-cloud-storage==3.8.0

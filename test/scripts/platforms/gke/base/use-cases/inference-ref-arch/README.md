@@ -194,6 +194,7 @@ Sends a test request to all of the TPU vLLM deployments.
 - The
   [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
   must be deployed and configured in your repository.
+
   - The `online_gpu` terraservice must be deployed and configured.
   - The `online_tpu` terraservice must be deployed and configured.
   - The `images/gpu/diffusers_flux` terraservice must be deployed and

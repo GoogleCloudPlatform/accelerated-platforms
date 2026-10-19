@@ -65,6 +65,7 @@ and want scale-out to stop repeating the cold start.
   Standard).
 
 - Get access to the model.
+
   - Accept the terms of the license on the Hugging Face model page.
     - Path A:
       [**meta-llama/Llama-3.1-8B-Instruct**](https://huggingface.co/meta-llama/Llama-3.1-8B-Instruct)
@@ -189,6 +190,7 @@ download job is required.
   ```
 
 - Select a variant and set the served model name.
+
   - **Llama 3.1 8B on NVIDIA L4**:
 
     ```shell
@@ -301,6 +303,7 @@ so the weights must be staged in the model bucket first.
   ```
 
 - Select a variant.
+
   - **Gemma 4 31B on NVIDIA H100 80GB**:
 
     ```shell

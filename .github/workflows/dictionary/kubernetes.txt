@@ -16,6 +16,7 @@ downscoped
 egressgateway
 flowcontrol
 flowschemas
+gcsfusecsi
 gmsa
 gvisor
 horizontalpodautoscaler
@@ -27,6 +28,7 @@ jobsets
 k8s
 kubebuilder
 kubeconfig
+kubeconfigs
 kubelet
 limitranges
 maxpods

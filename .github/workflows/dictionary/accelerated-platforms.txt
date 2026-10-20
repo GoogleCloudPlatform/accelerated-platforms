@@ -64,6 +64,7 @@ qwix
 rayutil
 rtxpro
 rueth
+runbook
 safetensors
 scann
 sched

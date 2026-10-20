@@ -22,7 +22,12 @@ ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../../../../)"
 
 source "${MY_PATH}/../../config/huggingface.sh"
 
-hf_models_found=($(grep -hr -E 'export HF_MODEL_ID="[[:alnum:]]+' "${ACP_REPO_DIR}/" | sed 's/[[:space:]]*//' | tr -d '"' | awk -F= '{print $2}' | sort -u))
+hf_models_found=($(grep -hr -E 'export HF_MODEL_ID="[[:alnum:]]+' \
+  "${ACP_REPO_DIR}/docs/platforms/gke/base/use-cases/inference-ref-arch/" \
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/" \
+  "${ACP_REPO_DIR}/test/ci-cd/scripts/platforms/gke/base/use-cases/inference-ref-arch/" \
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/" \
+  | sed 's/[[:space:]]*//' | tr -d '"' | awk -F= '{print $2}' | tr '[:upper:]' '[:lower:]' | sort -u))
 hf_models_found_sorted=$(printf "%s\n" "${hf_models_found[@]}" | sort)
 
 hf_models_sorted=$(printf "%s\n" "${hf_models[@]}" | sort)

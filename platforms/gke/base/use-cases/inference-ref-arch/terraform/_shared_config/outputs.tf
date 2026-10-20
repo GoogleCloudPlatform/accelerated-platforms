@@ -180,12 +180,16 @@ output "ira_online_gpu_kubernetes_service_account_name" {
   value = local.ira_online_gpu_kubernetes_service_account_name
 }
 
-output "ira_online_gpu_vllm_kv_offloading_image_url" {
-  value = var.ira_online_gpu_vllm_kv_offloading_image_url
-}
-
 output "ira_online_gpu_vllm_image_url" {
   value = local.ira_online_gpu_vllm_image_url
+}
+
+output "ira_online_gpu_vllm_kv_offloading_image_url" {
+  value = local.ira_online_gpu_vllm_kv_offloading_image_url
+}
+
+output "ira_online_gpu_vllm_runai_image_url" {
+  value = local.ira_online_gpu_vllm_runai_image_url
 }
 
 output "ira_online_tpu_kubernetes_namespace_name" {

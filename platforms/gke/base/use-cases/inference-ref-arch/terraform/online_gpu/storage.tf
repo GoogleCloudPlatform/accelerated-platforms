@@ -17,6 +17,26 @@ data "google_storage_bucket" "hub_models" {
   project = local.huggingface_hub_models_bucket_project_id
 }
 
+# Dedicated bucket for GKE Pod snapshots with soft delete disabled so deleted
+# multi-GiB snapshot archives do not incur soft-delete retention storage costs.
+resource "google_storage_bucket" "pod_snapshots" {
+  for_each = toset(var.ira_online_gpu_pod_snapshots_enabled && var.ira_online_gpu_pod_snapshots_bucket_name == null ? ["managed"] : [])
+
+  force_destroy               = true
+  location                    = local.huggingface_hub_models_bucket_location
+  name                        = local.ira_online_gpu_pod_snapshots_bucket_name
+  project                     = local.huggingface_hub_models_bucket_project_id
+  uniform_bucket_level_access = true
+
+  hierarchical_namespace {
+    enabled = true
+  }
+
+  soft_delete_policy {
+    retention_duration_seconds = 0
+  }
+}
+
 # Rapid Cache (formerly Anywhere Cache) is a zonal, SSD-backed read cache for
 # the model bucket. The API and the Terraform resource still use the name
 # Anywhere Cache. Destroying this resource disables the cache, and Cloud Storage

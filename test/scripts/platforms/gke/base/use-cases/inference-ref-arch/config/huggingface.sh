@@ -46,6 +46,11 @@ declare -a hf_gpu_vllm_models=(
   "qwen/qwen3-32b"
 )
 
+declare -a hf_gpu_vllm_podsnapshot_models=(
+  "google/gemma-4-31b-it"
+  "meta-llama/llama-3.1-8b-instruct"
+)
+
 declare -a hf_gpu_vllm_runai_models=(
   "google/gemma-3-27b-it"
   "google/gemma-4-31b-it"

@@ -3,13 +3,16 @@ dbus
 dearmor
 dearmour
 dpkg
+errno
 gdmsession
 libbz
 libncursesw
 libreadline
 libsqlite
 libz
+nsenter
 nssdb
+prctl
 psmisc
 startxfce
 trixie

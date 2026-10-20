@@ -20,6 +20,8 @@ Contains environment variables to configure different Hugging Face settings.
   by the `online-inference-gpu/diffusers` scripts.
 - `hf_gpu_vllm_models`: A list of Hugging Face models that will be tested by the
   `online-inference-gpu/vllm` scripts.
+- `hf_gpu_vllm_podsnapshot_models`: A list of Hugging Face models that will be
+  tested by the `online-inference-gpu/vllm-podsnapshot-fast-restore` scripts.
 - `hf_gpu_vllm_runai_models`: A list of Hugging Face models that will be tested
   by the `online-inference-gpu/vllm-runai` scripts.
 - `hf_tpu_max_diffusion_models`: A list of Hugging Face models that will be
@@ -99,6 +101,31 @@ in the `hf_gpu_vllm_models` environment variable.
 ##### `deployment_test.sh`
 
 Sends a test request to all of the GPU vLLM deployments.
+
+#### `vllm-podsnapshot-fast-restore`
+
+These scripts can be used to deploy and test the
+`hf_gpu_vllm_podsnapshot_models` that use the vLLM inference server with GKE Pod
+snapshots.
+
+##### `deployment_apply.sh`
+
+Applies the manifests for the GPU vLLM Pod snapshot fast-restore deployment for
+all of the models listed in the `hf_gpu_vllm_podsnapshot_models` environment
+variable.
+
+##### `deployment_delete.sh`
+
+Deletes the resources (and any created `PodSnapshot` objects) for the GPU vLLM
+Pod snapshot fast-restore deployment for all of the models listed in the
+`hf_gpu_vllm_podsnapshot_models` environment variable.
+
+##### `deployment_test.sh`
+
+Waits for the initial `PodSnapshot` to become available, scales out to two
+replicas with `measure_restore.sh` (verifying `LOADING=0` on the restored
+replica), and sends test requests to the GPU vLLM Pod snapshot fast-restore
+deployments.
 
 #### `vllm-runai`
 
@@ -255,6 +282,34 @@ Sends a test request to all of the TPU vLLM deployments.
 
   ```shell
   "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm/deployment_delete.sh"
+  ```
+
+### Test the GPU online inference vLLM Pod snapshot fast-restore models
+
+- Select the accelerator type (`rtx-pro-6000`, `h100`, or `l4`).
+
+  ```shell
+  export ACCELERATOR_TYPE="rtx-pro-6000"
+  ```
+
+- Apply the GPU vLLM Pod snapshot fast-restore manifests.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-podsnapshot-fast-restore/deployment_apply.sh"
+  ```
+
+- Test the GPU vLLM Pod snapshot fast-restore inference servers (waits for the
+  checkpoint upload, scales out and measures the restore, and sends test
+  requests).
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-podsnapshot-fast-restore/deployment_test.sh"
+  ```
+
+- Delete the GPU vLLM Pod snapshot fast-restore resources.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-podsnapshot-fast-restore/deployment_delete.sh"
   ```
 
 ### Test the GPU online inference vLLM Run:ai Model Streamer models

@@ -109,7 +109,7 @@ This example is built on top of the
   - **Path 2 — EAGLE3 Draft Model (Llama 3.3 70B Instruct FP8 + EAGLE3 Draft
     Head)**:
 
-    Target model (single-GPU FP8):
+    Target model (FP8 — 1x RTX PRO 6000 96GB or 2x H100 80GB):
 
     ```shell
     export HF_MODEL_ID="nvidia/llama-3.3-70b-instruct-fp8"
@@ -133,8 +133,9 @@ This example is built on top of the
     export HF_MODEL_ID="qwen/qwen3.6-35b-a3b"
     ```
 
-> [!TIP] When using **EAGLE3 Based Draft Models**, run the model download steps
-> below twice: once for the target model (`nvidia/llama-3.3-70b-instruct-fp8` or
+> [!TIP]  
+> When using **EAGLE3 Based Draft Models**, run the model download steps below
+> twice: once for the target model (`nvidia/llama-3.3-70b-instruct-fp8` or
 > `meta-llama/llama-3.3-70b-instruct`) and once for the draft model
 > (`yuhuili/eagle3-llama3.3-instruct-70b`). For **N-Gram** and **MTP**, only a
 > single model download is required because the MTP head is bundled inside the
@@ -216,13 +217,13 @@ This example is built on top of the
 
   - Select an accelerator.
 
-    | Model (`HF_MODEL_NAME`)      | Speculative Method (`METHOD`) | h100 | rtx-pro-6000 |
-    | ---------------------------- | ----------------------------- | ---- | ------------ |
-    | `gemma-3-27b-it`             | `ngram`                       | ✅   | ✅           |
-    | `gemma-4-31b-it`             | `ngram`                       | ✅   | ✅           |
-    | `llama-3-3-70b-instruct`     | `ngram`, `eagle`              | ✅   | ✅           |
-    | `llama-3-3-70b-instruct-fp8` | `eagle`                       | ✅   | ✅           |
-    | `qwen3-6-35b-a3b`            | `mtp`                         | ✅   | ✅           |
+    | Model (`HF_MODEL_NAME`)      | Speculative Method (`METHOD`) | h100 (80GB) | rtx-pro-6000 (96GB) |
+    | ---------------------------- | ----------------------------- | ----------- | ------------------- |
+    | `gemma-3-27b-it`             | `ngram`                       | ✅ (`TP=2`) | ✅ (`TP=1`)         |
+    | `gemma-4-31b-it`             | `ngram`                       | ✅ (`TP=1`) | ✅ (`TP=1`)         |
+    | `llama-3-3-70b-instruct`     | `ngram`, `eagle`              | ✅ (`TP=4`) | ✅ (`TP=4`)         |
+    | `llama-3-3-70b-instruct-fp8` | `eagle`                       | ✅ (`TP=2`) | ✅ (`TP=1`)         |
+    | `qwen3-6-35b-a3b`            | `mtp`                         | ✅ (`TP=2`) | ✅ (`TP=1`)         |
 
     - **NVIDIA H100 80GB**:
 
@@ -374,10 +375,11 @@ This example is built on top of the
 
 ### Speculative Decoding with Multi-Token Prediction (`mtp`)
 
-> [!NOTE] > `Qwen/Qwen3.6-35B-A3B` is a Hybrid Gated DeltaNet + Sparse
-> Mixture-of-Experts (MoE) model with `35B` total parameters (`3B` active per
-> token) and a native Multi-Token Prediction (`mtp`) head. The
-> `qwen3-6-35b-a3b-sd-mtp` overlay configures
+> [!NOTE]  
+> `Qwen/Qwen3.6-35B-A3B` is a Hybrid Gated DeltaNet + Sparse Mixture-of-Experts
+> (MoE) model with `35B` total parameters (`3B` active per token) and a native
+> Multi-Token Prediction (`mtp`) head. The `qwen3-6-35b-a3b-sd-mtp` overlay
+> configures
 > `--speculative-config={"method": "mtp", "num_speculative_tokens": 2}`
 > alongside `--no-async-scheduling` (required for vLLM V1 engine compatibility
 > when running MTP speculative decoding on Qwen 3.6).
@@ -444,20 +446,27 @@ This example is built on top of the
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}-sd-${METHOD}"
   ```
 
-### Performance Optimization: FP8 with TP=1 vs. BF16/FP16 with TP=4
+### Performance Optimization: FP8 Quantization vs. BF16/FP16 Tensor Parallelism
 
 When deploying Llama 3.3 70B on RTX PRO 6000 (96GB) or H100 (80GB) GPUs, the
 standard BF16/FP16 model (`meta-llama/llama-3.3-70b-instruct`) requires Tensor
-Parallelism (`TP=4` on 80GB GPUs) to fit the ~140GB weights and KV cache. By
-using the **FP8 quantized model** (`nvidia/llama-3.3-70b-instruct-fp8`, ~68GB
-weights), both the 70B target model and the ~1.9GB EAGLE3 draft head
-(`yuhuili/eagle3-llama3.3-instruct-70b`) fit comfortably on a **single GPU
-(`TP=1`)** with zero inter-GPU AllReduce communication overhead.
+Parallelism (`TP=4`) to fit ~140GB of weights alongside the EAGLE3 draft head
+and KV cache. By using the **FP8 quantized model**
+(`nvidia/llama-3.3-70b-instruct-fp8`, ~68GB weights):
 
-This allows you to deploy **four independent `TP=1` replicas** using the same
-4-GPU hardware footprint as a single `TP=4` BF16 deployment, achieving
-significantly higher aggregate throughput behind a Kubernetes Service or GKE
-Inference Gateway:
+- On **RTX PRO 6000 (96GB VRAM)**, both the 70B FP8 target model and the ~1.9GB
+  EAGLE3 draft head (`yuhuili/eagle3-llama3.3-instruct-70b`) fit on a **single
+  GPU (`TP=1`)** with zero inter-GPU AllReduce communication overhead—allowing
+  **four independent `TP=1` replicas** using the same 4-GPU footprint as a
+  single `TP=4` BF16 deployment.
+- On **H100 (80GB VRAM)**, the FP8 target model + EAGLE3 draft head + 32k KV
+  cache run on **`TP=2`** (`gpu-h100-80gb-high-x2`), halving the per-replica GPU
+  footprint compared to `TP=4` BF16 (allowing **two `TP=2` replicas** in 4
+  GPUs).
+
+To scale out horizontal replicas behind the Kubernetes Service or GKE Inference
+Gateway (for example, 4 `TP=1` replicas on RTX PRO 6000, or 2 `TP=2` replicas on
+H100):
 
 ```shell
 export METHOD=eagle && \
@@ -530,8 +539,8 @@ rm tfplan
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-${METHOD}/configure_benchmark.sh"
   ```
 
-  > [!IMPORTANT] > **Choosing the Dataset (`data.type`) and API Endpoint
-  > (`api.type`)**:
+  > [!IMPORTANT]  
+  > **Choosing the Dataset (`data.type`) and API Endpoint (`api.type`)**:
   >
   > - **N-Gram (`sd-ngram`)**: Defaults to `data.type: cnn_dailymail` and
   >   `api.type: completion` to benchmark grounded summarization where n-gram

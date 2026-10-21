@@ -47,8 +47,10 @@ fi
 
 source "${MY_PATH}/../../../../terraform/_shared_config/scripts/set_environment_variables.sh"
 
-# Ensure HF_MODEL_ID is lower-cased to match the vLLM deployment and GCS path
-export HF_MODEL_ID="${HF_MODEL_ID,,}"
+# Ensure HF_MODEL_ID is lower-cased to match the vLLM deployment and GCS path.
+# Don't use ,, to make this portable across shells.
+HF_MODEL_ID="$(echo "${HF_MODEL_ID}" | tr '[:upper:]' '[:lower:]')"
+export HF_MODEL_ID
 
 # Workaround for Gemma 4 tokenizer bug in inference-perf image
 if [[ "$HF_MODEL_ID" == *"gemma-4"* ]]; then

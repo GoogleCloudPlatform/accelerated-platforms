@@ -23,10 +23,10 @@ configMapGenerator:
 
 images:
   - name: replaced-by-kustomize
-    newName: vllm-openai
+    newName: vllm/vllm-openai
     newTag: gemma4
 
-nameSuffix: -h100-gemma-4-31b
+nameSuffix: -h100-gemma-4-31b-it
 
 patches:
   - path: patch-vllm-args.yaml

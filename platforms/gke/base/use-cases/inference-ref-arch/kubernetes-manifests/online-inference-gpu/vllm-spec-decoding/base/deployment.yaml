@@ -56,7 +56,7 @@ spec:
               name: huggingface-hub-model-bucket
               readOnly: true
         - args:
-            - "--disable-log-requests"
+            - "--no-enable-log-requests"
             - "--gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)"
             - "--model=/gcs/$(MODEL_ID)"
             - "--tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)"

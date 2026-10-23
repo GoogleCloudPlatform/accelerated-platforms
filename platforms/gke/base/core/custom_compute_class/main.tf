@@ -80,10 +80,11 @@ module "kubectl_wait" {
 
   source = "../../modules/kubectl_wait"
 
-  filename        = local.manifests_directory
-  for             = "jsonpath={.status.conditions[?(@.type==\"Health\")].reason}=Health"
-  kubeconfig_file = data.local_file.kubeconfig.filename
-  timeout         = "180s"
+  filename         = local.manifests_directory
+  for              = "jsonpath={.status.conditions[?(@.type==\"Health\")].reason}=Health"
+  kubeconfig_file  = data.local_file.kubeconfig.filename
+  retry_on_failure = true
+  timeout          = "180s"
 }
 
 resource "terraform_data" "check" {

@@ -73,6 +73,7 @@ the primary runtime.
 
 - [Reinforcement Learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md)
   - [Single-host reinforcement learning with TPUs using GRPO algorithm](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md)
+  - [Multi-host reinforcement learning with TPUs using GRPO algorithm](/docs/platforms/gke/base/use-cases/reinforcement-learning/multi-host-tpu-grpo/README.md)
 
 ### Guides
 

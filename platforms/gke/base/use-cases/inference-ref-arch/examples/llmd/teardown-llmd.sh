@@ -77,10 +77,6 @@ for terraservice in "${use_case_terraservices[@]}"; do
     "terraform.tfstate"*
 done
 
-rm -rf \
-  "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/.terraform/" \
-  "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config"/terraform.tfstate*
-
 sed -i '/^ira_online_gpu_kubernetes_namespace_name[[:blank:]]*=/d' "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/inference-ref-arch.auto.tfvars"
 
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then

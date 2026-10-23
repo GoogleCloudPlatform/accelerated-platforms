@@ -76,10 +76,6 @@ for terraservice in "${use_case_terraservices[@]}"; do
     "terraform.tfstate"*
 done
 
-rm -rf \
-  "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/.terraform/" \
-  "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config"/terraform.tfstate*
-
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
   declare -a CORE_TERRASERVICES_DESTROY=(
     "workloads/priority_class"

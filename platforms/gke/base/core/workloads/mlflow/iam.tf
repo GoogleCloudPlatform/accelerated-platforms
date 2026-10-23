@@ -15,7 +15,7 @@
 locals {
   cluster_wi_principal_prefix            = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
   mlflow_kubernetes_namespace            = var.mlflow_kubernetes_namespace != null ? var.mlflow_kubernetes_namespace : "mlflow-system"
-  mlflow_kubernetes_service_account_name = var.mlflow_kubernetes_service_account_name != null ? var.mlflow_kubernetes_service_account_name : "mlflow"
+  mlflow_kubernetes_service_account_name = var.mlflow_kubernetes_service_account_name != null ? var.mlflow_kubernetes_service_account_name : "${local.unique_identifier_prefix}-mlflow"
   mlflow_service_account_name            = var.mlflow_service_account_name != null ? var.mlflow_service_account_name : "${local.unique_identifier_prefix}-mlflow"
   mlflow_service_account_project_id      = var.mlflow_service_account_project_id != null ? var.mlflow_service_account_project_id : var.platform_default_project_id
   mlflow_service_account_email           = "${local.mlflow_service_account_name}@${local.mlflow_service_account_project_id}.iam.gserviceaccount.com"

@@ -1,0 +1,32 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-fast-restore
+  namespace: replaced-by-kustomize
+spec:
+  template:
+    spec:
+      nodeSelector:
+        # Select the node by compute class, not by
+        # `cloud.google.com/gke-accelerator`. Both land you on an L4, but only
+        # the compute class pins `driverVersion: latest`. The accelerator label
+        # is satisfied by the default driver (535.x), and on a 535 node the
+        # `cuda-checkpoint-installer` init container refuses to install
+        # `gvisor-cuda-cr`, which makes every checkpoint fail later with an
+        # opaque `runsc error: exit status 128`. See the troubleshooting
+        # section of the PodSnapshots guide.
+        cloud.google.com/compute-class: gpu-l4-24gb-s8-x1

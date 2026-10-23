@@ -69,6 +69,8 @@ export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-ngram"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-ngram/configure_benchmark.sh"
 export APP_LABEL="vllm-rtx-pro-6000-gemma-3-27b-it-sd-eagle"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-eagle/configure_benchmark.sh"
+export APP_LABEL="vllm-rtx-pro-6000-qwen3-6-35b-a3b-sd-mtp"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/inference-perf-bench/vllm-spec-decoding/sd-mtp/configure_benchmark.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-spec-decoding/configure_vllm_spec_decoding.sh"
 
 # Validate k6-benchmark kustomize
@@ -99,6 +101,12 @@ export HF_MODEL_ID="qwen/qwen3-32b"
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-native-cache-offloading/single-tier/configure_vllm.sh"
 
+# Validate vllm-runai kustomize
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/configure_vllm_runai.sh"
+
+# Validate vllm-podsnapshot-fast-restore kustomize
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/configure_vllm_podsnapshot.sh"
+
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do
   kustomize_directory_path="$(dirname "${file}")"
@@ -108,5 +116,7 @@ find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests
   # - Render manifests with Kustomize
   # - Validate manifests with kubectl-validate
   kubectl kustomize "${kustomize_directory_path}" | tee "${rendered_kubernetes_manifests_file_path}"
-  kubectl validate "${rendered_kubernetes_manifests_file_path}"
+  kubectl validate \
+    --local-crds="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/crds" \
+    "${rendered_kubernetes_manifests_file_path}"
 done

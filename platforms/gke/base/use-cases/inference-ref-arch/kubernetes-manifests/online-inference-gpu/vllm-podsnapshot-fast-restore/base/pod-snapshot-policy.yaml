@@ -1,0 +1,40 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: podsnapshot.gke.io/v1
+kind: PodSnapshotPolicy
+metadata:
+  name: vllm-fast-restore-snapshot-policy
+  namespace: replaced-by-kustomize
+spec:
+  # This selector is the only wiring between the policy and the Deployment.
+  # It drives both halves of the lifecycle: the first pod that matches gets
+  # checkpointed, and every pod scheduled afterwards is restored from the
+  # resulting image. No annotation on the Deployment is required.
+  selector:
+    matchLabels:
+      app: vllm-fast-restore
+  storageConfigName: vllm-fast-restore-snapshot-config
+  triggerConfig:
+    # `workload` means GKE never decides on its own when to checkpoint. It
+    # creates the PodSnapshot in `AwaitingCheckpoint` and blocks until the
+    # container writes to `/proc/gvisor/checkpoint`. That is exactly what we
+    # want: the image is only worth capturing once the weights are in VRAM and
+    # the engine is compiled and warmed up.
+    type: workload
+    # Keep the pod serving after its memory image has been captured. With
+    # `stop` the snapshot-producing pod is terminated instead.
+    postCheckpoint: resume
+  # Capture the whole sandbox, not just a single container.
+  snapshotScope: whole-pod

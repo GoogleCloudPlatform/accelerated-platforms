@@ -24,6 +24,8 @@ spec:
     metadata:
       labels:
         app: inference-perf
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     spec:
       serviceAccountName: replaced-by-kustomize
       containers:

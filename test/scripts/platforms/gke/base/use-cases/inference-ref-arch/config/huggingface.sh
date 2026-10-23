@@ -16,13 +16,19 @@
 
 declare -a hf_models=(
   "black-forest-labs/flux.1-schnell"
+  "black-forest-labs/flux.2-klein-4b"
   "google/gemma-3-1b-it"
   "google/gemma-3-4b-it"
   "google/gemma-3-27b-it"
+  "google/gemma-4-26b-a4b-it"
+  "google/gemma-4-31b-it"
+  "google/gemma-4-e2b-it"
+  "google/gemma-4-e4b-it"
   "meta-llama/llama-3.3-70b-instruct"
   "meta-llama/llama-4-scout-17b-16e-instruct"
   "openai/gpt-oss-20b"
   "qwen/qwen3-32b"
+  "qwen/qwen3.5-35b-a3b"
   "stabilityai/stable-diffusion-xl-base-1.0"
 )
 
@@ -38,6 +44,17 @@ declare -a hf_gpu_vllm_models=(
   "meta-llama/llama-4-scout-17b-16e-instruct"
   "openai/gpt-oss-20b"
   "qwen/qwen3-32b"
+)
+
+declare -a hf_gpu_vllm_podsnapshot_models=(
+  "google/gemma-4-31b-it"
+  "meta-llama/llama-3.1-8b-instruct"
+)
+
+declare -a hf_gpu_vllm_runai_models=(
+  "google/gemma-3-27b-it"
+  "google/gemma-4-31b-it"
+  "qwen/qwen3.5-35b-a3b"
 )
 
 declare -a hf_tpu_max_diffusion_models=(

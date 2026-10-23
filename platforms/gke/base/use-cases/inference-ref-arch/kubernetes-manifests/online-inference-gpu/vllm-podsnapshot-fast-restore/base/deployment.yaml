@@ -1,0 +1,206 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-fast-restore
+  namespace: replaced-by-kustomize
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vllm-fast-restore
+  template:
+    metadata:
+      labels:
+        ai.gke.io/model: replaced-by-kustomize
+        app: vllm-fast-restore
+    spec:
+      # GKE PodSnapshots are implemented by gVisor (runsc). The pod must run in
+      # a GKE Sandbox node pool, otherwise the PodSnapshot mutating webhook has
+      # no sandbox to inject the checkpoint device into.
+      enableServiceLinks: false
+      runtimeClassName: gvisor
+      serviceAccountName: replaced-by-kustomize
+      containers:
+        - name: inference-server
+          image: replaced-by-kustomize
+          command:
+            - /bin/sh
+            - -c
+          args:
+            # This wrapper implements the cooperative checkpoint trigger that
+            # `triggerConfig.type: workload` requires. GKE creates the
+            # PodSnapshot object and then waits: the workload decides when its
+            # own memory image is worth capturing.
+            #
+            # To avoid persisting the Hugging Face token in the process
+            # environment or on disk inside the snapshot image, any mounted
+            # token is copied to /root/.cache/huggingface/token before vLLM
+            # starts and deleted together with the downloaded weights right
+            # before writing to /proc/gvisor/checkpoint.
+            - |
+              if [ -f /var/run/secrets/huggingface.co/token ]; then
+                mkdir -p /root/.cache/huggingface
+                cp /var/run/secrets/huggingface.co/token /root/.cache/huggingface/token
+              fi
+              if [ -n "${MODEL_BUCKET_NAME:-}" ]; then
+                # Path B: stream weights from Cloud Storage using the NVIDIA
+                # Run:ai Model Streamer (`patch-runai-streamer.yaml` sets
+                # MODEL_BUCKET_NAME on the Path B overlays).
+                MODEL_GCS_PATH="$(printf '%s' "${MODEL_ID}" | tr '[:upper:]' '[:lower:]')"
+                python3 -m vllm.entrypoints.openai.api_server \
+                  --model="gs://${MODEL_BUCKET_NAME}/${MODEL_GCS_PATH}" \
+                  --served-model-name="${MODEL_ID}" \
+                  --load-format=runai_streamer \
+                  --model-loader-extra-config='{"distributed":true}' \
+                  --trust-remote-code \
+                  --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
+                  --max-model-len="${MAX_MODEL_LEN}" \
+                  --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
+                  --port=8000 &
+              else
+                # Path A: download weights directly from the Hugging Face Hub.
+                python3 -m vllm.entrypoints.openai.api_server \
+                  --model="${MODEL_ID}" \
+                  --served-model-name="${MODEL_ID}" \
+                  --trust-remote-code \
+                  --gpu-memory-utilization="${GPU_MEMORY_UTILIZATION}" \
+                  --max-model-len="${MAX_MODEL_LEN}" \
+                  --tensor-parallel-size="${TENSOR_PARALLEL_SIZE}" \
+                  --port=8000 &
+              fi
+              VLLM_PID=$!
+              trap 'kill -TERM "${VLLM_PID}" 2>/dev/null || true' TERM INT
+              if [ ! -e /proc/gvisor/checkpoint ]; then
+                echo "[podsnapshot] /proc/gvisor/checkpoint is absent; skipping checkpoint trigger."
+                echo "[podsnapshot] Expected when no matching PodSnapshotPolicy with triggerConfig.type=workload exists."
+              else
+                echo "[podsnapshot] Waiting for the model server to become healthy..."
+                while ! curl --fail --silent http://localhost:8000/health >/dev/null; do
+                  if ! kill -0 "${VLLM_PID}" 2>/dev/null; then
+                    wait "${VLLM_PID}"
+                    exit $?
+                  fi
+                  sleep 2
+                done
+                echo "[podsnapshot] Model server is healthy."
+                # The weights are already resident in VRAM at this point, so the
+                # on-disk weight files (and any Hugging Face token file) are
+                # redundant. Deleting them keeps the snapshot small and avoids
+                # storing the token in the snapshot image, while preserving small
+                # tokenizer and config files in case a restored replica lazily
+                # re-reads them.
+                rm -f /root/.cache/huggingface/token /root/.cache/huggingface/hub/token 2>/dev/null || true
+                find /root/.cache/huggingface \( -name '*.safetensors' -o -name '*.bin' -o -name '*.pt' -o -name '*.lock' \) -delete 2>/dev/null || true
+                echo "[podsnapshot] Triggering the cooperative checkpoint..."
+                # A restored pod resumes execution right as this write returns.
+                # If no snapshot is pending for this pod (for example, when a
+                # snapshot is already available and a pod starts cold), gVisor
+                # returns "Operation not permitted" and the pod continues
+                # serving normally.
+                if CHECKPOINT_ERR="$( (echo 1 > /proc/gvisor/checkpoint) 2>&1 )"; then
+                  echo "[podsnapshot] Checkpoint complete (or pod restored from snapshot)."
+                else
+                  echo "[podsnapshot] /proc/gvisor/checkpoint write returned non-zero (${CHECKPOINT_ERR:-unknown error}); continuing to serve."
+                fi
+              fi
+              wait "${VLLM_PID}"
+          env:
+            - name: GPU_MEMORY_UTILIZATION
+              valueFrom:
+                configMapKeyRef:
+                  key: GPU_MEMORY_UTILIZATION
+                  name: runtime
+            - name: MAX_MODEL_LEN
+              valueFrom:
+                configMapKeyRef:
+                  key: MAX_MODEL_LEN
+                  name: runtime
+            - name: MODEL_ID
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_ID
+                  name: runtime
+            - name: TENSOR_PARALLEL_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  key: TENSOR_PARALLEL_SIZE
+                  name: runtime
+            # PyTorch's TCPStore and the NCCL bootstrap record their rendezvous
+            # address inside the checkpointed process image. A restored replica
+            # always receives a new pod IP, so anything other than loopback
+            # leaves the restored process pointing at an address that no longer
+            # exists.
+            - name: VLLM_HOST_IP
+              value: 127.0.0.1
+          ports:
+            - containerPort: 8000
+              name: metrics
+          # A restored replica can serve within seconds of its container
+          # starting, so startupProbe and readinessProbe poll every 2 seconds
+          # with no initial delay. Once startupProbe succeeds, readinessProbe
+          # uses failureThreshold: 3 so that if a cold-start pod is paused for
+          # minutes while uploading a snapshot (or if a serving pod hangs),
+          # Kubernetes marks it NotReady and stops routing Service traffic to it
+          # within seconds. No livenessProbe is set because kubelet would
+          # otherwise kill the paused cold-start pod during a multi-minute
+          # checkpoint upload.
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 2
+            successThreshold: 1
+            timeoutSeconds: 2
+          resources: {}
+          startupProbe:
+            failureThreshold: 1800
+            httpGet:
+              path: /health
+              port: 8000
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 2
+            successThreshold: 1
+            timeoutSeconds: 2
+          volumeMounts:
+            - mountPath: /dev/shm
+              name: dev-shm
+            - mountPath: /root/.cache/huggingface
+              name: hf-cache
+            - mountPath: /var/run/secrets/huggingface.co
+              name: hf-token
+              readOnly: true
+      volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 10Gi
+          name: dev-shm
+        - emptyDir: {}
+          name: hf-cache
+        # Only needed when the weights are downloaded from the Hugging Face Hub
+        # (Path A). Path B overlays stream weights from Cloud Storage and do not
+        # create or use this Secret, so `optional: true` is set. A native
+        # Kubernetes Secret volume is used instead of a Secret Store CSI volume
+        # (`secrets-store.csi.k8s.io`) because GKE Pod snapshots do not support
+        # CSI volumes on checkpointed Pods.
+        - name: hf-token
+          secret:
+            optional: true
+            secretName: huggingface-token

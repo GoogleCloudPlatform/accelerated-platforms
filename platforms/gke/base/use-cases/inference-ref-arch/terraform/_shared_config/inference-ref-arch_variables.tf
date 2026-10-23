@@ -52,13 +52,16 @@ locals {
 
   ira_offline_batch_project_id = var.ira_offline_batch_project_id != null ? var.ira_offline_batch_project_id : var.platform_default_project_id
 
-  ira_online_gpu_diffusers_flux_image_url        = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
-  ira_online_gpu_kubernetes_namespace_name       = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
-  ira_online_gpu_kubernetes_service_account_name = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
-  ira_online_gpu_vllm_image_url                  = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
-
-
+  ira_online_gpu_diffusers_flux_image_url             = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
   ira_online_gpu_diffusers_sglang_diffusers_image_url = var.ira_online_gpu_sglang_diffusers_image_url != null ? var.ira_online_gpu_sglang_diffusers_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/sglang:latest"
+  ira_online_gpu_kubernetes_namespace_name            = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
+  ira_online_gpu_kubernetes_service_account_name      = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
+  ira_online_gpu_pod_snapshots_bucket_name            = var.ira_online_gpu_pod_snapshots_bucket_name != null ? var.ira_online_gpu_pod_snapshots_bucket_name : "${var.platform_default_project_id}-${local.unique_identifier_prefix}-pod-snapshots"
+  ira_online_gpu_pod_snapshots_enabled                = var.ira_online_gpu_pod_snapshots_enabled
+  ira_online_gpu_vllm_image_url                       = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
+  ira_online_gpu_vllm_kv_offloading_image_url         = var.ira_online_gpu_vllm_kv_offloading_image_url
+  ira_online_gpu_vllm_podsnapshot_image_url           = var.ira_online_gpu_vllm_podsnapshot_image_url
+  ira_online_gpu_vllm_runai_image_url                 = var.ira_online_gpu_vllm_runai_image_url
 
   ira_cpu_k6_benchmark_image_url = var.ira_cpu_k6_benchmark_image_url != null ? var.ira_cpu_k6_benchmark_image_url : "${local.cloudbuild_ar_image_repository_url}/cpu/k6-benchmark:latest"
 
@@ -247,12 +250,51 @@ variable "ira_online_gpu_kubernetes_service_account_name" {
   type        = string
 }
 
-variable "ira_online_gpu_vllm_kv_offloading_image_url" {
-  default     = "vllm/vllm-openai:v0.26.0"
-  description = "The URL for the GPU vLLM container image with KV cache offloading."
+variable "ira_online_gpu_pod_snapshots_bucket_name" {
+  default     = null
+  description = "The name of the Cloud Storage bucket used to store GKE Pod snapshots. Defaults to '<project>-<prefix>-pod-snapshots'."
   type        = string
 }
 
+variable "ira_online_gpu_pod_snapshots_enabled" {
+  default     = false
+  description = "Whether to provision the dedicated Cloud Storage bucket and GKE service agent IAM binding for GKE Pod snapshots."
+  type        = bool
+}
+
+variable "ira_online_gpu_rapid_cache_ingest_on_write" {
+  default     = false
+  description = "Whether the Rapid Cache caches for the model bucket also ingest objects when they are written to the bucket. In our tests, a cache ingested only writes from clients in its own zone. If false, a cache ingests data after a read miss in its zone."
+  type        = bool
+}
+
+variable "ira_online_gpu_rapid_cache_ttl" {
+  default     = "604800s"
+  description = "How long data stays in the Rapid Cache caches for the model bucket after it was last read, in seconds with an 's' suffix."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[0-9]+s$", var.ira_online_gpu_rapid_cache_ttl)) && try(tonumber(trimsuffix(var.ira_online_gpu_rapid_cache_ttl, "s")) >= 86400 && tonumber(trimsuffix(var.ira_online_gpu_rapid_cache_ttl, "s")) <= 604800, false)
+    error_message = "'ira_online_gpu_rapid_cache_ttl' must be between \"86400s\" (1 day) and \"604800s\" (7 days)."
+  }
+}
+
+variable "ira_online_gpu_rapid_cache_zones" {
+  default     = []
+  description = "The zones in which to create a Rapid Cache cache for the model bucket, for example [\"us-central1-b\", \"us-central1-c\"]. A cache only serves clients in its own zone. If the list is empty, no caches are created."
+  type        = list(string)
+
+  validation {
+    condition     = alltrue([for z in var.ira_online_gpu_rapid_cache_zones : can(regex("^[a-z]+-[a-z]+[0-9]+-[a-z]$", z))])
+    error_message = "Each entry in 'ira_online_gpu_rapid_cache_zones' must be a valid Google Cloud zone name, such as \"us-central1-b\"."
+  }
+}
+
+variable "ira_online_gpu_sglang_diffusers_image_url" {
+  default     = null
+  description = "The URL for the GPU SGLang Diffusers container image."
+  type        = string
+}
 
 variable "ira_online_gpu_vllm_image_url" {
   default     = "docker.io/vllm/vllm-openai:v0.11.2"
@@ -260,9 +302,21 @@ variable "ira_online_gpu_vllm_image_url" {
   type        = string
 }
 
-variable "ira_online_gpu_sglang_diffusers_image_url" {
-  default     = null
-  description = "The URL for the GPU SGLang Diffusers container image."
+variable "ira_online_gpu_vllm_kv_offloading_image_url" {
+  default     = "vllm/vllm-openai:v0.26.0"
+  description = "The URL for the GPU vLLM container image with KV cache offloading."
+  type        = string
+}
+
+variable "ira_online_gpu_vllm_podsnapshot_image_url" {
+  default     = "vllm/vllm-openai:v0.26.0"
+  description = "The URL for the GPU vLLM container image validated with GKE Pod snapshots."
+  type        = string
+}
+
+variable "ira_online_gpu_vllm_runai_image_url" {
+  default     = "vllm/vllm-openai:v0.26.0"
+  description = "The URL for the GPU vLLM container image with the NVIDIA Run:ai Model Streamer."
   type        = string
 }
 

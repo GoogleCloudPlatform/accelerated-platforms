@@ -21,8 +21,6 @@ set -o pipefail
 # Candidate regions for CI execution to prevent capacity bottlenecks
 CANDIDATE_REGIONS=(
   "us-east4"
-  "us-central1"
-  "us-west1"
   "us-west3"
   "europe-west4"
   "europe-west1"

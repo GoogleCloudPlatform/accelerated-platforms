@@ -33,7 +33,7 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-r
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 
 # Set use-case specific values
-export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
+export TF_VAR_initialize_backend_use_case_name="inference-ref-arch"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
 # Set execution specific values
@@ -75,6 +75,10 @@ for terraservice in "${use_case_terraservices[@]}"; do
   rm -rf .terraform/ \
     "terraform.tfstate"*
 done
+
+rm -rf \
+  "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config/.terraform/" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/examples/llmd/_shared_config"/terraform.tfstate*
 
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
   declare -a CORE_TERRASERVICES_DESTROY=(

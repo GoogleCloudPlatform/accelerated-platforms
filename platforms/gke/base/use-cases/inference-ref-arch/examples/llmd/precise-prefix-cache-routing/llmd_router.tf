@@ -53,6 +53,10 @@ resource "local_file" "llmd_ppcr_router_manifests" {
 }
 
 module "kubectl_apply_llmd_ppcr_router_manifests" {
+  depends_on = [
+    module.kubectl_apply_llmd_ppcr_gateway_manifests,
+  ]
+
   source                      = "../../../../../modules/kubectl_apply"
   apply_server_side           = true
   kubeconfig_file             = data.local_file.kubeconfig.filename

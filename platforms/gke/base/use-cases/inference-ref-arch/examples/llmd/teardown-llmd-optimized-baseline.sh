@@ -33,7 +33,7 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-r
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 
 # Set use-case specific values
-export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
+export TF_VAR_initialize_backend_use_case_name="inference-ref-arch"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
 # Set execution specific values
@@ -46,7 +46,7 @@ if [[ ${deploy_on_gpu} == "true" ]]; then
   echo "online_gpu terraservice will be destroyed"
 elif [[ ${deploy_on_tpu} == "true" ]]; then
   inference_terraservice="online_tpu"
-  echo "online_tpu terraservice will be deployed"
+  echo "online_tpu terraservice will be destroyed"
 else
   echo "A valid GPU or TPU must be matched in deploy_on_gpu and deploy_on_tpu local variables in _shared_config/llmd-shared_variables.tf"
   exit 0

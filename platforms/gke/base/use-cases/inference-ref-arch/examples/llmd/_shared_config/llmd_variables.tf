@@ -24,6 +24,7 @@ locals {
   llmd_endpoints_hostname                  = var.llmd_endpoints_hostname != null ? var.llmd_endpoints_hostname : "llmd.${local.ira_online_gpu_kubernetes_namespace_name}.${local.unique_identifier_prefix}.endpoints.${local.cluster_project_id}.cloud.goog"
   llmd_endpoints_ssl_certificate_name      = "${local.unique_identifier_prefix}-${local.ira_online_gpu_kubernetes_namespace_name}-external-gateway"
   llmd_gateway_address_name                = "${local.unique_identifier_prefix}-${local.llmd_default_name}-external-gateway-https"
+  llmd_internal_gateway_address_name       = "${local.unique_identifier_prefix}-${local.llmd_default_name}-internal-gateway-ip"
   llmd_gateway_name_external               = var.llmd_gateway_name_external != null ? var.llmd_gateway_name_external : "${local.llmd_default_name}-gateway-external"
   llmd_gateway_name_internal               = var.llmd_gateway_name_internal != null ? var.llmd_gateway_name_internal : "infra-${local.llmd_release_name}-inference-gateway"
   llmd_httproute_name_external             = var.llmd_httproute_name_external != null ? var.llmd_httproute_name_external : "${local.llmd_default_name}-httproute-external"

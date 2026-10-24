@@ -42,10 +42,10 @@ done
 
 echo "Deleting project '${DELETE_PROJECT_ID}'..."
 
-MAX_RETRIES=15
+MAX_RETRIES=30
 ATTEMPT=0
 BASE_SLEEP=15
-MAX_SLEEP=45
+MAX_SLEEP=60
 
 while true; do
   ATTEMPT=$((ATTEMPT + 1))

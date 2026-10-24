@@ -41,7 +41,21 @@ resource "terraform_data" "manifest" {
   }
 
   provisioner "local-exec" {
-    command = self.input.kubectl_apply_command
+    command = <<EOT
+return_code=1
+for attempt in {1..5}; do
+  ${self.input.kubectl_apply_command}
+  return_code=$?
+  if [[ $${return_code} == 0 ]]; then
+    break
+  fi
+  if [[ $${attempt} -lt 5 ]]; then
+    echo "kubectl apply failed (attempt $${attempt}/5), retrying in 10s..."
+    sleep 10
+  fi
+done
+exit $${return_code}
+EOT
     environment = {
       KUBECONFIG = self.input.kubeconfig_file
     }

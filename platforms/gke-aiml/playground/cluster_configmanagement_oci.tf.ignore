@@ -59,9 +59,6 @@ resource "google_gke_hub_feature" "policycontroller" {
     module.configsync_repository,
     null_resource.gke_hub_feature_configmanagement
   ]
-
-  provider = google-beta
-
   location = "global"
   name     = "policycontroller"
   project  = google_project_service.anthospolicycontroller_googleapis_com.project

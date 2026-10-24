@@ -78,7 +78,7 @@ variable "nvidia_nim_llm_helm_chart_values" {
 }
 
 variable "nvidia_nim_llm_helm_chart_version" {
-  default     = "1.7.0"
+  default     = "2.1.4"
   description = "The version of the NVIDIA NIM LLM helm chart (https://catalog.ngc.nvidia.com/orgs/nim/helm-charts/nim-llm) to use."
   type        = string
 }

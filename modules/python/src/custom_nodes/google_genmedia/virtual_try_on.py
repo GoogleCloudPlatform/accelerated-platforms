@@ -16,12 +16,9 @@
 
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
 import torch
 from google.api_core.gapic_v1.client_info import ClientInfo
 from google.cloud import aiplatform
-from google.genai import types
-from PIL import Image
 
 from . import utils
 from .base import VertexAIClient

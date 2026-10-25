@@ -16,7 +16,6 @@
 
 from typing import Optional, Tuple
 
-from google import genai
 from google.genai import types
 
 from . import utils
@@ -29,7 +28,7 @@ from .constants import (
     GeminiModel,
     ThresholdOptions,
 )
-from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .custom_exceptions import APIInputError, ConfigurationError
 from .logger import get_node_logger
 from .retry import api_error_retry
 

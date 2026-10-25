@@ -18,8 +18,6 @@ from io import BytesIO
 from typing import List, Optional
 
 import torch
-from google import genai
-from google.api_core import exceptions as api_core_exceptions
 from google.genai import types
 from PIL import Image
 
@@ -30,7 +28,6 @@ from .constants import (
     GEMINI_3_PRO_IMAGE_USER_AGENT,
     GeminiProImageModel,
 )
-from .custom_exceptions import ConfigurationError
 from .logger import get_node_logger
 from .retry import api_error_retry
 

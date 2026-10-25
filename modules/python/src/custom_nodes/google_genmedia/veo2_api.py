@@ -17,7 +17,6 @@
 from typing import List, Optional
 
 import torch
-from google import genai
 
 from . import utils
 from .base import VertexAIClient
@@ -27,7 +26,7 @@ from .constants import (
     VEO2_OUTPUT_RESOLUTION,
     VEO2_USER_AGENT,
 )
-from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .custom_exceptions import APIExecutionError, APIInputError
 from .logger import get_node_logger
 from .utils import validate_gcs_uri_and_image
 

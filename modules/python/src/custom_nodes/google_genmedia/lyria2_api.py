@@ -24,7 +24,7 @@ from google.cloud import aiplatform
 from . import utils
 from .base import VertexAIClient
 from .constants import LYRIA2_MODEL, LYRIA2_USER_AGENT
-from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .custom_exceptions import ConfigurationError
 from .logger import get_node_logger
 from .retry import api_error_retry
 

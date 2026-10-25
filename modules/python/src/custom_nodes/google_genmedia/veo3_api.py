@@ -17,7 +17,6 @@
 from typing import List, Optional
 
 import torch
-from google import genai
 
 from . import utils
 from .base import VertexAIClient
@@ -29,7 +28,7 @@ from .constants import (
     VEO3_VALID_SAMPLE_COUNT,
     Veo3Model,
 )
-from .custom_exceptions import APIExecutionError, APIInputError, ConfigurationError
+from .custom_exceptions import APIExecutionError, APIInputError
 from .logger import get_node_logger
 
 logger = get_node_logger(__name__)
@@ -386,7 +385,7 @@ class Veo3API(VertexAIClient):
             )
 
         if last_frame_gcsuri:
-            valid_bucket, validation_message = validate_gcs_uri_and_image(
+            valid_bucket, validation_message = utils.validate_gcs_uri_and_image(
                 last_frame_gcsuri
             )
         valid_bucket, validation_message = utils.validate_gcs_uri_and_image(gcsuri)

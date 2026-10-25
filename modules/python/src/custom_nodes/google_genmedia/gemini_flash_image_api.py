@@ -18,8 +18,6 @@ from io import BytesIO
 from typing import List, Optional
 
 import torch
-from google import genai
-from google.api_core import exceptions as api_core_exceptions
 from google.genai import types
 from PIL import Image
 

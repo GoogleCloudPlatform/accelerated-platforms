@@ -24,7 +24,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 import torch
-from moviepy import VideoFileClip
 
 from .constants import SUPPORTED_VIDEO_EXTENSIONS
 from .custom_exceptions import APIInputError, ConfigurationError
@@ -178,7 +177,7 @@ class VeoVideoSaveAndPreview:
                 if video_path and isinstance(video_path, str) and video_path.strip():
                     video_path_abs = os.path.abspath(
                         video_path
-                    )  # Use absolute path for moviepy
+                    )  # Use absolute path for OpenCV
 
                     if not os.path.exists(video_path_abs):
                         raise APIInputError(f"Video file not found: {video_path_abs}")
@@ -199,21 +198,35 @@ class VeoVideoSaveAndPreview:
                     video_format = ""
 
                     try:
-                        with VideoFileClip(video_path_abs) as clip:
-                            duration = clip.duration
-                            width, height = clip.size
-                            # Guess MIME type from extension
-                            mime_type, _ = mimetypes.guess_type(video_file_basename)
-                            video_format = (
-                                mime_type
-                                if mime_type and mime_type.startswith("video/")
-                                else "video/mp4"
+                        cap = cv2.VideoCapture(video_path_abs)
+                        try:
+                            if not cap.isOpened():
+                                raise RuntimeError(
+                                    f"Could not open video file '{video_path_abs}'"
+                                )
+                            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                            fps = cap.get(cv2.CAP_PROP_FPS)
+                            frame_count = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+                            duration = (
+                                float(frame_count / fps)
+                                if fps and fps > 0 and frame_count > 0
+                                else 0.0
                             )
-                    except Exception as moviepy_e:
-                        logger.warning(
-                            f"Could not get video metadata for {video_file_basename} using moviepy: {moviepy_e}"
+                        finally:
+                            cap.release()
+                        # Guess MIME type from extension
+                        mime_type, _ = mimetypes.guess_type(video_file_basename)
+                        video_format = (
+                            mime_type
+                            if mime_type and mime_type.startswith("video/")
+                            else "video/mp4"
                         )
-                        # Fallback for format if moviepy fails. In this case the default will not be mp4 since moviepy failed to process it.
+                    except Exception as cv2_e:
+                        logger.warning(
+                            f"Could not get video metadata for {video_file_basename} using OpenCV: {cv2_e}"
+                        )
+                        # Fallback for format if OpenCV fails. In this case the default will not be mp4 since OpenCV failed to process it.
                         mime_type, _ = mimetypes.guess_type(video_file_basename)
                         video_format = (
                             mime_type

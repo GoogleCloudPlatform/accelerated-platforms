@@ -46,6 +46,9 @@ echo "Core platform Terraservices to provision: ${terraservices[*]}"
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
 declare -a projects=(
+  "${ate_bucket_project_id}"
+  "${ate_cloudsql_project_id}"
+  "${ate_service_account_project_id}"
   "${cluster_node_pool_service_account_project_id}"
   "${cluster_project_id}"
   "${huggingface_hub_models_bucket_project_id}"

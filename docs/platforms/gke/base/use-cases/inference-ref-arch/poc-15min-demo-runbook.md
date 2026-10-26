@@ -7,7 +7,7 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2026-10-20 (YYYY-MM-DD)
+> Last Update: 2026-10-26 (YYYY-MM-DD)
 
 This runbook is a companion to the
 [AI inference proof-of-concept (PoC) and capacity-finding guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md).
@@ -249,13 +249,89 @@ cp /tmp/kc_inf-americas "${HOME}/.kube/config"
 
 ---
 
-### Prep Step 4: Stage Gemma models to HNS Cloud Storage & deploy fast-start workloads (PoC Guide Stage 4)
+### Prep Step 4: Patch Spot-first `ComputeClass` priorities, stage Gemma models to HNS Cloud Storage & deploy fast-start workloads (PoC Guide Stage 4)
 
 Now use the repository's `configure_huggingface.sh`, `configure_vllm_runai.sh`,
 and `configure_vllm_podsnapshot.sh` scripts to stage **Gemma 4 31B**
 (`google/gemma-4-31b-it`) and **Gemma 3 27B** (`google/gemma-3-27b-it`) weights
 into each region's Hierarchical Namespace Cloud Storage bucket and deploy the
 workloads.
+
+> [!NOTE]
+>
+> **Spot-first `ComputeClass` priority**: As documented in Stage 7 Finding #4 of
+> the PoC Guide, built-in `ComputeClass` priorities try
+> `[On-Demand, Flex-Start, Spot]` in order, which stalls GKE Autopilot when a
+> region has `0` On-Demand GPU quota (`europe-west4`). Step 4.0 below patches
+> the regional `ComputeClass` CRDs so `spot: true` is Priority 1 with automatic
+> fallback to On-Demand.
+
+#### 4.0. Patch `ComputeClass` CRDs to Spot-first across all 3 clusters
+
+```shell
+# 1. Americas (us-central1): Spot-first for 1x RTX PRO 6000
+cat <<'EOF' | KUBECONFIG=/tmp/kc_inf-americas kubectl apply -f -
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: gpu-rtx-pro-6000-96gb-x1
+spec:
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    - machineType: g4-standard-48
+      spot: true
+      storage:
+        bootDiskType: pd-balanced
+    - machineType: g4-standard-48
+      storage:
+        bootDiskType: pd-balanced
+  whenUnsatisfiable: DoNotScaleUp
+EOF
+
+# 2. Europe (europe-west4) & Asia-Pacific (asia-south2): Spot-first for 1x H100 and 8x H100 Mega
+for KC in /tmp/kc_inf-europe /tmp/kc_inf-apac; do
+  cat <<'EOF' | KUBECONFIG="${KC}" kubectl apply -f -
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: gpu-h100-80gb-high-x1
+spec:
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    - machineType: a3-highgpu-1g
+      spot: true
+      storage:
+        bootDiskType: pd-balanced
+    - machineType: a3-highgpu-1g
+      storage:
+        bootDiskType: pd-balanced
+  whenUnsatisfiable: DoNotScaleUp
+---
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
+metadata:
+  name: gpu-h100-80gb-mega-x8
+spec:
+  nodePoolAutoCreation:
+    enabled: true
+  priorities:
+    - machineType: a3-megagpu-8g
+      spot: true
+      storage:
+        bootDiskType: pd-balanced
+    - machineType: a3-highgpu-8g
+      spot: true
+      storage:
+        bootDiskType: pd-balanced
+    - machineType: a3-megagpu-8g
+      storage:
+        bootDiskType: pd-balanced
+  whenUnsatisfiable: DoNotScaleUp
+EOF
+done
+```
 
 #### 4A. Americas (`us-central1` / `inf-americas`): Stage `Gemma 4 31B` & `Gemma 3 27B` and deploy Pod snapshots + Run:ai Streamer on `NVIDIA RTX PRO 6000 96GB`
 
@@ -364,11 +440,11 @@ spec:
           resources:
             requests:
               cpu: "16"
-              memory: "80Gi"
+              memory: "96Gi"
               nvidia.com/gpu: "1"
             limits:
               cpu: "16"
-              memory: "80Gi"
+              memory: "140Gi"
               nvidia.com/gpu: "1"
           volumeMounts:
             - name: gcs-fuse-csi-ephemeral
@@ -395,16 +471,19 @@ spec:
 EOF
 ```
 
-#### 4C. Asia-Pacific (`asia-south2` / `inf-apac`): Stage `Gemma 4 31B` and deploy on `1× H100 80GB` (`a3-highgpu-1g`)
+#### 4C. Asia-Pacific (`asia-south2` / `inf-apac`): Stage `Gemma 4 31B` and deploy `PodSnapshot` + `Run:ai Streamer` on `1× H100 80GB` (`a3-highgpu-1g`)
 
 > [!NOTE]
 >
 > As documented in **Stage 5** of the PoC Guide, `google/gemma-4-31b-it`
 > (`58.99 GiB` weights) on `1× H100 80GB` (`79.1 GiB` usable VRAM) must use
 > **`--gpu-memory-utilization=0.90`**, **`--max-model-len=8192`**, and
-> **`--max-num-seqs=128`** so that KV cache fits within `10.62 GiB` (`12,629`
+> **`--max-num-seqs=128`** so that KV cache fits within `10.61 GiB` (`12,629`
 > tokens) while leaving `7.9 GiB` of unallocated VRAM headroom for FlashInfer's
-> `top_k_mask_logits` sampler (`248 MiB` scratch).
+> `top_k_mask_logits` sampler (`248 MiB` scratch). Applying the repository's
+> `h100-gemma-4-31b-it` `vllm-podsnapshot-fast-restore` overlay configures these
+> flags automatically and enables **sub-minute (`54.8s`, `4.78×` faster)
+> `PodSnapshot` restore on `H100`** in `inf-apac`.
 
 ```shell
 export KUBECONFIG="/tmp/kc_inf-apac"
@@ -428,60 +507,17 @@ kubectl --namespace="${huggingface_hub_downloader_kubernetes_namespace_name}" \
   wait --for=condition=complete --timeout=1800s "job/${HF_MODEL_ID_HASH}-hf-model-to-gcs"
 kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
 
-# 2. Deploy Gemma 4 31B (--gpu-memory-utilization=0.90 --max-model-len=8192 --max-num-seqs=128) on 1x H100 80GB
-cat <<EOF | kubectl apply -n "${ira_online_gpu_kubernetes_namespace_name}" -f -
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vllm-h100x1-gemma4-31b
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: vllm-h100x1-gemma4-31b
-  template:
-    metadata:
-      labels:
-        app: vllm-h100x1-gemma4-31b
-    spec:
-      serviceAccountName: ${ira_online_gpu_kubernetes_service_account_name}
-      nodeSelector:
-        cloud.google.com/compute-class: gpu-h100-80gb-high-x1
-      containers:
-        - name: vllm
-          image: vllm/vllm-openai:v0.26.0
-          command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
-          args:
-            - "--model=gs://${huggingface_hub_models_bucket_name}/google/gemma-4-31b-it"
-            - "--served-model-name=google/gemma-4-31b-it"
-            - "--load-format=runai_streamer"
-            - '--model-loader-extra-config={"distributed":true}'
-            - "--tensor-parallel-size=1"
-            - "--gpu-memory-utilization=0.90"
-            - "--max-model-len=8192"
-            - "--max-num-seqs=128"
-            - "--trust-remote-code"
-            - "--no-enable-log-requests"
-          ports:
-            - containerPort: 8000
-          resources:
-            requests:
-              cpu: "8"
-              memory: "32Gi"
-              nvidia.com/gpu: "1"
-            limits:
-              cpu: "8"
-              memory: "32Gi"
-              nvidia.com/gpu: "1"
-EOF
+# 2. Deploy Gemma 4 31B on 1x H100 80GB with GKE Pod snapshots + Run:ai Streamer (54.8s restore)
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/configure_vllm_podsnapshot.sh"
+kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/h100-gemma-4-31b-it"
 ```
 
 #### 4D. Pre-flight readiness & snapshot verification gate (run before starting the 15-min call)
 
 Reset the active Terraform config back to `us-central1` (`inf-americas`) for
 `measure_restore.sh` and verify that all deployments across the 3 regions are
-`1/1 Running` and the `PodSnapshot` in `inf-americas` is
-`AllSnapshotsAvailable`:
+`1/1 Running` and the `PodSnapshot` resources in `inf-americas` and `inf-apac`
+are `AllSnapshotsAvailable`:
 
 ```shell
 export KUBECONFIG="/tmp/kc_inf-americas"
@@ -495,8 +531,8 @@ echo "=== 1. Americas (us-central1 / inf-americas) Pods & PodSnapshots ===" && \
 KUBECONFIG=/tmp/kc_inf-americas kubectl get pods,ps -n inf-americas-online-gpu && \
 echo -e "\n=== 2. Europe (europe-west4 / inf-europe) Pods ===" && \
 KUBECONFIG=/tmp/kc_inf-europe kubectl get pods -n inf-europe-online-gpu && \
-echo -e "\n=== 3. Asia-Pacific (asia-south2 / inf-apac) Pods ===" && \
-KUBECONFIG=/tmp/kc_inf-apac kubectl get pods -n inf-apac-online-gpu
+echo -e "\n=== 3. Asia-Pacific (asia-south2 / inf-apac) Pods & PodSnapshots ===" && \
+KUBECONFIG=/tmp/kc_inf-apac kubectl get pods,ps -n inf-apac-online-gpu
 ```
 
 ---
@@ -543,10 +579,11 @@ done
 #### What to point out in the output
 
 - **Look at `a3-megagpu-8g` (`8× H100 80GB`)**: `us-central1` has an
-  obtainability score of **`0.1` (`VERY_LOW`)**, whereas `europe-west4-c` has an
-  obtainability score of **`0.9` (`HIGH`)**. Even inside `europe-west4`, smaller
-  `a3-highgpu-2g` shapes scored `< 0.40` and hit stock-outs, whereas
-  `a3-megagpu-8g` provisioned in **90 seconds**.
+  obtainability score of **`0.1` (`VERY_LOW`)**, whereas `europe-west4-b` and
+  `europe-west4-c` score **`0.9` (`HIGH`)**. And because `europe-west4` has `0`
+  On-Demand `H100` quota (`16` Spot quota), patching our `ComputeClass` to put
+  `spot: true` first provisioned our 8-GPU `a3-megagpu-8g` node in **~90
+  seconds**.
 - **Look at `a3-highgpu-1g` (`1× H100 80GB`)**: `asia-south2-b` and
   `asia-south2-a` score **`0.9` (`HIGH`)**, where our 1-GPU H100 nodes
   provisioned in **78 seconds**.
@@ -587,10 +624,11 @@ KUBECONFIG=/tmp/kc_inf-apac kubectl get pods -n inf-apac-online-gpu -o wide
 > Namespace Cloud Storage buckets:_
 >
 > - _With **NVIDIA Run:ai Model Streamer** (`--load-format=runai_streamer`),
->   `Gemma 3 27B` (`51.54 GiB`) streamed directly from `gs://` into GPU VRAM in
->   **9.1 seconds** on `RTX PRO 6000`, and `Gemma 4 31B` (`58.99 GiB`) streamed
->   in **11.1–25.7 seconds** on `RTX PRO 6000` and **20.1–25.8 seconds** on
->   `H100` with zero local disk staging._
+>   `Gemma 3 27B` (`51.19 GiB`) streamed directly from `gs://` into GPU VRAM in
+>   **9.1–16.5 seconds** on `RTX PRO 6000` (`19.2s` on `H100`), and
+>   `Gemma 4 31B` (`58.99 GiB`) streamed in **11.1–25.7 seconds** on
+>   `RTX PRO 6000` and **20.1–25.0 seconds** on `H100` with zero local disk
+>   staging._
 > - _And when mounting multi-shard checkpoints via Cloud Storage FUSE,
 >   overriding `gke-gcsfuse-cache` with a **RAM-backed `emptyDir`
 >   (`medium: Memory, sizeLimit: 80Gi`)** and
@@ -603,73 +641,75 @@ KUBECONFIG=/tmp/kc_inf-apac kubectl get pods -n inf-apac-online-gpu -o wide
 echo "=== [Europe: inf-europe] Gemma 4 31B (58.99 GiB) Run:ai Streamer Load & Hopper FA4 KV Cache ===" && \
 KUBECONFIG=/tmp/kc_inf-europe kubectl logs -n inf-europe-online-gpu deploy/vllm-h100-mega-gemma4-31b -c vllm | \
   python3 -c "import sys; print(''.join([l for l in sys.stdin if any(k in l for k in ['RunAI Model Streamer', 'Loading weights took', 'Model loading took', 'KV cache size', 'max_seq_len', 'FLASH_ATTN'])]))" && \
-echo "=== [Asia-Pacific: inf-apac] Gemma 4 31B on 1x H100 80GB (--max-model-len=8192 --max-num-seqs=128) ===" && \
-KUBECONFIG=/tmp/kc_inf-apac kubectl logs -n inf-apac-online-gpu deploy/vllm-h100x1-gemma4-31b -c vllm | \
+echo "=== [Asia-Pacific: inf-apac] Gemma 4 31B on 1x H100 80GB (PodSnapshot + Run:ai Streamer) ===" && \
+KUBECONFIG=/tmp/kc_inf-apac kubectl logs -n inf-apac-online-gpu deploy/vllm-fast-restore-h100-gemma-4-31b-it -c inference-server | \
   python3 -c "import sys; print(''.join([l for l in sys.stdin if any(k in l for k in ['RunAI Model Streamer', 'Loading weights took', 'Model loading took', 'KV cache size', 'max_seq_len'])]))"
 ```
 
 ---
 
-### Beat 3 (Minutes 7:00 – 11:00): Live Gemma inference across 3 continents & `96 GB RTX PRO 6000` vs. `80 GB H100` architecture trade-offs
+### Beat 3 (Minutes 7:00 – 11:00): Live multi-region Gemma verification, KV cache sizing for single-GPU (`TP=1`) scale-out & Queue-Depth HPA
 
 #### Presenter talk track
 
 > _"Now let's send live `/v1/chat/completions` requests to **Gemma 4 31B** and
-> **Gemma 3 27B** across all three continents and highlight key hardware sizing
-> findings from our benchmarks:_
+> **Gemma 3 27B** across all three continents and highlight how we size
+> single-GPU (`TP=1`) replicas for elastic scale-out:_
 >
-> 1. _**Single-GPU compute speed (`H100 80GB`) vs. VRAM capacity
->    (`RTX PRO 6000 96GB`) for `Gemma 4 31B`**: On Hopper `H100 80GB`,
->    `3.35 TB/s` HBM3 bandwidth and Hopper's `FA4` attention kernel deliver
->    **2,033.6 output tokens/sec (`3,520.1 total tokens/sec`)** on a single GPU
->    with a **24.95 ms** single-stream decode TPOT (`21.23 ms` at `c=16`)._
+> 1. _**Why single-GPU (`TP=1`) sizing accelerates scale-out**: Keeping 27B–31B
+>    Gemma models on a single GPU (`g4-standard-48` or `a3-highgpu-1g`) gives us
+>    the highest multi-region Spot obtainability and unlocks GKE `PodSnapshot`
+>    fast restore (which requires `--tensor-parallel-size=1`)._
 > 2. _**Why `80 GB H100` requires `--max-model-len=8192 --max-num-seqs=128` for
 >    `Gemma 4 31B`**: Because `Gemma 4 31B`'s BF16 weights occupy `58.99 GiB`,
 >    an `80 GB H100` (`79.1 GiB` usable VRAM) at `--gpu-memory-utilization=0.90`
->    leaves `10.62 GiB` (`12,629` tokens) for KV cache, while `7.9 GiB` remains
+>    leaves `10.61 GiB` (`12,629` tokens) for KV cache, while `7.9 GiB` remains
 >    unallocated for FlashInfer's `top_k_mask_logits` sampler (`248 MiB` scratch
->    at `--max-num-seqs=128`)._
-> 3. _**Why `96 GB RTX PRO 6000` excels at long context (`16K–32K`) and high
->    concurrency**: That extra 16 GB of GDDR7 VRAM on `RTX PRO 6000` more than
->    doubles available KV cache memory to **`24.91 GiB` (`29,655` tokens per GPU
->    at `gpu_util=0.90`)**, easily supporting `--max-model-len=16384` and
->    scaling linearly to **1,333.8–1,434.2 output tokens/sec** across 2 GPUs!"_
+>    at `--max-num-seqs=128`). On `Gemma 3 27B` (`51.19 GiB` weights), `1× H100`
+>    allocates `18.12 GiB` (`34,147` KV tokens)._
+> 3. _**How `96 GB RTX PRO 6000` expands KV cache capacity per scale-out unit**:
+>    The extra 16 GB of GDDR7 VRAM more than doubles `Gemma 4 31B`'s KV cache to
+>    **`24.89 GiB` (`29,628` tokens per GPU — `2.35×` larger)**, scales linearly
+>    to **`59,256` KV tokens across 2 horizontally scaled replicas**, and gives
+>    `Gemma 3 27B` **`32.26 GiB` (`60,783` KV tokens per GPU)**—allowing each
+>    replica to hold substantially more concurrent `16K–32K` sequences before
+>    queuing in `vllm:num_requests_waiting` and triggering HPA scale-out."_
 
-#### Copy-paste command 3A (query `Gemma 4 31B` on `H100 80GB Mega` in `inf-europe`)
+#### Copy-paste command 3A (verify `Gemma 4 31B` on `H100 80GB Mega` in `inf-europe`)
 
 ```shell
-echo "=== [EUROPE: europe-west4 / inf-europe] Gemma 4 31B on H100 80GB Mega (Hopper FA4, 2,033.6 out tok/s/GPU peak) ===" && \
+echo "=== [EUROPE: europe-west4 / inf-europe] Gemma 4 31B on H100 80GB Mega (Hopper FA4) ===" && \
 KUBECONFIG=/tmp/kc_inf-europe kubectl exec -n inf-europe-online-gpu deploy/vllm-h100-mega-gemma4-31b -c vllm -- \
-  curl -s -w "\n\n[HTTP %{http_code} | Total Round-Trip Time: %{time_total}s]\n" \
+  curl -s -w "\n\n[HTTP %{http_code}]\n" \
   http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" \
   -d '{"model":"google/gemma-4-31b-it","messages":[{"role":"user","content":"In 3 concise bullet points, explain why multi-region GPU capacity farming on GKE accelerates AI inference PoCs."}],"max_tokens":120,"temperature":0}'
 ```
 
-#### Copy-paste command 3B (compare `Gemma 4 31B` on `1× H100 80GB` in `inf-apac` vs. `1× RTX PRO 6000 96GB` in `inf-americas`)
+#### Copy-paste command 3B (verify `Gemma 4 31B` on `1× H100 80GB` in `inf-apac` vs. `1× RTX PRO 6000 96GB` in `inf-americas`)
 
 ```shell
-echo "=== [ASIA-PACIFIC: asia-south2 / inf-apac] Gemma 4 31B on 1x H100 80GB (--max-model-len=8192 --max-num-seqs=128) ===" && \
-KUBECONFIG=/tmp/kc_inf-apac kubectl exec -n inf-apac-online-gpu deploy/vllm-h100x1-gemma4-31b -c vllm -- \
+echo "=== [ASIA-PACIFIC: asia-south2 / inf-apac] Gemma 4 31B on 1x H100 80GB (PodSnapshot Restored, 10.61 GiB / 12,629 KV tokens) ===" && \
+KUBECONFIG=/tmp/kc_inf-apac kubectl exec -n inf-apac-online-gpu deploy/vllm-fast-restore-h100-gemma-4-31b-it -c inference-server -- \
   curl -s http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" \
-  -d '{"model":"google/gemma-4-31b-it","messages":[{"role":"user","content":"Compare 80GB HBM3 vs 96GB GDDR7 for serving 30B LLMs in 2 sentences."}],"max_tokens":96,"temperature":0}' | jq -r '.choices[0].message.content' && \
-echo -e "\n=== [AMERICAS: us-central1 / inf-americas] Gemma 4 31B on 1x RTX PRO 6000 96GB (24.91 GiB / 29,655 KV tokens, 16K context) ===" && \
-KUBECONFIG=/tmp/kc_inf-americas kubectl exec -n inf-americas-online-gpu deploy/vllm-fast-restore-rtx-pro-6000-gemma-4-31b-it -c vllm -- \
+  -d '{"model":"google/gemma-4-31b-it","messages":[{"role":"user","content":"Compare 80GB HBM3 vs 96GB GDDR7 for KV cache sizing on 30B LLMs in 2 sentences."}],"max_tokens":96,"temperature":0}' | jq -r '.choices[0].message.content' && \
+echo -e "\n=== [AMERICAS: us-central1 / inf-americas] Gemma 4 31B on 1x RTX PRO 6000 96GB (PodSnapshot Restored, 24.89 GiB / 29,628 KV tokens) ===" && \
+KUBECONFIG=/tmp/kc_inf-americas kubectl exec -n inf-americas-online-gpu deploy/vllm-fast-restore-rtx-pro-6000-gemma-4-31b-it -c inference-server -- \
   curl -s http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" \
   -d '{"model":"google/gemma-4-31b-it","messages":[{"role":"user","content":"Explain why 96GB of GPU VRAM prevents KV cache bottlenecks at 16K context in 2 sentences."}],"max_tokens":96,"temperature":0}' | jq -r '.choices[0].message.content'
 ```
 
-#### Copy-paste command 3C (query `Gemma 3 27B` with Run:ai Streamer + Queue-Depth HPA in `inf-americas`)
+#### Copy-paste command 3C (verify `Gemma 3 27B` with Run:ai Streamer + Queue-Depth HPA in `inf-americas`)
 
 ```shell
-echo "=== [AMERICAS: us-central1 / inf-americas] Gemma 3 27B on 1x RTX PRO 6000 96GB (9.1s Run:ai Streamer + Queue-Depth HPA) ===" && \
-KUBECONFIG=/tmp/kc_inf-americas kubectl exec -n inf-americas-online-gpu deploy/vllm-runai-rtx-pro-6000-gemma-3-27b-it -c vllm -- \
+echo "=== [AMERICAS: us-central1 / inf-americas] Gemma 3 27B on 1x RTX PRO 6000 96GB (Run:ai Streamer + Queue-Depth HPA, 32.26 GiB / 60,783 KV tokens) ===" && \
+KUBECONFIG=/tmp/kc_inf-americas kubectl exec -n inf-americas-online-gpu deploy/vllm-rtx-pro-6000-gemma-3-27b-it -c inference-server -- \
   curl -s http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" \
   -d '{"model":"google/gemma-3-27b-it","messages":[{"role":"user","content":"Why is vllm:num_requests_waiting a better HPA autoscaling metric than GPU utilization in 2 sentences?"}],"max_tokens":96,"temperature":0}' | jq -r '.choices[0].message.content'
 ```
 
 ---
 
-### Beat 4 (Minutes 11:00 – 15:00): Finale — Sub-minute GPU restore (`35s`, `LOADING=0`) with GKE Pod snapshots
+### Beat 4 (Minutes 11:00 – 15:00): Finale — Sub-minute `H100` (`54.8s`, `4.78×`) & `RTX PRO 6000` (`80.4s–84.0s`, `3.21×`) scale-out with GKE Pod snapshots (`LOADING=0`)
 
 #### Presenter talk track
 
@@ -677,42 +717,45 @@ KUBECONFIG=/tmp/kc_inf-americas kubectl exec -n inf-americas-online-gpu deploy/v
 > minute when serving on fluid multi-region capacity._
 >
 > _Even when we stream `Gemma 4 31B` (`58.99 GiB`) directly from Cloud Storage
-> into GPU memory in ~25 seconds using the **NVIDIA Run:ai Model Streamer**,
-> vLLM still spends 2.5 to 3.5 minutes compiling Torch Inductor graphs and
-> capturing 51 CUDA graphs on every cold start._
+> into GPU memory in ~21–25 seconds using the **NVIDIA Run:ai Model Streamer**,
+> vLLM still spends ~2.5 to 3.5 minutes compiling Torch Inductor graphs and
+> capturing 51 CUDA graphs on every cold start (`262.0s` on `H100`, `267.7s` on
+> `RTX PRO 6000`)._
 >
-> _With **GKE Pod snapshots**, our first `Gemma 4 31B` replica on `RTX PRO 6000`
-> in `inf-americas` (`vllm-fast-restore-rtx-pro-6000-gemma-4-31b-it`) waited
-> until `/health` returned `200 OK` and then triggered a cooperative gVisor
-> checkpoint (`echo 1 > /proc/gvisor/checkpoint`), saving both CPU memory and
-> all `58.99 GiB` of initialized GPU VRAM + compiled CUDA graphs into our
-> dedicated HNS snapshot bucket._
+> _With **GKE Pod snapshots**, restoring `Gemma 4 31B` from Cloud Storage takes
+> **54.77 seconds on `H100 80GB` (`4.78×` faster, saving `3.5 minutes` per
+> pod)** and **83.27–84.03 seconds on `RTX PRO 6000 96GB` (`3.19×–3.21×` faster,
+> saving `3.1 minutes` per pod)** with **`LOADING=0`**. Because the compiled
+> Inductor/Triton caches and all 51 captured CUDA graphs are preserved inside
+> the restored GPU memory image, restored replicas serve traffic immediately
+> after `PodRestored: True` with zero post-restart JIT compilation stalls._
 >
-> _Let's verify that `PodSnapshot` is `AllSnapshotsAvailable`, and then trigger
-> a live restore!"_
+> _Let's verify that our `PodSnapshot` resources in `inf-apac` (`H100`) and
+> `inf-americas` (`RTX PRO 6000`) are `AllSnapshotsAvailable`, and trigger a
+> live scale-out restore!"_
 
-#### Copy-paste command 4A (show the `AllSnapshotsAvailable` PodSnapshot in `inf-americas`)
+#### Copy-paste command 4A (show the `AllSnapshotsAvailable` PodSnapshots in `inf-apac` and `inf-americas`)
 
 ```shell
+echo "=== [Asia-Pacific: inf-apac] H100 80GB PodSnapshots (54.8s restore) ===" && \
+KUBECONFIG=/tmp/kc_inf-apac kubectl --namespace=inf-apac-online-gpu get podsnapshots \
+  --output=custom-columns='NAME:.metadata.name,READY:.status.conditions[?(@.type=="Ready")].reason,CHECKPOINT:.status.conditions[?(@.type=="Checkpoint")].reason,AGE:.metadata.creationTimestamp' && \
+echo -e "\n=== [Americas: inf-americas] RTX PRO 6000 96GB PodSnapshots (80.4s-84.0s restore) ===" && \
 KUBECONFIG=/tmp/kc_inf-americas kubectl --namespace=inf-americas-online-gpu get podsnapshots \
   --output=custom-columns='NAME:.metadata.name,READY:.status.conditions[?(@.type=="Ready")].reason,CHECKPOINT:.status.conditions[?(@.type=="Checkpoint")].reason,AGE:.metadata.creationTimestamp'
 ```
 
-#### Copy-paste command 4B (Option 1 — Zero-node-wait warm-node restore in ~35s, ideal for 15-min live demo)
+#### Copy-paste command 4B (Option 1 — Scale to 2 replicas & run `measure_restore.sh 2` in `inf-americas`)
 
-Deleting the running Pod forces the `Deployment` controller to immediately
-schedule a replacement Pod onto the **already-warm `g4-standard-48` (`gvisor`)
-node** (zero node-provisioning wait) and restore directly from the `PodSnapshot`
-in **~35 seconds** (`LOADING=0`):
-
-```shell
-KUBECONFIG=/tmp/kc_inf-americas kubectl delete pod -n inf-americas-online-gpu \
-  -l app=vllm-fast-restore-rtx-pro-6000-gemma-4-31b-it --wait=false && \
-KUBECONFIG=/tmp/kc_inf-americas kubectl get pods -n inf-americas-online-gpu \
-  -l app=vllm-fast-restore-rtx-pro-6000-gemma-4-31b-it -w
-```
-
-#### Copy-paste command 4B (Option 2 — Scale to 2 replicas & run `measure_restore.sh 2`)
+> [!TIP]
+>
+> Avoid using `kubectl delete pod --wait=false` on a 1-GPU node
+> (`g4-standard-48` or `a3-highgpu-1g`): the replacement pod can bind to the
+> node while the terminating pod is still releasing `/dev/nvidia0`
+> (`SandboxChanged` race). Scaling out (`measure_restore.sh 2`) or cycling
+> `--replicas=0` $\rightarrow$ wait 6s $\rightarrow$ `--replicas=1` (Option 2
+> below) cleanly restores from the `PodSnapshot` every time
+> (`PodRestored: True`, `LOADING=0`).
 
 ```shell
 export KUBECONFIG="/tmp/kc_inf-americas"
@@ -725,13 +768,28 @@ export SERVED_MODEL_NAME="google/gemma-4-31b-it"
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/measure_restore.sh" 2
 ```
 
+#### Copy-paste command 4B (Option 2 — Sub-minute `54.8s` warm-node `H100` restore in `inf-apac`)
+
+```shell
+KUBECONFIG=/tmp/kc_inf-apac kubectl scale deploy/vllm-fast-restore-h100-gemma-4-31b-it \
+  -n inf-apac-online-gpu --replicas=0 && \
+sleep 6 && \
+KUBECONFIG=/tmp/kc_inf-apac kubectl scale deploy/vllm-fast-restore-h100-gemma-4-31b-it \
+  -n inf-apac-online-gpu --replicas=1 && \
+KUBECONFIG=/tmp/kc_inf-apac kubectl get pods -n inf-apac-online-gpu \
+  -l app=vllm-fast-restore-h100-gemma-4-31b-it -w
+```
+
 ---
 
 ## Part 3: Post-demo teardown (destroy all provisioned clusters & buckets)
 
-When your demo is finished, run this block to cleanly destroy `online_gpu` and
-run the repository's `teardown-ap.sh` across each regional platform copy
-(`inf-americas`, `inf-europe`, `inf-apac`) created in Part 1:
+When your demo is finished, run this block to cleanly delete `PodSnapshot` CRs,
+empty the regional `*-pod-snapshots` and `*-hf-models` HNS buckets (so
+`terraform destroy` does not fail with `BucketNotEmpty`), run `core/initialize`
+before `online_gpu` destroy (so `online_gpu/backend.tf` points to the right
+regional state bucket), and execute `teardown-ap.sh` across each regional
+platform copy (`inf-americas`, `inf-europe`, `inf-apac`) created in Part 1:
 
 ```shell
 export TF_VAR_resource_name_prefix="inf"
@@ -741,7 +799,8 @@ export RING_TARGETS=("americas:us-central1" "europe:europe-west4" "apac:asia-sou
 for TARGET in "${RING_TARGETS[@]}"; do
   PLATFORM_NAME="${TARGET%%:*}"
   REGION="${TARGET##*:}"
-  echo "=== Tearing down inf-${PLATFORM_NAME} in ${REGION} ==="
+  CLUSTER_NAME="${TF_VAR_resource_name_prefix}-${PLATFORM_NAME}"
+  echo "=== Tearing down ${CLUSTER_NAME} in ${REGION} ==="
 
   cat <<EOF > "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/platform.auto.tfvars"
 platform_default_project_id = "${PROJECT_ID}"
@@ -753,8 +812,23 @@ EOF
 cluster_region = "${REGION}"
 EOF
 
+  # 1. Re-run core/initialize so backend.tf files point to this region's Terraform state bucket
+  cd "${ACP_REPO_DIR}/platforms/gke/base/core/initialize"
+  terraform init -reconfigure && terraform apply -auto-approve
+
+  # 2. Delete PodSnapshot CRs and empty regional HNS buckets before destroying online_gpu
+  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh" || true
+  if [ -f "/tmp/kc_${CLUSTER_NAME}" ]; then
+    KUBECONFIG="/tmp/kc_${CLUSTER_NAME}" kubectl delete podsnapshot --all -n "${CLUSTER_NAME}-online-gpu" --ignore-not-found || true
+  fi
+  for BUCKET_SUFFIX in "pod-snapshots" "hf-models"; do
+    gcloud storage rm -r "gs://${PROJECT_ID}-${CLUSTER_NAME}-${BUCKET_SUFFIX}/**" 2>/dev/null || true
+  done
+
+  # 3. Destroy online_gpu (passing ira_online_gpu_pod_snapshots_enabled=true) and run teardown-ap.sh
   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu"
-  terraform init && terraform destroy -auto-approve || true
+  rm -rf .terraform/ terraform.tfstate*
+  terraform init -reconfigure && terraform destroy -auto-approve -var="ira_online_gpu_pod_snapshots_enabled=true" || true
 
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-ap.sh"
 done

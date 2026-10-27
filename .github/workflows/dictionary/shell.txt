@@ -2,6 +2,7 @@ allexport
 cfmanteiga
 chdir
 dclose
+elif
 envsubst
 errexit
 excludesfile
@@ -24,6 +25,7 @@ shfmt
 shuf
 subshell
 syscall
+tostring
 urlencode
 xtrace
 zxvf

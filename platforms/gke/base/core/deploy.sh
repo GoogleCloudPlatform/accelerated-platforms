@@ -78,12 +78,21 @@ done
 cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
   echo "Current directory: $(pwd)" &&
   sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
+  initialize_state_prefix="$(sed -n 's/^[[:blank:]]*prefix[[:blank:]]*=[[:blank:]]*"\(.*\)"[[:blank:]]*$/\1/p' "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket")" &&
   export STATE_MIGRATED="false" &&
-  if gcloud storage ls "gs://${terraform_bucket_name}/terraform/initialize/default.tfstate" &>/dev/null; then
-    if [ ! -f "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf" ]; then
-      cp backend.tf.bucket backend.tf
-    fi
+  if gcloud storage ls "gs://${terraform_bucket_name}/${initialize_state_prefix}/default.tfstate" &>/dev/null; then
+    # The initialize state already exists in this platform's bucket. Always
+    # point the backend at it, so that a backend.tf generated for a different
+    # platform (for example, a different region deployed from the same
+    # checkout) is never reused.
+    cp backend.tf.bucket backend.tf
     export STATE_MIGRATED="true"
+  else
+    # There is no remote state for this platform yet. Start from a local state
+    # and migrate it to the bucket once the bucket is created. Remove any
+    # backend.tf generated for a different platform, so that Terraform doesn't
+    # plan against that platform's state.
+    rm -f backend.tf
   fi
 
 cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&

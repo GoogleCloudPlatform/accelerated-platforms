@@ -42,6 +42,19 @@ else
 fi
 echo "Core platform Terraservices to destroy: ${terraservices[*]}"
 
+# When destroying the initialize service, this script resets the files in the
+# checkout that are shared by every platform deployed from it: generated
+# *.auto.tfvars, kubeconfig files, and manifests. Set
+# ACP_TEARDOWN_RESET_CHECKOUT to "false" to keep them, for example when other
+# platforms (such as other regions) that were deployed from the same checkout
+# are still running. The generated backend.tf files are removed in both cases,
+# because they point to the state bucket that this script destroys.
+ACP_TEARDOWN_RESET_CHECKOUT="${ACP_TEARDOWN_RESET_CHECKOUT:-"true"}"
+if [[ "${ACP_TEARDOWN_RESET_CHECKOUT}" != "true" ]] && [[ "${ACP_TEARDOWN_RESET_CHECKOUT}" != "false" ]]; then
+  echo "ACP_TEARDOWN_RESET_CHECKOUT must be set to 'true' or 'false', got: '${ACP_TEARDOWN_RESET_CHECKOUT}'. Exiting..."
+  exit 1
+fi
+
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
@@ -73,6 +86,16 @@ for terraservice in "${terraservices[@]}"; do
       rm -rf backend.tf &&
       terraform init -force-copy -lock=false -migrate-state || exit 1
 
+    if [[ "${ACP_TEARDOWN_RESET_CHECKOUT}" == "false" ]]; then
+      # Stop managing the generated shared *.auto.tfvars files, so that
+      # destroying the initialize service doesn't delete them.
+      while read -r resource_address; do
+        if [[ "${resource_address}" == local_file.shared_config_* ]]; then
+          terraform state rm -lock=false "${resource_address}" || exit 1
+        fi
+      done < <(terraform state list)
+    fi
+
     # Quote the globbing expression because we don't want to expand it with the
     # shell
     gcloud storage rm -r "gs://${terraform_bucket_name}/*" &&
@@ -81,15 +104,21 @@ for terraservice in "${terraservices[@]}"; do
     rm -rf \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/" \
       "${ACP_PLATFORM_BASE_DIR}/_shared_config"/terraform.tfstate* \
-      "${ACP_PLATFORM_BASE_DIR}/kubernetes/kubeconfig" \
-      "${ACP_PLATFORM_BASE_DIR}/kubernetes/manifests" \
       "${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/" \
       "${ACP_PLATFORM_CORE_DIR}/initialize"/terraform.tfstate*
 
-    git restore \
-      "${ACP_PLATFORM_BASE_DIR}/_shared_config"/*.auto.tfvars \
-      "${ACP_PLATFORM_BASE_DIR}/kubernetes/kubeconfig/.gitkeep" \
-      "${ACP_PLATFORM_BASE_DIR}/kubernetes/manifests/.gitkeep" \
-      "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
+    if [[ "${ACP_TEARDOWN_RESET_CHECKOUT}" == "true" ]]; then
+      rm -rf \
+        "${ACP_PLATFORM_BASE_DIR}/kubernetes/kubeconfig" \
+        "${ACP_PLATFORM_BASE_DIR}/kubernetes/manifests"
+
+      git restore \
+        "${ACP_PLATFORM_BASE_DIR}/_shared_config"/*.auto.tfvars \
+        "${ACP_PLATFORM_BASE_DIR}/kubernetes/kubeconfig/.gitkeep" \
+        "${ACP_PLATFORM_BASE_DIR}/kubernetes/manifests/.gitkeep" \
+        "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
+    else
+      echo "ACP_TEARDOWN_RESET_CHECKOUT is 'false', keeping the shared configuration, kubeconfig, and manifests files."
+    fi
   fi
 done

@@ -1041,8 +1041,12 @@ it:
    updating only the `cluster_region` line of the generated
    `cluster.auto.tfvars`).
 2. Re-points `core/initialize/backend.tf` at that region's Terraform state
-   bucket and re-applies `core/initialize` (the same steps `teardown-ap.sh`
-   runs), so `online_gpu/backend.tf` references the correct regional state.
+   bucket, re-applies `core/initialize` (regenerating the core terraservices'
+   `backend.tf` files), and regenerates the cluster's kubeconfig. Each region's
+   `teardown-ap.sh` run deletes all generated kubeconfigs and `backend.tf` files
+   and restores the shared `*.auto.tfvars` in the checkout (including
+   `initialize_backend_use_case_name = null`), so the next region needs them
+   regenerated, and `online_gpu/backend.tf` is written explicitly in step 4.
 3. Deletes `PodSnapshot` CRs and empties the regional `*-pod-snapshots` and
    `*-hf-hub-models` HNS buckets, so `terraform destroy` does not fail with
    `BucketNotEmpty`.
@@ -1050,6 +1054,9 @@ it:
 
 ```shell
 export TF_VAR_resource_name_prefix="inf"
+# Keep cluster_autopilot_enabled = true in the regenerated cluster.auto.tfvars
+# after a previous region's teardown has restored the shared *.auto.tfvars
+export TF_VAR_cluster_autopilot_enabled="true"
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 export SHARED_CONFIG_DIR="${ACP_REPO_DIR}/platforms/gke/base/_shared_config"
 export CORE_INIT_DIR="${ACP_REPO_DIR}/platforms/gke/base/core/initialize"
@@ -1079,6 +1086,11 @@ EOF
   cp backend.tf.bucket backend.tf
   terraform init && terraform apply -auto-approve
 
+  #    Regenerate this cluster's kubeconfig (used by the workload terraservices)
+  cd "${ACP_REPO_DIR}/platforms/gke/base/core/workloads/cluster_credentials"
+  rm -rf .terraform/
+  terraform init && terraform apply -auto-approve
+
   # 3. Delete PodSnapshot CRs and empty the regional HNS buckets
   if [ -f "/tmp/kc_${CLUSTER_NAME}" ]; then
     KUBECONFIG="/tmp/kc_${CLUSTER_NAME}" kubectl delete podsnapshot --all -n "${CLUSTER_NAME}-online-gpu" --ignore-not-found || true
@@ -1088,8 +1100,18 @@ EOF
   done
 
   # 4. Destroy online_gpu (passing ira_online_gpu_pod_snapshots_enabled=true) and run teardown-ap.sh
+  #    online_gpu/backend.tf is written explicitly because it is deleted when a
+  #    previous region's core/initialize is destroyed
   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu"
   rm -rf .terraform/ terraform.tfstate*
+  cat <<EOF >backend.tf
+terraform {
+  backend "gcs" {
+    bucket = "${terraform_bucket_name}"
+    prefix = "terraform/inference-ref-arch/terraform/online_gpu"
+  }
+}
+EOF
   terraform init && terraform destroy -auto-approve -var="ira_online_gpu_pod_snapshots_enabled=true"
 
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-ap.sh"

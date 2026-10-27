@@ -1055,15 +1055,21 @@ case:
   `kernel_unified_attention` kernel on the first `/v1/chat/completions` request
   (about 35–65 seconds). Send one warm-up request per restored replica.
 - **Multi-region HNS bucket & `online_gpu` Terraform teardown**: When tearing
-  down multiple regional copies of `online_gpu` from a single checkout, first
-  re-point `core/initialize/backend.tf` at the region's Terraform state bucket
-  (update `bucket` in `backend.tf.bucket`, copy it to `backend.tf`, and re-apply
-  `core/initialize`, as `teardown-ap.sh` does) so that `online_gpu/backend.tf`
-  points to the right regional state. Then delete `PodSnapshot` CRs
-  (`kubectl delete podsnapshot --all`) and empty the `*-pod-snapshots` and
-  `*-hf-hub-models` HNS buckets
-  (`gcloud storage rm --recursive "gs://${BUCKET}/**"`) before running
-  `terraform destroy -auto-approve -var="ira_online_gpu_pod_snapshots_enabled=true"`.
+  down multiple regional copies from a single checkout, each region's
+  `teardown-ap.sh` run destroys `core/initialize` (deleting every generated
+  `backend.tf` and shared `*.auto.tfvars`), deletes all generated kubeconfigs,
+  and restores the checked-in (empty) `*.auto.tfvars`. Before tearing down the
+  next region, re-point `core/initialize/backend.tf` at that region's state
+  bucket and re-apply `core/initialize`, regenerate the cluster's kubeconfig
+  (`terraform apply` in `core/workloads/cluster_credentials`), and write
+  `online_gpu/backend.tf` explicitly (bucket `<project>-inf-<region>-terraform`,
+  prefix `terraform/inference-ref-arch/terraform/online_gpu`). Then delete
+  `PodSnapshot` CRs (`kubectl delete podsnapshot --all`), empty the
+  `*-pod-snapshots` and `*-hf-hub-models` HNS buckets
+  (`gcloud storage rm --recursive "gs://${BUCKET}/**"`), and run
+  `terraform destroy -auto-approve -var="ira_online_gpu_pod_snapshots_enabled=true"`
+  in `online_gpu` before `teardown-ap.sh`. Part 3 of the 15-minute demo runbook
+  implements these steps.
 - **Rapid Cache warm-up and teardown timing**: Newly created Rapid Caches can
   take over an hour before they begin serving cached bytes, and destroying a
   Rapid Cache enforces a 1-hour grace period before the underlying model bucket

@@ -1043,10 +1043,12 @@ it:
 2. Re-points `core/initialize/backend.tf` at that region's Terraform state
    bucket, re-applies `core/initialize` (regenerating the core terraservices'
    `backend.tf` files), and regenerates the cluster's kubeconfig. Each region's
-   `teardown-ap.sh` run deletes all generated kubeconfigs and `backend.tf` files
-   and restores the shared `*.auto.tfvars` in the checkout (including
-   `initialize_backend_use_case_name = null`), so the next region needs them
-   regenerated, and `online_gpu/backend.tf` is written explicitly in step 4.
+   `teardown-ap.sh` run destroys `core/initialize` (which deletes every
+   generated `backend.tf` and shared `*.auto.tfvars`), deletes all generated
+   kubeconfigs, and restores the checked-in (empty) `*.auto.tfvars`. The next
+   region's `core/initialize` apply therefore no longer knows the use case
+   (`initialize_backend_use_case_name`), so `online_gpu/backend.tf` is written
+   explicitly in step 4.
 3. Deletes `PodSnapshot` CRs and empties the regional `*-pod-snapshots` and
    `*-hf-hub-models` HNS buckets, so `terraform destroy` does not fail with
    `BucketNotEmpty`.

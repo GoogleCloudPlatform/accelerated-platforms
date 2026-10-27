@@ -15,12 +15,15 @@ csidriverconfigs
 csql
 dbname
 ecdsap
+endpointslices
 extproc
 gomemlimit
 kata
 microvm
+networkpolicies
 nologin
 objectstore
+pkcs
 podcert
 podcertcontroller
 podcertificate
@@ -39,6 +42,7 @@ spiffe
 sqladmin
 sslmode
 statusz
+storageclasses
 vhost
 virtiofsd
 workerpool

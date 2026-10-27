@@ -91,9 +91,10 @@ resource "google_sql_database_instance" "ate" {
 }
 
 resource "google_sql_database" "ate" {
-  instance = google_sql_database_instance.ate.name
-  name     = "atepg"
-  project  = local.ate_cloudsql_project_id
+  deletion_policy = "ABANDON"
+  instance        = google_sql_database_instance.ate.name
+  name            = "atepg"
+  project         = local.ate_cloudsql_project_id
 }
 
 resource "google_sql_user" "ate_iam_user" {

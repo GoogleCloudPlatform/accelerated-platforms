@@ -88,8 +88,8 @@ replacements:
 # The name must be fully qualified for the kustomize images transformer to
 # match.
 images:
-  - name: docker.io/vllm/vllm-tpu
-    newTag: v0.27.0
+  - name: docker.io/vllm/vllm-torchtpu
+    newTag: v0.29.0
 
 resources:
   - ../base

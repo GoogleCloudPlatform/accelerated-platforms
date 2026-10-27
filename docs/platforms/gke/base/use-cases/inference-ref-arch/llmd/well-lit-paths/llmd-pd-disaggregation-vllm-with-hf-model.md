@@ -23,7 +23,7 @@ following GKE, Google Cloud Networking and llm-d components:
 This guide is an implementation of
 [llm-d prefill/decode disaggregation well-lit path](https://github.com/llm-d/llm-d/tree/main/guides/pd-disaggregation),
 following the
-[Google TPU variant](https://github.com/llm-d/llm-d/blob/main/guides/pd-disaggregation/README.tpu.md)
+[Google TPU variant](https://github.com/llm-d/llm-d/blob/main/guides/pd-disaggregation/README.md)
 of that guide. In this guide, you will see how you can install llmd
 prefill/decode disaggregation well-lit path on GKE using our
 [GKE Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
@@ -32,9 +32,10 @@ The
 path provides you the instructions to create the prefill/decode disaggregation
 related resources but you still need to figure out how to create your GKE
 cluster and underlying infrastructure dependencies such as inference-gateway,
-custom compute classes for obtaining accelerators, storage for model download
-etc. This guide provides you the cohesive approach to build your infrastructure
-and apply llm-d prefill/decode disaggregation layer on top of it.
+LeaderWorkerSet (`lws`), custom compute classes for obtaining accelerators,
+storage for model download etc. This guide provides you the cohesive approach
+to build your infrastructure and apply llm-d prefill/decode disaggregation
+layer on top of it.
 
 Prefill/decode disaggregation splits inference across two specialized pools of
 model servers. Prefill workers process the input prompt, which is compute-bound.
@@ -45,17 +46,20 @@ independently. Disaggregation is implemented in the llm-d Router, so it composes
 with the prefix- and load-aware routing used by the other well-lit paths.
 
 On TPU, the KV cache produced by a prefill worker is transferred to a decode
-worker using the vLLM `TPUConnector` over a dedicated side channel. This guide
-therefore creates two model server deployments rather than one:
+worker using the TorchTPU vLLM `TPUConnector`
+(`vllm_torchtpu.distributed.kv_transfer.tpu_connector`) over a dedicated side
+channel. Orchestration is managed by a single `DisaggregatedSet` custom
+resource (provided by LeaderWorkerSet v1.0.0+), which creates two
+`LeaderWorkerSet` pools—one for `prefill` and one for `decode`:
 
-| Deployment | vLLM `kv_role` | vLLM port |
-| :--------: | :------------: | :-------: |
-|  prefill   | `kv_producer`  |  `8000`   |
-|   decode   | `kv_consumer`  |  `8200`   |
+|   Role    | vLLM `kv_role` | vLLM port |
+| :-------: | :------------: | :-------: |
+| `prefill` | `kv_producer`  |  `8000`   |
+| `decode`  | `kv_consumer`  |  `8200`   |
 
 > [!IMPORTANT]  
-> The decode deployment must use `kv_consumer`, **not** `kv_both`. vLLM defines
-> the roles as overlapping sets, so `kv_both` makes `is_kv_producer` true.
+> The decode role must use `kv_consumer`, **not** `kv_both`. vLLM defines the
+> roles as overlapping sets, so `kv_both` makes `is_kv_producer` true.
 > `TPUConnector` collapses both roles into a single `is_producer` boolean and
 > gates its load path on it, never consulting `is_kv_consumer`. With `kv_both`
 > the decode engine reports zero tokens available to load on every request and
@@ -64,7 +68,7 @@ therefore creates two model server deployments rather than one:
 >
 > The failure is silent: both pods report ready and the answers are correct,
 > they are simply computed twice, which makes disaggregation strictly worse than
-> not disaggregating. Upstream llm-d currently ships `kv_both` here.
+> not disaggregating.
 
 A routing sidecar runs alongside the decode pod and coordinates the two phases
 of each request.
@@ -194,7 +198,8 @@ ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/de
 The `deploy-llmd-pd-disaggregation.sh` script will perform the following steps:
 
 - Set up base GKE cluster platform and other infrastructure resources required
-  for llm-d, including the `tpu-v6e-2x4` custom compute class.
+  for llm-d, including LeaderWorkerSet (`lws`) and the `tpu-v6e-2x4` custom
+  compute class.
 - Create Gateway and Router for llm-d prefill/decode disaggregation. You will
   create model servers manually in the following sections of this guide.
 
@@ -272,18 +277,19 @@ The `deploy-llmd-pd-disaggregation.sh` script will perform the following steps:
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/llmd-pd-disaggregation/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
-  This creates both the prefill and the decode deployment.
+  This creates the `DisaggregatedSet` (`pd-disagg-tpu-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}`),
+  which manages both the prefill and decode `LeaderWorkerSet` pools.
 
   The Kubernetes manifests are based on the
   [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
 
-- Watch the deployments until they are ready.
+- Watch the model server pods until they are ready.
 
   ```shell
   watch --color --interval 5 --no-title \
-  "kubectl --namespace=${llmd_namespace} get deployment/pd-disaggregation-tpu-vllm-prefill-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} deployment/pd-disaggregation-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'
-  echo '\nLogs(last 10 lines):'
-  kubectl --namespace=${llmd_namespace} logs deployment/pd-disaggregation-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} --all-containers --tail 10"
+  "kubectl --namespace=${llmd_namespace} get disaggregatedset,leaderworkerset,pods -l llm-d.ai/guide=pd-disaggregation
+  echo '\nDecode logs (last 10 lines):'
+  kubectl --namespace=${llmd_namespace} logs -l llm-d.ai/guide=pd-disaggregation,llm-d.ai/role=decode --all-containers --tail 10"
   ```
 
   The first start is slow. Each pod is scheduled onto a newly auto-provisioned 8
@@ -304,29 +310,35 @@ The `deploy-llmd-pd-disaggregation.sh` script will perform the following steps:
   ${cluster_credentials_command}
   ```
 
-- Check the all the deployments
+- Check the router deployment and model server `DisaggregatedSet` / `LeaderWorkerSet` resources
 
   ```
-  kubectl get deployments -n ${llmd_namespace}
+  kubectl get deployments,disaggregatedsets,leaderworkersets -n ${llmd_namespace}
   ```
 
-  You should see three deployments similar to the following:
+  You should see the router deployment, the `DisaggregatedSet`, and the two
+  `LeaderWorkerSet` pools (`prefill` and `decode`) similar to the following:
 
   ```
-  NAME                                     READY   UP-TO-DATE   AVAILABLE   AGE
-  pd-disaggregation-epp                    1/1     1            1           XX
-  pd-disaggregation-tpu-vllm-decode-XXX    1/1     1            1           XX
-  pd-disaggregation-tpu-vllm-prefill-XXX   1/1     1            1           XX
+  NAME                                    READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment.apps/pd-disaggregation-epp   1/1     1            1           XX
+
+  NAME                                                       AGE
+  disaggregatedset.disaggregatedset.x-k8s.io/pd-disagg-tpu-v6e-qwen3-32b   XX
+
+  NAME                                                           READY   DESIRED   UP-TO-DATE   AGE
+  leaderworkerset.leaderworkerset.x-k8s.io/pd-disagg-tpu-v6e-qwen3-32b-decode-XXXX    1       1         1            XX
+  leaderworkerset.leaderworkerset.x-k8s.io/pd-disagg-tpu-v6e-qwen3-32b-prefill-XXXX   1       1         1            XX
   ```
 
   Note:
 
-  - pd-disaggregation-epp is the Gateway API Inference Extension endpoint
+  - `pd-disaggregation-epp` is the Gateway API Inference Extension endpoint
     picker, which makes the prefill and decode scheduling decisions.
-  - pd-disaggregation-tpu-vllm-prefill-XXX and
-    pd-disaggregation-tpu-vllm-decode-XXX are the model servers running
-    inference of the model you chose. It may take some time for these
-    deployments to be up completely depending upon the TPU availability
+  - `pd-disagg-tpu-v6e-qwen3-32b` is the `DisaggregatedSet` managing the
+    `prefill` and `decode` `LeaderWorkerSet` pools running inference of the
+    model you chose. It may take some time for these pods to be up completely
+    depending upon the TPU availability.
 
 - Check all the resources
 
@@ -337,42 +349,38 @@ The `deploy-llmd-pd-disaggregation.sh` script will perform the following steps:
   You should see output similar to the following:
 
   ```
-  NAME                                          READY   STATUS    RESTARTS   AGE
-  pod/pd-disaggregation-epp-XXXX                1/1     Running   0          XX
-  pod/pd-disaggregation-tpu-vllm-decode-XXXX    2/2     Running   0          XX
-  pod/pd-disaggregation-tpu-vllm-prefill-XXXX   1/1     Running   0          XX
+  NAME                                                       READY   STATUS    RESTARTS   AGE
+  pod/pd-disagg-tpu-v6e-qwen3-32b-decode-XXXX-0              2/2     Running   0          XX
+  pod/pd-disagg-tpu-v6e-qwen3-32b-prefill-XXXX-0             1/1     Running   0          XX
+  pod/pd-disaggregation-epp-XXXX                             1/1     Running   0          XX
 
   NAME                                   TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                    AGE
   service/pd-disaggregation-epp          ClusterIP   XXXX         <none>        9002/TCP,9090/TCP,80/TCP   XX
   service/pd-disaggregation-ips-XXXX     ClusterIP   None         <none>        54321/TCP                  XX
 
-  NAME                                                     READY   UP-TO-DATE   AVAILABLE   AGE
-  deployment.apps/pd-disaggregation-epp                    1/1     1            1           XX
-  deployment.apps/pd-disaggregation-tpu-vllm-decode-XXXX   1/1     1            1           XX
-  deployment.apps/pd-disaggregation-tpu-vllm-prefill-XXXX  1/1     1            1           XX
+  NAME                                    READY   UP-TO-DATE   AVAILABLE   AGE
+  deployment.apps/pd-disaggregation-epp   1/1     1            1           XX
 
-  NAME                                                      DESIRED   CURRENT   READY   AGE
-  replicaset.apps/pd-disaggregation-epp-XXXX                1         1         1       XX
-  replicaset.apps/pd-disaggregation-tpu-vllm-decode-XXXX    1         1         1       XX
-  replicaset.apps/pd-disaggregation-tpu-vllm-prefill-XXXX   1         1         1       XX
+  NAME                                               DESIRED   CURRENT   READY   AGE
+  replicaset.apps/pd-disaggregation-epp-XXXX         1         1         1       XX
   ```
 
   The decode pod reports `2/2` containers because it runs the routing sidecar
   alongside the model server.
 
-- Wait for the model server deployments to be ready before sending the request
-  to them.
+- Wait for both the prefill and decode pods to be `Running` and ready before
+  sending requests to them.
 
   ```
-  watch --color --interval 5 --no-title   "kubectl --namespace=${llmd_namespace} get deployment.apps/pd-disaggregation-tpu-vllm-prefill-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} deployment.apps/pd-disaggregation-tpu-vllm-decode-${ACCELERATOR_TYPE}-${HF_MODEL_NAME} | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     1            1'"
+  watch --color --interval 5 --no-title "kubectl --namespace=${llmd_namespace} get pods -l llm-d.ai/guide=pd-disaggregation | GREP_COLORS='mt=01;92' egrep --color=always -e '^' -e '1/1     Running|2/2     Running'"
   ```
 
-- When the deployments are ready, you will output similar to the following
+- When the pods are ready, you will see output similar to the following:
 
   ```
-  NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
-  pd-disaggregation-tpu-vllm-prefill-XXXX   1/1     1            1           XX
-  pd-disaggregation-tpu-vllm-decode-XXXX    1/1     1            1           XX
+  NAME                                         READY   STATUS    RESTARTS   AGE
+  pd-disagg-tpu-v6e-qwen3-32b-decode-XXXX-0    2/2     Running   0          XX
+  pd-disagg-tpu-v6e-qwen3-32b-prefill-XXXX-0   1/1     Running   0          XX
   ```
 
 ## Send Test Requests

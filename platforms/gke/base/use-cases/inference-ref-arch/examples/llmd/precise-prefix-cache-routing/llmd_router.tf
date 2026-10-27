@@ -35,7 +35,15 @@ data "helm_template" "llmd_ppcr_router" {
 
   values = [
     data.http.llmd_ppcr_router_base_values.response_body,
-    data.http.llmd_ppcr_router_guide_values.response_body,
+    replace(
+      replace(
+        data.http.llmd_ppcr_router_guide_values.response_body,
+        "modelName: Qwen/Qwen3-32B",
+        "modelName: ${var.llmd_model_id}"
+      ),
+      "blockSizeTokens: 64",
+      local.deploy_on_tpu ? "blockSizeTokens: 256" : "blockSizeTokens: 64"
+    ),
     data.http.llmd_ppcr_router_feature_values.response_body,
     yamlencode({
       provider = {

@@ -62,6 +62,7 @@ declare -a CORE_TERRASERVICES_APPLY=(
   "custom_compute_class"
   "workloads/auto_monitoring"
   "workloads/custom_metrics_adapter"
+  "workloads/lws"
   "workloads/priority_class"
 )
 CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"

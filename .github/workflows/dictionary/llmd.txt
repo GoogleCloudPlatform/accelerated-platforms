@@ -1,10 +1,14 @@
 disagg
+disaggregatedset
+disaggregatedsets
 disaggregating
 epp
 gaie
 getmtime
 goodput
 inferencepool
+leaderworkerset
+leaderworkersets
 listdir
 llmd
 lognormal
@@ -14,6 +18,8 @@ nixl
 nixlconnector
 nixlv
 ppcr
+shlex
 subdirs
+torchtpu
 tpot
 unquantized

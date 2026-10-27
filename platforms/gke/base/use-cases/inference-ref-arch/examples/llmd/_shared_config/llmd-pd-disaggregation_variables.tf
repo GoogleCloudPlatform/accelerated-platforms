@@ -86,7 +86,7 @@ variable "llmd_pd_router_chart_repo" {
 }
 
 variable "llmd_pd_router_chart_version" {
-  default     = "v0"
+  default     = "v1"
   description = "Helm chart version for installing router"
   type        = string
 }

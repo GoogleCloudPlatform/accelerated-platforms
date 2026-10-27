@@ -20,12 +20,26 @@
 # forever waiting on chips the old pod will not release until the new one is
 # Ready. That is a deadlock, and it needs manual intervention to clear.
 #
-# Recreate trades a short outage during rollout for a rollout that terminates.
-apiVersion: apps/v1
-kind: Deployment
+# Setting maxSurge: 0 and maxUnavailable: 1 on each role's rolloutStrategy
+# retires the old replica before bringing up the new one, trading a short
+# outage during rollout for a rollout that terminates without deadlocking on
+# TPU capacity.
+apiVersion: disaggregatedset.x-k8s.io/v1
+kind: DisaggregatedSet
 metadata:
-  name: placeholder-replaced-by-kustomize-target
+  name: pd-disagg-tpu
   namespace: replaced-by-kustomize
 spec:
-  strategy:
-    type: Recreate
+  roles:
+    - name: prefill
+      spec:
+        rolloutStrategy:
+          rollingUpdateConfiguration:
+            maxSurge: 0
+            maxUnavailable: 1
+    - name: decode
+      spec:
+        rolloutStrategy:
+          rollingUpdateConfiguration:
+            maxSurge: 0
+            maxUnavailable: 1

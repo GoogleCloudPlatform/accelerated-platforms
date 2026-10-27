@@ -24,39 +24,38 @@ configMapGenerator:
 
 nameSuffix: -v6e-qwen3-32b
 
+components:
+  - https://github.com/llm-d/llm-d//guides/recipes/modelserver/components/disaggregatedset-schema?ref=main
+
 patches:
   - path: patch-decode-nodeselector.yaml
     target:
-      kind: Deployment
-      name: pd-disaggregation-tpu-vllm-decode
+      kind: DisaggregatedSet
+      name: pd-disagg-tpu
   - path: patch-decode-resources.yaml
     target:
-      kind: Deployment
-      name: pd-disaggregation-tpu-vllm-decode
+      kind: DisaggregatedSet
+      name: pd-disagg-tpu
   - path: patch-decode-vllm-args.yaml
     target:
-      kind: Deployment
-      name: pd-disaggregation-tpu-vllm-decode
+      kind: DisaggregatedSet
+      name: pd-disagg-tpu
   - path: patch-deployment-strategy.yaml
     target:
-      kind: Deployment
-      name: pd-disaggregation-tpu-vllm-decode
-  - path: patch-deployment-strategy.yaml
-    target:
-      kind: Deployment
-      name: pd-disaggregation-tpu-vllm-prefill
+      kind: DisaggregatedSet
+      name: pd-disagg-tpu
   - path: patch-prefill-nodeselector.yaml
     target:
-      kind: Deployment
-      name: pd-disaggregation-tpu-vllm-prefill
+      kind: DisaggregatedSet
+      name: pd-disagg-tpu
   - path: patch-prefill-resources.yaml
     target:
-      kind: Deployment
-      name: pd-disaggregation-tpu-vllm-prefill
+      kind: DisaggregatedSet
+      name: pd-disagg-tpu
   - path: patch-prefill-vllm-args.yaml
     target:
-      kind: Deployment
-      name: pd-disaggregation-tpu-vllm-prefill
+      kind: DisaggregatedSet
+      name: pd-disagg-tpu
 
 replacements:
   - source:
@@ -71,7 +70,7 @@ replacements:
       - fieldPaths:
           - metadata.namespace
         select:
-          kind: Deployment
+          kind: DisaggregatedSet
       - fieldPaths:
           - metadata.namespace
         select:
@@ -86,9 +85,9 @@ replacements:
       name: deployment
     targets:
       - fieldPaths:
-          - spec.template.spec.serviceAccountName
+          - spec.roles.*.spec.leaderWorkerTemplate.workerTemplate.spec.serviceAccountName
         select:
-          kind: Deployment
+          kind: DisaggregatedSet
       - fieldPaths:
           - metadata.name
         select:
@@ -99,17 +98,17 @@ replacements:
       name: runtime
     targets:
       - fieldPaths:
-          - spec.template.metadata.labels.[llm-d.ai/model]
+          - spec.roles.*.spec.leaderWorkerTemplate.workerTemplate.metadata.labels.[llm-d.ai/model]
         select:
-          kind: Deployment
+          kind: DisaggregatedSet
 
 # Pin the model server image. The upstream image component is tracked at
 # ?ref=main, so without this the version changes whenever llm-d bumps it.
 # The name must be fully qualified for the kustomize images transformer to
 # match.
 images:
-  - name: docker.io/vllm/vllm-tpu
-    newTag: v0.27.0
+  - name: docker.io/vllm/vllm-torchtpu
+    newTag: v0.29.0
 
 resources:
   - ../base

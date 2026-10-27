@@ -12,42 +12,55 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: disaggregatedset.x-k8s.io/v1
+kind: DisaggregatedSet
 metadata:
-  name: pd-disaggregation-tpu-vllm-prefill
+  name: pd-disagg-tpu
 spec:
-  template:
-    spec:
-      containers:
-        - name: modelserver
-          envFrom:
-            - configMapRef:
-                name: runtime
-          env:
-            # The upstream llm-d base injects HF_TOKEN from a Secret named
-            # llm-d-hf-token. This path loads weights from GCS with
-            # runai_streamer and never contacts the HuggingFace hub, so the
-            # token is unused -- but if the Secret is absent the pod fails
-            # with CreateContainerConfigError before the engine ever starts.
-            # Drop the variable rather than require a credential we have no
-            # use for.
-            - name: HF_TOKEN
-              $patch: delete
-            - name: MODEL_BUCKET_NAME
-              valueFrom:
-                configMapKeyRef:
-                  name: deployment
-                  key: MODEL_BUCKET_NAME
-          args:
-            - "--model=gs://$(MODEL_BUCKET_NAME)/$(MODEL_ID)"
-            - "--served-model-name=$(MODEL_ID)"
-            - "--max-model-len=$(MAX_MODEL_LEN)"
-            - "--tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)"
-            - "--dtype=bfloat16"
-            - "--load-format=runai_streamer"
-            - '--model-loader-extra-config={"distributed":true}'
-            - "--kv-transfer-config"
-            - '{"kv_connector":"TPUConnector","kv_connector_module_path":"tpu_inference.distributed.tpu_connector","kv_role":"kv_producer","kv_ip":"$(POD_IP)"}'
-            - "--port=8000"
-            - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
+  roles:
+    - name: prefill
+      spec:
+        leaderWorkerTemplate:
+          workerTemplate:
+            spec:
+              containers:
+                - name: modelserver
+                  command:
+                    - vllm
+                    - serve
+                  envFrom:
+                    - configMapRef:
+                        name: runtime
+                  env:
+                    # The upstream llm-d base injects HF_TOKEN from a Secret named
+                    # llm-d-hf-token. This path loads weights from GCS with
+                    # runai_streamer and never contacts the HuggingFace hub, so the
+                    # token is unused -- but if the Secret is absent the pod fails
+                    # with CreateContainerConfigError before the engine ever starts.
+                    # Drop the variable rather than require a credential we have no
+                    # use for.
+                    - name: HF_TOKEN
+                      $patch: delete
+                    - name: VLLM_HOST_IP
+                      value: "$(POD_IP)"
+                    - name: MODEL_BUCKET_NAME
+                      valueFrom:
+                        configMapKeyRef:
+                          name: deployment
+                          key: MODEL_BUCKET_NAME
+                  args:
+                    - "--model=gs://$(MODEL_BUCKET_NAME)/$(MODEL_ID)"
+                    - "--served-model-name=$(MODEL_ID)"
+                    - "--max-model-len=$(MAX_MODEL_LEN)"
+                    - "--max-num-batched-tokens=8192"
+                    - "--max-num-seqs=64"
+                    - "--tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)"
+                    - "--dtype=bfloat16"
+                    - "--attention-backend=CUSTOM"
+                    - "--load-format=runai_streamer"
+                    - '--model-loader-extra-config={"distributed":true}'
+                    - "--kv-transfer-config"
+                    - '{"kv_connector":"TPUConnector","kv_connector_module_path":"vllm_torchtpu.distributed.kv_transfer.tpu_connector","kv_role":"kv_producer","kv_ip":"$(POD_IP)"}'
+                    - "--port=8000"
+                    - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
+                    - "--shutdown-timeout=45"

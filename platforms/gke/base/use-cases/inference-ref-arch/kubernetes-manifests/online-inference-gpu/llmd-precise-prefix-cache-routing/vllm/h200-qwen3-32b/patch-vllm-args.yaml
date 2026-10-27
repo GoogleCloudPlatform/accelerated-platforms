@@ -36,9 +36,11 @@ spec:
             - "--block-size=64"
             - "--max-model-len=$(MAX_MODEL_LEN)"
             - "--gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)"
+            - "--enable-scale-out"
             - "--kv-events-config"
-            - '{"enable_kv_cache_events":true,"publisher":"zmq","endpoint":"$(KV_EVENTS_ENDPOINT)","topic":"kv@$(POD_IP):$(POD_PORT)@$(MODEL_ID)"}'
+            - '{"enable_kv_cache_events":true,"publisher":"zmq","endpoint":"$(KV_EVENTS_ENDPOINT)","replay_endpoint":"$(KV_EVENTS_REPLAY_ENDPOINT)","topic":"kv@$(POD_IP):$(POD_PORT)@$(MODEL_ID)"}'
             - "--served-model-name=$(MODEL_ID)"
-            - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
+            - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models,/v1/completions/render,/v1/chat/completions/render"
             - "--load-format=runai_streamer"
             - '--model-loader-extra-config={"distributed":true}'
+            - "--shutdown-timeout=45"

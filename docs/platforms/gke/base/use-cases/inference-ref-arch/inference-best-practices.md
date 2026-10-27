@@ -47,6 +47,8 @@ The GKE Inference reference architecture includes CCCs that implement
 
 For more information about optimizing workloads with custom compute classes, see
 [Optimizing GKE Workloads with Custom Compute Classes](/docs/guides/optimizing-gke-workloads-with-custom-compute-classes/README.md)
+and the
+[AI inference proof-of-concept (PoC) and capacity-finding guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md).
 
 ### Model Downloader and storage backend selection
 

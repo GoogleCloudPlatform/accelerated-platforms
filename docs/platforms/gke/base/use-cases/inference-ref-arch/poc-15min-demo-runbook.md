@@ -31,8 +31,8 @@ Each regional copy of the platform uses the repository's default
 
 ## Overview of the runbook
 
-- **Part 1 (Automated end-to-end provisioning from scratch — run ~40 minutes
-  before the demo)**:
+- **Part 1 (Automated end-to-end provisioning from scratch — start ~2 hours
+  before the demo for all three regions)**:
   - **Prep Step 1 (~2 min)**: Installs required CLI tools (`terraform`,
     `kustomize`, `sponge`, `jq`, `kubectl`, `capacity_radar`) and clones
     `accelerated-platforms`.
@@ -49,7 +49,7 @@ Each regional copy of the platform uses the repository's default
   - **Prep Step 4 (~15–20 min — PoC Guide Stage 4)**: Stages **Gemma 4 31B**
     (`google/gemma-4-31b-it`) and **Gemma 3 27B** (`google/gemma-3-27b-it`)
     model weights into HNS Cloud Storage using `configure_huggingface.sh`
-    (staged once in `us-central1` and replicated to the other regions with
+    (staged once in one region and replicated to the other regions with
     `gcloud storage rsync`), and deploys `vllm-runai` +
     `vllm-podsnapshot-fast-restore` across `NVIDIA RTX PRO 6000 96GB` and
     `NVIDIA H100 80GB` / `H100 Mega`.
@@ -65,12 +65,13 @@ Each regional copy of the platform uses the repository's default
 
 > [!IMPORTANT]
 >
-> Because GKE Autopilot cluster creation (`~15–18 min`), Hugging Face-to-GCS
-> model staging (`~3–8 min`), and initial GKE Pod snapshot creation
-> (`~11–13 min` for a 31B model) take ~35–45 minutes end-to-end, run **Prep
-> Steps 1–4** before your live presentation begins so that all pods are
-> `1/1 Running` and your `PodSnapshot` is `AllSnapshotsAvailable` when you share
-> your screen.
+> Because GKE Autopilot cluster creation (`~20 min` per region, run
+> sequentially), Hugging Face-to-GCS model staging (`~5–7 min` per model),
+> cross-region replication (`30+ min` for `Gemma 4 31B` across continents), and
+> initial GKE Pod snapshot creation (`~11–13 min` for a 31B model) add up to
+> roughly 2 hours for all three regions, run **Prep Steps 1–4** well before your
+> live presentation begins so that all pods are `1/1 Running` and your
+> `PodSnapshot` is `AllSnapshotsAvailable` when you share your screen.
 
 ### Prep Step 1: Bootstrap CLI tools (`terraform`, `kustomize`, `sponge`, `jq`, `capacity_radar`) & clone repositories
 
@@ -215,20 +216,36 @@ resource_name_prefix        = "${TF_VAR_resource_name_prefix}"
 EOF
   sed -i "s/^\(cluster_region[[:blank:]]*=\).*/\1 \"${REGION}\"/" "${SHARED_CONFIG_DIR}/cluster.auto.tfvars"
 
-  # 2. Clear the previous region's core/initialize backend so that core/deploy.sh
-  #    initializes (or migrates) state into THIS region's Terraform state bucket
-  #    instead of planning destroys against the previous region's state.
-  rm -rf "${CORE_INIT_DIR}/backend.tf" "${CORE_INIT_DIR}/.terraform" "${CORE_INIT_DIR}/terraform.tfstate"*
+  # 2. Point core/initialize at THIS region's Terraform state instead of the
+  #    previous region's: reuse this region's state bucket if it already holds
+  #    core/initialize state (for example, when retrying a region), otherwise
+  #    remove backend.tf so core/deploy.sh creates the bucket and migrates state.
+  TF_STATE_BUCKET="${PROJECT_ID}-${CLUSTER_NAME}-terraform"
+  rm -rf "${CORE_INIT_DIR}/.terraform" "${CORE_INIT_DIR}/terraform.tfstate"*
+  if gcloud storage ls "gs://${TF_STATE_BUCKET}/terraform/core/initialize/default.tfstate" >/dev/null 2>&1; then
+    sed "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${TF_STATE_BUCKET}\"/" \
+      "${CORE_INIT_DIR}/backend.tf.bucket" >"${CORE_INIT_DIR}/backend.tf"
+  else
+    rm -f "${CORE_INIT_DIR}/backend.tf"
+  fi
 
-  # 3. Deploy GKE Autopilot base platform + inference-ref-arch core services (PoC Guide Stage 3.4)
-  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-ap.sh"
+  # 3. Deploy GKE Autopilot base platform + inference-ref-arch core services (PoC Guide Stage 3.4).
+  #    If this fails (for example, a CREATE_CLUSTER stockout), skip the rest of this
+  #    region and re-run the loop for it later (see the tip below).
+  if ! "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-ap.sh"; then
+    echo "ERROR: deploy-ap.sh failed for ${CLUSTER_NAME}; skipping the rest of ${REGION}."
+    continue
+  fi
 
   # 4. Deploy the online_gpu terraservice with Pod snapshot storage enabled
   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu"
   rm -rf .terraform/ terraform.tfstate*
-  terraform init
-  terraform plan -input=false -var="ira_online_gpu_pod_snapshots_enabled=true" -out=tfplan
-  terraform apply -input=false tfplan
+  if ! (terraform init &&
+    terraform plan -input=false -var="ira_online_gpu_pod_snapshots_enabled=true" -out=tfplan &&
+    terraform apply -input=false tfplan); then
+    echo "ERROR: online_gpu failed for ${CLUSTER_NAME}; skipping the rest of ${REGION}."
+    continue
+  fi
   rm -f tfplan
 
   # 5. Source generated environment variables and add HF_TOKEN to Secret Manager
@@ -239,8 +256,13 @@ EOF
 
   # 6. Wait for GKE Autopilot to finish post-deploy cluster operations (such as
   #    RESIZE_CLUSTER), otherwise the update fails with CLUSTER_ALREADY_HAS_OPERATION
-  until [ "$(gcloud container clusters describe "${cluster_name}" --location="${cluster_region}" --project="${cluster_project_id}" --format='value(status)')" = "RUNNING" ]; do
-    echo "Waiting for ${cluster_name} to return to RUNNING..."
+  #    (stops early if the cluster is in ERROR or does not exist)
+  for _ in $(seq 1 90); do
+    CLUSTER_STATUS="$(gcloud container clusters describe "${cluster_name}" --location="${cluster_region}" --project="${cluster_project_id}" --format='value(status)' 2>/dev/null)"
+    if [ "${CLUSTER_STATUS}" = "RUNNING" ] || [ "${CLUSTER_STATUS}" = "ERROR" ] || [ -z "${CLUSTER_STATUS}" ]; then
+      break
+    fi
+    echo "Waiting for ${cluster_name} to return to RUNNING (currently ${CLUSTER_STATUS})..."
     sleep 10
   done
 
@@ -268,13 +290,19 @@ cp /tmp/kc_inf-americas "${HOME}/.kube/config"
 > control-plane or general-purpose CPU capacity. If `CREATE_CLUSTER` fails in a
 > region with
 > `Google Compute Engine does not have enough resources available to fulfill request`
-> (`code: 14`), remove that region from `RING_TARGETS` and re-run the loop. For
-> example, if `europe-west4` is unavailable, re-run the Beat 1 sweep and, if
-> another ring region (such as `us-central1`) currently scores `HIGH` for
-> `a3-megagpu-8g` and has Spot `H100 Mega` quota, run Prep Step 4B against
-> `inf-americas` instead (`use_region americas us-central1`, after applying the
-> `gpu-h100-80gb-mega-x8` `ComputeClass` from Prep Step 4.0 to
-> `/tmp/kc_inf-americas`).
+> (`code: 14`), the loop skips the rest of that region. Wait a few minutes and
+> re-run the loop with `RING_TARGETS` set to only that region (Terraform retries
+> the cluster creation), or drop the region from the ring. The
+> `gcloud beta container clusters update --enable-pod-snapshots` step can fail
+> with the same stockout error; re-run that command for the cluster a few
+> minutes later and confirm it with
+> `gcloud beta container clusters describe <CLUSTER> --location=<REGION> --format='value(addonsConfig.podSnapshotConfig.enabled)'`
+> (prints `True`). For example, if `europe-west4` is unavailable, re-run the
+> Beat 1 sweep and, if another ring region (such as `us-central1`) currently
+> scores `HIGH` for `a3-megagpu-8g` and has Spot `H100 Mega` quota, run Prep
+> Step 4B against `inf-americas` instead (`use_region americas us-central1`,
+> after applying the `gpu-h100-80gb-mega-x8` `ComputeClass` from Prep Step 4.0
+> to `/tmp/kc_inf-americas`).
 
 ---
 
@@ -284,8 +312,9 @@ Now use the repository's `configure_huggingface.sh`, `configure_vllm_runai.sh`,
 and `configure_vllm_podsnapshot.sh` scripts to stage **Gemma 4 31B**
 (`google/gemma-4-31b-it`) and **Gemma 3 27B** (`google/gemma-3-27b-it`) weights
 and deploy the workloads. The weights are downloaded from Hugging Face **once**
-into the `inf-americas` Hierarchical Namespace bucket and then replicated to the
-`inf-europe` and `inf-apac` buckets with `gcloud storage rsync`.
+into one staging region's Hierarchical Namespace bucket (Step 4.1,
+`inf-americas` by default) and then replicated to the other regional buckets
+with `gcloud storage rsync`.
 
 > [!NOTE]
 >
@@ -307,8 +336,9 @@ into the `inf-americas` Hierarchical Namespace bucket and then replicated to the
 >   `activeMigration.optimizeRulePriority: true` can scale down a
 >   `c3-standard-4-lssd` node mid-download to retry Priority 1, which kills the
 >   `backoffLimit: 0` Job. Step 4.0 removes `activeMigration` from
->   `model-download` in `inf-americas`, and the `wait_for_hf_job` helper fails
->   fast (with logs) instead of waiting 30 minutes on a failed Job.
+>   `model-download` in the candidate staging clusters, and the
+>   `wait_for_hf_job` helper fails fast (with logs and events) instead of
+>   waiting 30 minutes on a failed or unschedulable Job.
 
 #### 4.0. Define helper functions and patch `ComputeClass` resources
 
@@ -326,6 +356,38 @@ EOF
   sed -i "s/^\(cluster_region[[:blank:]]*=\).*/\1 \"$2\"/" "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars"
   export KUBECONFIG="/tmp/kc_inf-$1"
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+}
+
+# start_replication <model-path> <platform_name>...: start copying a staged model
+# from STAGING_BUCKET (set in Step 4.1) to other regional buckets in the
+# background (nohup, so they survive a closed terminal). Copies run server-side;
+# progress is logged to /tmp/replicate-*.log.
+start_replication() {
+  local model="$1" platform dest tag
+  shift
+  for platform in "$@"; do
+    dest="${PROJECT_ID}-inf-${platform}-hf-hub-models"
+    [ "${dest}" = "${STAGING_BUCKET}" ] && continue
+    tag="inf-${platform}-$(basename "${model}")"
+    nohup gcloud storage rsync --recursive "gs://${STAGING_BUCKET}/${model}" "gs://${dest}/${model}" \
+      >"/tmp/replicate-${tag}.log" 2>&1 </dev/null &
+    echo $! >"/tmp/replicate-${tag}.pid"
+    echo "Replicating ${model} to gs://${dest} in the background (PID $!)"
+  done
+}
+
+# replicate_model <model-path>: wait for any background replication of the
+# model into the current region's bucket, then run a final (incremental) sync.
+replicate_model() {
+  local pid_file="/tmp/replicate-${cluster_name}-$(basename "$1").pid"
+  [ "${huggingface_hub_models_bucket_name}" = "${STAGING_BUCKET}" ] && return 0
+  while [ -f "${pid_file}" ] && kill -0 "$(cat "${pid_file}")" 2>/dev/null; do
+    echo "Waiting for $1 to finish replicating to gs://${huggingface_hub_models_bucket_name}..."
+    sleep 30
+  done
+  gcloud storage rsync --recursive \
+    "gs://${STAGING_BUCKET}/$1" \
+    "gs://${huggingface_hub_models_bucket_name}/$1"
 }
 
 # wait_for_hf_job: wait for the hf-model-to-gcs Job, failing fast on Job failure
@@ -351,8 +413,7 @@ wait_for_hf_job() {
   echo "${job} complete"
 }
 
-# 1. Americas (us-central1): Spot-first for 1x RTX PRO 6000, and keep the
-#    model-download node until the Job finishes (no active migration)
+# 1. Americas (us-central1): Spot-first for 1x RTX PRO 6000
 cat <<'EOF' | KUBECONFIG=/tmp/kc_inf-americas kubectl apply -f -
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
@@ -385,10 +446,15 @@ spec:
         bootDiskType: hyperdisk-balanced
   whenUnsatisfiable: DoNotScaleUp
 EOF
-KUBECONFIG=/tmp/kc_inf-americas kubectl patch computeclass model-download \
-  --type=json -p='[{"op":"remove","path":"/spec/activeMigration"}]'
 
-# 2. Europe (europe-west4) & Asia-Pacific (asia-south2): Spot-first for 1x H100 and 8x H100 Mega
+# Keep the model-download node until the downloader Job finishes (no active
+# migration) in both candidate staging clusters
+for KC in /tmp/kc_inf-americas /tmp/kc_inf-europe; do
+  KUBECONFIG="${KC}" kubectl patch computeclass model-download \
+    --type=merge -p='{"spec":{"activeMigration":null}}'
+done
+
+# 2. Europe (europe-west4) & Asia-Pacific (asia-south2): Spot-first for 1x H100
 for KC in /tmp/kc_inf-europe /tmp/kc_inf-apac; do
   cat <<'EOF' | KUBECONFIG="${KC}" kubectl apply -f -
 apiVersion: cloud.google.com/v1
@@ -417,7 +483,12 @@ spec:
       maxPodsPerNode: 32
       spot: false
   whenUnsatisfiable: DoNotScaleUp
----
+EOF
+done
+
+# 3. Europe (europe-west4) only: Spot-first for 8x H100 Mega (a3-megagpu-8g is
+#    not offered in asia-south2, so the class stays unhealthy there by design)
+cat <<'EOF' | KUBECONFIG=/tmp/kc_inf-europe kubectl apply -f -
 apiVersion: cloud.google.com/v1
 kind: ComputeClass
 metadata:
@@ -452,21 +523,33 @@ spec:
       spot: false
   whenUnsatisfiable: DoNotScaleUp
 EOF
-done
 
-# 3. Verify that every patched ComputeClass reports Health: True
-for KC in /tmp/kc_inf-americas /tmp/kc_inf-europe /tmp/kc_inf-apac; do
-  KUBECONFIG="${KC}" kubectl get computeclass \
-    -o custom-columns='NAME:.metadata.name,HEALTH:.status.conditions[?(@.type=="Health")].status,REASON:.status.conditions[?(@.type=="Health")].reason'
+# 4. Verify that every patched ComputeClass reports HEALTH=True (MISCONFIGURED
+#    explains any failure, for example an unavailable machine type)
+for TARGET in "inf-americas:gpu-rtx-pro-6000-96gb-x1 model-download" \
+  "inf-europe:gpu-h100-80gb-high-x1 gpu-h100-80gb-mega-x8 model-download" \
+  "inf-apac:gpu-h100-80gb-high-x1"; do
+  echo "=== ${TARGET%%:*} ==="
+  # shellcheck disable=SC2086 # word splitting of the class list is intended
+  KUBECONFIG="/tmp/kc_${TARGET%%:*}" kubectl get computeclass ${TARGET#*:} \
+    -o custom-columns='NAME:.metadata.name,HEALTH:.status.conditions[?(@.type=="Health")].status,MISCONFIGURED:.status.conditions[?(@.type=="CrdMisconfigured")].message'
 done
 ```
 
-#### 4A. Americas (`us-central1` / `inf-americas`): Stage `Gemma 4 31B` & `Gemma 3 27B` and deploy Pod snapshots + Run:ai Streamer on `NVIDIA RTX PRO 6000 96GB`
+#### 4.1. Stage `Gemma 4 31B` & `Gemma 3 27B` once in a staging region
+
+The downloader Job needs a `c4-standard-4-lssd` or `c3-standard-4-lssd` node. If
+`wait_for_hf_job` keeps printing a `Pending` Pod, check the class with
+`kubectl get computeclass model-download -o yaml`: a `CapacityConstrained`
+condition means the region is temporarily out of those machines. In that case,
+delete the Job and re-run this step with
+`STAGING_PLATFORM="europe" STAGING_REGION="europe-west4"`; Steps 4A–4C copy the
+weights from whichever bucket you staged into.
 
 ```shell
-use_region americas us-central1
+export STAGING_PLATFORM="americas" STAGING_REGION="us-central1"
+use_region "${STAGING_PLATFORM}" "${STAGING_REGION}"
 
-# 1. Stage Gemma 4 31B and Gemma 3 27B to the Americas HNS GCS bucket
 for MODEL in "google/gemma-4-31b-it" "google/gemma-3-27b-it"; do
   export HF_MODEL_ID="${MODEL}"
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
@@ -475,6 +558,35 @@ for MODEL in "google/gemma-4-31b-it" "google/gemma-3-27b-it"; do
   wait_for_hf_job || break
   kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
 done
+export STAGING_BUCKET="${huggingface_hub_models_bucket_name}"
+gcloud storage ls "gs://${STAGING_BUCKET}/google/"
+
+# Start replicating to the other regional buckets right away, in the background
+start_replication google/gemma-4-31b-it americas europe
+start_replication google/gemma-3-27b-it americas
+```
+
+> [!NOTE]
+>
+> Replication runs server-side, but throughput is limited per object. In our
+> runs, `Gemma 3 27B` (twelve `~5 GB` shards) copied between US and European
+> buckets in about 4 minutes, whereas `Gemma 4 31B`'s `12.7 GB` shard took about
+> 8 minutes to `us-central1` and 36 minutes to `asia-south2`, and its `49.9 GB`
+> shard takes proportionally longer. Start Step 4.1 early, and if a region has
+> `C4_CPUS` or `C3_CPUS` quota and `-lssd` capacity, staging directly in that
+> region (re-run Step 4.1 with its `STAGING_PLATFORM`/`STAGING_REGION`) is
+> usually faster than replicating across continents. Steps 4A and 4B wait for
+> the background copies before deploying. Step 4C doesn't copy the weights to
+> `asia-south2` at all (see the note in Step 4C).
+
+#### 4A. Americas (`us-central1` / `inf-americas`): Deploy Pod snapshots + Run:ai Streamer on `NVIDIA RTX PRO 6000 96GB`
+
+```shell
+use_region americas us-central1
+
+# 1. Wait for Gemma 4 31B and Gemma 3 27B to replicate into the Americas HNS bucket (no-op if Americas is the staging region)
+replicate_model google/gemma-4-31b-it
+replicate_model google/gemma-3-27b-it
 
 # 2. Deploy Gemma 4 31B with GKE Pod snapshots + Run:ai Streamer (Kustomize overlay)
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/configure_vllm_podsnapshot.sh"
@@ -505,10 +617,8 @@ kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inferenc
 ```shell
 use_region europe europe-west4
 
-# 1. Replicate Gemma 4 31B from the Americas HNS bucket to the Europe HNS bucket
-gcloud storage rsync --recursive \
-  "gs://${PROJECT_ID}-inf-americas-hf-hub-models/google/gemma-4-31b-it" \
-  "gs://${huggingface_hub_models_bucket_name}/google/gemma-4-31b-it"
+# 1. Wait for Gemma 4 31B to replicate into the Europe HNS bucket (no-op if Europe is the staging region)
+replicate_model google/gemma-4-31b-it
 
 # 2. Deploy Gemma 4 31B on H100 Mega (a3-megagpu-8g), streaming from gs:// with Run:ai Model Streamer
 cat <<EOF | kubectl apply -n "${ira_online_gpu_kubernetes_namespace_name}" -f -
@@ -565,30 +675,62 @@ spec:
 EOF
 ```
 
-#### 4C. Asia-Pacific (`asia-south2` / `inf-apac`): Replicate `Gemma 4 31B` and deploy `PodSnapshot` + `Run:ai Streamer` on `1× H100 80GB` (`a3-highgpu-1g`)
+#### 4C. Asia-Pacific (`asia-south2` / `inf-apac`): Deploy `PodSnapshot` + `Run:ai Streamer` on `1× H100 80GB` (`a3-highgpu-1g`), streaming from the staging bucket
 
 > [!NOTE]
 >
-> As documented in **Stage 5** of the PoC Guide, `google/gemma-4-31b-it`
-> (`58.99 GiB` weights) on `1× H100 80GB` (`79.1 GiB` usable VRAM) leaves
-> `10.61 GiB` (`12,629` tokens) of KV cache at `--gpu-memory-utilization=0.90`,
-> so `--max-model-len` must stay at or below `8192`. The repository's
-> `h100-gemma-4-31b-it` `vllm-podsnapshot-fast-restore` overlay sets both values
-> in its `runtime.env` (`GPU_MEMORY_UTILIZATION=0.90`, `MAX_MODEL_LEN=8192`) and
-> enables **sub-minute (`54.8s`, `4.78×` faster) `PodSnapshot` restore on
-> `H100`** in `inf-apac`.
+> - **No local copy needed for a Pod snapshot workload**: The weights are read
+>   only once, by the first (cold-start) replica; restored replicas resume from
+>   the Pod snapshot and never read the model bucket. Instead of waiting for a
+>   slow cross-continent copy, this step grants the `inf-apac` workload identity
+>   read access to the staging bucket and points the overlay's
+>   `MODEL_BUCKET_NAME` at it, so the first replica streams `Gemma 4 31B` across
+>   regions once (cross-region data transfer applies to that one read). The read
+>   is latency-bound: with the Run:ai Model Streamer's default concurrency it
+>   ran at about `16 MB/s` from `europe-west4` to `asia-south2` (about 65
+>   minutes, longer than the overlay's 60-minute startup probe), whereas
+>   `RUNAI_STREAMER_CONCURRENCY=64` (step 4 below) loaded the model in about 13
+>   minutes. To use a local copy instead, run
+>   `start_replication google/gemma-4-31b-it apac && replicate_model google/gemma-4-31b-it`
+>   after `use_region apac asia-south2` and skip the two `MODEL_BUCKET_NAME`
+>   lines below. Keep the staging bucket until the snapshot is
+>   `AllSnapshotsAvailable`; a later cold start (for example, after changing the
+>   Pod template) reads it again.
+> - As documented in **Stage 5** of the PoC Guide, `google/gemma-4-31b-it`
+>   (`58.99 GiB` weights) on `1× H100 80GB` (`79.1 GiB` usable VRAM) leaves
+>   `10.61 GiB` (`12,629` tokens) of KV cache at
+>   `--gpu-memory-utilization=0.90`, so `--max-model-len` must stay at or below
+>   `8192`. The repository's `h100-gemma-4-31b-it` >
+>   `vllm-podsnapshot-fast-restore` overlay sets both values in its
+>   `runtime.env` (`GPU_MEMORY_UTILIZATION=0.90`, `MAX_MODEL_LEN=8192`).
 
 ```shell
 use_region apac asia-south2
 
-# 1. Replicate Gemma 4 31B from the Americas HNS bucket to the Asia-Pacific HNS bucket
-gcloud storage rsync --recursive \
-  "gs://${PROJECT_ID}-inf-americas-hf-hub-models/google/gemma-4-31b-it" \
-  "gs://${huggingface_hub_models_bucket_name}/google/gemma-4-31b-it"
+# 1. Grant the inf-apac workload identity read access to the staging bucket. The
+#    Run:ai Model Streamer reads bucket metadata (storage.buckets.get) before it
+#    lists and streams objects, so grant both bucket- and object-level read roles.
+PROJECT_NUMBER="$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)')"
+APAC_WORKLOAD="principal://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${PROJECT_ID}.svc.id.goog/subject/ns/${ira_online_gpu_kubernetes_namespace_name}/sa/${ira_online_gpu_kubernetes_service_account_name}"
+for ROLE in roles/storage.legacyBucketReader roles/storage.objectViewer; do
+  gcloud storage buckets add-iam-policy-binding "gs://${STAGING_BUCKET}" \
+    --member="${APAC_WORKLOAD}" --role="${ROLE}" --format=none
+done
 
-# 2. Deploy Gemma 4 31B on 1x H100 80GB with GKE Pod snapshots + Run:ai Streamer (54.8s restore)
+# 2. Generate the overlay configuration, then point MODEL_BUCKET_NAME at the staging bucket
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/configure_vllm_podsnapshot.sh"
+sed -i "s|^MODEL_BUCKET_NAME=.*|MODEL_BUCKET_NAME=${STAGING_BUCKET}|" \
+  "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/base/deployment.env"
+
+# 3. Deploy Gemma 4 31B on 1x H100 80GB with GKE Pod snapshots + Run:ai Streamer
 kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/h100-gemma-4-31b-it"
+
+# 4. Immediately (while the first Pod waits for its GPU node, before any Pod
+#    snapshot exists) raise Run:ai Model Streamer concurrency for the
+#    cross-region read, and replace rather than surge the single GPU replica
+kubectl -n "${ira_online_gpu_kubernetes_namespace_name}" patch deployment vllm-fast-restore-h100-gemma-4-31b-it \
+  --type=strategic \
+  -p '{"spec":{"strategy":{"rollingUpdate":{"maxSurge":0,"maxUnavailable":1}},"template":{"spec":{"containers":[{"name":"inference-server","env":[{"name":"RUNAI_STREAMER_CONCURRENCY","value":"64"}]}]}}}}'
 ```
 
 #### 4D. Pre-flight readiness, snapshot verification & warm-up gate (run before starting the 15-min call)
@@ -605,9 +747,9 @@ are `AllSnapshotsAvailable`, and send one warm-up request to each
 > returns `200 OK`, before the server has handled any inference request. On
 > `RTX PRO 6000` (Blackwell), the first `/v1/chat/completions` request after a
 > restore can trigger a one-time Triton JIT compilation of
-> `kernel_unified_attention` (about 35 seconds); later requests return in about
-> 2 seconds. Send one warm-up request to every restored replica before you show
-> live traffic.
+> `kernel_unified_attention` (about 35–65 seconds); later requests return in
+> about 2 seconds. Send one warm-up request to every restored replica before you
+> show live traffic.
 
 ```shell
 use_region americas us-central1
@@ -772,9 +914,10 @@ KUBECONFIG=/tmp/kc_inf-apac kubectl logs -n inf-apac-online-gpu deploy/vllm-fast
 >    The extra 16 GB of GDDR7 VRAM more than doubles `Gemma 4 31B`'s KV cache to
 >    **`24.89 GiB` (`29,628` tokens per GPU — `2.35×` larger)**, scales linearly
 >    to **`59,256` KV tokens across 2 horizontally scaled replicas**, and gives
->    `Gemma 3 27B` **`32.26 GiB` (`60,783` KV tokens per GPU)**—allowing each
->    replica to hold substantially more concurrent sequences (or a longer
->    `MAX_MODEL_LEN`, such as `16384`) before queuing in
+>    `Gemma 3 27B` (`vllm-runai` overlay at `GPU_MEMORY_UTILIZATION=0.80` and
+>    `MAX_MODEL_LEN=51200`) **`22.99 GiB` (`99,070` KV tokens per
+>    GPU)**—allowing each replica to hold substantially more concurrent
+>    sequences (or a longer `MAX_MODEL_LEN`, such as `16384`) before queuing in
 >    `vllm:num_requests_waiting` and triggering HPA scale-out."_
 
 #### Copy-paste command 3A (verify `Gemma 4 31B` on `H100 80GB Mega` in `inf-europe`)
@@ -790,11 +933,11 @@ KUBECONFIG=/tmp/kc_inf-europe kubectl exec -n inf-europe-online-gpu deploy/vllm-
 #### Copy-paste command 3B (verify `Gemma 4 31B` on `1× H100 80GB` in `inf-apac` vs. `1× RTX PRO 6000 96GB` in `inf-americas`)
 
 ```shell
-echo "=== [ASIA-PACIFIC: asia-south2 / inf-apac] Gemma 4 31B on 1x H100 80GB (PodSnapshot Restored, 10.61 GiB / 12,629 KV tokens) ===" && \
+echo "=== [ASIA-PACIFIC: asia-south2 / inf-apac] Gemma 4 31B on 1x H100 80GB (PodSnapshot-enabled, 10.61 GiB / 12,629 KV tokens) ===" && \
 KUBECONFIG=/tmp/kc_inf-apac kubectl exec -n inf-apac-online-gpu deploy/vllm-fast-restore-h100-gemma-4-31b-it -c inference-server -- \
   curl -s http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" \
   -d '{"model":"google/gemma-4-31b-it","messages":[{"role":"user","content":"Compare 80GB HBM3 vs 96GB GDDR7 for KV cache sizing on 30B LLMs in 2 sentences."}],"max_tokens":96,"temperature":0}' | jq -r '.choices[0].message.content' && \
-echo -e "\n=== [AMERICAS: us-central1 / inf-americas] Gemma 4 31B on 1x RTX PRO 6000 96GB (PodSnapshot Restored, 24.89 GiB / 29,628 KV tokens) ===" && \
+echo -e "\n=== [AMERICAS: us-central1 / inf-americas] Gemma 4 31B on 1x RTX PRO 6000 96GB (PodSnapshot-enabled, 24.89 GiB / 29,628 KV tokens) ===" && \
 KUBECONFIG=/tmp/kc_inf-americas kubectl exec -n inf-americas-online-gpu deploy/vllm-fast-restore-rtx-pro-6000-gemma-4-31b-it -c inference-server -- \
   curl -s http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" \
   -d '{"model":"google/gemma-4-31b-it","messages":[{"role":"user","content":"Explain why 96GB of GPU VRAM prevents KV cache bottlenecks at 16K context in 2 sentences."}],"max_tokens":96,"temperature":0}' | jq -r '.choices[0].message.content'
@@ -803,7 +946,7 @@ KUBECONFIG=/tmp/kc_inf-americas kubectl exec -n inf-americas-online-gpu deploy/v
 #### Copy-paste command 3C (verify `Gemma 3 27B` with Run:ai Streamer + Queue-Depth HPA in `inf-americas`)
 
 ```shell
-echo "=== [AMERICAS: us-central1 / inf-americas] Gemma 3 27B on 1x RTX PRO 6000 96GB (Run:ai Streamer + Queue-Depth HPA, 32.26 GiB / 60,783 KV tokens) ===" && \
+echo "=== [AMERICAS: us-central1 / inf-americas] Gemma 3 27B on 1x RTX PRO 6000 96GB (Run:ai Streamer + Queue-Depth HPA, 22.99 GiB / 99,070 KV tokens) ===" && \
 KUBECONFIG=/tmp/kc_inf-americas kubectl exec -n inf-americas-online-gpu deploy/vllm-rtx-pro-6000-gemma-3-27b-it -c inference-server -- \
   curl -s http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" \
   -d '{"model":"google/gemma-3-27b-it","messages":[{"role":"user","content":"Why is vllm:num_requests_waiting a better HPA autoscaling metric than GPU utilization in 2 sentences?"}],"max_tokens":96,"temperature":0}' | jq -r '.choices[0].message.content'
@@ -869,13 +1012,18 @@ export SERVED_MODEL_NAME="google/gemma-4-31b-it"
 #### Copy-paste command 4B (Option 2 — Sub-minute `54.8s` warm-node `H100` restore in `inf-apac`)
 
 ```shell
-KUBECONFIG=/tmp/kc_inf-apac kubectl scale deploy/vllm-fast-restore-h100-gemma-4-31b-it \
-  -n inf-apac-online-gpu --replicas=0 && \
-sleep 6 && \
-KUBECONFIG=/tmp/kc_inf-apac kubectl scale deploy/vllm-fast-restore-h100-gemma-4-31b-it \
-  -n inf-apac-online-gpu --replicas=1 && \
-KUBECONFIG=/tmp/kc_inf-apac kubectl get pods -n inf-apac-online-gpu \
-  -l app=vllm-fast-restore-h100-gemma-4-31b-it -w
+export KUBECONFIG=/tmp/kc_inf-apac
+kubectl scale deploy/vllm-fast-restore-h100-gemma-4-31b-it -n inf-apac-online-gpu --replicas=0 &&
+  kubectl wait --for=delete pod -n inf-apac-online-gpu -l app=vllm-fast-restore-h100-gemma-4-31b-it --timeout=120s &&
+  sleep 6 &&
+  time (
+    kubectl scale deploy/vllm-fast-restore-h100-gemma-4-31b-it -n inf-apac-online-gpu --replicas=1 &&
+      kubectl rollout status deploy/vllm-fast-restore-h100-gemma-4-31b-it -n inf-apac-online-gpu --timeout=600s &&
+      kubectl wait --for=condition=PodRestored pod -n inf-apac-online-gpu \
+        -l app=vllm-fast-restore-h100-gemma-4-31b-it --timeout=600s
+  )
+kubectl get pods -n inf-apac-online-gpu -l app=vllm-fast-restore-h100-gemma-4-31b-it \
+  -o custom-columns='NAME:.metadata.name,READY:.status.containerStatuses[0].ready,RESTORED:.status.conditions[?(@.type=="PodRestored")].status'
 ```
 
 Once a restored replica is `1/1 Ready`, send it one warm-up request (see Prep

@@ -560,12 +560,18 @@ deployment topologies:
    sed -i "s/^\(cluster_region[[:blank:]]*=\).*/\1 \"${WINNING_REGION}\"/" \
      "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars"
 
-   # If this checkout already deployed another region, clear the stale
-   # core/initialize backend so that core/deploy.sh uses this region's
-   # Terraform state bucket instead of planning destroys against the old one.
-   rm -rf "${ACP_REPO_DIR}/platforms/gke/base/core/initialize/backend.tf" \
-     "${ACP_REPO_DIR}/platforms/gke/base/core/initialize/.terraform" \
-     "${ACP_REPO_DIR}/platforms/gke/base/core/initialize/terraform.tfstate"*
+   # If this checkout already deployed another region, point core/initialize at
+   # this region's Terraform state (if it exists) instead of the previous
+   # region's; otherwise remove backend.tf so core/deploy.sh creates the bucket.
+   CORE_INIT_DIR="${ACP_REPO_DIR}/platforms/gke/base/core/initialize"
+   TF_STATE_BUCKET="${PROJECT_ID}-inf-${PLATFORM_NAME}-terraform"
+   rm -rf "${CORE_INIT_DIR}/.terraform" "${CORE_INIT_DIR}/terraform.tfstate"*
+   if gcloud storage ls "gs://${TF_STATE_BUCKET}/terraform/core/initialize/default.tfstate" >/dev/null 2>&1; then
+     sed "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${TF_STATE_BUCKET}\"/" \
+       "${CORE_INIT_DIR}/backend.tf.bucket" >"${CORE_INIT_DIR}/backend.tf"
+   else
+     rm -f "${CORE_INIT_DIR}/backend.tf"
+   fi
    ```
 
 3. _(Optional)_ If you secured a **named Specific Reservation** with Capacity
@@ -791,8 +797,8 @@ buffers and across PCIe into GPU memory.
    > staging, remove active migration from the class:
    >
    > ```shell
-   > kubectl patch computeclass model-download --type=json \
-   >   -p='[{"op":"remove","path":"/spec/activeMigration"}]'
+   > kubectl patch computeclass model-download --type=merge \
+   >   -p='{"spec":{"activeMigration":null}}'
    > ```
    >
    > In a multi-region ring, stage the weights once in a region with `C3`/`C4`
@@ -804,6 +810,14 @@ buffers and across PCIe into GPU memory.
    >   "gs://<SOURCE_REGION_HF_HUB_MODELS_BUCKET>/google/gemma-4-31b-it" \
    >   "gs://${huggingface_hub_models_bucket_name}/google/gemma-4-31b-it"
    > ```
+   >
+   > Copies run server-side, but throughput is limited per object: in our tests
+   > a `12.7 GB` safetensors shard took about 8 minutes from `europe-west4` to
+   > `us-central1` and 36 minutes to `asia-south2`, so a checkpoint with very
+   > large shards (such as `Gemma 4 31B`'s `49.9 GB` shard) can take well over
+   > 30 minutes to replicate across continents. Start the copy early, or stage
+   > directly from Hugging Face in regions where the `model-download` class can
+   > schedule.
 
 2. Deploy the `vllm-runai` overlay for your accelerator (`h100` or
    `rtx-pro-6000`), which includes the `HorizontalPodAutoscaler` scaling on
@@ -847,7 +861,7 @@ Cloud Storage:
 > `LOADING=0` and skip all three steps. The checkpoint is triggered as soon as
 > `/health` returns `200 OK`, before any inference request, so on `RTX PRO 6000`
 > (Blackwell) the first `/v1/chat/completions` request after a restore can still
-> JIT-compile the Triton `kernel_unified_attention` kernel (about 35 seconds,
+> JIT-compile the Triton `kernel_unified_attention` kernel (about 35–65 seconds,
 > after which requests return in about 2 seconds). Send one warm-up request to
 > each restored replica before routing user traffic to it.
 
@@ -876,7 +890,11 @@ source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terrafor
 # 1. Enable Pod snapshots on the cluster (one-time per cluster). Wait for any
 #    post-deploy Autopilot operation (such as RESIZE_CLUSTER) to finish first,
 #    otherwise the update fails with CLUSTER_ALREADY_HAS_OPERATION.
-until [ "$(gcloud container clusters describe "${cluster_name}" --location="${cluster_region}" --project="${cluster_project_id}" --format='value(status)')" = "RUNNING" ]; do
+for _ in $(seq 1 90); do
+  CLUSTER_STATUS="$(gcloud container clusters describe "${cluster_name}" --location="${cluster_region}" --project="${cluster_project_id}" --format='value(status)' 2>/dev/null)"
+  if [ "${CLUSTER_STATUS}" = "RUNNING" ] || [ "${CLUSTER_STATUS}" = "ERROR" ] || [ -z "${CLUSTER_STATUS}" ]; then
+    break
+  fi
   sleep 10
 done
 gcloud beta container clusters update "${cluster_name}" \
@@ -1012,10 +1030,15 @@ case:
   `_shared_config/cluster.auto.tfvars`, and `container_cluster_ap` sets
   `cluster_autopilot_enabled = true` in it, so never overwrite that file; update
   only its `cluster_region` line when switching regions. Before running
-  `deploy-ap.sh` for the next region, delete `core/initialize/backend.tf`,
-  `core/initialize/.terraform`, and `core/initialize/terraform.tfstate*`;
-  otherwise `core/initialize` keeps using the previous region's state bucket and
-  plans to destroy that region's resources.
+  `deploy-ap.sh` for the next region, point `core/initialize/backend.tf` at that
+  region's state bucket if `terraform/core/initialize/default.tfstate` already
+  exists there (for example, when retrying a region), or delete it for a
+  region's first deployment; otherwise `core/initialize` keeps using the
+  previous region's state bucket and plans to destroy that region's resources.
+  Don't just delete `backend.tf` for a region that already has state:
+  `core/deploy.sh` looks for `terraform/initialize/default.tfstate` rather than
+  `terraform/core/initialize/default.tfstate`, so it starts from empty local
+  state and fails with a `409` conflict on the existing state bucket.
 - **`gcloud beta container clusters update --enable-pod-snapshots` fails with
   `CLUSTER_ALREADY_HAS_OPERATION`**: Right after `deploy-ap.sh`, GKE Autopilot
   can still be running an asynchronous `RESIZE_CLUSTER` operation. Poll
@@ -1030,7 +1053,7 @@ case:
   snapshot is taken right after `/health` succeeds, before any inference
   request, so Blackwell GPUs can JIT-compile the Triton
   `kernel_unified_attention` kernel on the first `/v1/chat/completions` request
-  (about 35 seconds). Send one warm-up request per restored replica.
+  (about 35–65 seconds). Send one warm-up request per restored replica.
 - **Multi-region HNS bucket & `online_gpu` Terraform teardown**: When tearing
   down multiple regional copies of `online_gpu` from a single checkout, first
   re-point `core/initialize/backend.tf` at the region's Terraform state bucket
@@ -1293,9 +1316,9 @@ set by `--gpu-memory-utilization`._
    - The checkpoint is triggered as soon as `/health` returns `200 OK`, before
      any inference request. On `RTX PRO 6000` (Blackwell), the first
      `/v1/chat/completions` request after a restore can JIT-compile the Triton
-     `kernel_unified_attention` kernel (about 35 seconds, then about 2 seconds
-     per request). Send one warm-up request to each restored replica before
-     routing user traffic to it.
+     `kernel_unified_attention` kernel (about 35–65 seconds, then about 2
+     seconds per request). Send one warm-up request to each restored replica
+     before routing user traffic to it.
 3. **VRAM capacity & KV cache headroom when sizing single-GPU (`TP=1`) scale-out
    units (`80 GB H100` vs. `96 GB RTX PRO 6000`)**:
    - Keeping 27B–31B models on a single GPU (`--tensor-parallel-size=1`) is

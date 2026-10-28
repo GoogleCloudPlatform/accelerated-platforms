@@ -53,6 +53,16 @@ data "helm_template" "llmd_ppcr_router" {
   ]
   skip_tests = var.llmd_ppcr_skip_router_render_tests
   validate   = var.llmd_ppcr_validate_router_manifests
+
+  lifecycle {
+    postcondition {
+      condition = (
+        strcontains(self.manifest, "modelName: ${var.llmd_model_id}") &&
+        (!local.deploy_on_tpu || strcontains(self.manifest, "blockSizeTokens: 256"))
+      )
+      error_message = "Rendered precise-prefix-cache-routing router manifest is missing expected modelName (${var.llmd_model_id}) or TPU blockSizeTokens (256)."
+    }
+  }
 }
 
 resource "local_file" "llmd_ppcr_router_manifests" {

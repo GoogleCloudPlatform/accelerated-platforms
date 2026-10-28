@@ -37,7 +37,7 @@ variable "llmd_ob_git_url" {
 }
 
 variable "llmd_ob_git_branch" {
-  default     = "main"
+  default     = "v1.0.0"
   description = "Branch of the llmd repository."
   type        = string
 }
@@ -84,7 +84,7 @@ variable "llmd_ob_router_chart_repo" {
 }
 
 variable "llmd_ob_router_chart_version" {
-  default     = "v1"
+  default     = "v1.0.0"
   description = "Helm chart version for installing router"
   type        = string
 }

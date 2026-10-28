@@ -29,6 +29,9 @@ spec:
                 - name: modelserver
                   resources:
                     limits:
+                      memory: 256Gi
                       google.com/tpu: "8"
                     requests:
+                      cpu: "64"
+                      memory: 256Gi
                       google.com/tpu: "8"

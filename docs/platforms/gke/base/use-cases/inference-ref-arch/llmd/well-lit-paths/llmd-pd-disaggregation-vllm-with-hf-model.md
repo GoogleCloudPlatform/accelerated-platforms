@@ -213,18 +213,20 @@ The `deploy-llmd-pd-disaggregation.sh` script will perform the following steps:
 
 - [Generate a Hugging Face tokens](https://huggingface.co/docs/hub/security-tokens)
   with token type **Read**.
-- Add the token to the secret manager
+- Add the token to Secret Manager (prompting silently so the token is not saved
+  in shell history):
 
-  ```
-  HF_TOKEN_READ=<YOUR_HUGGINGFACE_READ_TOKEN>
-  echo ${HF_TOKEN_READ} | gcloud secrets versions add ${huggingface_hub_access_token_read_secret_manager_secret_name} --data-file=- --project=${huggingface_secret_manager_project_id}
+  ```shell
+  read -rs -p "Hugging Face Read Token: " HF_TOKEN_READ && echo
+  printf '%s' "${HF_TOKEN_READ}" | gcloud secrets versions add "${huggingface_hub_access_token_read_secret_manager_secret_name}" --data-file=- --project="${huggingface_secret_manager_project_id}"
   ```
 
-- Additionally, add the token to a secret named `HF_TOKEN` for the router.
+- Additionally, add the token to a Kubernetes secret named `llm-d-hf-token`
+  (with key `HF_TOKEN`) for the router:
 
-  ```
-  HF_TOKEN_READ=<YOUR_HUGGINGFACE_READ_TOKEN>
-  kubectl -n ${llmd_namespace} create secret generic llm-d-hf-token --from-literal=HF_TOKEN="${HF_TOKEN_READ}"
+  ```shell
+  kubectl -n "${llmd_namespace}" create secret generic llm-d-hf-token --from-literal=HF_TOKEN="${HF_TOKEN_READ}"
+  unset HF_TOKEN_READ
   ```
 
 - Configure the model download job.
@@ -394,7 +396,7 @@ The `deploy-llmd-pd-disaggregation.sh` script will perform the following steps:
 
   ```sh
   kubectl run curl-debug --rm -it \
-      --image=cfmanteiga/alpine-bash-curl-jq \
+      --image=nicolaka/netshoot:v0.13 \
       --env="IP=$IP" \
       --env="NAMESPACE=$llmd_namespace" \
       -- /bin/bash

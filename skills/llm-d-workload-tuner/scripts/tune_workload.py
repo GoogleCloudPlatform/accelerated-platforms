@@ -197,6 +197,7 @@ def main():
     )
     old_node = get_n(node_d, ["spec", "template", "spec", "nodeSelector", n_k])
     tpu_c = "tpu-v6e-2x2" if tp == 4 else ("tpu-v6e-2x4" if tp == 8 else None)
+    tpu_topo = "2x2" if tp == 4 else ("2x4" if tp == 8 else None)
     s_val = str(tp) if pfx == "gpu" else tpu_c
 
     # Get current tuner args from patch if exists
@@ -240,7 +241,7 @@ def main():
         patch_yaml(
             res_f,
             ["spec", "template", "spec", "containers", 0, "resources", "limits", l_k],
-            tp,
+            str(tp),
         )
         if get_n(
             res_d,
@@ -259,10 +260,78 @@ def main():
                     "requests",
                     l_k,
                 ],
-                tp,
+                str(tp),
+            )
+        if pfx == "tpu" and tp in (4, 8):
+            tpu_mem = "128Gi" if tp == 4 else "256Gi"
+            tpu_cpu = "32" if tp == 4 else "64"
+            patch_yaml(
+                res_f,
+                [
+                    "spec",
+                    "template",
+                    "spec",
+                    "containers",
+                    0,
+                    "resources",
+                    "limits",
+                    "memory",
+                ],
+                tpu_mem,
+            )
+            patch_yaml(
+                res_f,
+                [
+                    "spec",
+                    "template",
+                    "spec",
+                    "containers",
+                    0,
+                    "resources",
+                    "requests",
+                    "memory",
+                ],
+                tpu_mem,
+            )
+            patch_yaml(
+                res_f,
+                [
+                    "spec",
+                    "template",
+                    "spec",
+                    "containers",
+                    0,
+                    "resources",
+                    "requests",
+                    "cpu",
+                ],
+                tpu_cpu,
             )
         if s_val:
             patch_yaml(node_f, ["spec", "template", "spec", "nodeSelector", n_k], s_val)
+            if pfx == "tpu" and tpu_topo:
+                patch_yaml(
+                    node_f,
+                    [
+                        "spec",
+                        "template",
+                        "spec",
+                        "nodeSelector",
+                        "cloud.google.com/gke-tpu-accelerator",
+                    ],
+                    "tpu-v6e-slice",
+                )
+                patch_yaml(
+                    node_f,
+                    [
+                        "spec",
+                        "template",
+                        "spec",
+                        "nodeSelector",
+                        "cloud.google.com/gke-tpu-topology",
+                    ],
+                    tpu_topo,
+                )
 
         # Apply tuner args patch
         kustomization_file = f"{ovl}/kustomization.yaml"

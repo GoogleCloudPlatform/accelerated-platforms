@@ -1,7 +1,9 @@
+cvc
 disagg
 disaggregatedset
 disaggregatedsets
 disaggregating
+dset
 epp
 gaie
 getmtime
@@ -12,11 +14,16 @@ leaderworkersets
 listdir
 llmd
 lognormal
+lws
+lwt
 modelserver
 modelservice
+netshoot
+nicolaka
 nixl
 nixlconnector
 nixlv
+postcondition
 ppcr
 shlex
 subdirs

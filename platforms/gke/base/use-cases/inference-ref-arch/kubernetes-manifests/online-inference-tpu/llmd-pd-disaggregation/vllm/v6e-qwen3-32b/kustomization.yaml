@@ -25,7 +25,7 @@ configMapGenerator:
 nameSuffix: -v6e-qwen3-32b
 
 components:
-  - https://github.com/llm-d/llm-d//guides/recipes/modelserver/components/disaggregatedset-schema?ref=main
+  - https://github.com/llm-d/llm-d//guides/recipes/modelserver/components/disaggregatedset-schema?ref=v1.0.0
 
 patches:
   - path: patch-decode-nodeselector.yaml

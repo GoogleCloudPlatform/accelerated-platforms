@@ -30,6 +30,7 @@ mirror the primary model server, so existing consumers keep working.
 """
 
 import argparse
+import copy
 import datetime
 import json
 import re
@@ -137,8 +138,15 @@ def expand_disaggregated_sets(items: list) -> list:
         base_ns = deep_get(item, ["metadata", "namespace"])
         for role in deep_get(item, ["spec", "roles"], []) or []:
             role_name = role.get("name", "worker")
-            role_spec = dict(role.get("spec") or {})
-            wt = deep_get(role_spec, ["leaderWorkerTemplate", "workerTemplate"]) or {}
+            role_spec = copy.deepcopy(role.get("spec") or {})
+            lwt = role_spec.setdefault("leaderWorkerTemplate", {})
+            if not isinstance(lwt, dict):
+                lwt = {}
+                role_spec["leaderWorkerTemplate"] = lwt
+            wt = lwt.setdefault("workerTemplate", {})
+            if not isinstance(wt, dict):
+                wt = {}
+                lwt["workerTemplate"] = wt
             wt_meta = wt.setdefault("metadata", {})
             wt_labels = wt_meta.setdefault("labels", {})
             wt_labels.setdefault(ROLE_LABEL, role_name)
@@ -236,11 +244,17 @@ def normalize_cli_args(args: list, command: list = None) -> list:
     ):
         idx = args[0].find("vllm serve")
         tail = args[0][idx + len("vllm serve") :]
-        tail = re.sub(r"\\\s*\n", " ", tail)
+        # Drop full-line shell comments inside multi-line continuation blocks,
+        # join backslash-continued lines, and stop at the first unescaped newline.
+        lines = [
+            ln for ln in tail.splitlines() if not ln.lstrip().startswith("#")
+        ]
+        joined = re.sub(r"\\\s*\n", " ", "\n".join(lines))
+        first_cmd = joined.split("\n", 1)[0]
         try:
-            return shlex.split(tail)
+            return shlex.split(first_cmd, comments=True)
         except ValueError:
-            return tail.split()
+            return first_cmd.split()
     return list(args)
 
 
@@ -503,7 +517,7 @@ def get_node(name) -> dict:
         return {}
 
 
-def scaling_state(workload: dict, hpa_list: list) -> dict:
+def scaling_state(workload: dict, hpa_list: list, live_pods: list = None) -> dict:
     """Return replicas and HPA target state for a workload."""
     name = deep_get(workload, ["metadata", "name"], "")
     hpa_info = next(
@@ -519,9 +533,18 @@ def scaling_state(workload: dict, hpa_list: list) -> dict:
         ),
         None,
     )
+    ready_replicas = deep_get(workload, ["status", "readyReplicas"])
+    if ready_replicas is None:
+        ready_replicas = sum(
+            1
+            for p in (live_pods or [])
+            if p.get("phase") == "Running"
+            and p.get("containers")
+            and all(c.get("ready") for c in p["containers"])
+        )
     return {
         "configured_replicas": deep_get(workload, ["spec", "replicas"], 1),
-        "ready_replicas": deep_get(workload, ["status", "readyReplicas"], 0),
+        "ready_replicas": ready_replicas,
         "hpa_enabled": hpa_info is not None,
         "hpa_info": hpa_info,
     }
@@ -588,8 +611,8 @@ def describe_model_server(
         # kv_cache_dtype, ...) pulled out of the arg list and the environment.
         "serving_parameters": parse_vllm_args(args),
         "tuning_env": tuning_env(env_map),
-        "kv_transfer": parse_kv_transfer(container.get("args", [])),
-        "scaling_state": scaling_state(workload, hpa_list),
+        "kv_transfer": parse_kv_transfer(args),
+        "scaling_state": scaling_state(workload, hpa_list, live_pods),
         "resolved_container_args": args,
         "resolved_container_command": command,
         "resolved_runtime_env": env_map,

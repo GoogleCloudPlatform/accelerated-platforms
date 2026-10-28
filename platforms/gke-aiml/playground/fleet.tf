@@ -47,7 +47,7 @@ resource "null_resource" "gke_hub_feature_configmanagement" {
 
 resource "google_gke_hub_membership" "cluster" {
   depends_on = [
-    google_gke_hub_membership.cluster,
+    google_container_cluster.mlp,
     google_project_service.gkeconnect_googleapis_com,
     google_project_service.gkehub_googleapis_com,
   ]

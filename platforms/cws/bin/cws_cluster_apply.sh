@@ -42,15 +42,49 @@ declare -a terraservices=(
   "workstation_cluster"
 )
 
-for terraservice in "${terraservices[@]}"; do
-  cd "${ACP_PLATFORM_TF_DIR}/${terraservice}" &&
-    echo "Current directory: $(pwd)" &&
-    rm --force --recursive .terraform/ &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-  rm tfplan
-done
+apply_cluster_terraservices() {
+  for terraservice in "${terraservices[@]}"; do
+    cd "${ACP_PLATFORM_TF_DIR}/${terraservice}" &&
+      echo "Current directory: $(pwd)" &&
+      rm --force --recursive .terraform/ &&
+      terraform init &&
+      terraform plan -input=false -out=tfplan &&
+      terraform apply -input=false tfplan || return 1
+    rm tfplan
+  done
+}
+
+if ! apply_cluster_terraservices; then
+  fallback_location="${FALLBACK_LOCATION:-}"
+  if [[ -n "${fallback_location}" && "${fallback_location}" != "${workstation_cluster_region:-}" ]]; then
+    echo "WARNING: Cluster provisioning failed in '${workstation_cluster_region:-${platform_default_location}}'. Falling back to location '${fallback_location}'..."
+    for terraservice in "workstation_cluster" "network"; do
+      if [[ -d "${ACP_PLATFORM_TF_DIR}/${terraservice}" ]]; then
+        cd "${ACP_PLATFORM_TF_DIR}/${terraservice}" &&
+          rm --force --recursive .terraform/ &&
+          terraform init &&
+          terraform destroy -auto-approve -input=false || true
+      fi
+    done
+
+    export TF_VAR_platform_default_location="${fallback_location}"
+    export TF_VAR_workstation_cluster_region="${fallback_location}"
+    if [[ -f "${ACP_PLATFORM_DIR}/_shared_config/platform.auto.tfvars" ]]; then
+      sed -i "s|^\([[:blank:]]*platform_default_location[[:blank:]]*=\).*|\1 \"${fallback_location}\"|" "${ACP_PLATFORM_DIR}/_shared_config/platform.auto.tfvars"
+    fi
+    if [[ -f /workspace/build.env ]]; then
+      sed -i "s|^TF_VAR_platform_default_location=.*|TF_VAR_platform_default_location=\"${fallback_location}\"|" /workspace/build.env
+    fi
+
+    "${ACP_PLATFORM_DIR}/bin/cws_initialize.sh"
+    # shellcheck source=/dev/null
+    source "${ACP_PLATFORM_DIR}/cluster/_shared_config/scripts/set_environment_variables.sh"
+
+    apply_cluster_terraservices || exit 1
+  else
+    exit 1
+  fi
+fi
 
 declare -A end_timestamp["${MY_NAME}"]
 end_timestamp["${MY_NAME}"]=$(date +%s)

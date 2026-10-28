@@ -39,6 +39,7 @@ resource "google_container_cluster" "cluster" {
   deletion_protection      = false
   enable_shielded_nodes    = true
   location                 = local.cluster_region
+  min_master_version       = local.cluster_min_master_version
   name                     = local.cluster_name
   network                  = local.network_cluster_network_name
   node_locations           = local.valid_zones
@@ -343,9 +344,90 @@ resource "google_container_node_pool" "system" {
   }
 }
 
+resource "google_container_node_pool" "sandbox" {
+  for_each = toset(local.cluster_sandbox_enabled ? [local.cluster_sandbox_type] : [])
+
+  provider = google-beta
+
+  # Variables
+  cluster            = google_container_cluster.cluster.name
+  initial_node_count = 0
+  location           = local.cluster_region
+  name               = "sandbox-${lower(each.key)}"
+  project            = google_container_cluster.cluster.project
+
+  # Blocks
+  autoscaling {
+    location_policy      = "BALANCED"
+    total_max_node_count = 32
+    total_min_node_count = 0
+  }
+
+  network_config {
+    enable_private_nodes = true
+  }
+
+  node_config {
+    # Variables
+    image_type = local.cluster_sandbox_image_type
+    labels = {
+      "resource-type" : "cpu"
+      "sandbox.gke.io/runtime" : lower(each.key)
+    }
+    machine_type    = local.cluster_sandbox_machine_type
+    service_account = data.google_service_account.cluster.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+
+    # Blocks
+    dynamic "advanced_machine_features" {
+      for_each = each.key == "MICROVM" ? ["microvm"] : []
+      content {
+        enable_nested_virtualization = true
+        threads_per_core             = 0
+      }
+    }
+
+    gcfs_config {
+      enabled = true
+    }
+
+    sandbox_config {
+      type = each.key
+    }
+
+    shielded_instance_config {
+      enable_integrity_monitoring = true
+      enable_secure_boot          = true
+    }
+
+    taint {
+      effect = "NO_SCHEDULE"
+      key    = "sandbox.gke.io/runtime"
+      value  = lower(each.key)
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      initial_node_count,
+      node_config[0].labels,
+      node_config[0].resource_labels,
+      node_config[0].taint,
+    ]
+  }
+
+  timeouts {
+    create = "30m"
+    update = "20m"
+  }
+}
+
 resource "terraform_data" "cluster_credentials" {
   depends_on = [
     google_container_cluster.cluster,
+    google_container_node_pool.sandbox,
     google_container_node_pool.system,
   ]
 

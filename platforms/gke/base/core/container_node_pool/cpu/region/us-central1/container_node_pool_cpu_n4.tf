@@ -159,3 +159,91 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
     update = "20m"
   }
 }
+
+###############################################################################
+
+resource "google_container_node_pool" "cpu_n4s8_sandbox" {
+  for_each = toset(local.cluster_sandbox_enabled ? [local.cluster_sandbox_type] : [])
+
+  provider = google-beta
+
+  # Variables
+  cluster  = data.google_container_cluster.cluster.name
+  location = local.cluster_region
+  name     = "cpu-n4s8-${lower(each.key)}"
+  node_locations = [
+    "us-central1-a",
+    "us-central1-b",
+    "us-central1-c",
+    "us-central1-f",
+  ]
+  project = data.google_project.cluster.project_id
+
+  # Blocks
+  autoscaling {
+    location_policy      = "BALANCED"
+    total_max_node_count = 32
+    total_min_node_count = 0
+  }
+
+  network_config {
+    enable_private_nodes = true
+  }
+
+  node_config {
+    # Variables
+    image_type = local.cluster_sandbox_image_type
+    labels = {
+      "resource-model" : "n4"
+      "resource-type" : "cpu"
+      "sandbox.gke.io/runtime" : lower(each.key)
+    }
+    machine_type    = local.cluster_sandbox_machine_type
+    service_account = data.google_service_account.cluster.email
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+
+    # Blocks
+    dynamic "advanced_machine_features" {
+      for_each = each.key == "MICROVM" ? ["microvm"] : []
+      content {
+        enable_nested_virtualization = true
+        threads_per_core             = 0
+      }
+    }
+
+    gcfs_config {
+      enabled = true
+    }
+
+    sandbox_config {
+      type = each.key
+    }
+
+    shielded_instance_config {
+      enable_integrity_monitoring = true
+      enable_secure_boot          = true
+    }
+
+    taint {
+      effect = "NO_SCHEDULE"
+      key    = "sandbox.gke.io/runtime"
+      value  = lower(each.key)
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      initial_node_count,
+      node_config[0].labels,
+      node_config[0].resource_labels,
+      node_config[0].taint,
+    ]
+  }
+
+  timeouts {
+    create = "30m"
+    update = "20m"
+  }
+}

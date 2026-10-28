@@ -71,6 +71,7 @@ resource "terraform_data" "manifests" {
 mkdir -p "${self.input.version_manifests_dir}" && \
 mkdir -p "${self.input.manifests_dir}" && \
 wget https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v${self.input.version}/manifest.yaml -O "${self.input.version_manifests_dir}/manifests.yaml" && \
+wget https://github.com/kubernetes-sigs/agent-sandbox/releases/download/v${self.input.version}/extensions.yaml -O "${self.input.version_manifests_dir}/extensions.yaml" && \
 cp -r templates/workload/* "${self.input.version_manifests_dir}/" && \
 cp -r "${self.input.version_manifests_dir}"/* "${self.input.manifests_dir}/"
 EOT

@@ -88,6 +88,15 @@ steps:
 
   - args:
       - /workspace/platforms/gke/base/core
+      - workloads/agent_sandbox
+    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+    id: "Core Terraservice 'workloads/agent_sandbox'"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Core Terraservice 'workloads/auto_monitoring'"
+
+  - args:
+      - /workspace/platforms/gke/base/core
       - workloads/custom_metrics_adapter
     entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
     id: "Core Terraservice 'workloads/custom_metrics_adapter'"
@@ -129,6 +138,7 @@ steps:
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     id: "Core Terraservice 'workloads/kueue'"
     waitFor:
+      - "Core Terraservice 'workloads/agent_sandbox'"
       - "Core Terraservice 'workloads/custom_metrics_adapter'"
       - "Core Terraservice 'workloads/inference_gateway'"
       - "Core Terraservice 'workloads/jobset'"
@@ -161,6 +171,15 @@ steps:
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Core Terraservice 'networking' check for changes"
+
+  - args:
+      - /workspace/platforms/gke/base/core
+      - workloads/agent_sandbox
+    entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+    id: "Core Terraservice 'workloads/agent_sandbox' check for changes"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Core Terraservice 'container_cluster' check for changes"
 
   - args:
       - /workspace/platforms/gke/base/core

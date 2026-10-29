@@ -32,6 +32,7 @@ kubeconfigs
 kubelet
 limitranges
 maxpods
+microvm
 minpods
 mutatingwebhookconfigurations
 nameprefix

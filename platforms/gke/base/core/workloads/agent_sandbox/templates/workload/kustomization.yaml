@@ -22,4 +22,3 @@ patches:
 
 resources:
 - manifests.yaml
-- extensions.yaml

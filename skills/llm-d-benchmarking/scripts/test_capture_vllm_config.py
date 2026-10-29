@@ -195,6 +195,79 @@ class CaptureVllmConfigTest(unittest.TestCase):
         scale = cvc.scaling_state(workload, [], pods)
         self.assertEqual(scale["ready_replicas"], 1)
 
+    def test_build_env_map_substitutes_previously_defined_vars(self):
+        container = {
+            "env": [
+                {
+                    "name": "POD_IP",
+                    "valueFrom": {"fieldRef": {"fieldPath": "status.podIP"}},
+                },
+                {
+                    "name": "VLLM_HOST_IP",
+                    "value": "$(POD_IP)",
+                },
+            ]
+        }
+        env_map = cvc.build_env_map(container, {})
+        self.assertEqual(env_map["POD_IP"], "<fieldRef:status.podIP>")
+        self.assertEqual(env_map["VLLM_HOST_IP"], "<fieldRef:status.podIP>")
+
+    @mock.patch.object(cvc, "get_live_pods", return_value=[])
+    @mock.patch.object(cvc, "run_kubectl")
+    def test_capture_deduplicates_lws_owned_child_deployments(
+        self, mock_kubectl, _mock_pods
+    ):
+        import tempfile
+
+        child_deploy = {
+            "kind": "Deployment",
+            "metadata": {
+                "name": "pd-disagg-decode",
+                "ownerReferences": [
+                    {"kind": "LeaderWorkerSet", "name": "pd-disagg-decode"}
+                ],
+            },
+            "spec": {
+                "replicas": 1,
+                "template": {
+                    "metadata": {"labels": {cvc.ROLE_LABEL: "decode"}},
+                    "spec": {
+                        "containers": [
+                            {"name": "modelserver", "image": "vllm/vllm-torchtpu:v0.29.0"}
+                        ]
+                    },
+                },
+            },
+        }
+        parent_lws = {
+            "kind": "LeaderWorkerSet",
+            "metadata": {"name": "pd-disagg-decode"},
+            "spec": {
+                "replicas": 1,
+                "leaderWorkerTemplate": {
+                    "workerTemplate": {
+                        "metadata": {"labels": {cvc.ROLE_LABEL: "decode"}},
+                        "spec": {
+                            "containers": [
+                                {
+                                    "name": "modelserver",
+                                    "image": "vllm/vllm-torchtpu:v0.29.0",
+                                }
+                            ]
+                        },
+                    }
+                },
+            },
+        }
+        mock_kubectl.side_effect = [
+            {"items": [child_deploy]},
+            {"items": [parent_lws]},
+        ]
+        with tempfile.NamedTemporaryFile(suffix=".json") as tmp:
+            res = cvc.capture_vllm_config("llmd", "pd-disaggregation", tmp.name)
+        self.assertEqual(res["detected_architecture"]["model_server_count"], 1)
+        self.assertEqual(res["model_servers"][0]["workload_kind"], "LeaderWorkerSet")
+
 
 if __name__ == "__main__":
     unittest.main()

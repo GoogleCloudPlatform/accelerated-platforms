@@ -27,6 +27,9 @@ nameSuffix: -v6e-qwen3-32b
 components:
   - https://github.com/llm-d/llm-d//guides/recipes/modelserver/components/disaggregatedset-schema?ref=v1.0.0
 
+configurations:
+  - kustomizeconfig.yaml
+
 patches:
   - path: patch-decode-nodeselector.yaml
     target:

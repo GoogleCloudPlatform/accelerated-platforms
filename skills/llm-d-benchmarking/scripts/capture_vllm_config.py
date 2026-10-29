@@ -215,7 +215,7 @@ def build_env_map(container: dict, configmaps: dict) -> dict:
     for e in container.get("env", []):
         name = e.get("name")
         if "value" in e:
-            env_map[name] = e["value"]
+            env_map[name] = substitute_vars(e["value"], env_map)
             continue
         value_from = e.get("valueFrom", {})
         if "configMapKeyRef" in value_from:
@@ -339,7 +339,7 @@ def tuning_env(env_map: dict) -> dict:
     return {
         k: v
         for k, v in env_map.items()
-        if k.startswith(("VLLM_", "TPU_", "JAX_", "LIBTPU_", "PJRT_"))
+        if k.startswith(("VLLM_", "TPU_", "JAX_", "LIBTPU_", "PJRT_", "RUNAI_"))
     }
 
 
@@ -776,6 +776,22 @@ def capture_vllm_config(
                 workloads.extend(lws_items)
             except (subprocess.CalledProcessError, ValueError):
                 pass
+        lws_names = {
+            deep_get(w, ["metadata", "name"])
+            for w in workloads
+            if w.get("kind") == "LeaderWorkerSet"
+        }
+        if lws_names:
+            workloads = [
+                w
+                for w in workloads
+                if w.get("kind") == "LeaderWorkerSet"
+                or not any(
+                    ref.get("kind") == "LeaderWorkerSet"
+                    and ref.get("name") in lws_names
+                    for ref in deep_get(w, ["metadata", "ownerReferences"], [])
+                )
+            ]
         if not any(is_model_server(w) for w in workloads):
             dset_items = [i for i in items if i.get("kind") == "DisaggregatedSet"]
             if not dset_items:

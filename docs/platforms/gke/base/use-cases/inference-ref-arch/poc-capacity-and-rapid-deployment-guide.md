@@ -7,7 +7,7 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2026-10-20 (YYYY-MM-DD)
+> Last Update: 2026-10-26 (YYYY-MM-DD)
 
 This guide provides an end-to-end **Proof of Concept (PoC) playbook** for
 bringing up production-grade AI inference deployments on Google Kubernetes
@@ -82,16 +82,16 @@ flowchart TD
 
 ### Summary of acceleration techniques in this repository
 
-| Bottleneck                         | Accelerated Platforms Technique                                                                                                            | Measured Impact                                                                                                                                                 | Where It Is Configured                                                                                                                                                                                                                                |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Finding regional capacity**      | **Capacity Advisor APIs** + **[Capacity Radar](https://github.com/MG-Cafe/capacity_radar)** (passive advisory + active multi-zone probing) | Identifies zones with immediate Spot, DWS Flex-Start, DWS Calendar, or On-Demand obtainability before provisioning GKE                                          | [Stage 2](#stage-2-discover-and-secure-capacity-before-you-deploy)                                                                                                                                                                                    |
-| **Single-region stock-outs**       | **Custom Compute Classes (CCC)** + **Multi-Region Fluid Compute Ring**                                                                     | Automatically cascades across Reservations, On-Demand, DWS Flex-Start (7d/1d), and Spot VMs; fails over across regions via Multi-Cluster Gateway                | [`platforms/gke/base/core/custom_compute_class`](/platforms/gke/base/core/custom_compute_class/templates/manifests/gpu)                                                                                                                               |
-| **GPU node provisioning**          | **GKE Autopilot Fast-Starting Nodes** (eligible on `G2` L4 and `G4` RTX PRO 6000 on-demand/reserved nodes)                                 | Uses pre-initialized hardware on a best-effort basis at no extra cost to cut the 1–3 minute node bring-up window                                                | Enabled automatically on compatible GKE Autopilot clusters                                                                                                                                                                                            |
-| **Container image pull**           | **Google Container File System (GCFS) Image Streaming** (`imageStreaming.enabled: true`)                                                   | Reduces multi-gigabyte vLLM image pull from **~4 minutes to 1.3–2.3 seconds** on new nodes                                                                      | Enabled in all GPU `ComputeClass` templates                                                                                                                                                                                                           |
-| **Object storage QPS & egress**    | **Hierarchical Namespace (HNS) Cloud Storage** + **Zonal Rapid Cache** (`anywhere_cache`) + **`gcsfusecsi-serving` profile**               | Up to 8× higher initial QPS; **10.5–12.5s** per replica at 6× concurrent scale-out with **97–100% cache hit rate**; eliminates cross-region egress on cache hit | [`huggingface/initialize/storage.tf`](/platforms/gke/base/core/huggingface/initialize/storage.tf) and `terraform/online_gpu/storage.tf`                                                                                                               |
-| **Model weight loading**           | **NVIDIA Run:ai Model Streamer** (`--load-format=runai_streamer` direct from `gs://` to GPU VRAM)                                          | Streams **Gemma 3 27B** (`51.54 GiB`) in **9.1s** and **Gemma 4 31B** (`58.99 GiB`) in **11.1–25.7s** on RTX PRO 6000 and **20.1–25.8s** on H100 with zero disk | [`online-inference-gpu/vllm-runai`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai)                                                                                                            |
-| **Engine init & CUDA graphs**      | **GKE Pod Snapshots** (`runtimeClassName: gvisor` + cooperative `/proc/gvisor/checkpoint` trigger)                                         | Skips weight loading, `torch.compile`, and CUDA graph capture on scale-out; restores to first response in **28.2s (L4)**, **36–56s (H100)**, **35–105s (G4)**   | [`vllm-podsnapshot-fast-restore`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore)                                                                                           |
-| **Reactive autoscaling & routing** | **Queue-Depth HPA (`vllm:num_requests_waiting`)** + **`llm-d` Well-Lit Paths (GAIE `InferencePool` + EPP Router)**                         | Scales immediately when requests queue in vLLM; routes traffic based on live KV-cache utilization, prefix cache hits, and predicted latency                     | [`vllm-runai/base/hpa.yaml`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/base/hpa.yaml) and [`llmd`](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-vllm-with-hf-model.md) |
+| Bottleneck                         | Accelerated Platforms Technique                                                                                                            | Measured Impact                                                                                                                                                             | Where It Is Configured                                                                                                                                                                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Finding regional capacity**      | **Capacity Advisor APIs** + **[Capacity Radar](https://github.com/MG-Cafe/capacity_radar)** (passive advisory + active multi-zone probing) | Identifies zones with immediate Spot, DWS Flex-Start, DWS Calendar, or On-Demand obtainability before provisioning GKE                                                      | [Stage 2](#stage-2-discover-and-secure-capacity-before-you-deploy)                                                                                                                                                                                    |
+| **Single-region stock-outs**       | **Custom Compute Classes (CCC)** + **Multi-Region Fluid Compute Ring**                                                                     | Automatically cascades across Reservations, On-Demand, DWS Flex-Start (7d/1d), and Spot VMs; fails over across regions via Multi-Cluster Gateway                            | [`platforms/gke/base/core/custom_compute_class`](/platforms/gke/base/core/custom_compute_class/templates/manifests/gpu)                                                                                                                               |
+| **GPU node provisioning**          | **GKE Autopilot Fast-Starting Nodes** (eligible on `G2` L4 and `G4` RTX PRO 6000 on-demand/reserved nodes)                                 | Uses pre-initialized hardware on a best-effort basis at no extra cost to cut the 1–3 minute node bring-up window                                                            | Enabled automatically on compatible GKE Autopilot clusters                                                                                                                                                                                            |
+| **Container image pull**           | **Google Container File System (GCFS) Image Streaming** (`imageStreaming.enabled: true`)                                                   | Reduces multi-gigabyte vLLM image pull from **~4 minutes to 1.3–2.3 seconds** on new nodes                                                                                  | Enabled in all GPU `ComputeClass` templates                                                                                                                                                                                                           |
+| **Object storage QPS & egress**    | **Hierarchical Namespace (HNS) Cloud Storage** + **Zonal Rapid Cache** (`anywhere_cache`) + **`gcsfusecsi-serving` profile**               | Up to 8× higher initial QPS; **10.5–12.5s** per replica at 6× concurrent scale-out with **97–100% cache hit rate**; eliminates cross-region egress on cache hit             | [`huggingface/initialize/storage.tf`](/platforms/gke/base/core/huggingface/initialize/storage.tf) and `terraform/online_gpu/storage.tf`                                                                                                               |
+| **Model weight loading**           | **NVIDIA Run:ai Model Streamer** (`--load-format=runai_streamer` direct from `gs://` to GPU VRAM) + **RAM-Backed GCS FUSE Prefetch**       | Streams **Gemma 3 27B** (`51.19 GiB`) in **9.1–19.2s** and **Gemma 4 31B** (`58.99 GiB`) in **11.1–25.7s** on RTX PRO 6000 and **20.1–25.8s** on H100 with zero disk        | [`online-inference-gpu/vllm-runai`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai)                                                                                                            |
+| **Engine init & CUDA graphs**      | **GKE Pod Snapshots** (`runtimeClassName: gvisor` + cooperative `/proc/gvisor/checkpoint` trigger)                                         | Skips weight loading, `torch.compile`, and CUDA graph capture (`LOADING=0`); restores in **28.2s (L4)**, **54.8s (H100)**, and **80.4–84.0s (G4)** (up to **5.74×** faster) | [`vllm-podsnapshot-fast-restore`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore)                                                                                           |
+| **Reactive autoscaling & routing** | **Queue-Depth HPA (`vllm:num_requests_waiting`)** + **`llm-d` Well-Lit Paths (GAIE `InferencePool` + EPP Router)**                         | Scales immediately when requests queue in vLLM; routes traffic based on live KV-cache utilization, prefix cache hits, and predicted latency                                 | [`vllm-runai/base/hpa.yaml`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-runai/base/hpa.yaml) and [`llmd`](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-vllm-with-hf-model.md) |
 
 ---
 
@@ -209,16 +209,15 @@ for REGION in "${CANDIDATE_REGIONS[@]}"; do
   echo "Zones offering ${TARGET_ACCELERATOR}:"
   gcloud compute accelerator-types list \
     --project="${PROJECT_ID}" \
-    --filter="name=${TARGET_ACCELERATOR} AND zone ~ ${REGION}-" \
+    --filter="name:${TARGET_ACCELERATOR} AND zone ~ ${REGION}-" \
     --format="  value(zone.basename())" \
     --sort-by=zone
 
-  echo "Regional Host CPU & Legacy GPU Quotas (Usage / Limit):"
+  echo "Regional GPU and host CPU quotas (METRIC / LIMIT / USAGE):"
   gcloud compute regions describe "${REGION}" \
     --project="${PROJECT_ID}" \
-    --format="table[box](quotas.metric:label=METRIC, quotas.usage:label=USED, quotas.limit:label=LIMIT)" \
-    --flatten="quotas[]" \
-    --filter="quotas.metric ~ '^(G4_CPUS|PREEMPTIBLE_G4_CPUS|NVIDIA_L4_GPUS|PREEMPTIBLE_NVIDIA_L4_GPUS|C4_CPUS|C3_CPUS)' AND quotas.limit > 0"
+    --format="json" |
+    jq -r '.quotas[] | select((.metric | test("GPUS|^(G4|A3|C4|C3)_CPUS$")) and .limit > 0) | "  \(.metric)\t\(.limit)\t\(.usage)"'
 done
 
 echo "=========================================================="
@@ -233,13 +232,13 @@ gcloud alpha quotas info list \
 
 > [!IMPORTANT]
 >
-> **Why `gcloud compute regions describe` does not show RTX PRO 6000, H100,
-> H200, or B200 GPU limits**: Newer accelerator families use dimensional Cloud
-> Quotas (`compute.googleapis.com/gpus_per_gpu_family` and
+> **Also check dimensional GPU family quotas**: Newer accelerator families (RTX
+> PRO 6000, H100, H200, B200) are also governed by dimensional Cloud Quotas
+> (`compute.googleapis.com/gpus_per_gpu_family` and
 > `compute.googleapis.com/preemptible_gpus_per_gpu_family` scoped by
-> `gpu_family` and `region`) rather than legacy region-level quota fields.
-> Always run the `gcloud alpha quotas info list` command above to confirm your
-> regional `gpu_family` limit before deploying.
+> `gpu_family` and `region`), which the region-level quota list does not fully
+> reflect. Always run the `gcloud alpha quotas info list` command above to
+> confirm your regional `gpu_family` limit before deploying.
 
 #### 2. Evaluate regional price vs. preemption trade-offs in Capacity Advisor
 
@@ -555,9 +554,24 @@ deployment topologies:
    platform_name               = "${PLATFORM_NAME}"
    EOF
 
-   cat <<EOF > "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars"
-   cluster_region = "${WINNING_REGION}"
-   EOF
+   # cluster.auto.tfvars is generated by core/initialize (and container_cluster_ap
+   # sets cluster_autopilot_enabled = true in it), so update only its
+   # cluster_region line in place (a fresh checkout has no such line yet).
+   sed -i "s/^\(cluster_region[[:blank:]]*=\).*/\1 \"${WINNING_REGION}\"/" \
+     "${ACP_REPO_DIR}/platforms/gke/base/_shared_config/cluster.auto.tfvars"
+
+   # If this checkout already deployed another region, point core/initialize at
+   # this region's Terraform state (if it exists) instead of the previous
+   # region's; otherwise remove backend.tf so core/deploy.sh creates the bucket.
+   CORE_INIT_DIR="${ACP_REPO_DIR}/platforms/gke/base/core/initialize"
+   TF_STATE_BUCKET="${PROJECT_ID}-inf-${PLATFORM_NAME}-terraform"
+   rm -rf "${CORE_INIT_DIR}/.terraform" "${CORE_INIT_DIR}/terraform.tfstate"*
+   if gcloud storage ls "gs://${TF_STATE_BUCKET}/terraform/core/initialize/default.tfstate" >/dev/null 2>&1; then
+     sed "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${TF_STATE_BUCKET}\"/" \
+       "${CORE_INIT_DIR}/backend.tf.bucket" >"${CORE_INIT_DIR}/backend.tf"
+   else
+     rm -f "${CORE_INIT_DIR}/backend.tf"
+   fi
    ```
 
 3. _(Optional)_ If you secured a **named Specific Reservation** with Capacity
@@ -759,9 +773,51 @@ buffers and across PCIe into GPU memory.
    source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
    "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/configure_huggingface.sh"
    kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
-   kubectl --namespace="${huggingface_hub_downloader_kubernetes_namespace_name}" wait --for=condition=complete --timeout=1800s "job/${HF_MODEL_ID_HASH}-hf-model-to-gcs"
+   # Fail fast if the backoffLimit: 0 Job fails instead of waiting 30 minutes
+   NS="${huggingface_hub_downloader_kubernetes_namespace_name}"
+   JOB="job/${HF_MODEL_ID_HASH}-hf-model-to-gcs"
+   until kubectl -n "${NS}" wait --for=condition=complete --timeout=15s "${JOB}" >/dev/null 2>&1; do
+     if kubectl -n "${NS}" wait --for=condition=failed --timeout=1s "${JOB}" >/dev/null 2>&1; then
+       echo "${JOB} failed:" && kubectl -n "${NS}" logs "${JOB}" --tail=30
+       break
+     fi
+     kubectl -n "${NS}" get pods -l app=hf-model-to-gcs --no-headers
+   done
    kubectl delete --ignore-not-found --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface"
    ```
+
+   > [!NOTE]
+   >
+   > The downloader Job runs on the `model-download` `ComputeClass`
+   > (`c4-standard-4-lssd`, then `c3-standard-4-lssd`). Some regions (such as
+   > `asia-south2`) offer no `C3` `-lssd` machine types, so the Job stays
+   > `Pending` unless the project has `C4_CPUS` quota there. In addition,
+   > `activeMigration.optimizeRulePriority: true` can scale down a `C3` node
+   > mid-download to retry `C4`, which fails the `backoffLimit: 0` Job. Before
+   > staging, remove active migration from the class:
+   >
+   > ```shell
+   > kubectl patch computeclass model-download --type=merge \
+   >   -p='{"spec":{"activeMigration":null}}'
+   > ```
+   >
+   > In a multi-region ring, stage the weights once in a region with `C3`/`C4`
+   > capacity and replicate them to the other regional buckets instead of
+   > downloading from Hugging Face in every region:
+   >
+   > ```shell
+   > gcloud storage rsync --recursive \
+   >   "gs://<SOURCE_REGION_HF_HUB_MODELS_BUCKET>/google/gemma-4-31b-it" \
+   >   "gs://${huggingface_hub_models_bucket_name}/google/gemma-4-31b-it"
+   > ```
+   >
+   > Copies run server-side, but throughput is limited per object: in our tests
+   > a `12.7 GB` safetensors shard took about 8 minutes from `europe-west4` to
+   > `us-central1` and 36 minutes to `asia-south2`, so a checkpoint with very
+   > large shards (such as `Gemma 4 31B`'s `49.9 GB` shard) can take well over
+   > 30 minutes to replicate across continents. Start the copy early, or stage
+   > directly from Hugging Face in regions where the `model-download` class can
+   > schedule.
 
 2. Deploy the `vllm-runai` overlay for your accelerator (`h100` or
    `rtx-pro-6000`), which includes the `HorizontalPodAutoscaler` scaling on
@@ -789,12 +845,25 @@ captures the complete CPU and GPU memory state of the first replica once it is
 healthy (`/proc/gvisor/checkpoint`) and restores every subsequent replica from
 Cloud Storage:
 
-| Workload Tier & Accelerator               | Cold Start to `Ready` (`v0.26.0` / `v0.19.1`) | Snapshot Restore to First `/v1/completions` Response |
-| ----------------------------------------- | --------------------------------------------- | ---------------------------------------------------- |
-| **8B–9B Class Model, NVIDIA L4 24GB**     | 162 s / 433 s                                 | **28.2 s / 26 to 29 s**                              |
-| **8B–9B Class Model, NVIDIA H100 80GB**   | 68 s / 168 s                                  | **41.0 s / 46 to 52 s**                              |
-| **Gemma 4 31B, NVIDIA H100 80GB**         | 240 s / 224 s                                 | **53.3 to 56.3 s / 36 to 38 s**                      |
-| **Gemma 4 31B, NVIDIA RTX PRO 6000 96GB** | 215 s / 210 s                                 | **104.9 s (cold node) / 35.0 to 43.0 s (warm node)** |
+| Workload Tier & Accelerator                             | Cold Start to `Ready` (`v0.26.0`) | Snapshot Restore (`PodRestored` / First `HTTP 200`, `LOADING=0`) | Measured Restore Speedup (Time Saved per Pod) |
+| ------------------------------------------------------- | --------------------------------- | ---------------------------------------------------------------- | --------------------------------------------- |
+| **8B–9B Class Model, NVIDIA L4 24GB**                   | 162.0 s                           | **26.0 s / 28.2 s**                                              | **`5.74×` faster** (`-133.8 s` saved per pod) |
+| **8B–9B Class Model, NVIDIA H100 80GB**                 | 68.0 s                            | **39.0 s / 41.0 s**                                              | **`1.66×` faster** (`-27.0 s` saved per pod)  |
+| **Gemma 4 31B (`58.99 GiB`), NVIDIA H100 80GB**         | 240.0 – 262.0 s                   | **54.0 s `PodRestored` / 53.3 – 54.8 s first `HTTP 200`**        | **`4.78×` faster** (`-207.2 s` saved per pod) |
+| **Gemma 4 31B (`58.99 GiB`), NVIDIA RTX PRO 6000 96GB** | 215.0 – 267.7 s                   | **78.0 s `PodRestored` / 83.3 – 84.0 s first `HTTP 200`**        | **`3.21×` faster** (`-184.4 s` saved per pod) |
+| **Gemma 3 27B (`51.19 GiB`), NVIDIA RTX PRO 6000 96GB** | 204.2 s                           | **79.0 s `PodRestored` / 80.4 s first `HTTP 200`**               | **`2.54×` faster** (`-123.9 s` saved per pod) |
+
+> [!TIP]
+>
+> **What a restored replica skips, and the one-time warm-up request**: Because
+> `gVisor` checkpoints the process after weight loading, `torch.compile`, and
+> capture of all 51 CUDA graphs (`FULL_AND_PIECEWISE`), restored replicas report
+> `LOADING=0` and skip all three steps. The checkpoint is triggered as soon as
+> `/health` returns `200 OK`, before any inference request, so on `RTX PRO 6000`
+> (Blackwell) the first `/v1/chat/completions` request after a restore can still
+> JIT-compile the Triton `kernel_unified_attention` kernel (about 35–65 seconds,
+> after which requests return in about 2 seconds). Send one warm-up request to
+> each restored replica before routing user traffic to it.
 
 #### Two PoC paths for Pod snapshots
 
@@ -810,14 +879,24 @@ Cloud Storage:
   Model Streamer + Pod snapshots**: Streams **Gemma 4 31B** (`58.99 GiB`) from
   the HNS Cloud Storage bucket on the first replica (fast cold start, zero local
   disk copy) and restores every scale-out or preemption-replacement replica from
-  the snapshot in **35 to 56 seconds** on a warm node.
+  the snapshot in **54.8 seconds** (`H100`) to **84.0 seconds** (`RTX PRO 6000`)
+  on a warm node.
 
 #### Quick-start deployment and measurement commands
 
 ```shell
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
-# 1. Enable Pod snapshots on the cluster (one-time per cluster)
+# 1. Enable Pod snapshots on the cluster (one-time per cluster). Wait for any
+#    post-deploy Autopilot operation (such as RESIZE_CLUSTER) to finish first,
+#    otherwise the update fails with CLUSTER_ALREADY_HAS_OPERATION.
+for _ in $(seq 1 90); do
+  CLUSTER_STATUS="$(gcloud container clusters describe "${cluster_name}" --location="${cluster_region}" --project="${cluster_project_id}" --format='value(status)' 2>/dev/null)"
+  if [ "${CLUSTER_STATUS}" = "RUNNING" ] || [ "${CLUSTER_STATUS}" = "ERROR" ] || [ -z "${CLUSTER_STATUS}" ]; then
+    break
+  fi
+  sleep 10
+done
 gcloud beta container clusters update "${cluster_name}" \
   --enable-pod-snapshots \
   --location="${cluster_region}" \
@@ -901,32 +980,96 @@ case:
   `ValueError: max_num_seqs (1024) exceeds available Mamba cache blocks`. Pass
   `--max-num-seqs=512` (or `--max-num-seqs=256`) explicitly when serving hybrid
   linear-attention architectures.
-- **`google/gemma-4-31b-it` (`58.99 GiB` weights) failing with KV cache
-  `ValueError` or FlashInfer sampler OOM on a single `80 GB H100`
-  (`a3-highgpu-1g`)**: On a `96 GB RTX PRO 6000`,
-  `--gpu-memory-utilization=0.90` leaves `~24.9 GiB` for KV cache (`29,655`
-  tokens), which easily supports `--max-model-len=16384`. On an `80 GB H100`
-  (`79.1 GiB` usable VRAM), `0.90 × 79.1 GiB = 71.2 GiB` minus `58.99 GiB`
-  weights leaves only `10.62 GiB` (`12,624–12,629` tokens), whereas
-  `--max-model-len=16384` requires `13.76 GiB`
+- **`google/gemma-4-31b-it` (`58.99 GiB` weights) failing with a KV cache
+  `ValueError` on a single `80 GB H100` (`a3-highgpu-1g`)**: On a
+  `96 GB RTX PRO 6000`, `--gpu-memory-utilization=0.90` leaves `~24.9 GiB` for
+  KV cache (`29,628–29,655` tokens). The repository's
+  `rtx-pro-6000-gemma-4-31b-it` Pod snapshot overlay ships with
+  `MAX_MODEL_LEN=8192` (`3.62×` maximum concurrency at that length), and the KV
+  budget also fits `16384`. On an `80 GB H100` (`79.1 GiB` usable VRAM),
+  `0.90 × 79.1 GiB = 71.2 GiB` minus `58.99 GiB` weights leaves only `10.62 GiB`
+  (`12,624–12,629` tokens), whereas `--max-model-len=16384` requires `13.76 GiB`
   (`ValueError: To serve at least one request with the model's max seq len (16384), 13.76 GiB KV cache is needed`).
-  Conversely, raising `--gpu-memory-utilization=0.95` leaves insufficient
-  unallocated VRAM for FlashInfer's `top_k_mask_logits` sampler (`994 MiB`
-  scratch at CUDA graph batch size 512 / `--max-num-seqs=256`). On
-  `1× H100 80GB`, always set:
-  - `--gpu-memory-utilization=0.90` (leaves `7.9 GiB` unallocated VRAM headroom)
-  - `--max-model-len=8192` (fits within the `10.62 GiB` / `12,629` token KV
-    budget)
-  - `--max-num-seqs=128` (reduces FlashInfer sampler scratch from `994 MiB` to
-    `248 MiB`)
+  The `h100-gemma-4-31b-it` overlay therefore sets `GPU_MEMORY_UTILIZATION=0.90`
+  and `MAX_MODEL_LEN=8192` in its `runtime.env`. If you raise
+  `--gpu-memory-utilization` above `0.90` and hit a FlashInfer
+  `top_k_mask_logits` sampler OOM during CUDA graph capture, lower
+  `--max-num-seqs` (for example, to `128`) to shrink the sampler's scratch
+  buffer.
+- **Sizing host memory (`resources.limits.memory`) for 27B–31B models with
+  Run:ai Streamer or `PodSnapshot`**: During `runai_streamer` parallel chunk
+  buffering, `torch.compile`, and `gVisor` checkpoint/restore, host memory RSS
+  for a 27B–31B model (`51–59 GiB` weights) peaks well above `32Gi`. Setting
+  `memory: "32Gi"` risks `OOMKilled` during cold start or checkpointing. Use
+  `requests.memory: "96Gi"` and `limits.memory: "140Gi"` (matching the
+  repository's `patch-resources.yaml`, which fits inside `g4-standard-48`'s
+  `180 GiB` and `a3-highgpu-1g`'s `208 GiB` allocatable RAM).
+- **Triggering a live `PodSnapshot` restore on a 1-GPU node
+  (`kubectl delete pod --wait=false` race condition)**: On a 1-GPU node
+  (`g4-standard-48` or `a3-highgpu-1g`), running
+  `kubectl delete pod --wait=false` causes the replacement pod to bind to the
+  node while the terminating pod is still releasing `/dev/nvidia0` inside its
+  `gVisor` sandbox. If the new sandbox attempts to restore GPU state before
+  `/dev/nvidia0` is released, `gVisor` raises `SandboxChanged` (`95.4s` total)
+  and falls back to a normal container start. Instead, trigger live restores via
+  **horizontal scale-out (`measure_restore.sh 2` / `--replicas=2`)** or a clean
+  **scale-down/scale-up (`--replicas=0`, wait 6s for pod termination,
+  `--replicas=1`)**, which reliably restores `PodRestored: True` (`LOADING=0`)
+  in **`54.8s` on `H100`** (`asia-south2`) and **`80.4s–84.0s` on
+  `RTX PRO 6000`** (`us-central1`).
 - **Changing pod flags when using Pod snapshots**: A `PodSnapshot` is matched to
   an exact pod template hash. Do all flag and `--max-model-len` tuning with
   `vllm-runai` first; enable `vllm-podsnapshot-fast-restore` once your
   configuration is stable.
 - **Active migration evicting the cold-start replica during snapshot upload**:
-  Uploading a 68–70 GiB snapshot takes 11 to 13.5 minutes. Always keep the
+  Uploading a 68–84 GiB snapshot takes 11 to 13.5 minutes. Always keep the
   included `PodDisruptionBudget` (`minAvailable: 1`) applied so GKE active
   migration does not drain the cold-start node mid-upload.
+- **Deploying multiple regions from one checkout (`cluster.auto.tfvars` and
+  `core/initialize/backend.tf`)**: `core/initialize` generates
+  `_shared_config/cluster.auto.tfvars`, and `container_cluster_ap` sets
+  `cluster_autopilot_enabled = true` in it, so never overwrite that file; update
+  only its `cluster_region` line when switching regions. Before running
+  `deploy-ap.sh` for the next region, point `core/initialize/backend.tf` at that
+  region's state bucket if `terraform/core/initialize/default.tfstate` already
+  exists there (for example, when retrying a region), or delete it for a
+  region's first deployment; otherwise `core/initialize` keeps using the
+  previous region's state bucket and plans to destroy that region's resources.
+  Don't just delete `backend.tf` for a region that already has state:
+  `core/deploy.sh` looks for `terraform/initialize/default.tfstate` rather than
+  `terraform/core/initialize/default.tfstate`, so it starts from empty local
+  state and fails with a `409` conflict on the existing state bucket.
+- **`gcloud beta container clusters update --enable-pod-snapshots` fails with
+  `CLUSTER_ALREADY_HAS_OPERATION`**: Right after `deploy-ap.sh`, GKE Autopilot
+  can still be running an asynchronous `RESIZE_CLUSTER` operation. Poll
+  `gcloud container clusters describe --format='value(status)'` until it returns
+  `RUNNING` before you update the cluster.
+- **`hf-model-to-gcs` Job stuck `Pending` or killed mid-download**: See the note
+  in Trick 1. Remove `activeMigration` from the `model-download` `ComputeClass`,
+  confirm `C4_CPUS` or `C3_CPUS` quota (and `-lssd` machine availability) in the
+  region, or stage the weights once and replicate them with
+  `gcloud storage rsync`.
+- **First request after a `PodSnapshot` restore is slow on `RTX PRO 6000`**: The
+  snapshot is taken right after `/health` succeeds, before any inference
+  request, so Blackwell GPUs can JIT-compile the Triton
+  `kernel_unified_attention` kernel on the first `/v1/chat/completions` request
+  (about 35–65 seconds). Send one warm-up request per restored replica.
+- **Multi-region HNS bucket & `online_gpu` Terraform teardown**: When tearing
+  down multiple regional copies from a single checkout, each region's
+  `teardown-ap.sh` run destroys `core/initialize` (deleting every generated
+  `backend.tf` and shared `*.auto.tfvars`), deletes all generated kubeconfigs,
+  and restores the checked-in (empty) `*.auto.tfvars`. Before tearing down the
+  next region, re-point `core/initialize/backend.tf` at that region's state
+  bucket and re-apply `core/initialize`, regenerate the cluster's kubeconfig
+  (`terraform apply` in `core/workloads/cluster_credentials`), and write
+  `online_gpu/backend.tf` explicitly (bucket `<project>-inf-<region>-terraform`,
+  prefix `terraform/inference-ref-arch/terraform/online_gpu`). Then delete
+  `PodSnapshot` CRs (`kubectl delete podsnapshot --all`), empty the
+  `*-pod-snapshots` and `*-hf-hub-models` HNS buckets
+  (`gcloud storage rm --recursive "gs://${BUCKET}/**"`), and run
+  `terraform destroy -auto-approve -var="ira_online_gpu_pod_snapshots_enabled=true"`
+  in `online_gpu` before `teardown-ap.sh`. Part 3 of the 15-minute demo runbook
+  implements these steps.
 - **Rapid Cache warm-up and teardown timing**: Newly created Rapid Caches can
   take over an hour before they begin serving cached bytes, and destroying a
   Rapid Cache enforces a 1-hour grace period before the underlying model bucket
@@ -941,130 +1084,275 @@ case:
 
 ---
 
-## Stage 6: Real-world PoC case study & Inference Golden Signals — Gemma 4 31B on 2× NVIDIA RTX PRO 6000 96GB
+## Stage 6: Real-world PoC case study — Cold-start vs. `PodSnapshot` restore & replicating benchmarks in your environment
 
 To validate this guide end-to-end, we executed the full workflow on a GKE
 Autopilot cluster (`us-central1`, chosen after Stage 2 Capacity Radar
 `advise spot` flagged `us-east4` at `0.1` obtainability and `us-central1-b` /
-`us-central1-c` at `0.9` obtainability) and benchmarked
-**`google/gemma-4-31b-it`** (`Gemma4ForConditionalGeneration`, `bfloat16`, 31B
-parameters) across **2 replicas (`1 × NVIDIA RTX PRO 6000 96GB` /
-`g4-standard-48` per replica)**.
+`us-central1-c` at `0.9` obtainability) and deployed **`google/gemma-4-31b-it`**
+(`Gemma4ForConditionalGeneration`, `bfloat16`, 31B parameters) across **2
+replicas (`1 × NVIDIA RTX PRO 6000 96GB` / `g4-standard-48` per replica)**.
 
 The deployment used `vllm/vllm-openai:v0.26.0`,
 `cloud.google.com/compute-class: gpu-rtx-pro-6000-96gb-x1`,
 `--load-format=runai_streamer` streaming from a regional Hierarchical Namespace
-Cloud Storage bucket (`gs://`), `--gpu-memory-utilization=0.90`, and
-`--max-model-len=16384`.
+Cloud Storage bucket (`gs://`), and `--gpu-memory-utilization=0.90`. KV cache
+capacity below is set by `--gpu-memory-utilization`, not by `--max-model-len`:
+the repository's `rtx-pro-6000-gemma-4-31b-it` Pod snapshot overlay ships with
+`MAX_MODEL_LEN=8192` in its `runtime.env`, and the per-GPU KV budget also fits
+`16384` if you raise it before creating the first snapshot.
 
-### 1. Cold-start breakdown & KV cache capacity (2 replicas)
+### 1. Cold-start breakdown, `PodSnapshot` restore & KV cache capacity (2 replicas)
 
-| Metric (Per Replica / 2-Replica Total)                     | Measured Value (`google/gemma-4-31b-it` on `2 × RTX PRO 6000 96GB`) | Key Takeaway                                                                                                           |
+| Startup Phase / Capacity Metric                            | Measured Value (`google/gemma-4-31b-it` on `2 × RTX PRO 6000 96GB`) | Key Scale-Up / Scale-Out Takeaway                                                                                      |
 | ---------------------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | **Model Architecture & Precision**                         | Standard Transformer + Vision Encoder (`bfloat16`, 31B parameters)  | Served natively in `bfloat16` on a single 96 GB GPU (`TP=1`) without quantization loss                                 |
 | **Model Weight Footprint in GPU VRAM**                     | **58.99 GiB**                                                       | Fits comfortably on a single 96 GB RTX PRO 6000 with ~37 GiB remaining before KV cache allocation                      |
 | **Spot `g4-standard-48` Node Provisioning**                | **52 – 58 s** (`us-central1-b`, `us-central1-c`)                    | Stage 2 capacity discovery placed pods directly into high-obtainability zones with zero `ZONE_RESOURCE_POOL_EXHAUSTED` |
 | **GCFS Container Image Pull (`v0.26.0`, 8.91 GB)**         | **1.58 s – 1.86 s**                                                 | Image Streaming eliminates the ~4 minute cold container pull on freshly scaled GPU nodes                               |
-| **Run:ai Model Streamer Load (`gs://` $\rightarrow$ GPU)** | **25.67 s / 25.93 s** (`~2.29 GiB/s` per pod)                       | Zero local disk staging; both replicas stream weights concurrently from HNS Cloud Storage                              |
-| **`torch.compile` Duration**                               | **29.66 s / 30.49 s**                                               | Eliminated on subsequent scale-outs when paired with GKE Pod snapshots (`35.0 s` warm-node restore)                    |
+| **Run:ai Model Streamer Load (`gs://` $\rightarrow$ GPU)** | **20.64 – 25.93 s** (`2.29 – 2.86 GiB/s` per pod)                   | Zero local disk staging; both replicas stream weights concurrently from HNS Cloud Storage                              |
+| **`torch.compile` Duration**                               | **29.66 s / 30.49 s**                                               | Eliminated on subsequent scale-outs when paired with GKE Pod snapshots (`LOADING=0`)                                   |
 | **CUDA Graph Capture (51 graphs, `FULL+PIECEWISE`)**       | **12.0 s** (`0.86 GiB`)                                             | Captured once during cold start and persisted inside the GKE Pod snapshot                                              |
-| **Available KV Cache Memory (per GPU / 2 GPUs)**           | **24.91 GiB** per GPU (**49.82 GiB** across 2 GPUs)                 | `96 GB` GDDR7 VRAM provides **`2.35×` more KV cache memory** than an `80 GB` GPU (`10.62 GiB`) for a `58.99 GiB` model |
-| **KV Cache Token Capacity (per GPU / 2 GPUs)**             | **29,655 tokens** per GPU (**59,310 tokens** across 2 GPUs)         | Supports `--max-model-len=16384` (up to `32,768`) on a single GPU without tensor parallelism                           |
+| **Total Cold Start to First `HTTP 200` (Run 1)**           | **267.68 s**                                                        | Dominated by engine initialization, `torch.compile`, and CUDA graph capture after the 20.6 s weight stream             |
+| **GKE `PodSnapshot` Restore to First `HTTP 200` (Run 2)**  | **83.27 s (`1×`) / 84.03 s (`2×1` scale-out)** (`LOADING=0`)        | **`3.19× – 3.21×` faster** than cold start, saving **184.4 seconds** on every horizontal scale-out or Spot replacement |
+| **Available KV Cache Memory (per GPU / 2 GPUs)**           | **24.89 – 24.91 GiB** per GPU (**49.82 GiB** across 2 GPUs)         | `96 GB` GDDR7 VRAM provides **`2.35×` more KV cache memory** than an `80 GB` GPU (`10.61 GiB`) for a `58.99 GiB` model |
+| **KV Cache Token Capacity (per GPU / 2 GPUs)**             | **29,628 – 29,655 tokens** per GPU (**59,256 – 59,310** across 2)   | Overlay default `MAX_MODEL_LEN=8192` (`3.62×` max concurrency); can be raised to `16384` (`1.81×`) without TP          |
 
-### 2. Inference Golden Signals under saturation (2 replicas, `~335` input tokens / `128` output tokens)
+### 2. How to benchmark scale-out saturation and Queue-Depth HPA in your own environment
 
-The 2-replica `google/gemma-4-31b-it` deployment was swept across concurrency
-levels `1` to `128` using streaming `/v1/chat/completions` requests balanced
-evenly across both replicas while scraping vLLM Prometheus metrics
-(`vllm:num_requests_running`, `vllm:num_requests_waiting`,
-`vllm:kv_cache_usage_perc`) every 500 ms:
+Because inference latency and throughput depend on your prompt length
+distribution, output token length, and SLO targets, we recommend running a
+concurrency sweep directly inside your GKE cluster after your cold-started or
+`PodSnapshot`-restored replicas reach `1/1 Ready`.
 
-| Concurrency (2 Replicas) | Traffic: Req/s | Traffic: Output Tok/s | Traffic: Total Tok/s | Latency: TTFT p50 / p90 / p99 (ms) | Latency: TPOT p50 / p90 / p99 (ms) | Latency: E2E p50 / p99 (s) | Saturation: Running Reqs (Mean / Peak) | Saturation: Waiting Queue (Mean / Peak) | Saturation: KV Cache % (Mean / Peak) | Errors (%) |
-| ------------------------ | -------------- | --------------------- | -------------------- | ---------------------------------- | ---------------------------------- | -------------------------- | -------------------------------------- | --------------------------------------- | ------------------------------------ | ---------- |
-| **1**                    | 0.18           | 22.5                  | 80.9                 | 85.3 / 87.5 / 89.5                 | 44.18 / 44.30 / 44.35              | 5.70 / 5.72                | 1.0 / 1.0                              | 0.0 / 0.0                               | 0.7% / 1.6%                          | 0.0%       |
-| **4**                    | 0.69           | 88.7                  | 319.4                | 147.3 / 155.2 / 157.1              | 44.23 / 44.47 / 44.47              | 5.76 / 5.77                | 3.8 / 4.0                              | 0.0 / 0.0                               | 2.6% / 3.1%                          | 0.0%       |
-| **16**                   | 2.44           | 312.3                 | 1,128.7              | 491.8 / 498.1 / 499.4              | 46.13 / 48.98 / 49.00              | 6.35 / 6.36                | 15.4 / 16.0                            | 0.0 / 0.0                               | 10.4% / 12.5%                        | 0.0%\*     |
-| **32**                   | 4.49           | 575.2                 | 2,080.1              | 958.5 / 966.8 / 967.5              | 48.49 / 52.35 / 54.83              | 7.12 / 7.12                | 29.8 / 32.0                            | 0.0 / 0.0                               | 20.1% / 25.1%                        | 0.0%       |
-| **64**                   | 7.34           | 939.2                 | 3,398.1              | 1,299.1 / 1,868.6 / 1,893.7        | 58.17 / 62.90 / 67.16              | 8.69 / 8.76                | 56.2 / 64.0                            | 0.0 / 0.0                               | 37.5% / 50.2%                        | 0.0%       |
-| **128**                  | **10.42**      | **1,333.8**           | **4,840.9**          | **2,367.6 / 3,744.3 / 3,770.7**    | **73.16 / 83.29 / 89.47**          | **11.58 / 12.13**          | **108.4 / 128.0**                      | **3.3 / 37.0**                          | **72.2% / 98.8%**                    | **0.0%**   |
+You can evaluate your deployment using either of two methods:
 
-_\*Across 512 total benchmark requests, 511 succeeded (`99.8%` success rate; 1
-request at Concurrency 16 experienced a transient client TCP socket reset)._
+1. **Automated Kubernetes Job with `inference-perf`**: Follow
+   [Benchmarking Online inference performance on GKE (`inference-perf`)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md)
+   or use the [`llm-d-benchmarking` skill](/skills/llm-d-benchmarking/SKILL.MD)
+   to generate structured load profiles and export latency/throughput reports.
+2. **In-Cluster Concurrency & Prometheus Saturation Sweep**: Run the command
+   below to sweep concurrency levels (`c=1` to `c=128`) against your deployed
+   vLLM service while scraping vLLM's Prometheus `/metrics` endpoint
+   (`vllm:num_requests_running`, `vllm:num_requests_waiting`, and
+   `vllm:kv_cache_usage_perc`) every 500 ms:
 
-### 3. Interpreting the Golden Signals for PoC sizing and HPA configuration
+```shell
+export NAMESPACE="inf-americas-online-gpu"
+export DEPLOYMENT="vllm-fast-restore-rtx-pro-6000-gemma-4-31b-it"
+export MODEL_ID="google/gemma-4-31b-it"
 
-1. **Linear Throughput Scaling & Interactive Decode Latency (`TPOT`)**: From
-   `Concurrency=1` to `Concurrency=64`, `google/gemma-4-31b-it` scales output
-   throughput by **`41.7×`** (`22.5 tok/s` $\rightarrow$ `939.2 tok/s`, or
-   `3,398.1 total tok/s`) while keeping `TPOT p50` between **`44.2 ms` and
-   `58.2 ms`** with **zero waiting queue (`vllm:num_requests_waiting = 0`)**. At
-   `Concurrency=128`, the 2-replica deployment reaches **`1,333.8 output tok/s`
-   (`4,840.9 total tok/s`)**.
-2. **KV Cache Saturation Threshold on a Single 96 GB GPU**: At `Concurrency=128`
-   (`64` concurrent requests per replica $\times$ `~463` tokens per request
-   $\approx 29,632$ tokens), `google/gemma-4-31b-it` reaches **`98.8%` peak KV
-   cache utilization** (`29,655` token ceiling per replica at
-   `--gpu-memory-utilization=0.90`) and begins holding excess arrivals
-   (`peak_waiting_reqs = 37`) in `vllm:num_requests_waiting` until active
-   sequences finish decoding.
-3. **Why `vllm:num_requests_waiting` is the right HPA signal**: As soon as KV
-   cache utilization approaches saturation (`Concurrency > 64`), vLLM
-   immediately increments `vllm:num_requests_waiting`. The
-   `HorizontalPodAutoscaler` in `vllm-runai` (configured with `averageValue: 3`
-   on `vllm:num_requests_waiting`) triggers scale-out at the exact knee of the
-   latency curve (`Concurrency = 64–128`, where `TPOT p99` crosses `65–89 ms`),
+kubectl exec -i -n "${NAMESPACE}" "deploy/${DEPLOYMENT}" -c inference-server -- python3 - "${MODEL_ID}" <<'PY'
+import asyncio, json, re, sys, time, urllib.request
+import aiohttp
+
+MODEL = sys.argv[1]
+URL = "http://localhost:8000/v1/chat/completions"
+METRICS_URL = "http://localhost:8000/metrics"
+PROMPT = "Explain how GKE Pod snapshots, NVIDIA Run:ai Model Streamer, and Custom Compute Classes accelerate multi-region LLM scale-out on Kubernetes."
+
+def scrape_vllm_metrics():
+    out = {"running": 0.0, "waiting": 0.0, "kv_pct": 0.0}
+    try:
+        txt = urllib.request.urlopen(METRICS_URL, timeout=2).read().decode("utf-8", errors="ignore")
+        for line in txt.splitlines():
+            if line.startswith("vllm:num_requests_running"):
+                out["running"] = float(line.split()[-1])
+            elif line.startswith("vllm:num_requests_waiting"):
+                out["waiting"] = float(line.split()[-1])
+            elif line.startswith("vllm:kv_cache_usage_perc"):
+                out["kv_pct"] = float(line.split()[-1]) * 100.0
+    except Exception:
+        pass
+    return out
+
+async def send_one(session, sem):
+    payload = {
+        "model": MODEL,
+        "messages": [{"role": "user", "content": PROMPT}],
+        "max_tokens": 128,
+        "temperature": 0.0,
+        "stream": True,
+        "stream_options": {"include_usage": True},
+    }
+    async with sem:
+        t0 = time.perf_counter()
+        t_first = None
+        out_toks = 0
+        async with session.post(URL, json=payload) as resp:
+            async for raw in resp.content:
+                line = raw.decode("utf-8", errors="ignore").strip()
+                if not line.startswith("data: ") or line == "data: [DONE]":
+                    continue
+                if t_first is None:
+                    t_first = time.perf_counter()
+                chunk = json.loads(line[6:])
+                if chunk.get("usage"):
+                    out_toks = chunk["usage"].get("completion_tokens", out_toks)
+        t_end = time.perf_counter()
+        ttft_ms = (t_first - t0) * 1000.0 if t_first else 0.0
+        tpot_ms = ((t_end - t_first) * 1000.0 / max(out_toks - 1, 1)) if t_first and out_toks > 1 else 0.0
+        return ttft_ms, tpot_ms, out_toks
+
+async def main():
+    print(f"{'CONC':>6} | {'PEAK_RUNNING':>12} | {'PEAK_WAITING':>12} | {'PEAK_KV_%':>9} | {'TTFT_P50_MS':>11} | {'TPOT_P50_MS':>11} | {'OUT_TOK_S':>10}")
+    print("-" * 86)
+    async with aiohttp.ClientSession() as session:
+        for c in [1, 4, 16, 32, 64, 128]:
+            sem = asyncio.Semaphore(c)
+            state = {"stop": False, "run": 0.0, "wait": 0.0, "kv": 0.0}
+
+            async def poller():
+                while not state["stop"]:
+                    m = await asyncio.to_thread(scrape_vllm_metrics)
+                    state["run"] = max(state["run"], m["running"])
+                    state["wait"] = max(state["wait"], m["waiting"])
+                    state["kv"] = max(state["kv"], m["kv_pct"])
+                    await asyncio.sleep(0.5)
+
+            poll_task = asyncio.create_task(poller())
+            t_start = time.perf_counter()
+            results = await asyncio.gather(*[send_one(session, sem) for _ in range(max(c, 8))])
+            elapsed = time.perf_counter() - t_start
+            state["stop"] = True
+            await poll_task
+
+            ttft_list = sorted(r[0] for r in results)
+            tpot_list = sorted(r[1] for r in results)
+            total_out = sum(r[2] for r in results)
+            mid = len(results) // 2
+            print(f"{c:>6} | {state['run']:>12.1f} | {state['wait']:>12.1f} | {state['kv']:>8.1f}% | {ttft_list[mid]:>11.1f} | {tpot_list[mid]:>11.2f} | {total_out / elapsed:>10.1f}")
+
+asyncio.run(main())
+PY
+```
+
+### 3. Using KV cache capacity and `vllm:num_requests_waiting` to tune scale-out
+
+1. **KV Cache Saturation Threshold on a Single 96 GB GPU**: Because each
+   `NVIDIA RTX PRO 6000 96GB` replica allocates `24.89–24.91 GiB`
+   (`29,628–29,655` tokens) of KV cache for `google/gemma-4-31b-it` at
+   `--gpu-memory-utilization=0.90`, vLLM processes concurrent sequences with
+   `vllm:num_requests_waiting = 0` until the total active context tokens across
+   in-flight sequences reach `~29,600` tokens per replica (`98.8%` peak KV cache
+   utilization at `64` concurrent sequences per replica). Beyond that threshold,
+   vLLM holds excess arrivals (`peak_waiting_reqs = 37`) in
+   `vllm:num_requests_waiting` until active sequences finish decoding.
+2. **Why `vllm:num_requests_waiting` is the right HPA signal**: As soon as KV
+   cache utilization approaches saturation, vLLM immediately increments
+   `vllm:num_requests_waiting`. The `HorizontalPodAutoscaler` in `vllm-runai`
+   (configured with `averageValue: 3` on `vllm:num_requests_waiting`) triggers
+   horizontal scale-out at the exact point where sequences begin queuing,
    bringing up replacement or scale-out replicas via Run:ai Model Streamer or
-   GKE Pod snapshots before client timeouts occur.
+   GKE Pod snapshots (`83.3–84.0 s` on `RTX PRO 6000`, `54.8 s` on `H100`)
+   before client timeouts occur.
 
 ---
 
-## Stage 7: Multi-Region "Follow-the-Sun" Capacity Hunt & Accelerator Architecture Case Study (`us-central1`, `europe-west4`, `asia-south2`)
+## Stage 7: Multi-Region "Follow-the-Sun" Capacity Hunt & Run 1 (Cold Start) vs. Run 2 (`PodSnapshot` Restored) Scale-Out Validation (`us-central1`, `europe-west4`, `asia-south2`)
 
 When expanding a PoC across regions or comparing accelerator families
 (`NVIDIA RTX PRO 6000 96GB` Blackwell vs. `NVIDIA H100 80GB` Hopper), a single
 region rarely holds simultaneous quota and physical stock across every GPU SKU.
 By combining **Stage 2 (`capacity_radar` + quota audit)** with **Stage 3
-(Multi-Region Ring)**, we stood up a three-region GKE Autopilot ring across
-**Americas (`us-central1` / `inf-americas`)**, **Europe (`europe-west4` /
-`inf-europe`)**, and **Asia-Pacific (`asia-south2` / `inf-apac`)** to benchmark
-**`google/gemma-4-31b-it`** and **`google/gemma-3-27b-it`** across Blackwell and
-Hopper GPUs.
+(Multi-Region Ring)**, we stood up a clean-room three-region GKE Autopilot ring
+across **Americas (`us-central1` / `inf-americas`)**, **Europe (`europe-west4` /
+`inf-europe`)**, and **Asia-Pacific (`asia-south2` / `inf-apac`)** and compared
+startup and scale-out behavior across two full runs on
+**`google/gemma-4-31b-it`** (`31B` dense BF16, `58.99 GiB`) and
+**`google/gemma-3-27b-it`** (`27B` dense BF16 with interleaved sliding-window +
+global attention, `51.19 GiB`):
+
+- **Run 1 (`Cold Start`)**: Fresh node provisioning + GCFS image streaming +
+  `Run:ai Model Streamer` weight loading + `torch.compile` + CUDA graph capture
+  and cooperative `gVisor` `PodSnapshot` checkpoint creation.
+- **Run 2 (`PodSnapshot Restored`)**: Replicas scaled up and horizontally scaled
+  out (`1 -> 2` replicas) directly from Cloud Storage `PodSnapshot` checkpoints
+  (`PodRestored: True`, `LOADING=0`) into `gVisor` sandboxes.
 
 ### 1. Multi-region capacity discovery & placement outcome
 
-Sweeping `capacity_radar advise spot` alongside regional quota checks revealed
-why multi-region capacity farming is essential:
+Sweeping `capacity_radar advise spot` alongside regional quota checks placed all
+Gemma workloads across the 3 regions with zero `ZONE_RESOURCE_POOL_EXHAUSTED`
+events:
 
-| Region (`Cluster`)                 | GPU Quota (`On-Demand` / `Spot`)                    | `capacity_radar` Top Obtainability Score                          | Actual GKE Autopilot Provisioning Outcome                                                                                                                                               | Assigned Gemma Workloads & Accelerators                                                                                      |
-| ---------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **`us-central1` (`inf-americas`)** | `RTX PRO 6000`: `8` OD / `8` Spot (`H100`: `0` OD)  | `g4-standard-48` (`1×`): `0.93`; `g4-standard-96` (`2×`): `0.85`  | Provisioned `2× g4-standard-48` (`us-central1-a/b`) and `1× g4-standard-96` (`us-central1-b`) in **52–95 s**                                                                            | **`Gemma 4 31B`** (`1× RTX PRO 6000 96GB`, Pod Snapshots + Run:ai Streamer) & **`Gemma 3 27B`** (`1× RTX PRO 6000 96GB`)     |
-| **`europe-west4` (`inf-europe`)**  | `H100`: `0` OD / `16` Spot; `H100 Mega`: `16` Spot  | `a3-highgpu-2g`: `< 0.40` (stockout); **`a3-megagpu-8g`: `0.90`** | `a3-highgpu-2g` failed (`GCE out of resources` in `europe-west4-c`); pivoting to **`a3-megagpu-8g` (`8× H100 Mega`)** provisioned in **90 s** (`europe-west4-c`) and co-hosted replicas | **`Gemma 4 31B`** on `H100 80GB Mega` (`a3-megagpu-8g`, Hopper `FA4` + RAM-backed Cloud Storage FUSE prefetch)               |
-| **`asia-south2` (`inf-apac`)**     | `H100`: `1` OD / `8` Spot (`RTX PRO 6000`: `0` all) | `a3-highgpu-1g`: **`0.94`** (`asia-south2-b`, `asia-south2-a`)    | Provisioned `a3-highgpu-1g` (`1× H100 80GB`) in **78–85 s**                                                                                                                             | **`Gemma 4 31B`** (`1× H100 80GB`, `--gpu-memory-utilization=0.90 --max-model-len=8192 --max-num-seqs=128`, Run:ai Streamer) |
+| Region (`Cluster`)                 | GPU Quota (`On-Demand` / `Spot`)                    | `capacity_radar` Top Obtainability Score                          | Actual GKE Autopilot Provisioning Outcome                                                                                                 | Assigned Gemma Workloads & Accelerators                                                                                                  |
+| ---------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **`us-central1` (`inf-americas`)** | `RTX PRO 6000`: `8` OD / `8` Spot (`H100`: `0` OD)  | `g4-standard-48` (`1×`): `0.93`; `g4-standard-96` (`2×`): `0.85`  | Provisioned `g4-standard-48` nodes (`us-central1-b/c`, including `1 -> 2` horizontal scale-out) in **52–95 s**                            | **`Gemma 4 31B`** (`1×` & `2×1 RTX PRO 6000 96GB`, `PodSnapshot` + `Run:ai`) & **`Gemma 3 27B`** (`1× RTX PRO 6000 96GB`, `PodSnapshot`) |
+| **`europe-west4` (`inf-europe`)**  | `H100`: `0` OD / `16` Spot; `H100 Mega`: `16` Spot  | `a3-highgpu-2g`: `< 0.40` (stockout); **`a3-megagpu-8g`: `0.90`** | Spot-first `ComputeClass` provisioned `a3-megagpu-8g` (`8× H100 Mega`) + `a3-highgpu-1g` (`1× H100`) in `europe-west4-b/c` in **85–90 s** | **`Gemma 3 27B`** (`1× H100 80GB`) & **`Gemma 4 31B`** (`H100 80GB Mega`, `Run:ai` streaming from `gs://`)                               |
+| **`asia-south2` (`inf-apac`)**     | `H100`: `1` OD / `8` Spot (`RTX PRO 6000`: `0` all) | `a3-highgpu-1g`: **`0.94`** (`asia-south2-b`, `asia-south2-a`)    | Provisioned `a3-highgpu-1g` (`1× H100 80GB`, `gVisor` + `PodSnapshot` enabled) in **78–85 s**                                             | **`Gemma 4 31B`** (`1× H100 80GB`, `PodSnapshot` + `Run:ai`, `--gpu-memory-utilization=0.90 --max-model-len=8192`)                       |
 
-### 2. Cross-region cold-start, KV cache capacity & saturation comparison (`google/gemma-4-31b-it` & `google/gemma-3-27b-it`)
+### 2. Cross-region Cold Start (Run 1) vs. GKE `PodSnapshot` Restore (Run 2) & KV cache sizing comparison
 
-| Region (`Cluster`)                 | Model                   | Accelerator (`TP`)                        | Attention Kernel Backend               | Weight Load Time (`gs://` $\rightarrow$ GPU)         | Model VRAM (`GiB/GPU`) | KV Cache (`GiB/GPU`) | KV Cache Capacity (Tokens) | `c=1` Decode `TPOT` p50 | `c=16` Out Tok/s (`TPOT` p50) | Peak Out Tok/s (`Total Tok/s`)             |
-| ---------------------------------- | ----------------------- | ----------------------------------------- | -------------------------------------- | ---------------------------------------------------- | ---------------------- | -------------------- | -------------------------- | ----------------------- | ----------------------------- | ------------------------------------------ |
-| **`us-central1` (`inf-americas`)** | `google/gemma-4-31b-it` | `2× (1× RTX PRO 6000 96GB)` (`2× TP=1`)   | `FLASH_ATTN` (`FA2` Blackwell SM 12.0) | **11.1 – 25.67 s** (`Run:ai`) / **33.24 s** (`FUSE`) | `58.99 GiB`            | **24.91 GiB**        | **29,655 / GPU** (`16K`)   | `28.59 ms`              | `552.8` (`35.67 ms`)          | **`1,434.2`** (`717.1/GPU` \| `3,872.0`)   |
-| **`asia-south2` (`inf-apac`)**     | `google/gemma-4-31b-it` | `1× H100 80GB` (`TP=1`, `max_seqs=128`)\* | `FLASH_ATTN` (**`FA4` Hopper SM 9.0**) | **20.1 – 25.77 s** (`Run:ai`) / **40.34 s** (`FUSE`) | `58.99 GiB`            | **10.62 GiB**        | **12,629 / GPU** (`8K`)\*  | **`24.95 ms`**          | `1,303.6` (**`21.23 ms`**)    | **`2,033.6`** (`2,033.6/GPU` \| `3,520.1`) |
-| **`us-central1` (`inf-americas`)** | `google/gemma-3-27b-it` | `1× RTX PRO 6000 96GB` (`TP=1`)           | `FLASH_ATTN` (`FA2` Blackwell SM 12.0) | **9.10 s** (`Run:ai Streamer`)                       | `51.54 GiB`            | **31.80 GiB**        | **>45,000 / GPU** (`16K`)  | `25.40 ms`              | `610.0` (`28.10 ms`)          | **`820.0+ / GPU`**                         |
+| Region (`Cluster`)                 | Model (`BF16` Weights)                | Accelerator & Scale Topology             | Run 1 Weight Stream (`Run:ai`) | Run 1 Cold Start to `Ready` | Run 2 `PodSnapshot` Restore (`PodRestored` / First `HTTP 200`, `LOADING=0`) | Restore Speedup (Time Saved per Pod)             | Allocated KV Cache (`GiB` / Tokens) |
+| ---------------------------------- | ------------------------------------- | ---------------------------------------- | ------------------------------ | --------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------- |
+| **`us-central1` (`inf-americas`)** | `google/gemma-4-31b-it` (`58.99 GiB`) | `1× RTX PRO 6000 96GB` (`TP=1`)          | **20.64 s** (`2.86 GiB/s`)     | `267.68 s`                  | **`78.0 s` `PodRestored` / `83.27 s` first `HTTP 200`**                     | **`3.21×` faster** (`-184.4 s` saved per pod)    | **24.89 GiB** / **29,628** (`8K`)   |
+| **`us-central1` (`inf-americas`)** | `google/gemma-4-31b-it` (`2×1` scale) | `2× RTX PRO 6000 96GB` (`2× TP=1` scale) | **20.64 s** (`2.86 GiB/s`)     | `267.68 s`                  | **`78.0 s` `PodRestored` / `84.03 s` first `HTTP 200` (2nd replica)**       | **`3.19×` faster** (`-183.7 s` saved on scale)   | **49.78 GiB** / **59,256** (`8K`)   |
+| **`asia-south2` (`inf-apac`)**     | `google/gemma-4-31b-it` (`58.99 GiB`) | `1× H100 80GB` (`TP=1`)\*                | **24.98 s** (`2.36 GiB/s`)     | `262.00 s`                  | **`54.0 s` `PodRestored` / `54.77 s` first `HTTP 200`**                     | **`4.78×` faster** (`-207.2 s` saved per pod)    | **10.61 GiB** / **12,629** (`8K`)\* |
+| **`us-central1` (`inf-americas`)** | `google/gemma-3-27b-it` (`51.19 GiB`) | `1× RTX PRO 6000 96GB` (`TP=1`)          | **16.51 s** (`3.10 GiB/s`)     | `204.24 s`                  | **`79.0 s` `PodRestored` / `80.35 s` first `HTTP 200`**                     | **`2.54×` faster** (`-123.9 s` saved per pod)    | **32.26 GiB** / **60,783**          |
+| **`europe-west4` (`inf-europe`)**  | `google/gemma-3-27b-it` (`51.19 GiB`) | `1× H100 80GB` (`TP=1`)                  | **19.16 s** (`2.67 GiB/s`)     | `212.00 s`                  | **`54.0 s` class** (`vllm-podsnapshot-fast-restore` compatible)             | **`~3.9×` faster** when `PodSnapshot` is enabled | **18.12 GiB** / **34,147**          |
 
-_\*Measured with `--gpu-memory-utilization=0.90`, `--max-model-len=8192`, and
-`--max-num-seqs=128` on `1× H100 80GB` (`~220` input tokens / `128` output
-tokens)._
+_\*Configured with `--gpu-memory-utilization=0.90` and `--max-model-len=8192`
+(the `h100-gemma-4-31b-it` overlay's `runtime.env`) on `1× H100 80GB`. Context
+labels such as (`8K`) show the overlay's `MAX_MODEL_LEN`; KV cache capacity is
+set by `--gpu-memory-utilization`._
 
-### 3. Key architectural findings from the multi-region Gemma PoC
+### 3. Five scale-up and scale-out findings from the multi-region Gemma validation
 
-1. **Built-in ComputeClass priorities (`[On-Demand, Flex-Start, Spot]`) stall
+1. **`2.54×` to `4.78×` faster replica scale-out with GKE `PodSnapshot` (`54.8s`
+   on `H100`, `80.4s–84.0s` on `RTX PRO 6000`, `LOADING=0`)**:
+   - Even when `Run:ai Model Streamer` loads `51–59 GiB` of BF16 weights from
+     Cloud Storage into GPU VRAM in `16.5–25.0 seconds`, cold-starting vLLM on
+     `Gemma 3 27B` or `Gemma 4 31B` takes **`204.2–267.7 seconds`** because vLLM
+     must initialize the engine, compile Torch Inductor / Triton kernels, and
+     capture 51 CUDA graphs (`FULL_AND_PIECEWISE`).
+   - Restoring from a GKE `PodSnapshot` (`runtimeClassName: gvisor`) bypasses
+     weight loading, `torch.compile`, and CUDA graph capture (`LOADING=0`),
+     bringing replicas to first `HTTP 200` in **`54.77 s` on `1× H100 80GB`
+     (`4.78×` faster, saving `207.2 s` per pod)** and **`80.35 s–84.03 s` on
+     `RTX PRO 6000 96GB` (`2.54×–3.21×` faster, saving `123.9–184.4 s` per
+     pod)**—including during `1 -> 2` horizontal scale-out (`84.03 s`).
+2. **Restored replicas skip engine start-up, with one caveat for the first
+   request on Blackwell**:
+   - Because `gVisor`'s GPU driver proxy passes CUDA driver calls directly to
+     the host NVIDIA driver and the engine state plus all 51 captured CUDA
+     graphs are preserved inside the restored GPU VRAM image,
+     `PodSnapshot`-restored replicas skip weight loading, `torch.compile`, and
+     CUDA graph capture.
+   - The checkpoint is triggered as soon as `/health` returns `200 OK`, before
+     any inference request. On `RTX PRO 6000` (Blackwell), the first
+     `/v1/chat/completions` request after a restore can JIT-compile the Triton
+     `kernel_unified_attention` kernel (about 35–65 seconds, then about 2
+     seconds per request). Send one warm-up request to each restored replica
+     before routing user traffic to it.
+3. **VRAM capacity & KV cache headroom when sizing single-GPU (`TP=1`) scale-out
+   units (`80 GB H100` vs. `96 GB RTX PRO 6000`)**:
+   - Keeping 27B–31B models on a single GPU (`--tensor-parallel-size=1`) is
+     critical for rapid elastic scaling because `1-GPU` nodes (`g4-standard-48`
+     and `a3-highgpu-1g`) have the highest multi-region Spot obtainability and
+     are compatible with GKE `PodSnapshot`.
+   - On `80 GB H100` (`79.1 GiB` usable VRAM), `Gemma 4 31B`'s `58.99 GiB` BF16
+     weights leave **`10.61 GiB` (`12,629` tokens)** of KV cache at
+     `--gpu-memory-utilization=0.90` (requiring `--max-model-len=8192`, which
+     the `h100-gemma-4-31b-it` overlay sets), and `Gemma 3 27B` (`51.19 GiB`
+     weights) allocates **`18.12 GiB` (`34,147` tokens)** of KV cache.
+   - On `96 GB RTX PRO 6000`, the extra `+16 GiB` of GDDR7 VRAM expands
+     `Gemma 4 31B`'s KV cache by **`2.35×` to `24.89 GiB` (`29,628` tokens per
+     GPU, or `59,256` tokens across `2×1` horizontally scaled replicas)** and
+     expands `Gemma 3 27B`'s KV cache to **`32.26 GiB` (`60,783` tokens per
+     GPU)**, allowing each single-GPU replica to hold substantially more
+     concurrent sequences (or a longer `MAX_MODEL_LEN`, such as `16384`) before
+     queuing requests in `vllm:num_requests_waiting`.
+4. **Built-in ComputeClass priorities (`[On-Demand, Flex-Start, Spot]`) stall
    GKE Autopilot in 0-On-Demand-quota regions**: When a region has `0` On-Demand
    GPU quota (such as `europe-west4` with `0` On-Demand `H100` but `16`
    `PREEMPTIBLE_NVIDIA_H100_GPUS`), the built-in `gpu-h100-80gb-*` ComputeClass
    causes Node Auto-Provisioning to repeatedly fail on Priority 1
-   (`GCE quota exceeded`) before falling through to Spot. Creating a
-   **Spot-first Custom Compute Class** (`spot: true` as the first priority rule,
-   plus fallback from `a3-highgpu-8g` to `a3-megagpu-8g`) drops node
-   provisioning time to **~90 seconds**.
-2. **Up to 465× faster multi-shard GCS FUSE weight loading using a RAM-backed
+   (`GCE quota exceeded`) before falling through to Spot. Patching the
+   `ComputeClass` so **Spot (`spot: true`) is Priority 1** (and including both
+   `a3-megagpu-8g` and `a3-highgpu-8g`) drops node provisioning time to **~85–90
+   seconds**.
+5. **Up to 465× faster multi-shard GCS FUSE weight loading using a RAM-backed
    `gke-gcsfuse-cache` override**:
 
    - Setting `file-cache:max-size-mb:-1` without a local NVMe SSD writes the GCS
@@ -1077,12 +1365,20 @@ tokens)._
      checkpoint (`50–70 GiB` across 10+ shards) scans or prefetches all shards
      upfront before loading weights shard-by-shard, thrashing the `20 GiB` LRU
      cache (`399 s per shard`).
+   - **Scope**: This applies only when vLLM reads weights from the FUSE mount
+     path. When vLLM is given a `gs://` model URI with
+     `--load-format=runai_streamer` (as in the Run:ai and Pod snapshot
+     overlays), the Run:ai Model Streamer reads directly from Cloud Storage and
+     never touches the FUSE mount or `gke-gcsfuse-cache`, so don't add the FUSE
+     volume or RAM-backed cache to those Pods.
    - **Fix**: When mounting via Cloud Storage FUSE (instead of
      `--load-format=runai_streamer`), override the CSI-injected
      `gke-gcsfuse-cache` volume in the Pod spec with a RAM-backed `emptyDir`
      (`medium: Memory, sizeLimit: 80Gi`), set
-     `file-cache:max-size-mb:75000,file-cache:cache-file-for-range-read:true`,
-     and pass `--safetensors-load-strategy=prefetch`:
+     `file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true`,
+     point vLLM at the mount path (`--model=<mountPath>`, because `only-dir`
+     mounts the model folder at the mount root), and pass
+     `--safetensors-load-strategy=prefetch`:
 
      ```yaml
      volumes:
@@ -1093,37 +1389,15 @@ tokens)._
        - name: gcs-fuse-csi-ephemeral
          csi:
            driver: gcsfuse.csi.storage.gke.io
+           readOnly: true
            volumeAttributes:
              bucketName: <your-hns-model-bucket>
-             mountOptions: "implicit-dirs,only-dir=google/gemma-4-31b-it,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:75000,file-cache:cache-file-for-range-read:true,read_ahead_kb=1024"
+             mountOptions: "implicit-dirs,only-dir=google/gemma-4-31b-it,file-cache:enable-parallel-downloads:true,file-cache:max-size-mb:-1,file-cache:cache-file-for-range-read:true,metadata-cache:ttl-secs:-1"
      ```
 
      With this configuration, vLLM prefetches `59–66 GiB` checkpoints into host
-     RAM in **`4.8–7.5 s`** and loads tensors into GPU VRAM in **`11.2–20.3 s`**
+     RAM in **`5.0–8.1 s`** and loads tensors into GPU VRAM in **`11.2–20.6 s`**
      with zero boot-disk consumption.
-
-3. **`Gemma 4 31B` (`58.99 GiB` BF16) — `H100 80GB` compute speed vs.
-   `RTX PRO 6000 96GB` VRAM capacity**:
-   - **Single-GPU compute & bandwidth (`H100 80GB`)**: A single `H100 80GB`
-     delivers **`2.8×` higher single-GPU output throughput** on `Gemma 4 31B`
-     (`2,033.6` vs. `717.1 out tok/s/GPU`, accelerated by `3.35 TB/s` HBM3
-     bandwidth and Hopper's `FA4` attention backend) and **`13%` lower
-     single-stream decode TPOT** (`24.95 ms` vs. `28.59 ms`).
-   - **Single-GPU KV cache headroom (`RTX PRO 6000 96GB`)**: On an `80 GB H100`
-     (`79.1 GiB` usable VRAM), `Gemma 4 31B`'s `58.99 GiB` weights leave only
-     `10.62 GiB` (`12,629` tokens at `--gpu-memory-utilization=0.90`), which
-     cannot fit `--max-model-len=16384` (requires `13.76 GiB`), and raising
-     `--gpu-memory-utilization=0.95` on `v0.26.0` starves FlashInfer's
-     `top_k_mask_logits` sampler (`994 MiB` scratch at CUDA graph batch size 512
-     / `--max-num-seqs=256`). Tuning `Gemma 4 31B` on `1× H100 80GB` to
-     `--gpu-memory-utilization=0.90`, `--max-model-len=8192`, and
-     `--max-num-seqs=128` reduces sampler scratch to `248 MiB` and leaves
-     `7.9 GiB` of unallocated VRAM headroom.
-   - By contrast, `RTX PRO 6000`'s **`96 GiB` GDDR7 VRAM** provides
-     **`24.91 GiB` (`29,655` tokens at `gpu_util=0.90`, and up to `197,888`
-     tokens with tuned KV settings)** on a single GPU, supporting `16K–32K`
-     context windows and high concurrency (`c=64..128`) without KV cache
-     preemption (`0` waiting queue at `c=64`).
 
 ## Additional Reading
 

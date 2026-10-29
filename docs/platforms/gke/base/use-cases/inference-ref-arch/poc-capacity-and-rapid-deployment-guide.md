@@ -52,11 +52,10 @@ discovery and multi-region Fluid Compute** with every **fast-start and
 fast-restore technique** in Accelerated Platforms:
 
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": false, "padding": 20}, "themeVariables": {"fontFamily": "sans-serif"}}}%%
 flowchart TD
-  subgraph S1["Stage 1: Scope & Data Estate"]
-    A["1. Select Model & GPU/TPU SKU"] --> B["2. Map Data Estate Locality"]
-    B --> C["3. Pick Candidate Regions"]
+  subgraph S1["Stage 1: Scope the PoC"]
+    A["Select Model and GPU/TPU SKU"] --> B["Map Data Estate Locality"]
+    B --> C["Pick Candidate Regions"]
   end
 
   subgraph S2["Stage 2: Capacity Discovery"]
@@ -71,12 +70,12 @@ flowchart TD
     F -->|"Multi-Region"| H["Topology B: Multi-Region Ring"]
   end
 
-  subgraph S4["Stage 4: Fast-Start & Restore"]
-    G --> I["1. GCFS Image Streaming"]
+  subgraph S4["Stage 4: Fast-Start Tricks"]
+    G --> I["GCFS Image Streaming"]
     H --> I
-    I --> J["2. HNS GCS + Run:ai Streamer"]
-    J --> K["3. GKE Pod Snapshots + HPA"]
-    K --> L["4. llm-d GAIE Routing"]
+    I --> J["Trick 1: HNS GCS + Run:ai Streamer"]
+    J --> K["Trick 2: GKE Pod Snapshots + HPA"]
+    K --> L["Trick 3: llm-d GAIE Routing"]
   end
 ```
 
@@ -644,7 +643,6 @@ automatic, zero-downtime failover to a low-preemption backup region (such as
 with Accelerated Platforms:
 
 ```mermaid
-%%{init: {"flowchart": {"htmlLabels": false, "padding": 20}, "themeVariables": {"fontFamily": "sans-serif"}}}%%
 flowchart TD
   Client["Client Inference Traffic"] --> MCG["Multi-Cluster Gateway"]
   MCG --> EPP["llm-d GAIE Endpoint Picker"]

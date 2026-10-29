@@ -67,7 +67,12 @@ rolebinding
 rootfs
 runsc
 runtimeclasses
+sandboxclaims
 sandboxed
+sandboxtemplate
+sandboxtemplates
+sandboxwarmpool
+sandboxwarmpools
 seccomp
 secretproviderclass
 secretproviderclasses
@@ -79,4 +84,5 @@ tokenreviews
 tolerations
 unsandboxed
 validatingwebhookconfigurations
+warmpool
 yunikorn

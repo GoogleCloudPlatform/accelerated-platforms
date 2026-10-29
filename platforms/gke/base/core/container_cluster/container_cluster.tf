@@ -39,6 +39,7 @@ resource "google_container_cluster" "cluster" {
   deletion_protection      = false
   enable_shielded_nodes    = true
   location                 = local.cluster_region
+  min_master_version       = local.cluster_min_master_version
   name                     = local.cluster_name
   network                  = local.network_cluster_network_name
   node_locations           = local.valid_zones
@@ -47,6 +48,13 @@ resource "google_container_cluster" "cluster" {
   subnetwork               = local.network_cluster_subnet_node_name
 
   addons_config {
+    dynamic "agent_sandbox_config" {
+      for_each = var.cluster_addons_agent_sandbox_enabled ? ["agent_sandbox_config"] : []
+      content {
+        enabled = true
+      }
+    }
+
     gcp_filestore_csi_driver_config {
       enabled = true
     }

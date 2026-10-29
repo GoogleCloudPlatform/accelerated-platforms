@@ -13,7 +13,8 @@
 # limitations under the License.
 
 locals {
-  wi_principal_prefix = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
+  service_account_name = "${local.unique_identifier_prefix}-custom-metrics-stackdriver-adapter"
+  wi_principal_prefix  = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }
 
 resource "google_project_iam_member" "custom_metrics_stackdriver_adapter" {
@@ -22,7 +23,7 @@ resource "google_project_iam_member" "custom_metrics_stackdriver_adapter" {
     "roles/monitoring.viewer"
   ])
 
-  member  = "${local.wi_principal_prefix}/ns/custom-metrics/sa/custom-metrics-stackdriver-adapter"
+  member  = "${local.wi_principal_prefix}/ns/custom-metrics/sa/${local.service_account_name}"
   project = data.google_project.cluster.project_id
   role    = each.value
 }

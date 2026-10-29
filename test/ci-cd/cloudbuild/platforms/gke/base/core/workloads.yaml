@@ -28,6 +28,7 @@ steps:
 
   - args:
       - DEBUG=${_DEBUG}
+      - TF_VAR_cluster_check_custom_compute_classes_healthy="false"
       - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
       - TF_VAR_platform_name="ch${SHORT_SHA}"
     entrypoint: "test/ci-cd/scripts/terraservice/configure_environment.sh"
@@ -79,12 +80,31 @@ steps:
 
   - args:
       - /workspace/platforms/gke/base/core
+      - custom_compute_class
+    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+    id: "Core Terraservice 'custom_compute_class'"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Core Terraservice 'workloads/cluster_credentials'"
+
+  - args:
+      - /workspace/platforms/gke/base/core
       - workloads/auto_monitoring
     entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
     id: "Core Terraservice 'workloads/auto_monitoring'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Core Terraservice 'workloads/cluster_credentials'"
+
+  - args:
+      - /workspace/platforms/gke/base/core
+      - workloads/agent_sandbox
+    entrypoint: "test/ci-cd/scripts/terraservice/apply.sh"
+    id: "Core Terraservice 'workloads/agent_sandbox'"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Core Terraservice 'custom_compute_class'"
+      - "Core Terraservice 'workloads/auto_monitoring'"
 
   - args:
       - /workspace/platforms/gke/base/core
@@ -150,6 +170,7 @@ steps:
     id: "Core Terraservice 'networking' check for changes"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
+      - "Core Terraservice 'workloads/agent_sandbox'"
       - "Core Terraservice 'workloads/kueue'"
       - "Core Terraservice 'workloads/lustre'"
 
@@ -161,6 +182,24 @@ steps:
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Core Terraservice 'networking' check for changes"
+
+  - args:
+      - /workspace/platforms/gke/base/core
+      - custom_compute_class
+    entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+    id: "Core Terraservice 'custom_compute_class' check for changes"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Core Terraservice 'container_cluster' check for changes"
+
+  - args:
+      - /workspace/platforms/gke/base/core
+      - workloads/agent_sandbox
+    entrypoint: "test/ci-cd/scripts/terraservice/plan.sh"
+    id: "Core Terraservice 'workloads/agent_sandbox' check for changes"
+    name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
+    waitFor:
+      - "Core Terraservice 'container_cluster' check for changes"
 
   - args:
       - /workspace/platforms/gke/base/core

@@ -19,6 +19,12 @@ patches:
     kind: Deployment
     version: v1
 - path: patch/no-create-namespace.yaml
+- path: patch/service-account-name.yaml
+  target:
+    kind: ServiceAccount
+    name: custom-metrics-stackdriver-adapter
+    namespace: custom-metrics
+    version: v1
 
 resources:
 - manifests.yaml

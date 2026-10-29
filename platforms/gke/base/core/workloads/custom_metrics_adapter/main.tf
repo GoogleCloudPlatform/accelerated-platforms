@@ -62,6 +62,7 @@ module "kubectl_apply_namespace" {
 resource "terraform_data" "manifests" {
   input = {
     manifests_dir         = local.manifests_directory
+    service_account_name  = local.service_account_name
     version               = var.custom_metrics_adapter_version
     version_manifests_dir = local.version_manifests_directory
   }
@@ -72,6 +73,11 @@ mkdir -p "${self.input.version_manifests_dir}" && \
 mkdir -p "${self.input.manifests_dir}" && \
 wget https://raw.githubusercontent.com/GoogleCloudPlatform/k8s-stackdriver/cm-sd-adapter-v${self.input.version}/custom-metrics-stackdriver-adapter/deploy/production/adapter_new_resource_model.yaml -O "${self.input.version_manifests_dir}/manifests.yaml" && \
 cp -r templates/workload/* "${self.input.version_manifests_dir}/" && \
+cat <<EOF > "${self.input.version_manifests_dir}/patch/service-account-name.yaml"
+- op: replace
+  path: /metadata/name
+  value: ${self.input.service_account_name}
+EOF
 cp -r "${self.input.version_manifests_dir}"/* "${self.input.manifests_dir}/"
 EOT
     interpreter = ["bash", "-c"]
@@ -80,6 +86,7 @@ EOT
 
   triggers_replace = {
     manifests_dir         = local.manifests_directory
+    service_account_name  = local.service_account_name
     version               = var.custom_metrics_adapter_version
     version_manifests_dir = local.version_manifests_directory
   }

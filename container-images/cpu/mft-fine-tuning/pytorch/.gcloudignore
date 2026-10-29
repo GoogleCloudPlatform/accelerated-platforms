@@ -11,7 +11,6 @@ container-images/cpu/mft-model-eval/
 container-images/gpu
 container-images/tpu
 docs/
-modules/python/src/custom_nodes/
 modules/python/tests/
 platforms/
 projects/

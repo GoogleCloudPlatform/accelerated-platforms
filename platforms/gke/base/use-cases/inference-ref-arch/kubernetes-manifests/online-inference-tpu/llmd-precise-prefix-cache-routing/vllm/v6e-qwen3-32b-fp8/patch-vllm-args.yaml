@@ -42,6 +42,12 @@ spec:
                 configMapKeyRef:
                   name: deployment
                   key: MODEL_BUCKET_NAME
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: llm-d-hf-token
+                  key: HF_TOKEN
+                  optional: true
           args:
             - "--model=gs://$(MODEL_BUCKET_NAME)/$(MODEL_ID)"
             - "--port=8000"

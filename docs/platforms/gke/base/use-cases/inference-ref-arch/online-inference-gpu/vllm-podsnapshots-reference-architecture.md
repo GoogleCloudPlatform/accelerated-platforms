@@ -229,10 +229,13 @@ Snapshots are written to Cloud Storage by the workload's Kubernetes service
 account through Workload Identity Federation. Deleting a snapshot is performed
 by the Pod snapshot controller, which acts as the GKE service agent and needs
 the Storage Object User role on the bucket. When
-`ira_online_gpu_pod_snapshots_enabled` is set to `true`, the
+`cluster_addons_pod_snapshots_enabled` is `true` (enabled by the
+`inference-ref-arch` `deploy-standard.sh` and `deploy-ap.sh` scripts), the core
+cluster terraservices (`core/container_cluster` and `core/container_cluster_ap`)
+enable the GKE Pod Snapshots add-on on the cluster, and the
 `terraform/online_gpu` module creates a dedicated `*-pod-snapshots` Cloud
 Storage bucket with hierarchical namespace enabled and soft delete disabled
-(`retention_duration_seconds = 0`), and grants `roles/storage.objectUser` on
+(`retention_duration_seconds = 0`), granting `roles/storage.objectUser` on
 that bucket to both the workload's Kubernetes service account and the GKE
 service agent
 (`service-${project_number}@container-engine-robot.iam.gserviceaccount.com`). On

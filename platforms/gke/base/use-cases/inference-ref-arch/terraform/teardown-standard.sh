@@ -33,6 +33,7 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-r
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 
 # Set use-case specific values
+export TF_VAR_cluster_addons_pod_snapshots_enabled="${TF_VAR_cluster_addons_pod_snapshots_enabled:-true}"
 export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 

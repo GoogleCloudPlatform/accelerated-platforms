@@ -57,7 +57,6 @@ locals {
   ira_online_gpu_kubernetes_namespace_name            = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_kubernetes_service_account_name      = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_pod_snapshots_bucket_name            = var.ira_online_gpu_pod_snapshots_bucket_name != null ? var.ira_online_gpu_pod_snapshots_bucket_name : "${var.platform_default_project_id}-${local.unique_identifier_prefix}-pod-snapshots"
-  ira_online_gpu_pod_snapshots_enabled                = var.ira_online_gpu_pod_snapshots_enabled
   ira_online_gpu_vllm_image_url                       = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
   ira_online_gpu_vllm_kv_offloading_image_url         = var.ira_online_gpu_vllm_kv_offloading_image_url
   ira_online_gpu_vllm_podsnapshot_image_url           = var.ira_online_gpu_vllm_podsnapshot_image_url
@@ -254,12 +253,6 @@ variable "ira_online_gpu_pod_snapshots_bucket_name" {
   default     = null
   description = "The name of the Cloud Storage bucket used to store GKE Pod snapshots. Defaults to '<project>-<prefix>-pod-snapshots'."
   type        = string
-}
-
-variable "ira_online_gpu_pod_snapshots_enabled" {
-  default     = false
-  description = "Whether to provision the dedicated Cloud Storage bucket and GKE service agent IAM binding for GKE Pod snapshots."
-  type        = bool
 }
 
 variable "ira_online_gpu_rapid_cache_ingest_on_write" {

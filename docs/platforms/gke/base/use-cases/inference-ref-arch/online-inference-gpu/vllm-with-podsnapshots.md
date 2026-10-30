@@ -78,52 +78,43 @@ and want scale-out to stop repeating the cold start.
 
 ## Create and configure the Google Cloud resources
 
-- Deploy the online GPU resources with Pod snapshot storage enabled.
+- Deploy the online GPU resources.
 
   ```shell
   export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
   cd ${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu && \
   rm -rf .terraform/ terraform.tfstate* && \
   terraform init && \
-  terraform plan -input=false -var="ira_online_gpu_pod_snapshots_enabled=true" -out=tfplan && \
+  terraform plan -input=false -out=tfplan && \
   terraform apply -input=false tfplan && \
   rm tfplan
   ```
 
-  Setting `ira_online_gpu_pod_snapshots_enabled=true` creates a dedicated Cloud
-  Storage bucket for Pod snapshots (`*-pod-snapshots`) with hierarchical
-  namespace enabled and soft delete disabled (`retention_duration_seconds = 0`),
-  and grants `roles/storage.objectUser` on that bucket to both the workload's
-  Kubernetes service account and the GKE service agent
+  When `cluster_addons_pod_snapshots_enabled` is `true` (enabled by the
+  `inference-ref-arch` `deploy-standard.sh` and `deploy-ap.sh` scripts), deploying
+  `terraform/online_gpu` creates a dedicated Cloud Storage bucket for Pod
+  snapshots (`*-pod-snapshots`) with hierarchical namespace enabled and soft
+  delete disabled (`retention_duration_seconds = 0`), and grants
+  `roles/storage.objectUser` on that bucket to both the workload's Kubernetes
+  service account and the GKE service agent
   (`service-${project_number}@container-engine-robot.iam.gserviceaccount.com`).
 
-## Prepare the cluster for Pod snapshots
+## Verify the cluster for Pod snapshots
 
-These steps are performed once per cluster.
+The GKE Pod Snapshots add-on (`addons_config.pod_snapshot_config`) is controlled
+by `cluster_addons_pod_snapshots_enabled` (which defaults to `false` in the core
+platform and is set to `true` by the `inference-ref-arch` `deploy-standard.sh`
+and `deploy-ap.sh` scripts) when the cluster is created by the core cluster
+terraservices (`core/container_cluster` and `core/container_cluster_ap`). The
+workload requests `runtimeClassName: gvisor`, and node auto-provisioning creates
+GKE Sandbox GPU nodes for it through the custom compute class. No node pool
+needs to be created by hand.
 
 - Source the environment configuration.
 
   ```shell
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
   ```
-
-- Enable Pod snapshots on the cluster.
-
-  ```shell
-  gcloud beta container clusters update ${cluster_name} \
-  --enable-pod-snapshots \
-  --location=${cluster_region} \
-  --project=${cluster_project_id}
-  ```
-
-  The update takes about 10 minutes. (If you manage cluster creation directly in
-  Terraform with `hashicorp/google` `>= 7.33.0`, you can also enable this
-  declaratively via `addons_config { pod_snapshot_config { enabled = true } }`
-  on `google_container_cluster`.)
-
-  The workload requests `runtimeClassName: gvisor`, and node auto-provisioning
-  creates GKE Sandbox GPU nodes for it through the custom compute class. No node
-  pool needs to be created by hand.
 
 - Confirm that the Pod snapshot resources are available.
 
@@ -147,10 +138,9 @@ These steps are performed once per cluster.
   `${ira_online_gpu_pod_snapshots_bucket_name}` bucket by the workload's
   Kubernetes service account, while deleting a `PodSnapshot` is performed by the
   Pod snapshot controller acting as the GKE service agent. Deploying
-  `terraform/online_gpu` with `-var="ira_online_gpu_pod_snapshots_enabled=true"`
-  provisions this bucket with soft delete disabled and grants
-  `roles/storage.objectUser` to the GKE service agent automatically. Confirm the
-  binding on the snapshot bucket:
+  `terraform/online_gpu` provisions this bucket with soft delete disabled and
+  grants `roles/storage.objectUser` to the GKE service agent automatically.
+  Confirm the binding on the snapshot bucket:
 
   ```shell
   cluster_project_number=$(gcloud projects describe ${cluster_project_id} --format="value(projectNumber)")
@@ -675,7 +665,7 @@ If `kubectl delete podsnapshot` prints `deleted` but then times out, and the
 the Pod snapshot controller cannot delete the snapshot data. Confirm that the
 GKE service agent has the Storage Object User role on the bucket, as described
 in
-[Prepare the cluster for Pod snapshots](#prepare-the-cluster-for-pod-snapshots).
+[Verify the cluster for Pod snapshots](#verify-the-cluster-for-pod-snapshots).
 
 ## Clean up
 

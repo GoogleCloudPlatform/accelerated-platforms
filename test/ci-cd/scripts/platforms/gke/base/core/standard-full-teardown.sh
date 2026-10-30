@@ -29,6 +29,8 @@ ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../../)"
 ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 
+export TF_VAR_cluster_addons_pod_snapshots_enabled="${TF_VAR_cluster_addons_pod_snapshots_enabled:-true}"
+
 declare -a CORE_TERRASERVICES_DESTROY_ARRAY=(
   "workloads/agent_sandbox"
   "workloads/pathways"

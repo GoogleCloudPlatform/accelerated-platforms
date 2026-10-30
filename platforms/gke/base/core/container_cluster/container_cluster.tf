@@ -67,6 +67,13 @@ resource "google_container_cluster" "cluster" {
       enabled = true
     }
 
+    dynamic "pod_snapshot_config" {
+      for_each = var.cluster_addons_pod_snapshots_enabled ? ["pod_snapshot_config"] : []
+      content {
+        enabled = true
+      }
+    }
+
     dynamic "ray_operator_config" {
       for_each = var.cluster_addons_ray_operator_enabled ? ["ray_operator_config"] : []
       content {

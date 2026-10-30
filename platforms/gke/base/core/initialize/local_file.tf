@@ -86,6 +86,7 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
+      cluster_addons_agent_sandbox_enabled                 = var.cluster_addons_agent_sandbox_enabled
       cluster_addons_ray_operator_enabled                  = var.cluster_addons_ray_operator_enabled
       cluster_auto_monitoring_config_scope                 = var.cluster_auto_monitoring_config_scope
       cluster_autopilot_enabled                            = var.cluster_autopilot_enabled
@@ -273,7 +274,6 @@ resource "local_file" "shared_config_workloads_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
-      agent_sandbox_version                  = var.agent_sandbox_version
       custom_metrics_adapter_version         = var.custom_metrics_adapter_version
       inference_gateway_kubernetes_namespace = var.inference_gateway_kubernetes_namespace
       inference_gateway_version              = var.inference_gateway_version

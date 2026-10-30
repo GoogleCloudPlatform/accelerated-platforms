@@ -47,6 +47,13 @@ resource "google_container_cluster" "cluster" {
   subnetwork               = local.network_cluster_subnet_node_name
 
   addons_config {
+    dynamic "agent_sandbox_config" {
+      for_each = var.cluster_addons_agent_sandbox_enabled ? ["agent_sandbox_config"] : []
+      content {
+        enabled = true
+      }
+    }
+
     gcp_filestore_csi_driver_config {
       enabled = true
     }

@@ -417,8 +417,8 @@ locals {
   platforms_gke_base_core_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/**",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-full-deploy.sh",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-full-teardown.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/standard-full-deploy.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/standard-full-teardown.sh",
     local.platforms_gke_base_core_full_scripts_cb_yaml,
   ]
 }
@@ -995,6 +995,7 @@ locals {
   platforms_gke_base_core_workloads_terraform_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/custom_compute_class/**",
     "platforms/gke/base/core/initialize/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/workloads/**",

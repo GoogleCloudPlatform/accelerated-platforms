@@ -253,6 +253,8 @@ locals {
   ]
   platforms_cws_scripts_all_include = [
     "platforms/cws/**",
+    "test/ci-cd/scripts/cloudbuild/wait_for_builds.sh",
+    "test/ci-cd/scripts/delete_project.sh",
     local.platforms_cws_scripts_all_cb_yaml,
   ]
   platforms_cws_scripts_all_name = "platforms-cws-scripts-all"
@@ -315,6 +317,10 @@ resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
   included_files = [
     "platforms/gke-aiml/playground/**",
     "test/ci-cd/cloudbuild/platforms-gke-aiml-playground-terraform.yaml",
+    "test/ci-cd/scripts/delete_project.sh",
+    "test/scripts/helpers/playground_config.sh",
+    "test/scripts/helpers/terraform_apply.sh",
+    "test/scripts/helpers/terraform_destroy.sh",
   ]
   location        = var.build_location
   name            = "platforms-gke-aiml-playground-terraform"
@@ -350,6 +356,8 @@ locals {
   platforms_gke_base_core_ap_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/**",
+    "test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh",
+    "test/ci-cd/scripts/delete_project.sh",
     "test/ci-cd/scripts/platforms/gke/base/core/ap-full-deploy.sh",
     "test/ci-cd/scripts/platforms/gke/base/core/ap-full-teardown.sh",
     local.platforms_gke_base_core_ap_full_scripts_cb_yaml,
@@ -417,8 +425,10 @@ locals {
   platforms_gke_base_core_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/**",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-full-deploy.sh",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-full-teardown.sh",
+    "test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh",
+    "test/ci-cd/scripts/delete_project.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/standard-full-deploy.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/standard-full-teardown.sh",
     local.platforms_gke_base_core_full_scripts_cb_yaml,
   ]
 }
@@ -481,6 +491,9 @@ locals {
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/initialize/**",
     "platforms/gke/base/core/networking/**",
+    "test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh",
+    "test/ci-cd/scripts/delete_project.sh",
+    "test/ci-cd/scripts/terraservice/configure_environment.sh",
     local.platforms_gke_base_core_initialize_terraform_cb_yaml,
   ]
 
@@ -554,6 +567,8 @@ locals {
     "platforms/gke/base/core/workloads/cluster_credentials/**",
     "platforms/gke/base/core/workloads/kueue/**",
     "platforms/gke/base/core/workloads/pathways/**",
+    "test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh",
+    "test/ci-cd/scripts/delete_project.sh",
     local.platforms_gke_base_core_ap_scripts_cb_yaml,
   ]
 }
@@ -627,6 +642,8 @@ locals {
     "platforms/gke/base/core/workloads/cluster_credentials/**",
     "platforms/gke/base/core/workloads/kueue/**",
     "platforms/gke/base/core/workloads/pathways/**",
+    "test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh",
+    "test/ci-cd/scripts/delete_project.sh",
     local.platforms_gke_base_core_scripts_cb_yaml,
   ]
 }
@@ -998,6 +1015,9 @@ locals {
     "platforms/gke/base/core/initialize/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/workloads/**",
+    "test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh",
+    "test/ci-cd/scripts/delete_project.sh",
+    "test/ci-cd/scripts/terraservice/configure_environment.sh",
     local.platforms_gke_base_core_workloads_terraform_cb_yaml,
   ]
 }

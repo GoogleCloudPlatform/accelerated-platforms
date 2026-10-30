@@ -17,7 +17,7 @@ locals {
 }
 
 variable "agent_sandbox_version" {
-  default     = "0.4.6"
+  default     = "1.0.8"
   description = "Version of Agent Sandbox (https://github.com/kubernetes-sigs/agent-sandbox) to install."
   type        = string
 }

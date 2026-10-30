@@ -38,6 +38,7 @@ resource "google_container_cluster" "cluster" {
   deletion_protection = false
   enable_autopilot    = true
   location            = local.cluster_region
+  min_master_version  = local.cluster_min_master_version
   name                = local.cluster_name
   network             = local.network_cluster_network_name
   node_locations      = local.valid_zones

@@ -98,6 +98,7 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
       cluster_gateway_api_config_channel                   = var.cluster_gateway_api_config_channel
       cluster_gpu_driver_version                           = var.cluster_gpu_driver_version
       cluster_master_global_access_enabled                 = var.cluster_master_global_access_enabled
+      cluster_min_master_version                           = var.cluster_min_master_version
       cluster_node_auto_provisioning_enabled               = var.cluster_node_auto_provisioning_enabled
       cluster_node_auto_provisioning_resource_limits       = var.cluster_node_auto_provisioning_resource_limits
       cluster_node_pool_default_service_account_id         = var.cluster_node_pool_default_service_account_id
@@ -105,6 +106,7 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
       cluster_private_endpoint_subnetwork                  = var.cluster_private_endpoint_subnetwork
       cluster_project_id                                   = var.cluster_project_id
       cluster_region                                       = local.cluster_region
+      cluster_sandbox_config                               = var.cluster_sandbox_config
       cluster_system_node_pool_machine_type                = var.cluster_system_node_pool_machine_type
       cluster_use_connect_gateway                          = var.cluster_use_connect_gateway
     }

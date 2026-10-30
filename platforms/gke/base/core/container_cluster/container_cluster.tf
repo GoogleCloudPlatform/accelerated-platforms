@@ -33,8 +33,7 @@ resource "google_container_cluster" "cluster" {
     google_project_iam_member.cluster_sa
   ]
 
-  provider = google-beta
-
+  provider                 = google-beta
   datapath_provider        = "ADVANCED_DATAPATH"
   deletion_protection      = false
   enable_shielded_nodes    = true

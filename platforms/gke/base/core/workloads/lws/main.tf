@@ -115,8 +115,8 @@ EOT
 
 module "kubectl_apply_manifests" {
   depends_on = [
-    terraform_data.manifests,
     module.kubectl_apply_namespace,
+    terraform_data.manifests_ap,
   ]
 
   source = "../../../modules/kubectl_apply"

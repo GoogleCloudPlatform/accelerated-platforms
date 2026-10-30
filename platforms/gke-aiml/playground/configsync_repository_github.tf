@@ -18,6 +18,11 @@ locals {
   git_repository        = replace(local.configsync_repository.html_url, "/https*:\\/\\//", "")
 }
 
+provider "github" {
+  owner = var.git_namespace
+  token = var.git_token
+}
+
 module "configsync_repository" {
   source = "../../../terraform/modules/github/repository"
 
@@ -31,6 +36,4 @@ module "configsync_repository" {
   }
   description = "MLP Config Sync repository for ${var.environment_name} environment"
   name        = "${var.configsync_repo_name}-${var.environment_name}"
-  owner       = var.git_namespace
-  token       = var.git_token
 }

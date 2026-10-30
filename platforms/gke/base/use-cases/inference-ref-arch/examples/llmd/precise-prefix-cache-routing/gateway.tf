@@ -19,7 +19,7 @@ resource "local_file" "llmd_ppcr_gateway_kustomization" {
       remote_manifest = local.llmd_ppcr_gateway_remote_manifest
     }
   )
-  filename = "${path.module}/.terraform/manifests/gateway-kustomize/kustomization.yaml"
+  filename = "${local.manifests_directory}/gateway-kustomize/kustomization.yaml"
 }
 
 resource "local_file" "llmd_ppcr_gcp_backend_policy_override" {
@@ -30,7 +30,7 @@ resource "local_file" "llmd_ppcr_gcp_backend_policy_override" {
       namespace = local.llmd_namespace
     }
   )
-  filename = "${path.module}/.terraform/manifests/gateway-kustomize/gcp-backend-policy-override.yaml"
+  filename = "${local.manifests_directory}/gateway-kustomize/gcp-backend-policy-override.yaml"
 }
 
 module "kubectl_apply_llmd_ppcr_gateway_manifests" {

@@ -30,6 +30,10 @@ ACP_REPO_DIR="$(realpath "${MY_PATH}/../../../")"
 
 "${ACP_REPO_DIR}/platforms/cws/bin/cws_initialize.sh"
 "${ACP_REPO_DIR}/platforms/cws/bin/cws_cluster_apply.sh"
+if [[ -f /workspace/build.env ]]; then
+  # shellcheck source=/dev/null
+  source /workspace/build.env
+fi
 "${ACP_REPO_DIR}/platforms/cws/bin/cws_image_pipeline_apply.sh"
 "${ACP_REPO_DIR}/platforms/cws/bin/cws_workstation_configurations_apply.sh"
 

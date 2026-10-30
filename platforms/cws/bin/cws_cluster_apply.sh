@@ -58,6 +58,12 @@ if ! apply_cluster_terraservices; then
   fallback_location="${FALLBACK_LOCATION:-}"
   if [[ -n "${fallback_location}" && "${fallback_location}" != "${workstation_cluster_region:-}" ]]; then
     echo "WARNING: Cluster provisioning failed in '${workstation_cluster_region:-${platform_default_location}}'. Falling back to location '${fallback_location}'..."
+    if [[ -n "${workstation_cluster_name:-}" && -n "${workstation_cluster_project_id:-}" && -n "${workstation_cluster_region:-}" ]]; then
+      gcloud workstations clusters delete "${workstation_cluster_name}" \
+        --project="${workstation_cluster_project_id}" \
+        --region="${workstation_cluster_region}" \
+        --quiet || true
+    fi
     for terraservice in "workstation_cluster" "network"; do
       if [[ -d "${ACP_PLATFORM_TF_DIR}/${terraservice}" ]]; then
         cd "${ACP_PLATFORM_TF_DIR}/${terraservice}" &&
@@ -72,8 +78,11 @@ if ! apply_cluster_terraservices; then
     if [[ -f "${ACP_PLATFORM_DIR}/_shared_config/platform.auto.tfvars" ]]; then
       sed -i "s|^\([[:blank:]]*platform_default_location[[:blank:]]*=\).*|\1 \"${fallback_location}\"|" "${ACP_PLATFORM_DIR}/_shared_config/platform.auto.tfvars"
     fi
+    if [[ -f "${ACP_PLATFORM_DIR}/_shared_config/workstation_cluster.auto.tfvars" ]]; then
+      sed -i "s|^\([[:blank:]]*workstation_cluster_region[[:blank:]]*=\).*|\1 \"${fallback_location}\"|" "${ACP_PLATFORM_DIR}/_shared_config/workstation_cluster.auto.tfvars"
+    fi
     if [[ -f /workspace/build.env ]]; then
-      sed -i "s|^TF_VAR_platform_default_location=.*|TF_VAR_platform_default_location=\"${fallback_location}\"|" /workspace/build.env
+      sed -i "s|^\(export[[:blank:]]\+\)\?TF_VAR_platform_default_location=.*|export TF_VAR_platform_default_location=\"${fallback_location}\"|" /workspace/build.env
     fi
 
     "${ACP_PLATFORM_DIR}/bin/cws_initialize.sh"

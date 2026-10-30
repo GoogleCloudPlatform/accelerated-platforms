@@ -32,6 +32,8 @@ ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_CORE_DIR}/functions.sh"
 
+export TF_VAR_cluster_addons_pod_snapshots_enabled="${TF_VAR_cluster_addons_pod_snapshots_enabled:-true}"
+
 declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   "networking"
   "container_cluster_ap"

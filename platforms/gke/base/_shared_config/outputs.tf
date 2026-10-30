@@ -44,6 +44,10 @@ output "cloudbuild_source_bucket_name" {
   value = local.cloudbuild_source_bucket_name
 }
 
+output "cluster_addons_pod_snapshots_enabled" {
+  value = var.cluster_addons_pod_snapshots_enabled
+}
+
 output "cluster_autopilot_enabled" {
   value = var.cluster_autopilot_enabled
 }

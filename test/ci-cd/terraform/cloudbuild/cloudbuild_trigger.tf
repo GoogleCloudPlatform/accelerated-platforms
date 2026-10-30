@@ -417,8 +417,8 @@ locals {
   platforms_gke_base_core_full_scripts_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/**",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-full-deploy.sh",
-    "test/ci-cd/scripts/platforms/gke/base/core/core-full-teardown.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/standard-full-deploy.sh",
+    "test/ci-cd/scripts/platforms/gke/base/core/standard-full-teardown.sh",
     local.platforms_gke_base_core_full_scripts_cb_yaml,
   ]
 }
@@ -516,6 +516,70 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_initialize_terrafo
   included_files  = local.platforms_gke_base_core_initialize_terraform_include
   location        = var.build_location
   name            = "platforms-gke-base-core-initialize-terraform-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_pod_snapshots_terraform_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/core/pod-snapshots.yaml"
+  platforms_gke_base_core_pod_snapshots_terraform_ignore = [
+  ]
+  platforms_gke_base_core_pod_snapshots_terraform_include = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/container_cluster_ap/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    local.platforms_gke_base_core_pod_snapshots_terraform_cb_yaml,
+  ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_pod_snapshots_terraform" {
+  filename        = local.platforms_gke_base_core_pod_snapshots_terraform_cb_yaml
+  ignored_files   = local.platforms_gke_base_core_pod_snapshots_terraform_ignore
+  included_files  = local.platforms_gke_base_core_pod_snapshots_terraform_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-pod-snapshots-terraform"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_pod_snapshots_terraform_push" {
+  filename        = local.platforms_gke_base_core_pod_snapshots_terraform_cb_yaml
+  ignored_files   = local.platforms_gke_base_core_pod_snapshots_terraform_ignore
+  included_files  = local.platforms_gke_base_core_pod_snapshots_terraform_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-pod-snapshots-terraform-push"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 
@@ -1237,6 +1301,7 @@ locals {
   platforms_gke_base_uc_inference_ref_arch_scripts_ignore = [
   ]
   platforms_gke_base_uc_inference_ref_arch_scripts_include = [
+    "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/container_cluster/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/custom_compute_class/**",
@@ -1252,17 +1317,22 @@ locals {
     "platforms/gke/base/core/workloads/lws/**",
     "platforms/gke/base/core/workloads/priority_class/**",
     "platforms/gke/base/core/deploy.sh",
+    "platforms/gke/base/core/deploy-standard.sh",
     "platforms/gke/base/core/teardown.sh",
+    "platforms/gke/base/core/teardown-standard.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/**",
     "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/**",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/initialize/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/online_tpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/batch_gpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/offline_batch_gpu/**",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-standard.sh",
     "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown.sh",
+    "platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-standard.sh",
     local.platforms_gke_base_uc_inference_ref_arch_scripts_cb_yaml,
   ]
 }

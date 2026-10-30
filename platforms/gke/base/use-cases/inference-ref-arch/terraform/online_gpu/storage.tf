@@ -20,7 +20,7 @@ data "google_storage_bucket" "hub_models" {
 # Dedicated bucket for GKE Pod snapshots with soft delete disabled so deleted
 # multi-GiB snapshot archives do not incur soft-delete retention storage costs.
 resource "google_storage_bucket" "pod_snapshots" {
-  for_each = toset(var.ira_online_gpu_pod_snapshots_enabled && var.ira_online_gpu_pod_snapshots_bucket_name == null ? ["managed"] : [])
+  for_each = toset(var.cluster_addons_pod_snapshots_enabled && var.ira_online_gpu_pod_snapshots_bucket_name == null ? ["managed"] : [])
 
   force_destroy               = true
   location                    = local.huggingface_hub_models_bucket_location

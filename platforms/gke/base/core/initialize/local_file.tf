@@ -86,6 +86,7 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
+      cluster_addons_pod_snapshots_enabled                 = var.cluster_addons_pod_snapshots_enabled
       cluster_addons_ray_operator_enabled                  = var.cluster_addons_ray_operator_enabled
       cluster_auto_monitoring_config_scope                 = var.cluster_auto_monitoring_config_scope
       cluster_autopilot_enabled                            = var.cluster_autopilot_enabled

@@ -40,12 +40,12 @@ Each regional copy of the platform uses the repository's default
     runs `capacity_radar advise spot` to select high-obtainability regions
     (`us-central1`, `europe-west4`, `asia-south2`).
   - **Prep Step 3 (~20 min — PoC Guide Stage 3)**: Runs the repository's
-    `deploy-ap.sh` and `terraform/online_gpu` (with
-    `-var="ira_online_gpu_pod_snapshots_enabled=true"`) across each region
-    (`americas`, `europe`, `apac`) to stand up the GKE Autopilot clusters
-    (`inf-americas`, `inf-europe`, `inf-apac`), Hierarchical Namespace (HNS)
-    Cloud Storage model and snapshot buckets, and Custom Compute Classes, and
-    stores your Hugging Face token in Secret Manager.
+    `deploy-ap.sh` and `terraform/online_gpu` across each region (`americas`,
+    `europe`, `apac`) to stand up the GKE Autopilot clusters (`inf-americas`,
+    `inf-europe`, `inf-apac`) with the GKE Pod Snapshots add-on enabled by
+    default, Hierarchical Namespace (HNS) Cloud Storage model and snapshot
+    buckets, and Custom Compute Classes, and stores your Hugging Face token in
+    Secret Manager.
   - **Prep Step 4 (~15–20 min — PoC Guide Stage 4)**: Stages **Gemma 4 31B**
     (`google/gemma-4-31b-it`) and **Gemma 3 27B** (`google/gemma-3-27b-it`)
     model weights into HNS Cloud Storage using `configure_huggingface.sh`
@@ -174,15 +174,15 @@ full multi-region "Follow-the-Sun" showcase, or in **a single region
 
 The script below uses the repository's
 [`deploy-ap.sh`](/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-ap.sh)
-and
+(which enables the GKE Pod Snapshots add-on at cluster creation via
+`cluster_addons_pod_snapshots_enabled = true`) and
 [`terraform/online_gpu`](/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu)
-(passing `-var="ira_online_gpu_pod_snapshots_enabled=true"` so Terraform creates
-the dedicated `*-pod-snapshots` HNS bucket with soft delete disabled and grants
-`roles/storage.objectUser` to the workload KSA and GKE service agent) to
-provision each regional copy (`inf-americas`, `inf-europe`, `inf-apac`), adds
-your `HF_TOKEN` to Secret Manager, enables GKE Pod snapshots on each cluster,
-and saves isolated `--dns-endpoint` kubeconfigs (`/tmp/kc_inf-americas`,
-`/tmp/kc_inf-europe`, `/tmp/kc_inf-apac`):
+(which creates the dedicated `*-pod-snapshots` HNS bucket with soft delete
+disabled and grants `roles/storage.objectUser` to the workload KSA and GKE
+service agent) to provision each regional copy (`inf-americas`, `inf-europe`,
+`inf-apac`), adds your `HF_TOKEN` to Secret Manager, and saves isolated
+`--dns-endpoint` kubeconfigs (`/tmp/kc_inf-americas`, `/tmp/kc_inf-europe`,
+`/tmp/kc_inf-apac`):
 
 ```shell
 export TF_VAR_resource_name_prefix="inf"
@@ -237,11 +237,11 @@ EOF
     continue
   fi
 
-  # 4. Deploy the online_gpu terraservice with Pod snapshot storage enabled
+  # 4. Deploy the online_gpu terraservice (provisions the *-pod-snapshots HNS bucket and IAM)
   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu"
   rm -rf .terraform/ terraform.tfstate*
   if ! (terraform init &&
-    terraform plan -input=false -var="ira_online_gpu_pod_snapshots_enabled=true" -out=tfplan &&
+    terraform plan -input=false -out=tfplan &&
     terraform apply -input=false tfplan); then
     echo "ERROR: online_gpu failed for ${CLUSTER_NAME}; skipping the rest of ${REGION}."
     continue
@@ -254,26 +254,7 @@ EOF
     --data-file=- \
     --project="${huggingface_secret_manager_project_id}"
 
-  # 6. Wait for GKE Autopilot to finish post-deploy cluster operations (such as
-  #    RESIZE_CLUSTER), otherwise the update fails with CLUSTER_ALREADY_HAS_OPERATION
-  #    (stops early if the cluster is in ERROR or does not exist)
-  for _ in $(seq 1 90); do
-    CLUSTER_STATUS="$(gcloud container clusters describe "${cluster_name}" --location="${cluster_region}" --project="${cluster_project_id}" --format='value(status)' 2>/dev/null)"
-    if [ "${CLUSTER_STATUS}" = "RUNNING" ] || [ "${CLUSTER_STATUS}" = "ERROR" ] || [ -z "${CLUSTER_STATUS}" ]; then
-      break
-    fi
-    echo "Waiting for ${cluster_name} to return to RUNNING (currently ${CLUSTER_STATUS})..."
-    sleep 10
-  done
-
-  # 7. Enable GKE Pod snapshots on the cluster (PoC Guide Stage 4, Trick 2)
-  gcloud beta container clusters update "${cluster_name}" \
-    --enable-pod-snapshots \
-    --location="${cluster_region}" \
-    --project="${cluster_project_id}" \
-    --quiet
-
-  # 8. Save isolated DNS-endpoint kubeconfig for the live demo
+  # 6. Save isolated DNS-endpoint kubeconfig for the live demo
   KUBECONFIG="/tmp/kc_${CLUSTER_NAME}" gcloud container clusters get-credentials "${cluster_name}" \
     --region="${cluster_region}" \
     --project="${cluster_project_id}" \
@@ -292,13 +273,9 @@ cp /tmp/kc_inf-americas "${HOME}/.kube/config"
 > `Google Compute Engine does not have enough resources available to fulfill request`
 > (`code: 14`), the loop skips the rest of that region. Wait a few minutes and
 > re-run the loop with `RING_TARGETS` set to only that region (Terraform retries
-> the cluster creation), or drop the region from the ring. The
-> `gcloud beta container clusters update --enable-pod-snapshots` step can fail
-> with the same stockout error; re-run that command for the cluster a few
-> minutes later and confirm it with
-> `gcloud beta container clusters describe <CLUSTER> --location=<REGION> --format='value(addonsConfig.podSnapshotConfig.enabled)'`
-> (prints `True`). For example, if `europe-west4` is unavailable, re-run the
-> Beat 1 sweep and, if another ring region (such as `us-central1`) currently
+> the cluster creation with the Pod Snapshots add-on enabled), or drop the
+> region from the ring. For example, if `europe-west4` is unavailable, re-run
+> the Beat 1 sweep and, if another ring region (such as `us-central1`) currently
 > scores `HIGH` for `a3-megagpu-8g` and has Spot `H100 Mega` quota, run Prep
 > Step 4B against `inf-americas` instead (`use_region americas us-central1`,
 > after applying the `gpu-h100-80gb-mega-x8` `ComputeClass` from Prep Step 4.0
@@ -1101,7 +1078,7 @@ EOF
     gcloud storage rm --recursive "gs://${BUCKET}/**" || echo "gs://${BUCKET} is already empty or does not exist"
   done
 
-  # 4. Destroy online_gpu (passing ira_online_gpu_pod_snapshots_enabled=true) and run teardown-ap.sh
+  # 4. Destroy online_gpu and run teardown-ap.sh
   #    online_gpu/backend.tf is written explicitly because it is deleted when a
   #    previous region's core/initialize is destroyed
   cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu"
@@ -1114,7 +1091,7 @@ terraform {
   }
 }
 EOF
-  terraform init && terraform destroy -auto-approve -var="ira_online_gpu_pod_snapshots_enabled=true"
+  terraform init && terraform destroy -auto-approve
 
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-ap.sh"
 done

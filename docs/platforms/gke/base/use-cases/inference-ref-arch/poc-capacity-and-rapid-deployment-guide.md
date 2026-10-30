@@ -615,18 +615,18 @@ deployment topologies:
      "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/inference-ref-arch.auto.tfvars"
    ```
 
-6. Deploy the `online_gpu` (and/or `online_tpu`) terraservice (passing
-   `-var="ira_online_gpu_pod_snapshots_enabled=true"` if you plan to use GKE Pod
-   snapshots so Terraform creates the dedicated `*-pod-snapshots` HNS bucket
-   with soft delete disabled and grants `roles/storage.objectUser` to the
-   workload service account and GKE service agent):
+6. Deploy the `online_gpu` (and/or `online_tpu`) terraservice (which also
+   provisions the dedicated `*-pod-snapshots` HNS bucket with soft delete
+   disabled and grants `roles/storage.objectUser` to the workload service
+   account and GKE service agent when `cluster_addons_pod_snapshots_enabled` is
+   `true`):
 
    ```shell
    export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
    cd "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/online_gpu" && \
    rm -rf .terraform/ terraform.tfstate* && \
    terraform init && \
-   terraform plan -input=false -var="ira_online_gpu_pod_snapshots_enabled=true" -out=tfplan && \
+   terraform plan -input=false -out=tfplan && \
    terraform apply -input=false tfplan && \
    rm tfplan
    ```
@@ -885,27 +885,13 @@ Cloud Storage:
 ```shell
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
-# 1. Enable Pod snapshots on the cluster (one-time per cluster). Wait for any
-#    post-deploy Autopilot operation (such as RESIZE_CLUSTER) to finish first,
-#    otherwise the update fails with CLUSTER_ALREADY_HAS_OPERATION.
-for _ in $(seq 1 90); do
-  CLUSTER_STATUS="$(gcloud container clusters describe "${cluster_name}" --location="${cluster_region}" --project="${cluster_project_id}" --format='value(status)' 2>/dev/null)"
-  if [ "${CLUSTER_STATUS}" = "RUNNING" ] || [ "${CLUSTER_STATUS}" = "ERROR" ] || [ -z "${CLUSTER_STATUS}" ]; then
-    break
-  fi
-  sleep 10
-done
-gcloud beta container clusters update "${cluster_name}" \
-  --enable-pod-snapshots \
-  --location="${cluster_region}" \
-  --project="${cluster_project_id}"
-
-# 2. Configure and deploy the chosen overlay (e.g., Gemma 4 31B on H100 or RTX PRO 6000)
+# 1. Configure and deploy the chosen overlay (e.g., Gemma 4 31B on H100 or RTX PRO 6000)
+#    (GKE Pod snapshots are enabled automatically at cluster creation by core/container_cluster and core/container_cluster_ap)
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/configure_vllm_podsnapshot.sh"
 export VLLM_VARIANT="rtx-pro-6000-gemma-4-31b-it" # or h100-gemma-4-31b-it
 kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/${VLLM_VARIANT}"
 
-# 3. After the snapshot reaches AllSnapshotsAvailable, scale to 2 replicas and measure time-to-first-response
+# 2. After the snapshot reaches AllSnapshotsAvailable, scale to 2 replicas and measure time-to-first-response
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/measure_restore.sh" 2
 ```
 
@@ -1037,11 +1023,6 @@ case:
   `core/deploy.sh` looks for `terraform/initialize/default.tfstate` rather than
   `terraform/core/initialize/default.tfstate`, so it starts from empty local
   state and fails with a `409` conflict on the existing state bucket.
-- **`gcloud beta container clusters update --enable-pod-snapshots` fails with
-  `CLUSTER_ALREADY_HAS_OPERATION`**: Right after `deploy-ap.sh`, GKE Autopilot
-  can still be running an asynchronous `RESIZE_CLUSTER` operation. Poll
-  `gcloud container clusters describe --format='value(status)'` until it returns
-  `RUNNING` before you update the cluster.
 - **`hf-model-to-gcs` Job stuck `Pending` or killed mid-download**: See the note
   in Trick 1. Remove `activeMigration` from the `model-download` `ComputeClass`,
   confirm `C4_CPUS` or `C3_CPUS` quota (and `-lssd` machine availability) in the
@@ -1065,9 +1046,8 @@ case:
   `PodSnapshot` CRs (`kubectl delete podsnapshot --all`), empty the
   `*-pod-snapshots` and `*-hf-hub-models` HNS buckets
   (`gcloud storage rm --recursive "gs://${BUCKET}/**"`), and run
-  `terraform destroy -auto-approve -var="ira_online_gpu_pod_snapshots_enabled=true"`
-  in `online_gpu` before `teardown-ap.sh`. Part 3 of the 15-minute demo runbook
-  implements these steps.
+  `terraform destroy -auto-approve` in `online_gpu` before `teardown-ap.sh`.
+  Part 3 of the 15-minute demo runbook implements these steps.
 - **Rapid Cache warm-up and teardown timing**: Newly created Rapid Caches can
   take over an hour before they begin serving cached bytes, and destroying a
   Rapid Cache enforces a 1-hour grace period before the underlying model bucket

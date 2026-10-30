@@ -46,6 +46,12 @@ for model in "${models[@]}"; do
     echo "Testing '${HF_MODEL_ID}' Pod snapshot fast-restore deployment on '${ACCELERATOR_TYPE}'"
     echo "--------------------------------------------------------------------------------------------"
 
+    echo "Verifying GKE Pod Snapshots CRDs are established on the cluster..."
+    kubectl wait --for=condition=established --timeout=60s \
+      crd/podsnapshots.podsnapshot.gke.io \
+      crd/podsnapshotpolicies.podsnapshot.gke.io \
+      crd/podsnapshotstorageconfigs.podsnapshot.gke.io
+
     SERVED_MODEL_NAME="$(awk -F= '$1 == "MODEL_ID" { print $2 }' "${variant_dir}/runtime.env")"
     export VLLM_VARIANT
     export SERVED_MODEL_NAME

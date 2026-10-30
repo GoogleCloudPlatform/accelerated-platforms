@@ -24,7 +24,7 @@ resource "google_storage_bucket_iam_member" "hub_models_ira_online_gpu_ksa" {
 }
 
 resource "google_storage_bucket_iam_member" "pod_snapshots_ira_online_gpu_ksa" {
-  for_each = toset(var.ira_online_gpu_pod_snapshots_enabled ? ["enabled"] : [])
+  for_each = toset(var.cluster_addons_pod_snapshots_enabled ? ["enabled"] : [])
 
   depends_on = [
     google_storage_bucket.pod_snapshots,
@@ -38,7 +38,7 @@ resource "google_storage_bucket_iam_member" "pod_snapshots_ira_online_gpu_ksa" {
 # GKE Pod snapshots are deleted by the Pod snapshot controller, which runs as
 # the GKE service agent and requires roles/storage.objectUser on the bucket.
 resource "google_storage_bucket_iam_member" "pod_snapshots_gke_service_agent" {
-  for_each = toset(var.ira_online_gpu_pod_snapshots_enabled ? ["enabled"] : [])
+  for_each = toset(var.cluster_addons_pod_snapshots_enabled ? ["enabled"] : [])
 
   depends_on = [
     google_storage_bucket.pod_snapshots,

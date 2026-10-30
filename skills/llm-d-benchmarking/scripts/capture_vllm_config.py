@@ -176,12 +176,12 @@ def is_model_server(workload: dict) -> bool:
     if name.endswith("-epp") or "-epp-" in name:
         return False
 
-    tmpl = get_pod_template(workload)
-    labels = deep_get(tmpl, ["metadata", "labels"], {}) or {}
+    template = get_pod_template(workload)
+    labels = deep_get(template, ["metadata", "labels"], {}) or {}
     if labels.get(ENGINE_LABEL) == "vllm":
         return True
 
-    containers = deep_get(tmpl, ["spec", "containers"], []) or []
+    containers = deep_get(template, ["spec", "containers"], []) or []
     if any("vllm" in c.get("image", "").lower() for c in containers):
         return True
     return "vllm" in name or labels.get("app") == "vllm"
@@ -246,9 +246,7 @@ def normalize_cli_args(args: list, command: list = None) -> list:
         tail = args[0][idx + len("vllm serve") :]
         # Drop full-line shell comments inside multi-line continuation blocks,
         # join backslash-continued lines, and stop at the first unescaped newline.
-        lines = [
-            ln for ln in tail.splitlines() if not ln.lstrip().startswith("#")
-        ]
+        lines = [ln for ln in tail.splitlines() if not ln.lstrip().startswith("#")]
         joined = re.sub(r"\\\s*\n", " ", "\n".join(lines))
         first_cmd = joined.split("\n", 1)[0]
         try:
@@ -456,9 +454,7 @@ def get_live_pods(namespace: str, workload: dict) -> list:
     ``imageID`` is the digest actually pulled onto the node, which is what
     makes a benchmark reproducible; the workload spec only records the tag.
     """
-    match_labels = (
-        deep_get(workload, ["spec", "selector", "matchLabels"], {}) or {}
-    )
+    match_labels = deep_get(workload, ["spec", "selector", "matchLabels"], {}) or {}
     if not match_labels and workload.get("kind") == "LeaderWorkerSet":
         lws_name = deep_get(workload, ["metadata", "name"])
         if lws_name:
@@ -554,9 +550,9 @@ def describe_model_server(
     namespace: str, workload: dict, configmaps: dict, hpa_list: list
 ) -> dict:
     """Build the full record for a single vLLM model server workload."""
-    tmpl = get_pod_template(workload)
-    pod_spec = deep_get(tmpl, ["spec"], {}) or {}
-    pod_labels = deep_get(tmpl, ["metadata", "labels"], {}) or {}
+    template = get_pod_template(workload)
+    pod_spec = deep_get(template, ["spec"], {}) or {}
+    pod_labels = deep_get(template, ["metadata", "labels"], {}) or {}
     container = pick_model_server_container(pod_spec.get("containers", []) or [])
 
     env_map = build_env_map(container, configmaps)

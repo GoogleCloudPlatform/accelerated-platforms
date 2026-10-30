@@ -36,7 +36,7 @@ class CaptureVllmConfigTest(unittest.TestCase):
             "  # inline comment line\n"
             "  --port 8080 \\\n"
             "  --tensor-parallel-size=$(TENSOR_PARALLEL_SIZE) \\\n"
-            "  --kv-transfer-config '{\"kv_connector\":\"TPUConnector\",\"kv_role\":\"kv_producer\"}'\n"
+            '  --kv-transfer-config \'{"kv_connector":"TPUConnector","kv_role":"kv_producer"}\'\n'
             "echo done\n"
         )
         tokens = cvc.normalize_cli_args([script], ["/bin/sh", "-c"])
@@ -233,7 +233,10 @@ class CaptureVllmConfigTest(unittest.TestCase):
                     "metadata": {"labels": {cvc.ROLE_LABEL: "decode"}},
                     "spec": {
                         "containers": [
-                            {"name": "modelserver", "image": "vllm/vllm-torchtpu:v0.29.0"}
+                            {
+                                "name": "modelserver",
+                                "image": "vllm/vllm-torchtpu:v0.29.0",
+                            }
                         ]
                     },
                 },

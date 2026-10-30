@@ -197,7 +197,7 @@ def main():
     )
     old_node = get_n(node_d, ["spec", "template", "spec", "nodeSelector", n_k])
     tpu_c = "tpu-v6e-2x2" if tp == 4 else ("tpu-v6e-2x4" if tp == 8 else None)
-    tpu_topo = "2x2" if tp == 4 else ("2x4" if tp == 8 else None)
+    tpu_topology = "2x2" if tp == 4 else ("2x4" if tp == 8 else None)
     s_val = str(tp) if pfx == "gpu" else tpu_c
 
     # Get current tuner args from patch if exists
@@ -309,7 +309,7 @@ def main():
             )
         if s_val:
             patch_yaml(node_f, ["spec", "template", "spec", "nodeSelector", n_k], s_val)
-            if pfx == "tpu" and tpu_topo:
+            if pfx == "tpu" and tpu_topology:
                 patch_yaml(
                     node_f,
                     [
@@ -330,7 +330,7 @@ def main():
                         "nodeSelector",
                         "cloud.google.com/gke-tpu-topology",
                     ],
-                    tpu_topo,
+                    tpu_topology,
                 )
 
         # Apply tuner args patch

@@ -28,6 +28,7 @@ k8s
 kubebuilder
 kubeconfig
 kubelet
+kustomizeconfig
 limitranges
 maxpods
 minpods

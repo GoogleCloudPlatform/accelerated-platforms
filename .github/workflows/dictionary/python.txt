@@ -17,6 +17,7 @@ dataclasses
 dataframe
 dbapi
 dbcommands
+deepcopy
 devel
 dropna
 einops

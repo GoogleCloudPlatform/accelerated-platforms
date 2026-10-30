@@ -33,9 +33,9 @@ path provides you the instructions to create the prefill/decode disaggregation
 related resources but you still need to figure out how to create your GKE
 cluster and underlying infrastructure dependencies such as inference-gateway,
 LeaderWorkerSet (`lws`), custom compute classes for obtaining accelerators,
-storage for model download etc. This guide provides you the cohesive approach
-to build your infrastructure and apply llm-d prefill/decode disaggregation
-layer on top of it.
+storage for model download etc. This guide provides you the cohesive approach to
+build your infrastructure and apply llm-d prefill/decode disaggregation layer on
+top of it.
 
 Prefill/decode disaggregation splits inference across two specialized pools of
 model servers. Prefill workers process the input prompt, which is compute-bound.
@@ -48,9 +48,9 @@ with the prefix- and load-aware routing used by the other well-lit paths.
 On TPU, the KV cache produced by a prefill worker is transferred to a decode
 worker using the TorchTPU vLLM `TPUConnector`
 (`vllm_torchtpu.distributed.kv_transfer.tpu_connector`) over a dedicated side
-channel. Orchestration is managed by a single `DisaggregatedSet` custom
-resource (provided by LeaderWorkerSet v1.0.0+), which creates two
-`LeaderWorkerSet` pools—one for `prefill` and one for `decode`:
+channel. Orchestration is managed by a single `DisaggregatedSet` custom resource
+(provided by LeaderWorkerSet v1.0.0+), which creates two `LeaderWorkerSet`
+pools—one for `prefill` and one for `decode`:
 
 |   Role    | vLLM `kv_role` | vLLM port |
 | :-------: | :------------: | :-------: |
@@ -279,8 +279,9 @@ The `deploy-llmd-pd-disaggregation.sh` script will perform the following steps:
   kubectl apply --kustomize "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-tpu/llmd-pd-disaggregation/vllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
   ```
 
-  This creates the `DisaggregatedSet` (`pd-disagg-tpu-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}`),
-  which manages both the prefill and decode `LeaderWorkerSet` pools.
+  This creates the `DisaggregatedSet`
+  (`pd-disagg-tpu-${ACCELERATOR_TYPE}-${HF_MODEL_NAME}`), which manages both the
+  prefill and decode `LeaderWorkerSet` pools.
 
   The Kubernetes manifests are based on the
   [Inference Quickstart recommendations](https://cloud.google.com/kubernetes-engine/docs/how-to/machine-learning/inference-quickstart).
@@ -312,7 +313,8 @@ The `deploy-llmd-pd-disaggregation.sh` script will perform the following steps:
   ${cluster_credentials_command}
   ```
 
-- Check the router deployment and model server `DisaggregatedSet` / `LeaderWorkerSet` resources
+- Check the router deployment and model server `DisaggregatedSet` /
+  `LeaderWorkerSet` resources
 
   ```
   kubectl get deployments,disaggregatedsets,leaderworkersets -n ${llmd_namespace}

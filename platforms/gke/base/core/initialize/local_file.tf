@@ -99,7 +99,6 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
       cluster_gateway_api_config_channel                   = var.cluster_gateway_api_config_channel
       cluster_gpu_driver_version                           = var.cluster_gpu_driver_version
       cluster_master_global_access_enabled                 = var.cluster_master_global_access_enabled
-      cluster_min_master_version                           = var.cluster_min_master_version
       cluster_node_auto_provisioning_enabled               = var.cluster_node_auto_provisioning_enabled
       cluster_node_auto_provisioning_resource_limits       = var.cluster_node_auto_provisioning_resource_limits
       cluster_node_pool_default_service_account_id         = var.cluster_node_pool_default_service_account_id

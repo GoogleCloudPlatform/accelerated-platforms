@@ -26,7 +26,6 @@ locals {
   cluster_gcsfuse_user_role_name   = "${local.unique_identifier_prefix_underscore}.gcsfuse.user.${var.platform_custom_role_unique_suffix}"
   cluster_gcsfuse_viewer_role      = "projects/${local.cluster_project_id}/roles/${local.cluster_gcsfuse_viewer_role_name}"
   cluster_gcsfuse_viewer_role_name = "${local.unique_identifier_prefix_underscore}.gcsfuse.viewer.${var.platform_custom_role_unique_suffix}"
-  cluster_min_master_version       = var.cluster_min_master_version != null ? var.cluster_min_master_version : (var.cluster_addons_agent_sandbox_enabled ? "1.36.3-gke.1767000" : null)
   cluster_name                     = local.unique_identifier_prefix
 
   cluster_node_auto_provisioning_resource_limits = var.cluster_node_auto_provisioning_enabled ? var.cluster_node_auto_provisioning_resource_limits : []
@@ -53,7 +52,7 @@ locals {
 }
 
 variable "cluster_addons_agent_sandbox_enabled" {
-  default     = true
+  default     = false
   description = "Enable the Agent Sandbox add-on (https://docs.cloud.google.com/kubernetes-engine/docs/how-to/how-install-agent-sandbox)"
   type        = bool
 }
@@ -186,20 +185,6 @@ variable "cluster_master_global_access_enabled" {
   default     = false
   description = "Whether the cluster master is accessible globally or not."
   type        = bool
-}
-
-variable "cluster_min_master_version" {
-  default     = null
-  description = "The minimum version of the master. Agent Sandbox on GKE requires GKE version >= 1.36.3-gke.1767000."
-  type        = string
-
-  validation {
-    condition = (
-      var.cluster_min_master_version == null ||
-      can(regex("^([2-9]|[1-9][0-9]+)\\.|^1\\.([4-9][0-9]|[1-9][0-9]{2,})\\.|^1\\.3[7-9]\\.|^1\\.36\\.([4-9]|[1-9][0-9]+)|^1\\.36\\.3-gke\\.(176[7-9][0-9]{3}|17[7-9][0-9]{4}|1[8-9][0-9]{5}|[2-9][0-9]{6}|[1-9][0-9]{7,})", var.cluster_min_master_version))
-    )
-    error_message = "'cluster_min_master_version' must be >= 1.36.3-gke.1767000 when specified."
-  }
 }
 
 variable "cluster_node_auto_provisioning_enabled" {

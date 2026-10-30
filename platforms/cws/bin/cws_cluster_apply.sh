@@ -73,16 +73,16 @@ if ! apply_cluster_terraservices; then
       fi
     done
 
-    export TF_VAR_platform_default_location="${fallback_location}"
     export TF_VAR_workstation_cluster_region="${fallback_location}"
-    if [[ -f "${ACP_PLATFORM_DIR}/_shared_config/platform.auto.tfvars" ]]; then
-      sed -i "s|^\([[:blank:]]*platform_default_location[[:blank:]]*=\).*|\1 \"${fallback_location}\"|" "${ACP_PLATFORM_DIR}/_shared_config/platform.auto.tfvars"
-    fi
     if [[ -f "${ACP_PLATFORM_DIR}/_shared_config/workstation_cluster.auto.tfvars" ]]; then
       sed -i "s|^\([[:blank:]]*workstation_cluster_region[[:blank:]]*=\).*|\1 \"${fallback_location}\"|" "${ACP_PLATFORM_DIR}/_shared_config/workstation_cluster.auto.tfvars"
     fi
     if [[ -f /workspace/build.env ]]; then
-      sed -i "s|^\(export[[:blank:]]\+\)\?TF_VAR_platform_default_location=.*|export TF_VAR_platform_default_location=\"${fallback_location}\"|" /workspace/build.env
+      if grep -q "TF_VAR_workstation_cluster_region=" /workspace/build.env; then
+        sed -i "s|^\(export[[:blank:]]\+\)\?TF_VAR_workstation_cluster_region=.*|export TF_VAR_workstation_cluster_region=\"${fallback_location}\"|" /workspace/build.env
+      else
+        echo "export TF_VAR_workstation_cluster_region=\"${fallback_location}\"" >> /workspace/build.env
+      fi
     fi
 
     "${ACP_PLATFORM_DIR}/bin/cws_initialize.sh"

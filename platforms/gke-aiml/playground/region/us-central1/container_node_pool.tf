@@ -22,7 +22,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
 
   # Variables
   cluster            = google_container_cluster.mlp.name
-  initial_node_count = 1
+  initial_node_count = 0
   location           = var.region
   name               = "cpu-n4s8"
   node_locations = [
@@ -34,9 +34,9 @@ resource "google_container_node_pool" "cpu_n4s8" {
 
   # Blocks
   autoscaling {
-    location_policy      = "BALANCED"
+    location_policy      = "ANY"
     total_max_node_count = 32
-    total_min_node_count = 1
+    total_min_node_count = 0
   }
 
   network_config {

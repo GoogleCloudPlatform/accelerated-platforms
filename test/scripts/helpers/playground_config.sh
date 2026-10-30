@@ -21,7 +21,9 @@ sed -i "s/^\([[:blank:]]*environment_name[[:blank:]]*=\).*$/\1 \"${MLP_ENVIRONME
 sed -i "s/^\([[:blank:]]*environment_project_id[[:blank:]]*=\).*$/\1 \"${MLP_PROJECT_ID}\"/" ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
 
 echo_title "Creating GCS bucket"
-gcloud storage buckets create gs://${MLP_STATE_BUCKET} --project ${MLP_PROJECT_ID}
+if ! gcloud storage buckets describe gs://${MLP_STATE_BUCKET} --project ${MLP_PROJECT_ID} >/dev/null 2>&1; then
+    gcloud storage buckets create gs://${MLP_STATE_BUCKET} --project ${MLP_PROJECT_ID}
+fi
 
 echo_title "Checking MLP_IAP_DOMAIN"
 MLP_IAP_DOMAIN=${MLP_IAP_DOMAIN:-$(gcloud auth list --filter=status:ACTIVE --format="value(account)" | awk -F@ '{print $2}')}

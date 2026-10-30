@@ -1,0 +1,60 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Agent Substrate ActorTemplate (protojson-shaped ateapi.ActorTemplate) applied
+# via `kubectl-ate create actor-template -f -`.
+# Creating this ActorTemplate triggers an automatic Golden Snapshot build job on
+# a warm WorkerPool pod: it boots the container, pre-loads numpy/scipy/pandas/
+# matplotlib into memory, waits for /readyz on port 80, and checkpoints memory +
+# filesystem state (`SNAPSHOT_FIDELITY_MEMORY`) as the Golden Snapshot.
+metadata:
+  atespace: ${SUBSTRATE_ATESPACE}
+  name: scientific-python
+workerSelector:
+  matchLabels:
+    workload: scientific-python
+containers:
+  - name: runner
+    image: ${RUNNER_IMAGE}
+    env:
+      - name: PORT
+        value: "80"
+      - name: SSL_CERT_DIR
+        value: /run/ate/egress-trust-bundle/
+      - name: SSL_CERT_FILE
+        value: /run/ate/egress-trust-bundle/trust-bundle.pem
+      - name: REQUESTS_CA_BUNDLE
+        value: /run/ate/egress-trust-bundle/trust-bundle.pem
+    volumeMounts:
+      - name: system-info
+        mountPath: /run/ate
+    wakeupProbe:
+      httpGet:
+        path: /readyz
+        port: 80
+volumes:
+  - name: system-info
+    systemInfo:
+      dataSources:
+        - trustBundle:
+            names:
+              - egress-mitm.ate.dev
+              - system-roots.ate.dev
+            path: egress-trust-bundle/trust-bundle.pem
+resources:
+  limits:
+    cpuMillicores: 1000
+    memoryBytes: 2147483648
+snapshotConfig:
+  preferredFidelity: SNAPSHOT_FIDELITY_MEMORY

@@ -1,0 +1,152 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: intent-extproc
+  namespace: ate-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intent-extproc
+  namespace: ate-system
+  labels:
+    app: intent-extproc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: intent-extproc
+  template:
+    metadata:
+      labels:
+        app: intent-extproc
+    spec:
+      serviceAccountName: intent-extproc
+      containers:
+        - name: intent-extproc
+          image: ${INTENT_EXTPROC_IMAGE}
+          imagePullPolicy: Always
+          args:
+            - --grpc-address=:50051
+            - --http-address=:8080
+            - --server-cred-bundle=/run/servicedns.podcert.ate.dev/credential-bundle.pem
+            - --client-ca-file=/run/podidentity.podcert.ate.dev/trust-bundle.pem
+          ports:
+            - name: grpc
+              containerPort: 50051
+              protocol: TCP
+            - name: health
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 2
+            periodSeconds: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: servicedns
+              mountPath: /run/servicedns.podcert.ate.dev
+              readOnly: true
+            - name: podidentity
+              mountPath: /run/podidentity.podcert.ate.dev
+              readOnly: true
+      volumes:
+        - name: servicedns
+          projected:
+            sources:
+              - podCertificate:
+                  signerName: servicedns.podcert.ate.dev/identity
+                  keyType: ECDSAP256
+                  credentialBundlePath: credential-bundle.pem
+              - clusterTrustBundle:
+                  signerName: servicedns.podcert.ate.dev/identity
+                  labelSelector:
+                    matchLabels:
+                      podcert.ate.dev/canarying: live
+                  path: trust-bundle.pem
+        - name: podidentity
+          projected:
+            sources:
+              - podCertificate:
+                  signerName: podidentity.podcert.ate.dev/identity
+                  keyType: ECDSAP256
+                  credentialBundlePath: credential-bundle.pem
+              - clusterTrustBundle:
+                  signerName: podidentity.podcert.ate.dev/identity
+                  labelSelector:
+                    matchLabels:
+                      podcert.ate.dev/canarying: live
+                  path: trust-bundle.pem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: intent-extproc
+  namespace: ate-system
+  labels:
+    app: intent-extproc
+spec:
+  type: ClusterIP
+  selector:
+    app: intent-extproc
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: grpc
+      protocol: TCP
+    - name: health
+      port: 8080
+      targetPort: health
+      protocol: TCP
+---
+# ate-system enforces default-deny-ingress. Allow atenet-egress to dial the
+# Envoy ExternalProcessor gRPC listener on :50051 and allow agent-harness (plus
+# observability probes) to reach the HTTP rule-push & audit API on :8080.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: intent-extproc
+  namespace: ate-system
+spec:
+  podSelector:
+    matchLabels:
+      app: intent-extproc
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: atenet-egress
+      ports:
+        - protocol: TCP
+          port: 50051
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              ate.dev/api-access: "true"
+      ports:
+        - protocol: TCP
+          port: 8080

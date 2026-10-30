@@ -1,0 +1,5 @@
+httpx==0.28.1
+matplotlib==3.10.0
+numpy==2.2.2
+pandas==2.2.3
+scipy==1.15.1

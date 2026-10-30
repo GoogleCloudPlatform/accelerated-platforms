@@ -1,0 +1,7 @@
+google-adk[extensions,otel-gcp]>=1.27.4
+google-cloud-aiplatform>=1.80.0
+httpx>=0.28.1
+opentelemetry-exporter-otlp>=1.30.0
+opentelemetry-instrumentation-google-genai>=0.4b0
+opentelemetry-instrumentation-vertexai>=2.0b0
+pyyaml>=6.0.2

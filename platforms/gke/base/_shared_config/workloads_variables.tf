@@ -22,6 +22,54 @@ variable "agent_sandbox_version" {
   type        = string
 }
 
+variable "agent_substrate_additional_egress_extproc_service" {
+  default     = null
+  description = "Optional additional Envoy ext_proc gRPC service (NS/SVC:PORT) to inspect decrypted egress requests in atenet-egress."
+  type        = string
+}
+
+variable "agent_substrate_atespace" {
+  default     = "secure-runtime"
+  description = "Default Agent Substrate atespace to create and authorize for Kubernetes secret credential injection."
+  type        = string
+}
+
+variable "agent_substrate_credential_namespace" {
+  default     = "agent-credentials"
+  description = "Kubernetes namespace that stores secrets injected into actor egress requests by k8s-credential-provider."
+  type        = string
+}
+
+variable "agent_substrate_credential_provider" {
+  default     = "{\"name\":\"k8s.io\"}"
+  description = "Credential provider JSON configuration for Agent Substrate atenet-egress."
+  type        = string
+}
+
+variable "agent_substrate_ingress_allowed_spiffe_ids" {
+  default     = "spiffe://cluster.local/ns/ate-system/sa/atenet-client,spiffe://cluster.local/ns/agent-harness/sa/triage-agent"
+  description = "Comma-separated SPIFFE IDs permitted to connect to actors via atenet-router."
+  type        = string
+}
+
+variable "agent_substrate_snapshot_bucket_name" {
+  default     = null
+  description = "Name of the Cloud Storage bucket used by Agent Substrate to store actor and golden snapshots."
+  type        = string
+}
+
+variable "agent_substrate_transfer_service_account_name" {
+  default     = "ate-snapshot-transfer"
+  description = "Name of the Google Service Account impersonated by ate-api-server for downscoped per-actor GCS snapshot transfers."
+  type        = string
+}
+
+variable "agent_substrate_version" {
+  default     = "v0.6.0"
+  description = "Version tag or commit of Agent Substrate (https://github.com/agent-substrate/substrate) to install."
+  type        = string
+}
+
 variable "custom_metrics_adapter_version" {
   default     = "0.16.7"
   description = "Version of Custom Metrics Adapter (https://github.com/GoogleCloudPlatform/k8s-stackdriver) to install."

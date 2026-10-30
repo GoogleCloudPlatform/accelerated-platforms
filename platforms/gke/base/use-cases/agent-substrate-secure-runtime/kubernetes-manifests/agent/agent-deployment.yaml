@@ -1,0 +1,186 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agent-harness
+  labels:
+    ate.dev/api-access: "true"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: triage-agent
+  namespace: agent-harness
+---
+# Allow triage-agent to run `kubectl-ate` in-cluster against `api.ate-system.svc:443`:
+# 1. Read ClusterTrustBundles for servicedns.podcert.ate.dev/identity
+# 2. Request a short-lived token for ate-system/ate-client
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: triage-agent-substrate-client
+rules:
+  - apiGroups: ["certificates.k8s.io"]
+    resources: ["clustertrustbundles"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: triage-agent-substrate-client
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: triage-agent-substrate-client
+subjects:
+  - kind: ServiceAccount
+    name: triage-agent
+    namespace: agent-harness
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: triage-agent-ate-client-token
+  namespace: ate-system
+rules:
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: ["ate-client"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["pods", "services"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: triage-agent-ate-client-token
+  namespace: ate-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: triage-agent-ate-client-token
+subjects:
+  - kind: ServiceAccount
+    name: triage-agent
+    namespace: agent-harness
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triage-agent
+  namespace: agent-harness
+  labels:
+    app: triage-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: triage-agent
+  template:
+    metadata:
+      labels:
+        app: triage-agent
+    spec:
+      serviceAccountName: triage-agent
+      containers:
+        - name: agent
+          image: ${AGENT_IMAGE}
+          imagePullPolicy: Always
+          env:
+            - name: GOOGLE_GENAI_USE_VERTEXAI
+              value: "1"
+            - name: GOOGLE_CLOUD_PROJECT
+              value: "${GOOGLE_CLOUD_PROJECT}"
+            - name: GOOGLE_CLOUD_LOCATION
+              value: "${GOOGLE_CLOUD_LOCATION}"
+            - name: GEMINI_MODEL
+              value: "${GEMINI_MODEL}"
+            - name: GITHUB_REPO
+              value: "${GITHUB_REPO}"
+            - name: SUBSTRATE_ATESPACE
+              value: "${SUBSTRATE_ATESPACE}"
+            - name: SUBSTRATE_ACTOR_TEMPLATE
+              value: "scientific-python"
+            - name: ATE_API_ADDR
+              value: "api.ate-system.svc:443"
+            - name: ATENET_ROUTER_URL
+              value: "https://atenet-router.ate-system.svc:443"
+            - name: INTENT_EXTPROC_CONTROL_URL
+              value: "http://intent-extproc.ate-system.svc:8080"
+            - name: PODIDENTITY_CRED_BUNDLE
+              value: "/run/podidentity.podcert.ate.dev/credential-bundle.pem"
+            - name: SERVICEDNS_TRUST_BUNDLE
+              value: "/run/servicedns.podcert.ate.dev/trust-bundle.pem"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: podidentity
+              mountPath: /run/podidentity.podcert.ate.dev
+              readOnly: true
+            - name: servicedns
+              mountPath: /run/servicedns.podcert.ate.dev
+              readOnly: true
+      volumes:
+        - name: podidentity
+          projected:
+            sources:
+              - podCertificate:
+                  signerName: podidentity.podcert.ate.dev/identity
+                  keyType: ECDSAP256
+                  credentialBundlePath: credential-bundle.pem
+              - clusterTrustBundle:
+                  signerName: podidentity.podcert.ate.dev/identity
+                  labelSelector:
+                    matchLabels:
+                      podcert.ate.dev/canarying: live
+                  path: trust-bundle.pem
+        - name: servicedns
+          projected:
+            sources:
+              - clusterTrustBundle:
+                  signerName: servicedns.podcert.ate.dev/identity
+                  labelSelector:
+                    matchLabels:
+                      podcert.ate.dev/canarying: live
+                  path: trust-bundle.pem
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: triage-agent-svc
+  namespace: agent-harness
+  labels:
+    app: triage-agent
+spec:
+  type: ClusterIP
+  selector:
+    app: triage-agent
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

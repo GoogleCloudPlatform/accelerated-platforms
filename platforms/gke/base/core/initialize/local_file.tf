@@ -273,23 +273,31 @@ resource "local_file" "shared_config_workloads_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
-      agent_sandbox_version                  = var.agent_sandbox_version
-      custom_metrics_adapter_version         = var.custom_metrics_adapter_version
-      inference_gateway_kubernetes_namespace = var.inference_gateway_kubernetes_namespace
-      inference_gateway_version              = var.inference_gateway_version
-      jobset_version                         = var.jobset_version
-      kuberay_version                        = var.kuberay_version
-      kueue_version                          = var.kueue_version
-      lws_version                            = var.lws_version
-      mlflow_bucket_location                 = var.mlflow_bucket_location
-      mlflow_bucket_name                     = var.mlflow_bucket_name
-      mlflow_bucket_project_id               = var.mlflow_bucket_project_id
-      mlflow_kubernetes_namespace            = var.mlflow_kubernetes_namespace
-      mlflow_kubernetes_service_account_name = var.mlflow_kubernetes_service_account_name
-      mlflow_service_account_name            = var.mlflow_service_account_name
-      mlflow_service_account_project_id      = var.mlflow_service_account_project_id
-      mlflow_version                         = var.mlflow_version
-      pathways_version                       = var.pathways_version
+      agent_sandbox_version                             = var.agent_sandbox_version
+      agent_substrate_additional_egress_extproc_service = var.agent_substrate_additional_egress_extproc_service
+      agent_substrate_atespace                          = var.agent_substrate_atespace
+      agent_substrate_credential_namespace              = var.agent_substrate_credential_namespace
+      agent_substrate_credential_provider               = var.agent_substrate_credential_provider
+      agent_substrate_ingress_allowed_spiffe_ids        = var.agent_substrate_ingress_allowed_spiffe_ids
+      agent_substrate_snapshot_bucket_name              = var.agent_substrate_snapshot_bucket_name
+      agent_substrate_transfer_service_account_name     = var.agent_substrate_transfer_service_account_name
+      agent_substrate_version                           = var.agent_substrate_version
+      custom_metrics_adapter_version                    = var.custom_metrics_adapter_version
+      inference_gateway_kubernetes_namespace            = var.inference_gateway_kubernetes_namespace
+      inference_gateway_version                         = var.inference_gateway_version
+      jobset_version                                    = var.jobset_version
+      kuberay_version                                   = var.kuberay_version
+      kueue_version                                     = var.kueue_version
+      lws_version                                       = var.lws_version
+      mlflow_bucket_location                            = var.mlflow_bucket_location
+      mlflow_bucket_name                                = var.mlflow_bucket_name
+      mlflow_bucket_project_id                          = var.mlflow_bucket_project_id
+      mlflow_kubernetes_namespace                       = var.mlflow_kubernetes_namespace
+      mlflow_kubernetes_service_account_name            = var.mlflow_kubernetes_service_account_name
+      mlflow_service_account_name                       = var.mlflow_service_account_name
+      mlflow_service_account_project_id                 = var.mlflow_service_account_project_id
+      mlflow_version                                    = var.mlflow_version
+      pathways_version                                  = var.pathways_version
     }
   )
   file_permission = "0644"

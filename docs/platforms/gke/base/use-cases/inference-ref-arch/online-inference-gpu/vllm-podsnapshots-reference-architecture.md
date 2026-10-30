@@ -235,9 +235,9 @@ cluster terraservices (`core/container_cluster` and `core/container_cluster_ap`)
 enable the GKE Pod Snapshots add-on on the cluster, and the
 `terraform/online_gpu` module creates a dedicated `*-pod-snapshots` Cloud
 Storage bucket with hierarchical namespace enabled and soft delete disabled
-(`retention_duration_seconds = 0`), granting `roles/storage.objectUser` on
-that bucket to both the workload's Kubernetes service account and the GKE
-service agent
+(`retention_duration_seconds = 0`), granting `roles/storage.objectUser` on that
+bucket to both the workload's Kubernetes service account and the GKE service
+agent
 (`service-${project_number}@container-engine-robot.iam.gserviceaccount.com`). On
 the cluster used to develop this architecture, before the GKE service agent
 grant was added, `PodSnapshot` resources stayed in `Deleting` for weeks, and

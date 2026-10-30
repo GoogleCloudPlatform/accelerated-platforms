@@ -40,12 +40,12 @@ Each regional copy of the platform uses the repository's default
     runs `capacity_radar advise spot` to select high-obtainability regions
     (`us-central1`, `europe-west4`, `asia-south2`).
   - **Prep Step 3 (~20 min — PoC Guide Stage 3)**: Runs the repository's
-    `deploy-ap.sh` and `terraform/online_gpu` across each region
-    (`americas`, `europe`, `apac`) to stand up the GKE Autopilot clusters
-    (`inf-americas`, `inf-europe`, `inf-apac`) with the GKE Pod Snapshots add-on
-    enabled by default, Hierarchical Namespace (HNS) Cloud Storage model and
-    snapshot buckets, and Custom Compute Classes, and stores your Hugging Face
-    token in Secret Manager.
+    `deploy-ap.sh` and `terraform/online_gpu` across each region (`americas`,
+    `europe`, `apac`) to stand up the GKE Autopilot clusters (`inf-americas`,
+    `inf-europe`, `inf-apac`) with the GKE Pod Snapshots add-on enabled by
+    default, Hierarchical Namespace (HNS) Cloud Storage model and snapshot
+    buckets, and Custom Compute Classes, and stores your Hugging Face token in
+    Secret Manager.
   - **Prep Step 4 (~15–20 min — PoC Guide Stage 4)**: Stages **Gemma 4 31B**
     (`google/gemma-4-31b-it`) and **Gemma 3 27B** (`google/gemma-3-27b-it`)
     model weights into HNS Cloud Storage using `configure_huggingface.sh`
@@ -273,13 +273,13 @@ cp /tmp/kc_inf-americas "${HOME}/.kube/config"
 > `Google Compute Engine does not have enough resources available to fulfill request`
 > (`code: 14`), the loop skips the rest of that region. Wait a few minutes and
 > re-run the loop with `RING_TARGETS` set to only that region (Terraform retries
-> the cluster creation), or drop the region from the ring. For example, if
-> `europe-west4` is unavailable, re-run the Beat 1 sweep and, if another ring
-> region (such as `us-central1`) currently scores `HIGH` for `a3-megagpu-8g` and
-> has Spot `H100 Mega` quota, run Prep Step 4B against `inf-americas` instead
-> (`use_region americas us-central1`, after applying the
-> `gpu-h100-80gb-mega-x8` `ComputeClass` from Prep Step 4.0 to
-> `/tmp/kc_inf-americas`).
+> the cluster creation with the Pod Snapshots add-on enabled), or drop the
+> region from the ring. For example, if `europe-west4` is unavailable, re-run
+> the Beat 1 sweep and, if another ring region (such as `us-central1`) currently
+> scores `HIGH` for `a3-megagpu-8g` and has Spot `H100 Mega` quota, run Prep
+> Step 4B against `inf-americas` instead (`use_region americas us-central1`,
+> after applying the `gpu-h100-80gb-mega-x8` `ComputeClass` from Prep Step 4.0
+> to `/tmp/kc_inf-americas`).
 
 ---
 

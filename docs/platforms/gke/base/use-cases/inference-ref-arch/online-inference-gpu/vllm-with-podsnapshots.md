@@ -91,9 +91,9 @@ and want scale-out to stop repeating the cold start.
   ```
 
   When `cluster_addons_pod_snapshots_enabled` is `true` (enabled by the
-  `inference-ref-arch` `deploy-standard.sh` and `deploy-ap.sh` scripts), deploying
-  `terraform/online_gpu` creates a dedicated Cloud Storage bucket for Pod
-  snapshots (`*-pod-snapshots`) with hierarchical namespace enabled and soft
+  `inference-ref-arch` `deploy-standard.sh` and `deploy-ap.sh` scripts),
+  deploying `terraform/online_gpu` creates a dedicated Cloud Storage bucket for
+  Pod snapshots (`*-pod-snapshots`) with hierarchical namespace enabled and soft
   delete disabled (`retention_duration_seconds = 0`), and grants
   `roles/storage.objectUser` on that bucket to both the workload's Kubernetes
   service account and the GKE service agent

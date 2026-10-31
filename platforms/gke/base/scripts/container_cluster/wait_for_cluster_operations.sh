@@ -32,6 +32,7 @@ if [ "${TIMEOUT}" -gt 5 ]; then
   retries=$((TIMEOUT / wait_time))
 fi
 
+idle_checks=0
 while true; do
   if ((retries < 0)); then
     exit 1
@@ -39,10 +40,15 @@ while true; do
 
   output=$(echo "${JSON_INPUT}" | "${MY_PATH}/list_cluster_operations.sh")
   if [ "${output}" == "[]" ]; then
-    break
+    idle_checks=$((idle_checks + 1))
+    if ((idle_checks >= 3)); then
+      break
+    fi
+  else
+    idle_checks=0
+    echo "Waiting for the cluster operation(s) to complete..." >&2
   fi
 
-  echo "Waiting for the cluster operation(s) to complete..." >&2
   retries=$((retries - 1))
   sleep "${wait_time}"s
 done

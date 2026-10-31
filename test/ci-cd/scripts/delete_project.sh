@@ -31,21 +31,21 @@ fi
 endpoints=$(
   gcloud endpoints services list \
   --format="value(serviceName)" \
-  --project="${DELETE_PROJECT_ID}" 2>/dev/null
+  --project="${DELETE_PROJECT_ID}" 2>/dev/null || true
 )
 for endpoint in ${endpoints}; do
   echo "    Deleting endpoint '${endpoint}'"
   gcloud endpoints services delete "${endpoint}" \
     --project="${DELETE_PROJECT_ID}" \
-    --quiet
+    --quiet || true
 done
 
 echo "Deleting project '${DELETE_PROJECT_ID}'..."
 
-MAX_RETRIES=15
+MAX_RETRIES=45
 ATTEMPT=0
 BASE_SLEEP=15
-MAX_SLEEP=45
+MAX_SLEEP=60
 
 while true; do
   ATTEMPT=$((ATTEMPT + 1))
@@ -74,11 +74,14 @@ while true; do
     current_cap="${MAX_SLEEP}"
   fi
 
-  # Full jitter: random sleep between 10s and current_cap
-  jitter_range=$(( current_cap - 10 + 1 ))
-  sleep_seconds=$(( 10 + RANDOM % jitter_range ))
+  # Full jitter: random sleep between min_sleep and current_cap (30-60s once capped)
+  min_sleep=10
+  if [ "${current_cap}" -ge 30 ]; then
+    min_sleep=30
+  fi
+  jitter_range=$(( current_cap - min_sleep + 1 ))
+  sleep_seconds=$(( min_sleep + RANDOM % jitter_range ))
 
   echo "Project deletion blocked by pending child resource purge (Attempt ${ATTEMPT}/${MAX_RETRIES}). Retrying in ${sleep_seconds}s (with jitter)..."
   sleep "${sleep_seconds}"
 done
-

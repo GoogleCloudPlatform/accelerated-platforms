@@ -42,15 +42,58 @@ declare -a terraservices=(
   "workstation_cluster"
 )
 
-for terraservice in "${terraservices[@]}"; do
-  cd "${ACP_PLATFORM_TF_DIR}/${terraservice}" &&
-    echo "Current directory: $(pwd)" &&
-    rm --force --recursive .terraform/ &&
-    terraform init &&
-    terraform plan -input=false -out=tfplan &&
-    terraform apply -input=false tfplan || exit 1
-  rm tfplan
-done
+apply_cluster_terraservices() {
+  for terraservice in "${terraservices[@]}"; do
+    cd "${ACP_PLATFORM_TF_DIR}/${terraservice}" &&
+      echo "Current directory: $(pwd)" &&
+      rm --force --recursive .terraform/ &&
+      terraform init &&
+      terraform plan -input=false -out=tfplan &&
+      terraform apply -input=false tfplan || return 1
+    rm tfplan
+  done
+}
+
+if ! apply_cluster_terraservices; then
+  fallback_location="${FALLBACK_LOCATION:-}"
+  if [[ -n "${fallback_location}" && "${fallback_location}" != "${workstation_cluster_region:-}" ]]; then
+    echo "WARNING: Cluster provisioning failed in '${workstation_cluster_region:-${platform_default_location}}'. Falling back to location '${fallback_location}'..."
+    if [[ -n "${workstation_cluster_name:-}" && -n "${workstation_cluster_project_id:-}" && -n "${workstation_cluster_region:-}" ]]; then
+      gcloud workstations clusters delete "${workstation_cluster_name}" \
+        --project="${workstation_cluster_project_id}" \
+        --region="${workstation_cluster_region}" \
+        --quiet || true
+    fi
+    for terraservice in "workstation_cluster" "network"; do
+      if [[ -d "${ACP_PLATFORM_TF_DIR}/${terraservice}" ]]; then
+        cd "${ACP_PLATFORM_TF_DIR}/${terraservice}" &&
+          rm --force --recursive .terraform/ &&
+          terraform init &&
+          terraform destroy -auto-approve -input=false || true
+      fi
+    done
+
+    export TF_VAR_workstation_cluster_region="${fallback_location}"
+    if [[ -f "${ACP_PLATFORM_DIR}/_shared_config/workstation_cluster.auto.tfvars" ]]; then
+      sed -i "s|^\([[:blank:]]*workstation_cluster_region[[:blank:]]*=\).*|\1 \"${fallback_location}\"|" "${ACP_PLATFORM_DIR}/_shared_config/workstation_cluster.auto.tfvars"
+    fi
+    if [[ -f /workspace/build.env ]]; then
+      if grep -q "TF_VAR_workstation_cluster_region=" /workspace/build.env; then
+        sed -i "s|^\(export[[:blank:]]\+\)\?TF_VAR_workstation_cluster_region=.*|export TF_VAR_workstation_cluster_region=\"${fallback_location}\"|" /workspace/build.env
+      else
+        echo "export TF_VAR_workstation_cluster_region=\"${fallback_location}\"" >> /workspace/build.env
+      fi
+    fi
+
+    "${ACP_PLATFORM_DIR}/bin/cws_initialize.sh"
+    # shellcheck source=/dev/null
+    source "${ACP_PLATFORM_DIR}/cluster/_shared_config/scripts/set_environment_variables.sh"
+
+    apply_cluster_terraservices || exit 1
+  else
+    exit 1
+  fi
+fi
 
 declare -A end_timestamp["${MY_NAME}"]
 end_timestamp["${MY_NAME}"]=$(date +%s)

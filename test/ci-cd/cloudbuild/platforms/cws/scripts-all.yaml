@@ -37,6 +37,7 @@ steps:
   - args:
       - ACP_PLATFORM_DIR="$${ACP_REPO_DIR}/platforms/cws"
       - DEBUG=${_DEBUG}
+      - FALLBACK_LOCATION="${_FALLBACK_LOCATION}"
       - NEW_PROJECT_ID="${PROJECT_ID}-$${SHORT_BUILD_ID}"
       - TF_VAR_cloudbuild_cws_image_pipeline_gh_app_installation_id="88475363"
       - TF_VAR_cloudbuild_cws_image_pipeline_git_namespace="accelerated-platforms-ci"
@@ -138,5 +139,6 @@ steps:
 substitutions:
   _DEBUG: "false"
   _DEFAULT_LOCATION: "us-central1"
+  _FALLBACK_LOCATION: "europe-west4"
 
 timeout: 120m

@@ -38,6 +38,10 @@ export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
 # Set execution specific values
 export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
+# Set to "false" to keep the shared configuration files in this checkout, for
+# example when other platforms deployed from it are still running. See
+# core/teardown.sh for details.
+export ACP_TEARDOWN_RESET_CHECKOUT=${ACP_TEARDOWN_RESET_CHECKOUT:-"true"}
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
@@ -94,8 +98,10 @@ rm -rf \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/vllm-runai/base/vllm.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-tpu/base/deployment.env"
 
-git restore \
-  "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"/*.auto.tfvars
+if [ "${ACP_TEARDOWN_RESET_CHECKOUT}" = "true" ]; then
+  git restore \
+    "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config"/*.auto.tfvars
+fi
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))

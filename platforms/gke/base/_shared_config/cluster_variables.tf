@@ -250,6 +250,17 @@ variable "cluster_system_node_pool_machine_type" {
   type        = string
 }
 
+variable "cluster_system_node_pool_node_locations" {
+  default     = null
+  description = "Zones for the system node pool. The system node pool creates one node in each zone, so creating it fails if any of these zones doesn't have capacity for the machine type. If null, the system node pool uses the node locations of the cluster."
+  type        = list(string)
+
+  validation {
+    condition     = var.cluster_system_node_pool_node_locations == null ? true : length(var.cluster_system_node_pool_node_locations) > 0
+    error_message = "'cluster_system_node_pool_node_locations' must be null or contain at least one zone."
+  }
+}
+
 variable "cluster_use_connect_gateway" {
   default     = false
   description = "Use Connect gateway to connect to the cluster, requires GKE Enterprise. (https://cloud.google.com/kubernetes-engine/enterprise/multicluster-management/gateway)"

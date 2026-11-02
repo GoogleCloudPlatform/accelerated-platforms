@@ -1,1 +1,1 @@
-region/us-central1/container_node_pool.tf
+region/europe-west4/container_node_pool.tf

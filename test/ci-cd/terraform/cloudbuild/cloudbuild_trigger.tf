@@ -318,8 +318,6 @@ resource "google_cloudbuild_trigger" "platforms_gke_aiml_playground_terraform" {
     "platforms/gke-aiml/playground/**",
     "test/ci-cd/cloudbuild/platforms-gke-aiml-playground-terraform.yaml",
     "test/ci-cd/scripts/delete_project.sh",
-    "test/scripts/helpers/playground_config.sh",
-    "test/scripts/helpers/terraform_apply.sh",
     "test/scripts/helpers/terraform_destroy.sh",
   ]
   location        = var.build_location

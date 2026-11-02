@@ -55,7 +55,11 @@ declare -a CORE_TERRASERVICES_DESTROY_ARRAY=(
 )
 export CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY_ARRAY[*]}"
 
-"${ACP_PLATFORM_CORE_DIR}/teardown.sh"
+if ! "${ACP_PLATFORM_CORE_DIR}/teardown.sh"; then
+  echo "Retrying core/standard-full-teardown after transient failure..."
+  sleep 15
+  "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
+fi
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))

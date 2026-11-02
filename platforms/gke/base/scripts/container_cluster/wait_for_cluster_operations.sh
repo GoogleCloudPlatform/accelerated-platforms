@@ -46,10 +46,10 @@ while true; do
     fi
   else
     idle_checks=0
+    retries=$((retries - 1))
     echo "Waiting for the cluster operation(s) to complete..." >&2
   fi
 
-  retries=$((retries - 1))
   sleep "${wait_time}"s
 done
 

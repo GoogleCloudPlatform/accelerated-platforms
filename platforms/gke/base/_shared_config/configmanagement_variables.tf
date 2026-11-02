@@ -78,7 +78,7 @@ variable "configmanagement_sync_repo" {
 }
 
 variable "configmanagement_version" {
-  default     = "1.22.2"
+  default     = "1.25.1"
   description = "Version of Config Sync to install, null will install the latest version."
   type        = string
 }

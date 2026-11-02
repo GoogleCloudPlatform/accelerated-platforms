@@ -1,0 +1,87 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: service-dns-ca-pool
+  namespace: podcertificate-controller-system
+type: kubernetes.io/tls
+data:
+  pool: ${base64encode(service_dns_ca_pool_json)}
+  tls.crt: ${base64encode(service_dns_ca_cert_pem)}
+  tls.key: ${base64encode(service_dns_ca_key_pem)}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pod-identity-ca-pool
+  namespace: podcertificate-controller-system
+type: kubernetes.io/tls
+data:
+  pool: ${base64encode(pod_identity_ca_pool_json)}
+  tls.crt: ${base64encode(pod_identity_ca_cert_pem)}
+  tls.key: ${base64encode(pod_identity_ca_key_pem)}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-ca-pool
+  namespace: podcertificate-controller-system
+type: kubernetes.io/tls
+data:
+  pool: ${base64encode(postgres_ca_pool_json)}
+  tls.crt: ${base64encode(postgres_ca_cert_pem)}
+  tls.key: ${base64encode(postgres_ca_key_pem)}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: actor-id-ca-pool
+  namespace: ${ate_kubernetes_namespace}
+type: kubernetes.io/tls
+data:
+  pool: ${base64encode(actor_id_ca_pool_json)}
+  tls.crt: ${base64encode(actor_id_ca_cert_pem)}
+  tls.key: ${base64encode(actor_id_ca_key_pem)}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: actor-id-ca-certs
+  namespace: ${ate_kubernetes_namespace}
+type: Opaque
+data:
+  ca.crt: ${base64encode(actor_id_ca_cert_pem)}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: egress-mitm-ca-pool
+  namespace: ${ate_kubernetes_namespace}
+type: kubernetes.io/tls
+data:
+  pool: ${base64encode(egress_mitm_ca_pool_json)}
+  tls.crt: ${base64encode(egress_mitm_ca_cert_pem)}
+  tls.key: ${base64encode(egress_mitm_ca_key_pem)}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: actor-id-jwt-pool
+  namespace: ${ate_kubernetes_namespace}
+type: Opaque
+data:
+  jwks: ${base64encode(actor_jwt_jwks_json)}
+  pool: ${base64encode(actor_jwt_pool_json)}

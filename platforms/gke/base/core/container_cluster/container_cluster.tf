@@ -153,6 +153,13 @@ resource "google_container_cluster" "cluster" {
     cluster_dns_scope = "CLUSTER_SCOPE"
   }
 
+  dynamic "enable_k8s_beta_apis" {
+    for_each = length(var.cluster_enable_k8s_beta_apis) > 0 ? ["enable_k8s_beta_apis"] : []
+    content {
+      enabled_apis = var.cluster_enable_k8s_beta_apis
+    }
+  }
+
   gateway_api_config {
     channel = var.cluster_gateway_api_config_channel
   }

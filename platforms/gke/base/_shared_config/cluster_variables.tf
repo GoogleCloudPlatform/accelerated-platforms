@@ -132,6 +132,15 @@ variable "cluster_database_encryption_key_name" {
   type        = string
 }
 
+variable "cluster_enable_k8s_beta_apis" {
+  default = [
+    "certificates.k8s.io/v1beta1/clustertrustbundles",
+    "certificates.k8s.io/v1beta1/podcertificaterequests",
+  ]
+  description = "Kubernetes Beta APIs to enable on the cluster."
+  type        = list(string)
+}
+
 variable "cluster_enable_private_endpoint" {
   default     = true
   description = "When true, the cluster's private endpoint is used as the cluster endpoint and access through the public endpoint is disabled. When false, either endpoint can be used. This field only applies to private clusters, when enable_private_nodes is true."

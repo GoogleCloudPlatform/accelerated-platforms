@@ -54,11 +54,10 @@ resource "google_project_service" "iap_googleapis_com" {
   service                    = "iap.googleapis.com"
 }
 
-resource "google_iap_brand" "project_brand" {
-  support_email     = var.iap_support_email
-  application_title = "IAP Secured Application"
-  project           = google_project_service.iap_googleapis_com.project
-}
+# NOTE: google_iap_brand was removed in Terraform Google Provider 8.0.0 following the shutdown
+# of the Google Cloud IAP OAuth Admin APIs. OAuth consent screens (brands) must now be configured
+# via the Google Cloud Console.
+
 
 resource "null_resource" "write_environment_name" {
   triggers = {

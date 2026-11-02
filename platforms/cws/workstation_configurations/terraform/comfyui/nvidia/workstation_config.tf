@@ -21,8 +21,6 @@ data "google_service_account" "default" {
 # A100
 ###########################################################################################
 resource "google_workstations_workstation_config" "comfyui_nvidia_a100_40gb_x1" {
-  provider = google-beta
-
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
@@ -68,8 +66,6 @@ resource "google_workstations_workstation_config" "comfyui_nvidia_a100_40gb_x1" 
 # P4
 ###########################################################################################
 resource "google_workstations_workstation_config" "comfyui_nvidia_p4_x1_n1s4" {
-  provider = google-beta
-
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
@@ -114,8 +110,6 @@ resource "google_workstations_workstation_config" "comfyui_nvidia_p4_x1_n1s4" {
 }
 
 resource "google_workstations_workstation_config" "comfyui_nvidia_p4_x1_n1s8" {
-  provider = google-beta
-
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
@@ -165,8 +159,6 @@ resource "google_workstations_workstation_config" "comfyui_nvidia_p4_x1_n1s8" {
 # T4
 ###########################################################################################
 resource "google_workstations_workstation_config" "comfyui_nvidia_t4_x1_n1s4" {
-  provider = google-beta
-
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
@@ -211,8 +203,6 @@ resource "google_workstations_workstation_config" "comfyui_nvidia_t4_x1_n1s4" {
 }
 
 resource "google_workstations_workstation_config" "comfyui_nvidia_t4_x1_n1s8" {
-  provider = google-beta
-
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
@@ -262,8 +252,6 @@ resource "google_workstations_workstation_config" "comfyui_nvidia_t4_x1_n1s8" {
 # V100
 ###########################################################################################
 resource "google_workstations_workstation_config" "comfyui_nvidia_v100_x1_n1s4" {
-  provider = google-beta
-
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
@@ -308,8 +296,6 @@ resource "google_workstations_workstation_config" "comfyui_nvidia_v100_x1_n1s4" 
 }
 
 resource "google_workstations_workstation_config" "comfyui_nvidia_v100_x1_n1s8" {
-  provider = google-beta
-
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id

@@ -29,12 +29,13 @@ resource "google_project_service" "alloydb_googleapis_com" {
 }
 
 resource "google_alloydb_cluster" "default" {
-  cluster_id       = local.unique_identifier_prefix
-  cluster_type     = "PRIMARY"
-  database_version = "POSTGRES_15"
-  deletion_policy  = "FORCE"
-  location         = var.region
-  project          = google_project_service.alloydb_googleapis_com.project
+  cluster_id          = local.unique_identifier_prefix
+  cluster_type        = "PRIMARY"
+  database_version    = "POSTGRES_15"
+  deletion_policy     = "FORCE"
+  deletion_protection = false
+  location            = var.region
+  project             = google_project_service.alloydb_googleapis_com.project
 
   psc_config {
     psc_enabled = true

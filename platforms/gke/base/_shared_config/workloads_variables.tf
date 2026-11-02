@@ -17,13 +17,13 @@ locals {
 }
 
 variable "agent_sandbox_version" {
-  default     = "0.4.6"
+  default     = "1.0.7"
   description = "Version of Agent Sandbox (https://github.com/kubernetes-sigs/agent-sandbox) to install."
   type        = string
 }
 
 variable "custom_metrics_adapter_version" {
-  default     = "0.16.7"
+  default     = "0.16.12"
   description = "Version of Custom Metrics Adapter (https://github.com/GoogleCloudPlatform/k8s-stackdriver) to install."
   type        = string
 }
@@ -41,25 +41,25 @@ variable "inference_gateway_version" {
 }
 
 variable "jobset_version" {
-  default     = "0.12.0"
+  default     = "0.13.0"
   description = "Version of JobSet (https://github.com/kubernetes-sigs/jobset/) to install."
   type        = string
 }
 
 variable "kuberay_version" {
-  default     = "1.6.1"
+  default     = "1.7.1"
   description = "Version of KubeRay (https://github.com/ray-project/kuberay) to install."
   type        = string
 }
 
 variable "kueue_version" {
-  default     = "0.17.2"
+  default     = "0.20.2"
   description = "Version of Kueue (https://github.com/kubernetes-sigs/kueue) to install."
   type        = string
 }
 
 variable "lws_version" {
-  default     = "0.8.0"
+  default     = "1.0.0"
   description = "Version of LeaderWorkerSet (LWS) (https://github.com/kubernetes-sigs/lws/) to install."
   type        = string
 }
@@ -71,7 +71,7 @@ variable "pathways_version" {
 }
 
 variable "mlflow_version" {
-  default     = "3.13.0"
+  default     = "3.17.2"
   description = "Version of MLflow (https://github.com/mlflow/mlflow) to install."
   type        = string
 }

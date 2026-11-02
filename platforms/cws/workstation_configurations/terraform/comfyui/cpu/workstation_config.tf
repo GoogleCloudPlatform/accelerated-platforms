@@ -18,8 +18,6 @@ data "google_service_account" "default" {
 }
 
 resource "google_workstations_workstation_config" "comfyui_cpu_n2s4" {
-  provider = google-beta
-
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id
@@ -60,8 +58,6 @@ resource "google_workstations_workstation_config" "comfyui_cpu_n2s4" {
 }
 
 resource "google_workstations_workstation_config" "comfyui_cpu_n2s8" {
-  provider = google-beta
-
   idle_timeout           = "7200s"
   location               = local.workstation_cluster_region
   project                = local.workstation_cluster_project_id

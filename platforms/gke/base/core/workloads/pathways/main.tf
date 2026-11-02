@@ -18,7 +18,7 @@ locals {
 
   manifests_directory         = "${local.namespace_directory}/pathways-system"
   namespace_directory         = "${local.manifests_directory_root}/namespace"
-  version_manifests_directory = "${path.module}/manifests/pathways-${var.jobset_version}"
+  version_manifests_directory = "${path.module}/manifests/pathways-${var.pathways_version}"
 }
 
 data "local_file" "kubeconfig" {

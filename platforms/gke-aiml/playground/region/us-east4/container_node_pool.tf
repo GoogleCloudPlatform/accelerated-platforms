@@ -21,10 +21,9 @@ resource "google_container_node_pool" "cpu_n4s8" {
   depends_on = [google_gke_hub_membership.cluster]
 
   # Variables
-  cluster            = google_container_cluster.mlp.name
-  initial_node_count = 1
-  location           = var.region
-  name               = "cpu-n4s8"
+  cluster  = google_container_cluster.mlp.name
+  location = var.region
+  name     = "cpu-n4s8"
   node_locations = [
     "us-east4-a",
     "us-east4-b",
@@ -36,7 +35,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
   autoscaling {
     location_policy      = "BALANCED"
     total_max_node_count = 32
-    total_min_node_count = 1
+    total_min_node_count = 0
   }
 
   network_config {
@@ -76,6 +75,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
     ignore_changes = [
       initial_node_count,
       node_config[0].labels,
+      node_config[0].resource_labels,
       node_config[0].taint,
     ]
   }
@@ -147,6 +147,7 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
     ignore_changes = [
       initial_node_count,
       node_config[0].labels,
+      node_config[0].resource_labels,
       node_config[0].taint,
     ]
   }

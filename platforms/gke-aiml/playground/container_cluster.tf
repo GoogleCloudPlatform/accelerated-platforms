@@ -26,6 +26,16 @@ locals {
     "roles/serviceusage.serviceUsageConsumer"
   ]
   cluster_secondary_range_hash = reverse(split("-", google_container_cluster.mlp.ip_allocation_policy[0].cluster_secondary_range_name))[0]
+  valid_zones = [
+    for zone in data.google_compute_zones.region.names : zone
+    if !can(regex("-ai", zone))
+  ]
+}
+
+data "google_compute_zones" "region" {
+  project = data.google_project.environment.project_id
+  region  = var.region
+  status  = "UP"
 }
 
 # Create dedicated service account for node pools
@@ -53,6 +63,7 @@ resource "google_container_cluster" "mlp" {
   location                 = var.region
   name                     = local.cluster_name
   network                  = google_compute_network.default.id
+  node_locations           = local.valid_zones
   project                  = data.google_project.environment.project_id
   remove_default_node_pool = false
   subnetwork               = google_compute_subnetwork.default.id

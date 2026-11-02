@@ -1,6 +1,7 @@
 cuda
 cudnn
 dcgm
+gddr
 hmma
 hostengine
 nccl

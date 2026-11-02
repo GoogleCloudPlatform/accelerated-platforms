@@ -2,7 +2,7 @@
   "12": {
     "inputs": {
       "model": "GEMINI_3_PRO_IMAGE",
-      "prompt": "A full-length, photorealistic, high-fashion shot of a professional model walking with a powerful and elegant stride down a modern, minimalist runway. The model is illuminated by a single, sharp spotlight that creates a dramatic and focused circle of light around her, making her and the dress the undeniable center of attention. The background is a seamless, deep, non-reflective black, which makes the white dress pop.\n\nThe model is wearing a stunning, floor-length, couture white dress made of a flowing, slightly iridescent silk charmeuse. The dress should have a simple yet elegant silhouette, perhaps with a high slit to allow for movement and to showcase the drape of the fabric. The spotlight should highlight the subtle sheen of the silk, the delicate texture of the fabric, and the way it moves with her body.\n\nThe model's expression is confident and serene, with a neutral yet captivating gaze directed forward. Her hair is styled in a sleek, pulled-back chignon to keep the focus on the dress and her face.\n\nThe overall image should have the clean, crisp, and luxurious feel of a high-end fashion magazine editorial, with tack-sharp focus on the model and the dress, and every detail rendered with pristine clarity. The lighting should be the hero, sculpting the model's form and revealing the intricate details of the white dress.",
+      "prompt": "A full-length, photorealistic, high-fashion shot of a professional model walking with a powerful and elegant stride down a modern, minimalist runway. The model is illuminated by a single, sharp spotlight that creates a dramatic and focused circle of light around her, making her and the dress the undeniable center of attention. The background is a seamless, deep, non-reflective black, which makes the white dress pop.\n\nThe model is wearing a stunning, floor-length, couture white dress made of a flowing, slightly iridescent silk charmeuse. The dress should have a simple yet elegant A-line silhouette that allows for movement and showcases the drape of the fabric. The spotlight should highlight the subtle sheen of the silk, the delicate texture of the fabric, and the way it moves with her body.\n\nThe model's expression is confident and serene, with a neutral yet captivating gaze directed forward. Her hair is styled in a sleek, pulled-back chignon to keep the focus on the dress and her face.\n\nThe overall image should have the clean, crisp, and luxurious feel of a high-end fashion magazine editorial, with tack-sharp focus on the model and the dress, and every detail rendered with pristine clarity. The lighting should be the hero, sculpting the model's form and revealing the intricate details of the white dress.",
       "aspect_ratio": "16:9",
       "image_size": "1K",
       "output_mime_type": "PNG",
@@ -49,7 +49,7 @@
   "17": {
     "inputs": {
       "directory": "input/virtual-try-on/",
-      "image_load_cap": 0,
+      "image_load_cap": 1,
       "skip_first_images": 0,
       "select_every_nth": 1
     },

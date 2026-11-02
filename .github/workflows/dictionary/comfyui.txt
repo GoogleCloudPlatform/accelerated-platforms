@@ -22,7 +22,6 @@ flac
 ftype
 gcsimage
 genai
-generativeai
 genmedia
 ghibli
 gligen

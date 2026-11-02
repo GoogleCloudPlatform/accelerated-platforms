@@ -107,10 +107,22 @@ This example is built on top of the
     export HF_MODEL_ID="meta-llama/llama-3.3-70b-instruct"
     ```
 
+  - **Llama 3.3 70B Instruction-Tuned (FP8)**:
+
+    ```shell
+    export HF_MODEL_ID="nvidia/llama-3.3-70b-instruct-fp8"
+    ```
+
   - **Qwen3-32B**:
 
     ```shell
     export HF_MODEL_ID="qwen/qwen3-32b"
+    ```
+
+  - **Qwen 3.6 35B-A3B**:
+
+    ```shell
+    export HF_MODEL_ID="qwen/qwen3.6-35b-a3b"
     ```
 
 - Source the environment configuration.
@@ -197,8 +209,10 @@ This example is built on top of the
     | gemma-3-27b-it                 | ✅  | ✅   | ✅   | ✅           |
     | gpt-oss-20b                    | ✅  | ✅   | ✅   | ✅           |
     | llama-3.3-70b-instruct         | ❌  | ✅   | ✅   | ✅           |
+    | llama-3-3-70b-instruct-fp8     | ❌  | ✅   | ❌   | ✅           |
     | llama-4-scout-17b-16e-instruct | ❌  | ✅   | ✅   | ✅           |
     | qwen3-32b                      | ✅  | ✅   | ✅   | ✅           |
+    | qwen3-6-35b-a3b                | ❌  | ✅   | ❌   | ✅           |
 
     - **NVIDIA Tesla L4 24GB**:
 

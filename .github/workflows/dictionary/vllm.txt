@@ -2,11 +2,13 @@ autotuner
 dailymail
 dtype
 flashinfer
+logits
 matplot
 matplotlib
 ngram
 perc
 percentunit
+stockout
 toks
 tpot
 ttft

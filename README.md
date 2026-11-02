@@ -44,6 +44,7 @@ the primary runtime.
 - [Federated learning](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
 - [Inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/README.md)
 
+  - [AI inference proof-of-concept (PoC) and capacity-finding guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md)
   - [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
     - [Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
       - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)

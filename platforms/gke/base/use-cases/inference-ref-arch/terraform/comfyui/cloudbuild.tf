@@ -36,7 +36,6 @@ EOT
   }
 
   triggers_replace = {
-    custom_nodes                 = sha256(join("", [for file in fileset("${local.acp_root}/modules/python/src/custom_nodes", "**") : filesha256("${local.acp_root}/modules/python/src/custom_nodes/${file}")]))
     custom_sa_email              = data.google_service_account.cloudbuild.email
     hash_cloudbuild_config       = sha256(local_file.cloudbuild_yaml.content)
     hash_dockerfile_no_manager   = filebase64sha256("${path.module}/src/Dockerfile.nvidia-no-manager")

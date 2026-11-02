@@ -2,7 +2,7 @@
   "1": {
     "inputs": {
       "prompt": "Write a single prompt for me to generate an artistic image of a man.The prompt will be fed directly to Image generating model so keep it simple and as detailed as possible. Give me just the prompt, no explanation, acknowledgement or paraphrasing. Write the prompt to create a high definition and real image.",
-      "model": "GEMINI_PRO",
+      "model": "GEMINI_31_PRO",
       "temperature": 0.7,
       "max_output_tokens": 8192,
       "top_p": 1,
@@ -22,11 +22,11 @@
       "audio_file_path": "",
       "audio_mime_type": "audio/mp3",
       "gcp_project_id": "",
-      "gcp_region": ""
+      "gcp_region": "global"
     },
-    "class_type": "GeminiNode25",
+    "class_type": "GeminiNode31",
     "_meta": {
-      "title": "Gemini 2.5"
+      "title": "Gemini 3.1"
     }
   },
   "4": {

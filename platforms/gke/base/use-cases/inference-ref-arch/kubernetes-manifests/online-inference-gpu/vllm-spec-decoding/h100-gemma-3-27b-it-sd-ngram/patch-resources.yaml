@@ -24,6 +24,10 @@ spec:
         - name: inference-server
           resources:
             limits:
+              cpu: "20"
+              memory: 256G
               nvidia.com/gpu: "2"
             requests:
+              cpu: "20"
+              memory: 256G
               nvidia.com/gpu: "2"

@@ -146,7 +146,10 @@ for building and managing inference workloads.
 
 - **Accelerator Capacity**
   - **Verification**: Before deploying ensure you have sufficient quota for GPUs
-    and TPUs in the target region.
+    and TPUs in the target region. For step-by-step instructions on discovering
+    regional capacity across multiple regions using Capacity Advisor, Capacity
+    Radar, and Fluid Compute rings, see the
+    [AI inference proof-of-concept (PoC) and capacity-finding guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md).
   - **Requesting Increase:** If quota is insufficient, submit a quota increase
     request through the Google Cloud console or your sales team. Plan for this
     well in advance, as approval times can vary.
@@ -334,6 +337,11 @@ documentation.
 A practical guide to setting up the infrastructure as described can be found in
 the
 [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
+To find regional accelerator capacity and rapidly spin up a Proof of Concept
+using all fast-start and fast-restore optimizations, start with the
+[AI inference proof-of-concept (PoC) and capacity-finding guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md)
+and the companion
+[15-minute live demo runbook](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-15min-demo-runbook.md).
 
 This reference architecture is designed to support various inference patterns.
 Some example patterns provided are:
@@ -346,9 +354,15 @@ Some example patterns provided are:
   - [Online inference using vLLM with GKE Pod snapshots and GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-podsnapshots.md)
   - [Online inference using vLLM with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-hf-model.md)
   - [Online inference using vLLM with NVIDIA Run:ai Model Streamer and GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-with-runai-model-streamer.md)
+  - [Online inference using vLLM with speculative decoding and GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-spec-decoding-with-hf-model.md)
 - [Online inference with TPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/README.md)
   - [Online inference using MaxDiffusion with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/max-diffusion-with-hf-model.md)
   - [Online inference using vLLM with TPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-tpu/vllm-with-hf-model.md)
+- Async and Batch Inference
+  - [Async inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/async-inference/README.md)
+  - [Batch inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/batch-inference/README.md)
+- Run your own benchmarking
+  - [Benchmarking Online inference performance on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/inference-perf-bench/inf-perf-benchmarking-with-hf-model.md)
 
 Further use cases and patterns can be built upon this foundational architecture.
 

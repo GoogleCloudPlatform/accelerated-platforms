@@ -23,3 +23,5 @@ for source_dir in "${source_dirs[@]}"; do
     export PYTHONPATH=$PYTHONPATH:${source_dir}/src
     python -m unittest discover "${source_dir}/tests"
 done
+
+python -m unittest discover -s skills/llm-d-benchmarking/scripts

@@ -240,7 +240,13 @@ def normalize_cli_args(args: list, command: list = None) -> list:
         len(args) == 1
         and isinstance(args[0], str)
         and "vllm serve" in args[0]
-        and (not command or any("sh" in str(c) for c in command))
+        and (
+            not command
+            or any(
+                str(c).rsplit("/", 1)[-1] in ("sh", "bash", "dash", "zsh")
+                for c in command
+            )
+        )
     ):
         idx = args[0].find("vllm serve")
         tail = args[0][idx + len("vllm serve") :]

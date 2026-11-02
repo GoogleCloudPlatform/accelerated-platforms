@@ -30,7 +30,7 @@ spec:
                   command:
                     - /bin/bash
                     - -c
-                    - 'export VLLM_HOST_IP="${POD_IP}" && pip install --no-cache-dir "runai-model-streamer[gcs]" && exec vllm serve "$@"'
+                    - 'if [[ "${POD_IP}" == *":"* ]]; then export VLLM_HOST_IP="[${POD_IP}]"; else export VLLM_HOST_IP="${POD_IP}"; fi && pip install --no-cache-dir "runai-model-streamer[gcs]==0.17.1" && exec vllm serve "$@"'
                     - --
                   envFrom:
                     - configMapRef:
@@ -50,8 +50,6 @@ spec:
                         fieldRef:
                           apiVersion: v1
                           fieldPath: status.podIP
-                    - name: VLLM_HOST_IP
-                      value: "$(POD_IP)"
                     # Bound the per-rank Run:ai CPU ring buffer (default 40 GB
                     # per process -> ~300 GiB across 8 TP workers, which exceeds
                     # the 256Gi container memory limit on ct6e-standard-8t).

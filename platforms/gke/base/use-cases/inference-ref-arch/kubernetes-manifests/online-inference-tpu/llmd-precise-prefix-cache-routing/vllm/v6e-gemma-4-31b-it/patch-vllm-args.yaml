@@ -26,7 +26,7 @@ spec:
           command:
             - /bin/bash
             - -c
-            - 'pip install --no-cache-dir "runai-model-streamer[gcs]" && exec vllm serve "$@"'
+            - 'pip install --no-cache-dir "runai-model-streamer[gcs]==0.17.1" && exec vllm serve "$@"'
             - --
           envFrom:
             - configMapRef:

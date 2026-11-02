@@ -60,15 +60,15 @@ class CaptureVllmConfigTest(unittest.TestCase):
             "--tensor-parallel-size=8",
             "--disable-uvicorn-access-log",
             "--kv-transfer-config",
-            '{"kv_connector":"TPUConnector","kv_connector_module_path":"vllm_tpu.distributed.tpu_connector","kv_role":"kv_both"}',
+            '{"kv_connector":"TPUConnector","kv_connector_module_path":"vllm_torchtpu.distributed.kv_transfer.tpu_connector","kv_role":"kv_consumer"}',
         ]
         kv = cvc.parse_kv_transfer(args)
         self.assertTrue(kv["enabled"])
         self.assertEqual(kv["kv_connector"], "TPUConnector")
-        self.assertEqual(kv["kv_role"], "kv_both")
+        self.assertEqual(kv["kv_role"], "kv_consumer")
         self.assertEqual(
             kv["kv_connector_module_path"],
-            "vllm_tpu.distributed.tpu_connector",
+            "vllm_torchtpu.distributed.kv_transfer.tpu_connector",
         )
 
         params = cvc.parse_vllm_args(args)
@@ -79,7 +79,7 @@ class CaptureVllmConfigTest(unittest.TestCase):
 
     def test_expand_disaggregated_sets_does_not_mutate_input(self):
         dset = {
-            "apiVersion": "disaggregatedset.sigs.k8s.io/v1alpha1",
+            "apiVersion": "disaggregatedset.x-k8s.io/v1",
             "kind": "DisaggregatedSet",
             "metadata": {"name": "llm-d-model-server", "namespace": "llmd"},
             "spec": {

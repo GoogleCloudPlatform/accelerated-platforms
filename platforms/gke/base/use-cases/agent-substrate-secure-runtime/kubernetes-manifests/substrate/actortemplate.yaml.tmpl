@@ -27,6 +27,7 @@ workerSelector:
 containers:
   - name: runner
     image: ${RUNNER_IMAGE}
+    command: ["/usr/local/bin/python", "/usr/src/app/runner.py"]
     env:
       - name: PORT
         value: "80"
@@ -58,3 +59,4 @@ resources:
     memoryBytes: 2147483648
 snapshotConfig:
   preferredFidelity: SNAPSHOT_FIDELITY_MEMORY
+  storageLocation: gs://${SNAPSHOT_BUCKET_NAME}/${SUBSTRATE_ATESPACE}/

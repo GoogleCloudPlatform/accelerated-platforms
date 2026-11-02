@@ -23,8 +23,9 @@
 
 resource "google_container_node_pool" "cpu_n4s8" {
   # Variables
-  cluster  = data.google_container_cluster.cluster.name
-  location = local.cluster_region
+  cluster            = data.google_container_cluster.cluster.name
+  initial_node_count = 0
+  location           = local.cluster_region
   name     = "cpu-n4s8"
   node_locations = [
     "us-central1-a",
@@ -93,8 +94,9 @@ resource "google_container_node_pool" "cpu_n4s8" {
 
 resource "google_container_node_pool" "cpu_n4s8_spot" {
   # Variables
-  cluster  = data.google_container_cluster.cluster.name
-  location = local.cluster_region
+  cluster            = data.google_container_cluster.cluster.name
+  initial_node_count = 0
+  location           = local.cluster_region
   name     = "cpu-n4s8-spot"
   node_locations = [
     "us-central1-a",

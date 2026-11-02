@@ -30,7 +30,8 @@ kubectl wait --for=condition=Available deployment/intent-extproc -n ate-system -
 
 echo "==> 2. Checking WorkerPool in ate-workers..."
 kubectl get workerpool -n ate-workers
-READY_WORKERS="$(kubectl get workerpool scientific-gvisor -n ate-workers -o jsonpath='{.status.readyReplicas}')"
+kubectl get pods -n ate-workers -l workload=scientific-python
+READY_WORKERS="$(kubectl get deployment scientific-gvisor -n ate-workers -o jsonpath='{.status.readyReplicas}')"
 if [[ "${READY_WORKERS:-0}" -lt 1 ]]; then
   echo "Error: Expected at least 1 Ready replica in WorkerPool scientific-gvisor, got ${READY_WORKERS:-0}" >&2
   exit 1

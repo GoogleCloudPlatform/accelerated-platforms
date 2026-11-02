@@ -13,8 +13,8 @@
 # limitations under the License.
 
 # Reference per-actor EgressPolicy applied dynamically by the ADK before_tool_callback
-# via `kubectl-ate set egress-policy <actor> -a secure-runtime -f -`.
-# - All destinations not listed in `rules` are blocked ( DNS returns NXDOMAIN and
+# via `kubectl-ate create egress-policy <actor> -a secure-runtime -f -`.
+# - All destinations not listed in `rules` are blocked (DNS returns NXDOMAIN and
 #   TCP/TLS tunnels are rejected at atenet-egress).
 # - For `api.github.com:443`, `atenet-egress` terminates TLS, injects the
 #   Authorization header from `k8s-credential-provider`, and forwards the
@@ -22,11 +22,13 @@
 #   least privilege (GET/HEAD only).
 rules:
   - https:
-      hosts:
+      hostnames:
         - api.github.com
       ports:
-        - 443
+        numbers:
+          - 443
       effects:
-        - replaceHeaders:
-            - name: Authorization
-              value: Bearer {{secret "ate-secret://k8s.io/default/agent-credentials/github-readonly-token/token"}}
+        replaceHeaders:
+          - header: Authorization
+            prefix: "Bearer "
+            credentialUri: "ate-secret://k8s.io/default/agent-credentials/github-readonly-token/token"

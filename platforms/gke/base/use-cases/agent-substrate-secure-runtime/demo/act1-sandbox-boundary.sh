@@ -25,7 +25,6 @@ set -o pipefail
 ATESPACE="${SUBSTRATE_ATESPACE:-secure-runtime}"
 ACTOR_NAME="${ACTOR_NAME:-triage-actor-19}"
 TEMPLATE_NAME="${SUBSTRATE_ACTOR_TEMPLATE:-scientific-python}"
-PROXY_PORT="${PROXY_PORT:-18081}"
 
 echo "========================================================================"
 echo " ACT 1: The Untrusted Boundary — gVisor User-Space Syscall Interception "
@@ -36,18 +35,26 @@ if ! kubectl-ate get actor "${ACTOR_NAME}" -a "${ATESPACE}" >/dev/null 2>&1; the
   kubectl-ate create actor "${ACTOR_NAME}" -a "${ATESPACE}" --template "${TEMPLATE_NAME}"
 fi
 
-echo "==> Starting local mTLS proxy to actor '${ATESPACE}/${ACTOR_NAME}' on :${PROXY_PORT}..."
-kubectl-ate proxy actor "${ACTOR_NAME}" -a "${ATESPACE}" --port "${PROXY_PORT}" >/tmp/act1-proxy.log 2>&1 &
-PROXY_PID=$!
-trap 'kill "${PROXY_PID}" >/dev/null 2>&1 || true' EXIT
-sleep 2
+echo "==> 1. Inspecting container security boundary inside the actor (/boundary via mTLS atenet-router):"
+kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${ACTOR_NAME}" <<'PYEOF'
+import json
+import sys
+from secure_runtime_agent.substrate_client import SubstrateClient
 
-echo "==> 1. Inspecting container security boundary inside the actor (/boundary):"
-curl -fsS "http://127.0.0.1:${PROXY_PORT}/boundary" | python3 -m json.tool
+actor_name = sys.argv[1]
+client = SubstrateClient()
+print(json.dumps(client.call_actor(actor_name, "GET", "/boundary"), indent=2))
+PYEOF
 
 echo ""
 echo "==> 2. Probing restricted kernel operations inside the gVisor Sentry (/exec):"
-read -r -d '' BOUNDARY_CODE <<'PYEOF' || true
+kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${ACTOR_NAME}" <<'PYEOF'
+import json
+import sys
+from secure_runtime_agent.substrate_client import SubstrateClient
+
+actor_name = sys.argv[1]
+boundary_code = """
 import os
 import platform
 import subprocess
@@ -63,12 +70,11 @@ for path in ["/proc/kcore", "/proc/kallsyms", "/proc/sysrq-trigger", "/sys/firmw
 
 kmsg = subprocess.run(["dmesg"], capture_output=True, text=True)
 print(f"dmesg exit_code={kmsg.returncode} stderr={kmsg.stderr.strip() or 'restricted by user-space kernel'}")
+"""
+client = SubstrateClient()
+res = client.call_actor(actor_name, "POST", "/exec", {"code": boundary_code})
+print(json.dumps(res, indent=2))
 PYEOF
-
-PAYLOAD="$(python3 -c 'import json, sys; print(json.dumps({"code": sys.stdin.read()}))' <<<"${BOUNDARY_CODE}")"
-curl -fsS -X POST "http://127.0.0.1:${PROXY_PORT}/exec" \
-  -H "Content-Type: application/json" \
-  -d "${PAYLOAD}" | python3 -m json.tool
 
 echo ""
 echo "==> Act 1 complete: Application syscalls are intercepted by the gVisor Sentry in user space."

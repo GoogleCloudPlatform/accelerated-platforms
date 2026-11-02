@@ -37,9 +37,7 @@ MANIFESTS_DIR="${SCRIPT_DIR}/../kubernetes-manifests"
 ATESPACE="${SUBSTRATE_ATESPACE:-secure-runtime}"
 ACTOR_NAME="${ACTOR_NAME:-triage-actor-42}"
 TEMPLATE_NAME="${SUBSTRATE_ACTOR_TEMPLATE:-scientific-python}"
-GITHUB_REPO="${GITHUB_REPO:-demo-org/secure-runtime-sandbox-demo}"
-ACTOR_PORT="${ACTOR_PORT:-18083}"
-EXTPROC_PORT="${EXTPROC_PORT:-18080}"
+GITHUB_REPO="${GITHUB_REPO:-GoogleCloudPlatform/accelerated-platforms}"
 
 echo "========================================================================"
 echo " ACT 3: Dynamic Intent Filtering & Out-of-Sandbox Credential Injection  "
@@ -50,66 +48,123 @@ if ! kubectl-ate get actor "${ACTOR_NAME}" -a "${ATESPACE}" >/dev/null 2>&1; the
 fi
 
 echo "==> 1. Applying per-actor EgressPolicy (api.github.com:443 + out-of-sandbox replaceHeaders)..."
-kubectl-ate set egress-policy "${ACTOR_NAME}" -a "${ATESPACE}" \
+kubectl-ate delete egress-policy "${ACTOR_NAME}" -a "${ATESPACE}" >/dev/null 2>&1 || true
+kubectl-ate create egress-policy "${ACTOR_NAME}" -a "${ATESPACE}" \
   -f "${MANIFESTS_DIR}/substrate/github-read-egress-policy.yaml"
 
 echo "==> 2. Pushing dynamic READ_ONLY L7 rule (GET/HEAD only) to intent-extproc..."
-kubectl port-forward -n ate-system svc/intent-extproc "${EXTPROC_PORT}:8080" >/tmp/act3-extproc-pf.log 2>&1 &
-EXTPROC_PF_PID=$!
-kubectl-ate proxy actor "${ACTOR_NAME}" -a "${ATESPACE}" --port "${ACTOR_PORT}" >/tmp/act3-actor-proxy.log 2>&1 &
-ACTOR_PROXY_PID=$!
-trap 'kill "${EXTPROC_PF_PID}" "${ACTOR_PROXY_PID}" >/dev/null 2>&1 || true' EXIT
-sleep 2
+kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${ATESPACE}/${ACTOR_NAME}" "${GITHUB_REPO}" <<'PYEOF'
+import json
+import os
+import sys
+import httpx
 
-curl -fsS -X PUT "http://127.0.0.1:${EXTPROC_PORT}/v1/policies" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"actor\": \"${ATESPACE}/${ACTOR_NAME}\",
-    \"intent\": \"github_issue_read_only\",
-    \"allowed_hosts\": [\"api.github.com\"],
-    \"allowed_methods\": [\"GET\", \"HEAD\"],
-    \"allowed_path_prefixes\": [\"/repos/${GITHUB_REPO}/\"]
-  }" | python3 -m json.tool
+actor_ref = sys.argv[1]
+github_repo = sys.argv[2]
+control_url = os.environ.get("INTENT_EXTPROC_CONTROL_URL", "http://intent-extproc.ate-system.svc:8080")
+resp = httpx.put(
+    f"{control_url}/v1/policies",
+    json={
+        "actor": actor_ref,
+        "intent": "github_issue_read_only",
+        "allowed_hosts": ["api.github.com"],
+        "allowed_methods": ["GET", "HEAD"],
+        "allowed_path_prefixes": [f"/repos/{github_repo}/"],
+    },
+    timeout=10.0,
+)
+resp.raise_for_status()
+print(json.dumps(resp.json(), indent=2))
+PYEOF
 
 echo ""
 echo "==> 3. Verifying zero credentials exist inside the actor sandbox environment or filesystem..."
-read -r -d '' CRED_CHECK_CODE <<'PYEOF' || true
+kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${ACTOR_NAME}" <<'PYEOF'
+import json
+import sys
+from secure_runtime_agent.substrate_client import SubstrateClient
+
+actor_name = sys.argv[1]
+cred_check_code = """
 import os
 suspect_vars = {k: v for k, v in os.environ.items() if any(tok in k.upper() for tok in ("TOKEN", "SECRET", "KEY", "PAT", "AUTH"))}
 print("Credential-like environment variables inside sandbox:", suspect_vars)
 print("Kubernetes serviceaccount secret mount exists:", os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount/token"))
+"""
+client = SubstrateClient()
+print(json.dumps(client.call_actor(actor_name, "POST", "/exec", {"code": cred_check_code}), indent=2))
 PYEOF
-PAYLOAD="$(python3 -c 'import json, sys; print(json.dumps({"code": sys.stdin.read()}))' <<<"${CRED_CHECK_CODE}")"
-curl -fsS -X POST "http://127.0.0.1:${ACTOR_PORT}/exec" \
-  -H "Content-Type: application/json" \
-  -d "${PAYLOAD}" | python3 -m json.tool
 
 echo ""
 echo "==> 4. [ALLOWED INTENT] Testing GET https://api.github.com/repos/${GITHUB_REPO}/issues (credential injected at egress gateway):"
-curl -fsS -X POST "http://127.0.0.1:${ACTOR_PORT}/egress-test" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"method\": \"GET\",
-    \"url\": \"https://api.github.com/repos/${GITHUB_REPO}/issues\",
-    \"headers\": {\"Accept\": \"application/vnd.github+json\"}
-  }" | python3 -m json.tool
+kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${ACTOR_NAME}" "${GITHUB_REPO}" <<'PYEOF'
+import json
+import sys
+from secure_runtime_agent.substrate_client import SubstrateClient
+
+actor_name = sys.argv[1]
+github_repo = sys.argv[2]
+client = SubstrateClient()
+res = client.call_actor(
+    actor_name,
+    "POST",
+    "/egress-test",
+    {
+        "method": "GET",
+        "url": f"https://api.github.com/repos/{github_repo}/issues?per_page=1",
+        "headers": {
+            "Accept": "application/vnd.github+json",
+            "Authorization": "Bearer ate-injected-at-egress",
+        },
+    },
+)
+print(json.dumps(res, indent=2))
+PYEOF
 
 echo ""
 echo "==> 5. [BLOCKED WRITE INTENT] Testing POST https://api.github.com/repos/${GITHUB_REPO}/issues/1/comments (blocked at L7 by intent-extproc):"
-curl -fsS -X POST "http://127.0.0.1:${ACTOR_PORT}/egress-test" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"method\": \"POST\",
-    \"url\": \"https://api.github.com/repos/${GITHUB_REPO}/issues/1/comments\",
-    \"headers\": {\"Accept\": \"application/vnd.github+json\"},
-    \"body\": \"{\\\"body\\\": \\\"Unauthorized comment attempt\\\"}\"
-  }" | python3 -m json.tool
+kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${ACTOR_NAME}" "${GITHUB_REPO}" <<'PYEOF'
+import json
+import sys
+from secure_runtime_agent.substrate_client import SubstrateClient
+
+actor_name = sys.argv[1]
+github_repo = sys.argv[2]
+client = SubstrateClient()
+res = client.call_actor(
+    actor_name,
+    "POST",
+    "/egress-test",
+    {
+        "method": "POST",
+        "url": f"https://api.github.com/repos/{github_repo}/issues/1/comments",
+        "headers": {
+            "Accept": "application/vnd.github+json",
+            "Authorization": "Bearer ate-injected-at-egress",
+        },
+        "body": '{"body": "Unauthorized comment attempt"}',
+    },
+)
+print(json.dumps(res, indent=2))
+PYEOF
 
 echo ""
 echo "==> 6. [BLOCKED DESTINATION] Testing GET https://unapproved-collector.example.com/telemetry (blocked by default-deny DNS/egress):"
-curl -fsS -X POST "http://127.0.0.1:${ACTOR_PORT}/egress-test" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"method\": \"GET\",
-    \"url\": \"https://unapproved-collector.example.com/telemetry\"
-  }" | python3 -m json.tool
+kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${ACTOR_NAME}" <<'PYEOF'
+import json
+import sys
+from secure_runtime_agent.substrate_client import SubstrateClient
+
+actor_name = sys.argv[1]
+client = SubstrateClient()
+res = client.call_actor(
+    actor_name,
+    "POST",
+    "/egress-test",
+    {
+        "method": "GET",
+        "url": "https://unapproved-collector.example.com/telemetry",
+    },
+)
+print(json.dumps(res, indent=2))
+PYEOF

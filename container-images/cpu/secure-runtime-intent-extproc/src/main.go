@@ -98,6 +98,7 @@ func (s *ExtProcServer) handleRequestHeaders(
 ) *extprocv3.ProcessingResponse {
 	var method, authority, reqPath string
 	hasAuthHeader := false
+	isMockAuthHeader := false
 
 	for _, h := range reqHeaders.GetHeaders().GetHeaders() {
 		k := strings.ToLower(h.Key)
@@ -115,8 +116,12 @@ func (s *ExtProcServer) handleRequestHeaders(
 		case ":path":
 			reqPath = val
 		case "authorization":
-			if strings.TrimSpace(val) != "" {
+			trimmed := strings.TrimSpace(val)
+			if trimmed != "" {
 				hasAuthHeader = true
+				if strings.Contains(trimmed, "ghp_replace_with_") || strings.Contains(trimmed, "ghp_mock_") {
+					isMockAuthHeader = true
+				}
 			}
 		}
 	}
@@ -199,10 +204,17 @@ func (s *ExtProcServer) handleRequestHeaders(
 		}
 	}
 
+	commonResp := &extprocv3.CommonResponse{}
+	if isMockAuthHeader {
+		commonResp.HeaderMutation = &extprocv3.HeaderMutation{
+			RemoveHeaders: []string{"authorization"},
+		}
+	}
+
 	return &extprocv3.ProcessingResponse{
 		Response: &extprocv3.ProcessingResponse_RequestHeaders{
 			RequestHeaders: &extprocv3.HeadersResponse{
-				Response: &extprocv3.CommonResponse{},
+				Response: commonResp,
 			},
 		},
 	}

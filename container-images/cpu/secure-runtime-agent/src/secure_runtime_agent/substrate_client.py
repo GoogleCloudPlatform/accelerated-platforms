@@ -51,9 +51,9 @@ class SubstrateClient:
         extra_flags: list[str] = []
         ate_api_addr = os.environ.get("ATE_API_ADDR", "")
         if ate_api_addr:
-            extra_flags.append(f"--ateapi={ate_api_addr}")
+            extra_flags.append(f"--endpoint={ate_api_addr}")
         elif os.environ.get("KUBERNETES_SERVICE_HOST"):
-            extra_flags.append("--ateapi=api.ate-system.svc:443")
+            extra_flags.append("--endpoint=api.ate-system.svc:443")
         cmd = ["kubectl-ate", *extra_flags, *args]
         return subprocess.run(
             cmd,
@@ -156,17 +156,15 @@ class SubstrateClient:
             "ports": {"numbers": [443]},
         }
         if classification.secret_uri:
-            https_rule["effects"] = [
-                {
-                    "replaceHeaders": [
-                        {
-                            "name": "Authorization",
-                            "format": "Bearer ${secret}",
-                            "secretValueFrom": {"uri": classification.secret_uri},
-                        }
-                    ]
-                }
-            ]
+            https_rule["effects"] = {
+                "replaceHeaders": [
+                    {
+                        "header": "Authorization",
+                        "prefix": "Bearer ",
+                        "credentialUri": classification.secret_uri,
+                    }
+                ]
+            }
 
         policy_yaml = yaml.safe_dump({"rules": [{"https": https_rule}]})
         # Delete any existing policy first so create is idempotent across turns.

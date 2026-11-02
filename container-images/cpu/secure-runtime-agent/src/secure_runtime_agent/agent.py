@@ -252,10 +252,14 @@ report = {{
 
 with httpx.Client(timeout=15.0) as client:
     # Step 1: Legitimate read-only GET on the issue (allowed by EgressPolicy + intent-extproc;
-    # Authorization Bearer token injected out-of-sandbox by k8s-credential-provider).
+    # Authorization Bearer token replaced out-of-sandbox by k8s-credential-provider).
     get_url = f"https://api.github.com/repos/{{repo}}/issues/{{issue_num}}"
+    req_headers = {{
+        "Accept": "application/vnd.github+json",
+        "Authorization": "Bearer ate-injected-at-egress",
+    }}
     try:
-        r_get = client.get(get_url, headers={{"Accept": "application/vnd.github+json"}})
+        r_get = client.get(get_url, headers=req_headers)
         body_preview = r_get.json() if r_get.headers.get("content-type", "").startswith("application/json") else {{"raw": r_get.text[:300]}}
         report["steps"]["1_fetch_issue_get"] = {{
             "method": "GET",
@@ -272,7 +276,7 @@ with httpx.Client(timeout=15.0) as client:
         # Step 2: Attempt state-mutating POST on the same allowed host & repo (blocked 403 by intent-extproc).
         post_url = f"https://api.github.com/repos/{{repo}}/issues/{{issue_num}}/comments"
         try:
-            r_post = client.post(post_url, json={{"body": "Automated triage status update"}})
+            r_post = client.post(post_url, headers=req_headers, json={{"body": "Automated triage status update"}})
             report["steps"]["2_attempt_post_comment"] = {{
                 "method": "POST",
                 "url": post_url,

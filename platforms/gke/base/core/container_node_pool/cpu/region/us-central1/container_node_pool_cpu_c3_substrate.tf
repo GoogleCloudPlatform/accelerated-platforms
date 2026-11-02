@@ -19,9 +19,10 @@
 #######################################################################################################################
 
 resource "google_container_node_pool" "cpu_c3s4_substrate" {
-  cluster  = data.google_container_cluster.cluster.name
-  location = local.cluster_region
-  name     = "cpu-c3s4-substrate"
+  cluster            = data.google_container_cluster.cluster.name
+  initial_node_count = 0
+  location           = local.cluster_region
+  name               = "cpu-c3s4-substrate"
   node_locations = [
     "us-central1-a",
     "us-central1-b",
@@ -31,9 +32,9 @@ resource "google_container_node_pool" "cpu_c3s4_substrate" {
   project = data.google_project.cluster.project_id
 
   autoscaling {
-    location_policy      = "BALANCED"
+    location_policy      = "ANY"
     total_max_node_count = 8
-    total_min_node_count = 1
+    total_min_node_count = 2
   }
 
   network_config {
@@ -60,12 +61,6 @@ resource "google_container_node_pool" "cpu_c3s4_substrate" {
       enable_integrity_monitoring = true
       enable_secure_boot          = true
     }
-
-    taint {
-      effect = "NO_SCHEDULE"
-      key    = "ate.dev/sandboxClass"
-      value  = "gvisor"
-    }
   }
 
   lifecycle {
@@ -90,9 +85,10 @@ resource "google_container_node_pool" "cpu_c3s4_substrate" {
 resource "google_container_node_pool" "cpu_n4s4_gvisor" {
   provider = google-beta
 
-  cluster  = data.google_container_cluster.cluster.name
-  location = local.cluster_region
-  name     = "cpu-n4s4-gvisor"
+  cluster            = data.google_container_cluster.cluster.name
+  initial_node_count = 0
+  location           = local.cluster_region
+  name               = "cpu-n4s4-gvisor"
   node_locations = [
     "us-central1-a",
     "us-central1-b",
@@ -102,7 +98,7 @@ resource "google_container_node_pool" "cpu_n4s4_gvisor" {
   project = data.google_project.cluster.project_id
 
   autoscaling {
-    location_policy      = "BALANCED"
+    location_policy      = "ANY"
     total_max_node_count = 4
     total_min_node_count = 1
   }
@@ -114,11 +110,11 @@ resource "google_container_node_pool" "cpu_n4s4_gvisor" {
   node_config {
     image_type = "COS_CONTAINERD"
     labels = {
-      "resource-model" : "n4"
+      "resource-model" : "e2"
       "resource-type" : "cpu"
       "sandbox-runtime" : "gvisor"
     }
-    machine_type    = "n4-standard-4"
+    machine_type    = "e2-standard-4"
     service_account = data.google_service_account.cluster.email
     oauth_scopes = [
       "https://www.googleapis.com/auth/cloud-platform"

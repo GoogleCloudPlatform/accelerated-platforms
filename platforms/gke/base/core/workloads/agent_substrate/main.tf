@@ -48,8 +48,12 @@ resource "terraform_data" "deploy_ate_system" {
 
   input = {
     additional_extproc_service  = var.agent_substrate_additional_egress_extproc_service != null ? var.agent_substrate_additional_egress_extproc_service : ""
+    ar_repo_url                 = local.cloudbuild_ar_image_repository_url
     atespace                    = var.agent_substrate_atespace
     bucket_name                 = google_storage_bucket.snapshot.name
+    cloudbuild_location         = local.cloudbuild_location
+    cloudbuild_project_id       = local.cloudbuild_project_id
+    cloudbuild_sa_id            = local.cloudbuild_service_account_id
     cluster_location            = local.cluster_region
     cluster_name                = local.cluster_name
     credential_namespace_policy = local_file.credential_namespace_policy.filename
@@ -65,6 +69,8 @@ resource "terraform_data" "deploy_ate_system" {
   provisioner "local-exec" {
     command     = <<EOT
 set -euo pipefail
+KUBECONFIG_ABS="$(realpath "${self.input.kubeconfig_file}")"
+POLICY_ABS="$(realpath "${self.input.credential_namespace_policy}")"
 mkdir -p "$(dirname "${self.input.substrate_install_dir}")"
 if [ ! -d "${self.input.substrate_install_dir}/.git" ]; then
   rm -rf "${self.input.substrate_install_dir}"
@@ -72,9 +78,42 @@ if [ ! -d "${self.input.substrate_install_dir}/.git" ]; then
 fi
 
 cd "${self.input.substrate_install_dir}"
-mkdir -p "${HOME}/.local/bin"
-GOBIN="${HOME}/.local/bin" go install ./cmd/kubectl-ate
-export PATH="${HOME}/.local/bin:${PATH}"
+mkdir -p "$${HOME}/.local/bin"
+GOBIN="$${HOME}/.local/bin" go install ./cmd/kubectl-ate
+export PATH="$${HOME}/.local/bin:$${HOME}/google-cloud-sdk/bin:$${PATH}"
+export KUBECONFIG="$${KUBECONFIG_ABS}"
+
+# Build and publish pre-built Substrate images to Artifact Registry if not yet present
+if ! gcloud artifacts docker images describe "${self.input.ar_repo_url}/envoy-dataplane:${self.input.version}" --project="${self.input.cloudbuild_project_id}" >/dev/null 2>&1; then
+  echo "Building envoy-dataplane:${self.input.version} via Cloud Build..."
+  gcloud builds submit "./cmd/dataplane/envoy" \
+    --project="${self.input.cloudbuild_project_id}" \
+    --region="${self.input.cloudbuild_location}" \
+    --service-account="${self.input.cloudbuild_sa_id}" \
+    --default-buckets-behavior=regional-user-owned-bucket \
+    --tag="${self.input.ar_repo_url}/envoy-dataplane:${self.input.version}"
+fi
+
+if ! gcloud artifacts docker images describe "${self.input.ar_repo_url}/ateworker-gvisor:${self.input.version}" --project="${self.input.cloudbuild_project_id}" >/dev/null 2>&1; then
+  echo "Building Substrate Go component images (${self.input.version}) via ko..."
+  KO_BIN="$(cd ./hack/tools/ko && go tool -n ko)"
+  KO_DOCKER_REPO="${self.input.ar_repo_url}" \
+  KO_DEFAULTPLATFORMS="linux/amd64" \
+  "$${KO_BIN}" build \
+    --base-import-paths \
+    --tags="${self.input.version}" \
+    --ldflags="-X=go.ate.dev/substrate/internal/version.Version=${self.input.version}" \
+    ./cmd/ate-idp-server \
+    ./cmd/ateapi \
+    ./cmd/atecontroller \
+    ./cmd/atelet \
+    ./cmd/atenet \
+    ./cmd/ateworker-gvisor \
+    ./cmd/ateworker-microvm \
+    ./cmd/credential-provider/kubernetes-secrets \
+    ./cmd/objectstore-plugin \
+    ./cmd/podcertcontroller
+fi
 
 EXTRA_FLAGS=()
 if [ -n "${self.input.additional_extproc_service}" ]; then
@@ -83,7 +122,8 @@ fi
 
 go run ./cmd/ate-setup deploy ate-system \
   --no-dev-env \
-  --kubeconfig="${self.input.kubeconfig_file}" \
+  --kubeconfig="$${KUBECONFIG_ABS}" \
+  --context="gke_${self.input.project_id}_${self.input.cluster_location}_${self.input.cluster_name}" \
   --gcp-project-id="${self.input.project_id}" \
   --gcp-cluster-name="${self.input.cluster_name}" \
   --gcp-cluster-location="${self.input.cluster_location}" \
@@ -92,15 +132,16 @@ go run ./cmd/ate-setup deploy ate-system \
   --snapshot-transfer-gsa-name="${self.input.transfer_gsa_name}" \
   --credential-provider='${self.input.credential_provider}' \
   --ingress-allowed-spiffe-ids="${self.input.ingress_allowed_spiffe_ids}" \
-  --image-repo="ghcr.io/agent-substrate/substrate" \
+  --image-repo="${self.input.ar_repo_url}" \
   --image-tag="${self.input.version}" \
-  --rollout-timeout="180s" \
+  --ateapi-postgres-storage-class="dynamic-rwo" \
+  --rollout-timeout="600s" \
   "$${EXTRA_FLAGS[@]}"
 
-kubectl --kubeconfig="${self.input.kubeconfig_file}" apply -f "${self.input.credential_namespace_policy}"
-kubectl --kubeconfig="${self.input.kubeconfig_file}" -n ate-system rollout restart deployment/k8s-credential-provider
-kubectl --kubeconfig="${self.input.kubeconfig_file}" -n ate-system rollout status deployment/k8s-credential-provider --timeout=120s
-kubectl-ate --kubeconfig="${self.input.kubeconfig_file}" create atespace "${self.input.atespace}" || true
+kubectl --kubeconfig="$${KUBECONFIG_ABS}" apply -f "$${POLICY_ABS}"
+kubectl --kubeconfig="$${KUBECONFIG_ABS}" -n ate-system rollout restart deployment/k8s-credential-provider
+kubectl --kubeconfig="$${KUBECONFIG_ABS}" -n ate-system rollout status deployment/k8s-credential-provider --timeout=120s
+kubectl-ate --kubeconfig="$${KUBECONFIG_ABS}" create atespace "${self.input.atespace}" || true
 EOT
     interpreter = ["bash", "-c"]
     working_dir = path.module
@@ -110,10 +151,14 @@ EOT
     command     = <<EOT
 set -euo pipefail
 if [ -d "${self.input.substrate_install_dir}" ] && [ -f "${self.input.kubeconfig_file}" ]; then
+  KUBECONFIG_ABS="$(realpath "${self.input.kubeconfig_file}")"
+  export PATH="$${HOME}/.local/bin:$${HOME}/google-cloud-sdk/bin:$${PATH}"
+  export KUBECONFIG="$${KUBECONFIG_ABS}"
   cd "${self.input.substrate_install_dir}"
   go run ./cmd/ate-setup delete ate-system \
     --no-dev-env \
-    --kubeconfig="${self.input.kubeconfig_file}" || true
+    --kubeconfig="$${KUBECONFIG_ABS}" \
+    --context="gke_${self.input.project_id}_${self.input.cluster_location}_${self.input.cluster_name}" || true
 fi
 EOT
     interpreter = ["bash", "-c"]

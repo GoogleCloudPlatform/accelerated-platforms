@@ -33,8 +33,8 @@ variable "secure_runtime_gemini_model" {
 }
 
 variable "secure_runtime_github_repo" {
-  default     = "demo-org/secure-runtime-sandbox-demo"
-  description = "Dedicated private GitHub repository (owner/repo) triaged by the agent."
+  default     = "GoogleCloudPlatform/accelerated-platforms"
+  description = "GitHub repository (owner/repo) triaged by the agent."
   type        = string
 }
 

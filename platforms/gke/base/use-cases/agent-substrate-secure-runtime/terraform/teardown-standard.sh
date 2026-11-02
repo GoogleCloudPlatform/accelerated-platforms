@@ -32,6 +32,10 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/agent-subst
 # Enable Terraform plugin caching and specify location of the plugin cache directory
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 
+if [ -d "${HOME}/google-cloud-sdk/bin" ]; then
+  export PATH="${HOME}/google-cloud-sdk/bin:${PATH}"
+fi
+
 # Set use-case specific values
 export TF_VAR_initialize_backend_use_case_name="agent-substrate-secure-runtime/terraform"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-sec}"

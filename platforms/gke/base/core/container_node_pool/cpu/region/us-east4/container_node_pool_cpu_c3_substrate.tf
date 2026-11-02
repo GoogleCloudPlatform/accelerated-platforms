@@ -32,7 +32,7 @@ resource "google_container_node_pool" "cpu_c3s4_substrate" {
   autoscaling {
     location_policy      = "BALANCED"
     total_max_node_count = 8
-    total_min_node_count = 1
+    total_min_node_count = 2
   }
 
   network_config {
@@ -58,12 +58,6 @@ resource "google_container_node_pool" "cpu_c3s4_substrate" {
     shielded_instance_config {
       enable_integrity_monitoring = true
       enable_secure_boot          = true
-    }
-
-    taint {
-      effect = "NO_SCHEDULE"
-      key    = "ate.dev/sandboxClass"
-      value  = "gvisor"
     }
   }
 

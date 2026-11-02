@@ -13,6 +13,8 @@
 # limitations under the License.
 
 locals {
+  repo_root = abspath("${path.module}/../../../../../../..")
+
   secure_runtime_images = {
     runner = {
       dir         = "container-images/cpu/secure-runtime-runner"
@@ -33,17 +35,18 @@ resource "terraform_data" "build_secure_runtime_images" {
   for_each = local.secure_runtime_images
 
   input = {
-    acp_root                      = local.acp_root
     cloudbuild_project_id         = local.cloudbuild_project_id
     cloudbuild_service_account_id = local.cloudbuild_service_account_id
     cloudbuild_source_bucket_name = local.cloudbuild_source_bucket_name
     dir                           = each.value.dir
     image_destination             = each.value.destination
+    repo_root                     = local.repo_root
     substrate_version             = var.agent_substrate_version
   }
 
   provisioner "local-exec" {
     command     = <<-EOT
+export PATH="$${HOME}/.local/bin:$${HOME}/google-cloud-sdk/bin:$${PATH}"
 gcloud builds submit \
 --config="${self.input.dir}/cloudbuild.yaml" \
 --gcs-source-staging-dir="gs://${self.input.cloudbuild_source_bucket_name}/source" \
@@ -53,13 +56,13 @@ gcloud builds submit \
 --substitutions=_DESTINATION="${self.input.image_destination}"
 EOT
     interpreter = ["bash", "-c"]
-    working_dir = self.input.acp_root
+    working_dir = self.input.repo_root
   }
 
   triggers_replace = {
-    cloudbuild_yaml_hash = filebase64sha256("${local.acp_root}/${each.value.dir}/cloudbuild.yaml")
-    dockerfile_hash      = filebase64sha256("${local.acp_root}/${each.value.dir}/Dockerfile")
+    cloudbuild_yaml_hash = filebase64sha256("${local.repo_root}/${each.value.dir}/cloudbuild.yaml")
+    dockerfile_hash      = filebase64sha256("${local.repo_root}/${each.value.dir}/Dockerfile")
     image_destination    = each.value.destination
-    source_hash          = sha256(join("", [for file in fileset("${local.acp_root}/${each.value.dir}/src", "**") : filesha256("${local.acp_root}/${each.value.dir}/src/${file}")]))
+    source_hash          = sha256(join("", [for file in fileset("${local.repo_root}/${each.value.dir}/src", "**") : filesha256("${local.repo_root}/${each.value.dir}/src/${file}")]))
   }
 }

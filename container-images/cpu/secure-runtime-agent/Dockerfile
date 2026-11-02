@@ -19,7 +19,7 @@ FROM golang:1.25-bookworm AS ate-builder
 ARG SUBSTRATE_VERSION=v0.6.0
 RUN git clone --depth 1 --branch ${SUBSTRATE_VERSION} https://github.com/agent-substrate/substrate.git /substrate \
     && cd /substrate \
-    && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/kubectl-ate ./cmd/kubectl-ate
+    && GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/kubectl-ate ./cmd/kubectl-ate
 
 FROM python:3.12-slim-bookworm
 

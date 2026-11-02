@@ -29,7 +29,6 @@ MANIFESTS_DIR="${SCRIPT_DIR}/../kubernetes-manifests"
 ATESPACE="${SUBSTRATE_ATESPACE:-secure-runtime}"
 TEMPLATE_NAME="${SUBSTRATE_ACTOR_TEMPLATE:-scientific-python}"
 WARM_ACTOR="race-actor-$(date +%s)"
-PROXY_PORT="${PROXY_PORT:-18082}"
 
 echo "========================================================================"
 echo " ACT 2: Cold-Start Race — Standard gVisor Pod vs Substrate Golden Snapshot"
@@ -40,6 +39,8 @@ if [[ -z "${RUNNER_IMAGE}" ]]; then
   echo "Error: Could not resolve RUNNER_IMAGE from cluster. Set RUNNER_IMAGE env var explicitly." >&2
   exit 1
 fi
+
+trap 'kubectl delete pod cold-gvisor-baseline -n default --ignore-not-found >/dev/null 2>&1 || true' EXIT
 
 echo "==> [Baseline A] Creating fresh cold Kubernetes gVisor Pod (cold-gvisor-baseline)..."
 kubectl delete pod cold-gvisor-baseline -n default --ignore-not-found >/dev/null 2>&1 || true
@@ -55,36 +56,54 @@ echo ""
 echo "==> [Substrate B] Creating & waking Actor '${WARM_ACTOR}' from Golden Snapshot '${TEMPLATE_NAME}'..."
 kubectl-ate create actor "${WARM_ACTOR}" -a "${ATESPACE}" --template "${TEMPLATE_NAME}" >/dev/null
 
-kubectl-ate proxy actor "${WARM_ACTOR}" -a "${ATESPACE}" --port "${PROXY_PORT}" >/tmp/act2-proxy.log 2>&1 &
-PROXY_PID=$!
-trap 'kill "${PROXY_PID}" >/dev/null 2>&1 || true; kubectl delete pod cold-gvisor-baseline -n default --ignore-not-found >/dev/null 2>&1 || true' EXIT
-sleep 1
+READY_JSON="$(kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${WARM_ACTOR}" <<'PYEOF'
+import json
+import sys
+from secure_runtime_agent.substrate_client import SubstrateClient
 
-WARM_START_NS="$(date +%s%N)"
-READY_JSON="$(curl -fsS "http://127.0.0.1:${PROXY_PORT}/readyz")"
-WARM_END_NS="$(date +%s%N)"
-WARM_TOTAL_MS="$(( (WARM_END_NS - WARM_START_NS) / 1000000 ))"
+actor_name = sys.argv[1]
+client = SubstrateClient()
+print(json.dumps(client.call_actor(actor_name, "GET", "/readyz")))
+PYEOF
+)"
+WARM_TOTAL_MS="$(python3 -c 'import json, sys; print(json.loads(sys.stdin.read())["router_roundtrip_ms"])' <<<"${READY_JSON}")"
 echo "    [Substrate B] Golden Snapshot Actor Ready (/readyz): ${WARM_TOTAL_MS} ms"
 echo "    [Substrate B] Pre-loaded scientific stack payload  : ${READY_JSON}"
 
 echo ""
-echo "==> [Stateful Pause/Resume Check] Writing state to /tmp/triage-state.json, pausing, and resuming..."
-curl -fsS -X POST "http://127.0.0.1:${PROXY_PORT}/fs-state" \
-  -H "Content-Type: application/json" \
-  -d '{"issue": 19, "solver": "tikhonov_1e-6", "status": "verified"}' >/dev/null
+echo "==> [Stateful Suspend/Resume Check] Writing state to /tmp/triage-state.json, suspending, and resuming..."
+kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${WARM_ACTOR}" <<'PYEOF' >/dev/null
+import sys
+from secure_runtime_agent.substrate_client import SubstrateClient
 
-kubectl-ate pause actor "${WARM_ACTOR}" -a "${ATESPACE}" >/dev/null
-RESUME_START_NS="$(date +%s%N)"
-STATE_AFTER_RESUME="$(curl -fsS "http://127.0.0.1:${PROXY_PORT}/fs-state")"
-RESUME_END_NS="$(date +%s%N)"
-RESUME_MS="$(( (RESUME_END_NS - RESUME_START_NS) / 1000000 ))"
+actor_name = sys.argv[1]
+client = SubstrateClient()
+client.call_actor(actor_name, "POST", "/fs-state", {"issue": 19, "solver": "tikhonov_1e-6", "status": "verified"})
+PYEOF
+
+kubectl-ate suspend actor "${WARM_ACTOR}" -a "${ATESPACE}" >/dev/null
+
+STATE_AFTER_RESUME="$(kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${WARM_ACTOR}" <<'PYEOF'
+import json
+import sys
+from secure_runtime_agent.substrate_client import SubstrateClient
+
+actor_name = sys.argv[1]
+client = SubstrateClient()
+print(json.dumps(client.call_actor(actor_name, "GET", "/fs-state")))
+PYEOF
+)"
+RESUME_MS="$(python3 -c 'import json, sys; print(json.loads(sys.stdin.read())["router_roundtrip_ms"])' <<<"${STATE_AFTER_RESUME}")"
 
 echo ""
 echo "------------------------------------------------------------------------"
 echo " COLD-START RACE SUMMARY"
 echo "------------------------------------------------------------------------"
-printf " %-42s : %8d ms\n" "Standard Kubernetes gVisor Pod (Cold Boot)" "${COLD_TOTAL_MS}"
-printf " %-42s : %8d ms\n" "Agent Substrate Golden Snapshot Wakeup" "${WARM_TOTAL_MS}"
-printf " %-42s : %8d ms\n" "Agent Substrate Stateful Pause -> Resume" "${RESUME_MS}"
+printf " %-42s : %8s ms\n" "Standard Kubernetes gVisor Pod (Cold Boot)" "${COLD_TOTAL_MS}"
+printf " %-42s : %8s ms\n" "Agent Substrate Golden Snapshot Wakeup" "${WARM_TOTAL_MS}"
+printf " %-42s : %8s ms\n" "Agent Substrate Stateful Pause -> Resume" "${RESUME_MS}"
 echo "------------------------------------------------------------------------"
 echo "Restored state from GCS snapshot: ${STATE_AFTER_RESUME}"
+
+# Suspend the race actor at the end of the benchmark to return the warm worker slot to the pool.
+kubectl-ate suspend actor "${WARM_ACTOR}" -a "${ATESPACE}" >/dev/null 2>&1 || true

@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -e
+
 #To add a new directory to unit tests, add it to source_dirs array.
 #Add the source (folder containing src and test directories) to the array
 source_dirs=("modules/python")

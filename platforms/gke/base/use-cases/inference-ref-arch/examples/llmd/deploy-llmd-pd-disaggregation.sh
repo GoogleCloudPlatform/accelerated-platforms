@@ -33,7 +33,7 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-r
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 
 # Set use-case specific values
-export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/examples/llmd"
+export TF_VAR_initialize_backend_use_case_name="inference-ref-arch"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-inf}"
 
 # needed to source this file earlier to check the exit condition

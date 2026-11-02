@@ -26,7 +26,7 @@ locals {
   kubeconfig_file                      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
   llmd_endpoint                        = local.llmd_endpoints_hostname
   manifests_directory                  = "${local.namespace_directory}/${local.ira_online_gpu_kubernetes_namespace_name}"
-  manifests_directory_root             = "${path.module}/../../../../kubernetes/manifests"
+  manifests_directory_root             = "${path.module}/../../../../../kubernetes/manifests"
   namespace_directory                  = "${local.manifests_directory_root}/namespace"
   workload_identity_principal_prefix   = "principal://iam.googleapis.com/projects/${data.google_project.cluster.number}/locations/global/workloadIdentityPools/${data.google_project.cluster.project_id}.svc.id.goog/subject"
 }

@@ -440,7 +440,7 @@ the model from GCS saves time, take a look at
 > could still be getting provisioned. Check the status of the certificate by
 > running the following command:
 >
-> `gcloud compute ssl-certificates describe ${llmd_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
+> `gcloud compute ssl-certificates describe ${llmd_endpoints_ssl_certificate_name} --project ${cluster_project_id} --format=json | jq -r '.managed.status'`
 >
 > If the output of the command is `PROVISIONING`, it means the certificate has
 > not been provisioned yet. Wait for the status to change to `ACTIVE`
@@ -547,5 +547,5 @@ to the model and accelerator of your choice and run
 Teardown the llm-d platform
 
 ```shell
-${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/teardown-llmd.sh
+${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd/teardown-llmd.sh
 ```

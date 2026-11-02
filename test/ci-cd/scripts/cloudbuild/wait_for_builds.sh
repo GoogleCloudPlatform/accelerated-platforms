@@ -38,6 +38,16 @@ trap exit_handler EXIT
 eval export BUILD_LOCATION=\"${BUILD_LOCATION}\"
 eval export BUILD_PROJECT_ID=\"${BUILD_PROJECT_ID}\"
 
+if [ -f /workspace/build-failed.lock ]; then
+  echo "Skipping build check because an earlier step already failed."
+  exit 0
+fi
+
+if ! gcloud services list --enabled --filter="config.name=cloudbuild.googleapis.com" --format="value(config.name)" --project="${BUILD_PROJECT_ID}" 2>/dev/null | grep -q "cloudbuild.googleapis.com"; then
+  echo "Cloud Build API (cloudbuild.googleapis.com) is not enabled in project '${BUILD_PROJECT_ID}', skipping build check."
+  exit 0
+fi
+
 echo "Checking for running build(s) in project ID '${BUILD_PROJECT_ID}' in region '${BUILD_LOCATION}''..."
 while [ $(gcloud builds list --filter="status=WORKING" --format="value(id)" --project="${BUILD_PROJECT_ID}" --region="${BUILD_LOCATION}" | wc -l) -ne 0 ]; do
   echo "Waiting for build(s) to complete..."

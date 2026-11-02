@@ -36,8 +36,8 @@ declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
   #"container_node_pool"
   "cloudbuild/initialize"
   "gke_enterprise/fleet_membership"
-  "gke_enterprise/configmanagement/oci"
   "gke_enterprise/policycontroller"
+  "gke_enterprise/configmanagement/oci"
   "gke_enterprise/servicemesh"
   "workloads/cluster_credentials"
   "custom_compute_class"
@@ -55,7 +55,11 @@ declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
 )
 export CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY_ARRAY[*]}"
 
-"${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+if ! "${ACP_PLATFORM_CORE_DIR}/deploy.sh"; then
+  echo "Retrying core/standard-full-deploy after transient failure..."
+  sleep 15
+  "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+fi
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))

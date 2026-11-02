@@ -113,7 +113,7 @@ variable "network_name" {
 }
 
 variable "region" {
-  default     = "us-central1"
+  default     = "europe-west4"
   description = "The Google Cloud region where you want to create the resources."
   type        = string
 }

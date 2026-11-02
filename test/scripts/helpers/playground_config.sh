@@ -29,9 +29,9 @@ echo "MLP_IAP_DOMAIN=${MLP_IAP_DOMAIN}"
 sed -i '/^iap_domain[[:blank:]]*=/{h;s/=.*/= "'"${MLP_IAP_DOMAIN}"'"/};${x;/^$/{s//iap_domain             = "'"${MLP_IAP_DOMAIN}"'"/;H};x}' ${MLP_TYPE_BASE_DIR}/mlp.auto.tfvars
 
 echo_title "Checking MLP_REGION"
-export MLP_REGION=${MLP_REGION:-us-central1}
+export MLP_REGION=${MLP_REGION:-europe-west4}
 echo "MLP_REGION=${MLP_REGION}"
-if [ "${MLP_REGION}" != "us-central1" ]; then
+if [ "${MLP_REGION}" != "europe-west4" ]; then
     if [ ! -d ${MLP_TYPE_BASE_DIR}/region/${MLP_REGION} ]; then
         echo "Region '${MLP_REGION}' is not supported!"
         exit 1

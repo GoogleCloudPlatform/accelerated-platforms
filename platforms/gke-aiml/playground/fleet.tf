@@ -45,11 +45,39 @@ resource "null_resource" "gke_hub_feature_configmanagement" {
   }
 }
 
+resource "terraform_data" "wait_for_cluster_operations" {
+  depends_on = [
+    google_container_cluster.mlp,
+  ]
+
+  input = {
+    query = jsonencode(
+      {
+        cluster_name   = google_container_cluster.mlp.name
+        cluster_region = var.region
+        project_id     = data.google_project.environment.project_id
+        timeout        = "60"
+      }
+    )
+  }
+
+  provisioner "local-exec" {
+    command     = "${path.module}/../../gke/base/scripts/container_cluster/wait_for_cluster_operations.sh <<< '${self.input.query}'"
+    interpreter = ["bash", "-c"]
+    working_dir = path.module
+  }
+
+  triggers_replace = {
+    always_run = timestamp()
+  }
+}
+
 resource "google_gke_hub_membership" "cluster" {
   depends_on = [
     google_container_cluster.mlp,
     google_project_service.gkeconnect_googleapis_com,
     google_project_service.gkehub_googleapis_com,
+    terraform_data.wait_for_cluster_operations,
   ]
 
   membership_id = google_container_cluster.mlp.name
@@ -59,5 +87,17 @@ resource "google_gke_hub_membership" "cluster" {
     gke_cluster {
       resource_link = "//container.googleapis.com/${google_container_cluster.mlp.id}"
     }
+  }
+
+  provisioner "local-exec" {
+    command = "${path.module}/../../gke/base/scripts/container_cluster/wait_for_cluster_operations.sh <<< '${jsonencode({
+      cluster_name   = self.membership_id
+      cluster_region = regex("locations/([^/]+)/clusters", self.endpoint[0].gke_cluster[0].resource_link)[0]
+      project_id     = self.project
+      timeout        = "600"
+    })}'"
+    interpreter = ["bash", "-c"]
+    when        = destroy
+    working_dir = path.module
   }
 }

@@ -59,6 +59,13 @@ DYNAMIC_CI_REGION="$("${ACP_REPO_DIR}/test/ci-cd/scripts/cloudbuild/select_best_
 if [ -n "${DYNAMIC_CI_REGION}" ]; then
   echo "export TF_VAR_platform_default_region=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
   echo "export LOCATION=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
+
+  # Run the system node pool in two random zones to lower the chance of a
+  # zonal stockout failing the deploy (see the script for details).
+  ci_system_node_pool_node_locations="$("${ACP_REPO_DIR}/test/ci-cd/scripts/cloudbuild/select_ci_system_node_pool_zones.sh" "${DYNAMIC_CI_REGION}" "${NEW_PROJECT_ID}" || true)"
+  if [ -n "${ci_system_node_pool_node_locations}" ]; then
+    echo "export TF_VAR_cluster_system_node_pool_node_locations='${ci_system_node_pool_node_locations}'" >>/workspace/build.env
+  fi
 fi
 
 echo "build.env file:"

@@ -62,23 +62,11 @@ if [ -n "${DYNAMIC_CI_REGION}" ]; then
   echo "export TF_VAR_platform_default_region=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
   echo "export LOCATION=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
 
-  # The system node pool creates one node in each of its zones, so a stockout
-  # in any one zone fails the whole deploy after about 35 minutes
-  # (GCE_STOCKOUT, see #590). Use two random zones, which is enough for the
-  # pool's minimum of two nodes, to lower the chance of hitting a stocked-out
-  # zone.
-  ci_system_node_pool_zones=$(
-    gcloud compute zones list \
-      --filter="region ~ /${DYNAMIC_CI_REGION}\$" \
-      --format="value(name,status)" \
-      --project="${NEW_PROJECT_ID}" |
-      awk '$2 == "UP" && $1 !~ /-ai/ {print $1}' | shuf -n 2 | sort || true
-  )
-  if [ "$(echo "${ci_system_node_pool_zones}" | wc -w)" -eq 2 ]; then
-    ci_system_node_pool_node_locations=$(echo "${ci_system_node_pool_zones}" | jq -R . | jq -c -s .)
+  # Run the system node pool in two random zones to lower the chance of a
+  # zonal stockout failing the deploy (see the script for details).
+  ci_system_node_pool_node_locations="$("${ACP_REPO_DIR}/test/ci-cd/scripts/cloudbuild/select_ci_system_node_pool_zones.sh" "${DYNAMIC_CI_REGION}" "${NEW_PROJECT_ID}" || true)"
+  if [ -n "${ci_system_node_pool_node_locations}" ]; then
     echo "export TF_VAR_cluster_system_node_pool_node_locations='${ci_system_node_pool_node_locations}'" >>/workspace/build.env
-  else
-    echo "WARNING: Unable to select two zones in '${DYNAMIC_CI_REGION}', the system node pool uses all of the cluster's zones" >&2
   fi
 fi
 

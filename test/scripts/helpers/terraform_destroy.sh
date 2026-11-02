@@ -18,9 +18,19 @@ start_runtime "terraform_destroy"
 
 echo_title "Running terraform destroy"
 
-print_and_execute "cd ${MLP_TYPE_BASE_DIR} && \
-terraform init && \
-terraform destroy -auto-approve"
+print_and_execute "cd ${MLP_TYPE_BASE_DIR} && terraform init"
+
+for attempt in {1..3}; do
+  if [ "${attempt}" -lt 3 ]; then
+    if print_and_execute_no_check "cd ${MLP_TYPE_BASE_DIR} && terraform destroy -auto-approve"; then
+      break
+    fi
+    echo_warning "terraform destroy failed (attempt ${attempt}/3), retrying in 30s..."
+    sleep 30
+  else
+    print_and_execute "cd ${MLP_TYPE_BASE_DIR} && terraform destroy -auto-approve"
+  fi
+done
 
 total_runtime "terraform_destroy"
 

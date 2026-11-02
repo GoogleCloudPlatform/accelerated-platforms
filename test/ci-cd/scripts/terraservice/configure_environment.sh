@@ -53,3 +53,15 @@ source "${ACP_PLATFORM_DIR}/_shared_config/scripts/set_environment_variables.sh"
 # Create a dedicated project
 export NEW_PROJECT_ID="${cluster_project_id}"
 ${ACP_REPO_DIR}/test/ci-cd/scripts/create_project.sh
+
+# Run preflight region check to select optimal region for CI run, checking the new project's quotas
+DYNAMIC_CI_REGION="$("${ACP_REPO_DIR}/test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh" "${NEW_PROJECT_ID}" | tail -n 1)"
+if [ -n "${DYNAMIC_CI_REGION}" ]; then
+  echo "export TF_VAR_platform_default_region=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
+  echo "export LOCATION=\"${DYNAMIC_CI_REGION}\"" >>/workspace/build.env
+fi
+
+echo "build.env file:"
+cat /workspace/build.env
+source /workspace/build.env
+echo

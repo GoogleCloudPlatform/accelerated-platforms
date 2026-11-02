@@ -61,15 +61,21 @@ for region in "${SHUFFLED_REGIONS[@]}"; do
     continue
   fi
 
-  # Check if region supports required N4 machine types for the system node pool (n4-standard-4)
-  if [ -n "${PROJECT_ID_TO_CHECK}" ]; then
-    n4_check=$(gcloud compute machine-types list --filter="zone ~ ${region} AND name=n4-standard-4" --project="${PROJECT_ID_TO_CHECK}" --format="value(name)" 2>/dev/null | head -n 1 || true)
-  else
-    n4_check=$(gcloud compute machine-types list --filter="zone ~ ${region} AND name=n4-standard-4" --format="value(name)" 2>/dev/null | head -n 1 || true)
+  # Check if region supports required N4 machine types for the system node pool (n4-standard-4) across all non-AI zones
+  valid_zone_count=$(echo "${region_info}" | jq -r '.zones[]? | split("/")[-1] | select(contains("-ai") | not)' 2>/dev/null | wc -l)
+  if [ "${valid_zone_count}" -eq 0 ]; then
+    echo "  Region '${region}' has no non-AI zones, skipping." >&2
+    continue
   fi
 
-  if [ -z "${n4_check}" ]; then
-    echo "  Region '${region}' missing required n4-standard-4 machine type for system node pool, skipping." >&2
+  if [ -n "${PROJECT_ID_TO_CHECK}" ]; then
+    n4_zone_count=$(gcloud compute machine-types list --filter="zone ~ ^${region}- AND -zone ~ -ai AND name=n4-standard-4" --project="${PROJECT_ID_TO_CHECK}" --format="value(zone)" 2>/dev/null | sort -u | wc -l || true)
+  else
+    n4_zone_count=$(gcloud compute machine-types list --filter="zone ~ ^${region}- AND -zone ~ -ai AND name=n4-standard-4" --format="value(zone)" 2>/dev/null | sort -u | wc -l || true)
+  fi
+
+  if [ "${n4_zone_count}" -lt "${valid_zone_count}" ]; then
+    echo "  Region '${region}' missing required n4-standard-4 machine type across all non-AI zones (${n4_zone_count}/${valid_zone_count}), skipping." >&2
     continue
   fi
 

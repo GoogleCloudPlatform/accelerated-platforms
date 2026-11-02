@@ -23,7 +23,6 @@ CANDIDATE_REGIONS=(
   "us-east4"
   "europe-west4"
   "asia-south1"
-  "asia-southeast1"
 )
 
 # Shuffle candidate regions so parallel CI jobs don't evaluate in exact same order

@@ -55,7 +55,11 @@ declare -a CORE_TERRASERVICES_APPLY_ARRAY=(
 )
 export CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY_ARRAY[*]}"
 
-"${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+if ! "${ACP_PLATFORM_CORE_DIR}/deploy.sh"; then
+  echo "Retrying core/ap-full-deploy after transient failure..."
+  sleep 15
+  "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
+fi
 
 end_timestamp=$(date +%s)
 total_runtime_value=$((end_timestamp - start_timestamp))

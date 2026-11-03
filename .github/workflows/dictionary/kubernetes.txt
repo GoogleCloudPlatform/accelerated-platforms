@@ -30,6 +30,7 @@ kubebuilder
 kubeconfig
 kubeconfigs
 kubelet
+kustomizeconfig
 limitranges
 maxpods
 minpods

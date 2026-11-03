@@ -31,31 +31,16 @@ steps:
           set -o xtrace
         fi
 
-        projects=$(gcloud projects list --filter='name~accelerated-platforms- AND name!=accelerated-platforms-dev AND name!=accelerated-platforms-iap' --format='value(project_id)')
-        num_projects=$(echo "${projects}" | wc -w)
-        echo "${num_projects} project(s) found"
+        dry_run="${_DRY_RUN}"
+        min_age_hours="${_MIN_AGE_HOURS}"
 
-        timestamp=$(printf "%(%Y-%m-%dT%H:%M:%S%z)T" $(( $(printf "%(%s)T") - (60 * 60 * ${_HOURS}) )))
-        builds=$(
-          gcloud builds list \
-          --filter="(status=\"CANCELLED\" OR status=\"FAILURE\" OR status=\"TIMEOUT\") AND create_time>\"${timestamp}\"" \
-          --format="value(format(\"{0},{1}\", id, substitutions.SHORT_SHA))" \
-          --limit=10240 \
-          --page-size=10240 \
-          --project=${PROJECT_ID} \
-          --region=${LOCATION}
-        )
-        num_builds=$(echo "${builds}" | wc -w)
-        echo "${num_builds} build(S) with status CANCELLED, FAILURE, or TIMEOUT since ${timestamp}"
+        delete_ci_project() {
+          local project_id="${1}"
 
-        for build in ${builds}; do
-          echo "Processing build '${build}'"
-
-          build_id="${build%,*}"
-          short_sha="${build#*,}"
-          short_build_id="${build_id:0:8}"
-
-          project_id="accelerated-platforms-${short_build_id}"
+          if [ "${dry_run,,}" == "true" ]; then
+            echo "    [dry run] Would delete project '${project_id}'"
+            return 0
+          fi
 
           endpoints=$(
             gcloud endpoints services list \
@@ -72,12 +57,87 @@ steps:
           echo "    Deleting project '${project_id}'"
           gcloud projects delete "${project_id}" \
           --quiet
+        }
+
+        projects=$(gcloud projects list --filter='name~accelerated-platforms- AND name!=accelerated-platforms-dev AND name!=accelerated-platforms-iap' --format='value(project_id)')
+        num_projects=$(echo "${projects}" | wc -w)
+        echo "${num_projects} project(s) found"
+
+        # Delete the projects of builds that ended without cleaning up after
+        # themselves. INTERNAL_ERROR and EXPIRED builds don't run their cleanup
+        # step either.
+        timestamp=$(printf "%(%Y-%m-%dT%H:%M:%S%z)T" $(( $(printf "%(%s)T") - (60 * 60 * ${_HOURS}) )))
+        builds=$(
+          gcloud builds list \
+          --filter="(status=\"CANCELLED\" OR status=\"EXPIRED\" OR status=\"FAILURE\" OR status=\"INTERNAL_ERROR\" OR status=\"TIMEOUT\") AND create_time>\"${timestamp}\"" \
+          --format="value(format(\"{0},{1}\", id, substitutions.SHORT_SHA))" \
+          --limit=10240 \
+          --page-size=10240 \
+          --project=${PROJECT_ID} \
+          --region=${LOCATION}
+        )
+        num_builds=$(echo "${builds}" | wc -w)
+        echo "${num_builds} build(S) with status CANCELLED, EXPIRED, FAILURE, INTERNAL_ERROR, or TIMEOUT since ${timestamp}"
+
+        for build in ${builds}; do
+          echo "Processing build '${build}'"
+
+          build_id="${build%,*}"
+          short_sha="${build#*,}"
+          short_build_id="${build_id:0:8}"
+
+          project_id="accelerated-platforms-${short_build_id}"
+
+          delete_ci_project "${project_id}"
+        done
+
+        # Sweep CI projects (accelerated-platforms-<first 8 characters of the
+        # build ID>) that are older than _MIN_AGE_HOURS and whose build is no
+        # longer running, whatever the build status. This deletes projects that
+        # the loop above missed, for example because their build is older than
+        # _HOURS or because the cleanup step left a project whose deletion was
+        # blocked by child resources that were still being purged.
+        ongoing_builds=$(
+          gcloud builds list \
+          --format="value(id)" \
+          --limit=10240 \
+          --ongoing \
+          --page-size=1000 \
+          --project=${PROJECT_ID} \
+          --region=${LOCATION}
+        )
+        stale_projects=$(
+          gcloud projects list \
+          --filter="projectId~^accelerated-platforms-[0-9a-f]{8} AND lifecycleState=ACTIVE AND createTime<-PT${min_age_hours}H" \
+          --format="value(projectId)"
+        )
+        num_stale_projects=$(echo "${stale_projects}" | wc -w)
+        echo "${num_stale_projects} active CI project(s) older than ${min_age_hours} hour(s)"
+
+        for project_id in ${stale_projects}; do
+          short_build_id="${project_id#accelerated-platforms-}"
+          # Only CI projects: exactly 8 lowercase hexadecimal characters
+          if [ "${#short_build_id}" -ne 8 ] || [[ "${short_build_id}" == *[!0-9a-f]* ]]; then
+            echo "Skipping project '${project_id}', it isn't a CI project"
+            continue
+          fi
+
+          if echo "${ongoing_builds}" | grep -q "^${short_build_id}"; then
+            echo "Skipping project '${project_id}', its build is still running"
+            continue
+          fi
+
+          echo "Processing stale project '${project_id}'"
+          delete_ci_project "${project_id}"
         done
 
         exit 0
 
 substitutions:
   _DEBUG: "false"
+  _DRY_RUN: "false"
   _HOURS: "1"
+  # Larger than the longest CI build timeout (120m)
+  _MIN_AGE_HOURS: "3"
 
 timeout: 55m

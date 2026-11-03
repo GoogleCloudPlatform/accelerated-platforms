@@ -1,0 +1,26 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Where GKE stores the Pod snapshots of this cluster: the regional bucket that
+# the online_gpu terraservice creates when ira_online_gpu_pod_snapshots_enabled
+# is true (hierarchical namespace, no soft delete). Cluster-scoped. The pod's
+# Kubernetes service account writes and reads the snapshots (Workload Identity).
+apiVersion: podsnapshot.gke.io/v1
+kind: PodSnapshotStorageConfig
+metadata:
+  name: ${MR_NAMESPACE}-model-servers
+spec:
+  snapshotStorageConfig:
+    gcs:
+      bucket: ${MR_POD_SNAPSHOTS_BUCKET}

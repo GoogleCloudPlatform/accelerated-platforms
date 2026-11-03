@@ -1,0 +1,16 @@
+{
+  "key": "usc1",
+  "region": "us-central1",
+  "cluster": "inf-mrusc1",
+  "target_key": "usc1",
+  "target_region": "us-central1",
+  "vip": "10.10.0.50",
+  "base_url": "http://10.10.0.50:80",
+  "job": "ipf-vllm-sp-usc1",
+  "seed": 42,
+  "gcs_uri": "gs://example-bench/runs/fixture/vllm/shared-prefix/usc1/",
+  "status": "succeeded",
+  "start_epoch_s": 1800000000,
+  "end_epoch_s": 1800000600,
+  "images": []
+}

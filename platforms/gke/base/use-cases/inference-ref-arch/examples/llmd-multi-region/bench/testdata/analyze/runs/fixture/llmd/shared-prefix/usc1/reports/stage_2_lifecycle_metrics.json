@@ -1,0 +1,156 @@
+{
+ "benchmark_time_seconds": 74.925,
+ "load_summary": {
+  "count": 240,
+  "schedule_delay": {
+   "mean": 0.0011,
+   "min": 0.0005,
+   "max": 0.003,
+   "p1": 0.000608,
+   "p5": 0.00064,
+   "p10": 0.00068,
+   "p25": 0.0008,
+   "median": 0.001,
+   "p75": 0.00125,
+   "p90": 0.0014,
+   "p95": 0.00145,
+   "p99": 0.00149,
+   "p99.9": 0.001499
+  },
+  "send_duration": 59.4,
+  "requested_rate": 4.0,
+  "achieved_rate": 3.96
+ },
+ "successes": {
+  "count": 240,
+  "latency": {
+   "request_latency": {
+    "mean": 16.4175,
+    "min": 7.4625,
+    "max": 44.775000000000006,
+    "p1": 9.0744,
+    "p5": 9.552,
+    "p10": 10.149,
+    "p25": 11.94,
+    "median": 14.925,
+    "p75": 18.65625,
+    "p90": 20.895,
+    "p95": 21.64125,
+    "p99": 22.23825,
+    "p99.9": 22.372575
+   },
+   "normalized_time_per_output_token": {
+    "mean": 0.064130859375,
+    "min": 0.029150390625,
+    "max": 0.17490234375000002,
+    "p1": 0.035447,
+    "p5": 0.037313,
+    "p10": 0.039645,
+    "p25": 0.046641,
+    "median": 0.058301,
+    "p75": 0.072876,
+    "p90": 0.081621,
+    "p95": 0.084536,
+    "p99": 0.086868,
+    "p99.9": 0.087393
+   },
+   "time_per_output_token": {
+    "mean": 0.060500000000000005,
+    "min": 0.0275,
+    "max": 0.12100000000000001,
+    "p1": 0.03344,
+    "p5": 0.0352,
+    "p10": 0.0374,
+    "p25": 0.044,
+    "median": 0.055,
+    "p75": 0.06325,
+    "p90": 0.0682,
+    "p95": 0.06985,
+    "p99": 0.07117,
+    "p99.9": 0.071467
+   },
+   "time_to_first_token": {
+    "mean": 0.9900000000000001,
+    "min": 0.45,
+    "max": 4.5,
+    "p1": 0.5472,
+    "p5": 0.576,
+    "p10": 0.612,
+    "p25": 0.72,
+    "median": 0.9,
+    "p75": 1.35,
+    "p90": 1.62,
+    "p95": 1.71,
+    "p99": 1.782,
+    "p99.9": 1.7982
+   },
+   "inter_token_latency": {
+    "mean": 0.060500000000000005,
+    "min": 0.0275,
+    "max": 0.187,
+    "p1": 0.03344,
+    "p5": 0.0352,
+    "p10": 0.0374,
+    "p25": 0.044,
+    "median": 0.055,
+    "p75": 0.0715,
+    "p90": 0.0814,
+    "p95": 0.0847,
+    "p99": 0.08734,
+    "p99.9": 0.087934
+   }
+  },
+  "throughput": {
+   "input_tokens_per_sec": 7380.18018018018,
+   "output_tokens_per_sec": 820.0200200200201,
+   "total_tokens_per_sec": 8200.200200200201,
+   "requests_per_sec": 3.2032032032032034,
+   "images_per_sec": 0.0,
+   "videos_per_sec": 0.0,
+   "audios_per_sec": 0.0
+  },
+  "prompt_tokens": {
+   "total": 552960.0,
+   "mean": 2304.0,
+   "min": 2304.0,
+   "max": 2304.0
+  },
+  "output_len": {
+   "mean": 281.6,
+   "min": 128.0,
+   "max": 256.0,
+   "p1": 155.648,
+   "p5": 163.84,
+   "p10": 174.08,
+   "p25": 204.8,
+   "median": 256.0,
+   "p75": 256.0,
+   "p90": 256.0,
+   "p95": 256.0,
+   "p99": 256.0,
+   "p99.9": 256.0
+  },
+  "token_count_mismatches": 0,
+  "client_fallback_requests": {
+   "prompt": 0,
+   "output": 0
+  },
+  "goodput_metrics": {
+   "goodput_percentage": 95.0,
+   "request_goodput": 3.0430430430430433,
+   "token_goodput": 7790.19019019019,
+   "good_requests": 228,
+   "total_requests": 240,
+   "ttft_attainment_percentage": 95.0,
+   "tpot_attainment_percentage": 100.0
+  }
+ },
+ "failures": {
+  "count": 0,
+  "request_latency": null,
+  "prompt_tokens": {
+   "total": 0.0
+  },
+  "by_label": {}
+ }
+}

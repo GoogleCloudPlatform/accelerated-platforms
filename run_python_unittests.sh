@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -e
+
 #To add a new directory to unit tests, add it to source_dirs array.
 #Add the source (folder containing src and test directories) to the array
 source_dirs=("modules/python")
@@ -23,3 +25,5 @@ for source_dir in "${source_dirs[@]}"; do
     export PYTHONPATH=$PYTHONPATH:${source_dir}/src
     python -m unittest discover "${source_dir}/tests"
 done
+
+python -m unittest discover -s skills/llm-d-benchmarking/scripts

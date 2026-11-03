@@ -115,6 +115,12 @@ variable "cluster_confidential_nodes_enabled" {
   type        = bool
 }
 
+variable "cluster_custom_compute_class_active_migration_enabled" {
+  default     = true
+  description = "Whether Custom Compute Classes enable activeMigration.optimizeRulePriority to migrate nodes toward higher-priority rules when capacity becomes available."
+  type        = bool
+}
+
 variable "cluster_database_encryption_state" {
   default     = "DECRYPTED"
   description = "The desired state of etcd encryption. ENCRYPTED or DECRYPTED"

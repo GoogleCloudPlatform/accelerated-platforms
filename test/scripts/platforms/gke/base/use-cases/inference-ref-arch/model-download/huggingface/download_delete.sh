@@ -24,7 +24,14 @@ source "${MY_PATH}/../../config/huggingface.sh"
 
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
-for model in "${hf_models[@]}"; do
+if [[ -v HF_MODEL_ID && -n "${HF_MODEL_ID}" ]]; then
+  models=("$(echo "${HF_MODEL_ID}" | tr '[:upper:]' '[:lower:]')")
+else
+  # shellcheck disable=SC2154
+  models=("${hf_models[@]}")
+fi
+
+for model in "${models[@]}"; do
   export HF_MODEL_ID=${model}
   echo "Deleting '${HF_MODEL_ID}' download resources..."
   echo "--------------------------------------------------------------------------------------------"

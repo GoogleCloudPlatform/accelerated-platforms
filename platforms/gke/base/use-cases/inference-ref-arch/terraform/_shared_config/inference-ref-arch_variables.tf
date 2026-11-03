@@ -58,6 +58,8 @@ locals {
   ira_online_gpu_kubernetes_service_account_name      = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_pod_snapshots_bucket_name            = var.ira_online_gpu_pod_snapshots_bucket_name != null ? var.ira_online_gpu_pod_snapshots_bucket_name : "${var.platform_default_project_id}-${local.unique_identifier_prefix}-pod-snapshots"
   ira_online_gpu_pod_snapshots_enabled                = var.ira_online_gpu_pod_snapshots_enabled
+  ira_online_gpu_trtllm_image_url                     = var.ira_online_gpu_trtllm_image_url
+  ira_online_gpu_trtllm_podsnapshot_image_url         = var.ira_online_gpu_trtllm_podsnapshot_image_url
   ira_online_gpu_vllm_image_url                       = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
   ira_online_gpu_vllm_kv_offloading_image_url         = var.ira_online_gpu_vllm_kv_offloading_image_url
   ira_online_gpu_vllm_podsnapshot_image_url           = var.ira_online_gpu_vllm_podsnapshot_image_url
@@ -293,6 +295,18 @@ variable "ira_online_gpu_rapid_cache_zones" {
 variable "ira_online_gpu_sglang_diffusers_image_url" {
   default     = null
   description = "The URL for the GPU SGLang Diffusers container image."
+  type        = string
+}
+
+variable "ira_online_gpu_trtllm_image_url" {
+  default     = "nvcr.io/nvidia/tensorrt-llm/release:1.4.0rc2@sha256:93a3eaf1fa574813d608a7147735134bcfbd06d18d1aa98e8ee0d5da09e51e3a"
+  description = "The URL for the GPU TensorRT-LLM container image."
+  type        = string
+}
+
+variable "ira_online_gpu_trtllm_podsnapshot_image_url" {
+  default     = "nvcr.io/nvidia/tensorrt-llm/release:1.4.0rc2@sha256:93a3eaf1fa574813d608a7147735134bcfbd06d18d1aa98e8ee0d5da09e51e3a"
+  description = "The URL for the GPU TensorRT-LLM container image validated with GKE Pod snapshots."
   type        = string
 }
 

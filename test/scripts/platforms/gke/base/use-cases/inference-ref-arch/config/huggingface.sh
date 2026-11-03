@@ -26,6 +26,10 @@ declare -a hf_models=(
   "google/gemma-4-e4b-it"
   "meta-llama/llama-3.3-70b-instruct"
   "meta-llama/llama-4-scout-17b-16e-instruct"
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-fp8"
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+  "nvidia/nvidia-nemotron-3-super-120b-a12b-nvfp4"
   "openai/gpt-oss-20b"
   "qwen/qwen3-32b"
   "qwen/qwen3.5-35b-a3b"
@@ -34,6 +38,18 @@ declare -a hf_models=(
 
 declare -a hf_gpu_diffusers_models=(
   "black-forest-labs/flux.1-schnell"
+)
+
+declare -a hf_gpu_trtllm_models=(
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-fp8"
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+  "nvidia/nvidia-nemotron-3-super-120b-a12b-nvfp4"
+)
+
+declare -a hf_gpu_trtllm_podsnapshot_models=(
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-fp8"
+  "nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
 )
 
 declare -a hf_gpu_vllm_models=(

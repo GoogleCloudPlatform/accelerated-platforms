@@ -25,22 +25,37 @@ ACP_REPO_DIR="$(realpath ${MY_PATH}/../../../../../../../../../)"
 
 source "${MY_PATH}/../../config/huggingface.sh"
 
+ts_or_cat() {
+  if command -v ts >/dev/null 2>&1; then
+    ts "${1}"
+  else
+    cat
+  fi
+}
+
 kubectl_wait(){
   export HF_MODEL_ID=${1}
 
   source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
 
-  echo "Waiting for '${HF_MODEL_ID}'(${HF_MODEL_ID_HASH}) download" | ts "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]"
-  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} wait job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --for=condition=complete --timeout=14400s | ts "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]" &
-  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} wait job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --for=condition=failed --timeout=14400s | ts "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]" && exit 1 &
+  echo "Waiting for '${HF_MODEL_ID}'(${HF_MODEL_ID_HASH}) download" | ts_or_cat "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]"
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} wait job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --for=condition=complete --timeout=14400s | ts_or_cat "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]" &
+  kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} wait job/${HF_MODEL_ID_HASH}-hf-model-to-gcs --for=condition=failed --timeout=14400s | ts_or_cat "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]" && exit 1 &
   wait -n && \
   pkill -f "kubectl --namespace=${huggingface_hub_downloader_kubernetes_namespace_name} wait job/${HF_MODEL_ID_HASH}-hf-model-to-gcs" || true
 
   model_size=$(gcloud storage du --readable-sizes --summarize "gs://${huggingface_hub_models_bucket_name}/${HF_MODEL_ID}")
-  echo "Model size in storage: ${model_size}" | ts "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]"
+  echo "Model size in storage: ${model_size}" | ts_or_cat "$(date +'%Y-%m-%d %H:%M:%S.%N %Z') [${HF_MODEL_ID}]"
 }
 
-for model in "${hf_models[@]}"; do
+if [[ -v HF_MODEL_ID && -n "${HF_MODEL_ID}" ]]; then
+  models=("$(echo "${HF_MODEL_ID}" | tr '[:upper:]' '[:lower:]')")
+else
+  # shellcheck disable=SC2154
+  models=("${hf_models[@]}")
+fi
+
+for model in "${models[@]}"; do
   kubectl_wait "${model}" &
 done
 wait

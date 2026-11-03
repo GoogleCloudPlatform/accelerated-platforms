@@ -188,6 +188,14 @@ output "ira_online_gpu_pod_snapshots_enabled" {
   value = local.ira_online_gpu_pod_snapshots_enabled
 }
 
+output "ira_online_gpu_trtllm_image_url" {
+  value = local.ira_online_gpu_trtllm_image_url
+}
+
+output "ira_online_gpu_trtllm_podsnapshot_image_url" {
+  value = local.ira_online_gpu_trtllm_podsnapshot_image_url
+}
+
 output "ira_online_gpu_vllm_image_url" {
   value = local.ira_online_gpu_vllm_image_url
 }

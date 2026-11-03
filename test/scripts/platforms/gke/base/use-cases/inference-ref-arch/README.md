@@ -18,6 +18,10 @@ Contains environment variables to configure different Hugging Face settings.
   `model-download/huggingface` scripts.
 - `hf_gpu_diffusers_models`: A list of Hugging Face models that will be tested
   by the `online-inference-gpu/diffusers` scripts.
+- `hf_gpu_trtllm_models`: A list of Hugging Face models that will be tested by
+  the `online-inference-gpu/trtllm` scripts.
+- `hf_gpu_trtllm_podsnapshot_models`: A list of Hugging Face models that will be
+  tested by the `online-inference-gpu/trtllm-podsnapshot-fast-restore` scripts.
 - `hf_gpu_vllm_models`: A list of Hugging Face models that will be tested by the
   `online-inference-gpu/vllm` scripts.
 - `hf_gpu_vllm_podsnapshot_models`: A list of Hugging Face models that will be
@@ -82,6 +86,50 @@ listed in the `hf_gpu_diffusers_models` environment variable.
 ##### `deployment_test.sh`
 
 Sends a test request to all of the GPU Diffusers deployments.
+
+#### `trtllm`
+
+These scripts can be used to deploy and test the `hf_gpu_trtllm_models` that use
+the NVIDIA TensorRT-LLM inference server with Cloud Storage FUSE streaming.
+
+##### `deployment_apply.sh`
+
+Applies the manifests for the GPU TensorRT-LLM deployment for all of the models
+listed in the `hf_gpu_trtllm_models` environment variable.
+
+##### `deployment_delete.sh`
+
+Deletes the resources for the GPU TensorRT-LLM deployment for all of the models
+listed in the `hf_gpu_trtllm_models` environment variable.
+
+##### `deployment_test.sh`
+
+Sends a test request to all of the GPU TensorRT-LLM deployments.
+
+#### `trtllm-podsnapshot-fast-restore`
+
+These scripts can be used to deploy and test the
+`hf_gpu_trtllm_podsnapshot_models` that use the NVIDIA TensorRT-LLM inference
+server with GKE Pod snapshots.
+
+##### `deployment_apply.sh`
+
+Applies the manifests for the GPU TensorRT-LLM Pod snapshot fast-restore
+deployment for all of the models listed in the
+`hf_gpu_trtllm_podsnapshot_models` environment variable.
+
+##### `deployment_delete.sh`
+
+Deletes the resources (and any created `PodSnapshot` objects) for the GPU
+TensorRT-LLM Pod snapshot fast-restore deployment for all of the models listed
+in the `hf_gpu_trtllm_podsnapshot_models` environment variable.
+
+##### `deployment_test.sh`
+
+Waits for the initial `PodSnapshot` to become available, scales out to two
+replicas with `measure_restore.sh` (verifying `LOADING=0` on the restored
+replica), and sends test requests to the GPU TensorRT-LLM Pod snapshot
+fast-restore deployments.
 
 #### `vllm`
 
@@ -260,6 +308,60 @@ Sends a test request to all of the TPU vLLM deployments.
 
   ```shell
   "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers/deployment_delete.sh"
+  ```
+
+### Test the GPU online inference TensorRT-LLM models
+
+- Select the accelerator type (`rtx-pro-6000`).
+
+  ```shell
+  export ACCELERATOR_TYPE="rtx-pro-6000"
+  ```
+
+- Apply the GPU TensorRT-LLM manifests.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_apply.sh"
+  ```
+
+- Test the GPU TensorRT-LLM inference servers.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_test.sh"
+  ```
+
+- Delete the GPU TensorRT-LLM resources.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_delete.sh"
+  ```
+
+### Test the GPU online inference TensorRT-LLM Pod snapshot fast-restore models
+
+- Select the accelerator type (`rtx-pro-6000`).
+
+  ```shell
+  export ACCELERATOR_TYPE="rtx-pro-6000"
+  ```
+
+- Apply the GPU TensorRT-LLM Pod snapshot fast-restore manifests.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm-podsnapshot-fast-restore/deployment_apply.sh"
+  ```
+
+- Test the GPU TensorRT-LLM Pod snapshot fast-restore inference servers (waits
+  for the checkpoint upload, scales out and measures the restore, and sends test
+  requests).
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm-podsnapshot-fast-restore/deployment_test.sh"
+  ```
+
+- Delete the GPU TensorRT-LLM Pod snapshot fast-restore resources.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm-podsnapshot-fast-restore/deployment_delete.sh"
   ```
 
 ### Test the GPU online inference vLLM models

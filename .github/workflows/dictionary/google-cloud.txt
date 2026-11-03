@@ -53,6 +53,7 @@ gkehub
 gkerecommender
 googleapi
 googlecloud
+gslb
 gsutil
 gvnic
 hdml

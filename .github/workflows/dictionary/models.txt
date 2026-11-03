@@ -4,6 +4,7 @@ gemma
 llama
 maxtext
 moe
+nemotron
 ocdbt
 qwen
 redhatai

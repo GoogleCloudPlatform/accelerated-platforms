@@ -38,6 +38,21 @@ trap exit_handler EXIT
 set --
 source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
+DIAGNOSTICS_SCRIPT="${ACP_REPO_DIR}/test/ci-cd/scripts/platforms/gke/base/print_build_diagnostics.sh"
+
+# Capture diagnostics before the project is deleted. These are informational
+# only and never fail the step.
+if [ -e /workspace/build-failed.lock ]; then
+  # Operations (including failed ones) for clusters that the teardown already
+  # deleted, and any clusters that the teardown left behind.
+  "${DIAGNOSTICS_SCRIPT}" cluster || true
+fi
+"${DIAGNOSTICS_SCRIPT}" project || true
+
 # Delete the dedicated project
 export DELETE_PROJECT_ID="${platform_default_project_id}"
-${ACP_REPO_DIR}/test/ci-cd/scripts/delete_project.sh
+delete_project_log=$(mktemp)
+if ! "${ACP_REPO_DIR}/test/ci-cd/scripts/delete_project.sh" 2>&1 | tee "${delete_project_log}"; then
+  "${DIAGNOSTICS_SCRIPT}" project-delete-failure "${delete_project_log}" || true
+  exit 1
+fi

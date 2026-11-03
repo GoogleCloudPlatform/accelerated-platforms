@@ -1,0 +1,619 @@
+#!/usr/bin/env python3
+#
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Compares inference-perf v0.7.0 results across experiment arms.
+
+Reads the run directories written by scripts/run-benchmark.sh:
+
+  <dir>/.../<arm>/<workload>/run.json
+  <dir>/.../<arm>/<workload>/<client>/client.json
+  <dir>/.../<arm>/<workload>/<client>/reports/stage_<N>_lifecycle_metrics.json
+  <dir>/.../<arm>/<workload>/<client>/reports/summary_lifecycle_metrics.json
+
+and writes stages.csv, summary.csv, aggregate.csv, relative.csv, report.md and, when
+matplotlib is installed, PNG charts to --out.
+
+Python 3 standard library only; matplotlib is optional.
+"""
+
+import argparse
+import csv
+import json
+import math
+import os
+import re
+import sys
+from collections import defaultdict
+
+STAGE_FILE = re.compile(r"^stage_(\d+)_lifecycle_metrics\.json$")
+LATENCIES = {
+    "ttft": "time_to_first_token",
+    "tpot": "time_per_output_token",
+    "itl": "inter_token_latency",
+    "e2e": "request_latency",
+}
+PERCENTILES = ("p50", "p90", "p99")
+
+STAGE_COLUMNS = (
+    ["run_id", "arm", "workload", "client", "target", "stage", "requested_qps", "achieved_qps", "completed_rps"]
+    + ["successes", "failures", "error_rate"]
+    + [f"{m}_{p}_ms" for m in LATENCIES for p in PERCENTILES]
+    + ["output_tokens_per_s", "input_tokens_per_s", "goodput_rps", "goodput_pct", "slo_attainment_pct"]
+)
+SUMMARY_COLUMNS = [
+    "run_id",
+    "arm",
+    "workload",
+    "client",
+    "target",
+    "stages",
+    "max_qps_p90_ttft_slo",
+    "max_qps_p90_ttft_tpot_slo",
+    "max_goodput_rps",
+    "max_output_tokens_per_s",
+    "total_successes",
+    "total_failures",
+]
+RELATIVE_METRICS = [
+    ("ttft_p50_ms", "lower"),
+    ("ttft_p90_ms", "lower"),
+    ("tpot_p90_ms", "lower"),
+    ("itl_p90_ms", "lower"),
+    ("e2e_p90_ms", "lower"),
+    ("output_tokens_per_s", "higher"),
+    ("goodput_rps", "higher"),
+]
+
+
+def load_json(path):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def get(d, *keys):
+    for k in keys:
+        if not isinstance(d, dict) or d.get(k) is None:
+            return None
+        d = d[k]
+    return d
+
+
+def percentile(summary, p):
+    """Reads a percentile from an inference-perf `summarize()` dict.
+
+    inference-perf names the 50th percentile "median" and the others p<N>.
+    """
+    if not isinstance(summary, dict):
+        return None
+    if p == "p50":
+        return summary.get("median", summary.get("p50"))
+    return summary.get(p)
+
+
+def ms(seconds):
+    return None if seconds is None else seconds * 1000.0
+
+
+def parse_stage(report):
+    """Flattens one stage_<N>_lifecycle_metrics.json into a row."""
+    load = report.get("load_summary") or {}
+    succ = report.get("successes") or {}
+    fail = report.get("failures") or {}
+    n_ok = succ.get("count") or 0
+    n_fail = fail.get("count") or 0
+    total = n_ok + n_fail
+    row = {
+        "requested_qps": load.get("requested_rate"),
+        "achieved_qps": load.get("achieved_rate"),
+        "completed_rps": get(succ, "throughput", "requests_per_sec"),
+        "successes": n_ok,
+        "failures": n_fail,
+        "error_rate": (n_fail / total) if total else None,
+        "output_tokens_per_s": get(succ, "throughput", "output_tokens_per_sec"),
+        "input_tokens_per_s": get(succ, "throughput", "input_tokens_per_sec"),
+    }
+    for short, name in LATENCIES.items():
+        summary = get(succ, "latency", name)
+        for p in PERCENTILES:
+            row[f"{short}_{p}_ms"] = ms(percentile(summary, p))
+    goodput = succ.get("goodput_metrics") or {}
+    row["goodput_rps"] = goodput.get("request_goodput")
+    row["goodput_pct"] = goodput.get("goodput_percentage")
+    good = goodput.get("good_requests")
+    row["slo_attainment_pct"] = (100.0 * good / total) if (good is not None and total) else None
+    return row
+
+
+def find_client_dirs(roots):
+    """Yields (client_dir, reports_dir, run_meta, client_meta) for every client with reports."""
+    seen = set()
+    for root in roots:
+        for dirpath, _dirnames, filenames in os.walk(root):
+            if "summary_lifecycle_metrics.json" not in filenames and not any(STAGE_FILE.match(f) for f in filenames):
+                continue
+            reports = os.path.realpath(dirpath)
+            client_dir = os.path.dirname(reports) if os.path.basename(reports) == "reports" else reports
+            if client_dir in seen:
+                continue
+            seen.add(client_dir)
+            run_dir = os.path.dirname(client_dir)
+            run_meta = load_json(os.path.join(run_dir, "run.json")) if os.path.exists(os.path.join(run_dir, "run.json")) else {}
+            client_json = os.path.join(client_dir, "client.json")
+            client_meta = load_json(client_json) if os.path.exists(client_json) else {}
+            yield client_dir, reports, run_meta, client_meta
+
+
+def collect(roots):
+    stages, notes = [], []
+    for client_dir, reports, run_meta, client_meta in find_client_dirs(roots):
+        parts = client_dir.split(os.sep)
+        ident = {
+            "run_id": run_meta.get("run_id") or (parts[-4] if len(parts) >= 4 else ""),
+            "arm": run_meta.get("arm") or (parts[-3] if len(parts) >= 3 else ""),
+            "workload": run_meta.get("workload") or (parts[-2] if len(parts) >= 2 else ""),
+            "client": client_meta.get("key") or parts[-1],
+            "target": client_meta.get("target_key", ""),
+        }
+        if run_meta.get("status") not in (None, "succeeded"):
+            notes.append(f"{client_dir}: run status is {run_meta.get('status')!r}")
+        if client_meta.get("status") not in (None, "succeeded"):
+            notes.append(f"{client_dir}: client status is {client_meta.get('status')!r}")
+        files = sorted(
+            (int(m.group(1)), f) for f in os.listdir(reports) if (m := STAGE_FILE.match(f))
+        )
+        if not files:
+            notes.append(f"{client_dir}: no stage_<N>_lifecycle_metrics.json")
+        for stage_id, name in files:
+            row = dict(ident, stage=stage_id)
+            row.update(parse_stage(load_json(os.path.join(reports, name))))
+            row["_slo"] = run_meta.get("slo")
+            stages.append(row)
+    stages.sort(key=lambda r: (r["workload"], r["arm"], r["client"], r["run_id"], r["stage"]))
+    return stages, notes
+
+
+def meets(row, slo_ttft_ms, slo_tpot_ms, use_tpot):
+    ttft = row.get("ttft_p90_ms")
+    if ttft is None or ttft > slo_ttft_ms:
+        return False
+    if use_tpot:
+        tpot = row.get("tpot_p90_ms")
+        if tpot is None or tpot > slo_tpot_ms:
+            return False
+    return True
+
+
+def max_qps_within_slo(rows, slo_ttft_ms, slo_tpot_ms, use_tpot):
+    """Highest requested QPS such that it and every lower stage meet the SLO."""
+    best = None
+    for row in sorted(rows, key=lambda r: r["requested_qps"] or 0):
+        if not meets(row, slo_ttft_ms, slo_tpot_ms, use_tpot):
+            break
+        best = row["requested_qps"]
+    return best
+
+
+def summarize(stages, slo_ttft_ms, slo_tpot_ms):
+    groups = defaultdict(list)
+    for r in stages:
+        groups[(r["run_id"], r["arm"], r["workload"], r["client"], r["target"])].append(r)
+    out = []
+    for (run_id, arm, workload, client, target), rows in sorted(groups.items(), key=lambda kv: kv[0][1:4] + kv[0][:1]):
+        out.append(
+            {
+                "run_id": run_id,
+                "arm": arm,
+                "workload": workload,
+                "client": client,
+                "target": target,
+                "stages": len(rows),
+                "max_qps_p90_ttft_slo": max_qps_within_slo(rows, slo_ttft_ms, slo_tpot_ms, False),
+                "max_qps_p90_ttft_tpot_slo": max_qps_within_slo(rows, slo_ttft_ms, slo_tpot_ms, True),
+                "max_goodput_rps": max((r["goodput_rps"] for r in rows if r["goodput_rps"] is not None), default=None),
+                "max_output_tokens_per_s": max(
+                    (r["output_tokens_per_s"] for r in rows if r["output_tokens_per_s"] is not None), default=None
+                ),
+                "total_successes": sum(r["successes"] for r in rows),
+                "total_failures": sum(r["failures"] for r in rows),
+            }
+        )
+    return out
+
+
+AGGREGATE_COLUMNS = [
+    "run_id",
+    "arm",
+    "workload",
+    "requested_qps",
+    "clients",
+    "completed_rps",
+    "successes",
+    "failures",
+    "output_tokens_per_s",
+    "goodput_rps",
+    "worst_ttft_p90_ms",
+    "worst_tpot_p90_ms",
+]
+
+
+def aggregate(stages):
+    """Sums throughput over the client regions of each stage.
+
+    Percentiles can't be combined across clients, so only the worst client's
+    p90 is reported.
+    """
+    groups = defaultdict(list)
+    for r in stages:
+        groups[(r["run_id"], r["arm"], r["workload"], r["requested_qps"])].append(r)
+
+    def total(rows, key):
+        values = [r[key] for r in rows if r[key] is not None]
+        return sum(values) if values else None
+
+    def worst(rows, key):
+        values = [r[key] for r in rows if r[key] is not None]
+        return max(values) if values else None
+
+    out = []
+    for (run_id, arm, workload, qps), rows in sorted(groups.items(), key=lambda kv: (kv[0][2], kv[0][1], kv[0][0], kv[0][3] or 0)):
+        out.append(
+            {
+                "run_id": run_id,
+                "arm": arm,
+                "workload": workload,
+                "requested_qps": qps,
+                "clients": " ".join(sorted(r["client"] for r in rows)),
+                "completed_rps": total(rows, "completed_rps"),
+                "successes": total(rows, "successes"),
+                "failures": total(rows, "failures"),
+                "output_tokens_per_s": total(rows, "output_tokens_per_s"),
+                "goodput_rps": total(rows, "goodput_rps"),
+                "worst_ttft_p90_ms": worst(rows, "ttft_p90_ms"),
+                "worst_tpot_p90_ms": worst(rows, "tpot_p90_ms"),
+            }
+        )
+    return out
+
+
+def mean(values):
+    values = [v for v in values if v is not None]
+    return sum(values) / len(values) if values else None
+
+
+def relative(stages, summary, baseline, candidates):
+    """Relative change of each candidate arm vs the baseline arm.
+
+    Rows are matched on (workload, client, requested QPS); repeated runs of the
+    same arm are averaged first.
+    """
+    by_key = defaultdict(list)
+    for r in stages:
+        by_key[(r["arm"], r["workload"], r["client"], r["requested_qps"])].append(r)
+    out = []
+    for (arm, workload, client, qps), rows in sorted(by_key.items(), key=lambda kv: (kv[0][1], kv[0][2], kv[0][3] or 0, kv[0][0])):
+        if arm not in candidates:
+            continue
+        base_rows = by_key.get((baseline, workload, client, qps))
+        if not base_rows:
+            continue
+        rec = {"workload": workload, "client": client, "requested_qps": qps, "arm": arm, "baseline": baseline}
+        for metric, _better in RELATIVE_METRICS:
+            b = mean(r[metric] for r in base_rows)
+            c = mean(r[metric] for r in rows)
+            rec[f"{metric}_baseline"] = b
+            rec[f"{metric}_arm"] = c
+            rec[f"{metric}_change_pct"] = (100.0 * (c - b) / b) if (b not in (None, 0) and c is not None) else None
+        b_err = mean(r["error_rate"] for r in base_rows)
+        c_err = mean(r["error_rate"] for r in rows)
+        rec["error_rate_change_pp"] = (100.0 * (c_err - b_err)) if (b_err is not None and c_err is not None) else None
+        out.append(rec)
+
+    by_sum = defaultdict(list)
+    for s in summary:
+        by_sum[(s["arm"], s["workload"], s["client"])].append(s)
+    for (arm, workload, client), rows in sorted(by_sum.items(), key=lambda kv: (kv[0][1], kv[0][2], kv[0][0])):
+        if arm not in candidates or (baseline, workload, client) not in by_sum:
+            continue
+        base = by_sum[(baseline, workload, client)]
+        rec = {"workload": workload, "client": client, "requested_qps": "max-within-slo", "arm": arm, "baseline": baseline}
+        for metric in ("max_qps_p90_ttft_slo", "max_qps_p90_ttft_tpot_slo"):
+            b = mean(r[metric] for r in base)
+            c = mean(r[metric] for r in rows)
+            rec[f"{metric}_baseline"] = b
+            rec[f"{metric}_arm"] = c
+            rec[f"{metric}_change_pct"] = (100.0 * (c - b) / b) if (b not in (None, 0) and c is not None) else None
+        out.append(rec)
+    return out
+
+
+def fmt(v, digits=1):
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return "-"
+    if isinstance(v, float):
+        return f"{v:.{digits}f}"
+    return str(v)
+
+
+def fmt_pct(v):
+    return "-" if v is None else f"{v:+.1f}%"
+
+
+def write_csv(path, rows, columns=None):
+    if columns is None:
+        columns = []
+        for r in rows:
+            columns.extend(k for k in r if k not in columns)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore", lineterminator="\n")
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: ("" if r.get(k) is None else r.get(k)) for k in columns})
+
+
+def md_table(headers, rows):
+    lines = ["| " + " | ".join(headers) + " |", "|" + "|".join("---" for _ in headers) + "|"]
+    lines += ["| " + " | ".join(row) + " |" for row in rows]
+    return "\n".join(lines)
+
+
+def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
+    out = [
+        "# Benchmark comparison",
+        "",
+        f"SLO: p90 TTFT <= {args.slo_ttft * 1000:.0f} ms, p90 TPOT <= {args.slo_tpot * 1000:.0f} ms. "
+        "Goodput is the inference-perf `goodput_metrics.request_goodput` of each stage: requests per second "
+        "that met the TTFT and TPOT constraints configured for the run (see run.json `slo`). "
+        "Latencies are client-observed, in milliseconds.",
+        "",
+    ]
+    if notes:
+        out += ["> [!WARNING]"] + [f"> {n}" for n in notes] + [""]
+
+    out += ["## Capacity within SLO", ""]
+    out.append(
+        md_table(
+            ["workload", "arm", "client", "target", "max QPS (p90 TTFT)", "max QPS (p90 TTFT+TPOT)", "max goodput rps", "max out tok/s", "ok", "failed"],
+            [
+                [
+                    s["workload"], s["arm"], s["client"], s["target"], fmt(s["max_qps_p90_ttft_slo"]),
+                    fmt(s["max_qps_p90_ttft_tpot_slo"]), fmt(s["max_goodput_rps"], 2), fmt(s["max_output_tokens_per_s"], 0),
+                    str(s["total_successes"]), str(s["total_failures"]),
+                ]
+                for s in summary
+            ],
+        )
+    )
+    out += ["", "## All client regions combined", "", "Throughput is summed over clients; latency is the worst client's p90.", ""]
+    out.append(
+        md_table(
+            ["workload", "arm", "QPS per client", "clients", "done rps", "ok", "failed", "out tok/s", "goodput rps", "worst TTFT p90", "worst TPOT p90"],
+            [
+                [
+                    a["workload"], a["arm"], fmt(a["requested_qps"]), a["clients"], fmt(a["completed_rps"], 2),
+                    fmt(a["successes"]), fmt(a["failures"]), fmt(a["output_tokens_per_s"], 0), fmt(a["goodput_rps"], 2),
+                    fmt(a["worst_ttft_p90_ms"], 0), fmt(a["worst_tpot_p90_ms"], 1),
+                ]
+                for a in agg
+            ],
+        )
+    )
+    out += ["", "## Per stage", ""]
+    for workload in sorted({r["workload"] for r in stages}):
+        out += [f"### {workload}", ""]
+        out.append(
+            md_table(
+                ["arm", "client", "QPS", "achieved", "done rps", "err %", "TTFT p50/p90/p99", "TPOT p50/p90/p99",
+                 "ITL p50/p90/p99", "E2E p50/p90/p99", "out tok/s", "in tok/s", "goodput rps"],
+                [
+                    [
+                        r["arm"], r["client"], fmt(r["requested_qps"]), fmt(r["achieved_qps"], 2), fmt(r["completed_rps"], 2),
+                        fmt(None if r["error_rate"] is None else 100 * r["error_rate"], 2),
+                        "/".join(fmt(r[f"ttft_{p}_ms"], 0) for p in PERCENTILES),
+                        "/".join(fmt(r[f"tpot_{p}_ms"], 1) for p in PERCENTILES),
+                        "/".join(fmt(r[f"itl_{p}_ms"], 1) for p in PERCENTILES),
+                        "/".join(fmt(r[f"e2e_{p}_ms"], 0) for p in PERCENTILES),
+                        fmt(r["output_tokens_per_s"], 0), fmt(r["input_tokens_per_s"], 0), fmt(r["goodput_rps"], 2),
+                    ]
+                    for r in stages
+                    if r["workload"] == workload
+                ],
+            )
+        )
+        out.append("")
+
+    if rel:
+        out += [f"## Relative change vs `{args.baseline_arm}`", "",
+                "Negative is better for latencies; positive is better for throughput and goodput.", ""]
+        stage_rel = [r for r in rel if r["requested_qps"] != "max-within-slo"]
+        if stage_rel:
+            out.append(
+                md_table(
+                    ["workload", "client", "QPS", "arm"] + [m for m, _ in RELATIVE_METRICS] + ["err (pp)"],
+                    [
+                        [r["workload"], r["client"], fmt(r["requested_qps"]), r["arm"]]
+                        + [fmt_pct(r[f"{m}_change_pct"]) for m, _ in RELATIVE_METRICS]
+                        + ["-" if r["error_rate_change_pp"] is None else f"{r['error_rate_change_pp']:+.2f}"]
+                        for r in stage_rel
+                    ],
+                )
+            )
+            out.append("")
+        cap_rel = [r for r in rel if r["requested_qps"] == "max-within-slo"]
+        if cap_rel:
+            out.append(
+                md_table(
+                    ["workload", "client", "arm", "max QPS (TTFT) base -> arm", "change", "max QPS (TTFT+TPOT) base -> arm", "change"],
+                    [
+                        [
+                            r["workload"], r["client"], r["arm"],
+                            f"{fmt(r['max_qps_p90_ttft_slo_baseline'])} -> {fmt(r['max_qps_p90_ttft_slo_arm'])}",
+                            fmt_pct(r["max_qps_p90_ttft_slo_change_pct"]),
+                            f"{fmt(r['max_qps_p90_ttft_tpot_slo_baseline'])} -> {fmt(r['max_qps_p90_ttft_tpot_slo_arm'])}",
+                            fmt_pct(r["max_qps_p90_ttft_tpot_slo_change_pct"]),
+                        ]
+                        for r in cap_rel
+                    ],
+                )
+            )
+            out.append("")
+
+    if charts:
+        out += ["## Charts", ""] + [f"![{os.path.basename(c)}]({os.path.basename(c)})" for c in charts] + [""]
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(out))
+
+
+def plot(stages, out_dir, slo_ttft_ms):
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        return []
+    charts = []
+    specs = [
+        ("ttft_p90_ms", "p90 TTFT (ms)", slo_ttft_ms),
+        ("output_tokens_per_s", "output tokens/s", None),
+        ("goodput_rps", "goodput (requests/s within SLO)", None),
+    ]
+    for workload in sorted({r["workload"] for r in stages}):
+        rows = [r for r in stages if r["workload"] == workload]
+        for metric, label, hline in specs:
+            fig, ax = plt.subplots(figsize=(7, 4.5))
+            series = defaultdict(list)
+            for r in rows:
+                if r["requested_qps"] is not None and r[metric] is not None:
+                    series[(r["arm"], r["client"], r["run_id"])].append((r["requested_qps"], r[metric]))
+            if not series:
+                plt.close(fig)
+                continue
+            multi_run = len({k[2] for k in series}) > 1
+            for (arm, client, run_id), pts in sorted(series.items()):
+                pts.sort()
+                name = f"{arm} / {client}" + (f" / {run_id}" if multi_run else "")
+                ax.plot([p[0] for p in pts], [p[1] for p in pts], marker="o", label=name)
+            if hline is not None:
+                ax.axhline(hline, color="grey", linestyle="--", linewidth=1, label="SLO")
+            ax.set_xlabel("offered load per client (QPS)")
+            ax.set_ylabel(label)
+            ax.set_title(f"{workload}: {label}")
+            ax.grid(True, alpha=0.3)
+            ax.legend(fontsize=8)
+            path = os.path.join(out_dir, f"{workload}_{metric}.png")
+            fig.tight_layout()
+            fig.savefig(path, dpi=120)
+            plt.close(fig)
+            charts.append(path)
+    return charts
+
+
+def plot_aggregate(agg, out_dir, slo_ttft_ms):
+    """One line per arm, all client regions combined (sum of throughput and
+    goodput, worst client's p90 TTFT)."""
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        return []
+    charts = []
+    specs = [
+        ("goodput_rps", "goodput, all regions (requests/s within SLO)", None, False),
+        ("output_tokens_per_s", "output tokens/s, all regions", None, False),
+        ("worst_ttft_p90_ms", "worst region p90 TTFT (ms, log scale)", slo_ttft_ms, True),
+    ]
+    for workload in sorted({a["workload"] for a in agg}):
+        rows = [a for a in agg if a["workload"] == workload]
+        for metric, label, hline, log in specs:
+            series = defaultdict(list)
+            for a in rows:
+                if a["requested_qps"] is not None and a[metric] is not None:
+                    series[(a["arm"], a["run_id"])].append((a["requested_qps"], a[metric]))
+            if not series:
+                continue
+            fig, ax = plt.subplots(figsize=(7, 4.5))
+            multi_run = len({k[1] for k in series}) > 1
+            for (arm, run_id), pts in sorted(series.items()):
+                pts.sort()
+                name = arm + (f" / {run_id}" if multi_run else "")
+                ax.plot([q[0] for q in pts], [q[1] for q in pts], marker="o", label=name)
+            if hline is not None:
+                ax.axhline(hline, color="grey", linestyle="--", linewidth=1, label="SLO")
+            if log:
+                ax.set_yscale("log")
+            ax.set_xlabel("offered load per client region (QPS)")
+            ax.set_ylabel(label)
+            ax.set_title(f"{workload}: {label}")
+            ax.grid(True, alpha=0.3)
+            ax.legend(fontsize=8)
+            path = os.path.join(out_dir, f"aggregate_{workload}_{metric}.png")
+            fig.tight_layout()
+            fig.savefig(path, dpi=120)
+            plt.close(fig)
+            charts.append(path)
+    return charts
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("dirs", nargs="+", help="run directories (searched recursively)")
+    p.add_argument("--out", default="analysis", help="output directory (default: ./analysis)")
+    p.add_argument("--baseline-arm", default="vllm", help="arm that the other arms are compared to (default: vllm)")
+    p.add_argument("--arms", default="", help="comma-separated candidate arms (default: every non-baseline arm)")
+    p.add_argument("--slo-ttft", type=float, default=2.0, help="p90 TTFT SLO in seconds (default: 2.0)")
+    p.add_argument("--slo-tpot", type=float, default=0.1, help="p90 TPOT SLO in seconds (default: 0.1)")
+    p.add_argument("--no-charts", action="store_true", help="don't write PNG charts")
+    args = p.parse_args(argv)
+
+    stages, notes = collect(args.dirs)
+    if not stages:
+        print("no inference-perf stage reports found under: " + " ".join(args.dirs), file=sys.stderr)
+        return 1
+
+    run_slos = {json.dumps(r["_slo"], sort_keys=True) for r in stages if r.get("_slo")}
+    wanted = json.dumps({"tpot_s": args.slo_tpot, "ttft_s": args.slo_ttft}, sort_keys=True)
+    if run_slos and run_slos != {wanted}:
+        notes.append(
+            "goodput columns use the SLO configured at run time (" + ", ".join(sorted(run_slos)) + "), "
+            f"which differs from --slo-ttft/--slo-tpot ({wanted}); the max-QPS columns use the latter."
+        )
+
+    os.makedirs(args.out, exist_ok=True)
+    slo_ttft_ms, slo_tpot_ms = args.slo_ttft * 1000, args.slo_tpot * 1000
+    summary = summarize(stages, slo_ttft_ms, slo_tpot_ms)
+    arms = sorted({r["arm"] for r in stages})
+    candidates = [a for a in (args.arms.split(",") if args.arms else arms) if a and a != args.baseline_arm]
+    rel = relative(stages, summary, args.baseline_arm, candidates) if args.baseline_arm in arms else []
+    if args.baseline_arm not in arms:
+        notes.append(f"baseline arm {args.baseline_arm!r} not found (arms: {', '.join(arms)}); no relative table.")
+
+    write_csv(os.path.join(args.out, "stages.csv"), stages, STAGE_COLUMNS)
+    write_csv(os.path.join(args.out, "summary.csv"), summary, SUMMARY_COLUMNS)
+    agg = aggregate(stages)
+    write_csv(os.path.join(args.out, "aggregate.csv"), agg, AGGREGATE_COLUMNS)
+    write_csv(os.path.join(args.out, "relative.csv"), rel)
+    charts = [] if args.no_charts else plot_aggregate(agg, args.out, slo_ttft_ms) + plot(stages, args.out, slo_ttft_ms)
+    write_markdown(os.path.join(args.out, "report.md"), stages, summary, agg, rel, args, notes, charts)
+    for n in notes:
+        print("WARNING: " + n, file=sys.stderr)
+    print(f"wrote {args.out}/report.md, stages.csv, summary.csv, aggregate.csv, relative.csv" + (f" and {len(charts)} charts" if charts else ""))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

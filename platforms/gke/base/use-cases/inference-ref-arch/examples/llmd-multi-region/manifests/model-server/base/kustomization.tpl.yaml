@@ -1,0 +1,43 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# Model server base shared by BOTH experiment arms.
+#
+# It reuses the llm-d precise-prefix-cache-routing GPU vLLM model server recipe
+# (pinned to an immutable llm-d commit), so that the plain vLLM baseline and
+# the llm-d arm run byte-for-byte the same pod spec, image, probes, volumes,
+# graceful shutdown, and resources. The arm overlays only add the arm label and
+# the vLLM arguments.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - https://github.com/llm-d/llm-d//guides/precise-prefix-cache-routing/modelserver/gpu/vllm/gke?ref=${MR_LLMD_GIT_REF}
+
+patches:
+  # Pods run as the namespace service account created by the inference-ref-arch
+  # online_gpu terraservice (it has Workload Identity access to the regional
+  # model bucket), so the recipe's service account isn't needed.
+  - patch: |-
+      $patch: delete
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: unused
+    target:
+      kind: ServiceAccount
+  - path: patch-model-server.yaml
+    target:
+      kind: Deployment
+      name: precise-prefix-cache-routing-gpu-vllm-decode

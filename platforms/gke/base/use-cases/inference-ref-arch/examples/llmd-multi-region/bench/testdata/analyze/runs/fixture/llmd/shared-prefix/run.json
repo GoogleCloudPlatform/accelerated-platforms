@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "succeeded",
+  "dry_run": false,
+  "run_id": "fixture",
+  "arm": "llmd",
+  "workload": "shared-prefix",
+  "gateway": "llm-mr-gateway",
+  "target_region_mode": "local",
+  "start_epoch_s": 1800000000,
+  "end_epoch_s": 1800000600,
+  "slo": {
+    "ttft_s": 2.0,
+    "tpot_s": 0.1
+  },
+  "load": {
+    "type": "poisson",
+    "qps": [
+      1.0,
+      2.0,
+      4.0
+    ],
+    "stage_duration_s": 60
+  },
+  "clients": [
+    {
+      "key": "usc1",
+      "region": "us-central1",
+      "cluster": "inf-mrusc1",
+      "target_key": "usc1",
+      "target_region": "us-central1",
+      "vip": "10.10.0.50",
+      "base_url": "http://10.10.0.50:80",
+      "job": "ipf-llmd-sp-usc1",
+      "seed": 42,
+      "gcs_uri": "gs://example-bench/runs/fixture/llmd/shared-prefix/usc1/",
+      "status": "succeeded",
+      "start_epoch_s": 1800000000,
+      "end_epoch_s": 1800000600,
+      "images": []
+    },
+    {
+      "key": "euw2",
+      "region": "europe-west2",
+      "cluster": "inf-mreuw2",
+      "target_key": "euw2",
+      "target_region": "europe-west2",
+      "vip": "10.20.0.50",
+      "base_url": "http://10.20.0.50:80",
+      "job": "ipf-llmd-sp-euw2",
+      "seed": 43,
+      "gcs_uri": "gs://example-bench/runs/fixture/llmd/shared-prefix/euw2/",
+      "status": "succeeded",
+      "start_epoch_s": 1800000000,
+      "end_epoch_s": 1800000600,
+      "images": []
+    }
+  ]
+}

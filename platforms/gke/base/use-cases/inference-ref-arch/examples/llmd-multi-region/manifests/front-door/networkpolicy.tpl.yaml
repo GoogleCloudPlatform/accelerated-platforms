@@ -1,0 +1,49 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Defense in depth (enforced by GKE Dataplane V2, which the core platform
+# enables): the Envoy pods only accept traffic from the global external
+# Application Load Balancer (GFE proxy and health check ranges), and can only
+# connect to the internal Gateway VIP. Applied unless
+# MR_FRONT_DOOR_NETWORK_POLICY=false.
+#
+# https://cloud.google.com/load-balancing/docs/firewall-rules
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: llm-front-door
+  namespace: ${MR_FRONT_DOOR_NAMESPACE}
+spec:
+  podSelector:
+    matchLabels:
+      app: llm-front-door
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 35.191.0.0/16
+        - ipBlock:
+            cidr: 130.211.0.0/22
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - ipBlock:
+            cidr: ${MR_FRONT_DOOR_UPSTREAM_VIP}/32
+      ports:
+        - protocol: TCP
+          port: 80

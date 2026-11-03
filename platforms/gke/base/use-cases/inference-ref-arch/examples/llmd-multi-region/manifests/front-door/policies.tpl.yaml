@@ -1,0 +1,66 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Load balancer health check: Envoy answers /healthz itself. Health checks
+# bypass IAP.
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: llm-front-door
+  namespace: ${MR_FRONT_DOOR_NAMESPACE}
+spec:
+  targetRef:
+    group: ""
+    kind: Service
+    name: llm-front-door
+  default:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 3
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8080
+        requestPath: /healthz
+---
+# IAP on the front door backend service: every request must carry a Google
+# identity that has roles/iap.httpsResourceAccessor on this backend service
+# (granted by scripts/deploy-front-door.sh). Without clientID and
+# oauth2ClientSecret, IAP uses the Google-managed OAuth client (browser sign-in
+# for users in the project's organization only). With MR_IAP_OAUTH_CLIENT_ID
+# and MR_IAP_OAUTH_CLIENT_SECRET_FILE, the custom OAuth client is used.
+#
+# The optional Cloud Armor policy (source IP allowlist) is evaluated before
+# IAP.
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: llm-front-door
+  namespace: ${MR_FRONT_DOOR_NAMESPACE}
+spec:
+  targetRef:
+    group: ""
+    kind: Service
+    name: llm-front-door
+  default:
+    # Long-running streaming completions.
+    timeoutSec: ${MR_FRONT_DOOR_TIMEOUT_SEC}
+    logging:
+      enabled: true
+      sampleRate: 1000000
+    iap:
+      enabled: true
+${MR_FRONT_DOOR_IAP_OAUTH_FIELDS}
+${MR_FRONT_DOOR_SECURITY_POLICY_FIELD}

@@ -1,0 +1,234 @@
+{
+ "apiVersion": "v1",
+ "kind": "List",
+ "items": [
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-0.failedscheduling.5",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-0",
+    "namespace": "llm-mr",
+    "fieldPath": ""
+   },
+   "reason": "FailedScheduling",
+   "message": "0/3 nodes are available: 3 Insufficient nvidia.com/gpu.",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:00:05Z",
+   "lastTimestamp": "2026-10-30T02:00:05Z"
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-0.triggeredscaleup.12",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-0",
+    "namespace": "llm-mr",
+    "fieldPath": ""
+   },
+   "reason": "TriggeredScaleUp",
+   "message": "pod triggered scale-up",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:00:12Z",
+   "lastTimestamp": "2026-10-30T02:00:12Z"
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-0.scheduled.135",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-0",
+    "namespace": "llm-mr",
+    "fieldPath": ""
+   },
+   "reason": "Scheduled",
+   "message": "Successfully assigned llm-mr/vllm-0 to gke-inf-mrusc1-gpu-a",
+   "count": 1,
+   "eventTime": "2026-10-30T02:02:15.000000Z",
+   "firstTimestamp": null
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-0.pulling.136",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-0",
+    "namespace": "llm-mr",
+    "fieldPath": "spec.initContainers{model-sync}"
+   },
+   "reason": "Pulling",
+   "message": "Pulling image \"gcr.io/google.com/cloudsdktool/google-cloud-cli:slim\"",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:02:16Z",
+   "lastTimestamp": "2026-10-30T02:02:16Z"
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-0.pulled.149",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-0",
+    "namespace": "llm-mr",
+    "fieldPath": "spec.initContainers{model-sync}"
+   },
+   "reason": "Pulled",
+   "message": "Successfully pulled image \"gcr.io/google.com/cloudsdktool/google-cloud-cli:slim\" in 12.5s (12.5s including waiting). Image size: 512 bytes.",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:02:29Z",
+   "lastTimestamp": "2026-10-30T02:02:29Z"
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-0.pulling.201",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-0",
+    "namespace": "llm-mr",
+    "fieldPath": "spec.containers{vllm}"
+   },
+   "reason": "Pulling",
+   "message": "Pulling image \"docker.io/vllm/vllm-openai:v0.31.0@sha256:c1c9f6fd5c109ba7f0546a59f5b2f15fb87f64c77782e90a27b648b42a8e67c3\"",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:03:21Z",
+   "lastTimestamp": "2026-10-30T02:03:21Z"
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-0.pulled.292",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-0",
+    "namespace": "llm-mr",
+    "fieldPath": "spec.containers{vllm}"
+   },
+   "reason": "Pulled",
+   "message": "Successfully pulled image \"docker.io/vllm/vllm-openai:v0.31.0@sha256:c1c9f6fd5c109ba7f0546a59f5b2f15fb87f64c77782e90a27b648b42a8e67c3\" in 1m30.5s (1m32s including waiting). Image size: 9876543210 bytes.",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:04:52Z",
+   "lastTimestamp": "2026-10-30T02:04:52Z"
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-0.started.293",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-0",
+    "namespace": "llm-mr",
+    "fieldPath": "spec.containers{vllm}"
+   },
+   "reason": "Started",
+   "message": "Started container vllm",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:04:53Z",
+   "lastTimestamp": "2026-10-30T02:04:53Z"
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-1.scheduled.6",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-1",
+    "namespace": "llm-mr",
+    "fieldPath": ""
+   },
+   "reason": "Scheduled",
+   "message": "Successfully assigned llm-mr/vllm-1 to gke-inf-mrusc1-gpu-b",
+   "count": 1,
+   "eventTime": "2026-10-30T02:00:06.000000Z",
+   "firstTimestamp": null
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-1.pulled.7",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-1",
+    "namespace": "llm-mr",
+    "fieldPath": "spec.initContainers{model-sync}"
+   },
+   "reason": "Pulled",
+   "message": "Container image \"gcr.io/google.com/cloudsdktool/google-cloud-cli:slim\" already present on machine",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:00:07Z",
+   "lastTimestamp": "2026-10-30T02:00:07Z"
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-1.pulled.61",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-1",
+    "namespace": "llm-mr",
+    "fieldPath": "spec.containers{vllm}"
+   },
+   "reason": "Pulled",
+   "message": "Container image \"docker.io/vllm/vllm-openai:v0.31.0@sha256:c1c9f6fd5c109ba7f0546a59f5b2f15fb87f64c77782e90a27b648b42a8e67c3\" already present on machine",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:01:01Z",
+   "lastTimestamp": "2026-10-30T02:01:01Z"
+  },
+  {
+   "apiVersion": "v1",
+   "kind": "Event",
+   "metadata": {
+    "name": "vllm-1.backoff.70",
+    "namespace": "llm-mr"
+   },
+   "involvedObject": {
+    "kind": "Pod",
+    "name": "vllm-1",
+    "namespace": "llm-mr",
+    "fieldPath": "spec.containers{vllm}"
+   },
+   "reason": "BackOff",
+   "message": "Back-off restarting failed container vllm",
+   "count": 1,
+   "firstTimestamp": "2026-10-30T02:01:10Z",
+   "lastTimestamp": "2026-10-30T02:01:10Z"
+  }
+ ]
+}

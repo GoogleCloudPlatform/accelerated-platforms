@@ -295,6 +295,14 @@ resource "google_container_node_pool" "system" {
     total_min_node_count = 2
   }
 
+  # Let the node pool creation succeed once the minimum number of nodes is
+  # running, instead of failing when one zone is out of capacity (GCE_STOCKOUT).
+  # The remaining nodes are created when capacity is available.
+  best_effort_provisioning {
+    enabled             = true
+    min_provision_nodes = 2
+  }
+
   network_config {
     enable_private_nodes = true
   }
@@ -329,6 +337,7 @@ resource "google_container_node_pool" "system" {
 
   lifecycle {
     ignore_changes = [
+      best_effort_provisioning,
       initial_node_count,
       node_config[0].labels,
       node_config[0].resource_labels,

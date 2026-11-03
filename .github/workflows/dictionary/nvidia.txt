@@ -1,6 +1,8 @@
+autotuned
 cuda
 cudnn
 dcgm
+fmha
 gddr
 gloo
 hmma

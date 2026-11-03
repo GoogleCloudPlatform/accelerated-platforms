@@ -6,6 +6,8 @@ These examples implement online inference with GPUs on Google Kubernetes Engine
 
 - [AI inference proof-of-concept (PoC) and capacity-finding guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md)
 - [15-minute live demo runbook: Multi-region GPU capacity farming, fast-start model streaming, and sub-minute GKE Pod snapshot restore](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-15min-demo-runbook.md)
+- [Getting started quickly with open models and TensorRT-LLM on multi-region GKE clusters](/docs/platforms/gke/base/use-cases/inference-ref-arch/trtllm-multi-region-open-models-guide.md)
+- [15-minute live demo runbook: Global open-model inference with TensorRT-LLM, NVIDIA Nemotron-3, and GKE Pod snapshots on RTX PRO 6000](/docs/platforms/gke/base/use-cases/inference-ref-arch/trtllm-poc-15min-demo-runbook.md)
 - [Fast-start inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md)
 - [GKE Pod snapshots inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-podsnapshots-reference-architecture.md)
 - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)

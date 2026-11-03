@@ -48,10 +48,26 @@ LATENCIES = {
 PERCENTILES = ("p50", "p90", "p99")
 
 STAGE_COLUMNS = (
-    ["run_id", "arm", "workload", "client", "target", "stage", "requested_qps", "achieved_qps", "completed_rps"]
+    [
+        "run_id",
+        "arm",
+        "workload",
+        "client",
+        "target",
+        "stage",
+        "requested_qps",
+        "achieved_qps",
+        "completed_rps",
+    ]
     + ["successes", "failures", "error_rate"]
     + [f"{m}_{p}_ms" for m in LATENCIES for p in PERCENTILES]
-    + ["output_tokens_per_s", "input_tokens_per_s", "goodput_rps", "goodput_pct", "slo_attainment_pct"]
+    + [
+        "output_tokens_per_s",
+        "input_tokens_per_s",
+        "goodput_rps",
+        "goodput_pct",
+        "slo_attainment_pct",
+    ]
 )
 SUMMARY_COLUMNS = [
     "run_id",
@@ -133,7 +149,9 @@ def parse_stage(report):
     row["goodput_rps"] = goodput.get("request_goodput")
     row["goodput_pct"] = goodput.get("goodput_percentage")
     good = goodput.get("good_requests")
-    row["slo_attainment_pct"] = (100.0 * good / total) if (good is not None and total) else None
+    row["slo_attainment_pct"] = (
+        (100.0 * good / total) if (good is not None and total) else None
+    )
     return row
 
 
@@ -142,15 +160,25 @@ def find_client_dirs(roots):
     seen = set()
     for root in roots:
         for dirpath, _dirnames, filenames in os.walk(root):
-            if "summary_lifecycle_metrics.json" not in filenames and not any(STAGE_FILE.match(f) for f in filenames):
+            if "summary_lifecycle_metrics.json" not in filenames and not any(
+                STAGE_FILE.match(f) for f in filenames
+            ):
                 continue
             reports = os.path.realpath(dirpath)
-            client_dir = os.path.dirname(reports) if os.path.basename(reports) == "reports" else reports
+            client_dir = (
+                os.path.dirname(reports)
+                if os.path.basename(reports) == "reports"
+                else reports
+            )
             if client_dir in seen:
                 continue
             seen.add(client_dir)
             run_dir = os.path.dirname(client_dir)
-            run_meta = load_json(os.path.join(run_dir, "run.json")) if os.path.exists(os.path.join(run_dir, "run.json")) else {}
+            run_meta = (
+                load_json(os.path.join(run_dir, "run.json"))
+                if os.path.exists(os.path.join(run_dir, "run.json"))
+                else {}
+            )
             client_json = os.path.join(client_dir, "client.json")
             client_meta = load_json(client_json) if os.path.exists(client_json) else {}
             yield client_dir, reports, run_meta, client_meta
@@ -163,16 +191,21 @@ def collect(roots):
         ident = {
             "run_id": run_meta.get("run_id") or (parts[-4] if len(parts) >= 4 else ""),
             "arm": run_meta.get("arm") or (parts[-3] if len(parts) >= 3 else ""),
-            "workload": run_meta.get("workload") or (parts[-2] if len(parts) >= 2 else ""),
+            "workload": run_meta.get("workload")
+            or (parts[-2] if len(parts) >= 2 else ""),
             "client": client_meta.get("key") or parts[-1],
             "target": client_meta.get("target_key", ""),
         }
         if run_meta.get("status") not in (None, "succeeded"):
             notes.append(f"{client_dir}: run status is {run_meta.get('status')!r}")
         if client_meta.get("status") not in (None, "succeeded"):
-            notes.append(f"{client_dir}: client status is {client_meta.get('status')!r}")
+            notes.append(
+                f"{client_dir}: client status is {client_meta.get('status')!r}"
+            )
         files = sorted(
-            (int(m.group(1)), f) for f in os.listdir(reports) if (m := STAGE_FILE.match(f))
+            (int(m.group(1)), f)
+            for f in os.listdir(reports)
+            if (m := STAGE_FILE.match(f))
         )
         if not files:
             notes.append(f"{client_dir}: no stage_<N>_lifecycle_metrics.json")
@@ -181,7 +214,9 @@ def collect(roots):
             row.update(parse_stage(load_json(os.path.join(reports, name))))
             row["_slo"] = run_meta.get("slo")
             stages.append(row)
-    stages.sort(key=lambda r: (r["workload"], r["arm"], r["client"], r["run_id"], r["stage"]))
+    stages.sort(
+        key=lambda r: (r["workload"], r["arm"], r["client"], r["run_id"], r["stage"])
+    )
     return stages, notes
 
 
@@ -209,9 +244,13 @@ def max_qps_within_slo(rows, slo_ttft_ms, slo_tpot_ms, use_tpot):
 def summarize(stages, slo_ttft_ms, slo_tpot_ms):
     groups = defaultdict(list)
     for r in stages:
-        groups[(r["run_id"], r["arm"], r["workload"], r["client"], r["target"])].append(r)
+        groups[(r["run_id"], r["arm"], r["workload"], r["client"], r["target"])].append(
+            r
+        )
     out = []
-    for (run_id, arm, workload, client, target), rows in sorted(groups.items(), key=lambda kv: kv[0][1:4] + kv[0][:1]):
+    for (run_id, arm, workload, client, target), rows in sorted(
+        groups.items(), key=lambda kv: kv[0][1:4] + kv[0][:1]
+    ):
         out.append(
             {
                 "run_id": run_id,
@@ -220,11 +259,23 @@ def summarize(stages, slo_ttft_ms, slo_tpot_ms):
                 "client": client,
                 "target": target,
                 "stages": len(rows),
-                "max_qps_p90_ttft_slo": max_qps_within_slo(rows, slo_ttft_ms, slo_tpot_ms, False),
-                "max_qps_p90_ttft_tpot_slo": max_qps_within_slo(rows, slo_ttft_ms, slo_tpot_ms, True),
-                "max_goodput_rps": max((r["goodput_rps"] for r in rows if r["goodput_rps"] is not None), default=None),
+                "max_qps_p90_ttft_slo": max_qps_within_slo(
+                    rows, slo_ttft_ms, slo_tpot_ms, False
+                ),
+                "max_qps_p90_ttft_tpot_slo": max_qps_within_slo(
+                    rows, slo_ttft_ms, slo_tpot_ms, True
+                ),
+                "max_goodput_rps": max(
+                    (r["goodput_rps"] for r in rows if r["goodput_rps"] is not None),
+                    default=None,
+                ),
                 "max_output_tokens_per_s": max(
-                    (r["output_tokens_per_s"] for r in rows if r["output_tokens_per_s"] is not None), default=None
+                    (
+                        r["output_tokens_per_s"]
+                        for r in rows
+                        if r["output_tokens_per_s"] is not None
+                    ),
+                    default=None,
                 ),
                 "total_successes": sum(r["successes"] for r in rows),
                 "total_failures": sum(r["failures"] for r in rows),
@@ -268,7 +319,9 @@ def aggregate(stages):
         return max(values) if values else None
 
     out = []
-    for (run_id, arm, workload, qps), rows in sorted(groups.items(), key=lambda kv: (kv[0][2], kv[0][1], kv[0][0], kv[0][3] or 0)):
+    for (run_id, arm, workload, qps), rows in sorted(
+        groups.items(), key=lambda kv: (kv[0][2], kv[0][1], kv[0][0], kv[0][3] or 0)
+    ):
         out.append(
             {
                 "run_id": run_id,
@@ -303,38 +356,66 @@ def relative(stages, summary, baseline, candidates):
     for r in stages:
         by_key[(r["arm"], r["workload"], r["client"], r["requested_qps"])].append(r)
     out = []
-    for (arm, workload, client, qps), rows in sorted(by_key.items(), key=lambda kv: (kv[0][1], kv[0][2], kv[0][3] or 0, kv[0][0])):
+    for (arm, workload, client, qps), rows in sorted(
+        by_key.items(), key=lambda kv: (kv[0][1], kv[0][2], kv[0][3] or 0, kv[0][0])
+    ):
         if arm not in candidates:
             continue
         base_rows = by_key.get((baseline, workload, client, qps))
         if not base_rows:
             continue
-        rec = {"workload": workload, "client": client, "requested_qps": qps, "arm": arm, "baseline": baseline}
+        rec = {
+            "workload": workload,
+            "client": client,
+            "requested_qps": qps,
+            "arm": arm,
+            "baseline": baseline,
+        }
         for metric, _better in RELATIVE_METRICS:
             b = mean(r[metric] for r in base_rows)
             c = mean(r[metric] for r in rows)
             rec[f"{metric}_baseline"] = b
             rec[f"{metric}_arm"] = c
-            rec[f"{metric}_change_pct"] = (100.0 * (c - b) / b) if (b not in (None, 0) and c is not None) else None
+            rec[f"{metric}_change_pct"] = (
+                (100.0 * (c - b) / b)
+                if (b not in (None, 0) and c is not None)
+                else None
+            )
         b_err = mean(r["error_rate"] for r in base_rows)
         c_err = mean(r["error_rate"] for r in rows)
-        rec["error_rate_change_pp"] = (100.0 * (c_err - b_err)) if (b_err is not None and c_err is not None) else None
+        rec["error_rate_change_pp"] = (
+            (100.0 * (c_err - b_err))
+            if (b_err is not None and c_err is not None)
+            else None
+        )
         out.append(rec)
 
     by_sum = defaultdict(list)
     for s in summary:
         by_sum[(s["arm"], s["workload"], s["client"])].append(s)
-    for (arm, workload, client), rows in sorted(by_sum.items(), key=lambda kv: (kv[0][1], kv[0][2], kv[0][0])):
+    for (arm, workload, client), rows in sorted(
+        by_sum.items(), key=lambda kv: (kv[0][1], kv[0][2], kv[0][0])
+    ):
         if arm not in candidates or (baseline, workload, client) not in by_sum:
             continue
         base = by_sum[(baseline, workload, client)]
-        rec = {"workload": workload, "client": client, "requested_qps": "max-within-slo", "arm": arm, "baseline": baseline}
+        rec = {
+            "workload": workload,
+            "client": client,
+            "requested_qps": "max-within-slo",
+            "arm": arm,
+            "baseline": baseline,
+        }
         for metric in ("max_qps_p90_ttft_slo", "max_qps_p90_ttft_tpot_slo"):
             b = mean(r[metric] for r in base)
             c = mean(r[metric] for r in rows)
             rec[f"{metric}_baseline"] = b
             rec[f"{metric}_arm"] = c
-            rec[f"{metric}_change_pct"] = (100.0 * (c - b) / b) if (b not in (None, 0) and c is not None) else None
+            rec[f"{metric}_change_pct"] = (
+                (100.0 * (c - b) / b)
+                if (b not in (None, 0) and c is not None)
+                else None
+            )
         out.append(rec)
     return out
 
@@ -357,14 +438,19 @@ def write_csv(path, rows, columns=None):
         for r in rows:
             columns.extend(k for k in r if k not in columns)
     with open(path, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=columns, extrasaction="ignore", lineterminator="\n")
+        w = csv.DictWriter(
+            f, fieldnames=columns, extrasaction="ignore", lineterminator="\n"
+        )
         w.writeheader()
         for r in rows:
             w.writerow({k: ("" if r.get(k) is None else r.get(k)) for k in columns})
 
 
 def md_table(headers, rows):
-    lines = ["| " + " | ".join(headers) + " |", "|" + "|".join("---" for _ in headers) + "|"]
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "|" + "|".join("---" for _ in headers) + "|",
+    ]
     lines += ["| " + " | ".join(row) + " |" for row in rows]
     return "\n".join(lines)
 
@@ -385,26 +471,70 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
     out += ["## Capacity within SLO", ""]
     out.append(
         md_table(
-            ["workload", "arm", "client", "target", "max QPS (p90 TTFT)", "max QPS (p90 TTFT+TPOT)", "max goodput rps", "max out tok/s", "ok", "failed"],
+            [
+                "workload",
+                "arm",
+                "client",
+                "target",
+                "max QPS (p90 TTFT)",
+                "max QPS (p90 TTFT+TPOT)",
+                "max goodput rps",
+                "max out tok/s",
+                "ok",
+                "failed",
+            ],
             [
                 [
-                    s["workload"], s["arm"], s["client"], s["target"], fmt(s["max_qps_p90_ttft_slo"]),
-                    fmt(s["max_qps_p90_ttft_tpot_slo"]), fmt(s["max_goodput_rps"], 2), fmt(s["max_output_tokens_per_s"], 0),
-                    str(s["total_successes"]), str(s["total_failures"]),
+                    s["workload"],
+                    s["arm"],
+                    s["client"],
+                    s["target"],
+                    fmt(s["max_qps_p90_ttft_slo"]),
+                    fmt(s["max_qps_p90_ttft_tpot_slo"]),
+                    fmt(s["max_goodput_rps"], 2),
+                    fmt(s["max_output_tokens_per_s"], 0),
+                    str(s["total_successes"]),
+                    str(s["total_failures"]),
                 ]
                 for s in summary
             ],
         )
     )
-    out += ["", "## All client regions combined", "", "Throughput is summed over clients; latency is the worst client's p90.", ""]
+    out += [
+        "",
+        "## All client regions combined",
+        "",
+        "Throughput is summed over clients; latency is the worst client's p90.",
+        "",
+    ]
     out.append(
         md_table(
-            ["workload", "arm", "QPS per client", "clients", "done rps", "ok", "failed", "out tok/s", "goodput rps", "worst TTFT p90", "worst TPOT p90"],
+            [
+                "workload",
+                "arm",
+                "QPS per client",
+                "clients",
+                "done rps",
+                "ok",
+                "failed",
+                "out tok/s",
+                "goodput rps",
+                "worst TTFT p90",
+                "worst TPOT p90",
+            ],
             [
                 [
-                    a["workload"], a["arm"], fmt(a["requested_qps"]), a["clients"], fmt(a["completed_rps"], 2),
-                    fmt(a["successes"]), fmt(a["failures"]), fmt(a["output_tokens_per_s"], 0), fmt(a["goodput_rps"], 2),
-                    fmt(a["worst_ttft_p90_ms"], 0), fmt(a["worst_tpot_p90_ms"], 1),
+                    a["workload"],
+                    a["arm"],
+                    fmt(a["requested_qps"]),
+                    a["clients"],
+                    fmt(a["completed_rps"], 2),
+                    fmt(a["successes"]),
+                    fmt(a["failures"]),
+                    fmt(a["output_tokens_per_s"], 0),
+                    fmt(a["goodput_rps"], 2),
+                    fmt(a["worst_ttft_p90_ms"], 0),
+                    fmt(a["worst_tpot_p90_ms"], 1),
                 ]
                 for a in agg
             ],
@@ -415,17 +545,39 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
         out += [f"### {workload}", ""]
         out.append(
             md_table(
-                ["arm", "client", "QPS", "achieved", "done rps", "err %", "TTFT p50/p90/p99", "TPOT p50/p90/p99",
-                 "ITL p50/p90/p99", "E2E p50/p90/p99", "out tok/s", "in tok/s", "goodput rps"],
+                [
+                    "arm",
+                    "client",
+                    "QPS",
+                    "achieved",
+                    "done rps",
+                    "err %",
+                    "TTFT p50/p90/p99",
+                    "TPOT p50/p90/p99",
+                    "ITL p50/p90/p99",
+                    "E2E p50/p90/p99",
+                    "out tok/s",
+                    "in tok/s",
+                    "goodput rps",
+                ],
                 [
                     [
-                        r["arm"], r["client"], fmt(r["requested_qps"]), fmt(r["achieved_qps"], 2), fmt(r["completed_rps"], 2),
-                        fmt(None if r["error_rate"] is None else 100 * r["error_rate"], 2),
+                        r["arm"],
+                        r["client"],
+                        fmt(r["requested_qps"]),
+                        fmt(r["achieved_qps"], 2),
+                        fmt(r["completed_rps"], 2),
+                        fmt(
+                            None if r["error_rate"] is None else 100 * r["error_rate"],
+                            2,
+                        ),
                         "/".join(fmt(r[f"ttft_{p}_ms"], 0) for p in PERCENTILES),
                         "/".join(fmt(r[f"tpot_{p}_ms"], 1) for p in PERCENTILES),
                         "/".join(fmt(r[f"itl_{p}_ms"], 1) for p in PERCENTILES),
                         "/".join(fmt(r[f"e2e_{p}_ms"], 0) for p in PERCENTILES),
-                        fmt(r["output_tokens_per_s"], 0), fmt(r["input_tokens_per_s"], 0), fmt(r["goodput_rps"], 2),
+                        fmt(r["output_tokens_per_s"], 0),
+                        fmt(r["input_tokens_per_s"], 0),
+                        fmt(r["goodput_rps"], 2),
                     ]
                     for r in stages
                     if r["workload"] == workload
@@ -435,17 +587,29 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
         out.append("")
 
     if rel:
-        out += [f"## Relative change vs `{args.baseline_arm}`", "",
-                "Negative is better for latencies; positive is better for throughput and goodput.", ""]
+        out += [
+            f"## Relative change vs `{args.baseline_arm}`",
+            "",
+            "Negative is better for latencies; positive is better for throughput and goodput.",
+            "",
+        ]
         stage_rel = [r for r in rel if r["requested_qps"] != "max-within-slo"]
         if stage_rel:
             out.append(
                 md_table(
-                    ["workload", "client", "QPS", "arm"] + [m for m, _ in RELATIVE_METRICS] + ["err (pp)"],
+                    ["workload", "client", "QPS", "arm"]
+                    + [m for m, _ in RELATIVE_METRICS]
+                    + ["err (pp)"],
                     [
                         [r["workload"], r["client"], fmt(r["requested_qps"]), r["arm"]]
                         + [fmt_pct(r[f"{m}_change_pct"]) for m, _ in RELATIVE_METRICS]
-                        + ["-" if r["error_rate_change_pp"] is None else f"{r['error_rate_change_pp']:+.2f}"]
+                        + [
+                            (
+                                "-"
+                                if r["error_rate_change_pp"] is None
+                                else f"{r['error_rate_change_pp']:+.2f}"
+                            )
+                        ]
                         for r in stage_rel
                     ],
                 )
@@ -455,10 +619,20 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
         if cap_rel:
             out.append(
                 md_table(
-                    ["workload", "client", "arm", "max QPS (TTFT) base -> arm", "change", "max QPS (TTFT+TPOT) base -> arm", "change"],
+                    [
+                        "workload",
+                        "client",
+                        "arm",
+                        "max QPS (TTFT) base -> arm",
+                        "change",
+                        "max QPS (TTFT+TPOT) base -> arm",
+                        "change",
+                    ],
                     [
                         [
-                            r["workload"], r["client"], r["arm"],
+                            r["workload"],
+                            r["client"],
+                            r["arm"],
                             f"{fmt(r['max_qps_p90_ttft_slo_baseline'])} -> {fmt(r['max_qps_p90_ttft_slo_arm'])}",
                             fmt_pct(r["max_qps_p90_ttft_slo_change_pct"]),
                             f"{fmt(r['max_qps_p90_ttft_tpot_slo_baseline'])} -> {fmt(r['max_qps_p90_ttft_tpot_slo_arm'])}",
@@ -471,7 +645,11 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
             out.append("")
 
     if charts:
-        out += ["## Charts", ""] + [f"![{os.path.basename(c)}]({os.path.basename(c)})" for c in charts] + [""]
+        out += (
+            ["## Charts", ""]
+            + [f"![{os.path.basename(c)}]({os.path.basename(c)})" for c in charts]
+            + [""]
+        )
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(out))
 
@@ -497,7 +675,9 @@ def plot(stages, out_dir, slo_ttft_ms):
             series = defaultdict(list)
             for r in rows:
                 if r["requested_qps"] is not None and r[metric] is not None:
-                    series[(r["arm"], r["client"], r["run_id"])].append((r["requested_qps"], r[metric]))
+                    series[(r["arm"], r["client"], r["run_id"])].append(
+                        (r["requested_qps"], r[metric])
+                    )
             if not series:
                 plt.close(fig)
                 continue
@@ -505,9 +685,13 @@ def plot(stages, out_dir, slo_ttft_ms):
             for (arm, client, run_id), pts in sorted(series.items()):
                 pts.sort()
                 name = f"{arm} / {client}" + (f" / {run_id}" if multi_run else "")
-                ax.plot([p[0] for p in pts], [p[1] for p in pts], marker="o", label=name)
+                ax.plot(
+                    [p[0] for p in pts], [p[1] for p in pts], marker="o", label=name
+                )
             if hline is not None:
-                ax.axhline(hline, color="grey", linestyle="--", linewidth=1, label="SLO")
+                ax.axhline(
+                    hline, color="grey", linestyle="--", linewidth=1, label="SLO"
+                )
             ax.set_xlabel("offered load per client (QPS)")
             ax.set_ylabel(label)
             ax.set_title(f"{workload}: {label}")
@@ -535,7 +719,12 @@ def plot_aggregate(agg, out_dir, slo_ttft_ms):
     specs = [
         ("goodput_rps", "goodput, all regions (requests/s within SLO)", None, False),
         ("output_tokens_per_s", "output tokens/s, all regions", None, False),
-        ("worst_ttft_p90_ms", "worst region p90 TTFT (ms, log scale)", slo_ttft_ms, True),
+        (
+            "worst_ttft_p90_ms",
+            "worst region p90 TTFT (ms, log scale)",
+            slo_ttft_ms,
+            True,
+        ),
     ]
     for workload in sorted({a["workload"] for a in agg}):
         rows = [a for a in agg if a["workload"] == workload]
@@ -543,7 +732,9 @@ def plot_aggregate(agg, out_dir, slo_ttft_ms):
             series = defaultdict(list)
             for a in rows:
                 if a["requested_qps"] is not None and a[metric] is not None:
-                    series[(a["arm"], a["run_id"])].append((a["requested_qps"], a[metric]))
+                    series[(a["arm"], a["run_id"])].append(
+                        (a["requested_qps"], a[metric])
+                    )
             if not series:
                 continue
             fig, ax = plt.subplots(figsize=(7, 4.5))
@@ -551,9 +742,13 @@ def plot_aggregate(agg, out_dir, slo_ttft_ms):
             for (arm, run_id), pts in sorted(series.items()):
                 pts.sort()
                 name = arm + (f" / {run_id}" if multi_run else "")
-                ax.plot([q[0] for q in pts], [q[1] for q in pts], marker="o", label=name)
+                ax.plot(
+                    [q[0] for q in pts], [q[1] for q in pts], marker="o", label=name
+                )
             if hline is not None:
-                ax.axhline(hline, color="grey", linestyle="--", linewidth=1, label="SLO")
+                ax.axhline(
+                    hline, color="grey", linestyle="--", linewidth=1, label="SLO"
+                )
             if log:
                 ax.set_yscale("log")
             ax.set_xlabel("offered load per client region (QPS)")
@@ -570,26 +765,55 @@ def plot_aggregate(agg, out_dir, slo_ttft_ms):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     p.add_argument("dirs", nargs="+", help="run directories (searched recursively)")
-    p.add_argument("--out", default="analysis", help="output directory (default: ./analysis)")
-    p.add_argument("--baseline-arm", default="vllm", help="arm that the other arms are compared to (default: vllm)")
-    p.add_argument("--arms", default="", help="comma-separated candidate arms (default: every non-baseline arm)")
-    p.add_argument("--slo-ttft", type=float, default=2.0, help="p90 TTFT SLO in seconds (default: 2.0)")
-    p.add_argument("--slo-tpot", type=float, default=0.1, help="p90 TPOT SLO in seconds (default: 0.1)")
+    p.add_argument(
+        "--out", default="analysis", help="output directory (default: ./analysis)"
+    )
+    p.add_argument(
+        "--baseline-arm",
+        default="vllm",
+        help="arm that the other arms are compared to (default: vllm)",
+    )
+    p.add_argument(
+        "--arms",
+        default="",
+        help="comma-separated candidate arms (default: every non-baseline arm)",
+    )
+    p.add_argument(
+        "--slo-ttft",
+        type=float,
+        default=2.0,
+        help="p90 TTFT SLO in seconds (default: 2.0)",
+    )
+    p.add_argument(
+        "--slo-tpot",
+        type=float,
+        default=0.1,
+        help="p90 TPOT SLO in seconds (default: 0.1)",
+    )
     p.add_argument("--no-charts", action="store_true", help="don't write PNG charts")
     args = p.parse_args(argv)
 
     stages, notes = collect(args.dirs)
     if not stages:
-        print("no inference-perf stage reports found under: " + " ".join(args.dirs), file=sys.stderr)
+        print(
+            "no inference-perf stage reports found under: " + " ".join(args.dirs),
+            file=sys.stderr,
+        )
         return 1
 
     run_slos = {json.dumps(r["_slo"], sort_keys=True) for r in stages if r.get("_slo")}
-    wanted = json.dumps({"tpot_s": args.slo_tpot, "ttft_s": args.slo_ttft}, sort_keys=True)
+    wanted = json.dumps(
+        {"tpot_s": args.slo_tpot, "ttft_s": args.slo_ttft}, sort_keys=True
+    )
     if run_slos and run_slos != {wanted}:
         notes.append(
-            "goodput columns use the SLO configured at run time (" + ", ".join(sorted(run_slos)) + "), "
+            "goodput columns use the SLO configured at run time ("
+            + ", ".join(sorted(run_slos))
+            + "), "
             f"which differs from --slo-ttft/--slo-tpot ({wanted}); the max-QPS columns use the latter."
         )
 
@@ -597,21 +821,48 @@ def main(argv=None):
     slo_ttft_ms, slo_tpot_ms = args.slo_ttft * 1000, args.slo_tpot * 1000
     summary = summarize(stages, slo_ttft_ms, slo_tpot_ms)
     arms = sorted({r["arm"] for r in stages})
-    candidates = [a for a in (args.arms.split(",") if args.arms else arms) if a and a != args.baseline_arm]
-    rel = relative(stages, summary, args.baseline_arm, candidates) if args.baseline_arm in arms else []
+    candidates = [
+        a
+        for a in (args.arms.split(",") if args.arms else arms)
+        if a and a != args.baseline_arm
+    ]
+    rel = (
+        relative(stages, summary, args.baseline_arm, candidates)
+        if args.baseline_arm in arms
+        else []
+    )
     if args.baseline_arm not in arms:
-        notes.append(f"baseline arm {args.baseline_arm!r} not found (arms: {', '.join(arms)}); no relative table.")
+        notes.append(
+            f"baseline arm {args.baseline_arm!r} not found (arms: {', '.join(arms)}); no relative table."
+        )
 
     write_csv(os.path.join(args.out, "stages.csv"), stages, STAGE_COLUMNS)
     write_csv(os.path.join(args.out, "summary.csv"), summary, SUMMARY_COLUMNS)
     agg = aggregate(stages)
     write_csv(os.path.join(args.out, "aggregate.csv"), agg, AGGREGATE_COLUMNS)
     write_csv(os.path.join(args.out, "relative.csv"), rel)
-    charts = [] if args.no_charts else plot_aggregate(agg, args.out, slo_ttft_ms) + plot(stages, args.out, slo_ttft_ms)
-    write_markdown(os.path.join(args.out, "report.md"), stages, summary, agg, rel, args, notes, charts)
+    charts = (
+        []
+        if args.no_charts
+        else plot_aggregate(agg, args.out, slo_ttft_ms)
+        + plot(stages, args.out, slo_ttft_ms)
+    )
+    write_markdown(
+        os.path.join(args.out, "report.md"),
+        stages,
+        summary,
+        agg,
+        rel,
+        args,
+        notes,
+        charts,
+    )
     for n in notes:
         print("WARNING: " + n, file=sys.stderr)
-    print(f"wrote {args.out}/report.md, stages.csv, summary.csv, aggregate.csv, relative.csv" + (f" and {len(charts)} charts" if charts else ""))
+    print(
+        f"wrote {args.out}/report.md, stages.csv, summary.csv, aggregate.csv, relative.csv"
+        + (f" and {len(charts)} charts" if charts else "")
+    )
     return 0
 
 

@@ -48,7 +48,6 @@ detect a changed pod spec (whose existing snapshots no longer match).
 
 import hashlib
 import json
-
 import sys
 
 import yaml
@@ -59,7 +58,7 @@ def main(argv):
     if "--replicas" in argv:
         i = argv.index("--replicas")
         replicas = int(argv[i + 1])
-        argv = argv[:i] + argv[i + 2:]
+        argv = argv[:i] + argv[i + 2 :]
     if len(argv) != 5:
         print(__doc__, file=sys.stderr)
         return 2
@@ -80,7 +79,9 @@ def main(argv):
         pod["enableServiceLinks"] = False
         container = next(c for c in pod["containers"] if c["name"] == "modelserver")
         if container.get("command") != ["vllm", "serve"]:
-            raise SystemExit(f"unexpected model server command: {container.get('command')}")
+            raise SystemExit(
+                f"unexpected model server command: {container.get('command')}"
+            )
         container["command"] = ["/bin/sh", "-c", wrapper, "vllm-podsnapshot"]
         env = container.setdefault("env", [])
         if not any(e["name"] == "VLLM_HOST_IP" for e in env):
@@ -89,15 +90,22 @@ def main(argv):
         args = container.get("args", [])
         if "--kv-events-config" in args:
             i = args.index("--kv-events-config")
-            del args[i:i + 2]
+            del args[i : i + 2]
         args[:] = [a for a in args if not a.startswith("--kv-events-config=")]
         container["env"] = [
-            e for e in env
-            if e.get("valueFrom", {}).get("fieldRef", {}).get("fieldPath") not in ("status.podIP", "metadata.name", "metadata.uid")
-            and e["name"] not in ("POD_PORT", "KV_EVENTS_ENDPOINT", "KV_EVENTS_REPLAY_ENDPOINT")
+            e
+            for e in env
+            if e.get("valueFrom", {}).get("fieldRef", {}).get("fieldPath")
+            not in ("status.podIP", "metadata.name", "metadata.uid")
+            and e["name"]
+            not in ("POD_PORT", "KV_EVENTS_ENDPOINT", "KV_EVENTS_REPLAY_ENDPOINT")
         ]
-        template_sha = hashlib.sha256(json.dumps(d["spec"]["template"], sort_keys=True).encode()).hexdigest()
-        container.setdefault("resources", {}).setdefault("limits", {})["memory"] = memory_limit
+        template_sha = hashlib.sha256(
+            json.dumps(d["spec"]["template"], sort_keys=True).encode()
+        ).hexdigest()
+        container.setdefault("resources", {}).setdefault("limits", {})[
+            "memory"
+        ] = memory_limit
     if not found:
         raise SystemExit(f"Deployment {name} not found in {path}")
     with open(path, "w") as f:

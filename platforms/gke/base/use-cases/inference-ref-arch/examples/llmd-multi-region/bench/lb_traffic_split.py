@@ -58,8 +58,19 @@ def main(argv):
         f'AND timestamp>="{start}" AND timestamp<="{end}"'
     )
     out = subprocess.run(
-        ["gcloud", "logging", "read", log_filter, "--project", project, "--format=json", "--limit=100000"],
-        check=True, capture_output=True, text=True,
+        [
+            "gcloud",
+            "logging",
+            "read",
+            log_filter,
+            "--project",
+            project,
+            "--format=json",
+            "--limit=100000",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout
     entries = json.loads(out or "[]")
     counts = collections.Counter()
@@ -72,7 +83,9 @@ def main(argv):
         counts[(entry_region, serving_region)] += 1
         # The log timestamp is when the response ended; bucket by request start.
         latency = float(e.get("httpRequest", {}).get("latency", "0s").rstrip("s") or 0)
-        started = parse_time(e.get("timestamp", start)) - datetime.timedelta(seconds=latency)
+        started = parse_time(e.get("timestamp", start)) - datetime.timedelta(
+            seconds=latency
+        )
         rows.append((started, entry_region, serving_region))
     total = sum(counts.values())
     print(f"{total} requests between {start} and {end}")
@@ -90,7 +103,9 @@ def main(argv):
 def print_stages(rows, reports_dir):
     """Prints the split per inference-perf stage (its start and end times)."""
     stages = []
-    for path in sorted(glob.glob(os.path.join(reports_dir, "inference-perf.partial.stage_*.yaml"))):
+    for path in sorted(
+        glob.glob(os.path.join(reports_dir, "inference-perf.partial.stage_*.yaml"))
+    ):
         # inference-perf writes JSON into these .yaml files (JSON is YAML).
         with open(path) as f:
             report = json.load(f)
@@ -111,7 +126,9 @@ def print_stages(rows, reports_dir):
     print("| ---: | ---: | " + " | ".join("---:" for _ in pairs) + " |")
     for i, _, _ in stages:
         n = sum(counts[i].values())
-        cells = " | ".join(f"{100.0 * counts[i][k] / n:.0f}%" if n else "–" for k in pairs)
+        cells = " | ".join(
+            f"{100.0 * counts[i][k] / n:.0f}%" if n else "–" for k in pairs
+        )
         print(f"| {i} | {n} | {cells} |")
 
 
@@ -133,7 +150,9 @@ def print_buckets(rows, bucket_seconds):
         buckets[index][(entry_region, serving_region)] += 1
     pairs = sorted({k for b in buckets.values() for k in b})
     print()
-    print(f"Per {bucket_seconds} s bucket of request start times, from the first request ({first.isoformat()}):")
+    print(
+        f"Per {bucket_seconds} s bucket of request start times, from the first request ({first.isoformat()}):"
+    )
     print("| bucket | requests | " + " | ".join(f"{a} → {b}" for a, b in pairs) + " |")
     print("| ---: | ---: | " + " | ".join("---:" for _ in pairs) + " |")
     for index in sorted(buckets):

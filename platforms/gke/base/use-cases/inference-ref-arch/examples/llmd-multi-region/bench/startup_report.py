@@ -39,7 +39,9 @@ import sys
 from datetime import datetime, timezone
 
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-LOG_TS = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))\s")
+LOG_TS = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))\s"
+)
 NUM = r"([0-9]+(?:\.[0-9]+)?)"
 
 # vLLM startup log lines. Every pattern is case-insensitive and matched against
@@ -79,10 +81,22 @@ LOG_PATTERNS = {
 LOG_EVENTS = {
     "app_startup_complete": re.compile(r"Application startup complete", re.IGNORECASE),
 }
-COMPILED = {k: [re.compile(p, re.IGNORECASE) for p in v] for k, v in LOG_PATTERNS.items()}
+COMPILED = {
+    k: [re.compile(p, re.IGNORECASE) for p in v] for k, v in LOG_PATTERNS.items()
+}
 GO_DURATION = re.compile(r"([0-9]+(?:\.[0-9]+)?)(h|ms|us|µs|ns|m|s)")
-GO_UNITS = {"h": 3600.0, "m": 60.0, "s": 1.0, "ms": 1e-3, "us": 1e-6, "µs": 1e-6, "ns": 1e-9}
-PULLED = re.compile(r'Successfully pulled image "([^"]+)" in ([0-9hmsuµn.]+)(?: \(([0-9hmsuµn.]+) including waiting\))?')
+GO_UNITS = {
+    "h": 3600.0,
+    "m": 60.0,
+    "s": 1.0,
+    "ms": 1e-3,
+    "us": 1e-6,
+    "µs": 1e-6,
+    "ns": 1e-9,
+}
+PULLED = re.compile(
+    r'Successfully pulled image "([^"]+)" in ([0-9hmsuµn.]+)(?: \(([0-9hmsuµn.]+) including waiting\))?'
+)
 PRESENT = re.compile(r'Container image "([^"]+)" already present on machine')
 
 COLUMNS = [
@@ -119,7 +133,10 @@ def parse_ts(value):
         return None
     if isinstance(value, (int, float)):
         return float(value)
-    m = re.match(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?$", value.strip())
+    m = re.match(
+        r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?$",
+        value.strip(),
+    )
     if not m:
         return None
     base, frac, tz = m.groups()
@@ -191,13 +208,30 @@ def image_pulls(pod_name, events):
     """
     pulls = {}
     for ev in events:
-        if ev["kind"] != "Pod" or ev["name"] != pod_name or ev["reason"] not in ("Pulling", "Pulled"):
+        if (
+            ev["kind"] != "Pod"
+            or ev["name"] != pod_name
+            or ev["reason"] not in ("Pulling", "Pulled")
+        ):
             continue
         m = re.search(r"\{(.+)\}", ev["field_path"])
         container = m.group(1) if m else ev["field_path"] or "?"
-        p = pulls.setdefault(container, {"pulling": None, "pulled": None, "pull_s": None, "wait_s": None, "cached": False})
+        p = pulls.setdefault(
+            container,
+            {
+                "pulling": None,
+                "pulled": None,
+                "pull_s": None,
+                "wait_s": None,
+                "cached": False,
+            },
+        )
         if ev["reason"] == "Pulling":
-            p["pulling"] = ev["ts"] if p["pulling"] is None else min(p["pulling"], ev["ts"] or p["pulling"])
+            p["pulling"] = (
+                ev["ts"]
+                if p["pulling"] is None
+                else min(p["pulling"], ev["ts"] or p["pulling"])
+            )
         elif ev["reason"] == "Pulled":
             p["pulled"] = ev["ts"]
             if (mm := PULLED.search(ev["message"])) is not None:
@@ -225,7 +259,9 @@ def parse_log(path):
                 for pat in patterns:
                     if (mm := pat.search(line)) is not None:
                         value = mm.group(1).replace(",", "")
-                        out[key] = int(value) if key == "kv_cache_tokens" else float(value)
+                        out[key] = (
+                            int(value) if key == "kv_cache_tokens" else float(value)
+                        )
                         break
             for key, pat in LOG_EVENTS.items():
                 if line_ts is not None and pat.search(line):
@@ -258,8 +294,14 @@ def get_started(status):
 
 def analyze_dir(source_dir, args):
     pods = items(load_json(os.path.join(source_dir, "pods.json"), {}))
-    nodes = {n["metadata"]["name"]: n for n in items(load_json(os.path.join(source_dir, "nodes.json"), {}))}
-    events = [event_fields(e) for e in items(load_json(os.path.join(source_dir, "events.json"), {}))]
+    nodes = {
+        n["metadata"]["name"]: n
+        for n in items(load_json(os.path.join(source_dir, "nodes.json"), {}))
+    }
+    events = [
+        event_fields(e)
+        for e in items(load_json(os.path.join(source_dir, "events.json"), {}))
+    ]
     markers = load_json(os.path.join(source_dir, "markers.json"), {}) or {}
     apply_ts = parse_ts(markers.get("apply_epoch_s"))
     first_ok = parse_ts(markers.get("first_ok_via_gateway_epoch_s"))
@@ -281,9 +323,14 @@ def analyze_dir(source_dir, args):
         node = nodes.get(node_name) or {}
         node_created = parse_ts((node.get("metadata") or {}).get("creationTimestamp"))
         node_ready = condition_time(node, "Ready") if node else None
-        provisioned = node_created is not None and created is not None and node_created >= created
+        provisioned = (
+            node_created is not None and created is not None and node_created >= created
+        )
         main = pick_container(pod, args.container)
-        restarts = sum(s.get("restartCount", 0) for s in (pod.get("status") or {}).get("containerStatuses") or [])
+        restarts = sum(
+            s.get("restartCount", 0)
+            for s in (pod.get("status") or {}).get("containerStatuses") or []
+        )
         container_started = parse_ts(get_started(main))
 
         pulls = image_pulls(name, events)
@@ -300,15 +347,27 @@ def analyze_dir(source_dir, args):
                 "node_provisioned": provisioned if node_created is not None else None,
                 "restarts": restarts,
                 "apply_to_scheduled_s": diff(scheduled, start),
-                "apply_to_node_created_s": diff(node_created, start) if provisioned else None,
-                "node_created_to_ready_s": diff(node_ready, node_created) if provisioned else None,
-                "node_ready_to_scheduled_s": diff(scheduled, node_ready) if provisioned else None,
+                "apply_to_node_created_s": (
+                    diff(node_created, start) if provisioned else None
+                ),
+                "node_created_to_ready_s": (
+                    diff(node_ready, node_created) if provisioned else None
+                ),
+                "node_ready_to_scheduled_s": (
+                    diff(scheduled, node_ready) if provisioned else None
+                ),
                 "scheduled_to_initialized_s": diff(initialized, scheduled),
                 "image_pull_s": round(sum(pull_values), 3) if pull_values else None,
-                "image_pull_incl_wait_s": round(sum(wait_values), 3) if wait_values else None,
-                "images_cached": all(p["cached"] for p in pulls.values()) if pulls else None,
+                "image_pull_incl_wait_s": (
+                    round(sum(wait_values), 3) if wait_values else None
+                ),
+                "images_cached": (
+                    all(p["cached"] for p in pulls.values()) if pulls else None
+                ),
                 "container_start_to_ready_s": diff(ready, container_started),
-                "container_start_to_app_startup_s": diff(log["app_startup_complete"], container_started),
+                "container_start_to_app_startup_s": diff(
+                    log["app_startup_complete"], container_started
+                ),
                 **{k: log[k] for k in LOG_PATTERNS},
                 "apply_to_ready_s": diff(ready, start),
                 "_ready": ready,
@@ -321,7 +380,9 @@ def analyze_dir(source_dir, args):
         "pods": len(rows),
         "pods_ready": sum(1 for r in readies if r is not None),
         "apply_to_all_pods_ready_s": (
-            diff(max(readies), apply_ts) if rows and all(r is not None for r in readies) else None
+            diff(max(readies), apply_ts)
+            if rows and all(r is not None for r in readies)
+            else None
         ),
         "apply_to_first_ok_via_gateway_s": diff(first_ok, apply_ts),
     }
@@ -339,14 +400,23 @@ def fmt(v):
 
 
 def md_table(headers, rows):
-    lines = ["| " + " | ".join(headers) + " |", "|" + "|".join("---" for _ in headers) + "|"]
-    return "\n".join(lines + ["| " + " | ".join(fmt(c) for c in r) + " |" for r in rows])
+    lines = [
+        "| " + " | ".join(headers) + " |",
+        "|" + "|".join("---" for _ in headers) + "|",
+    ]
+    return "\n".join(
+        lines + ["| " + " | ".join(fmt(c) for c in r) + " |" for r in rows]
+    )
 
 
 def write_outputs(out_dir, rows, summaries):
     os.makedirs(out_dir, exist_ok=True)
-    with open(os.path.join(out_dir, "startup.csv"), "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=COLUMNS, extrasaction="ignore", lineterminator="\n")
+    with open(
+        os.path.join(out_dir, "startup.csv"), "w", newline="", encoding="utf-8"
+    ) as f:
+        w = csv.DictWriter(
+            f, fieldnames=COLUMNS, extrasaction="ignore", lineterminator="\n"
+        )
         w.writeheader()
         for r in rows:
             w.writerow({k: ("" if r.get(k) is None else r.get(k)) for k in COLUMNS})
@@ -354,8 +424,25 @@ def write_outputs(out_dir, rows, summaries):
     md = ["# Model server startup", "", "## Per arm", ""]
     md.append(
         md_table(
-            ["source", "arm", "pods", "ready", "apply -> all Pods Ready (s)", "apply -> first OK via gateway (s)"],
-            [[s["source"], s["arm"], s["pods"], s["pods_ready"], s["apply_to_all_pods_ready_s"], s["apply_to_first_ok_via_gateway_s"]] for s in summaries],
+            [
+                "source",
+                "arm",
+                "pods",
+                "ready",
+                "apply -> all Pods Ready (s)",
+                "apply -> first OK via gateway (s)",
+            ],
+            [
+                [
+                    s["source"],
+                    s["arm"],
+                    s["pods"],
+                    s["pods_ready"],
+                    s["apply_to_all_pods_ready_s"],
+                    s["apply_to_first_ok_via_gateway_s"],
+                ]
+                for s in summaries
+            ],
         )
     )
     phases = [
@@ -375,19 +462,61 @@ def write_outputs(out_dir, rows, summaries):
     table = []
     for label, key in phases:
         for s in summaries:
-            values = [r[key] for r in rows if r["source"] == s["source"] and r[key] is not None]
-            table.append([label, s["source"], s["arm"], len(values), statistics.median(values) if values else None, max(values) if values else None])
+            values = [
+                r[key]
+                for r in rows
+                if r["source"] == s["source"] and r[key] is not None
+            ]
+            table.append(
+                [
+                    label,
+                    s["source"],
+                    s["arm"],
+                    len(values),
+                    statistics.median(values) if values else None,
+                    max(values) if values else None,
+                ]
+            )
     md.append(md_table(["phase", "source", "arm", "pods", "median", "max"], table))
     md += ["", "## Per Pod (seconds)", ""]
-    headers = ["pod", "node", "new node", "apply->sched", "node create->Ready", "pull", "sched->init",
-               "start->Ready", "weights", "model load", "compile", "graphs", "engine init", "apply->Ready", "restarts"]
+    headers = [
+        "pod",
+        "node",
+        "new node",
+        "apply->sched",
+        "node create->Ready",
+        "pull",
+        "sched->init",
+        "start->Ready",
+        "weights",
+        "model load",
+        "compile",
+        "graphs",
+        "engine init",
+        "apply->Ready",
+        "restarts",
+    ]
     md.append(
         md_table(
             headers,
             [
-                [r["pod"], r["node"], r["node_provisioned"], r["apply_to_scheduled_s"], r["node_created_to_ready_s"], r["image_pull_s"],
-                 r["scheduled_to_initialized_s"], r["container_start_to_ready_s"], r["weights_load_s"], r["model_load_s"],
-                 r["torch_compile_s"], r["cuda_graph_s"], r["engine_init_s"], r["apply_to_ready_s"], r["restarts"]]
+                [
+                    r["pod"],
+                    r["node"],
+                    r["node_provisioned"],
+                    r["apply_to_scheduled_s"],
+                    r["node_created_to_ready_s"],
+                    r["image_pull_s"],
+                    r["scheduled_to_initialized_s"],
+                    r["container_start_to_ready_s"],
+                    r["weights_load_s"],
+                    r["model_load_s"],
+                    r["torch_compile_s"],
+                    r["cuda_graph_s"],
+                    r["engine_init_s"],
+                    r["apply_to_ready_s"],
+                    r["restarts"],
+                ]
                 for r in rows
             ],
         )
@@ -395,17 +524,36 @@ def write_outputs(out_dir, rows, summaries):
     md.append("")
     with open(os.path.join(out_dir, "startup.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(md))
-    with open(os.path.join(out_dir, "startup_summary.json"), "w", encoding="utf-8") as f:
+    with open(
+        os.path.join(out_dir, "startup_summary.json"), "w", encoding="utf-8"
+    ) as f:
         json.dump(summaries, f, indent=2)
         f.write("\n")
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("dirs", nargs="+", help="directories with pods.json, nodes.json, events.json, markers.json")
-    p.add_argument("--out", help="output directory (default: the only input directory, else ./startup)")
-    p.add_argument("--pod-regex", default="", help="only include Pods whose name matches this regex")
-    p.add_argument("--container", default="", help="model server container name (default: first container named or imaged *vllm*)")
+    p = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    p.add_argument(
+        "dirs",
+        nargs="+",
+        help="directories with pods.json, nodes.json, events.json, markers.json",
+    )
+    p.add_argument(
+        "--out",
+        help="output directory (default: the only input directory, else ./startup)",
+    )
+    p.add_argument(
+        "--pod-regex",
+        default="",
+        help="only include Pods whose name matches this regex",
+    )
+    p.add_argument(
+        "--container",
+        default="",
+        help="model server container name (default: first container named or imaged *vllm*)",
+    )
     args = p.parse_args(argv)
 
     rows, summaries = [], []
@@ -418,7 +566,9 @@ def main(argv=None):
         summaries.append(s)
     out = args.out or (args.dirs[0] if len(args.dirs) == 1 else "startup")
     write_outputs(out, rows, summaries)
-    print(f"wrote {out}/startup.csv, startup.md, startup_summary.json ({len(rows)} Pods)")
+    print(
+        f"wrote {out}/startup.csv, startup.md, startup_summary.json ({len(rows)} Pods)"
+    )
     return 0
 
 

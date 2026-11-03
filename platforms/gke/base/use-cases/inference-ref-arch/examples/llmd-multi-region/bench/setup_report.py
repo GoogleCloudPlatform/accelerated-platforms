@@ -70,8 +70,12 @@ def main(argv):
     print(f"# Stage timings ({', '.join(run_ids)})\n")
     print("| Scope | Stage | Duration | Start (UTC epoch) |")
     print("| --- | --- | ---: | ---: |")
-    for (scope, stage), r in sorted(latest.items(), key=lambda kv: kv[1]["start_epoch_s"]):
-        print(f"| {scope} | {stage} | {fmt(r['duration_s'])} | {r['start_epoch_s']:.0f} |")
+    for (scope, stage), r in sorted(
+        latest.items(), key=lambda kv: kv[1]["start_epoch_s"]
+    ):
+        print(
+            f"| {scope} | {stage} | {fmt(r['duration_s'])} | {r['start_epoch_s']:.0f} |"
+        )
 
     print("\n## Totals per scope\n")
     print("| Scope | Sum of stages | Wall-clock span |")
@@ -85,12 +89,18 @@ def main(argv):
         print(f"| {scope} | {fmt(total)} | {fmt(span)} |")
 
     all_rs = list(latest.values())
-    span = max(r["end_epoch_s"] for r in all_rs) - min(r["start_epoch_s"] for r in all_rs)
+    span = max(r["end_epoch_s"] for r in all_rs) - min(
+        r["start_epoch_s"] for r in all_rs
+    )
     print(f"\n**End-to-end wall-clock span of recorded stages:** {fmt(span)}")
     if failures:
-        print(f"\n_{len(failures)} failed attempt(s) were recorded and superseded or still pending:_")
+        print(
+            f"\n_{len(failures)} failed attempt(s) were recorded and superseded or still pending:_"
+        )
         for r in failures:
-            print(f"- {r['scope']} / {r['stage']}: exit {r.get('exit_code', '?')} after {fmt(r['duration_s'])}")
+            print(
+                f"- {r['scope']} / {r['stage']}: exit {r.get('exit_code', '?')} after {fmt(r['duration_s'])}"
+            )
     return 0
 
 

@@ -12,8 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-$patch: delete
-apiVersion: v1
-kind: Namespace
+apiVersion: cloud.google.com/v1
+kind: ComputeClass
 metadata:
-  name: agent-sandbox-system
+  name: cpu-n4-8-gvisor
+spec:
+  activeMigration:
+    optimizeRulePriority: true
+  nodePoolAutoCreation:
+    enabled: true
+  nodePoolConfig:
+    imageStreaming:
+      enabled: true
+    imageType: cos_containerd
+    sandbox:
+      type: gvisor
+  priorities:
+    # Use reservations if available
+    - machineType: n4-standard-8
+      maxPodsPerNode: 64
+      reservations:
+        affinity: AnyBestEffort
+      spot: false
+
+    # Use on-demand
+    - machineType: n4-standard-8
+      maxPodsPerNode: 64
+      spot: false

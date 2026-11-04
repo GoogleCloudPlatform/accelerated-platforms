@@ -7,6 +7,10 @@
       "path": ".github/workflows/dictionary/accelerated-platforms.txt"
     },
     {
+      "name": "agent-sandbox",
+      "path": ".github/workflows/dictionary/agent-sandbox.txt"
+    },
+    {
       "name": "async-inference",
       "path": ".github/workflows/dictionary/async-inference.txt"
     },
@@ -113,6 +117,7 @@
   ],
   "dictionaries": [
     "accelerated-platforms",
+    "agent-sandbox",
     "async-inference",
     "comfyui",
     "docker",

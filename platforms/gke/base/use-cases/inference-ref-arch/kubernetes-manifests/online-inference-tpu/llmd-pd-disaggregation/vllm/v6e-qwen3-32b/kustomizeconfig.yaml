@@ -11,9 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-$patch: delete
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: agent-sandbox-system
+---
+nameReference:
+  - kind: ConfigMap
+    version: v1
+    fieldSpecs:
+      - path: spec/roles/spec/leaderWorkerTemplate/workerTemplate/spec/containers/env/valueFrom/configMapKeyRef/name
+        kind: DisaggregatedSet
+      - path: spec/roles/spec/leaderWorkerTemplate/workerTemplate/spec/containers/envFrom/configMapRef/name
+        kind: DisaggregatedSet
+      - path: spec/roles/spec/leaderWorkerTemplate/workerTemplate/spec/volumes/configMap/name
+        kind: DisaggregatedSet

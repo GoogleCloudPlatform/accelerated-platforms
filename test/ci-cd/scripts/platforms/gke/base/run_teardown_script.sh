@@ -36,4 +36,10 @@ exit_handler() {
 }
 trap exit_handler EXIT
 
+# If an earlier step failed, capture the cluster state before the teardown
+# deletes it. This is informational only and never fails the step.
+if [ -e /workspace/build-failed.lock ]; then
+  "${ACP_REPO_DIR}/test/ci-cd/scripts/platforms/gke/base/print_build_diagnostics.sh" cluster || true
+fi
+
 ${TEARDOWN_SCRIPT}

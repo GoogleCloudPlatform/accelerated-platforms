@@ -12,15 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: v1
-kind: Namespace
+apiVersion: extensions.agents.x-k8s.io/v1beta1
+kind: SandboxWarmPool
 metadata:
+  name: python-runtime-warmpool
+  namespace: agent-sandbox
   labels:
-    app.kubernetes.io/component: manager
-    app.kubernetes.io/created-by: agent-sandbox
-    app.kubernetes.io/instance: system
-    app.kubernetes.io/managed-by: kustomize
-    app.kubernetes.io/name: namespace
-    app.kubernetes.io/part-of: agent-sandbox
-    control-plane: controller-manager
-  name: agent-sandbox-system
+    app: python-runtime-warmpool
+spec:
+  replicas: 2
+  sandboxTemplateRef:
+    name: python-runtime-template

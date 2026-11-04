@@ -39,3 +39,4 @@ spec:
             - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
             - "--load-format=runai_streamer"
             - '--model-loader-extra-config={"distributed":true}'
+            - "--shutdown-timeout=45"

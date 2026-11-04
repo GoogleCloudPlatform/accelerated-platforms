@@ -168,13 +168,13 @@ captured:
 vllm-config: guide=pd-disaggregation namespace=llmd
   model=qwen/qwen3-32b platform=tpu accel=tpu-v6e-slice topology=2x4 count=8 (tpu-v6e-2x4)
   disaggregated=True servers=2 kv_connector=TPUConnector
-  [decode] pd-disaggregation-tpu-vllm-decode-v6e-qwen3-32b 1/1 ready | kv_role=kv_both | image=docker.io/vllm/vllm-tpu:v0.27.0
-      max_model_len=9216 tensor_parallel_size=8 dtype=bfloat16 load_format=runai_streamer
+  [decode] pd-disagg-tpu-v6e-qwen3-32b-decode-XXXX 1/1 ready | kv_role=kv_consumer | image=docker.io/vllm/vllm-torchtpu:v0.29.0
+      max_model_len=9216 tensor_parallel_size=8 dtype=bfloat16 max_num_seqs=64 max_num_batched_tokens=8192 load_format=runai_streamer
       env TPU_KV_TRANSFER_PORT=9100
       env TPU_SIDE_CHANNEL_PORT=9600
-      + native-sidecar: routing-proxy (ghcr.io/llm-d/llm-d-router-disagg-sidecar:v0.10.0)
-  [prefill] pd-disaggregation-tpu-vllm-prefill-v6e-qwen3-32b 1/1 ready | kv_role=kv_producer | image=docker.io/vllm/vllm-tpu:v0.27.0
-      max_model_len=9216 tensor_parallel_size=8 dtype=bfloat16 load_format=runai_streamer
+      + native-sidecar: routing-proxy (ghcr.io/llm-d/llm-d-router-disagg-sidecar:v1.0.0)
+  [prefill] pd-disagg-tpu-v6e-qwen3-32b-prefill-XXXX 1/1 ready | kv_role=kv_producer | image=docker.io/vllm/vllm-torchtpu:v0.29.0
+      max_model_len=9216 tensor_parallel_size=8 dtype=bfloat16 max_num_seqs=64 max_num_batched_tokens=8192 load_format=runai_streamer
       env VLLM_HTTP_TIMEOUT_KEEP_ALIVE=120
   [router] pd-disaggregation-epp 1/1 ready
 ```
@@ -182,8 +182,8 @@ vllm-config: guide=pd-disaggregation namespace=llmd
 > [!IMPORTANT]
 > For `pd-disaggregation` the capture contains two model servers, one per role.
 > The prefill tier runs `kv_role: kv_producer` and the decode tier runs
-> `kv_role: kv_both` with the routing proxy sidecar. If only one appears, the
-> deployment is incomplete and the benchmark numbers are not meaningful.
+> `kv_role: kv_consumer` with the routing proxy sidecar. If only one appears,
+> the deployment is incomplete and the benchmark numbers are not meaningful.
 
 > [!NOTE]
 > Environment values sourced from a Secret or the downward API are recorded as

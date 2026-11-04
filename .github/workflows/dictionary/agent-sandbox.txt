@@ -1,0 +1,8 @@
+sandboxclaim
+sandboxclaims
+sandboxtemplate
+sandboxtemplates
+sandboxwarmpool
+sandboxwarmpools
+warmpool
+warmpools

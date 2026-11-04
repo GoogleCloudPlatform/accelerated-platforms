@@ -1015,6 +1015,7 @@ locals {
   platforms_gke_base_core_workloads_terraform_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/custom_compute_class/**",
     "platforms/gke/base/core/initialize/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/workloads/**",

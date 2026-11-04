@@ -1090,6 +1090,10 @@ locals {
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/workloads/agent_sandbox/**",
     "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/scripts/container_cluster/**",
+    "test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh",
+    "test/ci-cd/scripts/delete_project.sh",
+    "test/ci-cd/scripts/terraservice/configure_environment.sh",
     local.platforms_gke_base_core_sandbox_terraform_cb_yaml,
   ]
 }

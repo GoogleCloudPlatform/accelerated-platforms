@@ -13,6 +13,7 @@
 # limitations under the License.
 
 options:
+  automapSubstitutions: true
   logging: CLOUD_LOGGING_ONLY
 
 steps:
@@ -28,7 +29,9 @@ steps:
 
   - args:
       - DEBUG=${_DEBUG}
-      - TF_VAR_cluster_sandbox_config={"enabled":true,"type":"MICROVM"}
+      - TF_VAR_cluster_addons_agent_sandbox_enabled="true"
+      - TF_VAR_cluster_check_custom_compute_classes_healthy="false"
+      - TF_VAR_cluster_sandbox_config='{"enabled":true,"type":"MICROVM"}'
       - TF_VAR_platform_default_project_id="${PROJECT_ID}-$${PROJECT_SUFFIX}"
       - TF_VAR_platform_name="ch${SHORT_SHA}"
     entrypoint: "test/ci-cd/scripts/terraservice/configure_environment.sh"
@@ -52,9 +55,9 @@ steps:
       - "Configure the environment"
 
   - args:
-      - /workspace/platforms/gke/base
+      - /workspace/platforms/gke/base/_shared_config
     entrypoint: "test/ci-cd/scripts/terraservice/verify_configs.sh"
-    id: "Verify _shared_config files"
+    id: "Verify Base shared configurations"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
       - "Core Terraservice 'initialize'"
@@ -66,7 +69,7 @@ steps:
     id: "Core Terraservice 'networking'"
     name: "${LOCATION}-docker.pkg.dev/${PROJECT_ID}/ci-cd/runner:latest"
     waitFor:
-      - "Verify _shared_config files"
+      - "Verify Base shared configurations"
 
   - args:
       - /workspace/platforms/gke/base/core

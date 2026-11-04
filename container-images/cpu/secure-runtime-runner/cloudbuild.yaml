@@ -22,8 +22,8 @@ options:
 steps:
   - args:
       - build
-      - --build-context=primary=container-images/cpu/secure-runtime-runner/src
-      - --file=container-images/cpu/secure-runtime-runner/Dockerfile
+      - --build-context=primary=src
+      - --file=Dockerfile
       - --tag=${_DESTINATION}
       - .
     id: "Build Secure Runtime Runner image"

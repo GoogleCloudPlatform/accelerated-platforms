@@ -88,6 +88,11 @@ go run ./cmd/ate-setup deploy atenet \
   --image-repo="${self.input.ar_repo_url}" \
   --image-tag="${self.input.version}" \
   --rollout-timeout="180s"
+
+kubectl --kubeconfig="$${KUBECONFIG_ABS}" -n ate-system patch deploy atenet-router --type=json \
+  -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--parked-request-budget=60s"},{"op":"replace","path":"/spec/template/spec/terminationGracePeriodSeconds","value":120}]'
+kubectl --kubeconfig="$${KUBECONFIG_ABS}" -n ate-system rollout status deploy/atenet-router --timeout=180s
+kubectl --kubeconfig="$${KUBECONFIG_ABS}" apply -f "./manifests/ate-install/atenet-router-monitoring.yaml"
 EOT
     interpreter = ["bash", "-c"]
   }
@@ -164,13 +169,13 @@ resource "terraform_data" "apply_substrate_actortemplate" {
   ]
 
   input = {
-    actortemplate_file      = local_file.actortemplate_manifest_tmpl.filename
-    actortemplate_out_file  = "${local.manifests_out_directory}/actortemplate.yaml"
-    atespace                = var.agent_substrate_atespace
-    cloudbuild_project_id   = local.cloudbuild_project_id
-    kubeconfig_file         = data.local_file.kubeconfig.filename
-    runner_image_url        = local.secure_runtime_runner_image_url
-    substrate_version       = var.agent_substrate_version
+    actortemplate_file     = local_file.actortemplate_manifest_tmpl.filename
+    actortemplate_out_file = "${local.manifests_out_directory}/actortemplate.yaml"
+    atespace               = var.agent_substrate_atespace
+    cloudbuild_project_id  = local.cloudbuild_project_id
+    kubeconfig_file        = data.local_file.kubeconfig.filename
+    runner_image_url       = local.secure_runtime_runner_image_url
+    substrate_version      = var.agent_substrate_version
   }
 
   provisioner "local-exec" {
@@ -198,6 +203,9 @@ for _ in $(seq 1 60); do
   sleep 5
 done
 
+for a in $(kubectl-ate get actor -a "${self.input.atespace}" -o json 2>/dev/null | jq -r '.actors[]?.metadata.name // empty'); do
+  kubectl-ate delete actor "$${a}" -a "${self.input.atespace}" || true
+done
 if kubectl-ate get actor-template scientific-python -a "${self.input.atespace}" >/dev/null 2>&1; then
   kubectl-ate delete actor-template scientific-python -a "${self.input.atespace}" || true
 fi
@@ -205,7 +213,7 @@ kubectl-ate create actor-template -f "${self.input.actortemplate_out_file}"
 
 echo "Waiting for scientific-python Golden Snapshot to become Ready..."
 for _ in $(seq 1 60); do
-  tag="$(kubectl-ate get actor-template scientific-python -a "${self.input.atespace}" -o jsonpath='{.status.goldenSnapshotStatus.tag}' 2>/dev/null || true)"
+  tag="$(kubectl-ate get actor-template scientific-python -a "${self.input.atespace}" -o jsonpath='{.status.goldenSnapshotStatus.goldenTag.name}' 2>/dev/null || true)"
   err="$(kubectl-ate get actor-template scientific-python -a "${self.input.atespace}" -o jsonpath='{.status.goldenSnapshotStatus.errorMessage}' 2>/dev/null || true)"
   if [ -n "$${tag}" ]; then
     echo "Golden Snapshot ready: $${tag}"
@@ -224,6 +232,7 @@ EOT
   triggers_replace = {
     actortemplate_sha = sha256(local_file.actortemplate_manifest_tmpl.content)
     runner_image_url  = local.secure_runtime_runner_image_url
+    substrate_version = var.agent_substrate_version
   }
 }
 

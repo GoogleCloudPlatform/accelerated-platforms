@@ -24,57 +24,13 @@ set -o pipefail
 
 ATESPACE="${SUBSTRATE_ATESPACE:-secure-runtime}"
 ACTOR_NAME="${ACTOR_NAME:-triage-actor-19}"
-TEMPLATE_NAME="${SUBSTRATE_ACTOR_TEMPLATE:-scientific-python}"
 
 echo "========================================================================"
 echo " ACT 1: The Untrusted Boundary — gVisor User-Space Syscall Interception "
 echo "========================================================================"
 
-if ! kubectl-ate get actor "${ACTOR_NAME}" -a "${ATESPACE}" >/dev/null 2>&1; then
-  echo "==> Creating actor '${ACTOR_NAME}' in atespace '${ATESPACE}' from template '${TEMPLATE_NAME}'..."
-  kubectl-ate create actor "${ACTOR_NAME}" -a "${ATESPACE}" --template "${TEMPLATE_NAME}"
-fi
-
-echo "==> 1. Inspecting container security boundary inside the actor (/boundary via mTLS atenet-router):"
-kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${ACTOR_NAME}" <<'PYEOF'
-import json
-import sys
-from secure_runtime_agent.substrate_client import SubstrateClient
-
-actor_name = sys.argv[1]
-client = SubstrateClient()
-print(json.dumps(client.call_actor(actor_name, "GET", "/boundary"), indent=2))
-PYEOF
-
-echo ""
-echo "==> 2. Probing restricted kernel operations inside the gVisor Sentry (/exec):"
-kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${ACTOR_NAME}" <<'PYEOF'
-import json
-import sys
-from secure_runtime_agent.substrate_client import SubstrateClient
-
-actor_name = sys.argv[1]
-boundary_code = """
-import os
-import platform
-import subprocess
-
-print(f"Kernel release reported by Sentry : {platform.release()}")
-for path in ["/proc/kcore", "/proc/kallsyms", "/proc/sysrq-trigger", "/sys/firmware"]:
-    try:
-        with open(path, "rb") as f:
-            data = f.read(16)
-        print(f"  [UNEXPECTED] Read {path}: {len(data)} bytes")
-    except Exception as exc:
-        print(f"  [BLOCKED BY SENTRY] {path} -> {type(exc).__name__}: {exc}")
-
-kmsg = subprocess.run(["dmesg"], capture_output=True, text=True)
-print(f"dmesg exit_code={kmsg.returncode} stderr={kmsg.stderr.strip() or 'restricted by user-space kernel'}")
-"""
-client = SubstrateClient()
-res = client.call_actor(actor_name, "POST", "/exec", {"code": boundary_code})
-print(json.dumps(res, indent=2))
-PYEOF
+kubectl exec -i -n agent-harness deploy/triage-agent -- \
+  python3 -c "import sys; from secure_runtime_agent.agent import inspect_sandbox_boundary; print(inspect_sandbox_boundary(sys.argv[1]))" "${ACTOR_NAME}"
 
 echo ""
 echo "==> Act 1 complete: Application syscalls are intercepted by the gVisor Sentry in user space."

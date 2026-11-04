@@ -22,8 +22,8 @@ options:
 steps:
   - args:
       - build
-      - --build-context=primary=container-images/cpu/secure-runtime-intent-extproc/src
-      - --file=container-images/cpu/secure-runtime-intent-extproc/Dockerfile
+      - --build-context=primary=src
+      - --file=Dockerfile
       - --tag=${_DESTINATION}
       - .
     id: "Build Secure Runtime Intent ExtProc image"

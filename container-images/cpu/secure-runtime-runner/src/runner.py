@@ -109,7 +109,7 @@ class RunnerHandler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_GET(self) -> None:  # noqa: N802
-        if self.path in ("/readyz", "/healthz"):
+        if self.path == "/readyz":
             self._send_json(
                 200,
                 {
@@ -119,72 +119,23 @@ class RunnerHandler(BaseHTTPRequestHandler):
             )
             return
 
-        if self.path in ("/info", "/boundary"):
+        if self.path == "/info":
             self._send_json(200, _collect_sandbox_info())
-            return
-
-        if self.path == "/fs-state":
-            state_file = "/tmp/triage-state.json"
-            if os.path.exists(state_file):
-                with open(state_file, "r", encoding="utf-8") as fh:
-                    self._send_json(200, json.load(fh))
-            else:
-                self._send_json(200, {"exists": False})
             return
 
         self._send_json(404, {"error": f"unknown path: {self.path}"})
 
     def do_POST(self) -> None:  # noqa: N802
+        if self.path != "/run":
+            self._send_json(404, {"error": f"unknown path: {self.path}"})
+            return
+
         content_len = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(content_len) if content_len > 0 else b"{}"
         try:
             request_data = json.loads(body.decode("utf-8"))
         except json.JSONDecodeError as exc:
             self._send_json(400, {"error": f"invalid JSON: {exc}"})
-            return
-
-        if self.path == "/fs-state":
-            state_file = "/tmp/triage-state.json"
-            with open(state_file, "w", encoding="utf-8") as fh:
-                json.dump(request_data, fh)
-            self._send_json(200, {"saved": True, "path": state_file, "state": request_data})
-            return
-
-        if self.path == "/egress-test":
-            method = str(request_data.get("method", "GET")).upper()
-            url = str(request_data.get("url", ""))
-            headers = request_data.get("headers") or {}
-            req_body = request_data.get("body")
-            t0 = time.monotonic()
-            try:
-                with httpx.Client(timeout=10.0) as client:
-                    resp = client.request(method, url, headers=headers, content=req_body)
-                self._send_json(
-                    200,
-                    {
-                        "method": method,
-                        "url": url,
-                        "status_code": resp.status_code,
-                        "duration_ms": round((time.monotonic() - t0) * 1000, 2),
-                        "response_preview": resp.text[:400],
-                    },
-                )
-            except Exception as exc:  # noqa: BLE001
-                self._send_json(
-                    200,
-                    {
-                        "method": method,
-                        "url": url,
-                        "blocked_or_failed": True,
-                        "error_type": type(exc).__name__,
-                        "error": str(exc),
-                        "duration_ms": round((time.monotonic() - t0) * 1000, 2),
-                    },
-                )
-            return
-
-        if self.path not in ("/run", "/exec"):
-            self._send_json(404, {"error": f"unknown path: {self.path}"})
             return
 
         code = request_data.get("code", "")

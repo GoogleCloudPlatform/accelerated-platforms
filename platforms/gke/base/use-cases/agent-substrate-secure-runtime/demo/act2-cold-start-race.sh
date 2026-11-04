@@ -53,57 +53,39 @@ COLD_TOTAL_MS="$(( (COLD_END_NS - COLD_START_NS) / 1000000 ))"
 echo "    [Baseline A] Cold gVisor Pod Ready (incl. numpy/scipy/pandas/matplotlib import): ${COLD_TOTAL_MS} ms"
 
 echo ""
-echo "==> [Substrate B] Creating & waking Actor '${WARM_ACTOR}' from Golden Snapshot '${TEMPLATE_NAME}'..."
-kubectl-ate create actor "${WARM_ACTOR}" -a "${ATESPACE}" --template "${TEMPLATE_NAME}" >/dev/null
-
-READY_JSON="$(kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${WARM_ACTOR}" <<'PYEOF'
-import json
-import sys
+echo "==> [Substrate B] Creating, waking, suspending, and resuming Actor '${WARM_ACTOR}' from Golden Snapshot '${TEMPLATE_NAME}'..."
+kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${WARM_ACTOR}" "${COLD_TOTAL_MS}" <<'PYEOF'
+import json, sys
+from secure_runtime_agent.agent import run_python_in_actor
 from secure_runtime_agent.substrate_client import SubstrateClient
 
-actor_name = sys.argv[1]
+actor_name, cold_ms = sys.argv[1], sys.argv[2]
 client = SubstrateClient()
-print(json.dumps(client.call_actor(actor_name, "GET", "/readyz")))
+client.ensure_actor(actor_name)
+ready = client.call_actor(actor_name, "GET", "/readyz")
+warm_ms = ready["router_roundtrip_ms"]
+
+run_python_in_actor(
+    code='STATE = {"issue": 19, "solver": "tikhonov_1e-6", "status": "verified"}',
+    actor_name=actor_name,
+    suspend_after=True,
+)
+resumed = json.loads(
+    run_python_in_actor(
+        code="import json; print(json.dumps(STATE))",
+        actor_name=actor_name,
+        suspend_after=True,
+    )
+)["execution"]
+
+print(f"    [Substrate B] Golden Snapshot Actor Ready (/readyz): {warm_ms} ms")
+print(f"    [Substrate B] Pre-loaded scientific stack payload  : {json.dumps(ready)}")
+print("\n------------------------------------------------------------------------")
+print(" COLD-START RACE SUMMARY")
+print("------------------------------------------------------------------------")
+print(f" {'Standard Kubernetes gVisor Pod (Cold Boot)':<42} : {cold_ms:>8} ms")
+print(f" {'Agent Substrate Golden Snapshot Wakeup':<42} : {warm_ms:>8} ms")
+print(f" {'Agent Substrate Stateful Pause -> Resume':<42} : {resumed['router_roundtrip_ms']:>8} ms")
+print("------------------------------------------------------------------------")
+print(f"Restored in-memory state from GCS snapshot: {resumed['stdout'].strip()}")
 PYEOF
-)"
-WARM_TOTAL_MS="$(python3 -c 'import json, sys; print(json.loads(sys.stdin.read())["router_roundtrip_ms"])' <<<"${READY_JSON}")"
-echo "    [Substrate B] Golden Snapshot Actor Ready (/readyz): ${WARM_TOTAL_MS} ms"
-echo "    [Substrate B] Pre-loaded scientific stack payload  : ${READY_JSON}"
-
-echo ""
-echo "==> [Stateful Suspend/Resume Check] Writing state to /tmp/triage-state.json, suspending, and resuming..."
-kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${WARM_ACTOR}" <<'PYEOF' >/dev/null
-import sys
-from secure_runtime_agent.substrate_client import SubstrateClient
-
-actor_name = sys.argv[1]
-client = SubstrateClient()
-client.call_actor(actor_name, "POST", "/fs-state", {"issue": 19, "solver": "tikhonov_1e-6", "status": "verified"})
-PYEOF
-
-kubectl-ate suspend actor "${WARM_ACTOR}" -a "${ATESPACE}" >/dev/null
-
-STATE_AFTER_RESUME="$(kubectl exec -i -n agent-harness deploy/triage-agent -- python3 - "${WARM_ACTOR}" <<'PYEOF'
-import json
-import sys
-from secure_runtime_agent.substrate_client import SubstrateClient
-
-actor_name = sys.argv[1]
-client = SubstrateClient()
-print(json.dumps(client.call_actor(actor_name, "GET", "/fs-state")))
-PYEOF
-)"
-RESUME_MS="$(python3 -c 'import json, sys; print(json.loads(sys.stdin.read())["router_roundtrip_ms"])' <<<"${STATE_AFTER_RESUME}")"
-
-echo ""
-echo "------------------------------------------------------------------------"
-echo " COLD-START RACE SUMMARY"
-echo "------------------------------------------------------------------------"
-printf " %-42s : %8s ms\n" "Standard Kubernetes gVisor Pod (Cold Boot)" "${COLD_TOTAL_MS}"
-printf " %-42s : %8s ms\n" "Agent Substrate Golden Snapshot Wakeup" "${WARM_TOTAL_MS}"
-printf " %-42s : %8s ms\n" "Agent Substrate Stateful Pause -> Resume" "${RESUME_MS}"
-echo "------------------------------------------------------------------------"
-echo "Restored state from GCS snapshot: ${STATE_AFTER_RESUME}"
-
-# Suspend the race actor at the end of the benchmark to return the warm worker slot to the pool.
-kubectl-ate suspend actor "${WARM_ACTOR}" -a "${ATESPACE}" >/dev/null 2>&1 || true

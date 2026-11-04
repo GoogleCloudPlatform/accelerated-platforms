@@ -59,4 +59,6 @@ resources:
     memoryBytes: 2147483648
 snapshotConfig:
   preferredFidelity: SNAPSHOT_FIDELITY_MEMORY
-  storageLocation: gs://${SNAPSHOT_BUCKET_NAME}/${SUBSTRATE_ATESPACE}/
+# Snapshots are stored under ate-api-server's --snapshot-location
+# (gs://<snapshot bucket>/). Per-template storageLocation requires the
+# PerTemplateSnapshotLocation preview gate as of Agent Substrate v1.0.0.

@@ -17,7 +17,6 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"os"
 	"sync"
@@ -48,12 +47,12 @@ func (c *certCache) get() (*tls.Certificate, error) {
 	if c.cert != nil && os.SameFile(c.fi, fi) && fi.ModTime().Equal(c.fi.ModTime()) && fi.Size() == c.fi.Size() {
 		return c.cert, nil
 	}
-	cert, err := parseCredentialBundle(c.path)
+	cert, err := tls.LoadX509KeyPair(c.path, c.path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("load credential bundle %q: %w", c.path, err)
 	}
-	c.fi, c.cert = fi, cert
-	return cert, nil
+	c.fi, c.cert = fi, &cert
+	return c.cert, nil
 }
 
 type poolCache struct {
@@ -89,52 +88,4 @@ func (c *poolCache) get() (*x509.CertPool, error) {
 	}
 	c.fi, c.pool = fi, pool
 	return pool, nil
-}
-
-func parseCredentialBundle(bundlePath string) (*tls.Certificate, error) {
-	bundleBytes, err := os.ReadFile(bundlePath)
-	if err != nil {
-		return nil, fmt.Errorf("read credential bundle: %w", err)
-	}
-
-	var leafKeyBytes []byte
-	var chainBytes [][]byte
-
-	for {
-		var block *pem.Block
-		block, bundleBytes = pem.Decode(bundleBytes)
-		if block == nil {
-			break
-		}
-		switch block.Type {
-		case "CERTIFICATE":
-			chainBytes = append(chainBytes, block.Bytes)
-		case "PRIVATE KEY":
-			leafKeyBytes = block.Bytes
-		default:
-			return nil, fmt.Errorf("unknown PEM block type %q", block.Type)
-		}
-	}
-
-	if leafKeyBytes == nil {
-		return nil, fmt.Errorf("no PRIVATE KEY block found in %q", bundlePath)
-	}
-	if len(chainBytes) == 0 {
-		return nil, fmt.Errorf("no CERTIFICATE blocks found in %q", bundlePath)
-	}
-
-	leafKey, err := x509.ParsePKCS8PrivateKey(leafKeyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("parse PKCS8 private key: %w", err)
-	}
-	leafCert, err := x509.ParseCertificate(chainBytes[0])
-	if err != nil {
-		return nil, fmt.Errorf("parse leaf certificate: %w", err)
-	}
-
-	return &tls.Certificate{
-		Certificate: chainBytes,
-		Leaf:        leafCert,
-		PrivateKey:  leafKey,
-	}, nil
 }

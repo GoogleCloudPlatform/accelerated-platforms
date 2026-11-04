@@ -65,7 +65,7 @@ variable "agent_substrate_transfer_service_account_name" {
 }
 
 variable "agent_substrate_version" {
-  default     = "v0.6.0"
+  default     = "v1.0.0-rc.2"
   description = "Version tag or commit of Agent Substrate (https://github.com/agent-substrate/substrate) to install."
   type        = string
 }

@@ -47,7 +47,7 @@ resource "terraform_data" "build_secure_runtime_images" {
   provisioner "local-exec" {
     command     = <<-EOT
 export PATH="$${HOME}/.local/bin:$${HOME}/google-cloud-sdk/bin:$${PATH}"
-gcloud builds submit \
+gcloud builds submit "${self.input.dir}" \
 --config="${self.input.dir}/cloudbuild.yaml" \
 --gcs-source-staging-dir="gs://${self.input.cloudbuild_source_bucket_name}/source" \
 --project="${self.input.cloudbuild_project_id}" \

@@ -58,6 +58,7 @@ resource "terraform_data" "deploy_ate_system" {
     cluster_name                = local.cluster_name
     credential_namespace_policy = local_file.credential_namespace_policy.filename
     credential_provider         = var.agent_substrate_credential_provider
+    envoy_cloudbuild_config     = abspath("${path.module}/templates/cloudbuild-envoy-dataplane.yaml")
     ingress_allowed_spiffe_ids  = var.agent_substrate_ingress_allowed_spiffe_ids
     kubeconfig_file             = data.local_file.kubeconfig.filename
     project_id                  = data.google_project.cluster.project_id
@@ -87,11 +88,12 @@ export KUBECONFIG="$${KUBECONFIG_ABS}"
 if ! gcloud artifacts docker images describe "${self.input.ar_repo_url}/envoy-dataplane:${self.input.version}" --project="${self.input.cloudbuild_project_id}" >/dev/null 2>&1; then
   echo "Building envoy-dataplane:${self.input.version} via Cloud Build..."
   gcloud builds submit "./cmd/dataplane/envoy" \
+    --config="${self.input.envoy_cloudbuild_config}" \
     --project="${self.input.cloudbuild_project_id}" \
     --region="${self.input.cloudbuild_location}" \
     --service-account="${self.input.cloudbuild_sa_id}" \
     --default-buckets-behavior=regional-user-owned-bucket \
-    --tag="${self.input.ar_repo_url}/envoy-dataplane:${self.input.version}"
+    --substitutions=_DESTINATION="${self.input.ar_repo_url}/envoy-dataplane:${self.input.version}"
 fi
 
 if ! gcloud artifacts docker images describe "${self.input.ar_repo_url}/ateworker-gvisor:${self.input.version}" --project="${self.input.cloudbuild_project_id}" >/dev/null 2>&1; then
@@ -122,6 +124,7 @@ fi
 
 go run ./cmd/ate-setup deploy ate-system \
   --no-dev-env \
+  --sandbox-classes="gvisor" \
   --kubeconfig="$${KUBECONFIG_ABS}" \
   --context="gke_${self.input.project_id}_${self.input.cluster_location}_${self.input.cluster_name}" \
   --gcp-project-id="${self.input.project_id}" \
@@ -159,6 +162,8 @@ if [ -d "${self.input.substrate_install_dir}" ] && [ -f "${self.input.kubeconfig
     --no-dev-env \
     --kubeconfig="$${KUBECONFIG_ABS}" \
     --context="gke_${self.input.project_id}_${self.input.cluster_location}_${self.input.cluster_name}" || true
+  kubectl --kubeconfig="$${KUBECONFIG_ABS}" delete crd/workerpools.ate.dev crd/sandboxconfigs.ate.dev crd/csidriverconfigs.ate.dev --ignore-not-found --wait=true || true
+  rm -rf "$${HOME}/.kube/cache/discovery"
 fi
 EOT
     interpreter = ["bash", "-c"]

@@ -67,7 +67,7 @@ def inspect_sandbox_boundary(actor_name: str = DEFAULT_ACTOR_NAME) -> str:
     ensure_info = _substrate.ensure_actor(actor_name)
     sandbox_info = _substrate.call_actor(actor_name, "GET", "/info")
     boundary_probe_code = """
-import ctypes, json, os, socket, subprocess
+import ctypes, json, os, socket
 checks = {}
 try:
     s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, 0); s.close()
@@ -78,14 +78,12 @@ libc = ctypes.CDLL(None, use_errno=True)
 if libc.unshare(0x10000000 | 0x00020000) != 0:
     err = ctypes.get_errno()
     checks["unshare_user_mount_ns"] = f"BLOCKED_BY_GVISOR (errno={err}: {os.strerror(err)})"
-for path in ("/proc/kcore", "/proc/kallsyms", "/proc/sysrq-trigger", "/sys/firmware"):
+for path in ("/proc/kcore", "/proc/kallsyms", "/proc/sysrq-trigger", "/dev/kmsg"):
     try:
         with open(path, "rb") as fh: fh.read(16)
         checks[path] = "UNEXPECTED_ALLOWED"
     except OSError as exc:
         checks[path] = f"BLOCKED_BY_GVISOR ({exc.errno}: {exc.strerror})"
-kmsg = subprocess.run(["dmesg"], capture_output=True, text=True)
-checks["dmesg"] = f"BLOCKED_BY_GVISOR (exit={kmsg.returncode})" if kmsg.returncode != 0 else "UNEXPECTED_ALLOWED"
 print(json.dumps(checks))
 """
     probe_run = _substrate.call_actor(actor_name, "POST", "/run", {"code": boundary_probe_code})

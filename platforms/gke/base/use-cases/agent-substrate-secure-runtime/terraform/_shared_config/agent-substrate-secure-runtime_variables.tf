@@ -27,7 +27,7 @@ variable "secure_runtime_image_tag" {
 }
 
 variable "secure_runtime_gemini_model" {
-  default     = "gemini-2.5-flash"
+  default     = "gemini-3.8-flash"
   description = "Vertex AI Gemini model used by the ADK GitHub Triage Agent."
   type        = string
 }

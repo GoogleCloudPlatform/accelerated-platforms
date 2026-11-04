@@ -82,7 +82,7 @@ resource "local_sensitive_file" "secure_runtime_manifest" {
     "$${INTENT_EXTPROC_IMAGE}", local.secure_runtime_intent_extproc_image_url),
     "$${AGENT_IMAGE}", local.secure_runtime_agent_image_url),
     "$${GOOGLE_CLOUD_PROJECT}", data.google_project.cluster.project_id),
-    "$${GOOGLE_CLOUD_LOCATION}", local.cluster_region),
+    "$${GOOGLE_CLOUD_LOCATION}", "global"),
     "$${GEMINI_MODEL}", var.secure_runtime_gemini_model),
   "$${GITHUB_REPO}", var.secure_runtime_github_repo)
   file_permission = "0600"

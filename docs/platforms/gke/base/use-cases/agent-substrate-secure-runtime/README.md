@@ -13,7 +13,7 @@ injection, and pluggable Envoy `ext_proc` L7 HTTP inspection).
 ```mermaid
 flowchart LR
   subgraph Z1["Zone 1: Agent Harness (agent-harness)"]
-    Agent["ADK Triage Agent\n(Gemini 2.5 Flash on Vertex AI)\nbefore_tool_callback"]
+    Agent["ADK Triage Agent\n(Gemini 3.8 Flash on Vertex AI)\nbefore_tool_callback"]
   end
   subgraph Z2["Zone 2: Substrate Control & Data Plane (ate-system)"]
     API["ate-api-server &\nate-controller"]
@@ -40,7 +40,7 @@ flowchart LR
 
 | Layer                                                     | Component                                       | Responsibility                                                                                                                                                                                                                                                                      |
 | :-------------------------------------------------------- | :---------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Zone 1: Agent Harness (`agent-harness`)**               | **ADK GitHub Triage Agent** (`triage-agent`)    | Powered by **Gemini 2.5 Flash on Vertex AI** (`GOOGLE_GENAI_USE_VERTEXAI=1`). Classifies tool intent via `before_tool_callback`, updates per-actor `EgressPolicy`, pushes dynamic HTTP method/path rules to `intent-extproc`, and invokes actors over mTLS through `atenet-router`. |
+| **Zone 1: Agent Harness (`agent-harness`)**               | **ADK GitHub Triage Agent** (`triage-agent`)    | Powered by **Gemini 3.8 Flash on Vertex AI** (`GOOGLE_GENAI_USE_VERTEXAI=1`). Classifies tool intent via `before_tool_callback`, updates per-actor `EgressPolicy`, pushes dynamic HTTP method/path rules to `intent-extproc`, and invokes actors over mTLS through `atenet-router`. |
 | **Zone 2: Substrate Control & Data Plane (`ate-system`)** | **`ate-api-server` & `ate-controller`**         | Manages `Atespace`, `ActorTemplate`, `Actor`, `EgressPolicy`, and `WorkerPool` (`ate.dev/v1`) reconciliation.                                                                                                                                                                       |
 |                                                           | **`atenet-router`**                             | Ingress mTLS gateway (`:443`). Authenticates caller SPIFFE IDs, wakes suspended actors on demand via `atelet`, and streams requests to the actor's container port.                                                                                                                  |
 |                                                           | **`atenet-egress` + `k8s-credential-provider`** | Default-deny egress gateway (`:443`). Terminates TLS (`egress-mitm.ate.dev`) and injects secrets (`replaceHeaders`) outside the sandbox from `agent-credentials`.                                                                                                                   |
@@ -83,6 +83,6 @@ kubectl port-forward -n agent-harness deploy/triage-agent 18080:8080
 Open `http://127.0.0.1:18090/` to interactively run Acts 1–4 from the **Secure
 Runtime Mission Control** dashboard, and open
 `http://127.0.0.1:18080/dev-ui/?app=secure_runtime_agent` to prompt the live
-Gemini 2.5 Flash agent in the **Google ADK Web UI** (e.g., triage GitHub issue
+Gemini 3.8 Flash agent in the **Google ADK Web UI** (e.g., triage GitHub issue
 `#42` with `follow_issue_instructions=True` and inspect
 `last_intent_classification` in the **State** tab).

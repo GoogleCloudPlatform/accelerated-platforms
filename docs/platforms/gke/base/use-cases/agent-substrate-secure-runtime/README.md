@@ -1,11 +1,11 @@
 # GKE Agent Substrate — The Secure Runtime Reference Architecture
 
-**Agent Substrate** (`ate-system`) is a stateful sandbox runtime for Kubernetes that decouples an agent's persistent identity and memory/filesystem state (**Actors**) from underlying compute (**WorkerPools**). Every actor executes inside a dedicated **gVisor (`runsc`)** user-space kernel on warm worker pods, restores in **~500ms** from pre-warmed **Golden Snapshots** (`SNAPSHOT_FIDELITY_MEMORY`) stored in Google Cloud Storage, and routes all network traffic through identity-aware gateways (**`atenet-router`** for ingress and **`atenet-egress`** for default-deny egress, out-of-sandbox credential injection, and pluggable Envoy `ext_proc` L7 HTTP inspection).
+**Agent Substrate** (`ate-system`, `v1.0.0-rc.2`) is a stateful sandbox runtime for Kubernetes that decouples an agent's persistent identity and memory/filesystem state (**Actors**) from underlying compute (**WorkerPools**). Every actor executes inside a dedicated **gVisor (`runsc`)** user-space kernel on warm worker pods, restores in **~600ms** from pre-warmed **Golden Snapshots** (`SNAPSHOT_FIDELITY_MEMORY`) stored in Google Cloud Storage, and routes all network traffic through identity-aware gateways (**`atenet-router`** for ingress and **`atenet-egress`** for default-deny egress, out-of-sandbox credential injection, and pluggable Envoy `ext_proc` L7 HTTP inspection).
 
 ```mermaid
 flowchart LR
   subgraph Z1["Zone 1: Agent Harness (agent-harness)"]
-    Agent["ADK Triage Agent\n(Gemini on Vertex AI)\nbefore_tool_callback"]
+    Agent["ADK Triage Agent\n(Gemini 2.5 Flash on Vertex AI)\nbefore_tool_callback"]
   end
   subgraph Z2["Zone 2: Substrate Control & Data Plane (ate-system)"]
     API["ate-api-server &\nate-controller"]
@@ -32,8 +32,8 @@ flowchart LR
 
 | Layer | Component | Responsibility |
 | :--- | :--- | :--- |
-| **Zone 1: Agent Harness (`agent-harness`)** | **ADK GitHub Triage Agent** (`triage-agent`) | Powered by **Gemini on Vertex AI** (`GOOGLE_GENAI_USE_VERTEXAI=1`). Classifies tool intent via `before_tool_callback`, updates per-actor `EgressPolicy`, pushes dynamic HTTP method/path rules to `intent-extproc`, and invokes actors over mTLS through `atenet-router`. |
-| **Zone 2: Substrate Control & Data Plane (`ate-system`)** | **`ate-api-server` & `ate-controller`** | Manages `Atespace`, `ActorTemplate`, `Actor`, `EgressPolicy`, and `WorkerPool` reconciliation. |
+| **Zone 1: Agent Harness (`agent-harness`)** | **ADK GitHub Triage Agent** (`triage-agent`) | Powered by **Gemini 2.5 Flash on Vertex AI** (`GOOGLE_GENAI_USE_VERTEXAI=1`). Classifies tool intent via `before_tool_callback`, updates per-actor `EgressPolicy`, pushes dynamic HTTP method/path rules to `intent-extproc`, and invokes actors over mTLS through `atenet-router`. |
+| **Zone 2: Substrate Control & Data Plane (`ate-system`)** | **`ate-api-server` & `ate-controller`** | Manages `Atespace`, `ActorTemplate`, `Actor`, `EgressPolicy`, and `WorkerPool` (`ate.dev/v1`) reconciliation. |
 | | **`atenet-router`** | Ingress mTLS gateway (`:443`). Authenticates caller SPIFFE IDs, wakes suspended actors on demand via `atelet`, and streams requests to the actor's container port. |
 | | **`atenet-egress` + `k8s-credential-provider`** | Default-deny egress gateway (`:443`). Terminates TLS (`egress-mitm.ate.dev`) and injects secrets (`replaceHeaders`) outside the sandbox from `agent-credentials`. |
 | | **`intent-extproc`** | Pluggable Envoy `ExternalProcessor` (`--experimental-additional-egress-extproc-service=ate-system/intent-extproc:50051`) enforcing dynamic per-actor HTTP method (`GET`/`HEAD` vs `POST`/`PATCH`/`DELETE`) and URL path prefix policies with SPIFFE audit logging. |
@@ -53,11 +53,18 @@ export TF_VAR_secure_runtime_github_readonly_token="<YOUR_FINE_GRAINED_READONLY_
 ./platforms/gke/base/use-cases/agent-substrate-secure-runtime/demo/validate.sh
 ```
 
-## Running the 4-Act Live Demo
+## Running the 4-Act Live Demo (CLI & Interactive ADK Web UI)
 
-| Act | Script | What It Demonstrates |
+| Act | Script | What It Demonstrates (GKE 1.37 + Agent Substrate `v1.0.0-rc.2`) |
 | :--- | :--- | :--- |
-| **Act 1: The Untrusted Boundary** | `./demo/act1-sandbox-boundary.sh` | Verifies `gVisor` (`runsc`) user-space syscall interception (`AF_PACKET`, `unshare`, `/proc/kcore`, `dmesg`). |
-| **Act 2: Crushing Cold Starts** | `./demo/act2-cold-start-race.sh` | Races a cold Kubernetes `gVisor` Pod (`~11s`) against an Agent Substrate Golden Snapshot Actor (`~600ms` wake, `~140ms` stateful pause/resume). |
-| **Act 3: Dynamic Intent Filtering** | `./demo/act3-intent-egress.sh` | Applies per-actor `EgressPolicy` (`replaceHeaders`) and `intent-extproc` `READ_ONLY` rules (`200 OK` on `GET`, `403 Forbidden` on `POST`, default-deny on unlisted hosts). |
-| **Act 4: Audit & Clean Reset** | `./demo/act4-audit-quarantine.sh` | Queries the SPIFFE-attributed L7 audit trail, revokes policy, deletes the tainted actor, and restores a fresh actor from the Golden Snapshot. |
+| **Act 1: The Untrusted Boundary** | `./demo/act1-sandbox-boundary.sh` | Verifies `Linux 4.19.0-gvisor` user-space syscall interception (`AF_PACKET`, `unshare`, `/proc/kcore`, `/proc/kallsyms`, `/proc/sysrq-trigger`, `/dev/kmsg` all `BLOCKED_BY_GVISOR` in `~75ms`). |
+| **Act 2: Crushing Cold Starts** | `./demo/act2-cold-start-race.sh` | Races a cold Kubernetes `gVisor` Pod (`~13.9s`) against an Agent Substrate Golden Snapshot Actor (`~605ms` wake, **23x faster**; `~151ms` stateful pause/resume, **92x faster**). |
+| **Act 3: Dynamic Intent Filtering** | `./demo/act3-intent-egress.sh` | Applies per-actor `EgressPolicy` (`replaceHeaders`) and `intent-extproc` `READ_ONLY` rules (`200 OK` on `GET /issues/42` with `0` secrets in `os.environ`, `403 Forbidden` on `POST /issues/42/comments`, default-deny on unlisted hosts). |
+| **Act 4: Audit & Clean Reset** | `./demo/act4-audit-quarantine.sh` | Queries the SPIFFE-attributed L7 audit trail (`spiffe://substrate-actor.local/...`), revokes policy (`~126ms`), deletes the tainted actor, and restores a fresh actor from the Golden Snapshot (`~121ms`). |
+
+### Interactive Google ADK Web UI (`adk web`)
+
+```bash
+kubectl port-forward -n agent-harness deploy/triage-agent 8080:8080
+```
+Open `http://127.0.0.1:8080/dev-ui/?app=secure_runtime_agent` in your browser, prompt the agent to triage GitHub issue `#42` (`follow_issue_instructions=True`), and inspect `last_intent_classification` in the **State** tab.

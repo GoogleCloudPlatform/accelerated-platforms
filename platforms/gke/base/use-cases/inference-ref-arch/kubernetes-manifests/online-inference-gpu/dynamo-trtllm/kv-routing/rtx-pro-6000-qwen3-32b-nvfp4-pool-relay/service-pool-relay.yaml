@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
+# Security note: dynamo.kv_dc_relay (:5561) exposes unauthenticated plaintext
+# gRPC with server reflection enabled. Keep this Service internal (ClusterIP,
+# internal LoadBalancer over VPC Network Peering / Cloud VPN / Private Service
+# Connect, or behind an mTLS gateway); never expose :5561 on a public IP.
 apiVersion: v1
 kind: Service
 metadata:

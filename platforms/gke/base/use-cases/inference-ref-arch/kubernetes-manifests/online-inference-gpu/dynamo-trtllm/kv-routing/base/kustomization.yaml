@@ -27,8 +27,9 @@ configMapGenerator:
 
 resources:
   - ../../../base
-  - deployment-etcd.yaml
+  - statefulset-etcd.yaml
   - service-etcd.yaml
+  - service-etcd-headless.yaml
   - deployment-frontend.yaml
   - service-frontend.yaml
   - deployment-worker.yaml

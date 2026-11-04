@@ -33,6 +33,9 @@ fi
 
 DYNAMO_MODE="${DYNAMO_MODE:-kv-routing}"
 DYNAMO_VARIANT_SUFFIX="${DYNAMO_VARIANT_SUFFIX:-}"
+if [[ -z "${DYNAMO_VARIANT_SUFFIX}" && "${ENABLE_POOL_RELAY:-false}" == "true" ]]; then
+  DYNAMO_VARIANT_SUFFIX="-pool-relay"
+fi
 
 if [[ -v HF_MODEL_ID && -n "${HF_MODEL_ID}" ]]; then
   models=("${HF_MODEL_ID}")
@@ -48,13 +51,13 @@ for model in "${models[@]}"; do
 
   variant_dir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/${DYNAMO_MODE}/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}${DYNAMO_VARIANT_SUFFIX}"
   if [[ -d "${variant_dir}" ]]; then
-    echo "Deleting '${HF_MODEL_ID}' NVIDIA Dynamo (${DYNAMO_MODE}) resources on '${ACCELERATOR_TYPE}'"
+    echo "Deleting '${HF_MODEL_ID}' NVIDIA Dynamo (${DYNAMO_MODE}${DYNAMO_VARIANT_SUFFIX}) resources on '${ACCELERATOR_TYPE}'"
     echo "--------------------------------------------------------------------------------------------"
     "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/configure_dynamo_trtllm.sh"
     kubectl delete --ignore-not-found --kustomize "${variant_dir}"
     echo
   else
-    echo "'${HF_MODEL_ID}' model does not have a '${DYNAMO_MODE}' configuration for '${ACCELERATOR_TYPE}', skipping."
+    echo "'${HF_MODEL_ID}' model does not have a '${DYNAMO_MODE}${DYNAMO_VARIANT_SUFFIX}' configuration for '${ACCELERATOR_TYPE}', skipping."
     echo
   fi
 done

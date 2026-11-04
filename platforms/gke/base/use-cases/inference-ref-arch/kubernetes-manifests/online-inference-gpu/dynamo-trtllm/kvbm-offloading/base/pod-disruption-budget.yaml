@@ -15,10 +15,21 @@
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
+  name: dynamo-etcd
+  namespace: replaced-by-kustomize
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: dynamo-etcd
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
   name: dynamo-trtllm-worker
   namespace: replaced-by-kustomize
 spec:
-  minAvailable: 1
+  maxUnavailable: 1
   selector:
     matchLabels:
       app: dynamo-trtllm-worker

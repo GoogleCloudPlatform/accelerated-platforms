@@ -172,6 +172,10 @@ output "ira_online_gpu_diffusers_sglang_diffusers_image_url" {
   value = local.ira_online_gpu_diffusers_sglang_diffusers_image_url
 }
 
+output "ira_online_gpu_dynamo_etcd_image_url" {
+  value = local.ira_online_gpu_dynamo_etcd_image_url
+}
+
 output "ira_online_gpu_dynamo_trtllm_image_url" {
   value = local.ira_online_gpu_dynamo_trtllm_image_url
 }

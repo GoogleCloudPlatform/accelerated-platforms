@@ -33,6 +33,19 @@ fi
 
 DYNAMO_MODE="${DYNAMO_MODE:-kv-routing}"
 DYNAMO_VARIANT_SUFFIX="${DYNAMO_VARIANT_SUFFIX:-}"
+if [[ -z "${DYNAMO_VARIANT_SUFFIX}" && "${ENABLE_POOL_RELAY:-false}" == "true" ]]; then
+  DYNAMO_VARIANT_SUFFIX="-pool-relay"
+fi
+
+PF_PID=""
+cleanup_port_forward() {
+  if [[ -n "${PF_PID}" ]]; then
+    kill -9 "${PF_PID}" 2>/dev/null || true
+    wait "${PF_PID}" 2>/dev/null || true
+    PF_PID=""
+  fi
+}
+trap cleanup_port_forward EXIT INT TERM
 
 if [[ -v HF_MODEL_ID && -n "${HF_MODEL_ID}" ]]; then
   models=("${HF_MODEL_ID}")
@@ -52,11 +65,18 @@ for model in "${models[@]}"; do
     echo "Testing '${HF_MODEL_ID}' NVIDIA Dynamo (${DYNAMO_MODE}${DYNAMO_VARIANT_SUFFIX}) deployment on '${ACCELERATOR_TYPE}'"
     echo "--------------------------------------------------------------------------------------------"
 
-    NAME_SUFFIX="$(awk '$1 == "nameSuffix:" { print $2 }' "${base_variant_dir}/kustomization.yaml")"
-    SERVED_MODEL_NAME="$(awk -F= '$1 == "MODEL_ID" { print $2 }' "${base_variant_dir}/runtime.env")"
+    NAME_SUFFIX="$(awk '$1 == "nameSuffix:" { print $2 }' "${variant_dir}/kustomization.yaml")"
+    if [[ -z "${NAME_SUFFIX}" && -f "${base_variant_dir}/kustomization.yaml" ]]; then
+      NAME_SUFFIX="$(awk '$1 == "nameSuffix:" { print $2 }' "${base_variant_dir}/kustomization.yaml")"
+    fi
+    if [[ -f "${variant_dir}/runtime.env" ]]; then
+      SERVED_MODEL_NAME="$(awk -F= '$1 == "MODEL_ID" { print $2 }' "${variant_dir}/runtime.env")"
+    else
+      SERVED_MODEL_NAME="$(awk -F= '$1 == "MODEL_ID" { print $2 }' "${base_variant_dir}/runtime.env")"
+    fi
 
     # shellcheck disable=SC2154
-    kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "deployment/dynamo-etcd${NAME_SUFFIX}" --timeout=600s
+    kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "statefulset/dynamo-etcd${NAME_SUFFIX}" --timeout=600s
     if [[ "${DYNAMO_MODE}" == "disaggregated-pd" ]]; then
       kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "deployment/dynamo-trtllm-prefill${NAME_SUFFIX}" --timeout=1200s
       kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "deployment/dynamo-trtllm-decode${NAME_SUFFIX}" --timeout=1200s
@@ -64,6 +84,9 @@ for model in "${models[@]}"; do
       kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "deployment/dynamo-trtllm-worker${NAME_SUFFIX}" --timeout=1200s
     fi
     kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "deployment/dynamo-frontend${NAME_SUFFIX}" --timeout=600s
+    if [[ -f "${variant_dir}/deployment-pool-relay.yaml" ]]; then
+      kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "deployment/dynamo-pool-relay${NAME_SUFFIX}" --timeout=600s
+    fi
 
     echo "Setting up port forwarding..."
     port_forwarding_failed=0
@@ -84,7 +107,7 @@ for model in "${models[@]}"; do
       if [[ ${attempts} -ge 300 ]]; then
         port_forwarding_failed=1
         echo "Timed out waiting for port forwarding!"
-        kill -9 "${PF_PID}" 2>/dev/null || true
+        cleanup_port_forward
         break
       fi
 
@@ -117,11 +140,10 @@ for model in "${models[@]}"; do
       --silent | jq -e '(.choices[0].message.content // .choices[0].message.reasoning_content) | length > 0'
     echo "----------------------------------------------------------------------------------"
 
-    kill -9 "${PF_PID}" 2>/dev/null || true
-    wait "${PF_PID}" 2>/dev/null || true
+    cleanup_port_forward
     echo
   else
-    echo "'${HF_MODEL_ID}' model does not have a '${DYNAMO_MODE}' configuration for '${ACCELERATOR_TYPE}', skipping."
+    echo "'${HF_MODEL_ID}' model does not have a '${DYNAMO_MODE}${DYNAMO_VARIANT_SUFFIX}' configuration for '${ACCELERATOR_TYPE}', skipping."
     echo
   fi
 done

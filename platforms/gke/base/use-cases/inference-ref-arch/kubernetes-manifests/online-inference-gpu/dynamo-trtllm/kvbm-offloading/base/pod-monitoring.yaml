@@ -22,6 +22,22 @@ spec:
     - interval: 15s
       path: /metrics
       port: metrics
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: dynamo-trtllm
+  targetLabels:
+    metadata:
+      - pod
+      - container
+      - node
+---
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: dynamo-trtllm-kvbm
+  namespace: replaced-by-kustomize
+spec:
+  endpoints:
     - interval: 15s
       path: /metrics
       port: kvbm-metrics

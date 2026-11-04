@@ -28,6 +28,7 @@ spec:
         app: dynamo-frontend
         app.kubernetes.io/part-of: dynamo-trtllm
     spec:
+      automountServiceAccountToken: false
       containers:
         - args:
             - |
@@ -56,6 +57,8 @@ spec:
               value: "true"
             - name: ETCD_SERVICE_NAME
               value: dynamo-etcd
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: void
             - name: ROUTER_MODE
               valueFrom:
                 configMapKeyRef:
@@ -107,4 +110,3 @@ spec:
       securityContext:
         runAsGroup: 0
         runAsUser: 1000
-      serviceAccountName: replaced-by-kustomize

@@ -110,7 +110,9 @@ HPA's `minReplicas` and restores the original value when it exits.
 These scripts can be used to deploy and test the `hf_gpu_dynamo_trtllm_models`
 that use NVIDIA Dynamo with the TensorRT-LLM backend across `kv-routing`,
 `kvbm-offloading`, and `disaggregated-pd` modes (controlled by `DYNAMO_MODE`,
-defaulting to `kv-routing`).
+defaulting to `kv-routing`, with optional `ENABLE_POOL_RELAY=true` or
+`DYNAMO_VARIANT_SUFFIX` to select variant overlays such as `-pool-relay` or
+`-topology-region`).
 
 ##### `deployment_apply.sh`
 
@@ -124,9 +126,9 @@ all matching models listed in `hf_gpu_dynamo_trtllm_models`.
 
 ##### `deployment_test.sh`
 
-Waits for the Dynamo `etcd`, worker(s), and frontend deployments to become ready
-and sends OpenAI-compatible `/v1/models` and `/v1/chat/completions` test
-requests.
+Waits for the Dynamo `etcd` `StatefulSet`, worker(s), frontend, and optional
+`pool-relay` deployments to become ready and sends OpenAI-compatible
+`/v1/models` and `/v1/chat/completions` test requests.
 
 #### `trtllm`
 

@@ -27,7 +27,7 @@ configMapGenerator:
     name: trtllm-extra-config
     namespace: replaced-by-kustomize
 
-nameSuffix: -rtx6000-nemotron-3-nano-30b-nvfp4
+nameSuffix: -pd-rtx6000-nemotron3-30b-nvfp4
 
 patches:
   - path: patch-nodeselector.yaml
@@ -58,6 +58,7 @@ replacements:
           - spec.selector.matchLabels.[app.kubernetes.io/part-of]
         select:
           kind: PodMonitoring
+          name: dynamo-trtllm
   - source:
       fieldPath: data.ETCD_APP_LABEL
       kind: ConfigMap
@@ -66,13 +67,24 @@ replacements:
       - fieldPaths:
           - spec.selector.matchLabels.app
           - spec.template.metadata.labels.app
+          - spec.template.spec.topologySpreadConstraints.0.labelSelector.matchLabels.app
         select:
-          kind: Deployment
+          kind: StatefulSet
           name: dynamo-etcd
       - fieldPaths:
           - spec.selector.app
         select:
           kind: Service
+          name: dynamo-etcd
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+          name: dynamo-etcd-headless
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+        select:
+          kind: PodDisruptionBudget
           name: dynamo-etcd
   - source:
       fieldPath: data.FRONTEND_APP_LABEL
@@ -124,14 +136,29 @@ replacements:
           name: dynamo-trtllm-decode
   - source:
       fieldPath: metadata.name
-      kind: Service
+      kind: StatefulSet
       name: dynamo-etcd
     targets:
       - fieldPaths:
-          - spec.template.spec.containers.[name=etcd].env.[name=ETCD_SERVICE_NAME].value
+          - spec.template.spec.containers.[name=etcd].env.[name=ETCD_STATEFULSET_NAME].value
         select:
-          kind: Deployment
+          kind: StatefulSet
           name: dynamo-etcd
+  - source:
+      fieldPath: metadata.name
+      kind: Service
+      name: dynamo-etcd-headless
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=etcd].env.[name=ETCD_HEADLESS_SERVICE_NAME].value
+        select:
+          kind: StatefulSet
+          name: dynamo-etcd
+  - source:
+      fieldPath: metadata.name
+      kind: Service
+      name: dynamo-etcd
+    targets:
       - fieldPaths:
           - spec.template.spec.containers.[name=frontend].env.[name=ETCD_SERVICE_NAME].value
         select:
@@ -153,11 +180,6 @@ replacements:
       name: dynamo-trtllm
     targets:
       - fieldPaths:
-          - spec.template.spec.containers.[name=etcd].image
-        select:
-          kind: Deployment
-          name: dynamo-etcd
-      - fieldPaths:
           - spec.template.spec.containers.[name=frontend].image
         select:
           kind: Deployment
@@ -173,6 +195,16 @@ replacements:
           kind: Deployment
           name: dynamo-trtllm-decode
   - source:
+      fieldPath: data.ETCD_CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: dynamo-trtllm
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=etcd].image
+        select:
+          kind: StatefulSet
+          name: dynamo-etcd
+  - source:
       fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
       kind: ConfigMap
       name: deployment
@@ -185,6 +217,10 @@ replacements:
           - metadata.namespace
         select:
           kind: Deployment
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: StatefulSet
       - fieldPaths:
           - metadata.namespace
         select:
@@ -206,6 +242,12 @@ replacements:
           - spec.template.spec.serviceAccountName
         select:
           kind: Deployment
+          name: dynamo-trtllm-prefill
+      - fieldPaths:
+          - spec.template.spec.serviceAccountName
+        select:
+          kind: Deployment
+          name: dynamo-trtllm-decode
   - source:
       fieldPath: data.MODEL_BUCKET_NAME
       kind: ConfigMap

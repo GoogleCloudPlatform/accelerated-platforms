@@ -30,6 +30,7 @@ spec:
         app: dynamo-pool-relay
         app.kubernetes.io/part-of: dynamo-trtllm
     spec:
+      automountServiceAccountToken: false
       containers:
         - args:
             - |
@@ -49,7 +50,7 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: CLUSTER_ID
-                  name: runtime
+                  name: dynamo-trtllm
             - name: DYN_DISCOVERY_BACKEND
               value: etcd
             - name: DYN_EVENT_PLANE
@@ -68,6 +69,8 @@ spec:
               value: "5562"
             - name: ETCD_SERVICE_NAME
               value: dynamo-etcd
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: void
             - name: TARGET_DYN_NAMESPACE
               valueFrom:
                 configMapKeyRef:
@@ -87,6 +90,8 @@ spec:
           ports:
             - containerPort: 5561
               name: grpc
+            - containerPort: 5562
+              name: tcp-resp
             - containerPort: 9091
               name: metrics
           readinessProbe:
@@ -117,5 +122,4 @@ spec:
       securityContext:
         runAsGroup: 0
         runAsUser: 1000
-      serviceAccountName: replaced-by-kustomize
       terminationGracePeriodSeconds: 60

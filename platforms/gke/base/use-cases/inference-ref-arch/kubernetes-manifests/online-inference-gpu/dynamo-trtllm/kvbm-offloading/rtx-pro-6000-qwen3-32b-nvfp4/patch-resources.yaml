@@ -24,8 +24,9 @@ spec:
         - name: inference-server
           resources:
             # 148Gi host memory comfortably fits on a single g4-standard-48 node
-            # (192 GB physical RAM) while accommodating 48 GB of pinned KVBM G2
-            # host DRAM cache + 18.1 GiB RAM-backed GCS FUSE safetensors cache.
+            # (192 GB physical RAM) while accommodating 80 GB of pinned KVBM G2
+            # host DRAM cache (> ~60 GB GPU G1 pool) + 18.1 GiB RAM-backed GCS
+            # FUSE safetensors cache.
             limits:
               cpu: "16"
               ephemeral-storage: "30Gi"

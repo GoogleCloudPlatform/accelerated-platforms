@@ -294,6 +294,7 @@ resource "google_container_node_pool" "system" {
   initial_node_count = 1
   location           = local.cluster_region
   name               = "system"
+  node_locations     = var.cluster_system_node_pool_node_locations
   project            = google_container_cluster.cluster.project
 
   # Blocks

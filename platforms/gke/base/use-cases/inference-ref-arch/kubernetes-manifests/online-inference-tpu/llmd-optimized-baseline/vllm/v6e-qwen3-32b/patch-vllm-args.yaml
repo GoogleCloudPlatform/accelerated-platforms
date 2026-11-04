@@ -21,10 +21,22 @@ spec:
     spec:
       containers:
         - name: modelserver
+          # docker.io/vllm/vllm-torchtpu:v0.29.0 does not bundle
+          # runai-model-streamer[gcs]; install it before starting vLLM.
+          command:
+            - /bin/bash
+            - -c
+            - 'pip install --no-cache-dir "runai-model-streamer[gcs]==0.17.1" && exec vllm serve "$@"'
+            - --
           envFrom:
             - configMapRef:
                 name: runtime
           env:
+            # Bound the per-rank Run:ai CPU ring buffer (default 40 GB per
+            # process -> ~150 GiB across 4 TP workers, which exceeds the 128Gi
+            # container memory limit on ct6e-standard-4t).
+            - name: RUNAI_STREAMER_MEMORY_LIMIT
+              value: "5368709120"
             - name: MODEL_BUCKET_NAME
               valueFrom:
                 configMapKeyRef:
@@ -36,7 +48,9 @@ spec:
             - "--tensor-parallel-size=$(TENSOR_PARALLEL_SIZE)"
             - "--max-model-len=$(MAX_MODEL_LEN)"
             - "--gpu-memory-utilization=$(GPU_MEMORY_UTILIZATION)"
+            - "--attention-backend=CUSTOM"
             - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models"
             - "--served-model-name=$(MODEL_ID)"
             - "--load-format=runai_streamer"
             - '--model-loader-extra-config={"distributed":true}'
+            - "--shutdown-timeout=45"

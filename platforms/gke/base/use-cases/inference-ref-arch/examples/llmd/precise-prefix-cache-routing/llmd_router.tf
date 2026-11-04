@@ -35,7 +35,15 @@ data "helm_template" "llmd_ppcr_router" {
 
   values = [
     data.http.llmd_ppcr_router_base_values.response_body,
-    data.http.llmd_ppcr_router_guide_values.response_body,
+    replace(
+      replace(
+        data.http.llmd_ppcr_router_guide_values.response_body,
+        "modelName: Qwen/Qwen3-32B",
+        "modelName: ${var.llmd_model_id}"
+      ),
+      "blockSizeTokens: 64",
+      local.deploy_on_tpu ? "blockSizeTokens: 256" : "blockSizeTokens: 64"
+    ),
     data.http.llmd_ppcr_router_feature_values.response_body,
     yamlencode({
       provider = {
@@ -45,6 +53,16 @@ data "helm_template" "llmd_ppcr_router" {
   ]
   skip_tests = var.llmd_ppcr_skip_router_render_tests
   validate   = var.llmd_ppcr_validate_router_manifests
+
+  lifecycle {
+    postcondition {
+      condition = (
+        strcontains(self.manifest, "modelName: ${var.llmd_model_id}") &&
+        (!local.deploy_on_tpu || strcontains(self.manifest, "blockSizeTokens: 256"))
+      )
+      error_message = "Rendered precise-prefix-cache-routing router manifest is missing expected modelName (${var.llmd_model_id}) or TPU blockSizeTokens (256)."
+    }
+  }
 }
 
 resource "local_file" "llmd_ppcr_router_manifests" {

@@ -30,9 +30,11 @@ mirror the primary model server, so existing consumers keep working.
 """
 
 import argparse
+import copy
 import datetime
 import json
 import re
+import shlex
 import subprocess
 
 # Node labels that identify the attached accelerator.
@@ -113,6 +115,56 @@ def substitute_vars(text, env_map: dict):
     return curr
 
 
+def get_pod_template(workload: dict) -> dict:
+    """Return the pod template (metadata + spec) for a workload.
+
+    Supports Deployment/StatefulSet (``spec.template``) and LeaderWorkerSet or
+    expanded DisaggregatedSet roles (``spec.leaderWorkerTemplate.workerTemplate``).
+    """
+    return (
+        deep_get(workload, ["spec", "template"])
+        or deep_get(workload, ["spec", "leaderWorkerTemplate", "workerTemplate"])
+        or {}
+    )
+
+
+def expand_disaggregated_sets(items: list) -> list:
+    """Expand DisaggregatedSet roles into per-role workload dicts."""
+    expanded = []
+    for item in items:
+        if item.get("kind") != "DisaggregatedSet":
+            continue
+        base_name = deep_get(item, ["metadata", "name"], "disagg")
+        base_ns = deep_get(item, ["metadata", "namespace"])
+        for role in deep_get(item, ["spec", "roles"], []) or []:
+            role_name = role.get("name", "worker")
+            role_spec = copy.deepcopy(role.get("spec") or {})
+            lwt = role_spec.setdefault("leaderWorkerTemplate", {})
+            if not isinstance(lwt, dict):
+                lwt = {}
+                role_spec["leaderWorkerTemplate"] = lwt
+            wt = lwt.setdefault("workerTemplate", {})
+            if not isinstance(wt, dict):
+                wt = {}
+                lwt["workerTemplate"] = wt
+            wt_meta = wt.setdefault("metadata", {})
+            wt_labels = wt_meta.setdefault("labels", {})
+            wt_labels.setdefault(ROLE_LABEL, role_name)
+            expanded.append(
+                {
+                    "apiVersion": item.get("apiVersion"),
+                    "kind": "DisaggregatedSetRole",
+                    "metadata": {
+                        "name": f"{base_name}-{role_name}",
+                        "namespace": base_ns,
+                    },
+                    "spec": role_spec,
+                    "status": {},
+                }
+            )
+    return expanded
+
+
 def is_model_server(workload: dict) -> bool:
     """Report whether a workload runs a vLLM model server.
 
@@ -124,13 +176,12 @@ def is_model_server(workload: dict) -> bool:
     if name.endswith("-epp") or "-epp-" in name:
         return False
 
-    labels = deep_get(workload, ["spec", "template", "metadata", "labels"], {}) or {}
+    template = get_pod_template(workload)
+    labels = deep_get(template, ["metadata", "labels"], {}) or {}
     if labels.get(ENGINE_LABEL) == "vllm":
         return True
 
-    containers = (
-        deep_get(workload, ["spec", "template", "spec", "containers"], []) or []
-    )
+    containers = deep_get(template, ["spec", "containers"], []) or []
     if any("vllm" in c.get("image", "").lower() for c in containers):
         return True
     return "vllm" in name or labels.get("app") == "vllm"
@@ -164,7 +215,7 @@ def build_env_map(container: dict, configmaps: dict) -> dict:
     for e in container.get("env", []):
         name = e.get("name")
         if "value" in e:
-            env_map[name] = e["value"]
+            env_map[name] = substitute_vars(e["value"], env_map)
             continue
         value_from = e.get("valueFrom", {})
         if "configMapKeyRef" in value_from:
@@ -183,12 +234,41 @@ def build_env_map(container: dict, configmaps: dict) -> dict:
     return env_map
 
 
+def normalize_cli_args(args: list, command: list = None) -> list:
+    """Expand shell-wrapped ``vllm serve`` scripts into a flat list of CLI tokens."""
+    if (
+        len(args) == 1
+        and isinstance(args[0], str)
+        and "vllm serve" in args[0]
+        and (
+            not command
+            or any(
+                str(c).rsplit("/", 1)[-1] in ("sh", "bash", "dash", "zsh")
+                for c in command
+            )
+        )
+    ):
+        idx = args[0].find("vllm serve")
+        tail = args[0][idx + len("vllm serve") :]
+        # Drop full-line shell comments inside multi-line continuation blocks,
+        # join backslash-continued lines, and stop at the first unescaped newline.
+        lines = [ln for ln in tail.splitlines() if not ln.lstrip().startswith("#")]
+        joined = re.sub(r"\\\s*\n", " ", "\n".join(lines))
+        first_cmd = joined.split("\n", 1)[0]
+        try:
+            return shlex.split(first_cmd, comments=True)
+        except ValueError:
+            return first_cmd.split()
+    return list(args)
+
+
 def parse_kv_transfer(args: list) -> dict:
     """Extract and parse the vLLM --kv-transfer-config value.
 
     The flag appears either as ``--kv-transfer-config=<json>`` or as two
     separate argv entries. Both forms are handled.
     """
+    args = normalize_cli_args(args)
     raw = None
     for i, a in enumerate(args):
         if not isinstance(a, str):
@@ -229,6 +309,7 @@ def parse_vllm_args(args: list) -> dict:
     as ``max_model_len``. ``--kv-transfer-config`` is dropped because
     :func:`parse_kv_transfer` already exposes it in structured form.
     """
+    args = normalize_cli_args(args)
     parsed = {}
     i = 0
     while i < len(args):
@@ -262,7 +343,7 @@ def tuning_env(env_map: dict) -> dict:
     return {
         k: v
         for k, v in env_map.items()
-        if k.startswith(("VLLM_", "TPU_", "JAX_", "LIBTPU_", "PJRT_"))
+        if k.startswith(("VLLM_", "TPU_", "JAX_", "LIBTPU_", "PJRT_", "RUNAI_"))
     }
 
 
@@ -380,6 +461,17 @@ def get_live_pods(namespace: str, workload: dict) -> list:
     makes a benchmark reproducible; the workload spec only records the tag.
     """
     match_labels = deep_get(workload, ["spec", "selector", "matchLabels"], {}) or {}
+    if not match_labels and workload.get("kind") == "LeaderWorkerSet":
+        lws_name = deep_get(workload, ["metadata", "name"])
+        if lws_name:
+            match_labels = {"leaderworkerset.sigs.k8s.io/name": lws_name}
+    if not match_labels:
+        pod_labels = (
+            deep_get(get_pod_template(workload), ["metadata", "labels"], {}) or {}
+        )
+        for k in (GUIDE_LABEL, ROLE_LABEL):
+            if pod_labels.get(k):
+                match_labels[k] = pod_labels[k]
     if not match_labels:
         return []
 
@@ -427,7 +519,7 @@ def get_node(name) -> dict:
         return {}
 
 
-def scaling_state(workload: dict, hpa_list: list) -> dict:
+def scaling_state(workload: dict, hpa_list: list, live_pods: list = None) -> dict:
     """Return replicas and HPA target state for a workload."""
     name = deep_get(workload, ["metadata", "name"], "")
     hpa_info = next(
@@ -443,9 +535,18 @@ def scaling_state(workload: dict, hpa_list: list) -> dict:
         ),
         None,
     )
+    ready_replicas = deep_get(workload, ["status", "readyReplicas"])
+    if ready_replicas is None:
+        ready_replicas = sum(
+            1
+            for p in (live_pods or [])
+            if p.get("phase") == "Running"
+            and p.get("containers")
+            and all(c.get("ready") for c in p["containers"])
+        )
     return {
         "configured_replicas": deep_get(workload, ["spec", "replicas"], 1),
-        "ready_replicas": deep_get(workload, ["status", "readyReplicas"], 0),
+        "ready_replicas": ready_replicas,
         "hpa_enabled": hpa_info is not None,
         "hpa_info": hpa_info,
     }
@@ -455,15 +556,15 @@ def describe_model_server(
     namespace: str, workload: dict, configmaps: dict, hpa_list: list
 ) -> dict:
     """Build the full record for a single vLLM model server workload."""
-    pod_spec = deep_get(workload, ["spec", "template", "spec"], {}) or {}
-    pod_labels = (
-        deep_get(workload, ["spec", "template", "metadata", "labels"], {}) or {}
-    )
+    template = get_pod_template(workload)
+    pod_spec = deep_get(template, ["spec"], {}) or {}
+    pod_labels = deep_get(template, ["metadata", "labels"], {}) or {}
     container = pick_model_server_container(pod_spec.get("containers", []) or [])
 
     env_map = build_env_map(container, configmaps)
-    args = [substitute_vars(a, env_map) for a in container.get("args", [])]
     command = [substitute_vars(c, env_map) for c in container.get("command", [])]
+    raw_args = normalize_cli_args(container.get("args", []), command)
+    args = [substitute_vars(a, env_map) for a in raw_args]
 
     count, platform = accelerator_count(container)
     live_pods = get_live_pods(namespace, workload)
@@ -512,8 +613,8 @@ def describe_model_server(
         # kv_cache_dtype, ...) pulled out of the arg list and the environment.
         "serving_parameters": parse_vllm_args(args),
         "tuning_env": tuning_env(env_map),
-        "kv_transfer": parse_kv_transfer(container.get("args", [])),
-        "scaling_state": scaling_state(workload, hpa_list),
+        "kv_transfer": parse_kv_transfer(args),
+        "scaling_state": scaling_state(workload, hpa_list, live_pods),
         "resolved_container_args": args,
         "resolved_container_command": command,
         "resolved_runtime_env": env_map,
@@ -660,12 +761,54 @@ def capture_vllm_config(
             if i.get("kind") == "ConfigMap"
         }
         hpa_list = [i for i in items if i.get("kind") == "HorizontalPodAutoscaler"]
-        workloads = [i for i in items if i.get("kind") in ("Deployment", "StatefulSet")]
+        workloads = [
+            i
+            for i in items
+            if i.get("kind") in ("Deployment", "StatefulSet", "LeaderWorkerSet")
+        ]
+
+        # Disaggregated topologies in llm-d 1.0+ use DisaggregatedSet /
+        # LeaderWorkerSet CRDs rather than standalone Deployments. Query them
+        # best-effort so clusters without the CRDs installed still succeed.
+        if not any(w.get("kind") == "LeaderWorkerSet" for w in workloads):
+            try:
+                lws_items = run_kubectl(
+                    ["get", "leaderworkersets", "-n", namespace, "-o", "json"]
+                ).get("items", [])
+                workloads.extend(lws_items)
+            except (subprocess.CalledProcessError, ValueError):
+                pass
+        lws_names = {
+            deep_get(w, ["metadata", "name"])
+            for w in workloads
+            if w.get("kind") == "LeaderWorkerSet"
+        }
+        if lws_names:
+            workloads = [
+                w
+                for w in workloads
+                if w.get("kind") == "LeaderWorkerSet"
+                or not any(
+                    ref.get("kind") == "LeaderWorkerSet"
+                    and ref.get("name") in lws_names
+                    for ref in deep_get(w, ["metadata", "ownerReferences"], [])
+                )
+            ]
+        if not any(is_model_server(w) for w in workloads):
+            dset_items = [i for i in items if i.get("kind") == "DisaggregatedSet"]
+            if not dset_items:
+                try:
+                    dset_items = run_kubectl(
+                        ["get", "disaggregatedsets", "-n", namespace, "-o", "json"]
+                    ).get("items", [])
+                except (subprocess.CalledProcessError, ValueError):
+                    dset_items = []
+            workloads.extend(expand_disaggregated_sets(dset_items))
 
         candidates = [w for w in workloads if is_model_server(w)]
         if not candidates:
             raise ValueError(
-                f"No vLLM Deployment/StatefulSet found in namespace {namespace}"
+                f"No vLLM Deployment/StatefulSet/LeaderWorkerSet found in namespace {namespace}"
             )
 
         servers = [

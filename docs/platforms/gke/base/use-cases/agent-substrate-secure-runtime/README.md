@@ -2,7 +2,31 @@
 
 **Agent Substrate** (`ate-system`) is a stateful sandbox runtime for Kubernetes that decouples an agent's persistent identity and memory/filesystem state (**Actors**) from underlying compute (**WorkerPools**). Every actor executes inside a dedicated **gVisor (`runsc`)** user-space kernel on warm worker pods, restores in **~500ms** from pre-warmed **Golden Snapshots** (`SNAPSHOT_FIDELITY_MEMORY`) stored in Google Cloud Storage, and routes all network traffic through identity-aware gateways (**`atenet-router`** for ingress and **`atenet-egress`** for default-deny egress, out-of-sandbox credential injection, and pluggable Envoy `ext_proc` L7 HTTP inspection).
 
-![The Secure Runtime Reference Architecture](images/reference-architecture.svg)
+```mermaid
+flowchart LR
+  subgraph Z1["Zone 1: Agent Harness (agent-harness)"]
+    Agent["ADK Triage Agent\n(Gemini on Vertex AI)\nbefore_tool_callback"]
+  end
+  subgraph Z2["Zone 2: Substrate Control & Data Plane (ate-system)"]
+    API["ate-api-server &\nate-controller"]
+    Router["atenet-router (:443)\nmTLS Ingress & Wake-on-Request"]
+    Egress["atenet-egress (:443)\nTLS MITM & Default-Deny"]
+    Cred["k8s-credential-provider\n(agent-credentials)"]
+    ExtProc["intent-extproc (:50051)\nDynamic L7 Method/Path Filter"]
+  end
+  subgraph Z3["Zone 3: Sandbox Worker Pool (ate-workers)"]
+    Worker["ateworker-gvisor + atelet\n(c3-standard-4, Python Scientific Stack)"]
+  end
+  subgraph Z4["Zone 4: State & Storage"]
+    GCS[("GCS Snapshot Bucket\nGolden & Actor Checkpoints")]
+  end
+  Agent -->|"1. EgressPolicy + L7 Intent"| API & ExtProc
+  Agent -->|"2. mTLS /run"| Router --> Worker
+  Worker <-->|"Golden Restore / Suspend"| GCS
+  Worker -->|"3. Outbound HTTPS"| Egress
+  Egress <-->|"replaceHeaders"| Cred
+  Egress <-->|"ext_proc"| ExtProc
+```
 
 ## Architecture Components & Trust Zones
 

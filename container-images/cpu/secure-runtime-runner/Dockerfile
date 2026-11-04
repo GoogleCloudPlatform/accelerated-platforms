@@ -14,30 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM python:3.12-slim-bookworm AS builder
+FROM python:3.12-slim-bookworm
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV APP_HOME=/usr/src/app
-
-WORKDIR $APP_HOME
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PORT=80
+WORKDIR /usr/src/app
 
 COPY --from=primary requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-FROM python:3.12-slim-bookworm
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV APP_HOME=/usr/src/app
-ENV PORT=80
-
-WORKDIR $APP_HOME
-
-COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=primary runner.py .
 
 EXPOSE 80 8080
-
 CMD ["python", "runner.py"]

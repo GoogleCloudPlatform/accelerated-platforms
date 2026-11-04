@@ -26,7 +26,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
   cluster            = data.google_container_cluster.cluster.name
   initial_node_count = 0
   location           = local.cluster_region
-  name     = "cpu-n4s8"
+  name               = "cpu-n4s8"
   node_locations = [
     "us-central1-a",
     "us-central1-b",
@@ -97,7 +97,7 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
   cluster            = data.google_container_cluster.cluster.name
   initial_node_count = 0
   location           = local.cluster_region
-  name     = "cpu-n4s8-spot"
+  name               = "cpu-n4s8-spot"
   node_locations = [
     "us-central1-a",
     "us-central1-b",

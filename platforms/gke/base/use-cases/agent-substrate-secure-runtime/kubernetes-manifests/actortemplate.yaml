@@ -12,12 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Agent Substrate ActorTemplate (protojson-shaped ateapi.ActorTemplate) applied
-# via `kubectl-ate create actor-template -f -`.
-# Creating this ActorTemplate triggers an automatic Golden Snapshot build job on
-# a warm WorkerPool pod: it boots the container, pre-loads numpy/scipy/pandas/
-# matplotlib into memory, waits for /readyz on port 80, and checkpoints memory +
-# filesystem state (`SNAPSHOT_FIDELITY_MEMORY`) as the Golden Snapshot.
 metadata:
   atespace: ${SUBSTRATE_ATESPACE}
   name: scientific-python
@@ -49,9 +43,7 @@ volumes:
     systemInfo:
       dataSources:
         - trustBundle:
-            names:
-              - egress-mitm.ate.dev
-              - system-roots.ate.dev
+            names: ["egress-mitm.ate.dev", "system-roots.ate.dev"]
             path: egress-trust-bundle/trust-bundle.pem
 resources:
   limits:
@@ -59,6 +51,3 @@ resources:
     memoryBytes: 2147483648
 snapshotConfig:
   preferredFidelity: SNAPSHOT_FIDELITY_MEMORY
-# Snapshots are stored under ate-api-server's --snapshot-location
-# (gs://<snapshot bucket>/). Per-template storageLocation requires the
-# PerTemplateSnapshotLocation preview gate as of Agent Substrate v1.0.0.

@@ -12,24 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#######################################################################################################################
-# Agent Substrate Worker Node Pool (Uniform C3 x 4)
-# Note: Agent Substrate requires a uniform CPU microarchitecture across worker nodes so gVisor checkpoint/restore
-# snapshots can migrate cleanly across nodes in the pool.
-#######################################################################################################################
-
 resource "google_container_node_pool" "cpu_c3s4_substrate" {
   cluster            = data.google_container_cluster.cluster.name
   initial_node_count = 0
   location           = local.cluster_region
   name               = "cpu-c3s4-substrate"
-  node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
-    "us-central1-f",
-  ]
-  project = data.google_project.cluster.project_id
+  node_locations     = ["us-central1-a", "us-central1-b", "us-central1-c", "us-central1-f"]
+  project            = data.google_project.cluster.project_id
 
   autoscaling {
     location_policy      = "ANY"
@@ -43,15 +32,13 @@ resource "google_container_node_pool" "cpu_c3s4_substrate" {
 
   node_config {
     labels = {
-      "ate.dev/worker-pool" : "true"
-      "resource-model" : "c3"
-      "resource-type" : "cpu"
+      "ate.dev/worker-pool" = "true"
+      "resource-model"      = "c3"
+      "resource-type"       = "cpu"
     }
     machine_type    = "c3-standard-4"
+    oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
     service_account = data.google_service_account.cluster.email
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
-    ]
 
     gcfs_config {
       enabled = true
@@ -78,24 +65,14 @@ resource "google_container_node_pool" "cpu_c3s4_substrate" {
   }
 }
 
-#######################################################################################################################
-# GKE Sandbox (gVisor) Node Pool for Cold-Start Baseline Comparison
-#######################################################################################################################
-
 resource "google_container_node_pool" "cpu_n4s4_gvisor" {
-  provider = google-beta
-
+  provider           = google-beta
   cluster            = data.google_container_cluster.cluster.name
   initial_node_count = 0
   location           = local.cluster_region
   name               = "cpu-n4s4-gvisor"
-  node_locations = [
-    "us-central1-a",
-    "us-central1-b",
-    "us-central1-c",
-    "us-central1-f",
-  ]
-  project = data.google_project.cluster.project_id
+  node_locations     = ["us-central1-a", "us-central1-b", "us-central1-c", "us-central1-f"]
+  project            = data.google_project.cluster.project_id
 
   autoscaling {
     location_policy      = "ANY"
@@ -110,15 +87,13 @@ resource "google_container_node_pool" "cpu_n4s4_gvisor" {
   node_config {
     image_type = "COS_CONTAINERD"
     labels = {
-      "resource-model" : "e2"
-      "resource-type" : "cpu"
-      "sandbox-runtime" : "gvisor"
+      "resource-model"  = "e2"
+      "resource-type"   = "cpu"
+      "sandbox-runtime" = "gvisor"
     }
     machine_type    = "e2-standard-4"
+    oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
     service_account = data.google_service_account.cluster.email
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
-    ]
 
     gcfs_config {
       enabled = true

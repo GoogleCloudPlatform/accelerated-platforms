@@ -13,20 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Act 2: Crushing the Cold-Start Penalty (Golden Snapshot Restore vs Cold K8s gVisor Pod)
-# Side-by-side race between:
-#   A) Standard Kubernetes Pod with `runtimeClassName: gvisor` booting and importing
-#      `numpy`, `scipy`, `pandas`, and `matplotlib` from scratch (~15-25s).
-#   B) Agent Substrate Actor restored from the `scientific-python` Golden Snapshot
-#      (`SNAPSHOT_FIDELITY_MEMORY`) onto a warm WorkerPool pod (<500ms).
+set -euo pipefail
 
-set -o errexit
-set -o nounset
-set -o pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MANIFESTS_DIR="${SCRIPT_DIR}/../kubernetes-manifests"
-ATESPACE="${SUBSTRATE_ATESPACE:-secure-runtime}"
 TEMPLATE_NAME="${SUBSTRATE_ACTOR_TEMPLATE:-scientific-python}"
 WARM_ACTOR="race-actor-$(date +%s)"
 
@@ -35,21 +23,39 @@ echo " ACT 2: Cold-Start Race — Standard gVisor Pod vs Substrate Golden Snapsh
 echo "========================================================================"
 
 RUNNER_IMAGE="$(kubectl get deployment triage-agent -n agent-harness -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null | sed 's/secure-runtime-agent:/secure-runtime-runner:/')"
-if [[ -z "${RUNNER_IMAGE}" ]]; then
-  echo "Error: Could not resolve RUNNER_IMAGE from cluster. Set RUNNER_IMAGE env var explicitly." >&2
-  exit 1
-fi
-
 trap 'kubectl delete pod cold-gvisor-baseline -n default --ignore-not-found >/dev/null 2>&1 || true' EXIT
 
 echo "==> [Baseline A] Creating fresh cold Kubernetes gVisor Pod (cold-gvisor-baseline)..."
 kubectl delete pod cold-gvisor-baseline -n default --ignore-not-found >/dev/null 2>&1 || true
 
 COLD_START_NS="$(date +%s%N)"
-sed "s|\${RUNNER_IMAGE}|${RUNNER_IMAGE}|g" "${MANIFESTS_DIR}/baseline/cold-pod.yaml" | kubectl apply -f - >/dev/null
+kubectl apply -f - >/dev/null <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cold-gvisor-baseline
+  namespace: default
+spec:
+  runtimeClassName: gvisor
+  nodeSelector:
+    sandbox-runtime: gvisor
+  restartPolicy: Never
+  containers:
+    - name: runner
+      image: ${RUNNER_IMAGE}
+      imagePullPolicy: Always
+      readinessProbe:
+        httpGet:
+          path: /readyz
+          port: 80
+        initialDelaySeconds: 1
+        periodSeconds: 1
+      resources:
+        requests: { cpu: 500m, memory: 2Gi }
+        limits: { cpu: "1", memory: 2Gi }
+EOF
 kubectl wait --for=condition=Ready pod/cold-gvisor-baseline -n default --timeout=180s >/dev/null
-COLD_END_NS="$(date +%s%N)"
-COLD_TOTAL_MS="$(( (COLD_END_NS - COLD_START_NS) / 1000000 ))"
+COLD_TOTAL_MS="$(( ($(date +%s%N) - COLD_START_NS) / 1000000 ))"
 echo "    [Baseline A] Cold gVisor Pod Ready (incl. numpy/scipy/pandas/matplotlib import): ${COLD_TOTAL_MS} ms"
 
 echo ""
@@ -65,18 +71,8 @@ client.ensure_actor(actor_name)
 ready = client.call_actor(actor_name, "GET", "/readyz")
 warm_ms = ready["router_roundtrip_ms"]
 
-run_python_in_actor(
-    code='STATE = {"issue": 19, "solver": "tikhonov_1e-6", "status": "verified"}',
-    actor_name=actor_name,
-    suspend_after=True,
-)
-resumed = json.loads(
-    run_python_in_actor(
-        code="import json; print(json.dumps(STATE))",
-        actor_name=actor_name,
-        suspend_after=True,
-    )
-)["execution"]
+run_python_in_actor(code='STATE = {"issue": 19, "solver": "tikhonov_1e-6", "status": "verified"}', actor_name=actor_name, suspend_after=True)
+resumed = json.loads(run_python_in_actor(code="import json; print(json.dumps(STATE))", actor_name=actor_name, suspend_after=True))["execution"]
 
 print(f"    [Substrate B] Golden Snapshot Actor Ready (/readyz): {warm_ms} ms")
 print(f"    [Substrate B] Pre-loaded scientific stack payload  : {json.dumps(ready)}")

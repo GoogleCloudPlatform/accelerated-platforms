@@ -94,6 +94,9 @@ rm -rf \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/huggingface/downloader.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/huggingface/secretproviderclass-huggingface-tokens.yaml" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/base/deployment.env" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/disaggregated-pd/base/dynamo-trtllm.env" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/kv-routing/base/dynamo-trtllm.env" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/kvbm-offloading/base/dynamo-trtllm.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/trtllm/base/trtllm.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/base/vllm.env" \
   "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/online-inference-gpu/vllm-runai/base/vllm.env" \

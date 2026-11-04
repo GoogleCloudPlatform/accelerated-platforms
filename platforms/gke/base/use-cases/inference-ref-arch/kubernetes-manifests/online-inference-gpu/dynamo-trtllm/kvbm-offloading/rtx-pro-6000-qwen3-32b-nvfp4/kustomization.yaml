@@ -1,0 +1,206 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+configMapGenerator:
+  - envs:
+      - runtime.env
+    name: runtime
+    namespace: replaced-by-kustomize
+
+nameSuffix: -rtx6000-qwen3-32b-nvfp4
+
+patches:
+  - path: patch-nodeselector.yaml
+  - path: patch-resources.yaml
+
+replacements:
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.template.metadata.labels.[app.kubernetes.io/part-of]
+        select:
+          kind: Deployment
+          name: dynamo-frontend
+      - fieldPaths:
+          - spec.template.metadata.labels.[app.kubernetes.io/part-of]
+        select:
+          kind: Deployment
+          name: dynamo-trtllm-worker
+  - source:
+      fieldPath: data.ETCD_APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+          name: dynamo-etcd
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+          name: dynamo-etcd
+  - source:
+      fieldPath: data.FRONTEND_APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+          name: dynamo-frontend
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+          name: dynamo-frontend
+  - source:
+      fieldPath: data.WORKER_APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+          name: dynamo-trtllm-worker
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+        select:
+          kind: PodMonitoring
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+        select:
+          kind: PodDisruptionBudget
+  - source:
+      fieldPath: metadata.name
+      kind: Service
+      name: dynamo-etcd
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=etcd].env.[name=ETCD_SERVICE_NAME].value
+        select:
+          kind: Deployment
+          name: dynamo-etcd
+      - fieldPaths:
+          - spec.template.spec.containers.[name=frontend].env.[name=ETCD_SERVICE_NAME].value
+        select:
+          kind: Deployment
+          name: dynamo-frontend
+      - fieldPaths:
+          - spec.template.spec.containers.[name=inference-server].env.[name=ETCD_SERVICE_NAME].value
+        select:
+          kind: Deployment
+          name: dynamo-trtllm-worker
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: dynamo-trtllm
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=etcd].image
+        select:
+          kind: Deployment
+          name: dynamo-etcd
+      - fieldPaths:
+          - spec.template.spec.containers.[name=frontend].image
+        select:
+          kind: Deployment
+          name: dynamo-frontend
+      - fieldPaths:
+          - spec.template.spec.containers.[name=inference-server].image
+        select:
+          kind: Deployment
+          name: dynamo-trtllm-worker
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Service
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PodMonitoring
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PodDisruptionBudget
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.template.spec.serviceAccountName
+        select:
+          kind: Deployment
+  - source:
+      fieldPath: data.MODEL_BUCKET_NAME
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
+        select:
+          kind: Deployment
+          name: dynamo-trtllm-worker
+  - source:
+      fieldPath: data.MODEL_GCS_DIR
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
+        options:
+          delimiter: "only-dir:"
+          index: 1
+        select:
+          kind: Deployment
+          name: dynamo-trtllm-worker
+  - source:
+      fieldPath: data.MODEL_NAME
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.template.metadata.labels.[ai.gke.io/model]
+        select:
+          kind: Deployment
+          name: dynamo-trtllm-worker
+
+resources:
+  - ../base

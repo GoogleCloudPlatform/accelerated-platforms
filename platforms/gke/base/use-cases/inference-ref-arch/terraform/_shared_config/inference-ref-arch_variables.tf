@@ -54,6 +54,7 @@ locals {
 
   ira_online_gpu_diffusers_flux_image_url             = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
   ira_online_gpu_diffusers_sglang_diffusers_image_url = var.ira_online_gpu_sglang_diffusers_image_url != null ? var.ira_online_gpu_sglang_diffusers_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/sglang:latest"
+  ira_online_gpu_dynamo_trtllm_image_url              = var.ira_online_gpu_dynamo_trtllm_image_url
   ira_online_gpu_kubernetes_namespace_name            = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_kubernetes_service_account_name      = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_pod_snapshots_bucket_name            = var.ira_online_gpu_pod_snapshots_bucket_name != null ? var.ira_online_gpu_pod_snapshots_bucket_name : "${var.platform_default_project_id}-${local.unique_identifier_prefix}-pod-snapshots"
@@ -230,6 +231,12 @@ variable "ira_offline_batch_project_id" {
 variable "ira_online_gpu_diffusers_flux_image_url" {
   default     = null
   description = "The URL for the GPU Diffusers Flux container image."
+  type        = string
+}
+
+variable "ira_online_gpu_dynamo_trtllm_image_url" {
+  default     = "nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.6.1@sha256:597d7606c515e7f8ba6a4e0e94d84a26cf1c2c5966d07696b5dbab08e4540f41"
+  description = "The URL for the NVIDIA Dynamo TensorRT-LLM runtime container image."
   type        = string
 }
 

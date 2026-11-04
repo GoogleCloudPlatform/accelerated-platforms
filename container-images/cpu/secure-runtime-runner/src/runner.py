@@ -13,13 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Actor runner workload for 'The Secure Runtime' on Agent Substrate.
-
-Pre-imports heavy scientific libraries (numpy, pandas, scipy, matplotlib, httpx)
-before answering /readyz so that Agent Substrate's Golden Snapshot captures the
-warm Python interpreter memory image. Restored actors wake with all libraries
-already resident in RAM and zero credentials in the environment.
-"""
+"""Actor runner workload for 'The Secure Runtime' on Agent Substrate."""
 
 import contextlib
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -41,16 +35,7 @@ import scipy.stats  # noqa: E402
 
 matplotlib.use("Agg")
 _WARM_IMPORT_MS = round((time.monotonic() - _BOOT_START) * 1000, 2)
-
-# Persistent execution namespace across requests to the same actor instance.
-_EXEC_GLOBALS = {
-    "__builtins__": __builtins__,
-    "np": np,
-    "pd": pd,
-    "scipy": scipy,
-    "matplotlib": matplotlib,
-    "httpx": httpx,
-}
+_EXEC_GLOBALS = {"__builtins__": __builtins__, "np": np, "pd": pd, "scipy": scipy, "matplotlib": matplotlib, "httpx": httpx}
 
 
 def _read_proc_file(path: str) -> str:
@@ -62,22 +47,8 @@ def _read_proc_file(path: str) -> str:
 
 
 def _collect_sandbox_info() -> dict:
-    status_text = _read_proc_file("/proc/self/status")
-    cap_eff = ""
-    for line in status_text.splitlines():
-        if line.startswith("CapEff:"):
-            cap_eff = line.split(":", 1)[1].strip()
-            break
-
-    secret_env_keys = [
-        k
-        for k in os.environ
-        if any(
-            token in k.upper()
-            for token in ("TOKEN", "SECRET", "KEY", "PASSWORD", "CREDENTIAL")
-        )
-    ]
-
+    cap_eff = next((line.split(":", 1)[1].strip() for line in _read_proc_file("/proc/self/status").splitlines() if line.startswith("CapEff:")), "")
+    secret_env_keys = [k for k in os.environ if any(t in k.upper() for t in ("TOKEN", "SECRET", "KEY", "PASSWORD", "CREDENTIAL"))]
     return {
         "kernel_version": _read_proc_file("/proc/version"),
         "uname": platform.uname()._asdict(),
@@ -85,13 +56,7 @@ def _collect_sandbox_info() -> dict:
         "gid": os.getgid(),
         "cap_eff": cap_eff,
         "warm_import_ms_at_boot": _WARM_IMPORT_MS,
-        "preloaded_modules": {
-            "numpy": np.__version__,
-            "pandas": pd.__version__,
-            "scipy": scipy.__version__,
-            "matplotlib": matplotlib.__version__,
-            "httpx": httpx.__version__,
-        },
+        "preloaded_modules": {"numpy": np.__version__, "pandas": pd.__version__, "scipy": scipy.__version__, "matplotlib": matplotlib.__version__, "httpx": httpx.__version__},
         "credential_env_vars_present": secret_env_keys,
         "ssl_cert_dir": os.environ.get("SSL_CERT_DIR", ""),
     }
@@ -110,26 +75,16 @@ class RunnerHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path == "/readyz":
-            self._send_json(
-                200,
-                {
-                    "status": "ready",
-                    "warm_import_ms": _WARM_IMPORT_MS,
-                },
-            )
-            return
-
-        if self.path == "/info":
+            self._send_json(200, {"status": "ready", "warm_import_ms": _WARM_IMPORT_MS})
+        elif self.path == "/info":
             self._send_json(200, _collect_sandbox_info())
-            return
-
-        self._send_json(404, {"error": f"unknown path: {self.path}"})
+        else:
+            self._send_json(404, {"error": f"unknown path: {self.path}"})
 
     def do_POST(self) -> None:  # noqa: N802
         if self.path != "/run":
             self._send_json(404, {"error": f"unknown path: {self.path}"})
             return
-
         content_len = int(self.headers.get("Content-Length", "0"))
         body = self.rfile.read(content_len) if content_len > 0 else b"{}"
         try:
@@ -143,15 +98,10 @@ class RunnerHandler(BaseHTTPRequestHandler):
             self._send_json(400, {"error": "field 'code' is required"})
             return
 
-        stdout_buf = io.StringIO()
-        stderr_buf = io.StringIO()
-        exec_start = time.monotonic()
-        exit_code = 0
-
+        stdout_buf, stderr_buf = io.StringIO(), io.StringIO()
+        exec_start, exit_code = time.monotonic(), 0
         try:
-            with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(
-                stderr_buf
-            ):
+            with contextlib.redirect_stdout(stdout_buf), contextlib.redirect_stderr(stderr_buf):
                 exec(compile(code, "<actor-sandbox>", "exec"), _EXEC_GLOBALS)
         except SystemExit as exc:
             exit_code = int(exc.code) if isinstance(exc.code, int) else 1
@@ -159,14 +109,13 @@ class RunnerHandler(BaseHTTPRequestHandler):
             exit_code = 1
             traceback.print_exc(file=stderr_buf)
 
-        duration_ms = round((time.monotonic() - exec_start) * 1000, 2)
         self._send_json(
             200,
             {
                 "exit_code": exit_code,
                 "stdout": stdout_buf.getvalue(),
                 "stderr": stderr_buf.getvalue(),
-                "duration_ms": duration_ms,
+                "duration_ms": round((time.monotonic() - exec_start) * 1000, 2),
                 "warm_import_ms_saved": _WARM_IMPORT_MS,
             },
         )
@@ -177,19 +126,11 @@ class RunnerHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     port = int(os.environ.get("PORT", "80"))
-    # Configure default CA bundle if Substrate's egress MITM trust bundle is mounted.
     trust_bundle = "/run/ate/egress-trust-bundle/trust-bundle.pem"
     if os.path.exists(trust_bundle):
         os.environ.setdefault("SSL_CERT_FILE", trust_bundle)
         os.environ.setdefault("REQUESTS_CA_BUNDLE", trust_bundle)
-
-    server = HTTPServer(("0.0.0.0", port), RunnerHandler)
-    print(
-        f"[secure-runtime-runner] Listening on :{port} "
-        f"(preloaded scientific stack in {_WARM_IMPORT_MS} ms)",
-        flush=True,
-    )
-    server.serve_forever()
+    HTTPServer(("0.0.0.0", port), RunnerHandler).serve_forever()
 
 
 if __name__ == "__main__":

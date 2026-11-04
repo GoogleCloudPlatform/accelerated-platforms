@@ -14,16 +14,12 @@
 
 // Command intent-extproc is an Envoy ExternalProcessor (ext_proc) service for
 // Agent Substrate's atenet-egress gateway (--experimental-additional-egress-extproc-service).
-//
-// It sits on the decrypted HTTPS MITM filter chain after Substrate's hostname
-// EgressPolicy and credential injector, enforcing dynamic per-actor L7 intent
-// policies (allowed HTTP methods and URL path prefixes) registered by the agent
-// harness before each tool call.
 package main
 
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -32,9 +28,12 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
+	"slices"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -49,13 +48,125 @@ import (
 const actorIdentityAttribute = "filter_state['dev.ate.actor.identity']"
 
 var (
-	grpcAddr         = flag.String("grpc-address", ":50051", "gRPC listen address for Envoy ext_proc")
-	httpAddr         = flag.String("http-address", ":8080", "HTTP listen address for intent policy control API and /readyz")
-	serverBundle     = flag.String("server-cred-bundle", "/run/servicedns.podcert.ate.dev/credential-bundle.pem", "PEM credential bundle (key+chain) from servicedns.podcert.ate.dev/identity")
-	clientCAFile     = flag.String("client-ca-file", "/run/podidentity.podcert.ate.dev/trust-bundle.pem", "PEM trust bundle from podidentity.podcert.ate.dev/identity")
-	callerSPIFFEID   = flag.String("caller-spiffe-id", "spiffe://cluster.local/ns/ate-system/sa/atenet-egress", "Required client certificate URI SAN for Envoy ext_proc connections")
-	defaultActorRule = flag.String("default-intent-json", "", "Optional JSON IntentRule to seed at startup")
+	grpcAddr       = flag.String("grpc-address", ":50051", "gRPC listen address for Envoy ext_proc")
+	httpAddr       = flag.String("http-address", ":8080", "HTTP listen address for intent policy control API")
+	serverBundle   = flag.String("server-cred-bundle", "/run/servicedns.podcert.ate.dev/credential-bundle.pem", "PEM credential bundle (key+chain)")
+	clientCAFile   = flag.String("client-ca-file", "/run/podidentity.podcert.ate.dev/trust-bundle.pem", "PEM client CA trust bundle")
+	callerSPIFFEID = flag.String("caller-spiffe-id", "spiffe://cluster.local/ns/ate-system/sa/atenet-egress", "Required client URI SAN")
 )
+
+type IntentRule struct {
+	Actor             string   `json:"actor"`
+	Intent            string   `json:"intent"`
+	AllowedHosts      []string `json:"allowed_hosts"`
+	AllowedMethods    []string `json:"allowed_methods"`
+	AllowedPathPrefix []string `json:"allowed_path_prefixes"`
+	UpdatedAt         string   `json:"updated_at"`
+}
+
+type AuditEvent struct {
+	Timestamp     string `json:"timestamp"`
+	ActorIdentity string `json:"ate.actor.identity"`
+	ActorRef      string `json:"ate.actor.ref"`
+	Intent        string `json:"intent"`
+	Method        string `json:"http.method"`
+	Authority     string `json:"http.authority"`
+	Path          string `json:"http.path"`
+	HasAuthHeader bool   `json:"credential_injected"`
+	Decision      string `json:"decision"`
+	StatusCode    int    `json:"status_code"`
+	Reason        string `json:"reason"`
+}
+
+type PolicyStore struct {
+	mu        sync.RWMutex
+	rules     map[string]IntentRule
+	events    []AuditEvent
+	maxEvents int
+}
+
+func NewPolicyStore(maxEvents int) *PolicyStore {
+	return &PolicyStore{rules: make(map[string]IntentRule), maxEvents: max(maxEvents, 200)}
+}
+
+func (s *PolicyStore) SetRule(rule IntentRule) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	rule.Actor = strings.TrimSpace(rule.Actor)
+	for i, m := range rule.AllowedMethods {
+		rule.AllowedMethods[i] = strings.ToUpper(strings.TrimSpace(m))
+	}
+	for i, h := range rule.AllowedHosts {
+		rule.AllowedHosts[i] = strings.ToLower(strings.TrimSpace(h))
+	}
+	rule.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
+	s.rules[rule.Actor] = rule
+}
+
+func (s *PolicyStore) DeleteRule(actor string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.rules, strings.TrimSpace(actor))
+}
+
+func (s *PolicyStore) RecordAudit(ev AuditEvent) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.events) >= s.maxEvents {
+		s.events = s.events[1:]
+	}
+	s.events = append(s.events, ev)
+}
+
+func (s *PolicyStore) ListAuditEvents() []AuditEvent {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return slices.Clone(s.events)
+}
+
+func ParseActorRef(rawIdentity string) string {
+	rawIdentity = strings.TrimSpace(rawIdentity)
+	if !strings.HasPrefix(rawIdentity, "spiffe://") {
+		return rawIdentity
+	}
+	u, err := url.Parse(rawIdentity)
+	if err != nil {
+		return rawIdentity
+	}
+	if seg := strings.Split(strings.TrimPrefix(u.Path, "/"), "/"); len(seg) == 3 && (seg[0] == "worker-for-actor" || seg[0] == "actor") {
+		return seg[1] + "/" + seg[2]
+	}
+	return rawIdentity
+}
+
+func (s *PolicyStore) Evaluate(actorIdentity, method, authority, reqPath string, _ bool) (bool, int, string, string) {
+	actorRef := ParseActorRef(actorIdentity)
+	method = strings.ToUpper(strings.TrimSpace(method))
+	host, _, _ := strings.Cut(strings.ToLower(strings.TrimSpace(authority)), ":")
+	cleanPath, _, _ := strings.Cut(reqPath, "?")
+
+	s.mu.RLock()
+	rule, ok := s.rules[actorRef]
+	if !ok {
+		if _, bare, hasSlash := strings.Cut(actorRef, "/"); hasSlash {
+			rule, ok = s.rules[bare]
+		}
+	}
+	s.mu.RUnlock()
+	if !ok {
+		return false, 403, fmt.Sprintf("intent-extproc: no active intent policy registered for actor %q (default-deny)", actorRef), "none"
+	}
+	if len(rule.AllowedHosts) > 0 && !slices.Contains(rule.AllowedHosts, "*") && !slices.Contains(rule.AllowedHosts, host) {
+		return false, 403, fmt.Sprintf("intent-extproc: host %q is not permitted by intent %q (allowed hosts: %v)", host, rule.Intent, rule.AllowedHosts), rule.Intent
+	}
+	if !slices.Contains(rule.AllowedMethods, "*") && !slices.Contains(rule.AllowedMethods, method) {
+		return false, 403, fmt.Sprintf("intent-extproc: HTTP method %s to %s%s is blocked by intent %q (allowed methods: %v)", method, host, cleanPath, rule.Intent, rule.AllowedMethods), rule.Intent
+	}
+	if len(rule.AllowedPathPrefix) > 0 && !slices.ContainsFunc(rule.AllowedPathPrefix, func(p string) bool { return p == "*" || strings.HasPrefix(cleanPath, p) }) {
+		return false, 403, fmt.Sprintf("intent-extproc: path %q on %s is outside the scope of intent %q (allowed prefixes: %v)", cleanPath, host, rule.Intent, rule.AllowedPathPrefix), rule.Intent
+	}
+	return true, 200, fmt.Sprintf("allowed by intent %q", rule.Intent), rule.Intent
+}
 
 type ExtProcServer struct {
 	extprocv3.UnimplementedExternalProcessorServer
@@ -71,356 +182,187 @@ func (s *ExtProcServer) Process(stream extprocv3.ExternalProcessor_ProcessServer
 		if err != nil {
 			return err
 		}
-
-		var resp *extprocv3.ProcessingResponse
-		switch r := req.Request.(type) {
-		case *extprocv3.ProcessingRequest_RequestHeaders:
-			resp = s.handleRequestHeaders(req.GetAttributes(), r.RequestHeaders)
-		default:
-			resp = &extprocv3.ProcessingResponse{
-				Response: &extprocv3.ProcessingResponse_RequestHeaders{
-					RequestHeaders: &extprocv3.HeadersResponse{
-						Response: &extprocv3.CommonResponse{},
-					},
-				},
-			}
+		resp := &extprocv3.ProcessingResponse{
+			Response: &extprocv3.ProcessingResponse_RequestHeaders{
+				RequestHeaders: &extprocv3.HeadersResponse{Response: &extprocv3.CommonResponse{}},
+			},
 		}
-
+		if r, ok := req.Request.(*extprocv3.ProcessingRequest_RequestHeaders); ok {
+			resp = s.handleRequestHeaders(req.GetAttributes(), r.RequestHeaders)
+		}
 		if err := stream.Send(resp); err != nil {
 			return err
 		}
 	}
 }
 
-func (s *ExtProcServer) handleRequestHeaders(
-	attributes map[string]*structpb.Struct,
-	reqHeaders *extprocv3.HttpHeaders,
-) *extprocv3.ProcessingResponse {
-	var method, authority, reqPath string
-	hasAuthHeader := false
-	isMockAuthHeader := false
-
+func (s *ExtProcServer) handleRequestHeaders(attributes map[string]*structpb.Struct, reqHeaders *extprocv3.HttpHeaders) *extprocv3.ProcessingResponse {
+	var method, authority, reqPath, actorIdentity string
+	hasAuth := false
 	for _, h := range reqHeaders.GetHeaders().GetHeaders() {
-		k := strings.ToLower(h.Key)
-		val := h.Value
-		if val == "" && len(h.RawValue) > 0 {
-			val = string(h.RawValue)
+		v := h.Value
+		if v == "" {
+			v = string(h.RawValue)
 		}
-		switch k {
+		switch strings.ToLower(h.Key) {
 		case ":method":
-			method = val
+			method = v
 		case ":authority", "host":
 			if authority == "" {
-				authority = val
+				authority = v
 			}
 		case ":path":
-			reqPath = val
+			reqPath = v
 		case "authorization":
-			trimmed := strings.TrimSpace(val)
-			if trimmed != "" {
-				hasAuthHeader = true
-				if strings.Contains(trimmed, "ghp_replace_with_") || strings.Contains(trimmed, "ghp_mock_") {
-					isMockAuthHeader = true
-				}
-			}
+			hasAuth = strings.TrimSpace(v) != ""
 		}
 	}
-
-	actorIdentity := extractAttribute(attributes, actorIdentityAttribute)
+	for _, attrs := range attributes {
+		if v, ok := attrs.GetFields()[actorIdentityAttribute]; ok {
+			actorIdentity = v.GetStringValue()
+			break
+		}
+	}
 	actorRef := ParseActorRef(actorIdentity)
-
-	allowed, code, reason, intent := s.store.Evaluate(actorIdentity, method, authority, reqPath, hasAuthHeader)
-	decision := "ALLOW"
-	if !allowed {
-		decision = "DENY"
-	}
-
-	ev := AuditEvent{
-		Timestamp:     time.Now().UTC().Format(time.RFC3339Nano),
-		ActorIdentity: actorIdentity,
-		ActorRef:      actorRef,
-		Intent:        intent,
-		Method:        method,
-		Authority:     authority,
-		Path:          reqPath,
-		HasAuthHeader: hasAuthHeader,
-		Decision:      decision,
-		StatusCode:    code,
-		Reason:        reason,
-	}
-	s.store.RecordAudit(ev)
-
-	slog.Info("egress_intent_decision",
-		slog.String("ate.actor.identity", actorIdentity),
-		slog.String("ate.actor.ref", actorRef),
-		slog.String("intent", intent),
-		slog.String("http.method", method),
-		slog.String("http.authority", authority),
-		slog.String("http.path", reqPath),
-		slog.Bool("credential_injected", hasAuthHeader),
-		slog.String("decision", decision),
-		slog.Int("status_code", code),
-		slog.String("reason", reason),
-	)
-
+	allowed, code, reason, intent := s.store.Evaluate(actorIdentity, method, authority, reqPath, hasAuth)
+	decision := map[bool]string{true: "ALLOW", false: "DENY"}[allowed]
+	s.store.RecordAudit(AuditEvent{
+		Timestamp: time.Now().UTC().Format(time.RFC3339Nano), ActorIdentity: actorIdentity,
+		ActorRef: actorRef, Intent: intent, Method: method, Authority: authority,
+		Path: reqPath, HasAuthHeader: hasAuth, Decision: decision, StatusCode: code, Reason: reason,
+	})
+	slog.Info("egress_intent_decision", "ate.actor.ref", actorRef, "intent", intent, "http.method", method, "http.authority", authority, "http.path", reqPath, "decision", decision, "status_code", code)
 	if !allowed {
 		bodyJSON, _ := json.Marshal(map[string]any{
-			"error":          "blocked_by_egress_intent_policy",
-			"actor":          actorRef,
-			"active_intent":  intent,
-			"method":         method,
-			"authority":      authority,
-			"path":           reqPath,
-			"reason":         reason,
-			"enforced_by":    "atenet-egress/intent-extproc",
-			"status_code":    code,
+			"error": "blocked_by_egress_intent_policy", "actor": actorRef, "active_intent": intent,
+			"method": method, "authority": authority, "path": reqPath, "reason": reason, "status_code": code,
 		})
 		return &extprocv3.ProcessingResponse{
 			Response: &extprocv3.ProcessingResponse_ImmediateResponse{
 				ImmediateResponse: &extprocv3.ImmediateResponse{
-					Status: &envoy_type.HttpStatus{
-						Code: envoy_type.StatusCode_Forbidden,
-					},
-					Body: bodyJSON,
+					Status:  &envoy_type.HttpStatus{Code: envoy_type.StatusCode_Forbidden},
+					Body:    bodyJSON,
 					Details: "intent_extproc_denied",
 					Headers: &extprocv3.HeaderMutation{
 						SetHeaders: []*corev3.HeaderValueOption{
-							{
-								Header: &corev3.HeaderValue{
-									Key:      "content-type",
-									RawValue: []byte("application/json"),
-								},
-							},
-							{
-								Header: &corev3.HeaderValue{
-									Key:      "x-ate-intent-decision",
-									RawValue: []byte("denied"),
-								},
-							},
+							{Header: &corev3.HeaderValue{Key: "content-type", RawValue: []byte("application/json")}},
+							{Header: &corev3.HeaderValue{Key: "x-ate-intent-decision", RawValue: []byte("denied")}},
 						},
 					},
 				},
 			},
 		}
 	}
-
-	commonResp := &extprocv3.CommonResponse{}
-	if isMockAuthHeader {
-		commonResp.HeaderMutation = &extprocv3.HeaderMutation{
-			RemoveHeaders: []string{"authorization"},
-		}
-	}
-
 	return &extprocv3.ProcessingResponse{
 		Response: &extprocv3.ProcessingResponse_RequestHeaders{
-			RequestHeaders: &extprocv3.HeadersResponse{
-				Response: commonResp,
-			},
+			RequestHeaders: &extprocv3.HeadersResponse{Response: &extprocv3.CommonResponse{}},
 		},
 	}
 }
 
-func extractAttribute(attributes map[string]*structpb.Struct, key string) string {
-	for _, attrs := range attributes {
-		if v, ok := attrs.GetFields()[key]; ok {
-			return v.GetStringValue()
-		}
-	}
-	return ""
-}
-
 func buildTLSServerCreds(serverBundlePath, clientCAPath, expectedSAN string) (credentials.TransportCredentials, error) {
-	loadPool := newPoolLoader(clientCAPath)
-	if _, err := loadPool(); err != nil {
-		return nil, err
+	if _, err := tls.LoadX509KeyPair(serverBundlePath, serverBundlePath); err != nil {
+		return nil, fmt.Errorf("load server credential bundle %q: %w", serverBundlePath, err)
 	}
-	loadCert := newCertLoader(serverBundlePath)
-	if _, err := loadCert(nil); err != nil {
-		return nil, err
+	if _, err := os.ReadFile(clientCAPath); err != nil {
+		return nil, fmt.Errorf("read client trust bundle %q: %w", clientCAPath, err)
 	}
-
-	cfg := &tls.Config{
+	return credentials.NewTLS(&tls.Config{
 		GetConfigForClient: func(*tls.ClientHelloInfo) (*tls.Config, error) {
-			pool, err := loadPool()
+			pemBytes, err := os.ReadFile(clientCAPath)
 			if err != nil {
 				return nil, err
 			}
+			pool := x509.NewCertPool()
+			if !pool.AppendCertsFromPEM(pemBytes) {
+				return nil, fmt.Errorf("no valid certs in %q", clientCAPath)
+			}
 			return &tls.Config{
-				MinVersion:     tls.VersionTLS13,
-				GetCertificate: loadCert,
-				ClientAuth:     tls.RequireAndVerifyClientCert,
-				ClientCAs:      pool,
+				MinVersion: tls.VersionTLS13,
+				GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+					c, err := tls.LoadX509KeyPair(serverBundlePath, serverBundlePath)
+					return &c, err
+				},
+				ClientAuth: tls.RequireAndVerifyClientCert,
+				ClientCAs:  pool,
 				VerifyConnection: func(state tls.ConnectionState) error {
 					if expectedSAN == "" {
 						return nil
 					}
-					if len(state.PeerCertificates) == 0 {
-						return fmt.Errorf("missing client certificate")
-					}
-					leaf := state.PeerCertificates[0]
-					for _, u := range leaf.URIs {
-						if u.String() == expectedSAN {
-							return nil
+					for _, cert := range state.PeerCertificates[:min(1, len(state.PeerCertificates))] {
+						for _, u := range cert.URIs {
+							if u.String() == expectedSAN {
+								return nil
+							}
 						}
 					}
-					return fmt.Errorf("client URI SANs %v do not match %q", leaf.URIs, expectedSAN)
+					return fmt.Errorf("client certificate missing URI SAN %q", expectedSAN)
 				},
 			}, nil
 		},
-	}
-	return credentials.NewTLS(cfg), nil
+	}), nil
 }
 
 func newControlMux(store *PolicyStore) *http.ServeMux {
 	mux := http.NewServeMux()
-
-	mux.HandleFunc("/readyz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ready"}`))
-	})
-
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	})
-
-	// GET /v1/policies -> list active rules
-	// POST /v1/policies -> register or update an IntentRule
-	// DELETE /v1/policies?actor=<atespace>/<name> -> revoke an actor's IntentRule
+	for _, p := range []string{"/readyz", "/healthz"} {
+		mux.HandleFunc(p, func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"status":"ok"}`))
+		})
+	}
 	mux.HandleFunc("/v1/policies", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.Method {
-		case http.MethodGet:
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"policies": store.ListRules(),
-			})
 		case http.MethodPost, http.MethodPut:
 			var rule IntentRule
-			if err := json.NewDecoder(r.Body).Decode(&rule); err != nil {
+			if err := json.NewDecoder(r.Body).Decode(&rule); err != nil || strings.TrimSpace(rule.Actor) == "" {
 				w.WriteHeader(http.StatusBadRequest)
-				_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-				return
-			}
-			if strings.TrimSpace(rule.Actor) == "" {
-				w.WriteHeader(http.StatusBadRequest)
-				_ = json.NewEncoder(w).Encode(map[string]string{"error": "field 'actor' is required"})
 				return
 			}
 			store.SetRule(rule)
-			slog.Info("intent_policy_updated",
-				slog.String("actor", rule.Actor),
-				slog.String("intent", rule.Intent),
-				slog.Any("allowed_hosts", rule.AllowedHosts),
-				slog.Any("allowed_methods", rule.AllowedMethods),
-				slog.Any("allowed_path_prefixes", rule.AllowedPathPrefix),
-			)
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"status": "updated",
-				"rule":   rule,
-			})
+			_ = json.NewEncoder(w).Encode(map[string]any{"status": "updated", "rule": rule})
 		case http.MethodDelete:
 			actor := r.URL.Query().Get("actor")
-			if actor == "" {
-				w.WriteHeader(http.StatusBadRequest)
-				_ = json.NewEncoder(w).Encode(map[string]string{"error": "query parameter 'actor' is required"})
-				return
-			}
 			store.DeleteRule(actor)
-			slog.Info("intent_policy_revoked", slog.String("actor", actor))
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"status": "revoked",
-				"actor":  actor,
-			})
+			_ = json.NewEncoder(w).Encode(map[string]any{"status": "revoked", "actor": actor})
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
 	})
-
-	// GET /v1/audit -> list recent L7 egress decisions
 	mux.HandleFunc("/v1/audit", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		events := store.ListAuditEvents()
-		actorFilter := strings.TrimSpace(r.URL.Query().Get("actor"))
-		if actorFilter != "" {
-			var filtered []AuditEvent
-			for _, ev := range events {
-				if ev.ActorRef == actorFilter || strings.HasSuffix(ev.ActorRef, "/"+actorFilter) {
-					filtered = append(filtered, ev)
-				}
-			}
-			events = filtered
+		if f := strings.TrimSpace(r.URL.Query().Get("actor")); f != "" {
+			events = slices.DeleteFunc(events, func(ev AuditEvent) bool {
+				return ev.ActorRef != f && !strings.HasSuffix(ev.ActorRef, "/"+f)
+			})
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"events": events,
-		})
+		_ = json.NewEncoder(w).Encode(map[string]any{"events": events})
 	})
-
 	return mux
 }
 
 func main() {
 	flag.Parse()
-
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	slog.SetDefault(logger)
-
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	store := NewPolicyStore(500)
-	if *defaultActorRule != "" {
-		var seed IntentRule
-		if err := json.Unmarshal([]byte(*defaultActorRule), &seed); err != nil {
-			slog.Error("invalid --default-intent-json", slog.Any("err", err))
-			os.Exit(1)
-		}
-		store.SetRule(seed)
-	}
-
 	creds, err := buildTLSServerCreds(*serverBundle, *clientCAFile, *callerSPIFFEID)
 	if err != nil {
-		slog.Error("failed to initialize mTLS server credentials", slog.Any("err", err))
+		slog.Error("mTLS init failed", "err", err)
 		os.Exit(1)
 	}
-
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
 	extprocv3.RegisterExternalProcessorServer(grpcServer, &ExtProcServer{store: store})
-
-	grpcLis, err := net.Listen("tcp", *grpcAddr)
+	lis, err := net.Listen("tcp", *grpcAddr)
 	if err != nil {
-		slog.Error("failed to listen on gRPC address", slog.String("addr", *grpcAddr), slog.Any("err", err))
+		slog.Error("listen failed", "addr", *grpcAddr, "err", err)
 		os.Exit(1)
 	}
-
-	httpServer := &http.Server{
-		Addr:              *httpAddr,
-		Handler:           newControlMux(store),
-		ReadHeaderTimeout: 10 * time.Second,
-	}
-
+	httpServer := &http.Server{Addr: *httpAddr, Handler: newControlMux(store), ReadHeaderTimeout: 10 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-
-	go func() {
-		slog.Info("intent-extproc control HTTP server listening", slog.String("addr", *httpAddr))
-		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("control HTTP server failed", slog.Any("err", err))
-			os.Exit(1)
-		}
-	}()
-
-	go func() {
-		<-ctx.Done()
-		slog.Info("shutting down intent-extproc")
-		_ = httpServer.Close()
-		grpcServer.GracefulStop()
-	}()
-
-	slog.Info("intent-extproc gRPC server listening",
-		slog.String("addr", *grpcAddr),
-		slog.String("caller_spiffe_id", *callerSPIFFEID),
-	)
-	if err := grpcServer.Serve(grpcLis); err != nil && !errors.Is(err, grpc.ErrServerStopped) {
-		slog.Error("gRPC server exited with error", slog.Any("err", err))
-		os.Exit(1)
-	}
+	go func() { _ = httpServer.ListenAndServe() }()
+	go func() { <-ctx.Done(); _ = httpServer.Close(); grpcServer.GracefulStop() }()
+	_ = grpcServer.Serve(lis)
 }

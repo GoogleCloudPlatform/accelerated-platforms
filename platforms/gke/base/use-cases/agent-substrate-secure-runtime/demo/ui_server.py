@@ -206,14 +206,108 @@ print(run_python_in_actor(
     return run_agent_py(expr, stdin_data=payload)
 
 
+def _measure_cold_gvisor_pod_ms() -> float:
+    img_out, _, _ = run_cmd(
+        [
+            "kubectl",
+            "get",
+            "deployment",
+            "triage-agent",
+            "-n",
+            "agent-harness",
+            "-o",
+            "jsonpath={.spec.template.spec.containers[0].image}",
+        ]
+    )
+    runner_image = img_out.replace("secure-runtime-agent:", "secure-runtime-runner:")
+    pod_name = "cold-gvisor-baseline"
+    run_cmd(
+        [
+            "kubectl",
+            "delete",
+            "pod",
+            pod_name,
+            "-n",
+            "default",
+            "--ignore-not-found",
+        ]
+    )
+    pod_manifest = json.dumps(
+        {
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {"name": pod_name, "namespace": "default"},
+            "spec": {
+                "runtimeClassName": "gvisor",
+                "nodeSelector": {"sandbox-runtime": "gvisor"},
+                "restartPolicy": "Never",
+                "containers": [
+                    {
+                        "name": "runner",
+                        "image": runner_image,
+                        "imagePullPolicy": "Always",
+                        "readinessProbe": {
+                            "httpGet": {"path": "/readyz", "port": 80},
+                            "initialDelaySeconds": 1,
+                            "periodSeconds": 1,
+                        },
+                        "resources": {
+                            "requests": {"cpu": "500m", "memory": "2Gi"},
+                            "limits": {"cpu": "1", "memory": "2Gi"},
+                        },
+                    }
+                ],
+            },
+        }
+    )
+    t0 = time.monotonic()
+    subprocess.run(
+        ["kubectl", "apply", "-f", "-"],
+        env=_build_env(),
+        input=pod_manifest,
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    run_cmd(
+        [
+            "kubectl",
+            "wait",
+            "--for=condition=Ready",
+            f"pod/{pod_name}",
+            "-n",
+            "default",
+            "--timeout=180s",
+        ],
+        timeout=190,
+    )
+    cold_ms = round((time.monotonic() - t0) * 1000, 1)
+    run_cmd(
+        [
+            "kubectl",
+            "delete",
+            "pod",
+            pod_name,
+            "-n",
+            "default",
+            "--ignore-not-found",
+            "--wait=false",
+        ]
+    )
+    return cold_ms
+
+
 def api_act2(custom_note: str = "tikhonov_1e-6") -> dict[str, Any]:
-    payload = json.dumps({"custom_note": custom_note})
+    cold_ms = _measure_cold_gvisor_pod_ms()
+    payload = json.dumps({"custom_note": custom_note, "cold_ms": cold_ms})
     expr = """
 import json, sys, time
 from secure_runtime_agent.agent import run_python_in_actor
 from secure_runtime_agent.substrate_client import SubstrateClient
 
 req = json.loads(sys.stdin.read())
+cold_ms = float(req["cold_ms"])
 actor_name = f"race-actor-{int(time.time())}"
 client = SubstrateClient()
 ensure_res = client.ensure_actor(actor_name)
@@ -242,13 +336,14 @@ resumed = json.loads(
 print(json.dumps({
     "actor_name": actor_name,
     "ensure_ms": ensure_res.get("ensure_ms"),
-    "cold_gvisor_pod_ms": 13926,
+    "cold_gvisor_pod": "default/cold-gvisor-baseline (runtimeClassName: gvisor)",
+    "cold_gvisor_pod_ms": cold_ms,
     "golden_snapshot_wake_ms": warm_ms,
     "stateful_pause_resume_ms": resumed["router_roundtrip_ms"],
     "warm_import_ms_saved": ready.get("warm_import_ms", 2545.39),
     "restored_state": json.loads(resumed["stdout"].strip()),
-    "speedup_wake": round(13926 / max(warm_ms, 1), 1),
-    "speedup_resume": round(13926 / max(resumed["router_roundtrip_ms"], 1), 1),
+    "speedup_wake": round(cold_ms / max(warm_ms, 1), 1),
+    "speedup_resume": round(cold_ms / max(resumed["router_roundtrip_ms"], 1), 1),
 }))
 """
     return run_agent_py(expr, stdin_data=payload)
@@ -756,16 +851,19 @@ async function runCustomCode() {
 async function runTab2() {
   const btn = document.getElementById('btn-run-2');
   const note = document.getElementById('act2-note-input').value.trim() || 'tikhonov_1e-6';
-  btn.disabled = true; btn.textContent = '⏳ Running Live Race on GKE...';
+  btn.disabled = true; btn.textContent = '⏳ Spawning Cold gVisor Pod & Snapshot Actor (~15s)...';
   setCardsState('view-2', 'running');
-  document.getElementById('race-wake-ms').textContent = '...';
-  document.getElementById('race-resume-ms').textContent = '...';
+  document.getElementById('race-cold-ms').textContent = '⏳ Booting...';
+  document.getElementById('race-wake-ms').textContent = '⏳...';
+  document.getElementById('race-resume-ms').textContent = '⏳...';
+  document.getElementById('bar-cold').style.width = '0%';
   document.getElementById('bar-wake').style.width = '0%';
   document.getElementById('bar-resume').style.width = '0%';
   try {
     const r = await fetch('/api/act2?note=' + encodeURIComponent(note)).then(x => x.json());
-    logConsole(`Act 2: Golden Snapshot Wake & Stateful Pause/Resume (${r.actor_name})`, r);
+    logConsole(`Act 2: Live Cold gVisor Pod vs Golden Snapshot (${r.actor_name})`, r);
     document.getElementById('race-cold-ms').textContent = `${r.cold_gvisor_pod_ms.toLocaleString()} ms`;
+    document.getElementById('bar-cold-lbl').textContent = `${r.cold_gvisor_pod_ms.toLocaleString()} ms`;
     document.getElementById('race-wake-ms').textContent = `${r.golden_snapshot_wake_ms} ms`;
     document.getElementById('race-resume-ms').textContent = `${r.stateful_pause_resume_ms} ms`;
     document.getElementById('race-wake-badge').textContent = `${r.speedup_wake}x Faster`;
@@ -773,10 +871,11 @@ async function runTab2() {
     document.getElementById('bar-wake-lbl').textContent = `${r.golden_snapshot_wake_ms} ms (${r.speedup_wake}x faster)`;
     document.getElementById('bar-resume-lbl').textContent = `${r.stateful_pause_resume_ms} ms (${r.speedup_resume}x faster)`;
     document.getElementById('restored-state-lbl').textContent = 'STATE = ' + JSON.stringify(r.restored_state);
-    document.getElementById('bar-wake').style.width = '4.8%';
-    document.getElementById('bar-resume').style.width = '1.5%';
+    document.getElementById('bar-cold').style.width = '100%';
+    document.getElementById('bar-wake').style.width = `${Math.max(2, Math.min(100, (r.golden_snapshot_wake_ms / r.cold_gvisor_pod_ms) * 100)).toFixed(1)}%`;
+    document.getElementById('bar-resume').style.width = `${Math.max(1.2, Math.min(100, (r.stateful_pause_resume_ms / r.cold_gvisor_pod_ms) * 100)).toFixed(1)}%`;
     setCardsState('view-2', 'done');
-    btn.textContent = `Race Complete (${r._exec_ms} ms) ✓`;
+    btn.textContent = `Race Complete ✓`;
   } finally { btn.disabled = false; }
 }
 

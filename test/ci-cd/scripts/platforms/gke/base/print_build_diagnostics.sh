@@ -46,6 +46,8 @@ MODE="${1:-}"
 DIAGNOSTICS_COMMAND_TIMEOUT="${DIAGNOSTICS_COMMAND_TIMEOUT:-120}"
 
 if [[ ! -v cluster_project_id ]]; then
+  # The terraservice jobs set ACP_PLATFORM_DIR instead of ACP_PLATFORM_BASE_DIR
+  ACP_PLATFORM_BASE_DIR="${ACP_PLATFORM_BASE_DIR:-${ACP_PLATFORM_DIR:-}}"
   set --
   # shellcheck disable=SC1091
   source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh" ||

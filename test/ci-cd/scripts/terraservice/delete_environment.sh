@@ -24,5 +24,13 @@ fi
 
 source "${ACP_PLATFORM_DIR}/_shared_config/scripts/set_environment_variables.sh"
 
+# If a terraservice failed, capture the cluster state before the project is
+# deleted. The terraservice jobs don't run a teardown, so the cluster and its
+# node pools still exist here. This is informational only and never fails the
+# step.
+if [ -e /workspace/build-failed.lock ]; then
+  "${ACP_REPO_DIR}/test/ci-cd/scripts/platforms/gke/base/print_build_diagnostics.sh" cluster || true
+fi
+
 export DELETE_PROJECT_ID="${cluster_project_id}"
 ${ACP_REPO_DIR}/test/ci-cd/scripts/delete_project.sh

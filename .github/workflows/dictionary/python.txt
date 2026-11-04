@@ -19,7 +19,9 @@ dbapi
 dbcommands
 deepcopy
 devel
+docstrings
 dropna
+dtypes
 einops
 fastapi
 fillna
@@ -57,6 +59,7 @@ isoformat
 isort
 issubset
 iterrows
+jitted
 jsonify
 jsonpickle
 lemmatization
@@ -88,6 +91,8 @@ pydantic
 pyenv
 pylint
 pynvml
+pyproject
+pyrefly
 pytest
 pythondontwritebytecode
 pythonpath

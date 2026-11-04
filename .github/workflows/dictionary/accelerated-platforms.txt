@@ -19,6 +19,7 @@ dataprocessing
 decrypter
 decrypters
 deviantart
+dockerfiles
 dshm
 ecommerce
 encrypter
@@ -28,11 +29,14 @@ exfiltrate
 finetune
 finetuning
 fluentbit
+frontmatter
 fsdp
 gbps
 geminicodeassist
 googlecloudtools
 gpul
+granularities
+hostnames
 hyperparameter
 hyperparameters
 inceoglu
@@ -42,6 +46,7 @@ jupytext
 kaggle
 kustomization
 lavis
+lockfiles
 logprobs
 maxdiffusion
 mftp
@@ -56,6 +61,7 @@ operationalize
 overfitting
 packageable
 peft
+postconditions
 prereqs
 pretrained
 psutil
@@ -73,11 +79,14 @@ schedulable
 schnell
 seqs
 sharegpt
+shortlinks
 stabilityai
 tflops
 timonwong
 tunables
 unconfigure
+unsplittable
+unvalidated
 usecs
 virt
 yuhuili

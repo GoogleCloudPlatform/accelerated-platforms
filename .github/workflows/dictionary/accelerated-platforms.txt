@@ -41,12 +41,14 @@ distroless
 dshm
 ecdsap
 ecommerce
+eigvals
 einval
 encrypter
 encrypters
 enoent
 envoyproxy
 esbenp
+exfil
 exfiltrate
 extproc
 extprocv
@@ -76,6 +78,7 @@ kmsg
 kustomization
 lavis
 libc
+linalg
 logprobs
 maxdiffusion
 mftp
@@ -109,6 +112,7 @@ qwiklabs
 qwix
 rarr
 rayutil
+repr
 rstrip
 rtxpro
 rueth

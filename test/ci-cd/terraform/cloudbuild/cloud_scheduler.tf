@@ -268,6 +268,24 @@ resource "google_cloud_scheduler_job" "platforms_gke_base_core_workloads_terrafo
   }
 }
 
+resource "google_cloud_scheduler_job" "platforms_gke_base_core_sandbox_terraform" {
+  name      = "platforms-gke-base-core-sandbox-terraform-schedule"
+  project   = data.google_project.build.project_id
+  region    = var.build_location
+  schedule  = "0 7 * * *"
+  time_zone = "America/Los_Angeles"
+
+  http_target {
+    body        = base64encode(jsonencode({ "source" : { "branchName" = "main" } }))
+    http_method = "POST"
+    uri         = "${local.cloudbuild_trigger_url_prefix}/${google_cloudbuild_trigger.platforms_gke_base_core_sandbox_terraform_push.trigger_id}:run"
+
+    oauth_token {
+      service_account_email = google_service_account.cicd_sched.email
+    }
+  }
+}
+
 resource "google_cloud_scheduler_job" "platforms_gke_base_uc_federated_learning_standard_scripts" {
   name      = "platforms-gke-base-uc-federated_learning-standard-scripts-schedule"
   project   = data.google_project.build.project_id

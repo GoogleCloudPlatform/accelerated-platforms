@@ -33,6 +33,7 @@ kubelet
 kustomizeconfig
 limitranges
 maxpods
+microvm
 minpods
 mutatingwebhookconfigurations
 nameprefix

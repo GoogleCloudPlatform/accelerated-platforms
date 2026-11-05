@@ -15,25 +15,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dynamo-trtllm-worker
-  namespace: replaced-by-kustomize
+  name: model-server
 spec:
   template:
     spec:
       containers:
         - name: inference-server
           resources:
-            # 148Gi host memory comfortably fits on a single g4-standard-48 node
-            # (192 GB physical RAM) while accommodating 80 GB of pinned KVBM G2
-            # host DRAM cache (> ~60 GB GPU G1 pool) + 18.1 GiB RAM-backed GCS
-            # FUSE safetensors cache.
+            # Qwen3-32B-NVFP4 is ~19.3 GiB of weights: 30Gi for
+            # gke-gcsfuse-sidecar (24Gi file cache + buffers, set in the worker
+            # template) + 124Gi for inference-server (80 GB / 74.5 GiB of pinned
+            # KVBM G2 host DRAM + /dev/shm + runtime) = 154Gi Guaranteed QoS
+            # (< 160Gi on g4-standard-48: 180 GiB machine, 176.9 GiB capacity).
             limits:
               cpu: "16"
               ephemeral-storage: "30Gi"
-              memory: "148Gi"
-              nvidia.com/gpu: "1"
+              memory: "124Gi"
             requests:
               cpu: "16"
               ephemeral-storage: "30Gi"
-              memory: "148Gi"
-              nvidia.com/gpu: "1"
+              memory: "124Gi"

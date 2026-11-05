@@ -29,7 +29,7 @@ kv_cache_config:
 moe_config:
   backend: TRTLLM
 cache_transceiver_config:
-  # C++ UCX transceiver transfers both GQA KV blocks and recurrent Mamba-2 SSM/conv states.
+  # C++ UCX transceiver transfers both GQA KV blocks and recurrent Mamba-2 SSM/convolution states.
   backend: UCX
   transceiver_runtime: CPP
   max_tokens_in_buffer: 65536

@@ -15,43 +15,32 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dynamo-trtllm-prefill
-  namespace: replaced-by-kustomize
+  name: model-server
 spec:
   template:
+    metadata:
+      annotations:
+        gke-gcsfuse/memory-limit: "28Gi"
+        gke-gcsfuse/memory-request: "28Gi"
     spec:
       containers:
         - name: inference-server
           resources:
+            # Nemotron-3-Nano-30B-A3B-NVFP4 is ~18.0 GiB of weights: 28Gi for
+            # gke-gcsfuse-sidecar (22Gi file cache + buffers) + 80Gi for
+            # inference-server (/dev/shm + runtime) = 108Gi Guaranteed QoS per
+            # prefill or decode worker (< 160Gi on g4-standard-48: 180 GiB
+            # machine, 176.9 GiB capacity).
             limits:
               cpu: "12"
               ephemeral-storage: "30Gi"
-              memory: "96Gi"
-              nvidia.com/gpu: "1"
+              memory: "80Gi"
             requests:
               cpu: "12"
               ephemeral-storage: "30Gi"
-              memory: "96Gi"
-              nvidia.com/gpu: "1"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: dynamo-trtllm-decode
-  namespace: replaced-by-kustomize
-spec:
-  template:
-    spec:
-      containers:
-        - name: inference-server
-          resources:
-            limits:
-              cpu: "12"
-              ephemeral-storage: "30Gi"
-              memory: "96Gi"
-              nvidia.com/gpu: "1"
-            requests:
-              cpu: "12"
-              ephemeral-storage: "30Gi"
-              memory: "96Gi"
-              nvidia.com/gpu: "1"
+              memory: "80Gi"
+      volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 22Gi
+          name: gke-gcsfuse-cache

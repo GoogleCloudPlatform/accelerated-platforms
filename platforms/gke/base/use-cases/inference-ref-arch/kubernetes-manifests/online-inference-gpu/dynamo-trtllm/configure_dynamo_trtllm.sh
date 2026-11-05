@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -27,7 +28,5 @@ source "${MY_PATH}/../../../terraform/_shared_config/scripts/set_environment_var
 
 "${MY_PATH}/../configure_deployment.sh"
 
-for mode in kv-routing kvbm-offloading disaggregated-pd; do
-  envsubst < "${MY_PATH}/${mode}/base/templates/dynamo-trtllm.tpl.env" \
-    | sponge "${MY_PATH}/${mode}/base/dynamo-trtllm.env"
-done
+envsubst < "${MY_PATH}/base/templates/dynamo-trtllm.tpl.env" \
+  | sponge "${MY_PATH}/base/dynamo-trtllm.env"

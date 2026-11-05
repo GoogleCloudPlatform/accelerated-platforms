@@ -15,43 +15,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dynamo-trtllm-prefill
-  namespace: replaced-by-kustomize
+  name: model-server
 spec:
   template:
     spec:
       containers:
         - name: inference-server
           resources:
+            # Qwen3-32B-NVFP4 is ~19.3 GiB of weights: 30Gi for
+            # gke-gcsfuse-sidecar (24Gi file cache + buffers, set in the worker
+            # template) + 80Gi for inference-server (/dev/shm + runtime) =
+            # 110Gi Guaranteed QoS per prefill or decode worker (< 160Gi on
+            # g4-standard-48: 180 GiB machine, 176.9 GiB capacity).
             limits:
               cpu: "12"
               ephemeral-storage: "30Gi"
-              memory: "96Gi"
-              nvidia.com/gpu: "1"
+              memory: "80Gi"
             requests:
               cpu: "12"
               ephemeral-storage: "30Gi"
-              memory: "96Gi"
-              nvidia.com/gpu: "1"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: dynamo-trtllm-decode
-  namespace: replaced-by-kustomize
-spec:
-  template:
-    spec:
-      containers:
-        - name: inference-server
-          resources:
-            limits:
-              cpu: "12"
-              ephemeral-storage: "30Gi"
-              memory: "96Gi"
-              nvidia.com/gpu: "1"
-            requests:
-              cpu: "12"
-              ephemeral-storage: "30Gi"
-              memory: "96Gi"
-              nvidia.com/gpu: "1"
+              memory: "80Gi"

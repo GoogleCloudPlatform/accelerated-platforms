@@ -29,18 +29,15 @@ spec:
           resources:
             # Nemotron-3-Super-120B-A12B-NVFP4 is ~74.8 GiB of weights: 84Gi for
             # gke-gcsfuse-sidecar (78Gi file cache + buffers) + 72Gi for
-            # inference-server = 156Gi Guaranteed QoS (< ~164 GiB allocatable on
-            # g4-standard-48).
+            # inference-server = 156Gi Guaranteed QoS (< 160Gi; see base).
             limits:
               cpu: "16"
               ephemeral-storage: "30Gi"
               memory: "72Gi"
-              nvidia.com/gpu: "1"
             requests:
               cpu: "16"
               ephemeral-storage: "30Gi"
               memory: "72Gi"
-              nvidia.com/gpu: "1"
       volumes:
         - emptyDir:
             medium: Memory

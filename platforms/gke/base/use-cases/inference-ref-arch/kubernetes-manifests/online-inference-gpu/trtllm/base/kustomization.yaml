@@ -26,6 +26,9 @@ configMapGenerator:
     name: trtllm-extra-config
     namespace: replaced-by-kustomize
 
+components:
+  - ../../components/graceful-shutdown
+
 resources:
   - ../../base
   - ../../trtllm-runtime

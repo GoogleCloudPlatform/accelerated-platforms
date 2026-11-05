@@ -34,12 +34,10 @@ spec:
               cpu: "12"
               ephemeral-storage: "30Gi"
               memory: "80Gi"
-              nvidia.com/gpu: "1"
             requests:
               cpu: "12"
               ephemeral-storage: "30Gi"
               memory: "80Gi"
-              nvidia.com/gpu: "1"
       volumes:
         - emptyDir:
             medium: Memory

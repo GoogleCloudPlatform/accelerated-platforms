@@ -41,7 +41,7 @@ _ONLINE_GPU_DIR = (
 )
 _SITECUSTOMIZE_PATH = _ONLINE_GPU_DIR / "trtllm-runtime/sitecustomize.py"
 _GCS_STREAMER_PATH = (
-    _ONLINE_GPU_DIR / "trtllm-podsnapshot-fast-restore/base/gcs_model_streamer.py"
+    _ONLINE_GPU_DIR / "components/gke-pod-snapshot/gcs_model_streamer.py"
 )
 
 

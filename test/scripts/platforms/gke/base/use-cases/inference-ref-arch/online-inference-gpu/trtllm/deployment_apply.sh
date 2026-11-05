@@ -21,37 +21,19 @@ MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
   pwd -P
 )"
-ACP_REPO_DIR="$(realpath "${MY_PATH}/../../../../../../../../../")"
 
-# shellcheck disable=SC1091
-source "${MY_PATH}/../../config/huggingface.sh"
-
-if [[ ! -v ACCELERATOR_TYPE ]]; then
-  echo "ACCELERATOR_TYPE is not set, exiting!"
-  exit 1
-fi
-
-if [[ -v HF_MODEL_ID && -n "${HF_MODEL_ID}" ]]; then
-  models=("${HF_MODEL_ID}")
+# Set TRTLLM_VARIANT_SUFFIX=-podsnapshot to select the GKE Pod snapshot overlays.
+IRA_GPU_ENGINE_DIR="trtllm"
+IRA_GPU_CONFIGURE="configure_trtllm.sh"
+IRA_GPU_SERVICE="trtllm"
+IRA_GPU_VARIANT_SUFFIX="${TRTLLM_VARIANT_SUFFIX:-}"
+# shellcheck source=test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/common.sh
+source "${MY_PATH}/../common.sh"
+# shellcheck disable=SC2154
+if [[ "${IRA_GPU_VARIANT_SUFFIX}" == "-podsnapshot" ]]; then
+  IRA_GPU_MODELS=("${hf_gpu_trtllm_podsnapshot_models[@]}")
 else
-  # shellcheck disable=SC2154
-  models=("${hf_gpu_trtllm_models[@]}")
+  IRA_GPU_MODELS=("${hf_gpu_trtllm_models[@]}")
 fi
 
-for model in "${models[@]}"; do
-  export HF_MODEL_ID=${model}
-  # shellcheck disable=SC1091
-  source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
-
-  variant_dir="${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/trtllm/${ACCELERATOR_TYPE}-${HF_MODEL_NAME}"
-  if [[ -d "${variant_dir}" ]]; then
-    echo "Deploying '${HF_MODEL_ID}' TensorRT-LLM resources on '${ACCELERATOR_TYPE}'"
-    echo "--------------------------------------------------------------------------------------------"
-    "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/trtllm/configure_trtllm.sh"
-    kubectl apply --kustomize "${variant_dir}"
-    echo
-  else
-    echo "'${HF_MODEL_ID}' model does not have a configuration for '${ACCELERATOR_TYPE}', skipping."
-    echo
-  fi
-done
+ira_gpu_for_each_variant ira_gpu_apply

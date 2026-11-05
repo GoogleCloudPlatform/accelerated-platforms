@@ -15,6 +15,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+components:
+  - ../components/runtime-bindings
+  - ../../components/accelerators/rtx-pro-6000-x1
+
 configMapGenerator:
   - envs:
       - runtime.env
@@ -24,110 +28,7 @@ configMapGenerator:
 nameSuffix: -rtx6000-nemotron-3-nano-30b-nvfp4
 
 patches:
-  - path: patch-nodeselector.yaml
   - path: patch-resources.yaml
-
-replacements:
-  - source:
-      fieldPath: data.APP_LABEL
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.selector.matchLabels.app
-          - spec.template.metadata.labels.app
-        select:
-          kind: Deployment
-      - fieldPaths:
-          - spec.selector.app
-        select:
-          kind: Service
-      - fieldPaths:
-          - spec.selector.matchLabels.app
-        select:
-          kind: PodMonitoring
-  - source:
-      fieldPath: data.CONTAINER_IMAGE_URL
-      kind: ConfigMap
-      name: trtllm
-    targets:
-      - fieldPaths:
-          - spec.template.spec.containers.[name=inference-server].image
-        select:
-          kind: Deployment
-  - source:
-      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
-      kind: ConfigMap
-      name: deployment
-    targets:
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: ConfigMap
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: Deployment
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: Service
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: HorizontalPodAutoscaler
-      - fieldPaths:
-          - metadata.namespace
-        select:
-          kind: PodMonitoring
-  - source:
-      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
-      kind: ConfigMap
-      name: deployment
-    targets:
-      - fieldPaths:
-          - spec.template.spec.serviceAccountName
-        select:
-          kind: Deployment
-  - source:
-      fieldPath: data.MODEL_BUCKET_NAME
-      kind: ConfigMap
-      name: deployment
-    targets:
-      - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
-        select:
-          kind: Deployment
-  - source:
-      fieldPath: data.MODEL_GCS_DIR
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
-        options:
-          delimiter: "only-dir:"
-          index: 1
-        select:
-          kind: Deployment
-  - source:
-      fieldPath: data.MODEL_NAME
-      kind: ConfigMap
-      name: runtime
-    targets:
-      - fieldPaths:
-          - spec.template.metadata.labels.[ai.gke.io/model]
-        select:
-          kind: Deployment
-  - source:
-      fieldPath: metadata.name
-      kind: Deployment
-      name: trtllm
-    targets:
-      - fieldPaths:
-          - spec.scaleTargetRef.name
-        select:
-          kind: HorizontalPodAutoscaler
 
 resources:
   - ../base

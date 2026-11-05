@@ -15,6 +15,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  labels:
+    app.kubernetes.io/component: model-server
   name: trtllm
   namespace: replaced-by-kustomize
 spec:
@@ -29,8 +31,10 @@ spec:
   template:
     metadata:
       # Match GCS FUSE sidecar requests and limits so the Pod achieves
-      # Guaranteed QoS and stays within g4-standard-48's ~164 GiB allocatable
-      # memory budget. Per-model overlays override memory-request/memory-limit.
+      # Guaranteed QoS. Per-model overlays override memory-request/memory-limit
+      # so that sidecar + inference-server memory stays below 160Gi, leaving
+      # room for kube-reserved and system Pods on a g4-standard-48 node (180 GiB
+      # machine memory, 176.9 GiB node capacity).
       annotations:
         gke-gcsfuse/cpu-limit: "4"
         gke-gcsfuse/cpu-request: "4"
@@ -116,6 +120,12 @@ spec:
               value: "1"
             - name: OMPI_ALLOW_RUN_AS_ROOT_CONFIRM
               value: "1"
+            - name: PREWARM_SAFETENSORS
+              valueFrom:
+                configMapKeyRef:
+                  key: PREWARM_SAFETENSORS
+                  name: runtime
+                  optional: true
             - name: PYTHONPATH
               value: "/etc/trtllm"
             - name: REASONING_PARSER

@@ -29,17 +29,15 @@ spec:
           resources:
             # Nemotron-3-Nano-30B-A3B-BF16 is ~58.8 GiB of weights: 68Gi for
             # gke-gcsfuse-sidecar (62Gi file cache + buffers) + 84Gi for
-            # inference-server = 152Gi (< ~164 GiB allocatable on g4-standard-48).
+            # inference-server = 152Gi Guaranteed QoS (< 160Gi; see base).
             limits:
               cpu: "12"
               ephemeral-storage: "30Gi"
               memory: "84Gi"
-              nvidia.com/gpu: "1"
             requests:
               cpu: "12"
               ephemeral-storage: "30Gi"
               memory: "84Gi"
-              nvidia.com/gpu: "1"
       volumes:
         - emptyDir:
             medium: Memory

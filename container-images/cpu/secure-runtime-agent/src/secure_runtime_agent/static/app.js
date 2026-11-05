@@ -404,7 +404,7 @@ async function runPart4() {
             <td class="mono">${esc(shortId)}</td>
             <td class="mono">${esc(ev.intent)}</td>
             <td class="mono">${esc(ev['http.method'])} ${esc(ev['http.authority'])}${esc(ev['http.path'])}</td>
-            <td><span class="badge ${allow ? 'badge-green' : 'badge-red'}">${esc(ev.decision)} (${esc(ev.status_code)})</span></td>
+            <td><span class="badge ${allow ? 'badge-green' : 'badge-red'}">${esc(ev.decision)} (${esc(ev.decision_code)})</span></td>
           </tr>`;
         }).join('')
       : '<tr><td colspan="5" class="mono" style="color:var(--muted);">No audit events recorded for this actor yet (run #3 first).</td></tr>';

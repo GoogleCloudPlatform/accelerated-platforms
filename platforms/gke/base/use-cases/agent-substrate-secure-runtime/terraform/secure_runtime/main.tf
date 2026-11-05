@@ -35,7 +35,7 @@ data "local_file" "kubeconfig" {
 }
 
 resource "google_project_iam_member" "triage_agent_roles" {
-  for_each = toset(["roles/aiplatform.user", "roles/cloudtrace.agent"])
+  for_each = toset(["roles/aiplatform.user", "roles/cloudtrace.agent", "roles/monitoring.metricWriter"])
   member   = local.workload_identity_member_triage
   project  = data.google_project.cluster.project_id
   role     = each.value
@@ -125,6 +125,8 @@ resource "terraform_data" "deploy_secure_runtime" {
     ingress_allowed_spiffe_ids = var.agent_substrate_ingress_allowed_spiffe_ids
     kubeconfig_file            = data.local_file.kubeconfig.filename
     project_id                 = data.google_project.cluster.project_id
+    agent_image_url            = local.secure_runtime_agent_image_url
+    intent_extproc_image_url   = local.secure_runtime_intent_extproc_image_url
     runner_image_url           = local.secure_runtime_runner_image_url
     secure_runtime_manifest    = local_sensitive_file.secure_runtime_manifest.filename
     substrate_install_dir      = local.substrate_install_dir
@@ -137,7 +139,17 @@ set -euo pipefail
 KUBECONFIG_ABS="$(realpath "${self.input.kubeconfig_file}")"
 export PATH="$${HOME}/.local/bin:$${HOME}/google-cloud-sdk/bin:$${PATH}" KUBECONFIG="$${KUBECONFIG_ABS}"
 
+image_digest() {
+  gcloud artifacts docker images describe "$1" --project="${self.input.cloudbuild_project_id}" --format='value(image_summary.digest)'
+}
+
 kubectl apply -f "${self.input.secure_runtime_manifest}"
+# Images are rebuilt under a fixed tag, so pin each Deployment to the digest
+# just built; otherwise an unchanged spec leaves the old pods running.
+kubectl -n ate-system set image deployment/intent-extproc \
+  intent-extproc="${self.input.intent_extproc_image_url}@$(image_digest "${self.input.intent_extproc_image_url}")"
+kubectl -n agent-harness set image deployment/triage-agent \
+  agent="${self.input.agent_image_url}@$(image_digest "${self.input.agent_image_url}")"
 kubectl -n ate-system rollout status deployment/intent-extproc --timeout=120s
 
 (
@@ -145,7 +157,7 @@ kubectl -n ate-system rollout status deployment/intent-extproc --timeout=120s
   go run ./cmd/ate-setup deploy atenet --no-dev-env --kubeconfig="$${KUBECONFIG_ABS}" \
     --context="gke_${self.input.project_id}_${self.input.cluster_location}_${self.input.cluster_name}" \
     --gcp-project-id="${self.input.project_id}" --gcp-cluster-name="${self.input.cluster_name}" --gcp-cluster-location="${self.input.cluster_location}" \
-    --credential-provider='${self.input.credential_provider}' --ingress-allowed-spiffe_ids="${self.input.ingress_allowed_spiffe_ids}" \
+    --credential-provider='${self.input.credential_provider}' --ingress-allowed-spiffe-ids="${self.input.ingress_allowed_spiffe_ids}" \
     --experimental-additional-egress-extproc-service="ate-system/intent-extproc:50051" \
     --image-repo="${self.input.ar_repo_url}" --image-tag="${self.input.version}" --rollout-timeout="180s"
   kubectl apply -f "./manifests/ate-install/atenet-router-monitoring.yaml"
@@ -159,7 +171,7 @@ kubectl -n ate-system rollout status deploy/atenet-router --timeout=180s
 kubectl -n ate-workers rollout status deployment/scientific-gvisor --timeout=180s
 kubectl -n agent-harness rollout status deployment/triage-agent --timeout=120s
 
-RUNNER_DIGEST="$(gcloud artifacts docker images describe "${self.input.runner_image_url}" --project="${self.input.cloudbuild_project_id}" --format='value(image_summary.digest)')"
+RUNNER_DIGEST="$(image_digest "${self.input.runner_image_url}")"
 sed "s|\$${RUNNER_IMAGE}|${self.input.runner_image_url}@$${RUNNER_DIGEST}|g" "${self.input.actortemplate_file}" > "${self.input.actortemplate_out_file}"
 
 for a in $(kubectl-ate get actor -a "${self.input.atespace}" -o json 2>/dev/null | jq -r '.actors[]?.metadata.name // empty'); do
@@ -170,7 +182,7 @@ kubectl-ate create actor-template -f "${self.input.actortemplate_out_file}"
 
 golden_tag=""
 for _ in $(seq 1 60); do
-  golden_tag="$(kubectl-ate get actor-template scientific-python -a "${self.input.atespace}" -o jsonpath='{.status.goldenSnapshotStatus.goldenTag.name}' 2>/dev/null || true)"
+  golden_tag="$(kubectl-ate get actor-template scientific-python -a "${self.input.atespace}" -o json 2>/dev/null | jq -r '.status.goldenSnapshotStatus.goldenTag.name // empty' || true)"
   if [ -n "$${golden_tag}" ]; then
     echo "Golden Snapshot ready: $${golden_tag}"
     break
@@ -187,6 +199,7 @@ EOT
 
   triggers_replace = {
     actortemplate_sha       = sha256(local_file.actortemplate_manifest_tmpl.content)
+    image_builds            = join(",", [for k in sort(keys(terraform_data.build_secure_runtime_images)) : terraform_data.build_secure_runtime_images[k].id])
     runner_image_url        = local.secure_runtime_runner_image_url
     secure_runtime_manifest = sha256(local_sensitive_file.secure_runtime_manifest.content)
     version                 = var.agent_substrate_version

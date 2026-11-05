@@ -75,7 +75,7 @@ type AuditEvent struct {
 	Path          string `json:"http.path"`
 	HasAuthHeader bool   `json:"credential_injected"`
 	Decision      string `json:"decision"`
-	StatusCode    int    `json:"status_code"`
+	DecisionCode  int    `json:"decision_code"` // HTTP code implied by the policy decision (200 allow, 403 deny), recorded before any upstream response.
 	Reason        string `json:"reason"`
 }
 
@@ -254,9 +254,9 @@ func (s *ExtProcServer) handleRequestHeaders(attributes map[string]*structpb.Str
 	s.store.RecordAudit(AuditEvent{
 		Timestamp: time.Now().UTC().Format(time.RFC3339Nano), ActorIdentity: actorIdentity,
 		ActorRef: actorRef, Intent: intent, Method: method, Authority: authority,
-		Path: reqPath, HasAuthHeader: hasAuth, Decision: decision, StatusCode: code, Reason: reason,
+		Path: reqPath, HasAuthHeader: hasAuth, Decision: decision, DecisionCode: code, Reason: reason,
 	})
-	slog.Info("egress_intent_decision", "ate.actor.ref", actorRef, "intent", intent, "http.method", method, "http.authority", authority, "http.path", reqPath, "decision", decision, "status_code", code)
+	slog.Info("egress_intent_decision", "ate.actor.ref", actorRef, "intent", intent, "http.method", method, "http.authority", authority, "http.path", reqPath, "decision", decision, "decision_code", code)
 	if !allowed {
 		bodyJSON, _ := json.Marshal(map[string]any{
 			"error": "blocked_by_egress_intent_policy", "actor": actorRef, "active_intent": intent,

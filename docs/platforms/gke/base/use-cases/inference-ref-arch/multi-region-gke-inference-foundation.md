@@ -20,9 +20,9 @@ architectures and 15-minute live demo runbooks:
   and its
   [15-minute Presenter Beat Sheet](/docs/platforms/gke/base/use-cases/inference-ref-arch/trtllm-poc-15min-demo-runbook.md).
 - **Spoke 2 — Orchestrated NVIDIA Dynamo + TensorRT-LLM (`dynamo-trtllm/`)**:
-  KV-cache-aware prefix routing, PCIe Gen5 host-DRAM KV offloading, and
-  disaggregated Prefill/Decode serving
-  (`dynamo-trtllm-reference-architecture.md`).
+  [NVIDIA Dynamo and TensorRT-LLM reference architecture on multi-region GKE](/docs/platforms/gke/base/use-cases/inference-ref-arch/dynamo-trtllm-reference-architecture.md)
+  and its
+  [15-minute Presenter Beat Sheet](/docs/platforms/gke/base/use-cases/inference-ref-arch/dynamo-trtllm-poc-15min-demo-runbook.md).
 - **Spoke 3 — Multi-Region `llm-d` (`examples/llmd-multi-region/`)**: Endpoint
   Picker (EPP) routing, cross-region internal Application Load Balancer
   policies, and HPA + Pod snapshot scale-out.

@@ -196,7 +196,6 @@ resource "google_container_node_pool" "cpu_n4s8_sandbox" {
     labels = {
       "resource-model" : "n4"
       "resource-type" : "cpu"
-      "sandbox.gke.io/runtime" : lower(each.key)
     }
     machine_type    = local.cluster_sandbox_machine_type
     service_account = data.google_service_account.cluster.email
@@ -224,12 +223,6 @@ resource "google_container_node_pool" "cpu_n4s8_sandbox" {
     shielded_instance_config {
       enable_integrity_monitoring = true
       enable_secure_boot          = true
-    }
-
-    taint {
-      effect = "NO_SCHEDULE"
-      key    = "sandbox.gke.io/runtime"
-      value  = lower(each.key)
     }
   }
 

@@ -20,6 +20,7 @@ metadata:
   name: trtllm
   namespace: replaced-by-kustomize
 spec:
+  progressDeadlineSeconds: 1800
   selector:
     matchLabels:
       app: trtllm

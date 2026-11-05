@@ -146,7 +146,7 @@ ira_gpu_wait_ready() {
     while read -r name; do
       [[ -n "${name}" ]] || continue
       echo "Waiting for ${kind,,} '${name}' to become ready..."
-      kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "${kind,,}/${name}" --timeout=1200s
+      kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "${kind,,}/${name}" --timeout=1800s
     done < <(ira_gpu_rendered_names "${variant_dir}" "${kind}")
   done
 }

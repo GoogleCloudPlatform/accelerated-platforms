@@ -37,10 +37,10 @@ source "${MY_PATH}/bench-lib.sh"
 action="${1:-apply}"
 [[ "${action}" == "apply" || "${action}" == "destroy" ]] || mr_die "usage: $0 [apply|destroy]"
 
-mr_require_tools
+mr_require_example_tools
 mr_validate_active_region_key "${MR_CONFIG_CLUSTER_KEY}"
 mr_log "Project: ${MR_PROJECT_ID}, bench bucket: gs://$(mr_bench_bucket)"
 
-mr_stage "shared_state_bucket" "global" mr_ensure_shared_state_bucket
+mr_stage "shared_state_bucket" "global" mr_ensure_example_state_bucket
 tfvars="$(mr_write_bench_tfvars)"
-mr_stage "bench_infra_${action}" "global" mr_tf bench "${action}" "${tfvars}"
+mr_stage "bench_infra_${action}" "global" mr_example_tf bench "${action}" "${tfvars}"

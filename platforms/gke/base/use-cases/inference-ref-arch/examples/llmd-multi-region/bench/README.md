@@ -29,9 +29,9 @@ the load balancer in the region that you choose.
 ## Prerequisites
 
 - The regional clusters and the cross-region internal load balancer
-  (`deploy-arm.sh` / `set-route.sh`, using `terraform/global_lb` by default or
-  `MR_GLOBAL_LB=mc-gateway`) are deployed, and the regional VIPs serve the
-  OpenAI API on port 80 with the model name `${MR_SERVED_MODEL_NAME}`.
+  (`deploy-arm.sh` / `set-route.sh`, using `terraform/multi-region/global_lb` by
+  default or `MR_GLOBAL_LB=mc-gateway`) are deployed, and the regional VIPs
+  serve the OpenAI API on port 80 with the model name `${MR_SERVED_MODEL_NAME}`.
 - The namespace `${MR_NAMESPACE}` and the Kubernetes service account
   `${MR_NAMESPACE}` exist in every client cluster. `run-benchmark.sh` checks
   this.

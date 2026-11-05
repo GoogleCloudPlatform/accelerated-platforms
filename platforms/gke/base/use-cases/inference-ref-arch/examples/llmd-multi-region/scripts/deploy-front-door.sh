@@ -57,7 +57,6 @@ ns="${MR_FRONT_DOOR_NAMESPACE}"
 # Kubernetes objects in ${ns} all use this name.
 k8s_name="llm-front-door"
 oauth_secret_name="llm-front-door-iap-oauth"
-tf_state_prefix="terraform/llmd-multi-region/front_door"
 state_dir="${MR_RESULTS_DIR}/front-door"
 
 # Google Cloud resource names. Keep in sync with the locals in
@@ -374,7 +373,7 @@ fd_prepare_existing_lb_for_tf() {
 }
 
 fd_apply() {
-  mr_require_tools
+  mr_require_example_tools
   mr_validate_active_region_key "${cfg}"
   fd_validate_inputs
   mkdir -p "${state_dir}"
@@ -401,12 +400,12 @@ fd_apply() {
     export MR_FRONT_DOOR_SECURITY_POLICY_FIELD=""
   fi
 
-  mr_ensure_shared_state_bucket
+  mr_ensure_example_state_bucket
   local tfvars dst
   dst="$(fd_render)"
   mr_stage "front_door_prepare_lb" "global" fd_prepare_existing_lb_for_tf "${dst}"
   tfvars="$(fd_write_tfvars)"
-  mr_stage "front_door_terraform" "global" mr_tf front_door apply "${tfvars}"
+  mr_stage "front_door_terraform" "global" mr_example_tf front_door apply "${tfvars}"
 
   # Fail closed: until IAP enforcement is verified below, any exit (an error,
   # mr_die, or Ctrl-C) deletes the external HTTPRoute and Gateway.
@@ -464,10 +463,7 @@ fd_apply() {
 # ---------------------------------------------------------------------------
 
 fd_state_has_resources() {
-  local n
-  n="$(gcloud storage cat "gs://$(mr_shared_state_bucket)/${tf_state_prefix}/default.tfstate" 2>/dev/null |
-    jq '.resources | length' 2>/dev/null)" || return 1
-  [[ "${n:-0}" -gt 0 ]]
+  mr_example_tf_state_has_resources front_door
 }
 
 fd_namespace_exists() {
@@ -535,7 +531,7 @@ fd_destroy() {
   if fd_state_has_resources; then
     local tfvars
     tfvars="$(fd_destroy_tfvars)"
-    mr_stage "front_door_terraform_destroy" "global" mr_tf front_door destroy "${tfvars}"
+    mr_stage "front_door_terraform_destroy" "global" mr_example_tf front_door destroy "${tfvars}"
   fi
   rm -f "${MR_WORK_DIR}/terraform/front_door.tfvars.json"
   mr_log "Front door removed."

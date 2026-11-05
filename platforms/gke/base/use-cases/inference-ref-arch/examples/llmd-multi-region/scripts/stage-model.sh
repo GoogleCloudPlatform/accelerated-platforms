@@ -21,7 +21,8 @@
 # By default the model is downloaded from Hugging Face with the
 # inference-ref-arch model download Job (kubernetes-manifests/model-download).
 # Set MR_MODEL_SOURCE_BUCKET to copy it from an existing bucket instead (for
-# example, the bucket of another region that already has the model).
+# example, the bucket of another region that already has the model; see also
+# replicate_hf_model in terraform/multi-region/helpers.sh).
 
 set -o errexit
 set -o nounset
@@ -53,19 +54,40 @@ copy_from_bucket() {
 
 download_from_hugging_face() {
   (
+    use_region "${key}" "$(mr_region "${key}")" "$(mr_cidr_index "${key}")"
     export HF_MODEL_ID="${MR_MODEL_PATH}"
-    export KUBECONFIG
-    KUBECONFIG="$(mr_kubeconfig "${key}")"
-    local km="${wt}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download"
-    "${km}/configure_huggingface.sh"
+
+    # configure_huggingface.sh writes rendered manifests into the checkout's
+    # kubernetes-manifests/model-download/huggingface/ directory. Use the
+    # region's Git worktree when available so parallel regional staging never
+    # races; otherwise serialize manifest rendering on a local lock.
+    local checkout="${ACP_REPO_DIR}"
+    if [[ -e "${wt}/.git" ]]; then
+      checkout="${wt}"
+    fi
+    local km="${checkout}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download"
     # shellcheck source=/dev/null
-    source "${wt}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+    source "${checkout}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
     # shellcheck disable=SC2154
     local ns="${huggingface_hub_downloader_kubernetes_namespace_name}"
     local job="${HF_MODEL_ID_HASH}-hf-model-to-gcs"
+
     kubectl delete job "${job}" -n "${ns}" --ignore-not-found --wait=true
-    kubectl apply --kustomize "${km}/huggingface"
-    # Large models take a while: allow up to 90 minutes.
+    if [[ "${checkout}" == "${ACP_REPO_DIR}" ]]; then
+      mkdir -p "${MR_WORK_DIR}/locks"
+      (
+        flock -x 9
+        "${km}/configure_huggingface.sh"
+        kubectl apply --kustomize "${km}/huggingface"
+      ) 9>"${MR_WORK_DIR}/locks/stage-model.lock"
+    else
+      "${km}/configure_huggingface.sh"
+      kubectl apply --kustomize "${km}/huggingface"
+    fi
+
+    # Poll per-cluster Job status directly (download_wait.sh uses pkill across
+    # matching kubectl wait commands, which would collide across parallel
+    # regions). Large models take a while: allow up to 90 minutes.
     local deadline=$(($(date +%s) + 5400))
     while true; do
       local succeeded failed_cond
@@ -73,6 +95,7 @@ download_from_hugging_face() {
       failed_cond="$(kubectl get job "${job}" -n "${ns}" -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}' 2>/dev/null || true)"
       if [[ "${succeeded}" == "1" ]]; then
         kubectl logs "job/${job}" -n "${ns}" --tail=20 || true
+        kubectl delete job "${job}" -n "${ns}" --ignore-not-found
         break
       fi
       if [[ "${failed_cond}" == "True" ]]; then

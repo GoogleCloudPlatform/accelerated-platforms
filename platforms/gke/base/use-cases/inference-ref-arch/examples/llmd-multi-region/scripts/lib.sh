@@ -14,8 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Shared helpers for the multi-region llm-d example. Source this file; don't
-# execute it.
+# Shared helpers for the multi-region llm-d example. Sources mr.env, bridges
+# its settings onto the shared multi-region foundation
+# (platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/helpers.sh),
+# and adds llm-d timing, rendering, and benchmark helpers. Source this file;
+# don't execute it.
 
 MR_SCRIPTS_DIR="$(
   cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1
@@ -24,13 +27,25 @@ MR_SCRIPTS_DIR="$(
 export MR_SCRIPTS_DIR
 MR_EXAMPLE_DIR="$(realpath "${MR_SCRIPTS_DIR}/..")"
 export MR_EXAMPLE_DIR
-ACP_REPO_DIR="$(realpath "${MR_EXAMPLE_DIR}/../../../../../../..")"
-export ACP_REPO_DIR
-export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
-export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
+MR_MULTI_REGION_DIR="$(realpath "${MR_EXAMPLE_DIR}/../../terraform/multi-region")"
+export MR_MULTI_REGION_DIR
 
 # shellcheck source=/dev/null
 source "${MR_EXAMPLE_DIR}/mr.env"
+
+# Bridge example settings onto terraform/multi-region/{helpers,provision,teardown,global_lb}.sh.
+export PROJECT_ID="${MR_PROJECT_ID}"
+export TF_VAR_resource_name_prefix="${MR_RESOURCE_NAME_PREFIX}"
+export NETWORK_MODE="${NETWORK_MODE:-shared-vpc}"
+export CLUSTER_MODE="${CLUSTER_MODE:-standard}"
+export ENABLE_POD_SNAPSHOTS="${MR_POD_SNAPSHOTS_ENABLED}"
+export TF_VAR_ira_online_gpu_kubernetes_namespace_name="${MR_NAMESPACE}"
+export TF_VAR_ira_online_gpu_kubernetes_service_account_name="${MR_NAMESPACE}"
+export TF_VAR_cluster_system_node_pool_machine_type="${MR_SYSTEM_MACHINE_TYPE_DEFAULT}"
+
+# shellcheck source=/dev/null
+source "${MR_MULTI_REGION_DIR}/helpers.sh"
+mr_load_settings || exit 1
 
 export MR_PYTHON="${MR_PYTHON:-python3}"
 
@@ -40,15 +55,6 @@ mkdir -p "${MR_WORK_DIR}" "${MR_RESULTS_DIR}/timings"
 # exporting MR_RUN_ID; otherwise a new one is generated per invocation.
 export MR_RUN_ID="${MR_RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)}"
 export MR_TIMINGS_FILE="${MR_TIMINGS_FILE:-${MR_RESULTS_DIR}/timings/${MR_RUN_ID}.jsonl}"
-
-mr_log() {
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*" >&2
-}
-
-mr_die() {
-  mr_log "ERROR: $*"
-  exit 1
-}
 
 # mr_record_timing <stage> <scope> <start_epoch_s> <end_epoch_s> <status> [extra_json]
 mr_record_timing() {
@@ -95,14 +101,8 @@ mr_stage() {
   return ${rc}
 }
 
-mr_require_tools() {
-  local missing=()
-  for tool in gcloud kubectl kustomize helm terraform jq "${MR_PYTHON}" git envsubst curl sponge flock; do
-    command -v "${tool}" >/dev/null 2>&1 || missing+=("${tool}")
-  done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    mr_die "missing required tools: ${missing[*]}"
-  fi
+mr_require_example_tools() {
+  mr_require_tools gcloud kubectl kustomize helm terraform jq "${MR_PYTHON}" git envsubst curl sponge flock
   if ! "${MR_PYTHON}" -c "import yaml" >/dev/null 2>&1; then
     mr_die "${MR_PYTHON} is missing PyYAML ('import yaml' failed). Install PyYAML or export MR_PYTHON=/path/to/venv/bin/python3."
   fi
@@ -110,9 +110,9 @@ mr_require_tools() {
 
 mr_validate_region_key() {
   local key="${1}"
-  [[ -n "${MR_REGION[${key}]:-}" ]] || mr_die "unknown region key '${key}'. Define it in mr.env."
-  local platform_name="${MR_ENVIRONMENT_NAME}${key}"
-  [[ ${#platform_name} -le 9 ]] || mr_die "platform_name '${platform_name}' is longer than 9 characters"
+  [[ -n "${MR_REGION[${key}]:-}" ]] || mr_die "unknown region key '${key}'. Define it in MR_REGION in mr.env."
+  [[ -n "${MR_CIDR_INDEX[${key}]:-}" ]] || mr_die "missing CIDR index for region key '${key}'. Define it in MR_CIDR_INDEX in mr.env."
+  [[ "${key}" =~ ^[a-z][a-z0-9-]{0,8}$ ]] || mr_die "region key '${key}' must be 1-9 lowercase letters, digits, or hyphens, starting with a letter."
 }
 
 mr_validate_active_region_key() {
@@ -122,22 +122,17 @@ mr_validate_active_region_key() {
     mr_die "region key '${key}' is not in active MR_REGION_KEYS='${MR_REGION_KEYS}'"
 }
 
-# Per-region derived names. These mirror the core platform naming:
-#   unique_identifier_prefix = "${resource_name_prefix}-${platform_name}"
-#   cluster_name             = unique_identifier_prefix
-mr_platform_name() { echo "${MR_ENVIRONMENT_NAME}${1}"; }
-mr_cluster_name() { echo "${MR_RESOURCE_NAME_PREFIX}-$(mr_platform_name "${1}")"; }
+# Per-region derived names. mr_cluster_name, mr_kubeconfig, mr_worktree_dir,
+# mr_neg_name, mr_shared_network_name, mr_state_bucket, and mr_wait_for come
+# directly from terraform/multi-region/helpers.sh (with <key> as <platform_name>).
 mr_region() { echo "${MR_REGION[${1}]}"; }
-mr_worktree_dir() { echo "${MR_WORK_DIR}/worktrees/$(mr_platform_name "${1}")"; }
-mr_kubeconfig() { echo "${MR_WORK_DIR}/kubeconfig/$(mr_cluster_name "${1}")"; }
+mr_cidr_index() { echo "${MR_CIDR_INDEX[${1}]}"; }
+mr_target_spec() { echo "${1}:$(mr_region "${1}"):$(mr_cidr_index "${1}")"; }
+mr_node_cidr() { (mr_set_cidrs_for_index "$(mr_cidr_index "${1}")" && echo "${MR_NODE_CIDR}"); }
 mr_models_bucket() { echo "${MR_PROJECT_ID}-$(mr_cluster_name "${1}")-hf-hub-models"; }
 mr_pod_snapshots_bucket() { echo "${MR_PROJECT_ID}-$(mr_cluster_name "${1}")-pod-snapshots"; }
 # GPU compute class of a region: MR_COMPUTE_CLASS_REGION[<key>] or MR_COMPUTE_CLASS.
 mr_compute_class() { echo "${MR_COMPUTE_CLASS_REGION[${1}]:-${MR_COMPUTE_CLASS}}"; }
-# Prefix of the GKE standalone NEG names of a region:
-#   <prefix>-<backend>, backend = baseline | ppcr | ob
-mr_neg_prefix() { echo "${MR_RESOURCE_NAME_PREFIX}-${MR_ENVIRONMENT_NAME}-${1}"; }
-mr_global_proxy_subnet_name() { echo "${MR_NETWORK_NAME}-$(mr_region "${1}")-gproxy"; }
 
 # mr_kubectl <region_key> <kubectl args...>
 mr_kubectl() {
@@ -153,48 +148,34 @@ mr_helm() {
 }
 
 mr_get_credentials() {
-  local key="${1}"
-  mkdir -p "${MR_WORK_DIR}/kubeconfig"
-  KUBECONFIG="$(mr_kubeconfig "${key}")" gcloud container clusters get-credentials \
+  local key="${1}" kubeconfig
+  kubeconfig="$(mr_kubeconfig "${key}")"
+  mkdir -p "$(dirname "${kubeconfig}")"
+  KUBECONFIG="${kubeconfig}" gcloud container clusters get-credentials \
     "$(mr_cluster_name "${key}")" \
     --dns-endpoint \
     --location "$(mr_region "${key}")" \
     --project "${MR_PROJECT_ID}" >/dev/null
 }
 
-# Wait until a command succeeds, or time out.
-# mr_wait_for <timeout_s> <interval_s> <description> <command...>
-mr_wait_for() {
-  local timeout="${1}" interval="${2}" description="${3}"
-  shift 3
-  local deadline=$(($(date +%s) + timeout))
-  until "$@" >/dev/null 2>&1; do
-    if [[ $(date +%s) -ge ${deadline} ]]; then
-      mr_log "timed out after ${timeout}s waiting for: ${description}"
-      return 1
-    fi
-    sleep "${interval}"
-  done
-}
-
 # mr_gateway_vip <gateway_name> <region_key>
-# Prints the internal VIP of the multi-cluster Gateway in a region. The
-# cross-region internal load balancer allocates one VIP per region listed in the
-# Gateway addresses, from that region's subnet, so the VIP is matched to the
-# region by subnet range.
+# Prints the internal VIP of the cross-region load balancer in a region. With
+# MR_GLOBAL_LB=terraform, VIPs are recorded by scripts/set-route.sh (from
+# terraform/multi-region/global_lb.sh vips). With MR_GLOBAL_LB=mc-gateway, the
+# VIP is matched to the region's node subnet range.
 mr_gateway_vip() {
   local gateway="${1}" key="${2}"
   if [[ "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
-    # Terraform-managed load balancer: VIPs are recorded by deploy-global-lb.sh.
     local vips_file="${MR_RESULTS_DIR}/gateway/vips.json"
     [[ -f "${vips_file}" ]] || vips_file="${MR_WORK_DIR}/terraform/global_lb.vips.json"
     jq -er --arg k "${key}" '.[$k] // empty' "${vips_file}" 2>/dev/null
     return
   fi
-  local addresses
+  local addresses node_cidr
   addresses="$(mr_kubectl "${MR_CONFIG_CLUSTER_KEY}" get gateway "${gateway}" -n "${MR_NAMESPACE}" \
     -o jsonpath='{range .status.addresses[*]}{.value}{"\n"}{end}' 2>/dev/null)" || return 1
-  "${MR_PYTHON}" - "${MR_NODE_CIDR[${key}]}" <<EOF
+  node_cidr="$(mr_node_cidr "${key}")" || return 1
+  "${MR_PYTHON}" - "${node_cidr}" <<EOF
 import ipaddress, sys
 net = ipaddress.ip_network(sys.argv[1])
 for line in """${addresses}""".split():

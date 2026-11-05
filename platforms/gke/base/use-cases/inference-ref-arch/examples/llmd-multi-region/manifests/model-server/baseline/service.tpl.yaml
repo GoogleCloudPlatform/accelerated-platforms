@@ -18,8 +18,8 @@ metadata:
   name: vllm
   annotations:
     # GKE standalone zonal NEGs, used as backends of the Terraform-managed
-    # cross-region internal Application Load Balancer.
-    cloud.google.com/neg: '{"exposed_ports":{"8000":{"name":"${MR_NEG_PREFIX}-baseline"}}}'
+    # cross-region internal Application Load Balancer (terraform/multi-region/global_lb).
+    cloud.google.com/neg: '{"exposed_ports":{"8000":{"name":"${MR_NEG_NAME_BASELINE}"}}}'
 spec:
   type: ClusterIP
   selector:

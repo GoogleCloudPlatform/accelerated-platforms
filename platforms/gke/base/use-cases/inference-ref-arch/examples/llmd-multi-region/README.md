@@ -5,10 +5,13 @@ several regions behind **one** cross-region internal Application Load Balancer,
 and measures them against plain vLLM deployments in the same regions: setup from
 scratch, spin-up and ready time, and the golden signals.
 
-It builds on the multi-region platform pattern of the
-[PoC capacity and rapid deployment guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md)
-and relies on the multi-platform-safe `core/deploy.sh` and `core/teardown.sh`
-from PR #581.
+It builds on the shared
+[Multi-region GKE inference foundation](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md)
+and consumes
+[`terraform/multi-region`](/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/README.md)
+(`provision.sh`, `teardown.sh`, `global_lb.sh`, and `helpers.sh`) for parallel
+regional cluster provisioning, Shared VPC networking, GKE standalone NEG
+exposure, and the cross-region internal Application Load Balancer.
 
 For the full guide, including architecture, results, and analysis, see
 [Multi-region llm-d with a global load balancer](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-multi-region-global-load-balancing.md).
@@ -37,10 +40,12 @@ flowchart LR
   end
 ```
 
-- **Cross-region choice (load balancer).** `terraform/global_lb` creates one
-  global backend service per experiment arm. Its backends are the GKE standalone
-  zonal NEGs of that arm in every region. A service load balancing policy
-  selects the cross-region behavior:
+- **Cross-region choice (load balancer).** `terraform/multi-region/global_lb`
+  (`global_lb.sh`, driven by `scripts/set-route.sh`) creates one global backend
+  service per experiment arm. Its backends are the GKE standalone zonal NEGs
+  (`<prefix>-<key>-<backend>`, exposed via `expose_service_neg` / `mr_neg_name`)
+  of that arm in every region. A service load balancing policy selects the
+  cross-region behavior:
   - `locality`: `WATERFALL_BY_REGION`. Traffic goes to the closest region until
     it reaches its capacity (`MR_LB_REGION_CAPACITY_INFLIGHT=32` under the
     default `MR_LB_BALANCING_MODE=IN_FLIGHT`, or `MR_LB_REGION_CAPACITY_QPS=6`
@@ -67,14 +72,14 @@ flowchart LR
   load balancer health check (`/ready`, port 19001) sends traffic to the other
   regions, and active streams through that pod are cut (`safe-to-evict: "false"`
   prevents cluster autoscaler consolidation, not node upgrades). When
-  `MR_HPA_ENABLED=true`, `deploy-global-lb.sh` multiplies the router's
-  per-endpoint capacity by `MR_HPA_MAX_REPLICAS / MR_REPLICAS_PER_REGION`: the
-  router is the region's only NEG endpoint, so at full scale-out an llm-d
-  region's capacity equals the baseline's (64 in-progress requests by default),
-  while below full scale-out it accepts up to that factor more in-progress
-  requests before spilling over. The router keeps the upstream chart's Envoy
-  timeouts: 86400 s route timeout and 1000 s `ext_proc` `message_timeout` per
-  endpoint picker exchange, so long streams are bounded by the load balancer's
+  `MR_HPA_ENABLED=true`, `set-route.sh` multiplies the router's per-endpoint
+  capacity by `MR_HPA_MAX_REPLICAS / MR_REPLICAS_PER_REGION`: the router is the
+  region's only NEG endpoint, so at full scale-out an llm-d region's capacity
+  equals the baseline's (64 in-progress requests by default), while below full
+  scale-out it accepts up to that factor more in-progress requests before
+  spilling over. The router keeps the upstream chart's Envoy timeouts: 86400 s
+  route timeout and 1000 s `ext_proc` `message_timeout` per endpoint picker
+  exchange, so long streams are bounded by the load balancer's
   `MR_BACKEND_TIMEOUT_SEC` (3600 s).
 - **Baseline.** The load balancer sends traffic straight to the plain vLLM pods'
   NEGs (`locality_lb_policy = "LEAST_REQUEST"` within each chosen region;
@@ -181,23 +186,25 @@ scripts/teardown-all.sh
 
 Each step can also be run individually:
 
-- `deploy-region.sh <key>`
-- `deploy-arm.sh <baseline|llmd>`
-- `set-route.sh --backend <baseline|ppcr|ob> --lb-mode <locality|capacity|zone-spray|preferred>`
-- `run-benchmark.sh --arm <label> --workload <shared-prefix|chat>`
-- `delete-arm.sh <arm> [--hold-gpus]`
+- `scripts/deploy-all.sh [--dry-run] [--regions-only]` (delegates regional
+  provisioning to `../../terraform/multi-region/provision.sh --parallel`)
+- `scripts/stage-model.sh <key>`
+- `scripts/deploy-arm.sh <baseline|llmd>`
+- `scripts/set-route.sh --backend <baseline|ppcr|ob> --lb-mode <locality|capacity|zone-spray|preferred>`
+- `scripts/run-benchmark.sh --arm <label> --workload <shared-prefix|chat>`
+- `scripts/delete-arm.sh <arm> [--hold-gpus]`
 - `bench/record_scaling.py`: records HPA, Deployment, pod, and GPU node state
   per region every 15 s (used by `run-scale-experiment.sh`).
 - `bench/scale_report.py`: client-side golden signals per stage, the autoscaling
   timeline, per-pod scale-out latency, and server-side signals from Managed
   Service for Prometheus.
 
-To add a region to a running environment, add its key to `MR_REGION_KEYS` and to
-every `MR_REGION*` and `MR_*_CIDR` map in `mr.env`, then run
-`deploy-shared-network.sh`, `deploy-region.sh <key>`, and
-`stage-model.sh <key>`. The next `deploy-arm.sh` deploys the arm in the new
-region and adds its NEGs and VIP to the global load balancer. Until then,
-`set-route.sh` fails because the active arm has no NEGs in that region.
+To add a region to a running environment, add its key to `MR_REGION_KEYS`,
+`MR_REGION`, and `MR_CIDR_INDEX` in `mr.env`, then run
+`scripts/deploy-all.sh --regions-only` and `scripts/stage-model.sh <key>`. The
+next `scripts/deploy-arm.sh` deploys the arm in the new region and adds its NEGs
+and VIP to the global load balancer. Until then, `scripts/set-route.sh` fails
+because the active arm has no NEGs in that region.
 
 Don't edit the scripts while a run is in progress: bash reads scripts
 incrementally.
@@ -223,8 +230,8 @@ after it was scheduled; a cold one took 3:10–5:01.
 
 ```bash
 export MR_POD_SNAPSHOTS_ENABLED=true
-# Snapshot bucket and IAM (online_gpu), and the cluster feature, per region:
-MR_SKIP_CORE_PLATFORM=true scripts/deploy-region.sh <key>
+# Snapshot bucket and IAM (online_gpu), and the cluster feature, across regions:
+ACP_DEPLOY_CORE_PLATFORM=false scripts/deploy-all.sh --regions-only
 # Bootstrap (one cold replica per region, then the HPA's replicas restored):
 scripts/deploy-arm.sh llmd --backend ob
 ```

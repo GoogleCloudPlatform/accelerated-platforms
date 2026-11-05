@@ -18,6 +18,7 @@ metadata:
   name: dynamo-frontend
   namespace: replaced-by-kustomize
 spec:
+  progressDeadlineSeconds: 1800
   replicas: 1
   selector:
     matchLabels:

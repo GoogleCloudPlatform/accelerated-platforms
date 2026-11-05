@@ -18,6 +18,7 @@ metadata:
   name: dynamo-pool-relay
   namespace: replaced-by-kustomize
 spec:
+  progressDeadlineSeconds: 1800
   replicas: 1
   selector:
     matchLabels:

@@ -68,6 +68,7 @@ rayutil
 rtxpro
 rueth
 runbook
+runbooks
 safetensors
 scann
 sched

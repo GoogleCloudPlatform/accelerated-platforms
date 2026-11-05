@@ -131,17 +131,20 @@ shared_network_outputs() {
   mr_tf shared_network output
 }
 
+list_project_negs() {
+  gcloud compute network-endpoint-groups list \
+    --project="${PROJECT_ID}" \
+    --filter="name ~ ^${TF_VAR_resource_name_prefix}-" \
+    --format=json
+}
+
 build_tfvars() {
-  local outputs negs
+  local negs="${1}" outputs
   outputs="$(shared_network_outputs)" || return 1
   if [[ -n "${preferred_region}" ]]; then
     jq -e --arg region "${preferred_region}" '[.regions.value[].region] | index($region) != null' <<<"${outputs}" >/dev/null ||
       mr_die "--preferred-region '${preferred_region}' isn't the region of a platform in the shared network."
   fi
-  negs="$(gcloud compute network-endpoint-groups list \
-    --project="${PROJECT_ID}" \
-    --filter="name ~ ^${TF_VAR_resource_name_prefix}-" \
-    --format=json)" || return 1
   jq -n \
     --argjson outputs "${outputs}" \
     --argjson negs "${negs}" \
@@ -195,9 +198,10 @@ build_tfvars() {
 }
 
 apply_lb() {
-  local tfvars_json missing
+  local negs tfvars_json missing empty_platforms
   validate_apply_arguments
-  tfvars_json="$(build_tfvars)" || mr_die "building the load balancer variables failed; see the error above."
+  negs="$(list_project_negs)" || mr_die "listing project NEGs failed; see the error above."
+  tfvars_json="$(build_tfvars "${negs}")" || mr_die "building the load balancer variables failed; see the error above."
   missing="$(jq -r '
     .active_backend as $active
     | [.backends[$active].negs[].region] as $served
@@ -205,6 +209,23 @@ apply_lb() {
     | join(" ")' <<<"${tfvars_json}")"
   [[ -z "${missing}" ]] ||
     mr_die "the active backend '${active}' has no NEG in platform(s): ${missing}. Expose its frontend there first, for example: expose_service_neg <platform_name> <namespace> <service> <port> ${active}"
+  empty_platforms="$(jq -rn \
+    --argjson tfvars "${tfvars_json}" \
+    --argjson negs "${negs}" '
+    ($tfvars.active_backend) as $active
+    | [$tfvars.backends[$active].negs[].self_link] as $links
+    | [
+        $tfvars.regions | to_entries[] as $p
+        | select(
+            [$negs[] | select((.selfLink as $s | $links | index($s) != null) and (.zone | split("/") | last | sub("-[a-z]$"; "") == $p.value.region) and ((.size // 0) > 0))]
+            | length == 0
+          )
+        | $p.key
+      ]
+    | join(" ")')"
+  if [[ -n "${empty_platforms}" ]]; then
+    mr_log "WARNING: active backend '${active}' currently has 0 endpoints across its NEGs in platform(s): ${empty_platforms}. On GKE Autopilot, zonal NEGs are created only after nodes join each zone; once the frontend Pods are Ready, re-run 'global_lb.sh apply' so any new zonal NEGs are attached."
+  fi
   mr_log "Backends (NEG count): $(jq -r '[.backends | to_entries[] | "\(.key)=\(.value.negs | length)"] | join(", ")' <<<"${tfvars_json}"); active: ${active}"
   if [[ "${dry_run}" == "true" ]]; then
     jq . <<<"${tfvars_json}"

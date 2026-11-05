@@ -215,15 +215,18 @@ register each cluster to the project's fleet.
 ## Put regional frontends behind the global load balancer
 
 The cross-region internal Application Load Balancer needs `shared-vpc` mode. It
-has a private VIP in each region, which clients in the VPC network call. Each
-backend is a global backend service whose backends are the GKE standalone NEGs
-of a regional frontend Service, for example `dynamo-frontend`, `trtllm`, or the
-llm-d router proxy. A service load balancing policy keeps traffic in the closest
+has a private HTTP VIP (TCP port `80`) in each region, which clients in the VPC
+network call (for example, `http://<vip>/v1/chat/completions`). Each backend is
+a global backend service whose backends are the GKE standalone NEGs of a
+regional frontend Service, for example `dynamo-frontend`, `trtllm`, or the llm-d
+router proxy. A service load balancing policy keeps traffic in the closest
 region until that region reaches its capacity, then spills over to the next
 region; a region whose endpoints fail their health checks gets no traffic.
 
-1. In each region that serves the backend, expose the frontend Service's port as
-   a standalone NEG named `<resource_name_prefix>-<platform_name>-<backend>`:
+1. Once each regional frontend's Pods are scheduled on their nodes (on GKE
+   Autopilot, standalone zonal NEGs exist only in zones that currently have
+   nodes), expose the frontend Service's port as a standalone NEG named
+   `<resource_name_prefix>-<platform_name>-<backend>`:
 
    ```shell
    source platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/helpers.sh

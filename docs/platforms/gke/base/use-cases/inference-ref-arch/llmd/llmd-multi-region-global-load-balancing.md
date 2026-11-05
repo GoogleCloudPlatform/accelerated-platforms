@@ -10,10 +10,11 @@ against plain vLLM deployments in the same regions, for:
 - the golden signals: latency (TTFT, TPOT, end-to-end), throughput, errors, and
   saturation (goodput within an SLO).
 
-It builds on the multi-region platform pattern of the
-[PoC capacity and rapid deployment guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md),
-and on PR #581, which makes `core/deploy.sh` and `core/teardown.sh` safe for
-several platforms. The implementation, scripts, and benchmark harness are in
+It builds on the shared
+[Multi-region GKE inference foundation](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md)
+and its provisioning and load-balancing layer in
+[`terraform/multi-region`](/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/README.md).
+The llm-d manifests, routing scripts, and benchmark harness are in
 [`examples/llmd-multi-region`](/platforms/gke/base/use-cases/inference-ref-arch/examples/llmd-multi-region/README.md).
 
 > [!NOTE]
@@ -97,10 +98,12 @@ flowchart LR
 The design has three layers:
 
 - **Regional platforms.** There is one GKE Standard cluster per region, deployed
-  with the core platform and inference-ref-arch terraservices, each from its own
-  Git worktree, in parallel. All clusters join one shared VPC
-  (`terraform/shared_network`) with non-overlapping ranges, and every region
-  also gets a `GLOBAL_MANAGED_PROXY` proxy-only subnet.
+  with the core platform and inference-ref-arch terraservices via
+  `terraform/multi-region/provision.sh --parallel` (`CLUSTER_MODE=standard`,
+  `NETWORK_MODE=shared-vpc`), each from its own Git worktree in parallel. All
+  clusters join one shared VPC (`terraform/multi-region/shared_network`) with
+  non-overlapping ranges (`MR_CIDR_INDEX`), and every region also gets a
+  `GLOBAL_MANAGED_PROXY` proxy-only subnet.
 - **Regional pools (the deployment layer under test).**
   - Arm A, **plain vLLM**: 2 replicas per region. The load balancer sends
     requests straight to the vLLM pods.
@@ -129,10 +132,12 @@ The design has three layers:
     long streams are bounded by the load balancer's `MR_BACKEND_TIMEOUT_SEC`
     (3600 s).
 - **Global load balancer.** One cross-region internal Application Load Balancer
-  (`terraform/global_lb`) has a private VIP in each region. It uses one global
-  backend service per arm, whose backends are the GKE standalone NEGs of that
-  arm in every region. A service load balancing policy selects the cross-region
-  behavior:
+  (`terraform/multi-region/global_lb`, applied via `scripts/set-route.sh` and
+  `global_lb.sh`) has a private VIP in each region. It uses one global backend
+  service per arm, whose backends are the GKE standalone NEGs
+  (`<prefix>-<key>-<backend>`, exposed via `expose_service_neg` / `mr_neg_name`)
+  of that arm in every region. A service load balancing policy selects the
+  cross-region behavior:
 
   | Mode         | Policy                                                                                                    | Behavior                                                                                                                                                                                                                                                                                  |
   | ------------ | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -191,9 +196,9 @@ balancing policy, and region capacity.
 > region's NEG endpoints, and client Jobs started Stage 0 independently after
 > node provisioning and image pull (producing 63–158 s of cross-region Stage 0
 > start skew). The example's configuration now defaults `baseline` to
-> `LEAST_REQUEST` (`terraform/global_lb`, `deploy-global-lb.sh`; export
-> `MR_BASELINE_LOCALITY_LB_POLICY=ROUND_ROBIN` to reproduce the recorded runs)
-> so future reproductions compare prefix+load-aware EPP routing against
+> `LEAST_REQUEST` (`terraform/multi-region/global_lb`, `scripts/set-route.sh`;
+> export `MR_BASELINE_LOCALITY_LB_POLICY=ROUND_ROBIN` to reproduce the recorded
+> runs) so future reproductions compare prefix+load-aware EPP routing against
 > active-request L7 balancing rather than blind round-robin, and
 > `run-benchmark.sh` coordinates a cross-region Stage 0 start barrier
 > (`MR_BENCH_SYNC_START=auto`, on whenever more than one client region runs) so
@@ -326,8 +331,8 @@ starts with a cold prefix cache.
 Both arms share the platform. The example was set up from scratch twice, with
 regions in parallel. The second run was a hands-off reproducibility check in a
 separate environment (`MR_ENVIRONMENT_NAME=mr2`, its own VPC, clusters, buckets,
-and state) in the same project, next to the first environment, which also
-exercises PR #581's multi-platform safety.
+and state) in the same project, next to the first environment, verifying
+multi-environment isolation in the shared foundation.
 
 | Stage                                                                                  |                         Run 1 | Run 2 (clean) | Notes                                                                                                                                                                                                                                  |
 | -------------------------------------------------------------------------------------- | ----------------------------: | ------------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -505,9 +510,10 @@ The load balancer's own metrics agreed with the configuration:
 (2–2.75× its configured limit of 4) and only 0–2 in `europe-west2` (0–50% of its
 configured limit of 4, leaving spare regional headroom unused). Even so, it kept
 about 90% of the requests in `us-central1`. No health check transitions were
-logged during these runs (health check logging is on in `terraform/global_lb`).
-The ramp runs of a second skew experiment (1 replica per region, 1–4 QPS, `RATE`
-capacity 1.5 vs. 0.5 QPS) also matched: 21.2% vs. 22.5%.
+logged during these runs (health check logging is on in
+`terraform/multi-region/global_lb`). The ramp runs of a second skew experiment
+(1 replica per region, 1–4 QPS, `RATE` capacity 1.5 vs. 0.5 QPS) also matched:
+21.2% vs. 22.5%.
 
 **Conclusion.** With this load balancer (cross-region internal Application Load
 Balancer, GKE standalone zonal NEGs, `WATERFALL_BY_REGION`), the configured
@@ -543,11 +549,11 @@ reproduces this:
 | llm-d pins            | When this work started, the repo's GPU llm-d bases, Helm values, and gateway recipes tracked `llm-d/llm-d` `main`, and the upstream move to `DisaggregatedSet` broke the TPU P/D overlay in CI. PR #588 has since pinned the repo's bases to `v1.0.0`.                                                               | Everything pinned to commit `378b42d` (v1.0.0). Use the **commit** SHA: the annotated tag object SHA (`db7d005`) doesn't work for raw URLs.                                                                                                                                                                             |
 | llm-d PPCR            | When this work started, the repo's GPU PPCR overlays replaced vLLM's arguments without `--enable-scale-out` and without the `replay_endpoint`. llm-d v1.0's `token-producer` then gets 404 on `/v1/*/render` and **silently routes without cache information**. PR #588 has since added both to the repo's overlays. | The example overlay adds both flags and serves `Qwen/Qwen3-32B`, the model name that the router's tokenizer configuration uses.                                                                                                                                                                                         |
 | Run:ai streamer IAM   | `--load-format=runai_streamer` with `gs://` needs `storage.buckets.get`. `online_gpu` only grants the Cloud Storage FUSE object role, so vLLM failed with 403.                                                                                                                                                       | The namespace KSA is granted `roles/storage.legacyBucketReader` on the regional bucket.                                                                                                                                                                                                                                 |
-| Capacity              | `n4-standard-4` stockout in all zones of one region blocked the system node pool for 35 minutes. The create operation can't be cancelled, and the cluster can't be deleted while it runs.                                                                                                                            | `MR_SYSTEM_MACHINE_TYPE` per region (for example, `e2-standard-4`).                                                                                                                                                                                                                                                     |
+| Capacity              | `n4-standard-4` stockout in all zones of one region blocked the system node pool for 35 minutes. The create operation can't be cancelled, and the cluster can't be deleted while it runs.                                                                                                                            | `MR_SYSTEM_MACHINE_TYPE_DEFAULT` (`TF_VAR_cluster_system_node_pool_machine_type`, defaulting to `e2-standard-4`).                                                                                                                                                                                                       |
 | Capacity              | G4 (RTX PRO 6000) on-demand stockout in some zones.                                                                                                                                                                                                                                                                  | Compute class priority fallback; nodes arrived after 4–8 minutes.                                                                                                                                                                                                                                                       |
 | Capacity              | Releasing GPUs between arms is fragile. The cluster autoscaler removed the empty G4 node about 40 s after the arm's pods were gone, and then the region was stocked out in every G4 zone for over 20 minutes, which failed the next arm's rollout.                                                                   | `delete-arm.sh --hold-gpus` keeps the nodes with placeholder pods (`manifests/common/gpu-hold`), and `deploy-arm.sh` releases them right before it applies the next arm. `run-experiment.sh` and `run-skew-experiment.sh` hold between arms and release after the last one. Use reservations for anything longer-lived. |
 | Load balancer         | `SPRAY_TO_REGION` only spreads requests over the zones of the chosen region; it isn't a cross-region spray.                                                                                                                                                                                                          | `capacity` is `WATERFALL_BY_REGION` with a low region capacity; `zone-spray` is kept as a separate mode.                                                                                                                                                                                                                |
-| Core scripts          | `fleet_membership` waits only 60 s for cluster operations, and the autoscaler's first `RESIZE_CLUSTER` often takes longer.                                                                                                                                                                                           | `deploy-region.sh` retries the idempotent core deploy.                                                                                                                                                                                                                                                                  |
+| Core scripts          | `fleet_membership` waits only 60 s for cluster operations, and the autoscaler's first `RESIZE_CLUSTER` often takes longer.                                                                                                                                                                                           | `terraform/multi-region/provision.sh` retries the idempotent core deploy.                                                                                                                                                                                                                                               |
 | Core scripts          | Re-running with rewritten `platform.auto.tfvars` dropped `platform_custom_role_unique_suffix`, so terraservices bound a non-existent custom role (`…gcsfuse.user.null`).                                                                                                                                             | `platform_custom_role_unique_suffix` is preserved.                                                                                                                                                                                                                                                                      |
 | Networking            | `REGIONAL_MANAGED_PROXY` and `GLOBAL_MANAGED_PROXY` proxy-only subnets **can** coexist in one region of a VPC. This was tested, and contradicts a warning in the multi-cluster Inference Gateway setup page.                                                                                                         | Both are created.                                                                                                                                                                                                                                                                                                       |
 | Multi-cluster Gateway | See [Why not the GKE multi-cluster Inference Gateway (yet)](#why-not-the-gke-multi-cluster-inference-gateway-yet).                                                                                                                                                                                                   | `roles/gkehub.gatewayAdmin` granted; Terraform load balancer is the default.                                                                                                                                                                                                                                            |

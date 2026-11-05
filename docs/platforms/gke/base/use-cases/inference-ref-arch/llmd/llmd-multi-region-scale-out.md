@@ -2,6 +2,10 @@
 
 This guide extends
 [Multi-region llm-d with a global load balancer](llmd-multi-region-global-load-balancing.md)
+(built on the
+[Multi-region GKE inference foundation](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md)
+and
+[`terraform/multi-region`](/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/README.md))
 to a third, APAC region, gives every region a Horizontal Pod Autoscaler (HPA),
 and drives each region to twice its provisioned capacity. It measures the golden
 signals while the HPA scales out, compares cold scale-out with scale-out from
@@ -99,9 +103,7 @@ scripts/run-scale-experiment.sh --backend ppcr
 # 3. Enable Pod snapshots on each regional cluster (creates snapshot buckets
 #    and enables the GKE Pod snapshots feature).
 export MR_POD_SNAPSHOTS_ENABLED=true
-for key in usc1 euw2 ase1; do
-  MR_SKIP_CORE_PLATFORM=true scripts/deploy-region.sh "${key}"
-done
+ACP_DEPLOY_CORE_PLATFORM=false scripts/deploy-all.sh --regions-only
 
 # 4. Run B — PodSnapshot scale-out (bootstraps 1 cold gVisor pod per region,
 #    checkpoints it, restores remaining replicas, and runs the 7-stage sweep).
@@ -263,11 +265,13 @@ warm-up, inter-token latency was about 10% higher than in the cold run (p90 TPOT
 
 `MR_POD_SNAPSHOTS_ENABLED=true` turns it on for the llm-d arm:
 
-- `deploy-region.sh` sets `ira_online_gpu_pod_snapshots_enabled`, so the
-  `online_gpu` terraservice creates a regional snapshot bucket (hierarchical
-  namespace, no soft delete) and its IAM grants. It then enables the cluster
-  feature (`gcloud beta container clusters update --enable-pod-snapshots`, 6–11
-  minutes per cluster).
+- `deploy-all.sh` passes `ENABLE_POD_SNAPSHOTS=true` to
+  `terraform/multi-region/provision.sh`, which sets
+  `ira_online_gpu_pod_snapshots_enabled` so the `online_gpu` terraservice
+  creates a regional snapshot bucket (hierarchical namespace, no soft delete)
+  and its IAM grants, and then enables the cluster feature
+  (`gcloud beta container clusters update --enable-pod-snapshots`, 6–11 minutes
+  per cluster).
 - `deploy-arm.sh` applies a `PodSnapshotStorageConfig` and a `PodSnapshotPolicy`
   (`triggerConfig.type: workload`, `postCheckpoint: resume`) from
   `manifests/model-server/podsnapshot` (alongside the base `PodDisruptionBudget`

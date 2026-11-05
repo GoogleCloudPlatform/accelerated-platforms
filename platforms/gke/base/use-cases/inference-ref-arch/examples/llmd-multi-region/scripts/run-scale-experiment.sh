@@ -115,9 +115,10 @@ for key in ${MR_REGION_KEYS}; do
 done
 
 analysis="${MR_RESULTS_DIR}/analysis/${MR_RUN_ID}"
+cluster_re="$(for k in ${MR_REGION_KEYS}; do mr_cluster_name "${k}"; done | paste -sd'|' -)"
 "${MR_PYTHON}" "${MR_EXAMPLE_DIR}/bench/scale_report.py" \
   --runs "${MR_RESULTS_DIR}/runs/${MR_RUN_ID}/${label}" --recorder "${recorder}" --out "${analysis}" \
-  --project "${MR_PROJECT_ID}" --cluster-regex "${MR_RESOURCE_NAME_PREFIX}-${MR_ENVIRONMENT_NAME}.*" \
+  --project "${MR_PROJECT_ID}" --cluster-regex "^(${cluster_re})\$" \
   --namespace "${MR_NAMESPACE}" --pod-regex "${deployment}-.*" || mr_log "WARNING: scale report failed"
 
 if [[ "${keep}" != "true" ]]; then

@@ -31,7 +31,7 @@ source "${MY_PATH}/lib.sh"
 # shellcheck source=/dev/null
 source "${MY_PATH}/tf.sh"
 
-mr_require_tools
+mr_require_example_tools
 mr_validate_active_region_key "${MR_CONFIG_CLUSTER_KEY}"
 
 config_cluster="$(mr_cluster_name "${MR_CONFIG_CLUSTER_KEY}")"
@@ -41,7 +41,7 @@ check_memberships() {
   for key in ${MR_REGION_KEYS}; do
     gcloud container fleet memberships describe "$(mr_cluster_name "${key}")" \
       --location global --project "${MR_PROJECT_ID}" >/dev/null ||
-      mr_die "cluster $(mr_cluster_name "${key}") is not registered to the fleet. Run deploy-region.sh ${key} first."
+      mr_die "cluster $(mr_cluster_name "${key}") is not registered to the fleet. Run scripts/deploy-all.sh --regions-only first."
   done
 }
 
@@ -63,8 +63,9 @@ wait_for_mc_gatewayclasses() {
 
 mr_stage "fleet_check_memberships" "global" check_memberships
 mr_stage "fleet_check_gateway_api" "global" check_gateway_api
+mr_stage "shared_state_bucket" "global" mr_ensure_example_state_bucket
 tfvars="$(mr_write_fleet_tfvars)"
-mr_stage "fleet_features" "global" mr_tf fleet apply "${tfvars}"
+mr_stage "fleet_features" "global" mr_example_tf fleet apply "${tfvars}"
 mr_stage "fleet_mc_gatewayclasses_ready" "global" wait_for_mc_gatewayclasses
 
 mr_log "Fleet features enabled. Config cluster: ${config_cluster}"

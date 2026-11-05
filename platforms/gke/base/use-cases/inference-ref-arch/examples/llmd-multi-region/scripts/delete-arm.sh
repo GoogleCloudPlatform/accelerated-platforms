@@ -93,28 +93,73 @@ delete_arm() {
   fi
 }
 
+# Succeeds when a candidate backend still has a standalone NEG in every
+# platform registered in shared_network.
+backend_has_negs_everywhere() {
+  local candidate="${1}" registry negs missing
+  registry="$(mr_registry_json)" || return 1
+  [[ "${registry}" != "{}" ]] || return 1
+  negs="$(gcloud compute network-endpoint-groups list \
+    --project="${MR_PROJECT_ID}" \
+    --filter="name ~ ^${MR_RESOURCE_NAME_PREFIX}-" \
+    --format=json)" || return 1
+  missing="$(jq -r \
+    --argjson negs "${negs}" \
+    --arg prefix "${MR_RESOURCE_NAME_PREFIX}" \
+    --arg network_name "$(mr_shared_network_name)" \
+    --arg backend "${candidate}" '
+    [$negs[] | select(.network | endswith("/networks/" + $network_name)) | .name] as $names
+    | [to_entries[] | .key as $p | select(($names | index("\($prefix)-\($p)-\($backend)")) == null) | $p]
+    | join(" ")' <<<"${registry}")"
+  [[ -z "${missing}" ]]
+}
+
 # Detach the arm's NEGs from the Terraform-managed load balancer first, so that
-# GKE can delete them together with the Services. Check the persistent work-dir
-# state file first so NEG detachment works even if a deploy timed out during
-# health probing or MR_RESULTS_DIR changed.
-lb_state_file="${MR_WORK_DIR}/terraform/global_lb.state.json"
-[[ -f "${lb_state_file}" ]] || lb_state_file="${MR_RESULTS_DIR}/gateway/active.json"
-if [[ "${mode}" != "--scale-to-zero" && "${MR_GLOBAL_LB}" != "mc-gateway" && -f "${lb_state_file}" ]]; then
-  active_backend="$(jq -r '.backend' "${lb_state_file}")"
-  active_mode="$(jq -r '.lb_mode' "${lb_state_file}")"
-  lb_args=(--backend "${active_backend}" --lb-mode "${active_mode}" --no-wait)
-  if [[ "${active_mode}" == "preferred" ]]; then
+# GKE can delete them together with the Services. If the other arm still has
+# NEGs in every registered region, re-apply global_lb without the deleted arm;
+# otherwise destroy global_lb cleanly (the next deploy-arm.sh / set-route.sh
+# recreates it).
+if [[ "${mode}" != "--scale-to-zero" && "${MR_GLOBAL_LB}" != "mc-gateway" ]] && mr_tf_state_has_resources global_lb; then
+  lb_state_file="${MR_WORK_DIR}/terraform/global_lb.state.json"
+  [[ -f "${lb_state_file}" ]] || lb_state_file="${MR_RESULTS_DIR}/gateway/active.json"
+  active_backend="baseline"
+  active_mode="locality"
+  active_preferred_key="${MR_CONFIG_CLUSTER_KEY}"
+  if [[ -f "${lb_state_file}" ]]; then
+    active_backend="$(jq -r '.backend // "baseline"' "${lb_state_file}")"
+    active_mode="$(jq -r '.lb_mode // "locality"' "${lb_state_file}")"
     active_preferred_key="$(jq -r '.preferred_key // empty' "${lb_state_file}")"
-    [[ -n "${active_preferred_key}" ]] ||
-      mr_die "${lb_state_file} doesn't record the preferred region; run set-route.sh --lb-mode preferred --preferred-region <key> first"
-    lb_args+=(--preferred-region "${active_preferred_key}")
   fi
-  case "${arm}:${active_backend}" in
-  baseline:baseline | llmd:ppcr | llmd:ob)
-    mr_log "Deleting the active arm: the load balancer has no backends until the next set-route.sh"
-    ;;
-  esac
-  MR_LB_EXCLUDE_ARM="${arm}" "${MY_PATH}/deploy-global-lb.sh" "${lb_args[@]}"
+
+  fallback_backend=""
+  if [[ "${arm}" == "baseline" ]]; then
+    for candidate in "${active_backend}" ppcr ob; do
+      [[ "${candidate}" == "ppcr" || "${candidate}" == "ob" ]] || continue
+      if backend_has_negs_everywhere "${candidate}"; then
+        fallback_backend="${candidate}"
+        break
+      fi
+    done
+  else
+    if backend_has_negs_everywhere "baseline"; then
+      fallback_backend="baseline"
+    fi
+  fi
+
+  if [[ -n "${fallback_backend}" ]]; then
+    lb_args=(--backend "${fallback_backend}" --lb-mode "${active_mode}" --no-wait)
+    if [[ "${active_mode}" == "preferred" ]]; then
+      [[ -n "${active_preferred_key}" ]] ||
+        mr_die "${lb_state_file} doesn't record the preferred region; run set-route.sh --lb-mode preferred --preferred-region <key> first"
+      lb_args+=(--preferred-region "${active_preferred_key}")
+    fi
+    MR_LB_EXCLUDE_ARM="${arm}" "${MY_PATH}/set-route.sh" "${lb_args[@]}"
+  else
+    mr_log "No remaining backend has NEGs in every region; destroying global_lb to detach ${arm} NEGs until the next set-route.sh"
+    mr_stage "global_lb_destroy/${arm}" "global" "${MR_MULTI_REGION_DIR}/global_lb.sh" destroy
+    rm -f "${MR_RESULTS_DIR}/gateway/active.json" "${MR_RESULTS_DIR}/gateway/vips.json" \
+      "${MR_WORK_DIR}/terraform/global_lb.state.json" "${MR_WORK_DIR}/terraform/global_lb.vips.json"
+  fi
 fi
 
 for key in ${MR_REGION_KEYS}; do

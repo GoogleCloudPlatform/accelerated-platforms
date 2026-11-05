@@ -79,7 +79,7 @@ llmd)
 *) mr_die "arm must be one of: baseline, llmd" ;;
 esac
 
-mr_require_tools
+mr_require_example_tools
 startup_root="${MR_RESULTS_DIR}/startup/${MR_RUN_ID}/${arm}"
 mkdir -p "${startup_root}"
 
@@ -109,19 +109,11 @@ check_podsnapshot_prereqs() {
     podsnapshots.podsnapshot.gke.io \
     podsnapshotpolicies.podsnapshot.gke.io \
     podsnapshotstorageconfigs.podsnapshot.gke.io >/dev/null 2>&1; then
-    mr_die "Pod snapshot CRDs are missing in region '${key}'; run: MR_POD_SNAPSHOTS_ENABLED=true MR_SKIP_CORE_PLATFORM=true scripts/deploy-region.sh ${key}"
+    mr_die "Pod snapshot CRDs are missing in region '${key}'; run: MR_POD_SNAPSHOTS_ENABLED=true ACP_DEPLOY_CORE_PLATFORM=false scripts/deploy-all.sh --regions-only"
   fi
   if ! gcloud storage buckets describe "gs://$(mr_pod_snapshots_bucket "${key}")" --project "${MR_PROJECT_ID}" >/dev/null 2>&1; then
-    mr_die "Pod snapshot bucket gs://$(mr_pod_snapshots_bucket "${key}") is missing in region '${key}'; run: MR_POD_SNAPSHOTS_ENABLED=true MR_SKIP_CORE_PLATFORM=true scripts/deploy-region.sh ${key}"
+    mr_die "Pod snapshot bucket gs://$(mr_pod_snapshots_bucket "${key}") is missing in region '${key}'; run: MR_POD_SNAPSHOTS_ENABLED=true ACP_DEPLOY_CORE_PLATFORM=false scripts/deploy-all.sh --regions-only"
   fi
-}
-
-neg_ready() {
-  local key="${1}" svc="${2}" status_json
-  status_json="$(mr_kubectl "${key}" get service "${svc}" -n "${MR_NAMESPACE}" \
-    -o jsonpath='{.metadata.annotations.cloud\.google\.com/neg-status}' 2>/dev/null || true)"
-  [[ -n "${status_json}" ]] || return 1
-  "${MR_PYTHON}" -c 'import json, sys; d = json.loads(sys.argv[1]); sys.exit(0 if d.get("network_endpoint_groups") else 1)' "${status_json}" 2>/dev/null
 }
 
 # Succeeds when a Pod snapshot of the llm-d model servers is available in the
@@ -213,7 +205,7 @@ EOF_PY
     mr_kubectl "${key}" apply -f "${dir}/${arm}.hpa.yaml" || return 1
   fi
   if [[ "${arm}" == "baseline" && "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
-    mr_wait_for 300 5 "standalone NEG for Service/vllm-baseline in ${key}" neg_ready "${key}" vllm-baseline || return 1
+    expose_service_neg "${key}" "${MR_NAMESPACE}" "vllm-baseline" "8000" "baseline" >/dev/null || return 1
   fi
 }
 
@@ -254,17 +246,14 @@ apply_routers() {
       # the config cluster.
       mr_kubectl "${key}" annotate inferencepool "${release}" -n "${MR_NAMESPACE}" \
         networking.gke.io/export="True" --overwrite || return 1
-    else
-      # Standalone Mode: expose the router proxy (Envoy + endpoint picker) as
-      # GKE standalone zonal NEGs for the Terraform-managed load balancer.
-      mr_kubectl "${key}" annotate service "${release}-epp" -n "${MR_NAMESPACE}" --overwrite \
-        cloud.google.com/neg="{\"exposed_ports\":{\"80\":{\"name\":\"$(mr_neg_prefix "${key}")-$(mr_router_short_name "${release}")\"}}}" || return 1
     fi
   done
   for release in ${MR_LLMD_ROUTER_RELEASES}; do
     mr_kubectl "${key}" rollout status "deploy/${release}-epp" -n "${MR_NAMESPACE}" --timeout=900s || return 1
     if [[ "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
-      mr_wait_for 300 5 "standalone NEG for Service/${release}-epp in ${key}" neg_ready "${key}" "${release}-epp" || return 1
+      # Standalone Mode: expose the router proxy (Envoy + endpoint picker) as
+      # GKE standalone zonal NEGs via terraform/multi-region/helpers.sh.
+      expose_service_neg "${key}" "${MR_NAMESPACE}" "${release}-epp" "80" "$(mr_router_short_name "${release}")" >/dev/null || return 1
     fi
   done
 }

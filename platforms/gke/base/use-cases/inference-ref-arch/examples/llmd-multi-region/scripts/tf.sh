@@ -14,33 +14,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Terraform helpers for the shared (non-regional) terraservices of the
-# multi-region example. Source this file after lib.sh.
+# Terraform helpers for the example-specific shared terraservices under
+# examples/llmd-multi-region/terraform/ (bench, fleet, front_door). Shared VPC
+# and cross-region load balancer terraservices live in terraform/multi-region/.
+# Source this file after lib.sh.
 
-mr_shared_state_bucket() {
-  echo "${MR_PROJECT_ID}-${MR_RESOURCE_NAME_PREFIX}-${MR_ENVIRONMENT_NAME}-terraform"
+mr_ensure_example_state_bucket() {
+  mr_ensure_state_bucket "$(mr_region "${MR_CONFIG_CLUSTER_KEY}")"
 }
 
-mr_ensure_shared_state_bucket() {
-  local bucket
-  bucket="$(mr_shared_state_bucket)"
-  if ! gcloud storage buckets describe "gs://${bucket}" --project "${MR_PROJECT_ID}" >/dev/null 2>&1; then
-    mr_log "Creating shared Terraform state bucket gs://${bucket}"
-    gcloud storage buckets create "gs://${bucket}" \
-      --project "${MR_PROJECT_ID}" \
-      --location "$(mr_region "${MR_CONFIG_CLUSTER_KEY}")" \
-      --uniform-bucket-level-access \
-      --public-access-prevention
-    gcloud storage buckets update "gs://${bucket}" --versioning >/dev/null
+# mr_example_tf_state_has_resources <terraservice>
+# Succeeds when the state of an example-local terraservice has resources.
+mr_example_tf_state_has_resources() {
+  local object err_file state err count
+  object="gs://$(mr_state_bucket)/terraform/llmd-multi-region/${1}/default.tfstate"
+  err_file="$(mktemp)"
+  if ! state="$(gcloud storage cat "${object}" 2>"${err_file}")"; then
+    err="$(<"${err_file}")"
+    rm -f "${err_file}"
+    if [[ "${err,,}" == *"matched no objects"* || "${err,,}" == *"not found"* || "${err,,}" == *"404"* ]]; then
+      return 1
+    fi
+    mr_die "failed to read ${object}: ${err}"
   fi
+  rm -f "${err_file}"
+  count="$(jq '.resources | length' <<<"${state}")" || mr_die "${object} is not a Terraform state file."
+  ((count > 0))
 }
 
-# mr_tf <terraservice> <action> <tfvars_json_file>
+# mr_example_tf <terraservice> <action> <tfvars_json_file>
 # action: apply | destroy
-mr_tf() {
+mr_example_tf() {
   local terraservice="${1}" action="${2}" tfvars_file="${3}"
   local dir="${MR_EXAMPLE_DIR}/terraform/${terraservice}"
-  local data_dir="${MR_WORK_DIR}/terraform/${terraservice}"
+  local data_dir="${MR_WORK_DIR}/terraform/example-${terraservice}"
   mkdir -p "${data_dir}"
   (
     cd "${dir}" || exit 1
@@ -50,7 +57,7 @@ mr_tf() {
     # Check every step explicitly: callers often run under mr_stage, where
     # errexit is off, and a failed plan must not look like a successful apply.
     terraform init -input=false -reconfigure \
-      -backend-config="bucket=$(mr_shared_state_bucket)" \
+      -backend-config="bucket=$(mr_state_bucket)" \
       -backend-config="prefix=terraform/llmd-multi-region/${terraservice}" >/dev/null || exit 1
     if [[ "${action}" == "destroy" ]]; then
       terraform destroy -input=false -auto-approve -var-file="${tfvars_file}" || exit 1
@@ -61,34 +68,6 @@ mr_tf() {
       rm -f "${data_dir}/tfplan"
     fi
   )
-}
-
-mr_write_shared_network_tfvars() {
-  local out="${MR_WORK_DIR}/terraform/shared_network.tfvars.json"
-  mkdir -p "$(dirname "${out}")"
-  "${MR_PYTHON}" - "${out}" <<EOF
-import json, sys
-keys = "${MR_REGION_KEYS}".split()
-region = dict(x.split("=", 1) for x in """$(for k in ${MR_REGION_KEYS}; do echo "${k}=${MR_REGION[${k}]}"; done)""".split())
-node = dict(x.split("=", 1) for x in """$(for k in ${MR_REGION_KEYS}; do echo "${k}=${MR_NODE_CIDR[${k}]}"; done)""".split())
-rproxy = dict(x.split("=", 1) for x in """$(for k in ${MR_REGION_KEYS}; do echo "${k}=${MR_REGIONAL_PROXY_CIDR[${k}]}"; done)""".split())
-gproxy = dict(x.split("=", 1) for x in """$(for k in ${MR_REGION_KEYS}; do echo "${k}=${MR_GLOBAL_PROXY_CIDR[${k}]}"; done)""".split())
-tfvars = {
-    "project_id": "${MR_PROJECT_ID}",
-    "network_name": "${MR_NETWORK_NAME}",
-    "regions": {
-        k: {
-            "region": region[k],
-            "node_cidr": node[k],
-            "regional_proxy_cidr": rproxy[k],
-            "global_proxy_cidr": gproxy[k],
-        }
-        for k in keys
-    },
-}
-json.dump(tfvars, open(sys.argv[1], "w"), indent=2)
-EOF
-  echo "${out}"
 }
 
 mr_write_fleet_tfvars() {

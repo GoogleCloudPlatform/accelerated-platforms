@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Runs `vllm serve "$@"` (the model server's unchanged arguments) and
-# implements the cooperative checkpoint trigger of a PodSnapshotPolicy with
+# Runs `vllm serve "$@"` (the model server's unchanged arguments, streaming
+# weights directly from gs:// via --load-format=runai_streamer) and implements
+# the cooperative checkpoint trigger of a PodSnapshotPolicy with
 # `triggerConfig.type: workload` (modeled on
-# kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore).
+# kubernetes-manifests/online-inference-gpu/components/gke-pod-snapshot).
 # scripts/podsnapshot_patch.py makes this the container command:
 #   ["/bin/sh", "-c", <this script>, "vllm-podsnapshot", <vllm args>...]
 vllm serve "$@" &

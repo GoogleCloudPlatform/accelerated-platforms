@@ -179,7 +179,7 @@ if [[ "${dry_run}" == "true" ]]; then
     command -v "${tool}" >/dev/null 2>&1 || mr_die "missing required tool: ${tool}"
   done
 else
-  mr_require_tools
+  mr_require_example_tools
   declare -F mr_gateway_vip >/dev/null || mr_die "mr_gateway_vip is not defined in lib.sh"
 fi
 

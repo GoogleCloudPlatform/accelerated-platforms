@@ -16,7 +16,11 @@
 
 #To add a new directory to unit tests, add it to source_dirs array.
 #Add the source (folder containing src and test directories) to the array
-source_dirs=("modules/python")
+source_dirs=(
+    "modules/python"
+    "container-images/cpu/secure-runtime-agent"
+    "container-images/cpu/secure-runtime-runner"
+)
 
 for source_dir in "${source_dirs[@]}"; do
     export PYTHONPATH=$PYTHONPATH:${source_dir}

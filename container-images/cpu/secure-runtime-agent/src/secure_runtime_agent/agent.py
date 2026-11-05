@@ -12,38 +12,56 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The Secure Runtime: Autonomous GitHub Issue Triage & Reproducer Agent on Agent Substrate."""
+"""The Secure Runtime: Autonomous GitHub Triage Agent on GKE Agent Substrate."""
 
 import json
 import os
-from typing import Any, Dict
-
-from google.adk.agents import LlmAgent
-from google.adk.tools.base_tool import BaseTool
-from google.adk.tools.tool_context import ToolContext
+from typing import Any
 
 from .substrate_client import SubstrateClient, classify_tool_intent
+from .telemetry import TERMINAL_BUS
+
+try:
+    from google.adk.agents import LlmAgent
+    from google.adk.tools.base_tool import BaseTool
+    from google.adk.tools.tool_context import ToolContext
+except ImportError:  # pragma: no cover - bare CI unittest environment fallback
+    BaseTool = Any  # type: ignore[assignment,misc]
+    ToolContext = Any  # type: ignore[assignment,misc]
+    LlmAgent = None  # type: ignore[assignment,misc]
 
 _substrate = SubstrateClient()
 
 DEFAULT_ACTOR_NAME = os.environ.get("SUBSTRATE_DEFAULT_ACTOR", "triage-actor-1")
-GITHUB_REPO = os.environ.get("GITHUB_REPO", "demo-org/demo-repo")
+GITHUB_REPO = os.environ.get("GITHUB_REPO", "GoogleCloudPlatform/accelerated-platforms")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 
-SYSTEM_INSTRUCTION = f"""You are **The Secure Runtime Triage Agent** running on GKE with **Gemini on Vertex AI** and **Agent Substrate** (`ateworker-gvisor` + Golden Snapshots + `atenet-egress` + `k8s-credential-provider` + `intent-extproc`).
-
-Tools across the 4 Demo Acts:
-1. `inspect_sandbox_boundary(actor_name)` — Act 1 (gVisor user-space kernel & syscall boundary).
-2. `run_python_in_actor(code, declared_purpose, actor_name, suspend_after)` — Act 2 (Golden Snapshot 0ms-import execution & suspend to GCS).
-3. `triage_github_issue_in_sandbox(issue_number, follow_issue_instructions, actor_name)` — Act 3 (Out-of-sandbox token injection on `{GITHUB_REPO}` & L7 `intent-extproc` blocking).
-4. `audit_and_reset_actor_to_golden(actor_name, new_actor_name)` — Act 4 (SPIFFE audit attribution, policy revocation, and clean Golden Snapshot reset)."""
+SYSTEM_INSTRUCTION = (
+    "You are **The Secure Runtime Triage Agent** running on GKE with "
+    "**Gemini on Vertex AI** and **Agent Substrate** (`ateworker-gvisor` + "
+    "Golden Snapshots + `atenet-egress` + `k8s-credential-provider` + "
+    "`intent-extproc`).\n\n"
+    "Available tools (#1 through #4):\n"
+    "1. `inspect_sandbox_boundary(actor_name)` — #1 gVisor user-space kernel "
+    "& syscall boundary.\n"
+    "2. `run_python_in_actor(code, declared_purpose, actor_name, "
+    "suspend_after)` — #2 Golden Snapshot execution & stateful GCS suspend.\n"
+    "3. `triage_github_issue_in_sandbox(issue_number, "
+    f"follow_issue_instructions, actor_name)` — #3 Out-of-sandbox token "
+    f"injection on `{GITHUB_REPO}` & L7 `intent-extproc` method/path filter.\n"
+    "4. `audit_and_reset_actor_to_golden(actor_name, new_actor_name)` — #4 "
+    "SPIFFE-attributed audit trail, policy revocation, and clean Golden reset."
+)
 
 
 def _sync_intent_policy(
     tool_name: str, actor_name: str, declared_purpose: str = ""
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     actor_ref = f"{_substrate.atespace}/{actor_name}"
     classification = classify_tool_intent(
-        tool_name=tool_name, declared_purpose=declared_purpose, github_repo=GITHUB_REPO
+        tool_name=tool_name,
+        declared_purpose=declared_purpose,
+        github_repo=GITHUB_REPO,
     )
     _substrate.ensure_actor(actor_name)
     return {
@@ -55,61 +73,58 @@ def _sync_intent_policy(
 
 
 def _before_tool_intent_gate(
-    tool: BaseTool, args: Dict[str, Any], tool_context: ToolContext
-) -> Dict[str, Any] | None:
+    tool: BaseTool, args: dict[str, Any], tool_context: ToolContext
+) -> dict[str, Any] | None:
+    """Enforces least-privilege egress policy before tool execution (fail-closed)."""
     tool_name = getattr(tool, "name", "")
-    if tool_name in ("inspect_sandbox_boundary", "audit_and_reset_actor_to_golden"):
+    if tool_name in (
+        "inspect_sandbox_boundary",
+        "audit_and_reset_actor_to_golden",
+    ):
         return None
     actor_name = args.get("actor_name") or DEFAULT_ACTOR_NAME
     try:
-        tool_context.state["last_intent_classification"] = _sync_intent_policy(
+        synced = _sync_intent_policy(
             tool_name, actor_name, args.get("declared_purpose", "")
         )
+        tool_context.state["last_intent_classification"] = synced
+        return None
     except Exception as exc:  # noqa: BLE001
-        tool_context.state["last_intent_classification"] = {
-            "warning": f"Control-plane policy sync note: {exc}"
+        blocked = {
+            "status": "blocked",
+            "error": (
+                f"Blocked tool {tool_name!r} (fail-closed): "
+                f"control-plane intent policy sync failed: {exc}"
+            ),
         }
-    return None
+        tool_context.state["last_intent_classification"] = blocked
+        TERMINAL_BUS.emit("error", blocked["error"])
+        return blocked
 
 
 def inspect_sandbox_boundary(actor_name: str = DEFAULT_ACTOR_NAME) -> str:
-    """Act 1: Inspects the gVisor security boundary, UID, capabilities, and syscall filtering."""
+    """#1: Inspects the gVisor security boundary, UID, and syscall filtering."""
+    TERMINAL_BUS.emit(
+        "verdict",
+        f"[#1] Probing gVisor user-space kernel boundary on actor {actor_name}",
+        step="1",
+    )
     ensure_info = _substrate.ensure_actor(actor_name)
     sandbox_info = _substrate.call_actor(actor_name, "GET", "/info")
-    boundary_probe_code = """
-import ctypes, json, os, socket
-checks = {}
-try:
-    s = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, 0); s.close()
-    checks["af_packet_raw_socket"] = "UNEXPECTED_ALLOWED"
-except OSError as exc:
-    checks["af_packet_raw_socket"] = f"BLOCKED_BY_GVISOR ({exc.errno}: {exc.strerror})"
-libc = ctypes.CDLL(None, use_errno=True)
-if libc.unshare(0x10000000 | 0x00020000) != 0:
-    err = ctypes.get_errno()
-    checks["unshare_user_mount_ns"] = f"BLOCKED_BY_GVISOR (errno={err}: {os.strerror(err)})"
-for path in ("/proc/kcore", "/proc/kallsyms", "/proc/sysrq-trigger", "/dev/kmsg"):
-    try:
-        with open(path, "rb") as fh: fh.read(16)
-        checks[path] = "UNEXPECTED_ALLOWED"
-    except OSError as exc:
-        checks[path] = f"BLOCKED_BY_GVISOR ({exc.errno}: {exc.strerror})"
-print(json.dumps(checks))
-"""
-    probe_run = _substrate.call_actor(
-        actor_name, "POST", "/run", {"code": boundary_probe_code}
-    )
-    syscall_checks = (
-        json.loads(probe_run["stdout"].strip().splitlines()[-1])
-        if probe_run.get("stdout")
-        else {}
+    probe_res = _substrate.call_actor(actor_name, "POST", "/probe-boundary", {})
+    verdicts = probe_res.get("verdicts") or {}
+    TERMINAL_BUS.emit(
+        "verdict",
+        f"[#1] {len(verdicts)}/{len(verdicts)} escape vectors blocked by gVisor "
+        f"({sandbox_info.get('kernel_version', 'runsc')})",
+        step="1",
     )
     return json.dumps(
         {
-            "act": "Act 1 — The Sandbox Boundary (User-Space Kernel Isolation)",
+            "section": "#1 — Sandbox Boundary (gVisor User-Space Kernel Isolation)",
             "actor": ensure_info,
             "sandbox_identity": sandbox_info,
-            "user_space_syscall_verdicts": syscall_checks,
+            "user_space_syscall_verdicts": verdicts,
         },
         indent=2,
     )
@@ -121,7 +136,7 @@ def run_python_in_actor(
     actor_name: str = DEFAULT_ACTOR_NAME,
     suspend_after: bool = True,
 ) -> str:
-    """Act 2: Executes Python code inside a Golden-Snapshot-restored Actor and optionally suspends it."""
+    """#2: Executes Python inside a Golden-Snapshot Actor and optionally suspends."""
     policy_sync = _sync_intent_policy(
         "run_python_in_actor", actor_name, declared_purpose
     )
@@ -129,7 +144,7 @@ def run_python_in_actor(
     suspend_info = _substrate.suspend_actor(actor_name) if suspend_after else None
     return json.dumps(
         {
-            "act": "Act 2 — Golden Snapshot Restore & Zero-Import-Tax Execution",
+            "section": "#2 — Golden Snapshot Restore & Zero-Import-Tax Execution",
             "declared_purpose": declared_purpose,
             "policy_sync": policy_sync,
             "execution": exec_result,
@@ -144,62 +159,64 @@ def triage_github_issue_in_sandbox(
     follow_issue_instructions: bool = True,
     actor_name: str = DEFAULT_ACTOR_NAME,
 ) -> str:
-    """Act 3: Fetches a GitHub issue via out-of-sandbox credential injection and tests L7 intent filtering."""
+    """#3: Fetches a GitHub issue with egress token injection & L7 intent filter."""
     actor_ref = f"{_substrate.atespace}/{actor_name}"
+    TERMINAL_BUS.emit(
+        "verdict",
+        f"[#3] Syncing read-only GitHub EgressPolicy + intent-extproc rules for "
+        f"{actor_ref} (issue #{issue_number})",
+        step="3",
+    )
     policy_sync = _sync_intent_policy(
-        "triage_github_issue_in_sandbox", actor_name, f"triage issue #{issue_number}"
+        "triage_github_issue_in_sandbox",
+        actor_name,
+        f"triage issue #{issue_number}",
     )
-    triage_script = f"""
-import json, os, httpx
-repo, issue_num, follow_untrusted = {json.dumps(GITHUB_REPO)}, {int(issue_number)}, {bool(follow_issue_instructions)}
-headers = {{"Accept": "application/vnd.github+json", "Authorization": "Bearer ate-injected-at-egress"}}
-report = {{"sandbox_credential_env_vars": [k for k in os.environ if any(w in k.upper() for w in ("TOKEN", "SECRET", "GITHUB", "KEY"))], "steps": {{}}}}
-with httpx.Client(timeout=15.0) as client:
-    get_url = f"https://api.github.com/repos/{{repo}}/issues/{{issue_num}}"
-    r_get = client.get(get_url, headers=headers)
-    if r_get.status_code == 404:
-        get_url = f"https://api.github.com/repos/{{repo}}/issues?per_page=1"
-        r_get = client.get(get_url, headers=headers)
-    data = r_get.json() if r_get.headers.get("content-type", "").startswith("application/json") else {{}}
-    item = data[0] if isinstance(data, list) and data else (data if isinstance(data, dict) else {{}})
-    report["steps"]["1_fetch_issue_get"] = {{"method": "GET", "url": get_url, "status_code": r_get.status_code, "verdict": "ALLOWED_WITH_INJECTED_CREDENTIAL" if r_get.status_code == 200 else f"HTTP_{{r_get.status_code}}", "issue_title": item.get("title")}}
-    if follow_untrusted:
-        post_url = f"https://api.github.com/repos/{{repo}}/issues/{{issue_num}}/comments"
-        r_post = client.post(post_url, headers=headers, json={{"body": "Automated triage status update"}})
-        report["steps"]["2_attempt_post_comment"] = {{"method": "POST", "url": post_url, "status_code": r_post.status_code, "verdict": "BLOCKED_403_BY_INTENT_EXTPROC" if r_post.status_code == 403 else f"HTTP_{{r_post.status_code}}", "response": r_post.text[:200]}}
-        unlisted_url = "https://collector.example.invalid/telemetry"
-        try:
-            r_ext = client.post(unlisted_url, json={{"ping": "diagnostic"}})
-            report["steps"]["3_attempt_unlisted_host"] = {{"url": unlisted_url, "status_code": r_ext.status_code}}
-        except Exception as exc:
-            report["steps"]["3_attempt_unlisted_host"] = {{"url": unlisted_url, "verdict": "BLOCKED_BY_DEFAULT_DENY_EGRESS_GATEWAY", "error": str(exc)}}
-print(json.dumps(report))
-"""
-    exec_res = _substrate.call_actor(
-        actor_name, "POST", "/run", {"code": triage_script}
+    triage_report = _substrate.call_actor(
+        actor_name,
+        "POST",
+        "/triage-github-issue",
+        {
+            "repo": GITHUB_REPO,
+            "issue_number": int(issue_number),
+            "follow_untrusted": bool(follow_issue_instructions),
+        },
     )
-    parsed_report = (
-        json.loads(exec_res["stdout"].strip().splitlines()[-1])
-        if exec_res.get("stdout")
-        else {}
+    s1 = (triage_report.get("steps") or {}).get("1_fetch_issue_get", {})
+    s2 = (triage_report.get("steps") or {}).get("2_attempt_post_comment", {})
+    TERMINAL_BUS.emit(
+        "verdict",
+        f"[#3] Sandbox verdicts: GET={s1.get('status_code')} "
+        f"({s1.get('verdict')}), POST={s2.get('status_code', 'skipped')} "
+        f"({s2.get('verdict', 'not attempted')})",
+        step="3",
     )
     return json.dumps(
         {
-            "act": "Act 3 — Dynamic Intent Filtering & Out-of-Sandbox Credential Injection",
+            "section": (
+                "#3 — Dynamic Intent Filtering & Out-of-Sandbox Credential Injection"
+            ),
             "actor_ref": actor_ref,
             "policy_sync": policy_sync,
-            "triage_execution": parsed_report,
-            "intent_extproc_audit_trail": _substrate.list_audit_events(actor_ref)[-5:],
+            "triage_execution": triage_report,
+            "intent_extproc_audit_trail": _substrate.list_audit_events(actor_ref)[-6:],
         },
         indent=2,
     )
 
 
 def audit_and_reset_actor_to_golden(
-    actor_name: str = DEFAULT_ACTOR_NAME, new_actor_name: str = "triage-actor-clean"
+    actor_name: str = DEFAULT_ACTOR_NAME,
+    new_actor_name: str = "triage-actor-clean",
 ) -> str:
-    """Act 4: Retrieves the actor-attributed audit trail, quarantines the actor, and resets from Golden Snapshot."""
+    """#4: Queries SPIFFE audit trail, quarantines tainted actor, and resets clean."""
     actor_ref = f"{_substrate.atespace}/{actor_name}"
+    TERMINAL_BUS.emit(
+        "verdict",
+        f"[#4] Quarantining {actor_ref} and restoring clean actor {new_actor_name} "
+        "from Golden Snapshot",
+        step="4",
+    )
     audit_events = _substrate.list_audit_events(actor_ref)
     revoke_extproc = _substrate.revoke_intent_extproc(actor_ref)
     revoke_egress = _substrate.apply_egress_policy(
@@ -208,9 +225,17 @@ def audit_and_reset_actor_to_golden(
     delete_info = _substrate.delete_actor(actor_name)
     clean_actor_info = _substrate.ensure_actor(new_actor_name)
     clean_sandbox_check = _substrate.call_actor(new_actor_name, "GET", "/info")
+    TERMINAL_BUS.emit(
+        "verdict",
+        f"[#4] Clean actor {clean_actor_info['actor_ref']} ready in "
+        f"{clean_actor_info['ensure_ms']} ms",
+        step="4",
+    )
     return json.dumps(
         {
-            "act": "Act 4 — Actor-Attributed Audit Trail & Clean Reset from Golden Snapshot",
+            "section": (
+                "#4 — SPIFFE-Attributed Audit Trail & Clean Reset from Golden Snapshot"
+            ),
             "quarantined_actor": actor_ref,
             "audit_events_attributed_to_actor": audit_events,
             "policy_revocation": {
@@ -227,16 +252,23 @@ def audit_and_reset_actor_to_golden(
     )
 
 
-root_agent = LlmAgent(
-    name="Secure_Runtime_Triage_Agent",
-    model=os.environ.get("GEMINI_MODEL", "gemini-3.8-flash"),
-    description="Autonomous GitHub issue triage and scientific reproducer agent on GKE Agent Substrate.",
-    instruction=SYSTEM_INSTRUCTION,
-    before_tool_callback=_before_tool_intent_gate,
-    tools=[
-        inspect_sandbox_boundary,
-        run_python_in_actor,
-        triage_github_issue_in_sandbox,
-        audit_and_reset_actor_to_golden,
-    ],
+root_agent = (
+    LlmAgent(
+        name="Secure_Runtime_Triage_Agent",
+        model=GEMINI_MODEL,
+        description=(
+            "Autonomous GitHub issue triage and scientific reproducer agent "
+            "on GKE Agent Substrate."
+        ),
+        instruction=SYSTEM_INSTRUCTION,
+        before_tool_callback=_before_tool_intent_gate,
+        tools=[
+            inspect_sandbox_boundary,
+            run_python_in_actor,
+            triage_github_issue_in_sandbox,
+            audit_and_reset_actor_to_golden,
+        ],
+    )
+    if LlmAgent is not None
+    else None
 )

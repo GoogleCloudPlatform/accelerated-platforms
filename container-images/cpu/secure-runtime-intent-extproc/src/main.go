@@ -31,6 +31,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path"
 	"slices"
 	"strings"
 	"sync"
@@ -139,11 +140,31 @@ func ParseActorRef(rawIdentity string) string {
 	return rawIdentity
 }
 
+func canonicalizeRequestPath(reqPath string) (string, bool) {
+	rawPath, _, _ := strings.Cut(reqPath, "?")
+	if rawPath == "" || !strings.HasPrefix(rawPath, "/") || strings.Contains(rawPath, "\\") {
+		return "", false
+	}
+	decoded, err := url.PathUnescape(rawPath)
+	if err != nil || !strings.HasPrefix(decoded, "/") || strings.Contains(decoded, "\\") || strings.ContainsRune(decoded, 0) {
+		return "", false
+	}
+	for _, seg := range strings.Split(decoded, "/") {
+		if seg == "." || seg == ".." {
+			return "", false
+		}
+	}
+	cleaned := path.Clean(decoded)
+	if strings.HasSuffix(decoded, "/") && cleaned != "/" {
+		cleaned += "/"
+	}
+	return cleaned, true
+}
+
 func (s *PolicyStore) Evaluate(actorIdentity, method, authority, reqPath string, _ bool) (bool, int, string, string) {
 	actorRef := ParseActorRef(actorIdentity)
 	method = strings.ToUpper(strings.TrimSpace(method))
 	host, _, _ := strings.Cut(strings.ToLower(strings.TrimSpace(authority)), ":")
-	cleanPath, _, _ := strings.Cut(reqPath, "?")
 
 	s.mu.RLock()
 	rule, ok := s.rules[actorRef]
@@ -155,6 +176,10 @@ func (s *PolicyStore) Evaluate(actorIdentity, method, authority, reqPath string,
 	s.mu.RUnlock()
 	if !ok {
 		return false, 403, fmt.Sprintf("intent-extproc: no active intent policy registered for actor %q (default-deny)", actorRef), "none"
+	}
+	cleanPath, validPath := canonicalizeRequestPath(reqPath)
+	if !validPath {
+		return false, 403, fmt.Sprintf("intent-extproc: malformed or path-traversal URI %q rejected under intent %q", reqPath, rule.Intent), rule.Intent
 	}
 	if len(rule.AllowedHosts) > 0 && !slices.Contains(rule.AllowedHosts, "*") && !slices.Contains(rule.AllowedHosts, host) {
 		return false, 403, fmt.Sprintf("intent-extproc: host %q is not permitted by intent %q (allowed hosts: %v)", host, rule.Intent, rule.AllowedHosts), rule.Intent
@@ -316,7 +341,7 @@ func newControlMux(store *PolicyStore) *http.ServeMux {
 		switch r.Method {
 		case http.MethodPost, http.MethodPut:
 			var rule IntentRule
-			if err := json.NewDecoder(r.Body).Decode(&rule); err != nil || strings.TrimSpace(rule.Actor) == "" {
+			if err := json.NewDecoder(io.LimitReader(r.Body, 64*1024)).Decode(&rule); err != nil || strings.TrimSpace(rule.Actor) == "" {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}

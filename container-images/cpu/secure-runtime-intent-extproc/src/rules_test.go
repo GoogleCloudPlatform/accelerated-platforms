@@ -51,6 +51,18 @@ func TestPolicyStoreEvaluate(t *testing.T) {
 	if ok, code, _, _ := store.Evaluate(spiffe, "GET", "api.github.com", "/repos/other-org/other-repo/issues", true); ok || code != 403 {
 		t.Fatalf("expected other-repo GET 403, got ok=%v code=%d", ok, code)
 	}
+	for _, traversalPath := range []string{
+		"/repos/demo-org/demo-repo/../../victim-org/private-repo/issues/1",
+		"/repos/demo-org/demo-repo/%2e%2e/%2e%2e/victim-org/private-repo/issues/1",
+		"/repos/demo-org/demo-repo/./issues/42",
+		"/repos/demo-org/demo-repo\\..\\victim-org/private-repo",
+		"/repos/demo-org/demo-repo-other/issues/1",
+		"repos/demo-org/demo-repo/issues/42",
+	} {
+		if ok, code, _, _ := store.Evaluate(spiffe, "GET", "api.github.com", traversalPath, true); ok || code != 403 {
+			t.Fatalf("expected traversal/boundary path %q to be rejected with 403, got ok=%v code=%d", traversalPath, ok, code)
+		}
+	}
 	store.DeleteRule("secure-runtime/triage-1")
 	if ok, code, _, _ := store.Evaluate(spiffe, "GET", "api.github.com", "/repos/demo-org/demo-repo/issues/42", true); ok || code != 403 {
 		t.Fatalf("expected 403 after delete, got ok=%v code=%d", ok, code)

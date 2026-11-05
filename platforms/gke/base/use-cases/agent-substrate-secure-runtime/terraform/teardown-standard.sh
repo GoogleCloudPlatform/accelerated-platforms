@@ -26,6 +26,9 @@ export PATH="${HOME}/google-cloud-sdk/bin:${PATH}"
 export TF_VAR_initialize_backend_use_case_name="agent-substrate-secure-runtime/terraform"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-sec}"
 
+# Release any Direct VPC Egress attachment from the optional Cloud Run UI first.
+"${ACP_PLATFORM_USE_CASE_DIR}/demo/teardown-cloudrun-ui.sh"
+
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
 
@@ -33,7 +36,7 @@ cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/secure_runtime"
 rm -rf .terraform/
 terraform init
 terraform destroy -auto-approve
-rm -rf .terraform/ "terraform.tfstate"*
+rm -rf .terraform/
 
 if [ "${ACP_TEARDOWN_CORE_PLATFORM:-true}" = "true" ]; then
   CORE_TERRASERVICES_DESTROY="workloads/agent_substrate cloudbuild/initialize container_node_pool" \

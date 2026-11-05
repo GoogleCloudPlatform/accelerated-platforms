@@ -15,9 +15,10 @@
 
 set -euo pipefail
 
+ISSUE_NUMBER="${ISSUE_NUMBER:-42}"
 ACTOR_NAME="${ACTOR_NAME:-triage-actor-42}"
 echo "========================================================================"
-echo " ACT 3: Dynamic Intent Filtering & Out-of-Sandbox Credential Injection  "
+echo " #3: Dynamic Intent Filtering & Out-of-Sandbox Credential Injection     "
 echo "========================================================================"
 kubectl exec -i -n agent-harness deploy/triage-agent -- \
-  python3 -c "import sys; from secure_runtime_agent.agent import triage_github_issue_in_sandbox; print(triage_github_issue_in_sandbox(42, True, sys.argv[1]))" "${ACTOR_NAME}"
+  python3 -c 'import json, sys, urllib.request; req = urllib.request.Request("http://127.0.0.1:8080/api/part3", data=json.dumps({"issue_number": int(sys.argv[1]), "follow_instructions": True, "actor_name": sys.argv[2]}).encode(), headers={"Content-Type": "application/json"}, method="POST"); print(json.dumps(json.loads(urllib.request.urlopen(req, timeout=90).read().decode()), indent=2))' "${ISSUE_NUMBER}" "${ACTOR_NAME}"

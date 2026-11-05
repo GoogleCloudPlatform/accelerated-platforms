@@ -16,21 +16,21 @@
 
 FROM golang:1.25-bookworm AS ate-builder
 
-ARG SUBSTRATE_VERSION=v1.0.0-rc.2
+ARG SUBSTRATE_VERSION=v1.0.0-rc.3
 RUN git clone --depth 1 --branch ${SUBSTRATE_VERSION} https://github.com/agent-substrate/substrate.git /substrate \
     && cd /substrate \
     && GOTOOLCHAIN=auto CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/kubectl-ate ./cmd/kubectl-ate
 
 FROM python:3.12-slim-bookworm
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app \
+    HOME=/tmp
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates git \
-    && curl -fsSL "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /usr/local/bin/kubectl \
-    && chmod 0755 /usr/local/bin/kubectl \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ate-builder /out/kubectl-ate /usr/local/bin/kubectl-ate
@@ -39,7 +39,10 @@ COPY --from=primary requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY --from=primary secure_runtime_agent /app/secure_runtime_agent
+RUN chmod -R a+rX /app
+
+USER 65532:65532
 
 EXPOSE 8080
 
-ENTRYPOINT ["adk", "web", "--host", "0.0.0.0", "--port", "8080", "--otel_to_cloud", "--allow_origins", "regex:https?://.*"]
+ENTRYPOINT ["python3", "-m", "secure_runtime_agent.server"]

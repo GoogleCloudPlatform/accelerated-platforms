@@ -29,6 +29,11 @@ stringData:
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: demo-bench
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: ate-workers
 ---
 apiVersion: ate.dev/v1
@@ -233,6 +238,9 @@ rules:
     resources: ["pods", "services"]
     verbs: ["get", "list"]
   - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  - apiGroups: [""]
     resources: ["pods/portforward"]
     verbs: ["create"]
 ---
@@ -245,6 +253,30 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: triage-agent-ate-client-token
+subjects:
+  - kind: ServiceAccount
+    name: triage-agent
+    namespace: agent-harness
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: triage-agent-demo-bench
+  namespace: demo-bench
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: triage-agent-demo-bench
+  namespace: demo-bench
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: triage-agent-demo-bench
 subjects:
   - kind: ServiceAccount
     name: triage-agent
@@ -266,6 +298,8 @@ spec:
         app: triage-agent
     spec:
       serviceAccountName: triage-agent
+      securityContext:
+        fsGroup: 65532
       containers:
         - name: agent
           image: ${AGENT_IMAGE}
@@ -277,10 +311,18 @@ spec:
               value: "${GOOGLE_CLOUD_PROJECT}"
             - name: GOOGLE_CLOUD_LOCATION
               value: "${GOOGLE_CLOUD_LOCATION}"
+            - name: GKE_CLUSTER_NAME
+              value: "${CLUSTER_NAME}"
+            - name: SUBSTRATE_VERSION
+              value: "${SUBSTRATE_VERSION}"
             - name: GEMINI_MODEL
               value: "${GEMINI_MODEL}"
             - name: GITHUB_REPO
               value: "${GITHUB_REPO}"
+            - name: RUNNER_IMAGE
+              value: "${RUNNER_IMAGE}"
+            - name: DEMO_BENCH_NAMESPACE
+              value: "demo-bench"
             - name: SUBSTRATE_ATESPACE
               value: "${SUBSTRATE_ATESPACE}"
             - name: SUBSTRATE_ACTOR_TEMPLATE
@@ -299,10 +341,17 @@ spec:
             - name: http
               containerPort: 8080
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /healthz
               port: http
             initialDelaySeconds: 5
             periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities:
+              drop: ["ALL"]
           volumeMounts:
             - name: podidentity
               mountPath: /run/podidentity.podcert.ate.dev
@@ -339,7 +388,10 @@ kind: Service
 metadata:
   name: triage-agent-svc
   namespace: agent-harness
+  annotations:
+    networking.gke.io/load-balancer-type: "Internal"
 spec:
+  type: LoadBalancer
   selector:
     app: triage-agent
   ports:

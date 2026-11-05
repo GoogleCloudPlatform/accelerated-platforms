@@ -1,0 +1,436 @@
+<!--
+ Copyright 2026 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Secure Runtime — GKE Agent Substrate Mission Control</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="brand-pill">GKE Agent Substrate</span>
+      <h1>The Secure Runtime — Live Architecture &amp; Telemetry</h1>
+    </div>
+    <div class="cluster-pills">
+      <div class="pill">
+        <span class="dot-live" id="cluster-dot"></span>
+        <span>Cluster: <strong class="mono" id="hdr-cluster">connecting...</strong></span>
+      </div>
+      <div class="pill">
+        <span>Substrate: <strong class="mono" style="color:#38bdf8" id="hdr-substrate">—</strong></span>
+      </div>
+      <div class="pill">
+        <span>Model: <strong class="mono" style="color:#c4b5fd" id="hdr-model">—</strong></span>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="nav-tabs">
+      <button class="tab-btn active" id="tab-0" onclick="switchTab(0)">
+        <span class="tab-num">ZONES 1–4</span> Topology &amp; Inventory
+      </button>
+      <button class="tab-btn" id="tab-1" onclick="switchTab(1)">
+        <span class="tab-num">#1</span> Sandbox Boundary
+      </button>
+      <button class="tab-btn" id="tab-2" onclick="switchTab(2)">
+        <span class="tab-num">#2</span> Cold-Start Race
+      </button>
+      <button class="tab-btn" id="tab-3" onclick="switchTab(3)">
+        <span class="tab-num">#3</span> Credentials &amp; L7 Filter
+      </button>
+      <button class="tab-btn" id="tab-4" onclick="switchTab(4)">
+        <span class="tab-num">#4</span> SPIFFE Audit &amp; Reset
+      </button>
+      <button class="tab-btn" id="tab-5" onclick="switchTab(5)">
+        <span class="tab-num">ADK</span> Gemini Agent
+      </button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <a class="tab-btn" href="/dev-ui/?app=secure_runtime_agent" target="_blank" rel="noopener">
+        Open ADK Dev UI &nearr;
+      </a>
+      <button class="tab-btn" id="btn-toggle-width" onclick="toggleTerminalWidth()">
+        &harr; Wide Terminal
+      </button>
+    </div>
+  </nav>
+
+  <div id="workspace">
+    <!-- LEFT INTERACTIVE ARCHITECTURE PANE -->
+    <main id="left-stage">
+      <!-- VIEW 0: ZONES 1-4 -->
+      <section class="view active" id="view-0">
+        <div class="card-header" style="margin-bottom:2px;">
+          <div>
+            <h2 style="font-size:16px;font-weight:800;">4-Zone Trust Topology &amp; Live GKE Inventory</h2>
+            <p style="color:var(--muted);font-size:12px;margin-top:2px;">
+              Queries <span class="mono">ate-system</span> pods, <span class="mono">ActorTemplate</span> Golden Snapshot status, and active Actors in parallel.
+            </p>
+          </div>
+          <button class="action-btn" id="btn-run-0" onclick="runPart0()">Refresh Live Cluster</button>
+        </div>
+
+        <div class="grid-4">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Zone 1: Harness</span><span class="badge badge-purple">agent-harness</span></div>
+            <div class="metric-big" style="color:#c4b5fd;font-size:17px;" id="z1-model">ADK Agent</div>
+            <p style="color:var(--muted);font-size:11.5px;">Fail-closed <span class="mono">before_tool_callback</span> intent gate &amp; SPIFFE mTLS client cert.</p>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Zone 2: Gateways</span><span class="badge badge-cyan">ate-system</span></div>
+            <div class="metric-big" style="color:#38bdf8;font-size:17px;">Router + Egress</div>
+            <p style="color:var(--muted);font-size:11.5px;"><span class="mono">atenet-router</span> mTLS ingress + <span class="mono">atenet-egress</span> + <span class="mono">intent-extproc</span> L7 filter.</p>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Zone 3: Sandboxes</span><span class="badge badge-green">ate-workers</span></div>
+            <div class="metric-big" style="color:#34d399;font-size:17px;">gVisor Pool</div>
+            <p style="color:var(--muted);font-size:11.5px;">Warm <span class="mono">scientific-gvisor</span> WorkerPool isolating untrusted code in <span class="mono">runsc</span>.</p>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Zone 4: Snapshots</span><span class="badge badge-green">Cloud Storage</span></div>
+            <div class="metric-big" style="color:#fbbf24;font-size:17px;">MEMORY Fidelity</div>
+            <p style="color:var(--muted);font-size:11.5px;">Golden Tag: <span class="mono" id="golden-tag-lbl">querying...</span></p>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Control &amp; Gateway Pods (<span class="mono">ate-system</span>)</span>
+              <span class="badge badge-muted" id="cluster-status-badge">QUERYING...</span>
+            </div>
+            <table>
+              <thead><tr><th>Pod</th><th>Ready</th><th>Phase</th></tr></thead>
+              <tbody id="pods-tbody">
+                <tr><td colspan="3" class="mono" style="color:var(--muted);">Querying Kubernetes API...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Actors in Atespace (<span class="mono" id="atespace-lbl">secure-runtime</span>)</span>
+              <span class="badge badge-cyan" id="actors-count-badge">—</span>
+            </div>
+            <table>
+              <thead><tr><th>Actor</th><th>Template</th><th>Phase</th></tr></thead>
+              <tbody id="actors-tbody">
+                <tr><td colspan="3" class="mono" style="color:var(--muted);">Querying Agent Substrate API...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 1: #1 SANDBOX BOUNDARY -->
+      <section class="view" id="view-1">
+        <div class="card-header" style="margin-bottom:2px;">
+          <div>
+            <h2 style="font-size:16px;font-weight:800;">#1 — gVisor User-Space Syscall Interception &amp; Sandbox Execution</h2>
+            <p style="color:var(--muted);font-size:12px;margin-top:2px;">
+              Target Actor: <input id="p1-actor-input" value="triage-actor-19" class="mono" style="width:155px;" />
+            </p>
+          </div>
+          <button class="action-btn" id="btn-run-1" onclick="runPart1()">Run #1 Boundary Probe</button>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">6 Host-Kernel Escape &amp; Interface Probes</span>
+            <span class="badge badge-muted" id="p1-verdict-badge">NOT YET MEASURED</span>
+          </div>
+          <div class="verdict-list" id="p1-verdicts">
+            <div class="verdict-item" style="grid-column:span 2;">
+              <span class="mono" style="color:var(--muted);">Click "Run #1 Boundary Probe" to dispatch mTLS /probe-boundary to the live gVisor actor and watch the trace on the right &rarr;</span>
+            </div>
+          </div>
+          <div class="race-row" style="margin:10px 0 0 0;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <div style="font-size:10.5px;color:var(--muted);font-weight:700;">OBSERVED SANDBOX KERNEL (/proc/version)</div>
+              <div class="mono" id="p1-kernel" style="color:#38bdf8;font-weight:700;margin-top:2px;">—</div>
+            </div>
+            <span class="badge badge-cyan" id="p1-rt-badge">mTLS Roundtrip: —</span>
+          </div>
+        </div>
+
+        <div class="card" style="display:flex;flex-direction:column;gap:8px;">
+          <div class="card-header" style="margin-bottom:0;">
+            <span class="card-title">Interactive gVisor Python Runner (<span class="mono">POST /run</span>)</span>
+            <button class="action-btn" id="btn-run-code" onclick="runCustomCode()">Execute in Sandbox</button>
+          </div>
+          <textarea id="custom-code-input" rows="4">import os, platform, numpy as np, scipy.linalg
+a = np.array([[4.0, 1.0], [1.0, 3.0]])
+print("Kernel:", platform.release(), "| Eigenvalues:", scipy.linalg.eigvals(a).real.tolist())
+print("Secrets in os.environ:", [k for k in os.environ if "TOKEN" in k or "SECRET" in k])</textarea>
+          <div class="race-row" style="margin:0;">
+            <div style="font-size:10.5px;color:var(--muted);font-weight:700;margin-bottom:4px;">SANDBOX STDOUT / STDERR</div>
+            <pre class="mono" id="custom-code-output" style="color:#34d399;white-space:pre-wrap;">Ready — executes over mTLS inside the warm gVisor actor with zero external network egress.</pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 2: #2 COLD-START RACE -->
+      <section class="view" id="view-2">
+        <div class="card-header" style="margin-bottom:2px;">
+          <div>
+            <h2 style="font-size:16px;font-weight:800;">#2 — Live Parallel Race: Cold gVisor Pod vs. Golden Snapshot &amp; Resume</h2>
+            <p style="color:var(--muted);font-size:12px;margin-top:2px;">
+              Spawns a real cold <span class="mono">runtimeClassName: gvisor</span> Pod in <span class="mono">demo-bench</span> concurrently with a Golden Snapshot Actor. Checkpoint tag:
+              <input id="p2-note-input" value="tikhonov_reg_1e-6" class="mono" style="width:165px;" />
+            </p>
+          </div>
+          <button class="action-btn" id="btn-run-2" onclick="runPart2()">Run #2 Cold-Start Race</button>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-header"><span class="card-title">Cold K8s gVisor Pod</span><span class="badge badge-red">demo-bench</span></div>
+            <div class="metric-big" style="color:#f87171;" id="race-cold-ms">— ms</div>
+            <p style="color:var(--muted);font-size:11.5px;">Pod schedule + gVisor boot + cold NumPy/SciPy/Pandas import.</p>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Golden Snapshot Wake</span><span class="badge badge-cyan" id="race-wake-badge">Pending</span></div>
+            <div class="metric-big" style="color:#38bdf8;" id="race-wake-ms">— ms</div>
+            <p style="color:var(--muted);font-size:11.5px;">Restores pre-imported memory snapshot onto warm WorkerPool.</p>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Stateful Pause &rarr; Resume</span><span class="badge badge-green" id="race-resume-badge">Pending</span></div>
+            <div class="metric-big" style="color:#34d399;" id="race-resume-ms">— ms</div>
+            <p style="color:var(--muted);font-size:11.5px;">Suspends actor memory to GCS and resumes <span class="mono">STATE</span> intact.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="race-row">
+            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:12px;">
+              <span>Baseline: Cold Kubernetes gVisor Pod (<span class="mono" id="cold-pod-lbl">demo-bench/cold-gvisor-baseline-*</span>)</span>
+              <span class="mono" style="color:#f87171;" id="bar-cold-lbl">Not yet measured</span>
+            </div>
+            <div class="race-bar-bg"><div class="race-bar-fill" id="bar-cold" style="width:0%;background:linear-gradient(90deg,#ef4444,#f97316);"></div></div>
+          </div>
+          <div class="race-row">
+            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:12px;">
+              <span>Agent Substrate Golden Snapshot Wake (<span class="mono">SNAPSHOT_FIDELITY_MEMORY</span>)</span>
+              <span class="mono" style="color:#38bdf8;" id="bar-wake-lbl">Not yet measured</span>
+            </div>
+            <div class="race-bar-bg"><div class="race-bar-fill" id="bar-wake" style="width:0%;background:linear-gradient(90deg,#06b6d4,#3b82f6);"></div></div>
+          </div>
+          <div class="race-row" style="margin-bottom:0;">
+            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:12px;">
+              <span>Stateful Pause &rarr; Resume (<span class="mono" id="restored-state-lbl">STATE = pending</span>)</span>
+              <span class="mono" style="color:#34d399;" id="bar-resume-lbl">Not yet measured</span>
+            </div>
+            <div class="race-bar-bg"><div class="race-bar-fill" id="bar-resume" style="width:0%;background:linear-gradient(90deg,#10b981,#34d399);"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 3: #3 CREDENTIALS & L7 FILTER -->
+      <section class="view" id="view-3">
+        <div class="card-header" style="margin-bottom:2px;">
+          <div>
+            <h2 style="font-size:16px;font-weight:800;">#3 — Out-of-Sandbox Credential Injection &amp; Dynamic L7 Intent Filtering</h2>
+            <p style="color:var(--muted);font-size:12px;margin-top:2px;">
+              Issue #: <input id="p3-issue-input" type="number" value="42" style="width:68px;" /> &nbsp;
+              Simulate Prompt-Injected Write &amp; Exfil:
+              <select id="p3-inject-input">
+                <option value="true" selected>Yes (GET + POST /comments + Unlisted Host)</option>
+                <option value="false">No (Read-Only GET Only)</option>
+              </select>
+            </p>
+          </div>
+          <button class="action-btn" id="btn-run-3" onclick="runPart3()">Run #3 Egress Verification</button>
+        </div>
+
+        <div class="grid-2">
+          <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+            <div class="card-header" style="margin-bottom:0;">
+              <span class="card-title">Policy Programmed Before Execution</span>
+              <span class="badge badge-purple" id="p3-intent-badge">github_issue_read_only</span>
+            </div>
+            <div class="race-row" style="margin:0;">
+              <div style="font-size:10.5px;color:var(--muted);font-weight:700;">1. CREDENTIAL INJECTION AT ATENET-EGRESS</div>
+              <div class="mono" style="color:#38bdf8;margin-top:4px;">ate-secret://k8s.io/default/agent-credentials/github-readonly-token/token</div>
+              <div style="font-size:11.5px;color:var(--muted);margin-top:4px;">
+                Secrets in sandbox <span class="mono">os.environ</span>: <strong class="mono" id="p3-env-secrets">—</strong>
+              </div>
+            </div>
+            <div class="race-row" style="margin:0;">
+              <div style="font-size:10.5px;color:var(--muted);font-weight:700;">2. ENVOY EXT_PROC L7 RULE (intent-extproc:50051)</div>
+              <div class="mono" style="color:#34d399;margin-top:4px;">Host: api.github.com | Methods: [GET, HEAD]</div>
+              <div class="mono" style="color:#c4b5fd;margin-top:3px;" id="p3-prefix-lbl">Canonical Path Prefix: /repos/.../ (rejects .. traversal)</div>
+            </div>
+          </div>
+
+          <div class="card" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="card-header" style="margin-bottom:0;">
+              <span class="card-title">Observed Egress Gateway Verdicts</span>
+              <span class="badge badge-muted" id="p3-status-badge">READY</span>
+            </div>
+            <div class="verdict-item" id="p3-v1">
+              <div style="display:flex;justify-content:space-between;"><span class="mono" style="font-weight:700;">1. GET /repos/.../issues/42</span><span class="badge badge-muted" id="p3-s1-code">PENDING</span></div>
+              <div class="mono" style="color:var(--muted);" id="p3-s1-desc">Awaiting live execution...</div>
+            </div>
+            <div class="verdict-item" id="p3-v2">
+              <div style="display:flex;justify-content:space-between;"><span class="mono" style="font-weight:700;">2. POST /repos/.../issues/42/comments</span><span class="badge badge-muted" id="p3-s2-code">PENDING</span></div>
+              <div class="mono" style="color:var(--muted);" id="p3-s2-desc">Awaiting live execution...</div>
+            </div>
+            <div class="verdict-item" id="p3-v3">
+              <div style="display:flex;justify-content:space-between;"><span class="mono" style="font-weight:700;">3. POST https://collector.example.invalid/telemetry</span><span class="badge badge-muted" id="p3-s3-code">PENDING</span></div>
+              <div class="mono" style="color:var(--muted);" id="p3-s3-desc">Awaiting live execution...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW 4: #4 SPIFFE AUDIT & RESET -->
+      <section class="view" id="view-4">
+        <div class="card-header" style="margin-bottom:2px;">
+          <div>
+            <h2 style="font-size:16px;font-weight:800;">#4 — Per-Actor SPIFFE Audit Attribution, Quarantine &amp; Golden Reset</h2>
+            <p style="color:var(--muted);font-size:12px;margin-top:2px;">
+              Tainted Actor to Quarantine: <input id="p4-actor-input" value="triage-actor-42" class="mono" style="width:155px;" />
+            </p>
+          </div>
+          <button class="action-btn" id="btn-run-4" onclick="runPart4()">Run #4 Quarantine &amp; Reset</button>
+        </div>
+
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-header"><span class="card-title">1. Revoke Egress Policy</span><span class="badge badge-red">Default-Deny</span></div>
+            <div class="metric-big" style="color:#f87171;" id="p4-revoke-ms">— ms</div>
+            <p style="color:var(--muted);font-size:11.5px;">Deletes <span class="mono">EgressPolicy</span> &amp; <span class="mono">intent-extproc</span> rule.</p>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">2. Delete Tainted Actor</span><span class="badge badge-purple" id="p4-tainted-lbl">triage-actor-42</span></div>
+            <div class="metric-big" style="color:#c4b5fd;" id="p4-delete-ms">— ms</div>
+            <p style="color:var(--muted);font-size:11.5px;">Evicts tainted memory state without disturbing WorkerPool.</p>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">3. Spawn Clean Actor</span><span class="badge badge-green">Golden Snapshot</span></div>
+            <div class="metric-big" style="color:#34d399;" id="p4-restore-ms">— ms</div>
+            <p style="color:var(--muted);font-size:11.5px;">Replacement: <span class="mono" id="p4-clean-name">—</span></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">SPIFFE-Attributed Envoy <span class="mono">ext_proc</span> Audit Trail</span>
+            <span class="badge badge-cyan mono">spiffe://substrate-actor.local/...</span>
+          </div>
+          <table>
+            <thead>
+              <tr><th>UTC Time</th><th>Actor SPIFFE Identity</th><th>Intent</th><th>Request</th><th>Decision</th></tr>
+            </thead>
+            <tbody id="audit-tbody">
+              <tr><td colspan="5" class="mono" style="color:var(--muted);">Run #3 then #4 to inspect live SPIFFE-attributed egress decisions.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VIEW 5: ADK AGENT -->
+      <section class="view" id="view-5">
+        <div class="card-header" style="margin-bottom:2px;">
+          <div>
+            <h2 style="font-size:16px;font-weight:800;">Live Google ADK Agent (<span class="mono" id="adk-model-lbl">gemini-3.8-flash</span>)</h2>
+            <p style="color:var(--muted);font-size:12px;margin-top:2px;">
+              Runs <span class="mono">root_agent</span> directly in-process inside <span class="mono">deploy/triage-agent</span> while streaming tool calls to the terminal &rarr;
+            </p>
+          </div>
+          <button class="action-btn" id="btn-run-5" onclick="runPart5()">Send Prompt to Agent</button>
+        </div>
+
+        <div class="card" style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="mini-btn" onclick="setPrompt('Run inspect_sandbox_boundary on triage-actor-19 and summarize every blocked kernel probe.')">Preset #1: Boundary Audit</button>
+            <button class="mini-btn" onclick="setPrompt('Triage GitHub issue #42 in triage-actor-42 with follow_issue_instructions=True and explain which requests were allowed vs blocked.')">Preset #3: Triage + Attack</button>
+            <button class="mini-btn" onclick="setPrompt('Audit and reset tainted actor triage-actor-42 to a fresh Golden Snapshot actor and report the SPIFFE audit log.')">Preset #4: Quarantine &amp; Reset</button>
+          </div>
+          <textarea id="agent-prompt-input" rows="2">Triage GitHub issue #42 in triage-actor-42 with follow_issue_instructions=True and explain which requests were allowed vs blocked.</textarea>
+          <div class="grid-2">
+            <div class="race-row" style="margin:0;">
+              <div style="font-size:10.5px;color:var(--muted);font-weight:700;margin-bottom:5px;">TOOL CALLS &amp; FAIL-CLOSED INTENT GATE</div>
+              <pre class="mono" id="agent-tools-output" style="color:#c4b5fd;white-space:pre-wrap;">Ready.</pre>
+            </div>
+            <div class="race-row" style="margin:0;">
+              <div style="font-size:10.5px;color:var(--muted);font-weight:700;margin-bottom:5px;">AGENT RESPONSE</div>
+              <pre class="mono" id="agent-text-output" style="color:#34d399;white-space:pre-wrap;">Waiting for prompt...</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- RIGHT SIDE-BY-SIDE LIVE TERMINAL & POD LOGS -->
+    <aside id="right-terminal">
+      <div class="term-topbar">
+        <div class="term-tabs">
+          <button class="term-tab active" id="ttab-stream" onclick="switchTermTab('stream')">Live Execution Stream</button>
+          <button class="term-tab" id="ttab-logs" onclick="switchTermTab('logs')">GKE Pod Logs (ate-system)</button>
+          <button class="term-tab" id="ttab-json" onclick="switchTermTab('json')">Raw JSON Payload</button>
+        </div>
+        <span class="badge badge-green mono" id="sse-badge">SSE CONNECTING</span>
+      </div>
+
+      <!-- PANE 1: LIVE SSE EXECUTION TERMINAL -->
+      <div class="term-pane active" id="tpane-stream">
+        <div class="term-toolbar">
+          <span>Real-time <span class="mono">kubectl-ate</span>, mTLS <span class="mono">atenet-router</span>, &amp; K8s API trace</span>
+          <button class="mini-btn" onclick="clearStream()">Clear</button>
+        </div>
+        <div class="term-body" id="stream-output"></div>
+      </div>
+
+      <!-- PANE 2: LIVE KUBERNETES POD LOGS -->
+      <div class="term-pane" id="tpane-logs">
+        <div class="term-toolbar">
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button class="mini-btn active" id="logsrc-intent-extproc" onclick="selectLogSource('intent-extproc')">intent-extproc</button>
+            <button class="mini-btn" id="logsrc-atenet-egress" onclick="selectLogSource('atenet-egress')">atenet-egress</button>
+            <button class="mini-btn" id="logsrc-atenet-router" onclick="selectLogSource('atenet-router')">atenet-router</button>
+            <button class="mini-btn" id="logsrc-ate-api-server" onclick="selectLogSource('ate-api-server')">ate-api-server</button>
+          </div>
+          <div style="display:flex;gap:5px;">
+            <button class="mini-btn" id="btn-autotail" onclick="toggleAutoTail()">Auto-Tail: OFF</button>
+            <button class="mini-btn" onclick="fetchPodLogs()">Refresh</button>
+          </div>
+        </div>
+        <div class="term-body">
+          <div class="mono" style="color:#38bdf8;margin-bottom:6px;" id="pod-log-header">Pod: —</div>
+          <pre class="log-pre" id="pod-log-output">Select a pod source above to tail live Kubernetes container logs from namespace ate-system...</pre>
+        </div>
+      </div>
+
+      <!-- PANE 3: RAW JSON RESPONSE -->
+      <div class="term-pane" id="tpane-json">
+        <div class="term-toolbar">
+          <span id="json-status-lbl">Most recent API payload</span>
+          <button class="mini-btn" onclick="copyJsonPayload()">Copy JSON</button>
+        </div>
+        <div class="term-body">
+          <pre class="log-pre" style="color:#a5f3fc;" id="json-output">{}</pre>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

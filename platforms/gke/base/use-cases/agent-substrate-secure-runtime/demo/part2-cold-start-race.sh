@@ -15,10 +15,9 @@
 
 set -euo pipefail
 
-QUARANTINED_ACTOR="${QUARANTINED_ACTOR:-triage-actor-42}"
-CLEAN_ACTOR="triage-actor-clean-$(date +%s)"
+CUSTOM_NOTE="${CUSTOM_NOTE:-tikhonov_reg_1e-6}"
 echo "========================================================================"
-echo " ACT 4: Audit Trail, Forensic Quarantine & Clean Golden Snapshot Reset  "
+echo " #2: Parallel Cold-Start Race — Cold gVisor Pod vs. Golden Snapshot     "
 echo "========================================================================"
 kubectl exec -i -n agent-harness deploy/triage-agent -- \
-  python3 -c "import sys; from secure_runtime_agent.agent import audit_and_reset_actor_to_golden; from secure_runtime_agent.substrate_client import SubstrateClient; print(audit_and_reset_actor_to_golden(sys.argv[1], sys.argv[2])); SubstrateClient().suspend_actor(sys.argv[2])" "${QUARANTINED_ACTOR}" "${CLEAN_ACTOR}"
+  python3 -c 'import json, sys, urllib.request; req = urllib.request.Request("http://127.0.0.1:8080/api/part2", data=json.dumps({"custom_note": sys.argv[1]}).encode(), headers={"Content-Type": "application/json"}, method="POST"); print(json.dumps(json.loads(urllib.request.urlopen(req, timeout=200).read().decode()), indent=2))' "${CUSTOM_NOTE}"

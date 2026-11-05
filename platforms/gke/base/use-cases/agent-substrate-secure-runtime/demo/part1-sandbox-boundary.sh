@@ -17,7 +17,7 @@ set -euo pipefail
 
 ACTOR_NAME="${ACTOR_NAME:-triage-actor-19}"
 echo "========================================================================"
-echo " ACT 1: The Untrusted Boundary — gVisor User-Space Syscall Interception "
+echo " #1: Sandbox Boundary — gVisor User-Space Syscall Interception          "
 echo "========================================================================"
 kubectl exec -i -n agent-harness deploy/triage-agent -- \
-  python3 -c "import sys; from secure_runtime_agent.agent import inspect_sandbox_boundary; print(inspect_sandbox_boundary(sys.argv[1]))" "${ACTOR_NAME}"
+  python3 -c 'import json, sys, urllib.request; req = urllib.request.Request("http://127.0.0.1:8080/api/part1", data=json.dumps({"actor_name": sys.argv[1]}).encode(), headers={"Content-Type": "application/json"}, method="POST"); print(json.dumps(json.loads(urllib.request.urlopen(req, timeout=90).read().decode()), indent=2))' "${ACTOR_NAME}"

@@ -75,18 +75,29 @@ EOT
 }
 
 resource "local_sensitive_file" "secure_runtime_manifest" {
-  content = replace(replace(replace(replace(replace(replace(replace(replace(
+  content = replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(
     file("${local.use_case_manifests_dir}/secure-runtime.yaml"),
     "$${GITHUB_READONLY_TOKEN}", var.secure_runtime_github_readonly_token),
     "$${WORKER_IMAGE}", "${local.cloudbuild_ar_image_repository_url}/ateworker-gvisor:${var.agent_substrate_version}"),
     "$${INTENT_EXTPROC_IMAGE}", local.secure_runtime_intent_extproc_image_url),
     "$${AGENT_IMAGE}", local.secure_runtime_agent_image_url),
+    "$${RUNNER_IMAGE}", local.secure_runtime_runner_image_url),
     "$${GOOGLE_CLOUD_PROJECT}", data.google_project.cluster.project_id),
     "$${GOOGLE_CLOUD_LOCATION}", "global"),
+    "$${CLUSTER_NAME}", local.cluster_name),
+    "$${SUBSTRATE_VERSION}", var.agent_substrate_version),
+    "$${SUBSTRATE_ATESPACE}", var.agent_substrate_atespace),
     "$${GEMINI_MODEL}", var.secure_runtime_gemini_model),
   "$${GITHUB_REPO}", var.secure_runtime_github_repo)
   file_permission = "0600"
   filename        = "${local.manifests_out_directory}/secure-runtime.yaml"
+
+  lifecycle {
+    postcondition {
+      condition     = !can(regex("\\$\\{[A-Z0-9_]+\\}", nonsensitive(self.content)))
+      error_message = "Unreplaced template variable found in rendered secure-runtime.yaml."
+    }
+  }
 }
 
 resource "local_file" "actortemplate_manifest_tmpl" {
@@ -126,7 +137,7 @@ set -euo pipefail
 KUBECONFIG_ABS="$(realpath "${self.input.kubeconfig_file}")"
 export PATH="$${HOME}/.local/bin:$${HOME}/google-cloud-sdk/bin:$${PATH}" KUBECONFIG="$${KUBECONFIG_ABS}"
 
-sed "s|\$${SUBSTRATE_ATESPACE}|${self.input.atespace}|g" "${self.input.secure_runtime_manifest}" | kubectl apply -f -
+kubectl apply -f "${self.input.secure_runtime_manifest}"
 kubectl -n ate-system rollout status deployment/intent-extproc --timeout=120s
 
 (
@@ -134,14 +145,16 @@ kubectl -n ate-system rollout status deployment/intent-extproc --timeout=120s
   go run ./cmd/ate-setup deploy atenet --no-dev-env --kubeconfig="$${KUBECONFIG_ABS}" \
     --context="gke_${self.input.project_id}_${self.input.cluster_location}_${self.input.cluster_name}" \
     --gcp-project-id="${self.input.project_id}" --gcp-cluster-name="${self.input.cluster_name}" --gcp-cluster-location="${self.input.cluster_location}" \
-    --credential-provider='${self.input.credential_provider}' --ingress-allowed-spiffe-ids="${self.input.ingress_allowed_spiffe_ids}" \
+    --credential-provider='${self.input.credential_provider}' --ingress-allowed-spiffe_ids="${self.input.ingress_allowed_spiffe_ids}" \
     --experimental-additional-egress-extproc-service="ate-system/intent-extproc:50051" \
     --image-repo="${self.input.ar_repo_url}" --image-tag="${self.input.version}" --rollout-timeout="180s"
   kubectl apply -f "./manifests/ate-install/atenet-router-monitoring.yaml"
 )
 
-kubectl -n ate-system patch deploy atenet-router --type=json \
-  -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--parked-request-budget=60s"},{"op":"replace","path":"/spec/template/spec/terminationGracePeriodSeconds","value":120}]'
+if ! kubectl -n ate-system get deploy atenet-router -o jsonpath='{.spec.template.spec.containers[0].args[*]}' | grep -q -- '--parked-request-budget='; then
+  kubectl -n ate-system patch deploy atenet-router --type=json \
+    -p '[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--parked-request-budget=60s"},{"op":"replace","path":"/spec/template/spec/terminationGracePeriodSeconds","value":120}]'
+fi
 kubectl -n ate-system rollout status deploy/atenet-router --timeout=180s
 kubectl -n ate-workers rollout status deployment/scientific-gvisor --timeout=180s
 kubectl -n agent-harness rollout status deployment/triage-agent --timeout=120s
@@ -155,14 +168,19 @@ done
 kubectl-ate delete actor-template scientific-python -a "${self.input.atespace}" 2>/dev/null || true
 kubectl-ate create actor-template -f "${self.input.actortemplate_out_file}"
 
+golden_tag=""
 for _ in $(seq 1 60); do
-  tag="$(kubectl-ate get actor-template scientific-python -a "${self.input.atespace}" -o jsonpath='{.status.goldenSnapshotStatus.goldenTag.name}' 2>/dev/null || true)"
-  if [ -n "$${tag}" ]; then
-    echo "Golden Snapshot ready: $${tag}"
+  golden_tag="$(kubectl-ate get actor-template scientific-python -a "${self.input.atespace}" -o jsonpath='{.status.goldenSnapshotStatus.goldenTag.name}' 2>/dev/null || true)"
+  if [ -n "$${golden_tag}" ]; then
+    echo "Golden Snapshot ready: $${golden_tag}"
     break
   fi
   sleep 5
 done
+if [ -z "$${golden_tag}" ]; then
+  echo "ERROR: Timed out after 300s waiting for ActorTemplate scientific-python Golden Snapshot in atespace ${self.input.atespace}." >&2
+  exit 1
+fi
 EOT
     interpreter = ["bash", "-c"]
   }

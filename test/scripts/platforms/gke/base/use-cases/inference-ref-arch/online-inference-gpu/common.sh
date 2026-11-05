@@ -162,13 +162,24 @@ ira_gpu_rendered_names() {
 
 # ira_gpu_runtime_value <variant_dir> <key>
 ira_gpu_runtime_value() {
-  awk -F= -v key="${2:?key}" '$1 == key { print substr($0, length(key) + 2) }' "${1:?variant_dir}/runtime.env"
+  local variant_dir="${1:?variant_dir}" key="${2:?key}" env_file parent
+  env_file="${variant_dir}/runtime.env"
+  if [[ ! -f "${env_file}" && -f "${variant_dir}/kustomization.yaml" ]]; then
+    while read -r parent; do
+      if [[ -f "${variant_dir}/${parent}/runtime.env" ]]; then
+        env_file="${variant_dir}/${parent}/runtime.env"
+        break
+      fi
+    done < <(awk '/^resources:/ { in_res=1; next } /^[^ ]/ { in_res=0 } in_res && /^  - / { print $2 }' "${variant_dir}/kustomization.yaml")
+  fi
+  awk -F= -v key="${key}" '$1 == key { print substr($0, length(key) + 2) }' "${env_file}"
 }
 
 # ira_gpu_wait_ready <variant_dir>
 # Waits for every StatefulSet, then every Deployment, rendered by the overlay.
 ira_gpu_wait_ready() {
   local variant_dir="${1:?variant_dir}" kind name
+  ira_gpu_configure
   for kind in StatefulSet Deployment; do
     while read -r name; do
       [[ -n "${name}" ]] || continue

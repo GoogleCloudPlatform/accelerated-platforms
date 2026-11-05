@@ -479,10 +479,21 @@ mr_wait_for() {
 }
 
 mr_service_neg_ready() {
-  local kubeconfig="${1}" namespace="${2}" service="${3}" status
+  local kubeconfig="${1}" namespace="${2}" service="${3}" neg="${4}"
+  local neg_endpoints ready_endpoints status
   status="$(kubectl --kubeconfig "${kubeconfig}" get service "${service}" -n "${namespace}" \
     -o jsonpath='{.metadata.annotations.cloud\.google\.com/neg-status}')" || return 1
-  [[ -n "${status}" ]] && jq -e '.network_endpoint_groups | length > 0' <<<"${status}" >/dev/null
+  [[ -n "${status}" ]] && jq -e '.network_endpoint_groups | length > 0' <<<"${status}" >/dev/null || return 1
+
+  ready_endpoints="$(kubectl --kubeconfig "${kubeconfig}" get endpoints "${service}" -n "${namespace}" \
+    -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null | wc -w)"
+  if ((ready_endpoints > 0)); then
+    neg_endpoints="$(gcloud compute network-endpoint-groups list \
+      --project="${PROJECT_ID}" \
+      --filter="name=${neg}" \
+      --format="value(size)" | awk '{s += $1} END {print s + 0}')" || return 1
+    ((neg_endpoints >= ready_endpoints)) || return 1
+  fi
 }
 
 # Exposes a port of a regional frontend Service (for example dynamo-frontend,
@@ -507,7 +518,7 @@ expose_service_neg() {
     kubectl --kubeconfig "${kubeconfig}" annotate service "${service}" -n "${namespace}" --overwrite \
       cloud.google.com/neg="{\"exposed_ports\":{\"${port}\":{\"name\":\"${neg}\"}}}" >&2
     mr_wait_for 300 5 "standalone NEG ${neg} of Service ${namespace}/${service}" \
-      mr_service_neg_ready "${kubeconfig}" "${namespace}" "${service}" ||
+      mr_service_neg_ready "${kubeconfig}" "${namespace}" "${service}" "${neg}" ||
       mr_die "GKE didn't create the NEG ${neg}. Check the Service's events: kubectl --kubeconfig ${kubeconfig} describe service ${service} -n ${namespace}"
     echo "${neg}"
   )

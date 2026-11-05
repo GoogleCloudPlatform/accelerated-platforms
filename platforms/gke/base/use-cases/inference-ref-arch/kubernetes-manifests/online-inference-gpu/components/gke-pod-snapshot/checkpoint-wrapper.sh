@@ -56,6 +56,18 @@ if (($# == 0)); then
   exit 2
 fi
 
+# Re-exec from /tmp so bash's open script descriptor (fd 255) resides in the
+# container rootfs rather than on the 9p ConfigMap mount (/etc/pod-snapshot),
+# whose kubelet `..YYYY_MM_DD_...` symlink target differs across nodes and
+# would otherwise fail gVisor's vfs.CompleteRestore() on restore.
+if [[ "${POD_SNAPSHOT_RELOCATED:-}" != "1" ]]; then
+  rm -rf /tmp/pod-snapshot
+  mkdir -p /tmp/pod-snapshot
+  cp "${MY_PATH}/checkpoint-wrapper.sh" "${MY_PATH}/gcs_model_streamer.py" /tmp/pod-snapshot/
+  POD_SNAPSHOT_RELOCATED=1 exec /bin/bash /tmp/pod-snapshot/checkpoint-wrapper.sh "$@"
+fi
+unset POD_SNAPSHOT_RELOCATED
+
 rm -f "${READY_FILE}"
 
 # Under gVisor nvproxy, the host-matched libcuda.so.1 in /usr/local/nvidia/lib64

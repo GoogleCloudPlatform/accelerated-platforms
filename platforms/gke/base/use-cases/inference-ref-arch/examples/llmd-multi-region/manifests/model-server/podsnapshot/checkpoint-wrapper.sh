@@ -1,3 +1,4 @@
+#!/bin/sh
 # Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,7 +21,11 @@
 #   ["/bin/sh", "-c", <this script>, "vllm-podsnapshot", <vllm args>...]
 vllm serve "$@" &
 VLLM_PID=$!
-trap 'kill -TERM "${VLLM_PID}" 2>/dev/null || true' TERM INT
+# This shell is PID 1: when it exits, the container runtime kills vLLM. A
+# trapped signal interrupts `wait`, so the trap forwards SIGTERM, waits for
+# vLLM's graceful `--shutdown-timeout` drain, and exits with vLLM's exit status
+# (so a pod that is stopping never goes on to write the checkpoint below).
+trap 'kill -TERM "${VLLM_PID}" 2>/dev/null; wait "${VLLM_PID}"; exit $?' TERM INT
 if [ ! -e /proc/gvisor/checkpoint ]; then
   echo "[podsnapshot] /proc/gvisor/checkpoint is absent (no matching PodSnapshotPolicy); serving without a checkpoint."
 else

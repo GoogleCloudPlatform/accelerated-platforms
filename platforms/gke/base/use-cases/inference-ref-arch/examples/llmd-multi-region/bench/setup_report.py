@@ -24,15 +24,18 @@ per-scope totals, and the wall-clock span of the whole run (regions run in
 parallel, so the span is shorter than the sum of the stages).
 """
 
+from __future__ import annotations
+
 import json
 import sys
 from collections import OrderedDict
+from typing import Any
 
 
-def load(paths):
+def load(paths: list[str]) -> list[dict[str, Any]]:
     records = []
     for path in paths:
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line:
@@ -40,19 +43,20 @@ def load(paths):
     return records
 
 
-def fmt(seconds):
-    seconds = float(seconds)
-    m, s = divmod(int(round(seconds)), 60)
+def fmt(seconds: float | int) -> str:
+    rounded = int(round(float(seconds)))
+    sign = "-" if rounded < 0 else ""
+    m, s = divmod(abs(rounded), 60)
     h, m = divmod(m, 60)
-    return f"{h:d}:{m:02d}:{s:02d}" if h else f"{m:d}:{s:02d}"
+    return f"{sign}{h:d}:{m:02d}:{s:02d}" if h else f"{sign}{m:d}:{s:02d}"
 
 
-def main(argv):
+def main(argv: list[str]) -> int:
     if len(argv) < 2:
         print(__doc__, file=sys.stderr)
         return 2
     records = load(argv[1:])
-    latest = OrderedDict()
+    latest: OrderedDict[tuple[str, str], dict[str, Any]] = OrderedDict()
     failures = []
     for r in records:
         key = (r["scope"], r["stage"])
@@ -80,7 +84,7 @@ def main(argv):
     print("\n## Totals per scope\n")
     print("| Scope | Sum of stages | Wall-clock span |")
     print("| --- | ---: | ---: |")
-    scopes = OrderedDict()
+    scopes: OrderedDict[str, list[dict[str, Any]]] = OrderedDict()
     for (scope, _), r in latest.items():
         scopes.setdefault(scope, []).append(r)
     for scope, rs in scopes.items():

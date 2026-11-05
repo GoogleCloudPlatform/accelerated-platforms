@@ -38,7 +38,7 @@ action="${1:-apply}"
 [[ "${action}" == "apply" || "${action}" == "destroy" ]] || mr_die "usage: $0 [apply|destroy]"
 
 mr_require_tools
-mr_validate_region_key "${MR_CONFIG_CLUSTER_KEY}"
+mr_validate_active_region_key "${MR_CONFIG_CLUSTER_KEY}"
 mr_log "Project: ${MR_PROJECT_ID}, bench bucket: gs://$(mr_bench_bucket)"
 
 mr_stage "shared_state_bucket" "global" mr_ensure_shared_state_bucket

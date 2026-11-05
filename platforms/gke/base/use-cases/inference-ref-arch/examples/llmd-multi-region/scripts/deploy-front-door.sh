@@ -32,9 +32,9 @@
 #                                  terraform/front_door
 #   deploy-front-door.sh exists    exit 0 if any part of the front door exists
 #
-# Prerequisites: the regional platforms, the fleet features, and the internal
-# Gateway (deploy-gateway.sh) are deployed. Settings: MR_FRONT_DOOR_* and
-# MR_IAP_OAUTH_* in mr.env.
+# Prerequisites: the regional platforms and the internal cross-region load
+# balancer (deploy-arm.sh / set-route.sh) are deployed. Settings:
+# MR_FRONT_DOOR_* and MR_IAP_OAUTH_* in mr.env.
 
 set -o errexit
 set -o nounset
@@ -62,13 +62,29 @@ state_dir="${MR_RESULTS_DIR}/front-door"
 
 # Google Cloud resource names. Keep in sync with the locals in
 # terraform/front_door/main.tf.
+fd_cert_prefix() {
+  "${MR_PYTHON}" -c 'import sys; print(sys.argv[1][:48].rstrip("-"))' "${MR_FRONT_DOOR_NAME}"
+}
+
+fd_cert_name() {
+  "${MR_PYTHON}" - "${MR_FRONT_DOOR_NAME}" "${MR_FRONT_DOOR_HOSTNAME}" <<'EOF'
+import hashlib, sys
+name, host = sys.argv[1], sys.argv[2]
+prefix = name[:48].rstrip("-")
+digest = hashlib.sha256(host.encode("utf-8")).hexdigest()[:8]
+print(f"{prefix}-cert-{digest}")
+EOF
+}
+
 export MR_FRONT_DOOR_ADDRESS_NAME="${MR_FRONT_DOOR_NAME}-ip"
-export MR_FRONT_DOOR_CERT_NAME="${MR_FRONT_DOOR_NAME}-cert"
+export MR_FRONT_DOOR_CERT_NAME
+MR_FRONT_DOOR_CERT_NAME="$(fd_cert_name)"
 export MR_FRONT_DOOR_SSL_POLICY_NAME="${MR_FRONT_DOOR_NAME}-ssl"
 fd_security_policy_name="${MR_FRONT_DOOR_NAME}-armor"
 
 # Variables substituted in manifests/front-door/*.tpl.yaml, in addition to
 # MR_TEMPLATE_VARS from render.sh.
+# shellcheck disable=SC2016
 FD_TEMPLATE_VARS='${MR_FRONT_DOOR_NAMESPACE} ${MR_FRONT_DOOR_HOSTNAME} ${MR_FRONT_DOOR_ADDRESS_NAME} ${MR_FRONT_DOOR_CERT_NAME} ${MR_FRONT_DOOR_SSL_POLICY_NAME} ${MR_FRONT_DOOR_UPSTREAM_VIP} ${MR_FRONT_DOOR_ENVOY_IMAGE} ${MR_FRONT_DOOR_TIMEOUT_SEC} ${MR_FRONT_DOOR_IAP_OAUTH_FIELDS} ${MR_FRONT_DOOR_SECURITY_POLICY_FIELD}'
 
 # ---------------------------------------------------------------------------
@@ -77,7 +93,7 @@ FD_TEMPLATE_VARS='${MR_FRONT_DOOR_NAMESPACE} ${MR_FRONT_DOOR_HOSTNAME} ${MR_FRON
 
 # fd_split <string>: prints the space- or comma-separated items, one per line.
 fd_split() {
-  tr ', ' '\n\n' <<<"${1}" | sed '/^$/d'
+  tr ', ' '\n' <<<"${1}" | sed '/^$/d'
 }
 
 # Prints the IAP principals, one per line. Defaults to the deploying account.
@@ -132,7 +148,7 @@ fd_validate_inputs() {
     [[ -n "${cidrs}" ]] ||
       mr_die "MR_FRONT_DOOR_CLOUD_ARMOR=true requires MR_FRONT_DOOR_ALLOWED_CIDRS"
     while IFS= read -r c; do
-      python3 -c 'import ipaddress, sys; ipaddress.ip_network(sys.argv[1])' "${c}" 2>/dev/null ||
+      "${MR_PYTHON}" -c 'import ipaddress, sys; ipaddress.ip_network(sys.argv[1])' "${c}" 2>/dev/null ||
         mr_die "invalid CIDR '${c}' in MR_FRONT_DOOR_ALLOWED_CIDRS"
     done <<<"${cidrs}"
     ;;
@@ -206,14 +222,16 @@ fd_cert_active() {
     --project "${MR_PROJECT_ID}" --format='value(managed.status)')" == "ACTIVE" ]]
 }
 
-# Classifies the response to an unauthenticated request, in
-# ${state_dir}/iap-check: "iap" (redirect to Google sign-in), "envoy-guard"
-# (reached Envoy without IAP), "open" (HTTP 200), "forbidden" (other 403, for
-# example Cloud Armor denying this machine). Succeeds once the response is
-# conclusive.
+# Classifies the response to an unauthenticated request carrying a forged
+# x-goog-iap-jwt-assertion header, in ${state_dir}/iap-check: "iap" (redirect
+# to Google sign-in), "envoy-guard" (reached Envoy without IAP), "open" (HTTP
+# 200), "forbidden" (other 403, for example Cloud Armor denying this machine).
+# Succeeds once the response is conclusive.
 fd_iap_enforced() {
   local headers code location body="${state_dir}/iap-check.body" result
-  headers="$(curl -sS -o "${body}" -D - --max-time 30 "https://${MR_FRONT_DOOR_HOSTNAME}/v1/models" 2>/dev/null || true)"
+  headers="$(curl -sS -o "${body}" -D - --max-time 30 \
+    -H 'x-goog-iap-jwt-assertion: forged-probe' \
+    "https://${MR_FRONT_DOOR_HOSTNAME}/v1/models" 2>/dev/null || true)"
   code="$(awk 'toupper($1) ~ /^HTTP/ {c=$2} END {print c}' <<<"${headers}")"
   location="$(awk 'tolower($1) == "location:" {print $2}' <<<"${headers}" | tr -d '\r')"
   case "${code}" in
@@ -223,7 +241,8 @@ fd_iap_enforced() {
   *) result="${code:-000}" ;;
   esac
   echo "${result}" >"${state_dir}/iap-check"
-  [[ "${result}" =~ ^(iap|envoy-guard|open|forbidden)$ ]]
+  [[ "${result}" =~ ^(iap|envoy-guard|open)$ ||
+    ("${result}" == "forbidden" && "${MR_FRONT_DOOR_CLOUD_ARMOR}" == "true") ]]
 }
 
 # ---------------------------------------------------------------------------
@@ -317,9 +336,46 @@ manifests/front-door/README.md.
 EOF
 }
 
+fd_emergency_rollback() {
+  mr_log "Rolling back the external HTTPRoute and Gateway in ${ns} (fail closed)"
+  mr_kubectl "${cfg}" delete httproute,gateway --all -n "${ns}" --ignore-not-found --wait=true --timeout=300s ||
+    mr_log "ERROR: the rollback failed; delete the external Gateway now: kubectl --kubeconfig $(mr_kubeconfig "${cfg}") delete httproute,gateway --all -n ${ns}"
+}
+
+fd_security_policy_unused() {
+  [[ -z "$(gcloud compute backend-services list --global --project "${MR_PROJECT_ID}" \
+    --filter="securityPolicy~/${fd_security_policy_name}\$" --format='value(name)' 2>/dev/null)" ]]
+}
+
+fd_cert_unused() {
+  local cert="${1}"
+  [[ -z "$(gcloud compute target-https-proxies list --global --project "${MR_PROJECT_ID}" \
+    --filter="sslCertificates~/${cert}\$" --format='value(name)' 2>/dev/null)" ]]
+}
+
+# Detaches Kubernetes Gateway/GCPBackendPolicy references to Cloud Armor or a
+# previous certificate before Terraform destroys or replaces those GCP
+# resources.
+fd_prepare_existing_lb_for_tf() {
+  local dst="${1}" current_cert
+  mr_kubectl "${cfg}" get gateway "${k8s_name}" -n "${ns}" >/dev/null 2>&1 || return 0
+  if [[ "${MR_FRONT_DOOR_CLOUD_ARMOR}" == "false" ]] && ! fd_security_policy_unused; then
+    mr_log "Detaching Cloud Armor policy ${fd_security_policy_name} from GCPBackendPolicy before Terraform apply"
+    mr_kubectl "${cfg}" apply -f "${dst}/policies.yaml" || return 1
+    mr_wait_for 600 15 "Cloud Armor policy ${fd_security_policy_name} detached" fd_security_policy_unused || return 1
+  fi
+  current_cert="$(mr_kubectl "${cfg}" get gateway "${k8s_name}" -n "${ns}" \
+    -o jsonpath='{.spec.listeners[0].tls.options.networking\.gke\.io/pre-shared-certs}' 2>/dev/null || true)"
+  if [[ -n "${current_cert}" && "${current_cert}" != "${MR_FRONT_DOOR_CERT_NAME}" ]]; then
+    mr_log "Certificate changed (${current_cert} -> ${MR_FRONT_DOOR_CERT_NAME}); recreating Gateway ${ns}/${k8s_name}"
+    mr_kubectl "${cfg}" delete httproute,gateway --all -n "${ns}" --ignore-not-found --wait=true --timeout=600s || true
+    mr_wait_for 600 15 "previous certificate ${current_cert} detached" fd_cert_unused "${current_cert}" || return 1
+  fi
+}
+
 fd_apply() {
   mr_require_tools
-  command -v curl >/dev/null 2>&1 || mr_die "missing required tool: curl"
+  mr_validate_active_region_key "${cfg}"
   fd_validate_inputs
   mkdir -p "${state_dir}"
   [[ -f "$(mr_kubeconfig "${cfg}")" ]] || mr_get_credentials "${cfg}"
@@ -328,9 +384,9 @@ fd_apply() {
   local vip="${MR_FRONT_DOOR_UPSTREAM_VIP:-}"
   if [[ -z "${vip}" ]]; then
     vip="$(mr_gateway_vip "${MR_GATEWAY_NAME}" "${cfg}")" ||
-      mr_die "no VIP for Gateway ${MR_GATEWAY_NAME} in ${cfg}; run deploy-gateway.sh first"
+      mr_die "no VIP for Gateway ${MR_GATEWAY_NAME} in ${cfg}; run scripts/deploy-arm.sh or scripts/set-route.sh first"
   fi
-  python3 -c 'import ipaddress, sys; assert ipaddress.ip_address(sys.argv[1]).is_private' "${vip}" 2>/dev/null ||
+  "${MR_PYTHON}" -c 'import ipaddress, sys; assert ipaddress.ip_address(sys.argv[1]).is_private' "${vip}" 2>/dev/null ||
     mr_die "upstream '${vip}' is not a private IPv4 address"
   export MR_FRONT_DOOR_UPSTREAM_VIP="${vip}"
 
@@ -347,10 +403,14 @@ fd_apply() {
 
   mr_ensure_shared_state_bucket
   local tfvars dst
+  dst="$(fd_render)"
+  mr_stage "front_door_prepare_lb" "global" fd_prepare_existing_lb_for_tf "${dst}"
   tfvars="$(fd_write_tfvars)"
   mr_stage "front_door_terraform" "global" mr_tf front_door apply "${tfvars}"
 
-  dst="$(fd_render)"
+  # Fail closed: until IAP enforcement is verified below, any exit (an error,
+  # mr_die, or Ctrl-C) deletes the external HTTPRoute and Gateway.
+  trap fd_emergency_rollback EXIT
   mr_stage "front_door_apply_manifests" "global" fd_apply_manifests "${dst}"
   mr_stage "front_door_envoy_ready" "global" \
     mr_kubectl "${cfg}" rollout status "deployment/${k8s_name}" -n "${ns}" --timeout=600s
@@ -366,8 +426,10 @@ fd_apply() {
     mr_die "IAP is not enabled on the front door backend service; see 'Troubleshooting' in manifests/front-door/README.md"
   fi
   mr_log "Waiting for certificate ${MR_FRONT_DOOR_CERT_NAME} (usually 15-60 minutes after the load balancer is programmed)"
-  mr_stage "front_door_certificate_active" "global" \
-    mr_wait_for "${MR_FRONT_DOOR_CERT_TIMEOUT_S}" 30 "certificate ${MR_FRONT_DOOR_CERT_NAME} ACTIVE" fd_cert_active
+  if ! mr_stage "front_door_certificate_active" "global" \
+    mr_wait_for "${MR_FRONT_DOOR_CERT_TIMEOUT_S}" 30 "certificate ${MR_FRONT_DOOR_CERT_NAME} ACTIVE" fd_cert_active; then
+    mr_die "certificate ${MR_FRONT_DOOR_CERT_NAME} did not become ACTIVE within ${MR_FRONT_DOOR_CERT_TIMEOUT_S}s"
+  fi
   rm -f "${state_dir}/iap-check"
   mr_stage "front_door_iap_enforced" "global" \
     mr_wait_for 600 15 "unauthenticated requests redirected to Google sign-in" fd_iap_enforced || true
@@ -375,11 +437,24 @@ fd_apply() {
   check="$(cat "${state_dir}/iap-check" 2>/dev/null || echo "000")"
   case "${check}" in
   iap) mr_log "IAP is enforced: unauthenticated requests are redirected to Google sign-in" ;;
-  open) mr_die "SECURITY: an unauthenticated request got HTTP 200. Run '${0} destroy' now and investigate." ;;
-  envoy-guard) mr_die "IAP isn't enforced (Envoy rejected a request without an IAP assertion); see 'Troubleshooting' in manifests/front-door/README.md" ;;
-  forbidden) mr_log "WARNING: unauthenticated request denied with 403 before IAP (is this machine outside MR_FRONT_DOOR_ALLOWED_CIDRS?); IAP enforcement not verified from here" ;;
-  *) mr_log "WARNING: couldn't verify IAP enforcement; last response to an unauthenticated request: ${check}" ;;
+  open)
+    mr_die "SECURITY: an unauthenticated request with a forged IAP header got HTTP 200. Run '${0} destroy' and investigate."
+    ;;
+  envoy-guard)
+    mr_die "IAP isn't enforced (the request reached Envoy without passing IAP); see 'Troubleshooting' in manifests/front-door/README.md"
+    ;;
+  forbidden)
+    if [[ "${MR_FRONT_DOOR_CLOUD_ARMOR}" == "true" ]]; then
+      mr_log "WARNING: unauthenticated request denied with 403 before IAP (this machine is likely outside MR_FRONT_DOOR_ALLOWED_CIDRS); backend iap.enabled=True verified via control plane"
+    else
+      mr_die "unexpected 403 (${check}) with Cloud Armor disabled; investigate before re-running apply"
+    fi
+    ;;
+  *)
+    mr_die "couldn't verify IAP enforcement (last response: ${check})"
+    ;;
   esac
+  trap - EXIT
 
   fd_print_usage
 }
@@ -400,17 +475,20 @@ fd_namespace_exists() {
     mr_kubectl "${cfg}" get namespace "${ns}" >/dev/null 2>&1
 }
 
-# Succeeds when no load balancer resource uses the address, the certificate, or
-# the Cloud Armor policy anymore.
+# Succeeds when no load balancer resource uses the address, any certificate for
+# this front door, or the Cloud Armor policy anymore.
 fd_lb_deleted() {
-  local users
+  local users cert_prefix
+  cert_prefix="$(fd_cert_prefix)"
   users="$(gcloud compute addresses describe "${MR_FRONT_DOOR_ADDRESS_NAME}" --global \
     --project "${MR_PROJECT_ID}" --format='value(users)' 2>/dev/null || true)"
   [[ -z "${users}" ]] || return 1
   [[ -z "$(gcloud compute target-https-proxies list --global --project "${MR_PROJECT_ID}" \
-    --filter="sslCertificates~/${MR_FRONT_DOOR_CERT_NAME}\$" --format='value(name)')" ]] || return 1
+    --filter="sslCertificates~/${cert_prefix}-cert-" --format='value(name)')" ]] || return 1
   [[ -z "$(gcloud compute backend-services list --global --project "${MR_PROJECT_ID}" \
-    --filter="securityPolicy~/${fd_security_policy_name}\$" --format='value(name)')" ]]
+    --filter="securityPolicy~/${fd_security_policy_name}\$" --format='value(name)')" ]] || return 1
+  [[ -z "$(gcloud compute backend-services list --global --project "${MR_PROJECT_ID}" \
+    --filter="name~^gkegw1-.*-${ns}-${k8s_name}-" --format='value(name)')" ]]
 }
 
 # Runs under mr_stage (errexit off), so every step checks its own status.
@@ -418,6 +496,33 @@ fd_delete_kubernetes() {
   mr_kubectl "${cfg}" delete httproute,gateway --all -n "${ns}" --ignore-not-found --wait=true --timeout=900s || true
   mr_wait_for 900 15 "front door load balancer deleted" fd_lb_deleted || return 1
   mr_kubectl "${cfg}" delete namespace "${ns}" --ignore-not-found --wait=true --timeout=900s
+}
+
+fd_destroy_tfvars() {
+  local saved="${MR_WORK_DIR}/terraform/front_door.tfvars.json"
+  if [[ -s "${saved}" ]]; then
+    echo "${saved}"
+    return
+  fi
+  mkdir -p "$(dirname "${saved}")"
+  local hostname="${MR_FRONT_DOOR_HOSTNAME}"
+  if [[ ! "${hostname}" =~ ^[a-z0-9]([-a-z0-9]*[a-z0-9])?\.endpoints\.[a-z0-9][-a-z0-9.]*\.cloud\.goog$ ]]; then
+    hostname="destroy.endpoints.${MR_PROJECT_ID//:/-}.cloud.goog"
+  fi
+  jq -n \
+    --arg project_id "${MR_PROJECT_ID}" \
+    --arg name "${MR_FRONT_DOOR_NAME}" \
+    --arg hostname "${hostname}" \
+    '{
+      project_id: $project_id,
+      name: $name,
+      hostname: $hostname,
+      iap_members: ["user:destroy@example.com"],
+      iap_grant_project_level: false,
+      cloud_armor_enabled: false,
+      cloud_armor_allowed_source_cidrs: []
+    }' >"${saved}"
+  echo "${saved}"
 }
 
 fd_destroy() {
@@ -428,8 +533,11 @@ fd_destroy() {
     mr_stage "front_door_delete_kubernetes" "global" fd_delete_kubernetes
   fi
   if fd_state_has_resources; then
-    mr_stage "front_door_terraform_destroy" "global" mr_tf front_door destroy "$(fd_write_tfvars)"
+    local tfvars
+    tfvars="$(fd_destroy_tfvars)"
+    mr_stage "front_door_terraform_destroy" "global" mr_tf front_door destroy "${tfvars}"
   fi
+  rm -f "${MR_WORK_DIR}/terraform/front_door.tfvars.json"
   mr_log "Front door removed."
 }
 

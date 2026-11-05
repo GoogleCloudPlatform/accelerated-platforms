@@ -28,13 +28,20 @@ export MR_BENCH_DIR="${MR_EXAMPLE_DIR}/bench"
 export MR_BENCH_GATEWAY="${MR_BENCH_GATEWAY:-llm-mr-gateway}"
 export MR_BENCH_GATEWAY_PORT="${MR_BENCH_GATEWAY_PORT:-80}"
 # Tokenizer used by inference-perf to generate exact-length prompts and count
-# tokens. Downloaded from Hugging Face by the client Pod.
+# tokens. The served model's tokenizer is copied from the regional Cloud Storage
+# model bucket by the client Pod (bench/entrypoint.py); any other tokenizer is
+# downloaded from Hugging Face by inference-perf.
 export MR_BENCH_TOKENIZER="${MR_BENCH_TOKENIZER:-${MR_HF_MODEL_ID}}"
+# Start Stage 0 at the same time in every client region: the harness waits
+# until every client Pod is running and has its tokenizer, then releases them
+# together (auto: when more than one client region runs | true | false).
+export MR_BENCH_SYNC_START="${MR_BENCH_SYNC_START:-auto}"
+export MR_BENCH_SYNC_TIMEOUT_S="${MR_BENCH_SYNC_TIMEOUT_S:-900}"
 # Custom compute class for the client Pods (manifests/common/compute-class-bench:
 # on-demand 8 vCPU machines across several families, so that a single machine
 # family stockout doesn't block the benchmark). Set to "" to omit the node
 # selector.
-export MR_BENCH_COMPUTE_CLASS="${MR_BENCH_COMPUTE_CLASS-llm-mr-bench-cpu}"
+export MR_BENCH_COMPUTE_CLASS="${MR_BENCH_COMPUTE_CLASS-${MR_NAMESPACE}-bench-cpu}"
 export MR_BENCH_CPU="${MR_BENCH_CPU:-4}"
 export MR_BENCH_MEMORY="${MR_BENCH_MEMORY:-8Gi}"
 # Hard limit for a client Job. Empty: derived from the load stages.
@@ -136,10 +143,11 @@ mr_bench_stages() {
 }
 
 # mr_bench_default_timeout <num_stages>
-# Upper bound for one client Job: prompt generation and tokenizer download,
-# every stage plus its teardown grace (120 s in inference-perf v0.7.0) and
-# interval, and report upload.
+# Upper bound for one client Job: Pod startup, tokenizer staging, and prompt
+# generation (900 s), the start barrier (MR_BENCH_SYNC_TIMEOUT_S), every stage
+# plus its teardown grace (120 s in inference-perf v0.7.0) and interval, and
+# report upload.
 mr_bench_default_timeout() {
   local num_stages="${1}"
-  echo $((1800 + num_stages * (MR_BENCH_STAGE_DURATION_S + MR_BENCH_STAGE_INTERVAL_S + 120)))
+  echo $((900 + MR_BENCH_SYNC_TIMEOUT_S + num_stages * (MR_BENCH_STAGE_DURATION_S + MR_BENCH_STAGE_INTERVAL_S + 120)))
 }

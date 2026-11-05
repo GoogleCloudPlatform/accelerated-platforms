@@ -29,6 +29,8 @@ and the script writes startup.csv (one row per Pod) and startup.md (per Pod
 and per arm) to --out. Python 3 standard library only.
 """
 
+from __future__ import annotations
+
 import argparse
 import csv
 import json
@@ -37,6 +39,7 @@ import re
 import statistics
 import sys
 from datetime import datetime, timezone
+from typing import Any
 
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 LOG_TS = re.compile(
@@ -127,7 +130,7 @@ COLUMNS = [
 ]
 
 
-def parse_ts(value):
+def parse_ts(value: str | int | float | None) -> float | None:
     """RFC 3339 (with up to nanosecond fractions) to epoch seconds."""
     if not value:
         return None
@@ -140,13 +143,13 @@ def parse_ts(value):
     if not m:
         return None
     base, frac, tz = m.groups()
-    dt = datetime.fromisoformat(base + ((tz or "Z").replace("Z", "+00:00")))
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+    dt = datetime.fromisoformat(base + ((tz or "Z").replace("Z", "+00:00"))).astimezone(
+        timezone.utc
+    )
     return dt.timestamp() + (float(frac) if frac else 0.0)
 
 
-def go_duration(text):
+def go_duration(text: str | None) -> float | None:
     if not text:
         return None
     total, matched = 0.0, False
@@ -156,31 +159,31 @@ def go_duration(text):
     return total if matched else None
 
 
-def diff(end, start):
+def diff(end: float | None, start: float | None) -> float | None:
     return None if end is None or start is None else round(end - start, 3)
 
 
-def load_json(path, default=None):
+def load_json(path: str, default: Any = None) -> Any:
     if not os.path.exists(path):
         return default
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def items(doc):
+def items(doc: Any) -> list[dict[str, Any]]:
     if doc is None:
         return []
     return doc.get("items", []) if isinstance(doc, dict) else list(doc)
 
 
-def condition_time(obj, ctype):
+def condition_time(obj: dict[str, Any], ctype: str) -> float | None:
     for c in (obj.get("status") or {}).get("conditions") or []:
         if c.get("type") == ctype and c.get("status") == "True":
             return parse_ts(c.get("lastTransitionTime"))
     return None
 
 
-def event_fields(ev):
+def event_fields(ev: dict[str, Any]) -> dict[str, Any]:
     """Normalizes core/v1 and events.k8s.io/v1 Events."""
     obj = ev.get("involvedObject") or ev.get("regarding") or {}
     ts = (
@@ -200,13 +203,17 @@ def event_fields(ev):
     }
 
 
-def image_pulls(pod_name, events):
+def image_pulls(
+    pod_name: str, events: list[dict[str, Any]]
+) -> dict[str, dict[str, Any]]:
     """Per container image pull durations from Pulling/Pulled events.
 
     Uses the duration in the kubelet's Pulled message when present (it excludes
     queueing behind other pulls), and Pulled - Pulling event times otherwise.
+    Preserves an initial cold pull duration even if a subsequent container
+    restart logs a cached "already present on machine" Pulled event.
     """
-    pulls = {}
+    pulls: dict[str, dict[str, Any]] = {}
     for ev in events:
         if (
             ev["kind"] != "Pod"
@@ -235,18 +242,28 @@ def image_pulls(pod_name, events):
         elif ev["reason"] == "Pulled":
             p["pulled"] = ev["ts"]
             if (mm := PULLED.search(ev["message"])) is not None:
-                p["pull_s"] = go_duration(mm.group(2))
-                p["wait_s"] = go_duration(mm.group(3)) if mm.group(3) else p["pull_s"]
+                dur = go_duration(mm.group(2))
+                wait_dur = go_duration(mm.group(3)) if mm.group(3) else dur
+                p["pull_s"] = (
+                    dur if p["pull_s"] is None else max(p["pull_s"], dur or 0.0)
+                )
+                p["wait_s"] = (
+                    wait_dur
+                    if p["wait_s"] is None
+                    else max(p["wait_s"], wait_dur or 0.0)
+                )
+                p["cached"] = False
             elif PRESENT.search(ev["message"]):
-                p["pull_s"], p["wait_s"], p["cached"] = 0.0, 0.0, True
+                if p["pull_s"] is None:
+                    p["pull_s"], p["wait_s"], p["cached"] = 0.0, 0.0, True
     for p in pulls.values():
         if p["pull_s"] is None and p["pulling"] is not None and p["pulled"] is not None:
             p["pull_s"] = p["wait_s"] = round(p["pulled"] - p["pulling"], 3)
     return pulls
 
 
-def parse_log(path):
-    out = {k: None for k in LOG_PATTERNS}
+def parse_log(path: str) -> dict[str, Any]:
+    out: dict[str, Any] = {k: None for k in LOG_PATTERNS}
     out.update({k: None for k in LOG_EVENTS})
     if not path or not os.path.exists(path):
         return out
@@ -269,7 +286,7 @@ def parse_log(path):
     return out
 
 
-def pick_container(pod, name_hint):
+def pick_container(pod: dict[str, Any], name_hint: str) -> dict[str, Any] | None:
     statuses = (pod.get("status") or {}).get("containerStatuses") or []
     if not statuses:
         return None
@@ -282,7 +299,7 @@ def pick_container(pod, name_hint):
     return statuses[0]
 
 
-def get_started(status):
+def get_started(status: dict[str, Any] | None) -> str | None:
     if not status:
         return None
     state = status.get("state") or {}
@@ -292,7 +309,20 @@ def get_started(status):
     return None
 
 
-def analyze_dir(source_dir, args):
+def resolve_source_labels(dirs: list[str]) -> list[str]:
+    """Computes unique source labels across input directories."""
+    norm_dirs = [os.path.normpath(d) for d in dirs]
+    basenames = [os.path.basename(d) for d in norm_dirs]
+    if len(set(basenames)) == len(norm_dirs):
+        return basenames
+    abs_dirs = [os.path.abspath(d) for d in norm_dirs]
+    common = os.path.commonpath(abs_dirs)
+    return [os.path.relpath(d, common) for d in abs_dirs]
+
+
+def analyze_dir(
+    source_dir: str, args: argparse.Namespace, source_label: str | None = None
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     pods = items(load_json(os.path.join(source_dir, "pods.json"), {}))
     nodes = {
         n["metadata"]["name"]: n
@@ -306,10 +336,10 @@ def analyze_dir(source_dir, args):
     apply_ts = parse_ts(markers.get("apply_epoch_s"))
     first_ok = parse_ts(markers.get("first_ok_via_gateway_epoch_s"))
     arm = markers.get("arm", "")
-    source = os.path.basename(os.path.normpath(source_dir))
+    source = source_label or os.path.basename(os.path.normpath(source_dir))
     pod_filter = re.compile(args.pod_regex) if args.pod_regex else None
 
-    rows = []
+    rows: list[dict[str, Any]] = []
     for pod in pods:
         name = pod["metadata"]["name"]
         if pod_filter and not pod_filter.search(name):
@@ -320,7 +350,7 @@ def analyze_dir(source_dir, args):
         initialized = condition_time(pod, "Initialized")
         ready = condition_time(pod, "Ready")
         node_name = (pod.get("spec") or {}).get("nodeName")
-        node = nodes.get(node_name) or {}
+        node = (nodes.get(node_name) if node_name else None) or {}
         node_created = parse_ts((node.get("metadata") or {}).get("creationTimestamp"))
         node_ready = condition_time(node, "Ready") if node else None
         provisioned = (
@@ -373,15 +403,15 @@ def analyze_dir(source_dir, args):
                 "_ready": ready,
             }
         )
-    readies = [r["_ready"] for r in rows]
+    non_null_readies = [r["_ready"] for r in rows if r["_ready"] is not None]
     summary = {
         "source": source,
         "arm": arm,
         "pods": len(rows),
-        "pods_ready": sum(1 for r in readies if r is not None),
+        "pods_ready": len(non_null_readies),
         "apply_to_all_pods_ready_s": (
-            diff(max(readies), apply_ts)
-            if rows and all(r is not None for r in readies)
+            diff(max(non_null_readies), apply_ts)
+            if rows and len(non_null_readies) == len(rows)
             else None
         ),
         "apply_to_first_ok_via_gateway_s": diff(first_ok, apply_ts),
@@ -389,7 +419,7 @@ def analyze_dir(source_dir, args):
     return rows, summary
 
 
-def fmt(v):
+def fmt(v: Any) -> str:
     if v is None:
         return "-"
     if isinstance(v, bool):
@@ -399,7 +429,7 @@ def fmt(v):
     return str(v)
 
 
-def md_table(headers, rows):
+def md_table(headers: list[str], rows: list[list[Any]]) -> str:
     lines = [
         "| " + " | ".join(headers) + " |",
         "|" + "|".join("---" for _ in headers) + "|",
@@ -409,7 +439,9 @@ def md_table(headers, rows):
     )
 
 
-def write_outputs(out_dir, rows, summaries):
+def write_outputs(
+    out_dir: str, rows: list[dict[str, Any]], summaries: list[dict[str, Any]]
+) -> None:
     os.makedirs(out_dir, exist_ok=True)
     with open(
         os.path.join(out_dir, "startup.csv"), "w", newline="", encoding="utf-8"
@@ -465,7 +497,9 @@ def write_outputs(out_dir, rows, summaries):
             values = [
                 r[key]
                 for r in rows
-                if r["source"] == s["source"] and r[key] is not None
+                if r["source"] == s["source"]
+                and r["arm"] == s["arm"]
+                and r[key] is not None
             ]
             table.append(
                 [
@@ -531,7 +565,7 @@ def write_outputs(out_dir, rows, summaries):
         f.write("\n")
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -556,12 +590,13 @@ def main(argv=None):
     )
     args = p.parse_args(argv)
 
+    labels = resolve_source_labels(args.dirs)
     rows, summaries = [], []
-    for d in args.dirs:
+    for d, label in zip(args.dirs, labels):
         if not os.path.exists(os.path.join(d, "pods.json")):
             print(f"{d}: pods.json not found", file=sys.stderr)
             return 1
-        r, s = analyze_dir(d, args)
+        r, s = analyze_dir(d, args, source_label=label)
         rows += r
         summaries.append(s)
     out = args.out or (args.dirs[0] if len(args.dirs) == 1 else "startup")

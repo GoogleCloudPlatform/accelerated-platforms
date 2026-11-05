@@ -19,7 +19,7 @@ For the full guide, including architecture, results, and analysis, see
 flowchart LR
   subgraph VPC["Shared VPC (one project)"]
     direction LR
-    LB["Cross-region internal ALB<br/>one VIP per region<br/>service LB policy: WATERFALL_BY_REGION<br/>per-region RATE capacity"]
+    LB["Cross-region internal ALB<br/>one VIP per region<br/>service LB policy: WATERFALL_BY_REGION<br/>per-region IN_FLIGHT capacity"]
     subgraph R1["Region 1"]
       P1["llm-d router (Standalone Mode)<br/>Envoy + endpoint picker"]
       V1["vLLM pods x N"]
@@ -42,23 +42,56 @@ flowchart LR
   zonal NEGs of that arm in every region. A service load balancing policy
   selects the cross-region behavior:
   - `locality`: `WATERFALL_BY_REGION`. Traffic goes to the closest region until
-    it reaches its capacity (`MR_LB_REGION_CAPACITY_QPS`, balancing mode
-    `RATE`), then spills over.
+    it reaches its capacity (`MR_LB_REGION_CAPACITY_INFLIGHT=32` under the
+    default `MR_LB_BALANCING_MODE=IN_FLIGHT`, or `MR_LB_REGION_CAPACITY_QPS=6`
+    when `MR_LB_BALANCING_MODE=RATE`), then spills over.
   - `capacity`: `WATERFALL_BY_REGION` with a low region capacity
-    (`MR_LB_CAPACITY_MODE_QPS`, default 1). Traffic spills over early, so the
-    load of one region is spread over every region's GPUs. This trades
-    cross-region latency for utilization.
+    (`MR_LB_CAPACITY_MODE_INFLIGHT=8` under `IN_FLIGHT`, or
+    `MR_LB_CAPACITY_MODE_QPS=1` under `RATE`). Intended to spill over early, so
+    the load of one region is spread over every region's GPUs, trading
+    cross-region latency for utilization (in our tests, the internal ALB kept
+    80–90% of requests local regardless of target capacity; see the guide).
   - `zone-spray`: `SPRAY_TO_REGION`. Like `locality`, but each proxy spreads
     requests over every zone of the chosen region. Despite its name, it does not
     spread traffic across regions.
   - `preferred`: one region's backends are `PREFERRED`, so that region is used
     to capacity first.
 - **Pod choice (llm-d).** In each region, the llm-d router runs in Standalone
-  Mode, with an Envoy proxy next to the endpoint picker (EPP). The EPP selects
-  the vLLM pod using KV cache events (precise prefix cache routing, `ppcr`) or
-  an approximate prefix index (optimized baseline, `ob`), together with load.
+  Mode as a single Envoy + endpoint picker (`EPP`) pod (`replicas: 1`,
+  `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`) so ZMQ KV-cache
+  state stays unified per region. The EPP selects the vLLM pod using KV cache
+  events (precise prefix cache routing, `ppcr`) or an approximate prefix index
+  (optimized baseline, `ob`), together with load. One router pod per region is a
+  single point of failure for that region's llm-d arm: while it restarts (node
+  upgrade, preemption, crash), the region's NEG has no healthy endpoint, the
+  load balancer health check (`/ready`, port 19001) sends traffic to the other
+  regions, and active streams through that pod are cut (`safe-to-evict: "false"`
+  prevents cluster autoscaler consolidation, not node upgrades). When
+  `MR_HPA_ENABLED=true`, `deploy-global-lb.sh` multiplies the router's
+  per-endpoint capacity by `MR_HPA_MAX_REPLICAS / MR_REPLICAS_PER_REGION`: the
+  router is the region's only NEG endpoint, so at full scale-out an llm-d
+  region's capacity equals the baseline's (64 in-progress requests by default),
+  while below full scale-out it accepts up to that factor more in-progress
+  requests before spilling over. The router keeps the upstream chart's Envoy
+  timeouts: 86400 s route timeout and 1000 s `ext_proc` `message_timeout` per
+  endpoint picker exchange, so long streams are bounded by the load balancer's
+  `MR_BACKEND_TIMEOUT_SEC` (3600 s).
 - **Baseline.** The load balancer sends traffic straight to the plain vLLM pods'
-  NEGs, with the same cross-region policy and capacity but without an EPP.
+  NEGs (`locality_lb_policy = "LEAST_REQUEST"` within each chosen region;
+  `MR_BASELINE_LOCALITY_LB_POLICY=ROUND_ROBIN` reproduces the October 2026
+  baseline runs), with the same cross-region policy and capacity but without an
+  EPP. Both arms deploy a `PodDisruptionBudget` (`minAvailable: 1`) for the
+  model servers.
+
+> [!WARNING]
+>
+> The Terraform load balancer uses the zonal NEGs that exist when `set-route.sh`
+> runs. GKE creates a standalone NEG in a zone only when the cluster has nodes
+> there. A Pod that the HPA or the GPU ComputeClass later places in a new zone
+> is Ready but gets no traffic until you re-run `set-route.sh` with the same
+> arguments. For `llmd` this only matters if the router Pod moves; the router
+> reaches model servers in every zone.
+
 - **Alternative: GKE multi-cluster Inference Gateway**
   (`MR_GLOBAL_LB=mc-gateway`). Regional InferencePools are exported to the fleet
   and imported in the config cluster as `GCPInferencePoolImport`s behind a
@@ -96,7 +129,7 @@ replica count. The only differences are the two vLLM flags that llm-d needs
 ## Prerequisites
 
 - `gcloud`, `kubectl`, `kustomize`, `helm` (v3), `terraform` (>= 1.8), `jq`,
-  `python3`, `git`, `envsubst`, and `sponge`.
+  `python3` (with `PyYAML`), `git`, `envsubst`, `sponge`, `flock`, and `curl`.
 - A Hugging Face read token in `~/hftoken`, or set `MR_HF_TOKEN_FILE`.
 - GPU capacity for `MR_ACCELERATOR_TYPE` in every region: up to
   `MR_HPA_MAX_REPLICAS` × `MR_GPU_COUNT` GPUs per region and arm. The GPU
@@ -106,7 +139,11 @@ replica count. The only differences are the two vLLM flags that llm-d needs
 All settings are in [`mr.env`](mr.env). The defaults are 3 regions
 (`us-central1`, `europe-west2`, `asia-southeast1`), RTX PRO 6000,
 `Qwen/Qwen3-32B`, and 2 replicas per region that a Horizontal Pod Autoscaler
-scales up to 4 on the vLLM queue depth (`MR_HPA_*`).
+scales up to 4 on vLLM queue depth (`vllm:num_requests_waiting`) and active
+request concurrency (`vllm:num_requests_running`). Fixed-replica A/B sweeps
+(`run-experiment.sh` and `run-skew-experiment.sh`) automatically set
+`MR_HPA_ENABLED=false` unless `--with-hpa` is passed; to reproduce the
+two-region guide, also `export MR_REGION_KEYS="usc1 euw2"`.
 
 ## Run
 
@@ -120,14 +157,17 @@ export MR_RUN_ID="setup-$(date -u +%Y%m%dT%H%M%SZ)"
 scripts/deploy-all.sh
 
 # 2. Measure each arm, back to back: baseline and llm-d (ppcr, ob), locality
-#    and capacity modes. Placeholder pods keep the GPU nodes between the arms
+#    and capacity modes (fixed replicas by default; pass --with-hpa to autoscale).
+#    Placeholder pods keep the GPU nodes between the arms
 #    (delete-arm.sh --hold-gpus); the last arm releases them.
 export MR_RUN_ID="exp-$(date -u +%Y%m%dT%H%M%SZ)"
 scripts/run-experiment.sh
 
-# 3. Optional: all load from one region, locality vs capacity.
+# 3. Optional: all load from one region (defaults to first region in MR_REGION_KEYS,
+#    usc1), locality vs capacity (the published skew table used
+#    MR_LB_BALANCING_MODE=RATE --region-capacity-qps 3 --modes "locality zone-spray").
 export MR_RUN_ID="skew-$(date -u +%Y%m%dT%H%M%SZ)"
-scripts/run-skew-experiment.sh --capacity-qps 3 --modes "locality capacity"
+scripts/run-skew-experiment.sh --modes "locality capacity"
 
 # 4. Optional: scale-out. Load from every region at about twice the capacity
 #    of MR_REPLICAS_PER_REGION, so that the HPA scales each region out to
@@ -155,8 +195,9 @@ Each step can also be run individually:
 To add a region to a running environment, add its key to `MR_REGION_KEYS` and to
 every `MR_REGION*` and `MR_*_CIDR` map in `mr.env`, then run
 `deploy-shared-network.sh`, `deploy-region.sh <key>`, and
-`stage-model.sh <key>`. The next `deploy-arm.sh` or `set-route.sh` adds the
-region's NEGs and VIP to the global load balancer.
+`stage-model.sh <key>`. The next `deploy-arm.sh` deploys the arm in the new
+region and adds its NEGs and VIP to the global load balancer. Until then,
+`set-route.sh` fails because the active arm has no NEGs in that region.
 
 Don't edit the scripts while a run is in progress: bash reads scripts
 incrementally.

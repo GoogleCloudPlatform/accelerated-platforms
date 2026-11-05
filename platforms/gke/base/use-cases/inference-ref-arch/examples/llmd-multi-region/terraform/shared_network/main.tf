@@ -27,6 +27,10 @@
 #     health checks reach the model servers.
 
 locals {
+  # core/container_cluster creates VPC-native clusters with GKE-managed
+  # secondary ranges (`ip_allocation_policy {}`): GKE picks each cluster's Pod
+  # range from 10.0.0.0/8 when the cluster is created, after this module runs.
+  gke_pod_range_pool = "10.0.0.0/8"
   proxy_source_ranges = concat(
     [for r in var.regions : r.global_proxy_cidr],
     [for r in var.regions : r.regional_proxy_cidr],
@@ -93,8 +97,9 @@ resource "google_compute_firewall" "allow_health_checks" {
   source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]
 }
 
-# Internal traffic between the regional node subnets (benchmark clients in one
-# region calling load balancer VIPs and pods in another region).
+# Internal traffic between the regional node subnets and VPC-native GKE Pod
+# secondary ranges (benchmark clients in one region calling load balancer VIPs
+# and pods in another region).
 resource "google_compute_firewall" "allow_internal" {
   name      = "${var.network_name}-allow-internal"
   network   = google_compute_network.vpc.id
@@ -114,5 +119,8 @@ resource "google_compute_firewall" "allow_internal" {
     protocol = "icmp"
   }
 
-  source_ranges = [for r in var.regions : r.node_cidr]
+  source_ranges = distinct(concat(
+    [for r in var.regions : r.node_cidr],
+    [local.gke_pod_range_pool],
+  ))
 }

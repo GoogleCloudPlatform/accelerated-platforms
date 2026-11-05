@@ -21,7 +21,7 @@
 apiVersion: networking.gke.io/v1
 kind: GCPBackendPolicy
 metadata:
-  name: ${MR_ROUTE_BACKEND_NAME}
+  name: mc-${MR_ROUTE_BACKEND_NAME}
   namespace: ${MR_NAMESPACE}
 spec:
   targetRef:

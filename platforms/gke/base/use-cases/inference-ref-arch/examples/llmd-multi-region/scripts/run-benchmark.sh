@@ -15,9 +15,11 @@
 # limitations under the License.
 
 # Runs one benchmark (one arm x one workload) with one inference-perf client
-# Job per client region, all clients concurrently, against the internal VIP of
-# the multi-cluster Gateway. Collects Job logs and the inference-perf reports
-# into ${MR_RESULTS_DIR}/runs/${MR_RUN_ID}/<arm>/<workload>/<client>/.
+# Job per client region, all clients concurrently, against the regional
+# internal VIPs of the load balancer (MR_GLOBAL_LB). With more than one client
+# region, a start barrier releases Stage 0 in every region at the same time
+# (MR_BENCH_SYNC_START). Collects Job logs and the inference-perf reports into
+# ${MR_RESULTS_DIR}/runs/${MR_RUN_ID}/<arm>/<workload>/<client>/.
 #
 # See bench/README.md.
 
@@ -31,6 +33,8 @@ MY_PATH="$(
 )"
 # shellcheck source=/dev/null
 source "${MY_PATH}/lib.sh"
+# shellcheck source=/dev/null
+source "${MY_PATH}/render.sh"
 # shellcheck source=/dev/null
 source "${MY_PATH}/bench-lib.sh"
 
@@ -147,6 +151,8 @@ chat) workload_short="chat" ;;
   ;;
 esac
 [[ "${MR_BENCH_STAGE_DURATION_S}" =~ ^[1-9][0-9]*$ ]] || mr_die "invalid stage duration '${MR_BENCH_STAGE_DURATION_S}'"
+[[ "${MR_BENCH_SYNC_TIMEOUT_S}" =~ ^[1-9][0-9]*$ ]] ||
+  mr_die "invalid MR_BENCH_SYNC_TIMEOUT_S '${MR_BENCH_SYNC_TIMEOUT_S}': use a whole number of seconds"
 [[ "${MR_BENCH_LOAD_TYPE}" == "poisson" || "${MR_BENCH_LOAD_TYPE}" == "constant" ]] ||
   mr_die "MR_BENCH_LOAD_TYPE must be poisson or constant"
 
@@ -154,15 +160,22 @@ read -r -a client_keys <<<"${clients}"
 [[ ${#client_keys[@]} -gt 0 ]] || mr_die "no clients"
 read -r -a region_keys <<<"${MR_REGION_KEYS}"
 for key in "${client_keys[@]}"; do
-  mr_validate_region_key "${key}"
+  mr_validate_active_region_key "${key}"
 done
 case "${target_mode}" in
 local | cross) ;;
-*) mr_validate_region_key "${target_mode}" ;;
+*) mr_validate_active_region_key "${target_mode}" ;;
+esac
+
+sync_start="false"
+case "${MR_BENCH_SYNC_START}" in
+auto) [[ ${#client_keys[@]} -gt 1 ]] && sync_start="true" ;;
+true | false) sync_start="${MR_BENCH_SYNC_START}" ;;
+*) mr_die "MR_BENCH_SYNC_START must be auto, true, or false" ;;
 esac
 
 if [[ "${dry_run}" == "true" ]]; then
-  for tool in envsubst jq python3; do
+  for tool in envsubst jq "${MR_PYTHON}"; do
     command -v "${tool}" >/dev/null 2>&1 || mr_die "missing required tool: ${tool}"
   done
 else
@@ -216,6 +229,11 @@ if [[ "${dry_run}" != "true" ]]; then
   for key in "${client_keys[@]}"; do
     mr_kubectl "${key}" -n "${MR_NAMESPACE}" get serviceaccount "${MR_NAMESPACE}" >/dev/null ||
       mr_die "service account ${MR_NAMESPACE}/${MR_NAMESPACE} not found in $(mr_cluster_name "${key}")"
+    if [[ "${MR_BENCH_COMPUTE_CLASS}" == "${MR_NAMESPACE}-bench-cpu" ]]; then
+      dst_common="${MR_WORK_DIR}/rendered/${key}/common"
+      mr_render_dir "${MR_EXAMPLE_DIR}/manifests/common" "${dst_common}"
+      mr_kubectl "${key}" apply -f "${dst_common}/compute-class-bench.yaml" >/dev/null
+    fi
   done
 fi
 
@@ -259,6 +277,7 @@ render_client() {
   export BENCH_CHAT_NUM_PROMPTS="${MR_BENCH_CHAT_NUM_PROMPTS}"
   export BENCH_CHAT_OUTPUT_LEN="${MR_BENCH_CHAT_OUTPUT_LEN}"
   export BENCH_CLIENT="${client}"
+  # shellcheck disable=SC2153
   export BENCH_CPU="${MR_BENCH_CPU}"
   export BENCH_GCS_PATH="${run_rel}/${client}"
   export BENCH_GMP_SCRAPE_INTERVAL_S="${MR_BENCH_GMP_SCRAPE_INTERVAL_S}"
@@ -268,7 +287,15 @@ render_client() {
   export BENCH_JOB_TIMEOUT_S="${job_timeout}"
   export BENCH_LOAD_TYPE="${MR_BENCH_LOAD_TYPE}"
   export BENCH_MEMORY="${MR_BENCH_MEMORY}"
+  export BENCH_MODELS_BUCKET
+  BENCH_MODELS_BUCKET="$(mr_models_bucket "${client}")"
   export BENCH_MODEL_NAME="${MR_SERVED_MODEL_NAME}"
+  # The regional model bucket holds the served model's tokenizer; any other
+  # MR_BENCH_TOKENIZER is downloaded from Hugging Face by inference-perf.
+  export BENCH_MODEL_PATH=""
+  if [[ "${MR_BENCH_TOKENIZER}" == "${MR_HF_MODEL_ID}" ]]; then
+    BENCH_MODEL_PATH="${MR_MODEL_PATH}"
+  fi
   export BENCH_NAMESPACE="${MR_NAMESPACE}"
   export BENCH_NODE_SELECTOR="{}"
   if [[ -n "${MR_BENCH_COMPUTE_CLASS}" ]]; then
@@ -288,6 +315,10 @@ render_client() {
   export BENCH_SP_SYSTEM_PROMPT_LEN="${MR_BENCH_SP_SYSTEM_PROMPT_LEN}"
   export BENCH_STAGE_INTERVAL_S="${MR_BENCH_STAGE_INTERVAL_S}"
   export BENCH_STAGES="${stages}"
+  export BENCH_SYNC_START="${sync_start}"
+  # The harness times out first (release_start_barrier), with the clearer
+  # message; the pod-side timeout only guards against a lost harness.
+  export BENCH_SYNC_TIMEOUT_S="$((MR_BENCH_SYNC_TIMEOUT_S + 120))"
   export BENCH_TOKENIZER="${MR_BENCH_TOKENIZER}"
   export BENCH_WORKER_MAX_CONCURRENCY="${MR_BENCH_WORKER_MAX_CONCURRENCY}"
   export BENCH_WORKLOAD="${workload}"
@@ -321,6 +352,8 @@ data:
   config.yaml: |
 EOF
     sed 's/^/    /' "${manifests}/config.yaml"
+    echo "  entrypoint.py: |"
+    sed 's/^/    /' "${MR_BENCH_DIR}/entrypoint.py"
   } >"${manifests}/00-configmap.yaml"
 
   envsubst "${vars}" <"${MR_BENCH_DIR}/manifests/job.yaml.tmpl" >"${manifests}/10-job.yaml"
@@ -395,26 +428,101 @@ download_reports() {
     }
 }
 
-# run_client <client_key>
-run_client() {
+# apply_client <client_key>
+apply_client() {
   local client="${1}"
+  local dir="${run_dir}/${client}" job
+  job="$(job_name "${client}")"
+  date +%s >"${dir}/start.epoch"
+  mr_kubectl "${client}" -n "${MR_NAMESPACE}" delete job "${job}" --ignore-not-found --wait=true >/dev/null 2>&1 || true
+  mr_stage "bench_apply_${arm}_${workload}" "${client}" \
+    mr_kubectl "${client}" apply -f "${dir}/manifests/00-configmap.yaml" -f "${dir}/manifests/10-job.yaml"
+}
+
+# release_start_barrier
+# Waits until every client pod has staged its tokenizer (/tmp/bench-ready), then
+# signals /tmp/bench-go in all client pods at once, so that Stage 0 starts at the
+# same time in every region regardless of node scale-up or image pulls. Later
+# stages can still drift by the per-stage drain time.
+release_start_barrier() {
+  local deadline=$(($(date +%s) + MR_BENCH_SYNC_TIMEOUT_S))
+  local -A ready_pods=()
+  local key job conditions pod all_ready missing pids=() rc=0
+  while true; do
+    all_ready="true"
+    for key in "${client_keys[@]}"; do
+      job="$(job_name "${key}")"
+      conditions="$(mr_kubectl "${key}" -n "${MR_NAMESPACE}" get job "${job}" \
+        -o jsonpath='{range .status.conditions[?(@.status=="True")]}{.type}{" "}{end}' 2>/dev/null || true)"
+      if [[ " ${conditions} " == *" Failed "* ]]; then
+        mr_log "Job ${job} in ${key} failed before start barrier"
+        return 1
+      fi
+      if [[ -n "${ready_pods[${key}]:-}" ]]; then
+        continue
+      fi
+      pod="$(mr_kubectl "${key}" -n "${MR_NAMESPACE}" get pods -l "job-name=${job}" \
+        --field-selector=status.phase=Running -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true)"
+      if [[ -n "${pod}" ]] && mr_kubectl "${key}" -n "${MR_NAMESPACE}" exec "${pod}" -- test -f /tmp/bench-ready >/dev/null 2>&1; then
+        ready_pods[${key}]="${pod}"
+        mr_log "Client pod ${pod} (${key}) ready at start barrier"
+      else
+        all_ready="false"
+      fi
+    done
+    if [[ "${all_ready}" == "true" ]]; then
+      break
+    fi
+    if [[ $(date +%s) -ge ${deadline} ]]; then
+      missing=()
+      for key in "${client_keys[@]}"; do
+        [[ -n "${ready_pods[${key}]:-}" ]] || missing+=("${key}")
+      done
+      mr_log "timed out after ${MR_BENCH_SYNC_TIMEOUT_S}s waiting for the client pods in: ${missing[*]}" \
+        "(not running, or tokenizer not staged); see ${run_dir}/<client>/logs/"
+      return 1
+    fi
+    sleep 3
+  done
+  # Retry each signal: one transient exec error must not leave the other
+  # regions running alone.
+  for key in "${client_keys[@]}"; do
+    (
+      for _ in 1 2 3; do
+        mr_kubectl "${key}" -n "${MR_NAMESPACE}" exec "${ready_pods[${key}]}" -- touch /tmp/bench-go >/dev/null && exit 0
+        sleep 1
+      done
+      exit 1
+    ) &
+    pids+=("$!")
+  done
+  for pid in "${pids[@]}"; do
+    wait "${pid}" || rc=1
+  done
+  return "${rc}"
+}
+
+# finish_client <client_key> <barrier_ok>
+finish_client() {
+  local client="${1}" barrier_ok="${2}"
   local dir="${run_dir}/${client}" job start end status="failed"
   job="$(job_name "${client}")"
-  start="$(date +%s)"
+  start="$(cat "${dir}/start.epoch" 2>/dev/null || date +%s)"
+  rm -f "${dir}/start.epoch"
 
-  mr_kubectl "${client}" -n "${MR_NAMESPACE}" delete job "${job}" --ignore-not-found --wait=true >/dev/null 2>&1 || true
-  if mr_stage "bench_apply_${arm}_${workload}" "${client}" \
-    mr_kubectl "${client}" apply -f "${dir}/manifests/00-configmap.yaml" -f "${dir}/manifests/10-job.yaml"; then
+  if [[ "${barrier_ok}" == "true" ]]; then
     if mr_stage "bench_run_${arm}_${workload}" "${client}" wait_job "${client}" "${job}"; then
       status="succeeded"
     fi
-    collect_logs "${client}" "${job}" "${dir}/logs"
+  fi
+  collect_logs "${client}" "${job}" "${dir}/logs"
+  if [[ "${status}" == "succeeded" ]]; then
     if ! mr_stage "bench_download_${arm}_${workload}" "${client}" download_reports "${client}"; then
       status="failed"
     fi
-    mr_kubectl "${client}" delete --ignore-not-found --wait=false \
-      -f "${dir}/manifests/10-job.yaml" -f "${dir}/manifests/00-configmap.yaml" >/dev/null || true
   fi
+  mr_kubectl "${client}" delete --ignore-not-found --wait=false \
+    -f "${dir}/manifests/10-job.yaml" -f "${dir}/manifests/00-configmap.yaml" >/dev/null || true
   end="$(date +%s)"
 
   local images="[]"
@@ -429,14 +537,16 @@ run_client() {
 
 # write_run_metadata <status>
 write_run_metadata() {
-  local status="${1}" git_commit git_dirty
+  local status="${1}" git_commit git_dirty=0
   git_commit="$(git -C "${ACP_REPO_DIR}" rev-parse HEAD 2>/dev/null || echo "unknown")"
-  git_dirty="$(git -C "${ACP_REPO_DIR}" status --porcelain 2>/dev/null | head -1 | wc -l)"
+  if [[ -n "$(git -C "${ACP_REPO_DIR}" status --porcelain 2>/dev/null || true)" ]]; then
+    git_dirty=1
+  fi
   RUN_STATUS="${status}" RUN_ARM="${arm}" RUN_WORKLOAD="${workload}" RUN_GATEWAY="${gateway}" \
     RUN_TARGET_MODE="${target_mode}" RUN_CLIENTS="${client_keys[*]}" RUN_DIR="${run_dir}" \
     RUN_BUCKET="${bucket}" RUN_REL="${run_rel}" RUN_START="${run_start}" RUN_END="$(date +%s)" \
     RUN_GIT_COMMIT="${git_commit}" RUN_GIT_DIRTY="${git_dirty}" RUN_JOB_TIMEOUT_S="${job_timeout}" \
-    RUN_DRY_RUN="${dry_run}" python3 - <<'EOF'
+    RUN_SYNC_START="${sync_start}" RUN_DRY_RUN="${dry_run}" "${MR_PYTHON}" - <<'EOF'
 import json
 import os
 
@@ -474,6 +584,18 @@ else:
         "num_prompts": int(e["MR_BENCH_CHAT_NUM_PROMPTS"]),
     }
 
+global_lb = e.get("MR_GLOBAL_LB", "terraform")
+router_chart = (
+    e["MR_LLMD_ROUTER_CHART"]
+    if global_lb == "mc-gateway"
+    else e["MR_LLMD_ROUTER_STANDALONE_CHART"]
+)
+router_chart_digest = (
+    e["MR_LLMD_ROUTER_CHART_DIGEST"]
+    if global_lb == "mc-gateway"
+    else e["MR_LLMD_ROUTER_STANDALONE_CHART_DIGEST"]
+)
+
 metadata = {
     "schema_version": 1,
     "status": e["RUN_STATUS"],
@@ -482,6 +604,7 @@ metadata = {
     "arm": e["RUN_ARM"],
     "workload": workload,
     "gateway": e["RUN_GATEWAY"],
+    "global_lb": global_lb,
     "target_region_mode": e["RUN_TARGET_MODE"],
     "start_epoch_s": int(e["RUN_START"]),
     "end_epoch_s": int(e["RUN_END"]),
@@ -494,9 +617,9 @@ metadata = {
         "inference_perf": e["MR_INFERENCE_PERF_IMAGE"],
         "vllm": e["MR_VLLM_IMAGE"],
         "llmd_git_ref": e["MR_LLMD_GIT_REF"],
-        "llmd_router_chart": e["MR_LLMD_ROUTER_CHART"],
+        "llmd_router_chart": router_chart,
         "llmd_router_chart_version": e["MR_LLMD_ROUTER_CHART_VERSION"],
-        "llmd_router_chart_digest": e["MR_LLMD_ROUTER_CHART_DIGEST"],
+        "llmd_router_chart_digest": router_chart_digest,
     },
     "model": {
         "hf_model_id": e["MR_HF_MODEL_ID"],
@@ -505,6 +628,8 @@ metadata = {
         "accelerator_type": e["MR_ACCELERATOR_TYPE"],
         "compute_class": e["MR_COMPUTE_CLASS"],
         "replicas_per_region": int(e["MR_REPLICAS_PER_REGION"]),
+        "hpa_enabled": e.get("MR_HPA_ENABLED", "false") == "true",
+        "hpa_max_replicas": int(e["MR_HPA_MAX_REPLICAS"]),
     },
     "load": {
         "type": e["MR_BENCH_LOAD_TYPE"],
@@ -517,6 +642,7 @@ metadata = {
         "job_timeout_s": int(e["RUN_JOB_TIMEOUT_S"]),
         "base_seed": int(e["MR_BENCH_SEED"]),
         "seed_per_client": e["MR_BENCH_SEED_PER_CLIENT"] == "true",
+        "sync_start": e["RUN_SYNC_START"] == "true",
     },
     "slo": {"ttft_s": env_float("MR_BENCH_SLO_TTFT_S"), "tpot_s": env_float("MR_BENCH_SLO_TPOT_S")},
     "workload_params": params,
@@ -546,11 +672,28 @@ fi
 
 write_run_metadata "running"
 mr_log "Running arm=${arm} workload=${workload} clients=(${client_keys[*]}) target=${target_mode}" \
-  "stages=${stages} timeout=${job_timeout}s"
+  "stages=${stages} sync_start=${sync_start} timeout=${job_timeout}s"
+
+apply_ok="true"
+pids=()
+for key in "${client_keys[@]}"; do
+  (apply_client "${key}") 2>&1 | tee -a "${run_dir}/${key}/logs/harness.log" | sed -u "s/^/[${key}] /" >&2 &
+  pids+=("$!")
+done
+for pid in "${pids[@]}"; do
+  wait "${pid}" || apply_ok="false"
+done
+
+barrier_ok="${apply_ok}"
+if [[ "${apply_ok}" == "true" && "${sync_start}" == "true" ]]; then
+  if ! mr_stage "bench_sync_${arm}_${workload}" "global" release_start_barrier; then
+    barrier_ok="false"
+  fi
+fi
 
 pids=()
 for key in "${client_keys[@]}"; do
-  (run_client "${key}") 2>&1 | tee "${run_dir}/${key}/logs/harness.log" | sed -u "s/^/[${key}] /" >&2 &
+  (finish_client "${key}" "${barrier_ok}") 2>&1 | tee -a "${run_dir}/${key}/logs/harness.log" | sed -u "s/^/[${key}] /" >&2 &
   pids+=("$!")
 done
 for pid in "${pids[@]}"; do

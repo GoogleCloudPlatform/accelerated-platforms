@@ -1,43 +1,62 @@
 # Benchmark harness
 
 This directory benchmarks the two experiment arms (plain vLLM and llm-d) behind
-the multi-cluster Inference Gateway. It uses
+the cross-region internal Application Load Balancer (`MR_GLOBAL_LB=terraform` by
+default, or the GKE multi-cluster Inference Gateway when
+`MR_GLOBAL_LB=mc-gateway`). It uses
 [inference-perf](https://github.com/kubernetes-sigs/inference-perf) **v0.7.0**,
 pinned by digest in `MR_INFERENCE_PERF_IMAGE` in `mr.env`. One client Job runs
 in each client region, and every client sends requests to the internal VIP of
-the Gateway in the region that you choose.
+the load balancer in the region that you choose.
 
-| Path                                                     | Purpose                                                                 |
-| -------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `../terraform/bench/`                                    | Results bucket and IAM for the client Jobs                              |
-| `../scripts/bench-lib.sh`                                | Benchmark settings (`MR_BENCH_*`) and helpers                           |
-| `../scripts/deploy-bench-infra.sh`                       | Applies or destroys `terraform/bench`                                   |
-| `../scripts/run-benchmark.sh`                            | Runs one arm x one workload on every client region and collects results |
-| `workloads/*.yaml.tmpl`                                  | inference-perf configuration templates                                  |
-| `manifests/job.yaml.tmpl`                                | Client Job template                                                     |
-| `analyze.py`                                             | Compares runs: CSV, Markdown, optional PNG charts                       |
-| `startup_report.py`                                      | Model server startup breakdown per Pod and per arm                      |
-| `test_analyze.sh`, `test_startup_report.sh`, `testdata/` | Local tests with synthetic fixtures                                     |
+| Path                               | Purpose                                                                                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `../terraform/bench/`              | Results bucket and IAM for the client Jobs                                                                                               |
+| `../scripts/bench-lib.sh`          | Benchmark settings (`MR_BENCH_*`) and helpers                                                                                            |
+| `../scripts/deploy-bench-infra.sh` | Applies or destroys `terraform/bench`                                                                                                    |
+| `../scripts/run-benchmark.sh`      | Runs one arm x one workload on every client region and collects results                                                                  |
+| `workloads/*.yaml.tmpl`            | inference-perf configuration templates                                                                                                   |
+| `manifests/job.yaml.tmpl`          | Client Job template (runs `entrypoint.py` from the ConfigMap)                                                                            |
+| `entrypoint.py`                    | Client container wrapper: Cloud Storage tokenizer staging + `/tmp/bench-ready` -> `/tmp/bench-go` barrier                                |
+| `analyze.py`                       | Compares runs: CSV, Markdown, optional PNG charts                                                                                        |
+| `startup_report.py`                | Model server startup breakdown per Pod and per arm                                                                                       |
+| `record_scaling.py`                | Polls regional HPA, Deployment, Pod, and GPU node state during scale-out                                                                 |
+| `scale_report.py`                  | Summarizes and plots client golden signals, HPA metrics, and GMP server data (including active `serving_pods` filtered by `--pod-regex`) |
+| `lb_traffic_split.py`              | Attributes requests to backend regions from Cloud Logging load-balancer logs                                                             |
+| `setup_report.py`                  | Renders `timings/<run>.jsonl` stage durations as Markdown                                                                                |
+| `test_*.py`, `testdata/`           | Unit tests (`unittest`) with synthetic fixtures (alongside `../scripts/test_*.py`)                                                       |
 
 ## Prerequisites
 
-- The regional clusters, the fleet, and the multi-cluster Gateway are deployed,
-  and the Gateway serves the OpenAI API on port 80 with the model name
-  `${MR_SERVED_MODEL_NAME}`.
+- The regional clusters and the cross-region internal load balancer
+  (`deploy-arm.sh` / `set-route.sh`, using `terraform/global_lb` by default or
+  `MR_GLOBAL_LB=mc-gateway`) are deployed, and the regional VIPs serve the
+  OpenAI API on port 80 with the model name `${MR_SERVED_MODEL_NAME}`.
 - The namespace `${MR_NAMESPACE}` and the Kubernetes service account
   `${MR_NAMESPACE}` exist in every client cluster. `run-benchmark.sh` checks
   this.
-- `mr_gateway_vip <gateway> <region_key>` in `scripts/lib.sh` prints the Gateway
-  VIP for a region.
-- The client Pods can reach Hugging Face through Cloud NAT, because
-  inference-perf downloads the tokenizer (`MR_BENCH_TOKENIZER`, which defaults
-  to `MR_HF_MODEL_ID`, an ungated model). The Pods can also reach Cloud Storage.
-- The `cpu-n4-8` ComputeClass (on-demand `n4-standard-8`) exists. The core
-  platform creates it from
-  `platforms/gke/base/core/custom_compute_class/templates/manifests/cpu/n4/`. To
-  use the default node pool instead, set `MR_BENCH_COMPUTE_CLASS=""`. On-demand
-  capacity is used instead of the `-s-` (Spot) variant, so that a preemption
-  doesn't end a run.
+- `mr_gateway_vip <gateway> <region_key>` in `scripts/lib.sh` prints the
+  load-balancer VIP for a region.
+- The client Pods can reach Cloud Storage (and Hugging Face through Cloud NAT
+  only when a custom `MR_BENCH_TOKENIZER` differs from `MR_HF_MODEL_ID`). When
+  `MR_BENCH_TOKENIZER` matches `MR_HF_MODEL_ID` (the default), `entrypoint.py`
+  in the client container copies all non-weight files (`<= 64 MiB`) under
+  `gs://<models-bucket>/${MR_MODEL_PATH}/` into `/cache/tokenizer` with Workload
+  Identity and fails fast if no tokenizer marker file is found, avoiding
+  unauthenticated Hugging Face requests or gated-model `401` failures. When more
+  than one client region runs (`MR_BENCH_SYNC_START=auto`, bounded by
+  `MR_BENCH_SYNC_TIMEOUT_S=900`), `run-benchmark.sh` waits until every regional
+  Pod writes `/tmp/bench-ready` before creating `/tmp/bench-go` in parallel so
+  Stage 0 starts together across regions.
+- The `${MR_NAMESPACE}-bench-cpu` ComputeClass (default `llm-mr-bench-cpu`)
+  exists. Both `deploy-arm.sh` and `run-benchmark.sh` (when the default
+  `MR_BENCH_COMPUTE_CLASS` is used) apply it from
+  `manifests/common/compute-class-bench.tpl.yaml`, prioritizing on-demand 8-vCPU
+  shapes across four families (`n4-standard-8` -> `c4-standard-8` ->
+  `n2-standard-8` -> `e2-standard-8`) so a single-family stockout doesn't block
+  client Jobs. To use the default node pool instead, set
+  `MR_BENCH_COMPUTE_CLASS=""`. On-demand capacity is used instead of Spot so
+  that a preemption doesn't end a run.
 
 ## Deploy the benchmark infrastructure
 
@@ -66,14 +85,19 @@ The script creates the following resources:
 
 ## Run a benchmark
 
-Before you run a benchmark, point the HTTPRoute at the arm that you want to
-measure. The `--arm` value is only a label.
+Before you run a benchmark, point the load balancer at the arm that you want to
+measure with `scripts/set-route.sh` (or `deploy-arm.sh`; in `mc-gateway` mode,
+`set-route.sh` updates the `HTTPRoute`). The `--arm` value is only a label. For
+automated A/B sweeps across arms and modes, use `scripts/run-experiment.sh` or
+`scripts/run-skew-experiment.sh` (`--region-capacity-inflight`,
+`--capacity-mode-inflight`, `--region-capacity-qps`, `--capacity-mode-qps`).
 
 ```bash
 export MR_RUN_ID=20261030-ab1          # share one run ID across arms and workloads
+scripts/set-route.sh --backend baseline
 scripts/run-benchmark.sh --arm vllm --workload shared-prefix
 scripts/run-benchmark.sh --arm vllm --workload chat
-# switch the HTTPRoute backend to llm-d
+scripts/set-route.sh --backend ppcr
 scripts/run-benchmark.sh --arm llmd --workload shared-prefix
 scripts/run-benchmark.sh --arm llmd --workload chat
 python3 bench/analyze.py "${MR_RESULTS_DIR}/runs/${MR_RUN_ID}" --baseline-arm vllm \
@@ -96,10 +120,14 @@ For each client, the script does the following:
 
 1. Renders the configuration, ConfigMap, and Job manifests.
 1. Applies them with `mr_kubectl`.
+1. With more than one client region (`MR_BENCH_SYNC_START=auto` or `true`),
+   waits until every client Pod has staged its tokenizer (`/tmp/bench-ready`),
+   then releases Stage 0 in all of them at once (`/tmp/bench-go`, bounded by
+   `MR_BENCH_SYNC_TIMEOUT_S`).
 1. Waits until the Job completes or fails. The Job's `activeDeadlineSeconds`
-   bounds the wait. If `MR_BENCH_JOB_TIMEOUT_S` isn't set, the deadline is 1800
-   s plus, per stage, the stage duration, the interval, and 120 s of teardown
-   grace.
+   bounds the wait. If `MR_BENCH_JOB_TIMEOUT_S` isn't set, the deadline is 900 s
+   plus `MR_BENCH_SYNC_TIMEOUT_S` plus, per stage, the stage duration, the
+   interval, and 120 s of teardown grace.
 1. Saves the Job, Pod, and event JSON and the container logs.
 1. Downloads the reports with `gcloud storage cp -r`.
 1. Deletes the Job and the ConfigMap. The rendered manifests are kept.
@@ -210,9 +238,13 @@ with and without GMP, were validated with `read_config()` from that tag.
 The container image runs `python inference_perf/main.py --config_file <file>`
 from `/workspace`
 ([Dockerfile](https://github.com/kubernetes-sigs/inference-perf/blob/v0.7.0/Dockerfile)).
-The Job overrides the config path to `/config/config.yaml`, which is mounted
-from the ConfigMap. The Job runs as a non-root user with a read-only root file
-system; `HOME` and `HF_HOME` point to an `emptyDir`.
+The Job runs `entrypoint.py` (mounted with `/config/config.yaml` from the
+ConfigMap), which rewrites `tokenizer.pretrained_model_name_or_path` to
+`/cache/tokenizer` when staged from Cloud Storage, coordinates the optional
+`/tmp/bench-ready` -> `/tmp/bench-go` cross-region barrier, and execs
+`inference_perf/main.py --config_file /tmp/config.yaml`. The Job runs as a
+non-root user with a read-only root file system; `HOME` and `HF_HOME` point to
+an `emptyDir`.
 
 With GMP enabled, inference-perf queries
 `https://monitoring.googleapis.com/v1/projects/<ADC project>/location/global/prometheus`
@@ -264,18 +296,23 @@ Report structure:
 | `goodput_pct`               | inference-perf `goodput_percentage`: good / successful requests                                                                                                  |
 | `slo_attainment_pct`        | good / (successful + failed) requests, so failures count against attainment                                                                                      |
 | `error_rate`                | failures / (successes + failures)                                                                                                                                |
-| `max_qps_p90_ttft_slo`      | Highest stage rate such that it and every lower stage have p90 TTFT <= `--slo-ttft`                                                                              |
+| `max_qps_p90_ttft_slo`      | Highest stage rate such that it and every lower stage have p90 TTFT <= `--slo-ttft` and `error_rate <= --max-error-rate` (default `0.05`)                        |
 | `max_qps_p90_ttft_tpot_slo` | Same, with p90 TPOT <= `--slo-tpot` also required                                                                                                                |
 
 Goodput is computed per request by inference-perf, so it always uses the SLO
-that was configured at run time. `analyze.py --slo-ttft/--slo-tpot` only change
-the max-QPS columns. The report warns when the two differ.
+that was configured at run time.
+`analyze.py --slo-ttft/--slo-tpot/--max-error-rate` only change the max-QPS
+columns. Stages with 100% failed requests (`n_ok == 0`, `total > 0`) retain
+`0.0` throughput and goodput rather than being dropped as missing data. The
+report warns when the runtime and analysis SLOs differ, or when cross-region
+`stage_0` start times diverge by more than 5 s.
 
 ## analyze.py
 
 ```bash
 python3 bench/analyze.py <run dirs...> [--out DIR] [--baseline-arm vllm] [--arms llmd]
-                         [--slo-ttft 2.0] [--slo-tpot 0.1] [--no-charts]
+                         [--slo-ttft 2.0] [--slo-tpot 0.1] [--max-error-rate 0.05]
+                         [--no-charts]
 ```
 
 The script searches the directories recursively for client report directories.
@@ -288,8 +325,10 @@ the run, arm, workload, and client from the path. It writes the following files:
   goodput.
 - `summary.csv`: one row per (run, arm, workload, client). Columns: max QPS
   within SLO, max goodput, max output tokens/s, and totals.
-- `aggregate.csv`: per (run, arm, workload, stage), summed over client regions.
-  Columns: throughput, goodput, and the worst client's p90.
+- `aggregate.csv`: per (run, arm, workload, stage, requested_qps), summed over
+  client regions. Columns: `stage`, throughput, goodput, and the worst client's
+  p90 (preserving total-outage stages and keeping repeated-rate stages
+  distinct).
 - `relative.csv`: each candidate arm vs `--baseline-arm`, matched on (workload,
   client, QPS); repeated runs are averaged. Columns: % change of TTFT p50 and
   p90, TPOT, ITL, and E2E p90, output tokens/s, goodput; the error-rate change
@@ -318,23 +357,23 @@ The script writes `startup.csv` (per Pod), `startup.md`, and
 `startup_summary.json` (per arm) to `--out`. The default output directory is the
 input directory.
 
-| Column                                                                            | Derived from                                                                                                                                                                                                                                   |
-| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apply_to_scheduled_s`                                                            | `PodScheduled` condition - `apply_epoch_s` (or the Pod creation time)                                                                                                                                                                          |
-| `node_provisioned`                                                                | The node was created after the Pod, so the autoscaler provisioned it for this Pod                                                                                                                                                              |
-| `apply_to_node_created_s`, `node_created_to_ready_s`, `node_ready_to_scheduled_s` | Node `creationTimestamp` and `Ready` condition, for provisioned nodes                                                                                                                                                                          |
-| `scheduled_to_initialized_s`                                                      | `Initialized` - `PodScheduled`: init container image pulls and init containers                                                                                                                                                                 |
-| `image_pull_s`, `image_pull_incl_wait_s`, `images_cached`                         | `Pulling` and `Pulled` events for every container. Uses the kubelet duration in `Successfully pulled image "..." in X (Y including waiting)`, or `Pulled - Pulling` when that's missing. `already present on machine` counts as 0 s and cached |
-| `container_start_to_ready_s`                                                      | Model server container `state.running.startedAt` to the Pod `Ready` condition: model load, compile, warmup, and readiness probe                                                                                                                |
-| `container_start_to_app_startup_s`                                                | Container start to the `Application startup complete` log line (needs `--timestamps`)                                                                                                                                                          |
-| `weights_load_s`                                                                  | `Loading weights took X seconds`                                                                                                                                                                                                               |
-| `model_load_s`                                                                    | `Model loading took X GiB [memory] and Y seconds`, `Loading model weights took X GB and Y seconds`                                                                                                                                             |
-| `dynamo_transform_s`, `torch_compile_s`                                           | `Dynamo bytecode transform time: X s`, `torch.compile takes X s in total`, `Compiling a graph for dynamic shape takes X s`                                                                                                                     |
-| `cuda_graph_s`                                                                    | `Graph capturing finished in X secs`                                                                                                                                                                                                           |
-| `engine_init_s`                                                                   | `init engine (profile, create kv cache, warmup model) took X seconds`                                                                                                                                                                          |
-| `kv_cache_tokens`                                                                 | `GPU KV cache size: N tokens`                                                                                                                                                                                                                  |
-| `apply_to_ready_s`                                                                | Pod `Ready` - apply                                                                                                                                                                                                                            |
-| per arm: `apply_to_all_pods_ready_s`, `apply_to_first_ok_via_gateway_s`           | Last Pod `Ready` - apply, and `first_ok_via_gateway_epoch_s` - apply                                                                                                                                                                           |
+| Column                                                                            | Derived from                                                                                                                                                                                                                                                                                     |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apply_to_scheduled_s`                                                            | `PodScheduled` condition - `apply_epoch_s` (or the Pod creation time)                                                                                                                                                                                                                            |
+| `node_provisioned`                                                                | The node was created after the Pod, so the autoscaler provisioned it for this Pod                                                                                                                                                                                                                |
+| `apply_to_node_created_s`, `node_created_to_ready_s`, `node_ready_to_scheduled_s` | Node `creationTimestamp` and `Ready` condition, for provisioned nodes                                                                                                                                                                                                                            |
+| `scheduled_to_initialized_s`                                                      | `Initialized` - `PodScheduled`: init container image pulls and init containers                                                                                                                                                                                                                   |
+| `image_pull_s`, `image_pull_incl_wait_s`, `images_cached`                         | `Pulling` and `Pulled` events for every container. Uses the kubelet duration in `Successfully pulled image "..." in X (Y including waiting)`, or `Pulled - Pulling` when that's missing (retaining the maximum real pull across restarts). `already present on machine` counts as 0 s and cached |
+| `container_start_to_ready_s`                                                      | Model server container `state.running.startedAt` to the Pod `Ready` condition: model load, compile, warmup, and readiness probe                                                                                                                                                                  |
+| `container_start_to_app_startup_s`                                                | Container start to the `Application startup complete` log line (needs `--timestamps`)                                                                                                                                                                                                            |
+| `weights_load_s`                                                                  | `Loading weights took X seconds`                                                                                                                                                                                                                                                                 |
+| `model_load_s`                                                                    | `Model loading took X GiB [memory] and Y seconds`, `Loading model weights took X GB and Y seconds`                                                                                                                                                                                               |
+| `dynamo_transform_s`, `torch_compile_s`                                           | `Dynamo bytecode transform time: X s`, `torch.compile takes X s in total`, `Compiling a graph for dynamic shape takes X s`                                                                                                                                                                       |
+| `cuda_graph_s`                                                                    | `Graph capturing finished in X secs`                                                                                                                                                                                                                                                             |
+| `engine_init_s`                                                                   | `init engine (profile, create kv cache, warmup model) took X seconds`                                                                                                                                                                                                                            |
+| `kv_cache_tokens`                                                                 | `GPU KV cache size: N tokens`                                                                                                                                                                                                                                                                    |
+| `apply_to_ready_s`                                                                | Pod `Ready` - apply                                                                                                                                                                                                                                                                              |
+| per arm: `apply_to_all_pods_ready_s`, `apply_to_first_ok_via_gateway_s`           | Last Pod `Ready` - apply, and `first_ok_via_gateway_epoch_s` - apply                                                                                                                                                                                                                             |
 
 Log patterns are case-insensitive, ignore ANSI colors, and accept several vLLM
 wordings. When a pattern matches more than once, the last match wins (the
@@ -343,8 +382,8 @@ current container after a restart).
 ## Tests
 
 ```bash
-bench/test_analyze.sh
-bench/test_startup_report.sh
+python3 -m unittest discover -s bench -p "test_*.py" -v
+python3 -m unittest discover -s scripts -p "test_*.py" -v
 scripts/run-benchmark.sh --arm test --workload shared-prefix --dry-run   # renders manifests only
 ```
 
@@ -353,22 +392,23 @@ scripts/run-benchmark.sh --arm test --workload shared-prefix --dry-run   # rende
 Every setting is defined in `scripts/bench-lib.sh` and can be overridden in the
 environment.
 
-| Variable                                                                              | Default                      | Purpose                                                           |
-| ------------------------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------- |
-| `MR_BENCH_GATEWAY`, `MR_BENCH_GATEWAY_PORT`                                           | `llm-mr-gateway`, `80`       | Gateway and port                                                  |
-| `MR_BENCH_TOKENIZER`                                                                  | `MR_HF_MODEL_ID`             | Tokenizer that inference-perf downloads                           |
-| `MR_BENCH_COMPUTE_CLASS`                                                              | `cpu-n4-8`                   | Client node selector (`""` to omit)                               |
-| `MR_BENCH_CPU`, `MR_BENCH_MEMORY`                                                     | `4`, `8Gi`                   | Client requests and limits (Guaranteed QoS)                       |
-| `MR_BENCH_JOB_TIMEOUT_S`                                                              | derived                      | Job `activeDeadlineSeconds`                                       |
-| `MR_BENCH_LOAD_TYPE`                                                                  | `poisson`                    | `poisson` or `constant`                                           |
-| `MR_BENCH_QPS`                                                                        | `1 2 3 4 6 8`                | Stage rates per client                                            |
-| `MR_BENCH_STAGE_DURATION_S`, `MR_BENCH_STAGE_INTERVAL_S`                              | `60`, `10`                   | Stage length and pause between stages                             |
-| `MR_BENCH_NUM_WORKERS`, `MR_BENCH_WORKER_MAX_CONCURRENCY`                             | `MR_BENCH_CPU`, `128`        | inference-perf worker processes and in-flight requests per worker |
-| `MR_BENCH_REQUEST_TIMEOUT_S`                                                          | `600`                        | Per-request timeout                                               |
-| `MR_BENCH_SEED`, `MR_BENCH_SEED_PER_CLIENT`                                           | `42`, `true`                 | Prompt and arrival seeds                                          |
-| `MR_BENCH_SLO_TTFT_S`, `MR_BENCH_SLO_TPOT_S`                                          | `2`, `0.1`                   | SLOs for goodput                                                  |
-| `MR_BENCH_SP_NUM_GROUPS`, `MR_BENCH_SP_PROMPTS_PER_GROUP`                             | `64`, `64`                   | shared-prefix corpus                                              |
-| `MR_BENCH_SP_SYSTEM_PROMPT_LEN`, `MR_BENCH_SP_QUESTION_LEN`, `MR_BENCH_SP_OUTPUT_LEN` | `2048`, `256`, `256`         | shared-prefix token lengths                                       |
-| `MR_BENCH_CHAT_INPUT_{MEAN,STD_DEV,MIN,MAX}`                                          | `2304`, `512`, `256`, `8192` | chat input length distribution                                    |
-| `MR_BENCH_CHAT_OUTPUT_LEN`, `MR_BENCH_CHAT_NUM_PROMPTS`                               | `256`, `4096`                | chat output length and sample count                               |
-| `MR_BENCH_GMP`, `MR_BENCH_GMP_SCRAPE_INTERVAL_S`                                      | `false`, `15`                | Optional Managed Prometheus server metrics                        |
+| Variable                                                                              | Default                      | Purpose                                                                                           |
+| ------------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------- |
+| `MR_BENCH_GATEWAY`, `MR_BENCH_GATEWAY_PORT`                                           | `llm-mr-gateway`, `80`       | Load-balancer VIP lookup name and port                                                            |
+| `MR_BENCH_TOKENIZER`                                                                  | `MR_HF_MODEL_ID`             | Tokenizer ID (copied from the regional Cloud Storage model bucket when equal to `MR_HF_MODEL_ID`) |
+| `MR_BENCH_SYNC_START`, `MR_BENCH_SYNC_TIMEOUT_S`                                      | `auto`, `900`                | Cross-region Stage 0 start barrier (`auto` enables when >1 client region runs)                    |
+| `MR_BENCH_COMPUTE_CLASS`                                                              | `${MR_NAMESPACE}-bench-cpu`  | Client node selector (`""` to omit)                                                               |
+| `MR_BENCH_CPU`, `MR_BENCH_MEMORY`                                                     | `4`, `8Gi`                   | Client requests and limits (Guaranteed QoS)                                                       |
+| `MR_BENCH_JOB_TIMEOUT_S`                                                              | derived                      | Job `activeDeadlineSeconds`                                                                       |
+| `MR_BENCH_LOAD_TYPE`                                                                  | `poisson`                    | `poisson` or `constant`                                                                           |
+| `MR_BENCH_QPS`                                                                        | `1 2 3 4 6 8`                | Stage rates per client                                                                            |
+| `MR_BENCH_STAGE_DURATION_S`, `MR_BENCH_STAGE_INTERVAL_S`                              | `60`, `10`                   | Stage length and pause between stages                                                             |
+| `MR_BENCH_NUM_WORKERS`, `MR_BENCH_WORKER_MAX_CONCURRENCY`                             | `MR_BENCH_CPU`, `128`        | inference-perf worker processes and in-flight requests per worker                                 |
+| `MR_BENCH_REQUEST_TIMEOUT_S`                                                          | `600`                        | Per-request timeout                                                                               |
+| `MR_BENCH_SEED`, `MR_BENCH_SEED_PER_CLIENT`                                           | `42`, `true`                 | Prompt and arrival seeds                                                                          |
+| `MR_BENCH_SLO_TTFT_S`, `MR_BENCH_SLO_TPOT_S`                                          | `2`, `0.1`                   | SLOs for goodput                                                                                  |
+| `MR_BENCH_SP_NUM_GROUPS`, `MR_BENCH_SP_PROMPTS_PER_GROUP`                             | `64`, `64`                   | shared-prefix corpus                                                                              |
+| `MR_BENCH_SP_SYSTEM_PROMPT_LEN`, `MR_BENCH_SP_QUESTION_LEN`, `MR_BENCH_SP_OUTPUT_LEN` | `2048`, `256`, `256`         | shared-prefix token lengths                                                                       |
+| `MR_BENCH_CHAT_INPUT_{MEAN,STD_DEV,MIN,MAX}`                                          | `2304`, `512`, `256`, `8192` | chat input length distribution                                                                    |
+| `MR_BENCH_CHAT_OUTPUT_LEN`, `MR_BENCH_CHAT_NUM_PROMPTS`                               | `256`, `4096`                | chat output length and sample count                                                               |
+| `MR_BENCH_GMP`, `MR_BENCH_GMP_SCRAPE_INTERVAL_S`                                      | `false`, `15`                | Optional Managed Prometheus server metrics                                                        |

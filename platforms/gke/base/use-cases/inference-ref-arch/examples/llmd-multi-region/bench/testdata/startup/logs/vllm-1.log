@@ -1,0 +1,7 @@
+INFO 10-30 02:01:05 api_server.py:500] vLLM API server version 0.8.5
+INFO 10-30 02:01:50 model_runner.py:1110] Loading model weights took 61.0349 GB and 40.10 seconds
+INFO 10-30 02:02:30 backends.py:400] Compiling a graph for dynamic shape takes 31.5 s
+INFO 10-30 02:03:10 kv_cache_utils.py:600] GPU KV cache size: 79,872 tokens
+INFO 10-30 02:03:40 model_runner.py:1500] Graph capturing finished in 22 secs, took 0.98 GiB
+INFO 10-30 02:03:41 core.py:160] init engine (profile, create kv cache, warmup model) took 95.20 seconds
+INFO:     Application startup complete.

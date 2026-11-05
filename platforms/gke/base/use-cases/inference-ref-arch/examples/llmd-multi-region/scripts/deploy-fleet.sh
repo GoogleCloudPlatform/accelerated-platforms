@@ -32,6 +32,7 @@ source "${MY_PATH}/lib.sh"
 source "${MY_PATH}/tf.sh"
 
 mr_require_tools
+mr_validate_active_region_key "${MR_CONFIG_CLUSTER_KEY}"
 
 config_cluster="$(mr_cluster_name "${MR_CONFIG_CLUSTER_KEY}")"
 

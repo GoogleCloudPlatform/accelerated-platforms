@@ -43,11 +43,13 @@ data "google_project" "this" {
   project_id = var.project_id
 }
 
-# Keep these names in sync with fd_names() in scripts/deploy-front-door.sh,
-# which references them from the Kubernetes manifests.
+# Keep these names in sync with scripts/deploy-front-door.sh, which references
+# them from the Kubernetes manifests. ssl_certificate_name includes a short
+# hash of var.hostname so certificate replacements on hostname changes do not
+# collide with an existing certificate name.
 locals {
   address_name         = "${var.name}-ip"
-  ssl_certificate_name = "${var.name}-cert"
+  ssl_certificate_name = "${replace(substr(var.name, 0, 48), "/-+$/", "")}-cert-${substr(sha256(var.hostname), 0, 8)}"
   ssl_policy_name      = "${var.name}-ssl"
   security_policy_name = "${var.name}-armor"
 }
@@ -119,6 +121,10 @@ resource "google_compute_managed_ssl_certificate" "front_door" {
 
   managed {
     domains = [var.hostname]
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 

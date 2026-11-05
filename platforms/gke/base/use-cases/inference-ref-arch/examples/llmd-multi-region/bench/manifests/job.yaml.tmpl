@@ -13,7 +13,8 @@
 # limitations under the License.
 
 # One inference-perf client. Rendered by scripts/run-benchmark.sh with
-# envsubst. The configuration is mounted from the ConfigMap of the same name.
+# envsubst. The ConfigMap of the same name holds the inference-perf
+# configuration (config.yaml) and the container entrypoint (entrypoint.py).
 ---
 apiVersion: batch/v1
 kind: Job
@@ -59,11 +60,7 @@ spec:
           workingDir: /workspace
           command:
             - python
-            - inference_perf/main.py
-            - --config_file
-            - /config/config.yaml
-            - --log-level
-            - INFO
+            - /config/entrypoint.py
           env:
             - name: HOME
               value: /cache
@@ -73,6 +70,14 @@ spec:
               value: "1"
             - name: PYTHONUNBUFFERED
               value: "1"
+            - name: BENCH_MODELS_BUCKET
+              value: "${BENCH_MODELS_BUCKET}"
+            - name: BENCH_MODEL_PATH
+              value: "${BENCH_MODEL_PATH}"
+            - name: BENCH_SYNC_START
+              value: "${BENCH_SYNC_START}"
+            - name: BENCH_SYNC_TIMEOUT_S
+              value: "${BENCH_SYNC_TIMEOUT_S}"
           resources:
             requests:
               cpu: "${BENCH_CPU}"

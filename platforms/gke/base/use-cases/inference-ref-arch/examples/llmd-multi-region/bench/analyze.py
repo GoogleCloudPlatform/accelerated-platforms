@@ -29,6 +29,8 @@ matplotlib is installed, PNG charts to --out.
 Python 3 standard library only; matplotlib is optional.
 """
 
+from __future__ import annotations
+
 import argparse
 import csv
 import json
@@ -37,8 +39,13 @@ import os
 import re
 import sys
 from collections import defaultdict
+from datetime import datetime, timezone
+from typing import Any
 
 STAGE_FILE = re.compile(r"^stage_(\d+)_lifecycle_metrics\.json$")
+RFC3339_RE = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?$"
+)
 LATENCIES = {
     "ttft": "time_to_first_token",
     "tpot": "time_per_output_token",
@@ -94,12 +101,45 @@ RELATIVE_METRICS = [
 ]
 
 
-def load_json(path):
+def load_json(path: str) -> Any:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-def get(d, *keys):
+def parse_rfc3339_epoch(value: str | None) -> float | None:
+    """Parses an RFC 3339 timestamp with arbitrary fractional digits to UTC epoch seconds.
+
+    Returns None for a missing (empty) value and raises ValueError for a
+    malformed one.
+    """
+    if not value:
+        return None
+    m = RFC3339_RE.match(value.strip())
+    if not m:
+        raise ValueError(f"invalid RFC 3339 timestamp: {value!r}")
+    base, frac, tz = m.groups()
+    tz_str = (tz or "Z").replace("Z", "+00:00")
+    dt = datetime.fromisoformat(base + tz_str).astimezone(timezone.utc)
+    return dt.timestamp() + (float(frac) if frac else 0.0)
+
+
+def epoch_seconds(value: Any) -> float | None:
+    """Converts a timestamp to UTC epoch seconds.
+
+    Accepts epoch seconds, RFC 3339 strings, and datetimes (PyYAML parses
+    unquoted YAML timestamps into datetimes; naive ones are UTC).
+    """
+    if isinstance(value, datetime):
+        aware = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+        return aware.timestamp()
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value)
+    if isinstance(value, str):
+        return parse_rfc3339_epoch(value)
+    return None
+
+
+def get(d: Any, *keys: str) -> Any:
     for k in keys:
         if not isinstance(d, dict) or d.get(k) is None:
             return None
@@ -107,7 +147,7 @@ def get(d, *keys):
     return d
 
 
-def percentile(summary, p):
+def percentile(summary: Any, p: str) -> float | None:
     """Reads a percentile from an inference-perf `summarize()` dict.
 
     inference-perf names the 50th percentile "median" and the others p<N>.
@@ -119,45 +159,62 @@ def percentile(summary, p):
     return summary.get(p)
 
 
-def ms(seconds):
+def ms(seconds: float | None) -> float | None:
     return None if seconds is None else seconds * 1000.0
 
 
-def parse_stage(report):
+def parse_stage(report: dict[str, Any]) -> dict[str, Any]:
     """Flattens one stage_<N>_lifecycle_metrics.json into a row."""
     load = report.get("load_summary") or {}
     succ = report.get("successes") or {}
     fail = report.get("failures") or {}
-    n_ok = succ.get("count") or 0
-    n_fail = fail.get("count") or 0
+    n_ok = int(succ.get("count") or 0)
+    n_fail = int(fail.get("count") or 0)
     total = n_ok + n_fail
-    row = {
+    all_failed = total > 0 and n_ok == 0
+
+    completed_rps = get(succ, "throughput", "requests_per_sec")
+    output_tok_s = get(succ, "throughput", "output_tokens_per_sec")
+    input_tok_s = get(succ, "throughput", "input_tokens_per_sec")
+    goodput = succ.get("goodput_metrics") or {}
+    goodput_rps = goodput.get("request_goodput")
+    goodput_pct = goodput.get("goodput_percentage")
+    good = goodput.get("good_requests")
+
+    row: dict[str, Any] = {
         "requested_qps": load.get("requested_rate"),
         "achieved_qps": load.get("achieved_rate"),
-        "completed_rps": get(succ, "throughput", "requests_per_sec"),
+        "completed_rps": (
+            0.0 if (all_failed and completed_rps is None) else completed_rps
+        ),
         "successes": n_ok,
         "failures": n_fail,
         "error_rate": (n_fail / total) if total else None,
-        "output_tokens_per_s": get(succ, "throughput", "output_tokens_per_sec"),
-        "input_tokens_per_s": get(succ, "throughput", "input_tokens_per_sec"),
+        "output_tokens_per_s": (
+            0.0 if (all_failed and output_tok_s is None) else output_tok_s
+        ),
+        "input_tokens_per_s": (
+            0.0 if (all_failed and input_tok_s is None) else input_tok_s
+        ),
     }
     for short, name in LATENCIES.items():
         summary = get(succ, "latency", name)
         for p in PERCENTILES:
             row[f"{short}_{p}_ms"] = ms(percentile(summary, p))
-    goodput = succ.get("goodput_metrics") or {}
-    row["goodput_rps"] = goodput.get("request_goodput")
-    row["goodput_pct"] = goodput.get("goodput_percentage")
-    good = goodput.get("good_requests")
-    row["slo_attainment_pct"] = (
-        (100.0 * good / total) if (good is not None and total) else None
-    )
+    row["goodput_rps"] = 0.0 if (all_failed and goodput_rps is None) else goodput_rps
+    row["goodput_pct"] = 0.0 if (all_failed and goodput_pct is None) else goodput_pct
+    if good is not None and total:
+        row["slo_attainment_pct"] = 100.0 * good / total
+    elif all_failed:
+        row["slo_attainment_pct"] = 0.0
+    else:
+        row["slo_attainment_pct"] = None
     return row
 
 
-def find_client_dirs(roots):
+def find_client_dirs(roots: list[str]):
     """Yields (client_dir, reports_dir, run_meta, client_meta) for every client with reports."""
-    seen = set()
+    seen: set[str] = set()
     for root in roots:
         for dirpath, _dirnames, filenames in os.walk(root):
             if "summary_lifecycle_metrics.json" not in filenames and not any(
@@ -184,8 +241,42 @@ def find_client_dirs(roots):
             yield client_dir, reports, run_meta, client_meta
 
 
-def collect(roots):
-    stages, notes = [], []
+def load_partial_report(path: str) -> dict[str, Any]:
+    """Loads an inference-perf partial stage report (inference-perf.partial.stage_<N>.yaml).
+
+    inference-perf writes these files as YAML. JSON (a subset of YAML) is parsed
+    with the standard library, so PyYAML is only imported for YAML content.
+    """
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    try:
+        doc = json.loads(text)
+    except ValueError:
+        import yaml
+
+        doc = yaml.safe_load(text)
+    if not isinstance(doc, dict):
+        raise ValueError(f"{path}: expected a mapping, got {type(doc).__name__}")
+    return doc
+
+
+def _read_stage0_start(reports_dir: str) -> float | None:
+    """Reads the Stage 0 start time from inference-perf.partial.stage_0.yaml, if present."""
+    partial_path = os.path.join(reports_dir, "inference-perf.partial.stage_0.yaml")
+    if not os.path.exists(partial_path):
+        return None
+    start = get(load_partial_report(partial_path), "run", "time", "start")
+    return epoch_seconds(start)
+
+
+def collect(
+    roots: list[str], skew_warn_seconds: float = 5.0
+) -> tuple[list[dict[str, Any]], list[str]]:
+    stages: list[dict[str, Any]] = []
+    notes: list[str] = []
+    stage0_starts: dict[tuple[str, str, str], list[tuple[float, str]]] = defaultdict(
+        list
+    )
     for client_dir, reports, run_meta, client_meta in find_client_dirs(roots):
         parts = client_dir.split(os.sep)
         ident = {
@@ -202,6 +293,11 @@ def collect(roots):
             notes.append(
                 f"{client_dir}: client status is {client_meta.get('status')!r}"
             )
+        s0_start = _read_stage0_start(reports)
+        if s0_start is not None:
+            stage0_starts[(ident["run_id"], ident["arm"], ident["workload"])].append(
+                (s0_start, ident["client"])
+            )
         files = sorted(
             (int(m.group(1)), f)
             for f in os.listdir(reports)
@@ -210,17 +306,40 @@ def collect(roots):
         if not files:
             notes.append(f"{client_dir}: no stage_<N>_lifecycle_metrics.json")
         for stage_id, name in files:
-            row = dict(ident, stage=stage_id)
+            row: dict[str, Any] = dict(ident, stage=stage_id)
             row.update(parse_stage(load_json(os.path.join(reports, name))))
             row["_slo"] = run_meta.get("slo")
             stages.append(row)
+
+    for (run_id, arm, workload), entries in sorted(stage0_starts.items()):
+        if len(entries) < 2:
+            continue
+        entries.sort()
+        skew = entries[-1][0] - entries[0][0]
+        if skew > skew_warn_seconds:
+            notes.append(
+                f"{run_id}/{arm}/{workload}: cross-region Stage 0 start skew is "
+                f"{skew:.1f}s ({entries[0][1]} vs {entries[-1][1]})"
+            )
+
     stages.sort(
         key=lambda r: (r["workload"], r["arm"], r["client"], r["run_id"], r["stage"])
     )
     return stages, notes
 
 
-def meets(row, slo_ttft_ms, slo_tpot_ms, use_tpot):
+def meets(
+    row: dict[str, Any],
+    slo_ttft_ms: float,
+    slo_tpot_ms: float,
+    use_tpot: bool,
+    max_error_rate: float = 0.05,
+) -> bool:
+    if (row.get("successes") or 0) <= 0:
+        return False
+    err = row.get("error_rate")
+    if err is not None and err > max_error_rate:
+        return False
     ttft = row.get("ttft_p90_ms")
     if ttft is None or ttft > slo_ttft_ms:
         return False
@@ -231,18 +350,31 @@ def meets(row, slo_ttft_ms, slo_tpot_ms, use_tpot):
     return True
 
 
-def max_qps_within_slo(rows, slo_ttft_ms, slo_tpot_ms, use_tpot):
+def max_qps_within_slo(
+    rows: list[dict[str, Any]],
+    slo_ttft_ms: float,
+    slo_tpot_ms: float,
+    use_tpot: bool,
+    max_error_rate: float = 0.05,
+) -> float | None:
     """Highest requested QPS such that it and every lower stage meet the SLO."""
     best = None
     for row in sorted(rows, key=lambda r: r["requested_qps"] or 0):
-        if not meets(row, slo_ttft_ms, slo_tpot_ms, use_tpot):
+        if not meets(row, slo_ttft_ms, slo_tpot_ms, use_tpot, max_error_rate):
             break
         best = row["requested_qps"]
     return best
 
 
-def summarize(stages, slo_ttft_ms, slo_tpot_ms):
-    groups = defaultdict(list)
+def summarize(
+    stages: list[dict[str, Any]],
+    slo_ttft_ms: float,
+    slo_tpot_ms: float,
+    max_error_rate: float = 0.05,
+) -> list[dict[str, Any]]:
+    groups: dict[tuple[str, str, str, str, str], list[dict[str, Any]]] = defaultdict(
+        list
+    )
     for r in stages:
         groups[(r["run_id"], r["arm"], r["workload"], r["client"], r["target"])].append(
             r
@@ -260,10 +392,10 @@ def summarize(stages, slo_ttft_ms, slo_tpot_ms):
                 "target": target,
                 "stages": len(rows),
                 "max_qps_p90_ttft_slo": max_qps_within_slo(
-                    rows, slo_ttft_ms, slo_tpot_ms, False
+                    rows, slo_ttft_ms, slo_tpot_ms, False, max_error_rate
                 ),
                 "max_qps_p90_ttft_tpot_slo": max_qps_within_slo(
-                    rows, slo_ttft_ms, slo_tpot_ms, True
+                    rows, slo_ttft_ms, slo_tpot_ms, True, max_error_rate
                 ),
                 "max_goodput_rps": max(
                     (r["goodput_rps"] for r in rows if r["goodput_rps"] is not None),
@@ -288,6 +420,7 @@ AGGREGATE_COLUMNS = [
     "run_id",
     "arm",
     "workload",
+    "stage",
     "requested_qps",
     "clients",
     "completed_rps",
@@ -300,33 +433,48 @@ AGGREGATE_COLUMNS = [
 ]
 
 
-def aggregate(stages):
+def aggregate(stages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Sums throughput over the client regions of each stage.
 
-    Percentiles can't be combined across clients, so only the worst client's
-    p90 is reported.
+    Groups by (run_id, arm, workload, stage, requested_qps) so multi-stage runs
+    with repeated QPS levels (for example, sustained scale-out hammers) keep
+    each stage distinct rather than summing across stages. Percentiles can't be
+    combined across clients, so only the worst client's p90 is reported; if any
+    client region had 100% request failures in a stage, worst latency is None
+    rather than masking the outage behind another region's latency.
     """
-    groups = defaultdict(list)
+    groups: dict[tuple[str, str, str, int, Any], list[dict[str, Any]]] = defaultdict(
+        list
+    )
     for r in stages:
-        groups[(r["run_id"], r["arm"], r["workload"], r["requested_qps"])].append(r)
+        groups[
+            (r["run_id"], r["arm"], r["workload"], r["stage"], r["requested_qps"])
+        ].append(r)
 
-    def total(rows, key):
+    def total(rows: list[dict[str, Any]], key: str) -> float | int | None:
         values = [r[key] for r in rows if r[key] is not None]
         return sum(values) if values else None
 
-    def worst(rows, key):
+    def worst(rows: list[dict[str, Any]], key: str) -> float | None:
+        if any(
+            (r.get("failures") or 0) > 0 and (r.get("successes") or 0) == 0
+            for r in rows
+        ):
+            return None
         values = [r[key] for r in rows if r[key] is not None]
         return max(values) if values else None
 
     out = []
-    for (run_id, arm, workload, qps), rows in sorted(
-        groups.items(), key=lambda kv: (kv[0][2], kv[0][1], kv[0][0], kv[0][3] or 0)
+    for (run_id, arm, workload, stage, qps), rows in sorted(
+        groups.items(),
+        key=lambda kv: (kv[0][2], kv[0][1], kv[0][0], kv[0][3], kv[0][4] or 0),
     ):
         out.append(
             {
                 "run_id": run_id,
                 "arm": arm,
                 "workload": workload,
+                "stage": stage,
                 "requested_qps": qps,
                 "clients": " ".join(sorted(r["client"] for r in rows)),
                 "completed_rps": total(rows, "completed_rps"),
@@ -341,18 +489,23 @@ def aggregate(stages):
     return out
 
 
-def mean(values):
-    values = [v for v in values if v is not None]
-    return sum(values) / len(values) if values else None
+def mean(values: Any) -> float | None:
+    vals = [v for v in values if v is not None]
+    return sum(vals) / len(vals) if vals else None
 
 
-def relative(stages, summary, baseline, candidates):
+def relative(
+    stages: list[dict[str, Any]],
+    summary: list[dict[str, Any]],
+    baseline: str,
+    candidates: list[str],
+) -> list[dict[str, Any]]:
     """Relative change of each candidate arm vs the baseline arm.
 
     Rows are matched on (workload, client, requested QPS); repeated runs of the
     same arm are averaged first.
     """
-    by_key = defaultdict(list)
+    by_key: dict[tuple[str, str, str, Any], list[dict[str, Any]]] = defaultdict(list)
     for r in stages:
         by_key[(r["arm"], r["workload"], r["client"], r["requested_qps"])].append(r)
     out = []
@@ -364,7 +517,7 @@ def relative(stages, summary, baseline, candidates):
         base_rows = by_key.get((baseline, workload, client, qps))
         if not base_rows:
             continue
-        rec = {
+        rec: dict[str, Any] = {
             "workload": workload,
             "client": client,
             "requested_qps": qps,
@@ -378,7 +531,7 @@ def relative(stages, summary, baseline, candidates):
             rec[f"{metric}_arm"] = c
             rec[f"{metric}_change_pct"] = (
                 (100.0 * (c - b) / b)
-                if (b not in (None, 0) and c is not None)
+                if (b is not None and b != 0 and c is not None)
                 else None
             )
         b_err = mean(r["error_rate"] for r in base_rows)
@@ -390,7 +543,7 @@ def relative(stages, summary, baseline, candidates):
         )
         out.append(rec)
 
-    by_sum = defaultdict(list)
+    by_sum: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
     for s in summary:
         by_sum[(s["arm"], s["workload"], s["client"])].append(s)
     for (arm, workload, client), rows in sorted(
@@ -413,40 +566,45 @@ def relative(stages, summary, baseline, candidates):
             rec[f"{metric}_arm"] = c
             rec[f"{metric}_change_pct"] = (
                 (100.0 * (c - b) / b)
-                if (b not in (None, 0) and c is not None)
+                if (b is not None and b != 0 and c is not None)
                 else None
             )
         out.append(rec)
     return out
 
 
-def fmt(v, digits=1):
-    if v is None or (isinstance(v, float) and math.isnan(v)):
+def fmt(v: Any, digits: int = 1) -> str:
+    if v is None or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
         return "-"
     if isinstance(v, float):
         return f"{v:.{digits}f}"
     return str(v)
 
 
-def fmt_pct(v):
+def fmt_pct(v: float | None) -> str:
     return "-" if v is None else f"{v:+.1f}%"
 
 
-def write_csv(path, rows, columns=None):
+def write_csv(
+    path: str,
+    rows: list[dict[str, Any]],
+    columns: list[str] | tuple[str, ...] | None = None,
+) -> None:
     if columns is None:
-        columns = []
+        cols: list[str] = []
         for r in rows:
-            columns.extend(k for k in r if k not in columns)
+            cols.extend(k for k in r if k not in cols)
+        columns = cols
     with open(path, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(
-            f, fieldnames=columns, extrasaction="ignore", lineterminator="\n"
+            f, fieldnames=list(columns), extrasaction="ignore", lineterminator="\n"
         )
         w.writeheader()
         for r in rows:
             w.writerow({k: ("" if r.get(k) is None else r.get(k)) for k in columns})
 
 
-def md_table(headers, rows):
+def md_table(headers: list[str], rows: list[list[str]]) -> str:
     lines = [
         "| " + " | ".join(headers) + " |",
         "|" + "|".join("---" for _ in headers) + "|",
@@ -455,11 +613,25 @@ def md_table(headers, rows):
     return "\n".join(lines)
 
 
-def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
+def _distinct_clients(agg_rows: list[dict[str, Any]]) -> list[str]:
+    return sorted({c for a in agg_rows for c in (a.get("clients") or "").split() if c})
+
+
+def write_markdown(
+    path: str,
+    stages: list[dict[str, Any]],
+    summary: list[dict[str, Any]],
+    agg: list[dict[str, Any]],
+    rel: list[dict[str, Any]],
+    args: argparse.Namespace,
+    notes: list[str],
+    charts: list[str],
+) -> None:
     out = [
         "# Benchmark comparison",
         "",
-        f"SLO: p90 TTFT <= {args.slo_ttft * 1000:.0f} ms, p90 TPOT <= {args.slo_tpot * 1000:.0f} ms. "
+        f"SLO: p90 TTFT <= {args.slo_ttft * 1000:.0f} ms, p90 TPOT <= {args.slo_tpot * 1000:.0f} ms, "
+        f"error rate <= {args.max_error_rate * 100:.1f}%. "
         "Goodput is the inference-perf `goodput_metrics.request_goodput` of each stage: requests per second "
         "that met the TTFT and TPOT constraints configured for the run (see run.json `slo`). "
         "Latencies are client-observed, in milliseconds.",
@@ -500,11 +672,26 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
             ],
         )
     )
+    clients = _distinct_clients(agg)
+    if len(clients) == 1:
+        single = clients[0]
+        agg_heading = f"## Client region `{single}`"
+        agg_blurb = f"Single-client-region run (`{single}`)."
+        ttft_col = f"{single} TTFT p90"
+        tpot_col = f"{single} TPOT p90"
+    else:
+        agg_heading = "## All client regions combined"
+        agg_blurb = (
+            "Throughput is summed over clients; latency is the worst client's p90."
+        )
+        ttft_col = "worst TTFT p90"
+        tpot_col = "worst TPOT p90"
+
     out += [
         "",
-        "## All client regions combined",
+        agg_heading,
         "",
-        "Throughput is summed over clients; latency is the worst client's p90.",
+        agg_blurb,
         "",
     ]
     out.append(
@@ -512,6 +699,7 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
             [
                 "workload",
                 "arm",
+                "stage",
                 "QPS per client",
                 "clients",
                 "done rps",
@@ -519,13 +707,14 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
                 "failed",
                 "out tok/s",
                 "goodput rps",
-                "worst TTFT p90",
-                "worst TPOT p90",
+                ttft_col,
+                tpot_col,
             ],
             [
                 [
                     a["workload"],
                     a["arm"],
+                    str(a["stage"]),
                     fmt(a["requested_qps"]),
                     a["clients"],
                     fmt(a["completed_rps"], 2),
@@ -548,6 +737,7 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
                 [
                     "arm",
                     "client",
+                    "stage",
                     "QPS",
                     "achieved",
                     "done rps",
@@ -564,6 +754,7 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
                     [
                         r["arm"],
                         r["client"],
+                        str(r["stage"]),
                         fmt(r["requested_qps"]),
                         fmt(r["achieved_qps"], 2),
                         fmt(r["completed_rps"], 2),
@@ -654,12 +845,12 @@ def write_markdown(path, stages, summary, agg, rel, args, notes, charts):
         f.write("\n".join(out))
 
 
-def plot(stages, out_dir, slo_ttft_ms):
+def plot(stages: list[dict[str, Any]], out_dir: str, slo_ttft_ms: float) -> list[str]:
     try:
-        import matplotlib
+        import matplotlib  # type: ignore[import-not-found]
 
         matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot as plt  # type: ignore[import-not-found]
     except ImportError:
         return []
     charts = []
@@ -672,7 +863,9 @@ def plot(stages, out_dir, slo_ttft_ms):
         rows = [r for r in stages if r["workload"] == workload]
         for metric, label, hline in specs:
             fig, ax = plt.subplots(figsize=(7, 4.5))
-            series = defaultdict(list)
+            series: dict[tuple[str, str, str], list[tuple[float, float]]] = defaultdict(
+                list
+            )
             for r in rows:
                 if r["requested_qps"] is not None and r[metric] is not None:
                     series[(r["arm"], r["client"], r["run_id"])].append(
@@ -705,18 +898,27 @@ def plot(stages, out_dir, slo_ttft_ms):
     return charts
 
 
-def plot_aggregate(agg, out_dir, slo_ttft_ms):
-    """One line per arm, all client regions combined (sum of throughput and
-    goodput, worst client's p90 TTFT)."""
-    try:
-        import matplotlib
+def aggregate_chart_specs(
+    clients: list[str], slo_ttft_ms: float
+) -> tuple[list[tuple[str, str, float | None, bool]], str]:
+    """Charts of plot_aggregate: ([(metric, label, SLO line, log scale)], x label).
 
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-    except ImportError:
-        return []
-    charts = []
-    specs = [
+    With a single client region, the labels name it instead of claiming to
+    cover every region.
+    """
+    if len(clients) == 1:
+        single = clients[0]
+        return [
+            ("goodput_rps", f"goodput, {single} (requests/s within SLO)", None, False),
+            ("output_tokens_per_s", f"output tokens/s, {single}", None, False),
+            (
+                "worst_ttft_p90_ms",
+                f"{single} p90 TTFT (ms, log scale)",
+                slo_ttft_ms,
+                True,
+            ),
+        ], f"offered load from {single} (QPS)"
+    return [
         ("goodput_rps", "goodput, all regions (requests/s within SLO)", None, False),
         ("output_tokens_per_s", "output tokens/s, all regions", None, False),
         (
@@ -725,11 +927,26 @@ def plot_aggregate(agg, out_dir, slo_ttft_ms):
             slo_ttft_ms,
             True,
         ),
-    ]
+    ], "offered load per client region (QPS)"
+
+
+def plot_aggregate(
+    agg: list[dict[str, Any]], out_dir: str, slo_ttft_ms: float
+) -> list[str]:
+    """One line per arm across client regions (or single client region if only one)."""
+    try:
+        import matplotlib  # type: ignore[import-not-found]
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt  # type: ignore[import-not-found]
+    except ImportError:
+        return []
+    charts = []
     for workload in sorted({a["workload"] for a in agg}):
         rows = [a for a in agg if a["workload"] == workload]
+        specs, xlabel = aggregate_chart_specs(_distinct_clients(rows), slo_ttft_ms)
         for metric, label, hline, log in specs:
-            series = defaultdict(list)
+            series: dict[tuple[str, str], list[tuple[float, float]]] = defaultdict(list)
             for a in rows:
                 if a["requested_qps"] is not None and a[metric] is not None:
                     series[(a["arm"], a["run_id"])].append(
@@ -745,13 +962,16 @@ def plot_aggregate(agg, out_dir, slo_ttft_ms):
                 ax.plot(
                     [q[0] for q in pts], [q[1] for q in pts], marker="o", label=name
                 )
+            if log:
+                ax.set_yscale("log")
             if hline is not None:
                 ax.axhline(
                     hline, color="grey", linestyle="--", linewidth=1, label="SLO"
                 )
-            if log:
-                ax.set_yscale("log")
-            ax.set_xlabel("offered load per client region (QPS)")
+                ymin, ymax = ax.get_ylim()
+                if ymax < hline * 1.35:
+                    ax.set_ylim(ymin, hline * 1.35)
+            ax.set_xlabel(xlabel)
             ax.set_ylabel(label)
             ax.set_title(f"{workload}: {label}")
             ax.grid(True, alpha=0.3)
@@ -764,7 +984,7 @@ def plot_aggregate(agg, out_dir, slo_ttft_ms):
     return charts
 
 
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -794,6 +1014,12 @@ def main(argv=None):
         default=0.1,
         help="p90 TPOT SLO in seconds (default: 0.1)",
     )
+    p.add_argument(
+        "--max-error-rate",
+        type=float,
+        default=0.05,
+        help="max error rate fraction allowed for max-QPS-within-SLO (default: 0.05)",
+    )
     p.add_argument("--no-charts", action="store_true", help="don't write PNG charts")
     args = p.parse_args(argv)
 
@@ -819,7 +1045,7 @@ def main(argv=None):
 
     os.makedirs(args.out, exist_ok=True)
     slo_ttft_ms, slo_tpot_ms = args.slo_ttft * 1000, args.slo_tpot * 1000
-    summary = summarize(stages, slo_ttft_ms, slo_tpot_ms)
+    summary = summarize(stages, slo_ttft_ms, slo_tpot_ms, args.max_error_rate)
     arms = sorted({r["arm"] for r in stages})
     candidates = [
         a

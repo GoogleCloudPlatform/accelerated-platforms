@@ -43,21 +43,22 @@ MY_PATH="$(
 source "${MY_PATH}/lib.sh"
 
 arm="llmd"
-backend="ppcr"
+backend_args=()
 qps="3 8 8 8 8 2 2"
 clients="${MR_REGION_KEYS}"
 keep="false"
 while [[ $# -gt 0 ]]; do
   case "${1}" in
   --arm) arm="${2}" && shift 2 ;;
-  --backend) backend="${2}" && shift 2 ;;
+  --backend) backend_args=(--backend "${2}") && shift 2 ;;
   --qps) qps="${2}" && shift 2 ;;
   --clients) clients="${2}" && shift 2 ;;
   --keep) keep="true" && shift ;;
   *) mr_die "unknown argument: ${1}" ;;
   esac
 done
-[[ "${arm}" == "baseline" ]] && backend="baseline"
+# deploy-arm.sh validates --backend and picks its default.
+[[ "${arm}" =~ ^(baseline|llmd)$ ]] || mr_die "--arm must be one of: baseline, llmd"
 [[ "${MR_HPA_ENABLED}" == "true" ]] || mr_die "MR_HPA_ENABLED must be true for a scale-out experiment"
 export MR_RUN_ID
 
@@ -67,14 +68,15 @@ recorder="${out}/recorder.jsonl"
 label="${arm}-scale"
 deployment="precise-prefix-cache-routing-gpu-vllm-decode-${arm}"
 
-"${MY_PATH}/deploy-arm.sh" "${arm}" --backend "${backend}" --lb-mode locality
+"${MY_PATH}/deploy-arm.sh" "${arm}" "${backend_args[@]}" --lb-mode locality
 
-# The HPA needs the queue metric before it can scale (up to a few minutes after
-# the pods start serving).
+# The HPA needs its metrics before it can scale (up to a few minutes after the
+# pods start serving).
+# shellcheck disable=SC2329
 hpa_has_metric() {
   local key="${1}" v
   v="$(mr_kubectl "${key}" get hpa "${deployment}" -n "${MR_NAMESPACE}" \
-    -o jsonpath='{.status.currentMetrics[0].pods.current.averageValue}' 2>/dev/null)"
+    -o jsonpath='{.status.currentMetrics[*].pods.current.averageValue}' 2>/dev/null)"
   [[ -n "${v}" ]]
 }
 for key in ${MR_REGION_KEYS}; do
@@ -86,7 +88,7 @@ done
 regions=()
 for key in ${MR_REGION_KEYS}; do regions+=("${key}=$(mr_kubeconfig "${key}")"); done
 rm -f "${recorder}.stop"
-python3 "${MR_EXAMPLE_DIR}/bench/record_scaling.py" "${recorder}" "${MR_NAMESPACE}" "${arm}" "${regions[@]}" \
+"${MR_PYTHON}" "${MR_EXAMPLE_DIR}/bench/record_scaling.py" "${recorder}" "${MR_NAMESPACE}" "${arm}" "${regions[@]}" \
   >"${out}/recorder.log" 2>&1 &
 recorder_pid=$!
 stop_recorder() {
@@ -113,11 +115,10 @@ for key in ${MR_REGION_KEYS}; do
 done
 
 analysis="${MR_RESULTS_DIR}/analysis/${MR_RUN_ID}"
-python_bin="${MR_PYTHON:-python3}"
-"${python_bin}" "${MR_EXAMPLE_DIR}/bench/scale_report.py" \
+"${MR_PYTHON}" "${MR_EXAMPLE_DIR}/bench/scale_report.py" \
   --runs "${MR_RESULTS_DIR}/runs/${MR_RUN_ID}/${label}" --recorder "${recorder}" --out "${analysis}" \
   --project "${MR_PROJECT_ID}" --cluster-regex "${MR_RESOURCE_NAME_PREFIX}-${MR_ENVIRONMENT_NAME}.*" \
-  --namespace "${MR_NAMESPACE}" || mr_log "WARNING: scale report failed"
+  --namespace "${MR_NAMESPACE}" --pod-regex "${deployment}-.*" || mr_log "WARNING: scale report failed"
 
 if [[ "${keep}" != "true" ]]; then
   "${MY_PATH}/delete-arm.sh" "${arm}"

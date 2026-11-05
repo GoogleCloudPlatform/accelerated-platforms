@@ -46,19 +46,27 @@ scope="region/${key}"
 mr_log "Deploying ${cluster_name} in ${region} (worktree: ${wt})"
 
 create_worktree() {
-  if [[ -d "${wt}" ]]; then
+  if [[ -e "${wt}/.git" ]]; then
     mr_log "Reusing existing worktree ${wt}"
     return 0
   fi
-  mkdir -p "$(dirname "${wt}")"
-  git -C "${ACP_REPO_DIR}" worktree add --detach "${wt}" HEAD
+  if [[ -d "${wt}" ]]; then
+    mr_log "Cleaning incomplete worktree directory ${wt}"
+    rm -rf "${wt}"
+  fi
+  mkdir -p "$(dirname "${wt}")" "${MR_WORK_DIR}/locks"
+  (
+    flock -x 9 || exit 1
+    git -C "${ACP_REPO_DIR}" worktree prune
+    git -C "${ACP_REPO_DIR}" worktree add --detach "${wt}" HEAD
+  ) 9>"${MR_WORK_DIR}/locks/git-worktree.lock" || return 1
   # Carry over uncommitted changes to tracked files and untracked files, so
   # that the regional deployment uses exactly the code in this checkout.
   local diff_file="${MR_WORK_DIR}/worktree-${platform_name}.diff"
   git -C "${ACP_REPO_DIR}" diff HEAD --binary >"${diff_file}"
   if [[ -s "${diff_file}" ]]; then
     mr_log "Applying uncommitted changes from ${ACP_REPO_DIR} to the worktree"
-    git -C "${wt}" apply --whitespace=nowarn "${diff_file}"
+    git -C "${wt}" apply --whitespace=nowarn "${diff_file}" || return 1
   fi
   (
     cd "${ACP_REPO_DIR}"
@@ -119,6 +127,9 @@ deploy_platform() {
   local attempt max="${MR_CORE_PLATFORM_ATTEMPTS:-3}"
   for ((attempt = 1; attempt <= max; attempt++)); do
     if (
+      mkdir -p "${MR_WORK_DIR}/kubeconfig"
+      KUBECONFIG="$(mr_kubeconfig "${key}")"
+      export KUBECONFIG
       unset TF_VAR_platform_name TF_VAR_cluster_region TF_VAR_platform_default_region || true
       export TF_VAR_resource_name_prefix="${MR_RESOURCE_NAME_PREFIX}"
       "${wt}/platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-standard.sh"

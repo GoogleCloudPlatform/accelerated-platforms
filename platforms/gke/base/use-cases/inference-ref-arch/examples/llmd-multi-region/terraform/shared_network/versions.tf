@@ -16,13 +16,13 @@ terraform {
   required_version = ">= 1.8.0"
 
   # Partial configuration: the bucket and prefix are passed by
-  # scripts/deploy-shared.sh with `terraform init -backend-config=...`.
+  # scripts/deploy-shared-network.sh with `terraform init -backend-config=...`.
   backend "gcs" {}
 
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "7.6.0"
+      version = "7.41.0"
     }
   }
 

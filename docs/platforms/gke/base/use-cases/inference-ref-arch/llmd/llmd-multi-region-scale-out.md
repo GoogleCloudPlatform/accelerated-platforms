@@ -9,8 +9,10 @@ signals while the HPA scales out, compares cold scale-out with scale-out from
 and ends with design recommendations for a multi-cluster optimized inference
 architecture.
 
-> [!NOTE] The results come from single runs (n=1 per configuration) in one
-> Google Cloud project in November 2026. Expect other numbers with other models,
+> [!NOTE]
+>
+> The results come from single runs (n=1 per configuration) in one Google Cloud
+> project in November 2026. Expect other numbers with other models,
 > accelerators, regions, and versions.
 
 ## What was deployed
@@ -73,6 +75,53 @@ HPA, Deployment, pod, and GPU node state every 15 s, and `bench/scale_report.py`
 combines that with the client-side metrics and the server-side metrics from
 Managed Service for Prometheus.
 
+## Reproduce
+
+Prerequisites match the
+[two-region guide](llmd-multi-region-global-load-balancing.md#reproduce), with
+all three default regions enabled (`MR_REGION_KEYS="usc1 euw2 ase1"` in
+`mr.env`) and GPU quota for up to `MR_HPA_MAX_REPLICAS` (4) GPUs per region.
+
+```bash
+cd platforms/gke/base/use-cases/inference-ref-arch/examples/llmd-multi-region
+export MR_PROJECT_ID="<project>"
+export MR_PYTHON="<python3 with PyYAML and matplotlib>"
+
+# 1. Deploy all three regions, benchmark infrastructure, and staged models.
+export MR_RUN_ID="setup-$(date -u +%Y%m%dT%H%M%SZ)"
+scripts/deploy-all.sh
+
+# 2. Run A — cold scale-out (llm-d ppcr, HPA 2 -> 4).
+export MR_POD_SNAPSHOTS_ENABLED=false
+export MR_RUN_ID="scale-cold-$(date -u +%Y%m%dT%H%M%SZ)"
+scripts/run-scale-experiment.sh --backend ppcr
+
+# 3. Enable Pod snapshots on each regional cluster (creates snapshot buckets
+#    and enables the GKE Pod snapshots feature).
+export MR_POD_SNAPSHOTS_ENABLED=true
+for key in usc1 euw2 ase1; do
+  MR_SKIP_CORE_PLATFORM=true scripts/deploy-region.sh "${key}"
+done
+
+# 4. Run B — PodSnapshot scale-out (bootstraps 1 cold gVisor pod per region,
+#    checkpoints it, restores remaining replicas, and runs the 7-stage sweep).
+export MR_RUN_ID="scale-podsnapshot-$(date -u +%Y%m%dT%H%M%SZ)"
+scripts/run-scale-experiment.sh --backend ob
+
+# 5. Tear down when finished.
+scripts/teardown-all.sh
+```
+
+`run-scale-experiment.sh` writes the autoscaling trace to
+`${MR_WORK_DIR}/results/scale/<run>/recorder.jsonl` and invokes
+`bench/scale_report.py` to generate `${MR_WORK_DIR}/results/analysis/<run>/`
+(`report.md`, `stages.csv`, `pods.csv`, `gmp.json`, `scale_timeline.png`, and
+`scale_stages.png`). Run A now includes the two-metric HPA
+(`vllm:num_requests_running`), `safe-to-evict`, and base `PodDisruptionBudget`
+fixes described below, so re-running it keeps 4 replicas steady at 8 QPS rather
+than reproducing the scale-in and eviction failures of the recorded initial cold
+run.
+
 ## Results: cold scale-out
 
 ![cold scale-out timeline](../images/llmd-multi-region/scale-out-cold-scale_timeline.png)
@@ -123,7 +172,19 @@ s, and its goodput was 1.05 requests/s over all regions.
    cut off.
    - The fix: model server pods carry
      `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`, and a
-     PodDisruptionBudget keeps at least one replica.
+     PodDisruptionBudget (`manifests/model-server/base/pdb.tpl.yaml`) keeps at
+     least one replica across both cold and snapshot deployments. Note that
+     `safe-to-evict: "false"` prevents voluntary cluster-autoscaler
+     consolidation; involuntary GCE Spot or Flex-Start preemptions can still
+     reclaim a node and rely on the HPA and fast Pod snapshot restores to
+     replace the replica. `safe-to-evict: "false"` also has two trade-offs:
+     after a scale-in, the cluster autoscaler can't consolidate a partly used
+     node (which matters only if `MR_GPU_MACHINE_TYPE` has more GPUs than
+     `MR_GPU_COUNT`), and if you enable ComputeClass active migration
+     (`spec.activeMigration.optimizeRulePriority`, which
+     `manifests/common/compute-class-gpu-obtainable.tpl.yaml` doesn't set),
+     replicas that fell back to Spot aren't moved back to flex-start or
+     on-demand capacity.
 
 In the first hammer stage, asia-southeast1 also had 160 truncated streams and 12
 connection resets, for requests that had waited in the queue for up to 2
@@ -147,9 +208,17 @@ The second run used the same load with these changes:
 ![Pod snapshot scale-out timeline](../images/llmd-multi-region/scale-out-podsnapshot-scale_timeline.png)
 
 **No request queued, and every hammer stage met the SLO.** The running-requests
-metric moved every region to 3 replicas during the warm-up, 36–81 s after it
-started, and to 4 replicas as the hammer began. `vllm:num_requests_waiting`
-stayed at 0 for the whole run, and the HPA didn't scale in until the cool-down.
+metric moved every region from 2 to 3 desired replicas during the warm-up (at
+0:36–1:21), and from 3 to 4 desired replicas at 5:51–6:51 as the hammer began.
+`ase1` and `euw2` reached 4 ready replicas at 8:51 and 10:06, while `usc1`'s
+fourth pod waited 5:37 for a new GPU node and reached Ready at 12:51—serving all
+of Hammer Stage 1 on 3 ready replicas while keeping client p90 TTFT at 602 ms.
+`vllm:num_requests_waiting` stayed at 0 for the whole run, server-side p90 TTFT
+stayed well below the 2 s dotted SLO line on the timeline, and the HPA didn't
+scale in until the cool-down (Panel 2 in the recorded chart shows only the
+`waiting` line because the November 2026 `recorder.jsonl` predated recording
+`hpa_running_average`; new recordings plot both `waiting` and a dotted `running`
+series).
 
 | All regions combined (24 QPS offered)           | Cold, queue metric only | Pod snapshots, both metrics |
 | ----------------------------------------------- | ----------------------: | --------------------------: |
@@ -199,19 +268,21 @@ warm-up, inter-token latency was about 10% higher than in the cold run (p90 TPOT
   namespace, no soft delete) and its IAM grants. It then enables the cluster
   feature (`gcloud beta container clusters update --enable-pod-snapshots`, 6–11
   minutes per cluster).
-- `deploy-arm.sh` applies a `PodSnapshotStorageConfig`, a `PodSnapshotPolicy`
-  (`triggerConfig.type: workload`, `postCheckpoint: resume`), and a
-  PodDisruptionBudget (`manifests/model-server/podsnapshot`). It makes the model
-  server sandbox-ready with `scripts/podsnapshot_patch.py`:
+- `deploy-arm.sh` applies a `PodSnapshotStorageConfig` and a `PodSnapshotPolicy`
+  (`triggerConfig.type: workload`, `postCheckpoint: resume`) from
+  `manifests/model-server/podsnapshot` (alongside the base `PodDisruptionBudget`
+  in `manifests/model-server/base/pdb.tpl.yaml`). It makes the model server
+  sandbox-ready with `scripts/podsnapshot_patch.py`:
   - `runtimeClassName: gvisor`,
-  - a wrapper that writes `/proc/gvisor/checkpoint` once vLLM is healthy,
+  - a wrapper (`checkpoint-wrapper.sh`) that writes `/proc/gvisor/checkpoint`
+    once vLLM is healthy and forwards `SIGTERM`/`SIGINT` cleanly to vLLM,
   - no liveness probe (the source replica pauses while it checkpoints),
-  - a 140Gi memory limit,
+  - a 140Gi memory limit (included in the pod-template hash),
   - no pod-specific values in the container spec.
 - Without an available snapshot, it bootstraps: it starts 1 replica, waits for
-  the snapshot, then applies the HPA, whose replicas are restored. It stores a
-  hash of the pod template on the policy and deletes the old snapshots when the
-  pod spec changes.
+  the snapshot, then scales to `MR_REPLICAS_PER_REGION` (and applies the HPA
+  when enabled), whose replicas are restored. It stores a hash of the final pod
+  template on the policy and deletes old snapshots when the pod spec changes.
 
 Two findings from setting it up:
 
@@ -230,7 +301,14 @@ Two findings from setting it up:
 G4 / RTX PRO 6000 isn't on the documented Pod snapshot GPU list, and GKE Sandbox
 on it is in Preview. It worked on GKE 1.37.1 (driver 580) with vLLM v0.31.0, on
 on-demand nodes in us-central1 and europe-west2 and on Spot nodes in
-asia-southeast1.
+asia-southeast1. (Some GKE Standard 1.36 node images turn on gVisor core tagging
+on GPU sandbox nodes, and sandboxed pods then fail with
+`FailedCreatePodSandBox`; see
+[Pods fail with `FailedCreatePodSandBox`](../online-inference-gpu/vllm-with-podsnapshots.md#pods-fail-with-failedcreatepodsandbox).
+That guide's `gvisor-disable-core-tags` DaemonSet targets only the platform GPU
+compute classes, so add `llm-mr-gpu-obtainable`
+(`${MR_NAMESPACE}-gpu-obtainable`, used in `asia-southeast1`) to its node
+affinity before you apply it. GKE 1.37.1 didn't need it.)
 
 ## Design recommendations for a multi-cluster optimized inference architecture
 
@@ -240,10 +318,11 @@ made while running them.
 ### Regional pools: make each GPU count
 
 1. **Route with llm-d in every region.** On traffic with shared prefixes (system
-   prompts, RAG templates, agents), llm-d's prefix-aware routing gave 2–3× the
-   load within SLO of plain vLLM on the same GPUs, and about 11× the goodput at
-   the load where plain vLLM saturates. That's the largest capacity lever, and
-   it costs one CPU router per region.
+   prompts, RAG templates, agents), llm-d's prefix-aware routing gave 1.33–2×
+   the load within SLO of plain vLLM under symmetric load (and 2–3× under
+   single-region skew) on the same GPUs, and about 11× the goodput at the load
+   where plain vLLM saturates. That's the largest capacity lever, and it costs
+   one CPU router per region.
 2. **Pick the router to match the scale-out mechanism.** Precise prefix cache
    routing needs a per-pod identity in vLLM's KV events. GKE Pod snapshots
    restore every replica with the source pod's memory, and GKE requires
@@ -269,8 +348,9 @@ made while running them.
    from the running metric before any request queued.
 5. **Protect serving replicas from the cluster autoscaler.** Use
    `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"` and a
-   PodDisruptionBudget. Otherwise node consolidation can take a region to zero
-   ready replicas.
+   PodDisruptionBudget. Otherwise voluntary node consolidation can take a region
+   to zero ready replicas (while involuntary Spot preemptions still rely on HPA
+   replacement and Pod snapshot restores).
 6. **Scale in slowly** (5-minute stabilization, 1 replica per minute). A
    scale-in costs a warm prefix cache and cuts off in-flight streams longer than
    vLLM's shutdown timeout.
@@ -280,8 +360,8 @@ made while running them.
    - GKE Pod snapshots cut the vLLM part to 26–41 s until Ready, and 1–1.5
      minutes until the first request was served (see above).
    - The GPU node wait remains. Keep headroom for that (a higher minimum, or
-     buffer capacity: the example's `gpu-hold` placeholder pods), or use
-     reservations.
+     buffer capacity: the example's `gpu-hold` placeholder pods, matching
+     `runtimeClassName: gvisor` when snapshots are active), or use reservations.
 
 ### Capacity: farm GPUs where they are
 
@@ -322,6 +402,15 @@ made while running them.
       two-region guide.
 13. **Measure the split.** `bench/lb_traffic_split.py` reads the load balancer
     request logs to show which region served each region's clients.
+
+> [!WARNING]
+>
+> The Terraform load balancer attaches the zonal NEGs that exist when
+> `set-route.sh` runs. GKE creates a standalone NEG in a zone only when the
+> cluster has nodes there. A Pod that the HPA or the GPU ComputeClass later
+> places in a new zone is Ready but gets no traffic until you re-run
+> `set-route.sh` with the same arguments. For `llmd` this only matters if the
+> router Pod moves; the router reaches model servers in every zone.
 
 ### Operations
 

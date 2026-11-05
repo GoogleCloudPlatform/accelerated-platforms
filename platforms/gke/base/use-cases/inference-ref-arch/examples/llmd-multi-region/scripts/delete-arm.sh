@@ -46,6 +46,12 @@ mode="${2:-delete}"
 delete_arm() {
   local key="${1}"
   local deployment="precise-prefix-cache-routing-gpu-vllm-decode-${arm}"
+  local existing_rc=""
+  existing_rc="$(mr_kubectl "${key}" get deploy "${deployment}" -n "${MR_NAMESPACE}" \
+    -o jsonpath='{.spec.template.spec.runtimeClassName}' 2>/dev/null || true)"
+  if [[ -z "${existing_rc}" && "${MR_POD_SNAPSHOTS_ENABLED}" == "true" && "${arm}" == "llmd" ]]; then
+    existing_rc="gvisor"
+  fi
   # The HPA would scale the arm back up.
   mr_kubectl "${key}" delete hpa -l "acp-mr/arm=${arm}" -n "${MR_NAMESPACE}" --ignore-not-found || true
   if [[ "${mode}" == "--scale-to-zero" ]]; then
@@ -74,6 +80,13 @@ delete_arm() {
     mr_kubectl "${key}" wait --for=delete pod -l "acp-mr/arm=${arm}" -n "${MR_NAMESPACE}" --timeout=900s || true
     local dst="${MR_WORK_DIR}/rendered/${key}/common"
     MR_COMPUTE_CLASS="$(mr_compute_class "${key}")" mr_render_dir "${MR_EXAMPLE_DIR}/manifests/common" "${dst}"
+    if [[ -n "${existing_rc}" ]]; then
+      # GKE Sandbox nodes are tainted for gVisor pods only: the placeholders
+      # need the same runtime class as the arm's pods to stay on them.
+      kubectl patch --local -f "${dst}/gpu-hold.yaml" --type merge -o yaml \
+        -p "{\"spec\":{\"template\":{\"spec\":{\"runtimeClassName\":\"${existing_rc}\"}}}}" >"${dst}/gpu-hold.patched.yaml"
+      mv "${dst}/gpu-hold.patched.yaml" "${dst}/gpu-hold.yaml"
+    fi
     mr_kubectl "${key}" apply -f "${dst}/gpu-hold.yaml"
   else
     mr_kubectl "${key}" delete deployment gpu-hold -n "${MR_NAMESPACE}" --ignore-not-found
@@ -81,11 +94,27 @@ delete_arm() {
 }
 
 # Detach the arm's NEGs from the Terraform-managed load balancer first, so that
-# GKE can delete them together with the Services.
-if [[ "${mode}" != "--scale-to-zero" && "${MR_GLOBAL_LB}" != "mc-gateway" && -f "${MR_RESULTS_DIR}/gateway/active.json" ]]; then
-  active_backend="$(jq -r '.backend' "${MR_RESULTS_DIR}/gateway/active.json")"
-  active_mode="$(jq -r '.lb_mode' "${MR_RESULTS_DIR}/gateway/active.json")"
-  MR_LB_EXCLUDE_ARM="${arm}" "${MY_PATH}/deploy-global-lb.sh" --backend "${active_backend}" --lb-mode "${active_mode}" --no-wait
+# GKE can delete them together with the Services. Check the persistent work-dir
+# state file first so NEG detachment works even if a deploy timed out during
+# health probing or MR_RESULTS_DIR changed.
+lb_state_file="${MR_WORK_DIR}/terraform/global_lb.state.json"
+[[ -f "${lb_state_file}" ]] || lb_state_file="${MR_RESULTS_DIR}/gateway/active.json"
+if [[ "${mode}" != "--scale-to-zero" && "${MR_GLOBAL_LB}" != "mc-gateway" && -f "${lb_state_file}" ]]; then
+  active_backend="$(jq -r '.backend' "${lb_state_file}")"
+  active_mode="$(jq -r '.lb_mode' "${lb_state_file}")"
+  lb_args=(--backend "${active_backend}" --lb-mode "${active_mode}" --no-wait)
+  if [[ "${active_mode}" == "preferred" ]]; then
+    active_preferred_key="$(jq -r '.preferred_key // empty' "${lb_state_file}")"
+    [[ -n "${active_preferred_key}" ]] ||
+      mr_die "${lb_state_file} doesn't record the preferred region; run set-route.sh --lb-mode preferred --preferred-region <key> first"
+    lb_args+=(--preferred-region "${active_preferred_key}")
+  fi
+  case "${arm}:${active_backend}" in
+  baseline:baseline | llmd:ppcr | llmd:ob)
+    mr_log "Deleting the active arm: the load balancer has no backends until the next set-route.sh"
+    ;;
+  esac
+  MR_LB_EXCLUDE_ARM="${arm}" "${MY_PATH}/deploy-global-lb.sh" "${lb_args[@]}"
 fi
 
 for key in ${MR_REGION_KEYS}; do

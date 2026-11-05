@@ -22,7 +22,7 @@ variable "backends" {
   type = map(object({
     health_check_path  = string
     health_check_port  = number
-    locality_lb_policy = optional(string, "ROUND_ROBIN")
+    locality_lb_policy = optional(string, "LEAST_REQUEST")
     negs = list(object({
       region                              = string
       self_link                           = string

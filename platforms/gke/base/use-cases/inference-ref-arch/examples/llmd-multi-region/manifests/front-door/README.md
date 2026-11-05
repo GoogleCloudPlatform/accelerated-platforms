@@ -10,9 +10,11 @@ Identity-Aware Proxy (IAP).
 It is **off by default**: `deploy-all.sh` and `run-experiment.sh` never deploy
 it, and benchmarks never use it. `teardown-all.sh` removes it if it exists.
 
-> [!WARNING] This is a prototype for demos, not a production entry point. Review
-> the security posture and caveats below, and your organization's policies,
-> before you deploy it.
+> [!WARNING]
+>
+> This is a prototype for demos, not a production entry point. Review the
+> security posture and caveats below, and your organization's policies, before
+> you deploy it.
 
 ## Architecture
 
@@ -39,15 +41,15 @@ flowchart LR
   end
 ```
 
-| Component                                                                          | Created by             | Notes                                                                                                                                                                                                                                                               |
-| ---------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Global static IPv4 address `<MR_FRONT_DOOR_NAME>-ip`                               | `terraform/front_door` | Referenced by the Gateway as a `NamedAddress`.                                                                                                                                                                                                                      |
-| Cloud Endpoints service `MR_FRONT_DOOR_HOSTNAME`                                   | `terraform/front_door` | DNS only: `<name>.endpoints.<project>.cloud.goog` → static IP. Same approach as `examples/llmd/initialize/external_gateway.tf`, including the `undelete` step for re-deployments.                                                                                   |
-| Google-managed certificate `<MR_FRONT_DOOR_NAME>-cert`                             | `terraform/front_door` | Classic `google_compute_managed_ssl_certificate`, referenced with `networking.gke.io/pre-shared-certs` (the same as the llmd example). Certificate Manager (`networking.gke.io/certmap`) is also supported by the GatewayClass, but isn't needed for one host name. |
-| SSL policy `<MR_FRONT_DOOR_NAME>-ssl`                                              | `terraform/front_door` | TLS 1.2+, `RESTRICTED` profile, attached with a `GCPGatewayPolicy`.                                                                                                                                                                                                 |
-| Cloud Armor policy `<MR_FRONT_DOOR_NAME>-armor`                                    | `terraform/front_door` | Optional (`MR_FRONT_DOOR_CLOUD_ARMOR=true`): allows `MR_FRONT_DOOR_ALLOWED_CIDRS`, denies everything else (403).                                                                                                                                                    |
-| Envoy `Deployment` (2 replicas), `Service`, `PodDisruptionBudget`, `NetworkPolicy` | `manifests/front-door` | Forwards everything to `http://<internal Gateway VIP in the config region>:80`.                                                                                                                                                                                     |
-| `Gateway`, `HTTPRoute`, `HealthCheckPolicy`, `GCPBackendPolicy`                    | `manifests/front-door` | HTTPS listener only; route only for `MR_FRONT_DOOR_HOSTNAME`; IAP enabled; 3600 s backend timeout; request logging.                                                                                                                                                 |
+| Component                                                                          | Created by             | Notes                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Global static IPv4 address `<MR_FRONT_DOOR_NAME>-ip`                               | `terraform/front_door` | Referenced by the Gateway as a `NamedAddress`.                                                                                                                                                                                                                                                                                                                           |
+| Cloud Endpoints service `MR_FRONT_DOOR_HOSTNAME`                                   | `terraform/front_door` | DNS only: `<name>.endpoints.<project>.cloud.goog` → static IP. Same approach as `examples/llmd/initialize/external_gateway.tf`, including the `undelete` step for re-deployments.                                                                                                                                                                                        |
+| Google-managed certificate `<MR_FRONT_DOOR_NAME>-cert-<hash>`                      | `terraform/front_door` | Classic `google_compute_managed_ssl_certificate` (`create_before_destroy`, hostname-hashed name so changing `MR_FRONT_DOOR_HOSTNAME` rotates cleanly), referenced with `networking.gke.io/pre-shared-certs` (the same as the llmd example). Certificate Manager (`networking.gke.io/certmap`) is also supported by the GatewayClass, but isn't needed for one host name. |
+| SSL policy `<MR_FRONT_DOOR_NAME>-ssl`                                              | `terraform/front_door` | TLS 1.2+, `RESTRICTED` profile, attached with a `GCPGatewayPolicy`.                                                                                                                                                                                                                                                                                                      |
+| Cloud Armor policy `<MR_FRONT_DOOR_NAME>-armor`                                    | `terraform/front_door` | Optional (`MR_FRONT_DOOR_CLOUD_ARMOR=true`): allows `MR_FRONT_DOOR_ALLOWED_CIDRS`, denies everything else (403).                                                                                                                                                                                                                                                         |
+| Envoy `Deployment` (2 replicas), `Service`, `PodDisruptionBudget`, `NetworkPolicy` | `manifests/front-door` | Forwards everything to `http://<internal Gateway VIP in the config region>:80`.                                                                                                                                                                                                                                                                                          |
+| `Gateway`, `HTTPRoute`, `HealthCheckPolicy`, `GCPBackendPolicy`                    | `manifests/front-door` | HTTPS listener only; route only for `MR_FRONT_DOOR_HOSTNAME`; IAP enabled; 3600 s backend timeout; request logging.                                                                                                                                                                                                                                                      |
 
 Envoy is the only way to bridge the two load balancers: the external Gateway
 can't reference the internal Gateway, and the internal VIP isn't routable from
@@ -71,19 +73,29 @@ scripts/deploy-front-door.sh apply     # idempotent; ~15 minutes, up to 60+ (cer
 scripts/deploy-front-door.sh destroy
 ```
 
-`apply` runs `terraform/front_door`, renders and applies the manifests to the
-config cluster, waits until the Gateway is programmed, grants IAP access, checks
-that IAP is enabled on the backend service, waits until the certificate is
-`ACTIVE`, checks that an unauthenticated request is redirected to Google
-sign-in, and prints the URL and example commands. Every stage is timed with
-`mr_stage`.
+`deploy-front-door.sh` automatically sources `mr.env` (while any exported
+environment variables take precedence). `apply` detaches any removed Cloud Armor
+policy or superseded certificate before running `terraform/front_door`, renders
+and applies the manifests to the config cluster, waits until the Gateway is
+programmed, grants IAP access, checks that `iap.enabled=True` on the backend
+service, waits until the certificate is `ACTIVE`, probes the external HTTPS
+endpoint with an unauthenticated request carrying a forged
+`x-goog-iap-jwt-assertion: forged-probe` header to confirm IAP strips and
+redirects it before Envoy, and prints the URL and example commands. Until IAP
+enforcement is verified, an `EXIT` trap **rolls back
+(`kubectl delete httproute,gateway`) on any error, check failure, or
+interruption** before exiting (if the rollback `kubectl` command itself fails,
+it logs the exact manual delete command). Every stage is timed with `mr_stage`.
 
 - **Browser:** open `https://<MR_FRONT_DOOR_HOSTNAME>/v1/models` and sign in.
 - **Programmatic, default (Google-managed OAuth client):** use a service account
   that is in `MR_FRONT_DOOR_IAP_MEMBERS` (`serviceAccount:...`) and on which you
-  have `roles/iam.serviceAccountTokenCreator`:
+  have `roles/iam.serviceAccountTokenCreator` (source `mr.env` first in a fresh
+  shell so `MR_FRONT_DOOR_HOSTNAME` is populated):
 
   ```bash
+  source mr.env
+  SA="<name>@${MR_PROJECT_ID}.iam.gserviceaccount.com"
   TOKEN="$(gcloud auth print-access-token --impersonate-service-account="${SA}" \
     --scopes=openid,https://www.googleapis.com/auth/userinfo.email)"
   curl -N -H "Authorization: Bearer ${TOKEN}" -H 'Content-Type: application/json' \
@@ -150,29 +162,39 @@ external load balancers and IAP; check yours (see [Caveats](#caveats)).
 - **TLS only.** The Gateway has only an HTTPS listener (no port 80), a
   Google-managed certificate, and an SSL policy with TLS 1.2+ and the
   `RESTRICTED` profile. The route matches only `MR_FRONT_DOOR_HOSTNAME`.
-- **Single, private upstream.** Envoy has one static upstream, the internal
-  Gateway VIP in the config region (the script refuses non-private addresses).
-  It has no admin interface, no dynamic configuration, and no Kubernetes service
-  account token. A `NetworkPolicy` only allows ingress from the load balancer
-  ranges (`35.191.0.0/16`, `130.211.0.0/22`) and egress to the VIP.
-- **Fail closed.** Envoy only forwards requests that carry IAP's
-  `x-goog-iap-jwt-assertion` header, and answers 403 otherwise. If IAP isn't
-  actually enabled (for example, the `GCPBackendPolicy` isn't attached),
-  requests are rejected instead of reaching the models. This is a guard against
-  misconfiguration, not authentication: the header isn't cryptographically
-  verified by Envoy. For full verification, validate the JWT
-  ([signed headers](https://cloud.google.com/iap/docs/signed-headers-howto)),
-  for example with Envoy's `jwt_authn` filter, which requires egress to the IAP
-  public keys.
-- **No credentials to the models.** Envoy removes `Authorization`,
-  `Proxy-Authorization`, `Cookie`, and the IAP assertion before forwarding.
+- **Single, private, air-gapped upstream.** Envoy has one static upstream, the
+  internal Gateway VIP in the config region (the script refuses non-private
+  addresses). It has no admin interface, no dynamic configuration, and no
+  Kubernetes service account token. A `NetworkPolicy` only allows ingress from
+  the load balancer ranges (`35.191.0.0/16`, `130.211.0.0/22`) on TCP `8080` and
+  egress to `<internal Gateway VIP>/32` on TCP `80` (zero DNS or internet
+  egress).
+- **Misconfiguration guard, not authentication.** Envoy only forwards requests
+  that carry IAP's `x-goog-iap-jwt-assertion` header (`present_match`) and
+  answers `403` otherwise. It checks only that the header is present; it doesn't
+  verify the signature, so it isn't authentication. The external load balancer
+  strips client-supplied `x-goog-iap-jwt-assertion` headers only when IAP is
+  enabled on the backend service: if IAP were off, a client could forge the
+  header. So `apply` checks `iap.enabled=True` on the backend service, probes
+  the endpoint with a forged header (unless Cloud Armor blocks this machine,
+  then only the backend service check applies), and deletes the external
+  `HTTPRoute` and `Gateway` if IAP enforcement isn't confirmed. Nothing
+  re-checks IAP after `apply`. For cryptographic verification in Envoy, validate
+  the signed JWT
+  ([signed headers](https://cloud.google.com/iap/docs/signed-headers-howto))
+  with Envoy's `jwt_authn` filter, which needs the IAP public keys.
+- **No credentials or user PII to the models.** Envoy removes `Authorization`,
+  `Proxy-Authorization`, `Cookie`, `x-goog-iap-jwt-assertion`,
+  `x-goog-authenticated-user-email`, and `x-goog-authenticated-user-id` before
+  forwarding over cleartext VPC HTTP.
 - **Hardened pods.** Non-root (UID 65532), read-only root file system, no
   privilege escalation, all capabilities dropped, `RuntimeDefault` seccomp, the
   `restricted` Pod Security Standard enforced on the namespace, and the Envoy
   image pinned by digest.
 - **Optional Cloud Armor allowlist,** evaluated before IAP.
 - **Auditability.** Load balancer request logging is enabled (100 %), and Envoy
-  logs every request (except `/healthz`) as JSON with the IAP user email.
+  logs request metadata (except `/healthz`, omitting raw user email PII) as JSON
+  to stdout.
 - **No secrets in the repository.** The optional OAuth client secret is read
   from a local file into a Kubernetes Secret.
 
@@ -221,6 +243,11 @@ external load balancers and IAP; check yours (see [Caveats](#caveats)).
   works). Use it for demos, not for latency or locality measurements.
 - **Stale upstream.** The VIP is resolved when `apply` runs. Re-run `apply` if
   the internal Gateway is re-created (the VIP is ephemeral).
+- **Rollouts cut long streams.** Envoy has no admin interface to fail `/healthz`
+  or drain listeners, so a `15 s` `preStop` sleep
+  (`terminationGracePeriodSeconds: 60`) keeps a terminating pod serving while
+  GKE removes it from the load balancer's NEG, after which Envoy exits on
+  `SIGTERM` and cuts any streams still open.
 - **API clients and IAP.** Clients must send a Google-issued credential; plain
   OpenAI-compatible clients need a custom header (`Authorization: Bearer ...`)
   or a token-refreshing wrapper. Access tokens expire after about one hour.
@@ -236,9 +263,13 @@ external load balancers and IAP; check yours (see [Caveats](#caveats)).
   exposing internal services. Check with your organization before deploying.
 - **Domain-scoped project IDs** (`example.com:project`) need an explicit
   `MR_FRONT_DOOR_HOSTNAME`.
-- **Cloud Armor changes.** To turn off Cloud Armor after it was enabled, run
-  `destroy` and then `apply`, so that the policy is detached before Terraform
-  deletes it.
+- **Cloud Armor, hostname changes, and `destroy`.** `deploy-front-door.sh apply`
+  automatically detaches `securityPolicy` from `GCPBackendPolicy` before
+  Terraform deletes the Cloud Armor policy when `MR_FRONT_DOOR_CLOUD_ARMOR`
+  changes from `true` to `false`, recreates the `Gateway` cleanly when
+  `MR_FRONT_DOOR_HOSTNAME` changes, and persists `front_door.tfvars.json` (with
+  safe fallback defaults) so `deploy-front-door.sh destroy` and
+  `teardown-all.sh` succeed from a fresh shell.
 - **Cloud Endpoints names** stay reserved for 30 days after deletion;
   `terraform/front_door` undeletes them on re-deployment.
 

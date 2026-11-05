@@ -11,19 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Keeps at least one llm-d model server through voluntary disruptions (for
-# example, compute class active migration), so that the snapshot source pod
-# isn't evicted while it uploads its checkpoint. Spot preemption isn't
-# voluntary and isn't blocked.
+---
+# Keeps at least one serving replica per arm through voluntary disruptions (such
+# as GKE node pool upgrades or node drains), and prevents the Pod snapshot
+# source pod from being evicted while it uploads its checkpoint. Spot preemption
+# is involuntary and is not blocked by a PodDisruptionBudget.
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: llmd-model-servers
-  namespace: ${MR_NAMESPACE}
+  name: model-servers
 spec:
   minAvailable: 1
   selector:
     matchLabels:
-      acp-mr/arm: llmd
+      llm-d.ai/guide: precise-prefix-cache-routing
       llm-d.ai/role: decode

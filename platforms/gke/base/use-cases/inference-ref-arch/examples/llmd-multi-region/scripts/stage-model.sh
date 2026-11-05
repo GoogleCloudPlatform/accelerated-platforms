@@ -60,6 +60,7 @@ download_from_hugging_face() {
     "${km}/configure_huggingface.sh"
     # shellcheck source=/dev/null
     source "${wt}/platforms/gke/base/use-cases/inference-ref-arch/terraform/_shared_config/scripts/set_environment_variables.sh"
+    # shellcheck disable=SC2154
     local ns="${huggingface_hub_downloader_kubernetes_namespace_name}"
     local job="${HF_MODEL_ID_HASH}-hf-model-to-gcs"
     kubectl delete job "${job}" -n "${ns}" --ignore-not-found --wait=true
@@ -67,14 +68,14 @@ download_from_hugging_face() {
     # Large models take a while: allow up to 90 minutes.
     local deadline=$(($(date +%s) + 5400))
     while true; do
-      local succeeded failed
+      local succeeded failed_cond
       succeeded="$(kubectl get job "${job}" -n "${ns}" -o jsonpath='{.status.succeeded}' 2>/dev/null || true)"
-      failed="$(kubectl get job "${job}" -n "${ns}" -o jsonpath='{.status.failed}' 2>/dev/null || true)"
+      failed_cond="$(kubectl get job "${job}" -n "${ns}" -o jsonpath='{.status.conditions[?(@.type=="Failed")].status}' 2>/dev/null || true)"
       if [[ "${succeeded}" == "1" ]]; then
         kubectl logs "job/${job}" -n "${ns}" --tail=20 || true
         break
       fi
-      if [[ -n "${failed}" && "${failed}" != "0" ]]; then
+      if [[ "${failed_cond}" == "True" ]]; then
         kubectl logs "job/${job}" -n "${ns}" --tail=100 || true
         mr_die "model download job ${job} failed"
       fi

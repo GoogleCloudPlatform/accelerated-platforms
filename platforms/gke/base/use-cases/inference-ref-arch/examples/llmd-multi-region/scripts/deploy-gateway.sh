@@ -63,6 +63,8 @@ done
 export MR_LB_LOCALITY_MAX_UTIL="${MR_LB_LOCALITY_MAX_UTIL:-80}"
 export MR_LB_CAPACITY_MAX_UTIL="${MR_LB_CAPACITY_MAX_UTIL:-30}"
 
+mr_validate_active_region_key "${MR_CONFIG_CLUSTER_KEY}"
+
 case "${backend}" in
 baseline)
   export MR_ROUTE_BACKEND_GROUP="net.gke.io" MR_ROUTE_BACKEND_KIND="ServiceImport" MR_ROUTE_BACKEND_NAME="vllm-baseline"
@@ -89,10 +91,11 @@ capacity)
   export MR_LB_MAX_UTILIZATION_PERCENT="${MR_LB_CAPACITY_MAX_UTIL}"
   ;;
 preferred)
-  mr_validate_region_key "${preferred_key}"
+  mr_validate_active_region_key "${preferred_key}"
   policy_template="preferred"
   export MR_LB_MAX_UTILIZATION_PERCENT="${MR_LB_LOCALITY_MAX_UTIL}"
-  export MR_LB_PREFERRED_REGION="$(mr_region "${preferred_key}")"
+  MR_LB_PREFERRED_REGION="$(mr_region "${preferred_key}")"
+  export MR_LB_PREFERRED_REGION
   ;;
 *) mr_die "--lb-mode must be one of: locality, capacity, preferred" ;;
 esac
@@ -120,10 +123,10 @@ wait_for_import() {
 }
 
 apply_gateway() {
-  mr_kubectl "${cfg}" apply -f "${dst}/gateway.yaml"
-  mr_kubectl "${cfg}" apply -f "${dst}/healthcheckpolicy.yaml"
-  mr_kubectl "${cfg}" apply -f "${dst}/backend-policies/${policy_template}.yaml"
-  mr_kubectl "${cfg}" apply -f "${dst}/httproute.yaml"
+  mr_kubectl "${cfg}" apply --server-side --force-conflicts -f "${dst}/gateway.yaml"
+  mr_kubectl "${cfg}" apply --server-side --force-conflicts -f "${dst}/healthcheckpolicy.yaml"
+  mr_kubectl "${cfg}" apply --server-side --force-conflicts -f "${dst}/backend-policies/${policy_template}.yaml"
+  mr_kubectl "${cfg}" apply --server-side --force-conflicts -f "${dst}/httproute.yaml"
 }
 
 gateway_programmed() {

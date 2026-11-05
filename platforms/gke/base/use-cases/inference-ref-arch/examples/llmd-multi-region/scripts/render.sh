@@ -22,8 +22,14 @@
 
 # Only these variables are substituted. Anything else that looks like a shell
 # variable (for example, the Kubernetes $(VAR) syntax) is left untouched.
+# shellcheck disable=SC2016
 MR_TEMPLATE_VARS='${MR_HPA_RUNNING_METRIC} ${MR_HPA_TARGET_RUNNING} ${MR_POD_SNAPSHOTS_BUCKET} ${MR_GPU_MACHINE_TYPE} ${MR_ACCELERATOR_TYPE} ${MR_HPA_MAX_REPLICAS} ${MR_HPA_METRIC} ${MR_HPA_TARGET_AVERAGE} ${MR_GPU_HOLD_IMAGE} ${MR_LLMD_GIT_REF} ${MR_REPLICAS_PER_REGION} ${MR_NAMESPACE} ${MR_COMPUTE_CLASS} ${MR_VLLM_IMAGE} ${MR_GPU_COUNT} ${MR_MODELS_BUCKET} ${MR_MODEL_PATH} ${MR_SERVED_MODEL_NAME} ${MR_TENSOR_PARALLEL_SIZE} ${MR_MAX_MODEL_LEN} ${MR_GPU_MEMORY_UTILIZATION} ${MR_GATEWAY_NAME} ${MR_GATEWAY_ADDRESSES} ${MR_ROUTE_BACKEND_GROUP} ${MR_ROUTE_BACKEND_KIND} ${MR_ROUTE_BACKEND_NAME} ${MR_ROUTE_BACKEND_PORT} ${MR_LB_MAX_UTILIZATION_PERCENT} ${MR_LB_PREFERRED_REGION} ${MR_BACKEND_TIMEOUT_SEC} ${MR_NEG_PREFIX}'
 export MR_GATEWAY_NAME="${MR_GATEWAY_NAME:-llm-mr-gateway}"
+# Cross-region load balancer backend service timeout (seconds), which bounds a
+# whole (streaming) response. The regional llm-d router's Envoy keeps the
+# upstream chart's timeouts: a 86400 s route timeout, and a 1000 s ext_proc
+# message_timeout that limits each exchange with the endpoint picker, not the
+# stream.
 export MR_BACKEND_TIMEOUT_SEC="${MR_BACKEND_TIMEOUT_SEC:-3600}"
 
 # mr_render_dir <src_dir> <dst_dir>

@@ -15,7 +15,7 @@
 # limitations under the License.
 
 # Deploys one experiment arm in every region, waits until it serves through
-# the multi-cluster Gateway, and records the spin-up timeline.
+# the load balancer, and records the spin-up timeline.
 #
 # Usage: deploy-arm.sh <baseline|llmd> [--backend <ppcr|ob>] [--lb-mode <mode>] [--no-route]
 #
@@ -23,8 +23,8 @@
 #   llmd      llm-d model servers + router InferencePools (precise prefix cache
 #             routing and optimized baseline) per region (arm B)
 #
-# Unless --no-route is set, the multi-cluster Gateway is then pointed at the
-# arm (deploy-gateway.sh) and the time to the first successful completion
+# Unless --no-route is set, the load balancer (MR_GLOBAL_LB) is then pointed at
+# the arm (set-route.sh) and the time to the first successful completion
 # through each region's VIP is recorded.
 
 set -o errexit
@@ -43,19 +43,39 @@ source "${MY_PATH}/render.sh"
 arm="${1:?usage: deploy-arm.sh <baseline|llmd> [--backend <ppcr|ob>] [--lb-mode <mode>] [--no-route]}"
 shift
 backend=""
+backend_explicit="false"
 lb_mode="locality"
 route="true"
 while [[ $# -gt 0 ]]; do
   case "${1}" in
-  --backend) backend="${2}" && shift 2 ;;
+  --backend)
+    backend="${2}"
+    backend_explicit="true"
+    shift 2
+    ;;
   --lb-mode) lb_mode="${2}" && shift 2 ;;
   --no-route) route="false" && shift ;;
   *) mr_die "unknown argument: ${1}" ;;
   esac
 done
 case "${arm}" in
-baseline) backend="baseline" ;;
-llmd) backend="${backend:-ppcr}" ;;
+baseline)
+  if [[ "${backend_explicit}" == "true" && "${backend}" != "baseline" ]]; then
+    mr_die "--backend '${backend}' is not valid for arm 'baseline'"
+  fi
+  backend="baseline"
+  ;;
+llmd)
+  if [[ "${MR_POD_SNAPSHOTS_ENABLED}" == "true" ]]; then
+    if [[ "${backend_explicit}" == "true" && "${backend}" == "ppcr" ]]; then
+      mr_die "MR_POD_SNAPSHOTS_ENABLED=true is incompatible with --backend ppcr (restored pods inherit the checkpointed pod's KV-events identity); omit --backend or pass --backend ob"
+    fi
+    backend="${backend:-ob}"
+  else
+    backend="${backend:-ppcr}"
+  fi
+  [[ "${backend}" =~ ^(ppcr|ob)$ ]] || mr_die "--backend for arm 'llmd' must be ppcr or ob"
+  ;;
 *) mr_die "arm must be one of: baseline, llmd" ;;
 esac
 
@@ -66,15 +86,15 @@ mkdir -p "${startup_root}"
 apply_common() {
   local key="${1}" dst="${MR_WORK_DIR}/rendered/${1}/common"
   mr_render_dir "${MR_EXAMPLE_DIR}/manifests/common" "${dst}"
-  mr_kubectl "${key}" apply -f "${dst}/compute-class-bench.yaml"
-  mr_kubectl "${key}" apply -f "${dst}/compute-class-gpu-obtainable.yaml"
+  mr_kubectl "${key}" apply -f "${dst}/compute-class-bench.yaml" || return 1
+  mr_kubectl "${key}" apply -f "${dst}/compute-class-gpu-obtainable.yaml" || return 1
   # vLLM metrics come from GKE automatic application monitoring. A second
   # PodMonitoring for the same pods would create a duplicate series per pod,
   # which breaks the HPA's per-pod metric.
-  mr_kubectl "${key}" delete podmonitoring vllm-model-servers -n "${MR_NAMESPACE}" --ignore-not-found
-  mr_kubectl "${key}" apply -f "${dst}/probe-client.yaml"
+  mr_kubectl "${key}" delete podmonitoring vllm-model-servers -n "${MR_NAMESPACE}" --ignore-not-found || return 1
+  mr_kubectl "${key}" apply -f "${dst}/probe-client.yaml" || return 1
   if mr_kubectl "${key}" get crd autoscalingmetrics.autoscaling.gke.io >/dev/null 2>&1; then
-    mr_kubectl "${key}" apply -f "${dst}/autoscaling-metric.yaml"
+    mr_kubectl "${key}" apply -f "${dst}/autoscaling-metric.yaml" || return 1
   else
     mr_log "WARNING: AutoscalingMetric CRD not found in ${key}; CUSTOM_METRICS load balancing won't have data"
   fi
@@ -83,10 +103,31 @@ apply_common() {
 
 podsnapshots_on() { [[ "${MR_POD_SNAPSHOTS_ENABLED}" == "true" && "${arm}" == "llmd" ]]; }
 
+check_podsnapshot_prereqs() {
+  local key="${1}"
+  if ! mr_kubectl "${key}" get crd \
+    podsnapshots.podsnapshot.gke.io \
+    podsnapshotpolicies.podsnapshot.gke.io \
+    podsnapshotstorageconfigs.podsnapshot.gke.io >/dev/null 2>&1; then
+    mr_die "Pod snapshot CRDs are missing in region '${key}'; run: MR_POD_SNAPSHOTS_ENABLED=true MR_SKIP_CORE_PLATFORM=true scripts/deploy-region.sh ${key}"
+  fi
+  if ! gcloud storage buckets describe "gs://$(mr_pod_snapshots_bucket "${key}")" --project "${MR_PROJECT_ID}" >/dev/null 2>&1; then
+    mr_die "Pod snapshot bucket gs://$(mr_pod_snapshots_bucket "${key}") is missing in region '${key}'; run: MR_POD_SNAPSHOTS_ENABLED=true MR_SKIP_CORE_PLATFORM=true scripts/deploy-region.sh ${key}"
+  fi
+}
+
+neg_ready() {
+  local key="${1}" svc="${2}" status_json
+  status_json="$(mr_kubectl "${key}" get service "${svc}" -n "${MR_NAMESPACE}" \
+    -o jsonpath='{.metadata.annotations.cloud\.google\.com/neg-status}' 2>/dev/null || true)"
+  [[ -n "${status_json}" ]] || return 1
+  "${MR_PYTHON}" -c 'import json, sys; d = json.loads(sys.argv[1]); sys.exit(0 if d.get("network_endpoint_groups") else 1)' "${status_json}" 2>/dev/null
+}
+
 # Succeeds when a Pod snapshot of the llm-d model servers is available in the
 # region (PodSnapshot Ready condition with reason AllSnapshotsAvailable).
 snapshot_available() {
-  mr_kubectl "${1}" get podsnapshots -n "${MR_NAMESPACE}" -o json 2>/dev/null | python3 -c '
+  mr_kubectl "${1}" get podsnapshots -n "${MR_NAMESPACE}" -o json 2>/dev/null | "${MR_PYTHON}" -c '
 import json, sys
 items = json.load(sys.stdin)["items"]
 ok = [i for i in items if i.get("spec", {}).get("policyName") == "llmd-model-servers"
@@ -101,17 +142,18 @@ apply_model_servers() {
   kustomize build "${dir}/${arm}" >"${dir}/${arm}.rendered.yaml" || return 1
   if podsnapshots_on; then
     local sha old_sha
-    sha="$(python3 "${MY_PATH}/podsnapshot_patch.py" "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" \
+    sha="$("${MR_PYTHON}" "${MY_PATH}/podsnapshot_patch.py" "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" \
       "${dir}/podsnapshot/checkpoint-wrapper.sh" "${MR_POD_SNAPSHOT_MEMORY_LIMIT}")" || return 1
     old_sha="$(mr_kubectl "${key}" get podsnapshotpolicy llmd-model-servers -n "${MR_NAMESPACE}" \
       -o jsonpath='{.metadata.annotations.acp-mr/pod-template-sha256}' 2>/dev/null || true)"
-    if [[ -n "${old_sha}" && "${old_sha}" != "${sha}" ]]; then
-      # The pod spec changed: the existing snapshots can't be restored into it.
-      mr_log "Pod spec changed in ${key}; deleting its old Pod snapshots"
+    if [[ "${old_sha}" != "${sha}" ]]; then
+      # The pod spec changed, or its hash is unknown (first deployment, or the
+      # policy was deleted while Pod snapshots were off): existing snapshots
+      # may not match it.
+      mr_log "Pod template hash in ${key} changed from '${old_sha}'; deleting any existing Pod snapshots"
       mr_kubectl "${key}" delete podsnapshots --all -n "${MR_NAMESPACE}" --wait=true || return 1
     fi
-    mr_kubectl "${key}" apply -f "${dir}/podsnapshot/storage-config.yaml" -f "${dir}/podsnapshot/policy.yaml" \
-      -f "${dir}/podsnapshot/pdb.yaml" || return 1
+    mr_kubectl "${key}" apply -f "${dir}/podsnapshot/storage-config.yaml" -f "${dir}/podsnapshot/policy.yaml" || return 1
     mr_kubectl "${key}" annotate podsnapshotpolicy llmd-model-servers -n "${MR_NAMESPACE}" --overwrite \
       "acp-mr/pod-template-sha256=${sha}" || return 1
     if ! snapshot_available "${key}"; then
@@ -119,9 +161,9 @@ apply_model_servers() {
       # so the other replicas, restored from the snapshot) comes afterwards.
       bootstrap="true"
       touch "${dir}/podsnapshot.bootstrap"
-      mr_kubectl "${key}" delete hpa -l "acp-mr/arm=${arm}" -n "${MR_NAMESPACE}" --ignore-not-found
-      mr_kubectl "${key}" delete deployment "$(model_server_deployment)" -n "${MR_NAMESPACE}" --ignore-not-found --wait=true
-      python3 - "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" <<'EOF_PY' || return 1
+      mr_kubectl "${key}" delete hpa -l "acp-mr/arm=${arm}" -n "${MR_NAMESPACE}" --ignore-not-found || return 1
+      mr_kubectl "${key}" delete deployment "$(model_server_deployment)" -n "${MR_NAMESPACE}" --ignore-not-found --wait=true || return 1
+      "${MR_PYTHON}" - "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" <<'EOF_PY' || return 1
 import sys
 import yaml
 
@@ -135,14 +177,17 @@ with open(path, "w") as f:
     yaml.safe_dump_all(docs, f, sort_keys=False)
 EOF_PY
     fi
+  elif [[ "${arm}" == "llmd" ]] && mr_kubectl "${key}" get crd podsnapshotpolicies.podsnapshot.gke.io >/dev/null 2>&1; then
+    mr_kubectl "${key}" delete podsnapshotpolicy llmd-model-servers -n "${MR_NAMESPACE}" --ignore-not-found || return 1
   fi
   if [[ "${MR_HPA_ENABLED}" == "true" ]]; then
+    # shellcheck disable=SC2016
     MR_HPA_DEPLOYMENT="$(model_server_deployment)" MR_HPA_ARM="${arm}" \
       envsubst '${MR_HPA_DEPLOYMENT} ${MR_HPA_ARM}' <"${dir}/hpa.yaml" >"${dir}/${arm}.hpa.yaml"
     # When the Deployment already exists, leave its replica count to the HPA:
     # re-applying spec.replicas would scale a scaled-out arm back down.
     if mr_kubectl "${key}" get deployment "$(model_server_deployment)" -n "${MR_NAMESPACE}" >/dev/null 2>&1; then
-      python3 - "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" <<'EOF_PY'
+      "${MR_PYTHON}" - "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" <<'EOF_PY' || return 1
 import sys
 import yaml
 
@@ -156,27 +201,40 @@ with open(path, "w") as f:
     yaml.safe_dump_all(docs, f, sort_keys=False)
 EOF_PY
     fi
+  else
+    # Ensure no pre-existing HPA overrides fixed-replica deployments.
+    mr_kubectl "${key}" delete hpa -l "acp-mr/arm=${arm}" -n "${MR_NAMESPACE}" --ignore-not-found || return 1
   fi
   # Release the GPU nodes held by delete-arm.sh --hold-gpus (if any) right
   # before the model servers are created, so that they land on those nodes.
-  mr_kubectl "${key}" delete deployment gpu-hold -n "${MR_NAMESPACE}" --ignore-not-found --wait=true
+  mr_kubectl "${key}" delete deployment gpu-hold -n "${MR_NAMESPACE}" --ignore-not-found --wait=true || return 1
   mr_kubectl "${key}" apply -f "${dir}/${arm}.rendered.yaml" || return 1
   if [[ "${MR_HPA_ENABLED}" == "true" && "${bootstrap}" != "true" ]]; then
     mr_kubectl "${key}" apply -f "${dir}/${arm}.hpa.yaml" || return 1
   fi
+  if [[ "${arm}" == "baseline" && "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
+    mr_wait_for 300 5 "standalone NEG for Service/vllm-baseline in ${key}" neg_ready "${key}" vllm-baseline || return 1
+  fi
 }
 
-# After a Pod snapshot bootstrap: wait for the snapshot, then apply the HPA,
-# whose minimum replicas are restored from the snapshot.
+# After a Pod snapshot bootstrap: wait for the snapshot, then apply the HPA (or
+# scale directly to MR_REPLICAS_PER_REGION when HPA is disabled). If no
+# snapshot becomes available in time, the other replicas start cold (with a
+# warning), so that the region is never left with the single bootstrap
+# replica. Failing to restore the replica count is fatal.
 finish_snapshot_bootstrap() {
   local key="${1}" dir="${MR_WORK_DIR}/rendered/${1}/model-server"
-  mr_stage "pod_snapshot_available/${arm}" "region/${key}" \
-    mr_wait_for "${MR_POD_SNAPSHOT_TIMEOUT_S}" 20 "Pod snapshot in ${key}" snapshot_available "${key}" || return 1
+  if ! mr_stage "pod_snapshot_available/${arm}" "region/${key}" \
+    mr_wait_for "${MR_POD_SNAPSHOT_TIMEOUT_S}" 20 "Pod snapshot in ${key}" snapshot_available "${key}"; then
+    mr_log "WARNING: no Pod snapshot in ${key} after ${MR_POD_SNAPSHOT_TIMEOUT_S}s; the other replicas there start cold"
+  fi
   if [[ "${MR_HPA_ENABLED}" == "true" ]]; then
     mr_kubectl "${key}" apply -f "${dir}/${arm}.hpa.yaml" || return 1
     mr_wait_for 300 5 "HPA minimum replicas in ${key}" deployment_at_min "${key}" || return 1
-    mr_stage "arm_pods_restored/${arm}" "region/${key}" wait_ready "${key}"
+  else
+    mr_kubectl "${key}" scale deploy "$(model_server_deployment)" -n "${MR_NAMESPACE}" --replicas="${MR_REPLICAS_PER_REGION}" || return 1
   fi
+  mr_stage "arm_pods_restored/${arm}" "region/${key}" wait_ready "${key}"
 }
 
 deployment_at_min() {
@@ -188,23 +246,26 @@ deployment_at_min() {
 apply_routers() {
   local key="${1}" release file
   for release in ${MR_LLMD_ROUTER_RELEASES}; do
-    file="$(mr_render_router "${key}" "${release}")"
-    mr_kubectl "${key}" apply --server-side --force-conflicts -f "${file}"
+    file="$(mr_render_router "${key}" "${release}")" || return 1
+    mr_kubectl "${key}" apply --server-side --force-conflicts -f "${file}" || return 1
     if [[ "${MR_GLOBAL_LB}" == "mc-gateway" ]]; then
       # Export the InferencePool to the fleet. The multi-cluster Gateway
       # controller then creates a GCPInferencePoolImport with the same name in
       # the config cluster.
       mr_kubectl "${key}" annotate inferencepool "${release}" -n "${MR_NAMESPACE}" \
-        networking.gke.io/export="True" --overwrite
+        networking.gke.io/export="True" --overwrite || return 1
     else
       # Standalone Mode: expose the router proxy (Envoy + endpoint picker) as
       # GKE standalone zonal NEGs for the Terraform-managed load balancer.
       mr_kubectl "${key}" annotate service "${release}-epp" -n "${MR_NAMESPACE}" --overwrite \
-        cloud.google.com/neg="{\"exposed_ports\":{\"80\":{\"name\":\"$(mr_neg_prefix "${key}")-$(mr_router_short_name "${release}")\"}}}"
+        cloud.google.com/neg="{\"exposed_ports\":{\"80\":{\"name\":\"$(mr_neg_prefix "${key}")-$(mr_router_short_name "${release}")\"}}}" || return 1
     fi
   done
   for release in ${MR_LLMD_ROUTER_RELEASES}; do
-    mr_kubectl "${key}" rollout status "deploy/${release}-epp" -n "${MR_NAMESPACE}" --timeout=900s
+    mr_kubectl "${key}" rollout status "deploy/${release}-epp" -n "${MR_NAMESPACE}" --timeout=900s || return 1
+    if [[ "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
+      mr_wait_for 300 5 "standalone NEG for Service/${release}-epp in ${key}" neg_ready "${key}" "${release}-epp" || return 1
+    fi
   done
 }
 
@@ -225,13 +286,18 @@ collect_startup() {
   mr_kubectl "${key}" get events -n "${MR_NAMESPACE}" -o json >"${dir}/events.json"
   local pod
   for pod in $(jq -r '.items[].metadata.name' "${dir}/pods.json"); do
-    mr_kubectl "${key}" logs -n "${MR_NAMESPACE}" "${pod}" -c modelserver >"${dir}/logs/${pod}.log" 2>&1 || true
+    mr_kubectl "${key}" logs --timestamps -n "${MR_NAMESPACE}" "${pod}" -c modelserver >"${dir}/logs/${pod}.log" 2>&1 || true
   done
 }
 
 declare -A apply_epoch ready_epoch
 for key in ${MR_REGION_KEYS}; do
   mr_validate_region_key "${key}"
+  if podsnapshots_on; then
+    check_podsnapshot_prereqs "${key}"
+  fi
+done
+for key in ${MR_REGION_KEYS}; do
   mr_stage "arm_apply_common/${arm}" "region/${key}" apply_common "${key}"
 done
 
@@ -258,7 +324,10 @@ if podsnapshots_on; then
       pids+=($!)
     fi
   done
-  for pid in "${pids[@]}"; do wait "${pid}" || mr_log "WARNING: Pod snapshot bootstrap failed in a region; new pods there start cold"; done
+  failed="false"
+  for pid in "${pids[@]}"; do wait "${pid}" || failed="true"; done
+  [[ "${failed}" == "false" ]] ||
+    mr_die "Restoring the llm-d model servers after the Pod snapshot bootstrap failed (see the errors above); fix the cause and re-run scripts/deploy-arm.sh llmd"
 fi
 for key in ${MR_REGION_KEYS}; do
   ready_epoch[${key}]="$(date +%s.%N)"

@@ -22,13 +22,17 @@ MR_SCRIPTS_DIR="$(
   pwd -P
 )"
 export MR_SCRIPTS_DIR
-export MR_EXAMPLE_DIR="$(realpath "${MR_SCRIPTS_DIR}/..")"
-export ACP_REPO_DIR="$(realpath "${MR_EXAMPLE_DIR}/../../../../../../..")"
+MR_EXAMPLE_DIR="$(realpath "${MR_SCRIPTS_DIR}/..")"
+export MR_EXAMPLE_DIR
+ACP_REPO_DIR="$(realpath "${MR_EXAMPLE_DIR}/../../../../../../..")"
+export ACP_REPO_DIR
 export ACP_PLATFORM_BASE_DIR="${ACP_REPO_DIR}/platforms/gke/base"
 export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
 
 # shellcheck source=/dev/null
 source "${MR_EXAMPLE_DIR}/mr.env"
+
+export MR_PYTHON="${MR_PYTHON:-python3}"
 
 mkdir -p "${MR_WORK_DIR}" "${MR_RESULTS_DIR}/timings"
 
@@ -49,7 +53,7 @@ mr_die() {
 # mr_record_timing <stage> <scope> <start_epoch_s> <end_epoch_s> <status> [extra_json]
 mr_record_timing() {
   local stage="${1}" scope="${2}" start="${3}" end="${4}" status="${5}" extra="${6:-{\}}"
-  python3 - "${MR_TIMINGS_FILE}" "${MR_RUN_ID}" "${stage}" "${scope}" "${start}" "${end}" "${status}" "${extra}" <<'EOF'
+  "${MR_PYTHON}" - "${MR_TIMINGS_FILE}" "${MR_RUN_ID}" "${stage}" "${scope}" "${start}" "${end}" "${status}" "${extra}" <<'EOF'
 import json, sys
 path, run_id, stage, scope, start, end, status, extra = sys.argv[1:9]
 record = {
@@ -83,7 +87,7 @@ mr_stage() {
   end="$(date +%s.%N)"
   if [[ ${rc} -eq 0 ]]; then
     mr_record_timing "${stage}" "${scope}" "${start}" "${end}" "ok"
-    mr_log "<<< [${scope}] ${stage}: ok ($(python3 -c "print(round(${end}-${start},1))")s)"
+    mr_log "<<< [${scope}] ${stage}: ok ($("${MR_PYTHON}" -c "print(round(${end}-${start},1))")s)"
   else
     mr_record_timing "${stage}" "${scope}" "${start}" "${end}" "failed" "{\"exit_code\": ${rc}}"
     mr_log "<<< [${scope}] ${stage}: FAILED with exit code ${rc}"
@@ -93,11 +97,14 @@ mr_stage() {
 
 mr_require_tools() {
   local missing=()
-  for tool in gcloud kubectl kustomize helm terraform jq python3 git envsubst; do
+  for tool in gcloud kubectl kustomize helm terraform jq "${MR_PYTHON}" git envsubst curl sponge flock; do
     command -v "${tool}" >/dev/null 2>&1 || missing+=("${tool}")
   done
   if [[ ${#missing[@]} -gt 0 ]]; then
     mr_die "missing required tools: ${missing[*]}"
+  fi
+  if ! "${MR_PYTHON}" -c "import yaml" >/dev/null 2>&1; then
+    mr_die "${MR_PYTHON} is missing PyYAML ('import yaml' failed). Install PyYAML or export MR_PYTHON=/path/to/venv/bin/python3."
   fi
 }
 
@@ -106,6 +113,13 @@ mr_validate_region_key() {
   [[ -n "${MR_REGION[${key}]:-}" ]] || mr_die "unknown region key '${key}'. Define it in mr.env."
   local platform_name="${MR_ENVIRONMENT_NAME}${key}"
   [[ ${#platform_name} -le 9 ]] || mr_die "platform_name '${platform_name}' is longer than 9 characters"
+}
+
+mr_validate_active_region_key() {
+  local key="${1}"
+  mr_validate_region_key "${key}"
+  [[ " ${MR_REGION_KEYS} " == *" ${key} "* ]] ||
+    mr_die "region key '${key}' is not in active MR_REGION_KEYS='${MR_REGION_KEYS}'"
 }
 
 # Per-region derived names. These mirror the core platform naming:
@@ -172,13 +186,15 @@ mr_gateway_vip() {
   local gateway="${1}" key="${2}"
   if [[ "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
     # Terraform-managed load balancer: VIPs are recorded by deploy-global-lb.sh.
-    jq -er --arg k "${key}" '.[$k] // empty' "${MR_RESULTS_DIR}/gateway/vips.json" 2>/dev/null
+    local vips_file="${MR_RESULTS_DIR}/gateway/vips.json"
+    [[ -f "${vips_file}" ]] || vips_file="${MR_WORK_DIR}/terraform/global_lb.vips.json"
+    jq -er --arg k "${key}" '.[$k] // empty' "${vips_file}" 2>/dev/null
     return
   fi
   local addresses
   addresses="$(mr_kubectl "${MR_CONFIG_CLUSTER_KEY}" get gateway "${gateway}" -n "${MR_NAMESPACE}" \
     -o jsonpath='{range .status.addresses[*]}{.value}{"\n"}{end}' 2>/dev/null)" || return 1
-  python3 - "${MR_NODE_CIDR[${key}]}" <<EOF
+  "${MR_PYTHON}" - "${MR_NODE_CIDR[${key}]}" <<EOF
 import ipaddress, sys
 net = ipaddress.ip_network(sys.argv[1])
 for line in """${addresses}""".split():

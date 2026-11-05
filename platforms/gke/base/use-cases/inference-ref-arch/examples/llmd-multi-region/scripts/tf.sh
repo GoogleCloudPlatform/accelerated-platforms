@@ -43,7 +43,7 @@ mr_tf() {
   local data_dir="${MR_WORK_DIR}/terraform/${terraservice}"
   mkdir -p "${data_dir}"
   (
-    cd "${dir}"
+    cd "${dir}" || exit 1
     export TF_DATA_DIR="${data_dir}/.terraform"
     export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
     mkdir -p "${TF_PLUGIN_CACHE_DIR}"
@@ -66,7 +66,7 @@ mr_tf() {
 mr_write_shared_network_tfvars() {
   local out="${MR_WORK_DIR}/terraform/shared_network.tfvars.json"
   mkdir -p "$(dirname "${out}")"
-  python3 - "${out}" <<EOF
+  "${MR_PYTHON}" - "${out}" <<EOF
 import json, sys
 keys = "${MR_REGION_KEYS}".split()
 region = dict(x.split("=", 1) for x in """$(for k in ${MR_REGION_KEYS}; do echo "${k}=${MR_REGION[${k}]}"; done)""".split())

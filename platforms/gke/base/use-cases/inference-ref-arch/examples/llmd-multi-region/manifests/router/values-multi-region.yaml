@@ -28,7 +28,13 @@ httpRoute:
   create: false
 
 router:
+  # Upstream llm-d-router-standalone v1.0.0 runs a single EPP replica (sidecar
+  # Envoy + EPP) per release so ZMQ KV-cache block events stay in one unified
+  # index per region. Mark the router pod unsafe to evict so the cluster
+  # autoscaler never consolidates the node hosting a region's active router.
   epp:
+    podAnnotations:
+      cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
     # The token-producer plugin renders prompts on the vLLM pods, so the router
     # doesn't need a Hugging Face token in the cluster.
     env: []

@@ -84,7 +84,7 @@ capacity)
   ;;
 zone-spray) algorithm="SPRAY_TO_REGION" ;;
 preferred)
-  mr_validate_region_key "${preferred_key}"
+  mr_validate_active_region_key "${preferred_key}"
   preferred_region="$(mr_region "${preferred_key}")"
   ;;
 *) mr_die "--lb-mode must be one of: locality, capacity, zone-spray, preferred" ;;
@@ -92,6 +92,8 @@ esac
 
 lb_name="${MR_RESOURCE_NAME_PREFIX}-${MR_ENVIRONMENT_NAME}-llm"
 tfvars="${MR_WORK_DIR}/terraform/global_lb.tfvars.json"
+persistent_vips="${MR_WORK_DIR}/terraform/global_lb.vips.json"
+persistent_state="${MR_WORK_DIR}/terraform/global_lb.state.json"
 state_dir="${MR_RESULTS_DIR}/gateway"
 mkdir -p "${state_dir}" "$(dirname "${tfvars}")"
 
@@ -101,24 +103,44 @@ write_tfvars() {
   negs="$(gcloud compute network-endpoint-groups list --project "${MR_PROJECT_ID}" \
     --filter="name ~ ^${MR_RESOURCE_NAME_PREFIX}-${MR_ENVIRONMENT_NAME}-" \
     --format="value(name,zone.basename(),selfLink)")"
-  python3 - "${tfvars}" <<EOF
+  "${MR_PYTHON}" - "${tfvars}" <<EOF
 import json, sys
 keys = "${MR_REGION_KEYS}".split()
 region = dict(x.split("=", 1) for x in """$(for k in ${MR_REGION_KEYS}; do echo "${k}=${MR_REGION[${k}]}"; done)""".split())
 prefix = "${MR_RESOURCE_NAME_PREFIX}-${MR_ENVIRONMENT_NAME}-"
 exclude = "${MR_LB_EXCLUDE_ARM:-}"
+hpa_enabled = "${MR_HPA_ENABLED}" == "true"
 capacity = float("${region_capacity_qps}")
 capacity_inflight = float("${region_capacity_inflight}")
 replicas = int("${MR_REPLICAS_PER_REGION}")
+hpa_max_replicas = int("${MR_HPA_MAX_REPLICAS}")
+if replicas < 1 or (hpa_enabled and hpa_max_replicas < replicas):
+    sys.exit(
+        f"MR_REPLICAS_PER_REGION={replicas} must be at least 1, and at most "
+        f"MR_HPA_MAX_REPLICAS={hpa_max_replicas} when MR_HPA_ENABLED=true"
+    )
 # Endpoints per region: the vLLM pods for the baseline, one router (Envoy +
 # endpoint picker) pod for each llm-d router release.
 endpoints = {"baseline": replicas, "ppcr": 1, "ob": 1}
+# With the HPA, the baseline's regional capacity grows with its NEG endpoints,
+# up to hpa_max_replicas times the per-endpoint capacity. The load balancer
+# can't see the vLLM pods behind an llm-d router, so give the router that
+# full-scale-out capacity from the start: both arms then spill over at the same
+# load once scaled out (before that, an llm-d region accepts more).
+router_hpa_scale = hpa_max_replicas / replicas if hpa_enabled else 1.0
+scale_by_backend = {"baseline": 1.0, "ppcr": router_hpa_scale, "ob": router_hpa_scale}
 backends = {
-    "baseline": {"health_check_path": "/health", "health_check_port": 8000, "negs": []},
+    "baseline": {
+        "health_check_path": "/health",
+        "health_check_port": 8000,
+        "locality_lb_policy": "${MR_BASELINE_LOCALITY_LB_POLICY}",
+        "negs": [],
+    },
     "ppcr": {"health_check_path": "/ready", "health_check_port": 19001, "negs": []},
     "ob": {"health_check_path": "/ready", "health_check_port": 19001, "negs": []},
 }
 excluded = {"baseline": ["baseline"], "llmd": ["ppcr", "ob"]}.get(exclude, [])
+negs_by_backend_key = {b: set() for b in backends}
 for line in """${negs}""".splitlines():
     if not line.strip():
         continue
@@ -127,27 +149,41 @@ for line in """${negs}""".splitlines():
     key, _, b = rest.partition("-")
     if key not in keys or b not in backends or b in excluded:
         continue
+    negs_by_backend_key[b].add(key)
+    mult = scale_by_backend[b]
     backends[b]["negs"].append({
         "region": region[key],
         "self_link": self_link,
-        "max_rate_per_endpoint": round(capacity / endpoints[b], 3),
-        "max_in_flight_requests_per_endpoint": max(1, round(capacity_inflight / endpoints[b])),
+        "max_rate_per_endpoint": round((capacity * mult) / endpoints[b], 3),
+        "max_in_flight_requests_per_endpoint": max(1, round((capacity_inflight * mult) / endpoints[b])),
     })
+active_backend = "${backend}"
+# Only when routing traffic: delete-arm.sh (MR_LB_EXCLUDE_ARM) must be able to
+# detach NEGs even if the recorded active arm is already gone.
+if not exclude:
+    missing_keys = [k for k in keys if k not in negs_by_backend_key[active_backend]]
+    if missing_keys:
+        print(
+            f"ERROR: active backend '{active_backend}' has no standalone NEGs in region(s): {', '.join(missing_keys)}. "
+            "Deploy the arm in every MR_REGION_KEYS region first.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 tfvars = {
     "project_id": "${MR_PROJECT_ID}",
     "name": "${lb_name}",
     "network": "projects/${MR_PROJECT_ID}/global/networks/${MR_NETWORK_NAME}",
     "regions": {k: {"region": region[k], "subnetwork": "projects/${MR_PROJECT_ID}/regions/%s/subnetworks/%s" % (region[k], "${MR_RESOURCE_NAME_PREFIX}-${MR_ENVIRONMENT_NAME}" + k)} for k in keys},
     "backends": backends,
-    "active_backend": "${backend}",
+    "active_backend": active_backend,
     "balancing_mode": "${MR_LB_BALANCING_MODE}",
     "load_balancing_algorithm": "${algorithm}",
     "preferred_region": "${preferred_region}",
     "timeout_sec": int("${MR_BACKEND_TIMEOUT_SEC:-3600}"),
 }
 json.dump(tfvars, open(sys.argv[1], "w"), indent=2)
-active = len(backends["${backend}"]["negs"])
-print(f"active backend ${backend}: {active} NEG(s); " + ", ".join(f"{b}={len(v['negs'])}" for b, v in backends.items()), file=sys.stderr)
+active = len(backends[active_backend]["negs"])
+print(f"active backend {active_backend}: {active} NEG(s); " + ", ".join(f"{b}={len(v['negs'])}" for b, v in backends.items()), file=sys.stderr)
 EOF
 }
 
@@ -157,7 +193,10 @@ apply_lb() {
     cd "${MR_EXAMPLE_DIR}/terraform/global_lb"
     export TF_DATA_DIR="${MR_WORK_DIR}/terraform/global_lb/.terraform"
     terraform output -json vips
-  ) >"${state_dir}/vips.json"
+  ) >"${state_dir}/vips.json" || return 1
+  cp "${state_dir}/vips.json" "${persistent_vips}" || return 1
+  jq -n --arg backend "${backend}" --arg lb_mode "${lb_mode}" --arg preferred_key "${preferred_key}" \
+    '{backend: $backend, lb_mode: $lb_mode, preferred_key: $preferred_key}' >"${persistent_state}"
 }
 
 route_ok_in_region() {
@@ -198,6 +237,7 @@ fi
   echo "  \"region_capacity_qps\": ${region_capacity_qps},"
   echo "  \"region_capacity_inflight\": ${region_capacity_inflight},"
   echo "  \"preferred_region\": \"${preferred_region}\","
+  echo "  \"preferred_key\": \"${preferred_key}\","
   echo "  \"vips\": {"
   sep=""
   for key in ${MR_REGION_KEYS}; do

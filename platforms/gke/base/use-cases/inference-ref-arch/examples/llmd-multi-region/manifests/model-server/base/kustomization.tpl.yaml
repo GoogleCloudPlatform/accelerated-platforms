@@ -24,6 +24,7 @@ kind: Kustomization
 
 resources:
   - https://github.com/llm-d/llm-d//guides/precise-prefix-cache-routing/modelserver/gpu/vllm/gke?ref=${MR_LLMD_GIT_REF}
+  - pdb.yaml
 
 patches:
   # Pods run as the namespace service account created by the inference-ref-arch

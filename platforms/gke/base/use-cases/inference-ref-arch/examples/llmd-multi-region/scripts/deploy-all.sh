@@ -65,4 +65,4 @@ fi
 mr_parallel models stage-model.sh
 mr_record_timing "setup_total" "global" "${setup_start}" "$(date +%s.%N)" "ok"
 
-python3 "${MR_EXAMPLE_DIR}/bench/setup_report.py" "${MR_TIMINGS_FILE}" | tee "${MR_RESULTS_DIR}/setup-${MR_RUN_ID}.md"
+"${MR_PYTHON}" "${MR_EXAMPLE_DIR}/bench/setup_report.py" "${MR_TIMINGS_FILE}" | tee "${MR_RESULTS_DIR}/setup-${MR_RUN_ID}.md"

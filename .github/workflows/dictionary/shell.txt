@@ -6,6 +6,7 @@ elif
 envsubst
 errexit
 excludesfile
+fromjson
 getopt
 koalaman
 libexec
@@ -25,6 +26,7 @@ pkill
 shellcheck
 shfmt
 shuf
+slurpfile
 subshell
 syscall
 tostring

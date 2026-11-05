@@ -131,6 +131,14 @@ mr_state_bucket() { echo "${PROJECT_ID}-${TF_VAR_resource_name_prefix:-inf}-${MR
 mr_worktree_dir() { echo "${MR_WORK_DIR}/worktrees/${1}"; }
 mr_deploy_suffix() { if [[ "${CLUSTER_MODE}" == "autopilot" ]]; then echo "ap"; else echo "standard"; fi; }
 
+# Name of the GKE standalone NEG of a backend in a regional platform, which
+# global_lb.sh attaches to the cross-region internal Application Load Balancer.
+mr_neg_name() {
+  local platform_name="${1:?Usage: mr_neg_name <platform_name> <backend>}"
+  local backend="${2:?Usage: mr_neg_name <platform_name> <backend>}"
+  echo "$(mr_cluster_name "${platform_name}")-${backend}"
+}
+
 # Computes deterministic, non-overlapping RFC1918 CIDRs for CIDR index 0..11,
 # staying outside Google Cloud's 10.128.0.0/9 auto-mode subnet space so that
 # every platform can share one VPC (NETWORK_MODE=shared-vpc), or so that island
@@ -468,6 +476,41 @@ mr_wait_for() {
     fi
     sleep "${interval}"
   done
+}
+
+mr_service_neg_ready() {
+  local kubeconfig="${1}" namespace="${2}" service="${3}" status
+  status="$(kubectl --kubeconfig "${kubeconfig}" get service "${service}" -n "${namespace}" \
+    -o jsonpath='{.metadata.annotations.cloud\.google\.com/neg-status}')" || return 1
+  [[ -n "${status}" ]] && jq -e '.network_endpoint_groups | length > 0' <<<"${status}" >/dev/null
+}
+
+# Exposes a port of a regional frontend Service (for example dynamo-frontend,
+# trtllm, or an llm-d router) as the GKE standalone NEG of a global load
+# balancer backend, waits until GKE has created it, and prints its name.
+expose_service_neg() {
+  local usage="Usage: expose_service_neg <platform_name> <namespace> <service> <port> <backend>"
+  local platform_name="${1:?${usage}}" namespace="${2:?${usage}}" service="${3:?${usage}}"
+  local port="${4:?${usage}}" backend="${5:?${usage}}"
+  (
+    set -o errexit
+    set -o nounset
+    set -o pipefail
+
+    mr_load_settings
+    mr_load_project
+    [[ "${backend}" =~ ^[a-z][a-z0-9-]{0,29}$ ]] ||
+      mr_die "backend name '${backend}' must be 1-30 lowercase letters, digits, or hyphens, starting with a letter."
+    local kubeconfig neg
+    kubeconfig="$(mr_kubeconfig "${platform_name}")"
+    neg="$(mr_neg_name "${platform_name}" "${backend}")"
+    kubectl --kubeconfig "${kubeconfig}" annotate service "${service}" -n "${namespace}" --overwrite \
+      cloud.google.com/neg="{\"exposed_ports\":{\"${port}\":{\"name\":\"${neg}\"}}}" >&2
+    mr_wait_for 300 5 "standalone NEG ${neg} of Service ${namespace}/${service}" \
+      mr_service_neg_ready "${kubeconfig}" "${namespace}" "${service}" ||
+      mr_die "GKE didn't create the NEG ${neg}. Check the Service's events: kubectl --kubeconfig ${kubeconfig} describe service ${service} -n ${namespace}"
+    echo "${neg}"
+  )
 }
 
 # Stages a single Hugging Face model into the active region's GCS model bucket

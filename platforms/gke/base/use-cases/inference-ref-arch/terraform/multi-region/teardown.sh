@@ -17,6 +17,7 @@
 # Tears down regional inference-ref-arch platforms created by provision.sh,
 # reusing ACP's core/initialize backend generation and failing fast on IAM,
 # authentication, or Terraform errors. With NETWORK_MODE=shared-vpc, it also
+# destroys the global load balancer (when every platform is torn down), and
 # removes the platforms from the shared network, which it destroys with the
 # last platform.
 #
@@ -89,6 +90,7 @@ print_plan() {
   echo "Multi-region teardown plan (dry run, nothing is deleted)"
   echo "  project=${PROJECT_ID} prefix=${TF_VAR_resource_name_prefix} NETWORK_MODE=${NETWORK_MODE} CLUSTER_MODE=${CLUSTER_MODE} parallel=${parallel}"
   if [[ "${NETWORK_MODE}" == "shared-vpc" ]]; then
+    echo "  first: destroy global_lb (only if these targets are the last registered platforms)"
     echo "  last:  remove the targets from the shared network $(mr_shared_network_name); destroy it with the last platform"
   fi
   for i in "${!MR_TARGET_PLATFORMS[@]}"; do
@@ -96,7 +98,7 @@ print_plan() {
     echo
     echo "[${platform}] region=${MR_TARGET_REGIONS[i]} cidr_index=${MR_TARGET_INDEXES[i]} cluster=$(mr_cluster_name "${platform}")"
     echo "  checkout: $(region_checkout "${platform}")"
-    echo "  steps:    delete Pod snapshot resources, empty the model and Pod snapshot buckets, core/initialize apply, terraform/online_gpu destroy, terraform/teardown-$(mr_deploy_suffix).sh"
+    echo "  steps:    delete Pod snapshot resources and standalone NEGs, empty the model and Pod snapshot buckets, core/initialize apply, terraform/online_gpu destroy, terraform/teardown-$(mr_deploy_suffix).sh"
     (
       export_teardown_env "${platform}" "${MR_TARGET_REGIONS[i]}" "${MR_TARGET_INDEXES[i]}"
       mr_print_region_env
@@ -132,6 +134,37 @@ delete_pod_snapshot_resources() {
   fi
 }
 
+# Succeeds when none of the NEGs (names in the JSON array) exists in a region.
+negs_deleted() {
+  local names="${1}" region="${2}" negs
+  negs="$(gcloud compute network-endpoint-groups list --project="${PROJECT_ID}" --format=json)" || return 1
+  jq -e --argjson names "${names}" --arg region "${region}" \
+    '[.[] | select((.name as $name | $names | index($name)) and (.zone | test("/zones/" + $region + "-[a-z]$")))] | length == 0' \
+    <<<"${negs}" >/dev/null
+}
+
+# GKE doesn't delete standalone NEGs (expose_service_neg) with their cluster,
+# and core/networking doesn't clean them up in a network that it doesn't own
+# (NETWORK_MODE=shared-vpc), where they would block the deletion of the
+# regional subnet. Removing the NEG annotation of the Services makes the NEG
+# controller delete the NEGs while the cluster still runs; the global load
+# balancer, which would keep them in use, is already gone.
+delete_standalone_negs() {
+  local kubeconfig="${1}" region="${2}" services names service
+  services="$(kubectl --kubeconfig "${kubeconfig}" get services --all-namespaces -o json |
+    jq -c '[.items[] | select((.metadata.annotations["cloud.google.com/neg"] // "") | contains("exposed_ports"))]')"
+  names="$(jq -c '[.[].metadata.annotations["cloud.google.com/neg-status"] // empty
+    | fromjson | (.network_endpoint_groups // {})[]] | unique' <<<"${services}")"
+  while IFS= read -r service; do
+    kubectl --kubeconfig "${kubeconfig}" annotate service "${service#*/}" --namespace "${service%%/*}" cloud.google.com/neg-
+  done < <(jq -r '.[] | "\(.metadata.namespace)/\(.metadata.name)"' <<<"${services}")
+  if [[ "${names}" != "[]" ]]; then
+    mr_log "Waiting for GKE to delete the standalone NEGs ${names}"
+    mr_wait_for 900 15 "deletion of the standalone NEGs ${names}" negs_deleted "${names}" "${region}" ||
+      mr_die "the standalone NEGs ${names} still exist in ${region}. Detach them from any backend service (for example with 'global_lb.sh destroy') and re-run."
+  fi
+}
+
 # teardown_region <checkout> <platform_name> <region> <cidr_index>
 teardown_region() {
   local checkout="${1}" platform="${2}" region="${3}" index="${4}"
@@ -160,6 +193,7 @@ teardown_region() {
       --location="${region}" \
       --project="${PROJECT_ID}"
     delete_pod_snapshot_resources "${checkout_kubeconfig}"
+    delete_standalone_negs "${checkout_kubeconfig}" "${region}"
   fi
 
   pod_snapshots_bucket="${PROJECT_ID}-${cluster}-pod-snapshots"
@@ -265,6 +299,11 @@ remaining="{}"
 if [[ "${NETWORK_MODE}" == "shared-vpc" ]]; then
   registry="$(mr_registry_json)"
   remaining="$(remaining_registry_json "${registry}")"
+  if mr_tf_state_has_resources global_lb; then
+    [[ "${remaining}" == "{}" ]] ||
+      mr_die "the global load balancer also serves $(jq -r 'keys | join(" ")' <<<"${remaining}"). Run 'global_lb.sh destroy' first, tear down these platforms, then re-run 'global_lb.sh apply' for the remaining ones."
+    "${MY_PATH}/global_lb.sh" destroy
+  fi
 fi
 
 if [[ "${parallel}" == "true" ]]; then

@@ -73,6 +73,7 @@ keyrings
 krmapihost
 krmapihosting
 lssd
+maglev
 megagpu
 meshconfig
 modelarmor

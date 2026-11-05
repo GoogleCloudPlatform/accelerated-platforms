@@ -5,6 +5,7 @@ dearmour
 dpkg
 errno
 gdmsession
+iflag
 ifname
 libbz
 libncursesw
@@ -13,6 +14,7 @@ libsqlite
 liburing
 libz
 malloc
+nocache
 nsenter
 nssdb
 numa
@@ -22,6 +24,7 @@ psmisc
 rdma
 shootdown
 startxfce
+tmpfs
 trixie
 usermod
 uuidgen

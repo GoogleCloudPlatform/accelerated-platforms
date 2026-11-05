@@ -20,15 +20,16 @@ configMapGenerator:
       - trtllm.env
     name: trtllm
     namespace: replaced-by-kustomize
-  - files:
+  - behavior: merge
+    files:
       - extra-llm-api-config.yaml
     name: trtllm-extra-config
     namespace: replaced-by-kustomize
 
 resources:
   - ../../base
+  - ../../trtllm-runtime
   - deployment.yaml
   - service.yaml
   - hpa.yaml
   - pod-monitoring.yaml
-  - pod-disruption-budget.yaml

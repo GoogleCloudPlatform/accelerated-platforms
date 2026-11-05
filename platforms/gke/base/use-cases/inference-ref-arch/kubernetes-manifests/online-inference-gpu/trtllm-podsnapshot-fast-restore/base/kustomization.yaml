@@ -20,13 +20,16 @@ configMapGenerator:
       - trtllm.env
     name: trtllm
     namespace: replaced-by-kustomize
-  - files:
+  - behavior: merge
+    files:
       - extra-llm-api-config.yaml
+      - gcs_model_streamer.py
     name: trtllm-extra-config
     namespace: replaced-by-kustomize
 
 resources:
   - ../../base
+  - ../../trtllm-runtime
   - deployment.yaml
   - service.yaml
   - pod-monitoring.yaml

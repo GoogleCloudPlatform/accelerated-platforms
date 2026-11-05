@@ -21,7 +21,7 @@ spec:
   selector:
     matchLabels:
       app: trtllm-snap
-  storageConfigName: trtllm-snap-config
+  storageConfigName: replaced-by-kustomize-trtllm-snap-config
   triggerConfig:
     type: workload
     postCheckpoint: resume

@@ -1,8 +1,6 @@
-autotuned
 cuda
 cudnn
 dcgm
-fmha
 gddr
 gloo
 hmma
@@ -27,6 +25,7 @@ nvproxy
 oauthtoken
 ompi
 prte
+pyexecutor
 runai
 tensorrt
 tensorrtllm

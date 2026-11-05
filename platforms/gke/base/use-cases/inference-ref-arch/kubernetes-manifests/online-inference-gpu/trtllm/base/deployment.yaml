@@ -22,13 +22,22 @@ spec:
     matchLabels:
       app: trtllm
   strategy:
-    type: Recreate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
+      # Match GCS FUSE sidecar requests and limits so the Pod achieves
+      # Guaranteed QoS and stays within g4-standard-48's ~164 GiB allocatable
+      # memory budget. Per-model overlays override memory-request/memory-limit.
       annotations:
-        gke-gcsfuse/cpu-limit: "0"
-        gke-gcsfuse/ephemeral-storage-limit: "0"
-        gke-gcsfuse/memory-limit: "0"
+        gke-gcsfuse/cpu-limit: "4"
+        gke-gcsfuse/cpu-request: "4"
+        gke-gcsfuse/ephemeral-storage-limit: "5Gi"
+        gke-gcsfuse/ephemeral-storage-request: "5Gi"
+        gke-gcsfuse/memory-limit: "36Gi"
+        gke-gcsfuse/memory-request: "36Gi"
         gke-gcsfuse/volumes: "true"
       labels:
         ai.gke.io/model: replaced-by-kustomize
@@ -44,8 +53,11 @@ spec:
               if [ "${PREWARM_SAFETENSORS:-true}" = "true" ]; then
                 t0="$(date +%s.%N)"
                 echo "[trtllm-fast-start] Pre-warming safetensors shards from HNS Cloud Storage into RAM-backed GCS FUSE cache..."
+                # `iflag=nocache` drops FUSE kernel page-cache pages after each
+                # 16 MiB read so shards are cached once in gke-gcsfuse-cache
+                # tmpfs rather than double-buffered in host RAM.
                 find /model -maxdepth 1 -name '*.safetensors' -type f \
-                  | xargs -r -P "${PREWARM_PARALLELISM:-16}" -I {} dd if="{}" of=/dev/null bs=16M status=none
+                  | xargs -r -P "${PREWARM_PARALLELISM:-16}" -I {} dd if="{}" of=/dev/null bs=16M iflag=nocache status=none
                 t1="$(date +%s.%N)"
                 awk -v s="${t0}" -v e="${t1}" 'BEGIN { printf "[trtllm-fast-start] Safetensors RAM pre-warm completed in %.2fs\n", e - s }'
               fi
@@ -56,6 +68,9 @@ spec:
               if [ -n "${TOOL_PARSER:-}" ]; then
                 EXTRA_ARGS+=(--tool_parser "${TOOL_PARSER}")
               fi
+              # Always launch via `mpirun ... trtllm-llmapi-launch`, even at
+              # TP=1, so TensorRT-LLM uses a pre-initialized MPI world instead
+              # of OpenMPI 5.0 PRTE dynamic `MPI.COMM_SELF.Spawn()`.
               exec mpirun \
                 --allow-run-as-root \
                 --oversubscribe \
@@ -101,6 +116,8 @@ spec:
               value: "1"
             - name: OMPI_ALLOW_RUN_AS_ROOT_CONFIRM
               value: "1"
+            - name: PYTHONPATH
+              value: "/etc/trtllm"
             - name: REASONING_PARSER
               valueFrom:
                 configMapKeyRef:
@@ -118,6 +135,8 @@ spec:
                   key: TOOL_PARSER
                   name: runtime
                   optional: true
+            - name: TRTLLM_NO_USAGE_STATS
+              value: "1"
           image: replaced-by-kustomize
           imagePullPolicy: IfNotPresent
           livenessProbe:
@@ -181,10 +200,13 @@ spec:
           name: huggingface-hub-model-bucket
         - emptyDir:
             medium: Memory
+            sizeLimit: 30Gi
           name: gke-gcsfuse-cache
         - emptyDir:
             medium: Memory
+            sizeLimit: 2Gi
           name: gke-gcsfuse-tmp
         - emptyDir:
             medium: Memory
+            sizeLimit: 2Gi
           name: gke-gcsfuse-buffer

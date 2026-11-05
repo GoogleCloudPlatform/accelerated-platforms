@@ -93,6 +93,13 @@ replacements:
           - metadata.namespace
         select:
           kind: PodDisruptionBudget
+      - fieldPaths:
+          - metadata.name
+        options:
+          delimiter: "-trtllm-snap-config"
+          index: 0
+        select:
+          kind: PodSnapshotStorageConfig
   - source:
       fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
       kind: ConfigMap
@@ -114,7 +121,6 @@ replacements:
   - source:
       fieldPath: metadata.name
       kind: PodSnapshotStorageConfig
-      name: trtllm-snap-config
     targets:
       - fieldPaths:
           - spec.storageConfigName

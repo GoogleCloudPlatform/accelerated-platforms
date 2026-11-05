@@ -243,7 +243,12 @@ Sends a test request to all of the TPU vLLM deployments.
   [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
   must be deployed and configured in your repository.
 
-  - The `online_gpu` terraservice must be deployed and configured.
+  - The `online_gpu` terraservice must be deployed and configured. For the
+    `vllm-podsnapshot-fast-restore` and `trtllm-podsnapshot-fast-restore`
+    overlays, enable GKE Pod snapshots
+    (`ira_online_gpu_pod_snapshots_enabled = true`, GKE `1.35.3-gke.1234000` or
+    later with Pod snapshots enabled, and on GKE Standard apply
+    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/node-setup/gvisor-disable-core-tags.yaml`).
   - The `online_tpu` terraservice must be deployed and configured.
   - The `images/gpu/diffusers_flux` terraservice must be deployed and
     configured.
@@ -312,10 +317,21 @@ Sends a test request to all of the TPU vLLM deployments.
 
 ### Test the GPU online inference TensorRT-LLM models
 
-- Select the accelerator type (`rtx-pro-6000`).
+- Select the accelerator type (`rtx-pro-6000`), and optionally set `HF_MODEL_ID`
+  to test a single model from `hf_gpu_trtllm_models` (unset `HF_MODEL_ID` to run
+  all configured TensorRT-LLM models).
 
   ```shell
   export ACCELERATOR_TYPE="rtx-pro-6000"
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+  ```
+
+  To target the FP8, BF16, or Super-120B NVFP4 variants instead:
+
+  ```shell
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-fp8"
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-super-120b-a12b-nvfp4"
   ```
 
 - Apply the GPU TensorRT-LLM manifests.
@@ -338,10 +354,19 @@ Sends a test request to all of the TPU vLLM deployments.
 
 ### Test the GPU online inference TensorRT-LLM Pod snapshot fast-restore models
 
-- Select the accelerator type (`rtx-pro-6000`).
+- Select the accelerator type (`rtx-pro-6000`), and optionally set `HF_MODEL_ID`
+  to test a single model from `hf_gpu_trtllm_podsnapshot_models` (unset
+  `HF_MODEL_ID` to run all configured Pod snapshot models).
 
   ```shell
   export ACCELERATOR_TYPE="rtx-pro-6000"
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+  ```
+
+  To target the FP8 variant instead:
+
+  ```shell
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-fp8"
   ```
 
 - Apply the GPU TensorRT-LLM Pod snapshot fast-restore manifests.

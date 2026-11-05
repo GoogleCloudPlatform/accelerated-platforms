@@ -25,7 +25,6 @@ encrypter
 encrypters
 esbenp
 exfiltrate
-failovers
 finetune
 finetuning
 fluentbit
@@ -75,7 +74,6 @@ schnell
 seqs
 sharegpt
 stabilityai
-stockouts
 tflops
 timonwong
 tunables

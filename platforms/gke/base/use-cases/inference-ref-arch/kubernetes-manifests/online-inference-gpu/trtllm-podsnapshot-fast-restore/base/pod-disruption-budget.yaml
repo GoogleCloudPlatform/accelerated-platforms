@@ -18,6 +18,13 @@ metadata:
   name: trtllm-snap
   namespace: replaced-by-kustomize
 spec:
+  # Keep at least one Pod available while the single cold-start replica is
+  # streaming weights and writing its checkpoint (`ALLOWED DISRUPTIONS: 0`),
+  # while still allowing one node at a time to be drained when scaled out to
+  # two or more replicas. While the Deployment remains at 1 replica, this also
+  # blocks voluntary node upgrade and auto-repair drains on GKE Standard (up to
+  # GKE's 1-hour PDB drain timeout), which is acceptable because the single-pod
+  # cold-start checkpoint phase is short-lived.
   minAvailable: 1
   selector:
     matchLabels:

@@ -15,7 +15,7 @@
 apiVersion: podsnapshot.gke.io/v1
 kind: PodSnapshotStorageConfig
 metadata:
-  name: trtllm-snap-config
+  name: replaced-by-kustomize-trtllm-snap-config
 spec:
   snapshotStorageConfig:
     gcs:

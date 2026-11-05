@@ -50,15 +50,17 @@ for model in "${models[@]}"; do
     APP_LABEL="$(awk -F= '$1 == "APP_LABEL" { print $2 }' "${variant_dir}/runtime.env")"
     TRTLLM_VARIANT="${APP_LABEL#trtllm-snap-}"
     "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/trtllm-podsnapshot-fast-restore/configure_trtllm_podsnapshot.sh"
+    # Delete the Deployment and PodSnapshotPolicy before deleting PodSnapshot
+    # CRs so terminating or running Pods cannot trigger a new snapshot.
     # shellcheck disable=SC2154
     kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" delete "deployment/${APP_LABEL}" --ignore-not-found
+    kubectl delete --ignore-not-found --kustomize "${variant_dir}"
     snapshots="$(kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" get podsnapshots \
       --output=jsonpath="{range .items[?(@.spec.policyName=='trtllm-snap-policy-${TRTLLM_VARIANT}')]}{.metadata.name}{' '}{end}" || true)"
     if [[ -n "${snapshots}" ]]; then
       # shellcheck disable=SC2086
       kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" delete podsnapshots ${snapshots} --ignore-not-found
     fi
-    kubectl delete --ignore-not-found --kustomize "${variant_dir}"
     echo
   else
     echo "'${HF_MODEL_ID}' model does not have a configuration for '${ACCELERATOR_TYPE}', skipping."

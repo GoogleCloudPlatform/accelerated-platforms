@@ -31,6 +31,16 @@ if [[ ! -v ACCELERATOR_TYPE ]]; then
   exit 1
 fi
 
+PF_PID=""
+cleanup_port_forward() {
+  if [[ -n "${PF_PID}" ]]; then
+    kill "${PF_PID}" 2>/dev/null || true
+    wait "${PF_PID}" 2>/dev/null || true
+    PF_PID=""
+  fi
+}
+trap cleanup_port_forward EXIT
+
 if [[ -v HF_MODEL_ID && -n "${HF_MODEL_ID}" ]]; then
   models=("${HF_MODEL_ID}")
 else
@@ -63,7 +73,7 @@ for model in "${models[@]}"; do
 
     echo "Waiting for port forwarding..."
     attempts=0
-    while ! echo -e '\x1dclose\x0d' | telnet localhost "${forwarding_port}" >/dev/null 2>&1; do
+    while ! curl --fail --silent --max-time 2 "http://127.0.0.1:${forwarding_port}/health" >/dev/null 2>&1; do
       if ! kill -0 "${PF_PID}" 2>/dev/null; then
         port_forwarding_failed=1
         echo "Port forwarding process exited!"
@@ -74,7 +84,7 @@ for model in "${models[@]}"; do
       if [[ ${attempts} -ge 300 ]]; then
         port_forwarding_failed=1
         echo "Timed out waiting for port forwarding!"
-        kill -9 "${PF_PID}" 2>/dev/null || true
+        cleanup_port_forward
         break
       fi
 
@@ -94,12 +104,17 @@ for model in "${models[@]}"; do
 
     echo "Sending POST request to '/v1/chat/completions'"
     echo "----------------------------------------------------------------------------------"
+    request_body="$(jq -n \
+      --arg model "${SERVED_MODEL_NAME}" \
+      '{
+        model: $model,
+        messages: [{role: "user", content: "Why is the sky blue?"}],
+        max_tokens: 128,
+        temperature: 0,
+        chat_template_kwargs: {enable_thinking: false}
+      }')"
     curl "http://127.0.0.1:${forwarding_port}/v1/chat/completions" \
-      --data '{
-        "model": "'"${SERVED_MODEL_NAME}"'",
-        "messages": [ { "role": "user", "content": "Why is the sky blue?" } ],
-        "max_tokens": 128
-      }' \
+      --data "${request_body}" \
       --fail \
       --header "Content-Type: application/json" \
       --request POST \
@@ -107,8 +122,7 @@ for model in "${models[@]}"; do
       --silent | jq -e '.choices[0].message.content | length > 0'
     echo "----------------------------------------------------------------------------------"
 
-    kill -9 "${PF_PID}" 2>/dev/null || true
-    wait "${PF_PID}" 2>/dev/null || true
+    cleanup_port_forward
     echo
   else
     echo "'${HF_MODEL_ID}' model does not have a configuration for '${ACCELERATOR_TYPE}', skipping."

@@ -19,20 +19,30 @@ metadata:
   namespace: replaced-by-kustomize
 spec:
   template:
+    metadata:
+      annotations:
+        gke-gcsfuse/memory-limit: "84Gi"
+        gke-gcsfuse/memory-request: "84Gi"
     spec:
       containers:
         - name: inference-server
           resources:
-            # Nemotron-3-Super-120B-A12B-NVFP4 is ~74.8 GiB of weights; 148Gi
-            # fits comfortably within g4-standard-48's ~165 GiB allocatable RAM
-            # while holding the RAM-backed GCS FUSE file cache.
+            # Nemotron-3-Super-120B-A12B-NVFP4 is ~74.8 GiB of weights: 84Gi for
+            # gke-gcsfuse-sidecar (78Gi file cache + buffers) + 72Gi for
+            # inference-server = 156Gi Guaranteed QoS (< ~164 GiB allocatable on
+            # g4-standard-48).
             limits:
               cpu: "16"
               ephemeral-storage: "30Gi"
-              memory: "148Gi"
+              memory: "72Gi"
               nvidia.com/gpu: "1"
             requests:
               cpu: "16"
               ephemeral-storage: "30Gi"
-              memory: "148Gi"
+              memory: "72Gi"
               nvidia.com/gpu: "1"
+      volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 78Gi
+          name: gke-gcsfuse-cache

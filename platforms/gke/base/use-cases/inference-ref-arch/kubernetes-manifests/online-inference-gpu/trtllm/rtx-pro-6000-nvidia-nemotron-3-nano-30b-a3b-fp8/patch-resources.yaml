@@ -19,19 +19,29 @@ metadata:
   namespace: replaced-by-kustomize
 spec:
   template:
+    metadata:
+      annotations:
+        gke-gcsfuse/memory-limit: "40Gi"
+        gke-gcsfuse/memory-request: "40Gi"
     spec:
       containers:
         - name: inference-server
           resources:
-            # Nemotron-3-Nano-30B-A3B-FP8 is ~30.4 GiB of weights; 112Gi host
-            # memory covers the RAM-backed GCS FUSE cache and runtime buffers.
+            # Nemotron-3-Nano-30B-A3B-FP8 is ~30.4 GiB of weights: 40Gi for
+            # gke-gcsfuse-sidecar (34Gi file cache + buffers) + 80Gi for
+            # inference-server (/dev/shm + runtime) = 120Gi Guaranteed QoS.
             limits:
               cpu: "12"
               ephemeral-storage: "30Gi"
-              memory: "112Gi"
+              memory: "80Gi"
               nvidia.com/gpu: "1"
             requests:
               cpu: "12"
               ephemeral-storage: "30Gi"
-              memory: "112Gi"
+              memory: "80Gi"
               nvidia.com/gpu: "1"
+      volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 34Gi
+          name: gke-gcsfuse-cache

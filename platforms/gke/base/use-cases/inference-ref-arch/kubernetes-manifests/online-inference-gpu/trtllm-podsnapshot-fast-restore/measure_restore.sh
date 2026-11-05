@@ -112,7 +112,7 @@ probe() {
     model="$1"
     deadline="$2"
     target_ip="$3"
-    body="{\"model\": \"${model}\", \"messages\": [{\"role\": \"user\", \"content\": \"The capital of France is\"}], \"max_tokens\": 8, \"temperature\": 0}"
+    body="$(python3 -c '\''import json, sys; print(json.dumps({"model": sys.argv[1], "messages": [{"role": "user", "content": "The capital of France is"}], "max_tokens": 8, "temperature": 0, "chat_template_kwargs": {"enable_thinking": False}}))'\'' "${model}")"
     ok=0
     end=$(( $(date +%s) + deadline ))
     while [ "$(date +%s)" -lt "${end}" ]; do
@@ -175,12 +175,15 @@ for pod in "${!probed[@]}"; do
   ready="$(cond "${pod}" Ready)"
   restored="$(cond "${pod}" PodRestored)"
   node="$("${KUBECTL[@]}" get pod "${pod}" --output=jsonpath='{.spec.nodeName}')"
-  node_created="$(kubectl get node "${node}" --output=jsonpath='{.metadata.creationTimestamp}')"
+  node_created=""
+  if [[ -n "${node}" ]]; then
+    node_created="$("${KUBECTL[@]}" get node "${node}" --output=jsonpath='{.metadata.creationTimestamp}')"
+  fi
   image="$("${KUBECTL[@]}" get events --field-selector="involvedObject.name=${pod},reason=Pulled" \
     --sort-by=.lastTimestamp \
     --output=jsonpath='{.items[-1].message}' | grep -oE 'already present|in ([0-9]+m)?[0-9.]+s ' | head -1 || true)"
   first="$(awk '$3 == 200 { print $1, $2; exit }' "${WORK_DIR}/${pod}.probe")"
-  loading="$("${KUBECTL[@]}" logs "${pod}" | grep -c -e "\[podsnapshot\] Streamed" -e "Loading weights" || true)"
+  loading="$("${KUBECTL[@]}" logs "${pod}" | grep -c -e "\[podsnapshot\] Streamed" -e "\[podsnapshot\] Downloading" -e "Loading weights" || true)"
   printf '%-24s %8s %-18s %7s %12s %15s %9s %8s\n' \
     "${pod: -24}" \
     "$(sec "$(since "${node_created}" "${scheduled}" | sed 's/^-//')")" \
@@ -199,3 +202,8 @@ new node. LOADING counts cold-start weight-streaming log lines and must be 0
 for a snapshot restore. FIRST_RESPONSE is when the first successful
 /v1/chat/completions response arrived; LATENCY is how long that request took.
 EOF
+
+if [[ ${#done_pods[@]} -lt ${want} ]]; then
+  echo "Timed out waiting for $((want - ${#done_pods[@]})) restored Pod(s) to serve 3 HTTP 200 responses within ${DEADLINE_SECONDS}s." >&2
+  exit 1
+fi

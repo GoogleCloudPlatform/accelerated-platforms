@@ -22,6 +22,11 @@ spec:
   selector:
     matchLabels:
       app: trtllm-snap
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
   template:
     metadata:
       labels:
@@ -48,6 +53,7 @@ spec:
           args:
             - |
               set -euo pipefail
+              rm -f /tmp/trtllm-ready
               # Under gVisor nvproxy, place /usr/local/nvidia/lib64 ahead of
               # /usr/local/cuda/compat/lib* so nvproxy's host-matched libcuda.so.1
               # is used, and unset BASH_ENV so child #!/bin/bash scripts (such as
@@ -56,76 +62,18 @@ spec:
               export LD_LIBRARY_PATH="/usr/local/nvidia/lib64:${CLEAN_LD}:/usr/local/cuda/compat/lib"
               unset BASH_ENV
 
-              if [ -f /var/run/secrets/huggingface.co/token ]; then
-                mkdir -p /root/.cache/huggingface
-                cp /var/run/secrets/huggingface.co/token /root/.cache/huggingface/token
-              fi
-
               if [ -n "${MODEL_BUCKET_NAME:-}" ]; then
+                export HF_HUB_OFFLINE=1
                 echo "[podsnapshot] Streaming '${MODEL_GCS_DIR}' from gs://${MODEL_BUCKET_NAME} into RAM (/model-cache)..."
-                python3 - <<'PY'
-              import concurrent.futures, json, os, time, urllib.parse, urllib.request
-
-              t0 = time.monotonic()
-              bucket = os.environ["MODEL_BUCKET_NAME"]
-              prefix = os.environ["MODEL_GCS_DIR"].strip("/") + "/"
-              dest_root = "/model-cache"
-              os.makedirs(dest_root, exist_ok=True)
-
-              def get_token() -> str:
-                  req = urllib.request.Request(
-                      "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token",
-                      headers={"Metadata-Flavor": "Google"},
-                  )
-                  with urllib.request.urlopen(req, timeout=10) as r:
-                      return json.loads(r.read().decode())["access_token"]
-
-              token = get_token()
-              items = []
-              page_token = None
-              while True:
-                  q = {"prefix": prefix, "maxResults": "1000"}
-                  if page_token:
-                      q["pageToken"] = page_token
-                  url = f"https://storage.googleapis.com/storage/v1/b/{urllib.parse.quote(bucket, safe='')}/o?{urllib.parse.urlencode(q)}"
-                  req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
-                  with urllib.request.urlopen(req, timeout=30) as r:
-                      data = json.loads(r.read().decode())
-                  for obj in data.get("items", []):
-                      name = obj["name"]
-                      rel = name[len(prefix):]
-                      if rel and not rel.endswith("/") and int(obj.get("size", "0")) > 0:
-                          items.append((name, rel, int(obj["size"])))
-                  page_token = data.get("nextPageToken")
-                  if not page_token:
-                      break
-
-              if not items:
-                  raise RuntimeError(f"No model objects found at gs://{bucket}/{prefix}")
-
-              def download_one(entry):
-                  name, rel, _ = entry
-                  out_path = os.path.join(dest_root, rel)
-                  os.makedirs(os.path.dirname(out_path), exist_ok=True)
-                  dl_url = f"https://storage.googleapis.com/storage/v1/b/{urllib.parse.quote(bucket, safe='')}/o/{urllib.parse.quote(name, safe='')}?alt=media"
-                  req = urllib.request.Request(dl_url, headers={"Authorization": f"Bearer {token}"})
-                  with urllib.request.urlopen(req, timeout=600) as r, open(out_path, "wb") as f:
-                      while True:
-                          chunk = r.read(64 * 1024 * 1024)
-                          if not chunk:
-                              break
-                          f.write(chunk)
-
-              with concurrent.futures.ThreadPoolExecutor(max_workers=16) as pool:
-                  list(pool.map(download_one, items))
-
-              total_gib = sum(sz for _, _, sz in items) / (1024 ** 3)
-              dt = time.monotonic() - t0
-              print(f"[podsnapshot] Streamed {len(items)} files ({total_gib:.2f} GiB) in {dt:.2f}s ({total_gib / max(dt, 0.001):.2f} GiB/s)", flush=True)
-              PY
+                python3 /etc/trtllm/gcs_model_streamer.py
               else
+                if [ -f /var/run/secrets/huggingface.co/token ]; then
+                  mkdir -p /root/.cache/huggingface
+                  cp /var/run/secrets/huggingface.co/token /root/.cache/huggingface/token
+                fi
                 echo "[podsnapshot] Downloading '${MODEL_ID}' from Hugging Face Hub into /model-cache..."
                 python3 -c 'import os; from huggingface_hub import snapshot_download; snapshot_download(repo_id=os.environ["MODEL_ID"], local_dir="/model-cache", max_workers=8)'
+                rm -f /root/.cache/huggingface/token /root/.cache/huggingface/hub/token
               fi
 
               EXTRA_ARGS=()
@@ -136,6 +84,9 @@ spec:
                 EXTRA_ARGS+=(--tool_parser "${TOOL_PARSER}")
               fi
 
+              # Always launch via `mpirun ... trtllm-llmapi-launch`, even at
+              # TP=1, so TensorRT-LLM uses a pre-initialized MPI world instead
+              # of OpenMPI 5.0 PRTE dynamic `MPI.COMM_SELF.Spawn()`.
               mpirun \
                 --allow-run-as-root \
                 --oversubscribe \
@@ -154,7 +105,7 @@ spec:
                 --extra_llm_api_options /etc/trtllm/extra-llm-api-config.yaml \
                 "${EXTRA_ARGS[@]}" &
               TRTLLM_PID=$!
-              trap 'kill -TERM "${TRTLLM_PID}" 2>/dev/null || true' TERM INT
+              trap 'kill -TERM "${TRTLLM_PID}" 2>/dev/null || true; wait "${TRTLLM_PID}" 2>/dev/null || true' TERM INT
 
               if [ ! -e /proc/gvisor/checkpoint ]; then
                 echo "[podsnapshot] /proc/gvisor/checkpoint is absent; skipping checkpoint trigger."
@@ -168,13 +119,14 @@ spec:
                   sleep 2
                 done
                 echo "[podsnapshot] Model server is healthy; sending one warm-up request to compile lazy GPU kernels..."
-                curl --fail --silent --max-time 180 \
+                WARMUP_BODY="$(python3 -c 'import json, os; print(json.dumps({"model": os.environ["MODEL_ID"], "messages": [{"role": "user", "content": "Say OK."}], "max_tokens": 8, "temperature": 0, "chat_template_kwargs": {"enable_thinking": False}}))')"
+                curl --fail --silent --show-error --max-time 180 \
                   -H "Content-Type: application/json" \
-                  -d "{\"model\":\"${MODEL_ID}\",\"messages\":[{\"role\":\"user\",\"content\":\"Say OK.\"}],\"max_tokens\":8,\"temperature\":0}" \
-                  http://127.0.0.1:8000/v1/chat/completions >/dev/null || true
+                  -d "${WARMUP_BODY}" \
+                  http://127.0.0.1:8000/v1/chat/completions >/dev/null
 
                 rm -f /root/.cache/huggingface/token /root/.cache/huggingface/hub/token 2>/dev/null || true
-                find /model-cache \( -name '*.safetensors' -o -name '*.bin' -o -name '*.pt' -o -name '*.lock' \) -delete 2>/dev/null || true
+                find /model-cache \( -name '*.safetensors' -o -name '*.bin' -o -name '*.pt' -o -name '*.lock' \) -delete
                 echo "[podsnapshot] Triggering cooperative checkpoint..."
                 if CHECKPOINT_ERR="$( (echo 1 > /proc/gvisor/checkpoint) 2>&1 )"; then
                   echo "[podsnapshot] Checkpoint complete (or pod restored from snapshot)."
@@ -182,6 +134,7 @@ spec:
                   echo "[podsnapshot] /proc/gvisor/checkpoint write returned non-zero (${CHECKPOINT_ERR:-unknown error}); continuing to serve."
                 fi
               fi
+              touch /tmp/trtllm-ready
               wait "${TRTLLM_PID}"
           env:
             - name: GLOO_SOCKET_IFNAME
@@ -225,6 +178,8 @@ spec:
               value: none
             - name: OMPI_MCA_oob_tcp_if_include
               value: lo
+            - name: PYTHONPATH
+              value: "/etc/trtllm"
             - name: REASONING_PARSER
               valueFrom:
                 configMapKeyRef:
@@ -242,21 +197,27 @@ spec:
                   key: TOOL_PARSER
                   name: runtime
                   optional: true
+            - name: TRTLLM_NO_USAGE_STATS
+              value: "1"
           ports:
             - containerPort: 8000
               name: metrics
           # No livenessProbe is set because kubelet would kill the paused
           # cold-start pod during a multi-minute checkpoint upload.
+          # readinessProbe requires `/tmp/trtllm-ready`, which is created only
+          # after warm-up and `/proc/gvisor/checkpoint` complete, preventing
+          # Service traffic from routing to a paused cold-start pod.
           readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test -f /tmp/trtllm-ready && curl --fail --silent --max-time 2 http://127.0.0.1:8000/health >/dev/null
             failureThreshold: 3
-            httpGet:
-              path: /health
-              port: 8000
-              scheme: HTTP
             initialDelaySeconds: 0
             periodSeconds: 2
             successThreshold: 1
-            timeoutSeconds: 2
+            timeoutSeconds: 3
           resources: {}
           startupProbe:
             failureThreshold: 1800
@@ -291,6 +252,7 @@ spec:
           name: trtllm-config
         - emptyDir:
             medium: Memory
+            sizeLimit: 40Gi
           name: model-cache
         - emptyDir: {}
           name: hf-cache

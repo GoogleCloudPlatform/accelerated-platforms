@@ -9,9 +9,9 @@ bfloat
 certifi
 cffi
 classmethod
+commonpath
 configparser
 contextlib
-conv
 coveragerc
 dataclass
 dataclasses
@@ -19,6 +19,7 @@ dataframe
 dbapi
 dbcommands
 deepcopy
+deque
 devel
 dropna
 einops
@@ -28,6 +29,7 @@ fillna
 fromarray
 frombuffer
 fromisoformat
+frozenset
 fsspec
 ftfy
 functools
@@ -39,11 +41,13 @@ getenv
 getframerate
 getnchannels
 getnframes
+getpid
 getsampwidth
 grpcio
 gunicorn
 hasattr
 hashlib
+hdrs
 hexdigest
 httpx
 idna
@@ -80,6 +84,7 @@ pgvector
 pipreqs
 pmap
 popen
+popleft
 preshed
 prng
 protos
@@ -104,12 +109,14 @@ rerank
 reranked
 retryable
 rsplit
+rstrip
 runpy
 sampwidth
 scikit
 sentencepiece
 setdefaulttimeout
 shutil
+sitecustomize
 spacy
 splitlines
 sqlalchemy
@@ -124,5 +131,6 @@ urlopen
 urlretrieve
 uvicorn
 venv
+wakeup
 writerow
 writestr

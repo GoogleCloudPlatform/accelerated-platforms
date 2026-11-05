@@ -93,8 +93,35 @@ ira_gpu_configure() {
 }
 
 ira_gpu_apply() {
+  local variant_dir="${1:?variant_dir}" policy
   ira_gpu_configure
-  kubectl apply --kustomize "${1:?variant_dir}"
+  local policies=()
+  mapfile -t policies < <(ira_gpu_rendered_names "${variant_dir}" PodSnapshotPolicy)
+  if [[ ${#policies[@]} -gt 0 ]]; then
+    # Apply storage configs and policies before the Deployment so that on an
+    # already-warm gVisor GPU node, the Pod does not start before its
+    # PodSnapshotPolicy reconciles Ready=True.
+    kubectl kustomize "${variant_dir}" | awk '
+      function flush() {
+        if (doc != "" && (kind == "PodSnapshotStorageConfig" || kind == "PodSnapshotPolicy")) {
+          printf "---\n%s", doc
+        }
+        doc = ""
+        kind = ""
+      }
+      /^---$/ { flush(); next }
+      {
+        doc = doc $0 "\n"
+        if ($0 ~ /^kind: /) { kind = $2 }
+      }
+      END { flush() }
+    ' | kubectl apply -f -
+    for policy in "${policies[@]}"; do
+      kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" \
+        wait --for=condition=Ready "podsnapshotpolicy/${policy}" --timeout=120s
+    done
+  fi
+  kubectl apply --kustomize "${variant_dir}"
 }
 
 ira_gpu_delete() {
@@ -193,10 +220,48 @@ ira_gpu_smoke_test() {
   fi
   served_model_name="$(ira_gpu_runtime_value "${variant_dir}" MODEL_ID)"
 
-  port="$(kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" get service "${service}" --output=jsonpath='{.spec.ports[0].port}')"
+  local endpoint_pod endpoint_port request_body runtime_class="" target
+  request_body="$(jq -n --arg model "${served_model_name}" '{
+    model: $model,
+    messages: [{role: "user", content: "Why is the sky blue?"}],
+    max_tokens: 128,
+    temperature: 0,
+    chat_template_kwargs: {enable_thinking: false}
+  }')"
+
+  endpoint_pod="$(kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" get endpoints "${service}" --output=jsonpath='{.subsets[0].addresses[0].targetRef.name}' 2>/dev/null || true)"
+  endpoint_port="$(kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" get endpoints "${service}" --output=jsonpath='{.subsets[0].ports[0].port}' 2>/dev/null || true)"
+  if [[ -n "${endpoint_pod}" && -n "${endpoint_port}" ]]; then
+    target="pod/${endpoint_pod}"
+    port="${endpoint_port}"
+    runtime_class="$(kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" get pod "${endpoint_pod}" --output=jsonpath='{.spec.runtimeClassName}' 2>/dev/null || true)"
+  else
+    target="service/${service}"
+    port="$(kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" get service "${service}" --output=jsonpath='{.spec.ports[0].port}')"
+  fi
+
+  if [[ "${runtime_class}" == "gvisor" ]]; then
+    # gVisor's user-space network stack does not bind container listeners on
+    # 127.0.0.1 inside the host network namespace that `kubectl port-forward` dials.
+    echo "Running in-sandbox smoke test against ${endpoint_pod}:${port} (RuntimeClass=gvisor)..."
+    echo "GET /v1/models"
+    kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" exec "${endpoint_pod}" -- \
+      curl --fail --request GET --show-error --silent "http://127.0.0.1:${port}/v1/models" | jq -e '.data | length > 0'
+    echo "POST /v1/chat/completions"
+    kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" exec "${endpoint_pod}" -- \
+      curl "http://127.0.0.1:${port}/v1/chat/completions" \
+      --data "${request_body}" \
+      --fail \
+      --header "Content-Type: application/json" \
+      --request POST \
+      --show-error \
+      --silent | jq -e '(.choices[0].message.content // .choices[0].message.reasoning_content) | length > 0'
+    return 0
+  fi
+
   local_port="$(shuf -i 49152-65535 -n 1)"
-  echo "Port-forwarding 127.0.0.1:${local_port} to service/${service}:${port}..."
-  kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" port-forward "service/${service}" "${local_port}:${port}" >/dev/null &
+  echo "Port-forwarding 127.0.0.1:${local_port} to ${target}:${port}..."
+  kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" port-forward "${target}" "${local_port}:${port}" >/dev/null &
   IRA_GPU_PF_PID=$!
 
   local attempts=0
@@ -218,14 +283,6 @@ ira_gpu_smoke_test() {
   curl --fail --request GET --show-error --silent "http://127.0.0.1:${local_port}/v1/models" | jq -e '.data | length > 0'
 
   echo "POST /v1/chat/completions"
-  local request_body
-  request_body="$(jq -n --arg model "${served_model_name}" '{
-    model: $model,
-    messages: [{role: "user", content: "Why is the sky blue?"}],
-    max_tokens: 128,
-    temperature: 0,
-    chat_template_kwargs: {enable_thinking: false}
-  }')"
   curl "http://127.0.0.1:${local_port}/v1/chat/completions" \
     --data "${request_body}" \
     --fail \

@@ -46,6 +46,7 @@ test_variant() {
     echo "Waiting for the cold-start replica to resume after the checkpoint upload..."
     # shellcheck disable=SC2154
     kubectl --namespace="${ira_online_gpu_kubernetes_namespace_name}" rollout status "deployment/${app}" --timeout=300s
+    ira_gpu_smoke_test "${variant_dir}"
 
     echo "Scaling to 2 replicas and measuring the snapshot restore..."
     restore_output="$(APP="${app}" SERVED_MODEL_NAME="$(ira_gpu_runtime_value "${variant_dir}" MODEL_ID)" \
@@ -64,6 +65,7 @@ test_variant() {
       echo "Expected the restored replica to report Ready, PodRestored, FIRST_RESPONSE, and LOADING=0!" >&2
       exit 1
     fi
+    return
   fi
 
   ira_gpu_smoke_test "${variant_dir}"

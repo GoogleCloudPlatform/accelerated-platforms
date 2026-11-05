@@ -277,6 +277,7 @@ Sends a test request to all of the TPU vLLM deployments.
   - The `online_tpu` terraservice must be deployed and configured.
   - The `images/gpu/diffusers_flux` terraservice must be deployed and
     configured.
+  - The `images/gpu/dynamo_trtllm` terraservice must be deployed and configured.
   - The `images/tpu/max_diffusion_sdxl` terraservice must be deployed and
     configured.
 

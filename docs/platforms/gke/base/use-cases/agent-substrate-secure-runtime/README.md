@@ -70,7 +70,18 @@ export TF_VAR_secure_runtime_github_readonly_token="<YOUR_FINE_GRAINED_READONLY_
 | **Act 3: Dynamic Intent Filtering** | `./demo/act3-intent-egress.sh`    | Applies per-actor `EgressPolicy` (`replaceHeaders`) and `intent-extproc` `READ_ONLY` rules (`200 OK` on `GET /issues/42` with `0` secrets in `os.environ`, `403 Forbidden` on `POST /issues/42/comments`, default-deny on unlisted hosts). |
 | **Act 4: Audit & Clean Reset**      | `./demo/act4-audit-quarantine.sh` | Queries the SPIFFE-attributed L7 audit trail (`spiffe://substrate-actor.local/...`), revokes policy (`~126ms`), deletes the tainted actor, and restores a fresh actor from the Golden Snapshot (`~121ms`).                                 |
 
-### Interactive UIs (Mission Control & Google ADK Web UI)
+### Interactive UIs (Cloud Run + IAP or Local Port-Forward)
+
+To host both the **Secure Runtime Mission Control UI** (`/`) and the **Google
+ADK Web UI** (`/dev-ui/?app=secure_runtime_agent`) behind an **Identity-Aware
+Proxy (IAP)** Cloud Run URL using Direct VPC Egress (so no Cloudtop or
+`kubectl port-forward` is needed):
+
+```bash
+./platforms/gke/base/use-cases/agent-substrate-secure-runtime/demo/deploy-cloudrun-ui.sh
+```
+
+Or to run locally from a workstation with cluster access:
 
 ```bash
 # 1. Start the Secure Runtime Mission Control UI (http://127.0.0.1:18090/)
@@ -80,9 +91,8 @@ python3 ./platforms/gke/base/use-cases/agent-substrate-secure-runtime/demo/ui_se
 kubectl port-forward -n agent-harness deploy/triage-agent 18080:8080
 ```
 
-Open `http://127.0.0.1:18090/` to interactively run Acts 1–4 from the **Secure
-Runtime Mission Control** dashboard, and open
-`http://127.0.0.1:18080/dev-ui/?app=secure_runtime_agent` to prompt the live
-Gemini 3.8 Flash agent in the **Google ADK Web UI** (e.g., triage GitHub issue
-`#42` with `follow_issue_instructions=True` and inspect
+Open `/` to interactively run Acts 1–4 from the **Secure Runtime Mission
+Control** dashboard, and open `/dev-ui/?app=secure_runtime_agent` to prompt the
+live Gemini 3.8 Flash agent in the **Google ADK Web UI** (e.g., triage GitHub
+issue `#42` with `follow_issue_instructions=True` and inspect
 `last_intent_classification` in the **State** tab).

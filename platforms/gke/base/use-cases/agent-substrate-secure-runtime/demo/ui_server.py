@@ -20,30 +20,95 @@ to execute Acts 1-4, custom gVisor sandbox code, and Gemini 3.8 Flash ADK
 agent prompts in real time.
 """
 
+import http.client
 import json
 import os
+import socket
 import subprocess
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
-REPO_ROOT = Path(__file__).resolve().parents[6]
+_RESOLVED = Path(__file__).resolve()
+REPO_ROOT = _RESOLVED.parents[6] if len(_RESOLVED.parents) > 6 else _RESOLVED.parent
 DEFAULT_KUBECONFIG = (
     REPO_ROOT
     / "platforms/gke/base/kubernetes/kubeconfig/accelerated-platforms-dev-sec-secrt"
 )
+RUNTIME_KUBECONFIG = Path("/tmp/secure-runtime-kubeconfig")
 SLIDES_DIR = Path(os.environ.get("SLIDES_DIR", "/tmp/secure-runtime-slides"))
+_KUBE_LOCK = threading.Lock()
+_CACHED_ADK_HOSTPORT: str = ""
 
 
 def _build_env() -> dict[str, str]:
     env = dict(os.environ)
-    if not env.get("KUBECONFIG") and DEFAULT_KUBECONFIG.is_file():
-        env["KUBECONFIG"] = str(DEFAULT_KUBECONFIG)
-    home = env.get("HOME", "")
+    home = env.get("HOME", "/tmp")
     env["PATH"] = f"{home}/.local/bin:{home}/google-cloud-sdk/bin:{env.get('PATH', '')}"
+    if env.get("KUBECONFIG") and Path(env["KUBECONFIG"]).is_file():
+        return env
+    if DEFAULT_KUBECONFIG.is_file():
+        env["KUBECONFIG"] = str(DEFAULT_KUBECONFIG)
+        return env
+    if RUNTIME_KUBECONFIG.is_file():
+        env["KUBECONFIG"] = str(RUNTIME_KUBECONFIG)
+        return env
+    cluster = env.get("GKE_CLUSTER_NAME", "")
+    if cluster:
+        with _KUBE_LOCK:
+            if not RUNTIME_KUBECONFIG.is_file():
+                env["KUBECONFIG"] = str(RUNTIME_KUBECONFIG)
+                region = env.get("GKE_CLUSTER_LOCATION", "us-central1")
+                project = env.get("GOOGLE_CLOUD_PROJECT", "")
+                cmd = [
+                    "gcloud",
+                    "container",
+                    "clusters",
+                    "get-credentials",
+                    cluster,
+                    f"--region={region}",
+                    "--internal-ip",
+                ]
+                if project:
+                    cmd.append(f"--project={project}")
+                subprocess.run(cmd, env=env, check=False, timeout=30)
+            env["KUBECONFIG"] = str(RUNTIME_KUBECONFIG)
     return env
+
+
+def _resolve_adk_hostport(force_refresh: bool = False) -> str:
+    global _CACHED_ADK_HOSTPORT
+    explicit = os.environ.get("ADK_UPSTREAM_HOSTPORT", "")
+    if explicit:
+        return explicit
+    if not force_refresh and _CACHED_ADK_HOSTPORT:
+        return _CACHED_ADK_HOSTPORT
+    try:
+        with socket.create_connection(("127.0.0.1", 18080), timeout=0.25):
+            _CACHED_ADK_HOSTPORT = "127.0.0.1:18080"
+            return _CACHED_ADK_HOSTPORT
+    except OSError:
+        pass
+    pod_ip, _, _ = run_cmd(
+        [
+            "kubectl",
+            "get",
+            "pods",
+            "-n",
+            "agent-harness",
+            "-l",
+            "app=triage-agent",
+            "-o",
+            "jsonpath={.items[0].status.podIP}",
+        ],
+        timeout=15,
+    )
+    if pod_ip:
+        _CACHED_ADK_HOSTPORT = f"{pod_ip}:8080"
+    return _CACHED_ADK_HOSTPORT
 
 
 def run_cmd(args: list[str], timeout: int = 120) -> tuple[str, str, int]:
@@ -125,7 +190,22 @@ def api_cluster_status() -> dict[str, Any]:
         )
 
     actors_raw, _, _ = run_cmd(
-        ["kubectl-ate", "get", "actors", "-a", "secure-runtime", "-o", "json"]
+        [
+            "kubectl",
+            "exec",
+            "-n",
+            "agent-harness",
+            "deploy/triage-agent",
+            "--",
+            "kubectl-ate",
+            "--endpoint=api.ate-system.svc:443",
+            "get",
+            "actors",
+            "-a",
+            "secure-runtime",
+            "-o",
+            "json",
+        ]
     )
     actors_data = (
         json.loads(actors_raw) if actors_raw.startswith("{") else {"items": []}
@@ -142,7 +222,14 @@ def api_cluster_status() -> dict[str, Any]:
 
     tmpl_raw, _, _ = run_cmd(
         [
+            "kubectl",
+            "exec",
+            "-n",
+            "agent-harness",
+            "deploy/triage-agent",
+            "--",
             "kubectl-ate",
+            "--endpoint=api.ate-system.svc:443",
             "get",
             "actor-template",
             "scientific-python",
@@ -713,7 +800,7 @@ print("Secrets in os.environ:", [k for k in os.environ if "TOKEN" in k or "SECRE
     <div class="card-header">
       <div>
         <h2 style="font-size:18px;font-weight:800;">Live Gemini 3.8 Flash ADK Triage Agent (<span class="mono">deploy/triage-agent</span>)</h2>
-        <p style="color:var(--muted);font-size:13px;margin-top:2px;">Send any natural-language task to the live Google ADK agent on GKE or open the full <a href="http://127.0.0.1:18080/dev-ui/?app=secure_runtime_agent" target="_blank" style="color:#38bdf8;">ADK Dev UI (:18080) &rarr;</a></p>
+        <p style="color:var(--muted);font-size:13px;margin-top:2px;">Send any natural-language task to the live Google ADK agent on GKE or open the full <a href="/dev-ui/?app=secure_runtime_agent" target="_blank" style="color:#38bdf8;">ADK Dev UI &rarr;</a></p>
       </div>
       <button class="action-btn" id="btn-run-5" onclick="runTab5()">Send Prompt to Gemini 3.8 Flash</button>
     </div>
@@ -978,6 +1065,8 @@ async function runTab5() {
 
 
 class UIHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
     def _send(self, code: int, body: bytes, ctype: str = "application/json") -> None:
         self.send_response(code)
         self.send_header("Content-Type", ctype)
@@ -986,13 +1075,65 @@ class UIHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def do_GET(self) -> None:  # noqa: N802
-        from urllib.parse import parse_qs
+    def _proxy_adk(self, method: str) -> None:
+        length = int(self.headers.get("Content-Length", "0"))
+        body = self.rfile.read(length) if length > 0 else None
+        hostport = _resolve_adk_hostport()
+        if not hostport:
+            self._send(502, b'{"error":"ADK upstream unavailable"}')
+            return
+        for attempt in range(2):
+            try:
+                conn = http.client.HTTPConnection(hostport, timeout=180)
+                fwd_headers = {
+                    k: v
+                    for k, v in self.headers.items()
+                    if k.lower() not in ("host", "connection", "accept-encoding")
+                }
+                fwd_headers["Host"] = hostport
+                conn.request(method, self.path, body=body, headers=fwd_headers)
+                resp = conn.getresponse()
+                ctype = resp.getheader("Content-Type", "application/octet-stream")
+                is_sse = "text/event-stream" in ctype
+                self.send_response(resp.status)
+                for hk, hv in resp.getheaders():
+                    if hk.lower() in (
+                        "connection",
+                        "transfer-encoding",
+                        "content-length",
+                    ):
+                        continue
+                    self.send_header(hk, hv)
+                if is_sse:
+                    self.send_header("Cache-Control", "no-cache")
+                    self.send_header("Connection", "close")
+                    self.end_headers()
+                    while True:
+                        chunk = resp.read(1024)
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        self.wfile.flush()
+                else:
+                    resp_body = resp.read()
+                    self.send_header("Content-Length", str(len(resp_body)))
+                    self.end_headers()
+                    self.wfile.write(resp_body)
+                conn.close()
+                return
+            except OSError:
+                if attempt == 0:
+                    hostport = _resolve_adk_hostport(force_refresh=True)
+                else:
+                    self._send(502, b'{"error":"ADK proxy error"}')
 
+    def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
         qs = parse_qs(parsed.query)
         if parsed.path == "/":
             self._send(200, HTML_PAGE.encode("utf-8"), "text/html; charset=utf-8")
+        elif parsed.path == "/healthz":
+            self._send(200, b'{"status":"ok"}')
         elif parsed.path.startswith("/slides/"):
             fname = os.path.basename(parsed.path)
             fpath = SLIDES_DIR / fname
@@ -1016,29 +1157,43 @@ class UIHandler(BaseHTTPRequestHandler):
             actor = qs.get("actor", ["triage-actor-42"])[0]
             self._send(200, json.dumps(api_act4(actor)).encode("utf-8"))
         else:
-            self._send(404, b"{}")
+            self._proxy_adk("GET")
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
-        length = int(self.headers.get("Content-Length", "0"))
-        raw_body = self.rfile.read(length) if length > 0 else b"{}"
-        req = json.loads(raw_body.decode("utf-8"))
-        if parsed.path == "/api/run_code":
-            res = api_run_code(
-                req.get("actor_name", "triage-actor-19"),
-                req.get("code", "print('ok')"),
-            )
-            self._send(200, json.dumps(res).encode("utf-8"))
-        elif parsed.path == "/api/ask_agent":
-            res = api_ask_agent(req.get("prompt", "Say hello"))
+        if parsed.path in ("/api/run_code", "/api/ask_agent"):
+            length = int(self.headers.get("Content-Length", "0"))
+            raw_body = self.rfile.read(length) if length > 0 else b"{}"
+            req = json.loads(raw_body.decode("utf-8"))
+            if parsed.path == "/api/run_code":
+                res = api_run_code(
+                    req.get("actor_name", "triage-actor-19"),
+                    req.get("code", "print('ok')"),
+                )
+            else:
+                res = api_ask_agent(req.get("prompt", "Say hello"))
             self._send(200, json.dumps(res).encode("utf-8"))
         else:
-            self._send(404, b"{}")
+            self._proxy_adk("POST")
+
+    def do_DELETE(self) -> None:  # noqa: N802
+        self._proxy_adk("DELETE")
+
+    def do_PUT(self) -> None:  # noqa: N802
+        self._proxy_adk("PUT")
+
+    def do_PATCH(self) -> None:  # noqa: N802
+        self._proxy_adk("PATCH")
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self._proxy_adk("OPTIONS")
 
     def log_message(self, fmt: str, *args: Any) -> None:
         return
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("UI_PORT", "18090"))
-    ThreadingHTTPServer(("127.0.0.1", port), UIHandler).serve_forever()
+    cloud_port = os.environ.get("PORT")
+    host = "0.0.0.0" if cloud_port else os.environ.get("UI_HOST", "127.0.0.1")
+    port = int(cloud_port or os.environ.get("UI_PORT", "18090"))
+    ThreadingHTTPServer((host, port), UIHandler).serve_forever()

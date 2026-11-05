@@ -14,18 +14,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Tears down regional inference-ref-arch islands created by provision.sh,
+# Tears down regional inference-ref-arch platforms created by provision.sh,
 # reusing ACP's core/initialize backend generation and failing fast on IAM,
-# authentication, or Terraform errors.
+# authentication, or Terraform errors. With NETWORK_MODE=shared-vpc, it also
+# removes the platforms from the shared network, which it destroys with the
+# last platform.
 #
-# Required environment variables:
-#   PROJECT_ID : Google Cloud project ID
-# Optional environment variables:
-#   TF_VAR_resource_name_prefix : Resource prefix (default: "inf")
+# Usage:
+#   teardown.sh [--parallel] [--dry-run] [<platform_name>:<region>[:<cidr_index>] ...]
 #
-# Positional arguments:
-#   "<platform_name>:<region>" pairs. Defaults to:
-#     "americas:us-central1" "europe:europe-west2" "apac:asia-southeast1"
+# Use the targets, NETWORK_MODE, CLUSTER_MODE, TF_VAR_resource_name_prefix, and
+# MR_ENVIRONMENT_NAME values that provisioned the platforms. Targets default to
+# "americas:us-central1" "europe:europe-west2" "apac:asia-southeast1".
+#
+#   --parallel  Tear down every region at the same time, each from its own Git
+#               worktree, and remove the worktrees that were torn down.
+#   --dry-run   Print the plan and exit without calling Google Cloud.
 
 set -o errexit
 set -o nounset
@@ -39,125 +43,256 @@ MY_PATH="$(
 # shellcheck source=platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/helpers.sh
 source "${MY_PATH}/helpers.sh"
 
-if [[ -z "${PROJECT_ID:-}" ]]; then
-  echo "ERROR: PROJECT_ID must be set." >&2
-  exit 1
+usage="Usage: teardown.sh [--parallel] [--dry-run] [<platform_name>:<region>[:<cidr_index>] ...]"
+parallel="false"
+dry_run="false"
+targets=()
+while (($# > 0)); do
+  case "${1}" in
+  --parallel) parallel="true" ;;
+  --dry-run) dry_run="true" ;;
+  -h | --help)
+    echo "${usage}"
+    exit 0
+    ;;
+  -*) mr_die "unknown option '${1}'. ${usage}" ;;
+  *) targets+=("${1}") ;;
+  esac
+  shift
+done
+if ((${#targets[@]} == 0)); then
+  targets=("americas:us-central1" "europe:europe-west2" "apac:asia-southeast1")
 fi
 
-gcloud projects describe "${PROJECT_ID}" --format="value(projectId)" >/dev/null
+mr_init || exit 1
+mr_parse_targets "${targets[@]}"
 
-PREFIX="${TF_VAR_resource_name_prefix:-inf}"
-
-if (($# > 0)); then
-  RING_TARGETS=("$@")
-else
-  RING_TARGETS=(
-    "americas:us-central1"
-    "europe:europe-west2"
-    "apac:asia-southeast1"
-  )
-fi
-
-bucket_exists() {
-  local bucket_name="${1}"
-  local describe_out
-  if describe_out="$(gcloud storage buckets describe "gs://${bucket_name}" --project="${PROJECT_ID}" --format="value(name)" 2>&1)"; then
-    return 0
+region_checkout() {
+  if [[ "${parallel}" == "true" ]]; then
+    mr_worktree_dir "${1}"
+  else
+    echo "${ACP_REPO_DIR}"
   fi
-  local lower_out="${describe_out,,}"
-  if [[ "${lower_out}" == *"404"* || "${lower_out}" == *"not found"* ]]; then
-    return 1
+}
+
+export_teardown_env() {
+  use_region "${1}" "${2}" "${3}" || exit 1
+  # core/initialize generates the backend.tf files of the use case's
+  # terraservices, such as online_gpu.
+  export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
+  # Keep the files that other platforms deployed from this checkout still use.
+  export ACP_TEARDOWN_RESET_CHECKOUT="false"
+}
+
+print_plan() {
+  local i platform
+  echo "Multi-region teardown plan (dry run, nothing is deleted)"
+  echo "  project=${PROJECT_ID} prefix=${TF_VAR_resource_name_prefix} NETWORK_MODE=${NETWORK_MODE} CLUSTER_MODE=${CLUSTER_MODE} parallel=${parallel}"
+  if [[ "${NETWORK_MODE}" == "shared-vpc" ]]; then
+    echo "  last:  remove the targets from the shared network $(mr_shared_network_name); destroy it with the last platform"
   fi
-  echo "ERROR: Failed to inspect bucket 'gs://${bucket_name}': ${describe_out}" >&2
-  exit 1
+  for i in "${!MR_TARGET_PLATFORMS[@]}"; do
+    platform="${MR_TARGET_PLATFORMS[i]}"
+    echo
+    echo "[${platform}] region=${MR_TARGET_REGIONS[i]} cidr_index=${MR_TARGET_INDEXES[i]} cluster=$(mr_cluster_name "${platform}")"
+    echo "  checkout: $(region_checkout "${platform}")"
+    echo "  steps:    delete Pod snapshot resources, empty the model and Pod snapshot buckets, core/initialize apply, terraform/online_gpu destroy, terraform/teardown-$(mr_deploy_suffix).sh"
+    (
+      export_teardown_env "${platform}" "${MR_TARGET_REGIONS[i]}" "${MR_TARGET_INDEXES[i]}"
+      mr_print_region_env
+      echo "  ACP_TEARDOWN_RESET_CHECKOUT=${ACP_TEARDOWN_RESET_CHECKOUT}"
+    )
+  done
 }
 
 empty_bucket_if_exists() {
-  local bucket_name="${1}"
-  if ! bucket_exists "${bucket_name}"; then
-    echo "Bucket gs://${bucket_name} does not exist; skipping."
+  local bucket="${1}" entries
+  if ! mr_bucket_exists "${bucket}"; then
     return 0
   fi
-
-  local existing_entries
-  existing_entries="$(gcloud storage ls "gs://${bucket_name}/")"
-  if [[ -n "${existing_entries}" ]]; then
-    echo "Emptying gs://${bucket_name}..."
-    gcloud storage rm --recursive "gs://${bucket_name}/**"
+  entries="$(gcloud storage ls "gs://${bucket}/")"
+  if [[ -n "${entries}" ]]; then
+    mr_log "Emptying gs://${bucket}"
+    gcloud storage rm --recursive "gs://${bucket}/**"
   fi
 }
 
-for idx in "${!RING_TARGETS[@]}"; do
-  entry="${RING_TARGETS[${idx}]}"
-  platform_name="${entry%%:*}"
-  region="${entry##*:}"
-  if [[ -z "${platform_name}" || -z "${region}" || "${platform_name}" == "${entry}" ]]; then
-    echo "ERROR: Invalid ring target '${entry}'. Expected '<platform_name>:<region>'." >&2
-    exit 1
+# Deleting the Pod snapshot resources through GKE removes their objects before
+# Terraform destroys the snapshot bucket. Best effort: the bucket is emptied
+# next in any case.
+delete_pod_snapshot_resources() {
+  local kubeconfig="${1}"
+  if ! kubectl --kubeconfig "${kubeconfig}" get crd podsnapshots.podsnapshot.gke.io >/dev/null 2>&1; then
+    return 0
+  fi
+  if ! kubectl --kubeconfig "${kubeconfig}" delete podsnapshotpolicies,podsnapshots --all --all-namespaces \
+    --ignore-not-found --wait=true --timeout=600s ||
+    ! kubectl --kubeconfig "${kubeconfig}" delete podsnapshotstorageconfigs --all --ignore-not-found --timeout=600s; then
+    mr_log "WARNING: deleting the Pod snapshot resources failed; their objects are deleted with the bucket contents."
+  fi
+}
+
+# teardown_region <checkout> <platform_name> <region> <cidr_index>
+teardown_region() {
+  local checkout="${1}" platform="${2}" region="${3}" index="${4}"
+  local core_dir="${checkout}/platforms/gke/base/core"
+  local terraform_dir="${checkout}/platforms/gke/base/use-cases/inference-ref-arch/terraform"
+  local cluster state_bucket clusters checkout_kubeconfig pod_snapshots_bucket
+  export_teardown_env "${platform}" "${region}" "${index}"
+  cluster="$(mr_cluster_name "${platform}")"
+  state_bucket="${PROJECT_ID}-${cluster}-terraform"
+
+  if ! mr_bucket_exists "${state_bucket}"; then
+    mr_log "[${platform}] State bucket gs://${state_bucket} doesn't exist; '${cluster}' is already torn down."
+    rm -f "${KUBECONFIG}"
+    return 0
   fi
 
-  echo "=================================================================="
-  echo "[${idx}] Tearing down '${PREFIX}-${platform_name}' in ${region}"
-  echo "=================================================================="
-
-  use_region "${platform_name}" "${region}"
-  mr_set_cidrs_for_index "${idx}"
-
-  export TF_VAR_network_cluster_subnet_node_ip_cidr_range="${MR_NODE_CIDR}"
-  export TF_VAR_network_cluster_subnet_proxy_ip_cidr_range="${MR_PROXY_CIDR}"
-  export TF_VAR_network_cluster_subnet_master_ipv4_cidr_block="${MR_MASTER_CIDR}"
-  export TF_VAR_network_cluster_pod_ipv4_cidr_block="${MR_POD_CIDR}"
-  export TF_VAR_network_cluster_services_ipv4_cidr_block="${MR_SERVICES_CIDR}"
-  export TF_VAR_initialize_backend_use_case_name="inference-ref-arch/terraform"
-  export ACP_TEARDOWN_RESET_CHECKOUT="false"
-
-  if [[ -f "${KUBECONFIG}" ]]; then
-    kubectl --kubeconfig="${KUBECONFIG}" delete podsnapshot --all \
-      --namespace="${PREFIX}-${platform_name}-online-gpu" \
-      --ignore-not-found >/dev/null 2>&1 || true
+  # The terraservices of this checkout read the kubeconfig that core generates
+  # in it; refresh it, because the checkout might not be the one that
+  # provisioned the platform (for example, a new worktree).
+  checkout_kubeconfig="${checkout}/platforms/gke/base/kubernetes/kubeconfig/${PROJECT_ID}-${cluster}"
+  clusters="$(gcloud container clusters list --project="${PROJECT_ID}" --filter="name=${cluster} AND location=${region}" --format="value(name)")"
+  if [[ -n "${clusters}" ]]; then
+    mkdir -p "$(dirname "${checkout_kubeconfig}")"
+    KUBECONFIG="${checkout_kubeconfig}" gcloud container clusters get-credentials "${cluster}" \
+      --dns-endpoint \
+      --location="${region}" \
+      --project="${PROJECT_ID}"
+    delete_pod_snapshot_resources "${checkout_kubeconfig}"
   fi
 
-  pod_snapshots_bucket="${PROJECT_ID}-${PREFIX}-${platform_name}-pod-snapshots"
-  if bucket_exists "${pod_snapshots_bucket}"; then
+  pod_snapshots_bucket="${PROJECT_ID}-${cluster}-pod-snapshots"
+  if mr_bucket_exists "${pod_snapshots_bucket}"; then
     export TF_VAR_ira_online_gpu_pod_snapshots_enabled="true"
   else
     export TF_VAR_ira_online_gpu_pod_snapshots_enabled="false"
   fi
-
-  empty_bucket_if_exists "${PROJECT_ID}-${PREFIX}-${platform_name}-hf-hub-models"
+  empty_bucket_if_exists "${PROJECT_ID}-${cluster}-hf-hub-models"
   empty_bucket_if_exists "${pod_snapshots_bucket}"
 
-  state_bucket="${PROJECT_ID}-${PREFIX}-${platform_name}-terraform"
-  if ! bucket_exists "${state_bucket}"; then
-    echo "State bucket gs://${state_bucket} does not exist; '${PREFIX}-${platform_name}' already torn down."
-    rm -f "${KUBECONFIG}"
-    continue
-  fi
-
-  # Run core/initialize first so ACP generates online_gpu/backend.tf pointing at
-  # this region's Terraform state bucket.
+  # Run core/initialize first, so that it generates the backend.tf files of
+  # this platform (pointing at its state bucket) in the checkout.
+  mr_log "[${platform}] Applying core/initialize against gs://${state_bucket}"
   (
-    cd "${ACP_PLATFORM_CORE_DIR}/initialize"
-    sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${state_bucket}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
-    cp backend.tf.bucket backend.tf
-    rm -rf .terraform/
-    terraform init
-    terraform plan -input=false -out=tfplan
-    terraform apply -input=false tfplan
+    cd "${core_dir}/initialize" || exit 1
+    cp backend.tf.bucket backend.tf || exit 1
+    TF_PLUGIN_CACHE_DIR="${checkout}/.terraform.d/plugin-cache" terraform init -input=false -reconfigure \
+      -backend-config="bucket=${state_bucket}" || exit 1
+    terraform plan -input=false -out=tfplan || exit 1
+    terraform apply -input=false tfplan || exit 1
     rm -f tfplan
-  )
+  ) || mr_die "[${platform}] core/initialize failed."
 
-  (
-    cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/online_gpu"
-    rm -rf .terraform/
-    terraform init
-    terraform destroy -auto-approve
-    rm -rf .terraform/ backend.tf
-  )
+  mr_log "[${platform}] Destroying terraform/online_gpu"
+  mr_terraform_destroy "${terraform_dir}/online_gpu" "${checkout}" || mr_die "[${platform}] destroying terraform/online_gpu failed."
 
-  "${ACP_PLATFORM_USE_CASE_DIR}/terraform/teardown-ap.sh"
+  "${terraform_dir}/teardown-$(mr_deploy_suffix).sh"
   rm -f "${KUBECONFIG}"
+  mr_log "[${platform}] Torn down"
+}
+
+teardown_sequential() {
+  local i restore_backend_template="false"
+  local backend_template="${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
+  if git -C "${ACP_REPO_DIR}" diff --quiet -- "${backend_template}"; then
+    restore_backend_template="true"
+  fi
+  for i in "${!MR_TARGET_PLATFORMS[@]}"; do
+    echo "=================================================================="
+    echo "[${MR_TARGET_INDEXES[i]}] Tearing down '$(mr_cluster_name "${MR_TARGET_PLATFORMS[i]}")' in ${MR_TARGET_REGIONS[i]}"
+    echo "=================================================================="
+    # An asynchronous subshell keeps errexit in effect (see provision.sh).
+    (teardown_region "${ACP_REPO_DIR}" "${MR_TARGET_PLATFORMS[i]}" "${MR_TARGET_REGIONS[i]}" "${MR_TARGET_INDEXES[i]}") &
+    wait "$!" || mr_die "tearing down '$(mr_cluster_name "${MR_TARGET_PLATFORMS[i]}")' failed; fix the error above and re-run."
+    # A worktree left by a parallel run is stale now.
+    mr_remove_worktree "${MR_TARGET_PLATFORMS[i]}"
+  done
+  if [[ "${restore_backend_template}" == "true" ]]; then
+    git -C "${ACP_REPO_DIR}" checkout -- "${backend_template}"
+  fi
+}
+
+teardown_parallel() {
+  local logs i platform pids=() failed=()
+  logs="${MR_WORK_DIR}/logs/teardown-$(date -u +%Y%m%dT%H%M%SZ)"
+  mkdir -p "${logs}"
+  git -C "${ACP_REPO_DIR}" diff HEAD --binary >"${logs}/uncommitted.diff"
+  git -C "${ACP_REPO_DIR}" worktree prune
+  for platform in "${MR_TARGET_PLATFORMS[@]}"; do
+    mr_sync_worktree "${platform}" "${logs}/uncommitted.diff"
+    mr_require_clean_tfvars "$(mr_worktree_dir "${platform}")"
+  done
+  for i in "${!MR_TARGET_PLATFORMS[@]}"; do
+    platform="${MR_TARGET_PLATFORMS[i]}"
+    (teardown_region "$(mr_worktree_dir "${platform}")" "${platform}" "${MR_TARGET_REGIONS[i]}" "${MR_TARGET_INDEXES[i]}") \
+      >"${logs}/${platform}.log" 2>&1 &
+    pids+=("$!")
+    mr_log "[${platform}] Tearing down; log: ${logs}/${platform}.log"
+  done
+  for i in "${!pids[@]}"; do
+    platform="${MR_TARGET_PLATFORMS[i]}"
+    if wait "${pids[i]}"; then
+      mr_remove_worktree "${platform}"
+      mr_log "[${platform}] Done; removed its worktree"
+    else
+      failed+=("${platform}")
+      mr_log "[${platform}] FAILED; log: ${logs}/${platform}.log"
+    fi
+  done
+  ((${#failed[@]} == 0)) ||
+    mr_die "teardown failed for: ${failed[*]}. Fix the cause (see ${logs}/<platform_name>.log) and re-run with the same targets."
+}
+
+# Prints the shared_network registry without the targets.
+remaining_registry_json() {
+  jq -c --args 'reduce $ARGS.positional[] as $platform (.; del(.[$platform]))' "${MR_TARGET_PLATFORMS[@]}" <<<"${1}"
+}
+
+if [[ "${dry_run}" == "true" ]]; then
+  print_plan
+  exit 0
+fi
+
+mr_require_tools gcloud git jq kubectl terraform
+gcloud projects describe "${PROJECT_ID}" --format="value(projectId)" >/dev/null
+for i in "${!MR_TARGET_PLATFORMS[@]}"; do
+  mr_check_existing_platform "${MR_TARGET_PLATFORMS[i]}" "${MR_TARGET_REGIONS[i]}" "${MR_TARGET_INDEXES[i]}"
 done
 
-git -C "${ACP_REPO_DIR}" checkout -- "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
-echo "All ${#RING_TARGETS[@]} regional islands torn down cleanly."
+registry="{}"
+remaining="{}"
+if [[ "${NETWORK_MODE}" == "shared-vpc" ]]; then
+  registry="$(mr_registry_json)"
+  remaining="$(remaining_registry_json "${registry}")"
+fi
+
+if [[ "${parallel}" == "true" ]]; then
+  teardown_parallel
+else
+  teardown_sequential
+fi
+
+if [[ "${NETWORK_MODE}" == "shared-vpc" && "${registry}" != "{}" ]]; then
+  tfvars="$(mr_tf_dir shared_network)/terraform.tfvars.json"
+  mkdir -p "$(dirname "${tfvars}")"
+  if [[ "${remaining}" == "{}" ]]; then
+    regions="${registry}"
+    action="destroy"
+  else
+    regions="${remaining}"
+    action="apply"
+  fi
+  jq -n \
+    --arg project_id "${PROJECT_ID}" \
+    --arg network_name "$(mr_shared_network_name)" \
+    --argjson regions "${regions}" \
+    '{project_id: $project_id, network_name: $network_name, regions: $regions}' >"${tfvars}"
+  mr_log "Shared network $(mr_shared_network_name): ${action}"
+  mr_tf shared_network "${action}"
+  if [[ "${action}" == "destroy" ]]; then
+    mr_log "The multi-region Terraform state bucket gs://$(mr_state_bucket) is kept; delete it when you no longer need it."
+  fi
+fi
+
+echo "All ${#MR_TARGET_PLATFORMS[@]} regional platforms are torn down."

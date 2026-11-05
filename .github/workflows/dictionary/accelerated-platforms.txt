@@ -28,10 +28,12 @@ exfiltrate
 finetune
 finetuning
 fluentbit
+frontends
 fsdp
 gbps
 geminicodeassist
 googlecloudtools
+gproxy
 gpul
 hyperparameter
 hyperparameters

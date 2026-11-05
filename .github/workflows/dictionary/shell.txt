@@ -17,7 +17,9 @@ ncat
 nmap
 noninteractive
 nounset
+nowarn
 nslookup
+pids
 pipefail
 pkill
 shellcheck
@@ -27,5 +29,7 @@ subshell
 syscall
 tostring
 urlencode
+worktree
+worktrees
 xtrace
 zxvf

@@ -25,7 +25,7 @@ locals {
   shared_config_folder = "${path.module}/../../_shared_config"
 
   use_case_backend_directories = var.initialize_backend_use_case_name != null ? toset([for _, version_file in local.use_case_versions_files : trimprefix(trimsuffix(dirname(version_file), "/versions.tf"), "../")]) : []
-  use_case_versions_files      = var.initialize_backend_use_case_name != null ? flatten([for _, file in flatten(fileset("${local.base_directory}/use-cases", "${var.initialize_backend_use_case_name}/**/versions.tf")) : file]) : []
+  use_case_versions_files      = var.initialize_backend_use_case_name != null ? [for file in fileset("${local.base_directory}/use-cases", "${var.initialize_backend_use_case_name}/**/versions.tf") : file if !strcontains(file, "/multi-region/") && !strcontains(file, "/examples/")] : []
 }
 
 resource "time_static" "unique" {

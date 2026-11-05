@@ -396,20 +396,22 @@ mr_ensure_state_bucket() {
 
 mr_tf_dir() { echo "${MR_WORK_DIR}/terraform/${1}"; }
 
-# mr_tf <terraservice> <apply|destroy|output>
-# Runs a multi-region terraservice of this directory against the state bucket
-# of the environment, with the variables in terraform.tfvars.json of
-# "$(mr_tf_dir <terraservice>)". The module is copied there with its own
-# backend.tf: core/initialize generates a backend.tf that points at a regional
-# platform's state bucket in every directory with a versions.tf file under
-# inference-ref-arch/terraform/, so that file is never copied.
+# mr_tf <terraservice> <apply|destroy|output> [<src_dir>] [<state_prefix>]
+# Runs a multi-region terraservice against the state bucket of the environment,
+# with the variables in terraform.tfvars.json of "$(mr_tf_dir <terraservice>)".
+# Defaults to "${MR_HELPERS_DIR}/<terraservice>" and state prefix
+# "terraform/multi-region/<terraservice>". Any stray backend.tf in <src_dir> is
+# ignored in favor of the partial GCS backend configuration written to <stage>.
 mr_tf() {
-  local terraservice="${1}" action="${2}" stage file
+  local terraservice="${1}" action="${2}"
+  local src_dir="${3:-${MR_HELPERS_DIR}/${terraservice}}"
+  local state_prefix="${4:-terraform/multi-region/${terraservice}}"
+  local stage file
   stage="$(mr_tf_dir "${terraservice}")"
   mkdir -p "${stage}" || return 1
   rm -f "${stage}"/*.tf
-  for file in "${MR_HELPERS_DIR}/${terraservice}"/*.tf "${MR_HELPERS_DIR}/${terraservice}/.terraform.lock.hcl"; do
-    if [[ "$(basename "${file}")" != "backend.tf" ]]; then
+  for file in "${src_dir}"/*.tf "${src_dir}/.terraform.lock.hcl"; do
+    if [[ -e "${file}" && "$(basename "${file}")" != "backend.tf" ]]; then
       cp "${file}" "${stage}/" || return 1
     fi
   done
@@ -419,7 +421,7 @@ mr_tf() {
     cd "${stage}" || exit 1
     TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache" terraform init -input=false -reconfigure \
       -backend-config="bucket=$(mr_state_bucket)" \
-      -backend-config="prefix=terraform/multi-region/${terraservice}" >&2 || exit 1
+      -backend-config="prefix=${state_prefix}" >&2 || exit 1
     case "${action}" in
     apply)
       terraform plan -input=false -out=tfplan || exit 1
@@ -433,10 +435,13 @@ mr_tf() {
   )
 }
 
+# mr_tf_state_has_resources <terraservice> [<state_prefix>]
 # Succeeds when the state of a multi-region terraservice has resources.
 mr_tf_state_has_resources() {
+  local terraservice="${1}"
+  local state_prefix="${2:-terraform/multi-region/${terraservice}}"
   local object err_file state err count
-  object="gs://$(mr_state_bucket)/terraform/multi-region/${1}/default.tfstate"
+  object="gs://$(mr_state_bucket)/${state_prefix}/default.tfstate"
   err_file="$(mktemp)"
   if ! state="$(gcloud storage cat "${object}" 2>"${err_file}")"; then
     err="$(<"${err_file}")"
@@ -524,21 +529,108 @@ expose_service_neg() {
   )
 }
 
-# Stages a single Hugging Face model into the active region's GCS model bucket
-# using the canonical inference-ref-arch model-download scripts.
+# stage_hf_model [--skip-existing] <hf_model_id>
+# Stages a Hugging Face model into the active region's GCS model bucket using an
+# isolated copy of the canonical model-download/huggingface Kustomize overlay
+# and per-Job status polling (safe to run concurrently across regions without
+# mutating the repository checkout or colliding with pkill).
 stage_hf_model() {
-  local model_id="${1:?Usage: stage_hf_model <hf_model_id>}"
+  local usage="Usage: stage_hf_model [--skip-existing] <hf_model_id>"
+  local skip_existing="false"
+  if [[ "${1:-}" == "--skip-existing" ]]; then
+    skip_existing="true"
+    shift
+  fi
+  local model_id="${1:?${usage}}"
   (
     set -o errexit
     set -o nounset
     set -o pipefail
 
+    local project_id="${TF_VAR_platform_default_project_id:-${PROJECT_ID:-}}"
+    local platform_name="${TF_VAR_platform_name:-}"
+    local prefix="${TF_VAR_resource_name_prefix:-inf}"
+    [[ -n "${project_id}" && -n "${platform_name}" ]] ||
+      mr_die "call use_region <platform_name> <region> before stage_hf_model."
+
     HF_MODEL_ID="$(echo "${model_id}" | tr '[:upper:]' '[:lower:]')"
-    export HF_MODEL_ID
-    local dl_dir="${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/model-download/huggingface"
-    "${dl_dir}/download_apply.sh"
-    "${dl_dir}/download_wait.sh"
-    "${dl_dir}/download_delete.sh"
+    HF_MODEL_ID_HASH="$(echo "${HF_MODEL_ID}" | md5sum | cut -c1-8)"
+    export HF_MODEL_ID HF_MODEL_ID_HASH
+
+    local unique_prefix="${prefix}-${platform_name}"
+    local bucket_project="${TF_VAR_huggingface_hub_models_bucket_project_id:-${project_id}}"
+    huggingface_hub_models_bucket_name="${TF_VAR_huggingface_hub_models_bucket_name:-${bucket_project}-${unique_prefix}-hf-hub-models}"
+    huggingface_hub_downloader_kubernetes_namespace_name="${TF_VAR_huggingface_hub_downloader_kubernetes_namespace_name:-${unique_prefix}-hf-hub-downloader}"
+    huggingface_hub_downloader_kubernetes_service_account_name="${TF_VAR_huggingface_hub_downloader_kubernetes_service_account_name:-${unique_prefix}-hf-hub-downloader}"
+    huggingface_secret_manager_project_id="${TF_VAR_huggingface_secret_manager_project_id:-${project_id}}"
+    huggingface_hub_access_token_read_secret_manager_secret_name="${TF_VAR_huggingface_hub_access_token_read_secret_manager_secret_name:-${unique_prefix}-huggingface-hub-access-token-read}"
+    huggingface_hub_access_token_write_secret_manager_secret_name="${TF_VAR_huggingface_hub_access_token_write_secret_manager_secret_name:-${unique_prefix}-huggingface-hub-access-token-write}"
+    export \
+      huggingface_hub_models_bucket_name \
+      huggingface_hub_downloader_kubernetes_namespace_name \
+      huggingface_hub_downloader_kubernetes_service_account_name \
+      huggingface_secret_manager_project_id \
+      huggingface_hub_access_token_read_secret_manager_secret_name \
+      huggingface_hub_access_token_write_secret_manager_secret_name
+
+    local dest_uri="gs://${huggingface_hub_models_bucket_name}/${HF_MODEL_ID}"
+    if [[ "${skip_existing}" == "true" ]] &&
+      gcloud storage ls "${dest_uri}/config.json" >/dev/null 2>&1 &&
+      gcloud storage ls "${dest_uri}/*.safetensors" >/dev/null 2>&1 &&
+      ! gcloud storage ls "${dest_uri}/parallel_composite_uploads" >/dev/null 2>&1; then
+      mr_log "[${platform_name}] model '${HF_MODEL_ID}' already staged in ${dest_uri}; skipping."
+      exit 0
+    fi
+
+    if [[ -z "$(gcloud secrets versions list "${huggingface_hub_access_token_read_secret_manager_secret_name}" \
+      --project="${huggingface_secret_manager_project_id}" \
+      --filter="state=ENABLED" \
+      --format="value(name)" 2>/dev/null)" ]]; then
+      mr_die "[${platform_name}] Hugging Face read token secret '${huggingface_hub_access_token_read_secret_manager_secret_name}' has no enabled version."
+    fi
+
+    local tmp_dir ns job_name timeout_s deadline status_json succeeded failed model_size
+    tmp_dir="$(mktemp -d)"
+    trap 'rm -rf "${tmp_dir}"' EXIT
+    cp -R "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/huggingface" "${tmp_dir}/huggingface"
+    envsubst <"${tmp_dir}/huggingface/templates/downloader.tpl.env" >"${tmp_dir}/huggingface/downloader.env"
+    envsubst <"${tmp_dir}/huggingface/templates/secretproviderclass-huggingface-tokens.tpl.yaml" \
+      >"${tmp_dir}/huggingface/secretproviderclass-huggingface-tokens.yaml"
+    (
+      cd "${tmp_dir}/huggingface"
+      kustomize edit set nameprefix "${HF_MODEL_ID_HASH}-"
+    )
+
+    ns="${huggingface_hub_downloader_kubernetes_namespace_name}"
+    job_name="${HF_MODEL_ID_HASH}-hf-model-to-gcs"
+    kubectl delete job "${job_name}" -n "${ns}" --ignore-not-found --wait=true >/dev/null
+    kubectl apply --kustomize "${tmp_dir}/huggingface" >/dev/null
+
+    timeout_s="${MR_STAGE_MODEL_TIMEOUT_S:-14400}"
+    deadline=$(($(date +%s) + timeout_s))
+    mr_log "[${platform_name}] waiting up to ${timeout_s}s for Job ${ns}/${job_name} (${HF_MODEL_ID})..."
+    while true; do
+      status_json="$(kubectl get job "${job_name}" -n "${ns}" -o json)"
+      succeeded="$(jq -r '.status.succeeded // 0' <<<"${status_json}")"
+      failed="$(jq -r '([.status.conditions[]? | select(.type == "Failed" and .status == "True")] | length)' <<<"${status_json}")"
+      if ((succeeded >= 1)); then
+        break
+      fi
+      if ((failed > 0)); then
+        kubectl describe job "${job_name}" -n "${ns}" >&2 || true
+        kubectl logs "job/${job_name}" -n "${ns}" --tail=80 >&2 || true
+        mr_die "[${platform_name}] model download Job ${ns}/${job_name} failed."
+      fi
+      if (($(date +%s) >= deadline)); then
+        kubectl describe job "${job_name}" -n "${ns}" >&2 || true
+        mr_die "[${platform_name}] model download Job ${ns}/${job_name} timed out after ${timeout_s}s."
+      fi
+      sleep 15
+    done
+
+    model_size="$(gcloud storage du --readable-sizes --summarize "${dest_uri}" 2>/dev/null || true)"
+    [[ -z "${model_size}" ]] || mr_log "[${platform_name}] staged ${model_size}"
+    kubectl delete --ignore-not-found --kustomize "${tmp_dir}/huggingface" >/dev/null
   )
 }
 

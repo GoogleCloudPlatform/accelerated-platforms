@@ -134,13 +134,13 @@ the core networking terraservice.
 
 `helpers.sh` also provides:
 
-| Function                                                                    | Purpose                                                                                                    |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `stage_hf_model <hf_model_id>`                                              | Downloads a Hugging Face model into the current platform's model bucket, with the `download_*.sh` scripts. |
-| `replicate_hf_model <src_platform> <dst_platform> <hf_model_id>`            | Copies a staged model between two platforms' model buckets, server side.                                   |
-| `mirror_image_to_ar <region> <platform_name> <src_image> <dst_subpath:tag>` | Mirrors an image into a platform's Artifact Registry repository with Cloud Build and a pinned `crane`.     |
-| `expose_service_neg <platform_name> <namespace> <service> <port> <backend>` | Exposes a regional frontend Service as a load balancer backend (see below).                                |
-| `mr_set_cidrs_for_index <cidr_index>`                                       | Exports the `MR_*_CIDR` ranges of a CIDR index (see [Network modes](#network-modes)).                      |
+| Function                                                                    | Purpose                                                                                                          |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `stage_hf_model [--skip-existing] <hf_model_id>`                            | Downloads a Hugging Face model into the current platform's model bucket using an isolated `hf-model-to-gcs` Job. |
+| `replicate_hf_model <src_platform> <dst_platform> <hf_model_id>`            | Copies a staged model between two platforms' model buckets, server side.                                         |
+| `mirror_image_to_ar <region> <platform_name> <src_image> <dst_subpath:tag>` | Mirrors an image into a platform's Artifact Registry repository with Cloud Build and a pinned `crane`.           |
+| `expose_service_neg <platform_name> <namespace> <service> <port> <backend>` | Exposes a regional frontend Service as a load balancer backend (see below).                                      |
+| `mr_set_cidrs_for_index <cidr_index>`                                       | Exports the `MR_*_CIDR` ranges of a CIDR index (see [Network modes](#network-modes)).                            |
 
 ## Settings
 

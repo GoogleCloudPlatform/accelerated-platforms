@@ -21,6 +21,7 @@ import importlib.util
 import io
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import types
@@ -423,6 +424,79 @@ class SitecustomizeMetricsPatchTest(unittest.IsolatedAsyncioTestCase):
             applied = self.patch_mod.apply_openai_server_metrics_patch(fake_mod)
         self.assertFalse(applied)
         self.assertIn("Skipping patch", stderr_buf.getvalue())
+
+
+class MultiRegionHelpersShellTest(unittest.TestCase):
+    """Tests isolated stage_hf_model and parameterized mr_tf helpers."""
+
+    def test_stage_hf_model_leaves_repo_clean_and_polls_job(self) -> None:
+        helpers_sh = (
+            _REPO_ROOT
+            / "platforms/gke/base/use-cases/inference-ref-arch"
+            / "terraform/multi-region/helpers.sh"
+        )
+        hf_manifest_dir = (
+            _REPO_ROOT
+            / "platforms/gke/base/use-cases/inference-ref-arch"
+            / "kubernetes-manifests/model-download/huggingface"
+        )
+        before_kustomization = (hf_manifest_dir / "kustomization.yaml").read_text(
+            encoding="utf-8"
+        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bin_dir = Path(tmp_dir) / "bin"
+            bin_dir.mkdir()
+            log_file = Path(tmp_dir) / "calls.log"
+            (bin_dir / "gcloud").write_text(
+                "#!/usr/bin/env bash\n"
+                f'echo "gcloud $*" >> "{log_file}"\n'
+                'if [[ "$1 $2" == "secrets versions" ]]; then echo "1"; exit 0; fi\n'
+                'if [[ "$1 $2" == "storage du" ]]; then echo "10 GiB gs://b/m"; exit 0; fi\n'
+                'if [[ "$1 $2" == "storage cat" ]]; then echo \'{"resources":[{}]}\'; exit 0; fi\n'
+                "exit 1\n",
+                encoding="utf-8",
+            )
+            (bin_dir / "kubectl").write_text(
+                "#!/usr/bin/env bash\n"
+                f'echo "kubectl $*" >> "{log_file}"\n'
+                'if [[ "$1 $2" == "get job" ]]; then echo \'{"status":{"succeeded":1}}\'; fi\n'
+                "exit 0\n",
+                encoding="utf-8",
+            )
+            os.chmod(bin_dir / "gcloud", 0o755)
+            os.chmod(bin_dir / "kubectl", 0o755)
+
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
+            env["PROJECT_ID"] = "test-proj"
+            proc = subprocess.run(
+                [
+                    "bash",
+                    "-c",
+                    f'source "{helpers_sh}" && '
+                    "use_region usc1 us-central1 && "
+                    "stage_hf_model --skip-existing Qwen/Qwen3-32B && "
+                    "mr_tf_state_has_resources bench terraform/llmd-multi-region/bench",
+                ],
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            calls = log_file.read_text(encoding="utf-8")
+            self.assertIn("kubectl apply --kustomize", calls)
+            self.assertIn("kubectl get job", calls)
+            self.assertIn("kubectl delete --ignore-not-found --kustomize", calls)
+            self.assertIn(
+                "gs://test-proj-inf-mr-terraform/terraform/llmd-multi-region/bench/default.tfstate",
+                calls,
+            )
+
+        after_kustomization = (hf_manifest_dir / "kustomization.yaml").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual(before_kustomization, after_kustomization)
 
 
 if __name__ == "__main__":

@@ -42,6 +42,9 @@ test/scripts/environment_files/*
 
 # Generated outputs
 *.log
+**/hftoken
+platforms/gke/base/use-cases/inference-ref-arch/examples/llmd-multi-region/analysis/
+platforms/gke/base/use-cases/inference-ref-arch/examples/llmd-multi-region/startup/
 k6-*.txt
 k6-*.csv
 k6-*.jsonl

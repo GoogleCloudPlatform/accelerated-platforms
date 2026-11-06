@@ -342,6 +342,14 @@ using all fast-start and fast-restore optimizations, start with the
 [AI inference proof-of-concept (PoC) and capacity-finding guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md)
 and the companion
 [15-minute live demo runbook](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-15min-demo-runbook.md).
+To serve a model from several regions behind one cross-region load balancer,
+with llm-d KV-cache-aware routing in each region and a measured comparison with
+plain vLLM, see
+[Multi-region llm-d with a global load balancer](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-multi-region-global-load-balancing.md).
+To extend it to three regions (including Spot capacity in APAC) with HPA
+scale-out, GKE Pod snapshots for fast replica starts, and design
+recommendations, see
+[Three-region llm-d with HPA scale-out and GKE Pod snapshots](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-multi-region-scale-out.md).
 
 This reference architecture is designed to support various inference patterns.
 Some example patterns provided are:

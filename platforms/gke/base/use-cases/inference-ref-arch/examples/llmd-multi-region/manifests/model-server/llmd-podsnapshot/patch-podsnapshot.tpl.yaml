@@ -1,0 +1,87 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# Makes the llm-d model server Deployment GKE Pod snapshot ready:
+#   - runtimeClassName: gvisor and enableServiceLinks: false,
+#   - cooperative /proc/gvisor/checkpoint trigger once vLLM is healthy,
+#   - VLLM_HOST_IP=127.0.0.1 and removal of per-pod downward-API variables and
+#     --kv-events-config (GKE restores a container only when its command and
+#     arguments match the snapshot source pod's),
+#   - no livenessProbe (source pod is paused during checkpoint upload),
+#   - MR_POD_SNAPSHOT_MEMORY_LIMIT host memory limit for GPU checkpoint staging.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: precise-prefix-cache-routing-gpu-vllm-decode-llmd
+spec:
+  template:
+    spec:
+      enableServiceLinks: false
+      runtimeClassName: gvisor
+      containers:
+        - name: modelserver
+          command:
+            - /bin/sh
+            - -c
+            - |
+              vllm serve "$@" &
+              VLLM_PID=$!
+              trap 'kill -TERM "${VLLM_PID}" 2>/dev/null; wait "${VLLM_PID}"; exit $?' TERM INT
+              if [ ! -e /proc/gvisor/checkpoint ]; then
+                echo "[podsnapshot] /proc/gvisor/checkpoint is absent (no matching PodSnapshotPolicy); serving without a checkpoint."
+              else
+                echo "[podsnapshot] Waiting for the model server to become healthy..."
+                until python3 -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/health", timeout=5)' 2>/dev/null; do
+                  if ! kill -0 "${VLLM_PID}" 2>/dev/null; then
+                    wait "${VLLM_PID}"
+                    exit $?
+                  fi
+                  sleep 2
+                done
+                echo "[podsnapshot] Model server is healthy; triggering the checkpoint at $(date -u +%H:%M:%S)."
+                if ERR="$( (echo 1 > /proc/gvisor/checkpoint) 2>&1 )"; then
+                  echo "[podsnapshot] Checkpoint complete, or restored from a snapshot, at $(date -u +%H:%M:%S)."
+                else
+                  echo "[podsnapshot] Checkpoint write returned non-zero (${ERR:-unknown}); continuing to serve."
+                fi
+              fi
+              wait "${VLLM_PID}"
+            - vllm-podsnapshot
+          args:
+            - "gs://${MR_MODELS_BUCKET}/${MR_MODEL_PATH}"
+            - "--served-model-name=${MR_SERVED_MODEL_NAME}"
+            - "--load-format=runai_streamer"
+            - "--tensor-parallel-size=${MR_TENSOR_PARALLEL_SIZE}"
+            - "--max-model-len=${MR_MAX_MODEL_LEN}"
+            - "--gpu-memory-utilization=${MR_GPU_MEMORY_UTILIZATION}"
+            - "--block-size=64"
+            - "--enable-prefix-caching"
+            - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models,/v1/completions/render,/v1/chat/completions/render"
+            - "--shutdown-timeout=45"
+            - "--enable-scale-out"
+          env:
+            - name: POD_IP
+              $patch: delete
+            - name: POD_PORT
+              $patch: delete
+            - name: KV_EVENTS_ENDPOINT
+              $patch: delete
+            - name: KV_EVENTS_REPLAY_ENDPOINT
+              $patch: delete
+            - name: VLLM_HOST_IP
+              value: "127.0.0.1"
+          livenessProbe: null
+          resources:
+            limits:
+              memory: "${MR_POD_SNAPSHOT_MEMORY_LIMIT}"

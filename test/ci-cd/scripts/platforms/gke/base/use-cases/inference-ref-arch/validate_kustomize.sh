@@ -107,8 +107,9 @@ source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terrafor
 # Validate vllm-podsnapshot-fast-restore kustomize
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/configure_vllm_podsnapshot.sh"
 
-# Validate trtllm kustomize
+# Validate trtllm and dynamo-trtllm kustomize
 "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/trtllm/configure_trtllm.sh"
+"${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/configure_dynamo_trtllm.sh"
 
 
 find "${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch/kubernetes-manifests" -name "kustomization.yaml" -print0 | while read -d $'\0' file; do

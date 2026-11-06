@@ -23,10 +23,8 @@ Reads the run directories written by scripts/run-benchmark.sh:
   <dir>/.../<arm>/<workload>/<client>/reports/stage_<N>_lifecycle_metrics.json
   <dir>/.../<arm>/<workload>/<client>/reports/summary_lifecycle_metrics.json
 
-and writes stages.csv, summary.csv, aggregate.csv, relative.csv, report.md and, when
-matplotlib is installed, PNG charts to --out.
-
-Python 3 standard library only; matplotlib is optional.
+and writes stages.csv, summary.csv, aggregate.csv, relative.csv, and report.md
+to --out.
 """
 
 from __future__ import annotations
@@ -34,18 +32,18 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import math
 import os
 import re
 import sys
 from collections import defaultdict
-from datetime import datetime, timezone
 from typing import Any
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _common import epoch_seconds
+from _common import fmt_num as fmt  # noqa: E402
+from _common import load_json, md_table
+
 STAGE_FILE = re.compile(r"^stage_(\d+)_lifecycle_metrics\.json$")
-RFC3339_RE = re.compile(
-    r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?$"
-)
 LATENCIES = {
     "ttft": "time_to_first_token",
     "tpot": "time_per_output_token",
@@ -99,44 +97,6 @@ RELATIVE_METRICS = [
     ("output_tokens_per_s", "higher"),
     ("goodput_rps", "higher"),
 ]
-
-
-def load_json(path: str) -> Any:
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
-
-
-def parse_rfc3339_epoch(value: str | None) -> float | None:
-    """Parses an RFC 3339 timestamp with arbitrary fractional digits to UTC epoch seconds.
-
-    Returns None for a missing (empty) value and raises ValueError for a
-    malformed one.
-    """
-    if not value:
-        return None
-    m = RFC3339_RE.match(value.strip())
-    if not m:
-        raise ValueError(f"invalid RFC 3339 timestamp: {value!r}")
-    base, frac, tz = m.groups()
-    tz_str = (tz or "Z").replace("Z", "+00:00")
-    dt = datetime.fromisoformat(base + tz_str).astimezone(timezone.utc)
-    return dt.timestamp() + (float(frac) if frac else 0.0)
-
-
-def epoch_seconds(value: Any) -> float | None:
-    """Converts a timestamp to UTC epoch seconds.
-
-    Accepts epoch seconds, RFC 3339 strings, and datetimes (PyYAML parses
-    unquoted YAML timestamps into datetimes; naive ones are UTC).
-    """
-    if isinstance(value, datetime):
-        aware = value if value.tzinfo else value.replace(tzinfo=timezone.utc)
-        return aware.timestamp()
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return float(value)
-    if isinstance(value, str):
-        return parse_rfc3339_epoch(value)
-    return None
 
 
 def get(d: Any, *keys: str) -> Any:
@@ -573,14 +533,6 @@ def relative(
     return out
 
 
-def fmt(v: Any, digits: int = 1) -> str:
-    if v is None or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
-        return "-"
-    if isinstance(v, float):
-        return f"{v:.{digits}f}"
-    return str(v)
-
-
 def fmt_pct(v: float | None) -> str:
     return "-" if v is None else f"{v:+.1f}%"
 
@@ -604,15 +556,6 @@ def write_csv(
             w.writerow({k: ("" if r.get(k) is None else r.get(k)) for k in columns})
 
 
-def md_table(headers: list[str], rows: list[list[str]]) -> str:
-    lines = [
-        "| " + " | ".join(headers) + " |",
-        "|" + "|".join("---" for _ in headers) + "|",
-    ]
-    lines += ["| " + " | ".join(row) + " |" for row in rows]
-    return "\n".join(lines)
-
-
 def _distinct_clients(agg_rows: list[dict[str, Any]]) -> list[str]:
     return sorted({c for a in agg_rows for c in (a.get("clients") or "").split() if c})
 
@@ -625,7 +568,6 @@ def write_markdown(
     rel: list[dict[str, Any]],
     args: argparse.Namespace,
     notes: list[str],
-    charts: list[str],
 ) -> None:
     out = [
         "# Benchmark comparison",
@@ -835,153 +777,8 @@ def write_markdown(
             )
             out.append("")
 
-    if charts:
-        out += (
-            ["## Charts", ""]
-            + [f"![{os.path.basename(c)}]({os.path.basename(c)})" for c in charts]
-            + [""]
-        )
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(out))
-
-
-def plot(stages: list[dict[str, Any]], out_dir: str, slo_ttft_ms: float) -> list[str]:
-    try:
-        import matplotlib  # type: ignore[import-not-found]
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt  # type: ignore[import-not-found]
-    except ImportError:
-        return []
-    charts = []
-    specs = [
-        ("ttft_p90_ms", "p90 TTFT (ms)", slo_ttft_ms),
-        ("output_tokens_per_s", "output tokens/s", None),
-        ("goodput_rps", "goodput (requests/s within SLO)", None),
-    ]
-    for workload in sorted({r["workload"] for r in stages}):
-        rows = [r for r in stages if r["workload"] == workload]
-        for metric, label, hline in specs:
-            fig, ax = plt.subplots(figsize=(7, 4.5))
-            series: dict[tuple[str, str, str], list[tuple[float, float]]] = defaultdict(
-                list
-            )
-            for r in rows:
-                if r["requested_qps"] is not None and r[metric] is not None:
-                    series[(r["arm"], r["client"], r["run_id"])].append(
-                        (r["requested_qps"], r[metric])
-                    )
-            if not series:
-                plt.close(fig)
-                continue
-            multi_run = len({k[2] for k in series}) > 1
-            for (arm, client, run_id), pts in sorted(series.items()):
-                pts.sort()
-                name = f"{arm} / {client}" + (f" / {run_id}" if multi_run else "")
-                ax.plot(
-                    [p[0] for p in pts], [p[1] for p in pts], marker="o", label=name
-                )
-            if hline is not None:
-                ax.axhline(
-                    hline, color="grey", linestyle="--", linewidth=1, label="SLO"
-                )
-            ax.set_xlabel("offered load per client (QPS)")
-            ax.set_ylabel(label)
-            ax.set_title(f"{workload}: {label}")
-            ax.grid(True, alpha=0.3)
-            ax.legend(fontsize=8)
-            path = os.path.join(out_dir, f"{workload}_{metric}.png")
-            fig.tight_layout()
-            fig.savefig(path, dpi=120)
-            plt.close(fig)
-            charts.append(path)
-    return charts
-
-
-def aggregate_chart_specs(
-    clients: list[str], slo_ttft_ms: float
-) -> tuple[list[tuple[str, str, float | None, bool]], str]:
-    """Charts of plot_aggregate: ([(metric, label, SLO line, log scale)], x label).
-
-    With a single client region, the labels name it instead of claiming to
-    cover every region.
-    """
-    if len(clients) == 1:
-        single = clients[0]
-        return [
-            ("goodput_rps", f"goodput, {single} (requests/s within SLO)", None, False),
-            ("output_tokens_per_s", f"output tokens/s, {single}", None, False),
-            (
-                "worst_ttft_p90_ms",
-                f"{single} p90 TTFT (ms, log scale)",
-                slo_ttft_ms,
-                True,
-            ),
-        ], f"offered load from {single} (QPS)"
-    return [
-        ("goodput_rps", "goodput, all regions (requests/s within SLO)", None, False),
-        ("output_tokens_per_s", "output tokens/s, all regions", None, False),
-        (
-            "worst_ttft_p90_ms",
-            "worst region p90 TTFT (ms, log scale)",
-            slo_ttft_ms,
-            True,
-        ),
-    ], "offered load per client region (QPS)"
-
-
-def plot_aggregate(
-    agg: list[dict[str, Any]], out_dir: str, slo_ttft_ms: float
-) -> list[str]:
-    """One line per arm across client regions (or single client region if only one)."""
-    try:
-        import matplotlib  # type: ignore[import-not-found]
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt  # type: ignore[import-not-found]
-    except ImportError:
-        return []
-    charts = []
-    for workload in sorted({a["workload"] for a in agg}):
-        rows = [a for a in agg if a["workload"] == workload]
-        specs, xlabel = aggregate_chart_specs(_distinct_clients(rows), slo_ttft_ms)
-        for metric, label, hline, log in specs:
-            series: dict[tuple[str, str], list[tuple[float, float]]] = defaultdict(list)
-            for a in rows:
-                if a["requested_qps"] is not None and a[metric] is not None:
-                    series[(a["arm"], a["run_id"])].append(
-                        (a["requested_qps"], a[metric])
-                    )
-            if not series:
-                continue
-            fig, ax = plt.subplots(figsize=(7, 4.5))
-            multi_run = len({k[1] for k in series}) > 1
-            for (arm, run_id), pts in sorted(series.items()):
-                pts.sort()
-                name = arm + (f" / {run_id}" if multi_run else "")
-                ax.plot(
-                    [q[0] for q in pts], [q[1] for q in pts], marker="o", label=name
-                )
-            if log:
-                ax.set_yscale("log")
-            if hline is not None:
-                ax.axhline(
-                    hline, color="grey", linestyle="--", linewidth=1, label="SLO"
-                )
-                ymin, ymax = ax.get_ylim()
-                if ymax < hline * 1.35:
-                    ax.set_ylim(ymin, hline * 1.35)
-            ax.set_xlabel(xlabel)
-            ax.set_ylabel(label)
-            ax.set_title(f"{workload}: {label}")
-            ax.grid(True, alpha=0.3)
-            ax.legend(fontsize=8)
-            path = os.path.join(out_dir, f"aggregate_{workload}_{metric}.png")
-            fig.tight_layout()
-            fig.savefig(path, dpi=120)
-            plt.close(fig)
-            charts.append(path)
-    return charts
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1020,7 +817,6 @@ def main(argv: list[str] | None = None) -> int:
         default=0.05,
         help="max error rate fraction allowed for max-QPS-within-SLO (default: 0.05)",
     )
-    p.add_argument("--no-charts", action="store_true", help="don't write PNG charts")
     args = p.parse_args(argv)
 
     stages, notes = collect(args.dirs)
@@ -1067,12 +863,6 @@ def main(argv: list[str] | None = None) -> int:
     agg = aggregate(stages)
     write_csv(os.path.join(args.out, "aggregate.csv"), agg, AGGREGATE_COLUMNS)
     write_csv(os.path.join(args.out, "relative.csv"), rel)
-    charts = (
-        []
-        if args.no_charts
-        else plot_aggregate(agg, args.out, slo_ttft_ms)
-        + plot(stages, args.out, slo_ttft_ms)
-    )
     write_markdown(
         os.path.join(args.out, "report.md"),
         stages,
@@ -1081,13 +871,11 @@ def main(argv: list[str] | None = None) -> int:
         rel,
         args,
         notes,
-        charts,
     )
     for n in notes:
         print("WARNING: " + n, file=sys.stderr)
     print(
         f"wrote {args.out}/report.md, stages.csv, summary.csv, aggregate.csv, relative.csv"
-        + (f" and {len(charts)} charts" if charts else "")
     )
     return 0
 

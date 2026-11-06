@@ -89,7 +89,7 @@ all three default regions enabled (`MR_REGION_KEYS="usc1 euw2 ase1"` in
 ```bash
 cd platforms/gke/base/use-cases/inference-ref-arch/examples/llmd-multi-region
 export MR_PROJECT_ID="<project>"
-export MR_PYTHON="<python3 with PyYAML and matplotlib>"
+export MR_PYTHON="<python3 with PyYAML>"
 
 # 1. Deploy all three regions, benchmark infrastructure, and staged models.
 export MR_RUN_ID="setup-$(date -u +%Y%m%dT%H%M%SZ)"
@@ -117,12 +117,11 @@ scripts/teardown-all.sh
 `run-scale-experiment.sh` writes the autoscaling trace to
 `${MR_WORK_DIR}/results/scale/<run>/recorder.jsonl` and invokes
 `bench/scale_report.py` to generate `${MR_WORK_DIR}/results/analysis/<run>/`
-(`report.md`, `stages.csv`, `pods.csv`, `gmp.json`, `scale_timeline.png`, and
-`scale_stages.png`). Run A now includes the two-metric HPA
-(`vllm:num_requests_running`), `safe-to-evict`, and base `PodDisruptionBudget`
-fixes described below, so re-running it keeps 4 replicas steady at 8 QPS rather
-than reproducing the scale-in and eviction failures of the recorded initial cold
-run.
+(`report.md`, `stages.csv`, `pods.csv`, and `gmp.json`). Run A now includes the
+two-metric HPA (`vllm:num_requests_running`), `safe-to-evict`, and base
+`PodDisruptionBudget` fixes described below, so re-running it keeps 4 replicas
+steady at 8 QPS rather than reproducing the scale-in and eviction failures of
+the recorded initial cold run.
 
 ## Results: cold scale-out
 
@@ -273,13 +272,14 @@ warm-up, inter-token latency was about 10% higher than in the cold run (p90 TPOT
   (`gcloud beta container clusters update --enable-pod-snapshots`, 6–11 minutes
   per cluster).
 - `deploy-arm.sh` applies a `PodSnapshotStorageConfig` and a `PodSnapshotPolicy`
-  (`triggerConfig.type: workload`, `postCheckpoint: resume`) from
-  `manifests/model-server/podsnapshot` (alongside the base `PodDisruptionBudget`
-  in `manifests/model-server/base/pdb.tpl.yaml`). It makes the model server
-  sandbox-ready with `scripts/podsnapshot_patch.py`:
+  (`triggerConfig.type: workload`, `postCheckpoint: resume`) from the
+  declarative `manifests/model-server/llmd-podsnapshot` Kustomize overlay
+  (alongside the base `PodDisruptionBudget` in
+  `manifests/model-server/base/pdb.tpl.yaml`), which patches the model server
+  Deployment to be sandbox-ready:
   - `runtimeClassName: gvisor`,
-  - a wrapper (`checkpoint-wrapper.sh`) that writes `/proc/gvisor/checkpoint`
-    once vLLM is healthy and forwards `SIGTERM`/`SIGINT` cleanly to vLLM,
+  - a cooperative entrypoint wrapper that writes `/proc/gvisor/checkpoint` once
+    vLLM is healthy and forwards `SIGTERM`/`SIGINT` cleanly to vLLM,
   - no liveness probe (the source replica pauses while it checkpoints),
   - a 140Gi memory limit (included in the pod-template hash),
   - no pod-specific values in the container spec.
@@ -293,8 +293,8 @@ Two findings from setting it up:
 - **GKE restores a container only if its arguments are identical to the snapshot
   source's.** The llm-d recipe puts `$(POD_IP)` into vLLM's KV events topic
   argument, so every replica's arguments differed. The restore failed with
-  `OCI runtime restore failed: starting sub-container`. In snapshot mode,
-  `podsnapshot_patch.py` removes the KV events argument and the pod IP
+  `OCI runtime restore failed: starting sub-container`. In snapshot mode, the
+  `llmd-podsnapshot` overlay omits the KV events argument and deletes the pod IP
   variables, which disables precise prefix cache routing (see
   [llm-d/llm-d#3015](https://github.com/llm-d/llm-d/issues/3015)).
 - **GKE's fallback to a cold start didn't work after that failure.** It reported
@@ -424,9 +424,5 @@ made while running them.
       the HPA's per-pod metric.
     - Record the HPA, pods, and GPU nodes during load tests
       (`bench/record_scaling.py`). Time series explain the stage averages.
-15. **Keep the demo path safe.** The optional IAP front door
-    (`deploy-front-door.sh`) exposes the internal VIP only to allowed Google
-    identities. It was validated end to end, and its setup takes about 14
-    minutes because of the managed certificate.
-16. **Phase 2: P/D disaggregation** for larger models on RDMA GPUs (A3 Ultra,
+15. **Phase 2: P/D disaggregation** for larger models on RDMA GPUs (A3 Ultra,
     A4), with the same harness, HPA, and global layer.

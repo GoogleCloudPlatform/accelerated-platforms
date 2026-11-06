@@ -42,7 +42,6 @@ test/scripts/environment_files/*
 
 # Generated outputs
 *.log
-!**/testdata/**/*.log
 **/hftoken
 platforms/gke/base/use-cases/inference-ref-arch/examples/llmd-multi-region/analysis/
 platforms/gke/base/use-cases/inference-ref-arch/examples/llmd-multi-region/startup/

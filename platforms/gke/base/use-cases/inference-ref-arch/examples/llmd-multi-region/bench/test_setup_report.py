@@ -46,15 +46,6 @@ def record(
     }
 
 
-class FmtTest(unittest.TestCase):
-    def test_formats_durations(self) -> None:
-        self.assertEqual(setup_report.fmt(95), "1:35")
-        self.assertEqual(setup_report.fmt(3661), "1:01:01")
-        self.assertEqual(setup_report.fmt(-15), "-0:15")
-        self.assertEqual(setup_report.fmt(-3661), "-1:01:01")
-        self.assertEqual(setup_report.fmt(59.6), "1:00")
-
-
 class MainTest(unittest.TestCase):
     def run_main(self, records: list[dict[str, Any]]) -> tuple[int, str]:
         with tempfile.TemporaryDirectory() as tmp:

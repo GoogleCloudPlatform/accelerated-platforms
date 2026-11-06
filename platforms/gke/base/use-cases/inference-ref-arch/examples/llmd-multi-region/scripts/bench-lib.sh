@@ -110,8 +110,10 @@ mr_bench_bucket() {
 }
 
 mr_write_bench_tfvars() {
-  local out="${MR_WORK_DIR}/terraform/bench.tfvars.json"
-  mkdir -p "$(dirname "${out}")"
+  local stage out
+  stage="$(mr_tf_dir bench)"
+  out="${stage}/terraform.tfvars.json"
+  mkdir -p "${stage}"
   jq -n \
     --arg project_id "${MR_PROJECT_ID}" \
     --arg bucket_name "$(mr_bench_bucket)" \

@@ -110,10 +110,10 @@ class ExtractHpaMetricsTest(unittest.TestCase):
         self.assertEqual(parsed["hpa_metrics"], {RUNNING: 18.0, WAITING: 2.5})
         self.assertEqual(parsed["hpa_waiting_average"], 2.5)
         self.assertEqual(parsed["hpa_running_average"], 18.0)
-        # The plotted HPA metric is the queue (waiting) metric.
+        # The primary HPA metric is the queue (waiting) metric.
         self.assertEqual(parsed["hpa_metric"], 2.5)
 
-    def test_running_metric_is_never_plotted_as_the_queue(self) -> None:
+    def test_running_metric_is_never_recorded_as_the_queue(self) -> None:
         parsed = record_scaling.extract_hpa_metrics(
             [
                 {"type": "Resource", "resource": {"name": "cpu"}},

@@ -11,25 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-# Only requests for the front door host name are routed; the load balancer
-# answers anything else (for example, requests to the bare IP) with 404.
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
+---
+# Regional Cloud Storage bucket where GKE stores Pod snapshots for this cluster
+# (created by online_gpu when ira_online_gpu_pod_snapshots_enabled is true).
+apiVersion: podsnapshot.gke.io/v1
+kind: PodSnapshotStorageConfig
 metadata:
-  name: llm-front-door
-  namespace: ${MR_FRONT_DOOR_NAMESPACE}
+  name: ${MR_NAMESPACE}-model-servers
 spec:
-  parentRefs:
-    - kind: Gateway
-      name: llm-front-door
-  hostnames:
-    - ${MR_FRONT_DOOR_HOSTNAME}
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
-        - name: llm-front-door
-          port: 8080
+  snapshotStorageConfig:
+    gcs:
+      bucket: ${MR_POD_SNAPSHOTS_BUCKET}

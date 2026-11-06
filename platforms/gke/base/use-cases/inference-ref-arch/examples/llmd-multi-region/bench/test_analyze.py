@@ -27,14 +27,11 @@ import os
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import analyze  # noqa: E402
-
-FIXTURE = Path(__file__).resolve().parent / "testdata" / "analyze"
 
 
 def stage_report(
@@ -43,11 +40,15 @@ def stage_report(
     failed: int = 0,
     ttft_p90_s: float | None = 0.5,
     tpot_p90_s: float | None = 0.05,
+    ttft_med_s: float | None = None,
+    good_requests: int | None = None,
+    request_goodput: float | None = None,
 ) -> dict[str, Any]:
     """A minimal inference-perf stage_<N>_lifecycle_metrics.json document."""
     latency: dict[str, Any] = {}
     if ttft_p90_s is not None:
-        latency["time_to_first_token"] = {"median": ttft_p90_s / 2, "p90": ttft_p90_s}
+        med = ttft_p90_s / 2 if ttft_med_s is None else ttft_med_s
+        latency["time_to_first_token"] = {"median": med, "p90": ttft_p90_s}
     if tpot_p90_s is not None:
         latency["time_per_output_token"] = {"median": tpot_p90_s, "p90": tpot_p90_s}
     successes: dict[str, Any] = {"count": ok}
@@ -57,6 +58,14 @@ def stage_report(
             "requests_per_sec": ok / 60.0,
             "output_tokens_per_sec": ok * 4.0,
         }
+        if good_requests is not None or request_goodput is not None:
+            successes["goodput_metrics"] = {
+                "good_requests": good_requests,
+                "request_goodput": request_goodput,
+                "goodput_percentage": (
+                    100.0 * good_requests / ok if good_requests is not None else None
+                ),
+            }
     return {
         "load_summary": {"requested_rate": qps, "achieved_rate": qps},
         "successes": successes,
@@ -67,6 +76,65 @@ def stage_report(
 def write_json(path: Path, doc: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(doc), encoding="utf-8")
+
+
+def build_analyze_fixture(root: Path) -> Path:
+    """Writes a synthetic two-arm, two-region benchmark run directory."""
+    specs = {
+        ("vllm", "usc1"): [
+            (1.0, 60, 0, 0.45, 0.81, 0.0434, 57, 0.82),
+            (2.0, 120, 0, 0.90, 1.62, 0.0558, 114, 1.58),
+            (4.0, 237, 3, 2.40, 4.32, 0.0868, 142, 1.77),
+        ],
+        ("vllm", "euw2"): [
+            (1.0, 60, 0, 0.50, 0.90, 0.045, 57, 0.80),
+            (2.0, 120, 0, 0.99, 1.78, 0.060, 114, 1.55),
+            (4.0, 237, 3, 2.64, 4.752, 0.095, 142, 1.73),
+        ],
+        ("llmd", "usc1"): [
+            (1.0, 60, 0, 0.25, 0.45, 0.041, 57, 0.83),
+            (2.0, 120, 0, 0.40, 0.72, 0.050, 114, 1.61),
+            (4.0, 240, 0, 0.90, 1.62, 0.068, 228, 3.04),
+        ],
+        ("llmd", "euw2"): [
+            (1.0, 60, 0, 0.28, 0.50, 0.042, 57, 0.82),
+            (2.0, 120, 0, 0.44, 0.79, 0.052, 114, 1.59),
+            (4.0, 240, 0, 0.99, 1.78, 0.072, 228, 2.98),
+        ],
+    }
+    for (arm, client), stages in specs.items():
+        run_dir = root / "runs" / "fixture" / arm / "shared-prefix"
+        write_json(
+            run_dir / "run.json",
+            {
+                "schema_version": 1,
+                "status": "succeeded",
+                "run_id": "fixture",
+                "arm": arm,
+                "workload": "shared-prefix",
+                "slo": {"ttft_s": 2.0, "tpot_s": 0.1},
+            },
+        )
+        client_dir = run_dir / client
+        write_json(
+            client_dir / "client.json",
+            {"key": client, "target_key": client, "status": "succeeded"},
+        )
+        for idx, (qps, ok, fail, med, p90, tpot, good, goodput) in enumerate(stages):
+            write_json(
+                client_dir / "reports" / f"stage_{idx}_lifecycle_metrics.json",
+                stage_report(
+                    qps,
+                    ok,
+                    fail,
+                    ttft_p90_s=p90,
+                    tpot_p90_s=tpot,
+                    ttft_med_s=med,
+                    good_requests=good,
+                    request_goodput=goodput,
+                ),
+            )
+    return root
 
 
 def read_csv(path: Path) -> list[dict[str, str]]:
@@ -82,7 +150,7 @@ def run_main(argv: list[str]) -> tuple[int, str, str]:
 
 
 class FixtureEndToEndTest(unittest.TestCase):
-    """Runs analyze.py on the two-arm, two-region fixture in testdata/analyze."""
+    """Runs analyze.py on a synthetic two-arm, two-region fixture."""
 
     out: Path
     stdout: str
@@ -91,10 +159,10 @@ class FixtureEndToEndTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls._tmp = tempfile.TemporaryDirectory()
-        cls.out = Path(cls._tmp.name)
-        rc, cls.stdout, cls.stderr = run_main(
-            [str(FIXTURE), "--out", str(cls.out), "--no-charts"]
-        )
+        base = Path(cls._tmp.name)
+        fixture = build_analyze_fixture(base / "in")
+        cls.out = base / "out"
+        rc, cls.stdout, cls.stderr = run_main([str(fixture), "--out", str(cls.out)])
         if rc != 0:
             raise AssertionError(f"analyze.main returned {rc}: {cls.stderr}")
 
@@ -433,62 +501,13 @@ class MarkdownTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "report.md"
             analyze.write_markdown(
-                str(path), stages, [], analyze.aggregate(stages), [], args, [], []
+                str(path), stages, [], analyze.aggregate(stages), [], args, []
             )
             md = path.read_text(encoding="utf-8")
         self.assertIn("## Client region `usc1`", md)
         self.assertIn("usc1 TTFT p90", md)
         self.assertNotIn("## All client regions combined", md)
         self.assertNotIn("worst TTFT p90", md)
-
-    def test_chart_labels_name_a_single_client_region(self) -> None:
-        specs, xlabel = analyze.aggregate_chart_specs(["usc1"], 2000.0)
-        self.assertEqual(xlabel, "offered load from usc1 (QPS)")
-        self.assertEqual(
-            [label for _metric, label, _slo, _log in specs],
-            [
-                "goodput, usc1 (requests/s within SLO)",
-                "output tokens/s, usc1",
-                "usc1 p90 TTFT (ms, log scale)",
-            ],
-        )
-        specs, xlabel = analyze.aggregate_chart_specs(["euw2", "usc1"], 2000.0)
-        self.assertEqual(xlabel, "offered load per client region (QPS)")
-        self.assertEqual(
-            specs[2],
-            (
-                "worst_ttft_p90_ms",
-                "worst region p90 TTFT (ms, log scale)",
-                2000.0,
-                True,
-            ),
-        )
-
-
-class TimestampTest(unittest.TestCase):
-    def test_parse_rfc3339_epoch(self) -> None:
-        self.assertEqual(
-            analyze.parse_rfc3339_epoch("2026-10-30T05:48:00Z"),
-            analyze.parse_rfc3339_epoch("2026-10-30T07:48:00+02:00"),
-        )
-        self.assertIsNone(analyze.parse_rfc3339_epoch(""))
-        self.assertIsNone(analyze.parse_rfc3339_epoch(None))
-        with self.assertRaisesRegex(ValueError, "invalid RFC 3339 timestamp"):
-            analyze.parse_rfc3339_epoch("Oct 30 2026")
-
-    def test_epoch_seconds(self) -> None:
-        aware = datetime(2026, 10, 30, 7, 48, tzinfo=timezone(timedelta(hours=2)))
-        self.assertEqual(
-            analyze.epoch_seconds(aware),
-            analyze.parse_rfc3339_epoch("2026-10-30T05:48:00Z"),
-        )
-        self.assertEqual(
-            analyze.epoch_seconds(datetime(2026, 10, 30, 5, 48)),
-            analyze.parse_rfc3339_epoch("2026-10-30T05:48:00Z"),
-        )
-        self.assertEqual(analyze.epoch_seconds(12.5), 12.5)
-        self.assertIsNone(analyze.epoch_seconds(None))
-        self.assertIsNone(analyze.epoch_seconds(True))
 
 
 class MainTest(unittest.TestCase):
@@ -500,9 +519,10 @@ class MainTest(unittest.TestCase):
 
     def test_warns_when_run_slo_differs_from_the_flags(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
+            fixture = build_analyze_fixture(Path(tmp) / "in")
             out = os.path.join(tmp, "out")
             rc, _stdout, err = run_main(
-                [str(FIXTURE), "--out", out, "--no-charts", "--slo-ttft", "1.0"]
+                [str(fixture), "--out", out, "--slo-ttft", "1.0"]
             )
             md = Path(out, "report.md").read_text(encoding="utf-8")
         self.assertEqual(rc, 0)
@@ -513,9 +533,10 @@ class MainTest(unittest.TestCase):
 
     def test_notes_missing_baseline_arm(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
+            fixture = build_analyze_fixture(Path(tmp) / "in")
             out = os.path.join(tmp, "out")
             rc, _stdout, err = run_main(
-                [str(FIXTURE), "--out", out, "--no-charts", "--baseline-arm", "none"]
+                [str(fixture), "--out", out, "--baseline-arm", "none"]
             )
             rel = Path(out, "relative.csv").read_text(encoding="utf-8")
         self.assertEqual(rc, 0)

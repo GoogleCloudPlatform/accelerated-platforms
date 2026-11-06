@@ -38,8 +38,11 @@ import os
 import re
 import statistics
 import sys
-from datetime import datetime, timezone
 from typing import Any
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _common  # noqa: E402
+from _common import load_json  # noqa: E402
 
 ANSI = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 LOG_TS = re.compile(
@@ -132,21 +135,7 @@ COLUMNS = [
 
 def parse_ts(value: str | int | float | None) -> float | None:
     """RFC 3339 (with up to nanosecond fractions) to epoch seconds."""
-    if not value:
-        return None
-    if isinstance(value, (int, float)):
-        return float(value)
-    m = re.match(
-        r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?$",
-        value.strip(),
-    )
-    if not m:
-        return None
-    base, frac, tz = m.groups()
-    dt = datetime.fromisoformat(base + ((tz or "Z").replace("Z", "+00:00"))).astimezone(
-        timezone.utc
-    )
-    return dt.timestamp() + (float(frac) if frac else 0.0)
+    return _common.epoch_seconds(value, strict=False)
 
 
 def go_duration(text: str | None) -> float | None:
@@ -161,13 +150,6 @@ def go_duration(text: str | None) -> float | None:
 
 def diff(end: float | None, start: float | None) -> float | None:
     return None if end is None or start is None else round(end - start, 3)
-
-
-def load_json(path: str, default: Any = None) -> Any:
-    if not os.path.exists(path):
-        return default
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
 
 
 def items(doc: Any) -> list[dict[str, Any]]:
@@ -420,23 +402,11 @@ def analyze_dir(
 
 
 def fmt(v: Any) -> str:
-    if v is None:
-        return "-"
-    if isinstance(v, bool):
-        return "yes" if v else "no"
-    if isinstance(v, float):
-        return f"{v:.1f}"
-    return str(v)
+    return _common.fmt_num(v, bool_yn=True)
 
 
 def md_table(headers: list[str], rows: list[list[Any]]) -> str:
-    lines = [
-        "| " + " | ".join(headers) + " |",
-        "|" + "|".join("---" for _ in headers) + "|",
-    ]
-    return "\n".join(
-        lines + ["| " + " | ".join(fmt(c) for c in r) + " |" for r in rows]
-    )
+    return _common.md_table(headers, rows, cell_fmt=fmt)
 
 
 def write_outputs(

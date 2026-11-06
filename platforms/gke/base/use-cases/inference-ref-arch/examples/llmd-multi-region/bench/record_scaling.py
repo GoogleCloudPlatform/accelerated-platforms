@@ -96,7 +96,7 @@ def extract_hpa_metrics(metrics: list[dict[str, Any]]) -> dict[str, Any]:
 
     The list order isn't significant, so the queue (num_requests_waiting) and
     running (num_requests_running) metrics are found by name. hpa_metric is the
-    queue metric, which scale_report.py plots as the waiting line.
+    queue metric.
     """
     out: dict[str, Any] = {}
     parsed: dict[str, float | None] = {}

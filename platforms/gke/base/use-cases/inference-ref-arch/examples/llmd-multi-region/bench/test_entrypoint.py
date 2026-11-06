@@ -133,7 +133,7 @@ class StageTokenizerTest(unittest.TestCase):
             with self.assertRaisesRegex(
                 RuntimeError,
                 "no tokenizer files .* under gs://models-usc1/qwen/qwen3-32b/; "
-                "stage the model with scripts/stage-model.sh",
+                "stage the model with scripts/deploy-all.sh",
             ):
                 entrypoint.stage_tokenizer_from_gcs(
                     "models-usc1", "qwen/qwen3-32b", Path(tmp), client

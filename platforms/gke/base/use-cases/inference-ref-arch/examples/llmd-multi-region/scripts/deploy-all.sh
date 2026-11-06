@@ -123,15 +123,39 @@ post_provision_region() {
   mr_stage "label_cluster" "${scope}" label_cluster "${key}"
 }
 
-# mr_parallel <stage> <script> : runs <script> <key> for every region in parallel.
-mr_parallel() {
-  local stage="${1}" script="${2}" key pids=() rc=0
+run_stage_hf_model() {
+  local key="${1}"
+  (
+    use_region "${key}" "$(mr_region "${key}")" "$(mr_cidr_index "${key}")"
+    stage_hf_model --skip-existing "${MR_HF_MODEL_ID}"
+  )
+}
+
+stage_region_model() {
+  local key="${1}" scope="region/${1}" bucket
+  bucket="$(mr_models_bucket "${key}")"
+  if [[ -n "${MR_MODEL_SOURCE_BUCKET}" ]]; then
+    if gcloud storage ls "gs://${bucket}/${MR_MODEL_PATH}/config.json" >/dev/null 2>&1 &&
+      gcloud storage ls "gs://${bucket}/${MR_MODEL_PATH}/*.safetensors" >/dev/null 2>&1; then
+      mr_log "gs://${bucket}/${MR_MODEL_PATH} already contains the model, skipping"
+      return 0
+    fi
+    mr_stage "model_copy_from_bucket" "${scope}" gcloud storage rsync --recursive \
+      "gs://${MR_MODEL_SOURCE_BUCKET}/${MR_MODEL_PATH}" \
+      "gs://${bucket}/${MR_MODEL_PATH}"
+  else
+    mr_stage "model_download_from_hugging_face" "${scope}" run_stage_hf_model "${key}"
+  fi
+}
+
+stage_models_parallel() {
+  local key pids=() rc=0
   for key in ${MR_REGION_KEYS}; do
-    "${MY_PATH}/${script}" "${key}" >"${logs}/${stage}-${key}.log" 2>&1 &
+    (stage_region_model "${key}") >"${logs}/models-${key}.log" 2>&1 &
     pids+=($!)
   done
   for pid in "${pids[@]}"; do wait "${pid}" || rc=1; done
-  [[ ${rc} -eq 0 ]] || mr_die "${stage} failed in at least one region; see ${logs}/${stage}-*.log"
+  [[ ${rc} -eq 0 ]] || mr_die "models staging failed in at least one region; see ${logs}/models-*.log"
 }
 
 setup_start="$(date +%s.%N)"
@@ -154,7 +178,7 @@ if [[ "${regions_only}" != "true" ]]; then
   if [[ -x "${MY_PATH}/deploy-bench-infra.sh" ]]; then
     "${MY_PATH}/deploy-bench-infra.sh"
   fi
-  mr_parallel models stage-model.sh
+  stage_models_parallel
 fi
 mr_record_timing "setup_total" "global" "${setup_start}" "$(date +%s.%N)" "ok"
 

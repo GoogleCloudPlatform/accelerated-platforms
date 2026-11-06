@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import contextlib
-import datetime
 import io
 import json
 import os
@@ -33,8 +32,6 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import lb_traffic_split  # noqa: E402
-
-UTC = datetime.timezone.utc
 
 
 def entry(timestamp: str, latency_s: float, region: str, scope: str) -> dict[str, Any]:
@@ -57,33 +54,7 @@ ENTRIES = [
 ]
 
 
-class ParseTimeTest(unittest.TestCase):
-    def test_offsets_and_fractions(self) -> None:
-        self.assertEqual(
-            lb_traffic_split.parse_time("2026-10-30T12:00:00.25Z"),
-            lb_traffic_split.parse_time("2026-10-30T14:00:00.25+02:00"),
-        )
-        self.assertEqual(
-            lb_traffic_split.parse_time("2026-10-30T07:28:19.5+00:00"),
-            datetime.datetime(2026, 10, 30, 7, 28, 19, 500000, tzinfo=UTC),
-        )
-        self.assertEqual(
-            lb_traffic_split.parse_time("2026-10-30T07:28:19.123456789Z").microsecond,
-            123457,
-        )
-
-    def test_datetimes(self) -> None:
-        naive = datetime.datetime(2026, 10, 30, 7, 0)
-        offset = datetime.datetime(
-            2026, 10, 30, 9, 0, tzinfo=datetime.timezone(datetime.timedelta(hours=2))
-        )
-        self.assertEqual(lb_traffic_split.parse_time(naive), naive.replace(tzinfo=UTC))
-        self.assertEqual(lb_traffic_split.parse_time(offset), naive.replace(tzinfo=UTC))
-
-    def test_rejects_invalid_timestamps(self) -> None:
-        with self.assertRaisesRegex(ValueError, "Invalid RFC 3339 timestamp"):
-            lb_traffic_split.parse_time("30/10/2026 07:00")
-
+class LogFilterTest(unittest.TestCase):
     def test_log_filter(self) -> None:
         flt = lb_traffic_split.build_log_filter(
             "mr-map", "2026-10-30T07:00:00Z", "2026-10-30T08:10:00Z"

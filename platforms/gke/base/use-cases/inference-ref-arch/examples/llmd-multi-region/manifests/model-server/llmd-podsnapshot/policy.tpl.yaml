@@ -11,13 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+---
 # The first llm-d model server pod that matches is checkpointed when it writes
-# to /proc/gvisor/checkpoint (checkpoint-wrapper.sh, after vLLM is healthy, so
-# that the weights are in GPU memory and torch.compile and CUDA graph capture
-# are done). Every later matching pod with the same pod spec, including the
-# ones that the HPA adds, is restored from that snapshot instead of starting
-# cold.
+# to /proc/gvisor/checkpoint (once vLLM is healthy, so weights are in GPU
+# memory and torch.compile and CUDA graph capture are done). Every later
+# matching pod with the same pod spec, including those added by the HPA, is
+# restored from that snapshot instead of starting cold.
 apiVersion: podsnapshot.gke.io/v1
 kind: PodSnapshotPolicy
 metadata:
@@ -31,7 +30,5 @@ spec:
   storageConfigName: ${MR_NAMESPACE}-model-servers
   triggerConfig:
     type: workload
-    # Keep serving after the checkpoint (the pod is paused while its memory is
-    # uploaded).
     postCheckpoint: resume
   snapshotScope: whole-pod

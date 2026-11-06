@@ -21,7 +21,13 @@ locals {
   template_manifests_directory        = "${path.module}/manifests/ccc"
   template_manifests_source_directory = "${path.module}/templates/manifests"
 
-  template_manifests_source_directory_contents_hash = sha512(join("", [for f in fileset(local.template_manifests_source_directory, "**") : filesha512("${local.template_manifests_source_directory}/${f}")]))
+  template_manifests_source_directory_contents_hash = sha512(
+    format(
+      "%s:%t",
+      join("", [for f in fileset(local.template_manifests_source_directory, "**") : filesha512("${local.template_manifests_source_directory}/${f}")]),
+      var.cluster_custom_compute_class_active_migration_enabled
+    )
+  )
 }
 
 data "local_file" "kubeconfig" {
@@ -30,6 +36,7 @@ data "local_file" "kubeconfig" {
 
 resource "terraform_data" "manifests" {
   input = {
+    active_migration_enabled            = var.cluster_custom_compute_class_active_migration_enabled
     manifests_directory                 = local.manifests_directory
     template_manifests_directory        = local.template_manifests_directory
     template_manifests_source_directory = local.template_manifests_source_directory
@@ -37,9 +44,13 @@ resource "terraform_data" "manifests" {
 
   provisioner "local-exec" {
     command     = <<EOT
+rm -rf "${self.input.template_manifests_directory}" "${self.input.manifests_directory}" && \
 mkdir -p "${self.input.template_manifests_directory}" && \
 mkdir -p "${self.input.manifests_directory}" && \
 cp -r "${self.input.template_manifests_source_directory}"/* "${self.input.template_manifests_directory}/" && \
+if [ "${self.input.active_migration_enabled}" != "true" ]; then
+  find "${self.input.template_manifests_directory}" -name '*.yaml' -exec sed -i -E 's/optimizeRulePriority:[[:blank:]]*true/optimizeRulePriority: false/g' {} +
+fi && \
 cp -r "${self.input.template_manifests_directory}"/* "${self.input.manifests_directory}/"
 EOT
     interpreter = ["bash", "-c"]
@@ -47,6 +58,7 @@ EOT
   }
 
   triggers_replace = {
+    active_migration_enabled     = var.cluster_custom_compute_class_active_migration_enabled
     manifests_directory          = local.manifests_directory
     template_manifests_directory = local.template_manifests_directory
 

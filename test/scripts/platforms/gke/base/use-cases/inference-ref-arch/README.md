@@ -18,6 +18,11 @@ Contains environment variables to configure different Hugging Face settings.
   `model-download/huggingface` scripts.
 - `hf_gpu_diffusers_models`: A list of Hugging Face models that will be tested
   by the `online-inference-gpu/diffusers` scripts.
+- `hf_gpu_trtllm_models`: A list of Hugging Face models that will be tested by
+  the `online-inference-gpu/trtllm` scripts.
+- `hf_gpu_trtllm_podsnapshot_models`: A list of Hugging Face models that will be
+  tested by the `online-inference-gpu/trtllm` scripts when
+  `TRTLLM_VARIANT_SUFFIX` is set to `-podsnapshot`.
 - `hf_gpu_vllm_models`: A list of Hugging Face models that will be tested by the
   `online-inference-gpu/vllm` scripts.
 - `hf_gpu_vllm_podsnapshot_models`: A list of Hugging Face models that will be
@@ -82,6 +87,47 @@ listed in the `hf_gpu_diffusers_models` environment variable.
 ##### `deployment_test.sh`
 
 Sends a test request to all of the GPU Diffusers deployments.
+
+#### `common.sh` and `measure_restore.sh`
+
+`common.sh` is the shared library sourced by the `trtllm` (and other engine)
+`deployment_*.sh` scripts. It resolves the overlay for each model, runs the
+engine's configure script, and reads Deployment, StatefulSet, Service, and
+`PodSnapshotPolicy` names from the rendered overlay, so the scripts do not
+hard-code `nameSuffix` values.
+
+`measure_restore.sh` scales out a Deployment that includes the
+`components/gke-pod-snapshot` Kustomize Component (`APP` is the Deployment name)
+and reports, for each restored replica, the time to `Ready`, `PodRestored`, and
+the first successful `/v1/chat/completions` response. If a
+HorizontalPodAutoscaler targets the Deployment, it scales out by raising the
+HPA's `minReplicas` and restores the original value when it exits.
+
+#### `trtllm`
+
+These scripts can be used to deploy and test the `hf_gpu_trtllm_models` that use
+the NVIDIA TensorRT-LLM inference server with Cloud Storage FUSE streaming. Set
+`TRTLLM_VARIANT_SUFFIX` to `-podsnapshot` to use the
+`hf_gpu_trtllm_podsnapshot_models` overlays that add GKE Pod snapshots.
+
+##### `deployment_apply.sh`
+
+Applies the manifests for the GPU TensorRT-LLM deployment for all of the models
+listed in the `hf_gpu_trtllm_models` environment variable.
+
+##### `deployment_delete.sh`
+
+Deletes the resources for the GPU TensorRT-LLM deployment for all of the models
+listed in the `hf_gpu_trtllm_models` environment variable. For Pod snapshot
+overlays, it deletes the Deployment first and then any `PodSnapshot` objects
+created by the overlay's `PodSnapshotPolicy`.
+
+##### `deployment_test.sh`
+
+Waits for every Deployment in the overlay and sends test requests to the GPU
+TensorRT-LLM deployments. For Pod snapshot overlays, it first waits for the
+initial `PodSnapshot` to become available and scales out to two replicas with
+`measure_restore.sh` (verifying `LOADING=0` on the restored replica).
 
 #### `vllm`
 
@@ -195,7 +241,12 @@ Sends a test request to all of the TPU vLLM deployments.
   [Inference reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
   must be deployed and configured in your repository.
 
-  - The `online_gpu` terraservice must be deployed and configured.
+  - The `online_gpu` terraservice must be deployed and configured. For the
+    `vllm-podsnapshot-fast-restore` and `trtllm/*-podsnapshot` overlays, enable
+    GKE Pod snapshots (`ira_online_gpu_pod_snapshots_enabled = true`, GKE
+    `1.35.3-gke.1234000` or later with Pod snapshots enabled, and on GKE
+    Standard apply
+    `platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/vllm-podsnapshot-fast-restore/node-setup/gvisor-disable-core-tags.yaml`).
   - The `online_tpu` terraservice must be deployed and configured.
   - The `images/gpu/diffusers_flux` terraservice must be deployed and
     configured.
@@ -260,6 +311,87 @@ Sends a test request to all of the TPU vLLM deployments.
 
   ```shell
   "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers/deployment_delete.sh"
+  ```
+
+### Test the GPU online inference TensorRT-LLM models
+
+- Select the accelerator type (`rtx-pro-6000`), and optionally set `HF_MODEL_ID`
+  to test a single model from `hf_gpu_trtllm_models` (unset `HF_MODEL_ID` to run
+  all configured TensorRT-LLM models).
+
+  ```shell
+  export ACCELERATOR_TYPE="rtx-pro-6000"
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+  ```
+
+  To target the FP8, BF16, or Super-120B NVFP4 variants instead:
+
+  ```shell
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-fp8"
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-bf16"
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-super-120b-a12b-nvfp4"
+  ```
+
+- Apply the GPU TensorRT-LLM manifests.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_apply.sh"
+  ```
+
+- Test the GPU TensorRT-LLM inference servers.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_test.sh"
+  ```
+
+- Delete the GPU TensorRT-LLM resources.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_delete.sh"
+  ```
+
+### Test the GPU online inference TensorRT-LLM Pod snapshot fast-restore models
+
+- Select the accelerator type (`rtx-pro-6000`), and optionally set `HF_MODEL_ID`
+  to test a single model from `hf_gpu_trtllm_podsnapshot_models` (unset
+  `HF_MODEL_ID` to run all configured Pod snapshot models).
+
+  ```shell
+  export ACCELERATOR_TYPE="rtx-pro-6000"
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+  ```
+
+  To target the FP8 variant instead:
+
+  ```shell
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-fp8"
+  ```
+
+- Select the Pod snapshot overlays.
+
+  ```shell
+  export TRTLLM_VARIANT_SUFFIX="-podsnapshot"
+  ```
+
+- Apply the GPU TensorRT-LLM Pod snapshot fast-restore manifests.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_apply.sh"
+  ```
+
+- Test the GPU TensorRT-LLM Pod snapshot fast-restore inference servers (waits
+  for the checkpoint upload, scales out and measures the restore, and sends test
+  requests).
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_test.sh"
+  ```
+
+- Delete the GPU TensorRT-LLM Pod snapshot fast-restore resources.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_delete.sh"
+  unset TRTLLM_VARIANT_SUFFIX
   ```
 
 ### Test the GPU online inference vLLM models

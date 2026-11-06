@@ -30,7 +30,7 @@ It combines:
   - optionally, server-side time series from Google Cloud Managed Service for
     Prometheus (p90 TTFT and inter-token latency, queue depth, KV cache
     utilization, prefix cache hit rate, generated tokens/s, per region),
-and writes report.md, CSV files, and charts (with matplotlib, if installed).
+and writes report.md and CSV files.
 """
 
 from __future__ import annotations
@@ -38,7 +38,6 @@ from __future__ import annotations
 import argparse
 import collections
 import glob
-import itertools
 import json
 import os
 import subprocess
@@ -49,36 +48,10 @@ from typing import Any
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import analyze  # noqa: E402
-
-PALETTE: tuple[str, ...] = (
-    "tab:blue",
-    "tab:orange",
-    "tab:green",
-    "tab:red",
-    "tab:purple",
-    "tab:brown",
-    "tab:pink",
-    "tab:olive",
-    "tab:cyan",
-)
-
-
-def ts(value: Any) -> float | None:
-    """Epoch seconds, RFC 3339 string, or datetime to UTC epoch seconds."""
-    return analyze.epoch_seconds(value)
-
-
-def fmt(v: Any, digits: int = 1) -> str:
-    return analyze.fmt(v, digits)
-
-
-def mmss(seconds: float | None) -> str:
-    if seconds is None:
-        return "–"
-    rounded = int(round(seconds))
-    sign = "-" if rounded < 0 else ""
-    total = abs(rounded)
-    return f"{sign}{total // 60}:{total % 60:02d}"
+from _common import epoch_seconds as ts  # noqa: E402
+from _common import fmt_duration as mmss
+from _common import fmt_num as fmt
+from _common import load_json
 
 
 def _client_key_for_partial(path: str) -> str:
@@ -89,8 +62,7 @@ def _client_key_for_partial(path: str) -> str:
         if os.path.basename(report_dir) == "reports"
         else report_dir
     )
-    client_json = os.path.join(client_dir, "client.json")
-    meta = analyze.load_json(client_json) if os.path.exists(client_json) else {}
+    meta = load_json(os.path.join(client_dir, "client.json"), {})
     return str(meta.get("key") or os.path.basename(client_dir))
 
 
@@ -326,190 +298,11 @@ def mean_in(
 # ---------------------------------------------------------------------------
 
 
-def region_colors(keys: list[str]) -> dict[str, str]:
-    """One chart color per region (the palette repeats past its length)."""
-    return dict(zip(keys, itertools.cycle(PALETTE)))
-
-
-def slo_ylim_top(ymax: float, slo: float) -> float:
-    """Top of a y axis that keeps the SLO line visibly inside the chart."""
-    return max(ymax, slo * 1.4)
-
-
 def region_of_cluster(cluster: str, keys: list[str]) -> str:
     for k in keys:
         if cluster.endswith(k):
             return k
     return cluster
-
-
-def plot_timeline(
-    out_dir: str,
-    t0: float,
-    windows: dict[int, tuple[float, float]],
-    recorder: dict[str, list[dict[str, Any]]],
-    gmp: dict[str, dict[str, list[tuple[float, float]]]],
-    keys: list[str],
-    stage_qps: dict[int, Any],
-    slo_ttft_ms: float = 2000.0,
-) -> list[str]:
-    try:
-        import matplotlib  # type: ignore[import-not-found]
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt  # type: ignore[import-not-found]
-    except ImportError:
-        return []
-
-    has_running = any(
-        r.get("hpa_running_average") is not None
-        for recs in recorder.values()
-        for r in recs
-    )
-    queue_label = (
-        "HPA metrics per pod\n(solid: waiting, dotted: running)"
-        if has_running
-        else "HPA metric: waiting\nrequests per pod"
-    )
-    panels = [
-        ("replicas", "model server replicas\n(solid: ready, dashed: HPA desired)"),
-        ("queue", queue_label),
-    ]
-    if gmp:
-        panels += [("ttft", "p90 TTFT (s, server)"), ("tokens", "generated tokens/s")]
-    fig, axes = plt.subplots(
-        len(panels), 1, figsize=(10, 2.6 * len(panels)), sharex=True
-    )
-    colors = region_colors(keys)
-    slo_ttft_s = slo_ttft_ms / 1000.0
-
-    for ax, (panel, label) in zip(axes, panels):
-        for key in keys:
-            recs = recorder.get(key, [])
-            x = [(r["ts"] - t0) / 60 for r in recs]
-            if panel == "replicas":
-                ax.step(
-                    x,
-                    [r.get("deploy_ready") for r in recs],
-                    where="post",
-                    color=colors[key],
-                    label=key,
-                )
-                ax.step(
-                    x,
-                    [r.get("hpa_desired") for r in recs],
-                    where="post",
-                    color=colors[key],
-                    linestyle="--",
-                    alpha=0.6,
-                )
-            elif panel == "queue":
-                ax.plot(
-                    x, [r.get("hpa_metric") for r in recs], color=colors[key], label=key
-                )
-                if has_running:
-                    ax.plot(
-                        x,
-                        [r.get("hpa_running_average") for r in recs],
-                        color=colors[key],
-                        linestyle=":",
-                        alpha=0.7,
-                    )
-            else:
-                metric = "ttft_p90_s" if panel == "ttft" else "gen_tokens_per_s"
-                for cluster, pts in (gmp.get(metric) or {}).items():
-                    if region_of_cluster(cluster, keys) == key and pts:
-                        ax.plot(
-                            [(t - t0) / 60 for t, _ in pts],
-                            [v for _, v in pts],
-                            color=colors[key],
-                            label=key,
-                        )
-        if panel == "ttft":
-            ax.set_yscale("log")
-            ax.axhline(
-                slo_ttft_s,
-                color="grey",
-                linestyle=":",
-                linewidth=1.2,
-                label=f"SLO ({slo_ttft_s:g}s)",
-            )
-            ymin, ymax = ax.get_ylim()
-            ax.set_ylim(ymin, slo_ylim_top(ymax, slo_ttft_s))
-            ax.legend(fontsize=7, loc="upper right")
-        ax.set_ylabel(label, fontsize=8)
-        ax.grid(alpha=0.3)
-        for stage, (start, end) in sorted(windows.items()):
-            ax.axvspan(
-                (start - t0) / 60,
-                (end - t0) / 60,
-                color="grey",
-                alpha=0.06 if stage % 2 else 0.12,
-            )
-    for stage, (start, _end) in sorted(windows.items()):
-        axes[0].annotate(
-            f"{stage_qps.get(stage, '?')} QPS",
-            ((start - t0) / 60, axes[0].get_ylim()[1]),
-            fontsize=7,
-            va="top",
-        )
-    axes[0].legend(fontsize=8, loc="upper left")
-    axes[-1].set_xlabel("minutes since the first stage started")
-    fig.suptitle("Scale-out timeline per region (shaded: benchmark stages)")
-    fig.tight_layout()
-    path = os.path.join(out_dir, "scale_timeline.png")
-    fig.savefig(path, dpi=110)
-    plt.close(fig)
-    return [path]
-
-
-def plot_stages(
-    out_dir: str,
-    stages: list[dict[str, Any]],
-    keys: list[str],
-    slo_ttft_ms: float,
-) -> list[str]:
-    try:
-        import matplotlib  # type: ignore[import-not-found]
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt  # type: ignore[import-not-found]
-    except ImportError:
-        return []
-    fig, axes = plt.subplots(1, 3, figsize=(13, 3.6))
-    colors = region_colors(keys)
-    metrics = ("ttft_p90_ms", "goodput_rps", "output_tokens_per_s")
-    for key in keys:
-        rows = sorted(
-            (r for r in stages if r["client"] == key), key=lambda r: r["stage"]
-        )
-        for idx, metric in enumerate(metrics):
-            pts = [(r["stage"], r[metric]) for r in rows if r.get(metric) is not None]
-            if pts:
-                axes[idx].plot(
-                    [p[0] for p in pts],
-                    [p[1] for p in pts],
-                    marker="o",
-                    color=colors[key],
-                    label=key,
-                )
-    axes[0].set_yscale("log")
-    axes[0].axhline(slo_ttft_ms, color="grey", linestyle=":", label="SLO")
-    ymin, ymax = axes[0].get_ylim()
-    axes[0].set_ylim(ymin, slo_ylim_top(ymax, slo_ttft_ms))
-    for ax, title in zip(
-        axes,
-        ["p90 TTFT (ms, client)", "goodput (requests/s within SLO)", "output tokens/s"],
-    ):
-        ax.set_title(title, fontsize=9)
-        ax.set_xlabel("stage")
-        ax.grid(alpha=0.3)
-    axes[0].legend(fontsize=8)
-    fig.tight_layout()
-    path = os.path.join(out_dir, "scale_stages.png")
-    fig.savefig(path, dpi=110)
-    plt.close(fig)
-    return [path]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -529,7 +322,6 @@ def main(argv: list[str] | None = None) -> int:
         help="load pre-fetched GMP series from JSON file instead of querying live",
     )
     p.add_argument("--no-gmp", action="store_true")
-    p.add_argument("--slo-ttft-ms", type=float, default=2000.0)
     args = p.parse_args(argv)
     os.makedirs(args.out, exist_ok=True)
 
@@ -716,22 +508,11 @@ def main(argv: list[str] | None = None) -> int:
             with open(os.path.join(args.out, "gmp.json"), "w", encoding="utf-8") as f:
                 json.dump(gmp, f)
 
-    charts = plot_timeline(
-        args.out, t0, windows, recorder, gmp, keys, stage_qps, args.slo_ttft_ms
-    )
-    charts += plot_stages(args.out, stages, keys, args.slo_ttft_ms)
-    if charts:
-        lines += ["", "## Charts", ""] + [
-            f"![{os.path.basename(c)}]({os.path.basename(c)})" for c in charts
-        ]
     if notes:
         lines += ["", "## Notes", ""] + [f"- {n}" for n in notes]
     with open(os.path.join(args.out, "report.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
-    print(
-        f"wrote {args.out}/report.md, stages.csv, pods.csv"
-        + (f" and {len(charts)} charts" if charts else "")
-    )
+    print(f"wrote {args.out}/report.md, stages.csv, pods.csv")
     return 0
 
 

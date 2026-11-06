@@ -146,7 +146,7 @@ def stage_tokenizer_from_gcs(
         raise RuntimeError(
             f"no tokenizer files ({', '.join(sorted(TOKENIZER_MARKERS))}) under "
             f"gs://{bucket_name}/{prefix}; stage the model with "
-            "scripts/stage-model.sh <region key>"
+            "scripts/deploy-all.sh (stage_hf_model)"
         )
     return copied
 

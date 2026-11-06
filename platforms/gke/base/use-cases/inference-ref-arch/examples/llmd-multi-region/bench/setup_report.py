@@ -27,9 +27,13 @@ parallel, so the span is shorter than the sum of the stages).
 from __future__ import annotations
 
 import json
+import os
 import sys
 from collections import OrderedDict
 from typing import Any
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _common import fmt_duration  # noqa: E402
 
 
 def load(paths: list[str]) -> list[dict[str, Any]]:
@@ -44,11 +48,7 @@ def load(paths: list[str]) -> list[dict[str, Any]]:
 
 
 def fmt(seconds: float | int) -> str:
-    rounded = int(round(float(seconds)))
-    sign = "-" if rounded < 0 else ""
-    m, s = divmod(abs(rounded), 60)
-    h, m = divmod(m, 60)
-    return f"{sign}{h:d}:{m:02d}:{s:02d}" if h else f"{sign}{m:d}:{s:02d}"
+    return fmt_duration(seconds, split_hours=True)
 
 
 def main(argv: list[str]) -> int:

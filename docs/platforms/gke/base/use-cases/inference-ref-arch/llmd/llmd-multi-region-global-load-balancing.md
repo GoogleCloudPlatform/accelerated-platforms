@@ -258,17 +258,13 @@ doesn't change project-wide fleet settings, which matters in shared projects.
   balancer, the arms, the benchmark bucket, the fleet features, the regions (in
   parallel), and the network. Results stay in a 30-day-retention bucket with
   public access prevention.
-- **Optional IAP-protected front door** (prototype, off by default). A global
-  external ALB with IAP and a Google-managed certificate in front of an Envoy
-  that forwards to the internal VIP, for demos only. See
-  `manifests/front-door/README.md`.
 
 ## Reproduce
 
 Prerequisites: `gcloud`, `kubectl`, `kustomize`, `helm` v3, `terraform` >= 1.8,
-`jq`, `python3` (with `PyYAML`), `git`, `envsubst`, `curl`, `sponge`, `flock`; a
-Hugging Face read token in `~/hftoken`; GPU quota for 2× RTX PRO 6000 per region
-when the arms run back to back (as here), or 4× when they run at the same time.
+`jq`, `python3` (with `PyYAML`), `git`, `envsubst`, `curl`, `sponge`; a Hugging
+Face read token in `~/hftoken`; GPU quota for 2× RTX PRO 6000 per region when
+the arms run back to back (as here), or 4× when they run at the same time.
 
 `mr.env` defaults to 3 regions (`usc1 euw2 ase1`) and enables HPA for scale-out;
 pin `MR_REGION_KEYS="usc1 euw2"` to reproduce this two-region guide.
@@ -305,7 +301,7 @@ Each run writes the following outside the repository (`${MR_WORK_DIR}/results`):
   Summarize them with `bench/startup_report.py`.
 - `runs/<run>/<arm>/<workload>/<client>/`: inference-perf reports and run
   metadata (pinned images, chart digests, Git commit).
-- `analysis/<run>/`: `report.md`, CSVs, and charts from `bench/analyze.py`.
+- `analysis/<run>/`: `report.md` and CSVs from `bench/analyze.py`.
 
 ### Workloads and load
 

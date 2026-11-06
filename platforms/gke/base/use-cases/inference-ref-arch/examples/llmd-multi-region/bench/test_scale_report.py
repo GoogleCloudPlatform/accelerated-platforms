@@ -23,11 +23,13 @@ import datetime
 import io
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scale_report  # noqa: E402
@@ -73,25 +75,6 @@ def write_client(
         )
 
 
-class TimeTest(unittest.TestCase):
-    def test_ts(self) -> None:
-        self.assertEqual(scale_report.ts("2026-10-30T07:00:00Z"), E0)
-        self.assertEqual(scale_report.ts("2026-10-30T02:00:00-05:00"), E0)
-        self.assertAlmostEqual(
-            scale_report.ts("2026-10-30T07:00:00.500000000Z") or 0.0, E0 + 0.5
-        )
-        self.assertEqual(scale_report.ts(T0), E0)
-        self.assertEqual(scale_report.ts(E0), E0)
-        self.assertIsNone(scale_report.ts(None))
-        self.assertIsNone(scale_report.ts(""))
-
-    def test_mmss(self) -> None:
-        self.assertEqual(scale_report.mmss(95), "1:35")
-        self.assertEqual(scale_report.mmss(-15), "-0:15")
-        self.assertEqual(scale_report.mmss(-75), "-1:15")
-        self.assertEqual(scale_report.mmss(None), "–")
-
-
 class StageWindowsTest(unittest.TestCase):
     def test_windows_per_stage_and_per_region(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -133,17 +116,37 @@ class StageWindowsTest(unittest.TestCase):
                 scale_report.stage_windows_with_regions(tmp)
 
 
-class ChartHelpersTest(unittest.TestCase):
-    def test_region_colors_cycle_past_the_palette(self) -> None:
-        keys = [f"r{i}" for i in range(len(scale_report.PALETTE) + 2)]
-        colors = scale_report.region_colors(keys)
-        self.assertEqual(list(colors), keys)
-        self.assertEqual(colors["r0"], colors[f"r{len(scale_report.PALETTE)}"])
-        self.assertEqual(len(set(colors.values())), len(scale_report.PALETTE))
+class GmpQueryTest(unittest.TestCase):
+    def test_gmp_query_range_and_gmp_all(self) -> None:
+        payload = {
+            "data": {
+                "result": [
+                    {
+                        "metric": {"cluster": "mr-usc1", "pod": "vllm-a"},
+                        "values": [[E0, "0.5"], [E0 + 30, "NaN"]],
+                    }
+                ]
+            }
+        }
+        token_proc = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="tok123\n", stderr=""
+        )
 
-    def test_slo_line_stays_inside_the_chart(self) -> None:
-        self.assertAlmostEqual(scale_report.slo_ylim_top(0.6, 2.0), 2.8)
-        self.assertEqual(scale_report.slo_ylim_top(40.0, 2.0), 40.0)
+        def fake_urlopen(req: Any, timeout: int = 120) -> Any:
+            self.assertEqual(req.get_header("Authorization"), "Bearer tok123")
+            self.assertEqual(timeout, 120)
+            return io.StringIO(json.dumps(payload))
+
+        with (
+            mock.patch.object(scale_report.subprocess, "run", return_value=token_proc),
+            mock.patch.object(
+                scale_report.urllib.request, "urlopen", side_effect=fake_urlopen
+            ),
+        ):
+            res = scale_report.gmp_all(
+                "proj", "mr-.*", "llm-mr", E0, E0 + 60, pod_regex="vllm.*"
+            )
+        self.assertEqual(res["pod_success_rps"], {"mr-usc1/vllm-a": [(E0, 0.5)]})
 
 
 class RecorderTest(unittest.TestCase):
@@ -301,6 +304,65 @@ class MainTest(unittest.TestCase):
         self.assertIn(
             "cross-region Stage 0 start skew is 300.0s (usc1 vs euw2)", report
         )
+
+    def test_live_gmp_success_and_failure_note(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runs = root / "runs" / "r1" / "llmd"
+            write_client(runs, "usc1", [(0, 60)], [stage_report(2.0, 120, 0, 0.5)])
+            recorder = root / "recorder.jsonl"
+            recorder.write_text(
+                json.dumps(dict(RecorderTest.RECORDS[0], region="usc1")) + "\n",
+                "utf-8",
+            )
+            out_ok = root / "out_ok"
+            with (
+                mock.patch.object(
+                    scale_report,
+                    "gmp_all",
+                    return_value={"waiting": {"mr-usc1": [(E0 + 10, 2.0)]}},
+                ),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                rc = scale_report.main(
+                    [
+                        "--runs",
+                        str(runs),
+                        "--recorder",
+                        str(recorder),
+                        "--out",
+                        str(out_ok),
+                        "--project",
+                        "proj",
+                    ]
+                )
+            self.assertEqual(rc, 0)
+            self.assertTrue((out_ok / "gmp.json").exists())
+
+            out_err = root / "out_err"
+            with (
+                mock.patch.object(
+                    scale_report, "gmp_all", side_effect=RuntimeError("boom")
+                ),
+                contextlib.redirect_stdout(io.StringIO()),
+            ):
+                rc = scale_report.main(
+                    [
+                        "--runs",
+                        str(runs),
+                        "--recorder",
+                        str(recorder),
+                        "--out",
+                        str(out_err),
+                        "--project",
+                        "proj",
+                    ]
+                )
+            self.assertEqual(rc, 0)
+            self.assertIn(
+                "Managed Service for Prometheus query failed: boom",
+                (out_err / "report.md").read_text("utf-8"),
+            )
 
 
 if __name__ == "__main__":

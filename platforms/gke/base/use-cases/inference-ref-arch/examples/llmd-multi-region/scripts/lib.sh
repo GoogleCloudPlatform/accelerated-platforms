@@ -102,7 +102,7 @@ mr_stage() {
 }
 
 mr_require_example_tools() {
-  mr_require_tools gcloud kubectl kustomize helm terraform jq "${MR_PYTHON}" git envsubst curl sponge flock
+  mr_require_tools gcloud kubectl kustomize helm terraform jq "${MR_PYTHON}" git envsubst curl sponge
   if ! "${MR_PYTHON}" -c "import yaml" >/dev/null 2>&1; then
     mr_die "${MR_PYTHON} is missing PyYAML ('import yaml' failed). Install PyYAML or export MR_PYTHON=/path/to/venv/bin/python3."
   fi

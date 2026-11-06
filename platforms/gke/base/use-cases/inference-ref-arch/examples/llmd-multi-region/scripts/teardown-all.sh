@@ -15,12 +15,11 @@
 # limitations under the License.
 
 # Tears down the whole multi-region environment, in reverse order:
-#   1. optional external front door (if deployed),
-#   2. cross-region load balancer (global_lb.sh destroy, and optional
+#   1. cross-region load balancer (global_lb.sh destroy, and optional
 #      multi-cluster Gateway resources),
-#   3. both experiment arms,
-#   4. benchmark infrastructure and optional fleet features,
-#   5. every regional platform (in parallel) and the shared VPC network via
+#   2. both experiment arms,
+#   3. benchmark infrastructure and optional fleet features,
+#   4. every regional platform (in parallel) and the shared VPC network via
 #      terraform/multi-region/teardown.sh --parallel.
 #
 # Usage: teardown-all.sh [--dry-run]
@@ -38,8 +37,6 @@ MY_PATH="$(
 )"
 # shellcheck source=/dev/null
 source "${MY_PATH}/lib.sh"
-# shellcheck source=/dev/null
-source "${MY_PATH}/tf.sh"
 
 dry_run="false"
 while [[ $# -gt 0 ]]; do
@@ -163,16 +160,24 @@ delete_arms() {
 }
 
 destroy_bench() {
-  mr_example_tf_state_has_resources bench || return 0
+  mr_tf_state_has_resources bench "terraform/llmd-multi-region/bench" || return 0
   if [[ -d "${MR_EXAMPLE_DIR}/terraform/bench" ]] && declare -F mr_write_bench_tfvars >/dev/null; then
-    mr_example_tf bench destroy "$(mr_write_bench_tfvars)"
+    mr_write_bench_tfvars >/dev/null
+    mr_tf bench destroy "${MR_EXAMPLE_DIR}/terraform/bench" "terraform/llmd-multi-region/bench"
   fi
 }
 
 destroy_fleet() {
   [[ "${MR_TEARDOWN_FLEET_FEATURES}" == "true" ]] || return 0
-  mr_example_tf_state_has_resources fleet || return 0
-  mr_example_tf fleet destroy "$(mr_write_fleet_tfvars)"
+  mr_tf_state_has_resources fleet "terraform/llmd-multi-region/fleet" || return 0
+  local stage
+  stage="$(mr_tf_dir fleet)"
+  mkdir -p "${stage}"
+  jq -n \
+    --arg project_id "${MR_PROJECT_ID}" \
+    --arg config_membership_id "$(mr_cluster_name "${cfg}")" \
+    '{project_id: $project_id, config_membership_id: $config_membership_id}' >"${stage}/terraform.tfvars.json"
+  mr_tf fleet destroy "${MR_EXAMPLE_DIR}/terraform/fleet" "terraform/llmd-multi-region/fleet"
 }
 
 if [[ -f "${MY_PATH}/bench-lib.sh" ]]; then
@@ -182,15 +187,8 @@ fi
 
 ensure_kubeconfigs
 
-# Optional external front door (deploy-front-door.sh), only if it was deployed.
-# It's removed first, because it forwards to the internal load balancer VIP.
-if "${MY_PATH}/deploy-front-door.sh" exists; then
-  mr_stage "teardown_front_door" "global" "${MY_PATH}/deploy-front-door.sh" destroy ||
-    mr_log "WARNING: front door teardown failed; re-run scripts/deploy-front-door.sh destroy"
-fi
-
 mr_stage "teardown_global_lb" "global" destroy_global_lb
-if [[ "${MR_GLOBAL_LB}" == "mc-gateway" ]] || mr_example_tf_state_has_resources fleet; then
+if [[ "${MR_GLOBAL_LB}" == "mc-gateway" ]] || mr_tf_state_has_resources fleet "terraform/llmd-multi-region/fleet"; then
   mr_stage "teardown_gateway" "global" delete_gateway
 fi
 mr_stage "teardown_arms" "global" delete_arms

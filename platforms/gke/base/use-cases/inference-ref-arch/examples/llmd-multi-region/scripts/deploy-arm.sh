@@ -119,23 +119,19 @@ check_podsnapshot_prereqs() {
 # Succeeds when a Pod snapshot of the llm-d model servers is available in the
 # region (PodSnapshot Ready condition with reason AllSnapshotsAvailable).
 snapshot_available() {
-  mr_kubectl "${1}" get podsnapshots -n "${MR_NAMESPACE}" -o json 2>/dev/null | "${MR_PYTHON}" -c '
-import json, sys
-items = json.load(sys.stdin)["items"]
-ok = [i for i in items if i.get("spec", {}).get("policyName") == "llmd-model-servers"
-      and any(c.get("type") == "Ready" and c.get("reason") == "AllSnapshotsAvailable"
-              for c in i.get("status", {}).get("conditions", []))]
-sys.exit(0 if ok else 1)'
+  mr_kubectl "${1}" get podsnapshots -n "${MR_NAMESPACE}" -o json 2>/dev/null |
+    jq -e '[.items[]? | select(.spec.policyName == "llmd-model-servers" and any(.status.conditions[]?; .type == "Ready" and .reason == "AllSnapshotsAvailable"))] | length > 0' >/dev/null
 }
 
 apply_model_servers() {
-  local key="${1}" dir bootstrap="false"
+  local key="${1}" dir overlay_dir bootstrap="false" replicas_patch=""
   dir="$(mr_render_model_server "${key}")"
-  kustomize build "${dir}/${arm}" >"${dir}/${arm}.rendered.yaml" || return 1
+  overlay_dir="${dir}/${arm}"
   if podsnapshots_on; then
+    overlay_dir="${dir}/llmd-podsnapshot"
+    kustomize build "${overlay_dir}" >"${dir}/${arm}.rendered.yaml" || return 1
     local sha old_sha
-    sha="$("${MR_PYTHON}" "${MY_PATH}/podsnapshot_patch.py" "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" \
-      "${dir}/podsnapshot/checkpoint-wrapper.sh" "${MR_POD_SNAPSHOT_MEMORY_LIMIT}")" || return 1
+    sha="$("${MR_PYTHON}" -c 'import hashlib, json, sys, yaml; t = next(d["spec"]["template"] for d in yaml.safe_load_all(sys.stdin) if d and d.get("kind") == "Deployment"); print(hashlib.sha256(json.dumps(t, sort_keys=True).encode()).hexdigest())' <"${dir}/${arm}.rendered.yaml")" || return 1
     old_sha="$(mr_kubectl "${key}" get podsnapshotpolicy llmd-model-servers -n "${MR_NAMESPACE}" \
       -o jsonpath='{.metadata.annotations.acp-mr/pod-template-sha256}' 2>/dev/null || true)"
     if [[ "${old_sha}" != "${sha}" ]]; then
@@ -145,7 +141,7 @@ apply_model_servers() {
       mr_log "Pod template hash in ${key} changed from '${old_sha}'; deleting any existing Pod snapshots"
       mr_kubectl "${key}" delete podsnapshots --all -n "${MR_NAMESPACE}" --wait=true || return 1
     fi
-    mr_kubectl "${key}" apply -f "${dir}/podsnapshot/storage-config.yaml" -f "${dir}/podsnapshot/policy.yaml" || return 1
+    mr_kubectl "${key}" apply -f "${dir}/llmd-podsnapshot/storage-config.yaml" -f "${dir}/llmd-podsnapshot/policy.yaml" || return 1
     mr_kubectl "${key}" annotate podsnapshotpolicy llmd-model-servers -n "${MR_NAMESPACE}" --overwrite \
       "acp-mr/pod-template-sha256=${sha}" || return 1
     if ! snapshot_available "${key}"; then
@@ -155,19 +151,7 @@ apply_model_servers() {
       touch "${dir}/podsnapshot.bootstrap"
       mr_kubectl "${key}" delete hpa -l "acp-mr/arm=${arm}" -n "${MR_NAMESPACE}" --ignore-not-found || return 1
       mr_kubectl "${key}" delete deployment "$(model_server_deployment)" -n "${MR_NAMESPACE}" --ignore-not-found --wait=true || return 1
-      "${MR_PYTHON}" - "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" <<'EOF_PY' || return 1
-import sys
-import yaml
-
-path, name = sys.argv[1], sys.argv[2]
-with open(path) as f:
-    docs = [d for d in yaml.safe_load_all(f) if d]
-for d in docs:
-    if d.get("kind") == "Deployment" and d["metadata"]["name"] == name:
-        d["spec"]["replicas"] = 1
-with open(path, "w") as f:
-    yaml.safe_dump_all(docs, f, sort_keys=False)
-EOF_PY
+      replicas_patch='[{"op": "replace", "path": "/spec/replicas", "value": 1}]'
     fi
   elif [[ "${arm}" == "llmd" ]] && mr_kubectl "${key}" get crd podsnapshotpolicies.podsnapshot.gke.io >/dev/null 2>&1; then
     mr_kubectl "${key}" delete podsnapshotpolicy llmd-model-servers -n "${MR_NAMESPACE}" --ignore-not-found || return 1
@@ -178,25 +162,18 @@ EOF_PY
       envsubst '${MR_HPA_DEPLOYMENT} ${MR_HPA_ARM}' <"${dir}/hpa.yaml" >"${dir}/${arm}.hpa.yaml"
     # When the Deployment already exists, leave its replica count to the HPA:
     # re-applying spec.replicas would scale a scaled-out arm back down.
-    if mr_kubectl "${key}" get deployment "$(model_server_deployment)" -n "${MR_NAMESPACE}" >/dev/null 2>&1; then
-      "${MR_PYTHON}" - "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" <<'EOF_PY' || return 1
-import sys
-import yaml
-
-path, name = sys.argv[1], sys.argv[2]
-with open(path) as f:
-    docs = [d for d in yaml.safe_load_all(f) if d]
-for d in docs:
-    if d.get("kind") == "Deployment" and d["metadata"]["name"] == name:
-        d["spec"].pop("replicas", None)
-with open(path, "w") as f:
-    yaml.safe_dump_all(docs, f, sort_keys=False)
-EOF_PY
+    if [[ "${bootstrap}" != "true" ]] && mr_kubectl "${key}" get deployment "$(model_server_deployment)" -n "${MR_NAMESPACE}" >/dev/null 2>&1; then
+      replicas_patch='[{"op": "remove", "path": "/spec/replicas"}]'
     fi
   else
     # Ensure no pre-existing HPA overrides fixed-replica deployments.
     mr_kubectl "${key}" delete hpa -l "acp-mr/arm=${arm}" -n "${MR_NAMESPACE}" --ignore-not-found || return 1
   fi
+  if [[ -n "${replicas_patch}" ]]; then
+    printf '%s\n' "${replicas_patch}" >"${overlay_dir}/patch-replicas.json"
+    (cd "${overlay_dir}" && kustomize edit add patch --path patch-replicas.json --kind Deployment) || return 1
+  fi
+  kustomize build "${overlay_dir}" >"${dir}/${arm}.rendered.yaml" || return 1
   # Release the GPU nodes held by delete-arm.sh --hold-gpus (if any) right
   # before the model servers are created, so that they land on those nodes.
   mr_kubectl "${key}" delete deployment gpu-hold -n "${MR_NAMESPACE}" --ignore-not-found --wait=true || return 1

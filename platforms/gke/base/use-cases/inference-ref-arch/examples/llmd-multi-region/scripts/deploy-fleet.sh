@@ -28,8 +28,6 @@ MY_PATH="$(
 )"
 # shellcheck source=/dev/null
 source "${MY_PATH}/lib.sh"
-# shellcheck source=/dev/null
-source "${MY_PATH}/tf.sh"
 
 mr_require_example_tools
 mr_validate_active_region_key "${MR_CONFIG_CLUSTER_KEY}"
@@ -61,11 +59,21 @@ wait_for_mc_gatewayclasses() {
     mr_kubectl "${MR_CONFIG_CLUSTER_KEY}" get gatewayclass gke-l7-cross-regional-internal-managed-mc
 }
 
+write_fleet_tfvars() {
+  local stage
+  stage="$(mr_tf_dir fleet)"
+  mkdir -p "${stage}"
+  jq -n \
+    --arg project_id "${MR_PROJECT_ID}" \
+    --arg config_membership_id "${config_cluster}" \
+    '{project_id: $project_id, config_membership_id: $config_membership_id}' >"${stage}/terraform.tfvars.json"
+}
+
 mr_stage "fleet_check_memberships" "global" check_memberships
 mr_stage "fleet_check_gateway_api" "global" check_gateway_api
-mr_stage "shared_state_bucket" "global" mr_ensure_example_state_bucket
-tfvars="$(mr_write_fleet_tfvars)"
-mr_stage "fleet_features" "global" mr_example_tf fleet apply "${tfvars}"
+mr_stage "shared_state_bucket" "global" mr_ensure_state_bucket "$(mr_region "${MR_CONFIG_CLUSTER_KEY}")"
+write_fleet_tfvars
+mr_stage "fleet_features" "global" mr_tf fleet apply "${MR_EXAMPLE_DIR}/terraform/fleet" "terraform/llmd-multi-region/fleet"
 mr_stage "fleet_mc_gatewayclasses_ready" "global" wait_for_mc_gatewayclasses
 
 mr_log "Fleet features enabled. Config cluster: ${config_cluster}"

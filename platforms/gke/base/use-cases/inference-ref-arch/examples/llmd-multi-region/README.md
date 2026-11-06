@@ -134,7 +134,7 @@ replica count. The only differences are the two vLLM flags that llm-d needs
 ## Prerequisites
 
 - `gcloud`, `kubectl`, `kustomize`, `helm` (v3), `terraform` (>= 1.8), `jq`,
-  `python3` (with `PyYAML`), `git`, `envsubst`, `sponge`, `flock`, and `curl`.
+  `python3` (with `PyYAML`), `git`, `envsubst`, `sponge`, and `curl`.
 - A Hugging Face read token in `~/hftoken`, or set `MR_HF_TOKEN_FILE`.
 - GPU capacity for `MR_ACCELERATOR_TYPE` in every region: up to
   `MR_HPA_MAX_REPLICAS` × `MR_GPU_COUNT` GPUs per region and arm. The GPU
@@ -178,7 +178,7 @@ scripts/run-skew-experiment.sh --modes "locality capacity"
 #    of MR_REPLICAS_PER_REGION, so that the HPA scales each region out to
 #    MR_HPA_MAX_REPLICAS, then a cool-down; records the autoscaling timeline.
 export MR_RUN_ID="scale-$(date -u +%Y%m%dT%H%M%SZ)"
-MR_PYTHON=<python with matplotlib> scripts/run-scale-experiment.sh
+scripts/run-scale-experiment.sh
 
 # 5. Tear everything down.
 scripts/teardown-all.sh
@@ -187,8 +187,8 @@ scripts/teardown-all.sh
 Each step can also be run individually:
 
 - `scripts/deploy-all.sh [--dry-run] [--regions-only]` (delegates regional
-  provisioning to `../../terraform/multi-region/provision.sh --parallel`)
-- `scripts/stage-model.sh <key>`
+  provisioning to `../../terraform/multi-region/provision.sh --parallel` and
+  parallel model staging to `stage_hf_model`)
 - `scripts/deploy-arm.sh <baseline|llmd>`
 - `scripts/set-route.sh --backend <baseline|ppcr|ob> --lb-mode <locality|capacity|zone-spray|preferred>`
 - `scripts/run-benchmark.sh --arm <label> --workload <shared-prefix|chat>`
@@ -200,11 +200,12 @@ Each step can also be run individually:
   Service for Prometheus.
 
 To add a region to a running environment, add its key to `MR_REGION_KEYS`,
-`MR_REGION`, and `MR_CIDR_INDEX` in `mr.env`, then run
-`scripts/deploy-all.sh --regions-only` and `scripts/stage-model.sh <key>`. The
-next `scripts/deploy-arm.sh` deploys the arm in the new region and adds its NEGs
-and VIP to the global load balancer. Until then, `scripts/set-route.sh` fails
-because the active arm has no NEGs in that region.
+`MR_REGION`, and `MR_CIDR_INDEX` in `mr.env`, then run `scripts/deploy-all.sh`
+(existing regions skip already-staged models via
+`stage_hf_model --skip-existing`). The next `scripts/deploy-arm.sh` deploys the
+arm in the new region and adds its NEGs and VIP to the global load balancer.
+Until then, `scripts/set-route.sh` fails because the active arm has no NEGs in
+that region.
 
 Don't edit the scripts while a run is in progress: bash reads scripts
 incrementally.
@@ -249,21 +250,3 @@ scripts/deploy-arm.sh llmd --backend ob
 See the
 [three-region scale-out guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/llmd/llmd-multi-region-scale-out.md)
 for the measurements and the pitfalls.
-
-## Optional: IAP-protected external front door (prototype)
-
-The environment is internal only. For demos, `scripts/deploy-front-door.sh` can
-add an HTTPS endpoint that is reachable from the internet, but only by allowed
-Google identities through Identity-Aware Proxy: a global external Application
-Load Balancer (Google-managed certificate, Cloud Endpoints DNS name, optional
-Cloud Armor allowlist) in front of a small Envoy relay in the config cluster,
-which forwards to the internal Gateway VIP. It's off by default: no other script
-deploys it, and `teardown-all.sh` removes it if it exists.
-
-```bash
-scripts/deploy-front-door.sh apply    # after the load balancer exists; ~15 minutes (certificate)
-scripts/deploy-front-door.sh destroy
-```
-
-Read [manifests/front-door/README.md](manifests/front-door/README.md) for the
-architecture, security posture, caveats, and cost before you use it.

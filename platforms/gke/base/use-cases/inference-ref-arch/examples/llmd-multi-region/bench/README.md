@@ -9,22 +9,22 @@ pinned by digest in `MR_INFERENCE_PERF_IMAGE` in `mr.env`. One client Job runs
 in each client region, and every client sends requests to the internal VIP of
 the load balancer in the region that you choose.
 
-| Path                               | Purpose                                                                                                                                  |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `../terraform/bench/`              | Results bucket and IAM for the client Jobs                                                                                               |
-| `../scripts/bench-lib.sh`          | Benchmark settings (`MR_BENCH_*`) and helpers                                                                                            |
-| `../scripts/deploy-bench-infra.sh` | Applies or destroys `terraform/bench`                                                                                                    |
-| `../scripts/run-benchmark.sh`      | Runs one arm x one workload on every client region and collects results                                                                  |
-| `workloads/*.yaml.tmpl`            | inference-perf configuration templates                                                                                                   |
-| `manifests/job.yaml.tmpl`          | Client Job template (runs `entrypoint.py` from the ConfigMap)                                                                            |
-| `entrypoint.py`                    | Client container wrapper: Cloud Storage tokenizer staging + `/tmp/bench-ready` -> `/tmp/bench-go` barrier                                |
-| `analyze.py`                       | Compares runs: CSV, Markdown, optional PNG charts                                                                                        |
-| `startup_report.py`                | Model server startup breakdown per Pod and per arm                                                                                       |
-| `record_scaling.py`                | Polls regional HPA, Deployment, Pod, and GPU node state during scale-out                                                                 |
-| `scale_report.py`                  | Summarizes and plots client golden signals, HPA metrics, and GMP server data (including active `serving_pods` filtered by `--pod-regex`) |
-| `lb_traffic_split.py`              | Attributes requests to backend regions from Cloud Logging load-balancer logs                                                             |
-| `setup_report.py`                  | Renders `timings/<run>.jsonl` stage durations as Markdown                                                                                |
-| `test_*.py`, `testdata/`           | Unit tests (`unittest`) with synthetic fixtures (alongside `../scripts/test_*.py`)                                                       |
+| Path                               | Purpose                                                                                                                        |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `../terraform/bench/`              | Results bucket and IAM for the client Jobs                                                                                     |
+| `../scripts/bench-lib.sh`          | Benchmark settings (`MR_BENCH_*`) and helpers                                                                                  |
+| `../scripts/deploy-bench-infra.sh` | Applies or destroys `terraform/bench`                                                                                          |
+| `../scripts/run-benchmark.sh`      | Runs one arm x one workload on every client region and collects results                                                        |
+| `workloads/*.yaml.tmpl`            | inference-perf configuration templates                                                                                         |
+| `manifests/job.yaml.tmpl`          | Client Job template (runs `entrypoint.py` from the ConfigMap)                                                                  |
+| `entrypoint.py`                    | Client container wrapper: Cloud Storage tokenizer staging + `/tmp/bench-ready` -> `/tmp/bench-go` barrier                      |
+| `analyze.py`                       | Compares runs: CSV and Markdown tables                                                                                         |
+| `startup_report.py`                | Model server startup breakdown per Pod and per arm                                                                             |
+| `record_scaling.py`                | Polls regional HPA, Deployment, Pod, and GPU node state during scale-out                                                       |
+| `scale_report.py`                  | Summarizes client golden signals, HPA metrics, and GMP server data (including active `serving_pods` filtered by `--pod-regex`) |
+| `lb_traffic_split.py`              | Attributes requests to backend regions from Cloud Logging load-balancer logs                                                   |
+| `setup_report.py`                  | Renders `timings/<run>.jsonl` stage durations as Markdown                                                                      |
+| `_common.py`, `test_*.py`          | Shared report helpers and unit tests (`unittest`) with synthetic fixtures                                                      |
 
 ## Prerequisites
 
@@ -312,7 +312,6 @@ report warns when the runtime and analysis SLOs differ, or when cross-region
 ```bash
 python3 bench/analyze.py <run dirs...> [--out DIR] [--baseline-arm vllm] [--arms llmd]
                          [--slo-ttft 2.0] [--slo-tpot 0.1] [--max-error-rate 0.05]
-                         [--no-charts]
 ```
 
 The script searches the directories recursively for client report directories.
@@ -334,8 +333,6 @@ the run, arm, workload, and client from the path. It writes the following files:
   p90, TPOT, ITL, and E2E p90, output tokens/s, goodput; the error-rate change
   in percentage points; % change of max QPS within SLO.
 - `report.md`: all of the above as Markdown tables.
-- PNG charts, when matplotlib is installed: p90 TTFT vs QPS with the SLO line,
-  output tokens/s vs QPS, and goodput vs QPS, per workload.
 
 ## startup_report.py
 
@@ -383,7 +380,6 @@ current container after a restart).
 
 ```bash
 python3 -m unittest discover -s bench -p "test_*.py" -v
-python3 -m unittest discover -s scripts -p "test_*.py" -v
 scripts/run-benchmark.sh --arm test --workload shared-prefix --dry-run   # renders manifests only
 ```
 

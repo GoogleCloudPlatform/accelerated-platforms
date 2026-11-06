@@ -23,7 +23,7 @@
 # Only these variables are substituted. Anything else that looks like a shell
 # variable (for example, the Kubernetes $(VAR) syntax) is left untouched.
 # shellcheck disable=SC2016
-MR_TEMPLATE_VARS='${MR_HPA_RUNNING_METRIC} ${MR_HPA_TARGET_RUNNING} ${MR_POD_SNAPSHOTS_BUCKET} ${MR_GPU_MACHINE_TYPE} ${MR_ACCELERATOR_TYPE} ${MR_HPA_MAX_REPLICAS} ${MR_HPA_METRIC} ${MR_HPA_TARGET_AVERAGE} ${MR_GPU_HOLD_IMAGE} ${MR_LLMD_GIT_REF} ${MR_REPLICAS_PER_REGION} ${MR_NAMESPACE} ${MR_COMPUTE_CLASS} ${MR_VLLM_IMAGE} ${MR_GPU_COUNT} ${MR_MODELS_BUCKET} ${MR_MODEL_PATH} ${MR_SERVED_MODEL_NAME} ${MR_TENSOR_PARALLEL_SIZE} ${MR_MAX_MODEL_LEN} ${MR_GPU_MEMORY_UTILIZATION} ${MR_GATEWAY_NAME} ${MR_GATEWAY_ADDRESSES} ${MR_ROUTE_BACKEND_GROUP} ${MR_ROUTE_BACKEND_KIND} ${MR_ROUTE_BACKEND_NAME} ${MR_ROUTE_BACKEND_PORT} ${MR_LB_MAX_UTILIZATION_PERCENT} ${MR_LB_PREFERRED_REGION} ${MR_BACKEND_TIMEOUT_SEC} ${MR_NEG_NAME_BASELINE}'
+MR_TEMPLATE_VARS='${MR_HPA_RUNNING_METRIC} ${MR_HPA_TARGET_RUNNING} ${MR_POD_SNAPSHOTS_BUCKET} ${MR_POD_SNAPSHOT_MEMORY_LIMIT} ${MR_GPU_MACHINE_TYPE} ${MR_ACCELERATOR_TYPE} ${MR_HPA_MAX_REPLICAS} ${MR_HPA_METRIC} ${MR_HPA_TARGET_AVERAGE} ${MR_GPU_HOLD_IMAGE} ${MR_LLMD_GIT_REF} ${MR_REPLICAS_PER_REGION} ${MR_NAMESPACE} ${MR_COMPUTE_CLASS} ${MR_VLLM_IMAGE} ${MR_GPU_COUNT} ${MR_MODELS_BUCKET} ${MR_MODEL_PATH} ${MR_SERVED_MODEL_NAME} ${MR_TENSOR_PARALLEL_SIZE} ${MR_MAX_MODEL_LEN} ${MR_GPU_MEMORY_UTILIZATION} ${MR_GATEWAY_NAME} ${MR_GATEWAY_ADDRESSES} ${MR_ROUTE_BACKEND_GROUP} ${MR_ROUTE_BACKEND_KIND} ${MR_ROUTE_BACKEND_NAME} ${MR_ROUTE_BACKEND_PORT} ${MR_LB_MAX_UTILIZATION_PERCENT} ${MR_LB_PREFERRED_REGION} ${MR_BACKEND_TIMEOUT_SEC} ${MR_NEG_NAME_BASELINE}'
 export MR_GATEWAY_NAME="${MR_GATEWAY_NAME:-llm-mr-gateway}"
 # Cross-region load balancer backend service timeout (seconds), which bounds a
 # whole (streaming) response. The regional llm-d router's Envoy keeps the
@@ -147,15 +147,22 @@ mr_render_router() {
   dst="${MR_WORK_DIR}/rendered/${key}/router"
   mkdir -p "${dst}"
 
+  local src_values="${cache}/${release}/router/${release}.values.yaml"
   guide_values="${dst}/${release}.guide.values.yaml"
   # The token-producer tokenizer model name must match the served model name.
   sed "s|modelName: Qwen/Qwen3-32B|modelName: ${MR_SERVED_MODEL_NAME}|" \
-    "${cache}/${release}/router/${release}.values.yaml" >"${guide_values}"
+    "${src_values}" >"${guide_values}"
+  if grep -q "modelName:" "${src_values}" && ! grep -Fq "modelName: ${MR_SERVED_MODEL_NAME}" "${guide_values}"; then
+    mr_die "failed to substitute modelName in ${src_values} (check MR_LLMD_GIT_REF)"
+  fi
   if [[ -n "${MR_LLMD_PEAK_PREFILL_THROUGHPUT}" ]]; then
     if grep -q "peakPrefillThroughput:" "${guide_values}"; then
       sed -i "s|peakPrefillThroughput: [0-9]*|peakPrefillThroughput: ${MR_LLMD_PEAK_PREFILL_THROUGHPUT}|" "${guide_values}"
     else
       sed -i "s|- type: prefix-cache-affinity-filter$|- type: prefix-cache-affinity-filter\n          parameters:\n            peakPrefillThroughput: ${MR_LLMD_PEAK_PREFILL_THROUGHPUT}|" "${guide_values}"
+    fi
+    if ! grep -Fq "peakPrefillThroughput: ${MR_LLMD_PEAK_PREFILL_THROUGHPUT}" "${guide_values}"; then
+      mr_die "failed to configure peakPrefillThroughput in ${src_values} (check MR_LLMD_GIT_REF)"
     fi
   fi
 

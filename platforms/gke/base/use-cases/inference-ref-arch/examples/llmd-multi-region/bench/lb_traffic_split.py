@@ -38,38 +38,12 @@ import datetime
 import glob
 import json
 import os
-import re
 import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import analyze  # noqa: E402
-
-RFC3339_RE = re.compile(
-    r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})?$"
-)
-
-
-def parse_time(value: str | datetime.datetime) -> datetime.datetime:
-    """Parses an RFC 3339 timestamp with arbitrary fractional digits and tz offset into UTC.
-
-    Also accepts datetimes (PyYAML parses unquoted YAML timestamps into
-    datetimes; naive ones are UTC).
-    """
-    if isinstance(value, datetime.datetime):
-        aware = value if value.tzinfo else value.replace(tzinfo=datetime.timezone.utc)
-        return aware.astimezone(datetime.timezone.utc)
-    m = RFC3339_RE.match(value.strip())
-    if not m:
-        raise ValueError(f"Invalid RFC 3339 timestamp: {value!r}")
-    base, frac, tz = m.groups()
-    tz_str = (tz or "Z").replace("Z", "+00:00")
-    dt = datetime.datetime.fromisoformat(base + tz_str).astimezone(
-        datetime.timezone.utc
-    )
-    if frac:
-        dt += datetime.timedelta(seconds=float(frac))
-    return dt
+from _common import parse_rfc3339 as parse_time  # noqa: E402
 
 
 def format_rfc3339(dt: datetime.datetime) -> str:

@@ -30,8 +30,6 @@ MY_PATH="$(
 # shellcheck source=/dev/null
 source "${MY_PATH}/lib.sh"
 # shellcheck source=/dev/null
-source "${MY_PATH}/tf.sh"
-# shellcheck source=/dev/null
 source "${MY_PATH}/bench-lib.sh"
 
 action="${1:-apply}"
@@ -41,6 +39,6 @@ mr_require_example_tools
 mr_validate_active_region_key "${MR_CONFIG_CLUSTER_KEY}"
 mr_log "Project: ${MR_PROJECT_ID}, bench bucket: gs://$(mr_bench_bucket)"
 
-mr_stage "shared_state_bucket" "global" mr_ensure_example_state_bucket
-tfvars="$(mr_write_bench_tfvars)"
-mr_stage "bench_infra_${action}" "global" mr_example_tf bench "${action}" "${tfvars}"
+mr_stage "shared_state_bucket" "global" mr_ensure_state_bucket "$(mr_region "${MR_CONFIG_CLUSTER_KEY}")"
+mr_write_bench_tfvars >/dev/null
+mr_stage "bench_infra_${action}" "global" mr_tf bench "${action}" "${MR_EXAMPLE_DIR}/terraform/bench" "terraform/llmd-multi-region/bench"

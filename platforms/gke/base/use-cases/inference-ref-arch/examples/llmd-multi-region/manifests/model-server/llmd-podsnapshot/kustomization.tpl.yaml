@@ -11,16 +11,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+---
+# Declarative Kustomize overlay for the llm-d arm with GKE Pod snapshots
+# (MR_POD_SNAPSHOTS_ENABLED=true). Layers GKE Sandbox (gVisor), cooperative
+# /proc/gvisor/checkpoint signaling, Pod-IP-free arguments, and snapshot host
+# memory sizing on top of ../llmd.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 
-# Where GKE stores the Pod snapshots of this cluster: the regional bucket that
-# the online_gpu terraservice creates when ira_online_gpu_pod_snapshots_enabled
-# is true (hierarchical namespace, no soft delete). Cluster-scoped. The pod's
-# Kubernetes service account writes and reads the snapshots (Workload Identity).
-apiVersion: podsnapshot.gke.io/v1
-kind: PodSnapshotStorageConfig
-metadata:
-  name: ${MR_NAMESPACE}-model-servers
-spec:
-  snapshotStorageConfig:
-    gcs:
-      bucket: ${MR_POD_SNAPSHOTS_BUCKET}
+resources:
+  - ../llmd
+
+patches:
+  - path: patch-podsnapshot.yaml
+    target:
+      kind: Deployment
+      name: precise-prefix-cache-routing-gpu-vllm-decode-llmd

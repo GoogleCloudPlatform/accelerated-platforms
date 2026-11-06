@@ -23,7 +23,6 @@ import csv
 import io
 import json
 import os
-import shutil
 import sys
 import tempfile
 import unittest
@@ -33,7 +32,198 @@ from typing import Any
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import startup_report  # noqa: E402
 
-FIXTURE = Path(__file__).resolve().parent / "testdata" / "startup"
+
+def write_startup_fixture(dst: Path, arm: str = "llmd") -> Path:
+    """Writes a synthetic two-Pod startup snapshot directory."""
+    (dst / "logs").mkdir(parents=True, exist_ok=True)
+    (dst / "markers.json").write_text(
+        json.dumps(
+            {
+                "apply_epoch_s": 1793325600.0,
+                "first_ok_via_gateway_epoch_s": 1793326175.0,
+                "arm": arm,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (dst / "nodes.json").write_text(
+        json.dumps(
+            {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "gke-inf-mrusc1-gpu-a",
+                            "creationTimestamp": "2026-10-30T02:00:40Z",
+                        },
+                        "status": {
+                            "conditions": [
+                                {
+                                    "type": "Ready",
+                                    "status": "True",
+                                    "lastTransitionTime": "2026-10-30T02:02:10Z",
+                                }
+                            ]
+                        },
+                    },
+                    {
+                        "metadata": {
+                            "name": "gke-inf-mrusc1-gpu-b",
+                            "creationTimestamp": "2026-10-30T01:00:00Z",
+                        },
+                        "status": {
+                            "conditions": [
+                                {
+                                    "type": "Ready",
+                                    "status": "True",
+                                    "lastTransitionTime": "2026-10-30T01:01:40Z",
+                                }
+                            ]
+                        },
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (dst / "pods.json").write_text(
+        json.dumps(
+            {
+                "items": [
+                    {
+                        "metadata": {
+                            "name": "vllm-0",
+                            "creationTimestamp": "2026-10-30T02:00:05Z",
+                        },
+                        "spec": {"nodeName": "gke-inf-mrusc1-gpu-a"},
+                        "status": {
+                            "conditions": [
+                                {
+                                    "type": "PodScheduled",
+                                    "status": "True",
+                                    "lastTransitionTime": "2026-10-30T02:02:15Z",
+                                },
+                                {
+                                    "type": "Initialized",
+                                    "status": "True",
+                                    "lastTransitionTime": "2026-10-30T02:03:20Z",
+                                },
+                                {
+                                    "type": "Ready",
+                                    "status": "True",
+                                    "lastTransitionTime": "2026-10-30T02:09:20Z",
+                                },
+                            ],
+                            "containerStatuses": [
+                                {
+                                    "name": "vllm",
+                                    "restartCount": 0,
+                                    "state": {
+                                        "running": {"startedAt": "2026-10-30T02:04:53Z"}
+                                    },
+                                }
+                            ],
+                        },
+                    },
+                    {
+                        "metadata": {
+                            "name": "vllm-1",
+                            "creationTimestamp": "2026-10-30T02:00:05Z",
+                        },
+                        "spec": {"nodeName": "gke-inf-mrusc1-gpu-b"},
+                        "status": {
+                            "conditions": [
+                                {
+                                    "type": "PodScheduled",
+                                    "status": "True",
+                                    "lastTransitionTime": "2026-10-30T02:00:06Z",
+                                },
+                                {
+                                    "type": "Initialized",
+                                    "status": "True",
+                                    "lastTransitionTime": "2026-10-30T02:01:00Z",
+                                },
+                                {
+                                    "type": "Ready",
+                                    "status": "True",
+                                    "lastTransitionTime": "2026-10-30T02:05:30Z",
+                                },
+                            ],
+                            "containerStatuses": [
+                                {
+                                    "name": "vllm",
+                                    "restartCount": 1,
+                                    "state": {
+                                        "running": {"startedAt": "2026-10-30T02:01:02Z"}
+                                    },
+                                }
+                            ],
+                        },
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (dst / "events.json").write_text(
+        json.dumps(
+            {
+                "items": [
+                    {
+                        "involvedObject": {
+                            "kind": "Pod",
+                            "name": "vllm-0",
+                            "fieldPath": "spec.initContainers{model-sync}",
+                        },
+                        "reason": "Pulled",
+                        "message": 'Successfully pulled image "slim" in 12.5s (12.5s including waiting).',
+                        "firstTimestamp": "2026-10-30T02:02:29Z",
+                    },
+                    {
+                        "involvedObject": {
+                            "kind": "Pod",
+                            "name": "vllm-0",
+                            "fieldPath": "spec.containers{vllm}",
+                        },
+                        "reason": "Pulled",
+                        "message": 'Successfully pulled image "vllm:0.31.0" in 1m30.5s (1m32s including waiting).',
+                        "firstTimestamp": "2026-10-30T02:04:52Z",
+                    },
+                    {
+                        "involvedObject": {
+                            "kind": "Pod",
+                            "name": "vllm-1",
+                            "fieldPath": "spec.containers{vllm}",
+                        },
+                        "reason": "Pulled",
+                        "message": 'Container image "vllm:0.31.0" already present on machine',
+                        "firstTimestamp": "2026-10-30T02:01:01Z",
+                    },
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    (dst / "logs" / "vllm-0.log").write_text(
+        "2026-10-30T02:05:30.000000123Z \x1b[1;36m(EngineCore_DP0)\x1b[0;0m INFO Loading weights took 35.42 seconds\n"
+        "2026-10-30T02:05:31.000000123Z INFO Model loading took 61.0349 GiB and 36.871 seconds\n"
+        "2026-10-30T02:05:45.000000123Z INFO Dynamo bytecode transform time: 13.91 s\n"
+        "2026-10-30T02:06:40.000000123Z INFO torch.compile takes 68.25 s in total\n"
+        "2026-10-30T02:06:50.000000123Z INFO GPU KV cache size: 81,088 tokens\n"
+        "2026-10-30T02:07:20.000000123Z INFO Graph capturing finished in 29 secs\n"
+        "2026-10-30T02:07:21.000000123Z INFO init engine (profile, create kv cache, warmup model) took 109.73 seconds\n"
+        "2026-10-30T02:09:10.000000123Z INFO:     Application startup complete.\n",
+        encoding="utf-8",
+    )
+    (dst / "logs" / "vllm-1.log").write_text(
+        "INFO Loading model weights took 61.0349 GB and 40.10 seconds\n"
+        "INFO Compiling a graph for dynamic shape takes 31.5 s\n"
+        "INFO GPU KV cache size: 79,872 tokens\n"
+        "INFO Graph capturing finished in 22 secs\n"
+        "INFO init engine (profile, create kv cache, warmup model) took 95.20 seconds\n"
+        "INFO:     Application startup complete.\n",
+        encoding="utf-8",
+    )
+    return dst
 
 
 def run_main(argv: list[str]) -> tuple[int, str, str]:
@@ -60,7 +250,7 @@ def pulled_event(ts: float, message: str) -> dict[str, Any]:
 
 
 class FixtureEndToEndTest(unittest.TestCase):
-    """Runs startup_report.py on the two-Pod fixture in testdata/startup."""
+    """Runs startup_report.py on a synthetic two-Pod fixture."""
 
     EXPECTED: dict[str, dict[str, Any]] = {
         "vllm-0": {
@@ -108,8 +298,9 @@ class FixtureEndToEndTest(unittest.TestCase):
 
     def test_report(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp)
-            rc, stdout, stderr = run_main([str(FIXTURE), "--out", str(out)])
+            fixture = write_startup_fixture(Path(tmp) / "startup")
+            out = Path(tmp) / "out"
+            rc, stdout, stderr = run_main([str(fixture), "--out", str(out)])
             self.assertEqual(rc, 0, stderr)
             self.assertIn("(2 Pods)", stdout)
             pods = read_pods(out)
@@ -138,11 +329,13 @@ class FixtureEndToEndTest(unittest.TestCase):
 
     def test_pod_regex_filters_pods(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
+            fixture = write_startup_fixture(Path(tmp) / "startup")
+            out = Path(tmp) / "out"
             rc, _out, stderr = run_main(
-                [str(FIXTURE), "--out", tmp, "--pod-regex", "vllm-1$"]
+                [str(fixture), "--out", str(out), "--pod-regex", "vllm-1$"]
             )
             self.assertEqual(rc, 0, stderr)
-            self.assertEqual(set(read_pods(Path(tmp))), {"vllm-1"})
+            self.assertEqual(set(read_pods(out)), {"vllm-1"})
 
     def test_fails_without_pods_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -157,12 +350,8 @@ class ArmComparisonTest(unittest.TestCase):
     def test_same_region_of_two_arms_is_reported_separately(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "startup" / "run1"
-            baseline, llmd = root / "baseline" / "usc1", root / "llmd" / "usc1"
-            shutil.copytree(FIXTURE, baseline)
-            shutil.copytree(FIXTURE, llmd)
-            markers = json.loads((baseline / "markers.json").read_text("utf-8"))
-            markers["arm"] = "baseline"
-            (baseline / "markers.json").write_text(json.dumps(markers), "utf-8")
+            baseline = write_startup_fixture(root / "baseline" / "usc1", arm="baseline")
+            llmd = write_startup_fixture(root / "llmd" / "usc1", arm="llmd")
             pods = json.loads((baseline / "pods.json").read_text("utf-8"))
             pods["items"] = [
                 p for p in pods["items"] if p["metadata"]["name"] == "vllm-1"
@@ -237,20 +426,6 @@ class ImagePullTest(unittest.TestCase):
 
 
 class ParsingTest(unittest.TestCase):
-    def test_parse_ts(self) -> None:
-        self.assertEqual(
-            startup_report.parse_ts("2026-10-30T02:00:00Z"),
-            startup_report.parse_ts("2026-10-29T21:00:00-05:00"),
-        )
-        self.assertAlmostEqual(
-            startup_report.parse_ts("2026-10-30T02:00:00.000000123Z") or 0.0,
-            (startup_report.parse_ts("2026-10-30T02:00:00Z") or 0.0) + 123e-9,
-            places=6,
-        )
-        self.assertEqual(startup_report.parse_ts(1793325600), 1793325600.0)
-        self.assertIsNone(startup_report.parse_ts("30 Oct 2026"))
-        self.assertIsNone(startup_report.parse_ts(None))
-
     def test_go_duration(self) -> None:
         self.assertEqual(startup_report.go_duration("1m30.5s"), 90.5)
         self.assertEqual(startup_report.go_duration("1h2m"), 3720.0)

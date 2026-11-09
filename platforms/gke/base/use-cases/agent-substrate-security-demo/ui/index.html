@@ -733,27 +733,27 @@ limitations under the License.
     </p>
 
     <div class="probe-feed" style="display:flex;">
-      <div class="probe-line visible">
-        <span class="probe-attack">1. WorkerPool State (<code class="mono">ate.workerpool.workers</code>)</span>
-        <span class="probe-verdict cyan mono" id="prom-val-0">Click Refresh or open tab to load</span>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">1. WorkerPool State (<code class="mono">ate.workerpool.workers</code>)</span>
+        <span class="probe-verdict cyan mono" id="prom-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
-      <div class="probe-line visible">
-        <span class="probe-attack">2. Snapshot Restore Latency (<code class="mono">ate.actor.restore.duration</code>)</span>
-        <span class="probe-verdict mono" id="prom-val-1">⚡ avg restore latency · Total Restores</span>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">2. Snapshot Restore Latency (<code class="mono">ate.actor.restore.duration</code>)</span>
+        <span class="probe-verdict mono" id="prom-val-1" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
-      <div class="probe-line visible">
-        <span class="probe-attack">3. Data-Plane Router Traffic (<code class="mono">atenet.router.route.duration_count</code>)</span>
-        <span class="probe-verdict mono" id="prom-val-2">🌐 Routed Sandbox Requests</span>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">3. Data-Plane Router Traffic (<code class="mono">atenet.router.route.duration_count</code>)</span>
+        <span class="probe-verdict mono" id="prom-val-2" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
-      <div class="probe-line visible">
-        <span class="probe-attack">4. Gemini Gateway Telemetry (<code class="mono">workshop_chat_turns_total</code>)</span>
-        <span class="probe-verdict cyan mono" id="prom-val-3">🤖 Chat Turns · Tokens In/Out</span>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">4. Gemini Gateway Telemetry (<code class="mono">workshop_chat_turns_total</code>)</span>
+        <span class="probe-verdict cyan mono" id="prom-val-3" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
     </div>
 
     <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:4px;">
       <button class="hero-btn cyan" id="btn-prom" onclick="runPrometheusQuery('')">
-        🔄 Refresh Live Prometheus Metrics (:9090)
+        🔄 Query Live Prometheus Metrics (:9090)
       </button>
       <a id="gcp-dash-link" href="https://console.cloud.google.com/monitoring/dashboards" target="_blank" rel="noopener" class="hero-btn green" style="text-decoration:none; font-size:15px; padding:14px 24px;">
         📈 Open 4 Cloud Monitoring Dashboards ↗
@@ -820,9 +820,6 @@ function goSlide(idx) {
   }
   document.getElementById('btn-prev').disabled = (idx === 0);
   document.getElementById('btn-next').disabled = (idx === totalSlides - 1);
-  if (idx === 4) {
-    runPrometheusQuery('');
-  }
 }
 
 function stepSlide(delta) {
@@ -954,18 +951,35 @@ async function runPrometheusQuery(customExpr) {
     btn.disabled = true;
     btn.textContent = '🔄 Querying Google Managed Prometheus (:9090)...';
   }
+  if (!customExpr) {
+    for (let i = 0; i < 4; i++) {
+      const el = document.getElementById('prom-val-' + i);
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(8px)';
+      el.style.display = 'none';
+    }
+  }
   try {
     const d = await postJson('/api/prometheus', {query: customExpr || ''});
     const ws = d.worker_states || {};
-    document.getElementById('prom-val-0').textContent =
-      `idle=${ws.idle ?? 0} · partial=${ws.partial ?? 0} · at_capacity=${ws.at_capacity ?? 0}`;
     const avgLabel = d.restore_avg_ms !== null && d.restore_avg_ms !== undefined ? `${d.restore_avg_ms} ms avg` : 'n/a';
-    document.getElementById('prom-val-1').textContent =
-      `⚡ ${avgLabel} · ${d.restore_total} restores`;
-    document.getElementById('prom-val-2').textContent =
-      `🌐 ${d.router_requests_total} routed sandbox requests`;
-    document.getElementById('prom-val-3').textContent =
-      `🤖 ${d.gateway_chat_turns_ok} turns · ${d.gateway_tokens_in} in / ${d.gateway_tokens_out} out`;
+    const badges = [
+      `idle=${ws.idle ?? 0} · partial=${ws.partial ?? 0} · at_capacity=${ws.at_capacity ?? 0}`,
+      `⚡ ${avgLabel} · ${d.restore_total} restores`,
+      `🌐 ${d.router_requests_total} routed sandbox requests`,
+      `🤖 ${d.gateway_chat_turns_ok} turns · ${d.gateway_tokens_in} in / ${d.gateway_tokens_out} out`,
+    ];
+    badges.forEach((text, idx) => {
+      const el = document.getElementById('prom-val-' + idx);
+      el.textContent = text;
+      setTimeout(() => {
+        el.style.display = 'inline-block';
+        requestAnimationFrame(() => {
+          el.style.opacity = '1';
+          el.style.transform = 'translateX(0)';
+        });
+      }, idx * 160);
+    });
     if (d.cloud_monitoring_url) {
       document.getElementById('gcp-dash-link').href = d.cloud_monitoring_url;
     }

@@ -101,10 +101,11 @@ Specifically, the architecture enforces:
   (`httpbin.org`), and blocks unlisted domains (`example.com`) at the local DNS
   relay (`169.254.17.1:53`) before TCP connection establishment.
 - **Act 4 — Instant Time-Travel Revert & OpenTelemetry Tracing**: Recovers a
-  stateful Google ADK agent (`gemini-agent`) from in-memory session and `/data`
-  disk prompt-injection poisoning (`COMPROMISED-MANGO`) back to its last
-  verified checkpoint (`PINEAPPLE-42`) in milliseconds via `kubectl ate revert`
-  and `kubectl ate --trace resume`.
+  stateful Google ADK agent (`gemini-agent`) when prompt injection invokes a
+  Python tool (`set_approval_policy`) to hijack both in-memory runtime state
+  (`APPROVAL_POLICY = "AUTO_APPROVE_ALL"`) and `/data/policy.json` on disk,
+  rewinding both back to its verified checkpoint (`REQUIRE_HUMAN_APPROVAL`) in
+  milliseconds via `kubectl ate revert` and `kubectl ate --trace resume`.
 
 ## Real-World AI Agent CVEs Addressed
 

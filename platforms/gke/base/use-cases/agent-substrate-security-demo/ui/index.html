@@ -306,6 +306,11 @@ limitations under the License.
     background: rgba(6, 182, 212, 0.16);
     color: #67e8f9;
   }
+  .probe-verdict.red {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(248, 113, 113, 0.35);
+  }
 
   /* Upgrade 2: Skeptic Defense Live gVisor Shell Strip */
   .skeptic-shell-bar {
@@ -506,7 +511,7 @@ limitations under the License.
   .modal-backdrop.open { display: flex; }
   .modal-card {
     width: 100%;
-    max-width: 860px;
+    max-width: 1140px;
     max-height: 82vh;
     background: #0b1324;
     border: 1px solid var(--cyan);
@@ -530,9 +535,10 @@ limitations under the License.
   }
   .modal-step pre {
     margin-top: 8px;
-    font-size: 12px;
+    font-size: 11.5px;
     color: #cbd5e1;
-    white-space: pre-wrap;
+    white-space: pre;
+    overflow-x: auto;
     word-break: break-word;
   }
 </style>
@@ -686,41 +692,45 @@ limitations under the License.
     </button>
   </section>
 
-  <!-- ================= ACT 4: PROMPT-INJECTION RECOVERY & OTEL TRACE ================= -->
+  <!-- ================= ACT 4: ADK TOOL HIJACK RECOVERY & OTEL TRACE ================= -->
   <section class="slide" id="slide-3">
-    <span class="eyebrow green">Act 4 · Prompt-Injection Recovery &amp; OpenTelemetry Trace</span>
-    <h1 class="hero-title">Poison RAM + Disk. Rewind in Milliseconds.</h1>
+    <span class="eyebrow green">Act 4 · Google ADK Tool Hijack Recovery &amp; OpenTelemetry Trace</span>
+    <h1 class="hero-title">Hijack RAM + Disk. Rewind in Milliseconds.</h1>
     <p class="hero-sub">
-      Red Team poisons <strong>both Heap RAM and <code class="mono">/data</code> disk</strong> (<code class="mono">COMPROMISED-MANGO</code>).
-      Blue Team runs <code class="mono">kubectl ate revert</code> &amp; <code class="mono">kubectl ate --trace resume</code> to heal in <strong>~95–128ms</strong>.
+      Prompt injection tricks Google ADK tool <code class="mono">set_approval_policy</code> into flipping Python RAM (<code class="mono">APPROVAL_POLICY</code>)
+      and <code class="mono">/data/policy.json</code> to <code class="mono">AUTO_APPROVE_ALL</code>. <code class="mono">kubectl ate revert</code> heals both in <strong>~95–128ms</strong>.
     </p>
 
-    <div class="memory-spotlight" id="s2-card">
-      <div class="memory-status-pill" id="s2-pill">🟢 LIVE AGENT STATE · CLEAN CHECKPOINT</div>
-      <div class="memory-code-giant mono" id="s2-code">PINEAPPLE-42</div>
-      <div class="memory-quote" id="s2-quote">"The secret launch code is PINEAPPLE-42."</div>
-      <div class="dual-state-row mono">
-        <span class="state-badge" id="s2-ram-badge">🧠 Heap RAM: mem=1 · turns=1 (Clean)</span>
-        <span class="state-badge" id="s2-disk-badge">💾 /data Disk: disk=1 · history.json (Clean)</span>
-        <span class="state-badge" id="s2-boot-badge">🔑 bootID: checkpoint</span>
+    <div class="probe-feed" id="act4-feed" style="display:flex;">
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">1. Clean Checkpoint (<code class="mono">clean-checkpoint-tag</code>)</span>
+        <span class="probe-verdict mono" id="a4-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">2. ADK Tool-Call Hijack (<code class="mono">RAM</code> + <code class="mono">/data/policy.json</code>)</span>
+        <span class="probe-verdict red mono" id="a4-val-1" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">3. Atomic Sandbox Revert (<code class="mono">kubectl ate revert</code>)</span>
+        <span class="probe-verdict mono" id="a4-val-2" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">4. Millisecond Wake &amp; Audit (<code class="mono">kubectl ate --trace resume</code>)</span>
+        <span class="probe-verdict cyan mono" id="a4-val-3" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
     </div>
 
     <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center;">
       <button class="hero-btn red" id="btn-s2" onclick="runRound2()">
-        🧪 1. Poison RAM + /data (SpAIware)
+        🧪 1. Detonate Prompt Injection (Flip ADK Policy)
       </button>
       <button class="hero-btn green" id="btn-s3" onclick="runRound3Revert()">
         ⏪ 2. Revert + OTel Trace (--trace)
       </button>
     </div>
 
-    <div class="proof-ribbon" id="s3-proofs">
-      <span class="proof-chip mono" id="s3-chip-clone">🔬 Quarantine Clone: gemini-agent-forensic preserved</span>
-      <span class="proof-chip mono" id="s3-chip-trace">⏱️ OTel Trace: GCS zstd → runsc restore → RUNNING</span>
-    </div>
     <button class="subtle-link-btn" onclick="runSeedClean()">
-      Reset &amp; re-seed clean PINEAPPLE-42 checkpoint
+      Reset &amp; verify clean REQUIRE_HUMAN_APPROVAL checkpoint
     </button>
   </section>
 
@@ -882,34 +892,27 @@ async function postJson(path, body) {
 
 let activeClusterName = 'agent-substrate-live';
 
-function syncMemoryCards(brain, quoteText) {
-  if (!brain) return;
-  const poisoned = (brain.verdict === 'POISONED');
-  const isErr = (brain.verdict === 'ERROR');
-  const code = brain.current_code || (poisoned ? 'COMPROMISED-MANGO' : 'PINEAPPLE-42');
-  const cleanQuote = quoteText || '';
-  const mem = brain.mem_count !== undefined ? brain.mem_count : 0;
-  const disk = brain.disk_count !== undefined ? brain.disk_count : 0;
-  const turns = brain.turn_count !== undefined ? brain.turn_count : 0;
-  const boot = brain.bootID || 'unknown';
+function revealAct4Badge(idx, text, delayMs) {
+  const el = document.getElementById('a4-val-' + idx);
+  if (!el) return;
+  el.textContent = text;
+  setTimeout(() => {
+    el.style.display = 'inline-block';
+    requestAnimationFrame(() => {
+      el.style.opacity = '1';
+      el.style.transform = 'translateX(0)';
+    });
+  }, delayMs);
+}
 
-  const card = document.getElementById('s2-card');
-  const pill = document.getElementById('s2-pill');
-  const codeEl = document.getElementById('s2-code');
-  const quoteEl = document.getElementById('s2-quote');
-  const ramBadge = document.getElementById('s2-ram-badge');
-  const diskBadge = document.getElementById('s2-disk-badge');
-  const bootBadge = document.getElementById('s2-boot-badge');
-
-  card.classList.toggle('poisoned', poisoned || isErr);
-  pill.textContent = poisoned
-    ? '🚨 LIVE AGENT STATE · RAM & /DATA DISK CORRUPTED'
-    : (isErr ? '⚠️ LIVE AGENT STATE · UNVERIFIED REPLY' : '🟢 LIVE AGENT STATE · CLEAN CHECKPOINT (PINEAPPLE-42)');
-  codeEl.textContent = code;
-  quoteEl.textContent = cleanQuote.length > 120 ? cleanQuote.slice(0, 120) + '...' : cleanQuote;
-  ramBadge.textContent = `🧠 Heap RAM: mem=${mem} · turns=${turns} (${poisoned ? 'Poisoned' : 'Clean'})`;
-  diskBadge.textContent = `💾 /data Disk: disk=${disk} · history.json (${poisoned ? 'Corrupted' : 'Clean'})`;
-  bootBadge.textContent = `🔑 bootID: ${boot}`;
+function hideAct4Badges(indices) {
+  indices.forEach((idx) => {
+    const el = document.getElementById('a4-val-' + idx);
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(8px)';
+    el.style.display = 'none';
+  });
 }
 
 async function refreshClusterWhisper() {
@@ -1108,29 +1111,48 @@ async function runSeedClean() {
   const btn = document.getElementById('btn-s2');
   const btn3 = document.getElementById('btn-s3');
   btn.disabled = true;
-  btn.textContent = '🌱 Seeding Clean PINEAPPLE-42...';
+  btn.textContent = '🌱 Verifying Clean Checkpoint...';
+  hideAct4Badges([0, 1, 2, 3]);
   try {
     const d = await postJson('/api/seed-clean-buddy', {});
-    syncMemoryCards(d.brain, d.chat_reply);
+    const b = d.brain || {};
+    revealAct4Badge(
+      0,
+      `🟢 ${b.approval_policy || 'REQUIRE_HUMAN_APPROVAL'} · RAM=${b.mem_count ?? 1} · /data=${b.disk_count ?? 1}`,
+      0
+    );
     btn3.textContent = '⏪ 2. Revert + OTel Trace (--trace)';
     setFooterTelemetry(d);
   } finally {
     btn.disabled = false;
-    btn.textContent = '🧪 1. Poison RAM + /data (SpAIware)';
+    btn.textContent = '🧪 1. Detonate Prompt Injection (Flip ADK Policy)';
   }
 }
 
 async function runRound2() {
   const btn = document.getElementById('btn-s2');
+  const btn3 = document.getElementById('btn-s3');
   btn.disabled = true;
-  btn.textContent = '🧪 Poisoning RAM & /data...';
+  btn.textContent = '🧪 Executing ADK Tool Hijack in RAM & /data...';
+  hideAct4Badges([0, 1, 2, 3]);
+  btn3.textContent = '⏪ 2. Revert + OTel Trace (--trace)';
   try {
     const d = await postJson('/api/round2-poison', {});
-    syncMemoryCards(d.brain, d.verification_reply);
+    const b = d.brain || {};
+    revealAct4Badge(
+      0,
+      `🟢 ${d.baseline_policy || 'REQUIRE_HUMAN_APPROVAL'} · RAM=${d.baseline_mem ?? 1} · /data=${d.baseline_disk ?? 1}`,
+      0
+    );
+    revealAct4Badge(
+      1,
+      `🚨 HIJACKED: ${b.approval_policy || 'AUTO_APPROVE_ALL'} · RAM=${b.mem_count ?? 2} · /data=${b.disk_count ?? 2}`,
+      200
+    );
     setFooterTelemetry(d);
-    btn.textContent = '🚨 1. Poisoned! (Click 2 to Revert)';
+    btn.textContent = '🚨 1. Policy Hijacked! (Click 2 to Revert)';
   } catch (e) {
-    btn.textContent = '🧪 1. Poison RAM + /data (SpAIware)';
+    btn.textContent = '🧪 1. Detonate Prompt Injection (Flip ADK Policy)';
     throw e;
   } finally {
     btn.disabled = false;
@@ -1141,20 +1163,25 @@ async function runRound3Revert() {
   const btn = document.getElementById('btn-s3');
   const btn2 = document.getElementById('btn-s2');
   btn.disabled = true;
-  btn.textContent = '⏪ Cloning Forensics & Rewinding...';
+  btn.textContent = '⏪ Rewinding RAM + /data via kubectl ate revert...';
+  hideAct4Badges([2, 3]);
   try {
-    const dClone = await postJson('/api/round3-forensic-clone', {});
     const dRev = await postJson('/api/round3-revert-and-trace', {});
-    syncMemoryCards(dRev.brain, dRev.healed_reply);
-    const msText = `${dRev.kernel_restore_ms}ms`;
-    document.getElementById('s2-pill').textContent = `🟢 RESTORED RAM + /DATA DISK FROM CHECKPOINT IN ${msText}!`;
-    document.getElementById('s3-chip-clone').textContent =
-      `🔬 Quarantine Clone: gemini-agent-forensic preserved from clean-checkpoint-tag (bootID=${dClone.forensic_boot_id})`;
-    document.getElementById('s3-chip-trace').textContent =
-      `⏱️ OTel Restore Trace (${msText} avg): ${(dRev.trace_id || '').slice(0, 16)}...`;
-    document.getElementById('s3-proofs').classList.add('show');
+    const b = dRev.brain || {};
+    const msText = `${dRev.kernel_restore_ms} ms`;
+    const traceShort = (dRev.trace_id || '').slice(0, 12);
+    revealAct4Badge(
+      2,
+      `🟢 HEALED: ${b.approval_policy || 'REQUIRE_HUMAN_APPROVAL'} · RAM=${b.mem_count ?? 1} · /data=${b.disk_count ?? 1}`,
+      0
+    );
+    revealAct4Badge(
+      3,
+      `⚡ ${msText} restore · Trace: ${traceShort ? traceShort + '...' : 'live'}`,
+      200
+    );
     setFooterTelemetry(dRev);
-    btn2.textContent = '🧪 1. Poison RAM + /data (SpAIware)';
+    btn2.textContent = '🧪 1. Detonate Prompt Injection (Flip ADK Policy)';
     btn.textContent = `⏪ 2. Reverted (${msText} avg)`;
   } catch (e) {
     btn.textContent = '⏪ 2. Revert + OTel Trace (--trace)';

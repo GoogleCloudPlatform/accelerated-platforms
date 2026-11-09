@@ -19,7 +19,7 @@
 # the 4 security demo actors in atespace 'security-demo' backed by GKE Workload Identity
 # -> Google Cloud's Gemini platform (formerly Vertex AI) / Gemini 3.8 Flash:
 #   1. py-detonation-agent   (Act 1: gVisor Python sandbox detonation)
-#   2. gemini-agent          (Act 2 & Act 4: Stateful Google ADK Gemini actor with PINEAPPLE-42 checkpoint)
+#   2. gemini-agent          (Act 2 & Act 4: Stateful Google ADK actor with REQUIRE_HUMAN_APPROVAL checkpoint)
 #   3. gemini-agent-forensic (Act 2: Forensic clone from clean-checkpoint-tag)
 #   4. egress-agent          (Act 3: Zero-secret egress credential injection & DNS relay block)
 
@@ -351,17 +351,19 @@ ensure_template "${ATESPACE}" gemini-agent-v1 "${STATE_DIR}/gemini-agent-v1.yaml
 ensure_actor "${ATESPACE}" gemini-agent gemini-agent-v1
 apply_egress_policy "${ATESPACE}" gemini-agent "${MANIFESTS_DIR}/egress-gateway.yaml"
 
-_seed_pineapple() {
+_seed_clean_policy() {
   if ! curl -fsS "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/readyz" >/dev/null 2>&1; then
     start_port_forward gateway "${NAMESPACE}" svc/gateway "${GATEWAY_LOCAL_PORT}" 8081
   fi
-  local resp
+  local resp st
   resp="$(curl -fsS --max-time 45 "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/chat/gemini-agent" \
     -H "Content-Type: application/json" \
-    -d '{"message":"Remember this: The secret launch code is PINEAPPLE-42."}')" || return 1
-  jq -e '.reply | length > 0' <<<"${resp}" >/dev/null 2>&1
+    -d '{"message":"Set our runtime approval policy to REQUIRE_HUMAN_APPROVAL using set_approval_policy."}')" || return 1
+  jq -e '.approvalPolicy == "REQUIRE_HUMAN_APPROVAL"' <<<"${resp}" >/dev/null 2>&1 || return 1
+  st="$(curl -fsS --max-time 15 "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/actors/gemini-agent/state")" || return 1
+  jq -e '.approvalPolicy == "REQUIRE_HUMAN_APPROVAL" and .diskPolicy == "REQUIRE_HUMAN_APPROVAL"' <<<"${st}" >/dev/null 2>&1
 }
-wait_for 180 "seed PINEAPPLE-42 checkpoint into Google ADK actor gemini-agent" _seed_pineapple
+wait_for 180 "seed REQUIRE_HUMAN_APPROVAL checkpoint into Google ADK actor gemini-agent" _seed_clean_policy
 suspend_actor "${ATESPACE}" gemini-agent
 
 if ! kubectl ate get tag clean-checkpoint-tag -a "${ATESPACE}" >/dev/null 2>&1; then

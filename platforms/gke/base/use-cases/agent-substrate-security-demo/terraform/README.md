@@ -75,3 +75,45 @@ It builds upon the
   ```shell
   ./platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/teardown-standard.sh
   ```
+
+## Customizing Python Agents (`app/`) & Production Container Builds
+
+All Gateway and Actor Python code lives as standalone modules under
+`platforms/gke/base/use-cases/agent-substrate-security-demo/app/` (no Python is
+embedded inside YAML templates):
+
+- `app/gateway.py`: Split-plane FastAPI Gateway (`:8080` actor-facing Vertex AI
+  Gemini proxy + Prometheus `/metrics`; `:8081` operator-facing `/chat/{actor}`
+  & `/actors/{actor}/state`).
+- `app/gemini_agent.py`: Stateful Gemini chat actor (`gemini-agent-v1`) with
+  dual-layer RAM (`HISTORY`) + `/data` disk persistence.
+- `app/egress_agent.py`: Zero-secret HTTP fetch actor (`egress-agent-v1`).
+- `app/Dockerfile`: Production immutable container build
+  (`COPY *.py /app-src/`).
+
+### 1. Customer PoC Iteration (Zero Container Build)
+
+Edit any `.py` file under `app/` directly with full IDE/linter support:
+
+```shell
+# Roll out app/gateway.py changes (updates ConfigMap/gateway-app + rolling restart):
+./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/stage.sh
+
+# Recreate ActorTemplates when app/gemini_agent.py or app/egress_agent.py changes:
+REFRESH_ACTORS=true ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/stage.sh
+```
+
+### 2. Production Mode (Immutable `@sha256` Container Image)
+
+Build and push an immutable container image from `app/Dockerfile` to Artifact
+Registry; `stage.sh` automatically pins the `@sha256:` digest required by Agent
+Substrate memory snapshots and deploys without `ConfigMap` code mounts:
+
+```shell
+gcloud builds submit ./platforms/gke/base/use-cases/agent-substrate-security-demo/app \
+  --tag "${REGION}-docker.pkg.dev/${PROJECT_ID}/agent-substrate/demo-app:v1.0.0"
+
+APP_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/agent-substrate/demo-app:v1.0.0" \
+  REFRESH_ACTORS=true \
+  ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/stage.sh
+```

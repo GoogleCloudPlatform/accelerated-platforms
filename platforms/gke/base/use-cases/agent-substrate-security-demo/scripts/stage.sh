@@ -26,10 +26,15 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 USE_CASE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+APP_DIR="${USE_CASE_DIR}/app"
 MANIFESTS_DIR="${USE_CASE_DIR}/manifests"
 STATE_DIR="${USE_CASE_DIR}/.state"
 BIN_DIR="${USE_CASE_DIR}/bin"
 mkdir -p "${STATE_DIR}" "${BIN_DIR}"
+
+DEFAULT_RUNTIME_IMAGE="registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5"
+export APP_IMAGE="${APP_IMAGE:-}"
+export REFRESH_ACTORS="${REFRESH_ACTORS:-false}"
 
 export PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
 export CLUSTER_NAME="${CLUSTER_NAME:-agent-substrate-live}"
@@ -195,7 +200,30 @@ kubectl -n ate-system wait --for=condition=Available deploy --all --timeout=10m 
 kubectl -n ate-system rollout status ds/atelet --timeout=10m >/dev/null
 ok "Agent Substrate (${SUBSTRATE_REF}) control plane ready"
 
-step "2/6: Ensuring WorkerPool (2 gVisor worker pods), atespace (${ATESPACE}), and zero-build Python Gateway"
+if [[ -n "${APP_IMAGE}" ]]; then
+  if [[ "${APP_IMAGE}" != *"@sha256:"* ]]; then
+    APP_DIGEST="$(cd "${SUBSTRATE_SRC}" && GOWORK=off go run github.com/google/go-containerregistry/cmd/crane@v0.20.3 digest "${APP_IMAGE}")"
+    APP_IMAGE="${APP_IMAGE}@${APP_DIGEST}"
+  fi
+  export GATEWAY_IMAGE="${APP_IMAGE}"
+  export AGENT_IMAGE="${APP_IMAGE}"
+  export GATEWAY_CODE_SHA="$(printf '%s' "${APP_IMAGE}" | sha256sum | awk '{print $1}')"
+  export GATEWAY_VOLUME_MOUNTS_JSON='[]'
+  export GATEWAY_VOLUMES_JSON='[]'
+  export GEMINI_AGENT_COMMAND_JSON='["python3", "/app-src/gemini_agent.py"]'
+  export EGRESS_AGENT_COMMAND_JSON='["python3", "/app-src/egress_agent.py"]'
+else
+  export GATEWAY_IMAGE="${DEFAULT_RUNTIME_IMAGE}"
+  export AGENT_IMAGE="${DEFAULT_RUNTIME_IMAGE}"
+  export GATEWAY_CODE_SHA="$(sha256sum "${APP_DIR}/gateway.py" | awk '{print $1}')"
+  export GATEWAY_VOLUME_MOUNTS_JSON='[{"name": "gateway-app", "mountPath": "/app-src", "readOnly": true}]'
+  export GATEWAY_VOLUMES_JSON='[{"name": "gateway-app", "configMap": {"name": "gateway-app"}}]'
+  GEMINI_AGENT_COMMAND_JSON="$(python3 -c 'import json, sys; print(json.dumps(["python3", "-c", open(sys.argv[1], encoding="utf-8").read()]))' "${APP_DIR}/gemini_agent.py")"
+  EGRESS_AGENT_COMMAND_JSON="$(python3 -c 'import json, sys; print(json.dumps(["python3", "-c", open(sys.argv[1], encoding="utf-8").read()]))' "${APP_DIR}/egress_agent.py")"
+  export GEMINI_AGENT_COMMAND_JSON EGRESS_AGENT_COMMAND_JSON
+fi
+
+step "2/6: Ensuring WorkerPool (2 gVisor worker pods), atespace (${ATESPACE}), and Python Gateway (app/gateway.py)"
 envsubst '${NAMESPACE} ${WORKER_IMAGE}' < "${MANIFESTS_DIR}/workerpool.yaml.tmpl" | kubectl apply -f -
 _two_workers() {
   [[ "$(kubectl -n "${NAMESPACE}" get pods -l workload=workshop-agent --field-selector=status.phase=Running -o name | wc -l)" -ge 2 ]]
@@ -203,7 +231,13 @@ _two_workers() {
 wait_for 600 "2 running gVisor worker pods" _two_workers
 
 kubectl ate get atespace "${ATESPACE}" >/dev/null 2>&1 || kubectl ate create atespace "${ATESPACE}"
-envsubst '${NAMESPACE} ${ATESPACE} ${GEMINI_MODEL} ${PROJECT_ID}' < "${MANIFESTS_DIR}/gateway.yaml.tmpl" | kubectl apply -f -
+if [[ -z "${APP_IMAGE}" ]]; then
+  kubectl -n "${NAMESPACE}" create configmap gateway-app \
+    --from-file=gateway.py="${APP_DIR}/gateway.py" \
+    --dry-run=client -o yaml | kubectl apply -f -
+fi
+envsubst '${NAMESPACE} ${ATESPACE} ${GEMINI_MODEL} ${PROJECT_ID} ${GATEWAY_IMAGE} ${GATEWAY_CODE_SHA} ${GATEWAY_VOLUME_MOUNTS_JSON} ${GATEWAY_VOLUMES_JSON}' \
+  < "${MANIFESTS_DIR}/gateway.yaml.tmpl" | kubectl apply -f -
 envsubst '${NAMESPACE} ${PROJECT_ID}' < "${MANIFESTS_DIR}/observability.yaml.tmpl" | kubectl apply -f -
 kubectl -n "${NAMESPACE}" rollout status deploy/gateway --timeout=180s
 kubectl -n "${NAMESPACE}" rollout status deploy/prometheus-ui --timeout=180s
@@ -229,15 +263,27 @@ ensure_actor "${ATESPACE}" py-detonation-agent python-sandbox-v1
 kubectl ate delete egress-policy py-detonation-agent -a "${ATESPACE}" >/dev/null 2>&1 || true
 suspend_actor "${ATESPACE}" py-detonation-agent
 
-step "5/6: Staging Act 3 Actor 'egress-agent' (zero-build egress-agent-v1 with MITM ClusterTrustBundle)"
-envsubst '${ATESPACE}' < "${MANIFESTS_DIR}/egress-agent-v1.yaml.tmpl" > "${STATE_DIR}/egress-agent-v1.yaml"
+step "5/6: Staging Act 3 Actor 'egress-agent' (app/egress_agent.py with MITM ClusterTrustBundle)"
+if [[ "${REFRESH_ACTORS}" == "true" ]]; then
+  kubectl ate delete actor egress-agent -a "${ATESPACE}" >/dev/null 2>&1 || true
+  kubectl ate delete actor-template egress-agent-v1 -a "${ATESPACE}" >/dev/null 2>&1 || true
+fi
+envsubst '${ATESPACE} ${AGENT_IMAGE} ${EGRESS_AGENT_COMMAND_JSON}' \
+  < "${MANIFESTS_DIR}/egress-agent-v1.yaml.tmpl" > "${STATE_DIR}/egress-agent-v1.yaml"
 ensure_template "${ATESPACE}" egress-agent-v1 "${STATE_DIR}/egress-agent-v1.yaml"
 ensure_actor "${ATESPACE}" egress-agent egress-agent-v1
 apply_egress_policy "${ATESPACE}" egress-agent "${MANIFESTS_DIR}/egress-fetch.yaml"
 suspend_actor "${ATESPACE}" egress-agent
 
-step "6/6: Staging Act 2 & Act 4 Actors 'gemini-agent' and 'gemini-agent-forensic' (gemini-agent-v1 + clean-checkpoint-tag)"
-envsubst '${ATESPACE} ${NAMESPACE}' < "${MANIFESTS_DIR}/gemini-agent-v1.yaml.tmpl" > "${STATE_DIR}/gemini-agent-v1.yaml"
+step "6/6: Staging Act 2 & Act 4 Actors 'gemini-agent' and 'gemini-agent-forensic' (app/gemini_agent.py + clean-checkpoint-tag)"
+if [[ "${REFRESH_ACTORS}" == "true" ]]; then
+  kubectl ate delete actor gemini-agent-forensic -a "${ATESPACE}" >/dev/null 2>&1 || true
+  kubectl ate delete tag clean-checkpoint-tag -a "${ATESPACE}" >/dev/null 2>&1 || true
+  kubectl ate delete actor gemini-agent -a "${ATESPACE}" >/dev/null 2>&1 || true
+  kubectl ate delete actor-template gemini-agent-v1 -a "${ATESPACE}" >/dev/null 2>&1 || true
+fi
+envsubst '${ATESPACE} ${NAMESPACE} ${AGENT_IMAGE} ${GEMINI_AGENT_COMMAND_JSON}' \
+  < "${MANIFESTS_DIR}/gemini-agent-v1.yaml.tmpl" > "${STATE_DIR}/gemini-agent-v1.yaml"
 ensure_template "${ATESPACE}" gemini-agent-v1 "${STATE_DIR}/gemini-agent-v1.yaml"
 ensure_actor "${ATESPACE}" gemini-agent gemini-agent-v1
 apply_egress_policy "${ATESPACE}" gemini-agent "${MANIFESTS_DIR}/egress-gateway.yaml"
@@ -256,5 +302,5 @@ fi
 apply_egress_policy "${ATESPACE}" gemini-agent-forensic "${MANIFESTS_DIR}/egress-gateway.yaml"
 suspend_actor "${ATESPACE}" gemini-agent-forensic
 
-ok "4-Act Security Detonation Demo staged in atespace '${ATESPACE}' (0 custom container builds, 4 actors):"
+ok "4-Act Security Detonation Demo staged in atespace '${ATESPACE}' (4 actors):"
 kubectl ate get actors -a "${ATESPACE}"

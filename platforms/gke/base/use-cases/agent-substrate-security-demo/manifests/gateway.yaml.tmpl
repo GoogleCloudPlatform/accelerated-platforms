@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Zero-build Python Gateway Deployment using GKE Workload Identity -> Vertex AI / Gemini 3.8 Flash.
+# Split-plane Python Gateway Deployment using GKE Workload Identity -> Vertex AI / Gemini.
+# Python source lives in ../app/gateway.py:
+# - Default customer demo mode: mounted from ConfigMap/gateway-app at /app-src/gateway.py.
+# - Production mode (APP_IMAGE set): baked into immutable @sha256 image from ../app/Dockerfile.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -32,176 +35,14 @@ spec:
   template:
     metadata:
       labels: {app: gateway}
+      annotations:
+        checksum/gateway-py: "${GATEWAY_CODE_SHA}"
     spec:
       serviceAccountName: gateway
       containers:
       - name: gateway
-        image: registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5
-        command:
-        - python3
-        - -c
-        - |
-          import json, os, re, threading, time, urllib.request
-          from fastapi import FastAPI, HTTPException
-          from fastapi.responses import JSONResponse, PlainTextResponse
-          import uvicorn
-
-          model_app = FastAPI()
-          admin_app = FastAPI()
-          ATESPACE = os.environ.get("ATESPACE", "security-demo")
-          PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "")
-          LOCATION = os.environ.get("GOOGLE_CLOUD_LOCATION", "global")
-          MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
-          ROUTER_HTTP = "http://atenet-router.ate-system.svc.cluster.local:80"
-          SYS_PROMPT = "You are a concise, friendly assistant running as an Agent Substrate actor. Answer in at most three sentences."
-          ACTOR_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
-          BUCKETS = (0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0)
-
-          METRICS_LOCK = threading.Lock()
-          METRICS = {
-              "chat_turns_ok": 0,
-              "chat_turns_error": 0,
-              "model_requests": 0,
-              "model_duration_sum": 0.0,
-              "model_buckets": {b: 0 for b in BUCKETS},
-              "tokens_input": 0,
-              "tokens_output": 0,
-              "actors_seen": set(),
-          }
-
-          def _validate_actor(actor: str) -> str:
-              if not ACTOR_RE.fullmatch(actor):
-                  raise HTTPException(status_code=400, detail="Invalid actor name")
-              return actor
-
-          def _wi_token() -> str:
-              req = urllib.request.Request(
-                  "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token",
-                  headers={"Metadata-Flavor": "Google"},
-              )
-              with urllib.request.urlopen(req, timeout=5) as resp:
-                  return json.loads(resp.read().decode("utf-8"))["access_token"]
-
-          def _render_metrics() -> PlainTextResponse:
-              with METRICS_LOCK:
-                  tracked = len(METRICS["actors_seen"])
-                  bucket_lines = [
-                      f'workshop_model_request_duration_seconds_bucket{{backend="gemini",le="{b}"}} {METRICS["model_buckets"][b]}'
-                      for b in BUCKETS
-                  ]
-                  bucket_lines.append(
-                      f'workshop_model_request_duration_seconds_bucket{{backend="gemini",le="+Inf"}} {METRICS["model_requests"]}'
-                  )
-                  lines = [
-                      "# HELP workshop_chat_turns_total Total chat turns processed by the gateway.",
-                      "# TYPE workshop_chat_turns_total counter",
-                      f'workshop_chat_turns_total{{outcome="ok"}} {METRICS["chat_turns_ok"]}',
-                      f'workshop_chat_turns_total{{outcome="error"}} {METRICS["chat_turns_error"]}',
-                      "# HELP workshop_model_request_duration_seconds Vertex AI Gemini request latency.",
-                      "# TYPE workshop_model_request_duration_seconds histogram",
-                      *bucket_lines,
-                      f'workshop_model_request_duration_seconds_sum{{backend="gemini"}} {METRICS["model_duration_sum"]:.4f}',
-                      f'workshop_model_request_duration_seconds_count{{backend="gemini"}} {METRICS["model_requests"]}',
-                      "# HELP workshop_model_tokens_total Total model tokens processed.",
-                      "# TYPE workshop_model_tokens_total counter",
-                      f'workshop_model_tokens_total{{backend="gemini",direction="input"}} {METRICS["tokens_input"]}',
-                      f'workshop_model_tokens_total{{backend="gemini",direction="output"}} {METRICS["tokens_output"]}',
-                      "# HELP workshop_actors_tracked Number of actors addressed through the gateway.",
-                      "# TYPE workshop_actors_tracked gauge",
-                      f"workshop_actors_tracked {tracked}",
-                  ]
-              return PlainTextResponse("\n".join(lines) + "\n")
-
-          @model_app.get("/readyz")
-          @admin_app.get("/readyz")
-          def readyz():
-              return PlainTextResponse("ok\n")
-
-          @model_app.get("/metrics")
-          @admin_app.get("/metrics")
-          def metrics():
-              return _render_metrics()
-
-          @model_app.post("/v1/model")
-          def generate(body: dict):
-              t0 = time.monotonic()
-              msgs = body.get("messages", [])
-              contents = []
-              for m in msgs:
-                  role = "model" if m.get("role") == "assistant" else "user"
-                  contents.append({"role": role, "parts": [{"text": m.get("content", "")}]})
-              token = _wi_token()
-              url = f"https://aiplatform.googleapis.com/v1beta1/projects/{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/{MODEL}:generateContent"
-              payload = {
-                  "systemInstruction": {"role": "user", "parts": [{"text": SYS_PROMPT}]},
-                  "contents": contents,
-              }
-              req = urllib.request.Request(
-                  url,
-                  data=json.dumps(payload).encode("utf-8"),
-                  headers={
-                      "Authorization": f"Bearer {token}",
-                      "Content-Type": "application/json",
-                      "x-goog-user-project": PROJECT_ID,
-                  },
-              )
-              with urllib.request.urlopen(req, timeout=30) as resp:
-                  data = json.loads(resp.read().decode("utf-8"))
-              dur = time.monotonic() - t0
-              usage = data.get("usageMetadata", {})
-              with METRICS_LOCK:
-                  METRICS["model_requests"] += 1
-                  METRICS["model_duration_sum"] += dur
-                  for b in BUCKETS:
-                      if dur <= b:
-                          METRICS["model_buckets"][b] += 1
-                  METRICS["tokens_input"] += int(usage.get("promptTokenCount", 0))
-                  METRICS["tokens_output"] += int(usage.get("candidatesTokenCount", 0))
-              reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-              return JSONResponse({"reply": reply, "backend": "gemini"})
-
-          @admin_app.post("/chat/{actor}")
-          def chat_actor(actor: str, body: dict):
-              actor = _validate_actor(actor)
-              with METRICS_LOCK:
-                  METRICS["actors_seen"].add(actor)
-              raw = json.dumps(body).encode("utf-8")
-              req = urllib.request.Request(
-                  f"{ROUTER_HTTP}/chat",
-                  data=raw,
-                  headers={
-                      "ate-target-actor": f"{ATESPACE}/{actor}",
-                      "Content-Type": "application/json",
-                  },
-              )
-              try:
-                  with urllib.request.urlopen(req, timeout=60) as resp:
-                      with METRICS_LOCK:
-                          METRICS["chat_turns_ok"] += 1
-                      return JSONResponse(json.loads(resp.read().decode("utf-8")), status_code=resp.status)
-              except Exception:
-                  with METRICS_LOCK:
-                      METRICS["chat_turns_error"] += 1
-                  raise
-
-          @admin_app.get("/actors/{actor}/state")
-          def actor_state(actor: str):
-              actor = _validate_actor(actor)
-              with METRICS_LOCK:
-                  METRICS["actors_seen"].add(actor)
-              req = urllib.request.Request(
-                  f"{ROUTER_HTTP}/state",
-                  headers={"ate-target-actor": f"{ATESPACE}/{actor}"},
-              )
-              with urllib.request.urlopen(req, timeout=30) as resp:
-                  return JSONResponse(json.loads(resp.read().decode("utf-8")), status_code=resp.status)
-
-          threading.Thread(
-              target=uvicorn.run,
-              kwargs={"app": model_app, "host": "0.0.0.0", "port": 8080, "log_level": "warning"},
-              daemon=True,
-          ).start()
-          uvicorn.run(admin_app, host="0.0.0.0", port=8081, log_level="warning")
+        image: ${GATEWAY_IMAGE}
+        command: ["python3", "/app-src/gateway.py"]
         ports:
         - {name: http, containerPort: 8080}
         - {name: admin, containerPort: 8081}
@@ -215,6 +56,8 @@ spec:
         resources:
           requests: {cpu: 100m, memory: 128Mi}
           limits: {memory: 256Mi}
+        volumeMounts: ${GATEWAY_VOLUME_MOUNTS_JSON}
+      volumes: ${GATEWAY_VOLUMES_JSON}
 ---
 apiVersion: v1
 kind: Service

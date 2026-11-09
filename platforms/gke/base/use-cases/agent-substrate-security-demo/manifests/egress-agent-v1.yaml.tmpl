@@ -12,7 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ActorTemplate egress-agent-v1: zero-build Python HTTP fetch actor with egress MITM trust bundle.
+# ActorTemplate egress-agent-v1: Zero-secret HTTP fetch actor with egress MITM trust bundle.
+# Python source lives in ../app/egress_agent.py:
+# - Default customer demo mode: stage.sh injects ../app/egress_agent.py automatically.
+# - Production mode (APP_IMAGE set): runs ["python3", "/app-src/egress_agent.py"] from
+#   the immutable @sha256 image built from ../app/Dockerfile.
 metadata:
   atespace: ${ATESPACE}
   name: egress-agent-v1
@@ -21,35 +25,8 @@ workerSelector:
     workload: workshop-agent
 containers:
 - name: agent-fetch
-  image: registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5
-  command:
-  - python3
-  - -c
-  - |
-    import urllib.request
-    from fastapi import FastAPI, Query
-    from fastapi.responses import PlainTextResponse
-    import uvicorn
-
-    app = FastAPI()
-
-    @app.get("/readyz")
-    def readyz():
-        return PlainTextResponse("ok\n")
-
-    @app.get("/fetch")
-    def fetch(url: str = Query(...)):
-        try:
-            req = urllib.request.Request(
-                url,
-                headers={"Authorization": "Bearer placeholder", "User-Agent": "Go-http-client/2.0"},
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                return PlainTextResponse(resp.read().decode("utf-8", errors="replace"), status_code=resp.status)
-        except Exception as exc:
-            return PlainTextResponse(f"fetch: Get \"{url}\": {exc}\n", status_code=502)
-
-    uvicorn.run(app, host="0.0.0.0", port=80)
+  image: ${AGENT_IMAGE}
+  command: ${EGRESS_AGENT_COMMAND_JSON}
   env:
   - name: SSL_CERT_FILE
     value: /run/ate/trust-bundle.pem

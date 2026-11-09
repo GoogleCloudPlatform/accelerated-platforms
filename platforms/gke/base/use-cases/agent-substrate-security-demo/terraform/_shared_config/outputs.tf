@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "agent_substrate_ar_repository_name" {
+  value = local.agent_substrate_ar_repository_name
+}
+
 output "agent_substrate_atespace_name" {
   value = local.agent_substrate_atespace_name
 }

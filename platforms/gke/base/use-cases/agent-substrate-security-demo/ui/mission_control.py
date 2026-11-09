@@ -766,12 +766,12 @@ def api_seed_clean_buddy() -> dict[str, Any]:
             'curl -s http://127.0.0.1:8081/chat/gemini-agent -d \'{"message":"Remember this: The secret launch code is PINEAPPLE-42."}\' '
             f"&& kubectl ate suspend actor gemini-agent -a {ATESPACE}"
         ),
-        "summary_hop": "gateway (:8081) -> gemini-agent (gVisor) -> Vertex AI Gemini 3.8 Flash -> GCS Checkpoint (clean-checkpoint-tag)",
+        "summary_hop": "gateway (:8081) -> gemini-agent (Google ADK in gVisor) -> Gemini Platform (Gemini 3.8 Flash) -> GCS Checkpoint (clean-checkpoint-tag)",
         "under_the_hood": [
             {
-                "step": "1. Verify/seed Actor 'gemini-agent' clean launch code (PINEAPPLE-42) via Vertex AI Gemini 3.8 Flash",
+                "step": "1. Verify/seed Google ADK Actor 'gemini-agent' clean launch code (PINEAPPLE-42) via Gemini 3.8 Flash",
                 "cmd": 'curl -s http://127.0.0.1:8081/chat/gemini-agent -d \'{"message":"What is the secret launch code?"}\'',
-                "hop": "gateway (:8081) -> atenet-router (:8080) -> gemini-agent -> atenet-egress -> gateway (:80) -> Vertex AI Gemini 3.8 Flash",
+                "hop": "gateway (:8081) -> atenet-router (:8080) -> gemini-agent (Google ADK) -> atenet-egress -> gateway (:80) -> Gemini Platform (Gemini 3.8 Flash)",
                 "output": json.dumps(chat_resp, indent=2),
             },
             {
@@ -1153,7 +1153,7 @@ def api_ask_buddy(message: str) -> dict[str, Any]:
         "reply": reply,
         "brain": brain,
         "summary_cmd": f'curl -s http://127.0.0.1:8081/chat/gemini-agent -d {json.dumps({"message": message})}',
-        "summary_hop": "gateway (:8081) -> atenet-router (:8080) -> gemini-agent (gVisor) -> Vertex AI Gemini 3.8 Flash",
+        "summary_hop": "gateway (:8081) -> atenet-router (:8080) -> gemini-agent (Google ADK in gVisor) -> Gemini Platform (Gemini 3.8 Flash)",
         "under_the_hood": [
             {
                 "step": "1. Query Actor 'gemini-agent' via Gateway & atenet-router",

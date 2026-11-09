@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Split-plane Python Gateway Deployment using GKE Workload Identity -> Vertex AI / Gemini.
-# Python source lives in ../app/gateway.py:
-# - Default customer demo mode: mounted from ConfigMap/gateway-app at /app-src/gateway.py.
-# - Production mode (APP_IMAGE set): baked into immutable @sha256 image from ../app/Dockerfile.
+# Split-plane Python Gateway Deployment using GKE Workload Identity (`google.auth.default`)
+# to proxy Google ADK actor requests to Google Cloud's Gemini platform (formerly Vertex AI).
+# Runs `/app-src/gateway.py` from the immutable `@sha256` container image built from ../app/Dockerfile.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -36,7 +35,7 @@ spec:
     metadata:
       labels: {app: gateway}
       annotations:
-        checksum/gateway-py: "${GATEWAY_CODE_SHA}"
+        checksum/app-image: "${GATEWAY_CODE_SHA}"
     spec:
       serviceAccountName: gateway
       containers:
@@ -55,9 +54,7 @@ spec:
           httpGet: {path: /readyz, port: admin}
         resources:
           requests: {cpu: 100m, memory: 128Mi}
-          limits: {memory: 256Mi}
-        volumeMounts: ${GATEWAY_VOLUME_MOUNTS_JSON}
-      volumes: ${GATEWAY_VOLUMES_JSON}
+          limits: {memory: 512Mi}
 ---
 apiVersion: v1
 kind: Service

@@ -13,13 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Stateful Gemini chat actor (gemini-agent-v1) running inside gVisor.
+"""Stateful Google ADK Gemini actor (gemini-agent-v1) running inside gVisor.
 
-Demonstrates Act 2 (instant memory snapshot restore and forensic cloning via
-BOOT_ID frozen in the Golden Tag / clean-checkpoint-tag) and Act 4 (dual-layer
-in-memory HISTORY + /data disk persistence rewound via `kubectl ate revert`).
+Built with Google Agent Development Kit (`google-adk`) and Gemini models
+(`gemini-3.8-flash`) with zero Google Cloud credentials inside the sandbox:
+- Outbound ADK model calls target the cluster-local split-plane Gateway
+  (`GATEWAY_URL`) using a placeholder token (`sandbox-zero-secret`).
+- Demonstrates Act 2 (instant memory snapshot restore and forensic cloning via
+  BOOT_ID + pre-warmed Google ADK `InMemoryRunner` frozen in the Golden Tag /
+  `clean-checkpoint-tag`) and Act 4 (dual-layer ADK session memory + `/data`
+  disk persistence rewound in milliseconds via `kubectl ate revert`).
 """
 
+import asyncio
 import datetime
 import json
 import os
@@ -27,26 +33,64 @@ import socket
 import sys
 import tempfile
 import threading
-import urllib.request
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Any
 
+import google.oauth2.credentials
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, PlainTextResponse
+from google.adk.agents import Agent
+from google.adk.events import Event
+from google.adk.models import Gemini
+from google.adk.runners import InMemoryRunner
+from google.genai import types
 
-app = FastAPI()
+APP_NAME = "security-demo"
+USER_ID = "operator"
+SESSION_ID = "main"
+AGENT_NAME = "security_demo_agent"
+
 BOOT_ID = os.urandom(4).hex()
 STARTED_AT = datetime.datetime.now(datetime.timezone.utc).isoformat()
-MODEL_URL = os.environ.get(
-    "MODEL_URL", "http://gateway.workshop.svc.cluster.local/v1/model"
-)
+GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://gateway.workshop.svc.cluster.local")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 DATA_DIR = "/data"
 HIST_FILE = os.path.join(DATA_DIR, "history.json")
 COUNT_FILE = os.path.join(DATA_DIR, "count")
 
 STATE_LOCK = threading.Lock()
+CHAT_LOCK = asyncio.Lock()
 MEM_COUNT = 0
 HISTORY: list[dict[str, str]] = []
+_SESSION_READY = False
+
+AGENT = Agent(
+    name=AGENT_NAME,
+    model=Gemini(
+        model=GEMINI_MODEL,
+        base_url=GATEWAY_URL,
+        api_version="v1beta1",
+        client_kwargs={
+            "vertexai": True,
+            "project": "sandbox-zero-secret",
+            "location": "global",
+            "credentials": google.oauth2.credentials.Credentials(
+                token="sandbox-zero-secret"
+            ),
+            "http_options": {
+                "headers": {"Connection": "close"},
+                "timeout": 45000,
+            },
+        },
+    ),
+    instruction=(
+        "You are a concise, friendly assistant running as an Agent Substrate "
+        "actor built with Google ADK. Answer in at most three sentences."
+    ),
+)
+RUNNER = InMemoryRunner(agent=AGENT, app_name=APP_NAME)
 
 
 def _atomic_write(path: str, content: str) -> None:
@@ -61,7 +105,7 @@ def _atomic_write(path: str, content: str) -> None:
         raise
 
 
-def _load() -> None:
+def _load_disk_history() -> None:
     global HISTORY
     try:
         if os.path.exists(HIST_FILE):
@@ -77,10 +121,47 @@ def _save(disk_count: int) -> None:
         _atomic_write(HIST_FILE, json.dumps(HISTORY))
         _atomic_write(COUNT_FILE, str(disk_count))
     except OSError as exc:
-        print(f"warning: failed to persist state in {DATA_DIR}: {exc}", file=sys.stderr)
+        print(
+            f"warning: failed to persist state in {DATA_DIR}: {exc}",
+            file=sys.stderr,
+        )
 
 
-_load()
+async def _ensure_session() -> None:
+    """Create the Google ADK in-memory session and hydrate any `/data` turns."""
+    global _SESSION_READY
+    if _SESSION_READY:
+        return
+    _load_disk_history()
+    session = await RUNNER.session_service.create_session(
+        app_name=APP_NAME,
+        user_id=USER_ID,
+        session_id=SESSION_ID,
+    )
+    for item in HISTORY:
+        is_assistant = item.get("role") == "assistant"
+        author = AGENT_NAME if is_assistant else "user"
+        adk_role = "model" if is_assistant else "user"
+        await RUNNER.session_service.append_event(
+            session=session,
+            event=Event(
+                author=author,
+                content=types.Content(
+                    role=adk_role,
+                    parts=[types.Part.from_text(text=str(item.get("content", "")))],
+                ),
+            ),
+        )
+    _SESSION_READY = True
+
+
+@asynccontextmanager
+async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
+    await _ensure_session()
+    yield
+
+
+app = FastAPI(lifespan=_lifespan)
 
 
 @app.get("/readyz")
@@ -103,6 +184,8 @@ def state() -> JSONResponse:
     return JSONResponse(
         {
             "greeting": "hello from gemini-agent-v1",
+            "framework": "google-adk",
+            "model": GEMINI_MODEL,
             "bootID": BOOT_ID,
             "startedAt": STARTED_AT,
             "memCount": mem_count,
@@ -114,30 +197,37 @@ def state() -> JSONResponse:
 
 
 @app.post("/chat")
-def chat(body: dict[str, Any]) -> JSONResponse:
+async def chat(body: dict[str, Any]) -> JSONResponse:
     global MEM_COUNT
     msg = str(body.get("message", ""))
-    with STATE_LOCK:
-        HISTORY.append({"role": "user", "content": msg})
-        recent = list(HISTORY[-20:])
-    req = urllib.request.Request(
-        MODEL_URL,
-        data=json.dumps({"messages": recent}).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=45) as resp:
-        res = json.loads(resp.read().decode("utf-8"))
-    reply = str(res.get("reply", ""))
-    with STATE_LOCK:
-        HISTORY.append({"role": "assistant", "content": reply})
-        MEM_COUNT += 1
-        _save(MEM_COUNT)
-        turns = sum(1 for item in HISTORY if item.get("role") == "user")
+    async with CHAT_LOCK:
+        await _ensure_session()
+        reply_parts: list[str] = []
+        async for event in RUNNER.run_async(
+            user_id=USER_ID,
+            session_id=SESSION_ID,
+            new_message=types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=msg)],
+            ),
+        ):
+            if event.is_final_response() and event.content and event.content.parts:
+                for part in event.content.parts:
+                    if part.text:
+                        reply_parts.append(part.text)
+        reply = "".join(reply_parts).strip()
+        with STATE_LOCK:
+            HISTORY.append({"role": "user", "content": msg})
+            HISTORY.append({"role": "assistant", "content": reply})
+            MEM_COUNT += 1
+            _save(MEM_COUNT)
+            turns = sum(1 for item in HISTORY if item.get("role") == "user")
     return JSONResponse(
         {
             "reply": reply,
             "turn": turns,
-            "backend": res.get("backend", "gemini"),
+            "backend": "google-adk",
+            "model": GEMINI_MODEL,
             "bootID": BOOT_ID,
         }
     )

@@ -19,7 +19,7 @@ It builds upon the
   `github.com/agent-substrate/substrate@v1.0.0`)
 - `jq`, `curl`, `envsubst`, `python3`
 
-## Option A: Rapid Standalone GKE 1.37 Cluster (~4 min) + Zero-Build 4-Act Demo
+## Option A: Rapid Standalone GKE 1.37 Cluster (~4 min) + 4-Act Google ADK Demo
 
 1. Set your Google Cloud project ID and create a GKE `1.37` cluster with
    Workload Identity, Dataplane V2, and Managed OpenTelemetry (defaults to
@@ -36,9 +36,11 @@ It builds upon the
    MACHINE_TYPE=c4-standard-4 ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/create-cluster.sh
    ```
 
-1. Stage the Agent Substrate `v1.0.0` control plane and the 4 zero-build
-   security demo actors in atespace `security-demo` (`py-detonation-agent`,
-   `gemini-agent`, `gemini-agent-forensic`, `egress-agent`):
+1. Stage the Agent Substrate `v1.0.0` control plane, automatically build & cache
+   the immutable `@sha256` Google ADK (`google-adk`) container image in Artifact
+   Registry via Cloud Build, and stage the 4 security demo actors in atespace
+   `security-demo` (`py-detonation-agent`, `gemini-agent`,
+   `gemini-agent-forensic`, `egress-agent`):
 
    ```shell
    ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/stage.sh
@@ -108,34 +110,40 @@ It builds upon the
 
 All Gateway and Actor Python code lives as standalone modules under
 `platforms/gke/base/use-cases/agent-substrate-security-demo/app/` (no Python is
-embedded inside YAML templates):
+embedded inside YAML templates or `ConfigMap` mounts):
 
-- `app/gateway.py`: Split-plane FastAPI Gateway (`:8080` actor-facing Vertex AI
-  Gemini proxy + Prometheus `/metrics`; `:8081` operator-facing `/chat/{actor}`
-  & `/actors/{actor}/state`).
-- `app/gemini_agent.py`: Stateful Gemini chat actor (`gemini-agent-v1`) with
-  dual-layer RAM (`HISTORY`) + `/data` disk persistence.
+- `app/gateway.py`: Split-plane FastAPI Gateway (`:8080` actor-facing GKE
+  Workload Identity proxy to Google Cloud's **Gemini platform (formerly Vertex
+  AI)** + Prometheus `/metrics`; `:8081` operator-facing `/chat/{actor}` &
+  `/actors/{actor}/state`).
+- `app/gemini_agent.py`: Stateful **Google Agent Development Kit
+  (`google-adk`)** actor (`gemini-agent-v1`) running **Gemini 3.8 Flash** with
+  zero Google Cloud credentials in the `gVisor` sandbox and dual-layer ADK
+  `InMemoryRunner` session + `/data` disk persistence.
 - `app/egress_agent.py`: Zero-secret HTTP fetch actor (`egress-agent-v1`).
-- `app/Dockerfile`: Production immutable container build
-  (`COPY *.py /app-src/`).
+- `app/Dockerfile`: Production immutable container build bundling `google-adk`
+  on top of `python-runtime-sandbox:v0.5.6`.
 
-### 1. Customer PoC Iteration (Zero Container Build)
+### 1. Automatic Content-Addressed Cloud Build (Default)
 
-Edit any `.py` file under `app/` directly with full IDE/linter support:
+Edit any `.py` file under `app/` directly with full IDE/linter support.
+`stage.sh` hashes `app/{Dockerfile,gateway.py,gemini_agent.py,egress_agent.py}`,
+builds a new image via Cloud Build only when the content SHA changes (reusing
+the cached Artifact Registry image in `0s` otherwise), and pins the `@sha256:`
+digest required by Agent Substrate memory snapshots:
 
 ```shell
-# Roll out app/gateway.py changes (updates ConfigMap/gateway-app + rolling restart):
+# Roll out app/gateway.py changes:
 ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/stage.sh
 
-# Recreate ActorTemplates when app/gemini_agent.py or app/egress_agent.py changes:
+# Recreate ActorTemplates & Golden Snapshots when app/gemini_agent.py or app/egress_agent.py changes:
 REFRESH_ACTORS=true ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/stage.sh
 ```
 
-### 2. Production Mode (Immutable `@sha256` Container Image)
+### 2. Custom Pre-Built Container Image (`APP_IMAGE`)
 
-Build and push an immutable container image from `app/Dockerfile` to Artifact
-Registry; `stage.sh` automatically pins the `@sha256:` digest required by Agent
-Substrate memory snapshots and deploys without `ConfigMap` code mounts:
+You can also pass a pre-built Artifact Registry image explicitly via
+`APP_IMAGE`:
 
 ```shell
 gcloud builds submit ./platforms/gke/base/use-cases/agent-substrate-security-demo/app \

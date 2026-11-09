@@ -13,12 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# stage.sh — 100% Standalone Zero-Build Stager for the 4-Act Security Detonation Demo.
-# Uses ONLY upstream Agent Substrate (v1.0.0) + registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6
-# + GKE Workload Identity -> Vertex AI / Gemini 3.8 Flash.
-# Stages the 4 security demo actors in atespace 'security-demo':
+# stage.sh — Production Stager for the 4-Act Security & Detonation Reference Implementation.
+# Deploys upstream Agent Substrate (v1.0.0), builds & caches an immutable @sha256 container
+# image bundling Google ADK (`google-adk`) in Artifact Registry via Cloud Build, and stages
+# the 4 security demo actors in atespace 'security-demo' backed by GKE Workload Identity
+# -> Google Cloud's Gemini platform (formerly Vertex AI) / Gemini 3.8 Flash:
 #   1. py-detonation-agent   (Act 1: gVisor Python sandbox detonation)
-#   2. gemini-agent          (Act 2 & Act 4: Stateful Gemini agent with PINEAPPLE-42 checkpoint)
+#   2. gemini-agent          (Act 2 & Act 4: Stateful Google ADK Gemini actor with PINEAPPLE-42 checkpoint)
 #   3. gemini-agent-forensic (Act 2: Forensic clone from clean-checkpoint-tag)
 #   4. egress-agent          (Act 3: Zero-secret egress credential injection & DNS relay block)
 
@@ -32,8 +33,8 @@ STATE_DIR="${USE_CASE_DIR}/.state"
 BIN_DIR="${USE_CASE_DIR}/bin"
 mkdir -p "${STATE_DIR}" "${BIN_DIR}"
 
-DEFAULT_RUNTIME_IMAGE="registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5"
 export APP_IMAGE="${APP_IMAGE:-}"
+export AR_REPO="${AR_REPO:-agent-substrate}"
 export REFRESH_ACTORS="${REFRESH_ACTORS:-false}"
 
 KUBE_CTX="$(kubectl config current-context 2>/dev/null || true)"
@@ -181,6 +182,7 @@ TRANSFER_GSA_EMAIL="${SNAPSHOT_TRANSFER_GSA_NAME}@${PROJECT_ID}.iam.gserviceacco
 
 gcloud services enable --project "${PROJECT_ID}" \
   container.googleapis.com storage.googleapis.com iam.googleapis.com iamcredentials.googleapis.com \
+  artifactregistry.googleapis.com cloudbuild.googleapis.com \
   aiplatform.googleapis.com monitoring.googleapis.com logging.googleapis.com cloudtrace.googleapis.com >/dev/null
 
 if ! gcloud storage buckets describe "gs://${BUCKET_NAME}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
@@ -235,51 +237,58 @@ kubectl -n ate-system wait --for=condition=Available deploy --all --timeout=10m 
 kubectl -n ate-system rollout status ds/atelet --timeout=10m >/dev/null
 ok "Agent Substrate (${SUBSTRATE_REF}) control plane ready"
 
-encode_actor_command() {
-  # Agent Substrate enforces maxLength=4096 per argv element (maxItems=64).
-  # In zero-build mode, zlib+base64 encode app/<script>.py into <=4000-char argv
-  # chunks while preserving exact source filenames and line numbers for tracebacks.
-  python3 - "$1" << 'EOF'
-import base64
-import json
-import os
-import sys
-import zlib
-
-path = sys.argv[1]
-with open(path, "rb") as handle:
-    encoded = base64.b64encode(zlib.compress(handle.read(), 9)).decode("ascii")
-chunks = [encoded[i : i + 4000] for i in range(0, len(encoded), 4000)]
-loader = (
-    "import base64,sys,zlib;"
-    f"exec(compile(zlib.decompress(base64.b64decode(''.join(sys.argv[1:]))),{os.path.basename(path)!r},'exec'))"
-)
-print(json.dumps(["python3", "-c", loader, *chunks]))
-EOF
+resolve_image_digest() {
+  local img="$1"
+  local digest=""
+  digest="$(gcloud artifacts docker images describe "${img}" --project "${PROJECT_ID}" --format='value(image_summary.digest)' 2>/dev/null || true)"
+  if [[ -z "${digest}" ]]; then
+    digest="$(cd "${SUBSTRATE_SRC}" && GOWORK=off go run github.com/google/go-containerregistry/cmd/crane@v0.20.3 digest "${img}")"
+  fi
+  printf '%s' "${digest}"
 }
 
 if [[ -n "${APP_IMAGE}" ]]; then
   if [[ "${APP_IMAGE}" != *"@sha256:"* ]]; then
-    APP_DIGEST="$(cd "${SUBSTRATE_SRC}" && GOWORK=off go run github.com/google/go-containerregistry/cmd/crane@v0.20.3 digest "${APP_IMAGE}")"
+    APP_DIGEST="$(resolve_image_digest "${APP_IMAGE}")"
     APP_IMAGE="${APP_IMAGE}@${APP_DIGEST}"
   fi
-  export GATEWAY_IMAGE="${APP_IMAGE}"
-  export AGENT_IMAGE="${APP_IMAGE}"
-  export GATEWAY_CODE_SHA="$(printf '%s' "${APP_IMAGE}" | sha256sum | awk '{print $1}')"
-  export GATEWAY_VOLUME_MOUNTS_JSON='[]'
-  export GATEWAY_VOLUMES_JSON='[]'
-  export GEMINI_AGENT_COMMAND_JSON='["python3", "/app-src/gemini_agent.py"]'
-  export EGRESS_AGENT_COMMAND_JSON='["python3", "/app-src/egress_agent.py"]'
+  ok "Using caller-supplied container image (${APP_IMAGE})"
 else
-  export GATEWAY_IMAGE="${DEFAULT_RUNTIME_IMAGE}"
-  export AGENT_IMAGE="${DEFAULT_RUNTIME_IMAGE}"
-  export GATEWAY_CODE_SHA="$(sha256sum "${APP_DIR}/gateway.py" | awk '{print $1}')"
-  export GATEWAY_VOLUME_MOUNTS_JSON='[{"name": "gateway-app", "mountPath": "/app-src", "readOnly": true}]'
-  export GATEWAY_VOLUMES_JSON='[{"name": "gateway-app", "configMap": {"name": "gateway-app"}}]'
-  GEMINI_AGENT_COMMAND_JSON="$(encode_actor_command "${APP_DIR}/gemini_agent.py")"
-  EGRESS_AGENT_COMMAND_JSON="$(encode_actor_command "${APP_DIR}/egress_agent.py")"
-  export GEMINI_AGENT_COMMAND_JSON EGRESS_AGENT_COMMAND_JSON
+  if ! gcloud artifacts repositories describe "${AR_REPO}" --location "${REGION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
+    gcloud artifacts repositories create "${AR_REPO}" \
+      --repository-format=docker \
+      --location="${REGION}" \
+      --project="${PROJECT_ID}" \
+      --description="Agent Substrate Security Demo container images" >/dev/null
+  fi
+  NODE_SA="$(gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_LOCATION}" --project "${PROJECT_ID}" --format='value(nodePools[0].config.serviceAccount)' 2>/dev/null || true)"
+  if [[ -z "${NODE_SA}" || "${NODE_SA}" == "default" ]]; then
+    NODE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+  fi
+  gcloud artifacts repositories add-iam-policy-binding "${AR_REPO}" \
+    --location="${REGION}" \
+    --project="${PROJECT_ID}" \
+    --member="serviceAccount:${NODE_SA}" \
+    --role="roles/artifactregistry.reader" \
+    --condition=None >/dev/null
+
+  APP_CONTENT_SHA="$(cat "${APP_DIR}/Dockerfile" "${APP_DIR}/gateway.py" "${APP_DIR}/gemini_agent.py" "${APP_DIR}/egress_agent.py" | sha256sum | cut -c1-12)"
+  CANDIDATE_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/demo-app:adk-${APP_CONTENT_SHA}"
+  APP_DIGEST="$(gcloud artifacts docker images describe "${CANDIDATE_IMAGE}" --project "${PROJECT_ID}" --format='value(image_summary.digest)' 2>/dev/null || true)"
+  if [[ -z "${APP_DIGEST}" ]]; then
+    step "Building Google ADK container image (${CANDIDATE_IMAGE}) via Cloud Build"
+    gcloud builds submit "${APP_DIR}" --project "${PROJECT_ID}" --tag "${CANDIDATE_IMAGE}" --quiet
+    APP_DIGEST="$(gcloud artifacts docker images describe "${CANDIDATE_IMAGE}" --project "${PROJECT_ID}" --format='value(image_summary.digest)')"
+    ok "Built immutable Google ADK image (${CANDIDATE_IMAGE}@${APP_DIGEST})"
+  else
+    ok "Reusing cached Google ADK image (${CANDIDATE_IMAGE}@${APP_DIGEST})"
+  fi
+  APP_IMAGE="${CANDIDATE_IMAGE}@${APP_DIGEST}"
 fi
+
+export GATEWAY_IMAGE="${APP_IMAGE}"
+export AGENT_IMAGE="${APP_IMAGE}"
+export GATEWAY_CODE_SHA="$(printf '%s' "${APP_IMAGE}" | sha256sum | awk '{print $1}')"
 
 step "2/6: Ensuring WorkerPool (2 gVisor worker pods), atespace (${ATESPACE}), and Python Gateway (app/gateway.py)"
 envsubst '${NAMESPACE} ${WORKER_IMAGE}' < "${MANIFESTS_DIR}/workerpool.yaml.tmpl" | kubectl apply -f -
@@ -289,12 +298,8 @@ _two_workers() {
 wait_for 600 "2 running gVisor worker pods" _two_workers
 
 kubectl ate get atespace "${ATESPACE}" >/dev/null 2>&1 || kubectl ate create atespace "${ATESPACE}"
-if [[ -z "${APP_IMAGE}" ]]; then
-  kubectl -n "${NAMESPACE}" create configmap gateway-app \
-    --from-file=gateway.py="${APP_DIR}/gateway.py" \
-    --dry-run=client -o yaml | kubectl apply -f -
-fi
-envsubst '${NAMESPACE} ${ATESPACE} ${GEMINI_MODEL} ${PROJECT_ID} ${GATEWAY_IMAGE} ${GATEWAY_CODE_SHA} ${GATEWAY_VOLUME_MOUNTS_JSON} ${GATEWAY_VOLUMES_JSON}' \
+kubectl -n "${NAMESPACE}" delete configmap gateway-app --ignore-not-found >/dev/null 2>&1 || true
+envsubst '${NAMESPACE} ${ATESPACE} ${GEMINI_MODEL} ${PROJECT_ID} ${GATEWAY_IMAGE} ${GATEWAY_CODE_SHA}' \
   < "${MANIFESTS_DIR}/gateway.yaml.tmpl" | kubectl apply -f -
 envsubst '${NAMESPACE} ${PROJECT_ID}' < "${MANIFESTS_DIR}/observability.yaml.tmpl" | kubectl apply -f -
 kubectl -n "${NAMESPACE}" rollout status deploy/gateway --timeout=180s
@@ -326,21 +331,21 @@ if [[ "${REFRESH_ACTORS}" == "true" ]]; then
   kubectl ate delete actor egress-agent -a "${ATESPACE}" >/dev/null 2>&1 || true
   kubectl ate delete actor-template egress-agent-v1 -a "${ATESPACE}" >/dev/null 2>&1 || true
 fi
-envsubst '${ATESPACE} ${AGENT_IMAGE} ${EGRESS_AGENT_COMMAND_JSON}' \
+envsubst '${ATESPACE} ${AGENT_IMAGE}' \
   < "${MANIFESTS_DIR}/egress-agent-v1.yaml.tmpl" > "${STATE_DIR}/egress-agent-v1.yaml"
 ensure_template "${ATESPACE}" egress-agent-v1 "${STATE_DIR}/egress-agent-v1.yaml"
 ensure_actor "${ATESPACE}" egress-agent egress-agent-v1
 apply_egress_policy "${ATESPACE}" egress-agent "${MANIFESTS_DIR}/egress-fetch.yaml"
 suspend_actor "${ATESPACE}" egress-agent
 
-step "6/6: Staging Act 2 & Act 4 Actors 'gemini-agent' and 'gemini-agent-forensic' (app/gemini_agent.py + clean-checkpoint-tag)"
+step "6/6: Staging Act 2 & Act 4 Google ADK Actors 'gemini-agent' and 'gemini-agent-forensic' (app/gemini_agent.py + clean-checkpoint-tag)"
 if [[ "${REFRESH_ACTORS}" == "true" ]]; then
   kubectl ate delete actor gemini-agent-forensic -a "${ATESPACE}" >/dev/null 2>&1 || true
   kubectl ate delete tag clean-checkpoint-tag -a "${ATESPACE}" >/dev/null 2>&1 || true
   kubectl ate delete actor gemini-agent -a "${ATESPACE}" >/dev/null 2>&1 || true
   kubectl ate delete actor-template gemini-agent-v1 -a "${ATESPACE}" >/dev/null 2>&1 || true
 fi
-envsubst '${ATESPACE} ${NAMESPACE} ${AGENT_IMAGE} ${GEMINI_AGENT_COMMAND_JSON}' \
+envsubst '${ATESPACE} ${NAMESPACE} ${AGENT_IMAGE} ${GEMINI_MODEL}' \
   < "${MANIFESTS_DIR}/gemini-agent-v1.yaml.tmpl" > "${STATE_DIR}/gemini-agent-v1.yaml"
 ensure_template "${ATESPACE}" gemini-agent-v1 "${STATE_DIR}/gemini-agent-v1.yaml"
 ensure_actor "${ATESPACE}" gemini-agent gemini-agent-v1
@@ -356,7 +361,7 @@ _seed_pineapple() {
     -d '{"message":"Remember this: The secret launch code is PINEAPPLE-42."}')" || return 1
   jq -e '.reply | length > 0' <<<"${resp}" >/dev/null 2>&1
 }
-wait_for 180 "seed PINEAPPLE-42 checkpoint into gemini-agent" _seed_pineapple
+wait_for 180 "seed PINEAPPLE-42 checkpoint into Google ADK actor gemini-agent" _seed_pineapple
 suspend_actor "${ATESPACE}" gemini-agent
 
 if ! kubectl ate get tag clean-checkpoint-tag -a "${ATESPACE}" >/dev/null 2>&1; then

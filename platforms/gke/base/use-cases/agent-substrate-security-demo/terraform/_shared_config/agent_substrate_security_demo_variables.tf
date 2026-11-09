@@ -14,6 +14,7 @@
 
 locals {
   agent_substrate_project_id                 = var.agent_substrate_project_id != null ? var.agent_substrate_project_id : var.platform_default_project_id
+  agent_substrate_ar_repository_name         = var.agent_substrate_ar_repository_name != null ? var.agent_substrate_ar_repository_name : trimsuffix(substr("${local.unique_identifier_prefix}-agent-substrate", 0, 63), "-")
   agent_substrate_snapshot_bucket_name       = var.agent_substrate_snapshot_bucket_name != null ? var.agent_substrate_snapshot_bucket_name : trimsuffix(substr("${local.agent_substrate_project_id}-${local.unique_identifier_prefix}-ate-snapshots", 0, 63), "-")
   agent_substrate_snapshot_transfer_gsa_name = trimsuffix(substr("${local.unique_identifier_prefix}-ate-snapshot", 0, 28), "-")
   agent_substrate_atespace_name              = var.agent_substrate_atespace_name != null ? var.agent_substrate_atespace_name : "security-demo"
@@ -21,6 +22,12 @@ locals {
   agent_substrate_version                    = var.agent_substrate_version != null ? var.agent_substrate_version : "v1.0.0"
   agent_substrate_node_machine_type          = var.agent_substrate_node_machine_type != null ? var.agent_substrate_node_machine_type : "n4-standard-4"
   agent_substrate_node_disk_type             = var.agent_substrate_node_disk_type != null ? var.agent_substrate_node_disk_type : (can(regex("^(c4|n4)-", local.agent_substrate_node_machine_type)) ? "hyperdisk-balanced" : "pd-balanced")
+}
+
+variable "agent_substrate_ar_repository_name" {
+  default     = null
+  description = "The Artifact Registry Docker repository name for the Agent Substrate Google ADK demo container image."
+  type        = string
 }
 
 variable "agent_substrate_atespace_name" {

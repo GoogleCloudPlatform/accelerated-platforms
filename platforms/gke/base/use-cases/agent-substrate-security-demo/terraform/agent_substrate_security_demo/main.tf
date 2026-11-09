@@ -89,6 +89,33 @@ resource "google_container_node_pool" "agent_substrate_workers" {
   }
 }
 
+resource "google_project_service" "agent_substrate" {
+  for_each = toset([
+    "aiplatform.googleapis.com",
+    "artifactregistry.googleapis.com",
+    "cloudbuild.googleapis.com",
+    "cloudtrace.googleapis.com",
+    "iamcredentials.googleapis.com",
+  ])
+
+  disable_dependent_services = false
+  disable_on_destroy         = false
+  project                    = local.agent_substrate_project_id
+  service                    = each.key
+}
+
+resource "google_artifact_registry_repository" "agent_substrate_app" {
+  depends_on = [
+    google_project_service.agent_substrate,
+  ]
+
+  description   = "Container image repository for Agent Substrate Security Demo actors and gateway"
+  format        = "DOCKER"
+  location      = local.cluster_region
+  project       = local.agent_substrate_project_id
+  repository_id = local.agent_substrate_ar_repository_name
+}
+
 resource "google_storage_bucket" "ate_snapshots" {
   name     = local.agent_substrate_snapshot_bucket_name
   project  = local.agent_substrate_project_id

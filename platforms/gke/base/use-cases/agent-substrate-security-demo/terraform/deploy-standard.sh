@@ -89,6 +89,7 @@ if [ "${ACP_STAGE_DEMO}" = "true" ]; then
   PROJECT_ID="${cluster_project_id}" \
   CLUSTER_NAME="${cluster_name}" \
   CLUSTER_LOCATION="${cluster_region}" \
+  AR_REPO="${agent_substrate_ar_repository_name}" \
   BUCKET_NAME="${agent_substrate_snapshot_bucket_name}" \
   SNAPSHOT_TRANSFER_GSA_NAME="${agent_substrate_snapshot_transfer_gsa_name}" \
   ATESPACE="${agent_substrate_atespace_name}" \

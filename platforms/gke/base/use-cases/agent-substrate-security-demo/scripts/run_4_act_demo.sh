@@ -16,7 +16,7 @@
 # 4-Act "Red Team vs. Blue Team" Standalone CLI Live Demo Runner for Agent Substrate v1.0.0 GA.
 # Actors in atespace 'security-demo':
 #   - py-detonation-agent   (Act 1: gVisor Python sandbox detonation)
-#   - gemini-agent          (Act 2 & Act 4: Stateful Gemini agent with PINEAPPLE-42 checkpoint)
+#   - gemini-agent          (Act 2 & Act 4: Stateful Google ADK Gemini agent with PINEAPPLE-42 checkpoint)
 #   - gemini-agent-forensic (Act 2: Forensic clone from clean-checkpoint-tag)
 #   - egress-agent          (Act 3: Zero-secret egress credential injection & DNS relay block)
 

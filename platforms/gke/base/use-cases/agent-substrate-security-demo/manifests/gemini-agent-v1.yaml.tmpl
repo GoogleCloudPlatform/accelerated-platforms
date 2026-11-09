@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# ActorTemplate gemini-agent-v1: Stateful Gemini chat actor inside gVisor.
-# Python source lives in ../app/gemini_agent.py:
-# - Default customer demo mode: stage.sh injects ../app/gemini_agent.py automatically.
-# - Production mode (APP_IMAGE set): runs ["python3", "/app-src/gemini_agent.py"] from
-#   the immutable @sha256 image built from ../app/Dockerfile.
+# ActorTemplate gemini-agent-v1: Stateful Google ADK (`google-adk`) actor inside gVisor.
+# Runs `/app-src/gemini_agent.py` from the immutable `@sha256` container image built from
+# ../app/Dockerfile with zero Google Cloud credentials inside the sandbox.
 metadata:
   atespace: ${ATESPACE}
   name: gemini-agent-v1
@@ -26,10 +24,12 @@ workerSelector:
 containers:
 - name: agent
   image: ${AGENT_IMAGE}
-  command: ${GEMINI_AGENT_COMMAND_JSON}
+  command: ["python3", "/app-src/gemini_agent.py"]
   env:
-  - name: MODEL_URL
-    value: http://gateway.${NAMESPACE}.svc.cluster.local/v1/model
+  - name: GATEWAY_URL
+    value: http://gateway.${NAMESPACE}.svc.cluster.local
+  - name: GEMINI_MODEL
+    value: "${GEMINI_MODEL}"
   wakeupProbe:
     httpGet: {path: /readyz, port: 80}
   volumeMounts:

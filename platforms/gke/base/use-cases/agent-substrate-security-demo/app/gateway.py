@@ -13,14 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Split-plane Gateway service for Agent Substrate actors and operators.
+"""Split-plane Gateway service for Google ADK actors on Agent Substrate.
 
-Exposes two separate HTTP listeners to prevent lateral movement between actors:
-- :8080 (Service port 80, actor-facing): POST /v1/model, GET /readyz, GET /metrics.
+Exposes two separate HTTP listeners so untrusted sandboxes hold zero Google
+Cloud credentials and cannot pivot laterally to sibling actors:
+- :8080 (Service port 80, actor-facing): authenticates via GKE Workload Identity
+  Application Default Credentials (`google.auth.default`) and proxies Google ADK
+  Gemini model calls to Google Cloud's Gemini platform (formerly Vertex AI),
+  plus GET /readyz and GET /metrics.
 - :8081 (Service port 8081, operator-facing): POST /chat/{actor},
   GET /actors/{actor}/state, GET /readyz, GET /metrics.
 """
 
+import asyncio
 import json
 import os
 import re
@@ -29,9 +34,11 @@ import time
 import urllib.request
 from typing import Any
 
+import google.auth
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
+from google.auth.transport.requests import Request as GoogleAuthRequest
 
 model_app = FastAPI()
 admin_app = FastAPI()
@@ -44,11 +51,15 @@ ROUTER_HTTP = os.environ.get(
     "ROUTER_HTTP", "http://atenet-router.ate-system.svc.cluster.local:80"
 )
 SYS_PROMPT = (
-    "You are a concise, friendly assistant running as an Agent Substrate actor. "
-    "Answer in at most three sentences."
+    "You are a concise, friendly assistant running as an Agent Substrate actor "
+    "built with Google ADK. Answer in at most three sentences."
 )
 ACTOR_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
+MODEL_ACTION_RE = re.compile(r"^[a-zA-Z0-9._-]+:generateContent$")
 BUCKETS = (0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0)
+
+CRED_LOCK = threading.Lock()
+_CREDENTIALS: Any = None
 
 METRICS_LOCK = threading.Lock()
 METRICS: dict[str, Any] = {
@@ -70,12 +81,16 @@ def _validate_actor(actor: str) -> str:
 
 
 def _wi_token() -> str:
-    req = urllib.request.Request(
-        "http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token",
-        headers={"Metadata-Flavor": "Google"},
-    )
-    with urllib.request.urlopen(req, timeout=5) as resp:
-        return str(json.loads(resp.read().decode("utf-8"))["access_token"])
+    """Obtain a cached GKE Workload Identity OAuth token via Google Auth ADC."""
+    global _CREDENTIALS
+    with CRED_LOCK:
+        if _CREDENTIALS is None:
+            _CREDENTIALS, _ = google.auth.default(
+                scopes=["https://www.googleapis.com/auth/cloud-platform"]
+            )
+        if not _CREDENTIALS.valid or _CREDENTIALS.expired:
+            _CREDENTIALS.refresh(GoogleAuthRequest())
+        return str(_CREDENTIALS.token)
 
 
 def _render_metrics() -> PlainTextResponse:
@@ -84,8 +99,6 @@ def _render_metrics() -> PlainTextResponse:
     `# HELP` (human-readable description) and `# TYPE` (counter/histogram/gauge)
     are required metadata headers scraped every 15s by Google Cloud Managed
     Service for Prometheus (`PodMonitoring/gateway` in `observability.yaml.tmpl`).
-    Formatted directly with stdlib because the upstream zero-build runtime image
-    does not ship `prometheus_client`.
     """
     with METRICS_LOCK:
         tracked = len(METRICS["actors_seen"])
@@ -101,7 +114,7 @@ def _render_metrics() -> PlainTextResponse:
             "# TYPE workshop_chat_turns_total counter",
             f'workshop_chat_turns_total{{outcome="ok"}} {METRICS["chat_turns_ok"]}',
             f'workshop_chat_turns_total{{outcome="error"}} {METRICS["chat_turns_error"]}',
-            "# HELP workshop_model_request_duration_seconds Vertex AI Gemini request latency.",
+            "# HELP workshop_model_request_duration_seconds Gemini model request latency.",
             "# TYPE workshop_model_request_duration_seconds histogram",
             *bucket_lines,
             f'workshop_model_request_duration_seconds_sum{{backend="gemini"}} {METRICS["model_duration_sum"]:.4f}',
@@ -120,6 +133,43 @@ def _render_metrics() -> PlainTextResponse:
     )
 
 
+def _forward_gemini(
+    payload: dict[str, Any], api_client_header: str = ""
+) -> dict[str, Any]:
+    """Forward a GenerateContent request to Gemini platform using Workload Identity."""
+    t0 = time.monotonic()
+    token = _wi_token()
+    url = (
+        f"https://aiplatform.googleapis.com/v1beta1/projects/{PROJECT_ID}"
+        f"/locations/{LOCATION}/publishers/google/models/{MODEL}:generateContent"
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "x-goog-user-project": PROJECT_ID,
+    }
+    if api_client_header:
+        headers["x-goog-api-client"] = api_client_header
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers=headers,
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data: dict[str, Any] = json.loads(resp.read().decode("utf-8"))
+    dur = time.monotonic() - t0
+    usage = data.get("usageMetadata", {})
+    with METRICS_LOCK:
+        METRICS["model_requests"] += 1
+        METRICS["model_duration_sum"] += dur
+        for bucket in BUCKETS:
+            if dur <= bucket:
+                METRICS["model_buckets"][bucket] += 1
+        METRICS["tokens_input"] += int(usage.get("promptTokenCount", 0))
+        METRICS["tokens_output"] += int(usage.get("candidatesTokenCount", 0))
+    return data
+
+
 @model_app.get("/readyz")
 @admin_app.get("/readyz")
 def readyz() -> PlainTextResponse:
@@ -132,46 +182,47 @@ def metrics() -> PlainTextResponse:
     return _render_metrics()
 
 
+@model_app.post(
+    "/v1beta1/projects/{sandbox_project}/locations/{sandbox_location}/publishers/google/models/{model_action:path}"
+)
+async def proxy_adk_generate_content(
+    sandbox_project: str,
+    sandbox_location: str,
+    model_action: str,
+    request: Request,
+) -> JSONResponse:
+    """Zero-secret proxy endpoint invoked by Google ADK (`Gemini(base_url=...)`).
+
+    Replaces the untrusted sandbox placeholder project/token with the Gateway's
+    Workload Identity token and pinned project/model, and returns `Connection: close`
+    so gVisor actors never retain idle sockets across memory snapshots.
+    """
+    del sandbox_project, sandbox_location
+    if not MODEL_ACTION_RE.fullmatch(model_action):
+        raise HTTPException(status_code=400, detail="Unsupported model action")
+    payload = await request.json()
+    api_client = request.headers.get("x-goog-api-client", "")
+    data = await asyncio.to_thread(_forward_gemini, payload, api_client)
+    return JSONResponse(data, headers={"Connection": "close"})
+
+
 @model_app.post("/v1/model")
-def generate(body: dict[str, Any]) -> JSONResponse:
-    t0 = time.monotonic()
+async def generate(body: dict[str, Any]) -> JSONResponse:
     msgs = body.get("messages", [])
     contents = []
     for msg in msgs:
         role = "model" if msg.get("role") == "assistant" else "user"
         contents.append({"role": role, "parts": [{"text": msg.get("content", "")}]})
-    token = _wi_token()
-    url = (
-        f"https://aiplatform.googleapis.com/v1beta1/projects/{PROJECT_ID}"
-        f"/locations/{LOCATION}/publishers/google/models/{MODEL}:generateContent"
-    )
     payload = {
         "systemInstruction": {"role": "user", "parts": [{"text": SYS_PROMPT}]},
         "contents": contents,
     }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "x-goog-user-project": PROJECT_ID,
-        },
-    )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
-    dur = time.monotonic() - t0
-    usage = data.get("usageMetadata", {})
-    with METRICS_LOCK:
-        METRICS["model_requests"] += 1
-        METRICS["model_duration_sum"] += dur
-        for bucket in BUCKETS:
-            if dur <= bucket:
-                METRICS["model_buckets"][bucket] += 1
-        METRICS["tokens_input"] += int(usage.get("promptTokenCount", 0))
-        METRICS["tokens_output"] += int(usage.get("candidatesTokenCount", 0))
+    data = await asyncio.to_thread(_forward_gemini, payload)
     reply = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    return JSONResponse({"reply": reply, "backend": "gemini"})
+    return JSONResponse(
+        {"reply": reply, "backend": "gemini"},
+        headers={"Connection": "close"},
+    )
 
 
 @admin_app.post("/chat/{actor}")

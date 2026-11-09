@@ -15,13 +15,16 @@
 # limitations under the License.
 
 # Production immutable image for the Agent Substrate Security Demo actors and gateway.
-# Build & push example:
-#   gcloud builds submit ./app --tag "${REGION}-docker.pkg.dev/${PROJECT_ID}/agent-substrate/demo-app:v1.0.0"
-#   APP_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/agent-substrate/demo-app@sha256:<DIGEST>" ./scripts/stage.sh
+# Installs Google Agent Development Kit (google-adk) on top of the upstream
+# kubernetes-sigs/agent-sandbox Python runtime while preserving non-root execution.
 
 FROM registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+USER root
+RUN pip install --no-cache-dir --root-user-action=ignore google-adk==2.14.0
 COPY gateway.py gemini_agent.py egress_agent.py /app-src/
+RUN chmod 0644 /app-src/*.py
+USER 1000:0

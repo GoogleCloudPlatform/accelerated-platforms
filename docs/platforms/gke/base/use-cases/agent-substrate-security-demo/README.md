@@ -9,12 +9,14 @@
 > Engine (GKE) 1.37 with **GKE Sandbox (`gVisor`)** and **Agent Substrate
 > (`v1.0.0` GA)**.
 >
-> Last Update: 2026-11-08 (YYYY-MM-DD)
+> Last Update: 2026-11-09 (YYYY-MM-DD)
 
 This document outlines the reference architecture and interactive 4-Act Red Team
 vs. Blue Team security demonstration for building **secure runtimes for AI
 agents** on Google Kubernetes Engine (GKE) 1.37 with **Agent Substrate (`v1.0.0`
-GA)**. This implementation is an extension of the
+GA)**, **Google Agent Development Kit (`google-adk`)**, and **Gemini models
+(`gemini-3.8-flash`)** on Google Cloud's **Gemini platform (formerly Vertex
+AI)**. This implementation is an extension of the
 [GKE Base Platform](/docs/platforms/gke/base/README.md) tailored specifically
 for multi-layered AI agent sandboxing, zero-secret credential injection, and
 millisecond memory snapshot recovery.
@@ -47,9 +49,14 @@ flowchart TB
       Sentry["gVisor User-Space Kernel (Linux 4.19.0-gvisor)<br/>Blocks mount() & Host Syscalls"]
       DNSRelay["Local DNS Relay (169.254.17.1:53)<br/>Default-Deny Hostname Filter"]
       PyActor["py-detonation-agent<br/>Untrusted Python Exec"]
-      BuddyActor["gemini-agent / gemini-agent-forensic<br/>Stateful Gemini Agent"]
+      BuddyActor["gemini-agent / gemini-agent-forensic<br/>Stateful Google ADK Agent"]
       FetchActor["egress-agent<br/>Zero-Secret Egress Actor"]
     end
+  end
+
+  subgraph GatewayPlane["Split-Plane Gateway & Gemini Platform"]
+    Gateway["gateway (ns/workshop)<br/>Workload Identity ADC Proxy"]
+    GeminiAPI["Gemini Platform (formerly Vertex AI)<br/>Gemini 3.8 Flash"]
   end
 
   subgraph Storage["Google Cloud Storage & Isolated Secrets"]
@@ -58,10 +65,15 @@ flowchart TB
   end
 
   UI --> Router
+  UI --> Gateway
+  Gateway --> Router
   Router --> API
   API --> Atelet
   Atelet <--> GCS
   PyActor --> Sentry
+  BuddyActor --> Egress
+  Egress --> Gateway
+  Gateway --> GeminiAPI
   FetchActor --> DNSRelay
   FetchActor --> Egress
   CredProv --> SecretNS
@@ -89,10 +101,10 @@ Specifically, the architecture enforces:
   (`httpbin.org`), and blocks unlisted domains (`example.com`) at the local DNS
   relay (`169.254.17.1:53`) before TCP connection establishment.
 - **Act 4 — Instant Time-Travel Revert & OpenTelemetry Tracing**: Recovers a
-  stateful Gemini agent (`gemini-agent`) from in-memory and `/data` disk
-  prompt-injection poisoning (`COMPROMISED-MANGO`) back to its last verified
-  checkpoint (`PINEAPPLE-42`) in milliseconds via `kubectl ate revert` and
-  `kubectl ate --trace resume`.
+  stateful Google ADK agent (`gemini-agent`) from in-memory session and `/data`
+  disk prompt-injection poisoning (`COMPROMISED-MANGO`) back to its last
+  verified checkpoint (`PINEAPPLE-42`) in milliseconds via `kubectl ate revert`
+  and `kubectl ate --trace resume`.
 
 ## Real-World AI Agent CVEs Addressed
 
@@ -129,6 +141,20 @@ Specifically, the architecture enforces:
 - **EgressPolicy & Credential Provider**: Declarative L7 egress firewall and
   header-replacement engine that injects secrets on the wire outside the
   sandbox.
+
+### Google Agent Development Kit (`google-adk`) & Gemini Models
+
+- **Zero-Secret Sandboxed ADK Runtime**: `gemini-agent` is built with **Google
+  Agent Development Kit (`google-adk`)** (`Agent` + `InMemoryRunner`) and holds
+  zero Google Cloud credentials inside the `gVisor` sandbox. Outbound model
+  requests target the cluster-local split-plane `gateway` (`:8080`) with a
+  placeholder token; the out-of-sandbox `gateway` authenticates via GKE Workload
+  Identity Application Default Credentials (`google.auth.default`) and proxies
+  requests to **Gemini 3.8 Flash** on Google Cloud's **Gemini platform (formerly
+  Vertex AI)**.
+- **Pre-Warmed ADK Golden Snapshots**: `google-adk` and its `InMemoryRunner`
+  session are initialized prior to the `ActorTemplate` Golden Snapshot so actor
+  clones and wake-ups skip Python/ADK cold-import overhead completely.
 
 ## Getting Started
 

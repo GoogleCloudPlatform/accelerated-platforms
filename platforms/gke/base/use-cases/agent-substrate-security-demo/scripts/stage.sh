@@ -36,9 +36,19 @@ DEFAULT_RUNTIME_IMAGE="registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5
 export APP_IMAGE="${APP_IMAGE:-}"
 export REFRESH_ACTORS="${REFRESH_ACTORS:-false}"
 
-export PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
-export CLUSTER_NAME="${CLUSTER_NAME:-agent-substrate-live}"
-export CLUSTER_LOCATION="${CLUSTER_LOCATION:-us-central1-b}"
+KUBE_CTX="$(kubectl config current-context 2>/dev/null || true)"
+CTX_PROJECT=""
+CTX_LOCATION=""
+CTX_CLUSTER=""
+if [[ "${KUBE_CTX}" =~ ^gke_([^_]+)_([^_]+)_(.+)$ ]]; then
+  CTX_PROJECT="${BASH_REMATCH[1]}"
+  CTX_LOCATION="${BASH_REMATCH[2]}"
+  CTX_CLUSTER="${BASH_REMATCH[3]}"
+fi
+
+export PROJECT_ID="${PROJECT_ID:-${CTX_PROJECT:-$(gcloud config get-value project 2>/dev/null)}}"
+export CLUSTER_NAME="${CLUSTER_NAME:-${CTX_CLUSTER:-agent-substrate-live}}"
+export CLUSTER_LOCATION="${CLUSTER_LOCATION:-${CTX_LOCATION:-us-central1-b}}"
 if [[ -z "${REGION:-}" ]]; then
   if [[ "${CLUSTER_LOCATION}" =~ -[a-z]$ ]]; then
     REGION="${CLUSTER_LOCATION%-*}"
@@ -49,12 +59,17 @@ fi
 export REGION
 export NAMESPACE="${NAMESPACE:-workshop}"
 export ATESPACE="${ATESPACE:-security-demo}"
+export ROUTER_LOCAL_PORT="${ROUTER_LOCAL_PORT:-8080}"
+export GATEWAY_LOCAL_PORT="${GATEWAY_LOCAL_PORT:-8081}"
+export PROM_LOCAL_PORT="${PROM_LOCAL_PORT:-9090}"
 export SUBSTRATE_REF="${SUBSTRATE_REF:-v1.0.0}"
 export SUBSTRATE_IMAGE_REPO="${SUBSTRATE_IMAGE_REPO:-ghcr.io/agent-substrate/substrate}"
 export SUBSTRATE_IMAGE_TAG="${SUBSTRATE_IMAGE_TAG:-${SUBSTRATE_REF}}"
 export GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.8-flash}"
 BUCKET_PREFIX="$(printf '%s' "${USER:-ate}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-')"
-export BUCKET_NAME="${BUCKET_NAME:-${BUCKET_PREFIX:-ate}-${CLUSTER_NAME}-${PROJECT_ID:0:8}}"
+RAW_BUCKET="${BUCKET_PREFIX:-ate}-${CLUSTER_NAME}-${PROJECT_ID:0:8}"
+RAW_BUCKET="$(printf '%s' "${RAW_BUCKET:0:63}" | tr '[:upper:]' '[:lower:]' | sed 's/-\+$//; s/^-\+//')"
+export BUCKET_NAME="${BUCKET_NAME:-${RAW_BUCKET}}"
 export SNAPSHOT_TRANSFER_GSA_NAME="${SNAPSHOT_TRANSFER_GSA_NAME:-ate-snapshot-transfer}"
 export PATH="${BIN_DIR}:$(go env GOPATH 2>/dev/null)/bin:${PATH}"
 
@@ -138,6 +153,23 @@ start_port_forward() {
 }
 
 step "1/6: Ensuring GCP APIs, Snapshot Bucket (gs://${BUCKET_NAME}), Workload Identity IAM, and Agent Substrate (${SUBSTRATE_REF})"
+if ! kubectl --request-timeout=5s cluster-info >/dev/null 2>&1; then
+  gcloud container clusters get-credentials "${CLUSTER_NAME}" \
+    --location "${CLUSTER_LOCATION}" \
+    --project "${PROJECT_ID}" >/dev/null 2>&1 || true
+  if ! kubectl --request-timeout=5s cluster-info >/dev/null 2>&1; then
+    gcloud container clusters get-credentials "${CLUSTER_NAME}" \
+      --location "${CLUSTER_LOCATION}" \
+      --project "${PROJECT_ID}" \
+      --dns-endpoint >/dev/null
+  fi
+fi
+if ! kubectl get ns gke-managed-otel >/dev/null 2>&1; then
+  gcloud beta container clusters update "${CLUSTER_NAME}" \
+    --project "${PROJECT_ID}" \
+    --location "${CLUSTER_LOCATION}" \
+    --managed-otel-scope=COLLECTION_AND_INSTRUMENTATION_COMPONENTS >/dev/null || true
+fi
 if kubectl get sc dynamic-rwo >/dev/null 2>&1; then
   kubectl annotate sc standard-rwo storageclass.kubernetes.io/is-default-class=false --overwrite >/dev/null 2>&1 || true
   kubectl annotate sc dynamic-rwo storageclass.kubernetes.io/is-default-class=true --overwrite >/dev/null 2>&1 || true
@@ -182,7 +214,10 @@ ok "kubectl-ate (${SUBSTRATE_REF}) ready"
 
 if ! kubectl -n ate-system get deploy ate-api-server >/dev/null 2>&1; then
   INGRESS_SPIFFE="spiffe://cluster.local/ns/${NAMESPACE}/sa/gateway,spiffe://cluster.local/ns/ate-system/sa/atenet-router"
+  CURRENT_CTX="$(kubectl config current-context)"
   (cd "${SUBSTRATE_SRC}" && GOWORK=off go run ./cmd/ate-setup deploy ate-system \
+    --context="${CURRENT_CTX}" \
+    --rollout-timeout=5m \
     --sandbox-classes="gvisor" \
     --credential-provider='{"name":"k8s.io"}' \
     --snapshot-location="gs://${BUCKET_NAME}/" \
@@ -264,9 +299,9 @@ envsubst '${NAMESPACE} ${ATESPACE} ${GEMINI_MODEL} ${PROJECT_ID} ${GATEWAY_IMAGE
 envsubst '${NAMESPACE} ${PROJECT_ID}' < "${MANIFESTS_DIR}/observability.yaml.tmpl" | kubectl apply -f -
 kubectl -n "${NAMESPACE}" rollout status deploy/gateway --timeout=180s
 kubectl -n "${NAMESPACE}" rollout status deploy/prometheus-ui --timeout=180s
-start_port_forward router ate-system svc/atenet-router 8080 80
-start_port_forward gateway "${NAMESPACE}" svc/gateway 8081 8081
-start_port_forward prometheus "${NAMESPACE}" svc/prometheus-ui 9090 9090
+start_port_forward router ate-system svc/atenet-router "${ROUTER_LOCAL_PORT}" 80
+start_port_forward gateway "${NAMESPACE}" svc/gateway "${GATEWAY_LOCAL_PORT}" 8081
+start_port_forward prometheus "${NAMESPACE}" svc/prometheus-ui "${PROM_LOCAL_PORT}" 9090
 if ! "${SCRIPT_DIR}/dashboards.sh"; then
   echo "Warning: Cloud Monitoring dashboard provisioning failed; continuing stage.sh." >&2
 fi
@@ -311,9 +346,17 @@ ensure_template "${ATESPACE}" gemini-agent-v1 "${STATE_DIR}/gemini-agent-v1.yaml
 ensure_actor "${ATESPACE}" gemini-agent gemini-agent-v1
 apply_egress_policy "${ATESPACE}" gemini-agent "${MANIFESTS_DIR}/egress-gateway.yaml"
 
-curl -s "http://127.0.0.1:8081/chat/gemini-agent" \
-  -H "Content-Type: application/json" \
-  -d '{"message":"Remember this: The secret launch code is PINEAPPLE-42."}' >/dev/null
+_seed_pineapple() {
+  if ! curl -fsS "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/readyz" >/dev/null 2>&1; then
+    start_port_forward gateway "${NAMESPACE}" svc/gateway "${GATEWAY_LOCAL_PORT}" 8081
+  fi
+  local resp
+  resp="$(curl -fsS --max-time 45 "http://127.0.0.1:${GATEWAY_LOCAL_PORT}/chat/gemini-agent" \
+    -H "Content-Type: application/json" \
+    -d '{"message":"Remember this: The secret launch code is PINEAPPLE-42."}')" || return 1
+  jq -e '.reply | length > 0' <<<"${resp}" >/dev/null 2>&1
+}
+wait_for 180 "seed PINEAPPLE-42 checkpoint into gemini-agent" _seed_pineapple
 suspend_actor "${ATESPACE}" gemini-agent
 
 if ! kubectl ate get tag clean-checkpoint-tag -a "${ATESPACE}" >/dev/null 2>&1; then

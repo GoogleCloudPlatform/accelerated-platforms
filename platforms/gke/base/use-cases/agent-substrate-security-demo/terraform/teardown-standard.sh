@@ -31,17 +31,35 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/agent-subst
 
 # Enable Terraform plugin caching
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+mkdir -p "${TF_PLUGIN_CACHE_DIR}"
 
 # Set use-case specific values
 export TF_VAR_initialize_backend_use_case_name="agent-substrate-security-demo/terraform"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-ate}"
-export TF_VAR_cluster_addons_agent_sandbox_enabled="${TF_VAR_cluster_addons_agent_sandbox_enabled:-true}"
 
 # Set execution specific values
 export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 
+for pidfile in "${ACP_PLATFORM_USE_CASE_DIR}/.state"/pf-*.pid; do
+  if [[ -f "${pidfile}" ]] && kill -0 "$(cat "${pidfile}")" 2>/dev/null; then
+    kill "$(cat "${pidfile}")" 2>/dev/null || true
+    rm -f "${pidfile}"
+  fi
+done
+
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
+
+# Release dynamically provisioned 500Gi Postgres PVC before destroying the cluster
+# shellcheck disable=SC2154
+if gcloud container clusters describe "${cluster_name}" --region "${cluster_region}" --project "${cluster_project_id}" >/dev/null 2>&1; then
+  gcloud container clusters get-credentials "${cluster_name}" \
+    --region "${cluster_region}" \
+    --project "${cluster_project_id}" \
+    --dns-endpoint >/dev/null 2>&1 || true
+  kubectl -n ate-system delete statefulset postgres --ignore-not-found >/dev/null 2>&1 || true
+  kubectl -n ate-system delete pvc --all --ignore-not-found --timeout=60s >/dev/null 2>&1 || true
+fi
 
 # shellcheck disable=SC2154
 cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
@@ -69,12 +87,6 @@ for terraservice in "${use_case_terraservices[@]}"; do
 done
 
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
-  declare -a CORE_TERRASERVICES_DESTROY=(
-    "workloads/agent_sandbox"
-    "cloudbuild/initialize"
-  )
-  CORE_TERRASERVICES_DESTROY="${CORE_TERRASERVICES_DESTROY[*]}" "${ACP_PLATFORM_CORE_DIR}/teardown.sh"
-
   "${ACP_PLATFORM_CORE_DIR}/teardown-standard.sh"
 else
   echo "Skipping core platform teardown."

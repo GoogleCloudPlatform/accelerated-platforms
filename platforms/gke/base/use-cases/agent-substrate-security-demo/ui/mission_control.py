@@ -48,12 +48,45 @@ USE_CASE_DIR = Path(
         os.environ.get("WORKSHOP_DIR", str(_default_use_case_dir())),
     )
 ).resolve()
+
+
+def _detect_cluster_name() -> str:
+    env_cluster = os.environ.get("CLUSTER_NAME", "").strip()
+    if env_cluster:
+        return env_cluster
+    try:
+        ctx = (
+            subprocess.check_output(
+                ["kubectl", "config", "current-context"],
+                stderr=subprocess.DEVNULL,
+                timeout=3,
+            )
+            .decode("utf-8", errors="replace")
+            .strip()
+        )
+        parts = ctx.split("_")
+        if len(parts) >= 4 and parts[0] == "gke":
+            return "_".join(parts[3:])
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return "agent-substrate-live"
+
+
 ATESPACE = os.environ.get("ATESPACE", "security-demo")
 NAMESPACE = os.environ.get("NAMESPACE", "workshop")
-CLUSTER_NAME = os.environ.get("CLUSTER_NAME", "agent-substrate-live")
-ROUTER_URL = os.environ.get("ROUTER_URL", "http://127.0.0.1:8080")
-GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://127.0.0.1:8081")
-PROMETHEUS_URL = os.environ.get("PROMETHEUS_URL", "http://127.0.0.1:9090")
+CLUSTER_NAME = _detect_cluster_name()
+ROUTER_URL = os.environ.get(
+    "ROUTER_URL", f"http://127.0.0.1:{os.environ.get('ROUTER_LOCAL_PORT', '8080')}"
+)
+GATEWAY_URL = os.environ.get(
+    "GATEWAY_URL", f"http://127.0.0.1:{os.environ.get('GATEWAY_LOCAL_PORT', '8081')}"
+)
+PROMETHEUS_URL = os.environ.get(
+    "PROMETHEUS_URL", f"http://127.0.0.1:{os.environ.get('PROM_LOCAL_PORT', '9090')}"
+)
+ROUTER_PORT = int(urlparse(ROUTER_URL).port or 8080)
+GATEWAY_PORT = int(urlparse(GATEWAY_URL).port or 8081)
+PROM_PORT = int(urlparse(PROMETHEUS_URL).port or 9090)
 BIND_HOST = os.environ.get("BIND_HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "18090"))
 ALLOW_CUSTOM_PYTHON = os.environ.get("ALLOW_CUSTOM_PYTHON", "0") == "1"
@@ -101,11 +134,20 @@ def run_cmd(
 
 def _detect_project_id() -> str:
     global _CACHED_PROJECT_ID
-    env_proj = os.environ.get("PROJECT_ID", "").strip()
+    env_proj = (
+        os.environ.get("PROJECT_ID", "").strip()
+        or os.environ.get("TF_VAR_platform_default_project_id", "").strip()
+    )
     if env_proj:
         return env_proj
     if _CACHED_PROJECT_ID is not None:
         return _CACHED_PROJECT_ID
+    ctx_out, _, ctx_rc = run_cmd(["kubectl", "config", "current-context"], timeout=5)
+    if ctx_rc == 0:
+        parts = ctx_out.strip().split("_")
+        if len(parts) >= 4 and parts[0] == "gke" and parts[1]:
+            _CACHED_PROJECT_ID = parts[1]
+            return parts[1]
     out, _, rc = run_cmd(["gcloud", "config", "get-value", "project"], timeout=8)
     proj = out.strip() if rc == 0 and out.strip() != "(unset)" else ""
     _CACHED_PROJECT_ID = proj
@@ -141,9 +183,9 @@ def _port_open(host: str, port: int) -> bool:
 
 
 _PF_TARGETS: dict[int, tuple[str, str, str]] = {
-    8080: ("ate-system", "svc/atenet-router", "8080:80"),
-    8081: (NAMESPACE, "svc/gateway", "8081:8081"),
-    9090: (NAMESPACE, "svc/prometheus-ui", "9090:9090"),
+    ROUTER_PORT: ("ate-system", "svc/atenet-router", f"{ROUTER_PORT}:80"),
+    GATEWAY_PORT: (NAMESPACE, "svc/gateway", f"{GATEWAY_PORT}:8081"),
+    PROM_PORT: (NAMESPACE, "svc/prometheus-ui", f"{PROM_PORT}:9090"),
 }
 
 
@@ -187,7 +229,7 @@ def ensure_port_forwards(force_port: int | None = None) -> None:
         if force_port in _PF_TARGETS:
             _start_single_pf(force_port, force_restart=True)
             return
-        for lport in (8080, 8081, 9090):
+        for lport in (ROUTER_PORT, GATEWAY_PORT, PROM_PORT):
             _start_single_pf(lport, force_restart=False)
 
 

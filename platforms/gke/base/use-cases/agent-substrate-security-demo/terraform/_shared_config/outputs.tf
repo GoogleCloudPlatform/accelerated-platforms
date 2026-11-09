@@ -24,6 +24,10 @@ output "agent_substrate_snapshot_bucket_name" {
   value = local.agent_substrate_snapshot_bucket_name
 }
 
+output "agent_substrate_snapshot_transfer_gsa_name" {
+  value = local.agent_substrate_snapshot_transfer_gsa_name
+}
+
 output "agent_substrate_version" {
   value = local.agent_substrate_version
 }

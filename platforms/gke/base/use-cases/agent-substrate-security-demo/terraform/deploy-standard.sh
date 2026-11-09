@@ -31,13 +31,11 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/agent-subst
 
 # Enable Terraform plugin caching
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
+mkdir -p "${TF_PLUGIN_CACHE_DIR}"
 
 # Set use-case specific values
 export TF_VAR_initialize_backend_use_case_name="agent-substrate-security-demo/terraform"
 export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-ate}"
-export TF_VAR_cluster_release_channel="${TF_VAR_cluster_release_channel:-RAPID}"
-export TF_VAR_cluster_min_master_version="${TF_VAR_cluster_min_master_version:-1.37}"
-export TF_VAR_cluster_addons_agent_sandbox_enabled="${TF_VAR_cluster_addons_agent_sandbox_enabled:-true}"
 
 # Set execution specific values
 export ACP_DEPLOY_CORE_PLATFORM=${ACP_DEPLOY_CORE_PLATFORM:-"true"}
@@ -45,14 +43,19 @@ export ACP_STAGE_DEMO=${ACP_STAGE_DEMO:-"true"}
 
 if [ "${ACP_DEPLOY_CORE_PLATFORM}" = "true" ]; then
   "${ACP_PLATFORM_CORE_DIR}/deploy-standard.sh"
-
-  declare -a CORE_TERRASERVICES_APPLY=(
-    "cloudbuild/initialize"
-    "workloads/agent_sandbox"
-  )
-  CORE_TERRASERVICES_APPLY="${CORE_TERRASERVICES_APPLY[*]}" "${ACP_PLATFORM_CORE_DIR}/deploy.sh"
 else
-  echo "Skipping core platform deployment."
+  echo "Skipping core platform deployment; initializing use-case Terraform backend."
+  # shellcheck disable=SC1091
+  source "${ACP_PLATFORM_BASE_DIR}/_shared_config/scripts/set_environment_variables.sh"
+  # shellcheck disable=SC2154
+  cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
+    sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
+    cp backend.tf.bucket backend.tf &&
+    rm -rf .terraform/ &&
+    terraform init &&
+    terraform plan -input=false -out=tfplan &&
+    terraform apply -input=false tfplan || exit 1
+  rm tfplan
 fi
 
 # shellcheck disable=SC1091
@@ -87,6 +90,7 @@ if [ "${ACP_STAGE_DEMO}" = "true" ]; then
   CLUSTER_NAME="${cluster_name}" \
   CLUSTER_LOCATION="${cluster_region}" \
   BUCKET_NAME="${agent_substrate_snapshot_bucket_name}" \
+  SNAPSHOT_TRANSFER_GSA_NAME="${agent_substrate_snapshot_transfer_gsa_name}" \
   ATESPACE="${agent_substrate_atespace_name}" \
   SUBSTRATE_REF="${agent_substrate_version}" \
     "${ACP_PLATFORM_USE_CASE_DIR}/scripts/stage.sh"

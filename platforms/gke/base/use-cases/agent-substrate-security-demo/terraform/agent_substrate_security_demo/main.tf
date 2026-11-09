@@ -16,6 +16,19 @@ data "google_project" "cluster" {
   project_id = local.cluster_project_id
 }
 
+data "google_compute_zones" "region" {
+  project = data.google_project.cluster.project_id
+  region  = local.cluster_region
+  status  = "UP"
+}
+
+locals {
+  worker_zones = slice([
+    for zone in data.google_compute_zones.region.names : zone
+    if !can(regex("-ai", zone))
+  ], 0, 2)
+}
+
 data "google_container_cluster" "cluster" {
   location = local.cluster_region
   name     = local.cluster_name
@@ -32,6 +45,7 @@ resource "google_container_node_pool" "agent_substrate_workers" {
   initial_node_count = 1
   location           = local.cluster_region
   name               = "agent-substrate-${split("-", local.agent_substrate_node_machine_type)[0]}"
+  node_locations     = local.worker_zones
   project            = data.google_project.cluster.project_id
 
   autoscaling {
@@ -85,7 +99,7 @@ resource "google_storage_bucket" "ate_snapshots" {
 }
 
 resource "google_service_account" "ate_snapshot_transfer" {
-  account_id   = "ate-snapshot-transfer"
+  account_id   = local.agent_substrate_snapshot_transfer_gsa_name
   display_name = "Agent Substrate Snapshot Transfer GSA"
   project      = local.agent_substrate_project_id
 }
@@ -94,4 +108,10 @@ resource "google_storage_bucket_iam_member" "ate_snapshot_transfer_admin" {
   bucket = google_storage_bucket.ate_snapshots.name
   member = "serviceAccount:${google_service_account.ate_snapshot_transfer.email}"
   role   = "roles/storage.objectAdmin"
+}
+
+resource "google_storage_bucket_iam_member" "ate_snapshot_transfer_viewer" {
+  bucket = google_storage_bucket.ate_snapshots.name
+  member = "serviceAccount:${google_service_account.ate_snapshot_transfer.email}"
+  role   = "roles/storage.bucketViewer"
 }

@@ -39,7 +39,17 @@ if [[ -z "${DISK_TYPE:-}" ]]; then
 fi
 NUM_NODES="${NUM_NODES:-2}"
 NETWORK="${NETWORK:-ai-agent-network}"
-SUBNETWORK="${SUBNETWORK:-ai-agent-subnet}"
+if [[ -z "${SUBNETWORK:-}" ]]; then
+  if [[ "${REGION}" == "us-central1" ]]; then
+    SUBNETWORK="ai-agent-subnet"
+    SUBNET_RANGE="${SUBNET_RANGE:-10.0.0.0/20}"
+  else
+    SUBNETWORK="ai-agent-subnet-${REGION}"
+    SUBNET_RANGE="${SUBNET_RANGE:-10.128.0.0/20}"
+  fi
+else
+  SUBNET_RANGE="${SUBNET_RANGE:-10.0.0.0/20}"
+fi
 
 [[ -n "${PROJECT_ID}" ]] || { echo "Error: set PROJECT_ID=<gcp-project-id>" >&2; exit 1; }
 
@@ -53,26 +63,28 @@ if ! gcloud compute networks subnets describe "${SUBNETWORK}" --region "${REGION
     --project "${PROJECT_ID}" \
     --network "${NETWORK}" \
     --region "${REGION}" \
-    --range "10.0.0.0/20"
+    --range "${SUBNET_RANGE}"
 fi
 
-echo "==> 2/4: Creating GKE 1.37 cluster '${CLUSTER_NAME}' (${MACHINE_TYPE}, ${DISK_TYPE}, ${NUM_NODES} nodes) in ${CLUSTER_LOCATION}"
-gcloud beta container clusters create "${CLUSTER_NAME}" \
-  --project "${PROJECT_ID}" \
-  --location "${CLUSTER_LOCATION}" \
-  --network "${NETWORK}" \
-  --subnetwork "${SUBNETWORK}" \
-  --enable-dataplane-v2 \
-  --release-channel rapid \
-  --cluster-version 1.37 \
-  --machine-type "${MACHINE_TYPE}" \
-  --disk-type "${DISK_TYPE}" \
-  --disk-size 100 \
-  --num-nodes "${NUM_NODES}" \
-  --node-labels "workload=agent-substrate" \
-  --workload-pool "${PROJECT_ID}.svc.id.goog" \
-  --enable-managed-prometheus \
-  --managed-otel-scope=COLLECTION_AND_INSTRUMENTATION_COMPONENTS
+echo "==> 2/4: Ensuring GKE 1.37 cluster '${CLUSTER_NAME}' (${MACHINE_TYPE}, ${DISK_TYPE}, ${NUM_NODES} nodes) in ${CLUSTER_LOCATION}"
+if ! gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_LOCATION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
+  gcloud beta container clusters create "${CLUSTER_NAME}" \
+    --project "${PROJECT_ID}" \
+    --location "${CLUSTER_LOCATION}" \
+    --network "${NETWORK}" \
+    --subnetwork "${SUBNETWORK}" \
+    --enable-dataplane-v2 \
+    --release-channel rapid \
+    --cluster-version 1.37 \
+    --machine-type "${MACHINE_TYPE}" \
+    --disk-type "${DISK_TYPE}" \
+    --disk-size 100 \
+    --num-nodes "${NUM_NODES}" \
+    --node-labels "workload=agent-substrate" \
+    --workload-pool "${PROJECT_ID}.svc.id.goog" \
+    --enable-managed-prometheus \
+    --managed-otel-scope=COLLECTION_AND_INSTRUMENTATION_COMPONENTS
+fi
 
 echo "==> 3/4: Adding 7-day maintenance exclusion window (workshop-freeze)"
 read -r START_TIME END_TIME < <(
@@ -90,7 +102,7 @@ gcloud container clusters update "${CLUSTER_NAME}" \
   --add-maintenance-exclusion-name workshop-freeze \
   --add-maintenance-exclusion-start "${START_TIME}" \
   --add-maintenance-exclusion-end "${END_TIME}" \
-  --add-maintenance-exclusion-scope no_minor_or_node_upgrades
+  --add-maintenance-exclusion-scope no_minor_or_node_upgrades || true
 
 echo "==> 4/4: Configuring kubeconfig and dynamic-rwo (hyperdisk-balanced) default StorageClass"
 gcloud container clusters get-credentials "${CLUSTER_NAME}" \

@@ -5,6 +5,7 @@ dclose
 elif
 envsubst
 errexit
+esac
 excludesfile
 fromjson
 getopt

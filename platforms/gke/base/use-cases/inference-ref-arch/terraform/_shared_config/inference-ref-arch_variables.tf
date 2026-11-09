@@ -54,6 +54,8 @@ locals {
 
   ira_online_gpu_diffusers_flux_image_url             = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
   ira_online_gpu_diffusers_sglang_diffusers_image_url = var.ira_online_gpu_sglang_diffusers_image_url != null ? var.ira_online_gpu_sglang_diffusers_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/sglang:latest"
+  ira_online_gpu_dynamo_etcd_image_url                = var.ira_online_gpu_dynamo_etcd_image_url
+  ira_online_gpu_dynamo_trtllm_image_url              = var.ira_online_gpu_dynamo_trtllm_image_url != null ? var.ira_online_gpu_dynamo_trtllm_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/dynamo-trtllm:latest"
   ira_online_gpu_kubernetes_namespace_name            = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_kubernetes_service_account_name      = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_pod_snapshots_bucket_name            = var.ira_online_gpu_pod_snapshots_bucket_name != null ? var.ira_online_gpu_pod_snapshots_bucket_name : "${var.platform_default_project_id}-${local.unique_identifier_prefix}-pod-snapshots"
@@ -230,6 +232,18 @@ variable "ira_offline_batch_project_id" {
 variable "ira_online_gpu_diffusers_flux_image_url" {
   default     = null
   description = "The URL for the GPU Diffusers Flux container image."
+  type        = string
+}
+
+variable "ira_online_gpu_dynamo_etcd_image_url" {
+  default     = "registry.k8s.io/etcd:3.5.17-0@sha256:b4a9e4a7e1cf08844c7c4db6a19cab380fbf0aad702b8c01e578e9543671b9f9"
+  description = "The URL for the etcd container image used by NVIDIA Dynamo discovery."
+  type        = string
+}
+
+variable "ira_online_gpu_dynamo_trtllm_image_url" {
+  default     = null
+  description = "The URL for the NVIDIA Dynamo TensorRT-LLM runtime container image that the images/gpu/dynamo_trtllm terraservice builds from container-images/gpu/dynamo-trtllm."
   type        = string
 }
 

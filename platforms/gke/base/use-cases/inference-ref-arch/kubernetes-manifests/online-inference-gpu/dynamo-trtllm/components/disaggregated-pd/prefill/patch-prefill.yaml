@@ -1,0 +1,65 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dynamo-trtllm
+  namespace: replaced-by-kustomize
+spec:
+  selector:
+    matchLabels:
+      app: dynamo-trtllm-prefill
+  template:
+    metadata:
+      labels:
+        app: dynamo-trtllm-prefill
+    spec:
+      containers:
+        - env:
+            - name: DISAGGREGATION_MODE
+              value: prefill
+            - name: EXTRA_ENGINE_ARGS
+              value: /etc/trtllm/extra-llm-api-config-prefill.yaml
+            - name: FREE_GPU_MEMORY_FRACTION
+              valueFrom:
+                configMapKeyRef:
+                  key: PREFILL_FREE_GPU_MEMORY_FRACTION
+                  name: runtime
+            - name: MAX_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  key: PREFILL_MAX_BATCH_SIZE
+                  name: runtime
+            - name: MAX_NUM_TOKENS
+              valueFrom:
+                configMapKeyRef:
+                  key: PREFILL_MAX_NUM_TOKENS
+                  name: runtime
+            - name: TENSOR_PARALLEL_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  key: PREFILL_TENSOR_PARALLEL_SIZE
+                  name: runtime
+          name: inference-server
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dynamo-trtllm
+  namespace: replaced-by-kustomize
+spec:
+  selector:
+    matchLabels:
+      app: dynamo-trtllm-prefill

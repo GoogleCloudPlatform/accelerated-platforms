@@ -111,6 +111,28 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
 
 ###################################################################################################
 
+resource "google_cloudbuild_trigger" "container_image_dynamo_trtllm_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/gpu/dynamo-trtllm/cloudbuild.yaml"
+  included_files = [
+    "container-images/gpu/dynamo-trtllm/**",
+    "test/ci-cd/cloudbuild/container-images/gpu/dynamo-trtllm/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-dynamo-trtllm-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
 resource "google_cloudbuild_trigger" "container_image_k6_benchmark_build" {
   filename = "test/ci-cd/cloudbuild/container-images/cpu/k6-benchmark/cloudbuild.yaml"
   included_files = [

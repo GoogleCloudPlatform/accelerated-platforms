@@ -6,13 +6,16 @@ asgi
 asynccontextmanager
 asyncio
 bfloat
+cdll
 certifi
 cffi
 classmethod
 commonpath
 configparser
 contextlib
+conv
 coveragerc
+ctypes
 dataclass
 dataclasses
 dataframe

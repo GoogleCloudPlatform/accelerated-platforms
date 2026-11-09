@@ -1,0 +1,46 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model-server
+spec:
+  template:
+    metadata:
+      annotations:
+        gke-gcsfuse/memory-limit: "28Gi"
+        gke-gcsfuse/memory-request: "28Gi"
+    spec:
+      containers:
+        - name: inference-server
+          resources:
+            # Nemotron-3-Nano-30B-A3B-NVFP4 is ~18.0 GiB of weights: 28Gi for
+            # gke-gcsfuse-sidecar (22Gi file cache + buffers) + 80Gi for
+            # inference-server (/dev/shm + runtime) = 108Gi Guaranteed QoS per
+            # prefill or decode worker (< 160Gi on g4-standard-48: 180 GiB
+            # machine, 176.9 GiB capacity).
+            limits:
+              cpu: "12"
+              ephemeral-storage: "30Gi"
+              memory: "80Gi"
+            requests:
+              cpu: "12"
+              ephemeral-storage: "30Gi"
+              memory: "80Gi"
+      volumes:
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 22Gi
+          name: gke-gcsfuse-cache

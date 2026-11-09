@@ -18,6 +18,8 @@ Contains environment variables to configure different Hugging Face settings.
   `model-download/huggingface` scripts.
 - `hf_gpu_diffusers_models`: A list of Hugging Face models that will be tested
   by the `online-inference-gpu/diffusers` scripts.
+- `hf_gpu_dynamo_trtllm_models`: A list of Hugging Face models that will be
+  tested by the `online-inference-gpu/dynamo-trtllm` scripts.
 - `hf_gpu_trtllm_models`: A list of Hugging Face models that will be tested by
   the `online-inference-gpu/trtllm` scripts.
 - `hf_gpu_trtllm_podsnapshot_models`: A list of Hugging Face models that will be
@@ -102,6 +104,31 @@ and reports, for each restored replica, the time to `Ready`, `PodRestored`, and
 the first successful `/v1/chat/completions` response. If a
 HorizontalPodAutoscaler targets the Deployment, it scales out by raising the
 HPA's `minReplicas` and restores the original value when it exits.
+
+#### `dynamo-trtllm`
+
+These scripts can be used to deploy and test the `hf_gpu_dynamo_trtllm_models`
+that use NVIDIA Dynamo with the TensorRT-LLM backend across `kv-routing`,
+`host-offloading`, and `disaggregated-pd` modes (controlled by `DYNAMO_MODE`,
+defaulting to `kv-routing`, with optional `ENABLE_POOL_RELAY=true` or
+`DYNAMO_VARIANT_SUFFIX` to select variant overlays such as `-pool-relay` or
+`-topology-region`).
+
+##### `deployment_apply.sh`
+
+Applies the manifests for the GPU NVIDIA Dynamo + TensorRT-LLM deployment for
+all matching models listed in `hf_gpu_dynamo_trtllm_models`.
+
+##### `deployment_delete.sh`
+
+Deletes the resources for the GPU NVIDIA Dynamo + TensorRT-LLM deployment for
+all matching models listed in `hf_gpu_dynamo_trtllm_models`.
+
+##### `deployment_test.sh`
+
+Waits for the Dynamo `etcd` `StatefulSet`, worker(s), frontend, and optional
+`pool-relay` deployments to become ready and sends OpenAI-compatible
+`/v1/models` and `/v1/chat/completions` test requests.
 
 #### `trtllm`
 
@@ -250,6 +277,7 @@ Sends a test request to all of the TPU vLLM deployments.
   - The `online_tpu` terraservice must be deployed and configured.
   - The `images/gpu/diffusers_flux` terraservice must be deployed and
     configured.
+  - The `images/gpu/dynamo_trtllm` terraservice must be deployed and configured.
   - The `images/tpu/max_diffusion_sdxl` terraservice must be deployed and
     configured.
 
@@ -311,6 +339,44 @@ Sends a test request to all of the TPU vLLM deployments.
 
   ```shell
   "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers/deployment_delete.sh"
+  ```
+
+### Test the GPU online inference NVIDIA Dynamo + TensorRT-LLM models
+
+- Select the accelerator type (`rtx-pro-6000`), Dynamo mode (`kv-routing`,
+  `host-offloading`, or `disaggregated-pd`), and optionally a single model from
+  `hf_gpu_dynamo_trtllm_models` (for example `nvidia/qwen3-32b-nvfp4`,
+  `qwen/qwen3-32b-fp8`, or `nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4`).
+
+  ```shell
+  export ACCELERATOR_TYPE="rtx-pro-6000"
+  export DYNAMO_MODE="kv-routing"
+  export HF_MODEL_ID="nvidia/qwen3-32b-nvfp4"
+  ```
+
+  To target the FP8 or hybrid Mamba-2 + Attention variants instead:
+
+  ```shell
+  export HF_MODEL_ID="qwen/qwen3-32b-fp8"
+  export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"
+  ```
+
+- Apply the GPU NVIDIA Dynamo + TensorRT-LLM manifests.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/dynamo-trtllm/deployment_apply.sh"
+  ```
+
+- Test the GPU NVIDIA Dynamo + TensorRT-LLM inference servers.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/dynamo-trtllm/deployment_test.sh"
+  ```
+
+- Delete the GPU NVIDIA Dynamo + TensorRT-LLM resources.
+
+  ```shell
+  "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/dynamo-trtllm/deployment_delete.sh"
   ```
 
 ### Test the GPU online inference TensorRT-LLM models

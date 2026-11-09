@@ -7,7 +7,7 @@
 > features, and architectural patterns across Google Cloud, NVIDIA Dynamo,
 > NVIDIA TensorRT-LLM, and Google Kubernetes Engine (GKE).
 >
-> Last Update: 2026-11-05 (YYYY-MM-DD)
+> Last Update: 2026-11-08 (YYYY-MM-DD)
 
 This spoke guide builds on the
 [Multi-region GKE inference foundation](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md)
@@ -37,15 +37,17 @@ three bottlenecks under long-context and multi-turn agentic workloads:
    `p95` Time to First Token). Dynamo's `--router-mode kv` maintains a Rust
    radix tree over ZeroMQ `kv-events` (`32`-token `xxh3` block hashes), cutting
    `p95` TTFT by **`11.68×`** (`67.61 ms` vs. `789.57 ms`).
-2. **Fixed GPU HBM evicts active sessions under churn (`kvbm-offloading/`)**:
-   Each `g4-standard-48` VM pairs `96 GB` GDDR7 (`G1`) with **`180 GiB` GCE VM
-   memory** (`176.9 GiB` Kubernetes node capacity, `175.4 GiB` allocatable).
-   `components/kvbm-offloading` (`--connector kvbm`, `DYN_KVBM_CPU_CACHE_GB=80`
-   default) extends KV storage over PCIe Gen5 into NUMA-pinned host DRAM (`G2`),
-   recalling evicted `9K`-token sessions **`7.17×` faster** (`107.06 ms` vs.
-   `767.84 ms` mean TTFT in the `48 GB` host-cache A/B benchmark) with **no
-   measurable cold-prefill penalty** (`762.43 ms` vs. `771.91 ms`, within
-   run-to-run variance).
+2. **Fixed GPU memory evicts active sessions under churn (`host-offloading/`)**:
+   Each `g4-standard-48` VM pairs `96 GB` GDDR7 with **`180 GiB` GCE VM memory**
+   (`176.9 GiB` Kubernetes node capacity, `175.4 GiB` allocatable). The
+   `host-offloading` overlay sets TensorRT-LLM's built-in host KV cache
+   (`host_cache_size: 80000000000`, `secondary_offload_min_priority: 35`), so
+   blocks evicted from GPU memory move to pinned host memory and load back on a
+   prefix hit: a `14,110`-token session evicted from GPU memory came back in
+   **`64.1 ms` and `63.8 ms`** Time to First Token versus **`1,457.8 ms` and
+   `1,385.2 ms`** cold (`2` runs, `~22×`). Dynamo deprecated its KV Block
+   Manager (`--connector kvbm`) in `v1.5.0` and recommends the engine's native
+   KV offloading instead.
 3. **Colocated prefill bursts stall ongoing token generation
    (`disaggregated-pd/`)**: Four uncached `8.3K`-token prompts landing on a
    2-GPU aggregated `Qwen3-32B` deployment raise ongoing decode `p99`
@@ -80,8 +82,8 @@ flowchart TD
       W2["Aggregated Worker 1 (60.99 GiB = 499,616 KV Tokens)"]
     end
 
-    subgraph M2["Mode 2: components/kvbm-offloading"]
-      G1["Worker GPU HBM Tier G1"] <-->|"PCIe Gen5 NIXL d2h / h2d"| G2["80 GB Pinned Host DRAM Tier G2 (:6880 Metrics)"]
+    subgraph M2["Mode 2: host-offloading (TensorRT-LLM host KV cache)"]
+      G1["Worker GPU KV cache (470,016 tokens)"] <-->|"PCIe offload / reload"| G2["80 GB pinned host KV cache (610,336 tokens)"]
     end
 
     subgraph M3["Mode 3: components/disaggregated-pd (2P1D Default)"]
@@ -110,12 +112,12 @@ compose a single
 with
 [`components/accelerators/rtx-pro-6000-x1`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/components/accelerators/rtx-pro-6000-x1),
 [`dynamo-trtllm/components/runtime-bindings`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/components/runtime-bindings),
-and mode components (`kvbm-offloading`, `disaggregated-pd`, `pool-relay`,
-`topology-region`):
+and mode components (`disaggregated-pd`, `pool-relay`, `topology-region`); the
+`host-offloading` overlay only adds TensorRT-LLM settings:
 
 | Model ID (`config/huggingface.sh`)                | Architecture                        | Per-Token Attention KV (`FP8`)                                                        | Max KV Tokens on `1× RTX PRO 6000`          | Overlays (`online-inference-gpu/dynamo-trtllm/`) & `APP_LABEL` (`app.kubernetes.io/part-of`)                                                                                                                                                           |
 | ------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`nvidia/qwen3-32b-nvfp4`**                      | `64` GQA layers (`NVFP4` `~19 GiB`) | `64 × 2 × 8 × 128 × 1 B =` **`128.00 KiB/tok`** (`4.00 MiB` / `32`-tok block)         | **`499,616` tokens** (`60.99 GiB` at `.85`) | `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`+ -pool-relay`): `dynamo-kv-rtx6000-qwen3-32b-nvfp4`<br>`kvbm-offloading/...`: `dynamo-kvbm-rtx6000-qwen3-32b-nvfp4`<br>`disaggregated-pd/...` (`+ -topology-region`): `dynamo-pd-rtx6000-qwen3-32b-nvfp4` |
+| **`nvidia/qwen3-32b-nvfp4`**                      | `64` GQA layers (`NVFP4` `~19 GiB`) | `64 × 2 × 8 × 128 × 1 B =` **`128.00 KiB/tok`** (`4.00 MiB` / `32`-tok block)         | **`499,616` tokens** (`60.99 GiB` at `.85`) | `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`+ -pool-relay`): `dynamo-kv-rtx6000-qwen3-32b-nvfp4`<br>`host-offloading/...`: `dynamo-host-rtx6000-qwen3-32b-nvfp4`<br>`disaggregated-pd/...` (`+ -topology-region`): `dynamo-pd-rtx6000-qwen3-32b-nvfp4` |
 | **`qwen/qwen3-32b-fp8`**                          | `64` GQA layers (`FP8` `~32 GiB`)   | **`128.00 KiB/tok`** (`4.00 MiB` / `32`-tok block)                                    | **`~340,000` tokens** (`0.80` fraction)     | `kv-routing/rtx-pro-6000-qwen3-32b-fp8`: `dynamo-kv-rtx6000-qwen3-32b-fp8`                                                                                                                                                                             |
 | **`nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4`** | `23` Mamba-2 + `23` MoE + `6` GQA   | `6 × 2 × 2 × 128 × 1 B =` **`3.00 KiB/tok`** raw (`3.04 KiB` paged, **`42.7×` less**) | **`19,799,552` tokens** (`57.42 GiB` pool)  | `disaggregated-pd/rtx-pro-6000-nvidia-nemotron-3-nano-30b-a3b-nvfp4`: `dynamo-pd-rtx6000-nemotron3-30b-nvfp4` (`MAX_SEQ_LEN=65536`, `nemotron_v3` + `qwen3_coder` parsers)                                                                             |
 
@@ -123,7 +125,7 @@ and mode components (`kvbm-offloading`, `disaggregated-pd`, `pool-relay`,
   [`worker/template/deployment.yaml`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/worker/template/deployment.yaml)
   bounds `gke-gcsfuse-cache` (`medium: Memory`, `sizeLimit: 24Gi` / `30Gi`
   sidecar default; `22Gi` / `28Gi` on `Nemotron-3`; `36Gi` / `42Gi` on
-  `Qwen3-32B-FP8`) and pairs it with `80Gi` (`124Gi` on `kvbm-offloading`) on
+  `Qwen3-32B-FP8`) and pairs it with `80Gi` (`124Gi` on `host-offloading`) on
   `inference-server`, keeping total Pod memory (`108–154Gi` Guaranteed QoS)
   within `g4-standard-48`'s `175.4 GiB` allocatable RAM without cgroup OOMs.
 - **Why `Nemotron-3` excels at non-RDMA VPC P/D**: On `gVNIC` TCP, dense
@@ -142,17 +144,16 @@ Measured across `us-central1`, `europe-west2`, and `asia-southeast1` on
 using
 `nvcr.io/nvidia/ai-dynamo/tensorrtllm-runtime:1.6.1@sha256:597d7606c515e7f8ba6a4e0e94d84a26cf1c2c5966d07696b5dbab08e4540f41`:
 
-| Dynamo Capability / Benchmark Scenario                                      | Model (`TP=1`)                  | Baseline / Workload Configuration                                            | NVIDIA Dynamo Measured Result                                                          | Key Gain & Architectural Trade-Off                                                          |
-| --------------------------------------------------------------------------- | ------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Mode 1: KV-Aware Prefix Routing** (`2` replicas, `~8,350` prompt tokens)  | `nvidia/Qwen3-32B-NVFP4`        | `--router-mode round-robin`: **`291.86 ms` mean / `789.57 ms` p95** TTFT     | `--router-mode kv`: **`60.69 ms` mean / `59.47 ms` p50 / `67.61 ms` p95** TTFT         | **`11.68×` faster `p95` TTFT** (`4.81×` faster mean, `0` errors)                            |
-| **Mode 1: Concurrent Decode ITL During Follow-Ups**                         | `nvidia/Qwen3-32B-NVFP4`        | `--router-mode round-robin`: **`97.87 ms` p95 / `118.06 ms` p99** ITL        | `--router-mode kv`: **`18.19 ms` p95 / `18.67 ms` p99** ITL (`56.4 tok/s`)             | **`5.38×` tighter `p95` ITL** by avoiding redundant prefills                                |
-| **Mode 2: Tiered KVBM Host DRAM Recall** (`12 × 9,021`-tok docs > `47K` G1) | `nvidia/Qwen3-32B-NVFP4`        | No KVBM (evicted from HBM): **`767.84 ms` mean / `766.08 ms` p50** TTFT      | `--connector kvbm` (`48 GB` DRAM): **`107.06 ms` mean / `105.78 ms` p50** TTFT         | **`7.17×` faster recall TTFT** (`6.57 GiB` onboarded `h2d`)                                 |
-| **Mode 2: Cold-Fill Overhead With Async `d2h` Offload**                     | `nvidia/Qwen3-32B-NVFP4`        | No KVBM cold fill: **`771.91 ms` mean** TTFT                                 | KVBM active (`3,416` blocks = `13.34 GiB` offloaded `d2h`): **`762.43 ms`**            | **No measurable cold-prefill penalty** (within noise; `48 GB` pool allocated in `6.46s`)    |
-| **Mode 3A: Disaggregated `1P+1D` Decode Isolation** (`4 × 8.3K` burst)      | `nvidia/Qwen3-32B-NVFP4` (NIXL) | Aggregated `2`-GPU: **`516.30 ms` p99** ITL; **`2,175.77 ms` mean** TTFT     | Disaggregated `1P+1D`: **`18.30 ms` p99** ITL; **`6,294.71 ms` mean** TTFT             | **`28.21×` tighter `p99` ITL**; trade-off: **`2.89×` higher burst TTFT** on `1` Prefill GPU |
-| **Mode 3B: Hybrid Mamba-2 Disaggregated `1P+1D`** (`4,309` prompt tokens)   | `Nemotron-3-Nano-30B-A3B-NVFP4` | Single-stream uncached `4,309`-token prompt over GKE VPC TCP (`C++ UCX`)     | **`236.01 ms` mean / `199.15 ms` p50 TTFT**, **`3.81 ms` p50 ITL**                     | **`261.8 tok/s`** single-stream decode without RDMA (`enable_block_reuse: false`)           |
-| **Mode 3B: Hybrid Mamba-2 Under `4 × 6,366`-Token Burst**                   | `Nemotron-3-Nano-30B-A3B-NVFP4` | Ongoing decode stream + `4` concurrent `6.4K`-token prefills (`1P+1D`)       | Ongoing decode: **`5.04 ms` p50 / `7.03 ms` p99** ITL; Burst TTFT: **`244.66 ms` p50** | **`192.7 tok/s`** steady decode during concurrent prefill bursts                            |
-| **Multi-Region: Island Mode vs. Stretched Aggregated** (`8.1K`-tok warm)    | `nvidia/Qwen3-32B-NVFP4`        | Stretched US->EU (`114 ms` RTT): **`389.34 ms` mean / `389.34 ms` p50** TTFT | Regional Islands (`US`/`EU`/`APAC`, local `kv` router): **`55.68–60.17 ms` mean** TTFT | **`6.47×` faster warm TTFT** & **`0 B`** steady-state cross-region payload                  |
-| **Multi-Region: WAN P/D vs. `DYN_TOPOLOGY_ENABLED=true`** (`8.5K` tokens)   | `nvidia/Qwen3-32B-NVFP4` (NIXL) | Unconstrained US->EU WAN P/D: **`42,216.72 ms` (`42.22s`) mean** TTFT        | `components/topology-region` (`region` `required`): **`2,789.48 ms` mean (`2.79s`)**   | **`15.13×` faster TTFT** (`0` cross-Atlantic KV transfers)                                  |
+| Dynamo Capability / Benchmark Scenario                                                                  | Model (`TP=1`)                  | Baseline / Workload Configuration                                             | NVIDIA Dynamo Measured Result                                                          | Key Gain & Architectural Trade-Off                                                          |
+| ------------------------------------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Mode 1: KV-Aware Prefix Routing** (`2` replicas, `~8,350` prompt tokens)                              | `nvidia/Qwen3-32B-NVFP4`        | `--router-mode round-robin`: **`291.86 ms` mean / `789.57 ms` p95** TTFT      | `--router-mode kv`: **`60.69 ms` mean / `59.47 ms` p50 / `67.61 ms` p95** TTFT         | **`11.68×` faster `p95` TTFT** (`4.81×` faster mean, `0` errors)                            |
+| **Mode 1: Concurrent Decode ITL During Follow-Ups**                                                     | `nvidia/Qwen3-32B-NVFP4`        | `--router-mode round-robin`: **`97.87 ms` p95 / `118.06 ms` p99** ITL         | `--router-mode kv`: **`18.19 ms` p95 / `18.67 ms` p99** ITL (`56.4 tok/s`)             | **`5.38×` tighter `p95` ITL** by avoiding redundant prefills                                |
+| **Mode 2: Host KV Cache Recall** (`14,110`-tok session, `44` filler sessions > `470,016`-tok GPU cache) | `nvidia/Qwen3-32B-NVFP4`        | Cold prefill: **`1,457.8 ms` / `1,385.2 ms`** TTFT (`2` runs, `europe-west2`) | Recalled from host cache: **`64.1 ms` / `63.8 ms`** TTFT (`14,109` tokens cached)      | **`21.7–22.7×` faster recall**; replaces the KVBM mode, which Dynamo deprecated in `v1.5.0` |
+| **Mode 3A: Disaggregated `1P+1D` Decode Isolation** (`4 × 8.3K` burst)                                  | `nvidia/Qwen3-32B-NVFP4` (NIXL) | Aggregated `2`-GPU: **`516.30 ms` p99** ITL; **`2,175.77 ms` mean** TTFT      | Disaggregated `1P+1D`: **`18.30 ms` p99** ITL; **`6,294.71 ms` mean** TTFT             | **`28.21×` tighter `p99` ITL**; trade-off: **`2.89×` higher burst TTFT** on `1` Prefill GPU |
+| **Mode 3B: Hybrid Mamba-2 Disaggregated `1P+1D`** (`4,309` prompt tokens)                               | `Nemotron-3-Nano-30B-A3B-NVFP4` | Single-stream uncached `4,309`-token prompt over GKE VPC TCP (`C++ UCX`)      | **`236.01 ms` mean / `199.15 ms` p50 TTFT**, **`3.81 ms` p50 ITL**                     | **`261.8 tok/s`** single-stream decode without RDMA (`enable_block_reuse: false`)           |
+| **Mode 3B: Hybrid Mamba-2 Under `4 × 6,366`-Token Burst**                                               | `Nemotron-3-Nano-30B-A3B-NVFP4` | Ongoing decode stream + `4` concurrent `6.4K`-token prefills (`1P+1D`)        | Ongoing decode: **`5.04 ms` p50 / `7.03 ms` p99** ITL; Burst TTFT: **`244.66 ms` p50** | **`192.7 tok/s`** steady decode during concurrent prefill bursts                            |
+| **Multi-Region: Island Mode vs. Stretched Aggregated** (`8.1K`-tok warm)                                | `nvidia/Qwen3-32B-NVFP4`        | Stretched US->EU (`114 ms` RTT): **`389.34 ms` mean / `389.34 ms` p50** TTFT  | Regional Islands (`US`/`EU`/`APAC`, local `kv` router): **`55.68–60.17 ms` mean** TTFT | **`6.47×` faster warm TTFT** & **`0 B`** steady-state cross-region payload                  |
+| **Multi-Region: WAN P/D vs. `DYN_TOPOLOGY_ENABLED=true`** (`8.5K` tokens)                               | `nvidia/Qwen3-32B-NVFP4` (NIXL) | Unconstrained US->EU WAN P/D: **`42,216.72 ms` (`42.22s`) mean** TTFT         | `components/topology-region` (`region` `required`): **`2,789.48 ms` mean (`2.79s`)**   | **`15.13×` faster TTFT** (`0` cross-Atlantic KV transfers)                                  |
 
 ---
 
@@ -164,8 +165,7 @@ builds a thin derived image in
 [`container-images/gpu/dynamo-trtllm/Dockerfile`](/container-images/gpu/dynamo-trtllm/Dockerfile)
 via
 [`terraform/images/gpu/dynamo_trtllm`](/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/dynamo_trtllm/cloudbuild.tf)
-and pairs it with declarative environment settings in
-[`components/kvbm-offloading/patch-kvbm.yaml`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/dynamo-trtllm/components/kvbm-offloading/patch-kvbm.yaml):
+:
 
 1. **Build-time `/opt/nixl-plugins` merge for `libplugin_POSIX.so` vs.
    `libucp.so.0`**
@@ -191,23 +191,9 @@ and pairs it with declarative environment settings in
      `runAsNonRoot`) and verifies at build time that `/usr/local/nvidia/lib64`
      is present in `LD_LIBRARY_PATH`, `libplugin_POSIX.so` loads via
      `ctypes.CDLL`, and `kvbm` matches `ai-dynamo-runtime` and imports cleanly.
-3. **Disable x86 Write-Combined PAT allocation
-   (`DYN_KVBM_DISABLE_WRITE_COMBINED: "true"`)**
-   ([`ai-dynamo/dynamo#7151`](https://github.com/ai-dynamo/dynamo/pull/7151)):
-   - `cuMemHostAlloc(..., CU_MEMHOSTALLOC_WRITECOMBINED)` triggers cross-CPU TLB
-     shootdown IPIs across `48` virtualized vCPUs, throttling host memory
-     allocation to **`0.37 MB/s`** (`48 GB ÷ 0.37 MB/s ≈ 36 hours`).
-     `patch-kvbm.yaml` sets `DYN_KVBM_DISABLE_WRITE_COMBINED="true"` so
-     `cudaMallocHost` allocates `48 GB` in **`6.46s` (`7.43 GB/s`)**. Remove
-     once upstream defaults to non-WC pinned memory on x86_64 VMs.
-4. **Separate KVBM's TensorRT-LLM ZMQ port
-   (`DYN_KVBM_TRTLLM_ZMQ_PORT: "20081"`)**
-   ([`ai-dynamo/dynamo#4533`](https://github.com/ai-dynamo/dynamo/pull/4533),
-   [`ai-dynamo/dynamo#14009`](https://github.com/ai-dynamo/dynamo/pull/14009)):
-   - Avoids `ZMQError: Address already in use` against TensorRT-LLM's
-     `ZmqActiveMessageWorker` on `127.0.0.1:56001/56002`, routing raw events
-     cleanly into KVBM's consolidator (`20081 -> 57001`). Remove once upstream
-     changes its default port.
+     Items 1 and 2 exist for Dynamo's KV Block Manager, which no overlay uses
+     since `host-offloading` replaced `kvbm-offloading`. They stay until the
+     image is rebuilt and re-validated without them.
 
 ---
 
@@ -245,7 +231,7 @@ replicate_hf_model "americas" "europe" "nvidia/Qwen3-32B-NVFP4"
 replicate_hf_model "americas" "apac" "nvidia/Qwen3-32B-NVFP4"
 ```
 
-### Step 2: Deploy Mode 1 (`kv-routing`), Mode 2 (`kvbm-offloading`), or Mode 3 (`disaggregated-pd`)
+### Step 2: Deploy Mode 1 (`kv-routing`), Mode 2 (`host-offloading`), or Mode 3 (`disaggregated-pd`)
 
 All modes deploy through the canonical
 [`online-inference-gpu/dynamo-trtllm/deployment_apply.sh`](/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/dynamo-trtllm/deployment_apply.sh)
@@ -259,9 +245,9 @@ use_region "americas" "us-central1" 0
 DYNAMO_MODE="kv-routing" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" \
   "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/dynamo-trtllm/deployment_apply.sh"
 
-# Mode 2: Tiered KVBM host DRAM offloading (80 GB NUMA-pinned host DDR5 tier G2)
+# Mode 2: TensorRT-LLM host KV cache offloading (80 GB pinned host memory)
 use_region "europe" "europe-west2" 1
-DYNAMO_MODE="kvbm-offloading" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" \
+DYNAMO_MODE="host-offloading" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" \
   "${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/dynamo-trtllm/deployment_apply.sh"
 
 # Mode 3: Disaggregated Prefill/Decode (defaults to 2P1D = 2 Prefill + 1 Decode GPUs)
@@ -338,6 +324,21 @@ flowchart TB
   `WATERFALL_BY_REGION` + `LEAST_REQUEST`. On regional failover, Turn 1 pays a
   one-time `~700 ms` local prefill and Turn 2 returns to `55–60 ms` local KV
   hits.
+- **Health-check the model, not the frontend**: the load balancer's health check
+  must use `/v1/models/<model>/ready`, which answers `503` while the model has
+  no usable worker and `404` once its last worker is gone. The frontend's
+  `/health` answers `200` with zero workers, so a region that loses its GPUs
+  would keep receiving traffic and return `404`. In our validation run
+  (`2026-11-08`), scaling the `us-central1` workers to `0` with the frontend
+  still up marked both `us-central1` endpoints `UNHEALTHY` within `~35 s`, and
+  requests to the `us-central1` VIP kept returning `200` from `europe-west2`
+  (`414–422 ms`).
+- **Detach a backend before deleting its Services**: `global_lb.sh` keeps each
+  region's NEG attached to the backend service. Deleting or replacing an
+  attached frontend Service leaves its `ServiceNetworkEndpointGroup` stuck in
+  deletion, and the next Service exposed under the same backend name gets no
+  endpoints. Re-run `global_lb.sh apply` without that backend (or
+  `global_lb.sh destroy`) first, then delete or replace the Service.
 - **Declarative Pattern C (`components/topology-region`)**: When sharing an
   `etcd` plane across peered clusters running `disaggregated-pd`, pass
   `DYNAMO_VARIANT_SUFFIX="-topology-region"` to `deployment_apply.sh`.
@@ -362,15 +363,13 @@ Each overlay deploys `PodMonitoring` CRs scraping `:8000/metrics`
 (`dynamo_frontend_time_to_first_token_seconds`,
 `dynamo_frontend_inter_token_latency_seconds`,
 `dynamo_frontend_cached_tokens_sum`), `:9090/metrics`
-(`dynamo_component_inflight_requests`, `dynamo_component_kvstats_*`),
-`:6880/metrics` in `kvbm-offloading` (`kvbm_matched_tokens`,
-`kvbm_offload_blocks_d2h`, `kvbm_onboard_blocks_h2d`), and `:9091/metrics` in
-`pool-relay`. Inspect Pods per stack using
+(`dynamo_component_inflight_requests`, `dynamo_component_kvstats_*`), and
+`:9091/metrics` in `pool-relay`. In `host-offloading`, host cache hits show up
+as `cached_tokens` in responses and in `dynamo_frontend_cached_tokens_sum`.
+Inspect Pods per stack using
 `kubectl get pods -l app.kubernetes.io/part-of=<APP_LABEL>`.
 
-For container runtime issues (`libplugin_POSIX.so`, `LD_LIBRARY_PATH`,
-`0.37 MB/s` Write-Combined host memory allocation, or ZMQ port `56001`
-collisions), see
+For container runtime issues (`libplugin_POSIX.so`, `LD_LIBRARY_PATH`), see
 [Section 4](#4-derived-container-image--gke-runtime-engineering-v161). For
 `MambaHybridCacheManager is not supported in disaggregated serving mode` on
 `Nemotron-3`, verify `use_kv_cache_manager_v2: false` and

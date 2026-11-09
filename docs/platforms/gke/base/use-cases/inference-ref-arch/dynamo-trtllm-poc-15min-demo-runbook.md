@@ -1,4 +1,4 @@
-# 15-minute Presenter Beat Sheet: Multi-region NVIDIA Dynamo KV routing, tiered KVBM offloading, disaggregated P/D, and cross-region failover on GKE
+# 15-minute Presenter Beat Sheet: Multi-region NVIDIA Dynamo KV routing, host KV cache offloading, disaggregated P/D, and cross-region failover on GKE
 
 > [!IMPORTANT]
 >
@@ -7,7 +7,7 @@
 > features, and architectural patterns across Google Cloud, NVIDIA Dynamo,
 > NVIDIA TensorRT-LLM, and Google Kubernetes Engine (GKE).
 >
-> Last Update: 2026-11-05 (YYYY-MM-DD)
+> Last Update: 2026-11-08 (YYYY-MM-DD)
 
 This Presenter Beat Sheet accompanies the
 [NVIDIA Dynamo and TensorRT-LLM reference architecture on multi-region GKE](/docs/platforms/gke/base/use-cases/inference-ref-arch/dynamo-trtllm-reference-architecture.md).
@@ -17,11 +17,11 @@ with `NETWORK_MODE="shared-vpc"` and `ACTIVE_MIGRATION_ENABLED="false"` across
 `"americas:us-central1:0"`, `"europe:europe-west2:1"`, and
 `"apac:asia-southeast1:2"`:
 
-| Region (`platform_name`)  | Cluster (`Namespace`)                      | Pre-Warmed NVIDIA Dynamo Overlay(s) (`RTX PRO 6000`, `g4-standard-48`)                                                                                | Beat(s)     |
-| ------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| **Americas (`americas`)** | `inf-americas` (`inf-americas-online-gpu`) | 1. `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`2` GPUs)<br>2. `disaggregated-pd/rtx-pro-6000-nvidia-nemotron-3-nano-30b-a3b-nvfp4` (`2P1D`, `3` GPUs) | **1, 3, 4** |
-| **Europe (`europe`)**     | `inf-europe` (`inf-europe-online-gpu`)     | `kvbm-offloading/rtx-pro-6000-qwen3-32b-nvfp4` (`1` GPU + `80 GB` NUMA-pinned host DDR5)                                                              | **2, 4**    |
-| **Asia-Pacific (`apac`)** | `inf-apac` (`inf-apac-online-gpu`)         | `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`2` GPUs)                                                                                                  | **4**       |
+| Region (`platform_name`)  | Cluster (`Namespace`)                         | Pre-Warmed NVIDIA Dynamo Overlay(s) (`RTX PRO 6000`, `g4-standard-48`)                                                                                | Beat(s)     |
+| ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| **Americas (`americas`)** | Americas cluster (`online-gpu` namespace)     | 1. `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`2` GPUs)<br>2. `disaggregated-pd/rtx-pro-6000-nvidia-nemotron-3-nano-30b-a3b-nvfp4` (`2P1D`, `3` GPUs) | **1, 3, 4** |
+| **Europe (`europe`)**     | Europe cluster (`online-gpu` namespace)       | `host-offloading/rtx-pro-6000-qwen3-32b-nvfp4` (`1` GPU + `80 GB` pinned host memory)                                                                 | **2, 4**    |
+| **Asia-Pacific (`apac`)** | Asia-Pacific cluster (`online-gpu` namespace) | `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`2` GPUs)                                                                                                  | **4**       |
 
 ---
 
@@ -55,7 +55,7 @@ DYNAMO_MODE="kv-routing" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" "${DYNAMO_APPLY}"
 DYNAMO_MODE="disaggregated-pd" HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4" "${DYNAMO_APPLY}"
 
 for job_id in "${bg_jobs[@]}"; do wait "${job_id}"; done
-use_region "europe" "europe-west2" 1 && DYNAMO_MODE="kvbm-offloading" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" "${DYNAMO_APPLY}"
+use_region "europe" "europe-west2" 1 && DYNAMO_MODE="host-offloading" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" "${DYNAMO_APPLY}"
 use_region "apac" "asia-southeast1" 2 && DYNAMO_MODE="kv-routing" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" "${DYNAMO_APPLY}"
 
 for TARGET in "americas:us-central1:0" "europe:europe-west2:1" "apac:asia-southeast1:2"; do
@@ -65,23 +65,33 @@ for TARGET in "americas:us-central1:0" "europe:europe-west2:1" "apac:asia-southe
 done
 
 expose_service_neg "americas" "inf-americas-online-gpu" "dynamo-frontend-rtx6000-qwen3-32b-nvfp4" "8000" "dynamo"
-expose_service_neg "europe" "inf-europe-online-gpu" "dynamo-frontend-kvbm-rtx6000-qwen3-32b-nvfp4" "8000" "dynamo"
+expose_service_neg "europe" "inf-europe-online-gpu" "dynamo-frontend-host-rtx6000-qwen3-32b-nvfp4" "8000" "dynamo"
 expose_service_neg "apac" "inf-apac-online-gpu" "dynamo-frontend-rtx6000-qwen3-32b-nvfp4" "8000" "dynamo"
-printf '%s\n' '{"dynamo":{"health_check_path":"/health","health_check_port":8000,"max_in_flight_requests_per_endpoint":16}}' >/tmp/dynamo-backends.json
+# Health-check the model, not the frontend: /v1/models/<model>/ready answers 503 while the model has
+# no usable worker and 404 once its last worker is gone, so a region that lost its GPUs fails the
+# check and traffic fails over. The frontend's /health stays 200 with zero workers.
+printf '%s\n' '{"dynamo":{"health_check_path":"/v1/models/nvidia/Qwen3-32B-NVFP4/ready","health_check_port":8000,"max_in_flight_requests_per_endpoint":16}}' >/tmp/dynamo-backends.json
 NETWORK_MODE="shared-vpc" "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/global_lb.sh" \
   apply --backends /tmp/dynamo-backends.json --active dynamo
 ```
 
 ---
 
-## Beat 1 (`0:00 – 3:45`): KV-cache-aware prefix routing (`11.68×` faster `p95` TTFT)
+## Beat 1 (`0:00 – 3:45`): KV-cache-aware prefix routing (warm follow-ups `~20×` faster than cold)
 
-> **Talk track**: _"On 64-layer **`nvidia/Qwen3-32B-NVFP4`** (`128 KiB/tok`), an
-> `8.35K`-token context needs `~1.02 GiB` of KV state (`~740 ms` prefill).
-> Round-robin routing misses the warm GPU on half of follow-up turns
-> (`789.57 ms` > `p95` TTFT); Dynamo's `--router-mode kv` tracks `32`-token
-> `xxh3` hashes in a Rust radix tree, cutting follow-up `p95` TTFT to
-> **`67.61 ms` (`11.68×` faster)**."_
+> **Talk track**: _"On `nvidia/Qwen3-32B-NVFP4` (`128 KiB` of KV cache per
+> token), a `~10.7K`-token document is `~1.3 GiB` of KV state. Two documents
+> arrive cold on two workers. Dynamo's KV router (`--router-mode kv`) tracks
+> which worker holds which `32`-token blocks, so every follow-up turn lands on
+> the worker that already has its prefix and skips the prefill."_
+>
+> In our validation run (`us-central1`, `2` workers), the cold turns took
+> `946.8 ms` and `1,192.7 ms`, and all four follow-up turns took `48.8–53.2 ms`
+> with `10,683–10,705` of `~10,720` prompt tokens served from cache. The
+> comparison with round-robin routing (`11.68×` faster `p95` TTFT) is a
+> reference benchmark from the
+> [reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/dynamo-trtllm-reference-architecture.md#3-summary-of-measured-benchmarks-on-gke-g4-standard-48);
+> this beat doesn't measure it.
 
 ```shell
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/helpers.sh"
@@ -89,7 +99,7 @@ use_region "americas" "us-central1" 0
 kubectl get pods -n inf-americas-online-gpu -l app.kubernetes.io/part-of=dynamo-kv-rtx6000-qwen3-32b-nvfp4 -o wide
 
 kubectl exec -i -n inf-americas-online-gpu deploy/dynamo-frontend-rtx6000-qwen3-32b-nvfp4 -- python3 - <<'PY'
-import json, time, urllib.request
+import json, random, time, urllib.request
 docs = [f"[SPEC-{i}] " + ("NVIDIA Dynamo on GKE streams 32-token KV block hashes from TensorRT-LLM workers on RTX PRO 6000 96GB GPUs to a Rust radix-tree router. " * 260) for i in range(2)]
 def ask(msgs):
     req = urllib.request.Request("http://127.0.0.1:8000/v1/chat/completions", headers={"Content-Type": "application/json"},
@@ -119,47 +129,87 @@ kubectl exec -n inf-americas-online-gpu deploy/dynamo-frontend-rtx6000-qwen3-32b
 
 ---
 
-## Beat 2 (`3:45 – 7:30`): Tiered KVBM host DRAM offloading (`7.17×` faster recall TTFT)
+## Beat 2 (`3:45 – 7:30`): Host KV cache offloading (evicted sessions come back `22–30×` faster)
 
-> **Talk track**: _"Each `g4-standard-48` VM pairs `96 GB` GDDR7 (`G1`) with
-> **`180 GiB` GCE VM memory**. `components/kvbm-offloading` pins **`80 GB` host
-> DDR5 (`G2`, `~655K` KV tokens)** via our derived image (`/opt/nixl-plugins`
-> pairing native `/usr/local/ucx/lib` with `libplugin_POSIX.so`;
-> `/usr/local/nvidia/lib64` and `nixl_cu13.libs` appended to `LD_LIBRARY_PATH`),
-> `DYN_KVBM_DISABLE_WRITE_COMBINED=true` (`7.43 GB/s` vs. `0.37 MB/s` `≈ 36h`
-> x86 PAT TLB shootdown), and `DYN_KVBM_TRTLLM_ZMQ_PORT=20081` (avoiding
-> `ZmqActiveMessageWorker` on `56001/56002`)—adding **no measurable cold-prefill
-> penalty** and recalling evicted sessions **`7.17×` faster (`107 ms` vs.
-> `768 ms`)**."_
+> **Talk track**: _"Each `g4-standard-48` VM pairs `96 GB` GDDR7 with `180 GiB`
+> of VM memory. The `host-offloading` overlay gives TensorRT-LLM an `80 GB`
+> pinned host KV cache (`host_cache_size`), so blocks evicted from GPU memory
+> move to host memory instead of being dropped: `470,016` KV tokens on the GPU
+> plus `610,336` in host memory. We prefill a `~22K`-token session, push it out
+> of GPU memory with `~630K` tokens of other sessions, and ask again:
+> TensorRT-LLM copies the blocks back over PCIe instead of recomputing them."_
+>
+> In our validation run (`europe-west2`), this block measured `2,532.7 ms` cold
+> and `84.3 ms` on recall after eviction (`21,713` of `21,714` prompt tokens
+> served from cache, `~30×`). Two earlier runs with `14,110`-token sessions
+> measured `1,457.8 ms` and `1,385.2 ms` cold against `64.1 ms` and `63.8 ms` on
+> recall. Your numbers depend on the prompt length and the GPU's load.
+
+Show the two KV cache tiers that the worker allocated (`primary` = GPU,
+`secondary` = host memory, in `32`-token blocks):
 
 ```shell
 use_region "europe" "europe-west2" 1
-kubectl logs -n inf-europe-online-gpu deploy/dynamo-trtllm-worker-kvbm-rtx6000-qwen3-32b-nvfp4 \
-  -c inference-server | grep -E "Allocating .* host memory|Allocated .* pinned memory|Backend \(POSIX|Backend \(UCX|KvbmWorker initialized|20081" | tail -n 10
+kubectl logs -n inf-europe-online-gpu deploy/dynamo-trtllm-worker-host-rtx6000-qwen3-32b-nvfp4 \
+  -c inference-server | grep -E "primary blocks=[0-9]+, secondary blocks=[1-9]" | tail -n 1
+```
 
-kubectl exec -i -n inf-europe-online-gpu deploy/dynamo-frontend-kvbm-rtx6000-qwen3-32b-nvfp4 -- python3 - <<'PY'
-import json, urllib.request
-prompt = ("Tiered KVBM PCIe Gen5 host DRAM caching on GKE g4-standard-48. " * 220) + "Summarize KVBM in one sentence."
-req = urllib.request.Request("http://127.0.0.1:8000/v1/chat/completions", headers={"Content-Type": "application/json"},
-    data=json.dumps({"model": "nvidia/Qwen3-32B-NVFP4", "messages": [{"role": "user", "content": prompt}], "max_tokens": 32, "temperature": 0}).encode())
-data = json.loads(urllib.request.urlopen(req, timeout=120).read().decode())
-print(json.dumps({"content": data["choices"][0]["message"]["content"], "usage": data.get("usage")}, indent=2))
+Measure cold, GPU-resident, and recalled-from-host Time to First Token (`~2`
+minutes, most of it filling the GPU with other sessions):
+
+```shell
+kubectl exec -i -n inf-europe-online-gpu deploy/dynamo-frontend-host-rtx6000-qwen3-32b-nvfp4 -- python3 - <<'PY'
+import json, random, time, urllib.request
+URL = "http://127.0.0.1:8000/v1/chat/completions"
+def ttft(tag):
+    doc = f"[{tag}] " + " ".join(f"{tag}-token-{i}" for i in range(1900)) + "\nSummarize in one sentence."
+    body = json.dumps({"model": "nvidia/Qwen3-32B-NVFP4", "messages": [{"role": "user", "content": doc}],
+                       "max_tokens": 8, "temperature": 0, "stream": True,
+                       "stream_options": {"include_usage": True}}).encode()
+    t0, first, usage = time.perf_counter(), None, {}
+    for raw in urllib.request.urlopen(urllib.request.Request(URL, body, {"Content-Type": "application/json"}), timeout=600):
+        line = raw.decode().strip()
+        if not line.startswith("data: ") or line == "data: [DONE]":
+            continue
+        chunk = json.loads(line[6:])
+        if first is None and chunk.get("choices") and chunk["choices"][0].get("delta", {}).get("content"):
+            first = time.perf_counter()
+        usage = chunk.get("usage") or usage
+    cached = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0)
+    return (first - t0) * 1000, usage.get("prompt_tokens"), cached
+run = "%04x" % random.randrange(16**4)  # new prompts on every run, so the first one is cold
+session = f"SESSION-{run}"
+cold = ttft(session)
+print("cold     : TTFT=%7.1f ms prompt=%s cached=%s" % cold)
+print("GPU hit  : TTFT=%7.1f ms prompt=%s cached=%s" % ttft(session))
+fillers = int(1.3 * 470016 / cold[1]) + 1  # 1.3x the 470,016-token GPU KV cache
+for i in range(fillers):
+    ttft(f"FILL-{run}-{i}")
+print(f"evicted with {fillers} other sessions")
+print("recall   : TTFT=%7.1f ms prompt=%s cached=%s" % ttft(session))
 PY
-kubectl exec -n inf-europe-online-gpu deploy/dynamo-trtllm-worker-kvbm-rtx6000-qwen3-32b-nvfp4 -c inference-server -- \
-  sh -c 'curl -fsS http://127.0.0.1:6880/metrics | grep -E "^kvbm_(offload_blocks_d2h|onboard_blocks_h2d|matched_tokens|host_cache_hit_rate)"'
 ```
 
 ---
 
-## Beat 3 (`7:30 – 11:30`): Disaggregated P/D (`28.21×` tighter `p99` ITL & hybrid Mamba-2 `UCX`)
+## Beat 3 (`7:30 – 11:30`): Disaggregated P/D on hybrid Mamba-2 Nemotron-3 (`2P1D`, KV and SSM state over `UCX`)
 
-> **Talk track**: _"Disaggregating Prefill and Decode isolates `Qwen3-32B`
-> decode `p99` ITL at **`18.30 ms` vs. `516.30 ms` (`28.21×` tighter)** during
-> `4 × 8.3K` bursts (`1P+1D` trades `2.89×` higher burst TTFT, so our overlay
-> defaults to **`2P1D`**). **`Nemotron-3-Nano-30B-A3B-NVFP4`** (`6` GQA layers =
-> **`3.00 KiB/tok`** raw KV, **`42.7×` smaller**) transfers KV + Mamba-2 SSM
-> state via C++ `UCX` in **`199.15 ms` `p50` TTFT** (`4,309` tokens) and
-> **`3.81 ms` `p50` ITL (`261.8 tok/s`)**."_
+> **Talk track**: _"Disaggregation runs prefill and decode on separate GPUs, so
+> long prompts don't stall the token stream of requests that are already
+> decoding. `Nemotron-3-Nano-30B-A3B-NVFP4` has only `6` attention layers
+> (`3.00 KiB` of KV cache per token, `42.7×` less than `Qwen3-32B`), so two
+> prefill workers hand KV cache and Mamba-2 state to one decode worker over
+> standard VPC networking with TensorRT-LLM's C++ `UCX` transceiver."_
+>
+> This beat shows the transfer managers in the prefill logs and sends one
+> tool-calling request through the `2P1D` stack. In our validation run
+> (`us-central1`), it returned the expected `check_gpu_availability` tool call
+> in `3.4 s` end to end (up to `512` tokens, including reasoning). The burst
+> numbers (`28.21×` tighter `p99` ITL for `Qwen3-32B` under `4 × 8.3K` prefills,
+> `199.15 ms` `p50` TTFT and `3.81 ms` `p50` ITL for `Nemotron-3`) are reference
+> benchmarks from the
+> [reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/dynamo-trtllm-reference-architecture.md#3-summary-of-measured-benchmarks-on-gke-g4-standard-48);
+> this beat doesn't measure them.
 
 ```shell
 use_region "americas" "us-central1" 0
@@ -168,7 +218,7 @@ kubectl logs -n inf-americas-online-gpu deploy/dynamo-trtllm-prefill-pd-rtx6000-
   -c inference-server | grep -E "Max KV cache blocks|CacheTransBufferManager|RnnCacheTransBufferManager|Disagg server" | tail -n 8
 
 kubectl exec -i -n inf-americas-online-gpu deploy/dynamo-frontend-pd-rtx6000-nemotron3-30b-nvfp4 -- python3 - <<'PY'
-import json, time, urllib.request
+import json, random, time, urllib.request
 payload = {"model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4", "max_tokens": 512, "temperature": 0,
            "messages": [{"role": "user", "content": "Check Spot GPU availability for g4-standard-48 in us-central1 and europe-west2."}],
            "tools": [{"type": "function", "function": {"name": "check_gpu_availability",
@@ -184,13 +234,23 @@ PY
 
 ## Beat 4 (`11:30 – 15:00`): Live cross-region internal ALB failover & local KV re-hydration
 
-> **Talk track**: _"Stretching one Dynamo layer over `114 ms` WAN RTT inflates
-> warm TTFT `6.47×` (`389.34 ms` vs. `60.17 ms`) and stalls unconstrained
-> `1.04 GiB` WAN P/D to `42.22s` (mitigated by `components/topology-region`).
-> **Pattern A** fronts isolated islands (`0 B` steady-state East-West payload)
-> with `global_lb.sh` (`WATERFALL_BY_REGION` + `LEAST_REQUEST`): draining
-> `inf-americas` fails traffic over to a healthy peer island, re-hydrating Turn
-> 1 locally and resuming warm KV hits on Turn 2."_
+> **Talk track**: _"Each region is an independent Dynamo island: its own router,
+> workers, and KV cache, with no cross-region state in steady state.
+> `global_lb.sh` puts one cross-region internal Application Load Balancer in
+> front of all islands (`WATERFALL_BY_REGION` + `LEAST_REQUEST`) and
+> health-checks each region's model, not just its frontend. When we drain the
+> Americas island, the same Americas VIP fails over to a healthy island: Turn 1
+> rebuilds the KV cache there, and Turn 2 is a cache hit again."_
+>
+> In our validation run (`us-central1` and `europe-west2`), the Americas VIP
+> served Turn 1 in `311.7 ms` and Turn 2 in `53.2 ms` (`3,969` tokens cached)
+> from the Americas island. After the drain, the same VIP served Turn 1 in
+> `618.2 ms` (cold) and Turn 2 in `417.1 ms` (`3,969` tokens cached) from the
+> Europe island, including the cross-region round trip. The Stretched Layer
+> comparisons (`6.47×` slower warm TTFT, `42.22 s` WAN P/D) are reference
+> benchmarks from the
+> [reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/dynamo-trtllm-reference-architecture.md#6-multi-region-gke-architectural-trade-offs);
+> this beat doesn't measure them.
 
 ```shell
 use_region "americas" "us-central1" 0

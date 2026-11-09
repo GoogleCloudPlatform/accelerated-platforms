@@ -106,6 +106,7 @@ pythonunbuffered
 pyyaml
 qualname
 quantiles
+randrange
 readframes
 removesuffix
 reqs

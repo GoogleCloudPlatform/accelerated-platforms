@@ -37,7 +37,3 @@ spec:
             # calls to tokenize prompts. Without it, every render call returns
             # 404 and the router silently routes without cache information.
             - "--enable-scale-out"
-            # Publishes KV cache block events to the router (precise prefix
-            # cache index). The topic model name must match the served name.
-            - "--kv-events-config"
-            - '{"enable_kv_cache_events":true,"publisher":"zmq","endpoint":"$(KV_EVENTS_ENDPOINT)","replay_endpoint":"$(KV_EVENTS_REPLAY_ENDPOINT)","topic":"kv@$(POD_IP):$(POD_PORT)@${MR_SERVED_MODEL_NAME}"}'

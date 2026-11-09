@@ -20,18 +20,24 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 namespace: ${MR_NAMESPACE}
-nameSuffix: -llmd
-
-labels:
-  - pairs:
-      acp-mr/arm: llmd
-    includeSelectors: true
-    includeTemplates: true
 
 resources:
   - ../base
 
+components:
+  - ../components/llmd-arm
+
 patches:
-  - path: patch-vllm-args.yaml
-    target:
+  # Publishes KV cache block events to the router (precise prefix cache index).
+  # The topic model name must match the served name.
+  - target:
+      group: apps
+      version: v1
       kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: "--kv-events-config"
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: '{"enable_kv_cache_events":true,"publisher":"zmq","endpoint":"$(KV_EVENTS_ENDPOINT)","replay_endpoint":"$(KV_EVENTS_REPLAY_ENDPOINT)","topic":"kv@$(POD_IP):$(POD_PORT)@${MR_SERVED_MODEL_NAME}"}'

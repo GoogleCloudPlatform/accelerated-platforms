@@ -58,18 +58,6 @@ spec:
               fi
               wait "${VLLM_PID}"
             - vllm-podsnapshot
-          args:
-            - "gs://${MR_MODELS_BUCKET}/${MR_MODEL_PATH}"
-            - "--served-model-name=${MR_SERVED_MODEL_NAME}"
-            - "--load-format=runai_streamer"
-            - "--tensor-parallel-size=${MR_TENSOR_PARALLEL_SIZE}"
-            - "--max-model-len=${MR_MAX_MODEL_LEN}"
-            - "--gpu-memory-utilization=${MR_GPU_MEMORY_UTILIZATION}"
-            - "--block-size=64"
-            - "--enable-prefix-caching"
-            - "--disable-access-log-for-endpoints=/health,/metrics,/v1/models,/v1/completions/render,/v1/chat/completions/render"
-            - "--shutdown-timeout=45"
-            - "--enable-scale-out"
           env:
             - name: POD_IP
               $patch: delete

@@ -13,14 +13,19 @@
 # limitations under the License.
 ---
 # Declarative Kustomize overlay for the llm-d arm with GKE Pod snapshots
-# (MR_POD_SNAPSHOTS_ENABLED=true). Layers GKE Sandbox (gVisor), cooperative
-# /proc/gvisor/checkpoint signaling, Pod-IP-free arguments, and snapshot host
-# memory sizing on top of ../llmd.
+# (MR_POD_SNAPSHOTS_ENABLED=true). Composes the shared ../components/llmd-arm
+# vLLM arguments with GKE Sandbox (gVisor), cooperative /proc/gvisor/checkpoint
+# signaling, Pod-IP-free environment variables, and snapshot host memory sizing.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: ${MR_NAMESPACE}
+
 resources:
-  - ../llmd
+  - ../base
+
+components:
+  - ../components/llmd-arm
 
 patches:
   - path: patch-podsnapshot.yaml

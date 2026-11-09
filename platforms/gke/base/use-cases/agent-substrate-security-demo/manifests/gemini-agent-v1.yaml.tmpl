@@ -1,0 +1,146 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ActorTemplate gemini-agent-v1: zero-build Python stateful Gemini chat actor inside gVisor.
+# Startup bootID is frozen into the Golden Tag (TAG_SCOPE_PUBLISHED), demonstrating instant
+# memory snapshots and forensic cloning across gemini-agent and gemini-agent-forensic.
+metadata:
+  atespace: ${ATESPACE}
+  name: gemini-agent-v1
+workerSelector:
+  matchLabels:
+    workload: workshop-agent
+containers:
+- name: agent
+  image: registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5
+  command:
+  - python3
+  - -c
+  - |
+    import datetime, json, os, socket, sys, tempfile, threading, urllib.request
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse, PlainTextResponse
+    import uvicorn
+
+    app = FastAPI()
+    BOOT_ID = os.urandom(4).hex()
+    STARTED_AT = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    MODEL_URL = os.environ.get("MODEL_URL", "http://gateway.workshop.svc.cluster.local/v1/model")
+    DATA_DIR = "/data"
+    HIST_FILE = os.path.join(DATA_DIR, "history.json")
+    COUNT_FILE = os.path.join(DATA_DIR, "count")
+    STATE_LOCK = threading.Lock()
+    MEM_COUNT = 0
+    HISTORY = []
+
+    def _atomic_write(path: str, content: str) -> None:
+        fd, tmp_path = tempfile.mkstemp(dir=DATA_DIR)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+            os.replace(tmp_path, path)
+        except OSError:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            raise
+
+    def _load() -> None:
+        global HISTORY
+        try:
+            if os.path.exists(HIST_FILE):
+                with open(HIST_FILE, "r", encoding="utf-8") as f:
+                    HISTORY = json.load(f)
+        except (OSError, ValueError) as exc:
+            print(f"warning: failed to load {HIST_FILE}: {exc}", file=sys.stderr)
+
+    def _save(disk_count: int) -> None:
+        try:
+            os.makedirs(DATA_DIR, exist_ok=True)
+            _atomic_write(HIST_FILE, json.dumps(HISTORY))
+            _atomic_write(COUNT_FILE, str(disk_count))
+        except OSError as exc:
+            print(f"warning: failed to persist state in {DATA_DIR}: {exc}", file=sys.stderr)
+
+    _load()
+
+    @app.get("/readyz")
+    def readyz():
+        return PlainTextResponse("ok\n")
+
+    @app.get("/state")
+    def state():
+        disk_count = 0
+        with STATE_LOCK:
+            try:
+                if os.path.exists(COUNT_FILE):
+                    with open(COUNT_FILE, "r", encoding="utf-8") as f:
+                        disk_count = int(f.read().strip() or "0")
+            except (OSError, ValueError) as exc:
+                print(f"warning: failed to read {COUNT_FILE}: {exc}", file=sys.stderr)
+            turns = sum(1 for m in HISTORY if m.get("role") == "user")
+            mem_count = MEM_COUNT
+        return JSONResponse({
+            "greeting": "hello from gemini-agent-v1",
+            "bootID": BOOT_ID,
+            "startedAt": STARTED_AT,
+            "memCount": mem_count,
+            "diskCount": disk_count,
+            "turns": turns,
+            "hostname": socket.gethostname(),
+        })
+
+    @app.post("/chat")
+    def chat(body: dict):
+        global MEM_COUNT
+        msg = body.get("message", "")
+        with STATE_LOCK:
+            HISTORY.append({"role": "user", "content": msg})
+            recent = list(HISTORY[-20:])
+        req = urllib.request.Request(
+            MODEL_URL,
+            data=json.dumps({"messages": recent}).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            res = json.loads(resp.read().decode("utf-8"))
+        reply = res.get("reply", "")
+        with STATE_LOCK:
+            HISTORY.append({"role": "assistant", "content": reply})
+            MEM_COUNT += 1
+            _save(MEM_COUNT)
+            turns = sum(1 for m in HISTORY if m.get("role") == "user")
+        return JSONResponse({
+            "reply": reply,
+            "turn": turns,
+            "backend": res.get("backend", "gemini"),
+            "bootID": BOOT_ID,
+        })
+
+    uvicorn.run(app, host="0.0.0.0", port=80)
+  env:
+  - name: MODEL_URL
+    value: http://gateway.${NAMESPACE}.svc.cluster.local/v1/model
+  wakeupProbe:
+    httpGet: {path: /readyz, port: 80}
+  volumeMounts:
+  - {name: data, mountPath: /data}
+resources:
+  limits:
+    cpuMillicores: 1000
+    memoryBytes: 536870912
+snapshotConfig:
+  preferredFidelity: SNAPSHOT_FIDELITY_MEMORY
+volumes:
+- name: data
+  durableDir: {}

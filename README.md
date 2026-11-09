@@ -74,6 +74,8 @@ the primary runtime.
 
 - [Reinforcement Learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md)
   - [Single-host reinforcement learning with TPUs using GRPO algorithm](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md)
+- [Secure Runtimes for AI Agents reference architecture (GKE Agent Sandbox & Agent Substrate)](/docs/platforms/gke/base/use-cases/agent-substrate-security-demo/README.md)
+  - [Secure Runtimes for AI Agents reference implementation (gVisor sandboxing, zero-secret egress, millisecond memory snapshot restore)](/platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/README.md)
 
 ### Guides
 

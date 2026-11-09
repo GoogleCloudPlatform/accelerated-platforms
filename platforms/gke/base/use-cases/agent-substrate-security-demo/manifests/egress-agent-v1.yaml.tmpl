@@ -1,0 +1,48 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ActorTemplate egress-agent-v1: Zero-secret HTTP fetch actor with egress MITM trust bundle.
+# Runs `/app-src/egress_agent.py` from the immutable `@sha256` container image built from ../app/Dockerfile.
+metadata:
+  atespace: ${ATESPACE}
+  name: egress-agent-v1
+workerSelector:
+  matchLabels:
+    workload: workshop-agent
+containers:
+- name: agent-fetch
+  image: ${AGENT_IMAGE}
+  command: ["python3", "/app-src/egress_agent.py"]
+  env:
+  - name: SSL_CERT_FILE
+    value: /run/ate/trust-bundle.pem
+  - name: SSL_CERT_DIR
+    value: /dev/null
+  wakeupProbe:
+    httpGet: {path: /readyz, port: 80}
+  volumeMounts:
+  - {name: system-info, mountPath: /run/ate}
+resources:
+  limits:
+    cpuMillicores: 1000
+    memoryBytes: 536870912
+snapshotConfig:
+  preferredFidelity: SNAPSHOT_FIDELITY_MEMORY
+volumes:
+- name: system-info
+  systemInfo:
+    dataSources:
+    - trustBundle:
+        path: trust-bundle.pem
+        names: ["egress-mitm.ate.dev", "system-roots.ate.dev"]

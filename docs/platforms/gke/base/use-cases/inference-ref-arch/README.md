@@ -342,12 +342,22 @@ using all fast-start and fast-restore optimizations, start with the
 [AI inference proof-of-concept (PoC) and capacity-finding guide](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-capacity-and-rapid-deployment-guide.md)
 and the companion
 [15-minute live demo runbook](/docs/platforms/gke/base/use-cases/inference-ref-arch/poc-15min-demo-runbook.md).
+For multi-region provisioning, deterministic CIDRs, cross-region internal
+Application Load Balancing, and NVIDIA TensorRT-LLM with open models on
+Blackwell `RTX PRO 6000` GPUs, start with the
+[Multi-region GKE inference foundation](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md),
+[NVIDIA TensorRT-LLM and Nemotron-3 reference architecture on multi-region GKE](/docs/platforms/gke/base/use-cases/inference-ref-arch/trtllm-nemotron3-reference-architecture.md),
+and its
+[15-minute TensorRT-LLM Presenter Beat Sheet](/docs/platforms/gke/base/use-cases/inference-ref-arch/trtllm-poc-15min-demo-runbook.md).
 
 This reference architecture is designed to support various inference patterns.
 Some example patterns provided are:
 
 - [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
 - [Online inference with GPUs](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/README.md)
+  - [Multi-region GKE inference foundation](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md)
+  - [NVIDIA TensorRT-LLM and Nemotron-3 reference architecture on multi-region GKE](/docs/platforms/gke/base/use-cases/inference-ref-arch/trtllm-nemotron3-reference-architecture.md)
+  - [15-minute Presenter Beat Sheet: Global open-model inference with TensorRT-LLM, NVIDIA Nemotron-3, and GKE Pod snapshots on RTX PRO 6000](/docs/platforms/gke/base/use-cases/inference-ref-arch/trtllm-poc-15min-demo-runbook.md)
   - [Fast-start inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-fast-start-reference-architecture.md)
   - [GKE Pod snapshots inference reference architecture](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/vllm-podsnapshots-reference-architecture.md)
   - [Online inference using Diffusers with GPUs on Google Kubernetes Engine (GKE)](/docs/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/diffusers-with-hf-model.md)

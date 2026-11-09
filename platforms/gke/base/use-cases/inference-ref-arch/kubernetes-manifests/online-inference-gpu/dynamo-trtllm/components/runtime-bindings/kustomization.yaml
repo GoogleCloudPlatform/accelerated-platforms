@@ -17,7 +17,7 @@
 #
 # Component ordering rule in each overlay's `components:` list:
 #   1. Components that add or replace resources (`../disaggregated-pd`,
-#      `../kvbm-offloading`, `../pool-relay`) MUST come BEFORE this Component so
+#      `../pool-relay`) MUST come BEFORE this Component so
 #      these replacements wire their Deployments, Services, PodDisruptionBudgets,
 #      and PodMonitoring objects.
 #   2. Components that remove bound fields (`../../../components/gke-pod-snapshot`,

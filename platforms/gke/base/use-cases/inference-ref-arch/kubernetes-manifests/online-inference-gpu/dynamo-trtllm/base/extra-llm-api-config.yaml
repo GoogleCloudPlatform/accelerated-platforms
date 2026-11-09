@@ -22,10 +22,6 @@ cuda_graph_config:
 kv_cache_config:
   enable_block_reuse: true
   dtype: fp8
-  # Note: When `--connector kvbm` is active (components/kvbm-offloading),
-  # Dynamo KVBM manages tiered G1 (GPU) -> G2 (pinned host DRAM via
-  # DYN_KVBM_CPU_CACHE_GB) -> G3 (NVMe via DYN_KVBM_DISK_CACHE_GB) offloading
-  # and automatically sets `enable_partial_reuse: false`. For TensorRT-LLM's
-  # built-in single-host fallback without `--connector kvbm`, configure
-  # `host_cache_size: 51539607552` and `secondary_offload_min_priority: 35`
-  # here instead.
+  # host-offloading/ overlays add TensorRT-LLM's built-in host KV cache
+  # (`host_cache_size`, `secondary_offload_min_priority`) on top of these
+  # settings.

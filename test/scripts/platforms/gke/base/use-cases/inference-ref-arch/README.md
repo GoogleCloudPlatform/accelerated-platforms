@@ -109,7 +109,7 @@ HPA's `minReplicas` and restores the original value when it exits.
 
 These scripts can be used to deploy and test the `hf_gpu_dynamo_trtllm_models`
 that use NVIDIA Dynamo with the TensorRT-LLM backend across `kv-routing`,
-`kvbm-offloading`, and `disaggregated-pd` modes (controlled by `DYNAMO_MODE`,
+`host-offloading`, and `disaggregated-pd` modes (controlled by `DYNAMO_MODE`,
 defaulting to `kv-routing`, with optional `ENABLE_POOL_RELAY=true` or
 `DYNAMO_VARIANT_SUFFIX` to select variant overlays such as `-pool-relay` or
 `-topology-region`).
@@ -344,7 +344,7 @@ Sends a test request to all of the TPU vLLM deployments.
 ### Test the GPU online inference NVIDIA Dynamo + TensorRT-LLM models
 
 - Select the accelerator type (`rtx-pro-6000`), Dynamo mode (`kv-routing`,
-  `kvbm-offloading`, or `disaggregated-pd`), and optionally a single model from
+  `host-offloading`, or `disaggregated-pd`), and optionally a single model from
   `hf_gpu_dynamo_trtllm_models` (for example `nvidia/qwen3-32b-nvfp4`,
   `qwen/qwen3-32b-fp8`, or `nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4`).
 

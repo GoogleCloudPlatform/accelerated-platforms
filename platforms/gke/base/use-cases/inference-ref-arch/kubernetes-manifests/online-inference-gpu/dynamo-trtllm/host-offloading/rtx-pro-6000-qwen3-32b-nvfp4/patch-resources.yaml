@@ -17,6 +17,9 @@ kind: Deployment
 metadata:
   name: model-server
 spec:
+  # One worker: the host KV cache is per worker, so a single replica shows
+  # eviction to host memory and recall without KV-aware routing in the way.
+  replicas: 1
   template:
     spec:
       containers:
@@ -25,7 +28,7 @@ spec:
             # Qwen3-32B-NVFP4 is ~19.3 GiB of weights: 30Gi for
             # gke-gcsfuse-sidecar (24Gi file cache + buffers, set in the worker
             # template) + 124Gi for inference-server (80 GB / 74.5 GiB of pinned
-            # KVBM G2 host DRAM + /dev/shm + runtime) = 154Gi Guaranteed QoS
+            # host KV cache + /dev/shm + runtime) = 154Gi Guaranteed QoS
             # (< 160Gi on g4-standard-48: 180 GiB machine, 176.9 GiB capacity).
             limits:
               cpu: "16"

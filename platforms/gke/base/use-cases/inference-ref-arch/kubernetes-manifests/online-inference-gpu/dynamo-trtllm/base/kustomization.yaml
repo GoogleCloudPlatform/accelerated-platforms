@@ -14,7 +14,7 @@
 ---
 # One NVIDIA Dynamo + TensorRT-LLM deployment: a 3-member etcd cluster for
 # discovery, the OpenAI-compatible frontend, and an aggregated worker built from
-# ../worker/template. Every mode overlay (kv-routing, kvbm-offloading,
+# ../worker/template. Every mode overlay (kv-routing, host-offloading,
 # disaggregated-pd) starts from this base and adds Components from
 # ../components.
 apiVersion: kustomize.config.k8s.io/v1beta1

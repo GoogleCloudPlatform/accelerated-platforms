@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
+# Qwen3-32B-NVFP4 on one RTX PRO 6000 with TensorRT-LLM's built-in host KV
+# cache: blocks evicted from GPU memory move to pinned host memory instead of
+# being dropped, and a later request with the same prefix loads them back
+# instead of recomputing them. Dynamo's KV Block Manager (`--connector kvbm`)
+# is deprecated since Dynamo 1.5.0, which recommends the engine's native KV
+# offloading instead.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 components:
-  - ../../components/kvbm-offloading
   - ../../components/runtime-bindings
   - ../../../components/accelerators/rtx-pro-6000-x1
 
@@ -25,8 +30,13 @@ configMapGenerator:
       - runtime.env
     name: runtime
     namespace: replaced-by-kustomize
+  - behavior: merge
+    files:
+      - extra-llm-api-config.yaml
+    name: trtllm-extra-config
+    namespace: replaced-by-kustomize
 
-nameSuffix: -kvbm-rtx6000-qwen3-32b-nvfp4
+nameSuffix: -host-rtx6000-qwen3-32b-nvfp4
 
 patches:
   - path: patch-resources.yaml

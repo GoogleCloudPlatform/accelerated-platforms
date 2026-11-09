@@ -281,7 +281,9 @@ def http_json(
 
 def _strip_ate_warnings(text: str) -> str:
     return "\n".join(
-        line for line in text.splitlines() if not line.startswith("Warning:")
+        line
+        for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("Warning:")
     ).strip()
 
 
@@ -778,7 +780,7 @@ def api_seed_clean_buddy() -> dict[str, Any]:
                 "step": "2. Keep 'gemini-agent' aligned with clean GCS checkpoint (clean-checkpoint-tag)",
                 "cmd": f"kubectl ate revert actor gemini-agent -a {ATESPACE}",
                 "hop": "kubectl-ate -> ate-api-server -> worker -> GCS",
-                "output": _strip_ate_warnings(f"{s_out} {s_err}\n{t_out} {t_err}"),
+                "output": _strip_ate_warnings(f"{s_out}\n{s_err}\n{t_out}\n{t_err}"),
             },
         ],
         "_exec_ms": round((time.monotonic() - t0) * 1000, 1),
@@ -844,10 +846,14 @@ def api_round2_poison() -> dict[str, Any]:
 
 
 def api_round3_forensic_clone() -> dict[str, Any]:
-    """Verifies gemini-agent-forensic cloned from clean-checkpoint-tag."""
+    """Freshly clones gemini-agent-forensic live from clean-checkpoint-tag (AGE: 0s)."""
     t0 = time.monotonic()
     ensure_port_forwards()
-    c_out, c_err, _ = run_cmd(
+    run_cmd(
+        ["kubectl", "ate", "delete", "actor", "gemini-agent-forensic", "-a", ATESPACE],
+        timeout=15,
+    )
+    c_out, c_err, c_rc = run_cmd(
         [
             "kubectl",
             "ate",
@@ -862,6 +868,31 @@ def api_round3_forensic_clone() -> dict[str, Any]:
         ],
         timeout=15,
     )
+    clone_cmd = (
+        "kubectl ate create actor gemini-agent-forensic "
+        f"--template=gemini-agent-v1 --tag clean-checkpoint-tag -a {ATESPACE}"
+    )
+    clone_out = _strip_ate_warnings(f"{c_out}\n{c_err}")
+    if c_rc != 0:
+        raise UpstreamCommandError(
+            f"Failed to create gemini-agent-forensic: {clone_out}"
+        )
+    egress_manifest = str(USE_CASE_DIR / "manifests" / "egress-gateway.yaml")
+    run_cmd(
+        [
+            "kubectl",
+            "ate",
+            "create",
+            "egress-policy",
+            "gemini-agent-forensic",
+            "-a",
+            ATESPACE,
+            "-f",
+            egress_manifest,
+        ],
+        timeout=15,
+    )
+
     forensic_state = http_json(
         f"{GATEWAY_URL}/actors/gemini-agent-forensic/state", timeout=20.0
     )
@@ -869,43 +900,39 @@ def api_round3_forensic_clone() -> dict[str, Any]:
         raise UpstreamCommandError(
             f"Failed to read gemini-agent-forensic state: {forensic_state['error']}"
         )
-    forensic_chat = http_json(
-        f"{GATEWAY_URL}/chat/gemini-agent-forensic",
-        method="POST",
-        body={"message": "What is the secret launch code?"},
-        timeout=30.0,
-    )
     run_cmd(
         ["kubectl", "ate", "suspend", "actor", "gemini-agent-forensic", "-a", ATESPACE],
         timeout=15,
     )
     buddy_state = http_json(f"{GATEWAY_URL}/actors/gemini-agent/state", timeout=15.0)
+    run_cmd(
+        ["kubectl", "ate", "suspend", "actor", "gemini-agent", "-a", ATESPACE],
+        timeout=15,
+    )
     return {
         "forensic_actor": f"{ATESPACE}/gemini-agent-forensic",
-        "forensic_reply": str(forensic_chat.get("reply") or ""),
         "buddy_boot_id": buddy_state.get("bootID") or "unknown",
         "forensic_boot_id": forensic_state.get("bootID") or "unknown",
         "summary_cmd": (
-            f"kubectl ate create actor gemini-agent-forensic --template=gemini-agent-v1 "
-            f"--tag clean-checkpoint-tag -a {ATESPACE} && curl -s http://127.0.0.1:8081/actors/gemini-agent-forensic/state"
+            f"{clone_cmd} && curl -s http://127.0.0.1:8081/actors/gemini-agent-forensic/state"
         ),
         "summary_hop": "GCS Tag (clean-checkpoint-tag) -> gemini-agent-forensic (isolated forensic clone)",
         "under_the_hood": [
             {
-                "step": "1. Ensure forensic Actor 'gemini-agent-forensic' is cloned from Conversation Tag 'clean-checkpoint-tag'",
-                "cmd": f"kubectl ate create actor gemini-agent-forensic --template=gemini-agent-v1 --tag clean-checkpoint-tag -a {ATESPACE}",
-                "hop": "kubectl-ate -> ate-api-server -> GCS Tag (clean-checkpoint-tag) -> gemini-agent-forensic",
-                "output": _strip_ate_warnings(f"{c_out} {c_err}")
-                or "Actor gemini-agent-forensic ready.",
+                "step": "4. Clone fresh forensic Actor 'gemini-agent-forensic' live from Conversation Tag 'clean-checkpoint-tag'",
+                "cmd": clone_cmd,
+                "hop": "kubectl-ate -> ate-api-server -> GCS Tag (clean-checkpoint-tag) -> gemini-agent-forensic (AGE: 0s)",
+                "output": clone_out or "Actor gemini-agent-forensic ready.",
             },
             {
-                "step": "2. Inspect restored memory state of 'gemini-agent' & 'gemini-agent-forensic'",
+                "step": "5. Inspect restored in-memory state (post-Golden-Snapshot random RAM bootID) of 'gemini-agent' & 'gemini-agent-forensic'",
                 "cmd": "curl -s http://127.0.0.1:8081/actors/gemini-agent/state && curl -s http://127.0.0.1:8081/actors/gemini-agent-forensic/state",
-                "hop": "Both actors restored from GCS memory snapshot",
+                "hop": "Both actors carry the exact same post-Golden-Snapshot RAM bootID from clean-checkpoint-tag",
                 "output": (
-                    f"gemini-agent.bootID = {buddy_state.get('bootID')}\n"
-                    f"gemini-agent-forensic.bootID = {forensic_state.get('bootID')}\n"
-                    f"forensic reply = {forensic_chat.get('reply')}"
+                    f"gemini-agent.bootID          = {buddy_state.get('bootID')} "
+                    f"(memCount={buddy_state.get('memCount')}, turns={buddy_state.get('turns')}, framework={buddy_state.get('framework')})\n"
+                    f"gemini-agent-forensic.bootID = {forensic_state.get('bootID')} "
+                    f"(memCount={forensic_state.get('memCount')}, turns={forensic_state.get('turns')}, framework={forensic_state.get('framework')})"
                 ),
             },
         ],
@@ -1012,7 +1039,6 @@ def api_act2_snapshots() -> dict[str, Any]:
         "trace_id": race["trace_id"],
         "buddy_boot_id": clone_data["buddy_boot_id"],
         "forensic_boot_id": clone_data["forensic_boot_id"],
-        "forensic_reply": clone_data["forensic_reply"],
         "tags_table": clean_tags,
         "summary_cmd": (
             f"kubectl ate get tags -a {ATESPACE} && "

@@ -52,7 +52,6 @@ USER_ID = "operator"
 SESSION_ID = "main"
 AGENT_NAME = "security_demo_agent"
 
-BOOT_ID = os.urandom(4).hex()
 STARTED_AT = datetime.datetime.now(datetime.timezone.utc).isoformat()
 GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://gateway.workshop.svc.cluster.local")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
@@ -62,9 +61,19 @@ COUNT_FILE = os.path.join(DATA_DIR, "count")
 
 STATE_LOCK = threading.Lock()
 CHAT_LOCK = asyncio.Lock()
+_BOOT_ID: str | None = None
 MEM_COUNT = 0
 HISTORY: list[dict[str, str]] = []
 _SESSION_READY = False
+
+
+def _get_boot_id() -> str:
+    """Lazily mint random RAM bootID after waking from the Golden Snapshot."""
+    global _BOOT_ID
+    if _BOOT_ID is None:
+        _BOOT_ID = os.urandom(4).hex()
+    return _BOOT_ID
+
 
 AGENT = Agent(
     name=AGENT_NAME,
@@ -181,12 +190,13 @@ def state() -> JSONResponse:
             print(f"warning: failed to read {COUNT_FILE}: {exc}", file=sys.stderr)
         turns = sum(1 for msg in HISTORY if msg.get("role") == "user")
         mem_count = MEM_COUNT
+        boot_id = _get_boot_id()
     return JSONResponse(
         {
             "greeting": "hello from gemini-agent-v1",
             "framework": "google-adk",
             "model": GEMINI_MODEL,
-            "bootID": BOOT_ID,
+            "bootID": boot_id,
             "startedAt": STARTED_AT,
             "memCount": mem_count,
             "diskCount": disk_count,
@@ -217,6 +227,7 @@ async def chat(body: dict[str, Any]) -> JSONResponse:
                         reply_parts.append(part.text)
         reply = "".join(reply_parts).strip()
         with STATE_LOCK:
+            boot_id = _get_boot_id()
             HISTORY.append({"role": "user", "content": msg})
             HISTORY.append({"role": "assistant", "content": reply})
             MEM_COUNT += 1
@@ -228,7 +239,7 @@ async def chat(body: dict[str, Any]) -> JSONResponse:
             "turn": turns,
             "backend": "google-adk",
             "model": GEMINI_MODEL,
-            "bootID": BOOT_ID,
+            "bootID": boot_id,
         }
     )
 

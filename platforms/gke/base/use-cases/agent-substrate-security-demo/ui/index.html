@@ -667,17 +667,17 @@ limitations under the License.
     </p>
 
     <div class="probe-feed" id="s3-egress-feed" style="display:flex;">
-      <div class="probe-line visible">
-        <span class="probe-attack">1. Test A — Allowed FQDN (<code class="mono">https://httpbin.org/headers</code>)</span>
-        <span class="probe-verdict mono" id="eg-val-0">🔑 Wire Swapped: Bearer ghp_demo_secret_token_998877</span>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">1. Test A — Allowed FQDN (<code class="mono">https://httpbin.org/headers</code>)</span>
+        <span class="probe-verdict mono" id="eg-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
-      <div class="probe-line visible">
-        <span class="probe-attack">2. Test B — Unauthorized FQDN (<code class="mono">https://example.com/</code>)</span>
-        <span class="probe-verdict mono" id="eg-val-1">🛡️ BLOCKED by Local DNS Relay (Name or service not known)</span>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">2. Test B — Unauthorized FQDN (<code class="mono">https://example.com/</code>)</span>
+        <span class="probe-verdict mono" id="eg-val-1" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
-      <div class="probe-line visible">
-        <span class="probe-attack">3. EgressPolicy Audit (<code class="mono">kubectl ate get egress-policy</code>)</span>
-        <span class="probe-verdict cyan mono" id="eg-val-2">🔒 ate-secret://k8s.io/default/workshop-secrets/example-api/token</span>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">3. EgressPolicy Audit (<code class="mono">kubectl ate get egress-policy</code>)</span>
+        <span class="probe-verdict cyan mono" id="eg-val-2" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
     </div>
 
@@ -1008,11 +1008,30 @@ async function runAct3Egress() {
   const btn = document.getElementById('btn-act3');
   btn.disabled = true;
   btn.textContent = '🛡️ Executing Live Egress Suite on egress-agent...';
+  for (let i = 0; i < 3; i++) {
+    const el = document.getElementById('eg-val-' + i);
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(8px)';
+    el.style.display = 'none';
+  }
   try {
     const d = await postJson('/api/act3-egress', {});
-    document.getElementById('eg-val-0').textContent = '🔑 Wire Swapped: ' + d.injected_auth;
-    document.getElementById('eg-val-1').textContent = '🛡️ ' + (d.dns_block_summary || d.dns_block_msg);
-    document.getElementById('eg-val-2').textContent = '🔒 ' + d.credential_uri;
+    const verdicts = [
+      '🔑 Wire Swapped: ' + d.injected_auth,
+      '🛡️ ' + (d.dns_block_summary || d.dns_block_msg),
+      '🔒 ' + d.credential_uri,
+    ];
+    verdicts.forEach((text, idx) => {
+      const el = document.getElementById('eg-val-' + idx);
+      el.textContent = text;
+      setTimeout(() => {
+        el.style.display = 'inline-block';
+        requestAnimationFrame(() => {
+          el.style.opacity = '1';
+          el.style.transform = 'translateX(0)';
+        });
+      }, idx * 180);
+    });
     setFooterTelemetry(d);
   } finally {
     btn.disabled = false;

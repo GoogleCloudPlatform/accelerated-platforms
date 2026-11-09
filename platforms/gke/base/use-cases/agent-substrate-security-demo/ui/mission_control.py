@@ -459,6 +459,7 @@ def api_prologue_race() -> dict[str, Any]:
         "speedup_vs_cold": f"{round(cold_pod_ms / max(kernel_restore_ms, 1.0), 1)}x faster",
         "trace_id": trace_id,
         "buddy_boot_id": state_resp.get("bootID") or "unknown",
+        "buddy_state": state_resp,
         "summary_cmd": (
             f"kubectl ate suspend actor gemini-agent -a {ATESPACE} && "
             f"kubectl ate --trace resume actor gemini-agent -a {ATESPACE}"
@@ -845,7 +846,9 @@ def api_round2_poison() -> dict[str, Any]:
     }
 
 
-def api_round3_forensic_clone() -> dict[str, Any]:
+def api_round3_forensic_clone(
+    pre_buddy_state: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Freshly clones gemini-agent-forensic live from clean-checkpoint-tag (AGE: 0s)."""
     t0 = time.monotonic()
     ensure_port_forwards()
@@ -877,21 +880,6 @@ def api_round3_forensic_clone() -> dict[str, Any]:
         raise UpstreamCommandError(
             f"Failed to create gemini-agent-forensic: {clone_out}"
         )
-    egress_manifest = str(USE_CASE_DIR / "manifests" / "egress-gateway.yaml")
-    run_cmd(
-        [
-            "kubectl",
-            "ate",
-            "create",
-            "egress-policy",
-            "gemini-agent-forensic",
-            "-a",
-            ATESPACE,
-            "-f",
-            egress_manifest,
-        ],
-        timeout=15,
-    )
 
     forensic_state = http_json(
         f"{GATEWAY_URL}/actors/gemini-agent-forensic/state", timeout=20.0
@@ -900,15 +888,36 @@ def api_round3_forensic_clone() -> dict[str, Any]:
         raise UpstreamCommandError(
             f"Failed to read gemini-agent-forensic state: {forensic_state['error']}"
         )
-    run_cmd(
-        ["kubectl", "ate", "suspend", "actor", "gemini-agent-forensic", "-a", ATESPACE],
-        timeout=15,
-    )
-    buddy_state = http_json(f"{GATEWAY_URL}/actors/gemini-agent/state", timeout=15.0)
-    run_cmd(
-        ["kubectl", "ate", "suspend", "actor", "gemini-agent", "-a", ATESPACE],
-        timeout=15,
-    )
+    threading.Thread(
+        target=run_cmd,
+        args=(
+            [
+                "kubectl",
+                "ate",
+                "suspend",
+                "actor",
+                "gemini-agent-forensic",
+                "-a",
+                ATESPACE,
+            ],
+        ),
+        kwargs={"timeout": 15},
+        daemon=True,
+    ).start()
+    if pre_buddy_state is not None:
+        buddy_state = pre_buddy_state
+    else:
+        buddy_state = http_json(
+            f"{GATEWAY_URL}/actors/gemini-agent/state", timeout=15.0
+        )
+        threading.Thread(
+            target=run_cmd,
+            args=(
+                ["kubectl", "ate", "suspend", "actor", "gemini-agent", "-a", ATESPACE],
+            ),
+            kwargs={"timeout": 15},
+            daemon=True,
+        ).start()
     return {
         "forensic_actor": f"{ATESPACE}/gemini-agent-forensic",
         "buddy_boot_id": buddy_state.get("bootID") or "unknown",
@@ -1030,7 +1039,7 @@ def api_act2_snapshots() -> dict[str, Any]:
     )
     clean_tags = _strip_ate_warnings(tags_out)
     race = api_prologue_race()
-    clone_data = api_round3_forensic_clone()
+    clone_data = api_round3_forensic_clone(pre_buddy_state=race.get("buddy_state"))
     trace_preview = race["trace_id"][:12] if race["trace_id"] else "n/a"
     return {
         "cold_gvisor_pod_ms": race["cold_gvisor_pod_ms"],

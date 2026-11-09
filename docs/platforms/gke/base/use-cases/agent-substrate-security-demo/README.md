@@ -43,14 +43,17 @@ flowchart TB
     Egress["atenet-egress<br/>L7 TLS MITM & Header Swap"]
   end
 
-  subgraph WorkerNode["GKE Worker Node (c4-standard-4 / n4-standard-4 + Hyperdisk)"]
-    Atelet["atelet DaemonSet<br/>~95ms (C4) / ~128ms (N4) Restore & OverlayFS"]
-    subgraph WorkerPod["WorkerPool Pod (ateworker-gvisor -> per-Actor runsc Sentry)"]
-      Sentry["gVisor User-Space Kernel (Linux 4.19.0-gvisor)<br/>Blocks mount() & Host Syscalls"]
-      DNSRelay["Local DNS Relay (169.254.17.1:53)<br/>Default-Deny Hostname Filter"]
-      PyActor["py-detonation-agent<br/>Untrusted Python Exec"]
-      BuddyActor["gemini-agent / gemini-agent-forensic<br/>Stateful Google ADK Agent"]
-      FetchActor["egress-agent<br/>Zero-Secret Egress Actor"]
+  subgraph WorkerNodes["GKE Worker Nodes (2x c4-standard-4 / n4-standard-4 + Hyperdisk)"]
+    Atelet["atelet DaemonSet (1 per Node)<br/>~95ms (C4) / ~128ms (N4) Restore & OverlayFS"]
+    subgraph WorkerPool["WorkerPool 'agents' (replicas: 2 — 4 Actors Paged Across 2 Warm Pods, 2.0x)"]
+      subgraph WorkerPod1["WorkerPool Pod #1 (ateworker-gvisor)"]
+        Sentry1["Per-Actor gVisor Sentry (Linux 4.19.0-gvisor)<br/>+ Local DNS Relay (169.254.17.1:53)"]
+        ActiveSlot1["Active Seat #1 (On-Demand Restore):<br/>py-detonation-agent / egress-agent"]
+      end
+      subgraph WorkerPod2["WorkerPool Pod #2 (ateworker-gvisor)"]
+        Sentry2["Per-Actor gVisor Sentry (Linux 4.19.0-gvisor)<br/>+ Local DNS Relay (169.254.17.1:53)"]
+        ActiveSlot2["Active Seat #2 (On-Demand Restore):<br/>gemini-agent / gemini-agent-forensic"]
+      end
     end
   end
 
@@ -60,7 +63,7 @@ flowchart TB
   end
 
   subgraph Storage["Google Cloud Storage & Isolated Secrets"]
-    GCS["GCS Snapshot Bucket<br/>Golden Tags + Per-Turn Checkpoints"]
+    GCS["GCS Snapshot Bucket (0 CPU/RAM When Idle)<br/>Golden Tags + 4 Suspended Actors"]
     SecretNS["ns/workshop-secrets<br/>K8s Secret (Raw API Token)"]
   end
 
@@ -70,12 +73,12 @@ flowchart TB
   Router --> API
   API --> Atelet
   Atelet <--> GCS
-  PyActor --> Sentry
-  BuddyActor --> Egress
+  ActiveSlot1 --> Sentry1
+  ActiveSlot2 --> Sentry2
+  ActiveSlot1 --> Egress
+  ActiveSlot2 --> Egress
   Egress --> Gateway
   Gateway --> GeminiAPI
-  FetchActor --> DNSRelay
-  FetchActor --> Egress
   CredProv --> SecretNS
   Egress <--> CredProv
 ```

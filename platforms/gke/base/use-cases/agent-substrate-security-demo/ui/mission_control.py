@@ -1056,7 +1056,7 @@ def api_round2_poison() -> dict[str, Any]:
 
 
 def _snapshot_cpu_features(actor_name: str) -> list[str]:
-    """Return distinct `cpu_features` bitmasks across an actor's snapshot chain."""
+    """Return distinct `cpu_features` values across an actor's snapshot chain."""
     out, _, rc = run_cmd(
         ["kubectl", "ate", "get", "actor", actor_name, "-a", ATESPACE, "-o", "json"],
         timeout=10,

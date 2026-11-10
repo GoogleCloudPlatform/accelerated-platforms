@@ -84,26 +84,6 @@ For more information about providing values for Terraform input variables, see
   ${ACP_REPO_DIR}/platforms/gke/base/core/deploy-standard.sh
   ```
 
-## Next steps: Deploy a workload use case
-
-Once the GKE Base Platform core infrastructure is provisioned (or using each use
-case's one-command deployment script, which automatically runs
-`core/deploy-standard.sh` or `core/deploy-ap.sh`), you can deploy any of the
-following workload reference implementations:
-
-- **Secure Runtimes for AI Agents (GKE Agent Sandbox & Agent Substrate)**:
-  - [Secure runtimes for AI agents reference architecture (gVisor sandboxing, zero-secret egress, and millisecond memory snapshot restore)](/docs/platforms/gke/base/use-cases/agent-substrate-security-demo/README.md)
-  - [Secure runtimes for AI agents reference implementation & 4-Act Red Team vs. Blue Team demo](/platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/README.md)
-- **AI Inference & Generative Media**:
-  - [Inference reference implementation (GPUs & TPUs)](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md)
-  - [ComfyUI reference implementation](/platforms/gke/base/use-cases/inference-ref-arch/examples/comfyui/README.md)
-- **Model Training & Fine-Tuning**:
-  - [Training reference architecture](/docs/platforms/gke/base/use-cases/training-ref-arch/README.md)
-- **Reinforcement Learning (RLHF / GRPO)**:
-  - [Reinforcement learning reference implementation](/platforms/gke/base/use-cases/reinforcement-learning/terraform/README.md)
-- **Federated Learning**:
-  - [Federated learning reference architecture](/docs/platforms/gke/base/use-cases/federated-learning/README.md)
-
 ## Teardown
 
 - Teardown the reference implementation.

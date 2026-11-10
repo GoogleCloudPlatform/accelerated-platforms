@@ -13,18 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Pin every PromQL selector to one cluster.
+"""Pin every PromQL selector and dashboard displayName to one GKE cluster.
 
-Managed Prometheus is per project, so a query without a `cluster` matcher mixes every cluster that reports
-into the project (an instructor's second cluster, a shared workshop project). dashboards.sh runs each
-dashboard through this before upload, so the repo's JSON stays cluster-agnostic.
+Managed Prometheus is per project, so a query without a `cluster` matcher mixes
+metrics across clusters in the project. `dashboards.sh` pipes each dashboard JSON
+through this script before upload so repository JSON remains cluster-agnostic:
 
-  promql_scope.py dashboard CLUSTER < dashboard.json > scoped.json   # every "prometheusQuery" and logsPanel filter
-  promql_scope.py query CLUSTER 'sum(rate(workshop_chat_turns_total[2m]))'
-
-Handles the PromQL the workshop and substrate dashboards use: UTF-8 quoted selectors ({"a.b", "l"="v"}),
-classic selectors (name{l="v"}), bare metric names, range/subquery brackets, and label lists after
-by/without/on/ignoring/group_left/group_right. A selector that already matches on `cluster` is left alone.
+  promql_scope.py dashboard CLUSTER [ATESPACE] < dashboard.json > scoped.json
+  promql_scope.py query CLUSTER 'sum(rate(agent_gateway_chat_turns_total[2m]))'
 """
 
 import json
@@ -32,7 +28,6 @@ import re
 import sys
 from typing import Any
 
-# Aggregation operators can be followed by `by (…)` instead of `(`, so they're never metric names here.
 KEYWORDS = {
     "by",
     "without",
@@ -68,13 +63,26 @@ IDENT = re.compile(r"[A-Za-z_:][A-Za-z0-9_:]*")
 HAS_CLUSTER = re.compile(r'(^|[{,\s])"?cluster"?\s*(=|!=|=~|!~)')
 
 
+def escape_label_value(value: str) -> str:
+    """Escape backslashes, double quotes, and newlines for PromQL/Logging string literals."""
+    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+
 def _skip_string(q: str, i: int) -> int:
-    """Index just past the quoted string starting at q[i]."""
+    """Index just past the quoted string starting at q[i]; raises on unterminated strings."""
     quote = q[i]
+    start = i
     i += 1
-    while i < len(q) and q[i] != quote:
-        i += 2 if q[i] == "\\" else 1
-    return i + 1
+    while i < len(q):
+        if q[i] == "\\" and quote != "`":
+            if i + 1 >= len(q):
+                raise ValueError(f"unterminated escape in string at index {start}: {q}")
+            i += 2
+            continue
+        if q[i] == quote:
+            return i + 1
+        i += 1
+    raise ValueError(f"unterminated {quote} string at index {start}: {q}")
 
 
 def _matching(q: str, i: int, open_ch: str, close_ch: str) -> int:
@@ -96,8 +104,8 @@ def _matching(q: str, i: int, open_ch: str, close_ch: str) -> int:
 
 
 def scope(q: str, cluster: str) -> str:
-    """Adds a cluster label matcher to every PromQL selector in q."""
-    matcher = f'cluster="{cluster}"'
+    """Add a properly escaped `cluster` label matcher to every PromQL selector in q."""
+    matcher = f'cluster="{escape_label_value(cluster)}"'
     out: list[str] = []
     i = 0
     while i < len(q):
@@ -118,7 +126,6 @@ def scope(q: str, cluster: str) -> str:
             i = j + 1
         elif c == "[":
             j = _matching(q, i, "[", "]")
-            # A subquery's inner expression lives before the ':'; only durations follow it.
             out.append(q[i : j + 1])
             i = j + 1
         elif IDENT.match(q, i) and (
@@ -139,7 +146,6 @@ def scope(q: str, cluster: str) -> str:
             elif word == "offset":
                 out.append(word)
                 i = j
-                # the duration after offset is not a metric name
                 while i < len(q) and q[i].isspace():
                     out.append(q[i])
                     i += 1
@@ -148,9 +154,7 @@ def scope(q: str, cluster: str) -> str:
                     out.append(d.group(0))
                     i += d.end()
             elif word.lower() in KEYWORDS or nxt == "(" or nxt == "{":
-                out.append(
-                    word
-                )  # function, keyword, or a name whose {…} the brace branch scopes
+                out.append(word)
                 i = j
             else:
                 out.append(word + "{" + matcher + "}")
@@ -166,15 +170,21 @@ def scope(q: str, cluster: str) -> str:
     return "".join(out)
 
 
-def scope_log_filter(f: str, cluster: str) -> str:
-    """A Logs Explorer filter narrowed to one cluster (lines are ANDed)."""
-    if "resource.labels.cluster_name" in f:
-        return f
-    return f + f'\nresource.labels.cluster_name="{cluster}"'
+def scope_log_filter(f: str, cluster: str, atespace: str | None = None) -> str:
+    """Narrow a Logs Explorer filter to one cluster and optional atespace."""
+    escaped_cluster = escape_label_value(cluster)
+    updated = f
+    if atespace:
+        escaped_as = escape_label_value(atespace)
+        updated = updated.replace(
+            '"ate.atespace"="security-demo"', f'"ate.atespace"="{escaped_as}"'
+        )
+    if "resource.labels.cluster_name" in updated:
+        return updated
+    return updated + f'\nresource.labels.cluster_name="{escaped_cluster}"'
 
 
-def scope_dashboard(obj: Any, cluster: str) -> Any:
-    """Recursively scopes all prometheusQuery and logsPanel filters in a dashboard dict."""
+def _scope_node(obj: Any, cluster: str, atespace: str | None) -> Any:
     if isinstance(obj, dict):
         out: dict[str, Any] = {}
         for k, v in obj.items():
@@ -185,18 +195,36 @@ def scope_dashboard(obj: Any, cluster: str) -> Any:
                 and isinstance(v, dict)
                 and isinstance(v.get("filter"), str)
             ):
-                out[k] = {**v, "filter": scope_log_filter(v["filter"], cluster)}
+                out[k] = {
+                    **v,
+                    "filter": scope_log_filter(v["filter"], cluster, atespace),
+                }
             else:
-                out[k] = scope_dashboard(v, cluster)
+                out[k] = _scope_node(v, cluster, atespace)
         return out
     if isinstance(obj, list):
-        return [scope_dashboard(v, cluster) for v in obj]
+        return [_scope_node(v, cluster, atespace) for v in obj]
     return obj
 
 
+def scope_dashboard(obj: Any, cluster: str, atespace: str | None = None) -> Any:
+    """Scope all queries, log filters, and top-level displayName to `cluster`."""
+    res = _scope_node(obj, cluster, atespace)
+    if isinstance(res, dict) and isinstance(res.get("displayName"), str):
+        suffix = f" ({cluster})"
+        if not res["displayName"].endswith(suffix):
+            res["displayName"] = res["displayName"] + suffix
+    return res
+
+
 def main(argv: list[str]) -> None:
-    if len(argv) >= 3 and argv[1] == "dashboard":
-        json.dump(scope_dashboard(json.load(sys.stdin), argv[2]), sys.stdout, indent=2)
+    if len(argv) in (3, 4) and argv[1] == "dashboard":
+        atespace = argv[3] if len(argv) == 4 else None
+        json.dump(
+            scope_dashboard(json.load(sys.stdin), argv[2], atespace),
+            sys.stdout,
+            indent=2,
+        )
         sys.stdout.write("\n")
     elif len(argv) == 4 and argv[1] == "query":
         print(scope(argv[3], argv[2]))

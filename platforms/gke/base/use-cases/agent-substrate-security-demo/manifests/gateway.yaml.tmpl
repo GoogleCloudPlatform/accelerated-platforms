@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Split-plane Python Gateway Deployment using GKE Workload Identity (`google.auth.default`)
-# to proxy Google ADK actor requests to Google Cloud's Gemini platform (formerly Vertex AI).
-# Runs `/app-src/gateway.py` from the immutable `@sha256` container image built from ../app/Dockerfile.
+# Split-plane Python Gateway Deployment:
+# - Calls `atenet-router:443` over native SPIFFE mTLS (`podCertificate` + `clusterTrustBundle`).
+# - Restricts `:8080` (model proxy) via NetworkPolicy to `atenet-egress` and Managed Prometheus.
+# - Binds `:8081` (operator API) to `127.0.0.1` loopback inside the pod and requires `Secret/gateway-admin-token`.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -38,23 +39,64 @@ spec:
         checksum/app-image: "${GATEWAY_CODE_SHA}"
     spec:
       serviceAccountName: gateway
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: gateway
         image: ${GATEWAY_IMAGE}
         command: ["python3", "/app-src/gateway.py"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
         ports:
         - {name: http, containerPort: 8080}
-        - {name: admin, containerPort: 8081}
         env:
         - {name: ATESPACE, value: "${ATESPACE}"}
         - {name: GEMINI_MODEL, value: "${GEMINI_MODEL}"}
         - {name: GOOGLE_CLOUD_PROJECT, value: "${PROJECT_ID}"}
         - {name: GOOGLE_CLOUD_LOCATION, value: "global"}
+        - {name: ADMIN_BIND_HOST, value: "127.0.0.1"}
+        - name: GATEWAY_ADMIN_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: gateway-admin-token
+              key: token
         readinessProbe:
-          httpGet: {path: /readyz, port: admin}
+          httpGet: {path: /readyz, port: http}
+        livenessProbe:
+          httpGet: {path: /readyz, port: http}
         resources:
           requests: {cpu: 100m, memory: 128Mi}
           limits: {memory: 512Mi}
+        volumeMounts:
+        - name: router-client
+          mountPath: /run/router-client
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: router-client
+        projected:
+          defaultMode: 420
+          sources:
+          - podCertificate:
+              signerName: podidentity.podcert.ate.dev/identity
+              keyType: ECDSAP256
+              credentialBundlePath: credential-bundle.pem
+          - clusterTrustBundle:
+              signerName: servicedns.podcert.ate.dev/identity
+              labelSelector:
+                matchLabels:
+                  podcert.ate.dev/canarying: live
+              path: router-ca.pem
+      - name: tmp
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -66,4 +108,29 @@ spec:
   selector: {app: gateway}
   ports:
   - {name: http, port: 80, targetPort: http}
-  - {name: admin, port: 8081, targetPort: admin}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gateway-isolation
+  namespace: ${NAMESPACE}
+spec:
+  podSelector:
+    matchLabels:
+      app: gateway
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ate-system
+      podSelector:
+        matchLabels:
+          app: atenet-egress
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: gmp-system
+    ports:
+    - protocol: TCP
+      port: 8080

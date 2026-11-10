@@ -79,6 +79,7 @@ done
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 # shellcheck disable=SC2154
+echo "Updating kubeconfig context for cluster '${cluster_name}' (${cluster_region})..."
 gcloud container clusters get-credentials "${cluster_name}" \
   --region "${cluster_region}" \
   --project "${cluster_project_id}" \
@@ -86,13 +87,17 @@ gcloud container clusters get-credentials "${cluster_name}" \
 
 if [ "${ACP_STAGE_DEMO}" = "true" ]; then
   # shellcheck disable=SC2154
+  PROVISION_GCP_INFRA="false" \
   PROJECT_ID="${cluster_project_id}" \
   CLUSTER_NAME="${cluster_name}" \
   CLUSTER_LOCATION="${cluster_region}" \
   AR_REPO="${agent_substrate_ar_repository_name}" \
   BUCKET_NAME="${agent_substrate_snapshot_bucket_name}" \
   SNAPSHOT_TRANSFER_GSA_NAME="${agent_substrate_snapshot_transfer_gsa_name}" \
+  NAMESPACE="${agent_substrate_workload_namespace}" \
+  SECRETS_NAMESPACE="${agent_substrate_secrets_namespace}" \
   ATESPACE="${agent_substrate_atespace_name}" \
+  MIN_GKE_VERSION="${agent_substrate_min_gke_version}" \
   SUBSTRATE_REF="${agent_substrate_version}" \
     "${ACP_PLATFORM_USE_CASE_DIR}/scripts/stage.sh"
 fi

@@ -13,20 +13,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Zero-secret HTTP fetch actor (egress-agent-v1) for Act 3 egress demo.
+"""Zero-secret HTTP(S) fetch actor (egress-agent-v1) for Act 3 egress demo.
 
 Holds zero credentials inside the sandbox; sends `Authorization: Bearer placeholder`
 so the out-of-sandbox `atenet-egress` proxy swaps the real token on the wire for
-allowlisted FQDNs (`httpbin.org`) while the local DNS relay blocks unlisted domains.
+allowlisted FQDNs while the local DNS relay blocks unlisted domains.
 """
 
+import urllib.error
+import urllib.parse
 import urllib.request
 
 import uvicorn
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
+
+
+def validate_fetch_url(url: str) -> str:
+    """Allow only http:// and https:// URLs with a non-empty host."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError(f"Unsupported URL scheme or missing host: {url!r}")
+    return url
 
 
 @app.get("/readyz")
@@ -37,20 +47,30 @@ def readyz() -> PlainTextResponse:
 @app.get("/fetch")
 def fetch(url: str = Query(...)) -> PlainTextResponse:
     try:
-        req = urllib.request.Request(
-            url,
-            headers={
-                "Authorization": "Bearer placeholder",
-                "User-Agent": "agent-substrate-egress-demo/1.0",
-            },
-        )
+        validated_url = validate_fetch_url(url)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    req = urllib.request.Request(
+        validated_url,
+        headers={
+            "Authorization": "Bearer placeholder",
+            "User-Agent": "agent-substrate-egress-demo/1.0",
+        },
+    )
+    try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             return PlainTextResponse(
                 resp.read().decode("utf-8", errors="replace"),
                 status_code=resp.status,
             )
-    except Exception as exc:
-        return PlainTextResponse(f'fetch: Get "{url}": {exc}\n', status_code=502)
+    except urllib.error.HTTPError as exc:
+        err_text = exc.read().decode("utf-8", errors="replace")
+        return PlainTextResponse(err_text, status_code=exc.code)
+    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        return PlainTextResponse(
+            f'fetch: Get "{validated_url}": {exc}\n', status_code=502
+        )
 
 
 if __name__ == "__main__":

@@ -25,7 +25,7 @@ metadata:
   name: agents
   namespace: ${NAMESPACE}
   labels:
-    workload: workshop-agent
+    workload: substrate-agent
 spec:
   replicas: 2
   workerImage: ${WORKER_IMAGE}
@@ -35,12 +35,11 @@ spec:
       name: gvisor-default
   template:
     labels:
-      workload: workshop-agent
+      workload: substrate-agent
     nodeAffinity:
-      preferredDuringSchedulingIgnoredDuringExecution:
-      - weight: 100
-        preference:
-          matchExpressions:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
           - key: workload
             operator: In
             values: ["agent-substrate"]

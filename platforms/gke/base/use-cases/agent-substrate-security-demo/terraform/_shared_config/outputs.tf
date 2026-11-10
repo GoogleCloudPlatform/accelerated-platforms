@@ -20,6 +20,10 @@ output "agent_substrate_atespace_name" {
   value = local.agent_substrate_atespace_name
 }
 
+output "agent_substrate_min_gke_version" {
+  value = local.agent_substrate_min_gke_version
+}
+
 output "agent_substrate_secrets_namespace" {
   value = local.agent_substrate_secrets_namespace
 }
@@ -34,4 +38,8 @@ output "agent_substrate_snapshot_transfer_gsa_name" {
 
 output "agent_substrate_version" {
   value = local.agent_substrate_version
+}
+
+output "agent_substrate_workload_namespace" {
+  value = local.agent_substrate_workload_namespace
 }

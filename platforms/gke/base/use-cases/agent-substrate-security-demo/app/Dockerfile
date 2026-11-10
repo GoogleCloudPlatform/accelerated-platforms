@@ -14,9 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Production immutable image for the Agent Substrate Security Demo actors and gateway.
-# Installs Google Agent Development Kit (google-adk) on top of the upstream
-# kubernetes-sigs/agent-sandbox Python runtime while preserving non-root execution.
+# Immutable image for the Agent Substrate Security Demo actors, gateway, and
+# non-reflecting credential verifier. Installs Google Agent Development Kit
+# (google-adk) on top of the upstream kubernetes-sigs/agent-sandbox Python
+# runtime image while preserving non-root execution (UID 1000).
 
 FROM registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5
 
@@ -25,6 +26,6 @@ ENV PYTHONUNBUFFERED=1
 
 USER root
 RUN pip install --no-cache-dir --root-user-action=ignore google-adk==2.14.0
-COPY gateway.py gemini_agent.py egress_agent.py /app-src/
+COPY gateway.py gemini_agent.py egress_agent.py partner_api.py /app-src/
 RUN chmod 0644 /app-src/*.py
 USER 1000:0

@@ -1,0 +1,102 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Cluster-local non-reflecting credential verification service in ${SECRETS_NAMESPACE}.
+# Admits ingress exclusively from `atenet-egress` (`ns/ate-system`) and returns only
+# a boolean authentication status + SHA-256 prefix (never echoing the raw credential).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${SECRETS_NAMESPACE}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: partner-api
+  namespace: ${SECRETS_NAMESPACE}
+  labels: {app: partner-api}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: partner-api}
+  template:
+    metadata:
+      labels: {app: partner-api}
+      annotations:
+        checksum/app-image: "${GATEWAY_CODE_SHA}"
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: partner-api
+        image: ${GATEWAY_IMAGE}
+        command: ["python3", "/app-src/partner_api.py"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+        ports:
+        - {name: http, containerPort: 8080}
+        env:
+        - name: EXPECTED_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: example-api
+              key: token
+        readinessProbe:
+          httpGet: {path: /readyz, port: http}
+        livenessProbe:
+          httpGet: {path: /readyz, port: http}
+        resources:
+          requests: {cpu: 25m, memory: 64Mi}
+          limits: {memory: 128Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: partner-api
+  namespace: ${SECRETS_NAMESPACE}
+  labels: {app: partner-api}
+spec:
+  selector: {app: partner-api}
+  ports:
+  - {name: http, port: 80, targetPort: http}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: partner-api-isolation
+  namespace: ${SECRETS_NAMESPACE}
+spec:
+  podSelector:
+    matchLabels:
+      app: partner-api
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ate-system
+      podSelector:
+        matchLabels:
+          app: atenet-egress
+    ports:
+    - protocol: TCP
+      port: 8080

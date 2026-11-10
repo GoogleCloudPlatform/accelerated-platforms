@@ -13,10 +13,12 @@
 # limitations under the License.
 
 rules:
-  - https:
-      hostnames: ["httpbin.org"]
+  - http:
+      hostnames: ["partner-api.${SECRETS_NAMESPACE}.svc.cluster.local"]
       effects:
         replaceHeaders:
           - header: Authorization
             prefix: "Bearer "
-            credentialUri: ate-secret://k8s.io/default/workshop-secrets/example-api/token
+            credentialUri: ate-secret://k8s.io/default/${SECRETS_NAMESPACE}/example-api/token
+  - https:
+      hostnames: ["www.googleapis.com"]

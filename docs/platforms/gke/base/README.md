@@ -126,12 +126,11 @@ For an outline of Google Cloud products and features used in the platform, see
   - **Secure Boot**: Ensures that only authorized and cryptographically signed
     software loads at boot time, preventing the execution of malicious or
     unauthorized code during the boot process.
-- **Secure Runtimes for AI Agents (gVisor & Agent Substrate)**: Provides
-  user-space kernel sandboxing (per-Actor `gVisor` `runsc` Sentry via
-  `ateworker-gvisor`), zero-secret egress credential injection
-  (`atenet-egress`), and millisecond memory checkpointing and time-travel
-  recovery (`kubectl ate revert`) for autonomous LLM agents executing untrusted
-  code and external API calls.
+- **Secure Runtimes for AI Agents (Agent Substrate)**: Provides per-Actor in-pod
+  `gVisor` (`runsc`) user-space kernel sandboxing (`ateworker-gvisor`),
+  zero-secret egress credential injection (`atenet-egress`), and sub-second
+  Cloud Storage memory checkpointing and snapshot revert (`kubectl ate revert`)
+  for autonomous LLM agents executing untrusted code and external API calls.
 - **Vertical Pod Autoscaler (VPA)**: Automatically adjusts the CPU and memory
   requests and limits for individual containers in a pod. VPA learns resource
   usage over time, optimizing resource allocation and reducing waste or out of

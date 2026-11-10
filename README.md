@@ -97,8 +97,8 @@ testbed for autonomous AI agents on GKE using GKE Sandbox (`gVisor`),
 zero-secret egress credential injection, and millisecond memory snapshot
 recovery.
 
-- [Secure Runtimes for AI Agents reference architecture (GKE Agent Sandbox & Agent Substrate)](/docs/platforms/gke/base/use-cases/agent-substrate-security-demo/README.md)
-  - [Secure Runtimes for AI Agents reference implementation (gVisor sandboxing, zero-secret egress, millisecond memory snapshot restore)](/platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/README.md)
+- [Secure Runtimes for AI Agents reference architecture (Agent Substrate on GKE)](/docs/platforms/gke/base/use-cases/agent-substrate-security-demo/README.md)
+  - [Secure Runtimes for AI Agents reference implementation (in-pod gVisor sandboxing, zero-secret egress, sub-second memory snapshot restore)](/platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/README.md)
 
 ### Training Reference Architecture
 

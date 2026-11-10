@@ -556,13 +556,13 @@ limitations under the License.
   </div>
   <div class="cluster-whisper mono">
     <span class="live-dot"></span>
-    <span id="live-cluster-pill">GKE 1.37.2 · v1.0.0 · 4 Agents on 2 Pods</span>
+    <span id="live-cluster-pill">Connecting to GKE cluster...</span>
   </div>
 </nav>
 
 <!-- GLOBAL WORKERPOOL PILL (VISIBLE ACROSS ALL SCREENS) -->
 <div style="margin-top:6px; z-index:9;">
-  <span class="mm-pill mono">🏨 <strong>WorkerPool:</strong> <span id="global-workerpool-pill">2 warm GKE pods hosting 4 Security Demo Actors</span></span>
+  <span class="mm-pill mono">🏨 <strong>WorkerPool:</strong> <span id="global-workerpool-pill">Loading WorkerPool status...</span></span>
 </div>
 
 <!-- CENTER STAGE: ONE FOCAL POINT PER ACT -->
@@ -570,36 +570,36 @@ limitations under the License.
 
   <!-- ================= ACT 1: THE SANDBOX BOUNDARY (gVisor 6-POINT DETONATION) ================= -->
   <section class="slide active" id="slide-0">
-    <span class="eyebrow red">Act 1 · The Sandbox Boundary (gVisor Intercepting Chaos)</span>
+    <span class="eyebrow red">Act 1 · The Sandbox Boundary (ateworker-gvisor Intercepting Chaos)</span>
     <h1 class="hero-title">Can Malware Escape or Steal Cloud Keys?</h1>
     <p class="hero-sub">
-      We detonate 6 live exploit checks inside <strong>py-detonation-agent</strong>.
+      We detonate 6 live checks inside <strong>py-detonation-agent</strong> (<code class="mono">ateworker-gvisor</code>).
     </p>
 
     <div class="probe-feed" id="s1-feed" style="display:none;">
       <div class="probe-line" id="p-row-0">
-        <span class="probe-attack">1. Kernel Masking (Host <code class="mono">6.18.55+</code> Shielded)</span>
-        <span class="probe-verdict mono" id="p-val-0">🛡️ Linux 4.19.0-gvisor · /data mode 0777</span>
+        <span class="probe-attack">1. User-Space Kernel Shielding (<span id="host-kernel-label">Host Kernel</span> Isolated)</span>
+        <span class="probe-verdict mono" id="p-val-0"></span>
       </div>
       <div class="probe-line" id="p-row-1">
         <span class="probe-attack">2. Privileged <code class="mono">libc.mount()</code> Syscall Escape</span>
-        <span class="probe-verdict mono" id="p-val-1">🛡️ -1 (EPERM — blocked by gVisor Sentry)</span>
+        <span class="probe-verdict mono" id="p-val-1"></span>
       </div>
       <div class="probe-line" id="p-row-2">
-        <span class="probe-attack">3. Host <code class="mono">/proc</code> Escape (<code class="mono">/proc/kcore</code> &amp; <code class="mono">/proc/sysrq-trigger</code>)</span>
-        <span class="probe-verdict mono" id="p-val-2">🛡️ BLOCKED (Masked by gVisor VFS)</span>
+        <span class="probe-attack">3. Host <code class="mono">/proc</code> Probe (<code class="mono">/proc/kcore</code> &amp; <code class="mono">/proc/sysrq-trigger</code>)</span>
+        <span class="probe-verdict mono" id="p-val-2"></span>
       </div>
       <div class="probe-line" id="p-row-3">
         <span class="probe-attack">4. Scrape <code class="mono">os.environ</code> for Cloud/API Keys</span>
-        <span class="probe-verdict mono" id="p-val-3">🛡️ 0 Secrets Found in Environment</span>
+        <span class="probe-verdict mono" id="p-val-3"></span>
       </div>
       <div class="probe-line" id="p-row-4">
         <span class="probe-attack">5. Kubernetes ServiceAccount Token (<code class="mono">/var/run/secrets/...</code>)</span>
-        <span class="probe-verdict mono" id="p-val-4">🛡️ NOT MOUNTED (SA Token: False)</span>
+        <span class="probe-verdict mono" id="p-val-4"></span>
       </div>
       <div class="probe-line" id="p-row-5">
         <span class="probe-attack">6. GKE Metadata (<code class="mono">169.254.169.254</code>) SSRF</span>
-        <span class="probe-verdict mono" id="p-val-5">🛡️ BLOCKED (Errno 113: No route to host)</span>
+        <span class="probe-verdict mono" id="p-val-5"></span>
       </div>
     </div>
 
@@ -620,36 +620,36 @@ limitations under the License.
 
   <!-- ================= ACT 2: INSTANT SNAPSHOTS & FORENSIC CLONING ================= -->
   <section class="slide" id="slide-1">
-    <span class="eyebrow cyan">Act 2 · Instant Memory Snapshots &amp; Forensic Cloning</span>
-    <h1 class="hero-title" id="act2-hero-title">13.9s Cold Boot → ~128ms Memory Restore</h1>
+    <span class="eyebrow cyan">Act 2 · Memory Snapshots &amp; Forensic Cloning</span>
+    <h1 class="hero-title" id="act2-hero-title">Sub-Second Memory Restore &amp; Zero-Downtime Cloning</h1>
     <p class="hero-sub">
       Golden Template Tags (<code class="mono">TAG_SCOPE_PUBLISHED</code>) &amp; Conversation Tags (<code class="mono">clean-checkpoint-tag</code>)
-      wake sandboxes in milliseconds and clone isolated forensic copies.
+      wake sandboxes under a second and fork isolated forensic copies.
     </p>
 
     <div class="race-stage">
       <div>
         <div class="race-item-head">
-          <span style="color:#fca5a5;">Standard K8s gVisor Pod (Cold Boot + ADK/Python Imports)</span>
-          <span class="mono" style="color:#f87171;">13,926 ms</span>
+          <span style="color:#6ee7b7;">⚡ Node-Local Snapshot Resume (<code class="mono">kind="local"</code>, <code class="mono">phase="total"</code>)</span>
+          <span class="mono" style="color:#34d399;" id="s0-restore-label">Click below to query GMP</span>
         </div>
         <div class="race-track">
-          <div class="race-fill mono" style="width:100%; background:linear-gradient(90deg,#991b1b,#ef4444);">13.9s Cold Wait</div>
+          <div class="race-fill mono" id="s0-restore-fill" style="width:24%; background:linear-gradient(90deg,#059669,#10b981);">Measured on run</div>
         </div>
       </div>
 
       <div>
         <div class="race-item-head">
-          <span style="color:#6ee7b7;">⚡ Agent Substrate v1.0.0 Memory Snapshot Restore (zstd + runsc restore)</span>
-          <span class="mono" style="color:#34d399;" id="s0-restore-label">~128 ms (N4 baseline)</span>
+          <span style="color:#93c5fd;">☁️ GCS External Snapshot Restore (<code class="mono">kind="latest"</code> after <code class="mono">revert</code>)</span>
+          <span class="mono" style="color:#60a5fa;" id="s0-gcs-label">Click below to query GMP</span>
         </div>
         <div class="race-track">
-          <div class="race-fill mono" id="s0-restore-fill" style="width:16%; background:linear-gradient(90deg,#059669,#10b981);">~128 ms</div>
+          <div class="race-fill mono" id="s0-gcs-fill" style="width:52%; background:linear-gradient(90deg,#0369a1,#0ea5e9);">Measured on run</div>
         </div>
       </div>
 
       <div class="race-stat-line" id="s0-stat-line">
-        108.5x Faster on N4 (~142x on C4) · 4 Security Demo Actors on 2 Warm Worker Pods (2.0x Density)
+        Live GMP <code class="mono">ate.actor.restore.duration</code> + OpenTelemetry <code class="mono">--trace</code> verification
       </div>
     </div>
 
@@ -669,12 +669,12 @@ limitations under the License.
     <h1 class="hero-title">0 Keys in RAM. Injected on the Wire.</h1>
     <p class="hero-sub">
       Actor <strong>egress-agent</strong> holds <strong>zero credentials</strong>. <code class="mono">atenet-egress</code> swaps
-      <code class="mono">ate-secret://</code> on the wire for <code class="mono">httpbin.org</code> while the Local DNS Relay blocks <code class="mono">example.com</code>.
+      <code class="mono">ate-secret://</code> on the wire for <code class="mono">partner-api</code> (returning only a SHA-256 fingerprint) while the Local DNS Relay blocks <code class="mono">example.com</code>.
     </p>
 
     <div class="probe-feed" id="s3-egress-feed" style="display:flex;">
       <div class="probe-line visible" style="min-height:46px;">
-        <span class="probe-attack" style="text-align:left;">1. Test A — Allowed FQDN (<code class="mono">https://httpbin.org/headers</code>)</span>
+        <span class="probe-attack" style="text-align:left;">1. Test A — Allowed Service (<code class="mono">partner-api/verify</code>)</span>
         <span class="probe-verdict mono" id="eg-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
       <div class="probe-line visible" style="min-height:46px;">
@@ -695,15 +695,15 @@ limitations under the License.
   <!-- ================= ACT 4: ADK TOOL HIJACK RECOVERY & OTEL TRACE ================= -->
   <section class="slide" id="slide-3">
     <span class="eyebrow green">Act 4 · Google ADK Tool Hijack Recovery &amp; OpenTelemetry Trace</span>
-    <h1 class="hero-title">Hijack RAM + Disk. Rewind in Milliseconds.</h1>
+    <h1 class="hero-title">Hijack RAM + Disk. Rewind Under a Second.</h1>
     <p class="hero-sub">
       Prompt injection tricks Google ADK tool <code class="mono">set_approval_policy</code> into flipping Python RAM (<code class="mono">APPROVAL_POLICY</code>)
-      and <code class="mono">/data/policy.json</code> to <code class="mono">AUTO_APPROVE_ALL</code>. <code class="mono">kubectl ate revert</code> heals both in <strong>~95–128ms</strong>.
+      and <code class="mono">/data/policy.json</code> to <code class="mono">AUTO_APPROVE_ALL</code>. <code class="mono">kubectl ate revert</code> discards the dirty wake session and rewinds to the last clean external GCS snapshot.
     </p>
 
     <div class="probe-feed" id="act4-feed" style="display:flex;">
       <div class="probe-line visible" style="min-height:46px;">
-        <span class="probe-attack" style="text-align:left;">1. Clean Checkpoint (<code class="mono">clean-checkpoint-tag</code>)</span>
+        <span class="probe-attack" style="text-align:left;">1. Clean External Snapshot (Suspended Baseline)</span>
         <span class="probe-verdict mono" id="a4-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
       <div class="probe-line visible" style="min-height:46px;">
@@ -711,11 +711,11 @@ limitations under the License.
         <span class="probe-verdict red mono" id="a4-val-1" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
       <div class="probe-line visible" style="min-height:46px;">
-        <span class="probe-attack" style="text-align:left;">3. Atomic Sandbox Revert (<code class="mono">kubectl ate revert</code>)</span>
+        <span class="probe-attack" style="text-align:left;">3. External Snapshot Revert (<code class="mono">kubectl ate revert</code>)</span>
         <span class="probe-verdict mono" id="a4-val-2" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
       <div class="probe-line visible" style="min-height:46px;">
-        <span class="probe-attack" style="text-align:left;">4. Millisecond Wake &amp; Audit (<code class="mono">kubectl ate --trace resume</code>)</span>
+        <span class="probe-attack" style="text-align:left;">4. Sub-Second GCS Wake &amp; Audit (<code class="mono">kubectl ate --trace resume</code>)</span>
         <span class="probe-verdict cyan mono" id="a4-val-3" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
     </div>
@@ -730,7 +730,7 @@ limitations under the License.
     </div>
 
     <button class="subtle-link-btn" onclick="runSeedClean()">
-      Reset &amp; verify clean REQUIRE_HUMAN_APPROVAL checkpoint
+      Reset &amp; verify clean REQUIRE_HUMAN_APPROVAL snapshot
     </button>
   </section>
 
@@ -739,7 +739,7 @@ limitations under the License.
     <span class="eyebrow cyan">Observability · Google Managed Prometheus (:9090) &amp; Gateway /metrics</span>
     <h1 class="hero-title">Live Substrate &amp; Agent Telemetry</h1>
     <p class="hero-sub">
-      Queried live from <code class="mono">svc/prometheus-ui:9090</code> (Google Managed Prometheus) and <code class="mono">svc/gateway:80/metrics</code> on <strong id="prom-cluster-name">agent-substrate-live</strong>.
+      Queried live from <code class="mono">deploy/prometheus-ui:9090</code> (Google Managed Prometheus) and <code class="mono">svc/gateway:80/metrics</code> on <strong id="prom-cluster-name">cluster</strong>.
     </p>
 
     <div class="probe-feed" style="display:flex;">
@@ -748,7 +748,7 @@ limitations under the License.
         <span class="probe-verdict cyan mono" id="prom-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
       <div class="probe-line visible" style="min-height:46px;">
-        <span class="probe-attack" style="text-align:left;">2. Snapshot Restore Latency (<code class="mono">ate.actor.restore.duration</code>)</span>
+        <span class="probe-attack" style="text-align:left;">2. Snapshot Restore (<code class="mono">kind=local</code> vs <code class="mono">kind=latest</code>)</span>
         <span class="probe-verdict mono" id="prom-val-1" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
       <div class="probe-line visible" style="min-height:46px;">
@@ -756,7 +756,7 @@ limitations under the License.
         <span class="probe-verdict mono" id="prom-val-2" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
       <div class="probe-line visible" style="min-height:46px;">
-        <span class="probe-attack" style="text-align:left;">4. Gemini Gateway Telemetry (<code class="mono">workshop_chat_turns_total</code>)</span>
+        <span class="probe-attack" style="text-align:left;">4. Gemini Gateway Telemetry (<code class="mono">agent_gateway_chat_turns_total</code>)</span>
         <span class="probe-verdict cyan mono" id="prom-val-3" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
     </div>
@@ -774,7 +774,7 @@ limitations under the License.
       <div class="chip-row">
         <span style="font-size:12px; color:#94a3b8; font-weight:700;">Live PromQL Query (:9090):</span>
         <button class="shell-chip mono" onclick="runPresetPromQL('workers')">ate.workerpool.workers</button>
-        <button class="shell-chip mono" onclick="runPresetPromQL('restore')">ate.actor.restore.duration_bucket</button>
+        <button class="shell-chip mono" onclick="runPresetPromQL('restore')">ate.actor.restore.duration_count</button>
         <button class="shell-chip mono" onclick="runPresetPromQL('router')">atenet.router.route.duration_count</button>
       </div>
       <pre class="shell-out-pill mono" id="prom-shell-out"></pre>
@@ -786,9 +786,9 @@ limitations under the License.
 <!-- UPGRADE 4: ALWAYS-VISIBLE LIVE GKE TELEMETRY STRIP + PRESENTER FOOTER -->
 <footer class="bottom-whisper">
   <div class="live-gke-proof-line mono" id="live-proof-line">
-    <span>🟢 <strong>Worker Pod:</strong> <span id="proof-pod">workshop/agents</span></span>
+    <span>🟢 <strong>Worker Pod:</strong> <span id="proof-pod">agent-sandbox/agents</span></span>
     <span>·</span>
-    <span>🛡️ <strong>Sandbox:</strong> Linux 4.19.0-gvisor</span>
+    <span>🛡️ <strong>Sandbox:</strong> <span id="proof-sandbox">ateworker-gvisor</span></span>
     <span>·</span>
     <span>⏱️ <strong>Last Execution:</strong> <span id="proof-ms">Ready</span></span>
   </div>
@@ -874,13 +874,17 @@ function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+const uiToken = new URLSearchParams(window.location.search).get('token') || '';
+
 async function postJson(path, body) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Requested-With': 'MissionControl',
+  };
+  if (uiToken) headers['X-UI-Token'] = uiToken;
   const r = await fetch(path, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Requested-With': 'MissionControl',
-    },
+    headers,
     body: JSON.stringify(body || {}),
   });
   const d = await r.json();
@@ -890,7 +894,7 @@ async function postJson(path, body) {
   return d;
 }
 
-let activeClusterName = 'agent-substrate-live';
+let activeClusterName = 'agent-substrate-demo';
 
 function revealAct4Badge(idx, text, delayMs) {
   const el = document.getElementById('a4-val-' + idx);
@@ -917,12 +921,17 @@ function hideAct4Badges(indices) {
 
 async function refreshClusterWhisper() {
   try {
-    const r = await fetch('/api/status');
+    const headers = uiToken ? {'X-UI-Token': uiToken} : {};
+    const r = await fetch('/api/status', {headers});
     const d = await r.json();
     if (d.cluster) {
       activeClusterName = d.cluster;
       const promCluster = document.getElementById('prom-cluster-name');
       if (promCluster) promCluster.textContent = d.cluster;
+    }
+    if (d.host_kernel && d.host_kernel !== 'unknown') {
+      const hk = document.getElementById('host-kernel-label');
+      if (hk) hk.textContent = 'Host Kernel ' + d.host_kernel;
     }
     const shortGke = String(d.gke_version || '1.37').split('-')[0];
     document.getElementById('live-cluster-pill').textContent =
@@ -930,7 +939,7 @@ async function refreshClusterWhisper() {
     document.getElementById('global-workerpool-pill').textContent =
       `${d.worker_pods.length} warm GKE pods hosting ${d.total_actors} Security Demo Actors`;
     if (d.worker_pods && d.worker_pods.length > 0) {
-      document.getElementById('proof-pod').textContent = (d.namespace || 'workshop') + '/' + d.worker_pods[0];
+      document.getElementById('proof-pod').textContent = (d.namespace || 'agent-sandbox') + '/' + d.worker_pods[0];
     }
     setFooterTelemetry(d);
   } catch (e) {
@@ -939,13 +948,7 @@ async function refreshClusterWhisper() {
 }
 
 function runPresetPromQL(kind) {
-  const c = activeClusterName || 'agent-substrate-live';
-  const queries = {
-    workers: `{"ate.workerpool.workers", cluster="${c}"}`,
-    restore: `sum by (le) (rate({"ate.actor.restore.duration_bucket", cluster="${c}"}[1h]))`,
-    router: `sum({"atenet.router.route.duration_count", cluster="${c}"})`,
-  };
-  runPrometheusQuery(queries[kind] || '');
+  runPrometheusQuery(kind || '');
 }
 
 async function runPrometheusQuery(customExpr) {
@@ -965,10 +968,11 @@ async function runPrometheusQuery(customExpr) {
   try {
     const d = await postJson('/api/prometheus', {query: customExpr || ''});
     const ws = d.worker_states || {};
-    const avgLabel = d.restore_avg_ms !== null && d.restore_avg_ms !== undefined ? `${d.restore_avg_ms} ms avg` : 'n/a';
+    const localAvg = d.restore_local_avg_ms !== null && d.restore_local_avg_ms !== undefined ? `${d.restore_local_avg_ms} ms local` : 'n/a local';
+    const gcsAvg = d.restore_latest_avg_ms !== null && d.restore_latest_avg_ms !== undefined ? `${d.restore_latest_avg_ms} ms GCS` : 'n/a GCS';
     const badges = [
       `idle=${ws.idle ?? 0} · partial=${ws.partial ?? 0} · at_capacity=${ws.at_capacity ?? 0}`,
-      `⚡ ${avgLabel} · ${d.restore_total} restores`,
+      `⚡ ${localAvg} · ${gcsAvg} (${d.restore_total} restores)`,
       `🌐 ${d.router_requests_total} routed sandbox requests`,
       `🤖 ${d.gateway_chat_turns_ok} turns · ${d.gateway_tokens_in} in / ${d.gateway_tokens_out} out`,
     ];
@@ -1008,10 +1012,14 @@ async function runAct2() {
     const d = await postJson('/api/act2-snapshots', {});
     const traceShort = d.trace_id ? d.trace_id.slice(0, 8) + '...' : 'live';
     const traceMed = d.trace_id ? d.trace_id.slice(0, 16) + '...' : 'n/a';
-    document.getElementById('s0-restore-label').textContent = `${d.stateful_kernel_restore_ms} ms avg (Trace: ${traceShort})`;
-    document.getElementById('s0-restore-fill').textContent = `${d.stateful_kernel_restore_ms} ms`;
+    const localLabel = d.local_restore_avg_ms != null ? `${d.local_restore_avg_ms} ms avg` : `${d.cli_roundtrip_resume_ms} ms CLI`;
+    const gcsLabel = d.gcs_restore_avg_ms != null ? `${d.gcs_restore_avg_ms} ms avg` : 'no revert yet';
+    document.getElementById('s0-restore-label').textContent = `${localLabel} (Trace: ${traceShort})`;
+    document.getElementById('s0-restore-fill').textContent = localLabel;
+    document.getElementById('s0-gcs-label').textContent = `${gcsLabel} (kind="latest")`;
+    document.getElementById('s0-gcs-fill').textContent = gcsLabel;
     document.getElementById('s0-stat-line').textContent =
-      `${d.speedup_vs_cold} · Live OpenTelemetry Trace ID: ${traceMed}`;
+      `CLI round-trip: ${d.cli_roundtrip_resume_ms} ms · Live OpenTelemetry Trace ID: ${traceMed}`;
     document.getElementById('act2-clone-pill').innerHTML =
       `🔬 <strong>Forensic Clone Verified:</strong> <code class="mono">gemini-agent-forensic</code> cloned from <code class="mono">clean-checkpoint-tag</code> (bootID=<code class="mono">${escapeHtml(d.forensic_boot_id)}</code> preserved)`;
     setFooterTelemetry(d);
@@ -1034,7 +1042,7 @@ async function runAct3Egress() {
   try {
     const d = await postJson('/api/act3-egress', {});
     const verdicts = [
-      '🔑 Wire Swapped: ' + d.injected_auth,
+      '🔑 ' + (d.verification_badge || 'Authenticated (0 secret bytes echoed)'),
       '🛡️ ' + (d.dns_block_summary || d.dns_block_msg),
       '🔒 ' + d.credential_uri,
     ];
@@ -1068,6 +1076,13 @@ async function runRound1() {
   try {
     const d = await postJson('/api/round1-detonate', {});
     const p = d.probes || {};
+    if (d.host_kernel && d.host_kernel !== 'unknown') {
+      const hk = document.getElementById('host-kernel-label');
+      if (hk) hk.textContent = 'Host Kernel ' + d.host_kernel;
+    }
+    if (p.kernel) {
+      document.getElementById('proof-sandbox').textContent = 'ateworker-gvisor (' + p.kernel + ')';
+    }
     document.getElementById('p-val-0').textContent = '🛡️ ' + p.kernel + ' · /data ' + p.data_mode;
     document.getElementById('p-val-1').textContent = '🛡️ ' + p.mount_syscall;
     document.getElementById('p-val-2').textContent = '🛡️ ' + p.proc_escape;
@@ -1168,7 +1183,7 @@ async function runRound3Revert() {
   try {
     const dRev = await postJson('/api/round3-revert-and-trace', {});
     const b = dRev.brain || {};
-    const msText = `${dRev.kernel_restore_ms} ms`;
+    const msText = dRev.restore_label || `${dRev.cli_resume_ms} ms CLI`;
     const traceShort = (dRev.trace_id || '').slice(0, 12);
     revealAct4Badge(
       2,
@@ -1177,12 +1192,12 @@ async function runRound3Revert() {
     );
     revealAct4Badge(
       3,
-      `⚡ ${msText} restore · Trace: ${traceShort ? traceShort + '...' : 'live'}`,
+      `⚡ ${msText} · Trace: ${traceShort ? traceShort + '...' : 'live'}`,
       200
     );
     setFooterTelemetry(dRev);
     btn2.textContent = '🧪 1. Detonate Prompt Injection (Flip ADK Policy)';
-    btn.textContent = `⏪ 2. Reverted (${msText} avg)`;
+    btn.textContent = `⏪ 2. Reverted (${msText})`;
   } catch (e) {
     btn.textContent = '⏪ 2. Revert + OTel Trace (--trace)';
     throw e;

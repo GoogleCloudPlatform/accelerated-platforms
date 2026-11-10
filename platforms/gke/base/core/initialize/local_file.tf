@@ -107,7 +107,6 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
       cluster_private_endpoint_subnetwork                   = var.cluster_private_endpoint_subnetwork
       cluster_project_id                                    = var.cluster_project_id
       cluster_region                                        = local.cluster_region
-      cluster_sandbox_config                                = var.cluster_sandbox_config
       cluster_system_node_pool_machine_type                 = var.cluster_system_node_pool_machine_type
       cluster_system_node_pool_node_locations               = var.cluster_system_node_pool_node_locations
       cluster_use_connect_gateway                           = var.cluster_use_connect_gateway

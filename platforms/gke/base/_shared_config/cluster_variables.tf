@@ -36,11 +36,6 @@ locals {
   cluster_project_id = var.cluster_project_id != null ? var.cluster_project_id : var.platform_default_project_id
   cluster_region     = var.cluster_region != null ? var.cluster_region : var.platform_default_region
 
-  cluster_sandbox_enabled      = coalesce(var.cluster_sandbox_config.enabled, false)
-  cluster_sandbox_image_type   = upper(coalesce(var.cluster_sandbox_config.image_type, "COS_CONTAINERD"))
-  cluster_sandbox_machine_type = coalesce(var.cluster_sandbox_config.machine_type, "n4-standard-8")
-  cluster_sandbox_type         = upper(coalesce(var.cluster_sandbox_config.type, "MICROVM"))
-
   # Minimal roles for nodepool SA https://cloud.google.com/kubernetes-engine/docs/how-to/hardening-your-cluster#use_least_privilege_sa
   cluster_sa_roles = [
     "roles/artifactregistry.reader",
@@ -259,53 +254,6 @@ variable "cluster_region" {
   default     = null
   description = "Region where cluster resources will be created."
   type        = string
-}
-
-variable "cluster_sandbox_config" {
-  default = {
-    enabled      = false
-    image_type   = "COS_CONTAINERD"
-    machine_type = "n4-standard-8"
-    type         = "MICROVM"
-  }
-  description = "Configuration to enable GKE Sandbox (either MICROVM or GVISOR) on the cluster."
-  type = object({
-    enabled      = optional(bool, false)
-    image_type   = optional(string, "COS_CONTAINERD")
-    machine_type = optional(string, "n4-standard-8")
-    type         = optional(string, "MICROVM")
-  })
-
-  validation {
-    condition = contains(
-      [
-        "GVISOR",
-        "MICROVM",
-      ],
-      upper(coalesce(var.cluster_sandbox_config.type, "MICROVM"))
-    )
-    error_message = "'cluster_sandbox_config.type' must be either 'MICROVM' or 'GVISOR'."
-  }
-
-  validation {
-    condition = contains(
-      [
-        "COS_CONTAINERD",
-        "UBUNTU_CONTAINERD",
-      ],
-      upper(coalesce(var.cluster_sandbox_config.image_type, "COS_CONTAINERD"))
-    )
-    error_message = "'cluster_sandbox_config.image_type' must be 'COS_CONTAINERD' or 'UBUNTU_CONTAINERD' per GKE Sandbox node requirements."
-  }
-
-  validation {
-    condition = (
-      !coalesce(var.cluster_sandbox_config.enabled, false) ||
-      upper(coalesce(var.cluster_sandbox_config.type, "MICROVM")) != "MICROVM" ||
-      can(regex("^(n2|n2d|n4|c3)-", coalesce(var.cluster_sandbox_config.machine_type, "n4-standard-8")))
-    )
-    error_message = "'cluster_sandbox_config.machine_type' must use a nested-virtualization-capable x86_64 machine series (n2, n2d, n4, or c3) when MICROVM is enabled; e2 and m1 series are not supported."
-  }
 }
 
 variable "cluster_system_node_pool_machine_type" {

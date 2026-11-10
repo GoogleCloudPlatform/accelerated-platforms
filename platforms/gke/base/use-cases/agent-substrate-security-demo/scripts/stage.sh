@@ -65,7 +65,11 @@ export ATESPACE="${ATESPACE:-security-demo}"
 export GATEWAY_LOCAL_PORT="${GATEWAY_LOCAL_PORT:-8081}"
 export PROM_LOCAL_PORT="${PROM_LOCAL_PORT:-9090}"
 export SUBSTRATE_REF="${SUBSTRATE_REF:-v1.0.0}"
-export SUBSTRATE_COMMIT="${SUBSTRATE_COMMIT:-b34fbee742906494b5eb4f1f36987176bf8770a4}"
+if [[ -z "${SUBSTRATE_COMMIT:-}" && "${SUBSTRATE_REF}" == "v1.0.0" ]]; then
+  export SUBSTRATE_COMMIT="b34fbee742906494b5eb4f1f36987176bf8770a4"
+else
+  export SUBSTRATE_COMMIT="${SUBSTRATE_COMMIT:-}"
+fi
 export SUBSTRATE_IMAGE_REPO="${SUBSTRATE_IMAGE_REPO:-ghcr.io/agent-substrate/substrate}"
 export SUBSTRATE_IMAGE_TAG="${SUBSTRATE_IMAGE_TAG:-${SUBSTRATE_REF}}"
 export GEMINI_MODEL="${GEMINI_MODEL:-gemini-3.8-flash}"
@@ -281,7 +285,11 @@ SUBSTRATE_SRC="${STATE_DIR}/substrate"
 if [[ ! -d "${SUBSTRATE_SRC}/.git" ]]; then
   git clone --quiet https://github.com/agent-substrate/substrate "${SUBSTRATE_SRC}"
 fi
-if ! git -C "${SUBSTRATE_SRC}" cat-file -e "${SUBSTRATE_COMMIT}^{commit}" 2>/dev/null; then
+if [[ -z "${SUBSTRATE_COMMIT}" ]]; then
+  git -C "${SUBSTRATE_SRC}" fetch --quiet --tags origin
+  SUBSTRATE_COMMIT="$(git -C "${SUBSTRATE_SRC}" rev-parse "${SUBSTRATE_REF}^{commit}" 2>/dev/null)" \
+    || { echo "Error: unable to resolve SUBSTRATE_REF='${SUBSTRATE_REF}' in upstream repository." >&2; exit 1; }
+elif ! git -C "${SUBSTRATE_SRC}" cat-file -e "${SUBSTRATE_COMMIT}^{commit}" 2>/dev/null; then
   git -C "${SUBSTRATE_SRC}" fetch --quiet --tags origin
 fi
 git -C "${SUBSTRATE_SRC}" checkout --quiet "${SUBSTRATE_COMMIT}"
@@ -350,15 +358,15 @@ else
         --project="${PROJECT_ID}" \
         --description="Agent Substrate Security Demo container images" >/dev/null
     fi
-    NODE_SA="$(gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_LOCATION}" --project "${PROJECT_ID}" --format='value(nodePools[0].config.serviceAccount)' 2>/dev/null || true)"
-    if [[ -n "${NODE_SA}" && "${NODE_SA}" != "default" ]]; then
-      gcloud artifacts repositories add-iam-policy-binding "${AR_REPO}" \
+    while IFS= read -r node_sa; do
+      [[ -n "${node_sa}" && "${node_sa}" != "default" ]] || continue
+      retry_iam gcloud artifacts repositories add-iam-policy-binding "${AR_REPO}" \
         --location="${REGION}" \
         --project="${PROJECT_ID}" \
-        --member="serviceAccount:${NODE_SA}" \
+        --member="serviceAccount:${node_sa}" \
         --role="roles/artifactregistry.reader" \
-        --condition=None >/dev/null
-    fi
+        --condition=None
+    done < <(gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_LOCATION}" --project "${PROJECT_ID}" --format='value(nodePools[].config.serviceAccount)' 2>/dev/null | tr ';' '\n' | sort -u)
   fi
 
   APP_CONTENT_SHA="$(cat "${APP_DIR}/Dockerfile" "${APP_DIR}/gateway.py" "${APP_DIR}/gemini_agent.py" "${APP_DIR}/egress_agent.py" "${APP_DIR}/partner_api.py" | sha256sum | cut -c1-12)"

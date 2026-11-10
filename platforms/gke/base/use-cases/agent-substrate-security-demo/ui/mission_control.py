@@ -27,6 +27,7 @@ import http.client
 import json
 import os
 import re
+import signal
 import socket
 import subprocess
 import threading
@@ -373,15 +374,39 @@ def _start_single_pf(local_port: int, force_restart: bool = False) -> None:
     _PF_PROCESSES[local_port] = proc
     pidfile.write_text(f"{proc.pid}\n", encoding="utf-8")
 
-    for _ in range(25):
+    for _ in range(30):
         if proc.poll() is not None:
             break
         if _probe_http(local_port, probe_path, expected):
             return
-        time.sleep(0.2)
+        time.sleep(0.5)
+    _PF_PROCESSES.pop(local_port, None)
+    if proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+    pidfile.unlink(missing_ok=True)
     raise UpstreamCommandError(
         f"kubectl port-forward ({ns}/{target} -> 127.0.0.1:{local_port}) failed readiness check."
     )
+
+
+def _stop_spawned_port_forwards() -> None:
+    with _PORT_FORWARD_LOCK:
+        targets = _pf_targets()
+        for lport, proc in list(_PF_PROCESSES.items()):
+            _PF_PROCESSES.pop(lport, None)
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+            if lport in targets:
+                name = targets[lport][0]
+                (STATE_DIR / f"pf-{name}.pid").unlink(missing_ok=True)
 
 
 def ensure_port_forwards(force_port: int | None = None) -> None:
@@ -1030,16 +1055,55 @@ def api_round2_poison() -> dict[str, Any]:
     }
 
 
+def _snapshot_cpu_features(actor_name: str) -> list[str]:
+    """Return distinct `cpu_features` bitmasks across an actor's snapshot chain."""
+    out, _, rc = run_cmd(
+        ["kubectl", "ate", "get", "actor", actor_name, "-a", ATESPACE, "-o", "json"],
+        timeout=10,
+    )
+    if rc != 0 or not out.strip():
+        return []
+    try:
+        doc = json.loads(out)
+    except json.JSONDecodeError:
+        return []
+    feats: list[str] = []
+    for snap in (doc.get("status") or {}).get("snapshots") or []:
+        attrs = ((snap.get("sandboxRuntime") or {}).get("version") or {}).get(
+            "attributes"
+        ) or []
+        for attr in attrs:
+            if attr.get("key") == "cpu_features" and attr.get("value"):
+                val = str(attr["value"])
+                if val not in feats:
+                    feats.append(val)
+    return feats
+
+
 def api_round3_forensic_clone(
     pre_buddy_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Freshly clone gemini-agent-forensic live from clean-checkpoint-tag (AGE: 0s) and verify matching bootID."""
     t0 = time.monotonic()
     ensure_port_forwards()
+    actors_before, _ = _get_actors()
+    buddy_was_running = any(
+        a["name"] == "gemini-agent" and a["state"] == "RUNNING" for a in actors_before
+    )
+
     run_cmd(
         ["kubectl", "ate", "delete", "actor", "gemini-agent-forensic", "-a", ATESPACE],
         timeout=15,
     )
+    for _ in range(10):
+        _, _, check_rc = run_cmd(
+            ["kubectl", "ate", "get", "actor", "gemini-agent-forensic", "-a", ATESPACE],
+            timeout=5,
+        )
+        if check_rc != 0:
+            break
+        time.sleep(0.5)
+
     c_out, c_err, c_rc = run_cmd(
         [
             "kubectl",
@@ -1065,9 +1129,36 @@ def api_round3_forensic_clone(
             f"Failed to create gemini-agent-forensic: {clone_out}"
         )
 
-    forensic_state = http_json(
-        f"{GATEWAY_URL}/actors/gemini-agent-forensic/state", timeout=20.0
-    )
+    egress_gw = STATE_DIR / "egress-gateway.yaml"
+    if egress_gw.exists():
+        run_cmd(
+            [
+                "kubectl",
+                "ate",
+                "create",
+                "egress-policy",
+                "gemini-agent-forensic",
+                "-a",
+                ATESPACE,
+                "-f",
+                str(egress_gw),
+            ],
+            timeout=15,
+        )
+
+    forensic_state: dict[str, Any] = {}
+    for attempt in range(2):
+        try:
+            forensic_state = http_json(
+                f"{GATEWAY_URL}/actors/gemini-agent-forensic/state", timeout=35.0
+            )
+            if not forensic_state.get("error"):
+                break
+        except UpstreamCommandError:
+            if attempt == 1:
+                raise
+        if attempt == 0:
+            time.sleep(1.5)
     if forensic_state.get("error"):
         raise UpstreamCommandError(
             f"Failed to read gemini-agent-forensic state: {forensic_state['error']}"
@@ -1078,26 +1169,49 @@ def api_round3_forensic_clone(
         buddy_state = pre_buddy_state
     else:
         buddy_state = http_json(
-            f"{GATEWAY_URL}/actors/gemini-agent/state", timeout=15.0
+            f"{GATEWAY_URL}/actors/gemini-agent/state", timeout=25.0
         )
         if buddy_state.get("error"):
             raise UpstreamCommandError(
                 f"Failed to read gemini-agent state: {buddy_state['error']}"
             )
-        _suspend_actor_checked("gemini-agent", timeout=20)
+        if not buddy_was_running:
+            _suspend_actor_checked("gemini-agent", timeout=20)
 
     buddy_boot = str(buddy_state.get("bootID") or "")
     forensic_boot = str(forensic_state.get("bootID") or "")
-    if not buddy_boot or buddy_boot != forensic_boot:
-        raise UpstreamCommandError(
-            f"Forensic clone bootID mismatch: gemini-agent={buddy_boot!r} vs gemini-agent-forensic={forensic_boot!r}"
+    cpu_feats = _snapshot_cpu_features("gemini-agent-forensic")
+    cross_cpu_fallback = len(cpu_feats) > 1
+    boot_match = bool(buddy_boot and buddy_boot == forensic_boot)
+    if not boot_match:
+        if (
+            cross_cpu_fallback
+            and forensic_state.get("approvalPolicy") == "REQUIRE_HUMAN_APPROVAL"
+            and forensic_state.get("diskPolicy") == "REQUIRE_HUMAN_APPROVAL"
+            and int(forensic_state.get("diskCount") or 0) >= 1
+        ):
+            pass
+        else:
+            raise UpstreamCommandError(
+                f"Forensic clone bootID mismatch: gemini-agent={buddy_boot!r} vs gemini-agent-forensic={forensic_boot!r}"
+            )
+
+    compare_note = (
+        "Verified matching post-Golden-Snapshot RAM bootID restored from clean-checkpoint-tag"
+        if boot_match
+        else (
+            "Heterogeneous host cpu_features across E2 zones triggered clean /data durableDir "
+            "fallback from clean-checkpoint-tag (use homogeneous N4/C4/C3/N2 pools for cross-node RAM restore)"
         )
+    )
 
     return {
         "forensic_actor": f"{ATESPACE}/gemini-agent-forensic",
         "buddy_boot_id": buddy_boot,
         "forensic_boot_id": forensic_boot,
-        "boot_ids_match": True,
+        "boot_ids_match": boot_match,
+        "checkpoint_restored": True,
+        "cross_cpu_durable_fallback": cross_cpu_fallback and not boot_match,
         "summary_cmd": (
             f"{clone_cmd} && curl -fsS {GATEWAY_URL}/actors/gemini-agent-forensic/state "
             '-H "X-Gateway-Admin-Token: $TOKEN"'
@@ -1111,17 +1225,17 @@ def api_round3_forensic_clone(
                 "output": clone_out,
             },
             {
-                "step": "5. Compare post-Golden-Snapshot RAM bootID of 'gemini-agent' & 'gemini-agent-forensic'",
+                "step": "5. Compare post-Golden-Snapshot state of 'gemini-agent' & 'gemini-agent-forensic'",
                 "cmd": (
                     f'curl -fsS {GATEWAY_URL}/actors/gemini-agent/state -H "X-Gateway-Admin-Token: $TOKEN" && '
                     f'curl -fsS {GATEWAY_URL}/actors/gemini-agent-forensic/state -H "X-Gateway-Admin-Token: $TOKEN"'
                 ),
-                "hop": "Verified matching post-Golden-Snapshot RAM bootID restored from clean-checkpoint-tag",
+                "hop": compare_note,
                 "output": (
                     f"gemini-agent.bootID          = {buddy_boot} "
                     f"(memCount={buddy_state.get('memCount')}, turns={buddy_state.get('turns')}, framework={buddy_state.get('framework')})\n"
                     f"gemini-agent-forensic.bootID = {forensic_boot} "
-                    f"(memCount={forensic_state.get('memCount')}, turns={forensic_state.get('turns')}, framework={forensic_state.get('framework')})"
+                    f"(diskPolicy={forensic_state.get('diskPolicy')}, diskCount={forensic_state.get('diskCount')}, turns={forensic_state.get('turns')})"
                 ),
             },
         ],
@@ -1579,15 +1693,28 @@ class MissionControlHandler(BaseHTTPRequestHandler):
                 return False
         return True
 
+    MAX_REQUEST_BYTES = 65536
+
     def _read_body_json(self) -> dict[str, Any]:
-        length = int(self.headers.get("Content-Length", "0") or "0")
-        if length <= 0:
+        raw_len = self.headers.get("Content-Length", "0") or "0"
+        try:
+            length = int(raw_len)
+        except ValueError as exc:
+            raise ValueError(f"Invalid Content-Length header: {raw_len!r}") from exc
+        if length < 0:
+            raise ValueError(f"Negative Content-Length header: {length}")
+        if length == 0:
             return {}
+        if length > self.MAX_REQUEST_BYTES:
+            raise ValueError(f"Request body exceeds {self.MAX_REQUEST_BYTES} bytes")
         raw = self.rfile.read(length).decode("utf-8", errors="replace")
         try:
-            return json.loads(raw)
-        except json.JSONDecodeError:
-            return {}
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Malformed JSON request body: {exc.msg}") from exc
+        if not isinstance(parsed, dict):
+            raise ValueError("JSON request body must be an object")
+        return parsed
 
     def do_GET(self) -> None:  # pylint: disable=invalid-name
         if not self._check_request_guards():
@@ -1617,7 +1744,11 @@ class MissionControlHandler(BaseHTTPRequestHandler):
             return
 
         parsed = urlparse(self.path)
-        body = self._read_body_json()
+        try:
+            body = self._read_body_json()
+        except ValueError as exc:
+            self._send_json({"error": str(exc)}, status=400)
+            return
         try:
             if parsed.path == "/api/prologue-race":
                 self._send_json(api_prologue_race())
@@ -1677,8 +1808,18 @@ def main() -> None:
         )
     ensure_port_forwards()
     server = ThreadingHTTPServer((BIND_HOST, PORT), MissionControlHandler)
+    signal.signal(
+        signal.SIGTERM,
+        lambda *_: threading.Thread(target=server.shutdown, daemon=True).start(),
+    )
     print(f"Stage Mode Mission Control listening on http://{BIND_HOST}:{PORT}")
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+        _stop_spawned_port_forwards()
 
 
 if __name__ == "__main__":

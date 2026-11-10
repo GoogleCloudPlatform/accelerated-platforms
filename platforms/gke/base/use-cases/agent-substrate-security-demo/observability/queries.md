@@ -1,5 +1,7 @@
 # Canned PromQL & Cloud Logging Queries
 
+> [!NOTE]
+>
 > **Provenance**: The three fleet dashboards under
 > `observability/substrate-dashboards/` (`ate-e2e-latency-dashboard.json`,
 > `ate-grpc-dashboard.json`, and `ate-snapshot-dashboard.json`) are adapted from
@@ -8,18 +10,24 @@
 > `top_level_controller_name=~"atelet(-.*)?"` matchers.
 
 Paste these queries into the Prometheus UI (`http://127.0.0.1:9090`,
-port-forwarded on demand by `./scripts/stage.sh` and
-`python3 ./ui/mission_control.py`) or into **Cloud Console -> Monitoring ->
-Metrics Explorer -> PromQL**. Agent Substrate metric and label names contain
-dots, so they use UTF-8 quoted PromQL syntax (`{"metric.name", ...}`). Points
-arrive 1–3 minutes after an operation.
+port-forwarded on demand by
+`./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/stage.sh`
+and
+`python3 ./platforms/gke/base/use-cases/agent-substrate-security-demo/ui/mission_control.py`)
+or into **Cloud Console -> Monitoring -> Metrics Explorer -> PromQL**. Agent
+Substrate metric and label names contain dots, so they use UTF-8 quoted PromQL
+syntax (`{"metric.name", ...}`). Points arrive 1–3 minutes after an operation.
 
 Every query below is pinned to `cluster="agent-substrate-live"`, the default
-`CLUSTER_NAME`. Because Google Cloud Managed Service for Prometheus is
-project-scoped, omitting `cluster=` aggregates series across every cluster in
-the project. `./scripts/dashboards.sh` scopes all four Cloud Monitoring
-dashboards to your `CLUSTER_NAME` and `ATESPACE` automatically via
-`scripts/promql_scope.py`.
+`Option A` `CLUSTER_NAME` (for `Option B`, replace `agent-substrate-live` with
+your `<prefix>-<platform>` cluster name such as `ate-prod`, or rewrite any
+PromQL expression via
+`python3 ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/promql_scope.py query "<CLUSTER_NAME>" '<promql>'`).
+Because Google Cloud Managed Service for Prometheus is project-scoped, omitting
+`cluster=` aggregates series across every cluster in the project.
+`./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/dashboards.sh`
+scopes all four Cloud Monitoring dashboards to your `CLUSTER_NAME` and
+`ATESPACE` automatically via `scripts/promql_scope.py`.
 
 ## Fleet Telemetry (Agent Substrate)
 

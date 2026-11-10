@@ -29,6 +29,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
+MAX_FETCH_BYTES = 1_048_576
 
 
 def validate_fetch_url(url: str) -> str:
@@ -61,11 +62,11 @@ def fetch(url: str = Query(...)) -> PlainTextResponse:
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
             return PlainTextResponse(
-                resp.read().decode("utf-8", errors="replace"),
+                resp.read(MAX_FETCH_BYTES).decode("utf-8", errors="replace"),
                 status_code=resp.status,
             )
     except urllib.error.HTTPError as exc:
-        err_text = exc.read().decode("utf-8", errors="replace")
+        err_text = exc.read(MAX_FETCH_BYTES).decode("utf-8", errors="replace")
         return PlainTextResponse(err_text, status_code=exc.code)
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         return PlainTextResponse(

@@ -40,15 +40,18 @@ export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-ate}"
 # Set execution specific values
 export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
 
-for pidfile in "${ACP_PLATFORM_USE_CASE_DIR}/.state"/pf-*.pid; do
-  if [[ -f "${pidfile}" ]] && kill -0 "$(cat "${pidfile}")" 2>/dev/null; then
-    kill "$(cat "${pidfile}")" 2>/dev/null || true
-    rm -f "${pidfile}"
-  fi
-done
+# shellcheck disable=SC1091
+source "${ACP_PLATFORM_USE_CASE_DIR}/scripts/port-forward.sh"
+stop_managed_port_forwards "${ACP_PLATFORM_USE_CASE_DIR}/.state"
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
+
+# Remove cluster-scoped Cloud Monitoring dashboards created during stage.sh
+# shellcheck disable=SC2154
+PROJECT_ID="${cluster_project_id}" \
+CLUSTER_NAME="${cluster_name}" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/scripts/dashboards.sh" delete || true
 
 # Release dynamically provisioned 500Gi Postgres PVC before destroying the cluster
 # shellcheck disable=SC2154

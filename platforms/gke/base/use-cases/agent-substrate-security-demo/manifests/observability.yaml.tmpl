@@ -47,28 +47,37 @@ spec:
     spec:
       serviceAccountName: prometheus-ui
       nodeSelector: {kubernetes.io/os: linux, kubernetes.io/arch: amd64}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: frontend
         image: gke.gcr.io/prometheus-engine/frontend:v0.15.3-gke.0@sha256:615ba6fcb89717b7346de2746e18fd6d31979cf89eb7b3583c7cea05be827664
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
         args:
-        - --web.listen-address=:9090
+        - --web.listen-address=127.0.0.1:9090
         - --query.project-id=${PROJECT_ID}
         ports:
         - {name: web, containerPort: 9090}
-        readinessProbe:
-          httpGet: {path: /-/ready, port: web}
-        livenessProbe:
-          httpGet: {path: /-/healthy, port: web}
         resources:
           requests: {cpu: 50m, memory: 64Mi}
           limits: {memory: 256Mi}
 ---
-apiVersion: v1
-kind: Service
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
 metadata:
-  name: prometheus-ui
+  name: prometheus-ui-isolation
   namespace: ${NAMESPACE}
 spec:
-  selector: {app: prometheus-ui}
-  ports:
-  - {name: web, port: 9090, targetPort: web}
+  podSelector:
+    matchLabels:
+      app: prometheus-ui
+  policyTypes:
+  - Ingress
+  ingress: []

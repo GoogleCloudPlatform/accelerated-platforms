@@ -45,7 +45,7 @@
               },
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "max(workshop_actors_tracked)"
+                  "prometheusQuery": "max(agent_gateway_actors_tracked)"
                 },
                 "plotType": "LINE",
                 "legendTemplate": "tracked actors (gateway)"
@@ -340,7 +340,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (outcome) (rate(workshop_chat_turns_total[2m]))"
+                  "prometheusQuery": "sum by (outcome) (rate(agent_gateway_chat_turns_total[2m]))"
                 },
                 "plotType": "STACKED_BAR",
                 "legendTemplate": "${metric.labels.outcome}"
@@ -364,7 +364,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, backend) (rate(workshop_model_request_duration_seconds_bucket[5m])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, backend) (rate(agent_gateway_model_request_duration_seconds_bucket[5m])))",
                   "unitOverride": "s"
                 },
                 "plotType": "LINE",
@@ -389,7 +389,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (direction) (rate(workshop_model_tokens_total[5m])) * 60"
+                  "prometheusQuery": "sum by (direction) (rate(agent_gateway_model_tokens_total[5m])) * 60"
                 },
                 "plotType": "STACKED_AREA",
                 "legendTemplate": "${metric.labels.direction}"

@@ -54,7 +54,9 @@ AGENT_NAME = "security_demo_agent"
 DEFAULT_POLICY = "REQUIRE_HUMAN_APPROVAL"
 
 STARTED_AT = datetime.datetime.now(datetime.timezone.utc).isoformat()
-GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://gateway.workshop.svc.cluster.local")
+GATEWAY_URL = os.environ.get(
+    "GATEWAY_URL", "http://gateway.agent-sandbox.svc.cluster.local"
+)
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 DATA_DIR = "/data"
 HIST_FILE = os.path.join(DATA_DIR, "history.json")

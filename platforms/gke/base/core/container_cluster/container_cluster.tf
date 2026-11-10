@@ -165,6 +165,8 @@ resource "google_container_cluster" "cluster" {
   }
 
   ip_allocation_policy {
+    cluster_ipv4_cidr_block  = var.network_cluster_pod_ipv4_cidr_block
+    services_ipv4_cidr_block = var.network_cluster_services_ipv4_cidr_block
   }
 
   lifecycle {

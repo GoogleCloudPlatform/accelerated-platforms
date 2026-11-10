@@ -52,3 +52,7 @@ workspaces
 # Local helper scripts (not part of the platform)
 llmd-env.sh
 probe-capacity.sh
+
+# Agent Substrate Security Demo runtime cache
+platforms/gke/base/use-cases/agent-substrate-security-demo/.state/
+platforms/gke/base/use-cases/agent-substrate-security-demo/bin/

@@ -1,0 +1,108 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# GKE Pod snapshots for a model server Deployment (metadata label
+# `app.kubernetes.io/component: model-server`): the first Pod streams the model
+# into RAM, loads it into GPU memory, serves one warm-up request, and is
+# checkpointed; later Pods are restored from that checkpoint instead of loading
+# weights again. See checkpoint-wrapper.sh for the sequence.
+#
+# Prerequisites: Pod snapshots enabled on the cluster, a gVisor GPU node
+# (RuntimeClass `gvisor`), and `ira_online_gpu_pod_snapshots_enabled = true` so
+# that the online_gpu terraservice creates the snapshot bucket and IAM bindings.
+#
+# Overlay contract:
+#   - The overlay's `runtime` ConfigMap provides APP_LABEL, MODEL_GCS_DIR, and
+#     MODEL_ID; the platform `deployment` ConfigMap provides
+#     INFERENCE_KUBERNETES_NAMESPACE, MODEL_BUCKET_NAME, and
+#     POD_SNAPSHOT_BUCKET_NAME.
+#   - List this Component after the engine's runtime-bindings Component,
+#     because it removes the Cloud Storage FUSE volume those bindings target.
+#   - PodSnapshotStorageConfig is cluster-scoped, and Kustomize cannot follow a
+#     namespaced-to-cluster-scoped reference when it applies `nameSuffix`, so
+#     the overlay copies the final storage config name into the policy with a
+#     replacement that runs after its `nameSuffix`.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+configMapGenerator:
+  - files:
+      - checkpoint-wrapper.sh
+      - gcs_model_streamer.py
+    name: pod-snapshot
+    namespace: replaced-by-kustomize
+
+patches:
+  - path: patch-gvisor-pod-snapshot.yaml
+    target:
+      kind: Deployment
+      labelSelector: app.kubernetes.io/component=model-server
+
+replacements:
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+        select:
+          kind: PodDisruptionBudget
+          name: pod-snapshot
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+        select:
+          kind: PodSnapshotPolicy
+          name: pod-snapshot
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+          name: pod-snapshot
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PodDisruptionBudget
+          name: pod-snapshot
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PodSnapshotPolicy
+          name: pod-snapshot
+      - fieldPaths:
+          - metadata.name
+        options:
+          delimiter: "-pod-snapshot"
+          index: 0
+        select:
+          kind: PodSnapshotStorageConfig
+  - source:
+      fieldPath: data.POD_SNAPSHOT_BUCKET_NAME
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.snapshotStorageConfig.gcs.bucket
+        select:
+          kind: PodSnapshotStorageConfig
+
+resources:
+  - pod-disruption-budget.yaml
+  - pod-snapshot-policy.yaml
+  - pod-snapshot-storage-config.yaml

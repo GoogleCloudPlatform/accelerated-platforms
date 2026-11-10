@@ -25,7 +25,7 @@ locals {
   shared_config_folder = "${path.module}/../../_shared_config"
 
   use_case_backend_directories = var.initialize_backend_use_case_name != null ? toset([for _, version_file in local.use_case_versions_files : trimprefix(trimsuffix(dirname(version_file), "/versions.tf"), "../")]) : []
-  use_case_versions_files      = var.initialize_backend_use_case_name != null ? flatten([for _, file in flatten(fileset("${local.base_directory}/use-cases", "${var.initialize_backend_use_case_name}/**/versions.tf")) : file]) : []
+  use_case_versions_files      = var.initialize_backend_use_case_name != null ? [for file in fileset("${local.base_directory}/use-cases", "${var.initialize_backend_use_case_name}/**/versions.tf") : file if !strcontains(file, "/multi-region/") && !strcontains(file, "/examples/")] : []
 }
 
 resource "time_static" "unique" {
@@ -86,30 +86,31 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
-      cluster_addons_agent_sandbox_enabled                 = var.cluster_addons_agent_sandbox_enabled
-      cluster_addons_ray_operator_enabled                  = var.cluster_addons_ray_operator_enabled
-      cluster_auto_monitoring_config_scope                 = var.cluster_auto_monitoring_config_scope
-      cluster_autopilot_enabled                            = var.cluster_autopilot_enabled
-      cluster_binary_authorization_evaluation_mode         = var.cluster_binary_authorization_evaluation_mode
-      cluster_check_custom_compute_classes_healthy         = var.cluster_check_custom_compute_classes_healthy
-      cluster_confidential_nodes_enabled                   = var.cluster_confidential_nodes_enabled
-      cluster_database_encryption_key_name                 = var.cluster_database_encryption_key_name
-      cluster_database_encryption_state                    = var.cluster_database_encryption_state
-      cluster_enable_private_endpoint                      = var.cluster_enable_private_endpoint
-      cluster_gateway_api_config_channel                   = var.cluster_gateway_api_config_channel
-      cluster_gpu_driver_version                           = var.cluster_gpu_driver_version
-      cluster_master_global_access_enabled                 = var.cluster_master_global_access_enabled
-      cluster_node_auto_provisioning_enabled               = var.cluster_node_auto_provisioning_enabled
-      cluster_node_auto_provisioning_resource_limits       = var.cluster_node_auto_provisioning_resource_limits
-      cluster_node_pool_default_service_account_id         = var.cluster_node_pool_default_service_account_id
-      cluster_node_pool_default_service_account_project_id = var.cluster_node_pool_default_service_account_project_id
-      cluster_private_endpoint_subnetwork                  = var.cluster_private_endpoint_subnetwork
-      cluster_project_id                                   = var.cluster_project_id
-      cluster_region                                       = local.cluster_region
-      cluster_sandbox_config                               = var.cluster_sandbox_config
-      cluster_system_node_pool_machine_type                = var.cluster_system_node_pool_machine_type
-      cluster_system_node_pool_node_locations              = var.cluster_system_node_pool_node_locations
-      cluster_use_connect_gateway                          = var.cluster_use_connect_gateway
+      cluster_addons_agent_sandbox_enabled                  = var.cluster_addons_agent_sandbox_enabled
+      cluster_addons_ray_operator_enabled                   = var.cluster_addons_ray_operator_enabled
+      cluster_auto_monitoring_config_scope                  = var.cluster_auto_monitoring_config_scope
+      cluster_autopilot_enabled                             = var.cluster_autopilot_enabled
+      cluster_binary_authorization_evaluation_mode          = var.cluster_binary_authorization_evaluation_mode
+      cluster_check_custom_compute_classes_healthy          = var.cluster_check_custom_compute_classes_healthy
+      cluster_confidential_nodes_enabled                    = var.cluster_confidential_nodes_enabled
+      cluster_custom_compute_class_active_migration_enabled = var.cluster_custom_compute_class_active_migration_enabled
+      cluster_database_encryption_key_name                  = var.cluster_database_encryption_key_name
+      cluster_database_encryption_state                     = var.cluster_database_encryption_state
+      cluster_enable_private_endpoint                       = var.cluster_enable_private_endpoint
+      cluster_gateway_api_config_channel                    = var.cluster_gateway_api_config_channel
+      cluster_gpu_driver_version                            = var.cluster_gpu_driver_version
+      cluster_master_global_access_enabled                  = var.cluster_master_global_access_enabled
+      cluster_node_auto_provisioning_enabled                = var.cluster_node_auto_provisioning_enabled
+      cluster_node_auto_provisioning_resource_limits        = var.cluster_node_auto_provisioning_resource_limits
+      cluster_node_pool_default_service_account_id          = var.cluster_node_pool_default_service_account_id
+      cluster_node_pool_default_service_account_project_id  = var.cluster_node_pool_default_service_account_project_id
+      cluster_private_endpoint_subnetwork                   = var.cluster_private_endpoint_subnetwork
+      cluster_project_id                                    = var.cluster_project_id
+      cluster_region                                        = local.cluster_region
+      cluster_sandbox_config                                = var.cluster_sandbox_config
+      cluster_system_node_pool_machine_type                 = var.cluster_system_node_pool_machine_type
+      cluster_system_node_pool_node_locations               = var.cluster_system_node_pool_node_locations
+      cluster_use_connect_gateway                           = var.cluster_use_connect_gateway
     }
   )
   file_permission = "0644"
@@ -213,6 +214,8 @@ resource "local_file" "shared_config_networking_auto_tfvars" {
       network_cluster_network_name                  = var.network_cluster_network_name
       network_cluster_network_nat_gateway_name      = var.network_cluster_network_nat_gateway_name
       network_cluster_network_router_name           = var.network_cluster_network_router_name
+      network_cluster_pod_ipv4_cidr_block           = var.network_cluster_pod_ipv4_cidr_block
+      network_cluster_services_ipv4_cidr_block      = var.network_cluster_services_ipv4_cidr_block
       network_cluster_subnet_master_ipv4_cidr_block = var.network_cluster_subnet_master_ipv4_cidr_block
       network_cluster_subnet_node_ip_cidr_range     = var.network_cluster_subnet_node_ip_cidr_range
       network_cluster_subnet_node_flow_logs         = var.network_cluster_subnet_node_flow_logs

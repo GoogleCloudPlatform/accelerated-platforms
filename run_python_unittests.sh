@@ -27,3 +27,6 @@ for source_dir in "${source_dirs[@]}"; do
 done
 
 python -m unittest discover -s skills/llm-d-benchmarking/scripts
+python -m unittest discover -s test/ci-cd/scripts/platforms/gke/base/use-cases/inference-ref-arch
+python -m unittest discover -s platforms/gke/base/use-cases/agent-substrate-security-demo/scripts
+

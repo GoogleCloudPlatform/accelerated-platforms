@@ -1,0 +1,124 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model-server
+spec:
+  template:
+    metadata:
+      # GKE Pod snapshots run inside gVisor (runsc), which does not support CSI
+      # volumes such as `gcsfuse.csi.storage.gke.io`, so the Cloud Storage FUSE
+      # sidecar and its volumes are removed and checkpoint-wrapper.sh streams
+      # the model into the RAM-backed `model-cache` volume instead.
+      annotations:
+        gke-gcsfuse/cpu-limit: null
+        gke-gcsfuse/cpu-request: null
+        gke-gcsfuse/ephemeral-storage-limit: null
+        gke-gcsfuse/ephemeral-storage-request: null
+        gke-gcsfuse/memory-limit: null
+        gke-gcsfuse/memory-request: null
+        gke-gcsfuse/volumes: null
+    spec:
+      containers:
+        - name: inference-server
+          # The engine's `/bin/bash -c <launch script>` command and args are
+          # passed through to checkpoint-wrapper.sh unchanged.
+          command:
+            - /bin/bash
+            - /etc/pod-snapshot/checkpoint-wrapper.sh
+            - /bin/bash
+            - -c
+          env:
+            # gVisor does not expose the Pod network to torch.distributed or
+            # Open MPI's shared-memory transport the way runc does; keep
+            # single-Pod collectives on the loopback interface.
+            - name: GLOO_SOCKET_IFNAME
+              value: lo
+            - name: MASTER_ADDR
+              value: 127.0.0.1
+            - name: MODEL_BUCKET_NAME
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_BUCKET_NAME
+                  name: deployment
+            - name: MODEL_CACHE_DIR
+              value: /model
+            - name: MODEL_GCS_DIR
+              valueFrom:
+                configMapKeyRef:
+                  key: MODEL_GCS_DIR
+                  name: runtime
+            - name: NCCL_SOCKET_IFNAME
+              value: lo
+            - name: OMPI_MCA_btl_tcp_if_include
+              value: lo
+            - name: OMPI_MCA_btl_vader_single_copy_mechanism
+              value: none
+            - name: OMPI_MCA_oob_tcp_if_include
+              value: lo
+            - name: POD_SNAPSHOT_HEALTH_URL
+              value: http://127.0.0.1:8000/health
+          # A liveness probe would restart the cold-start Pod while it is
+          # paused during the multi-minute checkpoint upload.
+          livenessProbe: null
+          # Ready only after warm-up and the checkpoint complete (or after a
+          # restore), so Services never route to a Pod that is still loading.
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test -f /tmp/pod-snapshot-ready && curl --fail --silent --max-time 2 "${POD_SNAPSHOT_HEALTH_URL}" >/dev/null
+            failureThreshold: 3
+            httpGet: null
+            initialDelaySeconds: 0
+            periodSeconds: 2
+            successThreshold: 1
+            timeoutSeconds: 3
+          # Allow up to one hour for streaming, warm-up, and the checkpoint.
+          startupProbe:
+            failureThreshold: 1800
+            initialDelaySeconds: 0
+            periodSeconds: 2
+            timeoutSeconds: 2
+          volumeMounts:
+            - mountPath: /etc/pod-snapshot
+              name: pod-snapshot
+              readOnly: true
+            - mountPath: /model
+              name: model-cache
+              readOnly: false
+      enableServiceLinks: false
+      runtimeClassName: gvisor
+      volumes:
+        - $patch: delete
+          name: gke-gcsfuse-buffer
+        - $patch: delete
+          name: gke-gcsfuse-cache
+        - $patch: delete
+          name: gke-gcsfuse-tmp
+        - $patch: delete
+          name: huggingface-hub-model-bucket
+        # Holds the streamed weights until they are loaded into GPU memory;
+        # checkpoint-wrapper.sh deletes them before the checkpoint. Size it in
+        # the overlay to the model's on-disk size.
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 40Gi
+          name: model-cache
+        - configMap:
+            name: pod-snapshot
+          name: pod-snapshot

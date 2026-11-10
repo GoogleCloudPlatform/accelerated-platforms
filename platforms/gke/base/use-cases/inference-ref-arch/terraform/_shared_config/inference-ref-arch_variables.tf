@@ -54,10 +54,13 @@ locals {
 
   ira_online_gpu_diffusers_flux_image_url             = var.ira_online_gpu_diffusers_flux_image_url != null ? var.ira_online_gpu_diffusers_flux_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu-diffusers/flux:latest"
   ira_online_gpu_diffusers_sglang_diffusers_image_url = var.ira_online_gpu_sglang_diffusers_image_url != null ? var.ira_online_gpu_sglang_diffusers_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/sglang:latest"
+  ira_online_gpu_dynamo_etcd_image_url                = var.ira_online_gpu_dynamo_etcd_image_url
+  ira_online_gpu_dynamo_trtllm_image_url              = var.ira_online_gpu_dynamo_trtllm_image_url != null ? var.ira_online_gpu_dynamo_trtllm_image_url : "${local.cloudbuild_ar_image_repository_url}/gpu/dynamo-trtllm:latest"
   ira_online_gpu_kubernetes_namespace_name            = var.ira_online_gpu_kubernetes_namespace_name != null ? var.ira_online_gpu_kubernetes_namespace_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_kubernetes_service_account_name      = var.ira_online_gpu_kubernetes_service_account_name != null ? var.ira_online_gpu_kubernetes_service_account_name : "${local.unique_identifier_prefix}-online-gpu"
   ira_online_gpu_pod_snapshots_bucket_name            = var.ira_online_gpu_pod_snapshots_bucket_name != null ? var.ira_online_gpu_pod_snapshots_bucket_name : "${var.platform_default_project_id}-${local.unique_identifier_prefix}-pod-snapshots"
   ira_online_gpu_pod_snapshots_enabled                = var.ira_online_gpu_pod_snapshots_enabled
+  ira_online_gpu_trtllm_image_url                     = var.ira_online_gpu_trtllm_image_url
   ira_online_gpu_vllm_image_url                       = var.ira_online_gpu_vllm_image_url != null ? var.ira_online_gpu_vllm_image_url : "${local.cloudbuild_ar_image_repository_url}/vllm/gpu:latest"
   ira_online_gpu_vllm_kv_offloading_image_url         = var.ira_online_gpu_vllm_kv_offloading_image_url
   ira_online_gpu_vllm_podsnapshot_image_url           = var.ira_online_gpu_vllm_podsnapshot_image_url
@@ -232,6 +235,18 @@ variable "ira_online_gpu_diffusers_flux_image_url" {
   type        = string
 }
 
+variable "ira_online_gpu_dynamo_etcd_image_url" {
+  default     = "registry.k8s.io/etcd:3.5.17-0@sha256:b4a9e4a7e1cf08844c7c4db6a19cab380fbf0aad702b8c01e578e9543671b9f9"
+  description = "The URL for the etcd container image used by NVIDIA Dynamo discovery."
+  type        = string
+}
+
+variable "ira_online_gpu_dynamo_trtllm_image_url" {
+  default     = null
+  description = "The URL for the NVIDIA Dynamo TensorRT-LLM runtime container image that the images/gpu/dynamo_trtllm terraservice builds from container-images/gpu/dynamo-trtllm."
+  type        = string
+}
+
 variable "ira_cpu_k6_benchmark_image_url" {
   default     = null
   description = "The URL for the k6 benchmark container image."
@@ -293,6 +308,12 @@ variable "ira_online_gpu_rapid_cache_zones" {
 variable "ira_online_gpu_sglang_diffusers_image_url" {
   default     = null
   description = "The URL for the GPU SGLang Diffusers container image."
+  type        = string
+}
+
+variable "ira_online_gpu_trtllm_image_url" {
+  default     = "nvcr.io/nvidia/tensorrt-llm/release:1.4.0rc2@sha256:93a3eaf1fa574813d608a7147735134bcfbd06d18d1aa98e8ee0d5da09e51e3a"
+  description = "The URL for the GPU TensorRT-LLM container image."
   type        = string
 }
 

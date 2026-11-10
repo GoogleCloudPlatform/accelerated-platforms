@@ -25,13 +25,16 @@ encrypter
 encrypters
 esbenp
 exfiltrate
+failovers
 finetune
 finetuning
 fluentbit
+frontends
 fsdp
 gbps
 geminicodeassist
 googlecloudtools
+gproxy
 gpul
 hyperparameter
 hyperparameters
@@ -66,6 +69,7 @@ rayutil
 rtxpro
 rueth
 runbook
+runbooks
 safetensors
 scann
 sched
@@ -74,6 +78,7 @@ schnell
 seqs
 sharegpt
 stabilityai
+stockouts
 tflops
 timonwong
 tunables

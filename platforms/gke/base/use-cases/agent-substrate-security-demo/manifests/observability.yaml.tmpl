@@ -1,0 +1,74 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Google Cloud Managed Service for Prometheus (GMP) PodMonitoring + Prometheus UI frontend (:9090).
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: gateway
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    matchLabels: {app: gateway}
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 15s
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-ui
+  namespace: ${NAMESPACE}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-ui
+  namespace: ${NAMESPACE}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: prometheus-ui}
+  template:
+    metadata:
+      labels: {app: prometheus-ui}
+    spec:
+      serviceAccountName: prometheus-ui
+      nodeSelector: {kubernetes.io/os: linux, kubernetes.io/arch: amd64}
+      containers:
+      - name: frontend
+        image: gke.gcr.io/prometheus-engine/frontend:v0.15.3-gke.0@sha256:615ba6fcb89717b7346de2746e18fd6d31979cf89eb7b3583c7cea05be827664
+        args:
+        - --web.listen-address=:9090
+        - --query.project-id=${PROJECT_ID}
+        ports:
+        - {name: web, containerPort: 9090}
+        readinessProbe:
+          httpGet: {path: /-/ready, port: web}
+        livenessProbe:
+          httpGet: {path: /-/healthy, port: web}
+        resources:
+          requests: {cpu: 50m, memory: 64Mi}
+          limits: {memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-ui
+  namespace: ${NAMESPACE}
+spec:
+  selector: {app: prometheus-ui}
+  ports:
+  - {name: web, port: 9090, targetPort: web}

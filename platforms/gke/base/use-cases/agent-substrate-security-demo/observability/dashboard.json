@@ -1,0 +1,450 @@
+{
+  "displayName": "Agent Substrate Security Demo",
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
+      {
+        "xPos": 0,
+        "yPos": 0,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Workers by state (WorkerPool agents)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "max by (\"ate.worker.state\") ({\"ate.workerpool.workers\", \"ate.workerpool.name\"=\"agents\"})"
+                },
+                "plotType": "STACKED_AREA",
+                "legendTemplate": "${metric.labels.ate.worker.state}"
+              }
+            ],
+            "yAxis": {
+              "label": "workers",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 0,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Active worker slots vs tracked actors (gateway)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum({\"ate.workerpool.workers\", \"ate.workerpool.name\"=\"agents\", \"ate.worker.state\"!=\"idle\"})"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "active workers (partial/at_capacity)"
+              },
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "max(workshop_actors_tracked)"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "tracked actors (gateway)"
+              }
+            ],
+            "yAxis": {
+              "label": "count",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 4,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Actor lifecycle operations / s",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (\"ate.actor.operation.name\") (rate({\"ate.actor.lifecycle.operation.duration_count\"}[2m]))"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "${metric.labels.ate.actor.operation.name}"
+              }
+            ],
+            "yAxis": {
+              "label": "ops/s",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 4,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Actor lifecycle P95 latency by operation",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, \"ate.actor.operation.name\") (rate({\"ate.actor.lifecycle.operation.duration_bucket\"}[5m])))",
+                  "unitOverride": "s"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "${metric.labels.ate.actor.operation.name}"
+              }
+            ],
+            "yAxis": {
+              "label": "seconds",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 8,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Router requests / s: warm vs resumed",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (\"ate.router.resume\") (rate({\"atenet.router.route.duration_count\", top_level_controller_name=\"atenet-router\"}[2m]))"
+                },
+                "plotType": "STACKED_BAR",
+                "legendTemplate": "resume=${metric.labels.ate.router.resume}"
+              }
+            ],
+            "yAxis": {
+              "label": "req/s",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 8,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Router P95 latency (includes resume + parking)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, \"ate.router.resume\") (rate({\"atenet.router.route.duration_bucket\", top_level_controller_name=\"atenet-router\"}[5m])))",
+                  "unitOverride": "s"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "resume=${metric.labels.ate.router.resume}"
+              }
+            ],
+            "yAxis": {
+              "label": "seconds",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 12,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Router requests / s by outcome",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (\"ate.router.outcome\") (rate({\"atenet.router.route.duration_count\", top_level_controller_name=\"atenet-router\"}[2m]))"
+                },
+                "plotType": "STACKED_BAR",
+                "legendTemplate": "${metric.labels.ate.router.outcome}"
+              }
+            ],
+            "yAxis": {
+              "label": "req/s",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 12,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Actor restore P95 by template",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, \"ate.template.name\") (rate({\"ate.actor.restore.duration_bucket\"}[5m])))",
+                  "unitOverride": "s"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "${metric.labels.ate.template.name}"
+              }
+            ],
+            "yAxis": {
+              "label": "seconds",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 16,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Actor restore P95 latency by phase (where cold start goes)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, \"ate.snapshot.phase\") (rate({\"ate.actor.restore.duration_bucket\"}[5m])))",
+                  "unitOverride": "s"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "${metric.labels.ate.snapshot.phase}"
+              }
+            ],
+            "yAxis": {
+              "label": "seconds",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 16,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Actor restores / s by snapshot kind (golden vs latest vs local)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (\"ate.snapshot.kind\") (rate({\"ate.actor.restore.duration_count\"}[5m]))"
+                },
+                "plotType": "STACKED_BAR",
+                "legendTemplate": "${metric.labels.ate.snapshot.kind}"
+              }
+            ],
+            "yAxis": {
+              "label": "restores/s",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 20,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Snapshot image size P95 by template",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, \"ate.template.name\") (rate({\"atelet.snapshot.size_bucket\"}[10m])))",
+                  "unitOverride": "By"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "${metric.labels.ate.template.name}"
+              }
+            ],
+            "yAxis": {
+              "label": "bytes",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 20,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Actor memory working set by template",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (\"ate.template.name\") ({\"ate.actor.stats.memory.working_set\"})",
+                  "unitOverride": "By"
+                },
+                "plotType": "STACKED_AREA",
+                "legendTemplate": "${metric.labels.ate.template.name}"
+              }
+            ],
+            "yAxis": {
+              "label": "bytes",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 24,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Actor CPU usage by template",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (\"ate.template.name\") (rate({\"ate.actor.stats.cpu.time\"}[5m]))",
+                  "unitOverride": "1"
+                },
+                "plotType": "STACKED_AREA",
+                "legendTemplate": "${metric.labels.ate.template.name}"
+              }
+            ],
+            "yAxis": {
+              "label": "cores",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 24,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Chat turns / s by outcome (gateway)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (outcome) (rate(workshop_chat_turns_total[2m]))"
+                },
+                "plotType": "STACKED_BAR",
+                "legendTemplate": "${metric.labels.outcome}"
+              }
+            ],
+            "yAxis": {
+              "label": "turns/s",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 28,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Model P95 latency by backend",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, backend) (rate(workshop_model_request_duration_seconds_bucket[5m])))",
+                  "unitOverride": "s"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "${metric.labels.backend}"
+              }
+            ],
+            "yAxis": {
+              "label": "seconds",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 28,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Model tokens / min",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum by (direction) (rate(workshop_model_tokens_total[5m])) * 60"
+                },
+                "plotType": "STACKED_AREA",
+                "legendTemplate": "${metric.labels.direction}"
+              }
+            ],
+            "yAxis": {
+              "label": "tokens/min",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 0,
+        "yPos": 32,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Actor suspends (5m) and actor crashes (total)",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum(increase({\"ate.actor.lifecycle.operation.duration_count\", \"ate.actor.operation.name\"=\"suspend\"}[5m]))"
+                },
+                "plotType": "STACKED_BAR",
+                "legendTemplate": "suspends (5m)"
+              },
+              {
+                "timeSeriesQuery": {
+                  "prometheusQuery": "sum({\"ate.actor.crashes\"}) or vector(0)"
+                },
+                "plotType": "LINE",
+                "legendTemplate": "crashes (total)"
+              }
+            ],
+            "yAxis": {
+              "label": "count",
+              "scale": "LINEAR"
+            }
+          }
+        }
+      },
+      {
+        "xPos": 6,
+        "yPos": 32,
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Actor state changes (logs, security-demo atespace)",
+          "logsPanel": {
+            "filter": "resource.type=\"k8s_container\"\njsonPayload.msg=\"Actor state changed\"\njsonPayload.\"ate.atespace\"=\"security-demo\""
+          }
+        }
+      }
+    ]
+  }
+}

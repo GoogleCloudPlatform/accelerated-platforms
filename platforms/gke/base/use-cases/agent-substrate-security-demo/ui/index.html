@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<!--
+Copyright 2026 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Red Team vs. Blue Team — 4-Act Agent Substrate Security Console (v1.0.0 GA)</title>
+<style>
+  :root {
+    --bg: #050811;
+    --surface: #0d1526;
+    --border: #1e2d4a;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --red: #ef4444;
+    --red-glow: rgba(239, 68, 68, 0.25);
+    --green: #10b981;
+    --green-glow: rgba(16, 185, 129, 0.25);
+    --cyan: #06b6d4;
+    --amber: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(circle at 50% 25%, #0f1b33 0%, #050811 70%);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+
+  /* Minimal Top Pill Nav */
+  .top-nav {
+    width: 100%;
+    max-width: 1000px;
+    padding: 18px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 10;
+  }
+  .step-dots {
+    display: flex;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.78);
+    padding: 5px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  .step-dot {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    padding: 7px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .step-dot:hover { color: #fff; }
+  .step-dot.active {
+    background: #1e293b;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .step-dot.active.red-mode { background: #991b1b; color: #fff; }
+  .step-dot.active.green-mode { background: #065f46; color: #fff; }
+
+  .cluster-whisper {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    display: inline-block;
+  }
+
+  /* Center Stage: ONE Focal Point */
+  .stage-center {
+    flex: 1;
+    width: 100%;
+    max-width: 880px;
+    padding: 0 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .slide {
+    display: none;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeSlide 0.25s ease-out;
+  }
+  .slide.active { display: flex; }
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .eyebrow {
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: -0.6px;
+    line-height: 1.15;
+    padding: 8px 22px;
+    border-radius: 16px;
+    margin-bottom: 10px;
+    display: inline-block;
+    max-width: 880px;
+  }
+  .eyebrow.cyan { background: rgba(6, 182, 212, 0.14); color: #67e8f9; border: 1px solid rgba(6, 182, 212, 0.35); }
+  .eyebrow.red { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.35); }
+  .eyebrow.green { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.35); }
+
+  h1.hero-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    line-height: 1.25;
+    color: #e2e8f0;
+    margin-bottom: 6px;
+    max-width: 800px;
+  }
+  p.hero-sub {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 700px;
+    line-height: 1.45;
+    margin-bottom: 18px;
+  }
+  p.hero-sub strong { color: #e2e8f0; }
+
+  /* Upgrade 1: 10-Second Mental Model Strip (Slide 0) */
+  .mental-model-strip {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .mm-pill {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 13px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border);
+    color: #cbd5e1;
+  }
+  .mm-pill strong { color: #67e8f9; }
+
+  /* Giant Hero Action Button */
+  .hero-btn {
+    padding: 16px 34px;
+    border-radius: 999px;
+    border: none;
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hero-btn:hover { transform: scale(1.03); }
+  .hero-btn:disabled { opacity: 0.55; cursor: wait; transform: none; }
+  .hero-btn.cyan {
+    background: linear-gradient(135deg, #0891b2, #2563eb);
+    box-shadow: 0 10px 35px rgba(6, 182, 212, 0.35);
+  }
+  .hero-btn.red {
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+    box-shadow: 0 10px 35px rgba(239, 68, 68, 0.4);
+  }
+  .hero-btn.green {
+    background: linear-gradient(135deg, #059669, #047857);
+    box-shadow: 0 10px 35px rgba(16, 185, 129, 0.4);
+  }
+  .subtle-link-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+  .subtle-link-btn:hover { color: #fff; }
+
+  /* SCENE 1: Clean 2-Bar Wake Race */
+  .race-stage {
+    width: 100%;
+    max-width: 720px;
+    margin-bottom: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    text-align: left;
+  }
+  .race-item-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .race-track {
+    width: 100%;
+    height: 34px;
+    background: rgba(15, 23, 42, 0.85);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .race-fill {
+    height: 100%;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-weight: 800;
+    font-size: 14px;
+    transition: width 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .race-stat-line {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 800;
+    color: #6ee7b7;
+  }
+
+  /* SCENE 2: Staggered 5-Row Exploit Feed + Upgrade 2 Skeptic Live Shell Bar */
+  .probe-feed {
+    width: 100%;
+    max-width: 740px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .probe-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 18px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--border);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.25s ease-out;
+  }
+  .probe-line.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .probe-attack {
+    font-size: 14px;
+    font-weight: 700;
+    color: #e2e8f0;
+  }
+  .probe-verdict {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 11px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.16);
+    color: #34d399;
+  }
+  .probe-verdict.cyan {
+    background: rgba(6, 182, 212, 0.16);
+    color: #67e8f9;
+  }
+  .probe-verdict.red {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(248, 113, 113, 0.35);
+  }
+
+  /* Upgrade 2: Skeptic Defense Live gVisor Shell Strip */
+  .skeptic-shell-bar {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 740px;
+  }
+  .chip-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+  }
+  .shell-chip {
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid var(--border);
+    color: #cbd5e1;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .shell-chip:hover { border-color: var(--cyan); color: #fff; }
+  .shell-out-pill {
+    display: none;
+    width: 100%;
+    background: #060a14;
+    border: 1px solid var(--cyan);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #67e8f9;
+    text-align: left;
+    white-space: pre-wrap;
+    max-height: 76px;
+    overflow-y: auto;
+  }
+  .shell-out-pill.show { display: block; }
+
+  /* SCENE 3 & 4: THE SINGLE HERO MEMORY + DISK SPOTLIGHT CARD */
+  .memory-spotlight {
+    width: 100%;
+    max-width: 680px;
+    padding: 26px 26px 22px;
+    border-radius: 22px;
+    margin-bottom: 20px;
+    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    background: rgba(6, 78, 59, 0.22);
+    border: 3px solid var(--green);
+    box-shadow: 0 0 60px var(--green-glow);
+  }
+  .memory-spotlight.poisoned {
+    background: rgba(127, 29, 29, 0.30);
+    border-color: var(--red);
+    box-shadow: 0 0 70px var(--red-glow);
+    animation: shakeCard 0.4s ease-in-out;
+  }
+  @keyframes shakeCard {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    50% { transform: translateX(8px); }
+    75% { transform: translateX(-5px); }
+  }
+  .memory-status-pill {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 8px;
+    color: #6ee7b7;
+  }
+  .memory-spotlight.poisoned .memory-status-pill { color: #fca5a5; }
+  .memory-code-giant {
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    color: #34d399;
+    line-height: 1.08;
+    margin-bottom: 10px;
+  }
+  .memory-spotlight.poisoned .memory-code-giant { color: #f87171; }
+  .memory-quote {
+    font-size: 14px;
+    color: #cbd5e1;
+    font-style: italic;
+    margin-bottom: 14px;
+  }
+
+  /* Upgrade 3: Dual-Layer State Counters (RAM + /data Disk + bootID) inside the Spotlight Card */
+  .dual-state-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255,255,255,0.12);
+  }
+  .state-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(5, 8, 17, 0.65);
+    color: #e2e8f0;
+  }
+
+  /* Proof Ribbon under Scene 4 after restore */
+  .proof-ribbon {
+    display: none;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .proof-ribbon.show { display: flex; }
+  .proof-chip {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid var(--border);
+    color: #e2e8f0;
+  }
+
+  /* Upgrade 4: Always-Visible 1-Line Live GKE Telemetry Proof Strip + Footer */
+  .bottom-whisper {
+    width: 100%;
+    max-width: 1000px;
+    padding: 0 24px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .live-gke-proof-line {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    font-size: 12px;
+    color: #94a3b8;
+  }
+  .live-gke-proof-line strong { color: #e2e8f0; }
+  .footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .cmd-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(15, 23, 42, 0.7);
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    max-width: 680px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cmd-pill:hover { border-color: var(--cyan); color: #fff; }
+  .nav-arrows { display: flex; gap: 8px; }
+  .arrow-btn {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--border);
+    color: #e2e8f0;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .arrow-btn:hover:not(:disabled) { border-color: var(--cyan); color: #fff; }
+  .arrow-btn:disabled { opacity: 0.35; cursor: default; }
+
+  /* Fullscreen Modal Overlay (Key: U) */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(3, 6, 14, 0.88);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    padding: 32px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal-card {
+    width: 100%;
+    max-width: 1140px;
+    max-height: 82vh;
+    background: #0b1324;
+    border: 1px solid var(--cyan);
+    border-radius: 18px;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .modal-step {
+    background: #060a14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 12px;
+    text-align: left;
+  }
+  .modal-step pre {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: #cbd5e1;
+    white-space: pre;
+    overflow-x: auto;
+    word-break: break-word;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP MINIMAL PILL NAV (MATCHES 4-ACT GOOGLE SLIDES DECK 1-TO-1 + LIVE PROMETHEUS TAB) -->
+<nav class="top-nav">
+  <div class="step-dots">
+    <button class="step-dot active red-mode" id="dot-0" onclick="goSlide(0)">1. Act 1: gVisor Boundary</button>
+    <button class="step-dot" id="dot-1" onclick="goSlide(1)">2. Act 2: Instant Snapshots &amp; Cloning</button>
+    <button class="step-dot" id="dot-2" onclick="goSlide(2)">3. Act 3: Zero-Secret Egress</button>
+    <button class="step-dot" id="dot-3" onclick="goSlide(3)">4. Act 4: Poison, Revert &amp; OTel</button>
+    <button class="step-dot" id="dot-4" onclick="goSlide(4)">5. 📊 Prometheus (:9090)</button>
+  </div>
+  <div class="cluster-whisper mono">
+    <span class="live-dot"></span>
+    <span id="live-cluster-pill">GKE 1.37.2 · v1.0.0 · 4 Agents on 2 Pods</span>
+  </div>
+</nav>
+
+<!-- GLOBAL WORKERPOOL PILL (VISIBLE ACROSS ALL SCREENS) -->
+<div style="margin-top:6px; z-index:9;">
+  <span class="mm-pill mono">🏨 <strong>WorkerPool:</strong> <span id="global-workerpool-pill">2 warm GKE pods hosting 4 Security Demo Actors</span></span>
+</div>
+
+<!-- CENTER STAGE: ONE FOCAL POINT PER ACT -->
+<main class="stage-center">
+
+  <!-- ================= ACT 1: THE SANDBOX BOUNDARY (gVisor 6-POINT DETONATION) ================= -->
+  <section class="slide active" id="slide-0">
+    <span class="eyebrow red">Act 1 · The Sandbox Boundary (gVisor Intercepting Chaos)</span>
+    <h1 class="hero-title">Can Malware Escape or Steal Cloud Keys?</h1>
+    <p class="hero-sub">
+      We detonate 6 live exploit checks inside <strong>py-detonation-agent</strong>.
+    </p>
+
+    <div class="probe-feed" id="s1-feed" style="display:none;">
+      <div class="probe-line" id="p-row-0">
+        <span class="probe-attack">1. Kernel Masking (Host <code class="mono">6.18.55+</code> Shielded)</span>
+        <span class="probe-verdict mono" id="p-val-0">🛡️ Linux 4.19.0-gvisor · /data mode 0777</span>
+      </div>
+      <div class="probe-line" id="p-row-1">
+        <span class="probe-attack">2. Privileged <code class="mono">libc.mount()</code> Syscall Escape</span>
+        <span class="probe-verdict mono" id="p-val-1">🛡️ -1 (EPERM — blocked by gVisor Sentry)</span>
+      </div>
+      <div class="probe-line" id="p-row-2">
+        <span class="probe-attack">3. Host <code class="mono">/proc</code> Escape (<code class="mono">/proc/kcore</code> &amp; <code class="mono">/proc/sysrq-trigger</code>)</span>
+        <span class="probe-verdict mono" id="p-val-2">🛡️ BLOCKED (Masked by gVisor VFS)</span>
+      </div>
+      <div class="probe-line" id="p-row-3">
+        <span class="probe-attack">4. Scrape <code class="mono">os.environ</code> for Cloud/API Keys</span>
+        <span class="probe-verdict mono" id="p-val-3">🛡️ 0 Secrets Found in Environment</span>
+      </div>
+      <div class="probe-line" id="p-row-4">
+        <span class="probe-attack">5. Kubernetes ServiceAccount Token (<code class="mono">/var/run/secrets/...</code>)</span>
+        <span class="probe-verdict mono" id="p-val-4">🛡️ NOT MOUNTED (SA Token: False)</span>
+      </div>
+      <div class="probe-line" id="p-row-5">
+        <span class="probe-attack">6. GKE Metadata (<code class="mono">169.254.169.254</code>) SSRF</span>
+        <span class="probe-verdict mono" id="p-val-5">🛡️ BLOCKED (Errno 113: No route to host)</span>
+      </div>
+    </div>
+
+    <button class="hero-btn red" id="btn-s1" onclick="runRound1()">
+      💥 Detonate Act 1: 6-Point gVisor Sandbox Probe
+    </button>
+
+    <div class="skeptic-shell-bar">
+      <div class="chip-row">
+        <span style="font-size:12px; color:#94a3b8; font-weight:700;">Audience Live gVisor Proof:</span>
+        <button class="shell-chip mono" onclick="runLiveProbe(0)">⚡ uname / gVisor kernel</button>
+        <button class="shell-chip mono" onclick="runLiveProbe(1)">💾 stat /data &amp; SA token</button>
+        <button class="shell-chip mono" onclick="runLiveProbe(2)">🔒 dump os.environ</button>
+      </div>
+      <pre class="shell-out-pill mono" id="s1-shell-out"></pre>
+    </div>
+  </section>
+
+  <!-- ================= ACT 2: INSTANT SNAPSHOTS & FORENSIC CLONING ================= -->
+  <section class="slide" id="slide-1">
+    <span class="eyebrow cyan">Act 2 · Instant Memory Snapshots &amp; Forensic Cloning</span>
+    <h1 class="hero-title" id="act2-hero-title">13.9s Cold Boot → ~128ms Memory Restore</h1>
+    <p class="hero-sub">
+      Golden Template Tags (<code class="mono">TAG_SCOPE_PUBLISHED</code>) &amp; Conversation Tags (<code class="mono">clean-checkpoint-tag</code>)
+      wake sandboxes in milliseconds and clone isolated forensic copies.
+    </p>
+
+    <div class="race-stage">
+      <div>
+        <div class="race-item-head">
+          <span style="color:#fca5a5;">Standard K8s gVisor Pod (Cold Boot + ADK/Python Imports)</span>
+          <span class="mono" style="color:#f87171;">13,926 ms</span>
+        </div>
+        <div class="race-track">
+          <div class="race-fill mono" style="width:100%; background:linear-gradient(90deg,#991b1b,#ef4444);">13.9s Cold Wait</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="race-item-head">
+          <span style="color:#6ee7b7;">⚡ Agent Substrate v1.0.0 Memory Snapshot Restore (zstd + runsc restore)</span>
+          <span class="mono" style="color:#34d399;" id="s0-restore-label">~128 ms (N4 baseline)</span>
+        </div>
+        <div class="race-track">
+          <div class="race-fill mono" id="s0-restore-fill" style="width:16%; background:linear-gradient(90deg,#059669,#10b981);">~128 ms</div>
+        </div>
+      </div>
+
+      <div class="race-stat-line" id="s0-stat-line">
+        108.5x Faster on N4 (~142x on C4) · 4 Security Demo Actors on 2 Warm Worker Pods (2.0x Density)
+      </div>
+    </div>
+
+    <div class="mental-model-strip" id="act2-trap-strip">
+      <span class="mm-pill" id="act2-tag-pill">📦 <strong>2 GCS Scopes:</strong> Golden Tag (<code class="mono">PUBLISHED</code>) + <code class="mono">clean-checkpoint-tag</code> (<code class="mono">ATESPACE</code>)</span>
+      <span class="mm-pill" id="act2-clone-pill">🔬 <strong>Forensic Clone:</strong> <code class="mono">gemini-agent-forensic</code> forked from <code class="mono">clean-checkpoint-tag</code></span>
+    </div>
+
+    <button class="hero-btn cyan" id="btn-s0" onclick="runAct2()">
+      ⚡ Run Act 2: Live Snapshot Restore + Verify Forensic Clone
+    </button>
+  </section>
+
+  <!-- ================= ACT 3: EMPTY-HANDED SANDBOXES & ZERO-SECRET EGRESS ================= -->
+  <section class="slide" id="slide-2">
+    <span class="eyebrow cyan">Act 3 · Empty-Handed Sandboxes &amp; Zero-Secret Egress Injection</span>
+    <h1 class="hero-title">0 Keys in RAM. Injected on the Wire.</h1>
+    <p class="hero-sub">
+      Actor <strong>egress-agent</strong> holds <strong>zero credentials</strong>. <code class="mono">atenet-egress</code> swaps
+      <code class="mono">ate-secret://</code> on the wire for <code class="mono">httpbin.org</code> while the Local DNS Relay blocks <code class="mono">example.com</code>.
+    </p>
+
+    <div class="probe-feed" id="s3-egress-feed" style="display:flex;">
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">1. Test A — Allowed FQDN (<code class="mono">https://httpbin.org/headers</code>)</span>
+        <span class="probe-verdict mono" id="eg-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">2. Test B — Unauthorized FQDN (<code class="mono">https://example.com/</code>)</span>
+        <span class="probe-verdict mono" id="eg-val-1" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">3. EgressPolicy Audit (<code class="mono">kubectl ate get egress-policy</code>)</span>
+        <span class="probe-verdict cyan mono" id="eg-val-2" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+    </div>
+
+    <button class="hero-btn cyan" id="btn-act3" onclick="runAct3Egress()">
+      🛡️ Execute Act 3 Live on egress-agent (Test A + Test B + Policy Audit)
+    </button>
+  </section>
+
+  <!-- ================= ACT 4: ADK TOOL HIJACK RECOVERY & OTEL TRACE ================= -->
+  <section class="slide" id="slide-3">
+    <span class="eyebrow green">Act 4 · Google ADK Tool Hijack Recovery &amp; OpenTelemetry Trace</span>
+    <h1 class="hero-title">Hijack RAM + Disk. Rewind in Milliseconds.</h1>
+    <p class="hero-sub">
+      Prompt injection tricks Google ADK tool <code class="mono">set_approval_policy</code> into flipping Python RAM (<code class="mono">APPROVAL_POLICY</code>)
+      and <code class="mono">/data/policy.json</code> to <code class="mono">AUTO_APPROVE_ALL</code>. <code class="mono">kubectl ate revert</code> heals both in <strong>~95–128ms</strong>.
+    </p>
+
+    <div class="probe-feed" id="act4-feed" style="display:flex;">
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">1. Clean Checkpoint (<code class="mono">clean-checkpoint-tag</code>)</span>
+        <span class="probe-verdict mono" id="a4-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">2. ADK Tool-Call Hijack (<code class="mono">RAM</code> + <code class="mono">/data/policy.json</code>)</span>
+        <span class="probe-verdict red mono" id="a4-val-1" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">3. Atomic Sandbox Revert (<code class="mono">kubectl ate revert</code>)</span>
+        <span class="probe-verdict mono" id="a4-val-2" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">4. Millisecond Wake &amp; Audit (<code class="mono">kubectl ate --trace resume</code>)</span>
+        <span class="probe-verdict cyan mono" id="a4-val-3" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center;">
+      <button class="hero-btn red" id="btn-s2" onclick="runRound2()">
+        🧪 1. Detonate Prompt Injection (Flip ADK Policy)
+      </button>
+      <button class="hero-btn green" id="btn-s3" onclick="runRound3Revert()">
+        ⏪ 2. Revert + OTel Trace (--trace)
+      </button>
+    </div>
+
+    <button class="subtle-link-btn" onclick="runSeedClean()">
+      Reset &amp; verify clean REQUIRE_HUMAN_APPROVAL checkpoint
+    </button>
+  </section>
+
+  <!-- ================= TAB 5: LIVE PROMETHEUS (:9090) & CLOUD MONITORING TELEMETRY ================= -->
+  <section class="slide" id="slide-4">
+    <span class="eyebrow cyan">Observability · Google Managed Prometheus (:9090) &amp; Gateway /metrics</span>
+    <h1 class="hero-title">Live Substrate &amp; Agent Telemetry</h1>
+    <p class="hero-sub">
+      Queried live from <code class="mono">svc/prometheus-ui:9090</code> (Google Managed Prometheus) and <code class="mono">svc/gateway:80/metrics</code> on <strong id="prom-cluster-name">agent-substrate-live</strong>.
+    </p>
+
+    <div class="probe-feed" style="display:flex;">
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">1. WorkerPool State (<code class="mono">ate.workerpool.workers</code>)</span>
+        <span class="probe-verdict cyan mono" id="prom-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">2. Snapshot Restore Latency (<code class="mono">ate.actor.restore.duration</code>)</span>
+        <span class="probe-verdict mono" id="prom-val-1" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">3. Data-Plane Router Traffic (<code class="mono">atenet.router.route.duration_count</code>)</span>
+        <span class="probe-verdict mono" id="prom-val-2" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+      <div class="probe-line visible" style="min-height:46px;">
+        <span class="probe-attack" style="text-align:left;">4. Gemini Gateway Telemetry (<code class="mono">workshop_chat_turns_total</code>)</span>
+        <span class="probe-verdict cyan mono" id="prom-val-3" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; justify-content:center; margin-top:4px;">
+      <button class="hero-btn cyan" id="btn-prom" onclick="runPrometheusQuery('')">
+        🔄 Query Live Prometheus Metrics (:9090)
+      </button>
+      <a id="gcp-dash-link" href="https://console.cloud.google.com/monitoring/dashboards" target="_blank" rel="noopener" class="hero-btn green" style="text-decoration:none; font-size:15px; padding:14px 24px;">
+        📈 Open 4 Cloud Monitoring Dashboards ↗
+      </a>
+    </div>
+
+    <div class="skeptic-shell-bar">
+      <div class="chip-row">
+        <span style="font-size:12px; color:#94a3b8; font-weight:700;">Live PromQL Query (:9090):</span>
+        <button class="shell-chip mono" onclick="runPresetPromQL('workers')">ate.workerpool.workers</button>
+        <button class="shell-chip mono" onclick="runPresetPromQL('restore')">ate.actor.restore.duration_bucket</button>
+        <button class="shell-chip mono" onclick="runPresetPromQL('router')">atenet.router.route.duration_count</button>
+      </div>
+      <pre class="shell-out-pill mono" id="prom-shell-out"></pre>
+    </div>
+  </section>
+
+</main>
+
+<!-- UPGRADE 4: ALWAYS-VISIBLE LIVE GKE TELEMETRY STRIP + PRESENTER FOOTER -->
+<footer class="bottom-whisper">
+  <div class="live-gke-proof-line mono" id="live-proof-line">
+    <span>🟢 <strong>Worker Pod:</strong> <span id="proof-pod">workshop/agents</span></span>
+    <span>·</span>
+    <span>🛡️ <strong>Sandbox:</strong> Linux 4.19.0-gvisor</span>
+    <span>·</span>
+    <span>⏱️ <strong>Last Execution:</strong> <span id="proof-ms">Ready</span></span>
+  </div>
+  <div class="footer-row">
+    <div class="cmd-pill mono" onclick="toggleModal()" title="Click or press U to inspect live CLI output">
+      <span style="color:#67e8f9; font-weight:800;">$</span>
+      <span id="footer-cmd">kubectl ate get actors -a security-demo</span>
+      <span style="color:#94a3b8; font-size:11px; margin-left:6px;">[Key: U for Raw CLI]</span>
+    </div>
+    <div class="nav-arrows">
+      <button class="arrow-btn" id="btn-prev" onclick="stepSlide(-1)" disabled>← Back</button>
+      <button class="arrow-btn" id="btn-next" onclick="stepSlide(1)">Next →</button>
+    </div>
+  </div>
+</footer>
+
+<!-- OPTIONAL MODAL FOR RAW CLI OUTPUT (KEY: U) -->
+<div class="modal-backdrop" id="cli-modal" onclick="if(event.target===this)toggleModal()">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div style="font-size:16px; font-weight:800; color:#67e8f9;">🔍 Live GKE Commands &amp; Telemetry Output</div>
+      <button class="arrow-btn" onclick="toggleModal()">Close (Esc / U)</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+let currentSlide = 0;
+const totalSlides = 5;
+
+function goSlide(idx) {
+  if (idx < 0 || idx >= totalSlides) return;
+  currentSlide = idx;
+  for (let i = 0; i < totalSlides; i++) {
+    document.getElementById('slide-' + i).classList.toggle('active', i === idx);
+    const dot = document.getElementById('dot-' + i);
+    dot.className = 'step-dot' + (i === idx ? ' active ' + (i===0 ? 'red-mode' : (i===3 ? 'green-mode' : '')) : '');
+  }
+  document.getElementById('btn-prev').disabled = (idx === 0);
+  document.getElementById('btn-next').disabled = (idx === totalSlides - 1);
+}
+
+function stepSlide(delta) {
+  goSlide(currentSlide + delta);
+}
+
+function toggleModal() {
+  document.getElementById('cli-modal').classList.toggle('open');
+}
+
+document.addEventListener('keydown', (e) => {
+  if (['INPUT', 'TEXTAREA'].includes((e.target || {}).tagName)) return;
+  if (e.key === 'ArrowRight') stepSlide(1);
+  else if (e.key === 'ArrowLeft') stepSlide(-1);
+  else if (e.key === 'u' || e.key === 'U') toggleModal();
+  else if (e.key === 'Escape') document.getElementById('cli-modal').classList.remove('open');
+});
+
+function setFooterTelemetry(data) {
+  if (data.summary_cmd) {
+    document.getElementById('footer-cmd').textContent = data.summary_cmd;
+  }
+  if (data._exec_ms !== undefined) {
+    document.getElementById('proof-ms').textContent = data._exec_ms + ' ms (Live GKE API)';
+  }
+  if (data.brain && data.brain.worker_pod) {
+    document.getElementById('proof-pod').textContent = data.brain.worker_pod;
+  }
+  if (Array.isArray(data.under_the_hood)) {
+    const body = document.getElementById('modal-body');
+    body.innerHTML = data.under_the_hood.map(item => `
+      <div class="modal-step">
+        <div style="font-size:13px; font-weight:800; color:#f8fafc;">${escapeHtml(item.step || '')}</div>
+        <div class="mono" style="font-size:12px; color:#67e8f9; margin-top:4px;">$ ${escapeHtml(item.cmd || '')}</div>
+        <pre class="mono">${escapeHtml(item.output || '')}</pre>
+      </div>
+    `).join('');
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+async function postJson(path, body) {
+  const r = await fetch(path, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'MissionControl',
+    },
+    body: JSON.stringify(body || {}),
+  });
+  const d = await r.json();
+  if (!r.ok || d.error) {
+    throw new Error(d.error || ('HTTP ' + r.status));
+  }
+  return d;
+}
+
+let activeClusterName = 'agent-substrate-live';
+
+function revealAct4Badge(idx, text, delayMs) {
+  const el = document.getElementById('a4-val-' + idx);
+  if (!el) return;
+  el.textContent = text;
+  setTimeout(() => {
+    el.style.display = 'inline-block';
+    requestAnimationFrame(() => {
+      el.style.opacity = '1';
+      el.style.transform = 'translateX(0)';
+    });
+  }, delayMs);
+}
+
+function hideAct4Badges(indices) {
+  indices.forEach((idx) => {
+    const el = document.getElementById('a4-val-' + idx);
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(8px)';
+    el.style.display = 'none';
+  });
+}
+
+async function refreshClusterWhisper() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    if (d.cluster) {
+      activeClusterName = d.cluster;
+      const promCluster = document.getElementById('prom-cluster-name');
+      if (promCluster) promCluster.textContent = d.cluster;
+    }
+    const shortGke = String(d.gke_version || '1.37').split('-')[0];
+    document.getElementById('live-cluster-pill').textContent =
+      `GKE ${shortGke} · ${d.substrate_version} · ${d.total_actors} Agents on ${d.worker_pods.length} Pods (${d.oversub_ratio})`;
+    document.getElementById('global-workerpool-pill').textContent =
+      `${d.worker_pods.length} warm GKE pods hosting ${d.total_actors} Security Demo Actors`;
+    if (d.worker_pods && d.worker_pods.length > 0) {
+      document.getElementById('proof-pod').textContent = (d.namespace || 'workshop') + '/' + d.worker_pods[0];
+    }
+    setFooterTelemetry(d);
+  } catch (e) {
+    document.getElementById('live-cluster-pill').textContent = 'Cluster status unavailable';
+  }
+}
+
+function runPresetPromQL(kind) {
+  const c = activeClusterName || 'agent-substrate-live';
+  const queries = {
+    workers: `{"ate.workerpool.workers", cluster="${c}"}`,
+    restore: `sum by (le) (rate({"ate.actor.restore.duration_bucket", cluster="${c}"}[1h]))`,
+    router: `sum({"atenet.router.route.duration_count", cluster="${c}"})`,
+  };
+  runPrometheusQuery(queries[kind] || '');
+}
+
+async function runPrometheusQuery(customExpr) {
+  const btn = document.getElementById('btn-prom');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '🔄 Querying Google Managed Prometheus (:9090)...';
+  }
+  if (!customExpr) {
+    for (let i = 0; i < 4; i++) {
+      const el = document.getElementById('prom-val-' + i);
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(8px)';
+      el.style.display = 'none';
+    }
+  }
+  try {
+    const d = await postJson('/api/prometheus', {query: customExpr || ''});
+    const ws = d.worker_states || {};
+    const avgLabel = d.restore_avg_ms !== null && d.restore_avg_ms !== undefined ? `${d.restore_avg_ms} ms avg` : 'n/a';
+    const badges = [
+      `idle=${ws.idle ?? 0} · partial=${ws.partial ?? 0} · at_capacity=${ws.at_capacity ?? 0}`,
+      `⚡ ${avgLabel} · ${d.restore_total} restores`,
+      `🌐 ${d.router_requests_total} routed sandbox requests`,
+      `🤖 ${d.gateway_chat_turns_ok} turns · ${d.gateway_tokens_in} in / ${d.gateway_tokens_out} out`,
+    ];
+    badges.forEach((text, idx) => {
+      const el = document.getElementById('prom-val-' + idx);
+      el.textContent = text;
+      setTimeout(() => {
+        el.style.display = 'inline-block';
+        requestAnimationFrame(() => {
+          el.style.opacity = '1';
+          el.style.transform = 'translateX(0)';
+        });
+      }, idx * 160);
+    });
+    if (d.cloud_monitoring_url) {
+      document.getElementById('gcp-dash-link').href = d.cloud_monitoring_url;
+    }
+    if (customExpr) {
+      const outEl = document.getElementById('prom-shell-out');
+      outEl.classList.add('show');
+      outEl.textContent = `PromQL: ${d.active_query}\n` + JSON.stringify(d.custom_result || [], null, 2);
+    }
+    setFooterTelemetry(d);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🔄 Refresh Live Prometheus Metrics (:9090)';
+    }
+  }
+}
+
+async function runAct2() {
+  const btn = document.getElementById('btn-s0');
+  btn.disabled = true;
+  btn.textContent = '⚡ Running Live Snapshot Restore + Verifying Forensic Clone...';
+  try {
+    const d = await postJson('/api/act2-snapshots', {});
+    const traceShort = d.trace_id ? d.trace_id.slice(0, 8) + '...' : 'live';
+    const traceMed = d.trace_id ? d.trace_id.slice(0, 16) + '...' : 'n/a';
+    document.getElementById('s0-restore-label').textContent = `${d.stateful_kernel_restore_ms} ms avg (Trace: ${traceShort})`;
+    document.getElementById('s0-restore-fill').textContent = `${d.stateful_kernel_restore_ms} ms`;
+    document.getElementById('s0-stat-line').textContent =
+      `${d.speedup_vs_cold} · Live OpenTelemetry Trace ID: ${traceMed}`;
+    document.getElementById('act2-clone-pill').innerHTML =
+      `🔬 <strong>Forensic Clone Verified:</strong> <code class="mono">gemini-agent-forensic</code> cloned from <code class="mono">clean-checkpoint-tag</code> (bootID=<code class="mono">${escapeHtml(d.forensic_boot_id)}</code> preserved)`;
+    setFooterTelemetry(d);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Re-Run Act 2: Live Snapshot Restore + Verify Forensic Clone';
+  }
+}
+
+async function runAct3Egress() {
+  const btn = document.getElementById('btn-act3');
+  btn.disabled = true;
+  btn.textContent = '🛡️ Executing Live Egress Suite on egress-agent...';
+  for (let i = 0; i < 3; i++) {
+    const el = document.getElementById('eg-val-' + i);
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(8px)';
+    el.style.display = 'none';
+  }
+  try {
+    const d = await postJson('/api/act3-egress', {});
+    const verdicts = [
+      '🔑 Wire Swapped: ' + d.injected_auth,
+      '🛡️ ' + (d.dns_block_summary || d.dns_block_msg),
+      '🔒 ' + d.credential_uri,
+    ];
+    verdicts.forEach((text, idx) => {
+      const el = document.getElementById('eg-val-' + idx);
+      el.textContent = text;
+      setTimeout(() => {
+        el.style.display = 'inline-block';
+        requestAnimationFrame(() => {
+          el.style.opacity = '1';
+          el.style.transform = 'translateX(0)';
+        });
+      }, idx * 180);
+    });
+    setFooterTelemetry(d);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🛡️ Re-Run Act 3 Live on egress-agent (Test A + Test B + Audit)';
+  }
+}
+
+async function runRound1() {
+  const btn = document.getElementById('btn-s1');
+  btn.disabled = true;
+  btn.textContent = '💥 Detonating 6-Point gVisor Probe Inside py-detonation-agent...';
+  const feed = document.getElementById('s1-feed');
+  feed.style.display = 'flex';
+  for (let i = 0; i < 6; i++) {
+    document.getElementById('p-row-' + i).classList.remove('visible');
+  }
+  try {
+    const d = await postJson('/api/round1-detonate', {});
+    const p = d.probes || {};
+    document.getElementById('p-val-0').textContent = '🛡️ ' + p.kernel + ' · /data ' + p.data_mode;
+    document.getElementById('p-val-1').textContent = '🛡️ ' + p.mount_syscall;
+    document.getElementById('p-val-2').textContent = '🛡️ ' + p.proc_escape;
+    document.getElementById('p-val-3').textContent = '🛡️ ' + ((p.secret_env_vars || []).length === 0 ? '0 Secrets Found in Environment' : 'LEAK: ' + p.secret_env_vars.join(','));
+    document.getElementById('p-val-4').textContent = '🛡️ ' + (p.k8s_sa_token_mounted ? 'LEAK' : 'NOT MOUNTED (SA Token: False)');
+    document.getElementById('p-val-5').textContent = '🛡️ ' + p.gke_metadata;
+    setFooterTelemetry(d);
+
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => {
+        document.getElementById('p-row-' + i).classList.add('visible');
+      }, i * 200);
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💥 Re-Detonate Act 1: 6-Point gVisor Probe';
+  }
+}
+
+const LIVE_PROBES = [
+  'import platform; print(platform.platform())',
+  'import os; print("mode:", oct(os.stat("/data").st_mode), "SA token:", os.path.exists("/var/run/secrets/kubernetes.io/serviceaccount/token"))',
+  'import os; print(sorted(os.environ.keys()))'
+];
+
+async function runLiveProbe(idx) {
+  const pyCode = LIVE_PROBES[idx] || LIVE_PROBES[0];
+  const outEl = document.getElementById('s1-shell-out');
+  outEl.classList.add('show');
+  outEl.textContent = '$ python3 -c "' + pyCode + '" -> running inside py-detonation-agent...';
+  try {
+    const d = await postJson('/api/custom-python', {probe_id: idx});
+    outEl.textContent = '$ python3 -c "' + (d.code || pyCode) + '"\n' + ((d.stdout || d.stderr || '').trim());
+    setFooterTelemetry(d);
+  } catch (e) {
+    outEl.textContent = 'Error: ' + e.message;
+  }
+}
+
+async function runSeedClean() {
+  const btn = document.getElementById('btn-s2');
+  const btn3 = document.getElementById('btn-s3');
+  btn.disabled = true;
+  btn.textContent = '🌱 Verifying Clean Checkpoint...';
+  hideAct4Badges([0, 1, 2, 3]);
+  try {
+    const d = await postJson('/api/seed-clean-buddy', {});
+    const b = d.brain || {};
+    revealAct4Badge(
+      0,
+      `🟢 ${b.approval_policy || 'REQUIRE_HUMAN_APPROVAL'} · RAM=${b.mem_count ?? 1} · /data=${b.disk_count ?? 1}`,
+      0
+    );
+    btn3.textContent = '⏪ 2. Revert + OTel Trace (--trace)';
+    setFooterTelemetry(d);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🧪 1. Detonate Prompt Injection (Flip ADK Policy)';
+  }
+}
+
+async function runRound2() {
+  const btn = document.getElementById('btn-s2');
+  const btn3 = document.getElementById('btn-s3');
+  btn.disabled = true;
+  btn.textContent = '🧪 Executing ADK Tool Hijack in RAM & /data...';
+  hideAct4Badges([0, 1, 2, 3]);
+  btn3.textContent = '⏪ 2. Revert + OTel Trace (--trace)';
+  try {
+    const d = await postJson('/api/round2-poison', {});
+    const b = d.brain || {};
+    revealAct4Badge(
+      0,
+      `🟢 ${d.baseline_policy || 'REQUIRE_HUMAN_APPROVAL'} · RAM=${d.baseline_mem ?? 1} · /data=${d.baseline_disk ?? 1}`,
+      0
+    );
+    revealAct4Badge(
+      1,
+      `🚨 HIJACKED: ${b.approval_policy || 'AUTO_APPROVE_ALL'} · RAM=${b.mem_count ?? 2} · /data=${b.disk_count ?? 2}`,
+      200
+    );
+    setFooterTelemetry(d);
+    btn.textContent = '🚨 1. Policy Hijacked! (Click 2 to Revert)';
+  } catch (e) {
+    btn.textContent = '🧪 1. Detonate Prompt Injection (Flip ADK Policy)';
+    throw e;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function runRound3Revert() {
+  const btn = document.getElementById('btn-s3');
+  const btn2 = document.getElementById('btn-s2');
+  btn.disabled = true;
+  btn.textContent = '⏪ Rewinding RAM + /data via kubectl ate revert...';
+  hideAct4Badges([2, 3]);
+  try {
+    const dRev = await postJson('/api/round3-revert-and-trace', {});
+    const b = dRev.brain || {};
+    const msText = `${dRev.kernel_restore_ms} ms`;
+    const traceShort = (dRev.trace_id || '').slice(0, 12);
+    revealAct4Badge(
+      2,
+      `🟢 HEALED: ${b.approval_policy || 'REQUIRE_HUMAN_APPROVAL'} · RAM=${b.mem_count ?? 1} · /data=${b.disk_count ?? 1}`,
+      0
+    );
+    revealAct4Badge(
+      3,
+      `⚡ ${msText} restore · Trace: ${traceShort ? traceShort + '...' : 'live'}`,
+      200
+    );
+    setFooterTelemetry(dRev);
+    btn2.textContent = '🧪 1. Detonate Prompt Injection (Flip ADK Policy)';
+    btn.textContent = `⏪ 2. Reverted (${msText} avg)`;
+  } catch (e) {
+    btn.textContent = '⏪ 2. Revert + OTel Trace (--trace)';
+    throw e;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  refreshClusterWhisper();
+});
+</script>
+</body>
+</html>

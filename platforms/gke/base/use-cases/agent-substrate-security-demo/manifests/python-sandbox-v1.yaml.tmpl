@@ -1,0 +1,69 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# ActorTemplate python-sandbox-v1 (Act 1 — gVisor Sandbox Boundary Demo):
+# Runs the upstream kubernetes-sigs/agent-sandbox Python runtime inside a gVisor
+# (runsc) Actor with a mode=0777 durableDir (/data) and Kubernetes 1.37
+# ClusterTrustBundle mounted at /run/ate/trust-bundle.pem.
+metadata:
+  atespace: ${ATESPACE}
+  name: python-sandbox-v1
+workerSelector:
+  matchLabels:
+    workload: workshop-agent
+containers:
+- name: sandbox
+  image: registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5
+  command:
+  - uvicorn
+  - main:app
+  - --app-dir
+  - /app
+  - --host
+  - 0.0.0.0
+  - --port
+  - "80"
+  env:
+  - name: PORT
+    value: "80"
+  - name: SSL_CERT_FILE
+    value: /run/ate/trust-bundle.pem
+  - name: SSL_CERT_DIR
+    value: /run/ate
+  wakeupProbe:
+    httpGet:
+      path: /
+      port: 80
+  volumeMounts:
+  - name: data
+    mountPath: /data
+  - name: system-info
+    mountPath: /run/ate
+resources:
+  limits:
+    cpuMillicores: 1000
+    memoryBytes: 536870912
+snapshotConfig:
+  preferredFidelity: SNAPSHOT_FIDELITY_MEMORY
+volumes:
+- name: data
+  durableDir: {}
+- name: system-info
+  systemInfo:
+    dataSources:
+    - trustBundle:
+        names:
+        - egress-mitm.ate.dev
+        - system-roots.ate.dev
+        path: trust-bundle.pem

@@ -19,6 +19,15 @@ cluster (`Option A`).
   `github.com/agent-substrate/substrate` at pinned commit `b34fbee7` / `v1.0.0`)
 - `jq`, `curl`, `envsubst`, `python3`, `openssl`
 
+### Choosing Between Option A and Option B
+
+| Dimension                           | Option A: Standalone Zonal Cluster (`scripts/`)                                                                   | Option B: Regional GKE Base Platform (`terraform/`)                                                                                                                                                                                                                                                                 |
+| :---------------------------------- | :---------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **VM Footprint & Quota**            | **2 zonal VMs** (`default-pool` in 1 zone; minimal quota for workshops or tight regional capacity)                | **6–7 regional VMs** (`3` `system` + `2` `agent-substrate-*` + `1–2` GKE NAP nodes across zones)                                                                                                                                                                                                                    |
+| **VM-Level Blast-Radius Isolation** | Co-locates `ate-system` and `ateworker-gvisor` on the 2 untainted nodes (isolated via `gVisor` + `NetworkPolicy`) | **Dedicated VM separation**: `ate.dev/sandboxClass=gvisor:NoSchedule` + `nodeAffinity` pin `ateworker-gvisor` (and per-node `atelet`) to `agent-substrate-*` VMs while `ate-controller`, `atenet-router`, `k8s-credential-provider`, `postgres`, `gateway`, and `partner-api` run on separate untainted GKE NAP VMs |
+| **Provisioning Time**               | **~6–8 min** (`gcloud` + `stage.sh`)                                                                              | **~18–22 min** (Core Terraservices + use-case Terraservice + `stage.sh`)                                                                                                                                                                                                                                            |
+| **Capacity / Stockout Fallback**    | `CLUSTER_LOCATION=<zone> MACHINE_TYPE=e2-standard-4` (with fast 15s MIG stockout detection)                       | `TF_VAR_cluster_system_node_pool_machine_type="e2-standard-4"`, `TF_VAR_agent_substrate_node_machine_type="e2-standard-4"`, and optional `TF_VAR_agent_substrate_node_locations`                                                                                                                                    |
+
 ## Option A: Standalone Private-Node GKE 1.37+ Cluster (~6–8 min) + 4-Act Demo
 
 1. Set your Google Cloud project ID and create a GKE `1.37+` cluster with
@@ -82,19 +91,25 @@ cluster (`Option A`).
 
 ## Option B: Deploy with GKE Base Platform Terraservices
 
-> [!NOTE] Agent Substrate `v1.0.0` requires Kubernetes `>= 1.37` on both the GKE
-> control plane and worker nodes so `certificates.k8s.io` >
-> `PodCertificateRequest` and `ClusterTrustBundle` are available. The
-> `agent_substrate_security_demo` Terraservice enforces a Terraform precondition
-> checking the cluster version.
+> [!NOTE]
+>
+> Agent Substrate `v1.0.0` requires Kubernetes `>= 1.37` on both the GKE control
+> plane and worker nodes so `certificates.k8s.io` `PodCertificateRequest` and
+> `ClusterTrustBundle` are available. The `agent_substrate_security_demo`
+> Terraservice enforces a Terraform precondition checking the cluster version.
 
 1. Set the platform default project ID (and optionally override region,
-   environment name, or node machine type):
+   environment name, node machine types, or worker zones when `N4`/`C4` capacity
+   is constrained):
 
    ```shell
    export TF_VAR_platform_default_project_id="<PROJECT_ID>"
    # Optional: export TF_VAR_platform_default_region="us-central1"
    # Optional: export TF_VAR_agent_substrate_node_machine_type="c4-standard-4"
+   # Optional fallback when regional N4/C4 capacity is exhausted:
+   # export TF_VAR_cluster_system_node_pool_machine_type="e2-standard-4"
+   # export TF_VAR_agent_substrate_node_machine_type="e2-standard-4"
+   # export TF_VAR_agent_substrate_node_locations='["europe-west4-a","europe-west4-b"]'
    ```
 
 1. Run the automated deployment script (provisions the GKE Base Platform,

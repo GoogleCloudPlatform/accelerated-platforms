@@ -325,6 +325,29 @@ def metrics() -> PlainTextResponse:
     )
 
 
+MAX_MODEL_BODY_BYTES = 4 * 1024 * 1024
+
+
+def parse_model_request_body(raw_body: bytes) -> dict[str, Any]:
+    """Validate and parse an inbound JSON object body for model proxy calls."""
+    if len(raw_body) > MAX_MODEL_BODY_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Model request payload exceeds {MAX_MODEL_BODY_BYTES} bytes",
+        )
+    try:
+        payload = json.loads(raw_body)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid JSON payload: {exc}"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise HTTPException(
+            status_code=400, detail="Model request payload must be a JSON object"
+        )
+    return payload
+
+
 @model_app.post(
     "/v1beta1/projects/{sandbox_project}/locations/{sandbox_location}/publishers/google/models/{model_action:path}"
 )
@@ -337,7 +360,7 @@ async def proxy_adk_generate_content(
     """Zero-secret proxy endpoint invoked by Google ADK (`Gemini(base_url=...)`)."""
     del sandbox_project, sandbox_location
     validate_model_action(model_action)
-    payload = await request.json()
+    payload = parse_model_request_body(await request.body())
     api_client = request.headers.get("x-goog-api-client", "")
     data = await asyncio.to_thread(_forward_gemini, payload, api_client)
     return JSONResponse(data, headers={"Connection": "close"})
@@ -366,7 +389,7 @@ def chat_actor(actor: str, body: dict[str, Any]) -> Any:
 @admin_app.get("/actors/{actor}/state", dependencies=[Depends(verify_admin_token)])
 def actor_state(actor: str) -> Any:
     status_code, raw_text = _call_router(
-        actor=actor, path="/state", method="GET", timeout=30.0
+        actor=actor, path="/state", method="GET", timeout=45.0
     )
     return _json_or_text_response(status_code, raw_text)
 

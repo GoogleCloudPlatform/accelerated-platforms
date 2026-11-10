@@ -180,26 +180,33 @@ autonomous agent vulnerabilities and supply-chain incidents:
 
 ## Production Best Practices
 
-1. **Dedicated Sandbox Node Pools & Taints**: On multi-node production clusters
-   (`Option B`), taint the sandbox node pool with
-   `ate.dev/sandboxClass=gvisor:NoSchedule` and pair it with `WorkerPool`
-   `nodeAffinity` (`workload=agent-substrate`). Untrusted `ateworker-gvisor`
-   sandboxes (and their local `atelet` DaemonSet) remain physically separated at
-   the VM layer from `ate-controller`, `atenet-router`,
-   `k8s-credential-provider`, `postgres`, gateways, and internal APIs.
+1. **Dedicated Homogeneous Sandbox Node Pools & Taints**: On multi-node
+   production clusters (`Option B`), taint the sandbox node pool with
+   `ate.dev/sandboxClass=gvisor:NoSchedule`, pair it with `WorkerPool`
+   `nodeAffinity` (`workload=agent-substrate`), and use a homogeneous CPU
+   machine family (`n4-standard-4`, `c4-standard-4`, `c3-standard-4`, or
+   `n2-standard-4`). `gVisor` memory snapshots (`SNAPSHOT_FIDELITY_MEMORY`)
+   record host `cpu_features` and require matching CPU feature sets to restore
+   RAM across nodes (heterogeneous `e2-*` pools mixing Intel and AMD hosts
+   across zones fall back to cold start + `/data` `durableDir` restore).
+   Untrusted `ateworker-gvisor` sandboxes remain physically separated at the VM
+   layer from `ate-controller`, `atenet-router`, `k8s-credential-provider`,
+   `postgres`, gateways, and internal APIs.
 2. **Split-Plane Gateways & Authenticated Router Ingress**: Keep actor-routing
    and operator APIs off cluster-reachable listeners. Authenticate
    gateway-to-router traffic over `atenet-router:443` using native
    `PodCertificate` SPIFFE mTLS (`--ingress-allowed-spiffe-ids`), bind
    administrative listeners (`:8081`) to `127.0.0.1` with token authentication,
    and lock actor-facing model proxies (`:8080`) behind explicit `NetworkPolicy`
-   ingress rules matching only `ate-system/atenet-egress`.
+   ingress rules matching only `ate-system/atenet-egress` (and `gmp-system` for
+   metrics scraping).
 3. **Zero-Secret Sandboxes & Non-Reflecting Upstreams**: Never mount Kubernetes
    ServiceAccount tokens, Workload Identity bindings, or third-party API keys
    into actor containers. Store secrets in a dedicated namespace (synced from
    Google Cloud Secret Manager in production), inject headers on the wire via
-   `atenet-egress`, and allowlist only production APIs that never echo request
-   headers back in response bodies.
+   `atenet-egress`, lock internal verification or broker services with both
+   ingress and default-deny egress `NetworkPolicy` rules, and allowlist only
+   production APIs that never echo request headers back in response bodies.
 4. **Immutable Digest-Pinned Container Images (`@sha256:`)**: Resolve and pin
    both `ateworker-gvisor` and actor application images by immutable `@sha256:`
    digest so Golden Tags (`TAG_SCOPE_PUBLISHED`) and actor restores remain
@@ -244,3 +251,4 @@ Base Platform Terraservices (`Option B`), running the 4-Act CLI verification,
 launching the Mission Control UI, and tearing down all resources are in:
 
 - [Agent Substrate Security & Detonation Reference Implementation](/platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/README.md)
+- [Canned PromQL & Cloud Logging Queries](/platforms/gke/base/use-cases/agent-substrate-security-demo/observability/queries.md)

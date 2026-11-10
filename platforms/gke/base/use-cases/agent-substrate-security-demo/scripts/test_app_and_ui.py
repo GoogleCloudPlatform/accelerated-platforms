@@ -200,6 +200,21 @@ class EgressAndGatewayUnitTest(unittest.TestCase):
         self.assertIn("agent_gateway_chat_turns_total", rendered)
         self.assertNotIn("workshop_", rendered)
 
+    def test_gateway_model_body_validation(self) -> None:
+        self.assertEqual(
+            gateway.parse_model_request_body(b'{"contents": []}'),
+            {"contents": []},
+        )
+        for bad_raw in (b"{invalid-json", b"[]", b'"scalar"'):
+            with self.assertRaises(gateway.HTTPException) as ctx_bad:
+                gateway.parse_model_request_body(bad_raw)
+            self.assertEqual(ctx_bad.exception.status_code, 400)
+
+        oversized = b"a" * (gateway.MAX_MODEL_BODY_BYTES + 1)
+        with self.assertRaises(gateway.HTTPException) as ctx_big:
+            gateway.parse_model_request_body(oversized)
+        self.assertEqual(ctx_big.exception.status_code, 413)
+
 
 class MissionControlSecurityAndVerdictTest(unittest.TestCase):
     """Verifies Host-header anti-rebinding, CSRF/auth headers, preset guards, and verdicts."""
@@ -278,6 +293,21 @@ class MissionControlSecurityAndVerdictTest(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError) as ctx_csrf:
                 urllib.request.urlopen(req_no_csrf, timeout=5)
             self.assertEqual(ctx_csrf.exception.code, 403)
+
+            # 3. Malformed or non-object JSON POST must fail fast with 400
+            for bad_payload in (b"{not-json", b"[]"):
+                req_bad_json = urllib.request.Request(
+                    f"http://127.0.0.1:{port}/api/ask-buddy",
+                    data=bad_payload,
+                    headers={
+                        "Content-Type": "application/json",
+                        "X-Requested-With": "MissionControl",
+                    },
+                    method="POST",
+                )
+                with self.assertRaises(urllib.error.HTTPError) as ctx_json:
+                    urllib.request.urlopen(req_bad_json, timeout=5)
+                self.assertEqual(ctx_json.exception.code, 400)
         finally:
             server.shutdown()
             server.server_close()

@@ -16,7 +16,8 @@ cluster (`Option A`).
   (`gcloud components install gke-gcloud-auth-plugin`)
 - `kubectl`, `git`, `jq`, `curl`, `envsubst`, `python3`, `openssl`
 - `go` (`>= 1.23`; automatically downloads the Go toolchain declared by upstream
-  `github.com/agent-substrate/substrate` at pinned commit `b34fbee7` / `v1.0.0`)
+  `github.com/agent-substrate/substrate` at pinned commit `b34fbee7` / `v1.0.0`,
+  or resolves `SUBSTRATE_REF` dynamically when overridden)
 - `terraform` (`>= 1.8.0`; required for `Option B` Terraservice deployments)
 - A Google Cloud project with billing enabled and permissions to enable project
   APIs (`container`, `compute`, `iam`, `iamcredentials`, `storage`,
@@ -32,7 +33,7 @@ cluster (`Option A`).
 | **VM Footprint & Quota**            | **2 zonal VMs** (`default-pool` in 1 zone; minimal quota for evaluation, development, or capacity-constrained regions) | **6–7 regional VMs** (`3` `system` + `2` `agent-substrate-*` + `1–2` GKE NAP nodes across zones)                                                                                                                                                                                                                    |
 | **VM-Level Blast-Radius Isolation** | Co-locates `ate-system` and `ateworker-gvisor` on the 2 untainted nodes (isolated via `gVisor` + `NetworkPolicy`)      | **Dedicated VM separation**: `ate.dev/sandboxClass=gvisor:NoSchedule` + `nodeAffinity` pin `ateworker-gvisor` (and per-node `atelet`) to `agent-substrate-*` VMs while `ate-controller`, `atenet-router`, `k8s-credential-provider`, `postgres`, `gateway`, and `partner-api` run on separate untainted GKE NAP VMs |
 | **Provisioning Time**               | **~6–8 min** (`gcloud` + `stage.sh`)                                                                                   | **~18–22 min** (Core Terraservices + use-case Terraservice + `stage.sh`)                                                                                                                                                                                                                                            |
-| **Capacity / Stockout Fallback**    | `export CLUSTER_LOCATION=<zone> MACHINE_TYPE=e2-standard-4` (with fast 15s MIG stockout detection)                     | `TF_VAR_cluster_system_node_pool_machine_type="e2-standard-4"`, `TF_VAR_agent_substrate_node_machine_type="e2-standard-4"`, and optional `TF_VAR_agent_substrate_node_locations`                                                                                                                                    |
+| **Capacity / Stockout Fallback**    | `export CLUSTER_LOCATION=<zone> MACHINE_TYPE=n2-standard-4` (or `c3-standard-4`; fast 15s MIG stockout detection)      | `TF_VAR_cluster_system_node_pool_machine_type="n2-standard-4"`, `TF_VAR_agent_substrate_node_machine_type="n2-standard-4"` (prefer homogeneous `n2`/`c3` over heterogeneous Intel/AMD `e2` for cross-node RAM snapshot restore), and optional `TF_VAR_agent_substrate_node_locations`                               |
 
 ## Option A: Standalone Private-Node GKE 1.37+ Cluster (~6–8 min) + 4-Act Verification
 
@@ -49,7 +50,7 @@ cluster (`Option A`).
    # Optional overrides (keep exported for stage.sh and teardown.sh):
    # export CLUSTER_NAME="agent-substrate-live"
    # export CLUSTER_LOCATION="europe-west4-b"
-   # export MACHINE_TYPE="e2-standard-4"
+   # export MACHINE_TYPE="n2-standard-4"
 
    ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/create-cluster.sh
 
@@ -92,8 +93,9 @@ cluster (`Option A`).
    ```
 
    Open `http://127.0.0.1:18090` in your browser to run all 4 Acts and inspect
-   live Google Managed Prometheus telemetry (`:9090`). When running on a remote
-   workstation, forward the loopback port over SSH
+   live Google Managed Prometheus telemetry (`:9090`; see
+   [Canned PromQL & Cloud Logging Queries](/platforms/gke/base/use-cases/agent-substrate-security-demo/observability/queries.md)).
+   When running on a remote workstation, forward the loopback port over SSH
    (`ssh -L 18090:127.0.0.1:18090 <host>`), or set `ALLOWED_HOSTS=<proxy-host>`
    behind an authenticated reverse proxy.
 
@@ -126,9 +128,9 @@ cluster (`Option A`).
    # Optional: export TF_VAR_platform_name="dev"
    # Optional: export TF_VAR_agent_substrate_node_machine_type="c4-standard-4"
    # Optional: export GEMINI_MODEL="gemini-2.5-flash"
-   # Optional fallback when regional N4/C4 capacity is exhausted:
-   # export TF_VAR_cluster_system_node_pool_machine_type="e2-standard-4"
-   # export TF_VAR_agent_substrate_node_machine_type="e2-standard-4"
+   # Optional fallback when regional N4/C4 capacity is exhausted (prefer homogeneous N2/C3 for cross-node RAM snapshots):
+   # export TF_VAR_cluster_system_node_pool_machine_type="n2-standard-4"
+   # export TF_VAR_agent_substrate_node_machine_type="n2-standard-4"
    # export TF_VAR_agent_substrate_node_locations='["europe-west4-a","europe-west4-b"]'
    ```
 
@@ -173,10 +175,11 @@ All Gateway, verifier, and Actor Python modules live under
   `gVisor` sandbox and dual-layer ADK `InMemoryRunner` session +
   `/data/policy.json` persistence.
 - `app/egress_agent.py`: Zero-secret HTTP(S) fetch actor (`egress-agent-v1`)
-  with strict URL scheme validation.
+  with strict URL scheme validation and bounded response reads.
 - `app/partner_api.py`: Cluster-local (`ns/agent-secrets`) non-reflecting
-  credential verifier for Act 3 that validates wire-injected tokens without
-  echoing secret bytes back to the caller.
+  credential verifier for Act 3 (with ingress restricted to `atenet-egress` and
+  default-deny egress) that validates wire-injected tokens without echoing
+  secret bytes back to the caller.
 - `app/Dockerfile`: Digest-pinned container build on top of
   `python-runtime-sandbox:v0.5.6`.
 

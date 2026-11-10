@@ -35,7 +35,6 @@ gopath
 gowork
 hmac
 hostnames
-httpbin
 iamcredentials
 imagecache
 isalnum

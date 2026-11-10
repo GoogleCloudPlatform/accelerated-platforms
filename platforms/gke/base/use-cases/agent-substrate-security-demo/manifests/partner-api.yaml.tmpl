@@ -13,8 +13,9 @@
 # limitations under the License.
 
 # Cluster-local non-reflecting credential verification service in ${SECRETS_NAMESPACE}.
-# Admits ingress exclusively from `atenet-egress` (`ns/ate-system`) and returns only
-# a boolean authentication status + SHA-256 prefix (never echoing the raw credential).
+# Admits ingress exclusively from `atenet-egress` (`ns/ate-system`), enforces default-deny
+# egress, and returns only a boolean authentication status + SHA-256 prefix (never echoing
+# the raw credential).
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -89,6 +90,8 @@ spec:
       app: partner-api
   policyTypes:
   - Ingress
+  - Egress
+  egress: []
   ingress:
   - from:
     - namespaceSelector:

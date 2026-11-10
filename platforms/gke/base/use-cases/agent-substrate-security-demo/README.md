@@ -5,3 +5,5 @@
 - Deployment & verification guide (`Option A` standalone scripts and `Option B`
   GKE Base Platform Terraservices):
   [Agent Substrate Security & Detonation Reference Implementation](/platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/README.md)
+- Telemetry & forensic log queries:
+  [Canned PromQL & Cloud Logging Queries](/platforms/gke/base/use-cases/agent-substrate-security-demo/observability/queries.md)

@@ -48,7 +48,7 @@ variable "agent_substrate_min_gke_version" {
 
 variable "agent_substrate_node_disk_type" {
   default     = null
-  description = "Boot disk type for the Agent Substrate worker node pool. Defaults to hyperdisk-balanced for C4/N4 and pd-balanced for C3/E2."
+  description = "Boot disk type for the Agent Substrate worker node pool. Defaults to hyperdisk-balanced for C4/N4 and pd-balanced for C3/N2/E2."
   type        = string
 }
 
@@ -60,7 +60,7 @@ variable "agent_substrate_node_locations" {
 
 variable "agent_substrate_node_machine_type" {
   default     = null
-  description = "Machine type for the Agent Substrate worker node pool (for example: c4-standard-4, n4-standard-4, or c3-standard-4)."
+  description = "Machine type for the Agent Substrate worker node pool (for example: c4-standard-4, n4-standard-4, c3-standard-4, or n2-standard-4)."
   type        = string
 }
 

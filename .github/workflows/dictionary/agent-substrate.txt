@@ -15,8 +15,10 @@ certfile
 cmdline
 cmek
 devnull
+eacces
 ecdsap
 embracethered
+enoent
 eperm
 errorcode
 errored

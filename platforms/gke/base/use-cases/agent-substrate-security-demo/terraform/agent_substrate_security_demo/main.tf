@@ -34,7 +34,7 @@ data "google_service_account" "cluster" {
 }
 
 locals {
-  worker_zones = slice([
+  worker_zones = try(length(local.agent_substrate_node_locations), 0) > 0 ? local.agent_substrate_node_locations : slice([
     for zone in data.google_compute_zones.region.names : zone
     if !can(regex("-ai", zone))
   ], 0, 2)
@@ -103,6 +103,12 @@ resource "google_container_node_pool" "agent_substrate_workers" {
     shielded_instance_config {
       enable_integrity_monitoring = true
       enable_secure_boot          = true
+    }
+
+    taint {
+      effect = "NO_SCHEDULE"
+      key    = "ate.dev/sandboxClass"
+      value  = "gvisor"
     }
   }
 

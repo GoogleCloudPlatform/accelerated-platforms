@@ -94,15 +94,15 @@ wait_for() {
 }
 
 verify_gke_version() {
-  local ver_json nodes_json
+  local ver_json nodes_tsv
   ver_json="$(kubectl version -o json)"
-  nodes_json="$(kubectl get nodes -o json)"
-  python3 - "${MIN_GKE_VERSION}" "${ver_json}" "${nodes_json}" <<'EOF'
+  nodes_tsv="$(kubectl get nodes -o 'jsonpath={range .items[*]}{.metadata.name}{"\t"}{.status.nodeInfo.kubeletVersion}{"\n"}{end}')"
+  python3 - "${MIN_GKE_VERSION}" "${ver_json}" "${nodes_tsv}" <<'EOF'
 import json, re, sys
 
 min_parts = [int(x) for x in sys.argv[1].split(".")[:2]]
 ver_doc = json.loads(sys.argv[2])
-nodes_doc = json.loads(sys.argv[3])
+nodes_lines = [ln for ln in sys.argv[3].splitlines() if ln.strip()]
 
 def parse_minor(raw: str) -> tuple[int, int]:
     m = re.match(r"^v?(\d+)\.(\d+)", raw.strip())
@@ -118,12 +118,12 @@ if parse_minor(srv_str) < tuple(min_parts):
         "(native PodCertificateRequest & ClusterTrustBundle)."
     )
 
-items = nodes_doc.get("items") or []
-if not items:
+if not nodes_lines:
     raise SystemExit("Error: cluster has 0 ready worker nodes.")
-for node in items:
-    name = (node.get("metadata") or {}).get("name", "<unknown>")
-    kv = ((node.get("status") or {}).get("nodeInfo") or {}).get("kubeletVersion", "")
+for ln in nodes_lines:
+    parts = ln.split("\t", 1)
+    name = parts[0]
+    kv = parts[1] if len(parts) > 1 else ""
     if parse_minor(kv) < tuple(min_parts):
         raise SystemExit(
             f"Error: worker node {name} runs kubelet {kv}, but Agent Substrate requires >= {sys.argv[1]}."

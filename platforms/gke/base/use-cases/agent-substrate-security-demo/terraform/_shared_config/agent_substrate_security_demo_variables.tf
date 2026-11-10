@@ -24,6 +24,7 @@ locals {
   agent_substrate_version                       = var.agent_substrate_version != null ? var.agent_substrate_version : "v1.0.0"
   agent_substrate_min_gke_version               = var.agent_substrate_min_gke_version != null ? var.agent_substrate_min_gke_version : "1.37"
   agent_substrate_node_machine_type             = var.agent_substrate_node_machine_type != null ? var.agent_substrate_node_machine_type : "n4-standard-4"
+  agent_substrate_node_locations                = var.agent_substrate_node_locations
   agent_substrate_node_disk_type                = var.agent_substrate_node_disk_type != null ? var.agent_substrate_node_disk_type : (can(regex("^(c4|n4)-", local.agent_substrate_node_machine_type)) ? "hyperdisk-balanced" : "pd-balanced")
 }
 
@@ -49,6 +50,12 @@ variable "agent_substrate_node_disk_type" {
   default     = null
   description = "Boot disk type for the Agent Substrate worker node pool. Defaults to hyperdisk-balanced for C4/N4 and pd-balanced for C3/E2."
   type        = string
+}
+
+variable "agent_substrate_node_locations" {
+  default     = null
+  description = "Optional list of zones for the Agent Substrate worker node pool when overriding default regional zone selection due to stockouts."
+  type        = list(string)
 }
 
 variable "agent_substrate_node_machine_type" {

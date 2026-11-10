@@ -89,6 +89,11 @@ for terraservice in "${use_case_terraservices[@]}"; do
     "terraform.tfstate"*
 done
 
+rm -rf \
+  "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/.terraform/" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/terraform.tfstate"* \
+  "${ACP_PLATFORM_USE_CASE_DIR}/.state"
+
 if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
   "${ACP_PLATFORM_CORE_DIR}/teardown-standard.sh"
 else

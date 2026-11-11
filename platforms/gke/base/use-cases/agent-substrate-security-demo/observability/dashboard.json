@@ -14,7 +14,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "max by (\"ate.worker.state\") ({\"ate.workerpool.workers\", \"ate.workerpool.name\"=\"agents\"})"
+                  "prometheusQuery": "sum by (\"ate.worker.state\") (avg by (\"ate.workerpool.namespace\", \"ate.workerpool.name\", \"ate.worker.state\", \"ate.sandbox.class\") ({\"ate.workerpool.workers\", \"ate.workerpool.name\"=\"agents\", \"ate.sandbox.class\"!=\"unknown\"}))"
                 },
                 "plotType": "STACKED_AREA",
                 "legendTemplate": "${metric.labels.ate.worker.state}"
@@ -38,7 +38,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum({\"ate.workerpool.workers\", \"ate.workerpool.name\"=\"agents\", \"ate.worker.state\"!=\"idle\"})"
+                  "prometheusQuery": "sum(avg by (\"ate.workerpool.namespace\", \"ate.workerpool.name\", \"ate.worker.state\", \"ate.sandbox.class\") ({\"ate.workerpool.workers\", \"ate.workerpool.name\"=\"agents\", \"ate.worker.state\"=~\"partial|at_capacity\", \"ate.sandbox.class\"!=\"unknown\"}))"
                 },
                 "plotType": "LINE",
                 "legendTemplate": "active workers (partial/at_capacity)"
@@ -191,7 +191,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, \"ate.template.name\") (rate({\"ate.actor.restore.duration_bucket\"}[5m])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, \"ate.template.name\") (rate({\"ate.actor.restore.duration_bucket\", \"ate.snapshot.phase\"=\"total\"}[5m])))",
                   "unitOverride": "s"
                 },
                 "plotType": "LINE",
@@ -236,12 +236,12 @@
         "width": 6,
         "height": 4,
         "widget": {
-          "title": "Actor restores / s by snapshot kind (golden vs latest vs local)",
+          "title": "Actor restores / s by snapshot kind (latest vs local)",
           "xyChart": {
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (\"ate.snapshot.kind\") (rate({\"ate.actor.restore.duration_count\"}[5m]))"
+                  "prometheusQuery": "sum by (\"ate.snapshot.kind\") (rate({\"ate.actor.restore.duration_count\", \"ate.snapshot.phase\"=\"total\"}[5m]))"
                 },
                 "plotType": "STACKED_BAR",
                 "legendTemplate": "${metric.labels.ate.snapshot.kind}"
@@ -265,7 +265,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, \"ate.template.name\") (rate({\"atelet.snapshot.size_bucket\"}[10m])))",
+                  "prometheusQuery": "histogram_quantile(0.95, sum by (le, \"ate.template.name\") (rate({\"atelet.snapshot.size_bucket\", \"file.name\"=\"pages.img\"}[10m])))",
                   "unitOverride": "By"
                 },
                 "plotType": "LINE",
@@ -290,7 +290,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (\"ate.template.name\") ({\"ate.actor.stats.memory.working_set\"})",
+                  "prometheusQuery": "sum by (\"ate.template.name\") ({\"ate.actor.stats.memory.working_set\", \"ate.stats.source\"=\"cgroup\"})",
                   "unitOverride": "By"
                 },
                 "plotType": "STACKED_AREA",
@@ -315,7 +315,7 @@
             "dataSets": [
               {
                 "timeSeriesQuery": {
-                  "prometheusQuery": "sum by (\"ate.template.name\") (rate({\"ate.actor.stats.cpu.time\"}[5m]))",
+                  "prometheusQuery": "sum by (\"ate.template.name\") (rate({\"ate.actor.stats.cpu.time\", \"ate.stats.source\"=\"cgroup\"}[5m]))",
                   "unitOverride": "1"
                 },
                 "plotType": "STACKED_AREA",

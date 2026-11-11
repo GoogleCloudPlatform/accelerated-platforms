@@ -15,20 +15,18 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ${NAMESPACE}
-  labels:
-    ate.dev/api-access: "true"
+  name: "${NAMESPACE}"
 ---
 apiVersion: ate.dev/v1
 kind: WorkerPool
 metadata:
   name: agents
-  namespace: ${NAMESPACE}
+  namespace: "${NAMESPACE}"
   labels:
     workload: substrate-agent
 spec:
   replicas: 2
-  workerImage: ${WORKER_IMAGE}
+  workerImage: "${WORKER_IMAGE}"
   sandboxClasses:
   - name: gvisor
     configRef:
@@ -46,7 +44,7 @@ spec:
     resources:
       limits:
         cpu: "1"
-        memory: 1Gi
+        memory: 2Gi
       requests:
-        cpu: 250m
-        memory: 1Gi
+        cpu: "1"
+        memory: 2Gi

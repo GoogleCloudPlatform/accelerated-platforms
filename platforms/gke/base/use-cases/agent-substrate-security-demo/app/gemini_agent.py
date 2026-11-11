@@ -28,9 +28,9 @@ Built with Google Agent Development Kit (`google-adk`) and Gemini models
 import asyncio
 import datetime
 import json
+import logging
 import os
 import socket
-import sys
 import tempfile
 import threading
 from collections.abc import AsyncIterator
@@ -39,7 +39,7 @@ from typing import Any
 
 import google.oauth2.credentials
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse, PlainTextResponse
 from google.adk.agents import Agent
 from google.adk.events import Event
@@ -47,13 +47,16 @@ from google.adk.models import Gemini
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
+LOGGER = logging.getLogger(__name__)
+
 APP_NAME = "security-demo"
 USER_ID = "operator"
 SESSION_ID = "main"
 AGENT_NAME = "security_demo_agent"
 DEFAULT_POLICY = "REQUIRE_HUMAN_APPROVAL"
+MAX_CHAT_MESSAGE_CHARS = 32_768
 
-STARTED_AT = datetime.datetime.now(datetime.timezone.utc).isoformat()
+STARTED_AT = datetime.datetime.now(datetime.UTC).isoformat()
 GATEWAY_URL = os.environ.get(
     "GATEWAY_URL", "http://gateway.agent-sandbox.svc.cluster.local"
 )
@@ -96,7 +99,7 @@ def set_approval_policy(policy: str) -> dict[str, str]:
     """Update the runtime approval policy in Python RAM and /data/policy.json.
 
     Args:
-        policy: Policy identifier such as REQUIRE_HUMAN_APPROVAL or AUTO_APPROVE_ALL.
+        policy: Policy identifier (REQUIRE_HUMAN_APPROVAL or AUTO_APPROVE_ALL).
     """
     global APPROVAL_POLICY
     normalized = policy.strip()
@@ -106,10 +109,7 @@ def set_approval_policy(policy: str) -> dict[str, str]:
             os.makedirs(DATA_DIR, exist_ok=True)
             _atomic_write(POLICY_FILE, json.dumps({"approval_policy": normalized}))
         except OSError as exc:
-            print(
-                f"warning: failed to persist {POLICY_FILE}: {exc}",
-                file=sys.stderr,
-            )
+            LOGGER.warning("Failed to persist %s: %s", POLICY_FILE, exc)
     return {"status": "updated", "approval_policy": normalized}
 
 
@@ -150,17 +150,24 @@ RUNNER = InMemoryRunner(agent=AGENT, app_name=APP_NAME)
 
 
 def _load_disk_history() -> None:
-    global APPROVAL_POLICY, HISTORY
-    try:
-        if os.path.exists(HIST_FILE):
-            with open(HIST_FILE, "r", encoding="utf-8") as handle:
-                HISTORY = json.load(handle)
-        if os.path.exists(POLICY_FILE):
-            with open(POLICY_FILE, "r", encoding="utf-8") as handle:
-                data = json.load(handle)
-                APPROVAL_POLICY = str(data.get("approval_policy") or DEFAULT_POLICY)
-    except (OSError, ValueError) as exc:
-        print(f"warning: failed to load {DATA_DIR}: {exc}", file=sys.stderr)
+    global APPROVAL_POLICY, HISTORY, MEM_COUNT
+    with STATE_LOCK:
+        try:
+            if os.path.exists(HIST_FILE):
+                with open(HIST_FILE, "r", encoding="utf-8") as handle:
+                    loaded_hist = json.load(handle)
+                if isinstance(loaded_hist, list):
+                    HISTORY = [item for item in loaded_hist if isinstance(item, dict)]
+            if os.path.exists(COUNT_FILE):
+                with open(COUNT_FILE, "r", encoding="utf-8") as handle:
+                    MEM_COUNT = int(handle.read().strip() or "0")
+            if os.path.exists(POLICY_FILE):
+                with open(POLICY_FILE, "r", encoding="utf-8") as handle:
+                    data = json.load(handle)
+                if isinstance(data, dict):
+                    APPROVAL_POLICY = str(data.get("approval_policy") or DEFAULT_POLICY)
+        except (OSError, ValueError) as exc:
+            LOGGER.warning("Failed to load %s: %s", DATA_DIR, exc)
 
 
 def _save(disk_count: int) -> None:
@@ -170,10 +177,7 @@ def _save(disk_count: int) -> None:
         _atomic_write(COUNT_FILE, str(disk_count))
         _atomic_write(POLICY_FILE, json.dumps({"approval_policy": APPROVAL_POLICY}))
     except OSError as exc:
-        print(
-            f"warning: failed to persist state in {DATA_DIR}: {exc}",
-            file=sys.stderr,
-        )
+        LOGGER.warning("Failed to persist state in %s: %s", DATA_DIR, exc)
 
 
 async def _ensure_session() -> None:
@@ -182,12 +186,14 @@ async def _ensure_session() -> None:
     if _SESSION_READY:
         return
     _load_disk_history()
+    with STATE_LOCK:
+        history_snapshot = list(HISTORY)
     session = await RUNNER.session_service.create_session(
         app_name=APP_NAME,
         user_id=USER_ID,
         session_id=SESSION_ID,
     )
-    for item in HISTORY:
+    for item in history_snapshot:
         is_assistant = item.get("role") == "assistant"
         author = AGENT_NAME if is_assistant else "user"
         adk_role = "model" if is_assistant else "user"
@@ -206,7 +212,8 @@ async def _ensure_session() -> None:
 
 @asynccontextmanager
 async def _lifespan(_: FastAPI) -> AsyncIterator[None]:
-    await _ensure_session()
+    async with CHAT_LOCK:
+        await _ensure_session()
     yield
 
 
@@ -229,11 +236,11 @@ def state() -> JSONResponse:
                     disk_count = int(handle.read().strip() or "0")
             if os.path.exists(POLICY_FILE):
                 with open(POLICY_FILE, "r", encoding="utf-8") as handle:
-                    disk_policy = str(
-                        json.load(handle).get("approval_policy") or "UNSET"
-                    )
+                    loaded_pol = json.load(handle)
+                if isinstance(loaded_pol, dict):
+                    disk_policy = str(loaded_pol.get("approval_policy") or "UNSET")
         except (OSError, ValueError) as exc:
-            print(f"warning: failed to read {DATA_DIR}: {exc}", file=sys.stderr)
+            LOGGER.warning("Failed to read %s: %s", DATA_DIR, exc)
         turns = sum(1 for msg in HISTORY if msg.get("role") == "user")
         mem_count = MEM_COUNT
         approval_policy = APPROVAL_POLICY
@@ -259,6 +266,11 @@ def state() -> JSONResponse:
 async def chat(body: dict[str, Any]) -> JSONResponse:
     global MEM_COUNT
     msg = str(body.get("message", ""))
+    if len(msg) > MAX_CHAT_MESSAGE_CHARS:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Chat message exceeds {MAX_CHAT_MESSAGE_CHARS} characters",
+        )
     async with CHAT_LOCK:
         await _ensure_session()
         reply_parts: list[str] = []

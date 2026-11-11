@@ -15,8 +15,17 @@
 # limitations under the License.
 set -o errexit
 set -o nounset
+set -o pipefail
 
 start_timestamp=$(date +%s)
+
+TMP_KC=""
+cleanup_tf_teardown_tmp() {
+  if [ -n "${TMP_KC}" ] && [ -f "${TMP_KC}" ]; then
+    rm -f "${TMP_KC}"
+  fi
+}
+trap cleanup_tf_teardown_tmp EXIT
 
 MY_PATH="$(
   cd "$(dirname "$0")" >/dev/null 2>&1
@@ -33,12 +42,16 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/agent-subst
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 mkdir -p "${TF_PLUGIN_CACHE_DIR}"
 
-# Set use-case specific values
-export TF_VAR_initialize_backend_use_case_name="agent-substrate-security-demo/terraform"
-export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-ate}"
-
 # Set execution specific values
 export ACP_TEARDOWN_CORE_PLATFORM=${ACP_TEARDOWN_CORE_PLATFORM:-"true"}
+
+# Set use-case specific values
+export TF_VAR_initialize_backend_use_case_name="agent-substrate-security-demo/terraform"
+if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
+  export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-ate}"
+elif ! grep -q '^resource_name_prefix' "${ACP_PLATFORM_BASE_DIR}/_shared_config/platform.auto.tfvars" 2>/dev/null; then
+  export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-acp}"
+fi
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/scripts/port-forward.sh"
@@ -49,19 +62,26 @@ source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_enviro
 
 # Remove cluster-scoped Cloud Monitoring dashboards created during stage.sh
 # shellcheck disable=SC2154
-PROJECT_ID="${cluster_project_id}" \
-CLUSTER_NAME="${cluster_name}" \
-  "${ACP_PLATFORM_USE_CASE_DIR}/scripts/dashboards.sh" delete || true
+if ! PROJECT_ID="${agent_substrate_project_id}" \
+  CLUSTER_NAME="${cluster_name}" \
+  "${ACP_PLATFORM_USE_CASE_DIR}/scripts/dashboards.sh" delete; then
+  echo "Warning: Cloud Monitoring dashboard deletion returned non-zero for '${cluster_name}'." >&2
+fi
 
-# Release dynamically provisioned 500Gi Postgres PVC before destroying the cluster
+# Release dynamically provisioned 500Gi Postgres PVC using an isolated temp kubeconfig
 # shellcheck disable=SC2154
 if gcloud container clusters describe "${cluster_name}" --region "${cluster_region}" --project "${cluster_project_id}" >/dev/null 2>&1; then
-  gcloud container clusters get-credentials "${cluster_name}" \
+  TMP_KC="$(mktemp)"
+  chmod 0600 "${TMP_KC}"
+  if KUBECONFIG="${TMP_KC}" gcloud container clusters get-credentials "${cluster_name}" \
     --region "${cluster_region}" \
     --project "${cluster_project_id}" \
-    --dns-endpoint >/dev/null 2>&1 || true
-  kubectl -n ate-system delete statefulset postgres --ignore-not-found >/dev/null 2>&1 || true
-  kubectl -n ate-system delete pvc --all --ignore-not-found --timeout=60s >/dev/null 2>&1 || true
+    --dns-endpoint >/dev/null 2>&1; then
+    KUBECONFIG="${TMP_KC}" kubectl -n ate-system delete statefulset postgres --ignore-not-found >/dev/null 2>&1 || true
+    KUBECONFIG="${TMP_KC}" kubectl -n ate-system delete pvc --all --ignore-not-found --timeout=60s >/dev/null 2>&1 || true
+  fi
+  rm -f "${TMP_KC}"
+  TMP_KC=""
 fi
 
 # shellcheck disable=SC2154
@@ -73,11 +93,10 @@ cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
   terraform init &&
   terraform plan -input=false -out=tfplan &&
   terraform apply -input=false tfplan || exit 1
-rm tfplan
+rm -f tfplan
 
 declare -a use_case_terraservices=(
   "agent_substrate_security_demo"
-  "initialize"
 )
 for terraservice in "${use_case_terraservices[@]}"; do
   cd "${ACP_PLATFORM_USE_CASE_DIR}/terraform/${terraservice}" &&
@@ -86,7 +105,8 @@ for terraservice in "${use_case_terraservices[@]}"; do
     terraform init &&
     terraform destroy -auto-approve || exit 1
   rm -rf .terraform/ \
-    "terraform.tfstate"*
+    "terraform.tfstate"* \
+    backend.tf
 done
 
 rm -rf \
@@ -98,6 +118,14 @@ if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
   "${ACP_PLATFORM_CORE_DIR}/teardown-standard.sh"
 else
   echo "Skipping core platform teardown."
+  rm -rf \
+    "${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/" \
+    "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf" \
+    "${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/" \
+    "${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.tfstate"*
+  git -C "${ACP_REPO_DIR}" checkout -- \
+    "platforms/gke/base/core/initialize/backend.tf.bucket" \
+    "platforms/gke/base/_shared_config" 2>/dev/null || true
 fi
 
 end_timestamp=$(date +%s)

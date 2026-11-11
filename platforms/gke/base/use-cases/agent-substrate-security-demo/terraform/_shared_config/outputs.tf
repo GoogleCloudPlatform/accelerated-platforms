@@ -24,8 +24,28 @@ output "agent_substrate_min_gke_version" {
   value = local.agent_substrate_min_gke_version
 }
 
+output "agent_substrate_node_disk_type" {
+  value = local.agent_substrate_node_disk_type
+}
+
+output "agent_substrate_node_locations" {
+  value = local.agent_substrate_node_locations
+}
+
+output "agent_substrate_node_machine_type" {
+  value = local.agent_substrate_node_machine_type
+}
+
+output "agent_substrate_project_id" {
+  value = local.agent_substrate_project_id
+}
+
 output "agent_substrate_secrets_namespace" {
   value = local.agent_substrate_secrets_namespace
+}
+
+output "agent_substrate_snapshot_bucket_force_destroy" {
+  value = local.agent_substrate_snapshot_bucket_force_destroy
 }
 
 output "agent_substrate_snapshot_bucket_name" {

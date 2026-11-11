@@ -16,18 +16,18 @@
 # Runs `/app-src/gemini_agent.py` from the immutable `@sha256` container image built from
 # ../app/Dockerfile with zero Google Cloud credentials inside the sandbox.
 metadata:
-  atespace: ${ATESPACE}
+  atespace: "${ATESPACE}"
   name: gemini-agent-v1
 workerSelector:
   matchLabels:
     workload: substrate-agent
 containers:
 - name: agent
-  image: ${AGENT_IMAGE}
+  image: "${AGENT_IMAGE}"
   command: ["python3", "/app-src/gemini_agent.py"]
   env:
   - name: GATEWAY_URL
-    value: http://gateway.${NAMESPACE}.svc.cluster.local
+    value: "http://gateway.${NAMESPACE}.svc.cluster.local"
   - name: GEMINI_MODEL
     value: "${GEMINI_MODEL}"
   wakeupProbe:

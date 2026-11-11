@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Google Cloud Managed Service for Prometheus (GMP) PodMonitoring + Prometheus UI frontend (:9090).
+# Google Cloud Managed Service for Prometheus (GMP) PodMonitoring (:9091) + Prometheus UI frontend (:9090).
 apiVersion: monitoring.googleapis.com/v1
 kind: PodMonitoring
 metadata:
   name: gateway
-  namespace: ${NAMESPACE}
+  namespace: "${NAMESPACE}"
 spec:
   selector:
     matchLabels: {app: gateway}
   endpoints:
-  - port: http
+  - port: metrics
     path: /metrics
     interval: 15s
 ---
@@ -30,13 +30,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: prometheus-ui
-  namespace: ${NAMESPACE}
+  namespace: "${NAMESPACE}"
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: prometheus-ui
-  namespace: ${NAMESPACE}
+  namespace: "${NAMESPACE}"
 spec:
   replicas: 1
   selector:
@@ -46,10 +46,12 @@ spec:
       labels: {app: prometheus-ui}
     spec:
       serviceAccountName: prometheus-ui
+      automountServiceAccountToken: false
       nodeSelector: {kubernetes.io/os: linux, kubernetes.io/arch: amd64}
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534
+        runAsGroup: 65534
         seccompProfile:
           type: RuntimeDefault
       containers:
@@ -61,10 +63,14 @@ spec:
           capabilities:
             drop: ["ALL"]
         args:
-        - --web.listen-address=127.0.0.1:9090
-        - --query.project-id=${PROJECT_ID}
+        - --web.listen-address=0.0.0.0:9090
+        - "--query.project-id=${PROJECT_ID}"
         ports:
         - {name: web, containerPort: 9090}
+        readinessProbe:
+          httpGet: {path: /-/ready, port: web}
+        livenessProbe:
+          httpGet: {path: /-/healthy, port: web}
         resources:
           requests: {cpu: 50m, memory: 64Mi}
           limits: {memory: 256Mi}
@@ -73,11 +79,28 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: prometheus-ui-isolation
-  namespace: ${NAMESPACE}
+  namespace: "${NAMESPACE}"
 spec:
   podSelector:
     matchLabels:
       app: prometheus-ui
   policyTypes:
   - Ingress
+  - Egress
   ingress: []
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - {protocol: UDP, port: 53}
+    - {protocol: TCP, port: 53}
+  - to:
+    - ipBlock:
+        cidr: 169.254.169.254/32
+    ports:
+    - {protocol: TCP, port: 80}
+    - {protocol: TCP, port: 988}
+  - ports:
+    - {protocol: TCP, port: 443}

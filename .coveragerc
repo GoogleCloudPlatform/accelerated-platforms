@@ -2,6 +2,7 @@
 source =
     modules/python
     platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu
+    platforms/gke/base/use-cases/agent-substrate-security-demo/app
     platforms/gke/base/use-cases/agent-substrate-security-demo/scripts
+    platforms/gke/base/use-cases/agent-substrate-security-demo/ui
 omit = */site-packages/*, */dist-packages/*, */test_*.py, */*_test.py
-

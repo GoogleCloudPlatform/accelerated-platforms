@@ -14,18 +14,33 @@
 
 # Cluster-local non-reflecting credential verification service in ${SECRETS_NAMESPACE}.
 # Admits ingress exclusively from `atenet-egress` (`ns/ate-system`), enforces default-deny
-# egress, and returns only a boolean authentication status + SHA-256 prefix (never echoing
-# the raw credential).
+# egress, and returns only a boolean authentication status + ephemeral-keyed HMAC-SHA256
+# prefix (never echoing raw secret bytes).
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ${SECRETS_NAMESPACE}
+  name: "${SECRETS_NAMESPACE}"
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: "${SECRETS_NAMESPACE}"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: partner-api
-  namespace: ${SECRETS_NAMESPACE}
+  namespace: "${SECRETS_NAMESPACE}"
   labels: {app: partner-api}
 spec:
   replicas: 1
@@ -41,11 +56,12 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+        runAsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       containers:
       - name: partner-api
-        image: ${GATEWAY_IMAGE}
+        image: "${GATEWAY_IMAGE}"
         command: ["python3", "/app-src/partner_api.py"]
         securityContext:
           allowPrivilegeEscalation: false
@@ -72,7 +88,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: partner-api
-  namespace: ${SECRETS_NAMESPACE}
+  namespace: "${SECRETS_NAMESPACE}"
   labels: {app: partner-api}
 spec:
   selector: {app: partner-api}
@@ -83,7 +99,7 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: partner-api-isolation
-  namespace: ${SECRETS_NAMESPACE}
+  namespace: "${SECRETS_NAMESPACE}"
 spec:
   podSelector:
     matchLabels:

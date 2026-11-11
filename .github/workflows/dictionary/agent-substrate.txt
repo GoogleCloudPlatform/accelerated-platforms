@@ -15,6 +15,7 @@ certfile
 cmdline
 cmek
 devnull
+doseq
 eacces
 ecdsap
 embracethered
@@ -36,8 +37,11 @@ gowork
 hmac
 hostnames
 iamcredentials
+ignorecase
 imagecache
 isalnum
+iscoroutine
+isfinite
 isspace
 iware
 kcore
@@ -56,6 +60,7 @@ mitm
 mkstemp
 mtime
 netloc
+newurl
 nist
 noopener
 nxdomain
@@ -71,6 +76,7 @@ promql
 rebinding
 rescoped
 rfile
+rglob
 roundtrip
 rport
 runc
@@ -84,7 +90,6 @@ stdvar
 susp
 syscalls
 sysrq
-testb
 testbed
 tfplan
 timedelta
@@ -94,6 +99,7 @@ unschedulable
 unterminated
 upsert
 urandom
+urljoin
 urlparse
 urlsafe
 vuln

@@ -14,14 +14,15 @@ This Presenter Beat Sheet accompanies the
 Complete **Part 1 (Pre-Demo Cluster Provisioning)** in the
 [Multi-region GKE inference foundation quick-start](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md#quick-start-multi-region-provisioning-and-teardown)
 with `NETWORK_MODE="shared-vpc"` and `ACTIVE_MIGRATION_ENABLED="false"` across
-`"americas:us-central1:0"`, `"europe:europe-west2:1"`, and
-`"apac:asia-southeast1:2"`:
+`"americas:us-central1:0"` and `"europe:europe-west2:1"` (`6` GPUs total, as
+shown in the live demo; optionally add `"apac:asia-southeast1:2"` for a third
+island, which the pre-warm and teardown blocks below detect automatically):
 
-| Region (`platform_name`)  | Cluster (`Namespace`)                         | Pre-Warmed NVIDIA Dynamo Overlay(s) (`RTX PRO 6000`, `g4-standard-48`)                                                                                | Beat(s)     |
-| ------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| **Americas (`americas`)** | Americas cluster (`online-gpu` namespace)     | 1. `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`2` GPUs)<br>2. `disaggregated-pd/rtx-pro-6000-nvidia-nemotron-3-nano-30b-a3b-nvfp4` (`2P1D`, `3` GPUs) | **1, 3, 4** |
-| **Europe (`europe`)**     | Europe cluster (`online-gpu` namespace)       | `host-offloading/rtx-pro-6000-qwen3-32b-nvfp4` (`1` GPU + `80 GB` pinned host memory)                                                                 | **2, 4**    |
-| **Asia-Pacific (`apac`)** | Asia-Pacific cluster (`online-gpu` namespace) | `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`2` GPUs)                                                                                                  | **4**       |
+| Region (`platform_name`)            | Cluster (`Namespace`)                         | Pre-Warmed NVIDIA Dynamo Overlay(s) (`RTX PRO 6000`, `g4-standard-48`)                                                                                | Beat(s)     |
+| ----------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| **Americas (`americas`)**           | Americas cluster (`online-gpu` namespace)     | 1. `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`2` GPUs)<br>2. `disaggregated-pd/rtx-pro-6000-nvidia-nemotron-3-nano-30b-a3b-nvfp4` (`2P1D`, `3` GPUs) | **1, 3, 4** |
+| **Europe (`europe`)**               | Europe cluster (`online-gpu` namespace)       | `host-offloading/rtx-pro-6000-qwen3-32b-nvfp4` (`1` GPU + `80 GB` pinned host memory)                                                                 | **2, 4**    |
+| **Asia-Pacific (`apac`, optional)** | Asia-Pacific cluster (`online-gpu` namespace) | `kv-routing/rtx-pro-6000-qwen3-32b-nvfp4` (`2` GPUs)                                                                                                  | **4**       |
 
 ---
 
@@ -29,12 +30,14 @@ with `NETWORK_MODE="shared-vpc"` and `ACTIVE_MIGRATION_ENABLED="false"` across
 
 Build `gpu/dynamo-trtllm:latest` once via
 [`terraform/images/gpu/dynamo_trtllm`](/platforms/gke/base/use-cases/inference-ref-arch/terraform/images/gpu/dynamo_trtllm/cloudbuild.tf),
-mirror it to peer regions, stage `NVFP4` weights, deploy all four Dynamo stacks,
-and attach the cross-region internal Application Load Balancer:
+mirror it to peer regions, stage `NVFP4` weights, deploy the Dynamo stacks, and
+attach the cross-region internal Application Load Balancer:
 
 ```shell
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/helpers.sh"
 export ACCELERATOR_TYPE="rtx-pro-6000"
+RING_TARGETS=("americas:us-central1:0" "europe:europe-west2:1")
+[[ -f "$(mr_kubeconfig apac)" ]] && RING_TARGETS+=("apac:asia-southeast1:2")
 
 use_region "americas" "us-central1" 0
 AMER_CHECKOUT="$(mr_worktree_dir americas)"
@@ -44,11 +47,15 @@ mr_terraform_apply "${AMER_CHECKOUT}/platforms/gke/base/use-cases/inference-ref-
 SRC_IMG="us-central1-docker.pkg.dev/${PROJECT_ID}/inf-americas/gpu/dynamo-trtllm:latest"
 bg_jobs=()
 mirror_image_to_ar "europe-west2" "europe" "${SRC_IMG}" "gpu/dynamo-trtllm:latest" & bg_jobs+=($!)
-mirror_image_to_ar "asia-southeast1" "apac" "${SRC_IMG}" "gpu/dynamo-trtllm:latest" & bg_jobs+=($!)
+if [[ -f "$(mr_kubeconfig apac)" ]]; then
+  mirror_image_to_ar "asia-southeast1" "apac" "${SRC_IMG}" "gpu/dynamo-trtllm:latest" & bg_jobs+=($!)
+fi
 stage_hf_model "nvidia/Qwen3-32B-NVFP4"
 stage_hf_model "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-NVFP4"
 replicate_hf_model "americas" "europe" "nvidia/Qwen3-32B-NVFP4" & bg_jobs+=($!)
-replicate_hf_model "americas" "apac" "nvidia/Qwen3-32B-NVFP4" & bg_jobs+=($!)
+if [[ -f "$(mr_kubeconfig apac)" ]]; then
+  replicate_hf_model "americas" "apac" "nvidia/Qwen3-32B-NVFP4" & bg_jobs+=($!)
+fi
 
 DYNAMO_APPLY="${ACP_REPO_DIR}/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/dynamo-trtllm/deployment_apply.sh"
 DYNAMO_MODE="kv-routing" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" "${DYNAMO_APPLY}"
@@ -56,9 +63,11 @@ DYNAMO_MODE="disaggregated-pd" HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3
 
 for job_id in "${bg_jobs[@]}"; do wait "${job_id}"; done
 use_region "europe" "europe-west2" 1 && DYNAMO_MODE="host-offloading" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" "${DYNAMO_APPLY}"
-use_region "apac" "asia-southeast1" 2 && DYNAMO_MODE="kv-routing" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" "${DYNAMO_APPLY}"
+if [[ -f "$(mr_kubeconfig apac)" ]]; then
+  use_region "apac" "asia-southeast1" 2 && DYNAMO_MODE="kv-routing" HF_MODEL_ID="nvidia/qwen3-32b-nvfp4" "${DYNAMO_APPLY}"
+fi
 
-for TARGET in "americas:us-central1:0" "europe:europe-west2:1" "apac:asia-southeast1:2"; do
+for TARGET in "${RING_TARGETS[@]}"; do
   IFS=: read -r p r idx <<<"${TARGET}" && use_region "${p}" "${r}" "${idx}"
   kubectl wait --for=condition=Available deploy --all -n "inf-${p}-online-gpu" --timeout=1800s
   echo "=== ${p^^} (${r}) ===" && kubectl get pods -n "inf-${p}-online-gpu" -o wide
@@ -66,7 +75,9 @@ done
 
 expose_service_neg "americas" "inf-americas-online-gpu" "dynamo-frontend-rtx6000-qwen3-32b-nvfp4" "8000" "dynamo"
 expose_service_neg "europe" "inf-europe-online-gpu" "dynamo-frontend-host-rtx6000-qwen3-32b-nvfp4" "8000" "dynamo"
-expose_service_neg "apac" "inf-apac-online-gpu" "dynamo-frontend-rtx6000-qwen3-32b-nvfp4" "8000" "dynamo"
+if [[ -f "$(mr_kubeconfig apac)" ]]; then
+  expose_service_neg "apac" "inf-apac-online-gpu" "dynamo-frontend-rtx6000-qwen3-32b-nvfp4" "8000" "dynamo"
+fi
 # Health-check the model, not the frontend: /v1/models/<model>/ready answers 503 while the model has
 # no usable worker and 404 once its last worker is gone, so a region that lost its GPUs fails the
 # check and traffic fails over. The frontend's /health stays 200 with zero workers.
@@ -257,8 +268,15 @@ use_region "americas" "us-central1" 0
 AMER_VIP="$(NETWORK_MODE=shared-vpc "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/global_lb.sh" vips | jq -r '.americas')"
 LB_BS="${TF_VAR_resource_name_prefix:-inf}-${MR_ENVIRONMENT_NAME:-mr}-lb-dynamo"
 
+# Ensure a lightweight CPU client Pod exists in inf-americas-online-gpu so VIP
+# probes stay independent of Americas GPU capacity and worker scale-downs.
+if ! kubectl get deploy/vip-probe -n inf-americas-online-gpu >/dev/null 2>&1; then
+  kubectl create deployment vip-probe -n inf-americas-online-gpu --image=python:3.12-slim -- sleep infinity
+fi
+kubectl rollout status deploy/vip-probe -n inf-americas-online-gpu --timeout=180s
+
 probe_vip() {
-  kubectl exec -i -n inf-americas-online-gpu deploy/dynamo-trtllm-worker-rtx6000-qwen3-32b-nvfp4 -c inference-server -- python3 - "${AMER_VIP}" <<'PY'
+  kubectl exec -i -n inf-americas-online-gpu deploy/vip-probe -- python3 - "${AMER_VIP}" <<'PY'
 import json, sys, time, urllib.request
 doc = "[VIP-SESSION] " + ("Regional GKE islands pair local Dynamo KV routing with cross-region internal ALB failover. " * 220)
 for label, q in [("Turn 1", "Summarize regional island isolation in one sentence."), ("Turn 2", "How does Turn 2 achieve warm KV hits after failover?")]:
@@ -278,6 +296,9 @@ PY
 
 echo "=== 1. Steady-state via Americas VIP (${AMER_VIP}) -> local inf-americas island ===" && probe_vip
 (
+  # Tip: to test GPU-worker loss with the frontend still up (verifying the
+  # /v1/models/<model>/ready health check), scale deploy/dynamo-trtllm-worker-rtx6000-qwen3-32b-nvfp4
+  # to 0 instead of deploy/dynamo-frontend-rtx6000-qwen3-32b-nvfp4 (and back to 2 on EXIT).
   trap 'kubectl scale deploy/dynamo-frontend-rtx6000-qwen3-32b-nvfp4 -n inf-americas-online-gpu --replicas=1 >/dev/null 2>&1 || true' EXIT
   echo "=== 2. Draining inf-americas frontend to trigger cross-region Internal ALB failover ==="
   kubectl scale deploy/dynamo-frontend-rtx6000-qwen3-32b-nvfp4 -n inf-americas-online-gpu --replicas=0
@@ -290,6 +311,7 @@ echo "=== 1. Steady-state via Americas VIP (${AMER_VIP}) -> local inf-americas i
   echo "=== 3. Failover via same Americas VIP (${AMER_VIP}) -> peer regional island ===" && probe_vip
 )
 kubectl rollout status deploy/dynamo-frontend-rtx6000-qwen3-32b-nvfp4 -n inf-americas-online-gpu --timeout=120s
+kubectl delete deploy/vip-probe -n inf-americas-online-gpu --ignore-not-found
 ```
 
 ---
@@ -298,10 +320,16 @@ kubectl rollout status deploy/dynamo-frontend-rtx6000-qwen3-32b-nvfp4 -n inf-ame
 
 Destroy all standalone NEGs, HNS buckets, `global_lb`, regional clusters, and
 `shared_network` in parallel (see
-[foundation Step 3](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md#step-3-tear-down-all-regional-and-shared-multi-region-resources)):
+[foundation Step 3](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md#step-3-tear-down-all-regional-and-shared-multi-region-resources);
+if replacing individual frontend `Service`s without full teardown, detach or
+destroy `global_lb.sh` first so standalone NEGs do not stay stuck in deletion):
 
 ```shell
+source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/helpers.sh"
+RING_TARGETS=("americas:us-central1:0" "europe:europe-west2:1")
+[[ -f "$(mr_kubeconfig apac)" ]] && RING_TARGETS+=("apac:asia-southeast1:2")
+
 NETWORK_MODE="shared-vpc" \
   "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/teardown.sh" \
-  --parallel "americas:us-central1:0" "europe:europe-west2:1" "apac:asia-southeast1:2"
+  --parallel "${RING_TARGETS[@]}"
 ```

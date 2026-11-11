@@ -32,6 +32,16 @@ ACP_PLATFORM_CORE_DIR="${ACP_PLATFORM_BASE_DIR}/core"
 ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/inference-ref-arch"
 export ACP_REPO_DIR ACP_PLATFORM_BASE_DIR ACP_PLATFORM_CORE_DIR ACP_PLATFORM_USE_CASE_DIR
 
+# Include bootstrap_tools.sh install directories when missing from PATH so
+# scripts and interactive shells find terraform and kustomize out of the box.
+for _mr_bin_dir in "${HOME}/.local/bin" "${HOME}/bin"; do
+  if [[ -d "${_mr_bin_dir}" && ":${PATH}:" != *":${_mr_bin_dir}:"* ]]; then
+    PATH="${PATH}:${_mr_bin_dir}"
+  fi
+done
+unset _mr_bin_dir
+export PATH
+
 # Digest-pinned crane v0.22.1 image used when mirroring upstream images into
 # regional Artifact Registry repositories via Cloud Build.
 export MR_CRANE_IMAGE="gcr.io/go-containerregistry/crane:v0.22.1@sha256:1f968817b95790bed063f71175aa6b8ff879fa17064020415f3e18bb6e6a36e1"
@@ -119,6 +129,14 @@ mr_require_tools() {
   done
   if ((${#missing[@]} > 0)); then
     mr_die "missing required tools: ${missing[*]}. Run bootstrap_tools.sh in this directory, or install them."
+  fi
+}
+
+# Verifies non-interactively that the gcloud beta component is installed
+# (needed by provision.sh when ENABLE_POD_SNAPSHOTS=true).
+mr_require_gcloud_beta() {
+  if ! gcloud --quiet beta --help >/dev/null 2>&1; then
+    mr_die "ENABLE_POD_SNAPSHOTS=true requires the 'gcloud beta' component. Run bootstrap_tools.sh in this directory, or install it (for example 'gcloud components install beta --quiet' or 'sudo apt-get install -y google-cloud-cli') and re-run."
   fi
 }
 
@@ -331,6 +349,35 @@ mr_remove_worktree() {
   wt="$(mr_worktree_dir "${1}")"
   if [[ -e "${wt}/.git" ]]; then
     git -C "${ACP_REPO_DIR}" worktree remove --force "${wt}"
+  fi
+}
+
+# mr_clean_checkout <checkout> [<restore_backend_template>] [<restore_lock_files>]
+# Restores tracked files mutated by core/deploy.sh or terraform init
+# (backend.tf.bucket and .terraform.lock.hcl) and removes transient untracked
+# manifests and generated node-pool .tf files so checkouts and per-region
+# worktrees stay clean after provisioning (generated **/backend.tf files and
+# canonical kubeconfigs remain git-ignored in place).
+mr_clean_checkout() {
+  local checkout="${1}"
+  local restore_backend="${2:-true}"
+  local restore_lock_files="${3:-true}"
+  local backend_rel="platforms/gke/base/core/initialize/backend.tf.bucket"
+  if [[ "${restore_backend}" == "true" ]]; then
+    git -C "${checkout}" checkout --quiet -- "${backend_rel}" 2>/dev/null || true
+  fi
+  if [[ "${restore_lock_files}" == "true" ]]; then
+    git -C "${checkout}" checkout --quiet -- ':(glob)**/.terraform.lock.hcl' 2>/dev/null || true
+  fi
+  rm -f "${checkout}/platforms/gke/base/core/container_node_pool"/container_node_pool_*.tf
+  rm -rf \
+    "${checkout}/platforms/gke/base/core/custom_compute_class/manifests" \
+    "${checkout}/platforms/gke/base/core/workloads"/*/manifests
+  if [[ -d "${checkout}/platforms/gke/base/kubernetes/manifests" ]]; then
+    find "${checkout}/platforms/gke/base/kubernetes/manifests" -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} +
+  fi
+  if [[ "${checkout}" != "${ACP_REPO_DIR}" && -d "${checkout}/platforms/gke/base/kubernetes/kubeconfig" ]]; then
+    find "${checkout}/platforms/gke/base/kubernetes/kubeconfig" -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} +
   fi
 }
 
@@ -549,7 +596,6 @@ stage_hf_model() {
 
     local project_id="${TF_VAR_platform_default_project_id:-${PROJECT_ID:-}}"
     local platform_name="${TF_VAR_platform_name:-}"
-    local prefix="${TF_VAR_resource_name_prefix:-inf}"
     [[ -n "${project_id}" && -n "${platform_name}" ]] ||
       mr_die "call use_region <platform_name> <region> before stage_hf_model."
 
@@ -557,14 +603,34 @@ stage_hf_model() {
     HF_MODEL_ID_HASH="$(echo "${HF_MODEL_ID}" | md5sum | cut -c1-8)"
     export HF_MODEL_ID HF_MODEL_ID_HASH
 
-    local unique_prefix="${prefix}-${platform_name}"
-    local bucket_project="${TF_VAR_huggingface_hub_models_bucket_project_id:-${project_id}}"
-    huggingface_hub_models_bucket_name="${TF_VAR_huggingface_hub_models_bucket_name:-${bucket_project}-${unique_prefix}-hf-hub-models}"
-    huggingface_hub_downloader_kubernetes_namespace_name="${TF_VAR_huggingface_hub_downloader_kubernetes_namespace_name:-${unique_prefix}-hf-hub-downloader}"
-    huggingface_hub_downloader_kubernetes_service_account_name="${TF_VAR_huggingface_hub_downloader_kubernetes_service_account_name:-${unique_prefix}-hf-hub-downloader}"
-    huggingface_secret_manager_project_id="${TF_VAR_huggingface_secret_manager_project_id:-${project_id}}"
-    huggingface_hub_access_token_read_secret_manager_secret_name="${TF_VAR_huggingface_hub_access_token_read_secret_manager_secret_name:-${unique_prefix}-huggingface-hub-access-token-read}"
-    huggingface_hub_access_token_write_secret_manager_secret_name="${TF_VAR_huggingface_hub_access_token_write_secret_manager_secret_name:-${unique_prefix}-huggingface-hub-access-token-write}"
+    local tmp_dir cfg_file outputs_json ns job_name timeout_s deadline status_json succeeded failed model_size
+    tmp_dir="$(mktemp -d)"
+    trap 'rm -rf "${tmp_dir}"' EXIT
+
+    # Evaluate platforms/gke/base/_shared_config in an isolated temp copy
+    # (omitting versions.tf so Terraform needs no external provider downloads)
+    # so all huggingface_* names come from the canonical Terraform locals
+    # without mutating the repository or racing across parallel regions.
+    mkdir -p "${tmp_dir}/_shared_config"
+    for cfg_file in \
+      "${ACP_PLATFORM_BASE_DIR}/_shared_config"/*.tf \
+      "${ACP_PLATFORM_BASE_DIR}/_shared_config"/*.auto.tfvars; do
+      if [[ -e "${cfg_file}" && "$(basename "${cfg_file}")" != "versions.tf" ]]; then
+        cp "${cfg_file}" "${tmp_dir}/_shared_config/"
+      fi
+    done
+    terraform -chdir="${tmp_dir}/_shared_config" init -backend=false -input=false >/dev/null
+    terraform -chdir="${tmp_dir}/_shared_config" apply -auto-approve -input=false -lock=false >/dev/null
+    outputs_json="$(terraform -chdir="${tmp_dir}/_shared_config" output -json)"
+
+    huggingface_hub_models_bucket_name="$(jq -r '.huggingface_hub_models_bucket_name.value // empty' <<<"${outputs_json}")"
+    huggingface_hub_downloader_kubernetes_namespace_name="$(jq -r '.huggingface_hub_downloader_kubernetes_namespace_name.value // empty' <<<"${outputs_json}")"
+    huggingface_hub_downloader_kubernetes_service_account_name="$(jq -r '.huggingface_hub_downloader_kubernetes_service_account_name.value // empty' <<<"${outputs_json}")"
+    huggingface_secret_manager_project_id="$(jq -r '.huggingface_secret_manager_project_id.value // empty' <<<"${outputs_json}")"
+    huggingface_hub_access_token_read_secret_manager_secret_name="$(jq -r '.huggingface_hub_access_token_read_secret_manager_secret_name.value // empty' <<<"${outputs_json}")"
+    huggingface_hub_access_token_write_secret_manager_secret_name="$(jq -r '.huggingface_hub_access_token_write_secret_manager_secret_name.value // empty' <<<"${outputs_json}")"
+    [[ -n "${huggingface_hub_models_bucket_name}" && -n "${huggingface_hub_downloader_kubernetes_namespace_name}" ]] ||
+      mr_die "[${platform_name}] failed to evaluate huggingface_* outputs from _shared_config."
     export \
       huggingface_hub_models_bucket_name \
       huggingface_hub_downloader_kubernetes_namespace_name \
@@ -586,12 +652,20 @@ stage_hf_model() {
       --project="${huggingface_secret_manager_project_id}" \
       --filter="state=ENABLED" \
       --format="value(name)" 2>/dev/null)" ]]; then
-      mr_die "[${platform_name}] Hugging Face read token secret '${huggingface_hub_access_token_read_secret_manager_secret_name}' has no enabled version."
+      if [[ -n "${HF_TOKEN:-}" ]]; then
+        local _secret_name
+        for _secret_name in \
+          "${huggingface_hub_access_token_read_secret_manager_secret_name}" \
+          "${huggingface_hub_access_token_write_secret_manager_secret_name}"; do
+          printf '%s' "${HF_TOKEN}" | gcloud secrets versions add "${_secret_name}" \
+            --project="${huggingface_secret_manager_project_id}" \
+            --data-file=- >/dev/null
+        done
+      else
+        mr_die "[${platform_name}] Hugging Face read token secret '${huggingface_hub_access_token_read_secret_manager_secret_name}' has no enabled version. Export HF_TOKEN='<your_hf_token>' and re-run stage_hf_model."
+      fi
     fi
 
-    local tmp_dir ns job_name timeout_s deadline status_json succeeded failed model_size
-    tmp_dir="$(mktemp -d)"
-    trap 'rm -rf "${tmp_dir}"' EXIT
     cp -R "${ACP_PLATFORM_USE_CASE_DIR}/kubernetes-manifests/model-download/huggingface" "${tmp_dir}/huggingface"
     envsubst <"${tmp_dir}/huggingface/templates/downloader.tpl.env" >"${tmp_dir}/huggingface/downloader.env"
     envsubst <"${tmp_dir}/huggingface/templates/secretproviderclass-huggingface-tokens.tpl.yaml" \

@@ -21,6 +21,7 @@ import importlib.util
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -427,7 +428,7 @@ class SitecustomizeMetricsPatchTest(unittest.IsolatedAsyncioTestCase):
 
 
 class MultiRegionHelpersShellTest(unittest.TestCase):
-    """Tests isolated stage_hf_model and parameterized mr_tf helpers."""
+    """Tests multi-region preflight, checkout hygiene, and model-staging helpers."""
 
     def test_stage_hf_model_leaves_repo_clean_and_polls_job(self) -> None:
         helpers_sh = (
@@ -450,7 +451,8 @@ class MultiRegionHelpersShellTest(unittest.TestCase):
             (bin_dir / "gcloud").write_text(
                 "#!/usr/bin/env bash\n"
                 f'echo "gcloud $*" >> "{log_file}"\n'
-                'if [[ "$1 $2" == "secrets versions" ]]; then echo "1"; exit 0; fi\n'
+                'if [[ "$1 $2 $3" == "secrets versions list" ]]; then exit 0; fi\n'
+                'if [[ "$1 $2 $3" == "secrets versions add" ]]; then cat >/dev/null; exit 0; fi\n'
                 'if [[ "$1 $2" == "storage du" ]]; then echo "10 GiB gs://b/m"; exit 0; fi\n'
                 'if [[ "$1 $2" == "storage cat" ]]; then echo \'{"resources":[{}]}\'; exit 0; fi\n'
                 "exit 1\n",
@@ -465,10 +467,34 @@ class MultiRegionHelpersShellTest(unittest.TestCase):
             )
             os.chmod(bin_dir / "gcloud", 0o755)
             os.chmod(bin_dir / "kubectl", 0o755)
+            if shutil.which("kustomize") is None:
+                (bin_dir / "kustomize").write_text(
+                    "#!/usr/bin/env bash\nexit 0\n", encoding="utf-8"
+                )
+                os.chmod(bin_dir / "kustomize", 0o755)
+            if shutil.which("terraform") is None:
+                (bin_dir / "terraform").write_text(
+                    "#!/usr/bin/env bash\n"
+                    'if [[ "$*" == *"output -json"* ]]; then\n'
+                    '  jq -n --arg b "${TF_VAR_huggingface_hub_models_bucket_name:-test-proj-inf-usc1-hf-hub-models}" \'{\n'
+                    "    huggingface_hub_models_bucket_name: {value: $b},\n"
+                    '    huggingface_hub_downloader_kubernetes_namespace_name: {value: "inf-usc1-hf-hub-downloader"},\n'
+                    '    huggingface_hub_downloader_kubernetes_service_account_name: {value: "inf-usc1-hf-hub-downloader"},\n'
+                    '    huggingface_secret_manager_project_id: {value: "test-proj"},\n'
+                    '    huggingface_hub_access_token_read_secret_manager_secret_name: {value: "inf-usc1-huggingface-hub-access-token-read"},\n'
+                    '    huggingface_hub_access_token_write_secret_manager_secret_name: {value: "inf-usc1-huggingface-hub-access-token-write"}\n'
+                    "  }'\n"
+                    "fi\n"
+                    "exit 0\n",
+                    encoding="utf-8",
+                )
+                os.chmod(bin_dir / "terraform", 0o755)
 
             env = os.environ.copy()
             env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
             env["PROJECT_ID"] = "test-proj"
+            env["HF_TOKEN"] = "hf_test_token"
+            env["TF_VAR_huggingface_hub_models_bucket_name"] = "custom-hf-models-bkt"
             proc = subprocess.run(
                 [
                     "bash",
@@ -485,6 +511,11 @@ class MultiRegionHelpersShellTest(unittest.TestCase):
             )
             self.assertEqual(proc.returncode, 0, proc.stderr)
             calls = log_file.read_text(encoding="utf-8")
+            self.assertIn("gs://custom-hf-models-bkt/qwen/qwen3-32b", calls)
+            self.assertIn(
+                "secrets versions add inf-usc1-huggingface-hub-access-token-read",
+                calls,
+            )
             self.assertIn("kubectl apply --kustomize", calls)
             self.assertIn("kubectl get job", calls)
             self.assertIn("kubectl delete --ignore-not-found --kustomize", calls)
@@ -497,6 +528,187 @@ class MultiRegionHelpersShellTest(unittest.TestCase):
             encoding="utf-8"
         )
         self.assertEqual(before_kustomization, after_kustomization)
+
+    def test_provision_pod_snapshots_fails_fast_without_gcloud_beta(self) -> None:
+        provision_sh = (
+            _REPO_ROOT
+            / "platforms/gke/base/use-cases/inference-ref-arch"
+            / "terraform/multi-region/provision.sh"
+        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            bin_dir = Path(tmp_dir) / "bin"
+            bin_dir.mkdir()
+            log_file = Path(tmp_dir) / "gcloud.log"
+            (bin_dir / "gcloud").write_text(
+                "#!/usr/bin/env bash\n"
+                f'echo "gcloud $*" >> "{log_file}"\n'
+                'if [[ " $* " == *" beta "* ]]; then exit 1; fi\n'
+                "exit 0\n",
+                encoding="utf-8",
+            )
+            for stub in ("kubectl", "terraform"):
+                if shutil.which(stub) is None:
+                    (bin_dir / stub).write_text("#!/usr/bin/env bash\nexit 0\n")
+                    os.chmod(bin_dir / stub, 0o755)
+            os.chmod(bin_dir / "gcloud", 0o755)
+
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
+            env["PROJECT_ID"] = "test-proj"
+            env["ENABLE_POD_SNAPSHOTS"] = "true"
+            proc = subprocess.run(
+                ["bash", str(provision_sh), "americas:us-central1:0"],
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("gcloud beta", proc.stderr)
+            self.assertNotIn("projects describe", log_file.read_text(encoding="utf-8"))
+
+    def test_mr_clean_checkout_restores_tracked_and_cleans_worktree(self) -> None:
+        helpers_sh = (
+            _REPO_ROOT
+            / "platforms/gke/base/use-cases/inference-ref-arch"
+            / "terraform/multi-region/helpers.sh"
+        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            repo = Path(tmp_dir) / "repo"
+            (repo / "platforms/gke/base/core/initialize").mkdir(parents=True)
+            (repo / "platforms/gke/base/core/container_node_pool").mkdir(parents=True)
+            (repo / "platforms/gke/base/core/workloads/lws/manifests").mkdir(
+                parents=True
+            )
+            (repo / "platforms/gke/base/kubernetes/manifests").mkdir(parents=True)
+            (repo / "platforms/gke/base/kubernetes/kubeconfig").mkdir(parents=True)
+
+            backend_tpl = repo / "platforms/gke/base/core/initialize/backend.tf.bucket"
+            lockfile = repo / "platforms/gke/base/core/initialize/.terraform.lock.hcl"
+            backend_tpl.write_text('bucket = "TEMPLATE"\n', encoding="utf-8")
+            lockfile.write_text("provider {}\n", encoding="utf-8")
+            (repo / "platforms/gke/base/kubernetes/manifests/.gitkeep").write_text("")
+            (repo / "platforms/gke/base/kubernetes/kubeconfig/.gitkeep").write_text("")
+            (repo / ".gitignore").write_text(
+                "platforms/gke/base/kubernetes/kubeconfig/*\n"
+                "!platforms/gke/base/kubernetes/kubeconfig/.gitkeep\n"
+                "**/*/backend.tf\n",
+                encoding="utf-8",
+            )
+
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.email", "t@example.com"],
+                check=True,
+            )
+            subprocess.run(
+                ["git", "-C", str(repo), "config", "user.name", "Test"], check=True
+            )
+            subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
+            subprocess.run(
+                ["git", "-C", str(repo), "commit", "-q", "-m", "init"], check=True
+            )
+
+            # Dirty tracked files and write generated untracked artifacts.
+            backend_tpl.write_text('bucket = "DIRTIED"\n', encoding="utf-8")
+            lockfile.write_text("provider { dirty = true }\n", encoding="utf-8")
+            (repo / "platforms/gke/base/core/initialize/backend.tf").write_text("ok")
+            (
+                repo
+                / "platforms/gke/base/core/container_node_pool/container_node_pool_a.tf"
+            ).write_text("gen")
+            (
+                repo / "platforms/gke/base/core/workloads/lws/manifests/lws.yaml"
+            ).write_text("gen")
+            (repo / "platforms/gke/base/kubernetes/manifests/m.yaml").write_text("gen")
+            (
+                repo / "platforms/gke/base/kubernetes/kubeconfig/test-proj-inf-usc1"
+            ).write_text("kc")
+
+            proc = subprocess.run(
+                [
+                    "bash",
+                    "-c",
+                    f'source "{helpers_sh}" && mr_clean_checkout "{repo}" true true',
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            status = subprocess.check_output(
+                ["git", "-C", str(repo), "status", "--porcelain"], text=True
+            )
+            self.assertEqual(status, "")
+            self.assertEqual(
+                backend_tpl.read_text(encoding="utf-8"), 'bucket = "TEMPLATE"\n'
+            )
+            self.assertTrue(
+                (repo / "platforms/gke/base/core/initialize/backend.tf").exists()
+            )
+            self.assertFalse(
+                (
+                    repo / "platforms/gke/base/kubernetes/kubeconfig/test-proj-inf-usc1"
+                ).exists()
+            )
+            self.assertTrue(
+                (repo / "platforms/gke/base/kubernetes/kubeconfig/.gitkeep").exists()
+            )
+
+    def test_download_wait_fails_without_pkill_on_failed_job(self) -> None:
+        download_wait_sh = (
+            _REPO_ROOT
+            / "test/scripts/platforms/gke/base/use-cases/inference-ref-arch"
+            / "model-download/huggingface/download_wait.sh"
+        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            fake_repo = Path(tmp_dir) / "repo"
+            script_dir = (
+                fake_repo
+                / "test/scripts/platforms/gke/base/use-cases/inference-ref-arch"
+                / "model-download/huggingface"
+            )
+            cfg_dir = (
+                fake_repo
+                / "platforms/gke/base/use-cases/inference-ref-arch"
+                / "terraform/_shared_config/scripts"
+            )
+            script_dir.mkdir(parents=True)
+            cfg_dir.mkdir(parents=True)
+            shutil.copy2(download_wait_sh, script_dir / "download_wait.sh")
+            (script_dir.parents[1] / "config").mkdir(parents=True)
+            (script_dir.parents[1] / "config/huggingface.sh").write_text(
+                'hf_models=("qwen/qwen3-32b")\n', encoding="utf-8"
+            )
+            (cfg_dir / "set_environment_variables.sh").write_text(
+                'huggingface_hub_downloader_kubernetes_namespace_name="ns"\n'
+                'huggingface_hub_models_bucket_name="bkt"\n'
+                'HF_MODEL_ID_HASH="12345678"\n',
+                encoding="utf-8",
+            )
+            bin_dir = Path(tmp_dir) / "bin"
+            bin_dir.mkdir()
+            (bin_dir / "kubectl").write_text(
+                '#!/usr/bin/env bash\necho ":True"\n', encoding="utf-8"
+            )
+            (bin_dir / "gcloud").write_text(
+                '#!/usr/bin/env bash\necho "1 GiB"\n', encoding="utf-8"
+            )
+            os.chmod(bin_dir / "kubectl", 0o755)
+            os.chmod(bin_dir / "gcloud", 0o755)
+
+            env = os.environ.copy()
+            env["PATH"] = f"{bin_dir}:{env.get('PATH', '')}"
+            env["HF_MODEL_ID"] = "Qwen/Qwen3-32B"
+            proc = subprocess.run(
+                ["bash", str(script_dir / "download_wait.sh")],
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("failed", proc.stderr)
 
 
 if __name__ == "__main__":

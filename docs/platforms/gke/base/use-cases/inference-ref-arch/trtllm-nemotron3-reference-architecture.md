@@ -122,19 +122,24 @@ and (for `-podsnapshot` variants)
 
 ## 4. Deploy Path A (standard fast-start) & Path B (`-podsnapshot` fast-restore)
 
-After provisioning your cluster(s) with `MIRROR_IMAGES` set to
-`nvcr.io/nvidia/tensorrt-llm/release:1.4.0rc2@sha256:93a3eaf1fa574813d608a7147735134bcfbd06d18d1aa98e8ee0d5da09e51e3a=tensorrt-llm/release:1.4.0rc2`
-and staging weights via `stage_hf_model` (see the
+After provisioning your cluster(s) and staging weights via `stage_hf_model` (see
+the
 [foundation quick-start](/docs/platforms/gke/base/use-cases/inference-ref-arch/multi-region-gke-inference-foundation.md#quick-start-multi-region-provisioning-and-teardown)),
-both deployment paths use the same
-[`online-inference-gpu/trtllm/`](/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_apply.sh)
-test scripts and `TF_VAR_ira_online_gpu_trtllm_image_url`:
+ensure the digest-pinned `tensorrt-llm/release:1.4.0rc2` image is mirrored into
+your regional Artifact Registry repository (if you did not already pass
+`MIRROR_IMAGES` during `provision.sh`), then deploy via
+[`online-inference-gpu/trtllm/`](/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/online-inference-gpu/trtllm/deployment_apply.sh):
 
 ### Path A: Standard `trtllm` overlay (bounded RAM `gcsfuse` + `rank_striped_read_ahead`)
 
 ```shell
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/helpers.sh"
 use_region "americas" "us-central1" 0
+
+# Skip if you already passed MIRROR_IMAGES to provision.sh:
+mirror_image_to_ar "us-central1" "americas" \
+  "nvcr.io/nvidia/tensorrt-llm/release:1.4.0rc2@sha256:93a3eaf1fa574813d608a7147735134bcfbd06d18d1aa98e8ee0d5da09e51e3a" \
+  "tensorrt-llm/release:1.4.0rc2"
 
 export ACCELERATOR_TYPE="rtx-pro-6000"
 export HF_MODEL_ID="nvidia/nvidia-nemotron-3-nano-30b-a3b-nvfp4"

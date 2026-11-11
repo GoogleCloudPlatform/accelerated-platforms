@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Shared PID-tracked kubectl port-forward helpers (never uses `pkill -f`).
+# Shared PID- and context-verified kubectl port-forward helpers (never uses pkill).
 
 port_is_listening() {
   local lport="$1"
@@ -41,18 +41,34 @@ probe_matches() {
   return 0
 }
 
+pf_cmdline() {
+  local pid="$1" cmd=""
+  if [[ -r "/proc/${pid}/cmdline" ]]; then
+    cmd="$(tr '\0' ' ' < "/proc/${pid}/cmdline" 2>/dev/null || true)"
+  fi
+  if [[ -z "${cmd}" ]]; then
+    cmd="$(ps -p "${pid}" -o args= 2>/dev/null || true)"
+  fi
+  printf '%s' "${cmd}"
+}
+
 stop_single_managed_pf() {
   local pidfile="$1"
   if [[ -f "${pidfile}" ]]; then
-    local pid cmdline=""
+    local pid cmdline
     pid="$(tr -cd '0-9' < "${pidfile}")"
     if [[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null; then
-      if [[ -r "/proc/${pid}/cmdline" ]]; then
-        cmdline="$(tr '\0' ' ' < "/proc/${pid}/cmdline" 2>/dev/null || true)"
-      fi
-      if [[ -z "${cmdline}" || "${cmdline}" == *"port-forward"* ]]; then
+      cmdline="$(pf_cmdline "${pid}")"
+      if [[ -n "${cmdline}" && "${cmdline}" == *"kubectl"*"port-forward"* ]]; then
         kill "${pid}" 2>/dev/null || true
-        wait "${pid}" 2>/dev/null || true
+        local tick
+        for tick in {1..20}; do
+          kill -0 "${pid}" 2>/dev/null || break
+          sleep 0.1
+        done
+        if kill -0 "${pid}" 2>/dev/null; then
+          kill -9 "${pid}" 2>/dev/null || true
+        fi
       fi
     fi
     rm -f "${pidfile}"
@@ -71,26 +87,45 @@ stop_managed_port_forwards() {
 
 ensure_managed_port_forward() {
   local state_dir="$1" name="$2" ns="$3" target="$4" lport="$5" rport="$6" probe_path="$7" expected="${8:-}"
-  mkdir -p "${state_dir}"
+  mkdir -m 0700 -p "${state_dir}"
+  chmod 0700 "${state_dir}"
   local pidfile="${state_dir}/pf-${name}.pid"
+  local ctx
+  ctx="$(kubectl config current-context 2>/dev/null || true)"
 
-  if probe_matches "${lport}" "${probe_path}" "${expected}"; then
-    return 0
+  if [[ -f "${pidfile}" ]]; then
+    local existing_pid existing_cmd
+    existing_pid="$(tr -cd '0-9' < "${pidfile}")"
+    if [[ -n "${existing_pid}" ]] && kill -0 "${existing_pid}" 2>/dev/null; then
+      existing_cmd="$(pf_cmdline "${existing_pid}")"
+      if [[ "${existing_cmd}" == *"kubectl"*"port-forward"* \
+         && "${existing_cmd}" == *"-n ${ns}"* \
+         && "${existing_cmd}" == *"${lport}:${rport}"* \
+         && ( -z "${ctx}" || "${existing_cmd}" == *"--context ${ctx}"* ) ]] \
+         && probe_matches "${lport}" "${probe_path}" "${expected}"; then
+        return 0
+      fi
+    fi
   fi
 
+  stop_single_managed_pf "${pidfile}"
   if port_is_listening "${lport}"; then
-    stop_single_managed_pf "${pidfile}"
     sleep 0.3
-    if port_is_listening "${lport}" && ! probe_matches "${lport}" "${probe_path}" "${expected}"; then
+    if port_is_listening "${lport}"; then
+      if probe_matches "${lport}" "${probe_path}" "${expected}" && [[ -n "${expected}" ]]; then
+        return 0
+      fi
       echo "Error: local port 127.0.0.1:${lport} is already occupied by an unrelated listener." >&2
       echo "Set GATEWAY_LOCAL_PORT or PROM_LOCAL_PORT to an unused local port and retry." >&2
       return 1
     fi
-  else
-    stop_single_managed_pf "${pidfile}"
   fi
 
-  kubectl -n "${ns}" port-forward --address 127.0.0.1 "${target}" "${lport}:${rport}" \
+  local ctx_args=()
+  if [[ -n "${ctx}" ]]; then
+    ctx_args=(--context "${ctx}")
+  fi
+  kubectl ${ctx_args[@]+"${ctx_args[@]}"} -n "${ns}" port-forward --address 127.0.0.1 "${target}" "${lport}:${rport}" \
     >"${state_dir}/pf-${name}.log" 2>&1 &
   local new_pid=$!
   echo "${new_pid}" > "${pidfile}"

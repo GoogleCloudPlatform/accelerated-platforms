@@ -15,6 +15,7 @@
 # limitations under the License.
 set -o errexit
 set -o nounset
+set -o pipefail
 
 start_timestamp=$(date +%s)
 
@@ -33,13 +34,17 @@ export ACP_PLATFORM_USE_CASE_DIR="${ACP_PLATFORM_BASE_DIR}/use-cases/agent-subst
 export TF_PLUGIN_CACHE_DIR="${ACP_REPO_DIR}/.terraform.d/plugin-cache"
 mkdir -p "${TF_PLUGIN_CACHE_DIR}"
 
-# Set use-case specific values
-export TF_VAR_initialize_backend_use_case_name="agent-substrate-security-demo/terraform"
-export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-ate}"
-
 # Set execution specific values
 export ACP_DEPLOY_CORE_PLATFORM=${ACP_DEPLOY_CORE_PLATFORM:-"true"}
 export ACP_STAGE_DEMO=${ACP_STAGE_DEMO:-"true"}
+
+# Set use-case specific values
+export TF_VAR_initialize_backend_use_case_name="agent-substrate-security-demo/terraform"
+if [ "${ACP_DEPLOY_CORE_PLATFORM}" = "true" ]; then
+  export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-ate}"
+elif ! grep -q '^resource_name_prefix' "${ACP_PLATFORM_BASE_DIR}/_shared_config/platform.auto.tfvars" 2>/dev/null; then
+  export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-acp}"
+fi
 
 if [ "${ACP_DEPLOY_CORE_PLATFORM}" = "true" ]; then
   "${ACP_PLATFORM_CORE_DIR}/deploy-standard.sh"
@@ -50,19 +55,29 @@ else
   # shellcheck disable=SC2154
   cd "${ACP_PLATFORM_CORE_DIR}/initialize" &&
     sed -i "s/^\([[:blank:]]*bucket[[:blank:]]*=\).*$/\1 \"${terraform_bucket_name}\"/" "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket" &&
-    cp backend.tf.bucket backend.tf &&
+    initialize_state_prefix="$(sed -n 's/^[[:blank:]]*prefix[[:blank:]]*=[[:blank:]]*"\(.*\)"[[:blank:]]*$/\1/p' "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket")" &&
+    if gcloud storage ls "gs://${terraform_bucket_name}/${initialize_state_prefix}/default.tfstate" &>/dev/null; then
+      cp backend.tf.bucket backend.tf
+      STATE_MIGRATED="true"
+    else
+      rm -f backend.tf
+      STATE_MIGRATED="false"
+    fi &&
     rm -rf .terraform/ &&
     terraform init &&
     terraform plan -input=false -out=tfplan &&
     terraform apply -input=false tfplan || exit 1
-  rm tfplan
+  rm -f tfplan
+  if [ "${STATE_MIGRATED}" = "false" ]; then
+    terraform init -force-copy -migrate-state || exit 1
+    rm -rf terraform.tfstate*
+  fi
 fi
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
 
 declare -a use_case_terraservices=(
-  "initialize"
   "agent_substrate_security_demo"
 )
 for terraservice in "${use_case_terraservices[@]}"; do
@@ -72,23 +87,25 @@ for terraservice in "${use_case_terraservices[@]}"; do
     terraform init &&
     terraform plan -input=false -out=tfplan &&
     terraform apply -input=false tfplan || exit 1
-  rm tfplan
+  rm -f tfplan
 done
 
 # shellcheck disable=SC1091
 source "${ACP_PLATFORM_USE_CASE_DIR}/terraform/_shared_config/scripts/set_environment_variables.sh"
 
-# shellcheck disable=SC2154
-echo "Updating kubeconfig context for cluster '${cluster_name}' (${cluster_region})..."
-gcloud container clusters get-credentials "${cluster_name}" \
-  --region "${cluster_region}" \
-  --project "${cluster_project_id}" \
-  --dns-endpoint
+if [ "${UPDATE_KUBECONFIG:-true}" = "true" ]; then
+  # shellcheck disable=SC2154
+  echo "Updating kubeconfig context for cluster '${cluster_name}' (${cluster_region})..."
+  gcloud container clusters get-credentials "${cluster_name}" \
+    --region "${cluster_region}" \
+    --project "${cluster_project_id}" \
+    --dns-endpoint
+fi
 
 if [ "${ACP_STAGE_DEMO}" = "true" ]; then
   # shellcheck disable=SC2154
   PROVISION_GCP_INFRA="false" \
-  PROJECT_ID="${cluster_project_id}" \
+  PROJECT_ID="${agent_substrate_project_id}" \
   CLUSTER_NAME="${cluster_name}" \
   CLUSTER_LOCATION="${cluster_region}" \
   AR_REPO="${agent_substrate_ar_repository_name}" \

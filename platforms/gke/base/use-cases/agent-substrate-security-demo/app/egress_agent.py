@@ -17,12 +17,15 @@
 
 Holds zero credentials inside the sandbox; sends `Authorization: Bearer placeholder`
 so the out-of-sandbox `atenet-egress` proxy swaps the real token on the wire for
-allowlisted FQDNs while the local DNS relay blocks unlisted domains.
+allowlisted FQDNs while the local DNS relay and `atenet-egress` block unlisted
+destinations.
 """
 
+import http.client
 import urllib.error
 import urllib.parse
 import urllib.request
+from typing import IO, Any
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query
@@ -33,11 +36,30 @@ MAX_FETCH_BYTES = 1_048_576
 
 
 def validate_fetch_url(url: str) -> str:
-    """Allow only http:// and https:// URLs with a non-empty host."""
+    """Allow only clean http:// and https:// URLs with a non-empty hostname."""
+    if not url or any(ch.isspace() or ord(ch) < 0x20 or ord(ch) == 0x7F for ch in url):
+        raise ValueError(f"URL contains whitespace or control characters: {url!r}")
     parsed = urllib.parse.urlparse(url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise ValueError(f"Unsupported URL scheme or missing host: {url!r}")
     return url
+
+
+class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Validate every HTTP redirect target so 30x cannot switch schemes."""
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: IO[bytes],
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        resolved = urllib.parse.urljoin(req.full_url, newurl)
+        validate_fetch_url(resolved)
+        return super().redirect_request(req, fp, code, msg, headers, resolved)
 
 
 @app.get("/readyz")
@@ -59,16 +81,24 @@ def fetch(url: str = Query(...)) -> PlainTextResponse:
             "User-Agent": "agent-substrate-egress-demo/1.0",
         },
     )
+    opener = urllib.request.build_opener(SafeRedirectHandler())
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with opener.open(req, timeout=10) as resp:
             return PlainTextResponse(
                 resp.read(MAX_FETCH_BYTES).decode("utf-8", errors="replace"),
                 status_code=resp.status,
             )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except urllib.error.HTTPError as exc:
         err_text = exc.read(MAX_FETCH_BYTES).decode("utf-8", errors="replace")
         return PlainTextResponse(err_text, status_code=exc.code)
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+    except (
+        urllib.error.URLError,
+        http.client.HTTPException,
+        TimeoutError,
+        OSError,
+    ) as exc:
         return PlainTextResponse(
             f'fetch: Get "{validated_url}": {exc}\n', status_code=502
         )

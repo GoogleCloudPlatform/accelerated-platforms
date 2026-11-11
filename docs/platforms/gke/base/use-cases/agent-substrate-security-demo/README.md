@@ -10,7 +10,7 @@
 > (GKE) 1.37+ with **Agent Substrate (`v1.0.0`)** in-pod `gVisor`
 > (`ateworker-gvisor`) sandboxing.
 >
-> Last Update: 2026-11-10 (YYYY-MM-DD)
+> Last Update: 2026-11-11 (YYYY-MM-DD)
 
 This document outlines the reference architecture, production security best
 practices, and interactive 4-Act Red Team vs. Blue Team verification suite for
@@ -40,10 +40,10 @@ flowchart TB
   end
 
   subgraph ControlPlane["GKE 1.37+ & Agent Substrate Control Plane (ns/ate-system)"]
-    Router["atenet-router (:443 SPIFFE mTLS)<br/>Allowlisted Wake & HTTP Proxy"]
+    Router["atenet-router (:443 mTLS)<br/>SPIFFE Client Allowlist & HTTP Proxy"]
     API["ate-api-server + ate-controller<br/>Actor Lifecycle & Snapshot Registry"]
     CredProv["k8s-credential-provider<br/>Cross-Namespace Secret Broker"]
-    Egress["atenet-egress<br/>L7 Policy, TLS Inspection & Header Swap"]
+    Egress["atenet-egress<br/>L7 Policy, Direct-IP Block & Header Swap"]
   end
 
   subgraph WorkerNodes["Sandbox Worker Pool (n4-standard-4 / c4-standard-4 + Hyperdisk, workload=agent-substrate)"]
@@ -61,7 +61,7 @@ flowchart TB
   end
 
   subgraph GatewayPlane["Split-Plane Gateway & Vertex AI"]
-    Gateway["gateway (ns/agent-sandbox)<br/>127.0.0.1:8081 Admin | :8080 Model Proxy"]
+    Gateway["gateway (ns/agent-sandbox)<br/>127.0.0.1:8081 Admin | :8080 Model | :9091 Metrics"]
     VertexAPI["Vertex AI Gemini API<br/>(aiplatform.googleapis.com)"]
   end
 
@@ -71,7 +71,7 @@ flowchart TB
   end
 
   UI -->|"port-forward + Admin Token (127.0.0.1:8081)"| Gateway
-  Gateway -->|"SPIFFE mTLS (:443)"| Router
+  Gateway -->|"mTLS (:443, SPIFFE Client Cert)"| Router
   Router --> API
   API --> Atelet
   Atelet <--> GCS
@@ -100,18 +100,20 @@ Specifically, the architecture enforces:
   from per-conversation actor state (**Snapshot #2**: `TAG_SCOPE_ATESPACE` tag),
   enabling sub-second node-local memory resume (`kind="local"`) and isolated
   forensic clones (`gemini-agent-forensic`) created from `clean-checkpoint-tag`
-  with identical post-boot memory state (`bootID`).
+  with identical post-boot memory state (`bootID` on homogeneous CPU pools).
 - **Act 3 — Zero-Secret Egress ("The Corporate Mailroom")**: Keeps raw API
   credentials in an isolated Kubernetes namespace (`ns/agent-secrets`) so the
   actor (`egress-agent`) only sends `Authorization: Bearer placeholder`. The
-  out-of-sandbox `atenet-egress` proxy verifies the worker pod's mTLS identity,
-  performs wire-level `Authorization` header replacement from
-  `ate-secret://k8s.io/...` for allowlisted service `partner-api` (which
-  validates the token and returns only boolean auth status plus a SHA-256 prefix
-  without echoing raw secret bytes), inspects allowlisted HTTPS traffic
-  (`www.googleapis.com`) using the `egress-mitm.ate.dev` `ClusterTrustBundle`,
-  and drops non-allowlisted domains (`example.com`) at the local DNS relay
-  (`169.254.17.1:53`) before TCP connection establishment.
+  out-of-sandbox `atenet-egress` proxy verifies the worker pod's mTLS identity
+  and performs wire-level `Authorization` header replacement from
+  `ate-secret://k8s.io/...` solely for the allowlisted `partner-api` service
+  (which validates the token and returns only boolean auth status plus an
+  ephemeral-keyed HMAC-SHA256 prefix without echoing raw secret bytes).
+  Non-allowlisted FQDNs (`example.com`) are rejected before TCP connect by the
+  local DNS relay (`169.254.17.1:53`), while direct IP (`http://1.1.1.1/`) or
+  non-allowlisted port connections bypass DNS only to be blocked at
+  `atenet-egress` (`403 egress denied` on HTTP and TLS handshake termination on
+  HTTPS).
 - **Act 4 — External Snapshot Revert & OpenTelemetry Tracing**: Recovers a
   stateful Google ADK agent (`gemini-agent`) after prompt injection invokes a
   Python tool (`set_approval_policy`) to mutate both in-memory runtime state
@@ -155,14 +157,19 @@ autonomous agent vulnerabilities and supply-chain incidents:
 
 - **Kubernetes `PodCertificateRequest` & `ClusterTrustBundle`
   (`certificates.k8s.io`)**: Agent Substrate's software signers issue
-  short-lived SPIFFE X.509 certificates (`podidentity.podcert.ate.dev/identity`
-  and `servicedns.podcert.ate.dev/identity`) identifying **pods** (`gateway` and
-  `WorkerPool` pods). `atenet-router:443` admits only client pods whose SPIFFE
-  ID matches its configured `--ingress-allowed-spiffe-ids` allowlist
-  (`spiffe://cluster.local/ns/agent-sandbox/sa/gateway`), workload namespaces
-  opted into Substrate API access carry `ate.dev/api-access: "true"`, and
-  `ClusterTrustBundle` distributes both `servicedns` router CAs and the
-  `egress-mitm.ate.dev` CA certificate for L7 egress inspection.
+  short-lived X.509 certificates via `podidentity.podcert.ate.dev/identity`
+  (client SPIFFE `PodCertificate` bundles) and
+  `servicedns.podcert.ate.dev/identity` (service DNS TLS certificates).
+  `atenet-router:443` admits only client pods whose SPIFFE ID matches its
+  configured `--ingress-allowed-spiffe-ids` allowlist
+  (`spiffe://cluster.local/ns/agent-sandbox/sa/gateway`), while `gateway`
+  verifies `atenet-router`'s server certificate against the
+  `servicedns.podcert.ate.dev/identity` `ClusterTrustBundle` and
+  `atenet-router.ate-system.svc` DNS SAN. The workload namespace
+  (`ns/agent-sandbox`) intentionally omits `ate.dev/api-access: "true"` so
+  non-control-plane pods cannot connect directly to `ate-api-server:443`, and
+  `ClusterTrustBundle` distributes `egress-mitm.ate.dev` for L7 HTTPS egress
+  inspection when HTTPS rules are configured.
 - **Two-Path Snapshot Restore (`kind="local"` vs. `kind="latest"`)**: Resuming a
   suspended Actor on a node that still holds its local snapshot (`kind="local"`)
   restores directly from node-local `hyperdisk-balanced` (or `pd-balanced`)
@@ -173,10 +180,11 @@ autonomous agent vulnerabilities and supply-chain incidents:
 - **Zero-Secret Google ADK Runtime (`google-adk`)**: `gemini-agent` runs
   `google-adk` (`Agent` + `InMemoryRunner`) with zero Google Cloud credentials
   inside `gVisor`. Outbound model calls traverse `atenet-egress` to the
-  cluster-local `gateway` (`:80` -> `:8080`, restricted via `NetworkPolicy` to
-  `atenet-egress` and Google Managed Prometheus), which authenticates via GKE
-  Workload Identity Application Default Credentials (`google.auth.default`) to
-  Vertex AI (`aiplatform.googleapis.com`).
+  cluster-local `gateway` (`:80` -> `:8080`, restricted via `NetworkPolicy`
+  exclusively to `atenet-egress`, while `:9091` `/metrics` is restricted
+  exclusively to `gmp-system`), which authenticates via GKE Workload Identity
+  Application Default Credentials (`google.auth.default`) to Vertex AI
+  (`aiplatform.googleapis.com`) and sanitizes upstream error payloads.
 
 ## Production Best Practices
 
@@ -194,23 +202,29 @@ autonomous agent vulnerabilities and supply-chain incidents:
    `postgres`, gateways, and internal APIs.
 2. **Split-Plane Gateways & Authenticated Router Ingress**: Keep actor-routing
    and operator APIs off cluster-reachable listeners. Authenticate
-   gateway-to-router traffic over `atenet-router:443` using native
-   `PodCertificate` SPIFFE mTLS (`--ingress-allowed-spiffe-ids`), bind
-   administrative listeners (`:8081`) to `127.0.0.1` with token authentication,
-   and lock actor-facing model proxies (`:8080`) behind explicit `NetworkPolicy`
-   ingress rules matching only `ate-system/atenet-egress` (and `gmp-system` for
-   metrics scraping).
+   gateway-to-router traffic over `atenet-router:443` using `PodCertificate`
+   client SPIFFE mTLS (`--ingress-allowed-spiffe-ids`) and `servicedns` server
+   certificate verification, bind administrative listeners (`:8081`) to
+   `127.0.0.1` with fail-closed token authentication, and enforce both per-port
+   ingress (`:8080` `atenet-egress` only; `:9091` `gmp-system` only) and
+   least-privilege egress `NetworkPolicy` rules (`atenet-router`, `kube-dns`,
+   GKE metadata `:80` for Workload Identity, and external HTTPS `:443` with
+   private/link-local CIDRs blocked).
 3. **Zero-Secret Sandboxes & Non-Reflecting Upstreams**: Never mount Kubernetes
    ServiceAccount tokens, Workload Identity bindings, or third-party API keys
    into actor containers. Store secrets in a dedicated namespace (synced from
    Google Cloud Secret Manager in production), inject headers on the wire via
    `atenet-egress`, lock internal verification or broker services with both
    ingress and default-deny egress `NetworkPolicy` rules, and allowlist only
-   production APIs that never echo request headers back in response bodies.
-4. **Immutable Digest-Pinned Container Images (`@sha256:`)**: Resolve and pin
-   both `ateworker-gvisor` and actor application images by immutable `@sha256:`
-   digest so Golden Tags (`TAG_SCOPE_PUBLISHED`) and actor restores remain
-   deterministic across node pool rollouts and autoscaling events.
+   minimal production API FQDNs that never echo request headers back in response
+   bodies (avoiding broad multi-API hosts such as `www.googleapis.com`).
+4. **Immutable Digest-Pinned Container Images & Hash-Pinned Wheels**: Resolve
+   and pin both `ateworker-gvisor` and actor application images by immutable
+   `@sha256:` digest, install Python dependencies with
+   `pip install --require-hashes --only-binary=:all:`, and grant
+   `ns/ate-system/sa/atelet` repository-scoped `roles/artifactregistry.reader`
+   so Golden Tags (`TAG_SCOPE_PUBLISHED`) and actor restores remain
+   deterministic across node pool rollouts.
 5. **Two-Tier Checkpoints, Forensic Cloning, & Clean Rollback**: Capture heavy
    runtime/framework initialization once in an `ActorTemplate` Golden Tag, tag
    verified session milestones with `TAG_SCOPE_ATESPACE`, clone anomalous
@@ -218,21 +232,39 @@ autonomous agent vulnerabilities and supply-chain incidents:
    interrupting user traffic, and discard untrusted wake turns via
    `kubectl ate revert`.
 6. **Private Cluster Networking & Snapshot Bucket Governance**: Run private GKE
-   worker nodes behind Cloud NAT with control-plane DNS endpoints,
-   least-privilege per-cluster node ServiceAccounts, uniform bucket-level
-   access, `public_access_prevention = "enforced"`, object lifecycle expiration,
-   CMEK, and VPC Service Controls on snapshot buckets.
+   worker nodes behind Cloud NAT with DNS-only control-plane endpoints
+   (`--enable-dns-access --no-enable-ip-access`), least-privilege per-cluster
+   node ServiceAccounts, uniform bucket-level access,
+   `public_access_prevention = "enforced"`, object lifecycle expiration, CMEK,
+   and VPC Service Controls on snapshot buckets.
 
 ## Limitations & Security Considerations
 
 - **Upstream Destination Behavior in Zero-Secret Egress**: `atenet-egress`
   prevents the sandbox from holding raw credentials in memory or environment
-  variables, and blocks traffic to non-allowlisted hosts. However, once a secret
-  is injected on the wire to an allowlisted upstream API, if that upstream API
-  echoes request headers back in its HTTP response body (for example, diagnostic
-  echo services), the sandbox will receive the echoed value. Only allowlist
-  production APIs that do not reflect raw `Authorization` headers; Act 3 uses a
-  non-reflecting `partner-api` verifier for this reason.
+  variables, and blocks traffic to non-allowlisted hosts and IPs. However, once
+  a secret is injected on the wire to an allowlisted upstream API, if that
+  upstream API echoes request headers back in its HTTP response body (for
+  example, diagnostic echo services), the sandbox will receive the echoed value.
+  Only allowlist production APIs that do not reflect raw `Authorization`
+  headers; Act 3 uses a non-reflecting `partner-api` verifier for this reason.
+- **Cluster-Local HTTP Between `atenet-egress` and `partner-api`**: In Act 3,
+  `atenet-egress` injects the `Secret/example-api` bearer token over
+  cluster-local HTTP (`partner-api.agent-secrets.svc.cluster.local:80`), locked
+  down by `NetworkPolicy` to `atenet-egress` ingress and default-deny egress.
+  GKE Dataplane V2 does not encrypt pod-to-pod traffic on the wire by default;
+  production deployments transmitting sensitive credentials to internal cluster
+  services should enable GKE transparent node-to-node encryption or serve TLS
+  (`https:`) on the upstream service.
+- **Project-Wide GKE Workload Identity Pool Scope**: GKE Workload Identity maps
+  IAM principals across the project's `<PROJECT_ID>.svc.id.goog` pool by
+  namespace and ServiceAccount (`ns/ate-system/sa/atelet`,
+  `ns/ate-system/sa/ate-api-server`, `ns/agent-sandbox/sa/gateway`,
+  `ns/agent-sandbox/sa/prometheus-ui`). Any other GKE cluster in the same Google
+  Cloud project running pods with those matching namespace/ServiceAccount names
+  shares the granted repository, snapshot bucket, Vertex AI, or Cloud Monitoring
+  viewer IAM bindings. For strict isolation between environments or tenants,
+  deploy each Agent Substrate environment in a dedicated Google Cloud project.
 - **Snapshot Bucket Sensitivity**: Cloud Storage snapshots capture full Actor
   memory pages and `/data` overlays. This implementation enforces uniform
   bucket-level access, `public_access_prevention = "enforced"`, and object

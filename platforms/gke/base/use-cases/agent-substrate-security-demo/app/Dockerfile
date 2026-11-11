@@ -15,9 +15,10 @@
 # limitations under the License.
 
 # Immutable image for the Agent Substrate Security Demo actors, gateway, and
-# non-reflecting credential verifier. Installs Google Agent Development Kit
-# (google-adk) on top of the upstream kubernetes-sigs/agent-sandbox Python
-# runtime image while preserving non-root execution (UID 1000).
+# non-reflecting credential verifier. Installs hash-pinned Google Agent
+# Development Kit (`google-adk`) wheels on top of the upstream
+# kubernetes-sigs/agent-sandbox Python runtime image while preserving non-root
+# execution (UID 1000).
 
 FROM registry.k8s.io/agent-sandbox/python-runtime-sandbox:v0.5.6@sha256:147a6a7f3b382683a065e4519b22088e75472317ce861d57031537a758836ab5
 
@@ -25,7 +26,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 USER root
-RUN pip install --no-cache-dir --root-user-action=ignore google-adk==2.14.0
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir --require-hashes --only-binary=:all: --root-user-action=ignore -r /tmp/requirements.txt \
+    && rm -f /tmp/requirements.txt
 COPY gateway.py gemini_agent.py egress_agent.py partner_api.py /app-src/
 RUN chmod 0644 /app-src/*.py
-USER 1000:0
+USER 1000:1000

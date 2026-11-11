@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,21 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Unit tests for promql_scope."""
+"""Unit tests for promql_scope plus static CI checks on scripts & templates."""
 
 import io
 import json
 import os
+import subprocess
 import sys
 import unittest
+from pathlib import Path
 from unittest import mock
 
+import yaml
+
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import promql_scope  # noqa: E402
+import promql_scope
 
 
 class PromqlScopeTest(unittest.TestCase):
-    """Tests PromQL and Cloud Monitoring dashboard cluster scoping."""
+    """Tests PromQL/dashboard scoping and validates shipped `.sh`/`.yaml.tmpl`."""
 
     def test_bare_metric_and_vector_zero(self) -> None:
         expr = 'sum({"ate.actor.crashes"}) or vector(0)'
@@ -40,18 +43,42 @@ class PromqlScopeTest(unittest.TestCase):
             'max(agent_gateway_actors_tracked{cluster="demo-cluster"})',
         )
 
-    def test_classic_and_utf8_selectors(self) -> None:
+    def test_classic_utf8_uppercase_trailing_comma_and_comments(self) -> None:
         self.assertEqual(
             promql_scope.scope(
-                'sum by (outcome) (rate(agent_gateway_chat_turns_total{outcome="ok"}[2m]))',
+                "sum by (outcome) "
+                '(rate(agent_gateway_chat_turns_total{outcome="ok"}[2m]))',
                 "c1",
             ),
-            'sum by (outcome) (rate(agent_gateway_chat_turns_total{outcome="ok", cluster="c1"}[2m]))',
+            (
+                "sum by (outcome) (rate(agent_gateway_chat_turns_total"
+                '{outcome="ok", cluster="c1"}[2m]))'
+            ),
         )
-        utf8_q = 'max by ("ate.worker.state") ({"ate.workerpool.workers", "ate.workerpool.name"="agents"})'
+        utf8_q = (
+            'max by ("ate.worker.state") '
+            '({"ate.workerpool.workers", "ate.workerpool.name"="agents"})'
+        )
         self.assertEqual(
             promql_scope.scope(utf8_q, "c1"),
-            'max by ("ate.worker.state") ({"ate.workerpool.workers", "ate.workerpool.name"="agents", cluster="c1"})',
+            (
+                'max by ("ate.worker.state") ({"ate.workerpool.workers", '
+                '"ate.workerpool.name"="agents", cluster="c1"})'
+            ),
+        )
+        # Uppercase SUM BY, trailing selector comma, quoted cluster=, and # comment
+        self.assertEqual(
+            promql_scope.scope("SUM BY (job) (up{job='a',})", "c1"),
+            "SUM BY (job) (up{job='a', cluster=\"c1\"})",
+        )
+        self.assertEqual(
+            promql_scope.scope('err_total{msg="bad cluster=x"}', "c1"),
+            'err_total{msg="bad cluster=x", cluster="c1"}',
+        )
+        commented = "# actor's latency\nup OFFSET 5m"
+        self.assertEqual(
+            promql_scope.scope(commented, "c1"),
+            '# actor\'s latency\nup{cluster="c1"} OFFSET 5m',
         )
 
     def test_existing_cluster_matcher_is_idempotent(self) -> None:
@@ -77,7 +104,7 @@ class PromqlScopeTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             promql_scope.scope('up{job="trailing\\', "c1")
 
-    def test_offset_and_scope_dashboard_with_atespace(self) -> None:
+    def test_offset_time_series_filter_and_scope_dashboard(self) -> None:
         self.assertEqual(
             promql_scope.scope("agent_gateway_actors_tracked offset 5m", "c1"),
             'agent_gateway_actors_tracked{cluster="c1"} offset 5m',
@@ -91,12 +118,20 @@ class PromqlScopeTest(unittest.TestCase):
                     }
                 },
                 {
+                    "timeSeriesQuery": {
+                        "timeSeriesFilter": {
+                            "filter": 'resource.type="prometheus_target"'
+                        }
+                    }
+                },
+                {
+                    "title": "Actor state changes (logs, security-demo atespace)",
                     "logsPanel": {
                         "filter": (
                             'resource.type="k8s_container"\n'
                             'jsonPayload."ate.atespace"="security-demo"'
                         )
-                    }
+                    },
                 },
             ],
         }
@@ -109,17 +144,17 @@ class PromqlScopeTest(unittest.TestCase):
             scoped["tiles"][0]["timeSeriesQuery"]["prometheusQuery"],
             'max(agent_gateway_actors_tracked{cluster="my-cluster"})',
         )
-        log_filter = scoped["tiles"][1]["logsPanel"]["filter"]
+        self.assertIn(
+            'resource.labels.cluster="my-cluster"',
+            scoped["tiles"][1]["timeSeriesQuery"]["timeSeriesFilter"]["filter"],
+        )
+        self.assertIn("custom-space atespace", scoped["tiles"][2]["title"])
+        log_filter = scoped["tiles"][2]["logsPanel"]["filter"]
         self.assertIn('resource.labels.cluster_name="my-cluster"', log_filter)
         self.assertIn('jsonPayload."ate.atespace"="custom-space"', log_filter)
 
-        # Idempotent second pass on displayName and logsPanel
         rescoped = promql_scope.scope_dashboard(scoped, "my-cluster", "custom-space")
         self.assertEqual(rescoped["displayName"], scoped["displayName"])
-        self.assertEqual(
-            rescoped["tiles"][1]["logsPanel"]["filter"],
-            log_filter,
-        )
 
     def test_empty_selector_floats_and_cli_main(self) -> None:
         self.assertEqual(
@@ -138,6 +173,67 @@ class PromqlScopeTest(unittest.TestCase):
         parsed = json.loads(out_d.getvalue())
         self.assertEqual(parsed["prometheusQuery"], 'up{cluster="c1"}')
         self.assertEqual(parsed["displayName"], "Dash (c1)")
+
+    def test_shipped_dashboards_manifests_and_shell_scripts_parse_cleanly(
+        self,
+    ) -> None:
+        use_case_dir = Path(__file__).resolve().parent.parent
+        for sh_file in sorted(use_case_dir.rglob("*.sh")):
+            if ".state" in sh_file.parts:
+                continue
+            res = subprocess.run(
+                ["bash", "-n", str(sh_file)],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(res.returncode, 0, f"{sh_file}: {res.stderr}")
+
+        substitutions = {
+            "${NAMESPACE}": "agent-sandbox",
+            "${SECRETS_NAMESPACE}": "agent-secrets",
+            "${ATESPACE}": "security-demo",
+            "${WORKER_IMAGE}": (
+                "ghcr.io/agent-substrate/substrate/ateworker-gvisor:v1.0.0"
+                "@sha256:" + "a" * 64
+            ),
+            "${GATEWAY_IMAGE}": (
+                "us-east4-docker.pkg.dev/proj/repo/app:v1@sha256:" + "b" * 64
+            ),
+            "${AGENT_IMAGE}": (
+                "us-east4-docker.pkg.dev/proj/repo/app:v1@sha256:" + "b" * 64
+            ),
+            "${GATEWAY_CODE_SHA}": "c" * 64,
+            "${GEMINI_MODEL}": "gemini-3.8-flash",
+            "${PROJECT_ID}": "demo-project",
+        }
+        for tmpl in sorted((use_case_dir / "manifests").glob("*.yaml.tmpl")):
+            rendered = tmpl.read_text(encoding="utf-8")
+            for placeholder, value in substitutions.items():
+                rendered = rendered.replace(placeholder, value)
+            self.assertNotIn("${", rendered, f"Unexpanded placeholder in {tmpl}")
+            docs = [doc for doc in yaml.safe_load_all(rendered) if doc is not None]
+            self.assertGreater(len(docs), 0, f"Empty YAML in {tmpl}")
+
+        for dash_path in sorted((use_case_dir / "observability").rglob("*.json")):
+            raw_dash = json.loads(dash_path.read_text(encoding="utf-8"))
+            scoped = promql_scope.scope_dashboard(raw_dash, "ci-cluster", "ci-space")
+            for tile in scoped.get("mosaicLayout", {}).get("tiles", []):
+                widget = tile.get("widget", {})
+                for ds in widget.get("xyChart", {}).get("dataSets", []):
+                    tsq = ds.get("timeSeriesQuery", {})
+                    if "prometheusQuery" in tsq:
+                        self.assertIn(
+                            'cluster="ci-cluster"',
+                            tsq["prometheusQuery"],
+                            str(dash_path),
+                        )
+                    if "timeSeriesFilter" in tsq:
+                        self.assertIn(
+                            'resource.labels.cluster="ci-cluster"',
+                            tsq["timeSeriesFilter"]["filter"],
+                            str(dash_path),
+                        )
 
 
 if __name__ == "__main__":

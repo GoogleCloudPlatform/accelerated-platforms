@@ -15,22 +15,25 @@
 
 """Split-plane Gateway service for Google ADK actors on Agent Substrate v1.0.0.
 
-Exposes two strictly separated HTTP listeners so untrusted sandboxes hold zero
+Exposes three strictly separated HTTP listeners so untrusted sandboxes hold zero
 Google Cloud credentials, cannot pivot laterally to sibling actors, and reach
-actors exclusively through `atenet-router`'s authenticated SPIFFE mTLS listener:
+actors exclusively through `atenet-router`'s authenticated mTLS listener:
 - :8080 (0.0.0.0, actor-facing Service port 80, restricted via NetworkPolicy to
-  `atenet-egress` and Managed Prometheus): authenticates via GKE Workload Identity
-  Application Default Credentials (`google.auth.default`) and proxies Google ADK
-  Gemini model calls, plus GET /readyz and GET /metrics.
-- :8081 (127.0.0.1 loopback by default, operator-facing via `kubectl port-forward`
-  authenticated with `X-Gateway-Admin-Token` / Bearer token): POST /chat/{actor},
-  GET /actors/{actor}/state, POST /actors/{actor}/execute,
+  `atenet-egress` only): authenticates via GKE Workload Identity Application
+  Default Credentials (`google.auth.default`) and proxies Google ADK Gemini
+  model calls plus GET /readyz (upstream error bodies sanitized).
+- :9091 (0.0.0.0, restricted via NetworkPolicy to `gmp-system` only): serves
+  Prometheus telemetry on GET /metrics and GET /readyz.
+- :8081 (127.0.0.1 loopback by default, operator-facing via port-forward
+  authenticated with required `X-Gateway-Admin-Token` / Bearer token):
+  POST /chat/{actor}, GET /actors/{actor}/state, POST /actors/{actor}/execute,
   GET /actors/{actor}/fetch, GET /identity, GET /readyz, and GET /metrics.
 """
 
 import asyncio
 import hmac
 import json
+import logging
 import os
 import re
 import ssl
@@ -39,7 +42,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Any
+from typing import IO, Any
 
 import google.auth
 import uvicorn
@@ -47,7 +50,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from google.auth.transport.requests import Request as GoogleAuthRequest
 
+LOGGER = logging.getLogger(__name__)
+
 model_app = FastAPI()
+metrics_app = FastAPI()
 admin_app = FastAPI()
 
 ATESPACE = os.environ.get("ATESPACE", "security-demo")
@@ -62,17 +68,21 @@ ROUTER_CLIENT_CERT = os.environ.get(
 )
 ROUTER_CA_CERT = os.environ.get("ROUTER_CA_CERT", "/run/router-client/router-ca.pem")
 ADMIN_BIND_HOST = os.environ.get("ADMIN_BIND_HOST", "127.0.0.1")
+METRICS_PORT = int(os.environ.get("METRICS_PORT", "9091"))
 GATEWAY_ADMIN_TOKEN = os.environ.get("GATEWAY_ADMIN_TOKEN", "").strip()
 
 ACTOR_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
 MODEL_ACTION_RE = re.compile(r"^[a-zA-Z0-9._-]+:generateContent$")
+API_CLIENT_HEADER_RE = re.compile(r"^[A-Za-z0-9._/ -]{1,256}$")
 BUCKETS = (0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0)
+MAX_MODEL_BODY_BYTES = 4 * 1024 * 1024
+MAX_ROUTER_RESPONSE_BYTES = 4 * 1024 * 1024
 
 CRED_LOCK = threading.Lock()
 _CREDENTIALS: Any = None
 
 TLS_LOCK = threading.Lock()
-_CACHED_SSL_CTX: tuple[float, float, ssl.SSLContext] | None = None
+_CACHED_SSL_CTX: tuple[tuple[int, int], tuple[int, int], ssl.SSLContext] | None = None
 
 METRICS_LOCK = threading.Lock()
 METRICS: dict[str, Any] = {
@@ -85,6 +95,38 @@ METRICS: dict[str, Any] = {
     "tokens_output": 0,
     "actors_seen": set(),
 }
+
+
+def _constant_time_equals(left: str, right: str) -> bool:
+    """Compare UTF-8 strings in constant time without non-ASCII TypeError."""
+    return hmac.compare_digest(left.encode("utf-8"), right.encode("utf-8"))
+
+
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Never follow 30x redirects emitted by untrusted actors behind router."""
+
+    def redirect_request(
+        self,
+        req: urllib.request.Request,
+        fp: IO[bytes],
+        code: int,
+        msg: str,
+        headers: Any,
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        del req, fp, code, msg, headers, newurl
+        return None
+
+
+def _read_bounded_stream(stream: Any, limit: int = MAX_ROUTER_RESPONSE_BYTES) -> bytes:
+    """Read at most `limit` bytes from an upstream HTTP stream."""
+    raw = stream.read(limit + 1)
+    if len(raw) > limit:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Upstream response exceeded {limit} bytes",
+        )
+    return bytes(raw)
 
 
 def validate_actor_name(actor: str) -> str:
@@ -101,17 +143,42 @@ def validate_model_action(model_action: str) -> str:
     return model_action
 
 
+def validate_router_url(router_url: str) -> str:
+    """Reject non-HTTPS router URLs so client-cert mTLS can never downgrade."""
+    parsed = urllib.parse.urlparse(router_url.strip())
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise ValueError(
+            f"ROUTER_HTTPS must be an https:// URL for mTLS, got {router_url!r}"
+        )
+    return router_url.strip().rstrip("/")
+
+
+def validate_startup_config() -> None:
+    """Fail closed at startup if admin auth, project, or router is invalid."""
+    if not GATEWAY_ADMIN_TOKEN:
+        raise RuntimeError(
+            "Refusing to start gateway: GATEWAY_ADMIN_TOKEN is empty "
+            "(mount Secret/gateway-admin-token)."
+        )
+    if not PROJECT_ID:
+        raise RuntimeError("Refusing to start gateway: GOOGLE_CLOUD_PROJECT is empty.")
+    validate_router_url(ROUTER_HTTPS)
+
+
 def verify_admin_token(
     x_gateway_admin_token: str | None = Header(default=None),
     authorization: str | None = Header(default=None),
 ) -> None:
-    """Require the operator admin token when configured on the deployment."""
+    """Require a non-empty operator admin token (fail closed with 503)."""
     if not GATEWAY_ADMIN_TOKEN:
-        return
+        raise HTTPException(
+            status_code=503,
+            detail="GATEWAY_ADMIN_TOKEN is not configured on gateway",
+        )
     candidate = (x_gateway_admin_token or "").strip()
     if not candidate and authorization and authorization.startswith("Bearer "):
         candidate = authorization[len("Bearer ") :].strip()
-    if not candidate or not hmac.compare_digest(candidate, GATEWAY_ADMIN_TOKEN):
+    if not candidate or not _constant_time_equals(candidate, GATEWAY_ADMIN_TOKEN):
         raise HTTPException(status_code=401, detail="Unauthorized admin request")
 
 
@@ -119,32 +186,38 @@ def build_router_ssl_context(
     cert_path: str = ROUTER_CLIENT_CERT,
     ca_path: str = ROUTER_CA_CERT,
 ) -> ssl.SSLContext:
-    """Build or reload the PodCertificate SPIFFE mTLS SSLContext for atenet-router."""
-    global _CACHED_SSL_CTX
-    try:
-        cert_mtime = os.path.getmtime(cert_path)
-        ca_mtime = os.path.getmtime(ca_path)
-    except OSError as exc:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Router mTLS credentials unavailable: {exc}",
-        ) from exc
+    """Build or reload the PodCertificate mTLS SSLContext for atenet-router.
 
+    Presents the gateway pod's `podidentity.podcert.ate.dev/identity` SPIFFE
+    client certificate and verifies `atenet-router`'s server certificate against
+    `servicedns.podcert.ate.dev/identity` (`router-ca.pem`) + DNS hostname SAN.
+    """
+    global _CACHED_SSL_CTX
     with TLS_LOCK:
-        if (
-            _CACHED_SSL_CTX is not None
-            and _CACHED_SSL_CTX[0] == cert_mtime
-            and _CACHED_SSL_CTX[1] == ca_mtime
-        ):
-            return _CACHED_SSL_CTX[2]
-        ctx = ssl.create_default_context(
-            purpose=ssl.Purpose.SERVER_AUTH, cafile=ca_path
-        )
-        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
-        ctx.check_hostname = True
-        ctx.load_cert_chain(certfile=cert_path, keyfile=cert_path)
-        _CACHED_SSL_CTX = (cert_mtime, ca_mtime, ctx)
-        return ctx
+        try:
+            cert_st = os.stat(cert_path)
+            ca_st = os.stat(ca_path)
+            cert_stamp = (cert_st.st_mtime_ns, cert_st.st_ino)
+            ca_stamp = (ca_st.st_mtime_ns, ca_st.st_ino)
+            if (
+                _CACHED_SSL_CTX is not None
+                and _CACHED_SSL_CTX[0] == cert_stamp
+                and _CACHED_SSL_CTX[1] == ca_stamp
+            ):
+                return _CACHED_SSL_CTX[2]
+            ctx = ssl.create_default_context(
+                purpose=ssl.Purpose.SERVER_AUTH, cafile=ca_path
+            )
+            ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+            ctx.check_hostname = True
+            ctx.load_cert_chain(certfile=cert_path, keyfile=cert_path)
+            _CACHED_SSL_CTX = (cert_stamp, ca_stamp, ctx)
+            return ctx
+        except (OSError, ssl.SSLError) as exc:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Router mTLS credentials unavailable: {exc}",
+            ) from exc
 
 
 def _call_router(
@@ -154,8 +227,13 @@ def _call_router(
     payload: dict[str, Any] | None = None,
     timeout: float = 60.0,
 ) -> tuple[int, str]:
-    """Invoke an actor through `atenet-router` over PodCertificate SPIFFE mTLS."""
+    """Invoke an actor through `atenet-router` over mTLS without redirects."""
     actor = validate_actor_name(actor)
+    try:
+        router_base = validate_router_url(ROUTER_HTTPS)
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
     with METRICS_LOCK:
         METRICS["actors_seen"].add(actor)
 
@@ -166,26 +244,24 @@ def _call_router(
         headers["Content-Type"] = "application/json"
 
     req = urllib.request.Request(
-        f"{ROUTER_HTTPS}{path}",
+        f"{router_base}{path}",
         data=data,
         headers=headers,
         method=method,
     )
-    opener: urllib.request.OpenerDirector
-    if ROUTER_HTTPS.startswith("https://"):
-        ssl_ctx = build_router_ssl_context()
-        opener = urllib.request.build_opener(
-            urllib.request.HTTPSHandler(context=ssl_ctx)
-        )
-    else:
-        opener = urllib.request.build_opener()
+    ssl_ctx = build_router_ssl_context()
+    opener = urllib.request.build_opener(
+        urllib.request.HTTPSHandler(context=ssl_ctx),
+        _NoRedirectHandler(),
+    )
 
     try:
         with opener.open(req, timeout=timeout) as resp:
-            return resp.status, resp.read().decode("utf-8", errors="replace")
+            body_bytes = _read_bounded_stream(resp)
+            return resp.status, body_bytes.decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
-        body_text = exc.read().decode("utf-8", errors="replace")
-        return exc.code, body_text
+        body_bytes = _read_bounded_stream(exc)
+        return exc.code, body_bytes.decode("utf-8", errors="replace")
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise HTTPException(
             status_code=502,
@@ -211,27 +287,49 @@ def render_prometheus_metrics() -> str:
     with METRICS_LOCK:
         tracked = len(METRICS["actors_seen"])
         bucket_lines = [
-            f'agent_gateway_model_request_duration_seconds_bucket{{backend="gemini",le="{b}"}} {METRICS["model_buckets"][b]}'
+            (
+                "agent_gateway_model_request_duration_seconds_bucket"
+                f'{{backend="gemini",le="{b}"}} {METRICS["model_buckets"][b]}'
+            )
             for b in BUCKETS
         ]
         bucket_lines.append(
-            f'agent_gateway_model_request_duration_seconds_bucket{{backend="gemini",le="+Inf"}} {METRICS["model_requests"]}'
+            "agent_gateway_model_request_duration_seconds_bucket"
+            f'{{backend="gemini",le="+Inf"}} {METRICS["model_requests"]}'
         )
         lines = [
-            "# HELP agent_gateway_chat_turns_total Total chat turns processed by the gateway.",
+            "# HELP agent_gateway_chat_turns_total Total actor chat turns.",
             "# TYPE agent_gateway_chat_turns_total counter",
-            f'agent_gateway_chat_turns_total{{outcome="ok"}} {METRICS["chat_turns_ok"]}',
-            f'agent_gateway_chat_turns_total{{outcome="error"}} {METRICS["chat_turns_error"]}',
-            "# HELP agent_gateway_model_request_duration_seconds Gemini model request latency.",
+            (
+                'agent_gateway_chat_turns_total{outcome="ok"} '
+                f'{METRICS["chat_turns_ok"]}'
+            ),
+            (
+                'agent_gateway_chat_turns_total{outcome="error"} '
+                f'{METRICS["chat_turns_error"]}'
+            ),
+            "# HELP agent_gateway_model_request_duration_seconds Gemini latency.",
             "# TYPE agent_gateway_model_request_duration_seconds histogram",
             *bucket_lines,
-            f'agent_gateway_model_request_duration_seconds_sum{{backend="gemini"}} {METRICS["model_duration_sum"]:.4f}',
-            f'agent_gateway_model_request_duration_seconds_count{{backend="gemini"}} {METRICS["model_requests"]}',
+            (
+                "agent_gateway_model_request_duration_seconds_sum"
+                f'{{backend="gemini"}} {METRICS["model_duration_sum"]:.4f}'
+            ),
+            (
+                "agent_gateway_model_request_duration_seconds_count"
+                f'{{backend="gemini"}} {METRICS["model_requests"]}'
+            ),
             "# HELP agent_gateway_model_tokens_total Total model tokens processed.",
             "# TYPE agent_gateway_model_tokens_total counter",
-            f'agent_gateway_model_tokens_total{{backend="gemini",direction="input"}} {METRICS["tokens_input"]}',
-            f'agent_gateway_model_tokens_total{{backend="gemini",direction="output"}} {METRICS["tokens_output"]}',
-            "# HELP agent_gateway_actors_tracked Number of actors addressed through the gateway.",
+            (
+                'agent_gateway_model_tokens_total{backend="gemini",direction="input"} '
+                f'{METRICS["tokens_input"]}'
+            ),
+            (
+                'agent_gateway_model_tokens_total{backend="gemini",direction="output"} '
+                f'{METRICS["tokens_output"]}'
+            ),
+            "# HELP agent_gateway_actors_tracked Number of actors addressed.",
             "# TYPE agent_gateway_actors_tracked gauge",
             f"agent_gateway_actors_tracked {tracked}",
         ]
@@ -241,11 +339,11 @@ def render_prometheus_metrics() -> str:
 def _forward_gemini(
     payload: dict[str, Any], api_client_header: str = ""
 ) -> dict[str, Any]:
-    """Forward a GenerateContent request using GKE Workload Identity credentials."""
+    """Forward a GenerateContent request using Workload Identity credentials."""
     if not PROJECT_ID:
         raise HTTPException(
             status_code=500,
-            detail="GOOGLE_CLOUD_PROJECT is not configured on gateway",
+            detail="Gateway model proxy is not configured",
         )
     t0 = time.monotonic()
     token = _wi_token()
@@ -258,8 +356,9 @@ def _forward_gemini(
         "Content-Type": "application/json",
         "x-goog-user-project": PROJECT_ID,
     }
-    if api_client_header:
-        headers["x-goog-api-client"] = api_client_header
+    clean_client = api_client_header.strip()
+    if clean_client and API_CLIENT_HEADER_RE.fullmatch(clean_client):
+        headers["x-goog-api-client"] = clean_client
     data: dict[str, Any] = {}
     for attempt in range(2):
         req = urllib.request.Request(
@@ -269,36 +368,45 @@ def _forward_gemini(
         )
         try:
             with urllib.request.urlopen(req, timeout=55) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+                raw_bytes = _read_bounded_stream(resp)
+                data = json.loads(raw_bytes.decode("utf-8"))
                 break
         except urllib.error.HTTPError as exc:
-            err_body = exc.read().decode("utf-8", errors="replace")
+            _ = exc.read(4096)
             if exc.code in (429, 502, 503, 504) and attempt == 0:
                 time.sleep(1.5)
                 continue
-            raise HTTPException(status_code=exc.code, detail=err_body) from exc
+            LOGGER.warning("Upstream Vertex AI returned HTTP %s", exc.code)
+            status = exc.code if 400 <= exc.code < 600 else 502
+            raise HTTPException(
+                status_code=status,
+                detail=f"Upstream model request failed (HTTP {exc.code})",
+            ) from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             if attempt == 0:
                 time.sleep(1.0)
                 continue
+            LOGGER.warning("Upstream Vertex AI transport failure: %s", exc)
             raise HTTPException(
-                status_code=502, detail=f"Upstream Gemini request failed: {exc}"
+                status_code=502,
+                detail="Upstream model endpoint unreachable",
             ) from exc
 
     dur = time.monotonic() - t0
-    usage = data.get("usageMetadata", {})
+    usage = data.get("usageMetadata") or {}
     with METRICS_LOCK:
         METRICS["model_requests"] += 1
         METRICS["model_duration_sum"] += dur
         for bucket in BUCKETS:
             if dur <= bucket:
                 METRICS["model_buckets"][bucket] += 1
-        METRICS["tokens_input"] += int(usage.get("promptTokenCount", 0))
-        METRICS["tokens_output"] += int(usage.get("candidatesTokenCount", 0))
+        METRICS["tokens_input"] += int(usage.get("promptTokenCount") or 0)
+        METRICS["tokens_output"] += int(usage.get("candidatesTokenCount") or 0)
     return data
 
 
 @model_app.get("/readyz")
+@metrics_app.get("/readyz")
 @admin_app.get("/readyz")
 def readyz() -> PlainTextResponse:
     return PlainTextResponse("ok\n")
@@ -307,33 +415,31 @@ def readyz() -> PlainTextResponse:
 @admin_app.get("/identity")
 def identity() -> JSONResponse:
     """Service identity endpoint verified by local port-forward helpers."""
-    return JSONResponse(
-        {
-            "service": "agent-substrate-gateway",
-            "atespace": ATESPACE,
-            "router": ROUTER_HTTPS,
-        }
-    )
+    return JSONResponse({"service": "agent-substrate-gateway"})
 
 
-@model_app.get("/metrics")
-@admin_app.get("/metrics")
-def metrics() -> PlainTextResponse:
+@metrics_app.get("/metrics")
+def scrape_metrics() -> PlainTextResponse:
     return PlainTextResponse(
         render_prometheus_metrics(),
         media_type="text/plain; version=0.0.4; charset=utf-8",
     )
 
 
-MAX_MODEL_BODY_BYTES = 4 * 1024 * 1024
+@admin_app.get("/metrics", dependencies=[Depends(verify_admin_token)])
+def admin_metrics() -> PlainTextResponse:
+    return PlainTextResponse(
+        render_prometheus_metrics(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
 
 
 def parse_model_request_body(raw_body: bytes) -> dict[str, Any]:
-    """Validate and parse an inbound JSON object body for model proxy calls."""
+    """Validate and parse an inbound JSON object body for gateway POST calls."""
     if len(raw_body) > MAX_MODEL_BODY_BYTES:
         raise HTTPException(
             status_code=413,
-            detail=f"Model request payload exceeds {MAX_MODEL_BODY_BYTES} bytes",
+            detail=f"Request payload exceeds {MAX_MODEL_BODY_BYTES} bytes",
         )
     try:
         payload = json.loads(raw_body)
@@ -343,13 +449,47 @@ def parse_model_request_body(raw_body: bytes) -> dict[str, Any]:
         ) from exc
     if not isinstance(payload, dict):
         raise HTTPException(
-            status_code=400, detail="Model request payload must be a JSON object"
+            status_code=400, detail="Request payload must be a JSON object"
         )
     return payload
 
 
+async def read_bounded_model_body(request: Request) -> dict[str, Any]:
+    """Enforce Content-Length and streaming byte cap before buffering body."""
+    raw_cl = request.headers.get("content-length")
+    if raw_cl is not None:
+        try:
+            declared = int(raw_cl)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=400, detail="Invalid Content-Length header"
+            ) from exc
+        if declared < 0:
+            raise HTTPException(
+                status_code=400, detail="Negative Content-Length header"
+            )
+        if declared > MAX_MODEL_BODY_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Request payload exceeds {MAX_MODEL_BODY_BYTES} bytes",
+            )
+
+    chunks: list[bytes] = []
+    total_bytes = 0
+    async for chunk in request.stream():
+        total_bytes += len(chunk)
+        if total_bytes > MAX_MODEL_BODY_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Request payload exceeds {MAX_MODEL_BODY_BYTES} bytes",
+            )
+        chunks.append(chunk)
+    return parse_model_request_body(b"".join(chunks))
+
+
 @model_app.post(
-    "/v1beta1/projects/{sandbox_project}/locations/{sandbox_location}/publishers/google/models/{model_action:path}"
+    "/v1beta1/projects/{sandbox_project}/locations/{sandbox_location}"
+    "/publishers/google/models/{model_action:path}"
 )
 async def proxy_adk_generate_content(
     sandbox_project: str,
@@ -360,7 +500,7 @@ async def proxy_adk_generate_content(
     """Zero-secret proxy endpoint invoked by Google ADK (`Gemini(base_url=...)`)."""
     del sandbox_project, sandbox_location
     validate_model_action(model_action)
-    payload = parse_model_request_body(await request.body())
+    payload = await read_bounded_model_body(request)
     api_client = request.headers.get("x-goog-api-client", "")
     data = await asyncio.to_thread(_forward_gemini, payload, api_client)
     return JSONResponse(data, headers={"Connection": "close"})
@@ -374,9 +514,15 @@ def _json_or_text_response(status_code: int, raw_text: str) -> Any:
 
 
 @admin_app.post("/chat/{actor}", dependencies=[Depends(verify_admin_token)])
-def chat_actor(actor: str, body: dict[str, Any]) -> Any:
-    status_code, raw_text = _call_router(
-        actor=actor, path="/chat", method="POST", payload=body, timeout=60.0
+async def chat_actor(actor: str, request: Request) -> Any:
+    body = await read_bounded_model_body(request)
+    status_code, raw_text = await asyncio.to_thread(
+        _call_router,
+        actor,
+        "/chat",
+        "POST",
+        body,
+        60.0,
     )
     with METRICS_LOCK:
         if 200 <= status_code < 300:
@@ -395,9 +541,15 @@ def actor_state(actor: str) -> Any:
 
 
 @admin_app.post("/actors/{actor}/execute", dependencies=[Depends(verify_admin_token)])
-def actor_execute(actor: str, body: dict[str, Any]) -> Any:
-    status_code, raw_text = _call_router(
-        actor=actor, path="/execute", method="POST", payload=body, timeout=30.0
+async def actor_execute(actor: str, request: Request) -> Any:
+    body = await read_bounded_model_body(request)
+    status_code, raw_text = await asyncio.to_thread(
+        _call_router,
+        actor,
+        "/execute",
+        "POST",
+        body,
+        30.0,
     )
     return _json_or_text_response(status_code, raw_text)
 
@@ -411,18 +563,32 @@ def actor_fetch(actor: str, url: str = Query(...)) -> Any:
     return _json_or_text_response(status_code, raw_text)
 
 
+async def _serve_all() -> None:
+    """Run model, metrics, and admin listeners concurrently and fail fast."""
+    configs = (
+        uvicorn.Config(model_app, host="0.0.0.0", port=8080, log_level="warning"),
+        uvicorn.Config(
+            metrics_app, host="0.0.0.0", port=METRICS_PORT, log_level="warning"
+        ),
+        uvicorn.Config(admin_app, host=ADMIN_BIND_HOST, port=8081, log_level="warning"),
+    )
+    servers = [uvicorn.Server(cfg) for cfg in configs]
+    tasks = [asyncio.create_task(srv.serve()) for srv in servers]
+    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    for srv in servers:
+        srv.should_exit = True
+    for task in pending:
+        task.cancel()
+    await asyncio.gather(*pending, return_exceptions=True)
+    for finished in done:
+        exc = finished.exception()
+        if exc is not None:
+            raise exc
+
+
 def main() -> None:
-    threading.Thread(
-        target=uvicorn.run,
-        kwargs={
-            "app": model_app,
-            "host": "0.0.0.0",
-            "port": 8080,
-            "log_level": "warning",
-        },
-        daemon=True,
-    ).start()
-    uvicorn.run(admin_app, host=ADMIN_BIND_HOST, port=8081, log_level="warning")
+    validate_startup_config()
+    asyncio.run(_serve_all())
 
 
 if __name__ == "__main__":

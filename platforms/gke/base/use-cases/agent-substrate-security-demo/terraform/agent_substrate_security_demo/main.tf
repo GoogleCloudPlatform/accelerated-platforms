@@ -29,15 +29,20 @@ data "google_container_cluster" "cluster" {
 }
 
 data "google_service_account" "cluster" {
-  account_id = "vm-${local.cluster_name}"
-  project    = data.google_project.cluster.project_id
+  account_id = local.cluster_node_pool_service_account_id
+  project    = local.cluster_node_pool_service_account_project_id
 }
 
 locals {
-  worker_zones = try(length(local.agent_substrate_node_locations), 0) > 0 ? local.agent_substrate_node_locations : slice([
+  available_worker_zones = [
     for zone in data.google_compute_zones.region.names : zone
     if !can(regex("-ai", zone))
-  ], 0, 2)
+  ]
+  worker_zones = try(length(local.agent_substrate_node_locations), 0) > 0 ? local.agent_substrate_node_locations : slice(
+    local.available_worker_zones,
+    0,
+    min(2, length(local.available_worker_zones))
+  )
 
   cluster_master_parts = split(".", split("-", data.google_container_cluster.cluster.master_version)[0])
   min_gke_parts        = split(".", local.agent_substrate_min_gke_version)
@@ -59,7 +64,6 @@ resource "google_container_node_pool" "agent_substrate_workers" {
   name               = "agent-substrate-${split("-", local.agent_substrate_node_machine_type)[0]}"
   node_locations     = local.worker_zones
   project            = data.google_project.cluster.project_id
-  version            = data.google_container_cluster.cluster.master_version
 
   autoscaling {
     location_policy      = "BALANCED"
@@ -74,6 +78,10 @@ resource "google_container_node_pool" "agent_substrate_workers" {
     precondition {
       condition     = local.gke_version_ok
       error_message = "Agent Substrate requires GKE control plane and worker nodes >= ${local.agent_substrate_min_gke_version} (for native PodCertificateRequest and ClusterTrustBundle); found ${data.google_container_cluster.cluster.master_version}."
+    }
+    precondition {
+      condition     = local.agent_substrate_project_id == local.cluster_project_id
+      error_message = "agent_substrate_project_id (${local.agent_substrate_project_id}) must match cluster_project_id (${local.cluster_project_id}) so GKE Workload Identity (${local.cluster_project_id}.svc.id.goog) matches the provisioned resources."
     }
   }
 
@@ -105,6 +113,10 @@ resource "google_container_node_pool" "agent_substrate_workers" {
       enable_secure_boot          = true
     }
 
+    workload_metadata_config {
+      mode = "GKE_METADATA"
+    }
+
     taint {
       effect = "NO_SCHEDULE"
       key    = "ate.dev/sandboxClass"
@@ -125,7 +137,10 @@ resource "google_project_service" "agent_substrate" {
     "cloudbuild.googleapis.com",
     "cloudtrace.googleapis.com",
     "iamcredentials.googleapis.com",
+    "logging.googleapis.com",
     "monitoring.googleapis.com",
+    "storage.googleapis.com",
+    "telemetry.googleapis.com",
   ])
 
   disable_dependent_services = false
@@ -139,8 +154,12 @@ resource "google_artifact_registry_repository" "agent_substrate_app" {
     google_project_service.agent_substrate,
   ]
 
-  description   = "Container image repository for Agent Substrate Security Demo actors and gateway"
-  format        = "DOCKER"
+  description = "Container image repository for Agent Substrate Security Demo actors and gateway"
+  format      = "DOCKER"
+  labels = {
+    "created-by" = "agent-substrate-demo"
+    "managed-by" = "agent-substrate-demo"
+  }
   location      = local.cluster_region
   project       = local.agent_substrate_project_id
   repository_id = local.agent_substrate_ar_repository_name
@@ -154,7 +173,19 @@ resource "google_artifact_registry_repository_iam_member" "cluster_nodes_reader"
   role       = "roles/artifactregistry.reader"
 }
 
+resource "google_artifact_registry_repository_iam_member" "atelet_reader" {
+  location   = google_artifact_registry_repository.agent_substrate_app.location
+  member     = "${local.wi_subject_prefix}/ns/ate-system/sa/atelet"
+  project    = google_artifact_registry_repository.agent_substrate_app.project
+  repository = google_artifact_registry_repository.agent_substrate_app.name
+  role       = "roles/artifactregistry.reader"
+}
+
 resource "google_storage_bucket" "ate_snapshots" {
+  depends_on = [
+    google_project_service.agent_substrate,
+  ]
+
   location = local.cluster_region
   name     = local.agent_substrate_snapshot_bucket_name
   project  = local.agent_substrate_project_id
@@ -162,6 +193,11 @@ resource "google_storage_bucket" "ate_snapshots" {
   force_destroy               = local.agent_substrate_snapshot_bucket_force_destroy
   public_access_prevention    = "enforced"
   uniform_bucket_level_access = true
+
+  labels = {
+    "created-by" = "agent-substrate-demo"
+    "managed-by" = "agent-substrate-demo"
+  }
 
   lifecycle_rule {
     action {
@@ -183,6 +219,10 @@ resource "google_storage_bucket" "ate_snapshots" {
 }
 
 resource "google_service_account" "ate_snapshot_transfer" {
+  depends_on = [
+    google_project_service.agent_substrate,
+  ]
+
   account_id   = local.agent_substrate_snapshot_transfer_gsa_name
   display_name = "Agent Substrate Snapshot Transfer GSA"
   project      = local.agent_substrate_project_id

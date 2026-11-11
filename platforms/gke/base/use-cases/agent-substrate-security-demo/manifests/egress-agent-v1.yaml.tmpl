@@ -15,17 +15,19 @@
 # ActorTemplate egress-agent-v1: Zero-secret HTTP fetch actor with egress MITM trust bundle.
 # Runs `/app-src/egress_agent.py` from the immutable `@sha256` container image built from ../app/Dockerfile.
 metadata:
-  atespace: ${ATESPACE}
+  atespace: "${ATESPACE}"
   name: egress-agent-v1
 workerSelector:
   matchLabels:
     workload: substrate-agent
 containers:
 - name: agent-fetch
-  image: ${AGENT_IMAGE}
+  image: "${AGENT_IMAGE}"
   command: ["python3", "/app-src/egress_agent.py"]
   env:
   - name: SSL_CERT_FILE
+    value: /run/ate/trust-bundle.pem
+  - name: REQUESTS_CA_BUNDLE
     value: /run/ate/trust-bundle.pem
   - name: SSL_CERT_DIR
     value: /dev/null

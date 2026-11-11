@@ -13,20 +13,23 @@
 # limitations under the License.
 
 # Split-plane Python Gateway Deployment:
-# - Calls `atenet-router:443` over native SPIFFE mTLS (`podCertificate` + `clusterTrustBundle`).
-# - Restricts `:8080` (model proxy) via NetworkPolicy to `atenet-egress` and Managed Prometheus.
-# - Binds `:8081` (operator API) to `127.0.0.1` loopback inside the pod and requires `Secret/gateway-admin-token`.
+# - Calls `atenet-router:443` over mTLS (`podCertificate` client SPIFFE identity +
+#   `servicedns.podcert.ate.dev/identity` `clusterTrustBundle`).
+# - Restricts `:8080` (model proxy) via NetworkPolicy exclusively to `atenet-egress`,
+#   and `:9091` (`/metrics`) exclusively to Google Managed Prometheus (`gmp-system`).
+# - Binds `:8081` (operator API) to `127.0.0.1` loopback inside the pod and requires
+#   `Secret/gateway-admin-token`.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: gateway
-  namespace: ${NAMESPACE}
+  namespace: "${NAMESPACE}"
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gateway
-  namespace: ${NAMESPACE}
+  namespace: "${NAMESPACE}"
   labels: {app: gateway}
 spec:
   replicas: 1
@@ -39,15 +42,17 @@ spec:
         checksum/app-image: "${GATEWAY_CODE_SHA}"
     spec:
       serviceAccountName: gateway
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
+        runAsGroup: 1000
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       containers:
       - name: gateway
-        image: ${GATEWAY_IMAGE}
+        image: "${GATEWAY_IMAGE}"
         command: ["python3", "/app-src/gateway.py"]
         securityContext:
           allowPrivilegeEscalation: false
@@ -56,12 +61,14 @@ spec:
             drop: ["ALL"]
         ports:
         - {name: http, containerPort: 8080}
+        - {name: metrics, containerPort: 9091}
         env:
         - {name: ATESPACE, value: "${ATESPACE}"}
         - {name: GEMINI_MODEL, value: "${GEMINI_MODEL}"}
         - {name: GOOGLE_CLOUD_PROJECT, value: "${PROJECT_ID}"}
         - {name: GOOGLE_CLOUD_LOCATION, value: "global"}
         - {name: ADMIN_BIND_HOST, value: "127.0.0.1"}
+        - {name: METRICS_PORT, value: "9091"}
         - name: GATEWAY_ADMIN_TOKEN
           valueFrom:
             secretKeyRef:
@@ -83,7 +90,7 @@ spec:
       volumes:
       - name: router-client
         projected:
-          defaultMode: 420
+          defaultMode: 288
           sources:
           - podCertificate:
               signerName: podidentity.podcert.ate.dev/identity
@@ -102,7 +109,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: gateway
-  namespace: ${NAMESPACE}
+  namespace: "${NAMESPACE}"
   labels: {app: gateway}
 spec:
   selector: {app: gateway}
@@ -113,13 +120,14 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: gateway-isolation
-  namespace: ${NAMESPACE}
+  namespace: "${NAMESPACE}"
 spec:
   podSelector:
     matchLabels:
       app: gateway
   policyTypes:
   - Ingress
+  - Egress
   ingress:
   - from:
     - namespaceSelector:
@@ -128,9 +136,39 @@ spec:
       podSelector:
         matchLabels:
           app: atenet-egress
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: gmp-system
     ports:
     - protocol: TCP
-      port: 8080
+      port: 9091
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - {protocol: UDP, port: 53}
+    - {protocol: TCP, port: 53}
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: ate-system
+      podSelector:
+        matchLabels:
+          app: atenet-router
+    ports:
+    - {protocol: TCP, port: 443}
+    - {protocol: TCP, port: 8443}
+  - to:
+    - ipBlock:
+        cidr: 169.254.169.254/32
+    ports:
+    - {protocol: TCP, port: 80}
+    - {protocol: TCP, port: 988}
+  - ports:
+    - {protocol: TCP, port: 443}

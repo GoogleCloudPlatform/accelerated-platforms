@@ -14,12 +14,15 @@
 # limitations under the License.
 
 # create-cluster.sh — Standalone GKE 1.37+ cluster creation (Option A) with private
-# worker nodes, Cloud NAT, control-plane DNS endpoint, dedicated least-privilege
-# node ServiceAccount, deterministic non-overlapping subnet CIDRs, and stockout timeout.
+# worker nodes, Cloud NAT, DNS-only control-plane endpoint (--no-enable-ip-access),
+# dedicated least-privilege node ServiceAccount, deterministic non-overlapping subnet
+# CIDRs (checking both primary and GKE secondary ranges), and stockout timeout.
 
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null)}"
+DEFAULT_PROJECT="$(gcloud config get-value project 2>/dev/null || true)"
+[[ "${DEFAULT_PROJECT}" == "(unset)" ]] && DEFAULT_PROJECT=""
+PROJECT_ID="${PROJECT_ID:-${DEFAULT_PROJECT}}"
 CLUSTER_NAME="${CLUSTER_NAME:-agent-substrate-live}"
 CLUSTER_LOCATION="${CLUSTER_LOCATION:-us-central1-b}"
 GKE_VERSION="${GKE_VERSION:-1.37}"
@@ -39,8 +42,22 @@ if [[ -z "${DISK_TYPE:-}" ]]; then
   fi
 fi
 NUM_NODES="${NUM_NODES:-2}"
+NODE_LOCATIONS_ARGS=()
+if [[ ! "${CLUSTER_LOCATION}" =~ -[a-z]$ ]]; then
+  # For regional clusters, pin 2 zones with 1 node per zone (2 total worker nodes)
+  # unless NODE_LOCATIONS is explicitly provided.
+  if [[ -n "${NODE_LOCATIONS:-}" ]]; then
+    NODE_LOCATIONS_ARGS=(--node-locations "${NODE_LOCATIONS}")
+  else
+    TWO_ZONES="$(gcloud compute zones list --project "${PROJECT_ID}" --filter="region:(${REGION}) AND status=UP AND NOT name~-ai" --limit=2 --format='value(name)' | paste -sd, -)"
+    if [[ -n "${TWO_ZONES}" ]]; then
+      NODE_LOCATIONS_ARGS=(--node-locations "${TWO_ZONES}")
+      NUM_NODES="${REGIONAL_NODES_PER_ZONE:-1}"
+    fi
+  fi
+fi
 NETWORK="${NETWORK:-ai-agent-network}"
-SUBNETWORK="${SUBNETWORK:-ai-agent-subnet-${REGION}}"
+SUBNETWORK="${SUBNETWORK:-${NETWORK%-network}-subnet-${REGION}}"
 ROUTER_NAME="${ROUTER_NAME:-${NETWORK}-router-${REGION}}"
 NAT_NAME="${NAT_NAME:-${NETWORK}-nat-${REGION}}"
 CLEAN_CLUSTER_SLUG="$(printf '%s' "${CLUSTER_NAME}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-' | cut -c1-18 | sed 's/-\+$//')"
@@ -55,11 +72,15 @@ select_subnet_cidr() {
     return 0
   fi
   local existing
-  existing="$(gcloud compute networks subnets list --project "${PROJECT_ID}" --network "${NETWORK}" --format='value(ipCidrRange)' 2>/dev/null || true)"
+  existing="$(gcloud compute networks subnets list --project "${PROJECT_ID}" --network "${NETWORK}" --format='value(ipCidrRange,secondaryIpRanges[].ipCidrRange)')"
   python3 - "${REGION}" "${existing}" <<'EOF'
-import hashlib, ipaddress, sys
+import hashlib, ipaddress, re, sys
 region = sys.argv[1]
-used = [ipaddress.ip_network(line.strip(), strict=False) for line in sys.argv[2].splitlines() if line.strip()]
+used = [
+    ipaddress.ip_network(tok, strict=False)
+    for tok in re.split(r"[\s,;]+", sys.argv[2].strip())
+    if tok
+]
 seed = int(hashlib.sha256(region.encode("utf-8")).hexdigest()[:4], 16)
 for step in range(256):
     second = 128 + ((seed + step) % 64)
@@ -116,7 +137,7 @@ echo "==> 2/5: Ensuring least-privilege GKE node ServiceAccount (${NODE_SA_EMAIL
 if ! gcloud iam service-accounts describe "${NODE_SA_EMAIL}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
   gcloud iam service-accounts create "${NODE_SA_NAME}" \
     --project "${PROJECT_ID}" \
-    --display-name "Agent Substrate GKE Worker Nodes (${CLUSTER_NAME})"
+    --display-name "GKE Node SA (${CLUSTER_NAME})"
 fi
 for role in \
   roles/container.defaultNodeServiceAccount \
@@ -131,16 +152,18 @@ for role in \
     --quiet
 done
 
-echo "==> 3/5: Creating private GKE ${GKE_VERSION} cluster '${CLUSTER_NAME}' (${MACHINE_TYPE}, ${DISK_TYPE}, ${NUM_NODES} nodes) in ${CLUSTER_LOCATION}"
+echo "==> 3/5: Creating private GKE ${GKE_VERSION} cluster '${CLUSTER_NAME}' (${MACHINE_TYPE}, ${DISK_TYPE}, ${NUM_NODES} node(s)/zone) in ${CLUSTER_LOCATION}"
 if ! gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_LOCATION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
   gcloud beta container clusters create "${CLUSTER_NAME}" \
     --async \
     --project "${PROJECT_ID}" \
     --location "${CLUSTER_LOCATION}" \
+    ${NODE_LOCATIONS_ARGS[@]+"${NODE_LOCATIONS_ARGS[@]}"} \
     --network "${NETWORK}" \
     --subnetwork "${SUBNETWORK}" \
     --enable-private-nodes \
     --enable-dns-access \
+    --no-enable-ip-access \
     --enable-ip-alias \
     --enable-dataplane-v2 \
     --release-channel rapid \
@@ -169,7 +192,7 @@ if ! gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_
       exit 1
     fi
     if [[ "${CLUSTER_LOCATION}" =~ -[a-z]$ ]]; then
-      MIG="$(gcloud compute instance-groups managed list --project "${PROJECT_ID}" --zones "${CLUSTER_LOCATION}" --filter="name~gke-${CLUSTER_NAME:0:18}" --format='value(name)' 2>/dev/null | head -n1 || true)"
+      MIG="$(gcloud compute instance-groups managed list --project "${PROJECT_ID}" --zones "${CLUSTER_LOCATION}" --filter="name~gke-${CLUSTER_NAME:0:18}" --limit=1 --format='value(name)' 2>/dev/null || true)"
       if [[ -n "${MIG}" ]]; then
         MIG_ERR="$(gcloud compute instance-groups managed list-instances "${MIG}" --zone "${CLUSTER_LOCATION}" --project "${PROJECT_ID}" --format='value(lastAttempt.errors.errors.code)' 2>/dev/null || true)"
         if grep -qE 'ZONE_RESOURCE_POOL_EXHAUSTED|QUOTA_EXCEEDED' <<<"${MIG_ERR}"; then
@@ -197,14 +220,24 @@ end = (now + datetime.timedelta(days=7)).strftime("%Y-%m-%dT00:00:00Z")
 print(f"{start} {end}")
 EOF
 )
-gcloud container clusters update "${CLUSTER_NAME}" \
+EXCLUSION_RC=0
+EXCLUSION_ERR="$(gcloud container clusters update "${CLUSTER_NAME}" \
   --project "${PROJECT_ID}" \
   --location "${CLUSTER_LOCATION}" \
   --add-maintenance-exclusion-name substrate-demo-freeze \
   --add-maintenance-exclusion-start "${START_TIME}" \
   --add-maintenance-exclusion-end "${END_TIME}" \
   --add-maintenance-exclusion-scope no_minor_or_node_upgrades \
-  --quiet >/dev/null 2>&1 || echo "Note: maintenance exclusion window already exists on '${CLUSTER_NAME}'."
+  --quiet 2>&1 >/dev/null)" || EXCLUSION_RC=$?
+if [[ "${EXCLUSION_RC}" -ne 0 ]]; then
+  EXCLUSION_LOWER="$(printf '%s' "${EXCLUSION_ERR}" | tr '[:upper:]' '[:lower:]')"
+  if [[ "${EXCLUSION_LOWER}" == *"already exists"* || "${EXCLUSION_LOWER}" == *"already_exists"* ]]; then
+    echo "Note: maintenance exclusion window already exists on '${CLUSTER_NAME}'."
+  else
+    printf '%s\n' "${EXCLUSION_ERR}" >&2
+    exit "${EXCLUSION_RC}"
+  fi
+fi
 
 UPDATE_KUBECONFIG="${UPDATE_KUBECONFIG:-true}"
 if [[ "${UPDATE_KUBECONFIG}" == "true" ]]; then
@@ -217,4 +250,3 @@ else
   echo "==> 5/5: Skipping kubeconfig context switch (UPDATE_KUBECONFIG=${UPDATE_KUBECONFIG})."
   echo "  Fetch credentials manually with: gcloud container clusters get-credentials '${CLUSTER_NAME}' --location '${CLUSTER_LOCATION}' --project '${PROJECT_ID}' --dns-endpoint"
 fi
-echo "Cluster '${CLUSTER_NAME}' (${GKE_VERSION}) is ready."

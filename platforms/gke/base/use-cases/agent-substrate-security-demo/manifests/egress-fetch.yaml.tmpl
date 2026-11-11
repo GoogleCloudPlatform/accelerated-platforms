@@ -19,6 +19,4 @@ rules:
         replaceHeaders:
           - header: Authorization
             prefix: "Bearer "
-            credentialUri: ate-secret://k8s.io/default/${SECRETS_NAMESPACE}/example-api/token
-  - https:
-      hostnames: ["www.googleapis.com"]
+            credentialUri: "ate-secret://k8s.io/default/${SECRETS_NAMESPACE}/example-api/token"

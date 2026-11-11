@@ -105,7 +105,7 @@ cluster (`Option A`).
    [Canned PromQL & Cloud Logging Queries](/platforms/gke/base/use-cases/agent-substrate-security-demo/observability/queries.md)).
    When running on a remote workstation, forward the loopback port over SSH
    (`ssh -L 18090:127.0.0.1:18090 <host>`), or set `ALLOWED_HOSTS=<proxy-host>`
-   behind an authenticated reverse proxy.
+   (or `ALLOWED_HOSTS="*"`) behind an authenticated reverse proxy.
 
 1. Tear down Option A resources (removes Cloud Monitoring dashboards, the GKE
    cluster, demo-labeled snapshot Cloud Storage bucket, dedicated service

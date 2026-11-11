@@ -50,8 +50,11 @@ STATIC_ASSETS: dict[str, tuple[str, str]] = {
 def _startup_local_hostnames() -> frozenset[str]:
     names = {"127.0.0.1", "localhost", "[::1]", "::1"}
     try:
-        names.add(socket.gethostname().lower())
-        names.add(socket.getfqdn().lower())
+        for raw in (socket.gethostname(), socket.getfqdn()):
+            lower = raw.strip().lower()
+            if lower:
+                names.add(lower)
+                names.add(lower.split(".", 1)[0])
     except OSError:
         pass
     return frozenset(name for name in names if name)
@@ -115,6 +118,10 @@ def is_allowed_host_header(host_header: str) -> bool:
         hostname = raw[: bracket_end + 1]
     else:
         hostname = raw.split(":", 1)[0]
+    if not hostname:
+        return False
+    if "*" in kube.EXTRA_ALLOWED_HOSTS:
+        return True
     return hostname in allowed_hostnames()
 
 

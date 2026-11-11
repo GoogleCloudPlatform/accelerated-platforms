@@ -40,10 +40,10 @@ mkdir -p "${BIN_DIR}"
 AUTH_HEADER_FILE=""
 TMP_FILES=()
 cleanup_stage_tmp() {
-  [[ -n "${AUTH_HEADER_FILE}" && -f "${AUTH_HEADER_FILE}" ]] && rm -f "${AUTH_HEADER_FILE}"
+  rm -f ${AUTH_HEADER_FILE:+"${AUTH_HEADER_FILE}"}
   local f
   for f in ${TMP_FILES[@]+"${TMP_FILES[@]}"}; do
-    [[ -f "${f}" ]] && rm -f "${f}"
+    rm -f "${f}"
   done
 }
 trap cleanup_stage_tmp EXIT
@@ -377,10 +377,11 @@ if [[ -z "${INSTALLED_APISERVER_IMG}" \
    || ! kubectl -n ate-system get ds atelet >/dev/null 2>&1; then
   CURRENT_CTX="$(kubectl config current-context)"
   PG_SC_ARGS=()
-  EXISTING_PG_SC="$(kubectl -n ate-system get sts postgres -o jsonpath='{.spec.volumeClaimTemplates[0].spec.storageClassName}' 2>/dev/null || true)"
-  if [[ -n "${EXISTING_PG_SC}" ]]; then
-    PG_SC_ARGS+=(--ateapi-postgres-storage-class="${EXISTING_PG_SC}")
-  elif kubectl get sc dynamic-rwo >/dev/null 2>&1; then
+  if kubectl -n ate-system get sts postgres >/dev/null 2>&1; then
+    EXISTING_PG_SC="$(kubectl -n ate-system get sts postgres -o jsonpath='{.spec.volumeClaimTemplates[0].spec.storageClassName}' 2>/dev/null || true)"
+    [[ -n "${EXISTING_PG_SC}" ]] && PG_SC_ARGS+=(--ateapi-postgres-storage-class="${EXISTING_PG_SC}")
+  elif ! kubectl get sc -o jsonpath='{.items[*].metadata.annotations.storageclass\.kubernetes\.io/is-default-class}' 2>/dev/null | grep -q "true" \
+       && kubectl get sc dynamic-rwo >/dev/null 2>&1; then
     PG_SC_ARGS+=(--ateapi-postgres-storage-class=dynamic-rwo)
   fi
   (cd "${SUBSTRATE_SRC}" && GOWORK=off go run ./cmd/ate-setup deploy ate-system \
@@ -437,6 +438,9 @@ export AGENT_IMAGE="${APP_IMAGE}"
 export GATEWAY_CODE_SHA="$(printf '%s' "${APP_IMAGE}" | sha256sum | awk '{print $1}')"
 
 step "2/6: Ensuring WorkerPool (2 gVisor worker pods), atespace (${ATESPACE}), and mTLS Gateway"
+if [[ "${PROVISION_GCP_INFRA}" == "true" ]] && [[ "$(kubectl get nodes -l workload=agent-substrate -o name | wc -l)" -eq 0 ]]; then
+  kubectl label nodes --all workload=agent-substrate --overwrite >/dev/null
+fi
 render_manifest '${NAMESPACE} ${WORKER_IMAGE}' "${MANIFESTS_DIR}/workerpool.yaml.tmpl" | kubectl apply -f -
 _two_workers() {
   [[ "$(kubectl -n "${NAMESPACE}" get pods -l workload=substrate-agent --field-selector=status.phase=Running -o name | wc -l)" -ge 2 ]]
@@ -469,7 +473,7 @@ ensure_managed_port_forward "${STATE_DIR}" prometheus "${NAMESPACE}" deploy/prom
 
 step "3/6: Configuring Act 3 isolated Secret (${SECRETS_NAMESPACE}), non-reflecting partner-api, and credential policy"
 PARTNER_MANIFEST="$(render_manifest '${SECRETS_NAMESPACE} ${GATEWAY_IMAGE} ${GATEWAY_CODE_SHA}' "${MANIFESTS_DIR}/partner-api.yaml.tmpl")"
-awk '/^kind: Deployment/{exit} {print}' <<<"${PARTNER_MANIFEST}" | kubectl apply -f - >/dev/null
+kubectl create namespace "${SECRETS_NAMESPACE}" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 if ! kubectl -n "${SECRETS_NAMESPACE}" get secret example-api >/dev/null 2>&1; then
   DEMO_API_TOKEN="demo-substrate-cred-$(python3 - <<'EOF'
 import secrets; print(secrets.token_hex(12))

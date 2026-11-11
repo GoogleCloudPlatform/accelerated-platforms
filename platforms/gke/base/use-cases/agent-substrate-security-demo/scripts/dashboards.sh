@@ -36,7 +36,7 @@ TMP_FILES=()
 cleanup_dash_tmp() {
   local f
   for f in ${TMP_FILES[@]+"${TMP_FILES[@]}"}; do
-    [[ -f "${f}" ]] && rm -f "${f}"
+    rm -f "${f}"
   done
 }
 trap cleanup_dash_tmp EXIT

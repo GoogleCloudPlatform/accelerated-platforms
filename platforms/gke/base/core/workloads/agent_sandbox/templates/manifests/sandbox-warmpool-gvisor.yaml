@@ -23,15 +23,3 @@ spec:
   replicas: 2
   sandboxTemplateRef:
     name: python-runtime-template-gvisor
----
-apiVersion: extensions.agents.x-k8s.io/v1beta1
-kind: SandboxWarmPool
-metadata:
-  name: python-runtime-warmpool-microvm
-  namespace: agent-sandbox
-  labels:
-    app: python-runtime-warmpool-microvm
-spec:
-  replicas: 2
-  sandboxTemplateRef:
-    name: python-runtime-template-microvm

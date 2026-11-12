@@ -15,11 +15,11 @@
 apiVersion: extensions.agents.x-k8s.io/v1beta1
 kind: SandboxWarmPool
 metadata:
-  name: python-runtime-warmpool
+  name: python-runtime-warmpool-gvisor
   namespace: agent-sandbox
   labels:
-    app: python-runtime-warmpool
+    app: python-runtime-warmpool-gvisor
 spec:
   replicas: 2
   sandboxTemplateRef:
-    name: python-runtime-template
+    name: python-runtime-template-gvisor

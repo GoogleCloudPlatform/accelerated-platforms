@@ -227,10 +227,13 @@ teardown_region() {
 }
 
 teardown_sequential() {
-  local i restore_backend_template="false"
+  local i restore_backend_template="false" restore_lock_files="false"
   local backend_template="${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
   if git -C "${ACP_REPO_DIR}" diff --quiet -- "${backend_template}"; then
     restore_backend_template="true"
+  fi
+  if git -C "${ACP_REPO_DIR}" diff --quiet -- ':(glob)**/.terraform.lock.hcl'; then
+    restore_lock_files="true"
   fi
   for i in "${!MR_TARGET_PLATFORMS[@]}"; do
     echo "=================================================================="
@@ -238,19 +241,27 @@ teardown_sequential() {
     echo "=================================================================="
     # An asynchronous subshell keeps errexit in effect (see provision.sh).
     (teardown_region "${ACP_REPO_DIR}" "${MR_TARGET_PLATFORMS[i]}" "${MR_TARGET_REGIONS[i]}" "${MR_TARGET_INDEXES[i]}") &
-    wait "$!" || mr_die "tearing down '$(mr_cluster_name "${MR_TARGET_PLATFORMS[i]}")' failed; fix the error above and re-run."
+    if ! wait "$!"; then
+      mr_clean_checkout "${ACP_REPO_DIR}" "${restore_backend_template}" "${restore_lock_files}"
+      mr_die "tearing down '$(mr_cluster_name "${MR_TARGET_PLATFORMS[i]}")' failed; fix the error above and re-run."
+    fi
     # A worktree left by a parallel run is stale now.
     mr_remove_worktree "${MR_TARGET_PLATFORMS[i]}"
   done
-  if [[ "${restore_backend_template}" == "true" ]]; then
-    git -C "${ACP_REPO_DIR}" checkout -- "${backend_template}"
-  fi
+  mr_clean_checkout "${ACP_REPO_DIR}" "${restore_backend_template}" "${restore_lock_files}"
 }
 
 teardown_parallel() {
-  local logs i platform pids=() failed=()
+  local logs i platform pids=() failed=() restore_backend_template="false" restore_lock_files="false"
+  local backend_template="${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
   logs="${MR_WORK_DIR}/logs/teardown-$(date -u +%Y%m%dT%H%M%SZ)"
   mkdir -p "${logs}"
+  if git -C "${ACP_REPO_DIR}" diff --quiet -- "${backend_template}"; then
+    restore_backend_template="true"
+  fi
+  if git -C "${ACP_REPO_DIR}" diff --quiet -- ':(glob)**/.terraform.lock.hcl'; then
+    restore_lock_files="true"
+  fi
   git -C "${ACP_REPO_DIR}" diff HEAD --binary >"${logs}/uncommitted.diff"
   git -C "${ACP_REPO_DIR}" worktree prune
   for platform in "${MR_TARGET_PLATFORMS[@]}"; do
@@ -270,6 +281,7 @@ teardown_parallel() {
       mr_remove_worktree "${platform}"
       mr_log "[${platform}] Done; removed its worktree"
     else
+      mr_clean_checkout "$(mr_worktree_dir "${platform}")" "${restore_backend_template}" "${restore_lock_files}"
       failed+=("${platform}")
       mr_log "[${platform}] FAILED; log: ${logs}/${platform}.log"
     fi

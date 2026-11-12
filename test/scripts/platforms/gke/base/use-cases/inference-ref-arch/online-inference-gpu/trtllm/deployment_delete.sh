@@ -23,6 +23,7 @@ MY_PATH="$(
 )"
 
 # Set TRTLLM_VARIANT_SUFFIX=-podsnapshot to select the GKE Pod snapshot overlays.
+export ACCELERATOR_TYPE="${ACCELERATOR_TYPE:-rtx-pro-6000}"
 IRA_GPU_ENGINE_DIR="trtllm"
 IRA_GPU_CONFIGURE="configure_trtllm.sh"
 IRA_GPU_SERVICE="trtllm"

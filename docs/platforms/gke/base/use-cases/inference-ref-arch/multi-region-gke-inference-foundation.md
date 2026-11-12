@@ -20,9 +20,9 @@ architectures and 15-minute live demo runbooks:
   and its
   [15-minute Presenter Beat Sheet](/docs/platforms/gke/base/use-cases/inference-ref-arch/trtllm-poc-15min-demo-runbook.md).
 - **Spoke 2 — Orchestrated NVIDIA Dynamo + TensorRT-LLM (`dynamo-trtllm/`)**:
-  KV-cache-aware prefix routing, PCIe Gen5 host-DRAM KV offloading, and
-  disaggregated Prefill/Decode serving
-  (`dynamo-trtllm-reference-architecture.md`).
+  [NVIDIA Dynamo and TensorRT-LLM reference architecture on multi-region GKE](/docs/platforms/gke/base/use-cases/inference-ref-arch/dynamo-trtllm-reference-architecture.md)
+  and its
+  [15-minute Presenter Beat Sheet](/docs/platforms/gke/base/use-cases/inference-ref-arch/dynamo-trtllm-poc-15min-demo-runbook.md).
 - **Spoke 3 — Multi-Region `llm-d` (`examples/llmd-multi-region/`)**: Endpoint
   Picker (EPP) routing, cross-region internal Application Load Balancer
   policies, and HPA + Pod snapshot scale-out.
@@ -179,11 +179,12 @@ directly from `nvcr.io`. Two patterns are supported:
 ### Canonical Hugging Face staging & cross-region HNS Cloud Storage replication
 
 Stage model weights once into your primary region's Hierarchical Namespace (HNS)
-Cloud Storage bucket via `stage_hf_model` (which invokes the canonical
-[`model-download/huggingface/download_apply.sh`](/test/scripts/platforms/gke/base/use-cases/inference-ref-arch/model-download/huggingface/download_apply.sh),
-`download_wait.sh`, and `download_delete.sh` scripts and waits on
-`job/${HF_MODEL_ID_HASH}-hf-model-to-gcs`), then replicate server-side to peer
-regions with `replicate_hf_model`:
+Cloud Storage bucket via `stage_hf_model` (which evaluates `_shared_config` in
+an isolated temporary directory, applies a temporary copy of the canonical
+[`model-download/huggingface`](/platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/model-download/huggingface)
+overlay, and polls `job/${HF_MODEL_ID_HASH}-hf-model-to-gcs` directly without
+mutating the checkout), then replicate server-side to peer regions with
+`replicate_hf_model`:
 
 ```shell
 source "${ACP_REPO_DIR}/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/helpers.sh"
@@ -248,6 +249,20 @@ registered region:
    initial `global_lb.sh apply` for global Envoy proxy tables to finish
    programming across regional `GLOBAL_MANAGED_PROXY` subnets.
 
+   - **Worker-aware `health_check_path`**: Monolithic serving Pods such as
+     `trtllm-serve` co-locate `/health` with the GPU worker, so `/health` tracks
+     GPU readiness directly. For decoupled frontends whose `/health` stays `200`
+     even with zero GPU workers (such as `dynamo-frontend`), probe the
+     model-readiness endpoint instead (`/v1/models/<model>/ready`, which returns
+     `503` or `404` when no GPU worker is available) so a regional GPU stockout
+     or scale-to-zero triggers automatic failover rather than `404` responses.
+   - **Detach backends before deleting attached `Service`s**: Deleting or
+     replacing a frontend `Service` while its standalone NEG is still attached
+     to a `global_lb` backend service leaves its `ServiceNetworkEndpointGroup`
+     stuck in deletion and prevents a replacement `Service` from registering
+     endpoints. Re-run `global_lb.sh apply` without that backend (or
+     `global_lb.sh destroy`) before deleting the `Service`.
+
 ---
 
 ## 6. Composable workload components: Graceful shutdown & GKE Pod snapshots
@@ -289,8 +304,10 @@ All companion 15-minute Presenter Beat Sheets reference this section for **Part
 ### Step 1: Clone repository & install checksum-verified CLI tools
 
 [`bootstrap_tools.sh`](/platforms/gke/base/use-cases/inference-ref-arch/terraform/multi-region/bootstrap_tools.sh)
-installs SHA-256 verified `terraform` (`1.14.8`), `kustomize` (`v5.8.3`), `jq`,
-`sponge`, and `envsubst` into `${HOME}/.local/bin`:
+installs or upgrades SHA-256 verified `terraform` (minimum `1.14.8`),
+`kustomize` (minimum `v5.8.3`), `jq`, `sponge`, and `envsubst` into
+`${HOME}/.local/bin`, and ensures the `gcloud beta` component is installed
+(required when `ENABLE_POD_SNAPSHOTS="true"`):
 
 ```shell
 if [[ -f "platforms/gke/base/use-cases/inference-ref-arch/terraform/deploy-ap.sh" ]]; then
@@ -309,13 +326,20 @@ export PATH="${HOME}/bin:${HOME}/.local/bin:${HOME}/google-cloud-sdk/bin:${PATH}
 ### Step 2: Provision regional GKE clusters in parallel (`~20–25 min`)
 
 Set `NETWORK_MODE="shared-vpc"` when testing cross-region internal ALB failover
-(or `"island"` for standalone VPCs) and `ENABLE_POD_SNAPSHOTS="true"` when
-deploying `-podsnapshot` overlays:
+(or `"island"` for standalone VPCs), `ENABLE_POD_SNAPSHOTS="true"` when
+deploying `-podsnapshot` overlays (`provision.sh` checks `gcloud beta` up front
+before creating resources), and optionally `MIRROR_IMAGES` to mirror upstream
+container images into each region's Artifact Registry repository during
+provisioning (for example, the TensorRT-LLM `1.4.0rc2` image):
 
 ```shell
 export PROJECT_ID="<YOUR_PROJECT_ID>"
 export HF_TOKEN="<YOUR_HUGGINGFACE_READ_TOKEN>"
 export NETWORK_MODE="shared-vpc"
+
+# Optional: mirror upstream runtime images (for example Spoke 1 TensorRT-LLM)
+# into every regional Artifact Registry repository during provisioning:
+# export MIRROR_IMAGES="nvcr.io/nvidia/tensorrt-llm/release:1.4.0rc2@sha256:93a3eaf1fa574813d608a7147735134bcfbd06d18d1aa98e8ee0d5da09e51e3a=tensorrt-llm/release:1.4.0rc2"
 
 RING_TARGETS=(
   "americas:us-central1:0"

@@ -23,7 +23,7 @@
 
 resource "google_container_node_pool" "cpu_n4s8" {
   # Variables
-  cluster            = data.google_container_cluster.cluster.name
+  cluster            = google_container_cluster.mlp.name
   initial_node_count = 1
   location           = local.cluster_region
   name               = "cpu-n4s8"
@@ -32,7 +32,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
     "us-east4-b",
     "us-east4-c",
   ]
-  project = data.google_project.cluster.project_id
+  project = data.google_project.environment.project_id
 
   # Blocks
   autoscaling {
@@ -93,7 +93,7 @@ resource "google_container_node_pool" "cpu_n4s8" {
 
 resource "google_container_node_pool" "cpu_n4s8_spot" {
   # Variables
-  cluster  = data.google_container_cluster.cluster.name
+  cluster  = google_container_cluster.mlp.name
   location = local.cluster_region
   name     = "cpu-n4s8-spot"
   node_locations = [
@@ -101,7 +101,7 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
     "us-east4-b",
     "us-east4-c",
   ]
-  project = data.google_project.cluster.project_id
+  project = data.google_project.environment.project_id
 
   # Blocks
   autoscaling {
@@ -141,151 +141,6 @@ resource "google_container_node_pool" "cpu_n4s8_spot" {
       effect = "NO_SCHEDULE"
       key    = "spot"
       value  = true
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [
-      initial_node_count,
-      node_config[0].labels,
-      node_config[0].resource_labels,
-      node_config[0].taint,
-    ]
-  }
-
-  timeouts {
-    create = "30m"
-    update = "20m"
-  }
-}
-
-###############################################################################
-
-resource "google_container_node_pool" "cpu_n4s8_gvisor" {
-  provider = google-beta
-
-  # Variables
-  cluster  = data.google_container_cluster.cluster.name
-  location = local.cluster_region
-  name     = "cpu-n4s8-gvisor"
-  node_locations = [
-    "us-east4-a",
-    "us-east4-b",
-    "us-east4-c",
-  ]
-  project = data.google_project.cluster.project_id
-
-  # Blocks
-  autoscaling {
-    location_policy      = "BALANCED"
-    total_max_node_count = 32
-    total_min_node_count = 0
-  }
-
-  network_config {
-    enable_private_nodes = true
-  }
-
-  node_config {
-    # Variables
-    image_type = "COS_CONTAINERD"
-    labels = {
-      "resource-model" : "n4"
-      "resource-type" : "cpu"
-    }
-    machine_type    = "n4-standard-8"
-    service_account = data.google_service_account.cluster.email
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
-    ]
-
-    # Blocks
-    gcfs_config {
-      enabled = true
-    }
-
-    sandbox_config {
-      type = "GVISOR"
-    }
-
-    shielded_instance_config {
-      enable_integrity_monitoring = true
-      enable_secure_boot          = true
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [
-      initial_node_count,
-      node_config[0].labels,
-      node_config[0].resource_labels,
-      node_config[0].taint,
-    ]
-  }
-
-  timeouts {
-    create = "30m"
-    update = "20m"
-  }
-}
-
-###############################################################################
-
-resource "google_container_node_pool" "cpu_n4s8_microvm" {
-  provider = google-beta
-
-  # Variables
-  cluster  = data.google_container_cluster.cluster.name
-  location = local.cluster_region
-  name     = "cpu-n4s8-microvm"
-  node_locations = [
-    "us-east4-a",
-    "us-east4-b",
-    "us-east4-c",
-  ]
-  project = data.google_project.cluster.project_id
-
-  # Blocks
-  autoscaling {
-    location_policy      = "BALANCED"
-    total_max_node_count = 32
-    total_min_node_count = 0
-  }
-
-  network_config {
-    enable_private_nodes = true
-  }
-
-  node_config {
-    # Variables
-    image_type = "COS_CONTAINERD"
-    labels = {
-      "resource-model" : "n4"
-      "resource-type" : "cpu"
-    }
-    machine_type    = "n4-standard-8"
-    service_account = data.google_service_account.cluster.email
-    oauth_scopes = [
-      "https://www.googleapis.com/auth/cloud-platform"
-    ]
-
-    # Blocks
-    advanced_machine_features {
-      enable_nested_virtualization = true
-      threads_per_core             = 0
-    }
-
-    gcfs_config {
-      enabled = true
-    }
-
-    sandbox_config {
-      type = "MICROVM"
-    }
-
-    shielded_instance_config {
-      enable_integrity_monitoring = true
-      enable_secure_boot          = true
     }
   }
 

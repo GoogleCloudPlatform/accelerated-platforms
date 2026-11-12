@@ -7,7 +7,7 @@
 > products, features, and architectural patterns, ensuring it remains current
 > with the advancements in AI, Google Cloud and Google Kubernetes Engine.
 >
-> Last Update: 2026-10-26 (YYYY-MM-DD)
+> Last Update: 2026-11-12 (YYYY-MM-DD)
 
 This guide provides an end-to-end **Proof of Concept (PoC) playbook** for
 bringing up production-grade AI inference deployments on Google Kubernetes
@@ -268,19 +268,22 @@ serving SLOs from regional preemptions.
 You can also query Google Cloud's Capacity Advisory endpoints programmatically
 from your shell across your candidate ring:
 
-- **Spot VM Capacity Advisory API (`advice/capacity`)** — returns per-zone
-  `obtainability` scores (`0.0` to `1.0`) and `uptimeScore` (preemption risk):
+- **Spot VM Capacity Advisory API (`advice/capacity`)** — publicly available via
+  `compute/beta` (and `gcloud beta compute advice capacity`) with no project
+  allow-listing required (`roles/compute.viewer` / `compute.advice.capacity`),
+  returning per-zone `obtainability` scores (`0.0` to `1.0`) and
+  `estimatedUptime` before preemption (such as `3600s`, `600s`, or `60s`):
 
   ```shell
   export PROJECT_ID="<YOUR_PROJECT_ID>"
-  export MACHINE_TYPE="a3-highgpu-1g" # e.g., a3-highgpu-1g, a3-highgpu-8g, g4-standard-48
+  export MACHINE_TYPE="a3-highgpu-1g" # e.g., a3-highgpu-1g, a3-highgpu-8g, g4-standard-48, g2-standard-4
 
   for REGION in us-central1 us-east4 us-west1 europe-west4; do
     echo "=== Spot Advisory: ${REGION} (${MACHINE_TYPE}) ==="
     curl --silent -X POST \
       -H "Authorization: Bearer $(gcloud auth print-access-token)" \
       -H "Content-Type: application/json" \
-      "https://compute.googleapis.com/compute/alpha/projects/${PROJECT_ID}/regions/${REGION}/advice/capacity" \
+      "https://compute.googleapis.com/compute/beta/projects/${PROJECT_ID}/regions/${REGION}/advice/capacity" \
       -d '{
         "distributionPolicy": {"targetShape": "ANY_SINGLE_ZONE"},
         "instanceFlexibilityPolicy": {
@@ -292,17 +295,27 @@ from your shell across your candidate ring:
           "scheduling": {"provisioningModel": "SPOT"}
         },
         "size": 1
-      }' | jq -r '.recommendations[]? | .scores as $s | .shards[]? | "  Zone: \(.zone | split("/")[-1]) | Obtainability: \($s.obtainability // "N/A") | UptimeScore: \($s.uptimeScore // "N/A")"'
+      }' | jq -r '.recommendations[]? | .scores as $s | .shards[]? | "  Zone: \(.zone | split("/")[-1]) | Obtainability: \($s.obtainability // "N/A") | EstimatedUptime: \($s.estimatedUptime // "N/A")"'
   done
   ```
 
   > [!NOTE]
   >
-  > For `G2` (`g2-standard-*` with `nvidia-l4`) and `N1` (`nvidia-tesla-t4`)
-  > machine types, include
-  > `"guestAccelerators": [{"acceleratorType": "nvidia-l4", "acceleratorCount": 1}]`
-  > inside `instanceProperties` so the API checks GPU availability rather than
-  > host CPU availability alone.
+  > Only `N1` guest-attached GPUs (such as `nvidia-tesla-t4` on `n1-standard-*`)
+  > require `guestAccelerators`, and it must be placed inside the instance
+  > selection (`instanceFlexibilityPolicy.instanceSelections.<name>`), **not**
+  > inside `instanceProperties` (where Compute Engine ignores it and evaluates
+  > host CPU availability only):
+  >
+  > ```json
+  > "selection-1": {
+  >   "machineTypes": ["n1-standard-4"],
+  >   "guestAccelerators": [{"acceleratorType": "nvidia-tesla-t4", "acceleratorCount": 1}]
+  > }
+  > ```
+  >
+  > Built-in accelerator series (`G2`, `G4`, `A2`, `A3`, `A4`) already imply
+  > their GPU SKU from `machineTypes` and reject `guestAccelerators`.
 
 - **DWS Calendar Mode Advisory (`advice/calendarMode`)** — finds optimal zones
   and future reservation windows for `A3`, `A4`, and `TPU v5e/v5p/v6e` capacity:
@@ -416,12 +429,12 @@ this repository.
    region (`us-east4`) is experiencing a temporary Spot stock-out while peer
    regions in the ring have high availability:
 
-   | Region (`advise spot`) | Zones Returned                              | `spotAvailability` | `preemptionRate` | `obtainability` | `uptimeScore` (`estimatedUptime`) | PoC Placement Decision                                                        |
+   | Region (`advise spot`) | Zones Returned                              | `spotAvailability` | `preemptionRate` | `obtainability` | `estimatedUptime` (`uptimeScore`) | PoC Placement Decision                                                        |
    | ---------------------- | ------------------------------------------- | ------------------ | ---------------- | --------------- | --------------------------------- | ----------------------------------------------------------------------------- |
-   | **`us-east4`**         | `us-east4-a`, `us-east4-b`, `us-east4-c`    | `VERY_LOW`         | `HIGH`           | **`0.1`**       | `0.2` (`60s`)                     | **Avoid for this PoC window** (default region would stall in `Pending`)       |
-   | **`us-central1`**      | `us-central1-b`, `us-central1-c` (`-a` low) | **`HIGH`**         | **`LOW`**        | **`0.9`**       | **`0.9`** (`86400s`)              | **Selected Primary Region** (paired with 32-GPU `NVIDIA_RTX_PRO_6000` quota)  |
-   | **`europe-west4`**     | `europe-west4-a`, `europe-west4-c`          | **`HIGH`**         | **`LOW`**        | **`0.9`**       | **`0.9`** (`86400s`)              | **High-Availability Ring Peer** (request regional GPU family quota if needed) |
-   | **`asia-south2`**      | `asia-south2-a`, `asia-south2-b`, `-c`      | **`HIGH`**         | **`LOW`**        | **`0.9`**       | **`0.9`** (`86400s`)              | **APAC Ring Peer**                                                            |
+   | **`us-east4`**         | `us-east4-a`, `us-east4-b`, `us-east4-c`    | `VERY_LOW`         | `HIGH`           | **`0.1`**       | `60s` (`0.1`)                     | **Avoid for this PoC window** (default region would stall in `Pending`)       |
+   | **`us-central1`**      | `us-central1-b`, `us-central1-c` (`-a` low) | **`HIGH`**         | **`LOW`**        | **`0.9`**       | **`3600s`** (`0.9`)               | **Selected Primary Region** (paired with 32-GPU `NVIDIA_RTX_PRO_6000` quota)  |
+   | **`europe-west4`**     | `europe-west4-a`, `europe-west4-c`          | **`HIGH`**         | **`LOW`**        | **`0.9`**       | **`3600s`** (`0.9`)               | **High-Availability Ring Peer** (request regional GPU family quota if needed) |
+   | **`asia-south2`**      | `asia-south2-a`, `asia-south2-b`, `-c`      | **`HIGH`**         | **`LOW`**        | **`0.9`**       | **`3600s`** (`0.9`)               | **APAC Ring Peer**                                                            |
 
 4. **Active Probing / Reservation Hunting (`deploy`)**: How you use `deploy`
    depends on whether you want to **reserve capacity for GKE** or **probe live

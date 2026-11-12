@@ -158,7 +158,7 @@ for MT in g4-standard-48 g4-standard-96 a3-megagpu-8g a3-highgpu-1g; do
     --project "${PROJECT_ID}" \
     --machine-type "${MT}" \
     --regions us-central1,europe-west4,asia-south2 | \
-    jq -r '(["REGION","ZONE","MACHINE_TYPE","OBTAINABILITY","UPTIME_SCORE","AVAILABILITY"] | @tsv), (.recommendations[] | [.region, .zone, .machineType, (.obtainability|tostring), (.uptimeScore|tostring), .spotAvailability] | @tsv)' | column -t
+    jq -r '(["REGION","ZONE","MACHINE_TYPE","OBTAINABILITY","EST_UPTIME","AVAILABILITY"] | @tsv), (.recommendations[] | [.region, .zone, .machineType, (.obtainability|tostring), (.estimatedUptime // (.uptimeScore|tostring)), .spotAvailability] | @tsv)' | column -t
   echo ""
 done
 ```
@@ -810,7 +810,7 @@ for MT in g4-standard-48 a3-megagpu-8g a3-highgpu-1g; do
     --project "${PROJECT_ID}" \
     --machine-type "${MT}" \
     --regions us-central1,europe-west4,asia-south2 | \
-    jq -r '(["REGION","ZONE","MACHINE_TYPE","OBTAINABILITY","UPTIME_SCORE","AVAILABILITY"] | @tsv), (.recommendations[] | [.region, .zone, .machineType, (.obtainability|tostring), (.uptimeScore|tostring), .spotAvailability] | @tsv)' | column -t
+    jq -r '(["REGION","ZONE","MACHINE_TYPE","OBTAINABILITY","EST_UPTIME","AVAILABILITY"] | @tsv), (.recommendations[] | [.region, .zone, .machineType, (.obtainability|tostring), (.estimatedUptime // (.uptimeScore|tostring)), .spotAvailability] | @tsv)' | column -t
   echo ""
 done
 ```

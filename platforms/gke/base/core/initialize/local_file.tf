@@ -96,6 +96,7 @@ resource "local_file" "shared_config_cluster_auto_tfvars" {
       cluster_custom_compute_class_active_migration_enabled = var.cluster_custom_compute_class_active_migration_enabled
       cluster_database_encryption_key_name                  = var.cluster_database_encryption_key_name
       cluster_database_encryption_state                     = var.cluster_database_encryption_state
+      cluster_enable_k8s_beta_apis                          = var.cluster_enable_k8s_beta_apis
       cluster_enable_private_endpoint                       = var.cluster_enable_private_endpoint
       cluster_gateway_api_config_channel                    = var.cluster_gateway_api_config_channel
       cluster_gpu_driver_version                            = var.cluster_gpu_driver_version
@@ -278,6 +279,19 @@ resource "local_file" "shared_config_workloads_auto_tfvars" {
 
   content = provider::terraform::encode_tfvars(
     {
+      ate_bucket_location                    = var.ate_bucket_location
+      ate_bucket_name                        = var.ate_bucket_name
+      ate_bucket_project_id                  = var.ate_bucket_project_id
+      ate_cloudsql_edition                   = var.ate_cloudsql_edition
+      ate_cloudsql_instance_name             = var.ate_cloudsql_instance_name
+      ate_cloudsql_project_id                = var.ate_cloudsql_project_id
+      ate_cloudsql_region                    = var.ate_cloudsql_region
+      ate_cloudsql_tier                      = var.ate_cloudsql_tier
+      ate_image_repository                   = var.ate_image_repository
+      ate_kubernetes_namespace               = var.ate_kubernetes_namespace
+      ate_service_account_name               = var.ate_service_account_name
+      ate_service_account_project_id         = var.ate_service_account_project_id
+      ate_version                            = var.ate_version
       custom_metrics_adapter_version         = var.custom_metrics_adapter_version
       inference_gateway_kubernetes_namespace = var.inference_gateway_kubernetes_namespace
       inference_gateway_version              = var.inference_gateway_version

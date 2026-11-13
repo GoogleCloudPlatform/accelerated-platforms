@@ -1,0 +1,31 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# Drains in-flight requests before a serving Pod stops (Spot preemption,
+# rolling update, scale-in, or node upgrade):
+#   1. Kubernetes removes the Pod from Service endpoints and load balancer NEGs
+#      while the `preStop` hook sleeps for 15s, so no new requests arrive.
+#   2. The serving process then receives SIGTERM and finishes streaming its
+#      in-flight responses.
+#   3. Kubernetes sends SIGKILL only after terminationGracePeriodSeconds (75s),
+#      leaving the server up to 60s to drain after the preStop delay.
+# The hook is added to the first container of every Deployment, which is the
+# serving container in each engine base.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - path: patch-graceful-shutdown.yaml
+    target:
+      kind: Deployment

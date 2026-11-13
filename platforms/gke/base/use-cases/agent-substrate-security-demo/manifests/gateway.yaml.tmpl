@@ -1,0 +1,69 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Split-plane Python Gateway Deployment using GKE Workload Identity (`google.auth.default`)
+# to proxy Google ADK actor requests to Google Cloud's Gemini platform (formerly Vertex AI).
+# Runs `/app-src/gateway.py` from the immutable `@sha256` container image built from ../app/Dockerfile.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gateway
+  namespace: ${NAMESPACE}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: ${NAMESPACE}
+  labels: {app: gateway}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: gateway}
+  template:
+    metadata:
+      labels: {app: gateway}
+      annotations:
+        checksum/app-image: "${GATEWAY_CODE_SHA}"
+    spec:
+      serviceAccountName: gateway
+      containers:
+      - name: gateway
+        image: ${GATEWAY_IMAGE}
+        command: ["python3", "/app-src/gateway.py"]
+        ports:
+        - {name: http, containerPort: 8080}
+        - {name: admin, containerPort: 8081}
+        env:
+        - {name: ATESPACE, value: "${ATESPACE}"}
+        - {name: GEMINI_MODEL, value: "${GEMINI_MODEL}"}
+        - {name: GOOGLE_CLOUD_PROJECT, value: "${PROJECT_ID}"}
+        - {name: GOOGLE_CLOUD_LOCATION, value: "global"}
+        readinessProbe:
+          httpGet: {path: /readyz, port: admin}
+        resources:
+          requests: {cpu: 100m, memory: 128Mi}
+          limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway
+  namespace: ${NAMESPACE}
+  labels: {app: gateway}
+spec:
+  selector: {app: gateway}
+  ports:
+  - {name: http, port: 80, targetPort: http}
+  - {name: admin, port: 8081, targetPort: admin}

@@ -27,12 +27,6 @@ locals {
   manifests_directory_root = "${path.module}/../../../kubernetes/manifests"
 }
 
-variable "agent_sandbox_version" {
-  default     = "0.4.6"
-  description = "Version of Agent Sandbox (https://github.com/kubernetes-sigs/agent-sandbox) to install."
-  type        = string
-}
-
 variable "ate_bucket_location" {
   default     = null
   description = "The location of the Agent Substrate Cloud Storage bucket."
@@ -157,7 +151,7 @@ variable "kueue_version" {
 }
 
 variable "lws_version" {
-  default     = "0.8.0"
+  default     = "1.0.0"
   description = "Version of LeaderWorkerSet (LWS) (https://github.com/kubernetes-sigs/lws/) to install."
   type        = string
 }

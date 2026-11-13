@@ -14,12 +14,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -e
+
 #To add a new directory to coverage tests, add it to source_dirs array.
 #Add the source (folder containing src and test directories) to the array
 source_dirs=("modules/python")
 
+python -m coverage erase
+
 for source_dir in "${source_dirs[@]}"; do
     export PYTHONPATH=$PYTHONPATH:${source_dir}
     export PYTHONPATH=$PYTHONPATH:${source_dir}/src
-    python -m coverage run -m unittest discover "${source_dir}/tests"
+    python -m coverage run --append -m unittest discover "${source_dir}/tests"
 done
+
+python -m coverage run --append -m unittest discover -s test/ci-cd/scripts/platforms/gke/base/use-cases/inference-ref-arch
+python -m coverage run --append -m unittest discover -s platforms/gke/base/use-cases/agent-substrate-security-demo/scripts
+

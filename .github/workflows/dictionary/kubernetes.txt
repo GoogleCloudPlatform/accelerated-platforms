@@ -30,8 +30,10 @@ kubebuilder
 kubeconfig
 kubeconfigs
 kubelet
+kustomizeconfig
 limitranges
 maxpods
+microvm
 minpods
 mutatingwebhookconfigurations
 nameprefix

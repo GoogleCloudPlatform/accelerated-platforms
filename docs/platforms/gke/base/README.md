@@ -126,6 +126,12 @@ For an outline of Google Cloud products and features used in the platform, see
   - **Secure Boot**: Ensures that only authorized and cryptographically signed
     software loads at boot time, preventing the execution of malicious or
     unauthorized code during the boot process.
+- **Secure Runtimes for AI Agents (gVisor & Agent Substrate)**: Provides
+  user-space kernel sandboxing (per-Actor `gVisor` `runsc` Sentry via
+  `ateworker-gvisor`), zero-secret egress credential injection
+  (`atenet-egress`), and millisecond memory checkpointing and time-travel
+  recovery (`kubectl ate revert`) for autonomous LLM agents executing untrusted
+  code and external API calls.
 - **Vertical Pod Autoscaler (VPA)**: Automatically adjusts the CPU and memory
   requests and limits for individual containers in a pod. VPA learns resource
   usage over time, optimizing resource allocation and reducing waste or out of
@@ -217,6 +223,8 @@ example use cases are:
 - [Reinforcement learning reference architecture](/docs/platforms/gke/base/use-cases/reinforcement-learning/README.md)
   - [Reinforcement learning reference implementation](/platforms/gke/base/use-cases/reinforcement-learning/terraform/README.md)
     - [Single-host reinforcement learning with TPUs on Google Kubernetes Engine (GKE) using GRPO algorithm](/docs/platforms/gke/base/use-cases/reinforcement-learning/single-host-tpu-grpo/README.md)
+- [Secure runtimes for AI agents reference architecture (Agent Substrate & GKE Sandbox)](/docs/platforms/gke/base/use-cases/agent-substrate-security-demo/README.md)
+  - [Secure runtimes for AI agents reference implementation & 4-Act Red Team vs. Blue Team demo](/platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/README.md)
 
 ## Additional Reading
 

@@ -245,7 +245,6 @@ resource "local_file" "workflow_veo3_r2v" {
   content = templatefile(
     "${path.module}/src/comfyui-workflows/veo3-reference-to-video.tftpl.json",
     {
-      input_bucket_name = google_storage_bucket.comfyui_input.name
       output_bucket_uri = google_storage_bucket.comfyui_output.url
     }
   )

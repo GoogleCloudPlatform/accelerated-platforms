@@ -1,0 +1,119 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# Binds the per-overlay `runtime` ConfigMap (generated from each overlay's
+# runtime.env) and the platform `deployment` and `trtllm` ConfigMaps to the
+# TensorRT-LLM resources in ../../base.
+#
+# These replacements live in a Component instead of the base because they read
+# the overlay's `runtime` ConfigMap, which only exists in the overlay. A base is
+# built before its overlay, so it cannot see overlay values; a Component runs
+# in the overlay, after the overlay's configMapGenerator. List this Component
+# before feature Components (for example gke-pod-snapshot) that remove or
+# replace the fields bound here.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+replacements:
+  - source:
+      fieldPath: data.APP_LABEL
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+          - spec.template.metadata.labels.app
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - spec.selector.app
+        select:
+          kind: Service
+      - fieldPaths:
+          - spec.selector.matchLabels.app
+        select:
+          kind: PodMonitoring
+  - source:
+      fieldPath: data.CONTAINER_IMAGE_URL
+      kind: ConfigMap
+      name: trtllm
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=inference-server].image
+        select:
+          kind: Deployment
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_NAMESPACE
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: ConfigMap
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Deployment
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: Service
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: HorizontalPodAutoscaler
+      - fieldPaths:
+          - metadata.namespace
+        select:
+          kind: PodMonitoring
+  - source:
+      fieldPath: data.INFERENCE_KUBERNETES_SERVICE_ACCOUNT
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.template.spec.serviceAccountName
+        select:
+          kind: Deployment
+  - source:
+      fieldPath: data.MODEL_BUCKET_NAME
+      kind: ConfigMap
+      name: deployment
+    targets:
+      - fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.bucketName
+        select:
+          kind: Deployment
+  - source:
+      fieldPath: data.MODEL_GCS_DIR
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.template.spec.volumes.[name=huggingface-hub-model-bucket].csi.volumeAttributes.mountOptions
+        options:
+          delimiter: "only-dir:"
+          index: 1
+        select:
+          kind: Deployment
+  - source:
+      fieldPath: data.MODEL_NAME
+      kind: ConfigMap
+      name: runtime
+    targets:
+      - fieldPaths:
+          - spec.template.metadata.labels.[ai.gke.io/model]
+        select:
+          kind: Deployment

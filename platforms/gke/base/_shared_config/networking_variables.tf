@@ -49,6 +49,18 @@ variable "network_cluster_network_router_name" {
   type        = string
 }
 
+variable "network_cluster_pod_ipv4_cidr_block" {
+  default     = null
+  description = "Optional IP address range in CIDR notation for the cluster's Pods (for example, \"10.64.0.0/17\"). Set non-overlapping ranges across clusters when peering VPCs. If null, GKE automatically allocates a range."
+  type        = string
+}
+
+variable "network_cluster_services_ipv4_cidr_block" {
+  default     = null
+  description = "Optional IP address range in CIDR notation for the cluster's Services (for example, \"10.96.0.0/22\"). Set non-overlapping ranges across clusters when peering VPCs. If null, GKE automatically allocates a range."
+  type        = string
+}
+
 variable "network_cluster_subnet_master_ipv4_cidr_block" {
   default     = "172.16.0.32/28"
   description = "The IP range in CIDR notation to use for the hosted master network. This range will be used for assigning private IP addresses to the cluster master(s) and the ILB VIP. This range must not overlap with any other ranges in use within the cluster's network, and it must be a /28 subnet."

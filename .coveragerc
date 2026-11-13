@@ -1,4 +1,6 @@
 [run]
-source = modules/python
-omit = */site-packages/*, */dist-packages/*
+source =
+    modules/python
+    platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu
+omit = */site-packages/*, */dist-packages/*, */test_*.py, */*_test.py
 

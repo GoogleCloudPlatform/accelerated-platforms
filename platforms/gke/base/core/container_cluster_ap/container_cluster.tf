@@ -45,6 +45,13 @@ resource "google_container_cluster" "cluster" {
   subnetwork          = local.network_cluster_subnet_node_name
 
   addons_config {
+    dynamic "agent_sandbox_config" {
+      for_each = var.cluster_addons_agent_sandbox_enabled ? ["agent_sandbox_config"] : []
+      content {
+        enabled = true
+      }
+    }
+
     gcp_filestore_csi_driver_config {
       enabled = true
     }
@@ -137,6 +144,8 @@ resource "google_container_cluster" "cluster" {
   }
 
   ip_allocation_policy {
+    cluster_ipv4_cidr_block  = var.network_cluster_pod_ipv4_cidr_block
+    services_ipv4_cidr_block = var.network_cluster_services_ipv4_cidr_block
   }
 
   logging_config {

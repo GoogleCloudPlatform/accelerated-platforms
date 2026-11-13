@@ -111,6 +111,28 @@ resource "google_cloudbuild_trigger" "acp_ci_cd_terraform" {
 
 ###################################################################################################
 
+resource "google_cloudbuild_trigger" "container_image_dynamo_trtllm_build" {
+  filename = "test/ci-cd/cloudbuild/container-images/gpu/dynamo-trtllm/cloudbuild.yaml"
+  included_files = [
+    "container-images/gpu/dynamo-trtllm/**",
+    "test/ci-cd/cloudbuild/container-images/gpu/dynamo-trtllm/cloudbuild.yaml",
+  ]
+  location        = var.build_location
+  name            = "container-image-dynamo-trtllm-build"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+}
+
 resource "google_cloudbuild_trigger" "container_image_k6_benchmark_build" {
   filename = "test/ci-cd/cloudbuild/container-images/cpu/k6-benchmark/cloudbuild.yaml"
   included_files = [
@@ -1015,6 +1037,7 @@ locals {
   platforms_gke_base_core_workloads_terraform_include = [
     "platforms/gke/base/_shared_config/**",
     "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/custom_compute_class/**",
     "platforms/gke/base/core/initialize/**",
     "platforms/gke/base/core/networking/**",
     "platforms/gke/base/core/workloads/**",
@@ -1056,6 +1079,77 @@ resource "google_cloudbuild_trigger" "platforms_gke_base_core_workloads_terrafor
   included_files  = local.platforms_gke_base_core_workloads_terraform_include
   location        = var.build_location
   name            = "platforms-gke-base-core-workloads-terraform-push"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    push {
+      branch       = "^main$"
+      invert_regex = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+###################################################################################################
+
+locals {
+  platforms_gke_base_core_sandbox_terraform_cb_yaml = "test/ci-cd/cloudbuild/platforms/gke/base/core/sandbox.yaml"
+  platforms_gke_base_core_sandbox_terraform_ignore = [
+  ]
+  platforms_gke_base_core_sandbox_terraform_include = [
+    "platforms/gke/base/_shared_config/**",
+    "platforms/gke/base/core/container_cluster/**",
+    "platforms/gke/base/core/container_cluster_ap/**",
+    "platforms/gke/base/core/container_node_pool/**",
+    "platforms/gke/base/core/custom_compute_class/**",
+    "platforms/gke/base/core/initialize/**",
+    "platforms/gke/base/core/networking/**",
+    "platforms/gke/base/core/workloads/agent_sandbox/**",
+    "platforms/gke/base/core/workloads/cluster_credentials/**",
+    "platforms/gke/base/scripts/container_cluster/**",
+    "test/ci-cd/scripts/cloudbuild/select_best_ci_region.sh",
+    "test/ci-cd/scripts/delete_project.sh",
+    "test/ci-cd/scripts/terraservice/configure_environment.sh",
+    local.platforms_gke_base_core_sandbox_terraform_cb_yaml,
+  ]
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_sandbox_terraform" {
+  filename        = local.platforms_gke_base_core_sandbox_terraform_cb_yaml
+  ignored_files   = local.platforms_gke_base_core_sandbox_terraform_ignore
+  included_files  = local.platforms_gke_base_core_sandbox_terraform_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-sandbox-terraform"
+  project         = data.google_project.build.project_id
+  service_account = google_service_account.integration.id
+
+  repository_event_config {
+    repository = google_cloudbuildv2_repository.accelerated_platforms.id
+
+    pull_request {
+      branch          = "^main$|^int-"
+      comment_control = "COMMENTS_ENABLED_FOR_EXTERNAL_CONTRIBUTORS_ONLY"
+      invert_regex    = false
+    }
+  }
+
+  substitutions = {
+    _WAIT_FOR_TRIGGER = google_cloudbuild_trigger.acp_ci_cd_runner_image.trigger_id
+  }
+}
+
+resource "google_cloudbuild_trigger" "platforms_gke_base_core_sandbox_terraform_push" {
+  filename        = local.platforms_gke_base_core_sandbox_terraform_cb_yaml
+  ignored_files   = local.platforms_gke_base_core_sandbox_terraform_ignore
+  included_files  = local.platforms_gke_base_core_sandbox_terraform_include
+  location        = var.build_location
+  name            = "platforms-gke-base-core-sandbox-terraform-push"
   project         = data.google_project.build.project_id
   service_account = google_service_account.integration.id
 

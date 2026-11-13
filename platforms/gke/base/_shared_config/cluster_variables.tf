@@ -51,6 +51,12 @@ locals {
   kubeconfig_file_name = "${local.cluster_project_id}-${local.cluster_name}"
 }
 
+variable "cluster_addons_agent_sandbox_enabled" {
+  default     = false
+  description = "Enable the Agent Sandbox add-on (https://docs.cloud.google.com/kubernetes-engine/docs/how-to/how-install-agent-sandbox)"
+  type        = bool
+}
+
 variable "cluster_addons_ray_operator_enabled" {
   default     = true
   description = "Enable the Ray Operator add-on (https://cloud.google.com/kubernetes-engine/docs/add-on/ray-on-gke/concepts/overview)"
@@ -106,6 +112,12 @@ variable "cluster_check_custom_compute_classes_healthy" {
 variable "cluster_confidential_nodes_enabled" {
   default     = false
   description = "Enable Confidential GKE Nodes for this node pool, to enforce encryption of data in-use. When setting this to true, ensure that the machine types you configured for your node pools support Confidential GKE Nodes. Ref: https://cloud.google.com/kubernetes-engine/docs/how-to/confidential-gke-nodes"
+  type        = bool
+}
+
+variable "cluster_custom_compute_class_active_migration_enabled" {
+  default     = true
+  description = "Whether Custom Compute Classes enable activeMigration.optimizeRulePriority to migrate nodes toward higher-priority rules when capacity becomes available."
   type        = bool
 }
 
@@ -257,6 +269,17 @@ variable "cluster_system_node_pool_machine_type" {
   default     = "n4-standard-4"
   description = "Machine type to use for the system node pool."
   type        = string
+}
+
+variable "cluster_system_node_pool_node_locations" {
+  default     = null
+  description = "Zones for the system node pool. The system node pool creates one node in each zone, so creating it fails if any of these zones doesn't have capacity for the machine type. If null, the system node pool uses the node locations of the cluster."
+  type        = list(string)
+
+  validation {
+    condition     = var.cluster_system_node_pool_node_locations == null ? true : length(var.cluster_system_node_pool_node_locations) > 0
+    error_message = "'cluster_system_node_pool_node_locations' must be null or contain at least one zone."
+  }
 }
 
 variable "cluster_use_connect_gateway" {

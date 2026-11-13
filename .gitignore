@@ -4,9 +4,14 @@ platforms/cws/image_pipeline/repositories/*
 
 # GKE
 gke_gcloud_auth_plugin_cache
+platforms/gke/base/kubernetes/kubeconfig/*
+!platforms/gke/base/kubernetes/kubeconfig/.gitkeep
 
 # GKE Inference
 platforms/gke/base/use-cases/inference-ref-arch/images/*
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/**/deployment.env
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/**/dynamo-trtllm.env
+platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu/**/trtllm.env
 
 # IDEs
 .vscode/
@@ -21,6 +26,7 @@ node_modules
 
 # Python
 __pycache__/
+.coverage
 .venv/
 venv/
 .python-version
@@ -52,3 +58,7 @@ workspaces
 # Local helper scripts (not part of the platform)
 llmd-env.sh
 probe-capacity.sh
+
+# Agent Substrate Security Demo runtime cache
+platforms/gke/base/use-cases/agent-substrate-security-demo/.state/
+platforms/gke/base/use-cases/agent-substrate-security-demo/bin/

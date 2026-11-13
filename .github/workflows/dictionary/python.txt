@@ -24,6 +24,7 @@ dbcommands
 deepcopy
 deque
 devel
+docstrings
 dropna
 einops
 endswith
@@ -99,6 +100,7 @@ pydantic
 pyenv
 pylint
 pynvml
+pyproject
 pytest
 pythondontwritebytecode
 pythonpath

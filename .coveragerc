@@ -1,6 +1,7 @@
 [run]
 source =
     modules/python
+    platforms/gke/base/use-cases/inference-ref-arch/examples/llmd-multi-region/bench
     platforms/gke/base/use-cases/inference-ref-arch/kubernetes-manifests/online-inference-gpu
 omit = */site-packages/*, */dist-packages/*, */test_*.py, */*_test.py
 

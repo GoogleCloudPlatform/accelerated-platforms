@@ -13,7 +13,17 @@
 # limitations under the License.
 
 locals {
-  image_destination = "${google_artifact_registry_repository.workflow_api_container_images.location}-docker.pkg.dev/${local.cluster_project_id}/${local.workflow_api_artifact_repo_name}/${var.workflow_api_image_name}:${var.workflow_api_image_tag}"
+  image_destination       = "${google_artifact_registry_repository.workflow_api_container_images.location}-docker.pkg.dev/${local.cluster_project_id}/${local.workflow_api_artifact_repo_name}/${var.workflow_api_image_name}:${var.workflow_api_image_tag}"
+  workflow_api_source_dir = "${path.module}/../../../../../../../projects/workflow-api"
+  workflow_api_source_hash = sha256(
+    join(
+      "",
+      [
+        for f in sort(fileset(local.workflow_api_source_dir, "**/*.go")) :
+        filesha256("${local.workflow_api_source_dir}/${f}")
+      ]
+    )
+  )
 }
 
 resource "terraform_data" "submit_docker_build" {
@@ -28,13 +38,15 @@ gcloud builds submit \
 --substitutions=_DESTINATION="${local.image_destination}"
 EOT
     interpreter = ["bash", "-c"]
-    working_dir = "${path.module}/../../../../../../../projects/workflow-api"
+    working_dir = local.workflow_api_source_dir
   }
 
   triggers_replace = {
     custom_sa_email        = local.comfyui_cloudbuild_service_account_email
-    hash_cloudbuild_config = filebase64sha256("${path.module}/../../../../../../../projects/workflow-api/cloudbuild.yaml")
-    hash_dockerfile        = filebase64sha256("${path.module}/../../../../../../../projects/workflow-api/Dockerfile")
+    hash_cloudbuild_config = filebase64sha256("${local.workflow_api_source_dir}/cloudbuild.yaml")
+    hash_dockerfile        = filebase64sha256("${local.workflow_api_source_dir}/Dockerfile")
+    hash_go_mod            = filebase64sha256("${local.workflow_api_source_dir}/go.mod")
+    hash_go_source         = local.workflow_api_source_hash
     image_tag              = var.workflow_api_image_tag
     repository_id          = google_artifact_registry_repository.workflow_api_container_images.id
   }

@@ -16,7 +16,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ${deployment_name}
-  namespace: comfyui
+  namespace: ${namespace}
 spec:
   replicas: 1
   selector:
@@ -32,20 +32,52 @@ spec:
           image: ${image_name}
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
           resources:
             limits:
               cpu: 2
               memory: 4G
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: COMFYUI_BASE_URL
               value: http://${comfyui_service_name}.${namespace}.svc.cluster.local:8188
+            - name: GOOGLE_CLIENT_ID
+              value: "${google_client_id}"
+            - name: ALLOWED_AUTH_DOMAIN
+              value: "${allowed_auth_domain}"
+            - name: IAP_AUDIENCE_FILE
+              value: /etc/workflow-api/iap/iap_audience
+          volumeMounts:
+            - name: iap-config
+              mountPath: /etc/workflow-api/iap
+              readOnly: true
       serviceAccountName: ${service_account}
+      volumes:
+        - name: iap-config
+          configMap:
+            name: ${iap_configmap_name}
+            optional: true
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: workflow-api
-  namespace: comfyui
+  namespace: ${namespace}
   labels:
     app: workflow-api
 spec:

@@ -12,100 +12,182 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package auth provides Gin authentication middleware for IAP and Google OIDC tokens.
 package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"google.golang.org/api/oauth2/v2"
+	"google.golang.org/api/idtoken"
 	"google.golang.org/api/option"
 )
 
-// AuthMiddleware creates a Gin middleware for Google OAuth token validation.
-// It verifies Bearer tokens using Google's tokeninfo endpoint and then
-// retrieves user details including the G Suite domain (hd claim) from the userinfo endpoint.
-func AuthMiddleware(googleClientID string, allowedDomain string) gin.HandlerFunc {
-	oauth2Service, err := oauth2.NewService(context.Background(), option.WithoutAuthentication())
-	if err != nil {
-		log.Fatalf("Failed to create Google OAuth2 service: %v", err)
+const (
+	// IAPAssertionHeader is the HTTP header injected by Identity-Aware Proxy containing a signed JWT.
+	IAPAssertionHeader = "X-Goog-IAP-JWT-Assertion"
+
+	iapIssuer         = "https://cloud.google.com/iap"
+	googleIssuerHTTPS = "https://accounts.google.com"
+	googleIssuerPlain = "accounts.google.com"
+	maxAudienceBytes  = 4096
+)
+
+// Options configures JWT verification for NewMiddleware.
+type Options struct {
+	GoogleClientID  string
+	IAPAudience     string
+	IAPAudienceFile string
+	AllowedDomain   string
+	HTTPClient      *http.Client
+	Logger          *log.Logger
+}
+
+// NewMiddleware creates a Gin middleware that enforces cryptographic JWT verification
+// via Identity-Aware Proxy signed headers (ES256) and/or Google OIDC Bearer ID tokens (RS256).
+// If neither audience is configured at request time, all requests fail closed with HTTP 401.
+func NewMiddleware(ctx context.Context, opts Options) (gin.HandlerFunc, error) {
+	var validatorOpts []option.ClientOption
+	if opts.HTTPClient != nil {
+		validatorOpts = append(validatorOpts, option.WithHTTPClient(opts.HTTPClient))
 	}
+
+	validator, err := idtoken.NewValidator(ctx, validatorOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("creating ID token validator: %v", err)
+	}
+
+	logger := opts.Logger
+	if logger == nil {
+		logger = log.Default()
+	}
+
+	googleClientID := strings.TrimSpace(opts.GoogleClientID)
+	staticIAPAudience := strings.TrimSpace(opts.IAPAudience)
+	iapAudienceFile := strings.TrimSpace(opts.IAPAudienceFile)
+	allowedDomain := strings.TrimSpace(opts.AllowedDomain)
 
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
+		iapAudience := staticIAPAudience
+		if iapAudience == "" && iapAudienceFile != "" {
+			loaded, readErr := readAudienceFile(iapAudienceFile)
+			if readErr != nil && !errors.Is(readErr, os.ErrNotExist) {
+				logger.Printf("Failed reading IAP audience file %q: %v", iapAudienceFile, readErr)
+			}
+			iapAudience = loaded
+		}
+
+		if iapAudience == "" && googleClientID == "" {
+			logger.Printf("Authentication rejected: neither IAP audience nor GOOGLE_CLIENT_ID is configured")
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Service authentication is not configured"})
 			return
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header format must be 'Bearer {token}'"})
-			return
-		}
-		token := parts[1]
+		var payload *idtoken.Payload
 
-		fmt.Printf("Received token: %s\n", token)
-
-		// Validate the access token using the tokeninfo endpoint
-		tokenInfoCall := oauth2Service.Tokeninfo()
-		tokenInfoCall.AccessToken(token)
-
-		tokenInfo, err := tokenInfoCall.Do()
-		if err != nil {
-			log.Printf("Token validation error: %v", err)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token or token validation failed"})
-			return
-		}
-
-		if tokenInfo.Audience != googleClientID {
-			log.Printf("Token audience mismatch. Expected: %s, Got: %s, User: %s", googleClientID, tokenInfo.Audience, tokenInfo.Email)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token audience. Token not intended for this application."})
-			return
-		}
-
-		if tokenInfo.ExpiresIn <= 0 {
-			log.Printf("Expired token received for User: %s, Audience: %s", tokenInfo.Email, tokenInfo.Audience)
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Token expired"})
-			return
-		}
-
-		// Now, retrieve user details from the userinfo endpoint to get the 'hd' (hosted domain) claim
-		// The Userinfo service is part of the oauth2/v2 package.
-		userinfoService := oauth2.NewUserinfoService(oauth2Service)
-		userInfo, err := userinfoService.Get().Do() // This uses the context from the oauth2Service
-		if err != nil {
-			log.Printf("Failed to retrieve userinfo: %v", err)
-			// If userinfo cannot be retrieved, it's a server-side issue or an invalid token for userinfo
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user details for domain validation."})
-			return
-		}
-
-		// Optional: Restrict access to a specific G Suite domain (hd claim).
-		if allowedDomain != "" {
-			// userInfo.Hd contains the G Suite domain, if present.
-			if userInfo.Hd != allowedDomain {
-				log.Printf("Domain mismatch. Expected: %s, User's domain (hd claim): '%s', User Email: %s", allowedDomain, userInfo.Hd, userInfo.Email)
-				userDomainMsg := userInfo.Hd
-				if userDomainMsg == "" {
-					userDomainMsg = "(not provided or not a G Suite account)"
-				}
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": fmt.Sprintf("Access restricted. User's domain '%s' is not allowed. Required domain: '%s'", userDomainMsg, allowedDomain)})
+		iapToken := strings.TrimSpace(c.GetHeader(IAPAssertionHeader))
+		switch {
+		case iapToken != "" && iapAudience != "":
+			validated, valErr := validateIAPToken(c.Request.Context(), validator, iapToken, iapAudience)
+			if valErr != nil {
+				logger.Printf("IAP token validation failed: %v", valErr)
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid IAP authentication assertion"})
 				return
 			}
+			payload = validated
+
+		case googleClientID != "":
+			bearerToken, hdrErr := extractBearerToken(c.GetHeader("Authorization"))
+			if hdrErr != nil {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": hdrErr.Error()})
+				return
+			}
+			validated, valErr := validateOIDCToken(c.Request.Context(), validator, bearerToken, googleClientID)
+			if valErr != nil {
+				logger.Printf("Bearer token validation failed: %v", valErr)
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired Bearer token"})
+				return
+			}
+			payload = validated
+
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "IAP authentication assertion required"})
+			return
 		}
 
-		// Set user information in Gin context
-		c.Set("userID", tokenInfo.UserId)
-		c.Set("userEmail", tokenInfo.Email)
-		c.Set("verifiedEmail", tokenInfo.VerifiedEmail)
-		c.Set("tokenScopes", tokenInfo.Scope)
-		c.Set("userHostedDomain", userInfo.Hd) // Set the hosted domain if available
+		hostedDomain, _ := payload.Claims["hd"].(string)
+		email, _ := payload.Claims["email"].(string)
+		verifiedEmail, _ := payload.Claims["email_verified"].(bool)
 
-		c.Next() // Proceed to the next handler
+		if allowedDomain != "" && !strings.EqualFold(hostedDomain, allowedDomain) {
+			logger.Printf("Domain mismatch: got %q, want %q for subject %q", hostedDomain, allowedDomain, payload.Subject)
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+				"error": fmt.Sprintf("Access restricted to domain %q", allowedDomain),
+			})
+			return
+		}
+
+		c.Set("userID", payload.Subject)
+		c.Set("userEmail", email)
+		c.Set("verifiedEmail", verifiedEmail)
+		c.Set("userHostedDomain", hostedDomain)
+
+		c.Next()
+	}, nil
+}
+
+func validateIAPToken(ctx context.Context, validator *idtoken.Validator, token, audience string) (*idtoken.Payload, error) {
+	payload, err := validator.Validate(ctx, token, audience)
+	if err != nil {
+		return nil, fmt.Errorf("verifying IAP JWT: %v", err)
 	}
+	if payload.Issuer != iapIssuer {
+		return nil, fmt.Errorf("unexpected IAP issuer %q", payload.Issuer)
+	}
+	return payload, nil
+}
+
+func validateOIDCToken(ctx context.Context, validator *idtoken.Validator, token, audience string) (*idtoken.Payload, error) {
+	payload, err := validator.Validate(ctx, token, audience)
+	if err != nil {
+		return nil, fmt.Errorf("verifying OIDC JWT: %v", err)
+	}
+	if payload.Issuer != googleIssuerHTTPS && payload.Issuer != googleIssuerPlain {
+		return nil, fmt.Errorf("unexpected OIDC issuer %q", payload.Issuer)
+	}
+	return payload, nil
+}
+
+func extractBearerToken(authHeader string) (string, error) {
+	trimmed := strings.TrimSpace(authHeader)
+	if trimmed == "" {
+		return "", errors.New("Authorization header required")
+	}
+	scheme, token, ok := strings.Cut(trimmed, " ")
+	token = strings.TrimSpace(token)
+	if !ok || !strings.EqualFold(scheme, "bearer") || token == "" || strings.ContainsAny(token, " \t\r\n") {
+		return "", errors.New("Authorization header format must be 'Bearer {token}'")
+	}
+	return token, nil
+}
+
+func readAudienceFile(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	data, err := io.ReadAll(io.LimitReader(f, maxAudienceBytes))
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(data)), nil
 }

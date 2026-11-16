@@ -13,8 +13,9 @@
 # limitations under the License.
 
 locals {
-  comfyui_service_name = "comfyui-nvidia-l4"
+  comfyui_service_name = "${var.comfyui_app_name}-${var.comfyui_accelerator_type}"
   deployment_name      = "workflow-api"
+  iap_configmap_name   = "${local.deployment_name}-iap-config"
 
   kubeconfig_directory = "${path.module}/../../../../kubernetes/kubeconfig"
   kubeconfig_file      = "${local.kubeconfig_directory}/${local.kubeconfig_file_name}"
@@ -40,10 +41,13 @@ resource "local_file" "workload" {
   content = templatefile(
     "${path.module}/templates/workflow-api-deployment.tftpl.yaml",
     {
-      image_name           = local.image_destination
-      deployment_name      = local.deployment_name
-      namespace            = var.comfyui_kubernetes_namespace
+      allowed_auth_domain  = var.workflow_api_allowed_auth_domain
       comfyui_service_name = local.comfyui_service_name
+      deployment_name      = local.deployment_name
+      google_client_id     = var.workflow_api_google_client_id
+      iap_configmap_name   = local.iap_configmap_name
+      image_name           = local.image_destination
+      namespace            = var.comfyui_kubernetes_namespace
       service_account      = local.workflow_api_serviceaccount
     }
   )
@@ -60,8 +64,5 @@ module "kubectl_apply_workload_manifest" {
   apply_once                  = false
   kubeconfig_file             = data.local_file.kubeconfig.filename
   manifest                    = local_file.workload.filename
-  manifest_includes_namespace = false
-  namespace                   = var.comfyui_kubernetes_namespace
+  manifest_includes_namespace = true
 }
-
-

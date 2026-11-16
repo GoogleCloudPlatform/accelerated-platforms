@@ -12,19 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// The server command runs the ComfyUI workflow-api HTTP server.
 package main
 
 import (
 	"comfyui-api-service/comfyui"
 	"comfyui-api-service/internal/api"
 	"comfyui-api-service/internal/config"
+	_ "comfyui-api-service/internal/docs"
+	"context"
 	"fmt"
 	"log"
 )
 
 // @title           ComfyUI API Service via Gin
 // @version         1.0
-// @description     Exposes ComfyUI client functions as a RESTful API secured by Google OAuth.
+// @description     Exposes ComfyUI client functions as a RESTful API secured by IAP or Google OIDC ID tokens.
 // @termsOfService  http://swagger.io/terms/
 
 // @contact.name   API Support
@@ -40,34 +43,48 @@ import (
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
-// @description Type "Bearer" followed by a space and a valid Google OAuth access token. Example: "Bearer y29..."
+// @description Type "Bearer" followed by a space and a valid Google OIDC ID token.
 
 // @externalDocs.description  OpenAPI
 // @externalDocs.url          https://swagger.io/resources/open-api/
 func main() {
-	// Load configuration
-	cfg := config.LoadConfig()
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatalf("Failed to load configuration: %v", err)
+	}
 
-	// Create ComfyUI client instance
+	if !cfg.HasAuthConfig() {
+		log.Println("WARNING: Neither IAP_AUDIENCE, IAP_AUDIENCE_FILE, nor GOOGLE_CLIENT_ID is set; all /api/v1 requests will fail closed with HTTP 401")
+	}
+
 	comfyClient, err := comfyui.NewClient(cfg.ComfyUIBaseURL)
 	if err != nil {
 		log.Fatalf("Failed to create ComfyUI client: %v", err)
 	}
-	// Optional: Customize client timeout if needed
-	// comfyClient.SetTimeout(90 * time.Second)
 
-	// Setup Gin router
-	router := api.SetupRouter(cfg, comfyClient)
+	router, err := api.SetupRouter(context.Background(), cfg, comfyClient)
+	if err != nil {
+		log.Fatalf("Failed to set up HTTP router: %v", err)
+	}
 
-	// Start server
 	serverAddr := fmt.Sprintf(":%s", cfg.ServerPort)
 	log.Printf("Starting server on %s in %s mode", serverAddr, cfg.GinMode)
 	log.Printf("ComfyUI Backend URL: %s", cfg.ComfyUIBaseURL)
-	log.Printf("Google Client ID: %s", cfg.GoogleClientID)
-	if cfg.AllowedAuthDomain != "" {
-		log.Printf("Allowed Auth Domain: %s", cfg.AllowedAuthDomain)
+	if cfg.GoogleClientID != "" {
+		log.Printf("Configured OIDC Audience (GOOGLE_CLIENT_ID): %q", cfg.GoogleClientID)
 	}
-	log.Printf("Swagger UI available at http://localhost%s/swagger/index.html", serverAddr)
+	if cfg.IAPAudience != "" {
+		log.Printf("Configured IAP Audience: %q", cfg.IAPAudience)
+	}
+	if cfg.IAPAudienceFile != "" {
+		log.Printf("Configured IAP Audience File: %q", cfg.IAPAudienceFile)
+	}
+	if cfg.AllowedAuthDomain != "" {
+		log.Printf("Allowed Auth Domain: %q", cfg.AllowedAuthDomain)
+	}
+	if cfg.EnableSwagger {
+		log.Printf("Swagger UI available at http://localhost%s/swagger/index.html", serverAddr)
+	}
 
 	if err := router.Run(serverAddr); err != nil {
 		log.Fatalf("Failed to run server: %v", err)

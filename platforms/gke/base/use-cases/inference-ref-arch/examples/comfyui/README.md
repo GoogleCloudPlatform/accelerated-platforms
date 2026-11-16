@@ -332,6 +332,14 @@ and use it in batch mode by submitting ComfyUI workflows exported as .json
 objects to the Workflow API. ComfyUI will still output the generated media in
 the output bucket.
 
+All `/api/v1/*` routes enforce cryptographic JWT authentication at the
+`workflow-api` pod. In the GKE reference deployment below, Terraform configures
+an Identity-Aware Proxy (IAP) signed-header audience
+(`X-Goog-IAP-JWT-Assertion`) via the `workflow-api-iap-config` `ConfigMap`. For
+standalone deployments outside GKE Gateway + IAP, set `GOOGLE_CLIENT_ID` (and
+optionally `ALLOWED_AUTH_DOMAIN`) to validate Google OIDC Bearer ID tokens
+directly.
+
 - Deploy Workflow API resources:
 
   ```shell

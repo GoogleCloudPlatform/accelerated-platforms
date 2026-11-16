@@ -32,6 +32,12 @@ locals {
   workflow_api_service_account_project_id         = var.workflow_api_service_account_project_id != null ? var.workflow_api_service_account_project_id : var.platform_default_project_id
 }
 
+variable "workflow_api_allowed_auth_domain" {
+  default     = ""
+  description = "Optional Google Workspace hosted domain (hd claim) allowed to access workflow-api."
+  type        = string
+}
+
 variable "workflow_api_artifact_repo_name" {
   default     = "workflow-api"
   description = ""
@@ -44,6 +50,12 @@ variable "workflow_api_endpoints_hostname" {
   type        = string
 }
 
+variable "workflow_api_google_client_id" {
+  default     = ""
+  description = "Optional Google OIDC audience (GOOGLE_CLIENT_ID) for direct Bearer ID token authentication."
+  type        = string
+}
+
 variable "workflow_api_image_name" {
   default     = "workflow-api"
   description = ""
@@ -51,7 +63,7 @@ variable "workflow_api_image_name" {
 }
 
 variable "workflow_api_image_tag" {
-  default     = "0.0.1"
+  default     = "0.0.2"
   description = ""
   type        = string
 }

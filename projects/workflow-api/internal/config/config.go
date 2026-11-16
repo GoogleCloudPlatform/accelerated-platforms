@@ -12,73 +12,99 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package config loads and validates runtime configuration from environment variables.
 package config
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
-	"time"
+	"strconv"
+	"strings"
 
-	"github.com/joho/godotenv" // Optional: for loading .env file
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
+// Config holds runtime settings for the workflow-api HTTP server.
 type Config struct {
-	ComfyUIBaseURL string
-	GoogleClientID string
-	// GoogleClientSecret string // Secret might not be needed for just validating access tokens
-	AllowedAuthDomain string // Optional: Restrict login to a specific GSuite domain (e.g., "example.com")
+	ComfyUIBaseURL    string
+	GoogleClientID    string
+	IAPAudience       string
+	IAPAudienceFile   string
+	AllowedAuthDomain string
 	ServerPort        string
-	GinMode           string // "debug" or "release"
+	GinMode           string
+	EnableSwagger     bool
 }
 
-func LoadConfig() *Config {
-	// Load .env file if it exists (useful for local development)
-	err := godotenv.Load()
-	if err != nil {
+// Load reads server configuration from an optional .env file and environment variables.
+func Load() (*Config, error) {
+	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, reading environment variables directly")
 	}
 
+	ginMode := strings.TrimSpace(getEnv("GIN_MODE", gin.ReleaseMode))
+	defaultSwagger := ginMode != gin.ReleaseMode
+	enableSwagger, err := getEnvBool("ENABLE_SWAGGER", defaultSwagger)
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := &Config{
-		ComfyUIBaseURL:    getEnv("COMFYUI_BASE_URL", "http://127.0.0.1:8188"),
-		GoogleClientID:    getEnv("GOOGLE_CLIENT_ID", ""),    // Optional
-		AllowedAuthDomain: getEnv("ALLOWED_AUTH_DOMAIN", ""), // Optional
-		ServerPort:        getEnv("SERVER_PORT", "8080"),
-		GinMode:           getEnv("GIN_MODE", "release"),
+		ComfyUIBaseURL:    strings.TrimSpace(getEnv("COMFYUI_BASE_URL", "http://127.0.0.1:8188")),
+		GoogleClientID:    strings.TrimSpace(getEnv("GOOGLE_CLIENT_ID", "")),
+		IAPAudience:       strings.TrimSpace(getEnv("IAP_AUDIENCE", "")),
+		IAPAudienceFile:   strings.TrimSpace(getEnv("IAP_AUDIENCE_FILE", "")),
+		AllowedAuthDomain: strings.TrimSpace(getEnv("ALLOWED_AUTH_DOMAIN", "")),
+		ServerPort:        strings.TrimSpace(getEnv("SERVER_PORT", "8080")),
+		GinMode:           ginMode,
+		EnableSwagger:     enableSwagger,
 	}
 
-	// Validate URL format (basic check)
-	if cfg.ComfyUIBaseURL == "" {
-		panic("COMFYUI_BASE_URL environment variable is not set")
+	if err := cfg.Validate(); err != nil {
+		return nil, err
 	}
+	return cfg, nil
+}
 
-	return cfg
+// Validate checks that required server settings are well-formed.
+func (c *Config) Validate() error {
+	if c.ComfyUIBaseURL == "" {
+		return errors.New("COMFYUI_BASE_URL must not be empty")
+	}
+	parsedURL, err := url.Parse(c.ComfyUIBaseURL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
+		return fmt.Errorf("invalid COMFYUI_BASE_URL %q: must be an http or https URL", c.ComfyUIBaseURL)
+	}
+	if c.ServerPort == "" {
+		return errors.New("SERVER_PORT must not be empty")
+	}
+	return nil
+}
+
+// HasAuthConfig reports whether at least one authentication audience source is configured.
+func (c *Config) HasAuthConfig() bool {
+	return c.GoogleClientID != "" || c.IAPAudience != "" || c.IAPAudienceFile != ""
 }
 
 func getEnv(key, fallback string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
 	}
-	log.Printf("Using fallback for environment variable %s: %s", key, fallback)
 	return fallback
 }
 
-func getEnvOrPanic(key string) string {
-	if value, exists := os.LookupEnv(key); exists && value != "" {
-		return value
+func getEnvBool(key string, fallback bool) (bool, error) {
+	raw, exists := os.LookupEnv(key)
+	if !exists || strings.TrimSpace(raw) == "" {
+		return fallback, nil
 	}
-	panic(fmt.Sprintf("Required environment variable %s is not set", key))
-}
-
-// Helper for later if needed
-func getEnvAsDuration(key string, fallback time.Duration) time.Duration {
-	valueStr := getEnv(key, "")
-	if valueStr == "" {
-		return fallback
+	parsed, err := strconv.ParseBool(strings.TrimSpace(raw))
+	if err != nil {
+		return false, fmt.Errorf("invalid boolean value %q for %s: %v", raw, key, err)
 	}
-	if duration, err := time.ParseDuration(valueStr); err == nil {
-		return duration
-	}
-	log.Printf("Invalid duration format for %s: %s. Using fallback %v", key, valueStr, fallback)
-	return fallback
+	return parsed, nil
 }

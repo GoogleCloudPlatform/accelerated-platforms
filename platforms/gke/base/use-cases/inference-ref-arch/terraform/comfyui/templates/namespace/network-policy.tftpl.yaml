@@ -15,27 +15,76 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: ${name}
+  name: ${name}-default-deny-ingress
   namespace: ${namespace}
 spec:
   podSelector:
-    # Apply policy to all pods in this namespace.
     matchLabels: {}
   policyTypes:
     - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ${name}-workflow-api-ingress
+  namespace: ${namespace}
+spec:
+  podSelector:
+    matchLabels:
+      app: workflow-api
+  policyTypes:
+    - Ingress
   ingress:
-    - from:
-        # Allow GCLBs
+    - ports:
+        - protocol: TCP
+          port: 8080
+      from:
+        # Allow Google Cloud External Application Load Balancer proxies and health checks
         - ipBlock:
             cidr: 35.191.0.0/16
         - ipBlock:
             cidr: 130.211.0.0/22
-        # Allow managed Prometheus collector
+        # Allow Google Cloud Managed Service for Prometheus collector
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: gmp-system
           podSelector:
             matchLabels:
               app: managed-prometheus-collector
-        # Allow traffic between all pods in this namespace.
-        - podSelector: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ${name}-comfyui-ingress
+  namespace: ${namespace}
+spec:
+  podSelector:
+    matchLabels:
+      app: ${comfyui_app_label}
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 8188
+      from:
+        # Allow Google Cloud External Application Load Balancer proxies and health checks
+        - ipBlock:
+            cidr: 35.191.0.0/16
+        - ipBlock:
+            cidr: 130.211.0.0/22
+        # Allow authenticated workflow-api service pods
+        - podSelector:
+            matchLabels:
+              app: workflow-api
+        # Allow ComfyUI CI test client pod
+        - podSelector:
+            matchLabels:
+              run: comfyui-client
+        # Allow Google Cloud Managed Service for Prometheus collector
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: gmp-system
+          podSelector:
+            matchLabels:
+              app: managed-prometheus-collector

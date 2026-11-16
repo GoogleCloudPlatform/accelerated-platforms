@@ -7,13 +7,16 @@ godoc
 godotenv
 gonic
 httptest
+idtoken
 joho
 ldflags
 logf
 nhooyr
 omitempty
+pkcs
 println
 sprintf
+strconv
 stretchr
 swaggo
 tokeninfo

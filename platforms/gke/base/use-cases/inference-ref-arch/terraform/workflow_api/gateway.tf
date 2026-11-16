@@ -27,6 +27,14 @@ locals {
   workflow_api_serviceaccount = "${local.unique_identifier_prefix}-${local.workflow_api_default_name}"
 
   workflow_api_backend_service_regex = ".*${var.comfyui_kubernetes_namespace}-${local.workflow_api_default_name}-8080-.*"
+  workflow_api_backend_service_name = basename(
+    one(
+      [
+        for backend in split(", ", data.kubernetes_resources.gateway.objects[0].metadata.annotations["networking.gke.io/backend-services"]) : backend
+        if can(regex(local.workflow_api_backend_service_regex, backend))
+      ]
+    )
+  )
 }
 
 data "google_client_config" "default" {}
@@ -192,7 +200,7 @@ module "kubectl_apply_gateway_res" {
 }
 
 ###############################################################################
-# IAP Permissions
+# IAP Permissions & Signed-Header Audience ConfigMap
 ###############################################################################
 module "kubectl_wait_for_gateway" {
   depends_on = [
@@ -221,16 +229,58 @@ data "kubernetes_resources" "gateway" {
   namespace      = var.comfyui_kubernetes_namespace
 }
 
-resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {
-  member  = google_service_account.workflow_api_user.member
-  role    = "roles/iap.httpsResourceAccessor"
+data "google_compute_backend_service" "workflow_api" {
+  name    = local.workflow_api_backend_service_name
   project = local.cluster_project_id
-  web_backend_service = basename(
-    one(
-      [
-        for backend in split(", ", data.kubernetes_resources.gateway.objects[0].metadata.annotations["networking.gke.io/backend-services"]) : backend
-        if can(regex(local.workflow_api_backend_service_regex, backend))
-      ]
-    )
+}
+
+resource "local_file" "workflow_api_iap_configmap" {
+  content = templatefile(
+    "${path.module}/templates/configmap-iap-audience.tftpl.yaml",
+    {
+      configmap_name = local.iap_configmap_name
+      iap_audience   = "/projects/${data.google_project.cluster.number}/global/backendServices/${data.google_compute_backend_service.workflow_api.generated_id}"
+      namespace      = var.comfyui_kubernetes_namespace
+    }
   )
+  filename = "${local.namespace_manifests_directory}/configmap-${local.iap_configmap_name}.yaml"
+}
+
+module "kubectl_apply_iap_configmap" {
+  depends_on = [
+    local_file.workflow_api_iap_configmap,
+  ]
+
+  source = "../../../../modules/kubectl_apply"
+
+  apply_once                  = false
+  kubeconfig_file             = data.local_file.kubeconfig.filename
+  manifest                    = local_file.workflow_api_iap_configmap.filename
+  manifest_includes_namespace = true
+  source_content_hash         = local_file.workflow_api_iap_configmap.content_sha256
+}
+
+resource "terraform_data" "rollout_workflow_api_iap_config" {
+  depends_on = [
+    module.kubectl_apply_iap_configmap,
+  ]
+
+  provisioner "local-exec" {
+    command = "kubectl --namespace=${var.comfyui_kubernetes_namespace} rollout restart deployment/${local.deployment_name} && kubectl --namespace=${var.comfyui_kubernetes_namespace} rollout status deployment/${local.deployment_name} --timeout=180s"
+    environment = {
+      KUBECONFIG = data.local_file.kubeconfig.filename
+    }
+    interpreter = ["bash", "-c"]
+  }
+
+  triggers_replace = {
+    iap_config_hash = local_file.workflow_api_iap_configmap.content_sha256
+  }
+}
+
+resource "google_iap_web_backend_service_iam_member" "service_account_iap_https_resource_accessor" {
+  member              = google_service_account.workflow_api_user.member
+  project             = local.cluster_project_id
+  role                = "roles/iap.httpsResourceAccessor"
+  web_backend_service = local.workflow_api_backend_service_name
 }

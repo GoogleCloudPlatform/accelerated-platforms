@@ -84,8 +84,9 @@ resource "local_file" "comfyui_network_policy" {
   content = templatefile(
     "${path.module}/templates/namespace/network-policy.tftpl.yaml",
     {
-      name      = var.comfyui_kubernetes_namespace
-      namespace = var.comfyui_kubernetes_namespace
+      comfyui_app_label = local.comfyui_service_name
+      name              = var.comfyui_kubernetes_namespace
+      namespace         = var.comfyui_kubernetes_namespace
     }
   )
   filename = "${local.manifests_directory}/network-policy.yaml"

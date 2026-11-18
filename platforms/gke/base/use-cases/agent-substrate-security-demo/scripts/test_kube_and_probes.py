@@ -35,16 +35,13 @@ for p in (str(BASE_DIR / "ui"), str(BASE_DIR / "app"), str(BASE_DIR / "scripts")
     if p not in sys.path:
         sys.path.insert(0, p)
 
-import test_app_services
-
-test_app_services._install_app_dependency_stubs()
-
 import acts
 import gateway
 import kube
 import probes
 import server
 import terminal
+import test_app_services
 
 
 class _JsonEchoHandler(BaseHTTPRequestHandler):

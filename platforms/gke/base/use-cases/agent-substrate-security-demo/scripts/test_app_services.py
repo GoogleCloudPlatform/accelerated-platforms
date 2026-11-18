@@ -32,197 +32,95 @@ from pathlib import Path
 from typing import Any, cast
 from unittest import mock
 
+from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 APP_DIR = BASE_DIR / "app"
 if str(APP_DIR) not in sys.path:
     sys.path.insert(0, str(APP_DIR))
 
 
-def _install_app_dependency_stubs() -> None:
-    """Install deterministic FastAPI / Google Auth / ADK stubs when absent."""
-    try:
-        import fastapi  # noqa: F401
-    except ModuleNotFoundError:
+def _install_adk_stubs() -> None:
+    """Replace Google ADK and GenAI with deterministic stand-ins.
 
-        class HTTPException(Exception):
-            def __init__(self, status_code: int, detail: str = "") -> None:
-                super().__init__(detail)
-                self.status_code = status_code
-                self.detail = detail
+    These tests cover this demo's agent wiring, not ADK itself. The stand-ins
+    are always installed, so the suite behaves the same whether or not
+    `google-adk` is present. FastAPI, uvicorn and google-auth are the real
+    packages (see `requirements-test.txt`).
+    """
+    import google  # Namespace package provided by google-auth.
 
-        class _DependsSpec:
-            def __init__(self, dependency: Any) -> None:
-                self.dependency = dependency
+    adk_mod = types.ModuleType("google.adk")
+    agents_mod = types.ModuleType("google.adk.agents")
+    events_mod = types.ModuleType("google.adk.events")
+    models_mod = types.ModuleType("google.adk.models")
+    runners_mod = types.ModuleType("google.adk.runners")
+    genai_mod = types.ModuleType("google.genai")
+    genai_types_mod = types.ModuleType("google.genai.types")
 
-        class _FakeApp:
-            def __init__(self, **_kwargs: Any) -> None:
-                self.routes: dict[tuple[str, str], tuple[list[Any], Any]] = {}
+    class _StubPart:
+        def __init__(self, text: str = "") -> None:
+            self.text = text
 
-            def _register(self, method: str, path: str, deps_raw: Any = None) -> Any:
-                deps = [
-                    d.dependency if isinstance(d, _DependsSpec) else d
-                    for d in (deps_raw or [])
-                ]
+        @classmethod
+        def from_text(cls, text: str = "") -> "_StubPart":
+            return cls(text=text)
 
-                def _decorator(fn: Any) -> Any:
-                    self.routes[(method, path)] = (deps, fn)
-                    return fn
+    class _StubContent:
+        def __init__(self, role: str = "user", parts: list[Any] | None = None) -> None:
+            self.role = role
+            self.parts = parts or []
 
-                return _decorator
+    class _StubEvent:
+        def __init__(
+            self, author: str = "agent", content: Any = None, final: bool = True
+        ) -> None:
+            self.author = author
+            self.content = content
+            self._final = final
 
-            def get(self, path: str, **kw: Any) -> Any:
-                return self._register("GET", path, kw.get("dependencies"))
+        def is_final_response(self) -> bool:
+            return self._final
 
-            def post(self, path: str, **kw: Any) -> Any:
-                return self._register("POST", path, kw.get("dependencies"))
+    class _StubSessionService:
+        def __init__(self) -> None:
+            self.events: list[Any] = []
 
-        class _FakeResponse:
-            def __init__(
-                self, content: Any = None, status_code: int = 200, **kw: Any
-            ) -> None:
-                self.content, self.status_code = content, status_code
-                self.media_type = kw.get("media_type", "")
-                self.headers = kw.get("headers") or {}
-                if isinstance(content, (dict, list)):
-                    self.body = json.dumps(content).encode("utf-8")
-                elif isinstance(content, str):
-                    self.body = content.encode("utf-8")
-                else:
-                    self.body = content if isinstance(content, bytes) else b""
+        async def create_session(self, **_kwargs: Any) -> dict[str, str]:
+            return {"id": "main"}
 
-        fastapi_mod = types.ModuleType("fastapi")
-        fastapi_mod.FastAPI = _FakeApp  # type: ignore[attr-defined]
-        fastapi_mod.HTTPException = HTTPException  # type: ignore[attr-defined]
-        fastapi_mod.Depends = _DependsSpec  # type: ignore[attr-defined]
-        fastapi_mod.Header = lambda default=None: default  # type: ignore[attr-defined]
-        fastapi_mod.Query = lambda default=None: default  # type: ignore[attr-defined]
-        fastapi_mod.Request = object  # type: ignore[attr-defined]
-        resp_mod = types.ModuleType("fastapi.responses")
-        resp_mod.JSONResponse = _FakeResponse  # type: ignore[attr-defined]
-        resp_mod.PlainTextResponse = _FakeResponse  # type: ignore[attr-defined]
-        sys.modules["fastapi"] = fastapi_mod
-        sys.modules["fastapi.responses"] = resp_mod
+        async def append_event(self, session: Any, event: Any) -> None:
+            del session
+            self.events.append(event)
 
-    try:
-        import uvicorn  # noqa: F401
-    except ModuleNotFoundError:
-        uvicorn_mod = types.ModuleType("uvicorn")
-        uvicorn_mod.run = lambda *_a, **_kw: None  # type: ignore[attr-defined]
-        uvicorn_mod.Config = lambda *_a, **_kw: object()  # type: ignore[attr-defined]
-        uvicorn_mod.Server = lambda *_a, **_kw: object()  # type: ignore[attr-defined]
-        sys.modules["uvicorn"] = uvicorn_mod
+    class _StubRunner:
+        def __init__(self, **_kwargs: Any) -> None:
+            self.session_service = _StubSessionService()
 
-    try:
-        import google as google_mod
-    except ModuleNotFoundError:
-        google_mod = types.ModuleType("google")
-        google_mod.__path__ = []  # type: ignore[attr-defined]
-        sys.modules["google"] = google_mod
+        async def run_async(self, **_kwargs: Any) -> AsyncIterator[Any]:
+            part = _StubPart(text="Policy verified.")
+            yield _StubEvent(content=_StubContent(role="model", parts=[part]))
 
-    try:
-        import google.auth
-        import google.auth.transport.requests
-    except ModuleNotFoundError:
-        auth_mod = types.ModuleType("google.auth")
-        auth_mod.default = lambda **_kw: (None, None)  # type: ignore[attr-defined]
-        google_mod.auth = auth_mod  # type: ignore[attr-defined]
-        req_mod = types.ModuleType("google.auth.transport.requests")
-        req_mod.Request = object  # type: ignore[attr-defined]
-        sys.modules["google.auth"] = auth_mod
-        sys.modules["google.auth.transport"] = types.ModuleType("google.auth.transport")
-        sys.modules["google.auth.transport.requests"] = req_mod
-
-    try:
-        import google.oauth2.credentials
-    except ModuleNotFoundError:
-        oauth2_mod = types.ModuleType("google.oauth2")
-        cred_mod = types.ModuleType("google.oauth2.credentials")
-
-        class _Credentials:
-            def __init__(self, token: str = "") -> None:
-                self.token = token
-
-        cred_mod.Credentials = _Credentials  # type: ignore[attr-defined]
-        oauth2_mod.credentials = cred_mod  # type: ignore[attr-defined]
-        google_mod.oauth2 = oauth2_mod  # type: ignore[attr-defined]
-        sys.modules["google.oauth2"] = oauth2_mod
-        sys.modules["google.oauth2.credentials"] = cred_mod
-
-    try:
-        import google.adk.agents  # noqa: F401
-    except ModuleNotFoundError:
-        adk_mod = types.ModuleType("google.adk")
-        agents_mod = types.ModuleType("google.adk.agents")
-        events_mod = types.ModuleType("google.adk.events")
-        models_mod = types.ModuleType("google.adk.models")
-        runners_mod = types.ModuleType("google.adk.runners")
-        genai_mod = types.ModuleType("google.genai")
-        genai_types_mod = types.ModuleType("google.genai.types")
-
-        class _StubPart:
-            def __init__(self, text: str = "") -> None:
-                self.text = text
-
-            @classmethod
-            def from_text(cls, text: str = "") -> "_StubPart":
-                return cls(text=text)
-
-        class _StubContent:
-            def __init__(
-                self, role: str = "user", parts: list[Any] | None = None
-            ) -> None:
-                self.role = role
-                self.parts = parts or []
-
-        class _StubEvent:
-            def __init__(
-                self, author: str = "agent", content: Any = None, final: bool = True
-            ) -> None:
-                self.author = author
-                self.content = content
-                self._final = final
-
-            def is_final_response(self) -> bool:
-                return self._final
-
-        class _StubSessionService:
-            def __init__(self) -> None:
-                self.events: list[Any] = []
-
-            async def create_session(self, **_kwargs: Any) -> dict[str, str]:
-                return {"id": "main"}
-
-            async def append_event(self, session: Any, event: Any) -> None:
-                del session
-                self.events.append(event)
-
-        class _StubRunner:
-            def __init__(self, **_kwargs: Any) -> None:
-                self.session_service = _StubSessionService()
-
-            async def run_async(self, **_kwargs: Any) -> AsyncIterator[Any]:
-                part = _StubPart(text="Policy verified.")
-                yield _StubEvent(content=_StubContent(role="model", parts=[part]))
-
-        agents_mod.Agent = lambda **kw: kw  # type: ignore[attr-defined]
-        events_mod.Event = _StubEvent  # type: ignore[attr-defined]
-        models_mod.Gemini = lambda **kw: kw  # type: ignore[attr-defined]
-        runners_mod.InMemoryRunner = _StubRunner  # type: ignore[attr-defined]
-        genai_types_mod.Content = _StubContent  # type: ignore[attr-defined]
-        genai_types_mod.Part = _StubPart  # type: ignore[attr-defined]
-        genai_mod.types = genai_types_mod  # type: ignore[attr-defined]
-        google_mod.adk = adk_mod  # type: ignore[attr-defined]
-        google_mod.genai = genai_mod  # type: ignore[attr-defined]
-        sys.modules["google.adk"] = adk_mod
-        sys.modules["google.adk.agents"] = agents_mod
-        sys.modules["google.adk.events"] = events_mod
-        sys.modules["google.adk.models"] = models_mod
-        sys.modules["google.adk.runners"] = runners_mod
-        sys.modules["google.genai"] = genai_mod
-        sys.modules["google.genai.types"] = genai_types_mod
+    agents_mod.Agent = lambda **kw: kw  # type: ignore[attr-defined]
+    events_mod.Event = _StubEvent  # type: ignore[attr-defined]
+    models_mod.Gemini = lambda **kw: kw  # type: ignore[attr-defined]
+    runners_mod.InMemoryRunner = _StubRunner  # type: ignore[attr-defined]
+    genai_types_mod.Content = _StubContent  # type: ignore[attr-defined]
+    genai_types_mod.Part = _StubPart  # type: ignore[attr-defined]
+    genai_mod.types = genai_types_mod  # type: ignore[attr-defined]
+    google.adk = adk_mod  # type: ignore[attr-defined]
+    google.genai = genai_mod  # type: ignore[attr-defined]
+    sys.modules["google.adk"] = adk_mod
+    sys.modules["google.adk.agents"] = agents_mod
+    sys.modules["google.adk.events"] = events_mod
+    sys.modules["google.adk.models"] = models_mod
+    sys.modules["google.adk.runners"] = runners_mod
+    sys.modules["google.genai"] = genai_mod
+    sys.modules["google.genai.types"] = genai_types_mod
 
 
-_install_app_dependency_stubs()
+_install_adk_stubs()
 
 import egress_agent
 import gateway
@@ -379,7 +277,7 @@ class EgressAgentUnitTest(unittest.TestCase):
 class GatewaySecurityUnitTest(unittest.TestCase):
     """Tests Gateway auth, redirect-SSRF defense, streaming caps, and sanitization."""
 
-    def test_admin_auth_fails_closed_and_enforces_route_dependencies(self) -> None:
+    def test_admin_token_check_and_startup_config_fail_closed(self) -> None:
         with mock.patch.object(gateway, "GATEWAY_ADMIN_TOKEN", ""):
             with self.assertRaises(gateway.HTTPException) as ctx_503:
                 gateway.verify_admin_token("anything", None)
@@ -406,19 +304,87 @@ class GatewaySecurityUnitTest(unittest.TestCase):
             gateway.verify_admin_token(None, "Bearer secret-tok")
             gateway.validate_startup_config()
 
-        if hasattr(gateway.admin_app, "routes") and isinstance(
-            gateway.admin_app.routes, dict
+    def test_admin_routes_require_the_admin_token_over_http(self) -> None:
+        # Every admin API route except the two documented open ones must carry
+        # the token dependency, so a route added later cannot be left open.
+        open_paths = {"/readyz", "/identity"}
+        api_routes = [r for r in gateway.admin_app.routes if isinstance(r, APIRoute)]
+        self.assertGreaterEqual(len(api_routes), 7)
+        for route in api_routes:
+            deps = [dep.dependency for dep in route.dependencies]
+            self.assertEqual(
+                gateway.verify_admin_token in deps,
+                route.path not in open_paths,
+                route.path,
+            )
+
+        calls: tuple[tuple[str, str, dict[str, str] | None], ...] = (
+            ("GET", "/metrics", None),
+            ("POST", "/chat/gemini-agent", {"message": "hi"}),
+            ("GET", "/actors/gemini-agent/state", None),
+            ("POST", "/actors/py-detonation-agent/execute", {"command": "id"}),
+            ("GET", "/actors/egress-agent/fetch?url=https://example.com/", None),
+        )
+        client = TestClient(gateway.admin_app)
+        good = {"X-Gateway-Admin-Token": "secret-tok"}
+        rejected: tuple[dict[str, str], ...] = (
+            {},
+            {"X-Gateway-Admin-Token": "wrong"},
+            {"Authorization": "Bearer wrong"},
+        )
+        with (
+            mock.patch.object(gateway, "GATEWAY_ADMIN_TOKEN", "secret-tok"),
+            mock.patch.object(
+                gateway, "_call_router", return_value=(200, "{}")
+            ) as router,
         ):
-            for route_key in (
-                ("GET", "/metrics"),
-                ("POST", "/chat/{actor}"),
-                ("GET", "/actors/{actor}/state"),
-                ("POST", "/actors/{actor}/execute"),
-                ("GET", "/actors/{actor}/fetch"),
+            for method, path, body in calls:
+                for headers in rejected:
+                    res = client.request(method, path, json=body, headers=headers)
+                    self.assertEqual(res.status_code, 401, f"{method} {path}")
+            router.assert_not_called()
+            for method, path, body in calls:
+                res = client.request(method, path, json=body, headers=good)
+                self.assertEqual(res.status_code, 200, f"{method} {path}")
+            bearer = {"Authorization": "Bearer secret-tok"}
+            res = client.get("/actors/gemini-agent/state", headers=bearer)
+            self.assertEqual(res.status_code, 200)
+
+        with mock.patch.object(gateway, "GATEWAY_ADMIN_TOKEN", ""):
+            for method, path, body in calls:
+                res = client.request(method, path, json=body, headers=good)
+                self.assertEqual(res.status_code, 503, f"{method} {path}")
+
+        self.assertEqual(client.get("/readyz").status_code, 200)
+        self.assertEqual(
+            client.get("/identity").json(), {"service": "agent-substrate-gateway"}
+        )
+
+    def test_model_proxy_accepts_only_generate_content_json_objects(self) -> None:
+        client = TestClient(gateway.model_app)
+        base = "/v1beta1/projects/p1/locations/global/publishers/google/models"
+        with mock.patch.object(
+            gateway, "_forward_gemini", return_value={"candidates": []}
+        ) as forward:
+            for action in (
+                "m:streamGenerateContent",
+                "m:predict",
+                "a/b:generateContent",
             ):
-                self.assertIn(route_key, gateway.admin_app.routes)
-                deps, _ = gateway.admin_app.routes[route_key]
-                self.assertIn(gateway.verify_admin_token, deps)
+                res = client.post(f"{base}/{action}", json={"contents": []})
+                self.assertEqual(res.status_code, 400, action)
+            for raw_body in (b"[]", b"{", b"\xff"):
+                res = client.post(f"{base}/m:generateContent", content=raw_body)
+                self.assertEqual(res.status_code, 400, str(raw_body))
+            forward.assert_not_called()
+
+            res = client.post(
+                f"{base}/m:generateContent",
+                json={"contents": []},
+                headers={"x-goog-api-client": "genai-py/1.0"},
+            )
+            self.assertEqual(res.status_code, 200)
+            forward.assert_called_once_with({"contents": []}, "genai-py/1.0")
 
     def test_router_https_no_redirect_and_bounded_response(self) -> None:
         for bad_router in ("http://atenet-router.ate-system.svc:80", "ftp://r", ""):

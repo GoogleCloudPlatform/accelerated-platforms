@@ -521,14 +521,14 @@ def _json_or_text_response(status_code: int, raw_text: str) -> Any:
 @admin_app.post("/chat/{actor}", dependencies=[Depends(verify_admin_token)])
 async def chat_actor(actor: str, request: Request) -> Any:
     body = await read_bounded_model_body(request)
-    status_code, raw_text = await asyncio.to_thread(
-        _call_router,
-        actor,
-        "/chat",
-        "POST",
-        body,
-        60.0,
-    )
+    try:
+        status_code, raw_text = await asyncio.to_thread(
+            _call_router, actor, "/chat", "POST", body, 60.0
+        )
+    except HTTPException:
+        with METRICS_LOCK:
+            METRICS["chat_turns_error"] += 1
+        raise
     with METRICS_LOCK:
         if 200 <= status_code < 300:
             METRICS["chat_turns_ok"] += 1

@@ -508,6 +508,18 @@ class GatewaySecurityUnitTest(unittest.TestCase):
             out = gateway._forward_gemini({"contents": []}, "google-genai-sdk/1.0")
             self.assertIn("usageMetadata", out)
 
+    def test_chat_transport_failure_counts_as_error_turn(self) -> None:
+        router_down = gateway.HTTPException(status_code=502, detail="router down")
+        errors_before = gateway.METRICS["chat_turns_error"]
+        chat_req = cast(Any, _StreamingRequest([b'{"message": "hi"}']))
+        with (
+            mock.patch.object(gateway, "_call_router", side_effect=router_down),
+            self.assertRaises(gateway.HTTPException) as ctx,
+        ):
+            asyncio.run(gateway.chat_actor("gemini-agent", chat_req))
+        self.assertEqual(ctx.exception.status_code, 502)
+        self.assertEqual(gateway.METRICS["chat_turns_error"], errors_before + 1)
+
     def test_admin_endpoints_and_ssl_context_reload(self) -> None:
         fake_opener = mock.MagicMock()
         fake_resp = mock.MagicMock(status=200)

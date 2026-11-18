@@ -119,9 +119,9 @@ scripts/teardown-all.sh
 `bench/scale_report.py` to generate `${MR_WORK_DIR}/results/analysis/<run>/`
 (`report.md`, `stages.csv`, `pods.csv`, and `gmp.json`). Run A now includes the
 two-metric HPA (`vllm:num_requests_running`), `safe-to-evict`, and base
-`PodDisruptionBudget` fixes described below, so re-running it keeps 4 replicas
-steady at 8 QPS rather than reproducing the scale-in and eviction failures of
-the recorded initial cold run.
+`PodDisruptionBudget` fixes described below, which are intended to prevent the
+premature scale-in and eviction failures seen in the recorded initial cold run
+(not yet re-measured on the updated HPA).
 
 ## Results: cold scale-out
 
@@ -170,7 +170,11 @@ s, and its goodput was 1.05 requests/s over all regions.
    replicas' nodes to consolidate them ("deleting pod for node scale down"). The
    region had **no ready replica for about 4 minutes**: the endpoint picker
    returned 1,836 `503 failed to find endpoint candidates`, and 45 streams were
-   cut off.
+   cut off. The load balancer kept sending that region's clients to it, because
+   its health check then probed the router's own `/ready`, which Envoy answers
+   even with no model server. It now probes `/health` through the EPP: in a test
+   on GKE Standard (2026-11-17), with all model servers of one region scaled to
+   0, clients of that region were served by the other region about 9 s later.
    - The fix: model server pods carry
      `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`, and a
      PodDisruptionBudget (`manifests/model-server/base/pdb.tpl.yaml`) keeps at

@@ -16,7 +16,7 @@
 
 # Runs one benchmark (one arm x one workload) with one inference-perf client
 # Job per client region, all clients concurrently, against the regional
-# internal VIPs of the load balancer (MR_GLOBAL_LB). With more than one client
+# internal VIPs of the cross-region load balancer. With more than one client
 # region, a start barrier releases Stage 0 in every region at the same time
 # (MR_BENCH_SYNC_START). Collects Job logs and the inference-perf reports into
 # ${MR_RESULTS_DIR}/runs/${MR_RUN_ID}/<arm>/<workload>/<client>/.
@@ -584,17 +584,8 @@ else:
         "num_prompts": int(e["MR_BENCH_CHAT_NUM_PROMPTS"]),
     }
 
-global_lb = e.get("MR_GLOBAL_LB", "terraform")
-router_chart = (
-    e["MR_LLMD_ROUTER_CHART"]
-    if global_lb == "mc-gateway"
-    else e["MR_LLMD_ROUTER_STANDALONE_CHART"]
-)
-router_chart_digest = (
-    e["MR_LLMD_ROUTER_CHART_DIGEST"]
-    if global_lb == "mc-gateway"
-    else e["MR_LLMD_ROUTER_STANDALONE_CHART_DIGEST"]
-)
+router_chart = e["MR_LLMD_ROUTER_STANDALONE_CHART"]
+router_chart_digest = e["MR_LLMD_ROUTER_STANDALONE_CHART_DIGEST"]
 
 metadata = {
     "schema_version": 1,
@@ -604,7 +595,7 @@ metadata = {
     "arm": e["RUN_ARM"],
     "workload": workload,
     "gateway": e["RUN_GATEWAY"],
-    "global_lb": global_lb,
+    "global_lb": "terraform",
     "target_region_mode": e["RUN_TARGET_MODE"],
     "start_epoch_s": int(e["RUN_START"]),
     "end_epoch_s": int(e["RUN_END"]),

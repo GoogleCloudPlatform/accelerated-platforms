@@ -15,17 +15,13 @@
 # limitations under the License.
 
 # Tears down the whole multi-region environment, in reverse order:
-#   1. cross-region load balancer (global_lb.sh destroy, and optional
-#      multi-cluster Gateway resources),
+#   1. cross-region load balancer (global_lb.sh destroy),
 #   2. both experiment arms,
-#   3. benchmark infrastructure and optional fleet features,
+#   3. benchmark infrastructure,
 #   4. every regional platform (in parallel) and the shared VPC network via
 #      terraform/multi-region/teardown.sh --parallel.
 #
 # Usage: teardown-all.sh [--dry-run]
-#
-# Set MR_TEARDOWN_FLEET_FEATURES=false to keep the fleet features enabled (for
-# example, when other multi-cluster Gateways in the project still use them).
 
 set -o errexit
 set -o nounset
@@ -59,9 +55,7 @@ if [[ "${dry_run}" == "true" ]]; then
   exec "${MR_MULTI_REGION_DIR}/teardown.sh" --parallel --dry-run "${targets[@]}"
 fi
 
-MR_TEARDOWN_FLEET_FEATURES="${MR_TEARDOWN_FLEET_FEATURES:-true}"
 cfg="${MR_CONFIG_CLUSTER_KEY}"
-gateway="${MR_GATEWAY_NAME:-llm-mr-gateway}"
 
 # Discover all deployed region keys by combining MR_REGION_KEYS with platforms
 # registered in shared_network, existing local worktrees, and labeled GKE
@@ -110,28 +104,6 @@ ensure_kubeconfigs() {
   done
 }
 
-mc_gateway_lb_deleted() {
-  [[ -z "$(gcloud compute forwarding-rules list --global --project "${MR_PROJECT_ID}" \
-    --format='value(name)' --filter="name~^gkemcg AND network~/${MR_NETWORK_NAME}\$" 2>/dev/null)" ]] || return 1
-  # Backend services aren't tied to a network: match this environment's
-  # namespace (names are gkemcg<version>-<namespace>-<service>-<port>-<hash>).
-  [[ -z "$(gcloud compute backend-services list --global --project "${MR_PROJECT_ID}" \
-    --format='value(name)' --filter="name~^gkemcg[0-9]*-${MR_NAMESPACE}-" 2>/dev/null)" ]] || return 1
-  [[ -z "$(gcloud compute firewall-rules list --project "${MR_PROJECT_ID}" \
-    --format='value(name)' --filter="name~^gkemcg AND network~/${MR_NETWORK_NAME}\$" 2>/dev/null)" ]]
-}
-
-delete_gateway() {
-  [[ -f "$(mr_kubeconfig "${cfg}")" ]] || return 0
-  mr_kubectl "${cfg}" delete httproute "${gateway}" -n "${MR_NAMESPACE}" --ignore-not-found --wait=true || true
-  mr_kubectl "${cfg}" delete gcpbackendpolicy,healthcheckpolicy -n "${MR_NAMESPACE}" --all --ignore-not-found --wait=true || true
-  mr_kubectl "${cfg}" delete gateway "${gateway}" -n "${MR_NAMESPACE}" --ignore-not-found --wait=true || true
-  # Give the multi-cluster Gateway controller time to delete the load balancer,
-  # backend services, and firewall rules before the fleet feature is disabled,
-  # otherwise those resources leak and block VPC deletion.
-  mr_wait_for 900 15 "multi-cluster Gateway resources deleted" mc_gateway_lb_deleted
-}
-
 destroy_global_lb() {
   "${MR_MULTI_REGION_DIR}/global_lb.sh" destroy || return 1
   rm -f "${MR_RESULTS_DIR}/gateway/active.json" "${MR_RESULTS_DIR}/gateway/vips.json" \
@@ -149,11 +121,8 @@ live_region_keys() {
 }
 
 delete_arms() {
-  local key live
+  local live
   live="$(live_region_keys)"
-  for key in ${live}; do
-    mr_kubectl "${key}" delete serviceexport --all -n "${MR_NAMESPACE}" --ignore-not-found || true
-  done
   [[ -n "${live}" ]] || return 0
   MR_REGION_KEYS="${live}" "${MY_PATH}/delete-arm.sh" llmd || true
   MR_REGION_KEYS="${live}" "${MY_PATH}/delete-arm.sh" baseline || true
@@ -167,19 +136,6 @@ destroy_bench() {
   fi
 }
 
-destroy_fleet() {
-  [[ "${MR_TEARDOWN_FLEET_FEATURES}" == "true" ]] || return 0
-  mr_tf_state_has_resources fleet "terraform/llmd-multi-region/fleet" || return 0
-  local stage
-  stage="$(mr_tf_dir fleet)"
-  mkdir -p "${stage}"
-  jq -n \
-    --arg project_id "${MR_PROJECT_ID}" \
-    --arg config_membership_id "$(mr_cluster_name "${cfg}")" \
-    '{project_id: $project_id, config_membership_id: $config_membership_id}' >"${stage}/terraform.tfvars.json"
-  mr_tf fleet destroy "${MR_EXAMPLE_DIR}/terraform/fleet" "terraform/llmd-multi-region/fleet"
-}
-
 if [[ -f "${MY_PATH}/bench-lib.sh" ]]; then
   # shellcheck source=/dev/null
   source "${MY_PATH}/bench-lib.sh"
@@ -188,12 +144,8 @@ fi
 ensure_kubeconfigs
 
 mr_stage "teardown_global_lb" "global" destroy_global_lb
-if [[ "${MR_GLOBAL_LB}" == "mc-gateway" ]] || mr_tf_state_has_resources fleet "terraform/llmd-multi-region/fleet"; then
-  mr_stage "teardown_gateway" "global" delete_gateway
-fi
 mr_stage "teardown_arms" "global" delete_arms
 mr_stage "teardown_bench" "global" destroy_bench || true
-mr_stage "teardown_fleet" "global" destroy_fleet
 
 targets=()
 for key in ${MR_REGION_KEYS}; do

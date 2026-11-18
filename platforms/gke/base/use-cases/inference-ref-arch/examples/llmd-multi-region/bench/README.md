@@ -1,9 +1,8 @@
 # Benchmark harness
 
 This directory benchmarks the two experiment arms (plain vLLM and llm-d) behind
-the cross-region internal Application Load Balancer (`MR_GLOBAL_LB=terraform` by
-default, or the GKE multi-cluster Inference Gateway when
-`MR_GLOBAL_LB=mc-gateway`). It uses
+the cross-region internal Application Load Balancer
+(`terraform/multi-region/global_lb`). It uses
 [inference-perf](https://github.com/kubernetes-sigs/inference-perf) **v0.7.0**,
 pinned by digest in `MR_INFERENCE_PERF_IMAGE` in `mr.env`. One client Job runs
 in each client region, and every client sends requests to the internal VIP of
@@ -29,9 +28,9 @@ the load balancer in the region that you choose.
 ## Prerequisites
 
 - The regional clusters and the cross-region internal load balancer
-  (`deploy-arm.sh` / `set-route.sh`, using `terraform/multi-region/global_lb` by
-  default or `MR_GLOBAL_LB=mc-gateway`) are deployed, and the regional VIPs
-  serve the OpenAI API on port 80 with the model name `${MR_SERVED_MODEL_NAME}`.
+  (`deploy-arm.sh` / `set-route.sh`, using `terraform/multi-region/global_lb`)
+  are deployed, and the regional VIPs serve the OpenAI API on port 80 with the
+  model name `${MR_SERVED_MODEL_NAME}`.
 - The namespace `${MR_NAMESPACE}` and the Kubernetes service account
   `${MR_NAMESPACE}` exist in every client cluster. `run-benchmark.sh` checks
   this.
@@ -86,13 +85,14 @@ The script creates the following resources:
 ## Run a benchmark
 
 Before you run a benchmark, point the load balancer at the arm that you want to
-measure with `scripts/set-route.sh` (or `deploy-arm.sh`; in `mc-gateway` mode,
-`set-route.sh` updates the `HTTPRoute`). The `--arm` value is only a label. For
-automated A/B sweeps across arms and modes, use `scripts/run-experiment.sh` or
-`scripts/run-skew-experiment.sh` (`--region-capacity-inflight`,
-`--capacity-mode-inflight`, `--region-capacity-qps`, `--capacity-mode-qps`).
+measure with `scripts/set-route.sh` (or `deploy-arm.sh`). The `--arm` value is
+only a label. For automated A/B sweeps across arms and modes, use
+`scripts/run-experiment.sh` or `scripts/run-skew-experiment.sh`
+(`--region-capacity-inflight`, `--capacity-mode-inflight`,
+`--region-capacity-qps`, `--capacity-mode-qps`).
 
 ```bash
+source mr.env                          # sets MR_RESULTS_DIR and defaults
 export MR_RUN_ID=20261030-ab1          # share one run ID across arms and workloads
 scripts/set-route.sh --backend baseline
 scripts/run-benchmark.sh --arm vllm --workload shared-prefix

@@ -23,7 +23,7 @@
 # Only these variables are substituted. Anything else that looks like a shell
 # variable (for example, the Kubernetes $(VAR) syntax) is left untouched.
 # shellcheck disable=SC2016
-MR_TEMPLATE_VARS='${MR_HPA_RUNNING_METRIC} ${MR_HPA_TARGET_RUNNING} ${MR_POD_SNAPSHOTS_BUCKET} ${MR_POD_SNAPSHOT_MEMORY_LIMIT} ${MR_GPU_MACHINE_TYPE} ${MR_ACCELERATOR_TYPE} ${MR_HPA_MAX_REPLICAS} ${MR_HPA_METRIC} ${MR_HPA_TARGET_AVERAGE} ${MR_GPU_HOLD_IMAGE} ${MR_LLMD_GIT_REF} ${MR_REPLICAS_PER_REGION} ${MR_NAMESPACE} ${MR_COMPUTE_CLASS} ${MR_VLLM_IMAGE} ${MR_GPU_COUNT} ${MR_MODELS_BUCKET} ${MR_MODEL_PATH} ${MR_SERVED_MODEL_NAME} ${MR_TENSOR_PARALLEL_SIZE} ${MR_MAX_MODEL_LEN} ${MR_GPU_MEMORY_UTILIZATION} ${MR_GATEWAY_NAME} ${MR_GATEWAY_ADDRESSES} ${MR_ROUTE_BACKEND_GROUP} ${MR_ROUTE_BACKEND_KIND} ${MR_ROUTE_BACKEND_NAME} ${MR_ROUTE_BACKEND_PORT} ${MR_LB_MAX_UTILIZATION_PERCENT} ${MR_LB_PREFERRED_REGION} ${MR_BACKEND_TIMEOUT_SEC} ${MR_NEG_NAME_BASELINE}'
+MR_TEMPLATE_VARS='${MR_HPA_RUNNING_METRIC} ${MR_HPA_TARGET_RUNNING} ${MR_POD_SNAPSHOTS_BUCKET} ${MR_POD_SNAPSHOT_MEMORY_LIMIT} ${MR_GPU_MACHINE_TYPE} ${MR_ACCELERATOR_TYPE} ${MR_HPA_MAX_REPLICAS} ${MR_HPA_METRIC} ${MR_HPA_TARGET_AVERAGE} ${MR_GPU_HOLD_IMAGE} ${MR_LLMD_GIT_REF} ${MR_REPLICAS_PER_REGION} ${MR_NAMESPACE} ${MR_COMPUTE_CLASS} ${MR_VLLM_IMAGE} ${MR_GPU_COUNT} ${MR_MODELS_BUCKET} ${MR_MODEL_PATH} ${MR_SERVED_MODEL_NAME} ${MR_TENSOR_PARALLEL_SIZE} ${MR_MAX_MODEL_LEN} ${MR_GPU_MEMORY_UTILIZATION} ${MR_NEG_NAME_BASELINE}'
 export MR_GATEWAY_NAME="${MR_GATEWAY_NAME:-llm-mr-gateway}"
 # Cross-region load balancer backend service timeout (seconds), which bounds a
 # whole (streaming) response. The regional llm-d router's Envoy keeps the
@@ -62,11 +62,6 @@ mr_render_model_server() {
     export MR_MODELS_BUCKET MR_NEG_NAME_BASELINE MR_COMPUTE_CLASS MR_POD_SNAPSHOTS_BUCKET
     mr_render_dir "${MR_EXAMPLE_DIR}/manifests/model-server" "${dst}"
   )
-  # The ServiceExport is only needed (and its CRD only exists) when the
-  # multi-cluster Gateway fleet feature is used.
-  if [[ "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
-    sed -i '/serviceexport.yaml/d' "${dst}/baseline/kustomization.yaml"
-  fi
   echo "${dst}"
 }
 
@@ -102,36 +97,42 @@ mr_fetch_llmd_values() {
     optimized-baseline/router/optimized-baseline.values.yaml; do
     if [[ ! -s "${cache}/${f}" ]]; then
       mkdir -p "$(dirname "${cache}/${f}")"
-      curl -fsSL --retry 3 "${base_url}/${f}" -o "${cache}/${f}" || return 1
+      local tmp
+      tmp="$(mktemp "$(dirname "${cache}/${f}")/.fetch.XXXXXX")" || return 1
+      if ! curl -fsSL --retry 3 "${base_url}/${f}" -o "${tmp}"; then
+        rm -f "${tmp}"
+        return 1
+      fi
+      mv -f "${tmp}" "${cache}/${f}"
     fi
   done
   echo "${cache}"
 }
 
 # mr_pull_router_chart
-# Pulls the pinned router chart for the configured global load balancer mode,
-# verifies its OCI digest, and prints the path of the unpacked chart.
+# Pulls the pinned llm-d standalone router chart, verifies its OCI digest, and
+# prints the path of the unpacked chart.
 mr_pull_router_chart() {
-  local chart_ref="${MR_LLMD_ROUTER_CHART}" digest="${MR_LLMD_ROUTER_CHART_DIGEST}"
-  if [[ "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
-    chart_ref="${MR_LLMD_ROUTER_STANDALONE_CHART}"
-    digest="${MR_LLMD_ROUTER_STANDALONE_CHART_DIGEST}"
-  fi
+  local chart_ref="${MR_LLMD_ROUTER_STANDALONE_CHART}"
+  local digest="${MR_LLMD_ROUTER_STANDALONE_CHART_DIGEST}"
   local chart_name="${chart_ref##*/}"
   local dir="${MR_WORK_DIR}/llmd/chart-${chart_name}-${MR_LLMD_ROUTER_CHART_VERSION}"
   if [[ ! -f "${dir}/${chart_name}/Chart.yaml" ]]; then
-    rm -rf "${dir}"
-    mkdir -p "${dir}"
-    local out
-    out="$(helm pull "${chart_ref}" --version "${MR_LLMD_ROUTER_CHART_VERSION}" --untar --untardir "${dir}" 2>&1)" || {
+    mkdir -p "${MR_WORK_DIR}/llmd"
+    local tmp_dir out
+    tmp_dir="$(mktemp -d "${MR_WORK_DIR}/llmd/.chart.XXXXXX")" || return 1
+    out="$(helm pull "${chart_ref}" --version "${MR_LLMD_ROUTER_CHART_VERSION}" --untar --untardir "${tmp_dir}" 2>&1)" || {
       echo "${out}" >&2
+      rm -rf "${tmp_dir}"
       return 1
     }
     if [[ -n "${digest}" ]] && ! grep -q "Digest: ${digest}" <<<"${out}"; then
       echo "router chart digest mismatch: expected ${digest}, got: ${out}" >&2
-      rm -rf "${dir}"
+      rm -rf "${tmp_dir}"
       return 1
     fi
+    rm -rf "${dir}"
+    mv "${tmp_dir}" "${dir}"
   fi
   echo "${dir}/${chart_name}"
 }
@@ -175,6 +176,13 @@ mr_render_router() {
     --set-string "router.epp.image.tag=${MR_LLMD_EPP_IMAGE_TAG}" \
     --set-string "router.epp.image.pullPolicy=IfNotPresent" \
     --set-string "router.proxy.presets.envoy.image=${MR_LLMD_ENVOY_IMAGE}" \
+    --set-string "router.proxy.presets.envoy.configMap.name=${release}-envoy" \
     >"${dst}/${release}.yaml" || return 1
+  # The chart names the Envoy ConfigMap "envoy" by default, so the router
+  # releases in one namespace would overwrite each other's Envoy configuration.
+  if ! grep -Fq "name: ${release}-envoy" "${dst}/${release}.yaml" ||
+    grep -Eq "^  name: envoy$" "${dst}/${release}.yaml"; then
+    mr_die "failed to give the Envoy ConfigMap of ${release} a per-release name (check the router chart version)"
+  fi
   echo "${dst}/${release}.yaml"
 }

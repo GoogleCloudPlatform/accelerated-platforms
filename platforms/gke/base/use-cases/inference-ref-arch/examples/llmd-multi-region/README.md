@@ -69,17 +69,21 @@ flowchart LR
   (optimized baseline, `ob`), together with load. One router pod per region is a
   single point of failure for that region's llm-d arm: while it restarts (node
   upgrade, preemption, crash), the region's NEG has no healthy endpoint, the
-  load balancer health check (`/ready`, port 19001) sends traffic to the other
-  regions, and active streams through that pod are cut (`safe-to-evict: "false"`
-  prevents cluster autoscaler consolidation, not node upgrades). When
-  `MR_HPA_ENABLED=true`, `set-route.sh` multiplies the router's per-endpoint
-  capacity by `MR_HPA_MAX_REPLICAS / MR_REPLICAS_PER_REGION`: the router is the
-  region's only NEG endpoint, so at full scale-out an llm-d region's capacity
-  equals the baseline's (64 in-progress requests by default), while below full
-  scale-out it accepts up to that factor more in-progress requests before
-  spilling over. The router keeps the upstream chart's Envoy timeouts: 86400 s
-  route timeout and 1000 s `ext_proc` `message_timeout` per endpoint picker
-  exchange, so long streams are bounded by the load balancer's
+  load balancer health check sends traffic to the other regions, and active
+  streams through that pod are cut (`safe-to-evict: "false"` prevents cluster
+  autoscaler consolidation, not node upgrades). The health check is
+  `GET /health` on the router's request listener (port 8081,
+  `MR_ROUTER_REQUEST_PORT`): it goes through the EPP to a ready vLLM pod, so it
+  also fails when the region has no ready model server. (The router's own
+  `/ready` on port 19001 is answered by Envoy and stays healthy in that case.)
+  When `MR_HPA_ENABLED=true`, `set-route.sh` multiplies the router's
+  per-endpoint capacity by `MR_HPA_MAX_REPLICAS / MR_REPLICAS_PER_REGION`: the
+  router is the region's only NEG endpoint, so at full scale-out an llm-d
+  region's capacity equals the baseline's (64 in-progress requests by default),
+  while below full scale-out it accepts up to that factor more in-progress
+  requests before spilling over. The router keeps the upstream chart's Envoy
+  timeouts: 86400 s route timeout and 1000 s `ext_proc` `message_timeout` per
+  endpoint picker exchange, so long streams are bounded by the load balancer's
   `MR_BACKEND_TIMEOUT_SEC` (3600 s).
 - **Baseline.** The load balancer sends traffic straight to the plain vLLM pods'
   NEGs (`locality_lb_policy = "LEAST_REQUEST"` within each chosen region;
@@ -96,13 +100,6 @@ flowchart LR
 > is Ready but gets no traffic until you re-run `set-route.sh` with the same
 > arguments. For `llmd` this only matters if the router Pod moves; the router
 > reaches model servers in every zone.
-
-- **Alternative: GKE multi-cluster Inference Gateway**
-  (`MR_GLOBAL_LB=mc-gateway`). Regional InferencePools are exported to the fleet
-  and imported in the config cluster as `GCPInferencePoolImport`s behind a
-  `gke-l7-cross-regional-internal-managed-mc` Gateway (`deploy-fleet.sh`,
-  `deploy-gateway.sh`, `manifests/gateway`). See the guide for its prerequisites
-  and current status.
 
 Both arms use the **same** pod spec, which is the pinned llm-d model server
 recipe, along with the same vLLM image, accelerator, model, vLLM arguments, and
@@ -126,15 +123,11 @@ replica count. The only differences are the two vLLM flags that llm-d needs
     `Deployment` → `DisaggregatedSet` silently break overlays.
 - Clusters are labelled `created_by`, `acp_environment`, and `acp_example` for
   attribution in shared projects.
-- Fleet features (multi-cluster Services and multi-cluster Gateway) are
-  project-wide. `teardown-all.sh` deletes the Gateway first, and waits for the
-  load balancer to be deleted before it disables the features, so that no load
-  balancer resources leak.
 
 ## Prerequisites
 
 - `gcloud`, `kubectl`, `kustomize`, `helm` (v3), `terraform` (>= 1.8), `jq`,
-  `python3` (with `PyYAML`), `git`, `envsubst`, `sponge`, and `curl`.
+  `python3` (with `PyYAML`), `git`, `envsubst`, and `curl`.
 - A Hugging Face read token in `~/hftoken`, or set `MR_HF_TOKEN_FILE`.
 - GPU capacity for `MR_ACCELERATOR_TYPE` in every region: up to
   `MR_HPA_MAX_REPLICAS` × `MR_GPU_COUNT` GPUs per region and arm. The GPU

@@ -23,7 +23,7 @@
 #   llmd      llm-d model servers + router InferencePools (precise prefix cache
 #             routing and optimized baseline) per region (arm B)
 #
-# Unless --no-route is set, the load balancer (MR_GLOBAL_LB) is then pointed at
+# Unless --no-route is set, the cross-region load balancer is then pointed at
 # the arm (set-route.sh) and the time to the first successful completion
 # through each region's VIP is recorded.
 
@@ -93,11 +93,6 @@ apply_common() {
   # which breaks the HPA's per-pod metric.
   mr_kubectl "${key}" delete podmonitoring vllm-model-servers -n "${MR_NAMESPACE}" --ignore-not-found || return 1
   mr_kubectl "${key}" apply -f "${dst}/probe-client.yaml" || return 1
-  if mr_kubectl "${key}" get crd autoscalingmetrics.autoscaling.gke.io >/dev/null 2>&1; then
-    mr_kubectl "${key}" apply -f "${dst}/autoscaling-metric.yaml" || return 1
-  else
-    mr_log "WARNING: AutoscalingMetric CRD not found in ${key}; CUSTOM_METRICS load balancing won't have data"
-  fi
   mr_kubectl "${key}" rollout status deploy/probe-client -n "${MR_NAMESPACE}" --timeout=600s
 }
 
@@ -124,7 +119,7 @@ snapshot_available() {
 }
 
 apply_model_servers() {
-  local key="${1}" dir overlay_dir bootstrap="false" replicas_patch=""
+  local key="${1}" dir overlay_dir bootstrap="false" replicas_patch="" hpa_owns_replicas="false"
   dir="$(mr_render_model_server "${key}")"
   overlay_dir="${dir}/${arm}"
   if podsnapshots_on; then
@@ -164,6 +159,7 @@ apply_model_servers() {
     # re-applying spec.replicas would scale a scaled-out arm back down.
     if [[ "${bootstrap}" != "true" ]] && mr_kubectl "${key}" get deployment "$(model_server_deployment)" -n "${MR_NAMESPACE}" >/dev/null 2>&1; then
       replicas_patch='[{"op": "remove", "path": "/spec/replicas"}]'
+      hpa_owns_replicas="true"
     fi
   else
     # Ensure no pre-existing HPA overrides fixed-replica deployments.
@@ -177,11 +173,24 @@ apply_model_servers() {
   # Release the GPU nodes held by delete-arm.sh --hold-gpus (if any) right
   # before the model servers are created, so that they land on those nodes.
   mr_kubectl "${key}" delete deployment gpu-hold -n "${MR_NAMESPACE}" --ignore-not-found --wait=true || return 1
+  if [[ "${hpa_owns_replicas}" == "true" ]]; then
+    # Client-side apply deletes fields that are in the last-applied
+    # configuration but not in the new one, so dropping spec.replicas from the
+    # manifest alone would reset an HPA-scaled Deployment to 1 replica. Record
+    # the replica-less manifest as the last-applied configuration first, so
+    # that the apply below leaves spec.replicas to the HPA.
+    "${MR_PYTHON}" -c 'import sys, yaml
+with open(sys.argv[1], encoding="utf-8") as f:
+    docs = [d for d in yaml.safe_load_all(f) if d and d.get("kind") == "Deployment" and d["metadata"]["name"] == sys.argv[2]]
+assert len(docs) == 1 and "replicas" not in docs[0]["spec"], "expected one replica-less model server Deployment"
+yaml.safe_dump(docs[0], sys.stdout)' "${dir}/${arm}.rendered.yaml" "$(model_server_deployment)" >"${dir}/${arm}.deployment.yaml" || return 1
+    mr_kubectl "${key}" apply set-last-applied --create-annotation=true -f "${dir}/${arm}.deployment.yaml" || return 1
+  fi
   mr_kubectl "${key}" apply -f "${dir}/${arm}.rendered.yaml" || return 1
   if [[ "${MR_HPA_ENABLED}" == "true" && "${bootstrap}" != "true" ]]; then
     mr_kubectl "${key}" apply -f "${dir}/${arm}.hpa.yaml" || return 1
   fi
-  if [[ "${arm}" == "baseline" && "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
+  if [[ "${arm}" == "baseline" ]]; then
     expose_service_neg "${key}" "${MR_NAMESPACE}" "vllm-baseline" "8000" "baseline" >/dev/null || return 1
   fi
 }
@@ -217,21 +226,12 @@ apply_routers() {
   for release in ${MR_LLMD_ROUTER_RELEASES}; do
     file="$(mr_render_router "${key}" "${release}")" || return 1
     mr_kubectl "${key}" apply --server-side --force-conflicts -f "${file}" || return 1
-    if [[ "${MR_GLOBAL_LB}" == "mc-gateway" ]]; then
-      # Export the InferencePool to the fleet. The multi-cluster Gateway
-      # controller then creates a GCPInferencePoolImport with the same name in
-      # the config cluster.
-      mr_kubectl "${key}" annotate inferencepool "${release}" -n "${MR_NAMESPACE}" \
-        networking.gke.io/export="True" --overwrite || return 1
-    fi
   done
   for release in ${MR_LLMD_ROUTER_RELEASES}; do
     mr_kubectl "${key}" rollout status "deploy/${release}-epp" -n "${MR_NAMESPACE}" --timeout=900s || return 1
-    if [[ "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
-      # Standalone Mode: expose the router proxy (Envoy + endpoint picker) as
-      # GKE standalone zonal NEGs via terraform/multi-region/helpers.sh.
-      expose_service_neg "${key}" "${MR_NAMESPACE}" "${release}-epp" "80" "$(mr_router_short_name "${release}")" >/dev/null || return 1
-    fi
+    # Standalone Mode: expose the router proxy (Envoy + endpoint picker) as
+    # GKE standalone zonal NEGs via terraform/multi-region/helpers.sh.
+    expose_service_neg "${key}" "${MR_NAMESPACE}" "${release}-epp" "80" "$(mr_router_short_name "${release}")" >/dev/null || return 1
   done
 }
 
@@ -281,7 +281,10 @@ for key in ${MR_REGION_KEYS}; do
   (mr_stage "arm_pods_ready/${arm}" "region/${key}" wait_ready "${key}") &
   pids+=($!)
 done
-for pid in "${pids[@]}"; do wait "${pid}"; done
+ready_failed="false"
+for pid in "${pids[@]}"; do wait "${pid}" || ready_failed="true"; done
+[[ "${ready_failed}" == "false" ]] ||
+  mr_die "One or more regions failed waiting for ${arm} model server pods to become ready (see the errors above)"
 if podsnapshots_on; then
   pids=()
   for key in ${MR_REGION_KEYS}; do

@@ -16,17 +16,6 @@
 # (recipes/router/base.values.yaml, features/monitoring-gke.values.yaml, and the
 # guide values) for every regional router release.
 
-# Renders the GKE HealthCheckPolicy and GCPBackendPolicy for the InferencePool.
-# They only apply to single-cluster Gateways; the multi-cluster Gateway uses the
-# policies attached to the GCPInferencePoolImport in the config cluster.
-provider:
-  name: gke
-
-# The multi-cluster HTTPRoute lives in the config cluster and references the
-# GCPInferencePoolImport, so don't create a per-cluster HTTPRoute.
-httpRoute:
-  create: false
-
 router:
   # Upstream llm-d-router-standalone v1.0.0 runs a single EPP replica (sidecar
   # Envoy + EPP) per release so ZMQ KV-cache block events stay in one unified

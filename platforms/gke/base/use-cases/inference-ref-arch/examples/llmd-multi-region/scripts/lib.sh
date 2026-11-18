@@ -102,7 +102,7 @@ mr_stage() {
 }
 
 mr_require_example_tools() {
-  mr_require_tools gcloud kubectl kustomize helm terraform jq "${MR_PYTHON}" git envsubst curl sponge
+  mr_require_tools gcloud kubectl kustomize helm terraform jq "${MR_PYTHON}" git envsubst curl
   if ! "${MR_PYTHON}" -c "import yaml" >/dev/null 2>&1; then
     mr_die "${MR_PYTHON} is missing PyYAML ('import yaml' failed). Install PyYAML or export MR_PYTHON=/path/to/venv/bin/python3."
   fi
@@ -159,34 +159,13 @@ mr_get_credentials() {
 }
 
 # mr_gateway_vip <gateway_name> <region_key>
-# Prints the internal VIP of the cross-region load balancer in a region. With
-# MR_GLOBAL_LB=terraform, VIPs are recorded by scripts/set-route.sh (from
-# terraform/multi-region/global_lb.sh vips). With MR_GLOBAL_LB=mc-gateway, the
-# VIP is matched to the region's node subnet range.
+# Prints the internal VIP of the cross-region load balancer in a region,
+# recorded by scripts/set-route.sh (from terraform/multi-region/global_lb.sh vips).
 mr_gateway_vip() {
-  local gateway="${1}" key="${2}"
-  if [[ "${MR_GLOBAL_LB}" != "mc-gateway" ]]; then
-    local vips_file="${MR_RESULTS_DIR}/gateway/vips.json"
-    [[ -f "${vips_file}" ]] || vips_file="${MR_WORK_DIR}/terraform/global_lb.vips.json"
-    jq -er --arg k "${key}" '.[$k] // empty' "${vips_file}" 2>/dev/null
-    return
-  fi
-  local addresses node_cidr
-  addresses="$(mr_kubectl "${MR_CONFIG_CLUSTER_KEY}" get gateway "${gateway}" -n "${MR_NAMESPACE}" \
-    -o jsonpath='{range .status.addresses[*]}{.value}{"\n"}{end}' 2>/dev/null)" || return 1
-  node_cidr="$(mr_node_cidr "${key}")" || return 1
-  "${MR_PYTHON}" - "${node_cidr}" <<EOF
-import ipaddress, sys
-net = ipaddress.ip_network(sys.argv[1])
-for line in """${addresses}""".split():
-    try:
-        if ipaddress.ip_address(line) in net:
-            print(line)
-            sys.exit(0)
-    except ValueError:
-        pass
-sys.exit(1)
-EOF
+  local _gateway="${1}" key="${2}"
+  local vips_file="${MR_RESULTS_DIR}/gateway/vips.json"
+  [[ -f "${vips_file}" ]] || vips_file="${MR_WORK_DIR}/terraform/global_lb.vips.json"
+  jq -er --arg k "${key}" '.[$k] // empty' "${vips_file}" 2>/dev/null
 }
 
 # mr_probe_completion <client_region_key> <vip>

@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-# Arm A: plain vLLM. The pods are exposed with a ClusterIP Service that is
-# exported to the fleet (ServiceExport) and load balanced by the multi-cluster
-# Gateway without any inference-aware routing.
+# Arm A: plain vLLM. The pods are exposed with a ClusterIP Service and a GKE
+# standalone NEG behind the cross-region internal Application Load Balancer
+# without any inference-aware routing.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -30,7 +30,6 @@ labels:
 resources:
   - ../base
   - service.yaml
-  - serviceexport.yaml
 
 patches:
   - path: patch-vllm-args.yaml

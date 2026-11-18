@@ -15,10 +15,8 @@
 # limitations under the License.
 
 # Points the cross-region load balancer at an experiment arm with a load
-# balancing mode, using the implementation selected by MR_GLOBAL_LB:
-#   - MR_GLOBAL_LB=terraform (default): builds backends.json with per-endpoint
-#     capacities and delegates to terraform/multi-region/global_lb.sh
-#   - MR_GLOBAL_LB=mc-gateway: delegates to scripts/deploy-gateway.sh
+# balancing mode: builds backends.json with per-endpoint capacities and
+# delegates to terraform/multi-region/global_lb.sh.
 #
 # Usage:
 #   set-route.sh --backend <baseline|ppcr|ob> [--lb-mode <locality|capacity|zone-spray|preferred>]
@@ -57,10 +55,6 @@ MY_PATH="$(
 source "${MY_PATH}/lib.sh"
 # shellcheck source=/dev/null
 source "${MY_PATH}/render.sh"
-
-if [[ "${MR_GLOBAL_LB}" == "mc-gateway" ]]; then
-  exec "${MY_PATH}/deploy-gateway.sh" "$@"
-fi
 
 backend=""
 lb_mode="locality"
@@ -105,15 +99,21 @@ state_dir="${MR_RESULTS_DIR}/gateway"
 mkdir -p "${state_dir}" "$(dirname "${backends_file}")"
 
 write_backends_json() {
-  "${MR_PYTHON}" - "${backends_file}" <<EOF
-import json, sys
+  MR_ROUTE_BACKEND="${backend}" \
+    MR_REGION_CAPACITY_QPS="${region_capacity_qps}" \
+    MR_REGION_CAPACITY_INFLIGHT="${region_capacity_inflight}" \
+    "${MR_PYTHON}" - "${backends_file}" <<'EOF'
+import json, os, sys
 
-exclude = "${MR_LB_EXCLUDE_ARM:-}"
-hpa_enabled = "${MR_HPA_ENABLED}" == "true"
-capacity = float("${region_capacity_qps}")
-capacity_inflight = float("${region_capacity_inflight}")
-replicas = int("${MR_REPLICAS_PER_REGION}")
-hpa_max_replicas = int("${MR_HPA_MAX_REPLICAS}")
+e = os.environ
+exclude = e.get("MR_LB_EXCLUDE_ARM", "")
+hpa_enabled = e["MR_HPA_ENABLED"] == "true"
+capacity = float(e["MR_REGION_CAPACITY_QPS"])
+capacity_inflight = float(e["MR_REGION_CAPACITY_INFLIGHT"])
+replicas = int(e["MR_REPLICAS_PER_REGION"])
+hpa_max_replicas = int(e["MR_HPA_MAX_REPLICAS"])
+router_port = int(e["MR_ROUTER_REQUEST_PORT"])
+active_backend = e["MR_ROUTE_BACKEND"]
 if replicas < 1 or (hpa_enabled and hpa_max_replicas < replicas):
     sys.exit(
         f"MR_REPLICAS_PER_REGION={replicas} must be at least 1, and at most "
@@ -133,16 +133,20 @@ specs = {
     "baseline": {
         "health_check_path": "/health",
         "health_check_port": 8000,
-        "locality_lb_policy": "${MR_BASELINE_LOCALITY_LB_POLICY}",
+        "locality_lb_policy": e["MR_BASELINE_LOCALITY_LB_POLICY"],
     },
+    # The router's Envoy answers /ready on port 19001 itself, so that check
+    # stays healthy when the region has no ready model server. Probe the
+    # request listener (8081) instead: GET /health goes through the endpoint
+    # picker to a ready vLLM pod, and fails when the pool has none.
     "ppcr": {
-        "health_check_path": "/ready",
-        "health_check_port": 19001,
+        "health_check_path": "/health",
+        "health_check_port": router_port,
         "locality_lb_policy": "LEAST_REQUEST",
     },
     "ob": {
-        "health_check_path": "/ready",
-        "health_check_port": 19001,
+        "health_check_path": "/health",
+        "health_check_port": router_port,
         "locality_lb_policy": "LEAST_REQUEST",
     },
 }
@@ -157,8 +161,8 @@ for b, spec in specs.items():
         "max_rate_per_endpoint": max(0.001, round((capacity * mult) / endpoints[b], 3)),
         "max_in_flight_requests_per_endpoint": max(1, round((capacity_inflight * mult) / endpoints[b])),
     }
-if "${backend}" not in backends:
-    sys.exit(f"Active backend '${backend}' was excluded by MR_LB_EXCLUDE_ARM='{exclude}'")
+if active_backend not in backends:
+    sys.exit(f"Active backend '{active_backend}' was excluded by MR_LB_EXCLUDE_ARM='{exclude}'")
 with open(sys.argv[1], "w", encoding="utf-8") as f:
     json.dump(backends, f, indent=2)
     f.write("\n")

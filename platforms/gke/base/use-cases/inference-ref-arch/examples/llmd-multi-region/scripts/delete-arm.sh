@@ -62,9 +62,33 @@ delete_arm() {
     local release file
     for release in ${MR_LLMD_ROUTER_RELEASES}; do
       file="${MR_WORK_DIR}/rendered/${key}/router/${release}.yaml"
-      [[ -f "${file}" ]] || file="$(mr_render_router "${key}" "${release}")"
-      mr_kubectl "${key}" delete -f "${file}" --ignore-not-found --wait=true || true
+      if [[ -f "${file}" ]]; then
+        mr_kubectl "${key}" delete -f "${file}" --ignore-not-found --wait=true
+      else
+        # Delete by label and known resource names so teardown does not depend
+        # on network access to re-render the upstream Helm chart.
+        mr_kubectl "${key}" delete \
+          deploy,svc,sa,secret,role,inferencepool,podmonitoring \
+          -l "app.kubernetes.io/name=${release}-epp" -n "${MR_NAMESPACE}" \
+          --ignore-not-found --wait=true
+        mr_kubectl "${key}" delete \
+          "configmap/${release}-epp" "configmap/${release}-envoy" \
+          "serviceaccount/${release}-metrics-reader-sa" \
+          "role/${release}-metrics-reader-secret-read" \
+          "rolebinding/gmp-system:collector:${MR_NAMESPACE}-${release}-metrics-reader-secret-read" \
+          "rolebinding/${release}-epp-sa" "rolebinding/${release}-epp-non-sa" \
+          -n "${MR_NAMESPACE}" --ignore-not-found --wait=true
+        mr_kubectl "${key}" delete \
+          "clusterrole/${MR_NAMESPACE}-${release}-metrics-reader" \
+          "clusterrole/${release}-${MR_NAMESPACE}-epp" \
+          "clusterrolebinding/${MR_NAMESPACE}-${release}-metrics-reader-role-binding" \
+          "clusterrolebinding/${release}-${MR_NAMESPACE}-epp" \
+          --ignore-not-found --wait=true
+      fi
     done
+    # Remove any legacy shared Envoy ConfigMap from deployments prior to
+    # per-release naming.
+    mr_kubectl "${key}" delete configmap envoy -n "${MR_NAMESPACE}" --ignore-not-found
   fi
   local rendered="${MR_WORK_DIR}/rendered/${key}/model-server/${arm}.rendered.yaml"
   if [[ ! -f "${rendered}" ]]; then
@@ -108,7 +132,7 @@ backend_has_negs_everywhere() {
     --arg prefix "${MR_RESOURCE_NAME_PREFIX}" \
     --arg network_name "$(mr_shared_network_name)" \
     --arg backend "${candidate}" '
-    [$negs[] | select(.network | endswith("/networks/" + $network_name)) | .name] as $names
+    [$negs[] | select((.network | endswith("/networks/" + $network_name)) and ((.size // 0) > 0)) | .name] as $names
     | [to_entries[] | .key as $p | select(($names | index("\($prefix)-\($p)-\($backend)")) == null) | $p]
     | join(" ")' <<<"${registry}")"
   [[ -z "${missing}" ]]
@@ -119,7 +143,7 @@ backend_has_negs_everywhere() {
 # NEGs in every registered region, re-apply global_lb without the deleted arm;
 # otherwise destroy global_lb cleanly (the next deploy-arm.sh / set-route.sh
 # recreates it).
-if [[ "${mode}" != "--scale-to-zero" && "${MR_GLOBAL_LB}" != "mc-gateway" ]] && mr_tf_state_has_resources global_lb; then
+if [[ "${mode}" != "--scale-to-zero" ]] && mr_tf_state_has_resources global_lb; then
   lb_state_file="${MR_WORK_DIR}/terraform/global_lb.state.json"
   [[ -f "${lb_state_file}" ]] || lb_state_file="${MR_RESULTS_DIR}/gateway/active.json"
   active_backend="baseline"

@@ -19,11 +19,9 @@
 # wall-clock time of every stage:
 #   1. shared VPC network, GLOBAL_MANAGED_PROXY subnets, and every regional
 #      platform in parallel (terraform/multi-region/provision.sh --parallel),
-#   2. per-region model-bucket metadata IAM (for vLLM runai_streamer) and
-#      cluster attribution labels,
-#   3. fleet features (only with MR_GLOBAL_LB=mc-gateway),
-#   4. benchmark infrastructure (results bucket and IAM),
-#   5. model staging in every region, in parallel.
+#   2. cluster attribution labels,
+#   3. benchmark infrastructure (results bucket and IAM),
+#   4. model staging in every region, in parallel.
 #
 # Usage: deploy-all.sh [--dry-run] [--regions-only]
 #
@@ -88,17 +86,6 @@ logs="${MR_WORK_DIR}/logs/${MR_RUN_ID}"
 mkdir -p "${logs}"
 mr_log "Run ${MR_RUN_ID}: logs in ${logs}, timings in ${MR_TIMINGS_FILE}"
 
-# The vLLM Run:ai Model Streamer loads gs:// models with the Cloud Storage
-# client, which reads bucket metadata (storage.buckets.get). online_gpu grants
-# the Cloud Storage FUSE object role, so also grant legacyBucketReader to the
-# namespace Kubernetes service account (Workload Identity principal).
-grant_model_bucket_reader() {
-  local key="${1}" project_number="${2}"
-  gcloud storage buckets add-iam-policy-binding "gs://$(mr_models_bucket "${key}")" \
-    --member="principal://iam.googleapis.com/projects/${project_number}/locations/global/workloadIdentityPools/${MR_PROJECT_ID}.svc.id.goog/subject/ns/${MR_NAMESPACE}/sa/${MR_NAMESPACE}" \
-    --role="roles/storage.legacyBucketReader" >/dev/null
-}
-
 cluster_is_running() {
   [[ "$(gcloud container clusters describe "${1}" --location "${2}" --project "${MR_PROJECT_ID}" --format='value(status)')" == "RUNNING" ]]
 }
@@ -116,10 +103,9 @@ label_cluster() {
 }
 
 post_provision_region() {
-  local key="${1}" project_number="${2}"
+  local key="${1}"
   local scope="region/${key}"
   mr_stage "kubeconfig" "${scope}" mr_get_credentials "${key}"
-  mr_stage "model_bucket_reader_iam" "${scope}" grant_model_bucket_reader "${key}" "${project_number}"
   mr_stage "label_cluster" "${scope}" label_cluster "${key}"
 }
 
@@ -161,20 +147,16 @@ stage_models_parallel() {
 setup_start="$(date +%s.%N)"
 mr_stage "provision_foundation" "global" "${MR_MULTI_REGION_DIR}/provision.sh" --parallel "${targets[@]}"
 
-project_number="$(gcloud projects describe "${MR_PROJECT_ID}" --format='value(projectNumber)')"
 pids=()
 post_rc=0
 for key in ${MR_REGION_KEYS}; do
-  (post_provision_region "${key}" "${project_number}") >"${logs}/post-provision-${key}.log" 2>&1 &
+  (post_provision_region "${key}") >"${logs}/post-provision-${key}.log" 2>&1 &
   pids+=($!)
 done
 for pid in "${pids[@]}"; do wait "${pid}" || post_rc=1; done
 [[ ${post_rc} -eq 0 ]] || mr_die "post-provision step failed in at least one region; see ${logs}/post-provision-*.log"
 
 if [[ "${regions_only}" != "true" ]]; then
-  if [[ "${MR_GLOBAL_LB}" == "mc-gateway" ]]; then
-    "${MY_PATH}/deploy-fleet.sh"
-  fi
   if [[ -x "${MY_PATH}/deploy-bench-infra.sh" ]]; then
     "${MY_PATH}/deploy-bench-infra.sh"
   fi

@@ -23,6 +23,14 @@ resource "google_storage_bucket_iam_member" "hub_models_ira_online_gpu_ksa" {
   role   = local.cluster_gcsfuse_user_role
 }
 
+# The vLLM Run:ai Model Streamer reads gs:// models via the Cloud Storage API,
+# which calls storage.buckets.get in addition to object reads.
+resource "google_storage_bucket_iam_member" "hub_models_ira_online_gpu_ksa_bucket_reader" {
+  bucket = data.google_storage_bucket.hub_models.name
+  member = local.ira_online_gpu_ksa_member
+  role   = "roles/storage.legacyBucketReader"
+}
+
 resource "google_storage_bucket_iam_member" "pod_snapshots_ira_online_gpu_ksa" {
   for_each = toset(var.ira_online_gpu_pod_snapshots_enabled ? ["enabled"] : [])
 

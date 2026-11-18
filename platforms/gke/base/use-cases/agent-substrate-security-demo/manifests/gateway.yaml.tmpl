@@ -147,10 +147,14 @@ spec:
     - protocol: TCP
       port: 9091
   egress:
+  # DNS: kube-dns pods, or the node-local resolver address on clusters that use
+  # Cloud DNS for GKE (the Option B base platform cluster).
   - to:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: kube-system
+    - ipBlock:
+        cidr: 169.254.169.254/32
     ports:
     - {protocol: UDP, port: 53}
     - {protocol: TCP, port: 53}

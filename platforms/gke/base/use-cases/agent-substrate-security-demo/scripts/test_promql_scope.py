@@ -276,6 +276,11 @@ class PromqlScopeTest(unittest.TestCase):
                         self.assertLessEqual(
                             private_ranges, set(block.get("except") or []), str(tmpl)
                         )
+                # Cloud DNS for GKE (Option B) resolves through the node-local
+                # 169.254.169.254:53 address, not through kube-system pods.
+                if 53 in {port.get("port") for port in rule.get("ports") or []}:
+                    cidrs = {(peer.get("ipBlock") or {}).get("cidr") for peer in peers}
+                    self.assertIn("169.254.169.254/32", cidrs, str(tmpl))
 
     def test_act4_custom_prompt_gates_and_non_poison_session_mutation(self) -> None:
         with mock.patch.object(kube, "ALLOW_CUSTOM_PYTHON", False):

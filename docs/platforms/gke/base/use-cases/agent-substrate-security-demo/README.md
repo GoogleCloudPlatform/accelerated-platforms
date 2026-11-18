@@ -207,7 +207,7 @@ autonomous agent vulnerabilities and supply-chain incidents:
    certificate verification, bind administrative listeners (`:8081`) to
    `127.0.0.1` with fail-closed token authentication, and enforce both per-port
    ingress (`:8080` `atenet-egress` only; `:9091` `gmp-system` only) and
-   least-privilege egress `NetworkPolicy` rules (`atenet-router`, `kube-dns`,
+   least-privilege egress `NetworkPolicy` rules (`atenet-router`, cluster DNS,
    GKE metadata `:80` for Workload Identity, and external HTTPS `:443` with
    private/link-local CIDRs blocked).
 3. **Zero-Secret Sandboxes & Non-Reflecting Upstreams**: Never mount Kubernetes

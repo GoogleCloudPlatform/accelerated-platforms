@@ -73,10 +73,19 @@ fi
 if gcloud container clusters describe "${cluster_name}" --region "${cluster_region}" --project "${cluster_project_id}" >/dev/null 2>&1; then
   TMP_KC="$(mktemp)"
   chmod 0600 "${TMP_KC}"
+  KC_READY="false"
   if KUBECONFIG="${TMP_KC}" gcloud container clusters get-credentials "${cluster_name}" \
     --region "${cluster_region}" \
     --project "${cluster_project_id}" \
-    --dns-endpoint >/dev/null 2>&1; then
+    --dns-endpoint >/dev/null 2>&1 &&
+    KUBECONFIG="${TMP_KC}" kubectl --request-timeout=8s get ns ate-system >/dev/null 2>&1; then
+    KC_READY="true"
+  elif KUBECONFIG="${TMP_KC}" gcloud container clusters get-credentials "${cluster_name}" \
+    --region "${cluster_region}" \
+    --project "${cluster_project_id}" >/dev/null 2>&1; then
+    KC_READY="true"
+  fi
+  if [ "${KC_READY}" = "true" ]; then
     KUBECONFIG="${TMP_KC}" kubectl -n ate-system delete statefulset postgres --ignore-not-found >/dev/null 2>&1 || true
     KUBECONFIG="${TMP_KC}" kubectl -n ate-system delete pvc --all --ignore-not-found --timeout=60s >/dev/null 2>&1 || true
   fi

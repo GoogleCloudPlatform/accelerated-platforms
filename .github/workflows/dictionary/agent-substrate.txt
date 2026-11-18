@@ -16,6 +16,7 @@ cmdline
 cmek
 devnull
 doseq
+dotall
 eacces
 ecdsap
 embracethered
@@ -49,12 +50,14 @@ keyfile
 langflow
 libc
 limitk
+lineno
 litellm
 llmrisk
 lport
 mailroom
 matcher
 matchers
+maxlength
 millicores
 mitm
 mkstemp
@@ -66,6 +69,7 @@ noopener
 nxdomain
 objectstore
 onclick
+onkeydown
 openclaw
 oversub
 owasp
@@ -73,6 +77,7 @@ pidfile
 podcert
 podidentity
 promql
+reachability
 rebinding
 rescoped
 rfile
@@ -81,6 +86,7 @@ roundtrip
 rport
 runc
 sandboxing
+scrollbar
 servicedns
 settimeout
 spaiware
@@ -88,13 +94,18 @@ spiffe
 ssrf
 stdvar
 susp
+synth
 syscalls
 sysrq
+tablist
 testbed
 tfplan
 timedelta
 tmpl
 toctou
+traceback
+tracebacks
+trunc
 unschedulable
 unterminated
 upsert

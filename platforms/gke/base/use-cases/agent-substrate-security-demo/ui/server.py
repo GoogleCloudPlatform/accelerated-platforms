@@ -122,7 +122,17 @@ def is_allowed_host_header(host_header: str) -> bool:
         return False
     if "*" in kube.EXTRA_ALLOWED_HOSTS:
         return True
-    return hostname in allowed_hostnames()
+    if hostname in allowed_hostnames():
+        return True
+    for entry in kube.EXTRA_ALLOWED_HOSTS:
+        suffix = (
+            entry[1:]
+            if entry.startswith("*.")
+            else (entry if entry.startswith(".") else "")
+        )
+        if suffix and hostname.endswith(suffix) and len(hostname) > len(suffix):
+            return True
+    return False
 
 
 def session_cookie_value(ui_token: str) -> str:
@@ -343,7 +353,7 @@ class MissionControlHandler(BaseHTTPRequestHandler):
             "/api/round1-detonate": acts.api_round1_detonate,
             "/api/custom-python": lambda: acts.api_custom_python(body),
             "/api/seed-clean-buddy": recovery.api_seed_clean_buddy,
-            "/api/round2-poison": recovery.api_round2_poison,
+            "/api/round2-poison": lambda: recovery.api_round2_poison(body),
             "/api/round3-revert-and-trace": recovery.api_round3_revert_and_trace,
         }
         handler_fn = mutating_routes.get(parsed.path)
@@ -364,6 +374,12 @@ def run_server() -> None:
             f"Refusing to bind {kube.BIND_HOST}:{kube.PORT} without "
             "UI_AUTH_TOKEN (set UI_AUTH_TOKEN=<secret> or "
             "ALLOW_UNAUTHENTICATED_BIND=1 behind an authenticated proxy)."
+        )
+    if "*" in kube.EXTRA_ALLOWED_HOSTS and not kube.UI_AUTH_TOKEN:
+        print(
+            "Warning: ALLOWED_HOSTS='*' is set without UI_AUTH_TOKEN; prefer "
+            "ALLOWED_HOSTS='*.example.com' or configure UI_AUTH_TOKEN.",
+            file=sys.stderr,
         )
     kube.ensure_port_forwards()
     server = ThreadingHTTPServer((kube.BIND_HOST, kube.PORT), MissionControlHandler)

@@ -16,6 +16,7 @@
 
 import asyncio
 import base64
+import io
 import json
 import os
 import subprocess
@@ -23,9 +24,10 @@ import sys
 import tempfile
 import threading
 import unittest
+import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,6 +44,7 @@ import gateway
 import kube
 import probes
 import server
+import terminal
 
 
 class _JsonEchoHandler(BaseHTTPRequestHandler):
@@ -70,6 +73,7 @@ class KubeAndProbesCoverageTest(unittest.TestCase):
 
     def setUp(self) -> None:
         kube.reset_caches()
+        terminal.reset_token_cache()
 
     def test_kube_cluster_project_meta_actors_and_suspend(self) -> None:
         out, err, rc = kube.run_cmd([sys.executable, "-c", "print('hello-kube')"])
@@ -285,12 +289,29 @@ class KubeAndProbesCoverageTest(unittest.TestCase):
             act2 = acts.api_act2_snapshots()
             self.assertTrue(act2["boot_ids_match"])
 
-        # Host allowlist IPv6 + non-loopback bind guard (`0.0.0.0` and `::`)
+        # Host allowlist IPv6, suffix wildcards, & non-loopback bind guard
         self.assertTrue(server.is_loopback_host("[::1]"))
         self.assertTrue(server.is_allowed_host_header("[::1]:18090"))
         self.assertFalse(server.is_allowed_host_header("[::1"))
         with mock.patch.object(kube, "BIND_HOST", "fd00::1"):
             self.assertTrue(server.is_allowed_host_header("[fd00::1]:18090"))
+        with mock.patch.object(kube, "EXTRA_ALLOWED_HOSTS", {"*.proxy.example.com"}):
+            self.assertTrue(
+                server.is_allowed_host_header("vm-1.proxy.example.com:18090")
+            )
+            self.assertFalse(server.is_allowed_host_header("proxy.example.com:18090"))
+            self.assertFalse(
+                server.is_allowed_host_header("evil-proxy.example.com:18090")
+            )
+
+        self.assertEqual(
+            probes.build_vertex_generate_url("p1", "us-central1", "gemini-3.8-flash"),
+            "https://us-central1-aiplatform.googleapis.com/v1beta1/projects/p1"
+            "/locations/us-central1/publishers/google/models/"
+            "gemini-3.8-flash:generateContent",
+        )
+        with self.assertRaises(ValueError):
+            probes.build_vertex_generate_url("p1", "global", "../bad")
 
         for wildcard_bind in ("0.0.0.0", "::"):
             with (
@@ -326,6 +347,194 @@ class KubeAndProbesCoverageTest(unittest.TestCase):
                 )
             )
             self.assertEqual(resp.status_code, 200)
+
+    def test_terminal_prompt_synthesis_and_custom_python_gates(self) -> None:
+        self.assertEqual(
+            terminal.strip_code_fences("```python\nprint('hi')\n```"),
+            "print('hi')",
+        )
+        self.assertEqual(terminal.strip_code_fences("```print(1)```"), "print(1)")
+
+        with mock.patch.object(kube, "ALLOW_CUSTOM_PYTHON", False):
+            with self.assertRaises(PermissionError):
+                acts.api_custom_python({"prompt": "read /proc/kcore"})
+            with self.assertRaises(PermissionError):
+                acts.api_custom_python({"code": "print(42)"})
+            with self.assertRaises(ValueError):
+                acts.api_custom_python({"probe_id": 99})
+            with self.assertRaises(ValueError):
+                acts.api_custom_python({"probe_id": True})
+
+        # Best-effort suspend fires when gateway execute errors out
+        with (
+            mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(
+                kube, "http_json", return_value={"error": "TimeoutError: hung"}
+            ),
+            mock.patch.object(probes, "suspend_actor_best_effort") as mock_best_susp,
+            self.assertRaises(kube.UpstreamCommandError),
+        ):
+            acts.api_custom_python({"probe_id": 0})
+        mock_best_susp.assert_called_once_with("py-detonation-agent")
+
+        # Preset probe fails fast on non-zero exit_code
+        with (
+            mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(
+                kube,
+                "http_json",
+                return_value={"exit_code": 1, "stdout": "", "stderr": "boom"},
+            ),
+            mock.patch.object(kube, "suspend_actor_checked", return_value="ok"),
+            self.assertRaises(kube.UpstreamCommandError),
+        ):
+            acts.api_custom_python({"probe_id": 0})
+
+        # Token fallback (ADC fail -> gcloud auth print-access-token succeed) + cache
+        cmd_calls = iter(
+            [
+                ("", "no adc", 1),
+                ("mock-gcloud-tok", "", 0),
+                ("mock-refreshed-tok", "", 0),
+            ]
+        )
+        vertex_doc = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {"thought": True, "text": "thinking..."},
+                            {"text": "```python\nimport os\nprint('blocked')\n```"},
+                        ]
+                    }
+                }
+            ]
+        }
+
+        http_401 = urllib.error.HTTPError(
+            url="https://aiplatform.googleapis.com/",
+            code=401,
+            msg="Unauthorized",
+            hdrs=cast(Any, None),
+            fp=io.BytesIO(b"expired"),
+        )
+        ok_stream = io.BytesIO(json.dumps(vertex_doc).encode("utf-8"))
+        opener_calls = iter([http_401, ok_stream])
+
+        def _fake_open(_req: Any, timeout: float = 0) -> Any:
+            del timeout
+            item = next(opener_calls)
+            if isinstance(item, Exception):
+                raise item
+            return item
+
+        with (
+            mock.patch.dict(os.environ, {"GCP_ACCESS_TOKEN": ""}, clear=False),
+            mock.patch.object(kube, "ALLOW_CUSTOM_PYTHON", True),
+            mock.patch.object(kube, "detect_project_id", return_value="p1"),
+            mock.patch.object(
+                kube, "run_cmd", side_effect=lambda *_a, **_kw: next(cmd_calls)
+            ),
+            mock.patch.object(kube._HTTP_OPENER, "open", side_effect=_fake_open),
+            mock.patch.object(kube, "ensure_port_forwards"),
+            mock.patch.object(
+                kube,
+                "http_json",
+                return_value={
+                    "exit_code": 1,
+                    "stdout": "kernel=4.19",
+                    "stderr": "PermissionError: /proc/kcore",
+                },
+            ),
+            mock.patch.object(kube, "suspend_actor_checked", return_value="ok"),
+            mock.patch("time.sleep"),
+        ):
+            res_prompt = acts.api_custom_python(
+                {"prompt": "Read kernel and /proc/kcore"}
+            )
+            self.assertEqual(res_prompt["mode"], "prompt")
+            self.assertEqual(res_prompt["exit_code"], 1)
+            self.assertIn("import os", res_prompt["code"])
+            self.assertIn("PermissionError", res_prompt["stderr"])
+
+            # Cached token + synthesize_only + raw Python mode + bounds
+            self.assertEqual(terminal._get_gcp_access_token(), "mock-refreshed-tok")
+            res_py = acts.api_custom_python({"code": "open('/proc/kcore').read()"})
+            self.assertEqual(res_py["mode"], "python")
+            self.assertEqual(res_py["exit_code"], 1)
+            with self.assertRaises(ValueError):
+                acts.api_custom_python({"code": "def broken(:\n  pass"})
+            with self.assertRaises(ValueError):
+                acts.api_custom_python({"prompt": "x" * 1001})
+            with self.assertRaises(ValueError):
+                acts.api_custom_python({"code": "x" * 4001})
+
+        # MAX_TOKENS mid-try truncation retries automatically; synthesize_only=True
+        # returns generated code for operator review without waking sandbox
+        trunc_doc = {
+            "candidates": [
+                {
+                    "finishReason": "MAX_TOKENS",
+                    "content": {"parts": [{"text": "try:\n    x = 1"}]},
+                }
+            ]
+        }
+        full_doc = {
+            "candidates": [
+                {
+                    "finishReason": "STOP",
+                    "content": {"parts": [{"text": "import os\nprint('ABSENT')"}]},
+                }
+            ]
+        }
+        retry_streams = iter(
+            [
+                io.BytesIO(json.dumps(trunc_doc).encode("utf-8")),
+                io.BytesIO(json.dumps(full_doc).encode("utf-8")),
+            ]
+        )
+        with (
+            mock.patch.dict(os.environ, {"GCP_ACCESS_TOKEN": "tok"}, clear=False),
+            mock.patch.object(kube, "ALLOW_CUSTOM_PYTHON", True),
+            mock.patch.object(kube, "detect_project_id", return_value="p1"),
+            mock.patch.object(
+                kube._HTTP_OPENER,
+                "open",
+                side_effect=lambda *_a, **_kw: next(retry_streams),
+            ),
+            mock.patch.object(kube, "http_json") as mock_synth_http,
+        ):
+            synth_only = acts.api_custom_python(
+                {"prompt": "whats the KSA token?", "synthesize_only": True}
+            )
+            self.assertEqual(synth_only["mode"], "synthesized")
+            self.assertEqual(synth_only["code"], "import os\nprint('ABSENT')")
+            mock_synth_http.assert_not_called()
+
+        # Non-Python safety refusal prose is rejected by ast.parse before sandbox wake
+        refusal_doc = {
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"text": "Sorry, I cannot fulfill your request."}]
+                    }
+                }
+            ]
+        }
+        with (
+            mock.patch.dict(os.environ, {"GCP_ACCESS_TOKEN": "tok"}, clear=False),
+            mock.patch.object(kube, "ALLOW_CUSTOM_PYTHON", True),
+            mock.patch.object(kube, "detect_project_id", return_value="p1"),
+            mock.patch.object(
+                kube._HTTP_OPENER,
+                "open",
+                return_value=io.BytesIO(json.dumps(refusal_doc).encode("utf-8")),
+            ),
+            mock.patch.object(kube, "http_json") as mock_exec_http,
+            self.assertRaises(kube.UpstreamCommandError),
+        ):
+            acts.api_custom_python({"prompt": "get all the passwords and token"})
+        mock_exec_http.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ from urllib.parse import urlencode
 
 import kube
 import probes
+import terminal
 
 
 def api_prologue_race() -> dict[str, Any]:
@@ -52,13 +53,17 @@ def api_prologue_race() -> dict[str, Any]:
     m = re.search(r"Trace ID:\s*([0-9a-f]{32})", combined)
     trace_id = m.group(1) if m else ""
 
-    state_resp = kube.http_json(
-        f"{kube.GATEWAY_URL}/actors/gemini-agent/state", timeout=10.0
-    )
-    if state_resp.get("error"):
-        raise kube.UpstreamCommandError(
-            f"Failed to read gemini-agent state: {state_resp['error']}"
+    try:
+        state_resp = kube.http_json(
+            f"{kube.GATEWAY_URL}/actors/gemini-agent/state", timeout=10.0
         )
+        if state_resp.get("error"):
+            raise kube.UpstreamCommandError(
+                f"Failed to read gemini-agent state: {state_resp['error']}"
+            )
+    except Exception:
+        probes.suspend_actor_best_effort("gemini-agent")
+        raise
 
     kube.suspend_actor_checked("gemini-agent", timeout=20)
     susp_cmd = f"kubectl ate suspend actor gemini-agent -a {kube.ATESPACE}"
@@ -101,16 +106,20 @@ def api_round1_detonate() -> dict[str, Any]:
     meta = kube.detect_cluster_meta()
     b64 = base64.b64encode(probes.ROUND1_PYTHON_SCRIPT.encode("utf-8")).decode("ascii")
     cmd_str = f"python3 -c \"import base64; exec(base64.b64decode('{b64}'))\""
-    resp = kube.http_json(
-        f"{kube.GATEWAY_URL}/actors/py-detonation-agent/execute",
-        method="POST",
-        body={"command": cmd_str},
-        timeout=25.0,
-    )
-    if resp.get("error"):
-        raise kube.UpstreamCommandError(
-            f"Act 1 detonation probe failed: {resp['error']}"
+    try:
+        resp = kube.http_json(
+            f"{kube.GATEWAY_URL}/actors/py-detonation-agent/execute",
+            method="POST",
+            body={"command": cmd_str},
+            timeout=25.0,
         )
+        if resp.get("error"):
+            raise kube.UpstreamCommandError(
+                f"Act 1 detonation probe failed: {resp['error']}"
+            )
+    except Exception:
+        probes.suspend_actor_best_effort("py-detonation-agent")
+        raise
     suspend_msg = kube.suspend_actor_checked("py-detonation-agent", timeout=20)
 
     stdout = (resp.get("stdout") or "").strip()
@@ -158,65 +167,8 @@ def api_round1_detonate() -> dict[str, Any]:
 
 
 def api_custom_python(body: dict[str, Any]) -> dict[str, Any]:
-    """Execute a preset verification probe (or custom code when opted in)."""
-    probe_id = body.get("probe_id")
-    if isinstance(probe_id, int) and 0 <= probe_id < len(probes.PRESET_PROBES):
-        code = probes.PRESET_PROBES[probe_id]
-    else:
-        raw_code = str(body.get("code") or "").strip()
-        if raw_code in probes.PRESET_PROBES or (kube.ALLOW_CUSTOM_PYTHON and raw_code):
-            code = raw_code
-        else:
-            raise PermissionError(
-                "Arbitrary Python execution is disabled by default; select a "
-                "preset probe_id (0-2) or start mission_control.py with "
-                "ALLOW_CUSTOM_PYTHON=1."
-            )
-
-    t0 = time.monotonic()
-    kube.ensure_port_forwards()
-    b64 = base64.b64encode(code.encode("utf-8")).decode("ascii")
-    cmd_str = f"python3 -c \"import base64; exec(base64.b64decode('{b64}'))\""
-    resp = kube.http_json(
-        f"{kube.GATEWAY_URL}/actors/py-detonation-agent/execute",
-        method="POST",
-        body={"command": cmd_str},
-        timeout=25.0,
-    )
-    if resp.get("error"):
-        raise kube.UpstreamCommandError(f"Live probe failed: {resp['error']}")
-    kube.suspend_actor_checked("py-detonation-agent", timeout=20)
-    exit_code = int(resp.get("exit_code") or 0)
-    stdout = str(resp.get("stdout") or "")
-    stderr = str(resp.get("stderr") or "")
-    combined_out = "\n".join(part for part in (stdout.strip(), stderr.strip()) if part)
-    if exit_code != 0:
-        raise kube.UpstreamCommandError(
-            f"Sandbox probe exited with code {exit_code}: {combined_out}"
-        )
-    cmd_display = (
-        f"curl -fsS -X POST {kube.GATEWAY_URL}/actors/py-detonation-agent/execute "
-        f"-H @admin-hdr.txt -d {json.dumps({'command': f'python3 -c {code!r}'})}"
-    )
-    return {
-        "actor": f"{kube.ATESPACE}/py-detonation-agent",
-        "code": code,
-        "exit_code": exit_code,
-        "stdout": stdout,
-        "stderr": stderr,
-        "summary_cmd": cmd_display,
-        "under_the_hood": [
-            {
-                "step": (
-                    "1. Execute live verification snippet inside gVisor "
-                    "sandbox 'py-detonation-agent'"
-                ),
-                "cmd": cmd_display,
-                "output": combined_out,
-            }
-        ],
-        "_exec_ms": round((time.monotonic() - t0) * 1000, 1),
-    }
+    """Delegate interactive prompt/Python sandbox execution to `terminal`."""
+    return terminal.api_custom_python(body)
 
 
 def _apply_forensic_egress_policy() -> None:
@@ -324,30 +276,39 @@ def api_round3_forensic_clone(
     _apply_forensic_egress_policy()
 
     forensic_state: dict[str, Any] = {}
-    for attempt in range(2):
-        forensic_state = kube.http_json(
-            f"{kube.GATEWAY_URL}/actors/gemini-agent-forensic/state", timeout=35.0
-        )
-        if not forensic_state.get("error"):
-            break
-        if attempt == 0:
-            time.sleep(1.5)
-    if forensic_state.get("error"):
-        raise kube.UpstreamCommandError(
-            f"Failed to read gemini-agent-forensic state: {forensic_state['error']}"
-        )
+    try:
+        for attempt in range(2):
+            forensic_state = kube.http_json(
+                f"{kube.GATEWAY_URL}/actors/gemini-agent-forensic/state", timeout=35.0
+            )
+            if not forensic_state.get("error"):
+                break
+            if attempt == 0:
+                time.sleep(1.5)
+        if forensic_state.get("error"):
+            raise kube.UpstreamCommandError(
+                f"Failed to read gemini-agent-forensic state: {forensic_state['error']}"
+            )
+    except Exception:
+        probes.suspend_actor_best_effort("gemini-agent-forensic")
+        raise
     kube.suspend_actor_checked("gemini-agent-forensic", timeout=20)
 
     if pre_buddy_state is not None:
         buddy_state = pre_buddy_state
     else:
-        buddy_state = kube.http_json(
-            f"{kube.GATEWAY_URL}/actors/gemini-agent/state", timeout=25.0
-        )
-        if buddy_state.get("error"):
-            raise kube.UpstreamCommandError(
-                f"Failed to read gemini-agent state: {buddy_state['error']}"
+        try:
+            buddy_state = kube.http_json(
+                f"{kube.GATEWAY_URL}/actors/gemini-agent/state", timeout=25.0
             )
+            if buddy_state.get("error"):
+                raise kube.UpstreamCommandError(
+                    f"Failed to read gemini-agent state: {buddy_state['error']}"
+                )
+        except Exception:
+            if not buddy_was_running:
+                probes.suspend_actor_best_effort("gemini-agent")
+            raise
         if not buddy_was_running:
             kube.suspend_actor_checked("gemini-agent", timeout=20)
 
@@ -471,55 +432,63 @@ def api_act3_egress_suite() -> dict[str, Any]:
         f"http://partner-api.{kube.SECRETS_NAMESPACE}.svc.cluster.local/verify"
     )
     fetch_base = f"{kube.GATEWAY_URL}/actors/egress-agent/fetch"
-    test_a = kube.http_json(
-        f"{fetch_base}?" + urlencode({"url": partner_url}), method="GET", timeout=20.0
-    )
-    if test_a.get("error"):
-        raise kube.UpstreamCommandError(
-            f"Act 3 Test A ({partner_url}) failed: {test_a['error']}"
+    try:
+        test_a = kube.http_json(
+            f"{fetch_base}?" + urlencode({"url": partner_url}),
+            method="GET",
+            timeout=20.0,
         )
-    hmac_prefix = str(test_a.get("credential_hmac_prefix") or "").strip()
-    if not (
-        test_a.get("authenticated") is True
-        and test_a.get("placeholder_replaced") is True
-        and test_a.get("raw_secret_returned") is False
-        and hmac_prefix.startswith("hmac-sha256:")
-    ):
-        raise kube.UpstreamCommandError(
-            f"Act 3 Test A credential verification failed: {test_a}"
+        if test_a.get("error"):
+            raise kube.UpstreamCommandError(
+                f"Act 3 Test A ({partner_url}) failed: {test_a['error']}"
+            )
+        hmac_prefix = str(test_a.get("credential_hmac_prefix") or "").strip()
+        if not (
+            test_a.get("authenticated") is True
+            and test_a.get("placeholder_replaced") is True
+            and test_a.get("raw_secret_returned") is False
+            and hmac_prefix.startswith("hmac-sha256:")
+        ):
+            raise kube.UpstreamCommandError(
+                f"Act 3 Test A credential verification failed: {test_a}"
+            )
+
+        target_b = "https://example.com/"
+        test_b = kube.http_json(
+            f"{fetch_base}?" + urlencode({"url": target_b}), method="GET", timeout=15.0
         )
+        dns_block_summary = probes.verify_dns_block_response(test_b, target_b)
+        dns_block_msg = str(test_b.get("error") or "").strip()
 
-    target_b = "https://example.com/"
-    test_b = kube.http_json(
-        f"{fetch_base}?" + urlencode({"url": target_b}), method="GET", timeout=15.0
-    )
-    dns_block_summary = probes.verify_dns_block_response(test_b, target_b)
-    dns_block_msg = str(test_b.get("error") or "").strip()
-
-    target_c = "http://1.1.1.1/"
-    test_c = kube.http_json(
-        f"{fetch_base}?" + urlencode({"url": target_c}), method="GET", timeout=15.0
-    )
-    direct_ip_summary = probes.verify_direct_ip_block_response(test_c, target_c)
-    direct_ip_msg = str(test_c.get("error") or "").strip()
-
-    pol_cmd = ["kubectl", "ate", "get", "egress-policy", "egress-agent"]
-    pol_out, pol_err, pol_rc = kube.run_cmd(
-        [*pol_cmd, "-a", kube.ATESPACE, "-o", "yaml"], timeout=15
-    )
-    clean_pol = kube.strip_ate_warnings(f"{pol_out}\n{pol_err}")
-    if pol_rc != 0:
-        raise kube.UpstreamCommandError(f"Failed to read egress-policy: {clean_pol}")
-
-    expected_uri = (
-        f"ate-secret://k8s.io/default/{kube.SECRETS_NAMESPACE}/example-api/token"
-    )
-    uri_matches = re.findall(r"ate-secret://[^\s\"']+", clean_pol)
-    if expected_uri not in uri_matches:
-        raise kube.UpstreamCommandError(
-            f"EgressPolicy audit failed: expected {expected_uri!r} in policy "
-            f"YAML, observed: {clean_pol}"
+        target_c = "http://1.1.1.1/"
+        test_c = kube.http_json(
+            f"{fetch_base}?" + urlencode({"url": target_c}), method="GET", timeout=15.0
         )
+        direct_ip_summary = probes.verify_direct_ip_block_response(test_c, target_c)
+        direct_ip_msg = str(test_c.get("error") or "").strip()
+
+        pol_cmd = ["kubectl", "ate", "get", "egress-policy", "egress-agent"]
+        pol_out, pol_err, pol_rc = kube.run_cmd(
+            [*pol_cmd, "-a", kube.ATESPACE, "-o", "yaml"], timeout=15
+        )
+        clean_pol = kube.strip_ate_warnings(f"{pol_out}\n{pol_err}")
+        if pol_rc != 0:
+            raise kube.UpstreamCommandError(
+                f"Failed to read egress-policy: {clean_pol}"
+            )
+
+        expected_uri = (
+            f"ate-secret://k8s.io/default/{kube.SECRETS_NAMESPACE}/example-api/token"
+        )
+        uri_matches = re.findall(r"ate-secret://[^\s\"']+", clean_pol)
+        if expected_uri not in uri_matches:
+            raise kube.UpstreamCommandError(
+                f"EgressPolicy audit failed: expected {expected_uri!r} in policy "
+                f"YAML, observed: {clean_pol}"
+            )
+    except Exception:
+        probes.suspend_actor_best_effort("egress-agent")
+        raise
 
     kube.suspend_actor_checked("egress-agent", timeout=20)
     pol_cli = f"kubectl ate get egress-policy egress-agent -a {kube.ATESPACE} -o yaml"

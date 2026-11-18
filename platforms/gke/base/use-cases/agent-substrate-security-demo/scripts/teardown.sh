@@ -161,10 +161,19 @@ echo "==> 3/6: Releasing PVCs and deleting GKE cluster '${CLUSTER_NAME}' (${CLUS
 if gcloud container clusters describe "${CLUSTER_NAME}" --location "${CLUSTER_LOCATION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
   TMP_KC="$(mktemp)"
   chmod 0600 "${TMP_KC}"
+  KC_READY="false"
   if KUBECONFIG="${TMP_KC}" gcloud container clusters get-credentials "${CLUSTER_NAME}" \
       --location "${CLUSTER_LOCATION}" \
       --project "${PROJECT_ID}" \
-      --dns-endpoint >/dev/null 2>&1; then
+      --dns-endpoint >/dev/null 2>&1 \
+    && env KUBECONFIG="${TMP_KC}" kubectl --request-timeout=8s get ns ate-system >/dev/null 2>&1; then
+    KC_READY="true"
+  elif KUBECONFIG="${TMP_KC}" gcloud container clusters get-credentials "${CLUSTER_NAME}" \
+      --location "${CLUSTER_LOCATION}" \
+      --project "${PROJECT_ID}" >/dev/null 2>&1; then
+    KC_READY="true"
+  fi
+  if [[ "${KC_READY}" == "true" ]]; then
     cleanup_ignore_not_found "delete postgres StatefulSet" \
       env KUBECONFIG="${TMP_KC}" kubectl -n ate-system delete statefulset postgres --ignore-not-found
     cleanup_ignore_not_found "delete ate-system PVCs" \
@@ -216,8 +225,8 @@ if gcloud iam service-accounts describe "${TRANSFER_GSA_EMAIL}" --project "${PRO
 fi
 
 # Abort immediately (no `|| true`) if listing clusters fails so shared resources are never removed blindly.
-REMAINING_REGION_CLUSTERS="$(gcloud container clusters list --project "${PROJECT_ID}" --filter="network~(^|/)${NETWORK}$ AND location~^${REGION}(-|$)" --format='value(name)')"
-REMAINING_NETWORK_CLUSTERS="$(gcloud container clusters list --project "${PROJECT_ID}" --filter="network~(^|/)${NETWORK}$" --format='value(name)')"
+REMAINING_REGION_CLUSTERS="$(gcloud container clusters list --project "${PROJECT_ID}" --filter="network~'(^|/)${NETWORK}$' AND location~'^${REGION}(-|$)'" --format='value(name)')"
+REMAINING_NETWORK_CLUSTERS="$(gcloud container clusters list --project "${PROJECT_ID}" --filter="network~'(^|/)${NETWORK}$'" --format='value(name)')"
 REMAINING_PROJECT_CLUSTERS="$(gcloud container clusters list --project "${PROJECT_ID}" --format='value(name)')"
 
 echo "==> 5/6: Cleaning up demo-created regional Artifact Registry (${AR_REPO}) and regional networking in ${REGION}"

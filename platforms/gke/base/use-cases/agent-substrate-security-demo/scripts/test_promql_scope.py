@@ -16,17 +16,28 @@
 
 import io
 import json
-import os
 import subprocess
 import sys
+import threading
 import unittest
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from unittest import mock
 
 import yaml
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = Path(__file__).resolve().parent.parent
+for _p in (str(BASE_DIR / "ui"), str(BASE_DIR / "scripts")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+
+import kube
+import probes
 import promql_scope
+import recovery
+import server
 
 
 class PromqlScopeTest(unittest.TestCase):
@@ -188,6 +199,12 @@ class PromqlScopeTest(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(res.returncode, 0, f"{sh_file}: {res.stderr}")
+            sh_text = sh_file.read_text(encoding="utf-8")
+            self.assertNotIn(
+                "network~(^|/)",
+                sh_text,
+                f"Unquoted gcloud --filter regex group in {sh_file}",
+            )
 
         substitutions = {
             "${NAMESPACE}": "agent-sandbox",
@@ -234,6 +251,71 @@ class PromqlScopeTest(unittest.TestCase):
                             tsq["timeSeriesFilter"]["filter"],
                             str(dash_path),
                         )
+
+    def test_act4_custom_prompt_gates_and_non_poison_session_mutation(self) -> None:
+        with mock.patch.object(kube, "ALLOW_CUSTOM_PYTHON", False):
+            self.assertEqual(
+                probes.resolve_act4_prompt({"prompt": "  "}),
+                (probes.DEFAULT_POISON_PROMPT, False),
+            )
+            with self.assertRaises(PermissionError):
+                probes.resolve_act4_prompt({"prompt": "What is our approval policy?"})
+
+        with mock.patch.object(kube, "ALLOW_CUSTOM_PYTHON", True):
+            with self.assertRaises(ValueError):
+                probes.resolve_act4_prompt({"prompt": "p" * 2001})
+
+            actors = [{"name": "gemini-agent", "state": "RUNNING", "worker_pod": "p0"}]
+            clean_pol = {
+                "approvalPolicy": "REQUIRE_HUMAN_APPROVAL",
+                "diskPolicy": "REQUIRE_HUMAN_APPROVAL",
+            }
+            custom_states = iter(
+                [
+                    {**clean_pol, "memCount": 1, "diskCount": 1},
+                    {"reply": "Current approval policy is REQUIRE_HUMAN_APPROVAL."},
+                    {**clean_pol, "memCount": 2, "diskCount": 2},
+                ]
+            )
+            with (
+                mock.patch.object(kube, "ensure_port_forwards"),
+                mock.patch.object(kube, "get_actors", return_value=(actors, "")),
+                mock.patch.object(
+                    kube,
+                    "http_json",
+                    side_effect=lambda *_a, **_kw: next(custom_states),
+                ),
+            ):
+                res = recovery.api_round2_poison({"prompt": "What is our policy?"})
+                self.assertTrue(res["is_custom_prompt"])
+                self.assertTrue(res["session_mutated"])
+                self.assertEqual(res["brain"]["verdict"], "CLEAN")
+                self.assertIn("REQUIRE_HUMAN_APPROVAL", res["verification_reply"])
+
+            bypass = {"approvalPolicy": "BYPASS_REVIEW", "diskPolicy": "BYPASS_REVIEW"}
+            with mock.patch.object(kube, "get_actors", return_value=(actors, "")):
+                self.assertEqual(
+                    probes.inspect_buddy_brain(pre_state=bypass)["verdict"], "POISONED"
+                )
+
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), server.MissionControlHandler)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{srv.server_address[1]}/api/round2-poison",
+                data=b'{"prompt":"custom"}',
+                headers={"X-Requested-With": "MissionControl"},
+                method="POST",
+            )
+            with (
+                mock.patch.object(kube, "ALLOW_CUSTOM_PYTHON", False),
+                self.assertRaises(urllib.error.HTTPError) as ctx_403,
+            ):
+                urllib.request.urlopen(req, timeout=5)
+            self.assertEqual(ctx_403.exception.code, 403)
+        finally:
+            srv.shutdown()
+            srv.server_close()
 
 
 if __name__ == "__main__":

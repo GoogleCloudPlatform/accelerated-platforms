@@ -23,6 +23,7 @@ import sys
 import threading
 import unittest
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import ThreadingHTTPServer
 from pathlib import Path
@@ -543,6 +544,16 @@ class MissionControlRegressionTest(unittest.TestCase):
                     ),
                     "status": 200,
                 }
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(url).query).get(
+                "query", [""]
+            )[0]
+            if q.startswith('sum({"ate.actor.restore.duration_count"'):
+                return {"status": "success", "data": {"result": []}}
+            if 'top_level_controller_name="atenet-router"' in q:
+                return {"status": "success", "data": {"result": [{"value": [1, "11"]}]}}
+            if 'top_level_controller_name="atenet-egress"' in q:
+                val = "5" if '"ate.router.outcome"="ok"' in q else "2"
+                return {"status": "success", "data": {"result": [{"value": [1, val]}]}}
             return {
                 "status": "success",
                 "data": {
@@ -557,9 +568,16 @@ class MissionControlRegressionTest(unittest.TestCase):
             mock.patch.object(kube, "ensure_port_forwards"),
             mock.patch.object(kube, "http_json", side_effect=_prom_http),
         ):
-            pm = recovery.api_prometheus_metrics("workers")
+            pm = recovery.api_prometheus_metrics("router")
+            self.assertIn(
+                'top_level_controller_name="atenet-router"', pm["active_query"]
+            )
             self.assertEqual(pm["gateway_chat_turns_ok"], "4")
             self.assertEqual(pm["worker_states"]["idle"], 2)
+            self.assertEqual(pm["restore_total"], 0)
+            self.assertEqual(pm["router_requests_total"], 11)
+            self.assertEqual(pm["egress_ok_total"], 5)
+            self.assertEqual(pm["egress_denied_total"], 2)
 
 
 if __name__ == "__main__":

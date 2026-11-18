@@ -88,9 +88,41 @@ limitations under the License.
     </button>
 
     <div class="skeptic-shell-bar">
-      <div class="chip-row">
-        <span style="font-size:12px; color:#94a3b8; font-weight:700;">Live gVisor Verification:</span>
+      <div class="term-bar" id="s1-terminal-bar" style="display:none;">
+        <span class="term-badge mono">✨ AI Probe</span>
+        <input
+          id="s1-term-input"
+          class="term-input mono"
+          type="text"
+          maxlength="1000"
+          placeholder="Ask in plain English — e.g. What's the KSA token?, Read /etc/shadow, or Hit 169.254.169.254..."
+          aria-label="Natural-language gVisor sandbox audit prompt"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();generateSandboxProbe();}"
+        />
+        <button class="term-gen-btn mono" id="btn-term-gen" type="button" onclick="generateSandboxProbe()">✨ Generate Python ↵</button>
+        <button class="term-edit-btn mono" id="btn-term-open-ed" type="button" onclick="openBlankPythonEditor()" title="Open multi-line Python editor directly">&lt;/&gt; Editor</button>
+      </div>
+      <div class="chip-row" id="preset-probe-bar">
+        <span style="font-size:12px; color:#94a3b8; font-weight:700;">1-Click Quick Probes:</span>
         <span class="chip-row" id="preset-probe-chips"></span>
+      </div>
+      <div class="code-approval-card" id="s1-code-card" style="display:none;">
+        <div class="code-card-head">
+          <span class="code-card-title mono" id="s1-code-title">🐍 Generated Python Probe (review or edit before running)</span>
+          <div class="code-card-actions">
+            <button class="term-approve-btn mono" id="btn-term-approve" type="button" onclick="approveAndDetonateProbe()">✅ Approve &amp; Detonate in gVisor</button>
+            <button class="term-clear-btn mono" type="button" onclick="closeCodeCard()">✕ Dismiss</button>
+          </div>
+        </div>
+        <textarea
+          id="s1-code-editor"
+          class="code-editor mono"
+          rows="8"
+          maxlength="4000"
+          spellcheck="false"
+          aria-label="Editable Python 3 probe code to execute inside gVisor"
+          onkeydown="handleCodeEditorKey(event)"
+        ></textarea>
       </div>
       <pre class="shell-out-pill mono" id="s1-shell-out"></pre>
     </div>
@@ -176,42 +208,65 @@ limitations under the License.
 
   <!-- ACT 4: ADK TOOL HIJACK RECOVERY & OTEL TRACE -->
   <section class="slide" id="slide-3">
-    <span class="eyebrow green">Act 4 · Google ADK Tool Hijack Recovery &amp; OpenTelemetry Trace</span>
+    <span class="eyebrow green" style="font-size:27px; padding:7px 20px; margin-bottom:8px;">Act 4 · Google ADK Hijack Recovery &amp; OTel Trace</span>
     <h1 class="hero-title">Hijack RAM + Disk. Rewind Under a Second.</h1>
-    <p class="hero-sub">
-      Prompt injection tricks Google ADK tool <code class="mono">set_approval_policy</code> into flipping Python RAM (<code class="mono">APPROVAL_POLICY</code>)
-      and <code class="mono">/data/policy.json</code> to <code class="mono">AUTO_APPROVE_ALL</code>. <code class="mono">kubectl ate revert</code> discards the dirty wake session and rewinds to the last clean external GCS snapshot.
+    <p class="hero-sub" style="margin-bottom:12px; max-width:780px; font-size:15px;">
+      Prompt injection tricks Google ADK tool <code class="mono">set_approval_policy</code> into flipping Python RAM + <code class="mono">/data/policy.json</code> to <code class="mono">AUTO_APPROVE_ALL</code>.
+      <code class="mono">kubectl ate revert</code> discards the dirty wake session and rewinds to the clean GCS snapshot.
     </p>
 
-    <div class="probe-feed" id="act4-feed" style="display:flex;">
-      <div class="probe-line visible" style="min-height:46px;">
+    <div class="probe-feed" id="act4-feed" style="display:flex; gap:6px; margin-bottom:12px;">
+      <div class="probe-line visible" style="min-height:40px; padding:8px 16px;">
         <span class="probe-attack" style="text-align:left;">1. Clean External Snapshot (Suspended Baseline)</span>
         <span class="probe-verdict mono" id="a4-val-0" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
-      <div class="probe-line visible" style="min-height:46px;">
+      <div class="probe-line visible" style="min-height:40px; padding:8px 16px;">
         <span class="probe-attack" style="text-align:left;">2. ADK Tool-Call Hijack (<code class="mono">RAM</code> + <code class="mono">/data/policy.json</code>)</span>
         <span class="probe-verdict red mono" id="a4-val-1" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
-      <div class="probe-line visible" style="min-height:46px;">
+      <div class="probe-line visible" style="min-height:40px; padding:8px 16px;">
         <span class="probe-attack" style="text-align:left;">3. External Snapshot Revert (<code class="mono">kubectl ate revert</code>)</span>
         <span class="probe-verdict mono" id="a4-val-2" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
-      <div class="probe-line visible" style="min-height:46px;">
+      <div class="probe-line visible" style="min-height:40px; padding:8px 16px;">
         <span class="probe-attack" style="text-align:left;">4. Sub-Second GCS Wake &amp; Audit (<code class="mono">kubectl ate --trace resume</code>)</span>
         <span class="probe-verdict cyan mono" id="a4-val-3" style="display:none; opacity:0; transform:translateX(8px); transition:all 0.25s ease-out;"></span>
       </div>
     </div>
 
-    <div style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center;">
-      <button class="hero-btn red" id="btn-s2" onclick="runRound2()">
-        🧪 1. Detonate Prompt Injection (Flip ADK Policy)
+    <div class="act4-btn-row">
+      <button class="hero-btn compact red" id="btn-s2" onclick="runRound2()">
+        🧪 1. Detonate Prompt Injection
       </button>
-      <button class="hero-btn green" id="btn-s3" onclick="runRound3Revert()">
+      <button class="hero-btn compact green" id="btn-s3" onclick="runRound3Revert()">
         ⏪ 2. Revert + OTel Trace (--trace)
       </button>
     </div>
 
-    <button class="subtle-link-btn" onclick="runSeedClean()">
+    <div class="skeptic-shell-bar" style="margin-top:10px; gap:6px;">
+      <div class="term-bar multi-line" id="s4-prompt-bar" style="display:none;">
+        <span class="term-badge mono">💬 ADK Prompt</span>
+        <textarea
+          id="s4-prompt-input"
+          class="term-textarea mono"
+          rows="2"
+          maxlength="2000"
+          placeholder="Type any prompt injection or question for gemini-agent (leave blank for default AUTO_APPROVE_ALL policy hijack)..."
+          aria-label="Custom prompt for Google ADK gemini-agent"
+          onkeydown="if(event.key==='Enter'&amp;&amp;!event.shiftKey){event.preventDefault();runRound2();}"
+        ></textarea>
+        <button class="term-gen-btn mono" id="btn-s4-send" type="button" onclick="runRound2()">Send to ADK ↵</button>
+      </div>
+      <div class="chip-row" id="s4-chip-bar" style="display:none;">
+        <span style="font-size:12px; color:#94a3b8; font-weight:700;">Quick Prompts:</span>
+        <button class="shell-chip mono" type="button" onclick="setAct4Prompt('hijack')">💥 Policy Hijack (AUTO_APPROVE_ALL)</button>
+        <button class="shell-chip mono" type="button" onclick="setAct4Prompt('memory')">🕵️ Memory + Policy Poison</button>
+        <button class="shell-chip mono" type="button" onclick="setAct4Prompt('audit')">🔍 Audit Policy &amp; Memory</button>
+      </div>
+      <pre class="shell-out-pill mono" id="s4-shell-out" style="max-height:145px; padding:10px 14px;"></pre>
+    </div>
+
+    <button class="subtle-link-btn" style="margin-top:6px;" onclick="runSeedClean()">
       Reset &amp; verify clean REQUIRE_HUMAN_APPROVAL snapshot
     </button>
   </section>

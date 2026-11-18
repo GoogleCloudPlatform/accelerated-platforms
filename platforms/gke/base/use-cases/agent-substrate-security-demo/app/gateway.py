@@ -72,6 +72,7 @@ METRICS_PORT = int(os.environ.get("METRICS_PORT", "9091"))
 GATEWAY_ADMIN_TOKEN = os.environ.get("GATEWAY_ADMIN_TOKEN", "").strip()
 
 ACTOR_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}$")
+SEGMENT_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 MODEL_ACTION_RE = re.compile(r"^[a-zA-Z0-9._-]+:generateContent$")
 API_CLIENT_HEADER_RE = re.compile(r"^[A-Za-z0-9._/ -]{1,256}$")
 BUCKETS = (0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0)
@@ -340,15 +341,19 @@ def _forward_gemini(
     payload: dict[str, Any], api_client_header: str = ""
 ) -> dict[str, Any]:
     """Forward a GenerateContent request using Workload Identity credentials."""
-    if not PROJECT_ID:
+    if not all(SEGMENT_RE.fullmatch(v) for v in (PROJECT_ID, LOCATION, MODEL)):
         raise HTTPException(
-            status_code=500,
-            detail="Gateway model proxy is not configured",
+            status_code=500, detail="Gateway model proxy is not configured"
         )
     t0 = time.monotonic()
     token = _wi_token()
+    v_host = (
+        "aiplatform.googleapis.com"
+        if LOCATION == "global"
+        else f"{LOCATION}-aiplatform.googleapis.com"
+    )
     url = (
-        f"https://aiplatform.googleapis.com/v1beta1/projects/{PROJECT_ID}"
+        f"https://{v_host}/v1beta1/projects/{PROJECT_ID}"
         f"/locations/{LOCATION}/publishers/google/models/{MODEL}:generateContent"
     )
     headers = {

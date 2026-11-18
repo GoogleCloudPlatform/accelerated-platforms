@@ -127,14 +127,13 @@ if [ "${ACP_TEARDOWN_CORE_PLATFORM}" = "true" ]; then
   "${ACP_PLATFORM_CORE_DIR}/teardown-standard.sh"
 else
   echo "Skipping core platform teardown."
+  # The core platform is still deployed: keep its generated shared configuration
+  # and backend bucket name so a later core teardown can find its state.
   rm -rf \
     "${ACP_PLATFORM_CORE_DIR}/initialize/.terraform/" \
     "${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf" \
     "${ACP_PLATFORM_BASE_DIR}/_shared_config/.terraform/" \
     "${ACP_PLATFORM_BASE_DIR}/_shared_config/terraform.tfstate"*
-  git -C "${ACP_REPO_DIR}" checkout -- \
-    "platforms/gke/base/core/initialize/backend.tf.bucket" \
-    "platforms/gke/base/_shared_config" 2>/dev/null || true
 fi
 
 end_timestamp=$(date +%s)

@@ -233,13 +233,13 @@ REFRESH_ACTORS=true ACP_DEPLOY_CORE_PLATFORM=false \
 Pass a pre-built Artifact Registry image explicitly via `APP_IMAGE`:
 
 ```shell
-# For Option B, first load PROJECT_ID, REGION, and AR_REPO from Terraform outputs:
-# export TF_VAR_resource_name_prefix="${TF_VAR_resource_name_prefix:-ate}"
-# source ./platforms/gke/base/use-cases/agent-substrate-security-demo/terraform/_shared_config/scripts/set_environment_variables.sh
-# export PROJECT_ID="${agent_substrate_project_id}" REGION="${cluster_region}" AR_REPO="${agent_substrate_ar_repository_name}"
-
-export REGION="${REGION:-us-central1}"
-export AR_REPO="${AR_REPO:-agent-substrate}"
+# Load the project, region, and repository that stage.sh recorded for this
+# deployment (Option A and Option B both write this file). If you have not
+# staged yet, set PROJECT_ID, REGION, and AR_REPO yourself instead.
+STAGED_ENV=./platforms/gke/base/use-cases/agent-substrate-security-demo/.state/staged.env
+PROJECT_ID="$(sed -n 's/^PROJECT_ID=//p' "${STAGED_ENV}")"
+REGION="$(sed -n 's/^REGION=//p' "${STAGED_ENV}")"
+AR_REPO="$(sed -n 's/^AR_REPO=//p' "${STAGED_ENV}")"
 
 gcloud builds submit ./platforms/gke/base/use-cases/agent-substrate-security-demo/app \
   --project "${PROJECT_ID}" \

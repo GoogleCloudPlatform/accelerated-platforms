@@ -19,11 +19,13 @@ Substrate metric and label names contain dots, so they use UTF-8 quoted PromQL
 syntax (`{"metric.name", ...}`). Points arrive 1–3 minutes after an operation.
 
 Every query below is pinned to `cluster="agent-substrate-live"`, the default
-`Option A` `CLUSTER_NAME` (for `Option B`, replace `agent-substrate-live` with
-your `<prefix>-<platform>` cluster name such as `ate-prod`, or rewrite any
-PromQL expression via
-`python3 ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/promql_scope.py query "<CLUSTER_NAME>" '<promql>'`).
-Because Google Cloud Managed Service for Prometheus is project-scoped, omitting
+`Option A` `CLUSTER_NAME`. For `Option B`, replace `agent-substrate-live` with
+your `<prefix>-<platform>` cluster name such as `ate-prod` before you paste a
+query.
+`python3 ./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/promql_scope.py query "<CLUSTER_NAME>" '<promql>'`
+adds a `cluster` matcher only to selectors that have none and leaves an existing
+`cluster=` matcher unchanged, so it does not re-point these queries. Because
+Google Cloud Managed Service for Prometheus is project-scoped, omitting
 `cluster=` aggregates series across every cluster in the project.
 `./platforms/gke/base/use-cases/agent-substrate-security-demo/scripts/dashboards.sh`
 scopes all four Cloud Monitoring dashboards (PromQL queries, Cloud Monitoring

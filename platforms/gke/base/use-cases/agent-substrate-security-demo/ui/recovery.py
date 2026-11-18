@@ -16,6 +16,7 @@
 
 import json
 import re
+import shlex
 import time
 from typing import Any
 
@@ -257,7 +258,7 @@ def api_round2_poison(body: dict[str, Any] | None = None) -> dict[str, Any]:
     )
     poison_cmd = (
         f"curl -fsS {kube.GATEWAY_URL}/chat/gemini-agent -H @admin-hdr.txt "
-        f"-d {json.dumps({'message': poison_prompt})}"
+        f"-d {shlex.quote(json.dumps({'message': poison_prompt}))}"
     )
     step2_label = (
         "2. Send custom operator prompt to Google ADK actor 'gemini-agent'"
@@ -529,7 +530,7 @@ def api_prometheus_metrics(query_key_or_expr: str = "") -> dict[str, Any]:
     )
     prom_curl = (
         f"curl -fsSG '{kube.PROMETHEUS_URL}/api/v1/query' "
-        f"--data-urlencode 'query={active_query}'"
+        f"--data-urlencode {shlex.quote('query=' + active_query)}"
     )
 
     return {

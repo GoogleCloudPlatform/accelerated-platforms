@@ -18,6 +18,7 @@ import errno
 import io
 import json
 import os
+import shlex
 import subprocess
 import sys
 import threading
@@ -511,9 +512,13 @@ class MissionControlRegressionTest(unittest.TestCase):
                 kube, "http_json", side_effect=lambda *_a, **_kw: next(states)
             ),
         ):
-            self.assertEqual(
-                recovery.api_round2_poison()["brain"]["verdict"], "POISONED"
-            )
+            poisoned = recovery.api_round2_poison()
+        self.assertEqual(poisoned["brain"]["verdict"], "POISONED")
+        # The displayed "Raw CLI" must keep the prompt as one shell argument.
+        self.assertEqual(
+            shlex.split(poisoned["summary_cmd"])[-1],
+            json.dumps({"message": probes.DEFAULT_POISON_PROMPT}),
+        )
 
         clean_boot = {
             "approvalPolicy": "REQUIRE_HUMAN_APPROVAL",

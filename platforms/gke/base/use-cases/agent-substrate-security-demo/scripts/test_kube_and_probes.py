@@ -322,6 +322,20 @@ class KubeAndProbesCoverageTest(unittest.TestCase):
             ):
                 server.run_server()
 
+        # Bare `*` would switch off the Host anti-rebinding check; refuse it
+        # unless a UI token is set, before any port-forward or listener starts.
+        never_listen = AssertionError("run_server() reached the HTTP listener")
+        with (
+            mock.patch.object(kube, "BIND_HOST", "127.0.0.1"),
+            mock.patch.object(kube, "UI_AUTH_TOKEN", ""),
+            mock.patch.object(kube, "EXTRA_ALLOWED_HOSTS", {"*"}),
+            mock.patch.object(kube, "ensure_port_forwards") as started_pf,
+            mock.patch.object(server, "ThreadingHTTPServer", side_effect=never_listen),
+            self.assertRaises(SystemExit),
+        ):
+            server.run_server()
+        started_pf.assert_not_called()
+
         # Gateway proxy_adk_generate_content + _wi_token
         fake_creds = mock.MagicMock()
         fake_creds.valid = False

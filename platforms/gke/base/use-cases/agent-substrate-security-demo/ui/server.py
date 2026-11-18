@@ -376,10 +376,10 @@ def run_server() -> None:
             "ALLOW_UNAUTHENTICATED_BIND=1 behind an authenticated proxy)."
         )
     if "*" in kube.EXTRA_ALLOWED_HOSTS and not kube.UI_AUTH_TOKEN:
-        print(
-            "Warning: ALLOWED_HOSTS='*' is set without UI_AUTH_TOKEN; prefer "
-            "ALLOWED_HOSTS='*.example.com' or configure UI_AUTH_TOKEN.",
-            file=sys.stderr,
+        raise SystemExit(
+            "Refusing ALLOWED_HOSTS='*' without UI_AUTH_TOKEN: it disables the "
+            "Host header anti-rebinding check. Set UI_AUTH_TOKEN=<secret> or "
+            "use a suffix such as ALLOWED_HOSTS='*.example.com'."
         )
     kube.ensure_port_forwards()
     server = ThreadingHTTPServer((kube.BIND_HOST, kube.PORT), MissionControlHandler)

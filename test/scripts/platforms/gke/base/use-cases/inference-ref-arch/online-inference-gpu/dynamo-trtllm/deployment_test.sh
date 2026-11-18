@@ -23,6 +23,7 @@ MY_PATH="$(
   pwd -P
 )"
 
+export ACCELERATOR_TYPE="${ACCELERATOR_TYPE:-rtx-pro-6000}"
 DYNAMO_MODE="${DYNAMO_MODE:-kv-routing}"
 DYNAMO_VARIANT_SUFFIX="${DYNAMO_VARIANT_SUFFIX:-}"
 if [[ -z "${DYNAMO_VARIANT_SUFFIX}" && "${ENABLE_POOL_RELAY:-false}" == "true" ]]; then

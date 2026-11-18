@@ -4,8 +4,6 @@
 > The Cloud Workstations (CWS) Platform is currently in beta and is still being
 > actively developed.
 
-<!-- Source: https://gcpdraw.googleplex.com/diagrams/c0ed2f97-4cef-4d92-8b1a-4b008807d171 -->
-
 ![Reference Architecture](/docs/platforms/cws/images/reference_architecture.svg)
 
 ## Prerequisites

@@ -39,9 +39,12 @@
 #   }
 # Each backend needs max_in_flight_requests_per_endpoint (balancing mode
 # IN_FLIGHT, the default) or max_rate_per_endpoint (RATE), and can set
-# locality_lb_policy (default LEAST_REQUEST). The active backend must have a NEG
-# in every region; the other backends are attached where they have one. To
-# detach a backend before you delete its Services, re-run apply without it.
+# locality_lb_policy (default LEAST_REQUEST). Use a worker-aware
+# health_check_path when the frontend is decoupled from its GPU workers (for
+# example "/v1/models/<model>/ready" on NVIDIA Dynamo, since Dynamo's "/health"
+# returns 200 with zero workers). The active backend must have a NEG in every
+# region; the other backends are attached where they have one. To detach a
+# backend before you delete its Services, re-run apply without it.
 #
 # --dry-run prints the Terraform variables (read-only Google Cloud calls).
 

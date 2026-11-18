@@ -15,24 +15,24 @@
 apiVersion: extensions.agents.x-k8s.io/v1beta1
 kind: SandboxTemplate
 metadata:
-  name: python-runtime-template
+  name: python-runtime-template-microvm
   namespace: agent-sandbox
 spec:
   podTemplate:
     metadata:
       labels:
-        sandbox-type: python-runtime
+        sandbox-type: python-runtime-microvm
     spec:
-      runtimeClassName: gvisor
+      runtimeClassName: microvm
       automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
       nodeSelector:
-        cloud.google.com/compute-class: cpu-n4-8-gvisor
-        sandbox.gke.io/runtime: gvisor
+        cloud.google.com/compute-class: cpu-n4-8-microvm
+        sandbox.gke.io/runtime: microvm
       tolerations:
         - key: "sandbox.gke.io/runtime"
-          value: "gvisor"
+          value: "microvm"
           effect: "NoSchedule"
       containers:
         - name: runtime

@@ -17,23 +17,25 @@ steps; this README is the reference for the scripts.
 
 ## Contents
 
-| Path                 | Purpose                                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `provision.sh`       | Provisions regional platforms, sequentially or with `--parallel`; creates the shared network in `shared-vpc` mode.        |
-| `teardown.sh`        | Tears the regional platforms down; destroys the load balancer and the shared network when it removes the last region.     |
-| `global_lb.sh`       | Applies, inspects, or destroys the cross-region internal Application Load Balancer.                                       |
-| `helpers.sh`         | Library sourced by the scripts and by interactive sessions (`use_region`, `expose_service_neg`, model and image helpers). |
-| `bootstrap_tools.sh` | Installs pinned, checksum-verified `terraform` and `kustomize`, and `jq`, `sponge`, and `envsubst`.                       |
-| `shared_network/`    | Terraservice: the shared VPC network, its `GLOBAL_MANAGED_PROXY` subnets, and firewall rules (`shared-vpc` mode).         |
-| `global_lb/`         | Terraservice: the cross-region internal Application Load Balancer.                                                        |
+| Path                 | Purpose                                                                                                                        |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `provision.sh`       | Provisions regional platforms, sequentially or with `--parallel`; creates the shared network in `shared-vpc` mode.             |
+| `teardown.sh`        | Tears the regional platforms down; destroys the load balancer and the shared network when it removes the last region.          |
+| `global_lb.sh`       | Applies, inspects, or destroys the cross-region internal Application Load Balancer.                                            |
+| `helpers.sh`         | Library sourced by the scripts and by interactive sessions (`use_region`, `expose_service_neg`, model and image helpers).      |
+| `bootstrap_tools.sh` | Installs checksum-verified `terraform` (`>= 1.14.8`), `kustomize` (`>= 5.8.3`), `jq`, `sponge`, `envsubst`, and `gcloud beta`. |
+| `shared_network/`    | Terraservice: the shared VPC network, its `GLOBAL_MANAGED_PROXY` subnets, and firewall rules (`shared-vpc` mode).              |
+| `global_lb/`         | Terraservice: the cross-region internal Application Load Balancer.                                                             |
 
 ## Prerequisites
 
 - The permissions and tools in
   [the inference-ref-arch Terraform README](/platforms/gke/base/use-cases/inference-ref-arch/terraform/README.md).
-  Run `bootstrap_tools.sh` to install `terraform`, `kustomize`, `jq`, `sponge`,
-  and `envsubst` into `${HOME}/.local/bin`. The scripts also need `gcloud`,
-  `git`, and `kubectl`.
+  Run `bootstrap_tools.sh` to install or upgrade `terraform` (`>= 1.14.8`),
+  `kustomize` (`>= 5.8.3`), `jq`, `sponge`, and `envsubst` into
+  `${HOME}/.local/bin`, plus `gcloud beta`. The scripts also need `gcloud`,
+  `git`, and `kubectl` (`ENABLE_POD_SNAPSHOTS=true` checks for `gcloud beta`
+  during preflight before creating resources).
 - A clone of this repository. `--parallel` uses Git worktrees of it.
 
 ## Provision and tear down
@@ -114,9 +116,10 @@ removes the worktrees of the platforms that it tore down.
   `platforms/gke/base/kubernetes/kubeconfig/<project_id>-<cluster_name>`.
 - Terraform state and tracked files: the scripts don't delete state files or
   `.terraform/` directories; `teardown.sh` removes a worktree only after its
-  platform is torn down. Sequential runs restore
-  `core/initialize/backend.tf.bucket`, which the core scripts edit, unless it
-  had local changes before the run.
+  platform is torn down. Both sequential and parallel runs restore
+  `core/initialize/backend.tf.bucket` and `.terraform.lock.hcl` (unless they had
+  local changes before the run) and clean up transient generated manifests and
+  node-pool `.tf` files.
 
 ## Use a region from an interactive shell
 
@@ -144,19 +147,19 @@ the core networking terraservice.
 
 ## Settings
 
-| Variable                      | Default                                                      | Description                                                                                                        |
-| ----------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `PROJECT_ID`                  | (required)                                                   | Project of every platform.                                                                                         |
-| `TF_VAR_resource_name_prefix` | `inf`                                                        | Prefix of every resource name (1-3 characters).                                                                    |
-| `NETWORK_MODE`                | `island`                                                     | `island` or `shared-vpc`. See [Network modes](#network-modes).                                                     |
-| `CLUSTER_MODE`                | `autopilot`                                                  | `autopilot` or `standard`. See [Cluster modes](#cluster-modes).                                                    |
-| `MR_ENVIRONMENT_NAME`         | `mr`                                                         | Name (1-6 characters) of the resources that the regions share in `shared-vpc` mode.                                |
-| `MR_WORK_DIR`                 | `${HOME}/.acp-multi-region/<project>-<prefix>-<environment>` | Local directory for worktrees, logs, and the multi-region terraservices.                                           |
-| `MR_CORE_PLATFORM_ATTEMPTS`   | `3`                                                          | Attempts of the core platform deployment of each region.                                                           |
-| `HF_TOKEN`                    | (unset)                                                      | Hugging Face token to add to each platform's `huggingface-hub-access-token-{read,write}` secrets.                  |
-| `ENABLE_POD_SNAPSHOTS`        | `false`                                                      | Create the Pod snapshot bucket and IAM grants (`online_gpu`) and enable GKE Pod snapshots on each cluster.         |
-| `ACTIVE_MIGRATION_ENABLED`    | `false`                                                      | `activeMigration` of the custom compute classes.                                                                   |
-| `MIRROR_IMAGES`               | (unset)                                                      | Space-separated `<src_image>=<dst_subpath:tag>` entries to mirror into each region's Artifact Registry repository. |
+| Variable                      | Default                                                      | Description                                                                                                                         |
+| ----------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `PROJECT_ID`                  | (required)                                                   | Project of every platform.                                                                                                          |
+| `TF_VAR_resource_name_prefix` | `inf`                                                        | Prefix of every resource name (1-3 characters).                                                                                     |
+| `NETWORK_MODE`                | `island`                                                     | `island` or `shared-vpc`. See [Network modes](#network-modes).                                                                      |
+| `CLUSTER_MODE`                | `autopilot`                                                  | `autopilot` or `standard`. See [Cluster modes](#cluster-modes).                                                                     |
+| `MR_ENVIRONMENT_NAME`         | `mr`                                                         | Name (1-6 characters) of the resources that the regions share in `shared-vpc` mode.                                                 |
+| `MR_WORK_DIR`                 | `${HOME}/.acp-multi-region/<project>-<prefix>-<environment>` | Local directory for worktrees, logs, and the multi-region terraservices.                                                            |
+| `MR_CORE_PLATFORM_ATTEMPTS`   | `3`                                                          | Attempts of the core platform deployment of each region.                                                                            |
+| `HF_TOKEN`                    | (unset)                                                      | Hugging Face token to add to each platform's `huggingface-hub-access-token-{read,write}` secrets.                                   |
+| `ENABLE_POD_SNAPSHOTS`        | `false`                                                      | Create the Pod snapshot bucket and IAM grants (`online_gpu`) and enable GKE Pod snapshots on each cluster (requires `gcloud beta`). |
+| `ACTIVE_MIGRATION_ENABLED`    | `false`                                                      | `activeMigration` of the custom compute classes.                                                                                    |
+| `MIRROR_IMAGES`               | (unset)                                                      | Space-separated `<src_image>=<dst_subpath:tag>` entries to mirror into each region's Artifact Registry repository.                  |
 
 Other `TF_VAR_*` variables apply to every region, for example
 `TF_VAR_ira_online_gpu_kubernetes_namespace_name` to use the same namespace in
@@ -244,7 +247,11 @@ region; a region whose endpoints fail their health checks gets no traffic.
    (`max_in_flight_requests_per_endpoint`, for the default balancing mode
    `IN_FLIGHT`) or in requests per second (`max_rate_per_endpoint`, for
    `--balancing-mode RATE`). `locality_lb_policy` (default `LEAST_REQUEST`)
-   selects the endpoint within a region.
+   selects the endpoint within a region. When a frontend router is decoupled
+   from its GPU workers (such as NVIDIA Dynamo's `dynamo-frontend`, where
+   `/health` returns `200` even with zero workers), set `health_check_path` to a
+   worker-aware route such as `/v1/models/<model>/ready` so a region with zero
+   GPU workers automatically fails over instead of returning `404`.
 
    ```json
    {

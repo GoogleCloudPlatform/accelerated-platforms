@@ -229,17 +229,16 @@ cluster_running() {
 enable_pod_snapshots() {
   local platform="${1}" region="${2}" cluster enabled
   cluster="$(mr_cluster_name "${platform}")"
-  enabled="$(gcloud beta container clusters describe "${cluster}" --location="${region}" --project="${PROJECT_ID}" \
+  enabled="$(gcloud --quiet beta container clusters describe "${cluster}" --location="${region}" --project="${PROJECT_ID}" \
     --format='value(addonsConfig.podSnapshotConfig.enabled)')"
   if [[ "${enabled}" != "True" ]]; then
     # A cluster runs one operation at a time.
     mr_wait_for 1800 20 "cluster ${cluster} RUNNING" cluster_running "${cluster}" "${region}" ||
       mr_die "[${platform}] cluster ${cluster} didn't return to RUNNING; check its operations and re-run."
-    gcloud beta container clusters update "${cluster}" \
+    gcloud --quiet beta container clusters update "${cluster}" \
       --enable-pod-snapshots \
       --location="${region}" \
-      --project="${PROJECT_ID}" \
-      --quiet
+      --project="${PROJECT_ID}"
   fi
   mr_wait_for 600 15 "Pod snapshot CRDs in ${cluster}" kubectl --kubeconfig "$(mr_kubeconfig "${platform}")" get crd \
     podsnapshots.podsnapshot.gke.io podsnapshotpolicies.podsnapshot.gke.io podsnapshotstorageconfigs.podsnapshot.gke.io ||
@@ -279,13 +278,17 @@ provision_region() {
 }
 
 provision_sequential() {
-  local i pid pids=() failed=0 restore_backend_template="false"
+  local i pid pids=() failed=0 restore_backend_template="false" restore_lock_files="false"
   local backend_template="${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
   mr_require_clean_tfvars "${ACP_REPO_DIR}"
-  # The core scripts write the platform's state bucket into this tracked
-  # template; restore it afterwards unless it already had local changes.
+  # The core scripts write the platform's state bucket into backend.tf.bucket
+  # and terraform init can touch .terraform.lock.hcl; restore them afterwards
+  # unless they already had local changes.
   if git -C "${ACP_REPO_DIR}" diff --quiet -- "${backend_template}"; then
     restore_backend_template="true"
+  fi
+  if git -C "${ACP_REPO_DIR}" diff --quiet -- ':(glob)**/.terraform.lock.hcl'; then
+    restore_lock_files="true"
   fi
   for i in "${!MR_TARGET_PLATFORMS[@]}"; do
     echo "=================================================================="
@@ -298,6 +301,7 @@ provision_sequential() {
       for pid in "${pids[@]}"; do
         wait "${pid}" || true
       done
+      mr_clean_checkout "${ACP_REPO_DIR}" "${restore_backend_template}" "${restore_lock_files}"
       mr_die "provisioning '$(mr_cluster_name "${MR_TARGET_PLATFORMS[i]}")' failed; fix the error above and re-run with the same targets (completed steps are idempotent)."
     fi
     if ((${#mirror_sources[@]} > 0)); then
@@ -309,16 +313,21 @@ provision_sequential() {
   for pid in "${pids[@]}"; do
     wait "${pid}" || failed=1
   done
-  if [[ "${restore_backend_template}" == "true" ]]; then
-    git -C "${ACP_REPO_DIR}" checkout -- "${backend_template}"
-  fi
+  mr_clean_checkout "${ACP_REPO_DIR}" "${restore_backend_template}" "${restore_lock_files}"
   ((failed == 0)) || mr_die "mirroring images failed in at least one region; see the output above."
 }
 
 provision_parallel() {
-  local logs i platform wt pids=() failed=()
+  local logs i platform wt pids=() failed=() restore_backend_template="false" restore_lock_files="false"
+  local backend_template="${ACP_PLATFORM_CORE_DIR}/initialize/backend.tf.bucket"
   logs="${MR_WORK_DIR}/logs/provision-$(date -u +%Y%m%dT%H%M%SZ)"
   mkdir -p "${logs}"
+  if git -C "${ACP_REPO_DIR}" diff --quiet -- "${backend_template}"; then
+    restore_backend_template="true"
+  fi
+  if git -C "${ACP_REPO_DIR}" diff --quiet -- ':(glob)**/.terraform.lock.hcl'; then
+    restore_lock_files="true"
+  fi
   git -C "${ACP_REPO_DIR}" diff HEAD --binary >"${logs}/uncommitted.diff"
   git -C "${ACP_REPO_DIR}" worktree prune
   # Worktrees are created one at a time: git doesn't support concurrent
@@ -341,9 +350,12 @@ provision_parallel() {
   done
   for i in "${!pids[@]}"; do
     platform="${MR_TARGET_PLATFORMS[i]}"
+    wt="$(mr_worktree_dir "${platform}")"
     if wait "${pids[i]}"; then
+      mr_clean_checkout "${wt}" "${restore_backend_template}" "${restore_lock_files}"
       mr_log "[${platform}] Done"
     else
+      mr_clean_checkout "${wt}" "${restore_backend_template}" "${restore_lock_files}"
       failed+=("${platform}")
       mr_log "[${platform}] FAILED; log: ${logs}/${platform}.log"
     fi
@@ -359,6 +371,9 @@ if [[ "${dry_run}" == "true" ]]; then
 fi
 
 mr_require_tools gcloud git jq kubectl terraform
+if [[ "${ENABLE_POD_SNAPSHOTS}" == "true" ]]; then
+  mr_require_gcloud_beta
+fi
 gcloud projects describe "${PROJECT_ID}" --format="value(projectId)" >/dev/null
 for i in "${!MR_TARGET_PLATFORMS[@]}"; do
   mr_check_existing_platform "${MR_TARGET_PLATFORMS[i]}" "${MR_TARGET_REGIONS[i]}" "${MR_TARGET_INDEXES[i]}"

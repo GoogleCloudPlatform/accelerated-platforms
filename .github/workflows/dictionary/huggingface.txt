@@ -1,7 +1,9 @@
 adamw
+gguf
 gpt
 gptoss
 huggingface
+msgpack
 optim
 pretraining
 qwen

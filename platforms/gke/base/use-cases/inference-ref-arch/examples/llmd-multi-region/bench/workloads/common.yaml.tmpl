@@ -1,0 +1,64 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# inference-perf v0.7.0 configuration shared by every workload. Rendered by
+# scripts/run-benchmark.sh with envsubst, then concatenated with
+# <workload>.yaml.tmpl (the `data` section) and, optionally, metrics-gmp.yaml.tmpl.
+# Schema: https://github.com/kubernetes-sigs/inference-perf/blob/v0.7.0/docs/config.md
+
+api:
+  type: completion
+  # Streaming is required for TTFT, TPOT, and ITL.
+  streaming: true
+
+server:
+  type: vllm
+  model_name: "${BENCH_MODEL_NAME}"
+  base_url: "${BENCH_BASE_URL}"
+  # Generate exactly max_tokens per request, so that both arms do the same
+  # amount of decode work.
+  ignore_eos: true
+
+tokenizer:
+  pretrained_model_name_or_path: "${BENCH_TOKENIZER}"
+
+load:
+  type: ${BENCH_LOAD_TYPE}
+  interval: ${BENCH_STAGE_INTERVAL_S}
+  stages: ${BENCH_STAGES}
+  num_workers: ${BENCH_NUM_WORKERS}
+  worker_max_concurrency: ${BENCH_WORKER_MAX_CONCURRENCY}
+  request_timeout: ${BENCH_REQUEST_TIMEOUT_S}
+  base_seed: ${BENCH_SEED}
+
+report:
+  request_lifecycle:
+    summary: true
+    per_stage: true
+    per_request: false
+    percentiles: [1, 5, 10, 25, 50, 75, 90, 95, 99, 99.9]
+  prometheus:
+    summary: true
+    per_stage: true
+  goodput:
+    constraints:
+      ttft: ${BENCH_SLO_TTFT_S}
+      tpot: ${BENCH_SLO_TPOT_S}
+
+storage:
+  local_storage:
+    path: /reports
+  google_cloud_storage:
+    bucket_name: "${BENCH_BUCKET}"
+    path: "${BENCH_GCS_PATH}"

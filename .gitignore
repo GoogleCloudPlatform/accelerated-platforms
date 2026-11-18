@@ -48,6 +48,7 @@ test/scripts/environment_files/*
 
 # Generated outputs
 *.log
+**/hftoken
 k6-*.txt
 k6-*.csv
 k6-*.jsonl

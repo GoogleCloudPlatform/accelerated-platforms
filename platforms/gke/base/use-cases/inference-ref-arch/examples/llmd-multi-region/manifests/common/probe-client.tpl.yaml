@@ -1,0 +1,52 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+# Minimal in-VPC client used to probe the multi-cluster Gateway VIPs (the
+# cross-region internal Application Load Balancer is only reachable from inside
+# the VPC network).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: probe-client
+  namespace: ${MR_NAMESPACE}
+  labels:
+    app: probe-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: probe-client
+  template:
+    metadata:
+      labels:
+        app: probe-client
+    spec:
+      serviceAccountName: ${MR_NAMESPACE}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+      containers:
+        - name: curl
+          image: docker.io/curlimages/curl:8.23.0@sha256:3fb7e13e5d179a845c97d78204f3f1064d1907037f26a3ebf91710571151fd93
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]

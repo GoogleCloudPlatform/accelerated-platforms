@@ -1,0 +1,62 @@
+# Copyright 2026 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: precise-prefix-cache-routing-gpu-vllm-decode
+spec:
+  replicas: ${MR_REPLICAS_PER_REGION}
+  # GPU nodes can take longer than the default 10 minutes (stockouts, compute
+  # class fallback to flex-start or Spot), and `kubectl rollout status` gives up
+  # when the progress deadline is exceeded.
+  progressDeadlineSeconds: 3600
+  template:
+    metadata:
+      annotations:
+        # Don't let the cluster autoscaler evict a serving model server to
+        # consolidate nodes: a replacement takes minutes to load the model, and
+        # during the scale-out benchmark the autoscaler evicted both remaining
+        # replicas of a region right after the HPA scaled in.
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      serviceAccountName: ${MR_NAMESPACE}
+      nodeSelector:
+        cloud.google.com/compute-class: ${MR_COMPUTE_CLASS}
+      containers:
+        - name: modelserver
+          image: ${MR_VLLM_IMAGE}
+          env:
+            # Weights, config, and tokenizer are streamed from the regional
+            # Cloud Storage bucket with Workload Identity, so the Hugging Face
+            # token isn't needed in the cluster.
+            - name: HF_TOKEN
+              $patch: delete
+          resources:
+            limits:
+              cpu: "16"
+              memory: 128Gi
+              nvidia.com/gpu: "${MR_GPU_COUNT}"
+            requests:
+              cpu: "8"
+              memory: 96Gi
+              nvidia.com/gpu: "${MR_GPU_COUNT}"
+          # Probe every 5 seconds during startup (upstream: 30 seconds) so that
+          # the measured ready time isn't rounded up by the probe period. Same
+          # value for both arms.
+          startupProbe:
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 720

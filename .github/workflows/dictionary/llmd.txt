@@ -79,6 +79,7 @@ ungated
 unquantized
 untar
 untardir
+unvalidated
 worktree
 worktrees
 xlabel

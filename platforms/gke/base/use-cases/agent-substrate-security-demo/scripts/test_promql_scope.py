@@ -231,6 +231,7 @@ class PromqlScopeTest(unittest.TestCase):
             self.assertNotIn("${", rendered, f"Unexpanded placeholder in {tmpl}")
             docs = [doc for doc in yaml.safe_load_all(rendered) if doc is not None]
             self.assertGreater(len(docs), 0, f"Empty YAML in {tmpl}")
+            self._assert_egress_rules_are_scoped(tmpl, docs)
 
         for dash_path in sorted((use_case_dir / "observability").rglob("*.json")):
             raw_dash = json.loads(dash_path.read_text(encoding="utf-8"))
@@ -250,6 +251,30 @@ class PromqlScopeTest(unittest.TestCase):
                             'resource.labels.cluster="ci-cluster"',
                             tsq["timeSeriesFilter"]["filter"],
                             str(dash_path),
+                        )
+
+    def _assert_egress_rules_are_scoped(self, tmpl: Path, docs: list[object]) -> None:
+        """No egress rule may match every destination or reach private ranges."""
+        private_ranges = {
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "100.64.0.0/10",
+            "169.254.0.0/16",
+        }
+        for doc in docs:
+            if not isinstance(doc, dict) or doc.get("kind") != "NetworkPolicy":
+                continue
+            for rule in doc.get("spec", {}).get("egress") or []:
+                peers = rule.get("to") or []
+                self.assertTrue(
+                    peers, f"{tmpl}: egress rule without `to` allows every destination"
+                )
+                for peer in peers:
+                    block = peer.get("ipBlock") or {}
+                    if block.get("cidr") == "0.0.0.0/0":
+                        self.assertLessEqual(
+                            private_ranges, set(block.get("except") or []), str(tmpl)
                         )
 
     def test_act4_custom_prompt_gates_and_non_poison_session_mutation(self) -> None:

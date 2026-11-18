@@ -170,5 +170,18 @@ spec:
     ports:
     - {protocol: TCP, port: 80}
     - {protocol: TCP, port: 988}
-  - ports:
+  # External HTTPS only (Vertex AI and other Google APIs). RFC 1918,
+  # carrier-grade NAT, and link-local ranges are excluded; atenet-router is
+  # reached through the dedicated rule above. If Google APIs are reached through
+  # a Private Service Connect endpoint, allow that address in its own ipBlock.
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+        - 100.64.0.0/10
+        - 169.254.0.0/16
+    ports:
     - {protocol: TCP, port: 443}
